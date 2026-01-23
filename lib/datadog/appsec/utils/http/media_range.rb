@@ -168,7 +168,7 @@ module Datadog
           #
           # returns true if the MediaType is accepted by this MediaRange
           def ===(other)
-            return self === MediaType.new(other) if other.is_a?(::String)
+            return self === MediaType.parse(other) if other.is_a?(::String)
 
             type == other.type && subtype == other.subtype && other.parameters.all? { |k, v| parameters[k] == v } ||
               type == other.type && wildcard?(:subtype) ||

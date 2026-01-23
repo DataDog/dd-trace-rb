@@ -1,8 +1,8 @@
 require 'datadog/appsec/utils/http/media_type'
 
 RSpec.describe Datadog::AppSec::Utils::HTTP::MediaType do
-  describe '.new' do
-    context 'with valid input' do
+  describe '.parse' do
+    context 'when input is valid' do
       expectations = {
         '*/*' => {type: '*', subtype: '*'},
         'text/*' => {type: 'text', subtype: '*'},
@@ -40,61 +40,57 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaType do
 
       expectations.each do |str, expected|
         it "parses #{str.inspect} to #{expected.inspect}" do
-          expect(described_class.new(str)).to have_attributes expected
+          expect(described_class.parse(str)).to have_attributes(expected)
         end
       end
     end
 
-    context 'with invalid input' do
-      parse_error = described_class::ParseError
-      expectations = {
-        'text/html ' => parse_error,
-        ' text/html' => parse_error,
-        'text /html' => parse_error,
-        'text/ html' => parse_error,
-        'text/plain;format = flowed' => parse_error,
-        'text/plain;format= flowed' => parse_error,
-        'text/plain;format =flowed' => parse_error,
-        '' => parse_error,
-        'text' => parse_error,
-        '/html' => parse_error,
-        'text/' => parse_error,
-        '/' => parse_error,
-        'text/html;' => parse_error,
-        'text/html;;charset=utf-8' => parse_error,
-        'text/html;charset' => parse_error,
-        'text/html;=utf-8' => parse_error,
-      }
+    context 'when input is invalid' do
+      invalid_inputs = [
+        'text/html ',
+        ' text/html',
+        'text /html',
+        'text/ html',
+        'text/plain;format = flowed',
+        'text/plain;format= flowed',
+        'text/plain;format =flowed',
+        '',
+        'text',
+        '/html',
+        'text/',
+        '/',
+        'text/html;',
+        'text/html;;charset=utf-8',
+        'text/html;charset',
+        'text/html;=utf-8',
+        nil,
+      ]
 
-      expectations.each do |str, expected|
-        it "raises #{expected} with #{str.inspect}" do
-          expect { described_class.new(str) }.to raise_error(expected)
+      invalid_inputs.each do |str|
+        it "returns nil for #{str.inspect}" do
+          expect(described_class.parse(str)).to be_nil
         end
-      end
-
-      it 'raises ParseError with nil' do
-        expect { described_class.new(nil) }.to raise_error(parse_error)
       end
     end
   end
 
   describe '#type' do
-    it { expect(described_class.new('text/html').type).to eq('text') }
-    it { expect(described_class.new('APPLICATION/JSON').type).to eq('application') }
-    it { expect(described_class.new('*/html').type).to eq('*') }
+    it { expect(described_class.parse('text/html').type).to eq('text') }
+    it { expect(described_class.parse('APPLICATION/JSON').type).to eq('application') }
+    it { expect(described_class.parse('*/html').type).to eq('*') }
   end
 
   describe '#subtype' do
-    it { expect(described_class.new('text/html').subtype).to eq('html') }
-    it { expect(described_class.new('text/HTML').subtype).to eq('html') }
-    it { expect(described_class.new('text/*').subtype).to eq('*') }
-    it { expect(described_class.new('application/vnd.api+json').subtype).to eq('vnd.api+json') }
+    it { expect(described_class.parse('text/html').subtype).to eq('html') }
+    it { expect(described_class.parse('text/HTML').subtype).to eq('html') }
+    it { expect(described_class.parse('text/*').subtype).to eq('*') }
+    it { expect(described_class.parse('application/vnd.api+json').subtype).to eq('vnd.api+json') }
   end
 
   describe '#parameters' do
-    it { expect(described_class.new('text/html').parameters).to eq({}) }
-    it { expect(described_class.new('text/html;charset=utf-8').parameters).to eq({'charset' => 'utf-8'}) }
-    it { expect(described_class.new('text/html;a=1;b=2').parameters).to eq({'a' => '1', 'b' => '2'}) }
+    it { expect(described_class.parse('text/html').parameters).to eq({}) }
+    it { expect(described_class.parse('text/html;charset=utf-8').parameters).to eq({'charset' => 'utf-8'}) }
+    it { expect(described_class.parse('text/html;a=1;b=2').parameters).to eq({'a' => '1', 'b' => '2'}) }
   end
 
   describe '#to_s' do
@@ -110,56 +106,8 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaType do
 
     expectations.each do |media, expected|
       it "converts #{media.inspect} to #{expected.inspect}" do
-        expect(described_class.new(media).to_s).to eq(expected)
+        expect(described_class.parse(media).to_s).to eq(expected)
       end
     end
   end
-
-  describe '.json?' do
-    context 'when is a valid JSON media type' do
-      it { expect(described_class.json?('application/json')).to be(true) }
-      it { expect(described_class.json?('APPLICATION/JSON')).to be(true) }
-      it { expect(described_class.json?('application/json; charset=utf-8')).to be(true) }
-      it { expect(described_class.json?('application/hal+json')).to be(true) }
-      it { expect(described_class.json?('application/vnd.api+json')).to be(true) }
-      it { expect(described_class.json?('application/vnd.datadog+json')).to be(true) }
-      it { expect(described_class.json?('text/json')).to be(true) }
-    end
-
-    context 'when is not a JSON media type' do
-      it { expect(described_class.json?('text/html')).to be(false) }
-      it { expect(described_class.json?('text/plain')).to be(false) }
-      it { expect(described_class.json?('application/xml')).to be(false) }
-      it { expect(described_class.json?('application/x-www-form-urlencoded')).to be(false) }
-      it { expect(described_class.json?('multipart/form-data')).to be(false) }
-    end
-
-    context 'when is invalid media type' do
-      it { expect(described_class.json?(nil)).to be(false) }
-      it { expect(described_class.json?('')).to be(false) }
-      it { expect(described_class.json?('invalid')).to be(false) }
-      it { expect(described_class.json?('/')).to be(false) }
-    end
-  end
-
-  describe '.form_urlencoded?' do
-    context 'when is a valid form-urlencoded media type' do
-      it { expect(described_class.form_urlencoded?('application/x-www-form-urlencoded')).to be(true) }
-      it { expect(described_class.form_urlencoded?('APPLICATION/X-WWW-FORM-URLENCODED')).to be(true) }
-      it { expect(described_class.form_urlencoded?('application/x-www-form-urlencoded; charset=utf-8')).to be(true) }
-    end
-
-    context 'when is not a form-urlencoded media type' do
-      it { expect(described_class.form_urlencoded?('application/json')).to be(false) }
-      it { expect(described_class.form_urlencoded?('text/plain')).to be(false) }
-      it { expect(described_class.form_urlencoded?('multipart/form-data')).to be(false) }
-    end
-
-    context 'when is invalid media type' do
-      it { expect(described_class.form_urlencoded?(nil)).to be(false) }
-      it { expect(described_class.form_urlencoded?('')).to be(false) }
-      it { expect(described_class.form_urlencoded?('invalid')).to be(false) }
-    end
-  end
-
 end
