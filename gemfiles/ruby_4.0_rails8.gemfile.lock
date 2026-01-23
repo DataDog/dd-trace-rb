@@ -4,7 +4,7 @@ PATH
     datadog (2.28.0)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.1)
-      libdatadog (~> 25.0.0.1.0)
+      libdatadog (~> 26.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
@@ -114,7 +114,6 @@ GEM
     erb (5.0.2)
     erubi (1.13.1)
     extlz4 (0.3.5)
-    ffi (1.17.3-aarch64-linux-gnu)
     ffi (1.17.3-x86_64-linux-gnu)
     globalid (1.3.0)
       activesupport (>= 6.1)
@@ -130,11 +129,8 @@ GEM
       reline (>= 0.4.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (25.0.0.1.0-aarch64-linux)
-    libdatadog (25.0.0.1.0-x86_64-linux)
+    libdatadog (26.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.0)
-      ffi (~> 1.0)
-    libddwaf (1.30.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.0-x86_64-linux)
       ffi (~> 1.0)
@@ -151,7 +147,6 @@ GEM
     memory_profiler (0.9.14)
     method_source (1.1.0)
     mini_mime (1.1.5)
-    mini_portile2 (2.8.9)
     minitest (6.0.1)
       prism (~> 1.5)
     msgpack (1.8.0)
@@ -165,9 +160,6 @@ GEM
     net-smtp (0.5.1)
       net-protocol
     nio4r (2.7.4)
-    nokogiri (1.18.10)
-      mini_portile2 (~> 2.8.2)
-      racc (~> 1.4)
     nokogiri (1.18.10-x86_64-linux-gnu)
       racc (~> 1.4)
     os (1.1.4)
@@ -278,7 +270,6 @@ GEM
     zeitwerk (2.7.3)
 
 PLATFORMS
-  aarch64-linux
   x86_64-linux
 
 DEPENDENCIES
@@ -311,4 +302,4 @@ DEPENDENCIES
   webrick (>= 1.7.0)
 
 BUNDLED WITH
-  4.0.3
+   2.7.2
