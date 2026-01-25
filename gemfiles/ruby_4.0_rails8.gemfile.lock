@@ -311,4 +311,4 @@ DEPENDENCIES
   webrick (>= 1.7.0)
 
 BUNDLED WITH
-  4.0.3
+   2.7.2
