@@ -3,7 +3,7 @@ module Datadog
     module Contrib
       module Integration
         type integration_registry = ::Hash[::Symbol, RegisteredIntegration]
-        type integration_options = ::Hash[untyped, untyped]
+        type integration_options = ::Hash[::Symbol, untyped]
 
         interface _Patcher
           def patched?: () -> bool

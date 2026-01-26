@@ -1,6 +1,8 @@
 module RubyLLM
   class Chat
-    def messages: () -> ::Array[::RubyLLM::Message]
+    def messages: () -> ::Array[Message]
+
+    def handle_tool_calls: (Message response) ?{ () -> untyped } -> (Message | Tool::Halt)
   end
 
   class Message
@@ -8,7 +10,7 @@ module RubyLLM
 
     def content: () -> ::String
 
-    def tool_calls: () -> ::Hash[::String, ::RubyLLM::ToolCall]
+    def tool_calls: () -> ::Hash[::String, ToolCall]
 
     def tool_call_id: () -> ::String
 
@@ -21,5 +23,10 @@ module RubyLLM
     def name: () -> ::String
 
     def arguments: () -> ::Hash[::String | ::Symbol, untyped]
+  end
+
+  class Tool
+    class Halt
+    end
   end
 end
