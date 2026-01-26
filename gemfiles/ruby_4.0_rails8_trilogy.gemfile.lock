@@ -326,4 +326,4 @@ DEPENDENCIES
   zstd-ruby
 
 BUNDLED WITH
-  4.0.3
+   2.7.2
