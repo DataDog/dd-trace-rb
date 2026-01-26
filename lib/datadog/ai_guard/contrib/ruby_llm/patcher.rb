@@ -20,6 +20,8 @@ module Datadog
 
           def patch
             ::RubyLLM::Chat.prepend(ChatInstrumentation)
+
+            Patcher.instance_variable_set(:@patched, true)
           end
         end
       end
