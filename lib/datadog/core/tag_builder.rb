@@ -3,6 +3,7 @@
 require_relative 'environment/socket'
 require_relative 'environment/identity'
 require_relative 'environment/git'
+require_relative 'environment/process'
 
 module Datadog
   module Core
@@ -27,7 +28,7 @@ module Datadog
         # Note that user tags get overwritten by our tags, and also
         # that user tags do not get compacted (nil values are sent as
         # empty strings).
-        settings.tags.merge(fixed_environment_tags).merge({
+        constructed_tags = settings.tags.merge(fixed_environment_tags).merge({
           # Hostname can possibly change during application runtime.
           'host' => Environment::Socket.hostname,
           # Runtime ID changes upon a fork.
@@ -39,6 +40,13 @@ module Datadog
           'service' => settings.service,
           'version' => settings.version,
         }.compact)
+
+        if settings.experimental_propagate_process_tags_enabled
+          process_tags = Environment::Process.serialized
+          constructed_tags['process_tags'] = process_tags unless process_tags.empty?
+        end
+
+        constructed_tags
       end
 
       def self.serialize_tags(tags)
