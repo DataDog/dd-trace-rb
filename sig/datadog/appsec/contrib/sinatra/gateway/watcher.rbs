@@ -6,11 +6,11 @@ module Datadog
           module Watcher
             def self.watch: () -> void
 
-            def self.watch_request_dispatch: (?Datadog::AppSec::Instrumentation::Gateway gateway) -> void
+            def self.watch_request_dispatch: (?AppSec::Instrumentation::Gateway gateway) -> void
 
-            def self.watch_request_routed: (?Datadog::AppSec::Instrumentation::Gateway gateway) -> void
+            def self.watch_request_routed: (?AppSec::Instrumentation::Gateway gateway) -> void
 
-            def self.watch_response_body_json: (?Datadog::AppSec::Instrumentation::Gateway gateway) -> void
+            def self.watch_response_body_json: (?AppSec::Instrumentation::Gateway gateway) -> void
           end
         end
       end

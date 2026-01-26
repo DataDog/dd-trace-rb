@@ -1,17 +1,17 @@
 module Rack
   class Request
-    def initialize: (::Hash[::String, top] env) -> void
-    
-    def env: () -> ::Hash[::String, top]
-    
-    def params: () -> ::Hash[::String, top]
-    
-    def body: () -> top
-    
+    def initialize: (::Hash[::String, any] env) -> void
+
+    def env: () -> ::Hash[::String, any]
+
+    def params: () -> ::Hash[::String, any]
+
+    def body: () -> any
+
     def get?: () -> bool
-    
+
     def post?: () -> bool
-    
+
     def path: () -> ::String
   end
 end

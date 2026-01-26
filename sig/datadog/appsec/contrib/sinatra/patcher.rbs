@@ -25,7 +25,7 @@ module Datadog
 
           def process_route: (*untyped args) { (*untyped) -> untyped } -> untyped
 
-          def params: () -> ::Hash[::String, top]
+          def params: () -> ::Hash[::String, any]
         end
 
         module Patcher

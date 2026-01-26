@@ -4,11 +4,11 @@ module Datadog
       module Sinatra
         module Gateway
           class RouteParams < Instrumentation::Gateway::Argument
-            @params: ::Hash[::String, top]
+            @params: ::Hash[::String, any]
 
-            attr_reader params: ::Hash[::String, top]
+            attr_reader params: ::Hash[::String, any]
 
-            def initialize: (::Hash[::String, top] params) -> void
+            def initialize: (::Hash[::String, any] params) -> void
           end
         end
       end
