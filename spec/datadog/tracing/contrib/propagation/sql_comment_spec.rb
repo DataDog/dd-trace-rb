@@ -56,12 +56,6 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         described_class.annotate!(span_op, propagation_mode)
         expect(span_op.get_tag('_dd.propagated_hash')).to eq('1234567890')
       end
-
-      it 'sets as tag (meta) not as metric' do
-        described_class.annotate!(span_op, propagation_mode)
-
-        expect(span_op.get_tag('_dd.propagated_hash')).to eq('1234567890')
-      end
     end
 
     context 'when the base hash is not present' do
