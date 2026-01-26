@@ -14,19 +14,35 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
     end
 
     allow(Datadog::AppSec).to receive(:active_context).and_return(context)
+    allow(Datadog::AppSec).to receive(:rasp_enabled?).and_return(true)
 
     WebMock.disable_net_connect!(allow: agent_url)
     WebMock.enable!(allow: agent_url)
 
-    stub_request(:get, 'http://example.com/success?z=1')
+    stub_request(:post, 'http://example.com/text-plain?z=1')
       .to_return(
         status: 200,
-        body: 'OK',
+        body: '{"response":"OK"}',
         headers: {
+          'Content-Type' => 'text/plain',
           'Set-Cookie' => ['a=1', 'b=2'],
           'Via' => ['1.1 foo.io', '2.2 bar.io'],
           'Age' => '1'
         }
+      )
+
+    stub_request(:post, 'http://example.com/application-json')
+      .to_return(
+        status: 200,
+        body: '{"response":"OK"}',
+        headers: {'Content-Type' => 'application/json'}
+      )
+
+    stub_request(:post, 'http://example.com/invalid-json')
+      .to_return(
+        status: 200,
+        body: 'not json',
+        headers: {'Content-Type' => 'application/json'}
       )
   end
 
@@ -38,7 +54,7 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
     it 'does not call waf when making a request' do
       expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
 
-      RestClient.get('http://example.com/success?z=1')
+      RestClient.post('http://example.com/text-plain?z=1', nil)
     end
   end
 
@@ -48,21 +64,19 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
     it 'does not call waf when making a request' do
       expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
 
-      RestClient.get('http://example.com/success?z=1')
+      RestClient.post('http://example.com/text-plain?z=1', nil)
     end
   end
 
   context 'when RASP is enabled' do
-    before { allow(Datadog::AppSec).to receive(:rasp_enabled?).and_return(true) }
-
     it 'calls waf with correct arguments when making a request' do
       expect(Datadog::AppSec.active_context).to receive(:run_rasp)
         .with(
           'ssrf',
           {},
           hash_including(
-            'server.io.net.url' => 'http://example.com/success?z=1',
-            'server.io.net.request.method' => 'GET',
+            'server.io.net.url' => 'http://example.com/text-plain?z=1',
+            'server.io.net.request.method' => 'POST',
             'server.io.net.request.headers' => hash_including(
               'cookie' => 'x=1; y=2',
               'accept' => 'text/plain, application/json',
@@ -89,16 +103,111 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
           phase: 'response'
         )
 
-      RestClient.get(
-        'http://example.com/success?z=1', {'Cookie' => 'x=1; y=2', 'Accept' => 'text/plain, application/json', 'DNT' => '1'}
+      RestClient.post(
+        'http://example.com/text-plain?z=1',
+        nil,
+        {'Cookie' => 'x=1; y=2', 'Accept' => 'text/plain, application/json', 'DNT' => '1'}
       )
     end
 
     it 'returns the http response' do
-      response = RestClient.get('http://example.com/success?z=1')
+      response = RestClient.post('http://example.com/text-plain?z=1', nil)
 
       expect(response.code).to eq(200)
-      expect(response.body).to eq('OK')
+      expect(response.body).to eq('{"response":"OK"}')
+    end
+  end
+
+  context 'when request body is nil' do
+    before { RestClient.post('http://example.com/application-json', nil, {'Content-Type' => 'application/json'}) }
+
+    it 'excludes body from ephemeral data' do
+      expect(context).to have_received(:run_rasp).with(
+        'ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'request'
+      )
+    end
+  end
+
+  context 'when request body is a String' do
+    context 'when JSON is valid' do
+      before { RestClient.post('http://example.com/application-json', '{"key":"value"}', {'Content-Type' => 'application/json'}) }
+
+      it 'includes parsed body in ephemeral data' do
+        expect(context).to have_received(:run_rasp).with(
+          'ssrf', {}, hash_including('server.io.net.request.body' => {'key' => 'value'}), anything, phase: 'request'
+        )
+      end
+    end
+
+    context 'when JSON is invalid' do
+      before do
+        allow(Datadog::AppSec.telemetry).to receive(:report)
+
+        RestClient.post('http://example.com/application-json', 'not json', {'Content-Type' => 'application/json'})
+      end
+
+      it 'does not include body in ephemeral data and reports error to telemetry' do
+        expect(context).to have_received(:run_rasp)
+          .with('ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'request')
+
+        expect(Datadog::AppSec.telemetry).to have_received(:report)
+          .with(an_instance_of(JSON::ParserError), description: 'AppSec: Failed to parse body')
+      end
+    end
+  end
+
+  context 'when request content-type is not JSON' do
+    before { RestClient.post('http://example.com/application-json', '{"key":"value"}', {'Content-Type' => 'text/plain'}) }
+
+    it 'does not include body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'request')
+    end
+  end
+
+  context 'when request content-type is application/x-www-form-urlencoded' do
+    before { RestClient.post('http://example.com/application-json', {key: 'value', foo: 'bar'}) }
+
+    it 'includes parsed body in ephemeral data' do
+      expect(context).to have_received(:run_rasp).with(
+        'ssrf', {}, hash_including('server.io.net.request.body' => {'key' => 'value', 'foo' => 'bar'}), anything, phase: 'request'
+      )
+    end
+  end
+
+  context 'when response body is valid JSON' do
+    before { RestClient.post('http://example.com/application-json', nil) }
+
+    it 'includes parsed body in ephemeral data' do
+      expect(context).to have_received(:run_rasp).with('ssrf', {}, anything, anything, phase: 'request')
+      expect(context).to have_received(:run_rasp).with(
+        'ssrf', {}, hash_including('server.io.net.response.body' => {'response' => 'OK'}), anything, phase: 'response'
+      )
+    end
+  end
+
+  context 'when response body is invalid JSON' do
+    before do
+      allow(Datadog::AppSec.telemetry).to receive(:report)
+
+      RestClient.post('http://example.com/invalid-json', nil)
+    end
+
+    it 'does not include body in ephemeral data and reports error to telemetry' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+
+      expect(Datadog::AppSec.telemetry).to have_received(:report)
+        .with(an_instance_of(JSON::ParserError), description: 'AppSec: Failed to parse body')
+    end
+  end
+
+  context 'when response content-type is not JSON' do
+    before { RestClient.post('http://example.com/text-plain?z=1', nil) }
+
+    it 'does not include body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
     end
   end
 end
