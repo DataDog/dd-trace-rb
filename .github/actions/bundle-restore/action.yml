@@ -4,7 +4,7 @@ description: 'Restores bundle cache for GitHub Actions'
 
 inputs:
   namespace:
-    description: 'Cache namespace (base or full) - used to generate cache key'
+    description: 'Cache namespace (base or matrix) - used to generate cache key'
     required: false
   lockfile:
     description: 'Lockfile artifact name to download'

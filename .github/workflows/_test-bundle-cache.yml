@@ -32,7 +32,7 @@ jobs:
         id: restore-cache
         uses: ./.github/actions/bundle-restore
         with:
-          namespace: full
+          namespace: matrix
 
       - name: Show cache status
         run: |

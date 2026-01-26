@@ -1,4 +1,6 @@
 require_relative 'appraisal_conversion'
+require 'fileutils'
+require 'shellwords'
 
 namespace :dependency do
   # Replacement for `bundle exec appraisal list`
@@ -48,7 +50,12 @@ namespace :dependency do
   task :install, [:frozen] do |t, args|
     frozen = args[:frozen] == 'frozen'
     gemfiles = [''] + Dir.glob(AppraisalConversion.gemfile_pattern).sort
+    if (ENV['ACT'] == 'true' || ENV['DD_ACT_LIMIT_GEMFILES'] == 'true') && gemfiles.size > 1
+      gemfiles = gemfiles.first(2)
+    end
     total = gemfiles.size
+    downloads_dir = 'tmp/bundle-downloads-matrix'
+    FileUtils.mkdir_p(downloads_dir)
 
     # Add Linux platforms for CI compatibility (skip for JRuby and frozen mode)
     add_platforms = !frozen && RUBY_ENGINE != 'jruby'
@@ -57,13 +64,16 @@ namespace :dependency do
       puts "  # [#{index + 1}/#{total}] #{File.basename(gemfile)}"
 
       env = {'BUNDLE_GEMFILE' => gemfile}
+      gemfile_name = gemfile.empty? ? 'Gemfile' : File.basename(gemfile)
+      downloads_file = downloads_dir ? File.join(downloads_dir, "#{gemfile_name}.txt") : nil
 
       start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       AppraisalConversion.with_retry do
         Bundler.with_unbundled_env do
           sh(env, 'bundle lock --add-platform x86_64-linux aarch64-linux') if add_platforms
           env['BUNDLE_FROZEN'] = 'true' if frozen
-          sh(env, 'bundle install')
+          command = "set -o pipefail; bundle install --verbose 2>&1 | grep -E '^(Fetching|Downloading)\\b' >> #{Shellwords.escape(downloads_file)} || true"
+          sh(env, "bash -lc #{Shellwords.escape(command)}")
         end
       end
       elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start
