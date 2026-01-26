@@ -6,7 +6,6 @@ module Datadog
         type final_call_result = untyped
         type final_call = ^() -> final_call_result
         type stack = ::Proc
-        type argument = Gateway::Argument | ::String | ::Array[Gateway::Argument]
 
         type stack_result = ::Array[nil | middleware_result | final_call_result]
 
@@ -15,12 +14,9 @@ module Datadog
 
         def initialize: () -> void
 
-        def push: (::String name, argument env) ?{ () -> final_call_result } -> stack_result
+        def push: (::String name, any env) ?{ () -> final_call_result } -> stack_result
 
-        def watch: ("sinatra.request.dispatch", ::Symbol key) { (stack, ::Datadog::AppSec::Contrib::Sinatra::Gateway::Request) -> stack_result } -> void
-                 | ("sinatra.request.routed", ::Symbol key) { (stack, [::Datadog::AppSec::Contrib::Sinatra::Gateway::Request, ::Datadog::AppSec::Contrib::Sinatra::Gateway::RouteParams]) -> stack_result } -> void
-                 | ("sinatra.response.body.json", ::Symbol key) { (stack, Gateway::DataContainer) -> stack_result } -> void
-                 | (::String name, ::Symbol key) { (stack, argument) -> stack_result } -> void
+        def watch: (::String name, ::Symbol key) { (stack next, any env) -> stack_result } -> void
 
         def pushed?: (::String name) -> bool
       end
