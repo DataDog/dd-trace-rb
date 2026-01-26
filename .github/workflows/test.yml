@@ -27,6 +27,9 @@ jobs:
   # ADD NEW RUBIES HERE
   ruby-40:
     name: "Ruby 4.0"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: ruby
@@ -35,6 +38,9 @@ jobs:
 
   ruby-34:
     name: "Ruby 3.4"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: ruby
@@ -43,6 +49,9 @@ jobs:
 
   ruby-33:
     name: "Ruby 3.3"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: ruby
@@ -51,6 +60,9 @@ jobs:
 
   ruby-32:
     name: "Ruby 3.2"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: ruby
@@ -59,6 +71,9 @@ jobs:
 
   ruby-31:
     name: "Ruby 3.1"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: ruby
@@ -67,6 +82,9 @@ jobs:
 
   ruby-30:
     name: "Ruby 3.0"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: ruby
@@ -75,6 +93,9 @@ jobs:
 
   ruby-27:
     name: "Ruby 2.7"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: ruby
@@ -83,6 +104,9 @@ jobs:
 
   ruby-26:
     name: "Ruby 2.6"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: ruby
@@ -91,6 +115,9 @@ jobs:
 
   ruby-25:
     name: "Ruby 2.5"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: ruby
@@ -99,6 +126,9 @@ jobs:
 
   jruby-100:
     name: "JRuby 10.0"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: jruby
@@ -107,6 +137,9 @@ jobs:
 
   jruby-94:
     name: "JRuby 9.4"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: jruby
@@ -115,6 +148,9 @@ jobs:
 
   jruby-93:
     name: "JRuby 9.3"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: jruby
@@ -123,6 +159,9 @@ jobs:
 
   jruby-92:
     name: "JRuby 9.2"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: jruby
