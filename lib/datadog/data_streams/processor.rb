@@ -316,6 +316,16 @@ module Datadog
             'Hostname' => hostname
           }
 
+          if @settings.experimental_propagate_process_tags_enabled && payload
+            process_tags = Core::Environment::Process.serialized
+            # Datadog Agent expects an array of tag strings, not a single serialized string
+            # Otherwise it fails at "Error decoding request msgp: attempted to decode type \"str\" with method for \"array\" at ProcessTags"}
+            # Split "key1:val1,key2:val2" into ["key1:val1", "key2:val2"]
+            unless process_tags.empty?
+              payload['ProcessTags'] = process_tags.split(',')
+            end
+          end
+
           # Clear consumer stats even if sending fails to prevent unbounded memory growth
           # Must be done inside mutex before we release it
           @consumer_stats.clear
@@ -366,12 +376,14 @@ module Datadog
 
         bytes = service.bytes + env.bytes
 
-        # If there is a propagation hash, add it to DSM back propagation
+        # If there is a propagation checksum, add it to DSM back propagation
         # Follows Python: https://github.com/DataDog/dd-trace-py/blob/8b739fe0837a22cab76116050e8b7e4b45407c6c/ddtrace/internal/datastreams/processor.py#L423
         # bytes order is service + env + process tags + container tags
-        propagation_hash = Datadog.send(:components).agent_info.propagation_hash
-        if propagation_hash
-          bytes += [propagation_hash].pack('Q<').bytes
+        if @settings.experimental_propagate_process_tags_enabled
+          propagation_checksum = Datadog.send(:components).agent_info.propagation_checksum
+          if propagation_checksum
+            bytes += [propagation_checksum].pack('Q<').bytes
+          end
         end
 
         tags.each { |tag| bytes += tag.bytes }

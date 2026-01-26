@@ -13,15 +13,15 @@ KINESIS_ORDERS_PRODUCE_HASH = 14687993552271180499
 KAFKA_PAYMENTS_PRODUCE_HASH = 10550901661805295262
 
 RSpec.describe Datadog::DataStreams::Processor do
-  let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_hash: nil) }
+  let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: nil) }
   before do
     skip_if_data_streams_not_supported(self)
-    # Stub agent_info to nil for the existing tests that aren't testing this functionality
-    allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info))
+    # Stub agent_info and tracer for the existing tests
+    allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info, tracer: nil))
   end
 
   let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }
-  let(:settings) { double('Settings', service: Datadog.configuration.service, env: Datadog.configuration.env) }
+  let(:settings) { double('Settings', service: Datadog.configuration.service, env: Datadog.configuration.env, experimental_propagate_process_tags_enabled: false) }
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettings.new(adapter: :test, hostname: 'localhost', port: 9999) }
   let(:processor) { described_class.new(interval: 10.0, logger: logger, settings: settings, agent_settings: agent_settings) }
 
@@ -342,37 +342,79 @@ RSpec.describe Datadog::DataStreams::Processor do
       processor.stop(true)
     end
 
-    context 'when the propagation hash is present' do
-      let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_hash: 1234567890) }
+    context 'when process tags are enabled' do
+      let(:settings) { double('Settings', service: 'test-service', env: 'test', experimental_propagate_process_tags_enabled: true) }
+      let(:processor) { described_class.new(interval: 10.0, logger: logger, settings: settings, agent_settings: agent_settings) }
 
-      before do
-        allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info))
+      context 'when propagation checksum is present' do
+        let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: 1234567890) }
+
+        before do
+          allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info))
+        end
+
+        it 'includes the propagation checksum in the pathway hash' do
+          hash_with_checksum = processor.send(:compute_pathway_hash, 0, ['type:kafka'])
+
+          allow(agent_info).to receive(:propagation_checksum).and_return(nil)
+          hash_without_checksum = processor.send(:compute_pathway_hash, 0, ['type:kafka'])
+
+          expect(hash_with_checksum).not_to eq(hash_without_checksum)
+          expect(hash_with_checksum).to be_a(Integer)
+          expect(hash_with_checksum).to be > 0
+        end
       end
 
-      it 'computes the pathway hash with the propagation hash' do
-        hash_with_propagation = processor.send(:compute_pathway_hash, 0, ['type:kafka'])
+      context 'when propagation checksum is not present' do
+        let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: nil) }
 
-        allow(agent_info).to receive(:propagation_hash).and_return(nil)
-        hash_without_propagation = processor.send(:compute_pathway_hash, 0, ['type:kafka'])
+        before do
+          allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info))
+        end
 
-        expect(hash_with_propagation).not_to eq(hash_without_propagation)
-        expect(hash_with_propagation).to be_a(Integer)
-        expect(hash_with_propagation).to be > 0
+        it 'computes the pathway hash without the propagation checksum' do
+          hash = processor.send(:compute_pathway_hash, 0, ['type:kafka'])
+
+          expect(hash).to be_a(Integer)
+          expect(hash).to be > 0
+        end
       end
     end
 
-    context 'when the propagation hash is not present' do
-      let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_hash: nil) }
+    context 'when process tags are not enabled' do
+      let(:settings) { double('Settings', service: 'test-service', env: 'test', experimental_propagate_process_tags_enabled: false) }
+      let(:processor) { described_class.new(interval: 10.0, logger: logger, settings: settings, agent_settings: agent_settings) }
 
-      before do
-        allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info))
+      context 'when propagation checksum is present' do
+        let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: 1234567890) }
+
+        before do
+          allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info))
+        end
+
+        it 'does not include the propagation checksum in the pathway hash' do
+          hash_with_checksum_available = processor.send(:compute_pathway_hash, 0, ['type:kafka'])
+
+          allow(agent_info).to receive(:propagation_checksum).and_return(nil)
+          hash_without_checksum = processor.send(:compute_pathway_hash, 0, ['type:kafka'])
+
+          expect(hash_with_checksum_available).to eq(hash_without_checksum)
+        end
       end
 
-      it 'computes the pathway hash without the propagation hash' do
-        hash = processor.send(:compute_pathway_hash, 0, ['type:kafka'])
+      context 'when propagation checksum is not present' do
+        let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: nil) }
 
-        expect(hash).to be_a(Integer)
-        expect(hash).to be > 0
+        before do
+          allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info))
+        end
+
+        it 'computes the pathway hash without the propagation checksum' do
+          hash = processor.send(:compute_pathway_hash, 0, ['type:kafka'])
+
+          expect(hash).to be_a(Integer)
+          expect(hash).to be > 0
+        end
       end
     end
   end
