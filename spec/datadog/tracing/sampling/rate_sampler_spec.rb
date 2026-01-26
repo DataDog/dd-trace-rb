@@ -24,7 +24,7 @@ RSpec.describe Datadog::Tracing::Sampling::RateSampler do
         end
 
         it do
-          expect(Datadog.logger).to receive(:warn).with('sample rate is not between 0 and 1, falling back to 1')
+          expect(Datadog.logger).to receive(:warn).with('Sample rate is not between 0.0 and 1.0, falling back to 1.0')
 
           sampler
         end
@@ -54,7 +54,7 @@ RSpec.describe Datadog::Tracing::Sampling::RateSampler do
         it_behaves_like 'sampler with sample rate', 1.0
 
         it do
-          expect(Datadog.logger).to receive(:warn).with('sample rate is not between 0 and 1, falling back to 1')
+          expect(Datadog.logger).to receive(:warn).with('Sample rate is not between 0.0 and 1.0, falling back to 1.0')
 
           sampler
         end
