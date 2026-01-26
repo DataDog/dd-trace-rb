@@ -32,6 +32,7 @@ jobs:
       engine: ruby
       version: "4.0"
       alias: ruby-40
+      image: ghcr.io/marcotc/images-rb/engines/ruby:4.0-gnu-gcc-slimtest-751283a
 
   ruby-34:
     name: "Ruby 3.4"

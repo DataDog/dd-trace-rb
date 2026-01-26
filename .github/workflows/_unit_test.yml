@@ -7,6 +7,9 @@ on: # yamllint disable-line rule:truthy
       engine:
         required: true
         type: string
+      image:
+        required: false
+        type: string
       version:
         required: true
         type: string
@@ -56,7 +59,7 @@ jobs:
       cache-key: "${{ steps.bundle-cache.outputs.cache-key }}"
       lockfile: "${{ steps.bundle-cache.outputs.lockfile }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc
+      image: ${{ inputs.image || format('ghcr.io/datadog/images-rb/engines/{0}:{1}-gnu-gcc', inputs.engine, inputs.version) }}
     steps:
     - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       with:
@@ -125,7 +128,7 @@ jobs:
       matrix:
         include: "${{ fromJson(needs.batch.outputs.batches).include }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc
+      image: ${{ inputs.image || format('ghcr.io/datadog/images-rb/engines/{0}:{1}-gnu-gcc', inputs.engine, inputs.version) }}
       env:
         DD_INSTRUMENTATION_TELEMETRY_ENABLED: 'false'
         DD_REMOTE_CONFIGURATION_ENABLED: 'false'
@@ -194,7 +197,7 @@ jobs:
       matrix:
         include: "${{ fromJson(needs.batch.outputs.misc).include }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc
+      image: ${{ inputs.image || format('ghcr.io/datadog/images-rb/engines/{0}:{1}-gnu-gcc', inputs.engine, inputs.version) }}
       env:
         DD_INSTRUMENTATION_TELEMETRY_ENABLED: 'false'
         DD_REMOTE_CONFIGURATION_ENABLED: 'false'
