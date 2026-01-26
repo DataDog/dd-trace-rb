@@ -3,6 +3,8 @@
 require_relative '../../event'
 require_relative '../../trace_keeper'
 require_relative '../../security_event'
+require_relative '../../utils/http/media_type'
+require_relative '../../utils/http/body'
 
 module Datadog
   module AppSec
@@ -14,22 +16,34 @@ module Datadog
             context = AppSec.active_context
             return super unless context && AppSec.rasp_enabled?
 
-            timeout = Datadog.configuration.appsec.waf_timeout
+            headers = normalize_request_headers
             ephemeral_data = {
               'server.io.net.url' => url,
               'server.io.net.request.method' => method.to_s.upcase,
-              'server.io.net.request.headers' => normalize_request_headers
+              'server.io.net.request.headers' => headers
             }
 
+            if payload && (media_type = Utils::HTTP::MediaType.parse(headers['content-type']))
+              body = Utils::HTTP::Body.parse(payload.to_s, media_type: media_type)
+              ephemeral_data['server.io.net.request.body'] = body if body
+            end
+
+            timeout = Datadog.configuration.appsec.waf_timeout
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_REQUEST_PHASE)
             handle(result, context: context) if result.match?
 
             response = super
 
+            headers = normalize_response_headers(response)
             ephemeral_data = {
               'server.io.net.response.status' => response.code.to_s,
-              'server.io.net.response.headers' => normalize_response_headers(response)
+              'server.io.net.response.headers' => headers
             }
+
+            if (media_type = Utils::HTTP::MediaType.parse(headers['content-type']))
+              body = Utils::HTTP::Body.parse(response.body, media_type: media_type)
+              ephemeral_data['server.io.net.response.body'] = body if body
+            end
 
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
             handle(result, context: context) if result.match?
