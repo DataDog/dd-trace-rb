@@ -77,7 +77,7 @@ RSpec.describe Datadog::Core::KnuthSampler do
       end
 
       it 'samples approximately 50% of sequential inputs' do
-        sampled_count = (0...1000).count { |i| sampler.sample?(i) }
+        sampled_count = (0...1000).sum { |i| sampler.sample?(i) ? 1 : 0 }
         expect(sampled_count).to be_within(100).of(500)
       end
     end
@@ -104,7 +104,7 @@ RSpec.describe Datadog::Core::KnuthSampler do
       subject(:sampler) { described_class.new(0.1) }
 
       it 'samples ~10% of 1000 inputs' do
-        sampled_count = (0...1000).count { |i| sampler.sample?(i) }
+        sampled_count = (0...1000).sum { |i| sampler.sample?(i) ? 1 : 0 }
         expect(sampled_count).to be_within(15).of(100)
       end
     end
@@ -113,7 +113,7 @@ RSpec.describe Datadog::Core::KnuthSampler do
       subject(:sampler) { described_class.new(0.25) }
 
       it 'samples ~25% of 1000 inputs' do
-        sampled_count = (0...1000).count { |i| sampler.sample?(i) }
+        sampled_count = (0...1000).sum { |i| sampler.sample?(i) ? 1 : 0 }
         expect(sampled_count).to be_within(38).of(250)
       end
     end
@@ -122,7 +122,7 @@ RSpec.describe Datadog::Core::KnuthSampler do
       subject(:sampler) { described_class.new(0.9) }
 
       it 'samples ~90% of 1000 inputs' do
-        sampled_count = (0...1000).count { |i| sampler.sample?(i) }
+        sampled_count = (0...1000).sum { |i| sampler.sample?(i) ? 1 : 0 }
         expect(sampled_count).to be_within(135).of(900)
       end
     end
