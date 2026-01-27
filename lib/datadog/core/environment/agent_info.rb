@@ -78,7 +78,7 @@ module Datadog
           other.is_a?(self.class) && other.agent_settings == agent_settings
         end
 
-        # Returns the propagation checksum, with part of the datafrom the Agent.
+        # Returns the propagation checksum, with part of the data from the Agent.
         # Currently called/used by the DBM code to inject the propagation checksum into the SQL comment.
         #
         # The checksum is populated by the trace transport's periodic fetch calls.
