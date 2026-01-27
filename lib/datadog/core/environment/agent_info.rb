@@ -128,9 +128,6 @@ module Datadog
             # new_container_tags_value (non nil) over @container_tags_checksum (string?) to avoid steep errors
             data = process_tags + new_container_tags_value
             @propagation_checksum = Core::Utils::FNV.fnv1_64(data)
-          elsif !defined?(@propagation_checksum)
-            # Cache nil to avoid repeated fetch attempts when agent doesn't provide the header
-            @propagation_checksum = nil
           end
         end
       end
