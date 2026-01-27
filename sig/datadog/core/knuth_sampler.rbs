@@ -17,8 +17,6 @@ module Datadog
 
       def initialize: (?::Float | ::Integer rate, ?knuth_factor: ::Integer) -> void
 
-      def rate=: (::Float | ::Integer rate) -> void
-
       def sample?: (::Integer input) -> bool
     end
   end

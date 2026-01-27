@@ -10,6 +10,7 @@ module Datadog
     # The algorithm multiplies the input by a large prime (Knuth factor), takes modulo
     # to constrain to a fixed range, and compares against a threshold derived from the sample rate.
     #
+    # @api private
     # @see https://en.wikipedia.org/wiki/Hash_function#Multiplicative_hashing
     class KnuthSampler
       # Maximum unsigned 64-bit integer for uniform distribution across 64-bit input space.
@@ -29,16 +30,8 @@ module Datadog
       #   Different factors produce different sampling distributions.
       def initialize(rate = 1.0, knuth_factor: DEFAULT_KNUTH_FACTOR)
         @knuth_factor = knuth_factor
-        self.rate = rate
-      end
 
-      # Sets the rate and recalculates the sampling threshold.
-      #
-      # @param rate [Float] Sampling rate between +0.0+ and +1.0+ (inclusive).
-      #   Invalid values fall back to +1.0+ (sample everything).
-      def rate=(rate)
         rate = rate.to_f
-
         unless rate >= 0.0 && rate <= 1.0
           Datadog.logger.warn('Sample rate is not between 0.0 and 1.0, falling back to 1.0')
           rate = 1.0

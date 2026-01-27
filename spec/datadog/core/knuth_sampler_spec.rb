@@ -56,30 +56,6 @@ RSpec.describe Datadog::Core::KnuthSampler do
     end
   end
 
-  describe '#rate=' do
-    subject(:sampler) { described_class.new(1.0) }
-
-    context 'when rate is valid' do
-      it { expect { sampler.rate = Float::MIN }.to change { sampler.sample?(12345) }.from(true).to(false) }
-    end
-
-    context 'when rate is negative' do
-      it 'logs warning and falls back to 1.0' do
-        expect(logger).to receive(:warn).with('Sample rate is not between 0.0 and 1.0, falling back to 1.0')
-        sampler.rate = -0.5
-        expect(sampler.sample?(12345)).to be(true)
-      end
-    end
-
-    context 'when rate is greater than 1.0' do
-      it 'logs warning and falls back to 1.0' do
-        expect(logger).to receive(:warn).with('Sample rate is not between 0.0 and 1.0, falling back to 1.0')
-        sampler.rate = 2.0
-        expect(sampler.sample?(12345)).to be(true)
-      end
-    end
-  end
-
   describe '#sample?' do
     context 'when rate is 1.0' do
       subject(:sampler) { described_class.new(1.0) }

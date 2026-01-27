@@ -27,7 +27,7 @@ module Datadog
         end
 
         def sample_rate=(sample_rate)
-          @sampler.rate = sample_rate
+          @sampler = Core::KnuthSampler.new(sample_rate, knuth_factor: KNUTH_FACTOR)
         end
 
         def sample?(trace)
