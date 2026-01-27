@@ -1,0 +1,1677 @@
+{
+  "DD_AGENT_HOST": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Hostname or IP address of the Datadog Agent that this library sends trace data to.",
+    "shortDescription": null
+  },
+  "DD_AI_GUARD_ENABLED": {
+    "programmaticKey": "ai_guard.enabled",
+    "description": "Enables AI Guard so the library can make AI Guard API calls; disabling it skips those calls without removing the library.",
+    "shortDescription": null
+  },
+  "DD_AI_GUARD_ENDPOINT": {
+    "programmaticKey": "ai_guard.endpoint",
+    "description": "URL of the AI Guard API endpoint that this library will send requests to.",
+    "shortDescription": null
+  },
+  "DD_AI_GUARD_MAX_CONTENT_SIZE": {
+    "programmaticKey": "ai_guard.max_content_size_bytes",
+    "description": "Maximum size of content captured for AI Guard; content beyond this limit is truncated before being stored in span context.",
+    "shortDescription": null
+  },
+  "DD_AI_GUARD_MAX_MESSAGES_LENGTH": {
+    "programmaticKey": "ai_guard.max_messages_length",
+    "description": "Maximum number of messages captured for AI Guard; older messages are omitted when the limit is reached.",
+    "shortDescription": null
+  },
+  "DD_AI_GUARD_TIMEOUT": {
+    "programmaticKey": "ai_guard.timeout_ms",
+    "description": "Timeout for requests sent to the AI Guard API.",
+    "shortDescription": null
+  },
+  "DD_API_KEY": {
+    "programmaticKey": "api_key",
+    "description": "Datadog API key used to authenticate requests made without the Agent, such as agentless telemetry and AI Guard API calls.",
+    "shortDescription": null
+  },
+  "DD_API_SECURITY_ENABLED": {
+    "programmaticKey": "appsec.api_security.enabled",
+    "description": "Enables AppSec API Security features, including API security checks and endpoint data collection.",
+    "shortDescription": null
+  },
+  "DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED": {
+    "programmaticKey": "appsec.api_security.endpoint_collection.enabled",
+    "description": "Enables reporting of application routes at application startup via telemetry.",
+    "shortDescription": null
+  },
+  "DD_API_SECURITY_REQUEST_SAMPLE_RATE": {
+    "programmaticKey": "appsec.api_security.sample_rate",
+    "description": "Sampling rate used to decide whether to perform API Security checks for a request.",
+    "shortDescription": null
+  },
+  "DD_API_SECURITY_SAMPLE_DELAY": {
+    "programmaticKey": "appsec.api_security.sample_delay",
+    "description": "Minimum delay between API Security samples for the same endpoint, used to limit how often requests are selected for API Security checks.",
+    "shortDescription": null
+  },
+  "DD_APM_TRACING_ENABLED": {
+    "programmaticKey": "apm.tracing.enabled",
+    "description": "Enables or disables sending APM trace data. When disabled, tracing still runs to support other products, but only periodic heartbeat traces and manually kept traces are sent.",
+    "shortDescription": null
+  },
+  "DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING": {
+    "programmaticKey": "appsec.track_user_events.mode / appsec.track_user_events.enabled",
+    "description": "Controls automated user events tracking for AppSec, including enabling/disabling it and selecting a tracking mode. Deprecated; prefer the appsec.auto_user_instrumentation.mode setting.",
+    "shortDescription": null
+  },
+  "DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE": {
+    "programmaticKey": "appsec.auto_user_instrumentation.mode",
+    "description": "Selects the AppSec automatic user instrumentation mode, which controls how user events are collected.",
+    "shortDescription": null
+  },
+  "DD_APPSEC_ENABLED": {
+    "programmaticKey": "appsec.enabled",
+    "description": "Enables Datadog Application Security (AppSec) so the library performs security checks and loads AppSec instrumentation.",
+    "shortDescription": null
+  },
+  "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML": {
+    "programmaticKey": "appsec.block.templates.html",
+    "description": "Path to an HTML template file used as the response body when AppSec blocks a request.",
+    "shortDescription": null
+  },
+  "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON": {
+    "programmaticKey": "appsec.block.templates.json",
+    "description": "Path to a JSON template file used as the response body when AppSec blocks a request.",
+    "shortDescription": null
+  },
+  "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT": {
+    "programmaticKey": "appsec.block.templates.text",
+    "description": "Path to a plain-text template file used as the response body when AppSec blocks a request.",
+    "shortDescription": null
+  },
+  "DD_APPSEC_MAX_STACK_TRACES": {
+    "programmaticKey": "appsec.stack_trace.max_stack_traces",
+    "description": "Maximum number of stack traces AppSec collects per request; set to 0 to collect all.",
+    "shortDescription": null
+  },
+  "DD_APPSEC_MAX_STACK_TRACE_DEPTH": {
+    "programmaticKey": "appsec.stack_trace.max_depth",
+    "description": "Maximum number of stack-trace frames AppSec keeps when recording stack traces; set to 0 to keep all frames.",
+    "shortDescription": null
+  },
+  "DD_APPSEC_MAX_STACK_TRACE_DEPTH_TOP_PERCENT": {
+    "programmaticKey": "appsec.stack_trace.top_percentage",
+    "description": "When limiting AppSec stack trace depth, percentage of the kept frames taken from the top of the stack.",
+    "shortDescription": null
+  },
+  "DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP": {
+    "programmaticKey": "appsec.obfuscator_key_regex",
+    "description": "Regular expression used to decide which request parameter names are obfuscated by AppSec.",
+    "shortDescription": null
+  },
+  "DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP": {
+    "programmaticKey": "appsec.obfuscator_value_regex",
+    "description": "Regular expression used to decide which request parameter values are obfuscated by AppSec.",
+    "shortDescription": null
+  },
+  "DD_APPSEC_RASP_ENABLED": {
+    "programmaticKey": "appsec.rasp_enabled",
+    "description": "Enables AppSec Runtime Application Self-Protection (RASP) features that detect malicious inputs and help prevent harmful side-effects.",
+    "shortDescription": null
+  },
+  "DD_APPSEC_RULES": {
+    "programmaticKey": "appsec.ruleset",
+    "description": "Selects the Application Security ruleset (built-in or custom file) used by the AppSec security engine.",
+    "shortDescription": null
+  },
+  "DD_APPSEC_SCA_ENABLED": {
+    "programmaticKey": "appsec.sca_enabled",
+    "description": "Enables or disables AppSec Software Composition Analysis (SCA).",
+    "shortDescription": null
+  },
+  "DD_APPSEC_STACK_TRACE_ENABLED": {
+    "programmaticKey": "appsec.stack_trace.enabled",
+    "description": "Enables collection of stack traces for AppSec security events.",
+    "shortDescription": null
+  },
+  "DD_APPSEC_TRACE_RATE_LIMIT": {
+    "programmaticKey": "appsec.trace_rate_limit",
+    "description": "Rate limit for AppSec traces kept due to security events.",
+    "shortDescription": null
+  },
+  "DD_APPSEC_WAF_DEBUG": {
+    "programmaticKey": "appsec.waf_debug",
+    "description": "Enables debug logging for the AppSec Web Application Firewall (WAF).",
+    "shortDescription": null
+  },
+  "DD_APPSEC_WAF_TIMEOUT": {
+    "programmaticKey": "appsec.waf_timeout",
+    "description": "Timeout for AppSec Web Application Firewall (WAF) operations, such as RASP checks.",
+    "shortDescription": null
+  },
+  "DD_APP_KEY": {
+    "programmaticKey": "ai_guard.app_key",
+    "description": "Datadog application key used to authenticate requests to the AI Guard API.",
+    "shortDescription": null
+  },
+  "DD_CRASHTRACKING_ENABLED": {
+    "programmaticKey": "crashtracking.enabled",
+    "description": "Enables crash tracking, reporting information when the Ruby VM crashes.",
+    "shortDescription": null
+  },
+  "DD_DATA_STREAMS_ENABLED": {
+    "programmaticKey": "data_streams.enabled",
+    "description": "Enables Data Streams Monitoring, which collects and reports data lineage information for messaging systems.",
+    "shortDescription": null
+  },
+  "DD_DBM_PROPAGATION_MODE": {
+    "programmaticKey": "tracing[:mysql2][:comment_propagation]",
+    "description": "Controls SQL comment propagation for Database Monitoring to correlate database queries with traces. When enabled, additional metadata may be stored in query comments and persisted in the database.",
+    "shortDescription": null
+  },
+  "DD_DISABLE_DATADOG_RAILS": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Disables the Datadog Rails integration auto-instrumentation.",
+    "shortDescription": null
+  },
+  "DD_DYNAMIC_INSTRUMENTATION_ENABLED": {
+    "programmaticKey": "dynamic_instrumentation.enabled",
+    "description": "Enables Dynamic Instrumentation, allowing the library to apply and manage runtime probes for debugging and diagnostics.",
+    "shortDescription": null
+  },
+  "DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Path to a JSON file containing Dynamic Instrumentation probes to load.",
+    "shortDescription": null
+  },
+  "DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS": {
+    "programmaticKey": "dynamic_instrumentation.redacted_identifiers",
+    "description": "Comma-separated list of variable, attribute, or hash key names to redact from Dynamic Instrumentation snapshots.",
+    "shortDescription": null
+  },
+  "DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES": {
+    "programmaticKey": "dynamic_instrumentation.redacted_type_names",
+    "description": "Comma-separated list of class name patterns whose values should be redacted from Dynamic Instrumentation snapshots.",
+    "shortDescription": null
+  },
+  "DD_ENV": {
+    "programmaticKey": "env",
+    "description": "Your application environment (for example, production or staging), sent as the env tag on traces.",
+    "shortDescription": null
+  },
+  "DD_ERROR_TRACKING_HANDLED_ERRORS": {
+    "programmaticKey": "error_tracking.handled_errors",
+    "description": "Controls whether Error Tracking reports handled errors from user code, third-party gems, or both.",
+    "shortDescription": null
+  },
+  "DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE": {
+    "programmaticKey": "error_tracking.handled_errors_include",
+    "description": "Comma-separated list of paths, file names, or gem names whose handled errors should be reported by Error Tracking.",
+    "shortDescription": null
+  },
+  "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED": {
+    "programmaticKey": "open_feature.enabled",
+    "description": "Enables the Datadog OpenFeature feature flagging provider (experimental).",
+    "shortDescription": null
+  },
+  "DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED": {
+    "programmaticKey": "experimental_propagate_process_tags_enabled",
+    "description": "Enables experimental propagation of process tags in payloads such as spans and telemetry.",
+    "shortDescription": null
+  },
+  "DD_EXTERNAL_ENV": {
+    "programmaticKey": "container.external_env",
+    "description": "External data provided by the runtime to help Datadog identify the container/process for origin detection.",
+    "shortDescription": null
+  },
+  "DD_GIT_COMMIT_SHA": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Git commit SHA of the application source code.",
+    "shortDescription": null
+  },
+  "DD_GIT_REPOSITORY_URL": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Git repository URL of the application source code.",
+    "shortDescription": null
+  },
+  "DD_HEALTH_METRICS_ENABLED": {
+    "programmaticKey": "health_metrics.enabled",
+    "description": "Enables health metrics collection.",
+    "shortDescription": null
+  },
+  "DD_INJECTION_ENABLED": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Indicates whether the library was loaded via Datadog single-step instrumentation (SSI) injection.",
+    "shortDescription": null
+  },
+  "DD_INJECT_FORCE": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Forces Datadog single-step instrumentation (SSI) injection.",
+    "shortDescription": null
+  },
+  "DD_INSTRUMENTATION_INSTALL_ID": {
+    "programmaticKey": "telemetry.install_id",
+    "description": "Installation identifier used by Datadog library injection for telemetry.",
+    "shortDescription": null
+  },
+  "DD_INSTRUMENTATION_INSTALL_TIME": {
+    "programmaticKey": "telemetry.install_time",
+    "description": "Installation time recorded by Datadog library injection for telemetry.",
+    "shortDescription": null
+  },
+  "DD_INSTRUMENTATION_INSTALL_TYPE": {
+    "programmaticKey": "telemetry.install_type",
+    "description": "Installation type recorded by Datadog library injection for telemetry.",
+    "shortDescription": null
+  },
+  "DD_INSTRUMENTATION_TELEMETRY_ENABLED": {
+    "programmaticKey": "telemetry.enabled",
+    "description": "Enables sending instrumentation telemetry data to Datadog.",
+    "shortDescription": null
+  },
+  "DD_LOGS_INJECTION": {
+    "programmaticKey": "tracing.log_injection",
+    "description": "Enables log injection, adding trace correlation information to supported loggers.",
+    "shortDescription": null
+  },
+  "DD_METRICS_OTEL_ENABLED": {
+    "programmaticKey": "opentelemetry.metrics.enabled",
+    "description": "Enables OpenTelemetry metrics export.",
+    "shortDescription": null
+  },
+  "DD_METRIC_AGENT_PORT": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Port of the Datadog Agent StatsD endpoint that this library sends metrics to.",
+    "shortDescription": null
+  },
+  "DD_PROFILING_ALLOCATION_ENABLED": {
+    "programmaticKey": "profiling.allocation_enabled",
+    "description": "Enables allocation profiling, collecting object allocation samples in profiles.",
+    "shortDescription": null
+  },
+  "DD_PROFILING_DIR_INTERRUPTION_WORKAROUND_ENABLED": {
+    "programmaticKey": "profiling.advanced.dir_interruption_workaround_enabled",
+    "description": "Enables a workaround for Ruby Dir interruption issues caused by profiling signals.",
+    "shortDescription": null
+  },
+  "DD_PROFILING_ENABLED": {
+    "programmaticKey": "profiling.enabled",
+    "description": "Enables the Datadog Continuous Profiler.",
+    "shortDescription": null
+  },
+  "DD_PROFILING_ENDPOINT_COLLECTION_ENABLED": {
+    "programmaticKey": "profiling.advanced.endpoint.collection.enabled",
+    "description": "Controls whether endpoint names are collected and attached to profiles when profiling is used with tracing.",
+    "shortDescription": null
+  },
+  "DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED": {
+    "programmaticKey": "profiling.advanced.experimental_heap_enabled",
+    "description": "Enables preview heap profiling, collecting heap profiles (requires allocation profiling).",
+    "shortDescription": null
+  },
+  "DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE": {
+    "programmaticKey": "profiling.advanced.experimental_heap_sample_rate",
+    "description": "Sampling rate for preview heap profiling.",
+    "shortDescription": null
+  },
+  "DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED": {
+    "programmaticKey": "profiling.advanced.experimental_heap_size_enabled",
+    "description": "Enables collection of heap size profiles for heap profiling.",
+    "shortDescription": null
+  },
+  "DD_PROFILING_GC_ENABLED": {
+    "programmaticKey": "profiling.advanced.gc_enabled",
+    "description": "Enables garbage collection profiling, collecting GC activity in profiles.",
+    "shortDescription": null
+  },
+  "DD_PROFILING_GVL_ENABLED": {
+    "programmaticKey": "profiling.advanced.gvl_enabled",
+    "description": "Enables GVL profiling to report time threads spend waiting for the Global VM Lock.",
+    "shortDescription": null
+  },
+  "DD_PROFILING_HEAP_CLEAN_AFTER_GC_ENABLED": {
+    "programmaticKey": "profiling.advanced.heap_clean_after_gc_enabled",
+    "description": "Controls whether heap profiling performs cleanup after garbage collection.",
+    "shortDescription": null
+  },
+  "DD_PROFILING_MAX_FRAMES": {
+    "programmaticKey": "profiling.advanced.max_frames",
+    "description": "Maximum number of stack frames captured per thread sample in profiles.",
+    "shortDescription": null
+  },
+  "DD_PROFILING_NATIVE_FILENAMES_ENABLED": {
+    "programmaticKey": "profiling.advanced.native_filenames_enabled",
+    "description": "Controls whether the profiler uses native filenames for stack frames from native code.",
+    "shortDescription": null
+  },
+  "DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED": {
+    "programmaticKey": "profiling.advanced.no_signals_workaround_enabled",
+    "description": "Enables a workaround mode that reduces reliance on profiling signals to avoid interrupt-related issues in some libraries.",
+    "shortDescription": null
+  },
+  "DD_PROFILING_OVERHEAD_TARGET_PERCENTAGE": {
+    "programmaticKey": "profiling.advanced.overhead_target_percentage",
+    "description": "Target overhead percentage for profiling; the profiler adjusts sampling to stay near this target.",
+    "shortDescription": null
+  },
+  "DD_PROFILING_PREVIEW_OTEL_CONTEXT_ENABLED": {
+    "programmaticKey": "profiling.advanced.preview_otel_context_enabled",
+    "description": "Controls whether the profiler attempts to read context from OpenTelemetry.",
+    "shortDescription": null
+  },
+  "DD_PROFILING_SHUTDOWN_ON_EXEC_ENABLED": {
+    "programmaticKey": "profiling.advanced.shutdown_on_exec_enabled",
+    "description": "Stops profiling before an exec call to avoid profiling state leaking into the new process.",
+    "shortDescription": null
+  },
+  "DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED": {
+    "programmaticKey": "profiling.advanced.sighandler_sampling_enabled",
+    "description": "Controls whether the profiler samples directly from the signal handler for improved accuracy.",
+    "shortDescription": null
+  },
+  "DD_PROFILING_SKIP_MYSQL2_CHECK": {
+    "programmaticKey": "profiling.advanced.skip_mysql2_check",
+    "description": "Disables the profiler compatibility check of the libmysqlclient version used by mysql2.",
+    "shortDescription": null
+  },
+  "DD_PROFILING_TIMELINE_ENABLED": {
+    "programmaticKey": "profiling.advanced.timeline_enabled",
+    "description": "Enables data collection for the profiler timeline feature.",
+    "shortDescription": null
+  },
+  "DD_PROFILING_UPLOAD_PERIOD": {
+    "programmaticKey": "profiling.advanced.upload_period_seconds",
+    "description": "Interval between profiler data uploads; cannot be lower than 60 seconds.",
+    "shortDescription": null
+  },
+  "DD_PROFILING_UPLOAD_TIMEOUT": {
+    "programmaticKey": "profiling.upload.timeout_seconds",
+    "description": "Network timeout for uploading profiling data to Datadog.",
+    "shortDescription": null
+  },
+  "DD_REDIS_COMMAND_ARGS": {
+    "programmaticKey": "tracing[:redis][:command_args]",
+    "description": "When enabled, includes Redis command arguments in span resource names and tags; otherwise only the command name is shown.",
+    "shortDescription": null
+  },
+  "DD_REMOTE_CONFIGURATION_ENABLED": {
+    "programmaticKey": "remote.enabled",
+    "description": "Enables Remote Configuration, allowing configuration updates to be fetched and applied at runtime.",
+    "shortDescription": null
+  },
+  "DD_REMOTE_CONFIG_BOOT_TIMEOUT_SECONDS": {
+    "programmaticKey": "remote.boot_timeout_seconds",
+    "description": "Startup timeout for Remote Configuration; if exceeded, the application proceeds using local configuration.",
+    "shortDescription": null
+  },
+  "DD_REMOTE_CONFIG_POLL_INTERVAL_SECONDS": {
+    "programmaticKey": "remote.poll_interval_seconds",
+    "description": "Polling interval for Remote Configuration updates.",
+    "shortDescription": null
+  },
+  "DD_RODA_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:roda][:analytics_enabled]",
+    "description": "Enables analytics for the Roda integration.",
+    "shortDescription": null
+  },
+  "DD_RODA_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:roda][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Roda integration.",
+    "shortDescription": null
+  },
+  "DD_RUNTIME_METRICS_ENABLED": {
+    "programmaticKey": "runtime_metrics.enabled",
+    "description": "Enables runtime metrics collection.",
+    "shortDescription": null
+  },
+  "DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED": {
+    "programmaticKey": "runtime_metrics.experimental_runtime_id_enabled",
+    "description": "When enabled, adds a runtime-id tag to runtime metrics to distinguish individual processes.",
+    "shortDescription": null
+  },
+  "DD_SERVICE": {
+    "programmaticKey": "service",
+    "description": "Your application's default service name, set as the service tag on traces.",
+    "shortDescription": null
+  },
+  "DD_SITE": {
+    "programmaticKey": "site",
+    "description": "Datadog site used to select the Datadog intake domain for agentless requests, such as telemetry and AI Guard API calls.",
+    "shortDescription": null
+  },
+  "DD_SPAN_SAMPLING_RULES": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Single Span Sampling rules that allow selected spans to be kept even when their enclosing traces are dropped.",
+    "shortDescription": null
+  },
+  "DD_SPAN_SAMPLING_RULES_FILE": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Path to a file containing Single Span Sampling rules.",
+    "shortDescription": null
+  },
+  "DD_TAGS": {
+    "programmaticKey": "tags",
+    "description": "Custom tags applied to traces and other Datadog data, provided as comma-separated key:value pairs.",
+    "shortDescription": null
+  },
+  "DD_TELEMETRY_AGENTLESS_URL": {
+    "programmaticKey": "telemetry.agentless_url_override",
+    "description": "Overrides the agentless telemetry intake URL (intended for internal testing).",
+    "shortDescription": null
+  },
+  "DD_TELEMETRY_DEPENDENCY_COLLECTION_ENABLED": {
+    "programmaticKey": "telemetry.dependency_collection",
+    "description": "Controls whether instrumentation telemetry reports the application's bundled Ruby gem dependencies.",
+    "shortDescription": null
+  },
+  "DD_TELEMETRY_HEARTBEAT_INTERVAL": {
+    "programmaticKey": "telemetry.heartbeat_interval_seconds",
+    "description": "Interval at which instrumentation telemetry is sent (primarily for internal testing).",
+    "shortDescription": null
+  },
+  "DD_TELEMETRY_LOG_COLLECTION_ENABLED": {
+    "programmaticKey": "telemetry.log_collection_enabled",
+    "description": "Enables log collection for instrumentation telemetry.",
+    "shortDescription": null
+  },
+  "DD_TELEMETRY_METRICS_AGGREGATION_INTERVAL": {
+    "programmaticKey": "telemetry.metrics_aggregation_interval_seconds",
+    "description": "Interval at which instrumentation telemetry metrics are aggregated before being sent (primarily for internal testing).",
+    "shortDescription": null
+  },
+  "DD_TELEMETRY_METRICS_ENABLED": {
+    "programmaticKey": "telemetry.metrics_enabled",
+    "description": "Enables collection and reporting of instrumentation telemetry metrics.",
+    "shortDescription": null
+  },
+  "DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED": {
+    "programmaticKey": "tracing.trace_id_128_bit_generation_enabled",
+    "description": "Controls whether generated trace IDs are 128-bit instead of 64-bit.",
+    "shortDescription": null
+  },
+  "DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED": {
+    "programmaticKey": "tracing.trace_id_128_bit_logging_enabled",
+    "description": "Enables injecting 128-bit trace IDs for log correlation; currently not supported by the backend.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTION_CABLE_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:action_cable][:analytics_enabled]",
+    "description": "Enables analytics for the Action Cable integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTION_CABLE_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:action_cable][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Action Cable integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTION_CABLE_ENABLED": {
+    "programmaticKey": "tracing[:action_cable][:enabled]",
+    "description": "Enables tracing for the Action Cable integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTION_MAILER_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:action_mailer][:analytics_enabled]",
+    "description": "Enables analytics for the Action Mailer integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTION_MAILER_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:action_mailer][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Action Mailer integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTION_MAILER_ENABLED": {
+    "programmaticKey": "tracing[:action_mailer][:enabled]",
+    "description": "Enables tracing for the Action Mailer integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTION_PACK_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:action_pack][:analytics_enabled]",
+    "description": "Enables analytics for the Action Pack integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTION_PACK_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:action_pack][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Action Pack integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTION_PACK_ENABLED": {
+    "programmaticKey": "tracing[:action_pack][:enabled]",
+    "description": "Enables tracing for the Action Pack integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTION_VIEW_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:action_view][:analytics_enabled]",
+    "description": "Enables analytics for the Action View integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTION_VIEW_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:action_view][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Action View integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTION_VIEW_ENABLED": {
+    "programmaticKey": "tracing[:action_view][:enabled]",
+    "description": "Enables tracing for the Action View integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTIVE_JOB_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:active_job][:analytics_enabled]",
+    "description": "Enables analytics for the Active Job integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTIVE_JOB_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:active_job][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Active Job integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTIVE_JOB_ENABLED": {
+    "programmaticKey": "tracing[:active_job][:enabled]",
+    "description": "Enables tracing for the Active Job integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTIVE_MODEL_SERIALIZERS_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:active_model_serializers][:analytics_enabled]",
+    "description": "Enables analytics for the Active Model Serializers integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTIVE_MODEL_SERIALIZERS_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:active_model_serializers][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Active Model Serializers integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTIVE_MODEL_SERIALIZERS_ENABLED": {
+    "programmaticKey": "tracing[:active_model_serializers][:enabled]",
+    "description": "Enables tracing for the Active Model Serializers integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTIVE_RECORD_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:active_record][:analytics_enabled]",
+    "description": "Enables analytics for the Active Record integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTIVE_RECORD_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:active_record][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Active Record integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTIVE_RECORD_ENABLED": {
+    "programmaticKey": "tracing[:active_record][:enabled]",
+    "description": "Enables tracing for the Active Record integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTIVE_SUPPORT_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:active_support][:analytics_enabled]",
+    "description": "Enables analytics for the Active Support integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTIVE_SUPPORT_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:active_support][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Active Support integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ACTIVE_SUPPORT_ENABLED": {
+    "programmaticKey": "tracing[:active_support][:enabled]",
+    "description": "Enables tracing for the Active Support integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_AGENT_PORT": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Port of the Datadog Agent trace intake where this library sends trace data.",
+    "shortDescription": null
+  },
+  "DD_TRACE_AGENT_TIMEOUT_SECONDS": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Timeout (in seconds) for connecting to the Datadog Agent when sending trace data.",
+    "shortDescription": null
+  },
+  "DD_TRACE_AGENT_URL": {
+    "programmaticKey": "(not using DSL)",
+    "description": "URL endpoint where this library sends trace data to the Datadog Agent; can use HTTP or a Unix domain socket.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing.analytics.enabled",
+    "description": "Enables the legacy tracing analytics feature (deprecated).",
+    "shortDescription": null
+  },
+  "DD_TRACE_AWS_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:aws][:analytics_enabled]",
+    "description": "Enables analytics for the AWS integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_AWS_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:aws][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the AWS integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_AWS_ENABLED": {
+    "programmaticKey": "tracing[:aws][:enabled]",
+    "description": "Enables tracing for the AWS integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_AWS_PEER_SERVICE": {
+    "programmaticKey": "tracing[:aws][:peer_service]",
+    "description": "Name of the external service for spans generated by the AWS integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_AWS_SERVICE_NAME": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Service name used for spans generated by the AWS integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_BAGGAGE_TAG_KEYS": {
+    "programmaticKey": "tracing.baggage_tag_keys",
+    "description": "Comma-separated list of baggage keys that should be converted into span tags (prefixed with baggage.).",
+    "shortDescription": null
+  },
+  "DD_TRACE_CLIENT_IP_ENABLED": {
+    "programmaticKey": "tracing.client_ip.enabled",
+    "description": "Enables collection of client IP addresses from HTTP requests and reporting them on traces.",
+    "shortDescription": null
+  },
+  "DD_TRACE_CLIENT_IP_HEADER": {
+    "programmaticKey": "tracing.client_ip.header_name",
+    "description": "Name of an optional custom HTTP header used to resolve the client IP address.",
+    "shortDescription": null
+  },
+  "DD_TRACE_CONCURRENT_RUBY_ENABLED": {
+    "programmaticKey": "tracing[:concurrent_ruby][:enabled]",
+    "description": "Controls whether the Concurrent Ruby integration propagates tracing context.",
+    "shortDescription": null
+  },
+  "DD_TRACE_DALLI_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:dalli][:analytics_enabled]",
+    "description": "Enables analytics for the Dalli (Memcached) integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_DALLI_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:dalli][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Dalli (Memcached) integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_DALLI_ENABLED": {
+    "programmaticKey": "tracing[:dalli][:enabled]",
+    "description": "Enables tracing for the Dalli (Memcached) integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_DALLI_PEER_SERVICE": {
+    "programmaticKey": "tracing[:dalli][:peer_service]",
+    "description": "Name of the external service for spans generated by the Dalli (Memcached) integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_DALLI_SERVICE_NAME": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Service name used for spans generated by the Dalli (Memcached) integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_DEBUG": {
+    "programmaticKey": "diagnostics.debug / dynamic_instrumentation.internal.trace_logging",
+    "description": "Enables debug mode, producing verbose tracer logs (not recommended for production or sensitive environments).",
+    "shortDescription": null
+  },
+  "DD_TRACE_DELAYED_JOB_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:delayed_job][:analytics_enabled]",
+    "description": "Enables analytics for the Delayed Job integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_DELAYED_JOB_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:delayed_job][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Delayed Job integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_DELAYED_JOB_ENABLED": {
+    "programmaticKey": "tracing[:delayed_job][:enabled]",
+    "description": "Enables tracing for the Delayed Job integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ELASTICSEARCH_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:elasticsearch][:analytics_enabled]",
+    "description": "Enables analytics for the Elasticsearch integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ELASTICSEARCH_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:elasticsearch][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Elasticsearch integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ELASTICSEARCH_ENABLED": {
+    "programmaticKey": "tracing[:elasticsearch][:enabled]",
+    "description": "Enables tracing for the Elasticsearch integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ELASTICSEARCH_PEER_SERVICE": {
+    "programmaticKey": "tracing[:elasticsearch][:peer_service]",
+    "description": "Name of the external service for spans generated by the Elasticsearch integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ELASTICSEARCH_SERVICE_NAME": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Service name used for spans generated by the Elasticsearch integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ENABLED": {
+    "programmaticKey": "tracing.enabled",
+    "description": "Enables or disables tracing. When disabled, instrumentation still runs but no trace data is sent.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ETHON_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:ethon][:analytics_enabled]",
+    "description": "Enables analytics for the Ethon integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ETHON_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:ethon][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Ethon integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ETHON_ENABLED": {
+    "programmaticKey": "tracing[:ethon][:enabled]",
+    "description": "Enables tracing for the Ethon integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ETHON_PEER_SERVICE": {
+    "programmaticKey": "tracing[:ethon][:peer_service]",
+    "description": "Name of the external service for spans generated by the Ethon integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_ETHON_SERVICE_NAME": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Service name used for spans generated by the Ethon integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_EXCON_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:excon][:analytics_enabled]",
+    "description": "Enables analytics for the Excon integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_EXCON_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:excon][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Excon integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_EXCON_ENABLED": {
+    "programmaticKey": "tracing[:excon][:enabled]",
+    "description": "Enables tracing for the Excon integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_EXCON_ERROR_STATUS_CODES": {
+    "programmaticKey": "tracing[:excon][:error_status_codes]",
+    "description": "HTTP status codes that should be marked as errors for spans generated by the Excon integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_EXCON_PEER_SERVICE": {
+    "programmaticKey": "tracing[:excon][:peer_service]",
+    "description": "Name of the external service for spans generated by the Excon integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_EXCON_SERVICE_NAME": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Service name used for spans generated by the Excon integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Enables adding a runtime-id tag to runtime metrics (experimental).",
+    "shortDescription": null
+  },
+  "DD_TRACE_FARADAY_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:faraday][:analytics_enabled]",
+    "description": "Enables analytics for the Faraday integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_FARADAY_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:faraday][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Faraday integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_FARADAY_ENABLED": {
+    "programmaticKey": "tracing[:faraday][:enabled]",
+    "description": "Enables tracing for the Faraday integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_FARADAY_ERROR_STATUS_CODES": {
+    "programmaticKey": "tracing[:faraday][:error_status_codes]",
+    "description": "HTTP status codes that should be marked as errors for spans generated by the Faraday integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_FARADAY_PEER_SERVICE": {
+    "programmaticKey": "tracing[:faraday][:peer_service]",
+    "description": "Name of the external service for spans generated by the Faraday integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_FARADAY_SERVICE_NAME": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Service name used for spans generated by the Faraday integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_GRAPE_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:grape][:analytics_enabled]",
+    "description": "Enables analytics for the Grape integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_GRAPE_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:grape][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Grape integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_GRAPE_ENABLED": {
+    "programmaticKey": "tracing[:grape][:enabled]",
+    "description": "Enables tracing for the Grape integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_GRAPE_ERROR_STATUS_CODES": {
+    "programmaticKey": "tracing[:grape][:error_status_codes]",
+    "description": "HTTP status codes that should be marked as errors for spans generated by the Grape integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_GRAPHQL_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:graphql][:analytics_enabled]",
+    "description": "Enables analytics for the GraphQL integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_GRAPHQL_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:graphql][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the GraphQL integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_GRAPHQL_ENABLED": {
+    "programmaticKey": "tracing[:graphql][:enabled]",
+    "description": "Enables tracing for the GraphQL integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_GRAPHQL_ERROR_EXTENSIONS": {
+    "programmaticKey": "tracing[:graphql][:error_extensions]",
+    "description": "List of GraphQL error extension keys to include in the span event reported for GraphQL queries with errors.",
+    "shortDescription": null
+  },
+  "DD_TRACE_GRAPHQL_ERROR_TRACKING": {
+    "programmaticKey": "tracing[:graphql][:error_tracking]",
+    "description": "Surfaces GraphQL errors in Error Tracking.",
+    "shortDescription": null
+  },
+  "DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER": {
+    "programmaticKey": "tracing[:graphql][:with_unified_tracer]",
+    "description": "Enables GraphQL instrumentation using the UnifiedTrace tracer (recommended for graphql >= 2.2) to support the Endpoints list.",
+    "shortDescription": null
+  },
+  "DD_TRACE_GRPC_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:grpc][:analytics_enabled]",
+    "description": "Enables analytics for the gRPC integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_GRPC_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:grpc][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the gRPC integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_GRPC_ENABLED": {
+    "programmaticKey": "tracing[:grpc][:enabled]",
+    "description": "Enables tracing for the gRPC integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_GRPC_PEER_SERVICE": {
+    "programmaticKey": "tracing[:grpc][:peer_service]",
+    "description": "Name of the external service for spans generated by the gRPC integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_GRPC_SERVICE_NAME": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Service name used for spans generated by the gRPC integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_HANAMI_ENABLED": {
+    "programmaticKey": "tracing[:hanami][:enabled]",
+    "description": "Enables tracing for the Hanami integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_HEADER_TAGS": {
+    "programmaticKey": "tracing.header_tags",
+    "description": "List of HTTP headers to record as span tags, optionally mapping header names to custom tag names.",
+    "shortDescription": null
+  },
+  "DD_TRACE_HTTPCLIENT_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:httpclient][:analytics_enabled]",
+    "description": "Enables analytics for the httpclient integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_HTTPCLIENT_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:httpclient][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the httpclient integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_HTTPCLIENT_ENABLED": {
+    "programmaticKey": "tracing[:httpclient][:enabled]",
+    "description": "Enables tracing for the httpclient integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_HTTPCLIENT_ERROR_STATUS_CODES": {
+    "programmaticKey": "tracing[:httpclient][:error_status_codes]",
+    "description": "HTTP status codes that should be marked as errors for spans generated by the httpclient integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_HTTPCLIENT_PEER_SERVICE": {
+    "programmaticKey": "tracing[:httpclient][:peer_service]",
+    "description": "Name of the external service for spans generated by the httpclient integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_HTTPCLIENT_SERVICE_NAME": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Service name used for spans generated by the httpclient integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_HTTPRB_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:httprb][:analytics_enabled]",
+    "description": "Enables analytics for the HTTP.rb integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_HTTPRB_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:httprb][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the HTTP.rb integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_HTTPRB_ENABLED": {
+    "programmaticKey": "tracing[:httprb][:enabled]",
+    "description": "Enables tracing for the HTTP.rb integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_HTTPRB_ERROR_STATUS_CODES": {
+    "programmaticKey": "tracing[:httprb][:error_status_codes]",
+    "description": "HTTP status codes that should be marked as errors for spans generated by the HTTP.rb integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_HTTPRB_PEER_SERVICE": {
+    "programmaticKey": "tracing[:httprb][:peer_service]",
+    "description": "Name of the external service for spans generated by the HTTP.rb integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_HTTPRB_SERVICE_NAME": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Service name used for spans generated by the HTTP.rb integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_HTTP_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:http][:analytics_enabled]",
+    "description": "Enables analytics for the net/http integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_HTTP_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:http][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the net/http integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_HTTP_CLIENT_ERROR_STATUSES": {
+    "programmaticKey": "tracing.http_error_statuses.client",
+    "description": "HTTP status codes that should be treated as errors for http.client spans.",
+    "shortDescription": null
+  },
+  "DD_TRACE_HTTP_ENABLED": {
+    "programmaticKey": "tracing[:http][:enabled]",
+    "description": "Enables tracing for the net/http integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_HTTP_ERROR_STATUS_CODES": {
+    "programmaticKey": "tracing[:http][:error_status_codes]",
+    "description": "HTTP status codes that should be marked as errors for spans generated by the net/http instrumentation.",
+    "shortDescription": null
+  },
+  "DD_TRACE_HTTP_SERVER_ERROR_STATUSES": {
+    "programmaticKey": "tracing.http_error_statuses.server",
+    "description": "HTTP status codes that should be treated as errors for http.server spans.",
+    "shortDescription": null
+  },
+  "DD_TRACE_KAFKA_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:kafka][:analytics_enabled]",
+    "description": "Enables analytics for the Kafka integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_KAFKA_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:kafka][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Kafka integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_KAFKA_ENABLED": {
+    "programmaticKey": "tracing[:kafka][:enabled]",
+    "description": "Enables tracing for the Kafka integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_KARAFKA_ENABLED": {
+    "programmaticKey": "tracing[:karafka][:enabled]",
+    "description": "Enables tracing for the Karafka integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_LOGRAGE_ENABLED": {
+    "programmaticKey": "tracing[:lograge][:enabled]",
+    "description": "Enables injecting trace correlation fields into Lograge logs when log injection is enabled.",
+    "shortDescription": null
+  },
+  "DD_TRACE_MEMCACHED_COMMAND_ENABLED": {
+    "programmaticKey": "tracing[:dalli][:command_enabled]",
+    "description": "Controls whether Memcached commands are collected as span tags; command keys may contain sensitive information.",
+    "shortDescription": null
+  },
+  "DD_TRACE_MONGO_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:mongo][:analytics_enabled]",
+    "description": "Enables analytics for the MongoDB integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_MONGO_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:mongo][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the MongoDB integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_MONGO_ENABLED": {
+    "programmaticKey": "tracing[:mongo][:enabled]",
+    "description": "Enables tracing for the MongoDB integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_MONGO_JSON_COMMAND": {
+    "programmaticKey": "tracing[:mongo][:json_command]",
+    "description": "Serializes the MongoDB command as JSON on spans to enable query introspection in the Datadog app.",
+    "shortDescription": null
+  },
+  "DD_TRACE_MONGO_PEER_SERVICE": {
+    "programmaticKey": "tracing[:mongo][:peer_service]",
+    "description": "Name of the external service for spans generated by the MongoDB integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_MONGO_SERVICE_NAME": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Service name used for spans generated by the MongoDB integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_MYSQL2_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:mysql2][:analytics_enabled]",
+    "description": "Enables analytics for the mysql2 integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_MYSQL2_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:mysql2][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the mysql2 integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_MYSQL2_ENABLED": {
+    "programmaticKey": "tracing[:mysql2][:enabled]",
+    "description": "Enables tracing for the mysql2 integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_MYSQL2_PEER_SERVICE": {
+    "programmaticKey": "tracing[:mysql2][:peer_service]",
+    "description": "Name of the external service for spans generated by the mysql2 integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_MYSQL2_SERVICE_NAME": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Service name used for spans generated by the mysql2 integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_NATIVE_SPAN_EVENTS": {
+    "programmaticKey": "tracing.native_span_events",
+    "description": "Forces the tracer to always send span events using the native span events format, which can be useful in agentless setups.",
+    "shortDescription": null
+  },
+  "DD_TRACE_NET_HTTP_PEER_SERVICE": {
+    "programmaticKey": "tracing[:http][:peer_service]",
+    "description": "Name of the external service for spans generated by the net/http integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_NET_HTTP_SERVICE_NAME": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Service name used for spans generated by the net/http integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_OPENSEARCH_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:opensearch][:analytics_enabled]",
+    "description": "Enables analytics for the OpenSearch integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_OPENSEARCH_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:opensearch][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the OpenSearch integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_OPENSEARCH_ENABLED": {
+    "programmaticKey": "tracing[:opensearch][:enabled]",
+    "description": "Enables tracing for the OpenSearch integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_OPENSEARCH_PEER_SERVICE": {
+    "programmaticKey": "tracing[:opensearch][:peer_service]",
+    "description": "Name of the external service for spans generated by the OpenSearch integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_OPENSEARCH_RESOURCE_PATTERN": {
+    "programmaticKey": "tracing[:opensearch][:resource_pattern]",
+    "description": "Controls whether OpenSearch span resource names use the full or relative URL path.",
+    "shortDescription": null
+  },
+  "DD_TRACE_OPENSEARCH_SERVICE_NAME": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Service name used for spans generated by the OpenSearch integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED": {
+    "programmaticKey": "contrib.peer_service_defaults",
+    "description": "Enables automatic population of the peer.service tag for instrumented dependencies.",
+    "shortDescription": null
+  },
+  "DD_TRACE_PEER_SERVICE_MAPPING": {
+    "programmaticKey": "contrib.peer_service_mapping",
+    "description": "Remaps peer.service values across instrumentation using a list of old:new pairs.",
+    "shortDescription": null
+  },
+  "DD_TRACE_PG_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:pg][:analytics_enabled]",
+    "description": "Enables analytics for the pg (Postgres) integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_PG_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:pg][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the pg (Postgres) integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_PG_ENABLED": {
+    "programmaticKey": "tracing[:pg][:enabled]",
+    "description": "Enables tracing for the pg (Postgres) integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_PG_PEER_SERVICE": {
+    "programmaticKey": "tracing[:pg][:peer_service]",
+    "description": "Name of the external service for spans generated by the pg (Postgres) integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_PG_SERVICE_NAME": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Service name used for spans generated by the pg (Postgres) integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_PRESTO_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:presto][:analytics_enabled]",
+    "description": "Enables analytics for the Presto integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_PRESTO_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:presto][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Presto integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_PRESTO_ENABLED": {
+    "programmaticKey": "tracing[:presto][:enabled]",
+    "description": "Enables tracing for the Presto integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_PRESTO_PEER_SERVICE": {
+    "programmaticKey": "tracing[:presto][:peer_service]",
+    "description": "Name of the external service for spans generated by the Presto integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_PRESTO_SERVICE_NAME": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Service name used for spans generated by the Presto integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_PROPAGATION_EXTRACT_FIRST": {
+    "programmaticKey": "tracing.propagation_extract_first",
+    "description": "Stops context extraction after the first valid distributed tracing propagation format is found.",
+    "shortDescription": null
+  },
+  "DD_TRACE_PROPAGATION_STYLE": {
+    "programmaticKey": "tracing.propagation_style",
+    "description": "Distributed tracing propagation formats to use for both extraction and injection.",
+    "shortDescription": null
+  },
+  "DD_TRACE_PROPAGATION_STYLE_EXTRACT": {
+    "programmaticKey": "tracing.propagation_style_extract",
+    "description": "Ordered list of distributed tracing propagation formats to extract from incoming requests.",
+    "shortDescription": null
+  },
+  "DD_TRACE_PROPAGATION_STYLE_INJECT": {
+    "programmaticKey": "tracing.propagation_style_inject",
+    "description": "List of distributed tracing propagation formats to inject into outgoing requests.",
+    "shortDescription": null
+  },
+  "DD_TRACE_QUE_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:que][:analytics_enabled]",
+    "description": "Enables analytics for the Que integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_QUE_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:que][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Que integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_QUE_ENABLED": {
+    "programmaticKey": "tracing[:que][:enabled]",
+    "description": "Enables tracing for the Que integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_QUE_TAG_ARGS_ENABLED": {
+    "programmaticKey": "tracing[:que][:tag_args]",
+    "description": "Enables tagging a Que job's args field on spans.",
+    "shortDescription": null
+  },
+  "DD_TRACE_QUE_TAG_DATA_ENABLED": {
+    "programmaticKey": "tracing[:que][:tag_data]",
+    "description": "Enables tagging a Que job's data field on spans.",
+    "shortDescription": null
+  },
+  "DD_TRACE_RACECAR_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:racecar][:analytics_enabled]",
+    "description": "Enables analytics for the Racecar integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_RACECAR_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:racecar][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Racecar integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_RACECAR_ENABLED": {
+    "programmaticKey": "tracing[:racecar][:enabled]",
+    "description": "Enables tracing for the Racecar integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_RACK_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:rack][:analytics_enabled]",
+    "description": "Enables analytics for the Rack integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_RACK_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:rack][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Rack integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_RACK_ENABLED": {
+    "programmaticKey": "tracing[:rack][:enabled]",
+    "description": "Enables tracing for the Rack integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_RAILS_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:rails][:analytics_enabled]",
+    "description": "Enables analytics for the Rails integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_RAILS_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:rails][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Rails integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_RAILS_ENABLED": {
+    "programmaticKey": "tracing[:rails][:enabled]",
+    "description": "Enables tracing for the Rails integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_RAKE_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:rake][:analytics_enabled]",
+    "description": "Enables analytics for the Rake integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_RAKE_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:rake][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Rake integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_RAKE_ENABLED": {
+    "programmaticKey": "tracing[:rake][:enabled]",
+    "description": "Enables tracing for the Rake integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_RATE_LIMIT": {
+    "programmaticKey": "tracing.sampling.rate_limit",
+    "description": "Maximum number of traces per second to sample.",
+    "shortDescription": null
+  },
+  "DD_TRACE_REDIS_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:redis][:analytics_enabled]",
+    "description": "Enables analytics for the Redis integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_REDIS_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:redis][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Redis integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_REDIS_ENABLED": {
+    "programmaticKey": "tracing[:redis][:enabled]",
+    "description": "Enables tracing for the Redis integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_REDIS_PEER_SERVICE": {
+    "programmaticKey": "tracing[:redis][:peer_service]",
+    "description": "Name of the external service for spans generated by the Redis integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_REDIS_SERVICE_NAME": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Service name used for spans generated by the Redis integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED": {
+    "programmaticKey": "contrib.global_default_service_name.enabled",
+    "description": "Uses the application service name for spans from all integrations, instead of integration-specific service names.",
+    "shortDescription": null
+  },
+  "DD_TRACE_REPORT_HOSTNAME": {
+    "programmaticKey": "tracing.report_hostname",
+    "description": "Adds a hostname tag to traces.",
+    "shortDescription": null
+  },
+  "DD_TRACE_RESOURCE_RENAMING_ALWAYS_SIMPLIFIED_ENDPOINT": {
+    "programmaticKey": "tracing.resource_renaming.always_simplified_endpoint",
+    "description": "When enabled, always infer http.endpoint from the request path instead of using http.route.",
+    "shortDescription": null
+  },
+  "DD_TRACE_RESOURCE_RENAMING_ENABLED": {
+    "programmaticKey": "tracing.resource_renaming.enabled",
+    "description": "Enables resource renaming so the http.endpoint tag reflects the framework route or an inferred route.",
+    "shortDescription": null
+  },
+  "DD_TRACE_RESQUE_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:resque][:analytics_enabled]",
+    "description": "Enables analytics for the Resque integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_RESQUE_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:resque][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Resque integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_RESQUE_ENABLED": {
+    "programmaticKey": "tracing[:resque][:enabled]",
+    "description": "Enables tracing for the Resque integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_REST_CLIENT_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:rest_client][:analytics_enabled]",
+    "description": "Enables analytics for the RestClient integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_REST_CLIENT_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:rest_client][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the RestClient integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_REST_CLIENT_ENABLED": {
+    "programmaticKey": "tracing[:rest_client][:enabled]",
+    "description": "Enables tracing for the RestClient integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_REST_CLIENT_PEER_SERVICE": {
+    "programmaticKey": "tracing[:rest_client][:peer_service]",
+    "description": "Name of the external service for spans generated by the RestClient integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_REST_CLIENT_SERVICE_NAME": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Service name used for spans generated by the RestClient integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_RODA_ENABLED": {
+    "programmaticKey": "tracing[:roda][:enabled]",
+    "description": "Enables tracing for the Roda integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_SAMPLE_RATE": {
+    "programmaticKey": "tracing.sampling.default_rate",
+    "description": "Default trace sampling rate, controlling the fraction of traces kept.",
+    "shortDescription": null
+  },
+  "DD_TRACE_SAMPLING_RULES": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Trace-level sampling rules (JSON) matched against the local root span.",
+    "shortDescription": null
+  },
+  "DD_TRACE_SEMANTIC_LOGGER_ENABLED": {
+    "programmaticKey": "tracing[:semantic_logger][:enabled]",
+    "description": "Enables injecting trace correlation fields into Semantic Logger logs when log injection is enabled.",
+    "shortDescription": null
+  },
+  "DD_TRACE_SEQUEL_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:sequel][:analytics_enabled]",
+    "description": "Enables analytics for the Sequel integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_SEQUEL_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:sequel][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Sequel integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_SEQUEL_ENABLED": {
+    "programmaticKey": "tracing[:sequel][:enabled]",
+    "description": "Enables tracing for the Sequel integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_SHORYUKEN_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:shoryuken][:analytics_enabled]",
+    "description": "Enables analytics for the Shoryuken integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_SHORYUKEN_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:shoryuken][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Shoryuken integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_SHORYUKEN_ENABLED": {
+    "programmaticKey": "tracing[:shoryuken][:enabled]",
+    "description": "Enables tracing for the Shoryuken integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_SIDEKIQ_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:sidekiq][:analytics_enabled]",
+    "description": "Enables analytics for the Sidekiq integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_SIDEKIQ_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:sidekiq][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Sidekiq integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_SIDEKIQ_ENABLED": {
+    "programmaticKey": "tracing[:sidekiq][:enabled]",
+    "description": "Enables tracing for the Sidekiq integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_SINATRA_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:sinatra][:analytics_enabled]",
+    "description": "Enables analytics for the Sinatra integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_SINATRA_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:sinatra][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Sinatra integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_SINATRA_ENABLED": {
+    "programmaticKey": "tracing[:sinatra][:enabled]",
+    "description": "Enables tracing for the Sinatra integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_SNEAKERS_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:sneakers][:analytics_enabled]",
+    "description": "Enables analytics for the Sneakers integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_SNEAKERS_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:sneakers][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Sneakers integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_SNEAKERS_ENABLED": {
+    "programmaticKey": "tracing[:sneakers][:enabled]",
+    "description": "Enables tracing for the Sneakers integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_STARTUP_LOGS": {
+    "programmaticKey": "diagnostics.startup_logs.enabled",
+    "description": "Prints startup configuration and diagnostics to logs to help assess tracing at application startup.",
+    "shortDescription": null
+  },
+  "DD_TRACE_STRIPE_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:stripe][:analytics_enabled]",
+    "description": "Enables analytics for the Stripe integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_STRIPE_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:stripe][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Stripe integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_STRIPE_ENABLED": {
+    "programmaticKey": "tracing[:stripe][:enabled]",
+    "description": "Enables tracing for the Stripe integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_SUCKER_PUNCH_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:sucker_punch][:analytics_enabled]",
+    "description": "Enables analytics for the Sucker Punch integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_SUCKER_PUNCH_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:sucker_punch][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Sucker Punch integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_SUCKER_PUNCH_ENABLED": {
+    "programmaticKey": "tracing[:sucker_punch][:enabled]",
+    "description": "Enables tracing for the Sucker Punch integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_TEST_MODE_ENABLED": {
+    "programmaticKey": "tracing.test_mode.enabled",
+    "description": "Enables tracer test mode, using test-oriented trace flushing and writer behavior.",
+    "shortDescription": null
+  },
+  "DD_TRACE_TRILOGY_ANALYTICS_ENABLED": {
+    "programmaticKey": "tracing[:trilogy][:analytics_enabled]",
+    "description": "Enables analytics for the Trilogy integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_TRILOGY_ANALYTICS_SAMPLE_RATE": {
+    "programmaticKey": "tracing[:trilogy][:analytics_sample_rate]",
+    "description": "Sampling rate for analytics events generated by the Trilogy integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_TRILOGY_ENABLED": {
+    "programmaticKey": "tracing[:trilogy][:enabled]",
+    "description": "Enables tracing for the Trilogy integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_TRILOGY_PEER_SERVICE": {
+    "programmaticKey": "tracing[:trilogy][:peer_service]",
+    "description": "Name of the external service for spans generated by the Trilogy integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_TRILOGY_SERVICE_NAME": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Service name used for spans generated by the Trilogy integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_WATERDROP_ENABLED": {
+    "programmaticKey": "tracing[:waterdrop][:enabled]",
+    "description": "Enables tracing for the WaterDrop integration.",
+    "shortDescription": null
+  },
+  "DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH": {
+    "programmaticKey": "tracing.x_datadog_tags_max_length",
+    "description": "Maximum size allowed for the x-datadog-tags distributed trace tags header; larger values are not parsed or propagated.",
+    "shortDescription": null
+  },
+  "DD_VERSION": {
+    "programmaticKey": "version",
+    "description": "Your application version, set as the version tag on traces.",
+    "shortDescription": null
+  },
+  "OTEL_EXPORTER_OTLP_ENDPOINT": {
+    "programmaticKey": "opentelemetry.exporter.endpoint",
+    "description": "Sets the endpoint URL used by the OpenTelemetry OTLP exporter.",
+    "shortDescription": null
+  },
+  "OTEL_EXPORTER_OTLP_HEADERS": {
+    "programmaticKey": "opentelemetry.exporter.headers",
+    "description": "Sets additional headers sent by the OpenTelemetry OTLP exporter, as a comma-separated list of key=value pairs.",
+    "shortDescription": null
+  },
+  "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT": {
+    "programmaticKey": "opentelemetry.metrics.endpoint",
+    "description": "Sets a custom endpoint URL for OpenTelemetry metrics export via OTLP.",
+    "shortDescription": null
+  },
+  "OTEL_EXPORTER_OTLP_METRICS_HEADERS": {
+    "programmaticKey": "opentelemetry.metrics.headers",
+    "description": "Sets additional headers sent with OpenTelemetry OTLP metrics export requests, as a comma-separated list of key=value pairs.",
+    "shortDescription": null
+  },
+  "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL": {
+    "programmaticKey": "opentelemetry.metrics.protocol",
+    "description": "Selects the protocol used for OpenTelemetry OTLP metrics export. Only http/protobuf is supported.",
+    "shortDescription": null
+  },
+  "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE": {
+    "programmaticKey": "opentelemetry.metrics.temporality_preference",
+    "description": "Selects the temporality preference for OpenTelemetry metrics export (delta or cumulative).",
+    "shortDescription": null
+  },
+  "OTEL_EXPORTER_OTLP_METRICS_TIMEOUT": {
+    "programmaticKey": "opentelemetry.metrics.timeout_millis",
+    "description": "Sets the timeout, in milliseconds, for OpenTelemetry OTLP metrics export. If not explicitly set, the metrics exporter uses the general OTLP timeout setting per the OpenTelemetry specification.",
+    "shortDescription": null
+  },
+  "OTEL_EXPORTER_OTLP_PROTOCOL": {
+    "programmaticKey": "opentelemetry.exporter.protocol",
+    "description": "Selects the protocol used by the OpenTelemetry OTLP exporter. Only http/protobuf is supported.",
+    "shortDescription": null
+  },
+  "OTEL_EXPORTER_OTLP_TIMEOUT": {
+    "programmaticKey": "opentelemetry.exporter.timeout_millis",
+    "description": "Sets the timeout, in milliseconds, for OpenTelemetry OTLP export requests.",
+    "shortDescription": null
+  },
+  "OTEL_LOG_LEVEL": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Enables Datadog debug mode and verbose diagnostic logging when set to debug.",
+    "shortDescription": null
+  },
+  "OTEL_METRICS_EXPORTER": {
+    "programmaticKey": "opentelemetry.metrics.exporter",
+    "description": "Selects the metrics exporter used by the library. Use none to disable metrics export.",
+    "shortDescription": null
+  },
+  "OTEL_METRIC_EXPORT_INTERVAL": {
+    "programmaticKey": "opentelemetry.metrics.export_interval_millis",
+    "description": "Sets the interval, in milliseconds, between OpenTelemetry metrics exports.",
+    "shortDescription": null
+  },
+  "OTEL_METRIC_EXPORT_TIMEOUT": {
+    "programmaticKey": "opentelemetry.metrics.export_timeout_millis",
+    "description": "Sets the timeout, in milliseconds, for each OpenTelemetry metrics export cycle.",
+    "shortDescription": null
+  },
+  "OTEL_PROPAGATORS": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Configures which propagators are used for extracting and injecting trace context.",
+    "shortDescription": null
+  },
+  "OTEL_RESOURCE_ATTRIBUTES": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Sets resource attributes/tags applied to Datadog products (e.g., traces, profiles) as key-value pairs (key=value or key:value) separated by commas or whitespace.",
+    "shortDescription": null
+  },
+  "OTEL_SERVICE_NAME": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Sets the service name reported by the library.",
+    "shortDescription": null
+  },
+  "OTEL_TRACES_EXPORTER": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Controls whether tracing is enabled; setting it to none disables tracing.",
+    "shortDescription": null
+  },
+  "OTEL_TRACES_SAMPLER": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Selects the OpenTelemetry trace sampler (always_on, always_off, traceidratio, or parentbased variants), which is mapped to a sampling rate.",
+    "shortDescription": null
+  },
+  "OTEL_TRACES_SAMPLER_ARG": {
+    "programmaticKey": "(not using DSL)",
+    "description": "Provides the argument value used by the traceidratio OpenTelemetry sampler.",
+    "shortDescription": null
+  }
+}
