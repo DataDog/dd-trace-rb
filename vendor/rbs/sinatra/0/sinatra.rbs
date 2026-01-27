@@ -4,7 +4,7 @@ module Sinatra
   end
 
   class Request
-    def env: () -> rack_env
+    def env: () -> ::Hash[::String, untyped]
   end
 
   class Base
