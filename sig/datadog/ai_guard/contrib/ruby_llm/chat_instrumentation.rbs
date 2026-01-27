@@ -1,0 +1,13 @@
+module Datadog
+  module AIGuard
+    module Contrib
+      module RubyLLM
+        module ChatInstrumentation : RubyLLM::Chat
+          def self.evaluate!: (::Array[::RubyLLM::Message] messages) -> (AIGuard::Evaluation::Result | AIGuard::Evaluation::NoOpResult)
+
+          def complete: () ?{ () -> ::Array[::RubyLLM::Message] } -> (::RubyLLM::Message | ::RubyLLM::Tool::Halt)
+        end
+      end
+    end
+  end
+end

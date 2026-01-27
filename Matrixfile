@@ -362,8 +362,11 @@
     'openfeature-latest' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 4.0 / ❌ jruby',
     'openfeature-min'    => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 4.0 / ❌ jruby',
   },
-  'ai_guard' => {
+  'ai_guard:main' => {
     '' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 3.5 / ✅ jruby'
+  },
+  'ai_guard:ruby_llm' => {
+    'ruby-llm-latest' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 4.0 / ❌ jruby'
   }
 }.each_with_object({}) do |(tasks, spec_metadata), hash|
   # Explode arrays of task names into individual tasks

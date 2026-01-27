@@ -78,7 +78,7 @@ module Datadog
           other.is_a?(self.class) && other.agent_settings == agent_settings
         end
 
-        # Returns the propagation checksum, with part of the datafrom the Agent.
+        # Returns the propagation checksum, with part of the data from the Agent.
         # Currently called/used by the DBM code to inject the propagation checksum into the SQL comment.
         #
         # The checksum is populated by the trace transport's periodic fetch calls.
@@ -128,9 +128,6 @@ module Datadog
             # new_container_tags_value (non nil) over @container_tags_checksum (string?) to avoid steep errors
             data = process_tags + new_container_tags_value
             @propagation_checksum = Core::Utils::FNV.fnv1_64(data)
-          elsif !defined?(@propagation_checksum)
-            # Cache nil to avoid repeated fetch attempts when agent doesn't provide the header
-            @propagation_checksum = nil
           end
         end
       end
