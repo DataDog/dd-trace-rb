@@ -15,6 +15,7 @@ variables:
   REPO_LANG: ruby # ruby is used rather that "rb"
   BUILD_JOB_NAME: save_versions
   REPO_NOTIFICATION_CHANNEL: "#guild-dd-ruby"
+  OCI_PACKAGE_MAX_SIZE_BYTES: 160000000
   LIB_INJECTION_IMAGE_MAX_SIZE_BYTES: 200000000
 
 default:
@@ -57,7 +58,7 @@ build-image-amd64:
 
 build-image-arm64:
   extends: .build-image-base
-  tags: ["docker-in-docker:arm64"]
+  tags: ["docker-in-docker:microvm-arm64"]
   variables:
     ARCHITECTURE: arm64
 
@@ -147,7 +148,7 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: ae3a0d3df5326ebfe69950f7ea75c4764cb9fa6c # Automated: This reference is automatically updated.
+    SYSTEM_TESTS_REF: bafc8bc606d76170d98ce3cdb13c75a1ea9cf924 # Automated: This reference is automatically updated.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,lib-injection,docker_ssi"
     SYSTEM_TEST_BUILD_ATTEMPTS: 3
 

@@ -4,14 +4,13 @@ module Datadog
   module AppSec
     module Utils
       module HTTP
-        # Implementation of media type for content negotiation
+        # Implementation of media type for HTTP headers
         #
         # See:
         # - https://www.rfc-editor.org/rfc/rfc7231#section-5.3.1
         # - https://www.rfc-editor.org/rfc/rfc7231#section-5.3.2
         class MediaType
-          class ParseError < ::StandardError
-          end
+          ParseError = Class.new(StandardError) # steep:ignore IncompatibleAssignment
 
           WILDCARD = '*'
 
@@ -19,7 +18,7 @@ module Datadog
           TOKEN_RE = /[-#$%&'*+.^_`|~A-Za-z0-9]+/.freeze
 
           # See: https://www.rfc-editor.org/rfc/rfc7231#section-3.1.1.1
-          PARAMETER_RE = %r{ # rubocop:disable Style/RegexpLiteral
+          PARAMETER_RE = %r{
             (?:
               (?<parameter_name>#{TOKEN_RE})
               =
@@ -46,39 +45,54 @@ module Datadog
 
           attr_reader :type, :subtype, :parameters
 
+          def self.json?(media_type)
+            return false if media_type.nil? || media_type.empty?
+
+            match = MEDIA_TYPE_RE.match(media_type)
+            return false if match.nil?
+
+            subtype = match['subtype']
+            return false if subtype.nil? || subtype.empty?
+
+            subtype.downcase!
+            subtype == 'json' || subtype.end_with?('+json')
+          end
+
           def initialize(media_type)
-            media_type_match = MEDIA_TYPE_RE.match(media_type)
+            match = MEDIA_TYPE_RE.match(media_type)
+            raise ParseError, media_type.inspect if match.nil?
 
-            raise ParseError, media_type.inspect if media_type_match.nil?
+            @type = match['type'] || WILDCARD
+            @type.downcase!
 
-            @type = (media_type_match['type'] || WILDCARD).downcase
-            @subtype = (media_type_match['subtype'] || WILDCARD).downcase
+            @subtype = match['subtype'] || WILDCARD
+            @subtype.downcase!
+
             @parameters = {}
 
-            parameters = media_type_match['parameters']
+            parameters = match['parameters']
+            return if parameters.nil? || parameters.empty?
 
-            return if parameters.nil?
+            parameters.scan(PARAMETER_RE) do |name, unquoted_value, quoted_value|
+              # NOTE: Order of unquoted_value and quoted_value does not matter,
+              #       as they are mutually exclusive by the regex.
+              # @type var value: ::String?
+              value = unquoted_value || quoted_value
+              next if name.nil? || value.nil?
 
-            parameters.split(';').map(&:strip).each do |parameter|
-              parameter_match = PARAMETER_RE.match(parameter)
+              # See https://github.com/soutaro/steep/issues/2051
+              name.downcase! # steep:ignore NoMethod
+              value.downcase!
 
-              next if parameter_match.nil?
-
-              parameter_name = parameter_match['parameter_name']
-              parameter_value = parameter_match['parameter_value']
-
-              next if parameter_name.nil? || parameter_value.nil?
-
-              @parameters[parameter_name.downcase] = parameter_value.downcase
+              # See https://github.com/soutaro/steep/issues/2051
+              @parameters[name] = value # steep:ignore ArgumentTypeMismatch
             end
           end
 
           def to_s
-            s = +"#{@type}/#{@subtype}"
+            return "#{@type}/#{@subtype}" if @parameters.empty?
 
-            s << ';' << @parameters.map { |k, v| "#{k}=#{v}" }.join(';') if @parameters.count > 0
-
-            s
+            "#{@type}/#{@subtype};#{@parameters.map { |k, v| "#{k}=#{v}" }.join(";")}"
           end
         end
       end

@@ -4,18 +4,19 @@ module Datadog
       module ActiveRecord
         class Integration
           include Datadog::AppSec::Contrib::Integration
+          extend Datadog::AppSec::Contrib::Integration::ClassMethods
 
-          MINIMUM_VERSION: Gem::Version
+          MINIMUM_VERSION: ::Gem::Version
 
-          def self.version: () -> Gem::Version?
+          def self.version: () -> ::Gem::Version?
 
           def self.loaded?: () -> bool
 
           def self.compatible?: () -> bool
 
-          def self.auto_instrument?: () -> true
+          def self.auto_instrument?: () -> bool
 
-          def patcher: () -> class
+          def patcher: () -> singleton(Patcher)
         end
       end
     end
