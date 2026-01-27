@@ -33,7 +33,7 @@ module Datadog
 
         rate = rate.to_f
         unless rate >= 0.0 && rate <= 1.0
-          Datadog.logger.warn('Sample rate is not between 0.0 and 1.0, falling back to 1.0')
+          Datadog.logger.warn("Sample rate #{rate} is not between 0.0 and 1.0, falling back to 1.0")
           rate = 1.0
         end
 

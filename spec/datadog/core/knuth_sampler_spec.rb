@@ -18,7 +18,7 @@ RSpec.describe Datadog::Core::KnuthSampler do
       subject(:sampler) { described_class.new(-1.0) }
 
       it 'logs warning and falls back to 1.0' do
-        expect(logger).to receive(:warn).with('Sample rate is not between 0.0 and 1.0, falling back to 1.0')
+        expect(logger).to receive(:warn).with('Sample rate -1.0 is not between 0.0 and 1.0, falling back to 1.0')
         expect(sampler.sample?(0)).to be(true)
       end
     end
@@ -27,7 +27,7 @@ RSpec.describe Datadog::Core::KnuthSampler do
       subject(:sampler) { described_class.new(1.5) }
 
       it 'logs warning and falls back to 1.0' do
-        expect(logger).to receive(:warn).with('Sample rate is not between 0.0 and 1.0, falling back to 1.0')
+        expect(logger).to receive(:warn).with('Sample rate 1.5 is not between 0.0 and 1.0, falling back to 1.0')
         expect(sampler.sample?(0)).to be(true)
       end
     end
