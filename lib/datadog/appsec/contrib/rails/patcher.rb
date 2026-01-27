@@ -138,7 +138,7 @@ module Datadog
               end
             rescue => e
               error_message = 'Failed to get application routes'
-              Datadog.logger.error("#{error_message}, error #{e.inspect}")
+              Datadog.logger.error("#{error_message}, #{e.class}: #{e.message}")
               AppSec.telemetry.report(e, description: error_message)
             end
           end
@@ -148,7 +148,7 @@ module Datadog
               Datadog::AppSec::Contrib::Rails::Patcher.report_routes_via_telemetry(::Rails.application.routes.routes)
             rescue => e
               error_message = 'Failed to get application routes'
-              Datadog.logger.error("#{error_message}, error #{e.inspect}")
+              Datadog.logger.error("#{error_message}, #{e.class}: #{e.message}")
               AppSec.telemetry.report(e, description: error_message)
             end
           end
