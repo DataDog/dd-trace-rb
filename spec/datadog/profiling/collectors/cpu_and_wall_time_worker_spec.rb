@@ -868,7 +868,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
 
         skip "Heap profiling is only supported on Ruby >= 2.7" if RUBY_VERSION < "2.7"
-        skip "Datadog Heap profiling is incompatible with Ruby 4, see https://bugs.ruby-lang.org/issues/21710 for discussion" if RUBY_VERSION.start_with?("4.")
       end
 
       after do |example|
@@ -877,8 +876,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         if example.exception
           cpu_and_wall_time_worker.stop
 
-          puts("Heap recorder debugging info:")
-          puts(Datadog::Profiling::StackRecorder::Testing._native_debug_heap_recorder(recorder))
+          puts("Heap recorder debugging info: #{Datadog::Profiling::StackRecorder::Testing._native_debug_heap_recorder(recorder).inspect}")
         end
       end
 
