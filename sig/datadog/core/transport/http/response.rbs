@@ -15,7 +15,6 @@ module Datadog
           def server_error?: () -> untyped
 
           def code: () -> (untyped | nil)
-          def headers: () -> ::Hash[::String, ::String]
         end
       end
     end

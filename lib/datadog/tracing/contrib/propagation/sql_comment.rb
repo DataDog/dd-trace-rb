@@ -14,10 +14,6 @@ module Datadog
           def self.annotate!(span_op, mode)
             return unless mode.enabled?
 
-            # Add base hash to the span tag
-            base_hash = Datadog.send(:components).agent_info.propagation_checksum
-            span_op.set_tag(Ext::TAG_PROPAGATED_HASH, base_hash.to_s) if base_hash
-
             span_op.set_tag(Ext::TAG_DBM_TRACE_INJECTED, true) if mode.full?
           end
 
@@ -39,9 +35,6 @@ module Datadog
               Ext::KEY_DB_NAME => span_op.get_tag(Contrib::Ext::DB::TAG_INSTANCE),
               Ext::KEY_PEER_SERVICE => peer_service,
             }
-
-            base_hash = Datadog.send(:components).agent_info.propagation_checksum
-            tags[Ext::KEY_BASE_HASH] = base_hash.to_s if base_hash
 
             db_service = peer_service || span_op.service
             if parent_service != db_service # Only set if it's different from parent_service; otherwise it's redundant

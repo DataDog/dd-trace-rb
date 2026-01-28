@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../utils/fnv'
-require_relative 'process'
-
 module Datadog
   module Core
     module Environment
@@ -62,73 +59,18 @@ module Datadog
           @client = Remote::Transport::HTTP.root(agent_settings: agent_settings, logger: logger)
         end
 
-        # Fetches the information from the Trace Agent.
+        # Fetches the information from the agent.
         # @return [Datadog::Core::Remote::Transport::HTTP::Negotiation::Response] the response from the agent
         # @return [nil] if an error occurred while fetching the information
         def fetch
           res = @client.send_info
           return unless res.ok?
 
-          update_container_tags(res)
-
           res
         end
 
         def ==(other)
           other.is_a?(self.class) && other.agent_settings == agent_settings
-        end
-
-        # Returns the propagation checksum, with part of the data from the Agent.
-        # Currently called/used by the DBM code to inject the propagation checksum into the SQL comment.
-        #
-        # The checksum is populated by the trace transport's periodic fetch calls.
-        # @return [Integer, nil] the FNV hash based on the container and process tags or nil
-        attr_reader :propagation_checksum
-
-        private
-
-        # Trace Agent 7.69.0+ provides a SHA256 checksum in the response header DATADOG-CONTAINER-TAGS-HASH based on the container id computed in Datadog::Core::Environment::Container
-        # This is a short checksum that uniquely identifies this process, its container environment, and
-        # the Datadog agent it connects to.
-        #
-        # It is used to correlate multiple signals emitted by this process among themselves (e.g. traces to
-        # sql queries to pub/sub events).
-        # Because some of these signals have strict size restrictions, we cannot use complete propagation
-        # methods (e.g. a W3C Trace Context), so short checksum is calculated, then later correlated by the
-        # Datadog App.
-        #
-        # This checksum only has to be internally consistent: the same value must be used by every signal
-        # emitted by this process+container+agent combinations). It is not required that this checksum is
-        # consistent with other SDKs.
-        # During calls to the Trace Agent, this checksum is cached but invalidated if a new value is returned
-        # The resulting propagation_checksum uses the container_tags_checksum
-        # https://github.com/DataDog/datadog-agent/pull/38515
-        attr_reader :container_tags_checksum
-
-        # Datadog::Core::Environment::Container extracts the container id from the cgroup folder if possible
-        # (note: not currently available in cgroupv2) and sends it to the Trace Agent via the header Datadog-Container-ID.
-        # The Trace Agent takes the container id and looks for matching container tags to compute a SHA256 checksum via the response header DATADOG-CONTAINER-TAGS-HASH
-        # https://github.com/DataDog/datadog-agent/blob/c923da011c8e51c35c0d05b6b10d016521915e7d/pkg/trace/api/info.go#L203-L227
-        #
-        # When deciding whether the propagation checksum should be updated, we need to be aware of some concerns:
-        #     - The tracer fails to send the container id in the first place
-        #     - It is possible that older Trace Agents may not have this specific header
-        #     - It is possible that we don't have access to the value if the Trace Agent is temporarily down. In these cases, we need to check for the value again on the next call to the info endpoint
-        #     - If we have access to the value, we need to check if it changed from the previous value.
-        #     - The Trace Agent runs into a permissions/setup issue.
-        def update_container_tags(res)
-          header_value = res.headers[Core::Transport::Ext::HTTP::HEADER_CONTAINER_TAGS_HASH]
-          new_container_tags_value = header_value if header_value && !header_value.empty?
-
-          # if the Trace Agent returns a new value for the checksum, calculate and cache the propagation checksum
-          if new_container_tags_value && new_container_tags_value != @container_tags_checksum
-            @container_tags_checksum = new_container_tags_value
-
-            process_tags = Process.serialized
-            # new_container_tags_value (non nil) over @container_tags_checksum (string?) to avoid steep errors
-            data = process_tags + new_container_tags_value
-            @propagation_checksum = Core::Utils::FNV.fnv1_64(data)
-          end
         end
       end
     end
