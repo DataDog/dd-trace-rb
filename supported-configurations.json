@@ -278,6 +278,13 @@
         "default": ""
       }
     ],
+    "DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS": [
+      {
+        "version": "A",
+        "type": "array",
+        "default": "[]"
+      }
+    ],
     "DD_ENV": [
       {
         "version": "B",
