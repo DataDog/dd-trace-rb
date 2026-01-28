@@ -16,6 +16,9 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Patcher do
       allow(logger).to receive(:debug)
       allow(telemetry).to receive(:report)
 
+      ActiveSupport.instance_variable_get(:@load_hooks).delete(:after_routes_loaded)
+      ActiveSupport.instance_variable_get(:@loaded).delete(:action_controller)
+
       described_class.patch
     end
 
