@@ -27,6 +27,9 @@ jobs:
   # ADD NEW RUBIES HERE
   ruby-40:
     name: "Ruby 4.0"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: ruby
@@ -35,6 +38,9 @@ jobs:
 
   ruby-34:
     name: "Ruby 3.4"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: ruby
@@ -43,6 +49,9 @@ jobs:
 
   ruby-33:
     name: "Ruby 3.3"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: ruby
@@ -51,6 +60,9 @@ jobs:
 
   ruby-32:
     name: "Ruby 3.2"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: ruby
@@ -59,6 +71,9 @@ jobs:
 
   ruby-31:
     name: "Ruby 3.1"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: ruby
@@ -67,6 +82,9 @@ jobs:
 
   ruby-30:
     name: "Ruby 3.0"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: ruby
@@ -75,6 +93,9 @@ jobs:
 
   ruby-27:
     name: "Ruby 2.7"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: ruby
@@ -83,6 +104,9 @@ jobs:
 
   ruby-26:
     name: "Ruby 2.6"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: ruby
@@ -91,6 +115,9 @@ jobs:
 
   ruby-25:
     name: "Ruby 2.5"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: ruby
@@ -99,6 +126,9 @@ jobs:
 
   jruby-100:
     name: "JRuby 10.0"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: jruby
@@ -107,6 +137,9 @@ jobs:
 
   jruby-94:
     name: "JRuby 9.4"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: jruby
@@ -115,6 +148,9 @@ jobs:
 
   jruby-93:
     name: "JRuby 9.3"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: jruby
@@ -123,6 +159,9 @@ jobs:
 
   jruby-92:
     name: "JRuby 9.2"
+    permissions:
+      actions: write
+      contents: read
     uses: ./.github/workflows/_unit_test.yml
     with:
       engine: jruby
@@ -248,3 +287,53 @@ jobs:
       - jruby-92
     steps:
       - run: echo "DONE!"
+
+  commit-gemfile-lock-updates:
+    name: Commit lockfile changes (if any)
+    if: github.event_name == 'pull_request' && github.ref != 'refs/heads/master'
+    needs:
+      # ADD NEW RUBIES HERE
+      - ruby-40
+      - ruby-34
+      - ruby-33
+      - ruby-32
+      - ruby-31
+      - ruby-30
+      - ruby-27
+      - ruby-26
+      - ruby-25
+      - jruby-100
+      - jruby-94
+      - jruby-93
+      - jruby-92
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          persist-credentials: true # required for `git` operations (commit & push) at later steps
+          token: ${{ steps.generate-token.outputs.token }}
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          path: gemfiles
+          pattern: lockfile-updates-${{ github.branch }}-*
+          merge-multiple: true
+      # FIXME: The ghcommit-action does not pick up untracked/unstaged files
+      #        https://github.com/planetscale/ghcommit-action/issues/43
+      - name: Stage changes
+        run: git add gemfiles
+      - run: git diff --cached --color=always
+      - name: Commit changes (skips empty commits)
+        uses: planetscale/ghcommit-action@25309d8005ac7c3bcd61d3fe19b69e0fe47dbdde # v0.2.20
+        with:
+          repo: ${{ github.repository }}
+          branch: ${{ github.head_ref }}
+          file_pattern: "gemfiles/*"
+          commit_message: "[🤖] Lock Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}

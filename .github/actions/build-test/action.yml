@@ -1,7 +1,6 @@
-name: 'Build and Test'
+name: 'Test'
 
-# TODO: Improve  description
-description: 'Configure test suite in batches'
+description: 'Run the test suite in batches'
 
 inputs:
   alias:
@@ -16,9 +15,6 @@ runs:
   steps:
   - name: Configure Git
     run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-    shell: bash
-
-  - run: bundle exec rake github:run_batch_build
     shell: bash
 
   - name: Configure RSpec
