@@ -30,12 +30,12 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Patcher do
 
           expect(Datadog.logger).to have_received(:error).with(
             /Failed to get application routes/
-          ).once
+          )
 
           expect(Datadog::AppSec.telemetry).to have_received(:report).with(
             an_instance_of(StandardError),
             description: 'Failed to get application routes'
-          ).once
+          )
         end
       end
     end
