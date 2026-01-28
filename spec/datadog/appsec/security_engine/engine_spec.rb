@@ -15,23 +15,102 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
 
   before do
     allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry)
+    allow(telemetry).to receive(:inc)
   end
 
   describe '.new' do
     subject(:engine) { described_class.new(appsec_settings: appsec_settings, telemetry: telemetry) }
 
+    context 'when libddwaf initializes correctly' do
+      let(:default_ruleset) do
+        {
+          version: '2.2',
+          metadata: {
+            rules_version: '1.0.0'
+          },
+          rules: [
+            {
+              id: 'rasp-003-001',
+              name: 'SQL Injection',
+              tags: {
+                type: 'sql_injection',
+                category: 'exploit',
+                module: 'rasp'
+              },
+              conditions: [
+                {
+                  operator: 'sqli_detector',
+                  parameters: {
+                    resource: [{address: 'server.db.statement'}],
+                    params: [{address: 'server.request.query'}],
+                    db_type: [{address: 'server.db.system'}]
+                  }
+                }
+              ],
+              on_match: ['block-sqli']
+            }
+          ]
+        }
+      end
+
+      before do
+        appsec_settings.ruleset = default_ruleset
+
+        allow(Datadog.logger).to receive(:error)
+        allow(telemetry).to receive(:report)
+        allow(telemetry).to receive(:inc)
+      end
+
+      it 'reports waf.init metric once with correct tags' do
+        expect(telemetry).to receive(:inc).with(
+          Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.init', 1, tags: {
+            waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
+            event_rules_version: '1.0.0',
+            success: true
+          }
+        ).once
+
+        engine
+      end
+    end
+
     context 'when libddwaf handle cannot be initialized' do
       before do
         appsec_settings.ruleset = {}
+
+        allow(Datadog.logger).to receive(:error)
+        allow(telemetry).to receive(:report)
+        allow(telemetry).to receive(:inc)
       end
 
-      it 'reports error though telemetry, prints an error log message and re-raises' do
+      it 'reports error though telemetry' do
         expect(telemetry).to receive(:report).with(
           Datadog::AppSec::WAF::LibDDWAFError,
           description: 'AppSec security engine failed to initialize'
         )
 
+        expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
+      end
+
+      it 'prints an error log message' do
         expect(Datadog.logger).to receive(:error).with(/AppSec security engine failed to initialize/)
+
+        expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
+      end
+
+      it 'reports waf.init metric once with correct tags' do
+        expect(telemetry).not_to receive(:inc).with(
+          Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.init', 1,
+          tags: hash_including(success: true)
+        )
+
+        expect(telemetry).to receive(:inc).with(
+          Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.init', 1, tags: {
+            waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
+            event_rules_version: '',
+            success: false
+          }
+        ).once
 
         expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
       end
@@ -47,9 +126,9 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
           ]
         }
 
-        allow(telemetry).to receive(:inc).once
-        allow(telemetry).to receive(:error).once
-        allow(telemetry).to receive(:report).once
+        allow(telemetry).to receive(:inc)
+        allow(telemetry).to receive(:error)
+        allow(telemetry).to receive(:report)
       end
 
       subject(:engine) { described_class.new(appsec_settings: appsec_settings, telemetry: telemetry) }
@@ -71,8 +150,31 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
       end
 
-      it 'reports errors through telemetry' do
+      it 'reports error though telemetry' do
         expect(telemetry).to receive(:error).with("missing key 'conditions': [invalid-rule-id]")
+
+        expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
+      end
+
+      it 'prints an error log message' do
+        expect(Datadog.logger).to receive(:error).with(/AppSec security engine failed to initialize/)
+
+        expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
+      end
+
+      it 'reports waf.init metric once with correct tags' do
+        expect(telemetry).not_to receive(:inc).with(
+          Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.init', 1,
+          tags: hash_including(success: true)
+        )
+
+        expect(telemetry).to receive(:inc).with(
+          Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.init', 1, tags: {
+            waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
+            event_rules_version: '',
+            success: false
+          }
+        ).once
 
         expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
       end

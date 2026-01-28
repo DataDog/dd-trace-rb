@@ -40,11 +40,29 @@ module Datadog
           @ruleset_version = diagnostics['ruleset_version']
 
           @handle_ref = ThreadSafeRef.new(@waf_builder.build_handle)
+
+          telemetry.inc(
+            Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.init', 1,
+            tags: {
+              waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
+              event_rules_version: @ruleset_version.to_s,
+              success: true
+            }
+          )
         rescue WAF::Error => e
           error_message = "AppSec security engine failed to initialize"
 
           Datadog.logger.error("#{error_message}, error #{e.inspect}")
           telemetry.report(e, description: error_message)
+
+          telemetry.inc(
+            Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.init', 1,
+            tags: {
+              waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
+              event_rules_version: @ruleset_version.to_s,
+              success: false
+            }
+          )
 
           raise e
         end
