@@ -343,5 +343,8 @@ DEPENDENCIES
   webrick (>= 1.7.0)
   zstd-ruby
 
+RUBY VERSION
+   ruby 3.2.9p265
+
 BUNDLED WITH
    2.7.2

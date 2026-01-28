@@ -49,6 +49,9 @@ jobs:
   batch:
     runs-on: ubuntu-24.04
     name: batch
+    permissions:
+      actions: write
+      contents: read
     outputs:
       seed: "${{ steps.set-batches.outputs.seed }}"
       batches: "${{ steps.set-batches.outputs.batches }}"
@@ -64,7 +67,10 @@ jobs:
 
     - name: Prepare bundle cache
       id: bundle-cache
-      uses: ./.github/actions/bundle-cache
+      uses: ./.github/actions/bundle-lock
+      with:
+        engine-name: ${{ inputs.engine }}
+        engine-version: ${{ inputs.version }}
 
     - id: set-batches
       name: Distribute tasks into batches
@@ -85,6 +91,83 @@ jobs:
         batches_json: "${{ steps.set-batches.outputs.batches }}"
         CI_TEST_SEED: "${{ steps.set-batches.outputs.seed }}"
       run: bundle exec rake github:generate_batch_summary
+    - name: Capture ruby env for cache cleanup
+      id: cache-ruby-env
+      shell: bash
+      run: echo "ruby_env=$(ruby -e 'puts RUBY_DESCRIPTION')-$(bundle --version)" >> "$GITHUB_OUTPUT"
+    - name: Cleanup old bundle caches for this ref
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      env:
+        CACHE_RUBY_ENV: "${{ steps.cache-ruby-env.outputs.ruby_env }}"
+        CACHE_BASE_KEEP: "${{ steps.bundle-cache.outputs.base-cache-key }}"
+        CACHE_MATRIX_KEEP: "${{ steps.bundle-cache.outputs.cache-key }}"
+      with:
+        script: |
+          const ref = context.ref;
+          const rubyEnv = process.env.CACHE_RUBY_ENV || '';
+          const prefixes = [
+            `bundle-base-${rubyEnv}-`,
+            `bundle-matrix-${rubyEnv}-`,
+          ];
+          const keep = new Set(
+            [process.env.CACHE_BASE_KEEP, process.env.CACHE_MATRIX_KEEP].filter(Boolean)
+          );
+
+          let page = 1;
+          const perPage = 100;
+          let deleted = 0;
+          const deletedKeys = [];
+
+          while (true) {
+            const { data } = await github.request(
+              'GET /repos/{owner}/{repo}/actions/caches',
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref,
+                per_page: perPage,
+                page,
+              }
+            );
+            const caches = data.actions_caches || [];
+            if (caches.length === 0) {
+              break;
+            }
+
+            for (const cache of caches) {
+              const key = cache.key || '';
+              if (!prefixes.some((prefix) => key.startsWith(prefix))) {
+                continue;
+              }
+              if (keep.has(key)) {
+                continue;
+              }
+              await github.request(
+                'DELETE /repos/{owner}/{repo}/actions/caches/{cache_id}',
+                {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  cache_id: cache.id,
+                }
+              );
+              deleted += 1;
+              deletedKeys.push(key);
+            }
+
+            if (caches.length < perPage) {
+              break;
+            }
+            page += 1;
+          }
+
+          core.info(`Deleted ${deleted} old bundle cache(s).`);
+
+          if (deletedKeys.length > 0) {
+            const header = '### Cache cleanup (bundle)';
+            const lines = deletedKeys.map((k) => `- \`${k}\``);
+            const body = [header, ...lines].join('\n');
+            core.summary.addRaw(body).write();
+          }
 
   # `Initialize containers` step becomes quite heavily when many services are used.
   #
@@ -112,7 +195,7 @@ jobs:
     needs:
     - batch
     runs-on: ubuntu-24.04
-    name: build & test (standard) [${{ matrix.batch }}]
+    name: test (standard) [${{ matrix.batch }}]
     timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
@@ -171,7 +254,7 @@ jobs:
       with:
         lockfile: ${{ needs.batch.outputs.lockfile }}
         cache-key: ${{ needs.batch.outputs.cache-key }}
-    - name: Build & Test
+    - name: Test
       uses: ./.github/actions/build-test
       with:
         alias: ${{ inputs.alias }}
@@ -181,7 +264,7 @@ jobs:
     needs:
     - batch
     runs-on: ubuntu-24.04
-    name: build & test (misc) [${{ matrix.batch }}]
+    name: test (misc) [${{ matrix.batch }}]
     timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
@@ -251,7 +334,7 @@ jobs:
       with:
         lockfile: ${{ needs.batch.outputs.lockfile }}
         cache-key: ${{ needs.batch.outputs.cache-key }}
-    - name: Build & Test
+    - name: Test
       uses: ./.github/actions/build-test
       with:
         alias: ${{ inputs.alias }}

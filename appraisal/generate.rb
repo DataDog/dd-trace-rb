@@ -37,6 +37,14 @@ define_singleton_method(:appraise) do |name, &block|
   appraisal = Appraisal::Appraisal.new(name, gemfile)
   appraisal.instance_eval(&block)
 
+  # Add Ruby version constraint so `bundle lock` respects `required_ruby_version`
+  # for already installed gemspecs.
+  # This is only a problem if cache is leaking between versions, which should be
+  # investigated.
+  # See: https://bundler.io/man/gemfile.5.html#RUBY
+  major, minor = RUBY_VERSION.split('.').take(2)
+  appraisal.ruby "~> #{major}.#{minor}"
+
   # Customize callback for removal
   to_remove.each do |group_name, gems|
     appraisal.group(group_name) do
