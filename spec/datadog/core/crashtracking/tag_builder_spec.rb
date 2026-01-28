@@ -112,5 +112,25 @@ RSpec.describe Datadog::Core::Crashtracking::TagBuilder do
         end
       end
     end
+
+    describe 'process tags' do
+      context 'when process tags propagation is enabled' do
+        before do
+          settings.experimental_propagate_process_tags_enabled = true
+          expect(Datadog::Core::Environment::Process).to receive(:serialized)
+            .and_return('entrypoint.workdir:myapp,entrypoint.name:script.rb,entrypoint.basedir:bin,entrypoint.type:script')
+        end
+
+        it 'includes process tags in the crash tracking payload' do
+          expect(call).to include('process_tags' => 'entrypoint.workdir:myapp,entrypoint.name:script.rb,entrypoint.basedir:bin,entrypoint.type:script')
+        end
+      end
+
+      context 'when process tags propagation is not enabled' do
+        it 'does not include process tags in the crash tracking payload' do
+          expect(call.keys).to_not include('process_tags')
+        end
+      end
+    end
   end
 end
