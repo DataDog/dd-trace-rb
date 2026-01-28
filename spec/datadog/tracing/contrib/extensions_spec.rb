@@ -8,10 +8,17 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
     let(:integration_name) { :example }
     let(:integration) { integration_class.new(integration_name) }
     let(:integration_class) do
-      Class.new do
-        include Datadog::Tracing::Contrib::Integration
-        include Datadog::Tracing::Contrib::Configurable
-      end
+      stub_const(
+        'TestIntegrationClass',
+        Class.new do
+          include Datadog::Tracing::Contrib::Integration
+          include Datadog::Tracing::Contrib::Configurable
+
+          def inspect
+            'TestIntegrationClass'
+          end
+        end
+      )
     end
 
     let(:configurable_module) do
