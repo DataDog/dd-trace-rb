@@ -3,6 +3,13 @@ module Sinatra
     def initialize: (::Array[::String] body, ::Integer status, ::Hash[::String, ::String] headers) -> void
   end
 
+  class Request
+    def env: () -> ::Hash[::String, untyped]
+  end
+
   class Base
+  end
+
+  module JSON
   end
 end
