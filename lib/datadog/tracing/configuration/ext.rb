@@ -8,6 +8,7 @@ module Datadog
       # Constants for configuration settings
       # e.g. Env vars, default values, enums, etc...
       module Ext
+        ENV_CONTEXT_SCOPE = 'DD_TRACE_CONTEXT_SCOPE'
         ENV_ENABLED = 'DD_TRACE_ENABLED'
         ENV_HEADER_TAGS = 'DD_TRACE_HEADER_TAGS'
         ENV_BAGGAGE_TAG_KEYS = 'DD_TRACE_BAGGAGE_TAG_KEYS'
