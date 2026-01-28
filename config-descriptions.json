@@ -6,42 +6,48 @@
       "description": "Enables AI Guard so the library can make AI Guard API calls; disabling it skips those calls without removing the library.",
       "existingPublicDescription": null,
       "shortDescription": "Enable AI Guard so the library can make AI Guard API calls",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_AI_GUARD_ENDPOINT": {
       "programmaticKey": "ai_guard.endpoint",
       "description": "URL of the AI Guard API endpoint that this library will send requests to.",
       "existingPublicDescription": null,
       "shortDescription": "URL of the AI Guard API endpoint that this library will send requests to",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_AI_GUARD_MAX_CONTENT_SIZE": {
       "programmaticKey": "ai_guard.max_content_size_bytes",
       "description": "Maximum size of content captured for AI Guard; content beyond this limit is truncated before being stored in span context.",
       "existingPublicDescription": null,
       "shortDescription": "Maximum size of content captured for AI Guard",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_AI_GUARD_MAX_MESSAGES_LENGTH": {
       "programmaticKey": "ai_guard.max_messages_length",
       "description": "Maximum number of messages captured for AI Guard; older messages are omitted when the limit is reached.",
       "existingPublicDescription": null,
       "shortDescription": "Maximum number of messages captured for AI Guard",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_AI_GUARD_TIMEOUT": {
       "programmaticKey": "ai_guard.timeout_ms",
       "description": "Timeout for requests sent to the AI Guard API.",
       "existingPublicDescription": null,
       "shortDescription": "Timeout for requests sent to the AI Guard API",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_APP_KEY": {
       "programmaticKey": "ai_guard.app_key",
       "description": "Datadog application key used to authenticate requests to the AI Guard API.",
       "existingPublicDescription": null,
       "shortDescription": "Datadog application key used to authenticate requests to the AI Guard API",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     }
   },
   "appsec": {
@@ -50,154 +56,176 @@
       "description": "Enables AppSec API Security features, including API security checks and endpoint data collection.",
       "existingPublicDescription": null,
       "shortDescription": "Enable AppSec API Security features, including API security checks and endpoint data collection",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED": {
       "programmaticKey": "appsec.api_security.endpoint_collection.enabled",
       "description": "Enables reporting of application routes at application startup via telemetry.",
       "existingPublicDescription": null,
       "shortDescription": "Enable reporting of application routes at application startup via telemetry",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_API_SECURITY_REQUEST_SAMPLE_RATE": {
       "programmaticKey": "appsec.api_security.sample_rate",
       "description": "Sampling rate used to decide whether to perform API Security checks for a request.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate used to decide whether to perform API Security checks for a request",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_API_SECURITY_SAMPLE_DELAY": {
       "programmaticKey": "appsec.api_security.sample_delay",
       "description": "Minimum delay between API Security samples for the same endpoint, used to limit how often requests are selected for API Security checks.",
       "existingPublicDescription": null,
       "shortDescription": "Minimum delay between API Security samples for the same endpoint",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING": {
       "programmaticKey": "appsec.track_user_events.mode / appsec.track_user_events.enabled",
       "description": "Controls automated user events tracking for AppSec, including enabling/disabling it and selecting a tracking mode. Deprecated; prefer the appsec.auto_user_instrumentation.mode setting.",
       "existingPublicDescription": null,
       "shortDescription": "Control automated user events tracking for AppSec",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE": {
       "programmaticKey": "appsec.auto_user_instrumentation.mode",
       "description": "Selects the AppSec automatic user instrumentation mode, which controls how user events are collected.",
       "existingPublicDescription": null,
       "shortDescription": "Select the AppSec automatic user instrumentation mode, which controls how user events are collected",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_APPSEC_ENABLED": {
       "programmaticKey": "appsec.enabled",
       "description": "Enables Datadog Application Security (AppSec) so the library performs security checks and loads AppSec instrumentation.",
       "existingPublicDescription": null,
       "shortDescription": "Enable Datadog Application Security (AppSec) so the library performs security checks and loads",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML": {
       "programmaticKey": "appsec.block.templates.html",
       "description": "Path to an HTML template file used as the response body when AppSec blocks a request.",
       "existingPublicDescription": null,
       "shortDescription": "Path to an HTML template file used as the response body when AppSec blocks a request",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON": {
       "programmaticKey": "appsec.block.templates.json",
       "description": "Path to a JSON template file used as the response body when AppSec blocks a request.",
       "existingPublicDescription": null,
       "shortDescription": "Path to a JSON template file used as the response body when AppSec blocks a request",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT": {
       "programmaticKey": "appsec.block.templates.text",
       "description": "Path to a plain-text template file used as the response body when AppSec blocks a request.",
       "existingPublicDescription": null,
       "shortDescription": "Path to a plain-text template file used as the response body when AppSec blocks a request",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_APPSEC_MAX_STACK_TRACES": {
       "programmaticKey": "appsec.stack_trace.max_stack_traces",
       "description": "Maximum number of stack traces AppSec collects per request; set to 0 to collect all.",
       "existingPublicDescription": null,
       "shortDescription": "Maximum number of stack traces AppSec collects per request; set to 0 to collect all",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_APPSEC_MAX_STACK_TRACE_DEPTH": {
       "programmaticKey": "appsec.stack_trace.max_depth",
       "description": "Maximum number of stack-trace frames AppSec keeps when recording stack traces; set to 0 to keep all frames.",
       "existingPublicDescription": null,
       "shortDescription": "Maximum number of stack-trace frames AppSec keeps when recording stack traces",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_APPSEC_MAX_STACK_TRACE_DEPTH_TOP_PERCENT": {
       "programmaticKey": "appsec.stack_trace.top_percentage",
       "description": "When limiting AppSec stack trace depth, percentage of the kept frames taken from the top of the stack.",
       "existingPublicDescription": null,
       "shortDescription": "When limiting AppSec stack trace depth, % of the kept frames taken from the top of the stack",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP": {
       "programmaticKey": "appsec.obfuscator_key_regex",
       "description": "Regular expression used to decide which request parameter names are obfuscated by AppSec.",
       "existingPublicDescription": null,
       "shortDescription": "Regular expression used to decide which request parameter names are obfuscated by AppSec",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP": {
       "programmaticKey": "appsec.obfuscator_value_regex",
       "description": "Regular expression used to decide which request parameter values are obfuscated by AppSec.",
       "existingPublicDescription": null,
       "shortDescription": "Regular expression used to decide which request parameter values are obfuscated by AppSec",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_APPSEC_RASP_ENABLED": {
       "programmaticKey": "appsec.rasp_enabled",
       "description": "Enables AppSec Runtime Application Self-Protection (RASP) features that detect malicious inputs and help prevent harmful side-effects.",
       "existingPublicDescription": null,
       "shortDescription": "Enable AppSec Runtime Application Self-Protection (RASP) features that detect malicious inputs and",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_APPSEC_RULES": {
       "programmaticKey": "appsec.ruleset",
       "description": "Selects the Application Security ruleset (built-in or custom file) used by the AppSec security engine.",
       "existingPublicDescription": null,
       "shortDescription": "AppSec ruleset to use (built-in or custom file).",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_APPSEC_SCA_ENABLED": {
       "programmaticKey": "appsec.sca_enabled",
       "description": "Enables or disables AppSec Software Composition Analysis (SCA).",
       "existingPublicDescription": null,
       "shortDescription": "Enable/disable AppSec Software Composition Analysis (SCA)",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_APPSEC_STACK_TRACE_ENABLED": {
       "programmaticKey": "appsec.stack_trace.enabled",
       "description": "Enables collection of stack traces for AppSec security events.",
       "existingPublicDescription": null,
       "shortDescription": "Enable collection of stack traces for AppSec security events",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_APPSEC_TRACE_RATE_LIMIT": {
       "programmaticKey": "appsec.trace_rate_limit",
       "description": "Rate limit for AppSec traces kept due to security events.",
       "existingPublicDescription": null,
       "shortDescription": "Rate limit for AppSec traces kept due to security events",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_APPSEC_WAF_DEBUG": {
       "programmaticKey": "appsec.waf_debug",
       "description": "Enables debug logging for the AppSec Web Application Firewall (WAF).",
       "existingPublicDescription": null,
       "shortDescription": "Enable debug logging for the AppSec Web Application Firewall (WAF)",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_APPSEC_WAF_TIMEOUT": {
       "programmaticKey": "appsec.waf_timeout",
       "description": "Timeout for AppSec Web Application Firewall (WAF) operations, such as RASP checks.",
       "existingPublicDescription": null,
       "shortDescription": "Timeout for AppSec Web Application Firewall (WAF) operations, such as RASP checks",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     }
   },
   "core": {
@@ -206,259 +234,296 @@
       "description": "Hostname or IP address of the Datadog Agent that this library sends trace data to.",
       "existingPublicDescription": "Hostname of Agent to where trace data will be sent.",
       "shortDescription": "Hostname of Agent to where trace data will be sent",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_API_KEY": {
       "programmaticKey": "api_key",
       "description": "Datadog API key used to authenticate requests made without the Agent, such as agentless telemetry.",
       "existingPublicDescription": null,
       "shortDescription": "Datadog API key used to authenticate requests made without the Agent",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_APM_TRACING_ENABLED": {
       "programmaticKey": "apm.tracing.enabled",
       "description": "Enables or disables sending APM trace data. When disabled, tracing still runs to support other products, but only periodic heartbeat traces and manually kept traces are sent.",
       "existingPublicDescription": "Enables or disables APM traces. If set to `false`, instrumentation will still run, but only one APM trace per minute will be sent to the Agent. The service will be considered alive by Datadog, allowing usage of other products in standalone mode. For now, only Application Security is supported.",
       "shortDescription": "Enable/disable APM traces while keeping support for other products",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_ENV": {
       "programmaticKey": "env",
       "description": "Your application environment (for example, production or staging), sent as the env tag on traces.",
       "existingPublicDescription": "Your application environment. (e.g. `production`, `staging`, etc.) This value is set as a tag on all traces.",
       "shortDescription": "Your application environment",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_EXTERNAL_ENV": {
       "programmaticKey": "container.external_env",
       "description": "External data provided by the runtime to help Datadog identify the container/process for origin detection.",
       "existingPublicDescription": null,
       "shortDescription": "Runtime-provided data to identify the container/process for origin detection",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_GIT_COMMIT_SHA": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Git commit SHA of the application source code.",
       "existingPublicDescription": "Full commit hash.",
       "shortDescription": "Git commit SHA of the application source code",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_GIT_REPOSITORY_URL": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Git repository URL of the application source code. Both HTTP and SSH URLs are supported.",
       "existingPublicDescription": "URL of the repository where the code is stored. Both HTTP and SSH URLs are supported.",
       "shortDescription": "Git repository URL of the application source code",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_HEALTH_METRICS_ENABLED": {
       "programmaticKey": "health_metrics.enabled",
       "description": "Enables health metrics collection.",
       "existingPublicDescription": null,
       "shortDescription": "Enable health metrics collection",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_INSTRUMENTATION_INSTALL_ID": {
       "programmaticKey": "telemetry.install_id",
       "description": "Installation identifier, used by Datadog library injection in telemetry.",
       "existingPublicDescription": null,
       "shortDescription": "Installation identifier, used by Datadog library injection in telemetry",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_INSTRUMENTATION_INSTALL_TIME": {
       "programmaticKey": "telemetry.install_time",
       "description": "Installation time, used by Datadog library injection in telemetry.",
       "existingPublicDescription": null,
       "shortDescription": "Installation time, used by Datadog library injection in telemetry",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_INSTRUMENTATION_INSTALL_TYPE": {
       "programmaticKey": "telemetry.install_type",
       "description": "Installation type, used by Datadog library injection in telemetry.",
       "existingPublicDescription": null,
       "shortDescription": "Installation type, used by Datadog library injection in telemetry",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_INSTRUMENTATION_TELEMETRY_ENABLED": {
       "programmaticKey": "telemetry.enabled",
       "description": "Enables sending instrumentation telemetry data to Datadog.",
       "existingPublicDescription": "Allows you to enable sending telemetry data to Datadog. Can be disabled, as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).",
       "shortDescription": "Enables sending instrumentation telemetry data to Datadog",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_METRIC_AGENT_PORT": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Port of the Datadog Agent StatsD endpoint that this library sends metrics to.",
       "existingPublicDescription": null,
       "shortDescription": "Port of the Datadog Agent StatsD endpoint that this library sends metrics to",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_REMOTE_CONFIGURATION_ENABLED": {
       "programmaticKey": "remote.enabled",
       "description": "Enables Remote Configuration, allowing configuration updates to be fetched and applied at runtime.",
       "existingPublicDescription": null,
       "shortDescription": "Enable Remote Configuration, allowing configuration updates to be fetched and applied at runtime",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_REMOTE_CONFIG_BOOT_TIMEOUT_SECONDS": {
       "programmaticKey": "remote.boot_timeout_seconds",
       "description": "Startup timeout for Remote Configuration; if exceeded, the application proceeds using local configuration.",
       "existingPublicDescription": null,
       "shortDescription": "Startup timeout for Remote Configuration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_REMOTE_CONFIG_POLL_INTERVAL_SECONDS": {
       "programmaticKey": "remote.poll_interval_seconds",
       "description": "Polling interval for Remote Configuration updates.",
       "existingPublicDescription": null,
       "shortDescription": "Polling interval for Remote Configuration updates",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_RUNTIME_METRICS_ENABLED": {
       "programmaticKey": "runtime_metrics.enabled",
       "description": "Enables runtime metrics collection.",
       "existingPublicDescription": null,
       "shortDescription": "Enable runtime metrics collection",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED": {
       "programmaticKey": "runtime_metrics.experimental_runtime_id_enabled",
       "description": "When enabled, adds a runtime-id tag to runtime metrics to distinguish individual processes.",
       "existingPublicDescription": null,
       "shortDescription": "When enabled, adds a runtime-id tag to runtime metrics to distinguish individual processes",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_SERVICE": {
       "programmaticKey": "service",
       "description": "Your application's default service name, set as the service tag on traces.",
       "existingPublicDescription": "Your application's default service name. (e.g. `billing-api`) This value is set as a tag on all traces.",
       "shortDescription": "Your application's default service name",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_SITE": {
       "programmaticKey": "site",
       "description": "Datadog site used to select the Datadog intake domain for agentless requests, such as telemetry and AI Guard API calls.",
       "existingPublicDescription": null,
       "shortDescription": "Datadog site used to select the Datadog intake domain for agentless requests",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TAGS": {
       "programmaticKey": "tags",
       "description": "Custom tags applied to traces, provided as comma-separated key:value pairs (e.g. `layer:api,team:intake`).",
       "existingPublicDescription": "Custom tags in value pairs separated by `,` (e.g. `layer:api,team:intake`) These tags are set on all traces. See [Environment and tags](#environment-and-tags) for more details.",
       "shortDescription": "Custom tags applied to traces",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TELEMETRY_AGENTLESS_URL": {
       "programmaticKey": "telemetry.agentless_url_override",
       "description": "Overrides the agentless telemetry intake URL.",
       "existingPublicDescription": null,
       "shortDescription": "Overrides the agentless telemetry intake URL",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TELEMETRY_DEPENDENCY_COLLECTION_ENABLED": {
       "programmaticKey": "telemetry.dependency_collection",
       "description": "Controls whether instrumentation telemetry reports the application's bundled Ruby gem dependencies.",
       "existingPublicDescription": null,
       "shortDescription": "Control whether instrumentation telemetry reports the application's bundled Ruby gem dependencies",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TELEMETRY_HEARTBEAT_INTERVAL": {
       "programmaticKey": "telemetry.heartbeat_interval_seconds",
       "description": "Interval at which instrumentation telemetry is sent.",
       "existingPublicDescription": null,
       "shortDescription": "Interval at which instrumentation telemetry is sent",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TELEMETRY_LOG_COLLECTION_ENABLED": {
       "programmaticKey": "telemetry.log_collection_enabled",
       "description": "Enables log collection for instrumentation telemetry.",
       "existingPublicDescription": null,
       "shortDescription": "Enable log collection for instrumentation telemetry",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TELEMETRY_METRICS_AGGREGATION_INTERVAL": {
       "programmaticKey": "telemetry.metrics_aggregation_interval_seconds",
       "description": "Interval at which instrumentation telemetry metrics are aggregated before being sent.",
       "existingPublicDescription": null,
       "shortDescription": "Interval at which instrumentation telemetry metrics are aggregated before being sent",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TELEMETRY_METRICS_ENABLED": {
       "programmaticKey": "telemetry.metrics_enabled",
       "description": "Enables collection and reporting of instrumentation telemetry metrics.",
       "existingPublicDescription": null,
       "shortDescription": "Enable collection and reporting of instrumentation telemetry metrics",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_AGENT_PORT": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Port of the Datadog Agent trace intake where this library sends trace data. If the agent configuration sets `receiver_port` or `DD_APM_RECEIVER_PORT` to something other than the default `8126`, then `DD_TRACE_AGENT_PORT` or `DD_TRACE_AGENT_URL` must match it.",
       "existingPublicDescription": "Port of Agent host to where trace data will be sent. If the [Agent configuration](#configuring-trace-data-ingestion) sets `receiver_port` or `DD_APM_RECEIVER_PORT` to something other than the default `8126`, then `DD_TRACE_AGENT_PORT` or `DD_TRACE_AGENT_URL` must match it.",
       "shortDescription": "Port of Agent host to where trace data will be sent",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TRACE_AGENT_TIMEOUT_SECONDS": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Timeout (in seconds) for connecting to the Datadog Agent when sending trace data.",
       "existingPublicDescription": null,
       "shortDescription": "Timeout (in seconds) for connecting to the Datadog Agent when sending trace data",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_AGENT_URL": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "URL endpoint where this library sends trace data to the Datadog Agent. Can use HTTP or a Unix domain socket. Has priority over `agent.host` and `agent.port`. If the Agent configuration sets `receiver_port` or `DD_APM_RECEIVER_PORT` to something other than the default `8126`, then `DD_TRACE_AGENT_PORT` or `DD_TRACE_AGENT_URL` must match it.",
       "existingPublicDescription": "Sets the URL endpoint where traces are sent. Has priority over `agent.host` and `agent.port`. If the [Agent configuration](#configuring-trace-data-ingestion) sets `receiver_port` or `DD_APM_RECEIVER_PORT` to something other than the default `8126`, then `DD_TRACE_AGENT_PORT` or `DD_TRACE_AGENT_URL` must match it.",
       "shortDescription": "Set the URL endpoint where traces are sent",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TRACE_DEBUG": {
       "programmaticKey": "diagnostics.debug / dynamic_instrumentation.internal.trace_logging",
       "description": "Enables debug mode, producing verbose tracer logs (not recommended for production or sensitive environments).",
       "existingPublicDescription": "Enables or disables debug mode. Prints verbose logs. **NOT recommended for production or other sensitive environments.** See [Debugging and diagnostics](#debugging-and-diagnostics) for more details.",
       "shortDescription": "Enable/disable debug mode",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Enables adding a runtime-id tag to runtime metrics (experimental). Alias for DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED.",
       "existingPublicDescription": null,
       "shortDescription": "Enable adding a runtime-id tag to runtime metrics (experimental)",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_STARTUP_LOGS": {
       "programmaticKey": "diagnostics.startup_logs.enabled",
       "description": "Prints startup configuration and diagnostics to logs to help assess tracing at application startup.",
       "existingPublicDescription": "Prints startup configuration and diagnostics to log. For assessing state of tracing at application startup. See [Debugging and diagnostics](#debugging-and-diagnostics) for more details.",
       "shortDescription": "Prints startup configuration and diagnostics to log",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_VERSION": {
       "programmaticKey": "version",
       "description": "Your application version, set as the version tag on traces.",
       "existingPublicDescription": "Your application version (e.g. `2.5`, `202003181415`, `1.3-alpha`, etc.) This value is set as a tag on all traces.",
       "shortDescription": "Your application version",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "OTEL_LOG_LEVEL": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Enables debug mode, producing verbose tracer logs (not recommended for production or sensitive environments) when set to debug. Alias for DD_TRACE_DEBUG.",
       "existingPublicDescription": null,
       "shortDescription": "Enable/disable debug mode",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "OTEL_RESOURCE_ATTRIBUTES": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Custom tags applied to traces, provided as comma-separated key:value pairs (e.g. `layer:api,team:intake`). Alias for DD_TAGS.",
       "existingPublicDescription": null,
       "shortDescription": "Custom tags applied to traces",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "OTEL_SERVICE_NAME": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Your application's default service name, set as the service tag on traces. Alias for DD_SERVICE.",
       "existingPublicDescription": null,
       "shortDescription": "Your application's default service name",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     }
   },
   "data_streams": {
@@ -467,14 +532,16 @@
       "description": "Controls SQL comment propagation for Database Monitoring to correlate database queries with traces (example: `disabled` | `service` | `full`). Important: Note that enabling SQL comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other third parties that have been granted access to the database.",
       "existingPublicDescription": "SQL comment propagation mode for database monitoring. <br />(example: `disabled` \\| `service`\\| `full`). <br /><br />**Important**: _Note that enabling SQL comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other third parties that have been granted access to the database._",
       "shortDescription": "SQL comment propagation mode for database monitoring",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_DATA_STREAMS_ENABLED": {
       "programmaticKey": "data_streams.enabled",
       "description": "Enables Data Streams Monitoring, which collects and reports data lineage information for messaging systems.",
       "existingPublicDescription": null,
       "shortDescription": "Enable Data Streams Monitoring",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     }
   },
   "di": {
@@ -483,28 +550,32 @@
       "description": "Enables Dynamic Instrumentation, allowing the library to apply and manage runtime probes for debugging and diagnostics.",
       "existingPublicDescription": null,
       "shortDescription": "Enable Dynamic Instrumentation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Path to a JSON file containing Dynamic Instrumentation probes to load.",
       "existingPublicDescription": null,
       "shortDescription": "Path to a JSON file containing Dynamic Instrumentation probes to load",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS": {
       "programmaticKey": "dynamic_instrumentation.redacted_identifiers",
       "description": "Comma-separated list of variable, attribute, or hash key names to redact from Dynamic Instrumentation snapshots.",
       "existingPublicDescription": null,
       "shortDescription": "Comma-separated list of variable, attribute, or hash key names to redact from DI snapshots",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES": {
       "programmaticKey": "dynamic_instrumentation.redacted_type_names",
       "description": "Comma-separated list of class name patterns whose values should be redacted from Dynamic Instrumentation snapshots.",
       "existingPublicDescription": null,
       "shortDescription": "Comma-separated list of class name patterns whose values should be redacted from DI snapshots",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     }
   },
   "error_tracking": {
@@ -513,14 +584,16 @@
       "description": "Controls whether Error Tracking reports handled errors from user code, third-party gems, or both.",
       "existingPublicDescription": null,
       "shortDescription": "Control whether Error Tracking reports handled errors from user code, third-party gems, or both",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE": {
       "programmaticKey": "error_tracking.handled_errors_include",
       "description": "Comma-separated list of paths, file names, or gem names whose handled errors should be reported by Error Tracking.",
       "existingPublicDescription": null,
       "shortDescription": "Comma-separated paths, file names, or gem names whose handled errors are reported by Error Tracking",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     }
   },
   "open_feature": {
@@ -529,7 +602,8 @@
       "description": "Enables the Datadog OpenFeature feature flagging provider (experimental).",
       "existingPublicDescription": null,
       "shortDescription": "Enable the Datadog OpenFeature feature flagging provider (experimental)",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     }
   },
   "opentelemetry": {
@@ -538,98 +612,112 @@
       "description": "Enables OpenTelemetry metrics export.",
       "existingPublicDescription": "Enable metrics export (default: false)",
       "shortDescription": "Enable metrics export",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "OTEL_EXPORTER_OTLP_ENDPOINT": {
       "programmaticKey": "opentelemetry.exporter.endpoint",
       "description": "Sets the endpoint URL used by the OpenTelemetry OTLP exporter.",
       "existingPublicDescription": null,
       "shortDescription": "Set the endpoint URL used by the OpenTelemetry OTLP exporter",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "OTEL_EXPORTER_OTLP_HEADERS": {
       "programmaticKey": "opentelemetry.exporter.headers",
       "description": "Sets additional headers sent by the OpenTelemetry OTLP exporter, as a comma-separated list of key=value pairs.",
       "existingPublicDescription": null,
       "shortDescription": "Set additional headers sent by the OpenTelemetry OTLP exporter",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT": {
       "programmaticKey": "opentelemetry.metrics.endpoint",
       "description": "Sets a custom endpoint URL for OpenTelemetry metrics export via OTLP.",
       "existingPublicDescription": "Custom endpoint (defaults to the Datadog agent otlp endpoint)",
       "shortDescription": "Sets a custom endpoint URL for OpenTelemetry metrics export via OTLP",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "OTEL_EXPORTER_OTLP_METRICS_HEADERS": {
       "programmaticKey": "opentelemetry.metrics.headers",
       "description": "Sets additional headers sent with OpenTelemetry OTLP metrics export requests, as a comma-separated list of key=value pairs.",
       "existingPublicDescription": null,
       "shortDescription": "Set additional headers sent with OpenTelemetry OTLP metrics export requests",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL": {
       "programmaticKey": "opentelemetry.metrics.protocol",
       "description": "Selects the protocol used for OpenTelemetry OTLP metrics export. Only http/protobuf is supported.",
       "existingPublicDescription": "Protocol: `http/protobuf` (default); `grpc` and `http/json` are not yet supported.",
       "shortDescription": "Selects the protocol used for OpenTelemetry OTLP metrics export",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE": {
       "programmaticKey": "opentelemetry.metrics.temporality_preference",
       "description": "Selects the temporality preference for OpenTelemetry metrics export (delta or cumulative).",
       "existingPublicDescription": "`delta` (default) or `cumulative`",
       "shortDescription": "Selects the temporality preference for OpenTelemetry metrics export",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "OTEL_EXPORTER_OTLP_METRICS_TIMEOUT": {
       "programmaticKey": "opentelemetry.metrics.timeout_millis",
       "description": "Sets the timeout, in milliseconds, for OpenTelemetry OTLP metrics export. If not explicitly set, the metrics exporter uses the general OTLP timeout setting per the OpenTelemetry specification.",
       "existingPublicDescription": null,
       "shortDescription": "Set the timeout, in milliseconds, for OpenTelemetry OTLP metrics export",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "OTEL_EXPORTER_OTLP_PROTOCOL": {
       "programmaticKey": "opentelemetry.exporter.protocol",
       "description": "Selects the protocol used by the OpenTelemetry OTLP exporter. Only http/protobuf is supported.",
       "existingPublicDescription": null,
       "shortDescription": "Select the protocol used by the OpenTelemetry OTLP exporter",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "OTEL_EXPORTER_OTLP_TIMEOUT": {
       "programmaticKey": "opentelemetry.exporter.timeout_millis",
       "description": "Sets the timeout, in milliseconds, for OpenTelemetry OTLP export requests.",
       "existingPublicDescription": null,
       "shortDescription": "Set the timeout, in milliseconds, for OpenTelemetry OTLP export requests",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "OTEL_METRICS_EXPORTER": {
       "programmaticKey": "opentelemetry.metrics.exporter",
       "description": "Selects the metrics exporter used by the library. Use none to disable metrics export.",
       "existingPublicDescription": null,
       "shortDescription": "Select the metrics exporter used by the library",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "OTEL_METRIC_EXPORT_INTERVAL": {
       "programmaticKey": "opentelemetry.metrics.export_interval_millis",
       "description": "Sets the interval, in milliseconds, between OpenTelemetry metrics exports.",
       "existingPublicDescription": "Export interval in milliseconds (default: 10000)",
       "shortDescription": "Export interval in milliseconds",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "OTEL_METRIC_EXPORT_TIMEOUT": {
       "programmaticKey": "opentelemetry.metrics.export_timeout_millis",
       "description": "Sets the timeout, in milliseconds, for each OpenTelemetry metrics export cycle.",
       "existingPublicDescription": null,
       "shortDescription": "Set the timeout, in milliseconds, for each OpenTelemetry metrics export cycle",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "OTEL_PROPAGATORS": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Configures which propagators are used for extracting and injecting trace context.",
       "existingPublicDescription": null,
       "shortDescription": "Configures which propagators are used for extracting and injecting trace context",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     }
   },
   "profiling": {
@@ -638,154 +726,176 @@
       "description": "Enables crash tracking, reporting information when the Ruby VM crashes.",
       "existingPublicDescription": null,
       "shortDescription": "Enable crash tracking, reporting information when the Ruby VM crashes",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_PROFILING_ALLOCATION_ENABLED": {
       "programmaticKey": "profiling.allocation_enabled",
       "description": "Enables allocation profiling, collecting object allocation samples in profiles.",
       "existingPublicDescription": null,
       "shortDescription": "Enable allocation profiling, collecting object allocation samples in profiles",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_PROFILING_DIR_INTERRUPTION_WORKAROUND_ENABLED": {
       "programmaticKey": "profiling.advanced.dir_interruption_workaround_enabled",
       "description": "Enables a workaround for Ruby Dir interruption issues caused by profiling signals.",
       "existingPublicDescription": null,
       "shortDescription": "Enable a workaround for Ruby Dir interruption issues caused by profiling signals",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED": {
       "programmaticKey": "profiling.advanced.experimental_heap_enabled",
       "description": "Enables preview heap profiling, collecting heap profiles (requires allocation profiling).",
       "existingPublicDescription": null,
       "shortDescription": "Enable preview heap profiling, collecting heap profiles",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE": {
       "programmaticKey": "profiling.advanced.experimental_heap_sample_rate",
       "description": "Sampling rate for heap profiling.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for heap profiling",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED": {
       "programmaticKey": "profiling.advanced.experimental_heap_size_enabled",
       "description": "Enables collection of heap size profiles for heap profiling (requires allocation profiling and heap profiling).",
       "existingPublicDescription": null,
       "shortDescription": "Enable collection of heap size profiles for heap profiling",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_PROFILING_GC_ENABLED": {
       "programmaticKey": "profiling.advanced.gc_enabled",
       "description": "Enables garbage collection profiling, collecting GC activity in profiles.",
       "existingPublicDescription": null,
       "shortDescription": "Enable garbage collection profiling, collecting GC activity in profiles",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_PROFILING_GVL_ENABLED": {
       "programmaticKey": "profiling.advanced.gvl_enabled",
       "description": "Enables GVL profiling to report time threads spend waiting for the Global VM Lock.",
       "existingPublicDescription": null,
       "shortDescription": "Enable GVL profiling to report time threads spend waiting for the Global VM Lock",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_PROFILING_HEAP_CLEAN_AFTER_GC_ENABLED": {
       "programmaticKey": "profiling.advanced.heap_clean_after_gc_enabled",
       "description": "Controls whether heap profiling performs cleanup after garbage collection, rather than just at serialization time (requires GC profiling and heap profiling).",
       "existingPublicDescription": null,
       "shortDescription": "Control whether heap profiling performs cleanup after garbage collection",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_PROFILING_NATIVE_FILENAMES_ENABLED": {
       "programmaticKey": "profiling.advanced.native_filenames_enabled",
       "description": "Controls whether the profiler uses native filenames for stack frames from native code.",
       "existingPublicDescription": null,
       "shortDescription": "Control whether the profiler uses native filenames for stack frames from native code",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED": {
       "programmaticKey": "profiling.advanced.no_signals_workaround_enabled",
       "description": "Enables a workaround mode that reduces reliance on profiling signals to avoid interrupt-related issues in some libraries.",
       "existingPublicDescription": null,
       "shortDescription": "Enable a workaround that reduces reliance on profiling signals to avoid interrupt issues",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_PROFILING_OVERHEAD_TARGET_PERCENTAGE": {
       "programmaticKey": "profiling.advanced.overhead_target_percentage",
       "description": "Target overhead percentage for profiling; the profiler adjusts sampling to stay near this target.",
       "existingPublicDescription": null,
       "shortDescription": "Target overhead percentage for profiling; the profiler adjusts sampling to stay near this target",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_PROFILING_PREVIEW_OTEL_CONTEXT_ENABLED": {
       "programmaticKey": "profiling.advanced.preview_otel_context_enabled",
       "description": "Controls whether the profiler attempts to read context from OpenTelemetry.",
       "existingPublicDescription": null,
       "shortDescription": "Control whether the profiler attempts to read context from OpenTelemetry",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_PROFILING_SHUTDOWN_ON_EXEC_ENABLED": {
       "programmaticKey": "profiling.advanced.shutdown_on_exec_enabled",
       "description": "Stops profiling before an exec call to avoid profiling state leaking into the new process.",
       "existingPublicDescription": null,
       "shortDescription": "Stops profiling before an exec call to avoid profiling state leaking into the new process",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED": {
       "programmaticKey": "profiling.advanced.sighandler_sampling_enabled",
       "description": "Controls whether the profiler samples directly from the signal handler for improved accuracy.",
       "existingPublicDescription": null,
       "shortDescription": "Control whether the profiler samples directly from the signal handler for improved accuracy",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_PROFILING_SKIP_MYSQL2_CHECK": {
       "programmaticKey": "profiling.advanced.skip_mysql2_check",
       "description": "Disables the profiler compatibility check of the libmysqlclient version used by mysql2.",
       "existingPublicDescription": null,
       "shortDescription": "Disable the profiler compatibility check of the libmysqlclient version used by mysql2",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_PROFILING_TIMELINE_ENABLED": {
       "programmaticKey": "profiling.advanced.timeline_enabled",
       "description": "Enables data collection for the profiler timeline feature.",
       "existingPublicDescription": null,
       "shortDescription": "Enable data collection for the profiler timeline feature",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_PROFILING_UPLOAD_PERIOD": {
       "programmaticKey": "profiling.advanced.upload_period_seconds",
       "description": "Interval between profiler data uploads; cannot be lower than 60 seconds.",
       "existingPublicDescription": null,
       "shortDescription": "Interval between profiler data uploads; cannot be lower than 60 seconds",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_PROFILING_ENABLED": {
       "programmaticKey": "profiling.enabled",
       "description": "Enables the Datadog Continuous Profiler.",
       "existingPublicDescription": null,
       "shortDescription": "Enable the Datadog Continuous Profiler",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_PROFILING_ENDPOINT_COLLECTION_ENABLED": {
       "programmaticKey": "profiling.advanced.endpoint.collection.enabled",
       "description": "Controls whether endpoint names are collected and attached to profiles when profiling is used with tracing.",
       "existingPublicDescription": null,
       "shortDescription": "Control whether endpoint names are attached to profiles when profiling is used with tracing",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_PROFILING_MAX_FRAMES": {
       "programmaticKey": "profiling.advanced.max_frames",
       "description": "Maximum number of stack frames captured per thread sample in profiles.",
       "existingPublicDescription": null,
       "shortDescription": "Maximum number of stack frames captured per thread sample in profiles",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_PROFILING_UPLOAD_TIMEOUT": {
       "programmaticKey": "profiling.upload.timeout_seconds",
       "description": "Network timeout for uploading profiling data to Datadog.",
       "existingPublicDescription": null,
       "shortDescription": "Network timeout for uploading profiling data to Datadog",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     }
   },
   "tracing": {
@@ -794,1561 +904,1784 @@
       "description": "Disables the Datadog Rails integration auto-instrumentation.",
       "existingPublicDescription": null,
       "shortDescription": "Disable the Datadog Rails integration auto-instrumentation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED": {
       "programmaticKey": "experimental_propagate_process_tags_enabled",
       "description": "Enables experimental propagation of process tags in payloads such as spans and telemetry.",
       "existingPublicDescription": null,
       "shortDescription": "Enable experimental propagation of process tags in payloads such as spans and telemetry",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_LOGS_INJECTION": {
       "programmaticKey": "tracing.log_injection",
       "description": "Enables log injection, adding trace correlation information to supported loggers.",
       "existingPublicDescription": "Injects [Trace Correlation](#trace-correlation) information into Rails logs if present. Supports the default logger (`ActiveSupport::TaggedLogging`), `lograge`, and `semantic_logger`.",
       "shortDescription": "Inject Trace Correlation information into Rails logs if present",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_REDIS_COMMAND_ARGS": {
       "programmaticKey": "tracing[:redis][:command_args]",
       "description": "When enabled, includes Redis command arguments in span resource names and tags; otherwise only the command name is shown.",
       "existingPublicDescription": "Show the command arguments (for example, `key` in `GET key`) as resource name and tag. If `false`, only the command name is shown (for example, `GET`).",
       "shortDescription": "Show the command arguments as resource name and tag",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_RODA_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:roda][:analytics_enabled]",
       "description": "Enables analytics for the Roda integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Roda integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_RODA_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:roda][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Roda integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Roda integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_SPAN_SAMPLING_RULES": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Single Span Sampling rules that allow selected spans to be kept even when their enclosing traces are dropped.",
       "existingPublicDescription": "Sets [Single Span Sampling](#single-span-sampling) rules. These rules allow you to keep spans even when their respective traces are dropped.",
       "shortDescription": "Set Single Span Sampling rules",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_SPAN_SAMPLING_RULES_FILE": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Path to a file containing Single Span Sampling rules.",
       "existingPublicDescription": "Sets [Single Span Sampling](#single-span-sampling) rules. These rules allow you to keep spans even when their respective traces are dropped.",
       "shortDescription": "Path to a file containing Single Span Sampling rules",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED": {
       "programmaticKey": "tracing.trace_id_128_bit_generation_enabled",
       "description": "Controls whether generated trace IDs are 128-bit (`true`) instead of 64-bit (`false`).",
       "existingPublicDescription": "`true` to generate 128 bits trace ID and `false` to generate 64 bits trace ID",
       "shortDescription": "Controls whether generated trace IDs are 128-bit (`true`) instead of 64-bit (`false`)",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED": {
       "programmaticKey": "tracing.trace_id_128_bit_logging_enabled",
       "description": "Enables injecting 128-bit trace IDs for log correlation.",
       "existingPublicDescription": null,
       "shortDescription": "Enable injecting 128-bit trace IDs for log correlation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TRACE_ACTION_CABLE_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:action_cable][:analytics_enabled]",
       "description": "Enables analytics for the Action Cable integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Action Cable integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTION_CABLE_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:action_cable][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Action Cable integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Action Cable integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTION_CABLE_ENABLED": {
       "programmaticKey": "tracing[:action_cable][:enabled]",
       "description": "Enables tracing for the Action Cable integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Action Cable integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTION_MAILER_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:action_mailer][:analytics_enabled]",
       "description": "Enables analytics for the Action Mailer integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Action Mailer integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTION_MAILER_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:action_mailer][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Action Mailer integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Action Mailer integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTION_MAILER_ENABLED": {
       "programmaticKey": "tracing[:action_mailer][:enabled]",
       "description": "Enables tracing for the Action Mailer integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Action Mailer integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTION_PACK_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:action_pack][:analytics_enabled]",
       "description": "Enables analytics for the Action Pack integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Action Pack integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTION_PACK_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:action_pack][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Action Pack integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Action Pack integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTION_PACK_ENABLED": {
       "programmaticKey": "tracing[:action_pack][:enabled]",
       "description": "Enables tracing for the Action Pack integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Action Pack integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTION_VIEW_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:action_view][:analytics_enabled]",
       "description": "Enables analytics for the Action View integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Action View integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTION_VIEW_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:action_view][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Action View integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Action View integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTION_VIEW_ENABLED": {
       "programmaticKey": "tracing[:action_view][:enabled]",
       "description": "Enables tracing for the Action View integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Action View integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTIVE_JOB_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:active_job][:analytics_enabled]",
       "description": "Enables analytics for the Active Job integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Active Job integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTIVE_JOB_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:active_job][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Active Job integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Active Job integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTIVE_JOB_ENABLED": {
       "programmaticKey": "tracing[:active_job][:enabled]",
       "description": "Enables tracing for the Active Job integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Active Job integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTIVE_MODEL_SERIALIZERS_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:active_model_serializers][:analytics_enabled]",
       "description": "Enables analytics for the Active Model Serializers integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Active Model Serializers integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTIVE_MODEL_SERIALIZERS_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:active_model_serializers][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Active Model Serializers integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Active Model Serializers integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTIVE_MODEL_SERIALIZERS_ENABLED": {
       "programmaticKey": "tracing[:active_model_serializers][:enabled]",
       "description": "Enables tracing for the Active Model Serializers integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Active Model Serializers integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTIVE_RECORD_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:active_record][:analytics_enabled]",
       "description": "Enables analytics for the Active Record integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Active Record integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTIVE_RECORD_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:active_record][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Active Record integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Active Record integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTIVE_RECORD_ENABLED": {
       "programmaticKey": "tracing[:active_record][:enabled]",
       "description": "Enables tracing for the Active Record integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Active Record integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTIVE_SUPPORT_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:active_support][:analytics_enabled]",
       "description": "Enables analytics for the Active Support integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Active Support integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTIVE_SUPPORT_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:active_support][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Active Support integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Active Support integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ACTIVE_SUPPORT_ENABLED": {
       "programmaticKey": "tracing[:active_support][:enabled]",
       "description": "Enables tracing for the Active Support integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Active Support integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing.analytics.enabled",
       "description": "Enables the legacy tracing analytics feature (deprecated).",
       "existingPublicDescription": null,
       "shortDescription": "Enable the legacy tracing analytics feature (deprecated)",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_AWS_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:aws][:analytics_enabled]",
       "description": "Enables analytics for the AWS integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the AWS integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_AWS_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:aws][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the AWS integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the AWS integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_AWS_ENABLED": {
       "programmaticKey": "tracing[:aws][:enabled]",
       "description": "Enables tracing for the AWS integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the AWS integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_AWS_PEER_SERVICE": {
       "programmaticKey": "tracing[:aws][:peer_service]",
       "description": "Name of the external service for spans generated by the AWS integration.",
       "existingPublicDescription": "Name of external service the application connects to",
       "shortDescription": "Name of the external service for spans generated by the AWS integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_AWS_SERVICE_NAME": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Service name used for spans generated by the AWS integration. May be overridden by `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`.",
       "existingPublicDescription": "Name of application running the `aws` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)",
       "shortDescription": "Name of application running the aws instrumentation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_BAGGAGE_TAG_KEYS": {
       "programmaticKey": "tracing.baggage_tag_keys",
       "description": "Comma-separated list of baggage keys that should be converted into span tags (prefixed with baggage.).",
       "existingPublicDescription": "Comma-separated list of baggage keys that should be converted to span tags. Baggage keys matching the exact, case-sensitive names in this list are converted to span tags with the prefix \"baggage.\". Special values: Empty string (\"\") disables baggage tag conversion, and Wildcard (\"*\") converts all baggage keys to span tags.",
       "shortDescription": "Comma-separated list of baggage keys that should be converted to span tags",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_CLIENT_IP_ENABLED": {
       "programmaticKey": "tracing.client_ip.enabled",
       "description": "Enables collection of client IP addresses from HTTP requests and reporting them on traces.",
       "existingPublicDescription": null,
       "shortDescription": "Enable collection of client IP addresses from HTTP requests and reporting them on traces",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TRACE_CLIENT_IP_HEADER": {
       "programmaticKey": "tracing.client_ip.header_name",
       "description": "Name of an optional custom HTTP header used to resolve the client IP address.",
       "existingPublicDescription": null,
       "shortDescription": "Name of an optional custom HTTP header used to resolve the client IP address",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_CONCURRENT_RUBY_ENABLED": {
       "programmaticKey": "tracing[:concurrent_ruby][:enabled]",
       "description": "Controls whether the Concurrent Ruby integration propagates tracing context.",
       "existingPublicDescription": "Whether the integration propagates contexts.",
       "shortDescription": "Controls whether the Concurrent Ruby integration propagates tracing context",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_DALLI_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:dalli][:analytics_enabled]",
       "description": "Enables analytics for the Dalli integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Dalli integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_DALLI_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:dalli][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Dalli integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Dalli integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_DALLI_ENABLED": {
       "programmaticKey": "tracing[:dalli][:enabled]",
       "description": "Enables tracing for the Dalli integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Dalli integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_DALLI_PEER_SERVICE": {
       "programmaticKey": "tracing[:dalli][:peer_service]",
       "description": "Name of the external service for spans generated by the Dalli integration.",
       "existingPublicDescription": "Name of external service the application connects to",
       "shortDescription": "Name of the external service for spans generated by the Dalli integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_DALLI_SERVICE_NAME": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Service name used for spans generated by the Dalli integration. May be overridden by `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`.",
       "existingPublicDescription": "Name of application running the `dalli` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)",
       "shortDescription": "Name of application running the dalli instrumentation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_DELAYED_JOB_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:delayed_job][:analytics_enabled]",
       "description": "Enables analytics for the Delayed Job integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Delayed Job integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_DELAYED_JOB_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:delayed_job][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Delayed Job integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Delayed Job integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_DELAYED_JOB_ENABLED": {
       "programmaticKey": "tracing[:delayed_job][:enabled]",
       "description": "Enables tracing for the Delayed Job integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Delayed Job integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ELASTICSEARCH_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:elasticsearch][:analytics_enabled]",
       "description": "Enables analytics for the Elasticsearch integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Elasticsearch integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ELASTICSEARCH_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:elasticsearch][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Elasticsearch integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Elasticsearch integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ELASTICSEARCH_ENABLED": {
       "programmaticKey": "tracing[:elasticsearch][:enabled]",
       "description": "Enables tracing for the Elasticsearch integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Elasticsearch integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ELASTICSEARCH_PEER_SERVICE": {
       "programmaticKey": "tracing[:elasticsearch][:peer_service]",
       "description": "Name of the external service for spans generated by the Elasticsearch integration.",
       "existingPublicDescription": "Name of external service the application connects to",
       "shortDescription": "Name of the external service for spans generated by the Elasticsearch integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ELASTICSEARCH_SERVICE_NAME": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Service name used for spans generated by the Elasticsearch integration. May be overridden by `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`.",
       "existingPublicDescription": "Name of application running the `elasticsearch` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)",
       "shortDescription": "Name of application running the elasticsearch instrumentation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ENABLED": {
       "programmaticKey": "tracing.enabled",
       "description": "Enables or disables tracing. When disabled, instrumentation still runs but no trace data is sent.",
       "existingPublicDescription": "Enables or disables tracing. If set to `false` instrumentation will still run, but no traces are sent to the trace agent.",
       "shortDescription": "Enable/disable tracing",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TRACE_ETHON_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:ethon][:analytics_enabled]",
       "description": "Enables analytics for the Ethon integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Ethon integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ETHON_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:ethon][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Ethon integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Ethon integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ETHON_ENABLED": {
       "programmaticKey": "tracing[:ethon][:enabled]",
       "description": "Enables tracing for the Ethon integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Ethon integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ETHON_PEER_SERVICE": {
       "programmaticKey": "tracing[:ethon][:peer_service]",
       "description": "Name of the external service for spans generated by the Ethon integration.",
       "existingPublicDescription": "Name of external service the application connects to",
       "shortDescription": "Name of the external service for spans generated by the Ethon integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_ETHON_SERVICE_NAME": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Service name used for spans generated by the Ethon integration. May be overridden by `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`.",
       "existingPublicDescription": "Name of application running the `ethon` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)",
       "shortDescription": "Name of application running the ethon instrumentation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_EXCON_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:excon][:analytics_enabled]",
       "description": "Enables analytics for the Excon integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Excon integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_EXCON_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:excon][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Excon integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Excon integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_EXCON_ENABLED": {
       "programmaticKey": "tracing[:excon][:enabled]",
       "description": "Enables tracing for the Excon integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Excon integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_EXCON_ERROR_STATUS_CODES": {
       "programmaticKey": "tracing[:excon][:error_status_codes]",
       "description": "HTTP status codes that should be marked as errors for spans generated by the Excon integration. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`)",
       "existingPublicDescription": "Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`)",
       "shortDescription": "Define HTTP status codes that are traced as errors for Excon integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_EXCON_PEER_SERVICE": {
       "programmaticKey": "tracing[:excon][:peer_service]",
       "description": "Name of the external service for spans generated by the Excon integration.",
       "existingPublicDescription": "Name of external service the application connects to",
       "shortDescription": "Name of the external service for spans generated by the Excon integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_EXCON_SERVICE_NAME": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Service name used for spans generated by the Excon integration. May be overridden by `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`.",
       "existingPublicDescription": "Name of application running the `excon` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)",
       "shortDescription": "Name of application running the excon instrumentation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_FARADAY_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:faraday][:analytics_enabled]",
       "description": "Enables analytics for the Faraday integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Faraday integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_FARADAY_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:faraday][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Faraday integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Faraday integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_FARADAY_ENABLED": {
       "programmaticKey": "tracing[:faraday][:enabled]",
       "description": "Enables tracing for the Faraday integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Faraday integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_FARADAY_ERROR_STATUS_CODES": {
       "programmaticKey": "tracing[:faraday][:error_status_codes]",
       "description": "HTTP status codes that should be marked as errors for spans generated by the Faraday integration. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`)",
       "existingPublicDescription": "Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`)",
       "shortDescription": "Define HTTP status codes that are traced as errors for Faraday integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_FARADAY_PEER_SERVICE": {
       "programmaticKey": "tracing[:faraday][:peer_service]",
       "description": "Name of the external service for spans generated by the Faraday integration.",
       "existingPublicDescription": "Name of external service the application connects to",
       "shortDescription": "Name of the external service for spans generated by the Faraday integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_FARADAY_SERVICE_NAME": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Service name used for spans generated by the Faraday integration. May be overridden by `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`.",
       "existingPublicDescription": "Name of application running the `faraday` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)",
       "shortDescription": "Name of application running the faraday instrumentation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_GRAPE_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:grape][:analytics_enabled]",
       "description": "Enables analytics for the Grape integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Grape integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_GRAPE_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:grape][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Grape integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Grape integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_GRAPE_ENABLED": {
       "programmaticKey": "tracing[:grape][:enabled]",
       "description": "Enables tracing for the Grape integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Grape integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_GRAPE_ERROR_STATUS_CODES": {
       "programmaticKey": "tracing[:grape][:error_status_codes]",
       "description": "HTTP status codes that should be marked as errors for spans generated by the Grape integration. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`)",
       "existingPublicDescription": "Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`)",
       "shortDescription": "Define HTTP status codes that are traced as errors for Grape integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_GRAPHQL_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:graphql][:analytics_enabled]",
       "description": "Enables analytics for the GraphQL integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the GraphQL integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_GRAPHQL_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:graphql][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the GraphQL integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the GraphQL integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_GRAPHQL_ENABLED": {
       "programmaticKey": "tracing[:graphql][:enabled]",
       "description": "Enables tracing for the GraphQL integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the GraphQL integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_GRAPHQL_ERROR_EXTENSIONS": {
       "programmaticKey": "tracing[:graphql][:error_extensions]",
       "description": "List of GraphQL error extension keys to include in the span event reported for GraphQL queries with errors.",
       "existingPublicDescription": "List of extension keys to include in the span event reported for GraphQL queries with errors.",
       "shortDescription": "List of extension keys to include in the span event reported for GraphQL queries with errors",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_GRAPHQL_ERROR_TRACKING": {
       "programmaticKey": "tracing[:graphql][:error_tracking]",
       "description": "Surfaces GraphQL errors in Error Tracking.",
       "existingPublicDescription": "(Recommended) Surface GraphQL errors in Error Tracking.",
       "shortDescription": "Surface GraphQL errors in Error Tracking",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER": {
       "programmaticKey": "tracing[:graphql][:with_unified_tracer]",
       "description": "Enables GraphQL instrumentation using the UnifiedTrace tracer (recommended for graphql >= 2.2) to support the Endpoints list.",
       "existingPublicDescription": "(Recommended) Enable to instrument with `UnifiedTrace` tracer for `graphql` >= v2.2, **enabling support for Endpoints list** in the Service Catalog. `with_deprecated_tracer` has priority over this. Default is `false`, using `GraphQL::Tracing::DataDogTrace` instead. This option is disabled by default to maintain backwards compatibility, but **will become the default in `datadog` 3.0.0**.",
       "shortDescription": "Enables GraphQL instrumentation using the UnifiedTrace tracer",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_GRPC_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:grpc][:analytics_enabled]",
       "description": "Enables analytics for the gRPC integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the gRPC integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_GRPC_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:grpc][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the gRPC integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the gRPC integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_GRPC_ENABLED": {
       "programmaticKey": "tracing[:grpc][:enabled]",
       "description": "Enables tracing for the gRPC integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the gRPC integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_GRPC_PEER_SERVICE": {
       "programmaticKey": "tracing[:grpc][:peer_service]",
       "description": "Name of the external service for spans generated by the gRPC integration.",
       "existingPublicDescription": "Name of external service the application connects to",
       "shortDescription": "Name of the external service for spans generated by the gRPC integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_GRPC_SERVICE_NAME": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Service name used for spans generated by the gRPC integration. May be overridden by `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`.",
       "existingPublicDescription": "Name of application running the `grpc` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)",
       "shortDescription": "Name of application running the grpc instrumentation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_HANAMI_ENABLED": {
       "programmaticKey": "tracing[:hanami][:enabled]",
       "description": "Enables tracing for the Hanami integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Hanami integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_HEADER_TAGS": {
       "programmaticKey": "tracing.header_tags",
       "description": "List of HTTP headers to record as span tags, optionally mapping header names to custom tag names.",
       "existingPublicDescription": "Record HTTP headers as span tags. See [Applying header tags to root spans][header tags] for more information.",
       "shortDescription": "List of HTTP headers to record as span tags",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TRACE_HTTPCLIENT_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:httpclient][:analytics_enabled]",
       "description": "Enables analytics for the httpclient integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the httpclient integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_HTTPCLIENT_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:httpclient][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the httpclient integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the httpclient integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_HTTPCLIENT_ENABLED": {
       "programmaticKey": "tracing[:httpclient][:enabled]",
       "description": "Enables tracing for the httpclient integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the httpclient integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TRACE_HTTPCLIENT_ERROR_STATUS_CODES": {
       "programmaticKey": "tracing[:httpclient][:error_status_codes]",
       "description": "HTTP status codes that should be marked as errors for spans generated by the httpclient integration. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`)",
       "existingPublicDescription": "Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`)",
       "shortDescription": "Define HTTP status codes that are traced as errors for httpclient integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_HTTPCLIENT_PEER_SERVICE": {
       "programmaticKey": "tracing[:httpclient][:peer_service]",
       "description": "Name of the external service for spans generated by the httpclient integration.",
       "existingPublicDescription": "Name of external service the application connects to",
       "shortDescription": "Name of the external service for spans generated by the httpclient integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_HTTPCLIENT_SERVICE_NAME": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Service name used for spans generated by the httpclient integration. May be overridden by `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`.",
       "existingPublicDescription": "Name of application running the `httpclient` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)",
       "shortDescription": "Name of application running the httpclient instrumentation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_HTTPRB_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:httprb][:analytics_enabled]",
       "description": "Enables analytics for the httprb integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the httprb integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_HTTPRB_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:httprb][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the httprb integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the httprb integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_HTTPRB_ENABLED": {
       "programmaticKey": "tracing[:httprb][:enabled]",
       "description": "Enables tracing for the httprb integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the httprb integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_HTTPRB_ERROR_STATUS_CODES": {
       "programmaticKey": "tracing[:httprb][:error_status_codes]",
       "description": "HTTP status codes that should be marked as errors for spans generated by the httprb integration. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`)",
       "existingPublicDescription": "Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...**600**]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`)",
       "shortDescription": "Define HTTP status codes that are traced as errors for httprb integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_HTTPRB_PEER_SERVICE": {
       "programmaticKey": "tracing[:httprb][:peer_service]",
       "description": "Name of the external service for spans generated by the httprb integration.",
       "existingPublicDescription": "Name of external service the application connects to",
       "shortDescription": "Name of the external service for spans generated by the httprb integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_HTTPRB_SERVICE_NAME": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Service name used for spans generated by the httprb integration. May be overridden by `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`.",
       "existingPublicDescription": "Name of application running the `httprb` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)",
       "shortDescription": "Name of application running the httprb instrumentation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_HTTP_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:http][:analytics_enabled]",
       "description": "Enables analytics for the net/http integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the net/http integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_HTTP_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:http][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the net/http integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the net/http integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_HTTP_CLIENT_ERROR_STATUSES": {
       "programmaticKey": "tracing.http_error_statuses.client",
       "description": "HTTP status codes that should be treated as errors for http.client spans.",
       "existingPublicDescription": null,
       "shortDescription": "HTTP status codes that should be treated as errors for http.client spans",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_HTTP_ENABLED": {
       "programmaticKey": "tracing[:http][:enabled]",
       "description": "Enables tracing for the net/http integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the net/http integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_HTTP_ERROR_STATUS_CODES": {
       "programmaticKey": "tracing[:http][:error_status_codes]",
       "description": "HTTP status codes that should be marked as errors for spans generated by the net/http instrumentation. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`)",
       "existingPublicDescription": "Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`)",
       "shortDescription": "Define HTTP status codes that are traced as errors for net/http integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_HTTP_SERVER_ERROR_STATUSES": {
       "programmaticKey": "tracing.http_error_statuses.server",
       "description": "HTTP status codes that should be treated as errors for http.server spans.",
       "existingPublicDescription": null,
       "shortDescription": "HTTP status codes that should be treated as errors for http.server spans",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_KAFKA_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:kafka][:analytics_enabled]",
       "description": "Enables analytics for the Kafka integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Kafka integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_KAFKA_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:kafka][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Kafka integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Kafka integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_KAFKA_ENABLED": {
       "programmaticKey": "tracing[:kafka][:enabled]",
       "description": "Enables tracing for the Kafka integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Kafka integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TRACE_KARAFKA_ENABLED": {
       "programmaticKey": "tracing[:karafka][:enabled]",
       "description": "Enables tracing for the Karafka integration.",
       "existingPublicDescription": "Specifies whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Karafka integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_LOGRAGE_ENABLED": {
       "programmaticKey": "tracing[:lograge][:enabled]",
       "description": "Enables injecting trace correlation fields into Lograge logs when log injection is enabled.",
       "existingPublicDescription": null,
       "shortDescription": "Enable injecting trace correlation fields into Lograge logs when log injection is enabled",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_MEMCACHED_COMMAND_ENABLED": {
       "programmaticKey": "tracing[:dalli][:command_enabled]",
       "description": "Controls whether Memcached commands are collected as span tags; command keys may contain sensitive information.",
       "existingPublicDescription": "Collect commands as the `memcached.command` tag. Command `keys` can potentially contain sensitive information.",
       "shortDescription": "Controls whether Memcached commands are collected as span tags",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_MONGO_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:mongo][:analytics_enabled]",
       "description": "Enables analytics for the MongoDB integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the MongoDB integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_MONGO_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:mongo][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the MongoDB integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the MongoDB integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_MONGO_ENABLED": {
       "programmaticKey": "tracing[:mongo][:enabled]",
       "description": "Enables tracing for the MongoDB integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the MongoDB integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TRACE_MONGO_JSON_COMMAND": {
       "programmaticKey": "tracing[:mongo][:json_command]",
       "description": "Serializes the MongoDB command as JSON on spans to enable query introspection in the Datadog app.",
       "existingPublicDescription": "(Recommended) Serialize the MongoDB command as JSON, which enables full support for introspection in the Datadog App.",
       "shortDescription": "Serialize the MongoDB command as JSON",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_MONGO_PEER_SERVICE": {
       "programmaticKey": "tracing[:mongo][:peer_service]",
       "description": "Name of the external service for spans generated by the MongoDB integration.",
       "existingPublicDescription": "Name of external service the application connects to",
       "shortDescription": "Name of the external service for spans generated by the MongoDB integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_MONGO_SERVICE_NAME": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Service name used for spans generated by the MongoDB integration. May be overridden by `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`.",
       "existingPublicDescription": "Name of application running the `mongo` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)",
       "shortDescription": "Name of application running the mongo instrumentation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_MYSQL2_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:mysql2][:analytics_enabled]",
       "description": "Enables analytics for the mysql2 integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the mysql2 integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_MYSQL2_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:mysql2][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the mysql2 integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the mysql2 integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_MYSQL2_ENABLED": {
       "programmaticKey": "tracing[:mysql2][:enabled]",
       "description": "Enables tracing for the mysql2 integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the mysql2 integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_MYSQL2_PEER_SERVICE": {
       "programmaticKey": "tracing[:mysql2][:peer_service]",
       "description": "Name of the external service for spans generated by the mysql2 integration.",
       "existingPublicDescription": "Name of external service the application connects to",
       "shortDescription": "Name of the external service for spans generated by the mysql2 integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_MYSQL2_SERVICE_NAME": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Service name used for spans generated by the mysql2 integration. May be overridden by `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`.",
       "existingPublicDescription": "Name of application running the `mysql2` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)",
       "shortDescription": "Name of application running the mysql2 instrumentation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_NATIVE_SPAN_EVENTS": {
       "programmaticKey": "tracing.native_span_events",
       "description": "Forces the tracer to always send span events using the native span events format, which can be useful in agentless setups.",
       "existingPublicDescription": "Forces the tracer to always send span events with the native span events format, regardless of whether the Agent supports it. This is useful when you want to change the serialization format in Agent-less setups.",
       "shortDescription": "Forces the tracer to always send span events with the native span events format",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_NET_HTTP_PEER_SERVICE": {
       "programmaticKey": "tracing[:http][:peer_service]",
       "description": "Name of the external service for spans generated by the net/http integration.",
       "existingPublicDescription": "Name of external service the application connects to",
       "shortDescription": "Name of the external service for spans generated by the net/http integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_NET_HTTP_SERVICE_NAME": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Service name used for spans generated by the net/http integration. May be overridden by `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`.",
       "existingPublicDescription": "Name of application running the `net/http` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)",
       "shortDescription": "Name of application running the net/http instrumentation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_OPENSEARCH_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:opensearch][:analytics_enabled]",
       "description": "Enables analytics for the OpenSearch integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the OpenSearch integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TRACE_OPENSEARCH_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:opensearch][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the OpenSearch integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the OpenSearch integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_OPENSEARCH_ENABLED": {
       "programmaticKey": "tracing[:opensearch][:enabled]",
       "description": "Enables tracing for the OpenSearch integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the OpenSearch integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_OPENSEARCH_PEER_SERVICE": {
       "programmaticKey": "tracing[:opensearch][:peer_service]",
       "description": "Name of the external service for spans generated by the OpenSearch integration.",
       "existingPublicDescription": "Name of the external service that the application connects to.",
       "shortDescription": "Name of the external service for spans generated by the OpenSearch integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_OPENSEARCH_RESOURCE_PATTERN": {
       "programmaticKey": "tracing[:opensearch][:resource_pattern]",
       "description": "Controls whether OpenSearch span resource names use the full or relative URL path.",
       "existingPublicDescription": "`absolute` or `relative` depending on whether the resource name should be set to the full or relative URL path.",
       "shortDescription": "Controls whether OpenSearch span resource names use the full or relative URL path",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_OPENSEARCH_SERVICE_NAME": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Service name used for spans generated by the OpenSearch integration. May be overridden by `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`.",
       "existingPublicDescription": "Name of the application running the `opensearch` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details.](#additional-configuration)",
       "shortDescription": "Name of the application running the opensearch instrumentation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED": {
       "programmaticKey": "contrib.peer_service_defaults",
       "description": "Enables automatic population of the peer.service tag for instrumented dependencies.",
       "existingPublicDescription": null,
       "shortDescription": "Enable automatic population of the peer.service tag for instrumented dependencies",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_PEER_SERVICE_MAPPING": {
       "programmaticKey": "contrib.peer_service_mapping",
       "description": "Remaps peer.service values across instrumentation using a list of old:new pairs.",
       "existingPublicDescription": "Defines remapping of `peer.service` tag across all instrumentation. Provide a list of `old_value1:new_value1, old_value2:new_value2, ...`",
       "shortDescription": "Remaps peer.service values across all instrumentation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_PG_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:pg][:analytics_enabled]",
       "description": "Enables analytics for the pg (Postgres) integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the pg (Postgres) integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_PG_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:pg][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the pg (Postgres) integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the pg (Postgres) integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_PG_ENABLED": {
       "programmaticKey": "tracing[:pg][:enabled]",
       "description": "Enables tracing for the pg (Postgres) integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the pg (Postgres) integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_PG_PEER_SERVICE": {
       "programmaticKey": "tracing[:pg][:peer_service]",
       "description": "Name of the external service for spans generated by the pg (Postgres) integration.",
       "existingPublicDescription": "Name of external service the application connects to",
       "shortDescription": "Name of the external service for spans generated by the pg (Postgres) integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_PG_SERVICE_NAME": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Service name used for spans generated by the pg (Postgres) integration. May be overridden by `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`.",
       "existingPublicDescription": "Name of application running the `pg` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)",
       "shortDescription": "Name of application running the pg instrumentation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_PRESTO_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:presto][:analytics_enabled]",
       "description": "Enables analytics for the Presto integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Presto integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_PRESTO_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:presto][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Presto integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Presto integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_PRESTO_ENABLED": {
       "programmaticKey": "tracing[:presto][:enabled]",
       "description": "Enables tracing for the Presto integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Presto integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_PRESTO_PEER_SERVICE": {
       "programmaticKey": "tracing[:presto][:peer_service]",
       "description": "Name of the external service for spans generated by the Presto integration.",
       "existingPublicDescription": "Name of external service the application connects to",
       "shortDescription": "Name of the external service for spans generated by the Presto integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_PRESTO_SERVICE_NAME": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Service name used for spans generated by the Presto integration. May be overridden by `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`.",
       "existingPublicDescription": "Name of application running the `presto` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)",
       "shortDescription": "Name of application running the presto instrumentation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_PROPAGATION_EXTRACT_FIRST": {
       "programmaticKey": "tracing.propagation_extract_first",
       "description": "Stops context extraction after the first valid distributed tracing propagation format is found.",
       "existingPublicDescription": "Stop searching after detecting the first valid propagation format. See [Distributed Tracing](#distributed-tracing) for more details.",
       "shortDescription": "Stop searching after detecting the first valid propagation format",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_PROPAGATION_STYLE": {
       "programmaticKey": "tracing.propagation_style",
       "description": "Distributed tracing propagation formats to use for both extraction and injection.",
       "existingPublicDescription": "Distributed tracing propagation formats to extract and inject. See [Distributed Tracing](#distributed-tracing) for more details.",
       "shortDescription": "Distributed tracing propagation formats to extract and inject",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TRACE_PROPAGATION_STYLE_EXTRACT": {
       "programmaticKey": "tracing.propagation_style_extract",
       "description": "Ordered list of distributed tracing propagation formats to extract from incoming requests.",
       "existingPublicDescription": "Distributed tracing propagation formats to extract. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.",
       "shortDescription": "Distributed tracing propagation formats to extract",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_PROPAGATION_STYLE_INJECT": {
       "programmaticKey": "tracing.propagation_style_inject",
       "description": "List of distributed tracing propagation formats to inject into outgoing requests.",
       "existingPublicDescription": "Distributed tracing propagation formats to inject. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.",
       "shortDescription": "Distributed tracing propagation formats to inject",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_QUE_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:que][:analytics_enabled]",
       "description": "Enables analytics for the Que integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Que integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_QUE_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:que][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Que integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Que integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_QUE_ENABLED": {
       "programmaticKey": "tracing[:que][:enabled]",
       "description": "Enables tracing for the Que integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Que integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_QUE_TAG_ARGS_ENABLED": {
       "programmaticKey": "tracing[:que][:tag_args]",
       "description": "Enables tagging a Que job's args field on spans.",
       "existingPublicDescription": "Enable tagging of a job's args field. `true` for on, `false` for off.",
       "shortDescription": "Enable tagging of a job's args field",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_QUE_TAG_DATA_ENABLED": {
       "programmaticKey": "tracing[:que][:tag_data]",
       "description": "Enables tagging a Que job's data field on spans.",
       "existingPublicDescription": "Enable tagging of a job's data field. `true` for on, `false` for off.",
       "shortDescription": "Enable tagging of a job's data field",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_RACECAR_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:racecar][:analytics_enabled]",
       "description": "Enables analytics for the Racecar integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Racecar integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_RACECAR_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:racecar][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Racecar integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Racecar integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_RACECAR_ENABLED": {
       "programmaticKey": "tracing[:racecar][:enabled]",
       "description": "Enables tracing for the Racecar integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Racecar integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_RACK_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:rack][:analytics_enabled]",
       "description": "Enables analytics for the Rack integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Rack integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_RACK_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:rack][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Rack integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Rack integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_RACK_ENABLED": {
       "programmaticKey": "tracing[:rack][:enabled]",
       "description": "Enables tracing for the Rack integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Rack integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_RAILS_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:rails][:analytics_enabled]",
       "description": "Enables analytics for the Rails integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Rails integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_RAILS_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:rails][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Rails integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Rails integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_RAILS_ENABLED": {
       "programmaticKey": "tracing[:rails][:enabled]",
       "description": "Enables tracing for the Rails integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Rails integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_RAKE_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:rake][:analytics_enabled]",
       "description": "Enables analytics for the Rake integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Rake integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_RAKE_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:rake][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Rake integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Rake integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_RAKE_ENABLED": {
       "programmaticKey": "tracing[:rake][:enabled]",
       "description": "Enables tracing for the Rake integration.",
       "existingPublicDescription": "Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false`",
       "shortDescription": "Enables tracing for the Rake integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_RATE_LIMIT": {
       "programmaticKey": "tracing.sampling.rate_limit",
       "description": "Maximum number of traces per second to sample.",
       "existingPublicDescription": "Sets a maximum number of traces per second to sample. Set a rate limit to avoid the ingestion volume overages in the case of traffic spikes.",
       "shortDescription": "Set a maximum number of traces per second to sample",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TRACE_REDIS_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:redis][:analytics_enabled]",
       "description": "Enables analytics for the Redis integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Redis integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_REDIS_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:redis][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Redis integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Redis integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_REDIS_ENABLED": {
       "programmaticKey": "tracing[:redis][:enabled]",
       "description": "Enables tracing for the Redis integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Redis integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_REDIS_PEER_SERVICE": {
       "programmaticKey": "tracing[:redis][:peer_service]",
       "description": "Name of the external service for spans generated by the Redis integration.",
       "existingPublicDescription": "Name of external service the application connects to",
       "shortDescription": "Name of the external service for spans generated by the Redis integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_REDIS_SERVICE_NAME": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Service name used for spans generated by the Redis integration. May be overridden by `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`.",
       "existingPublicDescription": "Name of application running the `redis` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)",
       "shortDescription": "Name of application running the redis instrumentation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED": {
       "programmaticKey": "contrib.global_default_service_name.enabled",
       "description": "Uses the application service name for spans from all integrations, instead of integration-specific service names.",
       "existingPublicDescription": "Changes the default value for `service_name` to the application service name across all instrumentation",
       "shortDescription": "Use the application service name for all integrations.",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_REPORT_HOSTNAME": {
       "programmaticKey": "tracing.report_hostname",
       "description": "Adds a hostname tag to traces.",
       "existingPublicDescription": "Adds hostname tag to traces.",
       "shortDescription": "Add hostname tag to traces",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TRACE_RESOURCE_RENAMING_ALWAYS_SIMPLIFIED_ENDPOINT": {
       "programmaticKey": "tracing.resource_renaming.always_simplified_endpoint",
       "description": "When enabled, always infer http.endpoint from the request path instead of using http.route.",
       "existingPublicDescription": null,
       "shortDescription": "When enabled, always infer http.endpoint from the request path",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TRACE_RESOURCE_RENAMING_ENABLED": {
       "programmaticKey": "tracing.resource_renaming.enabled",
       "description": "Enables resource renaming so the http.endpoint tag reflects the framework route or an inferred route.",
       "existingPublicDescription": null,
       "shortDescription": "Enable resource renaming so the http.endpoint tag reflects the framework route or an inferred route",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TRACE_RESQUE_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:resque][:analytics_enabled]",
       "description": "Enables analytics for the Resque integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Resque integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_RESQUE_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:resque][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Resque integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Resque integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_RESQUE_ENABLED": {
       "programmaticKey": "tracing[:resque][:enabled]",
       "description": "Enables tracing for the Resque integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Resque integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_REST_CLIENT_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:rest_client][:analytics_enabled]",
       "description": "Enables analytics for the RestClient integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the RestClient integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_REST_CLIENT_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:rest_client][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the RestClient integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the RestClient integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_REST_CLIENT_ENABLED": {
       "programmaticKey": "tracing[:rest_client][:enabled]",
       "description": "Enables tracing for the RestClient integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the RestClient integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_REST_CLIENT_PEER_SERVICE": {
       "programmaticKey": "tracing[:rest_client][:peer_service]",
       "description": "Name of the external service for spans generated by the RestClient integration.",
       "existingPublicDescription": "Name of external service the application connects to",
       "shortDescription": "Name of the external service for spans generated by the RestClient integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_REST_CLIENT_SERVICE_NAME": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Service name used for spans generated by the RestClient integration. May be overridden by `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`.",
       "existingPublicDescription": "Name of application running the `rest_client` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)",
       "shortDescription": "Name of application running the restclient instrumentation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_RODA_ENABLED": {
       "programmaticKey": "tracing[:roda][:enabled]",
       "description": "Enables tracing for the Roda integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Roda integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_SAMPLE_RATE": {
       "programmaticKey": "tracing.sampling.default_rate",
       "description": "Sets the trace sampling rate, controlling the fraction of traces kept.",
       "existingPublicDescription": "Sets the trace sampling rate between `0.0` (0%) and `1.0` (100%).",
       "shortDescription": "Set the trace sampling rate",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TRACE_SAMPLING_RULES": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Trace-level sampling rules (JSON) matched against the local root span.",
       "existingPublicDescription": "Sets trace-level sampling rules, matching against the local root span. The format is a `String` with JSON, containing an Array of Objects. Each Object must have a float attribute `sample_rate` (between 0.0 and 1.0, inclusive), and optionally `name`, `service`, `resource`, and `tags` string attributes. `name`, `service`, `resource`, and `tags` control to which traces this sampling rule applies; if they are all absent, then this rule applies to all traces. Rules are evaluated in order of declaration in the array; only the first to match is applied. If none apply, then `tracing.sampling.default_rate` is applied.",
       "shortDescription": "Set trace-level sampling rules, matching against the local root span",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_SEMANTIC_LOGGER_ENABLED": {
       "programmaticKey": "tracing[:semantic_logger][:enabled]",
       "description": "Enables injecting trace correlation fields into Semantic Logger logs when log injection is enabled.",
       "existingPublicDescription": null,
       "shortDescription": "Enable injecting trace correlation fields into Semantic Logger logs when log injection is enabled",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_SEQUEL_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:sequel][:analytics_enabled]",
       "description": "Enables analytics for the Sequel integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Sequel integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_SEQUEL_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:sequel][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Sequel integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Sequel integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_SEQUEL_ENABLED": {
       "programmaticKey": "tracing[:sequel][:enabled]",
       "description": "Enables tracing for the Sequel integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Sequel integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_SHORYUKEN_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:shoryuken][:analytics_enabled]",
       "description": "Enables analytics for the Shoryuken integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Shoryuken integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_SHORYUKEN_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:shoryuken][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Shoryuken integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Shoryuken integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_SHORYUKEN_ENABLED": {
       "programmaticKey": "tracing[:shoryuken][:enabled]",
       "description": "Enables tracing for the Shoryuken integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Shoryuken integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_SIDEKIQ_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:sidekiq][:analytics_enabled]",
       "description": "Enables analytics for the Sidekiq integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Sidekiq integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_SIDEKIQ_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:sidekiq][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Sidekiq integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Sidekiq integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_SIDEKIQ_ENABLED": {
       "programmaticKey": "tracing[:sidekiq][:enabled]",
       "description": "Enables tracing for the Sidekiq integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Sidekiq integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_SINATRA_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:sinatra][:analytics_enabled]",
       "description": "Enables analytics for the Sinatra integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Sinatra integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_SINATRA_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:sinatra][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Sinatra integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Sinatra integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_SINATRA_ENABLED": {
       "programmaticKey": "tracing[:sinatra][:enabled]",
       "description": "Enables tracing for the Sinatra integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Sinatra integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_SNEAKERS_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:sneakers][:analytics_enabled]",
       "description": "Enables analytics for the Sneakers integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Sneakers integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_SNEAKERS_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:sneakers][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Sneakers integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Sneakers integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_SNEAKERS_ENABLED": {
       "programmaticKey": "tracing[:sneakers][:enabled]",
       "description": "Enables tracing for the Sneakers integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Sneakers integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_STRIPE_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:stripe][:analytics_enabled]",
       "description": "Enables analytics for the Stripe integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Stripe integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_STRIPE_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:stripe][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Stripe integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Stripe integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_STRIPE_ENABLED": {
       "programmaticKey": "tracing[:stripe][:enabled]",
       "description": "Enables tracing for the Stripe integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Stripe integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_SUCKER_PUNCH_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:sucker_punch][:analytics_enabled]",
       "description": "Enables analytics for the Sucker Punch integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Sucker Punch integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_SUCKER_PUNCH_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:sucker_punch][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Sucker Punch integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Sucker Punch integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_SUCKER_PUNCH_ENABLED": {
       "programmaticKey": "tracing[:sucker_punch][:enabled]",
       "description": "Enables tracing for the Sucker Punch integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Sucker Punch integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_TEST_MODE_ENABLED": {
       "programmaticKey": "tracing.test_mode.enabled",
       "description": "Enables tracer test mode, using test-oriented trace flushing and writer behavior.",
       "existingPublicDescription": null,
       "shortDescription": "Enable tracer test mode, using test-oriented trace flushing and writer behavior",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_TRILOGY_ANALYTICS_ENABLED": {
       "programmaticKey": "tracing[:trilogy][:analytics_enabled]",
       "description": "Enables analytics for the Trilogy integration.",
       "existingPublicDescription": null,
       "shortDescription": "Enable analytics for the Trilogy integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_TRILOGY_ANALYTICS_SAMPLE_RATE": {
       "programmaticKey": "tracing[:trilogy][:analytics_sample_rate]",
       "description": "Sampling rate for analytics events generated by the Trilogy integration.",
       "existingPublicDescription": null,
       "shortDescription": "Sampling rate for analytics events generated by the Trilogy integration",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_TRILOGY_ENABLED": {
       "programmaticKey": "tracing[:trilogy][:enabled]",
       "description": "Enables tracing for the Trilogy integration.",
       "existingPublicDescription": "Whether the integration should create spans.",
       "shortDescription": "Enables tracing for the Trilogy integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_TRILOGY_PEER_SERVICE": {
       "programmaticKey": "tracing[:trilogy][:peer_service]",
       "description": "Name of the external service for spans generated by the Trilogy integration.",
       "existingPublicDescription": "Name of external service the application connects to",
       "shortDescription": "Name of the external service for spans generated by the Trilogy integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_TRILOGY_SERVICE_NAME": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Service name used for spans generated by the Trilogy integration. May be overridden by `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`.",
       "existingPublicDescription": "Name of application running the `trilogy` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)",
       "shortDescription": "Name of application running the trilogy instrumentation",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_TRACE_WATERDROP_ENABLED": {
       "programmaticKey": "tracing[:waterdrop][:enabled]",
       "description": "Enables tracing for the WaterDrop integration.",
       "existingPublicDescription": "Specifies whether the integration should create spans.",
       "shortDescription": "Enables tracing for the WaterDrop integration",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": true
     },
     "DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH": {
       "programmaticKey": "tracing.x_datadog_tags_max_length",
       "description": "Maximum size allowed for the x-datadog-tags distributed trace tags header; larger values are not parsed or propagated.",
       "existingPublicDescription": null,
       "shortDescription": "Maximum size allowed for the x-datadog-tags distributed trace tags header",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "OTEL_TRACES_EXPORTER": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Enables or disables tracing. When disabled, instrumentation still runs but no trace data is sent. Alias for DD_TRACE_ENABLED.",
       "existingPublicDescription": null,
       "shortDescription": "Enables/disables tracing",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "OTEL_TRACES_SAMPLER": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Sets the trace sampling rate, controlling the fraction of traces kept. Alias for DD_TRACE_SAMPLE_RATE.",
       "existingPublicDescription": null,
       "shortDescription": "Set the trace sampling rate",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     },
     "OTEL_TRACES_SAMPLER_ARG": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Provides the argument value used by the traceidratio OpenTelemetry sampler.",
       "existingPublicDescription": null,
       "shortDescription": "Provide the argument value used by the traceidratio OpenTelemetry sampler",
-      "internal": false
+      "internal": false,
+      "alreadyDocumentedOnFpd": false
     }
   },
   "ssi": {
@@ -2357,14 +2690,16 @@
       "description": "Indicates whether the library was loaded via Datadog single-step instrumentation (SSI) injection.",
       "existingPublicDescription": null,
       "shortDescription": "Indicates whether the library was loaded via Datadog single-step instrumentation (SSI) injection",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     },
     "DD_INJECT_FORCE": {
       "programmaticKey": "(not using DSL o.env)",
       "description": "Forces Datadog single-step instrumentation (SSI) injection.",
       "existingPublicDescription": null,
       "shortDescription": "Forces Datadog single-step instrumentation (SSI) injection",
-      "internal": true
+      "internal": true,
+      "alreadyDocumentedOnFpd": false
     }
   }
 }
