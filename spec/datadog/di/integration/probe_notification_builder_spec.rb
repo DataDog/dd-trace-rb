@@ -37,6 +37,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         allow(settings).to receive(:max_capture_collection_size).and_return(20)
         allow(settings).to receive(:redacted_type_names).and_return([])
         allow(settings).to receive(:redacted_identifiers).and_return([])
+        allow(settings).to receive(:redaction_excluded_identifiers).and_return([])
       end
     end
 
