@@ -64,6 +64,7 @@ Naming/FileName:
     - 'lib/datadog/profiling/preload.rb'
     - 'lib/datadog/transport/ext.rb'
     - 'lib/datadog/version.rb'
+    - 'lib/datadog/lambda.rb'
 
 # Offense count: 1
 RSpec/IteratedExpectation:
