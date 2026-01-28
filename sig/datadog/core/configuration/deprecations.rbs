@@ -2,7 +2,7 @@ module Datadog
   module Core
     module Configuration
       module Deprecations
-        LOG_DEPRECATIONS_ONLY_ONCE: Datadog::Core::Utils::OnlyOnce
+        LOG_DEPRECATIONS_ONLY_ONCE: Hash[Set[String], Datadog::Core::Utils::OnlyOnce]
 
         def self.log_deprecations_from_all_sources: (Datadog::Core::Logger logger, ?deprecations: Set[String], ?alias_to_canonical: Hash[String, String]) -> void
 
