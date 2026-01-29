@@ -6,7 +6,6 @@ module Datadog
         type final_call_result = untyped
         type final_call = ^() -> final_call_result
         type stack = ::Proc
-        type argument = Gateway::Argument | ::String
 
         type stack_result = ::Array[nil | middleware_result | final_call_result]
 
@@ -15,9 +14,9 @@ module Datadog
 
         def initialize: () -> void
 
-        def push: (::String name, argument env) ?{ () -> final_call_result } -> stack_result
+        def push: (::String name, any env) ?{ () -> final_call_result } -> stack_result
 
-        def watch: (::String name, ::Symbol key) { (stack next, argument env) -> stack_result } -> void
+        def watch: (::String name, ::Symbol key) { (stack next, any env) -> stack_result } -> void
 
         def pushed?: (::String name) -> bool
       end

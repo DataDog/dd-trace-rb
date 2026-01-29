@@ -12,7 +12,7 @@ module Datadog
           # body right before it is serialized.
           module JsonPatch
             def json(object, options = {})
-              context = @request.env[Datadog::AppSec::Ext::CONTEXT_KEY]
+              context = @request.env[Datadog::AppSec::Ext::CONTEXT_KEY] # : Context?
               return super unless context
 
               data = Utils::HashCoercion.coerce(object)

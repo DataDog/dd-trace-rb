@@ -1,0 +1,24 @@
+module Datadog
+  module AIGuard
+    module Contrib
+      module RubyLLM
+        class Integration
+          include Datadog::AIGuard::Contrib::Integration
+          extend Datadog::AIGuard::Contrib::Integration::ClassMethods
+
+          MINIMUM_VERSION: ::Gem::Version
+
+          def self.version: () -> ::Gem::Version?
+
+          def self.loaded?: () -> bool
+
+          def self.compatible?: () -> bool
+
+          def self.auto_instrument?: () -> bool
+
+          def patcher: () -> singleton(Patcher)
+        end
+      end
+    end
+  end
+end

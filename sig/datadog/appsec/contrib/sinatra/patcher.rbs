@@ -11,19 +11,25 @@ module Datadog
         end
 
         module DispatchPatch
+          @request: ::Sinatra::Request
+
           def dispatch!: () -> untyped
         end
 
         module RoutePatch
-          def process_route: () { (untyped) -> untyped } -> untyped
+          @request: ::Sinatra::Request
+
+          def process_route: (*untyped args) { (*untyped) -> untyped } -> untyped
+
+          def params: () -> ::Hash[::String, any]
         end
 
         module Patcher
-          def self?.patched?: () -> untyped
+          def self?.patched?: () -> bool
 
-          def self?.target_version: () -> untyped
+          def self?.target_version: () -> Gem::Version?
 
-          def self?.patch: () -> untyped
+          def self?.patch: () -> void
 
           def self?.patch_json?: () -> bool
         end

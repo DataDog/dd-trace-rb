@@ -146,6 +146,7 @@ build_coverage_matrix('karafka', min: '2.3.0')
 build_coverage_matrix('waterdrop', min: '2.8.8.rc1')
 build_coverage_matrix('devise', min: '3.2.1')
 build_coverage_matrix('openfeature', min: '0.3.1', gem: 'openfeature-sdk')
+build_coverage_matrix('ruby-llm', gem: 'ruby_llm')
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 7'

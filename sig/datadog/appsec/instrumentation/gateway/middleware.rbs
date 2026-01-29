@@ -7,7 +7,7 @@ module Datadog
           attr_reader block: ::Proc
 
           def initialize: (::Symbol key) { (Gateway::stack next, Gateway::Argument env) -> stack_result } -> void
-          def call: (Gateway::stack next, Gateway::Argument? env) -> stack_result
+          def call: (Gateway::stack next, Gateway::Argument env) -> stack_result
         end
       end
     end

@@ -143,12 +143,6 @@ namespace :spec do
   end
 
   desc '' # "Explicitly hiding from `rake -T`"
-  RSpec::Core::RakeTask.new(:ai_guard) do |t, args|
-    t.pattern = 'spec/datadog/ai_guard/**/*_spec.rb,spec/datadog/ai_guard_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
-  end
-
-  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:rails) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/rails/**/*_spec.rb'
     t.exclude_pattern = 'spec/datadog/tracing/contrib/rails/**/*{active_job,disable_env,redis_cache,auto_instrument,' \
@@ -406,6 +400,25 @@ namespace :spec do
   end
 
   task appsec: [:"appsec:all"]
+
+  namespace :ai_guard do
+    task all: [:main, :ruby_llm]
+
+    desc '' # "Explicitly hiding from `rake -T`"
+    RSpec::Core::RakeTask.new(:main) do |t, args|
+      t.pattern = 'spec/datadog/ai_guard/**/*_spec.rb,spec/datadog/ai_guard_spec.rb'
+      t.exclude_pattern = 'spec/datadog/ai_guard/contrib/**/*_spec.rb'
+      t.rspec_opts = args.to_a.join(' ')
+    end
+
+    desc '' # "Explicitly hiding from `rake -T`"
+    RSpec::Core::RakeTask.new(:ruby_llm) do |t, args|
+      t.pattern = "spec/datadog/ai_guard/contrib/ruby_llm/**/*_spec.rb"
+      t.rspec_opts = args.to_a.join(' ')
+    end
+  end
+
+  task ai_guard: [:"ai_guard:main"]
 
   namespace :di do
     # Datadog DI integrations

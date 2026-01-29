@@ -73,23 +73,25 @@ module Datadog
 
           def enabled=: (bool) -> void
 
-          def endpoint: () -> String
+          def instrument: (::Symbol) -> void
 
-          def endpoint=: (String) -> void
+          def endpoint: () -> ::String
 
-          def app_key: () -> String
+          def endpoint=: (::String) -> void
 
-          def app_key=: (String) -> void
+          def app_key: () -> ::String
 
-          def timeout_ms: () -> Integer
+          def app_key=: (::String) -> void
+
+          def timeout_ms: () -> ::Integer
 
           def timeout_ms=: () -> void
 
-          def max_content_size_bytes: () -> Integer
+          def max_content_size_bytes: () -> ::Integer
 
-          def max_content_size_bytes=: (Integer) -> void
+          def max_content_size_bytes=: (::Integer) -> void
 
-          def max_messages_length: () -> Integer
+          def max_messages_length: () -> ::Integer
 
           def max_messages_length=: () -> void
         end

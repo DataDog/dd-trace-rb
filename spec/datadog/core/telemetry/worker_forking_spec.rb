@@ -143,6 +143,8 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
 
       it 'restarts worker after fork' do
+        skip 'flaky on Ruby 2.5 (APMLP-931)' if RUBY_VERSION.start_with?('2.5.')
+
         expect(component.enabled?).to be true
         expect(component.worker).to be_a(Datadog::Core::Telemetry::Worker)
         expect(component.worker.enabled?).to be true

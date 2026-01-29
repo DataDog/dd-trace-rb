@@ -136,12 +136,20 @@ module Datadog
               if Datadog::AppSec::Contrib::Rails::Patcher.target_version < Gem::Version.new('7.1')
                 Datadog::AppSec::Contrib::Rails::Patcher.report_routes_via_telemetry(::Rails.application.routes.routes)
               end
+            rescue => e
+              error_message = 'Failed to get application routes'
+              Datadog.logger.error("#{error_message}, #{e.class}: #{e.message}")
+              AppSec.telemetry.report(e, description: error_message)
             end
           end
 
           def subscribe_to_routes_loaded
-            ::ActiveSupport.on_load(:after_routes_loaded) do |app|
-              Datadog::AppSec::Contrib::Rails::Patcher.report_routes_via_telemetry(app.routes.routes)
+            ::ActiveSupport.on_load(:after_routes_loaded) do
+              Datadog::AppSec::Contrib::Rails::Patcher.report_routes_via_telemetry(::Rails.application.routes.routes)
+            rescue => e
+              error_message = 'Failed to get application routes'
+              Datadog.logger.error("#{error_message}, #{e.class}: #{e.message}")
+              AppSec.telemetry.report(e, description: error_message)
             end
           end
 

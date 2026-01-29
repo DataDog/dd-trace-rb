@@ -3,6 +3,8 @@
 require_relative "core/configuration"
 require_relative "ai_guard/configuration"
 
+require_relative "ai_guard/contrib/ruby_llm/integration"
+
 module Datadog
   # A namespace for the AI Guard component.
   module AIGuard
