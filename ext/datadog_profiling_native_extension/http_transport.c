@@ -216,6 +216,7 @@ static VALUE _native_do_export(
     to_compress[0] = (ddog_prof_Exporter_File) {
       .name = char_slice_from_ruby_string(code_provenance_file_name),
       .file = byte_slice_from_ruby_string(code_provenance_data),
+      .mime = DDOG_PROF_MIME_TYPE_APPLICATION_JSON,
     };
   }
 
