@@ -9,7 +9,6 @@ require_relative '../core/workers/polling'
 require_relative '../core/ddsketch'
 require_relative '../core/buffer/cruby'
 require_relative '../core/utils/time'
-require_relative '../core/utils/fnv'
 
 module Datadog
   module DataStreams
@@ -368,9 +367,22 @@ module Datadog
         tags.each { |tag| bytes += tag.bytes }
         byte_string = bytes.pack('C*')
 
-        node_hash = Core::Utils::FNV.fnv1_64(byte_string)
+        node_hash = fnv1_64(byte_string)
         combined_bytes = [node_hash, current_hash].pack('QQ')
-        Core::Utils::FNV.fnv1_64(combined_bytes)
+        fnv1_64(combined_bytes)
+      end
+
+      # FNV-1a 64-bit hash function.
+      def fnv1_64(data)
+        fnv_offset_basis = 14695981039346656037
+        fnv_prime = 1099511628211
+
+        hash_value = fnv_offset_basis
+        data.each_byte do |byte|
+          hash_value ^= byte
+          hash_value = (hash_value * fnv_prime) & 0xFFFFFFFFFFFFFFFF
+        end
+        hash_value
       end
 
       def record_checkpoint_stats(
