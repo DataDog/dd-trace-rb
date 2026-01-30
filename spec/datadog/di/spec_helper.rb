@@ -146,6 +146,7 @@ module DIHelpers
       let(:di_settings) do
         double('di settings').tap do |settings|
           allow(settings).to receive(:internal).and_return(di_internal_settings)
+          allow(settings).to receive(:redaction_excluded_identifiers).and_return([])
         end
       end
 

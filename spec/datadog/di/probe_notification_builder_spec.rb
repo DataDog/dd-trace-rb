@@ -28,6 +28,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     double("di settings").tap do |settings|
       allow(settings).to receive(:enabled).and_return(true)
       allow(settings).to receive(:redacted_identifiers).and_return([])
+      allow(settings).to receive(:redaction_excluded_identifiers).and_return([])
       allow(settings).to receive(:redacted_type_names).and_return(%w[])
       allow(settings).to receive(:max_capture_collection_size).and_return(10)
       allow(settings).to receive(:max_capture_attribute_count).and_return(10)

@@ -13,6 +13,10 @@ module Datadog
     # redaction. Additional names can be provided by the user via the
     # settings.dynamic_instrumentation.redacted_identifiers setting or
     # the DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS environment
+    # variable. Users can also exclude specific identifiers from the default
+    # redaction list via the
+    # settings.dynamic_instrumentation.redaction_excluded_identifiers setting or
+    # the DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS environment
     # variable. Currently no class names are subject to redaction by default;
     # class names can be provided via the
     # settings.dynamic_instrumentation.redacted_type_names setting or
@@ -61,7 +65,10 @@ module Datadog
           names.map! do |name|
             normalize(name)
           end
-          Set.new(names)
+          excluded = settings.dynamic_instrumentation.redaction_excluded_identifiers.map do |name|
+            normalize(name)
+          end
+          Set.new(names) - Set.new(excluded)
         end
       end
 
