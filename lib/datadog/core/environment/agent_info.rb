@@ -69,7 +69,7 @@ module Datadog
           res = @client.send_info
           return unless res.ok?
 
-          update_container_tags(res)
+          update_propagation_checksum(res)
 
           res
         end
@@ -78,7 +78,7 @@ module Datadog
           other.is_a?(self.class) && other.agent_settings == agent_settings
         end
 
-        # Returns the propagation checksum, with part of the data from the Agent.
+        # Returns the propagation checksum, comprising of process tags and optionally container tags (from the Trace Agent)
         # Currently called/used by the DBM code to inject the propagation checksum into the SQL comment.
         #
         # The checksum is populated by the trace transport's periodic fetch calls.
@@ -105,6 +105,15 @@ module Datadog
         # https://github.com/DataDog/datadog-agent/pull/38515
         attr_reader :container_tags_checksum
 
+        # Computes the propagation checksum (base hash) from process tags and optionally container tags when it changes
+        # Controlled by DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED
+        # This is needed in traces (dsm and dbm related spans), DBM, and DSM.
+        # The base hash is used for correlation across signals (traces, DBM, data streams, etc.) in environments
+        # where full context propagation isn't feasible due to size restrictions.
+        #
+        # Only runs when  is true.
+        #
+        # Container tags extraction:
         # Datadog::Core::Environment::Container extracts the container id from the cgroup folder if possible
         # (note: not currently available in cgroupv2) and sends it to the Trace Agent via the header Datadog-Container-ID.
         # The Trace Agent takes the container id and looks for matching container tags to compute a SHA256 checksum via the response header DATADOG-CONTAINER-TAGS-HASH
@@ -116,17 +125,23 @@ module Datadog
         #     - It is possible that we don't have access to the value if the Trace Agent is temporarily down. In these cases, we need to check for the value again on the next call to the info endpoint
         #     - If we have access to the value, we need to check if it changed from the previous value.
         #     - The Trace Agent runs into a permissions/setup issue.
-        def update_container_tags(res)
+        def update_propagation_checksum(res)
+          return unless Datadog.configuration.experimental_propagate_process_tags_enabled
+
           header_value = res.headers[Core::Transport::Ext::HTTP::HEADER_CONTAINER_TAGS_HASH]
           new_container_tags_value = header_value if header_value && !header_value.empty?
 
           # if the Trace Agent returns a new value for the checksum, calculate and cache the propagation checksum
-          if new_container_tags_value && new_container_tags_value != @container_tags_checksum
-            @container_tags_checksum = new_container_tags_value
+          # If there was no previous propagation_checksum, then we should calculate the checksum by checking the agent and getting process info
+          if @propagation_checksum.nil? || (new_container_tags_value && new_container_tags_value != @container_tags_checksum)
+            @container_tags_checksum = new_container_tags_value if new_container_tags_value
 
             process_tags = Process.serialized
-            # new_container_tags_value (non nil) over @container_tags_checksum (string?) to avoid steep errors
-            data = process_tags + new_container_tags_value
+            data = process_tags
+            # Add container tags if available (helps Steep with type narrowing)
+            container_tags = @container_tags_checksum
+            data += container_tags if container_tags
+
             @propagation_checksum = Core::Utils::FNV.fnv1_64(data)
           end
         end
