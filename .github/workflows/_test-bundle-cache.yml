@@ -1,0 +1,57 @@
+name: Test Bundle Cache
+
+on:
+  workflow_dispatch:
+    inputs:
+      ruby-version:
+        description: 'Ruby version to test'
+        default: '3.4'
+        type: string
+
+jobs:
+  test-restore-save:
+    name: Test bundle-restore and bundle-save
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:${{ inputs.ruby-version }}-gnu-gcc
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Show Ruby version
+        run: |
+          ruby -v
+          gem -v
+          bundler -v
+
+      - name: Generate lockfile
+        run: bundle lock
+
+      - name: Restore cache
+        id: restore-cache
+        uses: ./.github/actions/bundle-restore
+        with:
+          namespace: matrix
+
+      - name: Show cache status
+        run: |
+          echo "Cache hit: ${{ steps.restore-cache.outputs.cache-hit }}"
+          echo "Cache key: ${{ steps.restore-cache.outputs.cache-primary-key }}"
+
+      - name: Install base Gemfile
+        run: bundle install
+
+      - name: Check for stale gems
+        run: bundle exec rake dependency:clean_unused_gems
+
+      - name: Save cache
+        if: steps.restore-cache.outputs.cache-hit != 'true'
+        uses: ./.github/actions/bundle-save
+        with:
+          cache-key: ${{ steps.restore-cache.outputs.cache-primary-key }}
+
+      - name: Verify bundle path
+        run: |
+          echo "Bundle path: $(bundle config get path)"
+          echo "Gem count: $(ls /usr/local/bundle/gems 2>/dev/null | wc -l || echo 0)"

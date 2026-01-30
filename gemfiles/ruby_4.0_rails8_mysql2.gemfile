@@ -2,6 +2,8 @@
 
 source "https://rubygems.org"
 
+ruby "~> 4.0"
+
 gem "base64"
 gem "benchmark"
 gem "benchmark-ips", "~> 2.8"

@@ -1,12 +1,15 @@
 require 'json'
 require_relative 'appraisal_conversion'
 
+# Tasks to support GitHub workflows
 # rubocop:disable Metrics/BlockLength
 namespace :github do
+  # Distribute {file:Matrixfile} tests into batches
   task :generate_batches do
     matrix = eval(File.read('Matrixfile')).freeze # rubocop:disable Security/Eval
 
-    # TODO: These are the execptions, find a way to describe those service dependencies in CI using a more generic mechansim.
+    # TODO: Tasks with sidecar service dependencies, currently all bundled together in the `build-test-misc` job.
+    # TODO: Find a way to describe those service dependencies declaratively (e.g. in the Matrixfile).
     misc_candidates = [
       'mongodb',
       'elasticsearch',
@@ -112,7 +115,7 @@ namespace :github do
       #
       # https://github.com/jruby/jruby/issues/7508
       # https://github.com/jruby/jruby/issues/3656
-      with_retry do
+      AppraisalConversion.with_retry do
         Bundler.with_unbundled_env { sh(env, cmd) }
       end
     end
@@ -128,22 +131,6 @@ namespace :github do
       cmd = "bundle exec rake spec:#{task["task"]}'[--seed #{rng.rand(0xFFFF)}]'"
 
       Bundler.with_unbundled_env { sh(env, cmd) }
-    end
-  end
-
-  def with_retry(&block)
-    retries = 0
-    begin
-      yield
-    rescue => e
-      rake_output_message(
-        "Bundle install failure (Attempt: #{retries + 1}): #{e.class.name}: #{e.message}, \
-        Source:\n#{Array(e.backtrace).join("\n")}"
-      )
-      sleep(2**retries)
-      retries += 1
-      retry if retries < 3
-      raise
     end
   end
 end
