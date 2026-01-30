@@ -5,6 +5,7 @@ module Datadog
         module SqlComment
           module Ext
             ENV_DBM_PROPAGATION_MODE: "DD_DBM_PROPAGATION_MODE"
+            ENV_DBM_INJECT_SQL_BASEHASH: "DD_DBM_INJECT_SQL_BASEHASH"
             DISABLED: "disabled"
             KEY_DB_NAME: string
             KEY_HOSTNAME: string
@@ -12,6 +13,7 @@ module Datadog
             SERVICE: "service"
             FULL: "full"
             TAG_DBM_TRACE_INJECTED: "_dd.dbm_trace_injected"
+            TAG_PROPAGATED_HASH: "_dd.propagated_hash"
 
             KEY_DATABASE_SERVICE: "dddbs"
 
@@ -20,6 +22,8 @@ module Datadog
             KEY_PARENT_SERVICE: "ddps"
 
             KEY_VERSION: "ddpv"
+
+            KEY_BASE_HASH: "ddsh"
 
             KEY_TRACEPARENT: "traceparent"
           end

@@ -76,6 +76,7 @@ RSpec.describe 'Trlogy::Client patcher' do
         end
 
         it_behaves_like 'with sql comment propagation', span_op_name: 'trilogy.query'
+        it_behaves_like 'with sql comment base hash injection', span_op_name: 'trilogy.query'
       end
 
       context 'when a successful query is made' do

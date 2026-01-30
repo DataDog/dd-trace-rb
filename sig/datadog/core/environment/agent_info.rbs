@@ -18,7 +18,7 @@ module Datadog
 
         attr_reader container_tags_checksum: ::String?
 
-        def update_container_tags: (Remote::Transport::HTTP::Negotiation::Response res) -> void
+        def update_propagation_checksum: (Remote::Transport::HTTP::Negotiation::Response res) -> void
       end
     end
   end
