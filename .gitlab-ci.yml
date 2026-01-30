@@ -58,7 +58,7 @@ build-image-amd64:
 
 build-image-arm64:
   extends: .build-image-base
-  tags: ["docker-in-docker:microvm-arm64"]
+  tags: ["docker-in-docker:arm64"]
   variables:
     ARCHITECTURE: arm64
 
