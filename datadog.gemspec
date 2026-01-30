@@ -52,6 +52,11 @@ Gem::Specification.new do |spec|
   spec.executables = ['ddprofrb']
   spec.require_paths = ['lib']
 
+  # Used to perform hooking
+  #
+  # We pin to patch version until Graft's API stabilises, at which poiint it'll go `1.0`
+  spec.add_dependency 'graft', '~> 0.3.0'
+
   # Used to serialize traces to send them to the Datadog Agent.
   #
   # msgpack 1.4 fails for Ruby 2.1 (see https://github.com/msgpack/msgpack-ruby/issues/205)
