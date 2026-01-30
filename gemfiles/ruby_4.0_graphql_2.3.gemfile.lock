@@ -96,6 +96,7 @@ GEM
     docile (1.4.1)
     dogstatsd-ruby (5.7.1)
     erubi (1.13.1)
+    ffi (1.17.3-aarch64-linux-gnu)
     ffi (1.17.3-x86_64-linux-gnu)
     fiber-storage (1.0.1)
     fiddle (1.1.8)
@@ -112,8 +113,11 @@ GEM
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (25.0.0.1.0)
+    libdatadog (25.0.0.1.0-aarch64-linux)
     libdatadog (25.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.0)
+      ffi (~> 1.0)
+    libddwaf (1.30.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.0-x86_64-linux)
       ffi (~> 1.0)
@@ -249,6 +253,7 @@ GEM
     zstd-ruby (2.0.3)
 
 PLATFORMS
+  aarch64-linux
   x86_64-linux
 
 DEPENDENCIES

@@ -46,6 +46,7 @@ GEM
     faraday-retry (2.4.0)
       faraday (~> 2.0)
     ffi (1.17.3)
+    ffi (1.17.3-aarch64-linux-gnu)
     ffi (1.17.3-arm-linux-gnu)
     ffi (1.17.3-arm-linux-musl)
     ffi (1.17.3-x86_64-linux-gnu)
@@ -58,8 +59,11 @@ GEM
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (25.0.0.1.0)
+    libdatadog (25.0.0.1.0-aarch64-linux)
     libdatadog (25.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.0)
+      ffi (~> 1.0)
+    libddwaf (1.30.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.0-x86_64-linux)
       ffi (~> 1.0)
@@ -132,6 +136,7 @@ GEM
     zstd-ruby (2.0.5)
 
 PLATFORMS
+  aarch64-linux
   arm-linux-gnu
   arm-linux-musl
   ruby

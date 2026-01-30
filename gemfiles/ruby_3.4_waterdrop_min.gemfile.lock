@@ -38,6 +38,7 @@ GEM
     dogstatsd-ruby (5.7.1)
     erb (6.0.0)
     ffi (1.17.3)
+    ffi (1.17.3-aarch64-linux-gnu)
     ffi (1.17.3-arm-linux-gnu)
     ffi (1.17.3-arm-linux-musl)
     ffi (1.17.3-x86_64-linux-gnu)
@@ -61,6 +62,12 @@ GEM
       logger
       mini_portile2 (~> 2.6)
       rake (> 12)
+    karafka-rdkafka (0.23.0-aarch64-linux-gnu)
+      ffi (~> 1.17.1)
+      json (> 2.0)
+      logger
+      mini_portile2 (~> 2.6)
+      rake (> 12)
     karafka-rdkafka (0.23.0-x86_64-linux-gnu)
       ffi (~> 1.17.1)
       json (> 2.0)
@@ -68,8 +75,11 @@ GEM
       mini_portile2 (~> 2.6)
       rake (> 12)
     libdatadog (25.0.0.1.0)
+    libdatadog (25.0.0.1.0-aarch64-linux)
     libdatadog (25.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.0)
+      ffi (~> 1.0)
+    libddwaf (1.30.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.0-x86_64-linux)
       ffi (~> 1.0)
@@ -142,6 +152,7 @@ GEM
     zstd-ruby (2.0.3)
 
 PLATFORMS
+  aarch64-linux
   arm-linux-gnu
   arm-linux-musl
   ruby
