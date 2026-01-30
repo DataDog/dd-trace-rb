@@ -91,12 +91,6 @@ module Datadog
         # This is a short checksum that uniquely identifies this process, its container environment, and
         # the Datadog agent it connects to.
         #
-        # It is used to correlate multiple signals emitted by this process among themselves (e.g. traces to
-        # sql queries to pub/sub events).
-        # Because some of these signals have strict size restrictions, we cannot use complete propagation
-        # methods (e.g. a W3C Trace Context), so short checksum is calculated, then later correlated by the
-        # Datadog App.
-        #
         # This checksum only has to be internally consistent: the same value must be used by every signal
         # emitted by this process+container+agent combinations). It is not required that this checksum is
         # consistent with other SDKs.
