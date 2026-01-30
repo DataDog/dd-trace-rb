@@ -1,0 +1,10 @@
+module Datadog
+  module Kit
+    module Tracing
+      module MethodTracer : Class
+        def self.trace_method: (Module klass, Symbol method_name, ?String? span_name) -> void
+        def trace_method: (Symbol method_name, ?String? span_name) -> void
+      end
+    end
+  end
+end
