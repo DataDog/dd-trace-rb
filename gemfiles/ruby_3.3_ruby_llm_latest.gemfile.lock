@@ -3,7 +3,8 @@ PATH
   specs:
     datadog (2.28.0)
       cgi
-      datadog-ruby_core_source (~> 3.5, >= 3.5.1)
+      datadog-ruby_core_source (~> 3.5, >= 3.5.2)
+      graft (~> 0.3.0)
       libdatadog (~> 25.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
@@ -28,7 +29,7 @@ GEM
     crack (1.0.1)
       bigdecimal
       rexml
-    datadog-ruby_core_source (3.5.1)
+    datadog-ruby_core_source (3.5.2)
     date (3.5.1)
     debug (1.11.1)
       irb (~> 1.10)
@@ -65,6 +66,7 @@ GEM
     google-protobuf (3.25.8-x86-linux)
     google-protobuf (3.25.8-x86_64-darwin)
     google-protobuf (3.25.8-x86_64-linux)
+    graft (0.3.0)
     hashdiff (1.2.1)
     io-console (0.8.2)
     irb (1.16.0)
