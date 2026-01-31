@@ -28,6 +28,8 @@ module Datadog
         alias include? key?
         alias member? key?
 
+        def []=: (String name, String value) -> void
+
         def get_environment_variable: (String name, ?String? default_value, ?source_env: env_hash) -> String?
 
         def resolve_env: (String name, ?source_env: env_hash) -> String
