@@ -33,10 +33,11 @@ GEM
     elastic-transport (8.4.1)
       faraday (< 3)
       multi_json
-    elasticsearch (8.19.2)
+    elasticsearch (8.19.3)
       elastic-transport (~> 8.3)
-      elasticsearch-api (= 8.19.2)
-    elasticsearch-api (8.19.2)
+      elasticsearch-api (= 8.19.3)
+      ostruct
+    elasticsearch-api (8.19.3)
       multi_json
     faraday (1.10.4)
       faraday-em_http (~> 1.0)
@@ -80,6 +81,7 @@ GEM
     multi_json (1.15.0)
     multipart-post (2.4.1)
     os (1.1.4)
+    ostruct (0.6.3)
     pry (0.14.2)
       coderay (~> 1.1)
       method_source (~> 1.0)
