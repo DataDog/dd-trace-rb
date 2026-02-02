@@ -8,7 +8,7 @@ module Datadog
           module Ext
             ENV_DBM_PROPAGATION_MODE = 'DD_DBM_PROPAGATION_MODE'
 
-            # Determines whether to inject the the base hash into the SQL comment
+            # Determines whether to inject the propagation hash into the SQL comment
             ENV_DBM_INJECT_SQL_BASEHASH = 'DD_DBM_INJECT_SQL_BASEHASH'
 
             # The default mode for sql comment propagation
@@ -58,7 +58,7 @@ module Datadog
             # @see Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE
             KEY_PEER_SERVICE = 'ddprs'
 
-            # DBM base hash for back propagation
+            # DBM service hash (ddsh) for propagation
             KEY_BASE_HASH = 'ddsh'
 
             KEY_TRACEPARENT = 'traceparent'

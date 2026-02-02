@@ -56,7 +56,7 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
       end
     end
 
-    context 'when process tags propagation is disabled' do
+    context 'when process tags are disabled' do
       before do
         allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
       end
@@ -77,7 +77,7 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
       end
     end
 
-    context 'when DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED is true' do
+    context 'when process tags propagation is enabled' do
       before do
         allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
       end
@@ -117,8 +117,6 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
 
         it 'computes hash with only process tags (not nil)' do
           result = agent_info.propagation_checksum
-          expect(result).not_to be_nil
-          expect(result).to be_a(Integer)
           expect(result).to eq(Datadog::Core::Utils::FNV.fnv1_64(process_tags))
         end
       end
@@ -139,7 +137,7 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
   end
 
   describe '#container_tags_checksum' do
-    context 'when DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED is false' do
+    context 'when process tags are disabled' do
       before do
         allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
       end
@@ -151,7 +149,7 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
       end
     end
 
-    context 'when DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED is true' do
+    context 'when process tags propagation is enabled' do
       before do
         allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
       end
@@ -165,7 +163,6 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
 
           agent_info.fetch
           expect(agent_info.send(:container_tags_checksum)).to be nil
-          expect(agent_info.propagation_checksum).not_to be_nil
           expect(agent_info.propagation_checksum).to eq(Datadog::Core::Utils::FNV.fnv1_64(process_tags))
         end
       end
@@ -206,7 +203,6 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
 
           agent_info.fetch
           expect(agent_info.send(:container_tags_checksum)).to be_nil
-          expect(agent_info.propagation_checksum).not_to be_nil
           expect(agent_info.propagation_checksum).to eq(Datadog::Core::Utils::FNV.fnv1_64(process_tags))
         end
       end
@@ -246,14 +242,10 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
           allow(response).to receive(:headers).and_return({'Datadog-Container-Tags-Hash' => 'test'})
           agent_info.fetch
 
-          # When container tags are available, the new checksum has the container tags
+          # When container tags are available, the new checksum includes the container tags
           new_value = agent_info.propagation_checksum
-          expect(new_value).not_to be_nil
-          expect(new_value).to be_a(Integer)
           expect(new_value).not_to eq(first_checksum)
-
-          expected_checksum = Datadog::Core::Utils::FNV.fnv1_64(process_tags + 'test')
-          expect(new_value).to eq(expected_checksum)
+          expect(new_value).to eq(Datadog::Core::Utils::FNV.fnv1_64(process_tags + 'test'))
         end
 
         it 'does not recalculate propagation_checksum when container tags unchanged' do
