@@ -674,12 +674,25 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       expect { engine.reconfigure! }.to(change { engine.new_runner.waf_addresses })
     end
 
+    it 'reports waf.updates metric with success: true' do
+      expect(Datadog::AppSec.telemetry).to receive(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.updates', 1,
+        tags: {
+          waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
+          event_rules_version: '1.0.0',
+          success: true
+        }
+      ).once
+
+      engine.reconfigure!
+    end
+
     context 'when a new handle cannot be build' do
       let(:asm_dd_config) do
         {
           version: '2.2',
           metadata: {
-            rules_version: '1.0.0'
+            rules_version: '2.0.0'
           },
           rules: []
         }
@@ -700,6 +713,24 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
           Datadog::AppSec::WAF::LibDDWAFError,
           description: 'AppSec security engine failed to reconfigure, reverting to the previous configuration'
         )
+
+        engine.reconfigure!
+      end
+
+      it 'reports waf.updates metric with success: false' do
+        expect(Datadog::AppSec.telemetry).not_to receive(:inc).with(
+          Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.updates', 1,
+          tags: hash_including(success: true)
+        )
+
+        expect(Datadog::AppSec.telemetry).to receive(:inc).with(
+          Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.updates', 1,
+          tags: {
+            waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
+            event_rules_version: '2.0.0',
+            success: false
+          }
+        ).once
 
         engine.reconfigure!
       end

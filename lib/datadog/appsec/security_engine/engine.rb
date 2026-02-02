@@ -121,6 +121,15 @@ module Datadog
           @ruleset_version = @reconfigured_ruleset_version
 
           @handle_ref.current = new_waf_handle
+
+          AppSec.telemetry.inc(
+            Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.updates', 1,
+            tags: {
+              waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
+              event_rules_version: @ruleset_version.to_s,
+              success: true
+            }
+          )
         rescue WAF::Error => e
           # WAF::Error can only be raised during new WAF handle creation or when reading known addresses.
           # This means that the current WAF handle was not yet substituted.
@@ -128,6 +137,15 @@ module Datadog
 
           Datadog.logger.error("#{error_message}, error #{e.inspect}")
           AppSec.telemetry.report(e, description: error_message)
+
+          AppSec.telemetry.inc(
+            Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.updates', 1,
+            tags: {
+              waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
+              event_rules_version: @reconfigured_ruleset_version.to_s,
+              success: false
+            }
+          )
         end
 
         private
