@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'graft'
-
 module Datadog
   module Kit
     module Tracing
@@ -28,18 +26,15 @@ module Datadog
           def trace_method(klass, method_name, span_name = nil)
             raise ArgumentError, 'class must respond to :name' unless klass.respond_to?(:name)
 
-            tag = span_name ? "datadog.tracing.#{span_name}" : 'datadog_tracing'
             hook_point = "#{klass.name}##{method_name}"
             span_name ||= hook_point
 
-            ::Graft::Hook.add(hook_point, :prepend) do
-              append(tag) do |stack, env|
-                ::Datadog::Tracing.trace(span_name) do |span|
-                  env['datadog.tracing.span'] = span
-                  stack.call(env)
-                end
-              end
-            end.install
+            hook_module = Module.new do
+              define_method(method_name) { |*args, &block| ::Datadog::Tracing.trace(span_name) { super(*args, &block) } }
+              ruby2_keywords(method_name) if respond_to?(:ruby2_keywords)
+            end
+
+            klass.prepend(hook_module)
           end
         end
 

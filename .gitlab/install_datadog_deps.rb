@@ -91,7 +91,6 @@ env = {
   'did_you_mean',
   'datadog-ruby_core_source',
   'ffi',
-  'graft',
   'libddwaf',
   'msgpack',
   'libdatadog', # libdatadog MUST be installed before datadog to ensure libdatadog native extension is compiled

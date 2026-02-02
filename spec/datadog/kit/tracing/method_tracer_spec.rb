@@ -7,19 +7,17 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
   let(:configuration_options) { {} }
 
   before do
-    # Invalidation is hard! tests are kind of a werid special case where
-    # constants come and go, which is usually not the case in general.
-    # Cause: hook indexing by string leads to duplication across tests
-    # Maybe: index by (class) instance
-    Graft::Hook.instance_eval { @hooks = {} }
+    stub_const('Dummy', dummy_class)
+  end
 
+  let(:dummy_class) do
     # The following performs monkeypatches that kind of conflicts and messes
     # with hooking stuff:
     #
     #     expect(dummy).to receive(:foo).once.and_call_original
     #
     # So we check the manual way with an ivar increment
-    stub_const('Dummy', Class.new).class_eval do
+    Class.new do
       def foo
         @called ||= 0
 
@@ -53,6 +51,184 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       expect(dummy.called).to eq(1)
       expect(spans.count { |s| s.name == 'custom_name' }).to eq(1)
       expect(spans.find { |s| s.name == 'custom_name' }).to be_a Datadog::Tracing::Span
+    end
+
+    # There are many issues with kwargs, `ruby2_keywords`, and other gnarliness
+    # across time, so here's a place where we test passing arguments through
+    # works as expected.
+    #
+    # e.g:
+    # - https://bugs.ruby-lang.org/issues/21402
+    # - https://bugs.ruby-lang.org/issues/19330
+
+    context 'method with positional arguments' do
+      let(:dummy_class) do
+        Class.new do
+          def foo(arg1, arg2)
+            @result = yield if block_given?
+            @received = [arg1, arg2]
+          end
+
+          def received
+            @received
+          end
+
+          def result
+            @result
+          end
+        end
+      end
+
+      it 'passes direct arguments' do
+        dummy.foo(1, 2)
+
+        expect(dummy.received).to eq [1, 2]
+      end
+
+      it 'passes splat arguments' do
+        args = [1, 2]
+        dummy.foo(*args)
+
+        expect(dummy.received).to eq [1, 2]
+      end
+
+      it 'passes block arguments' do
+        dummy.foo(1, 2) { 42 }
+
+        expect(dummy.received).to eq [1, 2]
+        expect(dummy.result).to eq 42
+      end
+    end
+
+    context 'method with *args' do
+      let(:dummy_class) do
+        Class.new do
+          def foo(*args)
+            @result = yield if block_given?
+            @received = args
+          end
+
+          def received
+            @received
+          end
+
+          def result
+            @result
+          end
+        end
+      end
+
+      it 'passes direct arguments' do
+        dummy.foo(1, 2)
+
+        expect(dummy.received).to eq [1, 2]
+      end
+
+      it 'passes splat arguments' do
+        args = [1, 2]
+        dummy.foo(*args)
+
+        expect(dummy.received).to eq [1, 2]
+      end
+
+      it 'passes block arguments' do
+        dummy.foo(1, 2) { 42 }
+
+        expect(dummy.received).to eq [1, 2]
+        expect(dummy.result).to eq 42
+      end
+    end
+
+    context 'method with **kwargs' do
+      let(:dummy_class) do
+        Class.new do
+          def foo(arg1, arg2, **kwargs)
+            @result = yield if block_given?
+            @received = [arg1, arg2, kwargs]
+          end
+
+          def received
+            @received
+          end
+
+          def result
+            @result
+          end
+        end
+      end
+
+      it 'passes direct arguments' do
+        dummy.foo(1, 2)
+
+        expect(dummy.received).to eq [1, 2, {}]
+      end
+
+      it 'passes splat arguments' do
+        args = [1, 2]
+        dummy.foo(*args)
+
+        expect(dummy.received).to eq [1, 2, {}]
+      end
+
+      it 'passes kwargs arguments' do
+        args = [1, 2]
+        dummy.foo(*args, a: 1, b: 2)
+
+        expect(dummy.received).to eq [1, 2, { a: 1, b: 2 }]
+      end
+
+      it 'passes block arguments' do
+        dummy.foo(1, 2, a: 1, b: 2) { 42 }
+
+        expect(dummy.received).to eq [1, 2, { a:1, b: 2 }]
+        expect(dummy.result).to eq 42
+      end
+    end
+
+    context 'method with *args and **kwargs' do
+      let(:dummy_class) do
+        Class.new do
+          def foo(*args, **kwargs)
+            @result = yield if block_given?
+            @received = args + [kwargs]
+          end
+
+          def received
+            @received
+          end
+
+          def result
+            @result
+          end
+        end
+      end
+
+      it 'passes direct arguments' do
+        dummy.foo(1, 2)
+
+        expect(dummy.received).to eq [1, 2, {}]
+      end
+
+      it 'passes splat arguments' do
+        args = [1, 2]
+        dummy.foo(*args)
+
+        expect(dummy.received).to eq [1, 2, {}]
+      end
+
+      it 'passes kwargs arguments' do
+        args = [1, 2]
+        dummy.foo(*args, a: 1, b: 2)
+
+        expect(dummy.received).to eq [1, 2, { a: 1, b: 2 }]
+      end
+
+      it 'passes block arguments' do
+        dummy.foo(1, 2, a: 1, b: 2) { 42 }
+
+        expect(dummy.received).to eq [1, 2, { a:1, b: 2 }]
+        expect(dummy.result).to eq 42
+      end
     end
   end
 

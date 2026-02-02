@@ -111,7 +111,6 @@ RSpec.describe 'gem release process' do
           'datadog',
           'datadog-ruby_core_source',
           'ffi',
-          'graft',
           'libdatadog',
           'libddwaf',
           'msgpack',
