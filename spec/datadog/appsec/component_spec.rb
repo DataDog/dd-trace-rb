@@ -9,6 +9,7 @@ RSpec.describe Datadog::AppSec::Component do
     context 'when appsec is enabled' do
       before do
         settings.appsec.enabled = true
+        allow(telemetry).to receive(:inc)
       end
 
       it 'returns a Datadog::AppSec::Component instance' do
@@ -47,6 +48,7 @@ RSpec.describe Datadog::AppSec::Component do
       it 'returns nil when security engine fails to instantiate' do
         settings.appsec.ruleset = {}
 
+        allow(telemetry).to receive(:inc)
         expect(telemetry).to receive(:report)
         expect(Datadog.logger).to receive(:warn)
 

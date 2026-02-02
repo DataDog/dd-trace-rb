@@ -22,6 +22,7 @@ RSpec.describe Datadog::AppSec::Context do
 
   before do
     allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry)
+    allow(telemetry).to receive(:inc)
   end
 
   after do
@@ -160,6 +161,7 @@ RSpec.describe Datadog::AppSec::Context do
 
     context 'when a run was a failure' do
       before do
+        allow(telemetry).to receive(:inc)
         allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry)
         allow_any_instance_of(Datadog::AppSec::SecurityEngine::Runner).to receive(:run)
           .and_return(run_result)
@@ -180,6 +182,7 @@ RSpec.describe Datadog::AppSec::Context do
 
       it 'sends telemetry metrics' do
         expect(telemetry).not_to receive(:inc)
+          .with('appsec', not('waf.init'), kind_of(Integer), anything)
 
         context.run_rasp('sqli', persistent_data, ephemeral_data, 1_000_000)
       end
