@@ -20,13 +20,16 @@ module Datadog
       #     Datadog::Kit::Tracing::MethodTracer.trace_method(MyClass, :foo, 'my_span_name')
       #
       # Span name is optional and defaults to class#method
+      #
+      # Note: this uses Module#Prepend, so do not use on methods that have been
+      # alias method chained or you risk an infinite recusion crash.
       module MethodTracer
         class << self
-          # Trace a method by class and name
-          def trace_method(klass, method_name, span_name = nil)
-            raise ArgumentError, 'class name is nil' if klass.name.nil? && span_name.nil?
+          # Trace an instance method by module and name
+          def trace_method(mod, method_name, span_name = nil)
+            raise ArgumentError, 'module name is nil' if mod.name.nil? && span_name.nil?
 
-            hook_point = "#{klass.name}##{method_name}"
+            hook_point = "#{mod.name}##{method_name}"
             span_name ||= hook_point
 
             hook_module = Module.new do
@@ -34,11 +37,11 @@ module Datadog
               ruby2_keywords(method_name) if respond_to?(:ruby2_keywords)
             end
 
-            klass.prepend(hook_module)
+            mod.prepend(hook_module)
           end
         end
 
-        # Trace a method by name
+        # Trace a method by name in a module context
         def trace_method(method_name, span_name = nil)
           MethodTracer.trace_method(self, method_name, span_name)
         end
