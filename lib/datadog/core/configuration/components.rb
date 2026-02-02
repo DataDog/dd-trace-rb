@@ -176,6 +176,7 @@ module Datadog
         # Called when a fork is detected
         def after_fork
           telemetry.after_fork
+          crashtracker&.update_on_fork
         end
 
         # Hot-swaps with a new sampler.
