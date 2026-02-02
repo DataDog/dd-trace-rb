@@ -177,6 +177,7 @@ module Datadog
         def after_fork
           telemetry.after_fork
           crashtracker&.update_on_fork
+          ProcessDiscovery.after_fork
         end
 
         # Hot-swaps with a new sampler.
