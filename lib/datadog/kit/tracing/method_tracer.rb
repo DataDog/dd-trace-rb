@@ -21,6 +21,9 @@ module Datadog
       #
       # Span name is optional and defaults to class#method
       #
+      # Traced methods are only traced if already within a trace (i.e they do
+      # not create traces by themselves).
+      #
       # Note: this uses Module#Prepend, so do not use on methods that have been
       # alias method chained or you risk an infinite recusion crash.
       module MethodTracer
@@ -37,6 +40,8 @@ module Datadog
             hook_module = Module.new do
               eval(<<-RUBY, nil, __FILE__, __LINE__ + 1)
               def #{method_name}(#{args})
+                return super(#{args}) unless ::Datadog::Tracing.active_trace
+
                 ::Datadog::Tracing.trace('#{span_name}') { super(#{args}) }
               end
               RUBY
