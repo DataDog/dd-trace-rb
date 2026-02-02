@@ -46,7 +46,7 @@ module Datadog
             tags: {
               waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
               event_rules_version: @ruleset_version.to_s,
-              success: true
+              success: 'true'
             }
           )
         rescue WAF::Error => e
@@ -60,7 +60,7 @@ module Datadog
             tags: {
               waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
               event_rules_version: @ruleset_version.to_s,
-              success: false
+              success: 'false'
             }
           )
 
@@ -127,7 +127,7 @@ module Datadog
             tags: {
               waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
               event_rules_version: @ruleset_version.to_s,
-              success: true
+              success: 'true'
             }
           )
         rescue WAF::Error => e
@@ -143,7 +143,7 @@ module Datadog
             tags: {
               waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
               event_rules_version: @reconfigured_ruleset_version.to_s,
-              success: false
+              success: 'false'
             }
           )
         end
