@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative 'counter_sampler'
 require_relative 'metrics'
 
 module Datadog

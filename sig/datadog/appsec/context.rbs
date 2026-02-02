@@ -13,6 +13,8 @@ module Datadog
 
       @state: ::Hash[::Symbol, any]
 
+      @registry: { downstream_body_sampler: CounterSampler }
+
       ActiveContextError: StandardError
 
       attr_reader trace: Tracing::TraceOperation
@@ -20,6 +22,8 @@ module Datadog
       attr_reader span: Tracing::SpanOperation
 
       attr_reader state: ::Hash[::Symbol, any]
+
+      attr_reader registry: { downstream_body_sampler: CounterSampler }
 
       def self.activate: (Context context) -> Context
 
