@@ -32,9 +32,14 @@ module Datadog
             hook_point = "#{mod.name}##{method_name}"
             span_name ||= hook_point
 
+            args = RUBY_VERSION >= '2.7.' ? '...' : '*args, &block'
+
             hook_module = Module.new do
-              define_method(method_name) { |*args, &block| ::Datadog::Tracing.trace(span_name) { super(*args, &block) } }
-              ruby2_keywords(method_name) if respond_to?(:ruby2_keywords)
+              eval(<<-RUBY, nil, __FILE__, __LINE__ + 1)
+              def #{method_name}(#{args})
+                ::Datadog::Tracing.trace('#{span_name}') { super(#{args}) }
+              end
+              RUBY
             end
 
             mod.prepend(hook_module)
