@@ -393,6 +393,20 @@ module Datadog
                     end
                   end
                 end
+
+                settings :downstream_body_analysis do
+                  option :sample_rate do |o|
+                    o.type :float
+                    o.env 'DD_API_SECURITY_DOWNSTREAM_BODY_ANALYSIS_SAMPLE_RATE'
+                    o.default 0.5
+                  end
+
+                  option :max_requests do |o|
+                    o.type :int
+                    o.env 'DD_API_SECURITY_MAX_DOWNSTREAM_REQUEST_BODY_ANALYSIS'
+                    o.default 1
+                  end
+                end
               end
 
               option :sca_enabled do |o|
