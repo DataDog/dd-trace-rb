@@ -83,7 +83,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         allow(telemetry).to receive(:inc)
       end
 
-      it 'reports error though telemetry' do
+      it 'reports error through telemetry' do
         expect(telemetry).to receive(:report).with(
           Datadog::AppSec::WAF::LibDDWAFError,
           description: 'AppSec security engine failed to initialize'
@@ -150,7 +150,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
       end
 
-      it 'reports error though telemetry' do
+      it 'reports error through telemetry' do
         expect(telemetry).to receive(:error).with("missing key 'conditions': [invalid-rule-id]")
 
         expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
@@ -708,7 +708,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
         expect { engine.reconfigure! }.not_to(change { engine.new_runner.waf_addresses })
       end
 
-      it 'reports error though telemetry' do
+      it 'reports error through telemetry' do
         expect(telemetry).to receive(:report).with(
           Datadog::AppSec::WAF::LibDDWAFError,
           description: 'AppSec security engine failed to reconfigure, reverting to the previous configuration'
