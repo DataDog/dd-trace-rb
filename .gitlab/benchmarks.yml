@@ -12,12 +12,7 @@ variables:
   tags: ["runner:apm-k8s-same-cpu"]
   needs: []
   timeout: 1h
-  rules:
-    - if: $CI_COMMIT_REF_NAME == "master"
-      when: always
-      interruptible: false
-    - when: manual
-      interruptible: true
+  when: always
   # If you have a problem with Gitlab cache, see Troubleshooting section in Benchmarking Platform docs
   image: $GITLAB_BENCHMARKS_CI_IMAGE
   script:
@@ -136,7 +131,7 @@ ddprof-benchmark:
   stage: microbenchmarks
   tags: ["runner:apm-k8s-same-cpu"]
   timeout: 1h
-  when: manual
+  when: always
   image: $GITLAB_DDPROF_BENCHMARK_CI_IMAGE
   script:
     - export ARTIFACTS_DIR="$(pwd)/reports" && (mkdir "${ARTIFACTS_DIR}" || :)
