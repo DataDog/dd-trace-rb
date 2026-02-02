@@ -241,7 +241,6 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
 
           # First call has no headers yet, so it only checksums the process tags
           first_checksum = agent_info.propagation_checksum
-          expect(first_checksum).not_to be_nil
           expect(first_checksum).to eq(Datadog::Core::Utils::FNV.fnv1_64(process_tags))
 
           allow(response).to receive(:headers).and_return({'Datadog-Container-Tags-Hash' => 'test'})
