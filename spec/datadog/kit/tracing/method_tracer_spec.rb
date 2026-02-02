@@ -30,7 +30,7 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
     end
   end
 
-  let(:dummy) { Dummy.new }
+  let(:dummy) { dummy_class.new }
 
   describe '.trace_method' do
     it 'traces a method' do
@@ -234,7 +234,7 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
 
   describe '#trace_method' do
     it 'traces a method' do
-      Dummy.instance_eval do
+      dummy_class.instance_eval do
         extend Datadog::Kit::Tracing::MethodTracer
 
         trace_method :foo
@@ -248,7 +248,7 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
     end
 
     it 'traces a method with a name' do
-      Dummy.instance_eval do
+      dummy_class.instance_eval do
         extend Datadog::Kit::Tracing::MethodTracer
 
         trace_method :foo, 'custom_name'

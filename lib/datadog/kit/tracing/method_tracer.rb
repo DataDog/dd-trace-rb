@@ -24,7 +24,7 @@ module Datadog
         class << self
           # Trace a method by class and name
           def trace_method(klass, method_name, span_name = nil)
-            raise ArgumentError, 'class must respond to :name' unless klass.respond_to?(:name)
+            raise ArgumentError, 'class name is nil' if klass.name.nil? && span_name.nil?
 
             hook_point = "#{klass.name}##{method_name}"
             span_name ||= hook_point
