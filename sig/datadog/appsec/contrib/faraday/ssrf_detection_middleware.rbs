@@ -3,11 +3,17 @@ module Datadog
     module Contrib
       module Faraday
         class SSRFDetectionMiddleware < ::Faraday::Middleware
-          def call: (untyped env) -> untyped
+          ANALYZE_BODY_KEY: ::Symbol
+
+          def call: (::Faraday::Env env) -> untyped
 
           private
 
-          def on_complete: (untyped env, context: Context) -> void
+          def on_complete: (::Faraday::Env env, context: Context) -> void
+
+          def analyze_body?: (Context context) -> bool
+
+          def normalize_headers: (::Faraday::Utils::Headers? headers) -> ::Hash[::String, ::String]
 
           def handle: (SecurityEngine::result result, context: Context) -> void
         end
