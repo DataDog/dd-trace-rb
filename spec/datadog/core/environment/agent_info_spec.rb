@@ -56,7 +56,7 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
       end
     end
 
-    context 'when DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED is false' do
+    context 'when process tags propagation is disabled' do
       before do
         allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
       end
