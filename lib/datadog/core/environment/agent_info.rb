@@ -128,7 +128,7 @@ module Datadog
           # if the Trace Agent returns a new value for the checksum, calculate and cache the propagation checksum
           # If there was no previous propagation_checksum, then we should calculate the checksum by checking the agent and getting process info
           if @propagation_checksum.nil? || (new_container_tags_value && new_container_tags_value != @container_tags_checksum)
-            @container_tags_checksum = new_container_tags_value if new_container_tags_value
+            @container_tags_checksum = new_container_tags_value
 
             data = Process.serialized
             # Add container tags if available (helps Steep with type narrowing)
