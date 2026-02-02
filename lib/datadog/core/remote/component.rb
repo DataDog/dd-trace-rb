@@ -19,13 +19,16 @@ module Datadog
 
         def initialize(settings, capabilities, agent_settings, logger:)
           @logger = logger
+          @settings = settings
+          @capabilities = capabilities
+          @agent_settings = agent_settings
 
           negotiation = Negotiation.new(settings, agent_settings, logger: logger)
-          transport_v7 = Datadog::Core::Remote::Transport::HTTP.v7(agent_settings: agent_settings, logger: logger)
+          @transport = Datadog::Core::Remote::Transport::HTTP.v7(agent_settings: agent_settings, logger: logger)
 
           @barrier = Barrier.new(settings.remote.boot_timeout_seconds)
 
-          @client = Client.new(transport_v7, capabilities, settings: settings, logger: logger)
+          @client = Client.new(@transport, @capabilities, settings: settings, logger: logger)
           @healthy = false
           logger.debug { "new remote configuration client: #{@client.id}" }
 
@@ -57,7 +60,7 @@ module Datadog
               end
 
               # client state is unknown, state might be corrupted
-              @client = Client.new(transport_v7, capabilities, settings: settings, logger: logger)
+              @client = Client.new(@transport, @capabilities, settings: settings, logger: logger)
               @healthy = false
               logger.debug { "new remote configuration client: #{@client.id}" }
 
@@ -88,6 +91,14 @@ module Datadog
 
         def shutdown!
           @worker.stop
+        end
+
+        # Recreates the remote configuration client after a fork.
+        # This ensures each forked process has a unique client ID and fresh state.
+        def after_fork
+          @client = Client.new(@transport, @capabilities, settings: @settings, logger: @logger)
+          @healthy = false
+          logger.debug { "remote configuration client recreated after fork: #{@client.id}" }
         end
 
         # Barrier provides a mechanism to fence execution until a condition happens

@@ -176,6 +176,7 @@ module Datadog
         # Called when a fork is detected
         def after_fork
           telemetry.after_fork
+          remote&.after_fork
           crashtracker&.update_on_fork
           ProcessDiscovery.after_fork
         end
