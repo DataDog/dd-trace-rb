@@ -130,8 +130,7 @@ module Datadog
           if @propagation_checksum.nil? || (new_container_tags_value && new_container_tags_value != @container_tags_checksum)
             @container_tags_checksum = new_container_tags_value if new_container_tags_value
 
-            process_tags = Process.serialized
-            data = process_tags
+            data = Process.serialized
             # Add container tags if available (helps Steep with type narrowing)
             container_tags = @container_tags_checksum
             data += container_tags if container_tags
