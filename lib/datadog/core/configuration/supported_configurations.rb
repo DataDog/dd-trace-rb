@@ -42,6 +42,7 @@ module Datadog
           "DD_APP_KEY",
           "DD_CRASHTRACKING_ENABLED",
           "DD_DATA_STREAMS_ENABLED",
+          "DD_DBM_INJECT_SQL_BASEHASH",
           "DD_DBM_PROPAGATION_MODE",
           "DD_DISABLE_DATADOG_RAILS",
           "DD_DYNAMIC_INSTRUMENTATION_ENABLED",

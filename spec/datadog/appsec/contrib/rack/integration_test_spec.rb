@@ -332,8 +332,6 @@ RSpec.describe 'Rack integration tests' do
           allow(Datadog::Core::Remote::Negotiation).to receive(:new).and_return(negotiation)
 
           allow(client).to receive(:id).and_return(remote_client_id)
-          allow(worker).to receive(:start).and_call_original
-          allow(worker).to receive(:stop).and_call_original
 
           Datadog.configure do |c|
             c.remote.enabled = remote_enabled
@@ -349,6 +347,9 @@ RSpec.describe 'Rack integration tests' do
             c.appsec.api_security.sample_delay = 0.0
             c.appsec.instrument :rack
           end
+
+          allow(worker).to receive(:start).and_call_original
+          allow(worker).to receive(:stop).and_call_original
         end
       end
 
@@ -400,7 +401,7 @@ RSpec.describe 'Rack integration tests' do
         let(:route) { '/success/' }
 
         let(:component) { Datadog::Core::Remote.active_remote }
-        let(:worker) { component.instance_eval { @worker } }
+        let(:worker) { component.worker }
         let(:client) { double('Client') }
         let(:transport_v7) { double('Transport') }
         let(:negotiation) { double('Negotiation') }
