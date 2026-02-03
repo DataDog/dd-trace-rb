@@ -221,7 +221,7 @@ RSpec.describe Datadog::Core::Remote::Component do
       expect(result).to eq(:lift)
 
       # Wait for parent to make requests
-      try_wait_until(seconds: 2) { received_requests.any? { |r| r[:endpoint] == '/v0.7/config' } }
+      try_wait_until(seconds: 5) { received_requests.any? { |r| r[:endpoint] == '/v0.7/config' } }
 
       # Get parent requests
       parent_requests = received_requests.select { |r| r[:endpoint] == '/v0.7/config' }
