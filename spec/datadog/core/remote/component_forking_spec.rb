@@ -253,10 +253,10 @@ RSpec.describe Datadog::Core::Remote::Component do
         expect(child_runtime_id).to match(/^[0-9a-f-]+$/)
 
         # Trigger a sync in the child to make a network request
-        child_component.barrier(:once)
+        result = child_component.barrier(:once)
 
-        # Give it a moment to complete the request
-        sleep 0.2
+        # Assert that the operation completed while waiting
+        expect(result).to eq(:lift)
 
         # Check if child made requests (server runs in parent, receives requests from child)
         # Note: received_requests is modified by the parent process's HTTP server
