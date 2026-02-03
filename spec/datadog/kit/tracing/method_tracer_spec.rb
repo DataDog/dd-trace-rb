@@ -100,6 +100,39 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       end
     end
 
+    context 'with singleton class to trace a single instance' do
+      it 'only traces the specific instance' do
+        dummy1 = dummy_class.new
+        dummy2 = dummy_class.new
+
+        Datadog::Kit::Tracing::MethodTracer.trace_method(dummy1.singleton_class, :foo, 'singleton_span')
+
+        Datadog::Tracing.trace('wrapper') do
+          dummy1.foo
+          dummy2.foo
+        end
+
+        expect(dummy1.called).to eq(1)
+        expect(dummy2.called).to eq(1)
+        expect(spans.count { |s| s.name == 'singleton_span' }).to eq(1)
+      end
+
+      it 'does not affect other instances of the same class' do
+        dummy1 = dummy_class.new
+        dummy2 = dummy_class.new
+
+        Datadog::Kit::Tracing::MethodTracer.trace_method(dummy1.singleton_class, :foo, 'singleton_span')
+
+        result1 = Datadog::Tracing.trace('wrapper1') { dummy1.foo }
+        result2 = Datadog::Tracing.trace('wrapper2') { dummy2.foo }
+
+        expect(result1).to eq(1)
+        expect(result2).to eq(1)
+        expect(spans.count { |s| s.name == 'singleton_span' }).to eq(1)
+        expect(spans.count { |s| s.name == 'Dummy#foo' }).to eq(0)
+      end
+    end
+
     it 'raises when method is not defined' do
       expect { Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :bar) }.to raise_error(
         NoMethodError,
