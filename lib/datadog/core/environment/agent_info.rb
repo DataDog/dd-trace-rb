@@ -81,7 +81,7 @@ module Datadog
         # Returns the propagation checksum, comprising of process tags and optionally container tags (from the Trace Agent)
         # Currently called/used by the DBM code to inject the propagation checksum into the SQL comment.
         #
-        # This hash is used for correlation across signals (traces, DBM, data streams, etc.) in environments
+        # This checksum is used for correlation across signals (traces, DBM, data streams, etc.) in environments
         #
         # The checksum is populated by the trace transport's periodic fetch calls.
         # @return [Integer, nil] the FNV hash based on the container and process tags or nil
