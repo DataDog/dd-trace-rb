@@ -29,6 +29,11 @@ module Datadog
       module MethodTracer
         class << self
           # Trace an instance method by module and name
+          #
+          # @param mod [Module] module or class containing the method to trace
+          # @param method_name [Symbol] name of the method to trace
+          # @param span_name [String, nil] optional span name (defaults to "Module#method")
+          # @return [void]
           def trace_method(mod, method_name, span_name = nil)
             raise ArgumentError, 'module name is nil' if mod.name.nil? && span_name.nil?
             raise NoMethodError, "undefined method #{method_name.inspect} for class #{mod}" unless mod.method_defined?(method_name)
@@ -55,6 +60,10 @@ module Datadog
         end
 
         # Trace a method by name in a module context
+        #
+        # @param method_name [Symbol] name of the method to trace
+        # @param span_name [String, nil] optional span name (defaults to "Module#method")
+        # @return [void]
         def trace_method(method_name, span_name = nil)
           MethodTracer.trace_method(self, method_name, span_name)
         end
