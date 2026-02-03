@@ -217,7 +217,8 @@ RSpec.describe Datadog::Core::Remote::Component do
 
     it 'sends requests with different client IDs from parent and child processes' do
       # Start remote config and wait for first sync
-      component.barrier(:once)
+      result = component.barrier(:once)
+      expect(result).to eq(:lift)
 
       # Wait for parent to make requests
       try_wait_until(seconds: 2) { received_requests.any? { |r| r[:endpoint] == '/v0.7/config' } }
