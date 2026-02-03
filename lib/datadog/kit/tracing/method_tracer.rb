@@ -31,6 +31,7 @@ module Datadog
           # Trace an instance method by module and name
           def trace_method(mod, method_name, span_name = nil)
             raise ArgumentError, 'module name is nil' if mod.name.nil? && span_name.nil?
+            raise NoMethodError, "undefined method #{method_name.inspect} for class #{mod}" unless mod.method_defined?(method_name)
 
             hook_point = "#{mod.name}##{method_name}"
             span_name ||= hook_point
@@ -38,7 +39,9 @@ module Datadog
             args = RUBY_VERSION >= '2.7.' ? '...' : '*args, &block'
 
             hook_module = Module.new do
-              eval(<<-RUBY, nil, __FILE__, __LINE__ + 1)
+              # `args` is static, `method_name` is validated by the `method_defined?` check
+              # thus this `eval` is safe
+              eval(<<-RUBY, nil, __FILE__, __LINE__ + 1) # standard:disable Security/Eval
               def #{method_name}(#{args})
                 return super(#{args}) unless ::Datadog::Tracing.active_trace
 

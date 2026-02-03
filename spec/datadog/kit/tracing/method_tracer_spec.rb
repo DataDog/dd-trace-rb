@@ -37,6 +37,14 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
   let(:dummy) { dummy_class.new }
 
   describe '.trace_method' do
+    it 'raises when span name is ambiguous' do
+      expect { Datadog::Kit::Tracing::MethodTracer.trace_method(Class.new, :bar) }.to raise_error(ArgumentError)
+    end
+
+    it 'raises when method is not defined' do
+      expect { Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :bar) }.to raise_error(NoMethodError)
+    end
+
     context 'outside of a trace context' do
       it 'does not trace' do
         Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo)
