@@ -35,6 +35,7 @@ module Datadog
           # @param span_name [String, nil] optional span name (defaults to "Module#method")
           # @return [void]
           def trace_method(mod, method_name, span_name = nil)
+            raise ArgumentError, 'mod is not a module' unless mod.is_a?(Module)
             raise ArgumentError, 'module name is nil' if mod.name.nil? && span_name.nil?
             raise NoMethodError, "undefined method #{method_name.inspect} for class #{mod}" unless mod.method_defined?(method_name)
 
