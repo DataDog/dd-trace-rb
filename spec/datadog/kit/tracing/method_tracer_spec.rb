@@ -230,11 +230,12 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       it 'traces a method' do
         Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo)
 
-        Datadog::Tracing.trace('wrapper') do
+        result = Datadog::Tracing.trace('wrapper') do
           dummy.foo
         end
 
         expect(dummy.called).to eq(1)
+        expect(result).to eq(1)
         expect(spans.count { |s| s.name == 'Dummy#foo' }).to eq(1)
         expect(spans.find { |s| s.name == 'Dummy#foo' }).to be_a Datadog::Tracing::Span
       end
@@ -242,11 +243,12 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       it 'traces a method with a name' do
         Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, 'custom_name')
 
-        Datadog::Tracing.trace('wrapper') do
+        result = Datadog::Tracing.trace('wrapper') do
           dummy.foo
         end
 
         expect(dummy.called).to eq(1)
+        expect(result).to eq(1)
         expect(spans.count { |s| s.name == 'custom_name' }).to eq(1)
         expect(spans.find { |s| s.name == 'custom_name' }).to be_a Datadog::Tracing::Span
       end
@@ -577,11 +579,12 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
           trace_method :foo
         end
 
-        Datadog::Tracing.trace('wrapper') do
+        result = Datadog::Tracing.trace('wrapper') do
           dummy.foo
         end
 
         expect(dummy.called).to eq(1)
+        expect(result).to eq(1)
         expect(spans.count { |s| s.name == 'Dummy#foo' }).to eq(1)
         expect(spans.find { |s| s.name == 'Dummy#foo' }).to be_a Datadog::Tracing::Span
       end
@@ -593,11 +596,12 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
           trace_method :foo, 'custom_name'
         end
 
-        Datadog::Tracing.trace('wrapper') do
+        result = Datadog::Tracing.trace('wrapper') do
           dummy.foo
         end
 
         expect(dummy.called).to eq(1)
+        expect(result).to eq(1)
         expect(spans.count { |s| s.name == 'custom_name' }).to eq(1)
         expect(spans.find { |s| s.name == 'custom_name' }).to be_a Datadog::Tracing::Span
       end
