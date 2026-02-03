@@ -300,6 +300,42 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       end
     end
 
+    context 'when tracing the same method twice' do
+      it 'creates multiple spans due to stacked prepends' do
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, 'first_span')
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, 'second_span')
+
+        Datadog::Tracing.trace('wrapper') { dummy.foo }
+
+        expect(dummy.called).to eq(1)
+        expect(spans.count { |s| s.name == 'first_span' }).to eq(1)
+        expect(spans.count { |s| s.name == 'second_span' }).to eq(1)
+      end
+
+      it 'prepends multiple hook modules to the ancestors chain' do
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, 'first_span')
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, 'second_span')
+
+        hook_modules = Dummy.ancestors.select { |m| m.inspect.include?('MethodTracer') }
+
+        expect(hook_modules.count).to eq(2)
+      end
+
+      it 'nests spans in the order they were traced' do
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, 'first_span')
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, 'second_span')
+
+        Datadog::Tracing.trace('wrapper') { dummy.foo }
+
+        first_span = spans.find { |s| s.name == 'first_span' }
+        second_span = spans.find { |s| s.name == 'second_span' }
+
+        # second_span is the outer span (prepended last, called first)
+        # first_span is the inner span (prepended first, called last via super chain)
+        expect(first_span.parent_id).to eq(second_span.id)
+      end
+    end
+
     describe 'hook module naming' do
       it 'provides a descriptive #inspect for the prepended module' do
         Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo)
