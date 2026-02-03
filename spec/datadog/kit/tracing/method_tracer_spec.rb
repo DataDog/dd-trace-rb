@@ -38,15 +38,24 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
 
   describe '.trace_method' do
     it 'raises when not given a module or class' do
-      expect { Datadog::Kit::Tracing::MethodTracer.trace_method('', :to_s) }.to raise_error(ArgumentError)
+      expect { Datadog::Kit::Tracing::MethodTracer.trace_method('', :to_s) }.to raise_error(
+        ArgumentError,
+        /mod is not a module/
+      )
     end
 
     it 'raises when span name is ambiguous' do
-      expect { Datadog::Kit::Tracing::MethodTracer.trace_method(Class.new, :bar) }.to raise_error(ArgumentError)
+      expect { Datadog::Kit::Tracing::MethodTracer.trace_method(Class.new, :bar) }.to raise_error(
+        ArgumentError,
+        /module name is nil/
+      )
     end
 
     it 'raises when method is not defined' do
-      expect { Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :bar) }.to raise_error(NoMethodError)
+      expect { Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :bar) }.to raise_error(
+        NoMethodError,
+        /undefined method :bar for class/
+      )
     end
 
     it 'raises when method is private' do
