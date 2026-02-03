@@ -19,7 +19,7 @@ module Datadog
       #
       #     Datadog::Kit::Tracing::MethodTracer.trace_method(MyClass, :foo, 'my_span_name')
       #
-      # Span name is optional and defaults to class#method
+      # Span name is optional and defaults to 'Class#method'
       #
       # Traced methods are only traced if already within a trace (i.e they do
       # not create traces by themselves).
