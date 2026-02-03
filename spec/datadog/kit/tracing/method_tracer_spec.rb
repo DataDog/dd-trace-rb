@@ -252,6 +252,54 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       end
     end
 
+    context 'when the method raises an exception' do
+      before do
+        dummy_class.class_eval do
+          def explode
+            @called = true
+            raise RuntimeError, 'boom'
+          end
+
+          def called?
+            @called || false
+          end
+        end
+      end
+
+      it 'propagates the exception' do
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :explode)
+
+        expect {
+          Datadog::Tracing.trace('wrapper') { dummy.explode }
+        }.to raise_error(RuntimeError, 'boom')
+
+        expect(dummy.called?).to be true
+      end
+
+      it 'still creates the span' do
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :explode)
+
+        expect {
+          Datadog::Tracing.trace('wrapper') { dummy.explode }
+        }.to raise_error(RuntimeError)
+
+        expect(spans.count { |s| s.name == 'Dummy#explode' }).to eq(1)
+      end
+
+      it 'records the error on the span' do
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :explode)
+
+        expect {
+          Datadog::Tracing.trace('wrapper') { dummy.explode }
+        }.to raise_error(RuntimeError)
+
+        span = spans.find { |s| s.name == 'Dummy#explode' }
+        expect(span).to have_error
+        expect(span).to have_error_message('boom')
+        expect(span).to have_error_type('RuntimeError')
+      end
+    end
+
     describe 'hook module naming' do
       it 'provides a descriptive #inspect for the prepended module' do
         Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo)
