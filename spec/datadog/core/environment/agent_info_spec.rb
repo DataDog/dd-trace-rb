@@ -219,7 +219,6 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
         end
 
         it 'computes propagation_checksum with process tags first, then updates when container tags arrive' do
-          # This scenario: app starts in non-containerized env, then container tags become available later
           process_tags_only_checksum = 333
           with_container_tags_checksum = 444
 
