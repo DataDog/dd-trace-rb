@@ -20,8 +20,8 @@ module Datadog
             # This matches the behavior in the Python tracer:
             # https://github.com/DataDog/dd-trace-py/blob/5e94be5c97b42060e5800e35d8fa41472fb8c569/ddtrace/propagation/_database_monitoring.py#L89
             if mode.inject_sql_basehash? && config.experimental_propagate_process_tags_enabled
-              propagation_hash = Datadog.send(:components).agent_info.propagation_checksum
-              span_op.set_tag(Ext::TAG_PROPAGATED_HASH, propagation_hash.to_s) if propagation_hash
+              checksum = Datadog.send(:components).agent_info.propagation_checksum
+              span_op.set_tag(Ext::TAG_PROPAGATED_HASH, checksum.to_s) if checksum
             end
 
             span_op.set_tag(Ext::TAG_DBM_TRACE_INJECTED, true) if mode.full?
