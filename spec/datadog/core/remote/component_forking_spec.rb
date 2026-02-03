@@ -98,7 +98,6 @@ RSpec.describe Datadog::Core::Remote::Component do
 
           # Client ID should be different
           child_client_id = child_component.client.id
-          expect(child_client_id).to be_a(String)
           expect(child_client_id).to match(/^[0-9a-f-]+$/)
           expect(child_client_id).not_to eq(parent_client_id)
         end
