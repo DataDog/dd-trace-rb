@@ -220,10 +220,7 @@ RSpec.describe Datadog::Core::Remote::Component do
       result = component.barrier(:once)
       expect(result).to eq(:lift)
 
-      # Wait for parent to make requests
-      try_wait_until(seconds: 5) { received_requests.any? { |r| r[:endpoint] == '/v0.7/config' } }
-
-      # Get parent requests
+      # Get parent requests (barrier already waited for sync to complete)
       parent_requests = received_requests.select { |r| r[:endpoint] == '/v0.7/config' }
       expect(parent_requests).not_to be_empty
 
