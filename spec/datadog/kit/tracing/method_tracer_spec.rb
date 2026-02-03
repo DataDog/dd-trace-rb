@@ -62,7 +62,8 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       dummy_class.class_eval do
         private
 
-        def secret; end
+        def secret
+        end
       end
 
       expect { Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :secret) }.to raise_error(
@@ -75,7 +76,8 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       dummy_class.class_eval do
         protected
 
-        def guarded; end
+        def guarded
+        end
       end
 
       Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :guarded)
