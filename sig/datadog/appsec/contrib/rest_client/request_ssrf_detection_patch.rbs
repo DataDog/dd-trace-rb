@@ -9,6 +9,8 @@ module Datadog
 
           private
 
+          def analyze_body?: (Context context) -> bool
+
           def normalize_request_headers: () -> headers
 
           def normalize_response_headers: (::RestClient::Response response) -> headers
