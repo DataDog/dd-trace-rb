@@ -138,7 +138,7 @@ RSpec.describe Datadog::Core::Remote::Component do
     let(:info_handler) do
       lambda do |req, res|
         request_mutex.synchronize do
-          received_requests << { endpoint: '/info', method: req.request_method }
+          received_requests << {endpoint: '/info', method: req.request_method}
         end
         res.status = 200
         res['Content-Type'] = 'application/json'
@@ -154,7 +154,11 @@ RSpec.describe Datadog::Core::Remote::Component do
 
     let(:config_handler) do
       lambda do |req, res|
-        payload = JSON.parse(req.body) rescue {}
+        payload = begin
+          JSON.parse(req.body)
+        rescue
+          {}
+        end
         client_id = payload.dig('client', 'id')
         runtime_id = payload.dig('client', 'client_tracer', 'runtime_id')
 
