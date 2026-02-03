@@ -256,8 +256,8 @@ RSpec.describe Datadog::Core::Remote::Component do
         # Trigger a sync in the child to make a network request
         result = child_component.barrier(:once)
 
-        # Assert that the operation completed while waiting
-        expect(result).to eq(:lift)
+        # In the child, barrier returns :pass because the barrier was already lifted in the parent before fork
+        expect(result).to eq(:pass)
 
         # Check if child made requests (server runs in parent, receives requests from child)
         # Note: received_requests is modified by the parent process's HTTP server
