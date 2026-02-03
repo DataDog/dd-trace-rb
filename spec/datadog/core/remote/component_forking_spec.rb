@@ -84,7 +84,6 @@ RSpec.describe Datadog::Core::Remote::Component do
         parent_client_object_id = component.client.object_id
 
         expect(component.started?).to be true
-        expect(parent_client_id).to be_a(String)
         expect(parent_client_id).to match(/^[0-9a-f-]+$/)
 
         expect_in_fork do
