@@ -101,7 +101,7 @@ module Datadog
         # https://github.com/DataDog/datadog-agent/pull/38515
         attr_reader :container_tags_checksum
 
-        # Computes the propagation checksum from process tags and optionally container tags when it changes
+        # Computes the propagation checksum from process tags and optionally container tags when process tags change
         # Controlled by DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED
         # This is needed in traces (dsm and dbm related spans), DBM, and DSM.
         #
