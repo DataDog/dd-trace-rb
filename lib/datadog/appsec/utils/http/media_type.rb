@@ -10,8 +10,6 @@ module Datadog
         # - https://www.rfc-editor.org/rfc/rfc7231#section-5.3.1
         # - https://www.rfc-editor.org/rfc/rfc7231#section-5.3.2
         class MediaType
-          ParseError = Class.new(StandardError) # steep:ignore IncompatibleAssignment
-
           WILDCARD = '*'
 
           # See: https://www.rfc-editor.org/rfc/rfc7230#section-3.2.6

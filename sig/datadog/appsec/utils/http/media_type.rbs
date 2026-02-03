@@ -11,13 +11,19 @@ module Datadog
 
           MEDIA_TYPE_RE: ::Regexp
 
+          @type: ::String
+
+          @subtype: ::String
+
+          @parameters: ::Hash[::String, ::String]
+
           attr_reader type: ::String
 
           attr_reader subtype: ::String
 
           attr_reader parameters: ::Hash[::String, ::String]
 
-          def self.parse: (::String?) -> MediaType?
+          def self.parse: (::String? media) -> MediaType?
 
           def initialize: (type: ::String, subtype: ::String, ?parameters: ::Hash[::String, ::String]) -> void
 
