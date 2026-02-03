@@ -23,7 +23,8 @@ module Datadog
               'server.io.net.request.headers' => headers
             }
 
-            if payload && (media_type = Utils::HTTP::MediaType.parse(headers['content-type']))
+            analyze_body = analyze_body?(context)
+            if analyze_body && payload && (media_type = Utils::HTTP::MediaType.parse(headers['content-type']))
               body = Utils::HTTP::Body.parse(payload.to_s, media_type: media_type)
               ephemeral_data['server.io.net.request.body'] = body if body
             end
@@ -40,7 +41,7 @@ module Datadog
               'server.io.net.response.headers' => headers
             }
 
-            if (media_type = Utils::HTTP::MediaType.parse(headers['content-type']))
+            if analyze_body && (media_type = Utils::HTTP::MediaType.parse(headers['content-type']))
               body = Utils::HTTP::Body.parse(response.body, media_type: media_type)
               ephemeral_data['server.io.net.response.body'] = body if body
             end
@@ -52,6 +53,15 @@ module Datadog
           end
 
           private
+
+          def analyze_body?(context)
+            max = Datadog.configuration.appsec.api_security.downstream_body_analysis.max_requests
+            return false if context.state[:downstream_body_analyzed_count] >= max
+            return false unless context.downstream_body_sampler.sample?
+
+            context.state[:downstream_body_analyzed_count] += 1
+            true
+          end
 
           # NOTE: Starting version 2.1.0 headers are already normalized via internal
           #       variable `@processed_headers_lowercase`. In case it's available,

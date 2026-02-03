@@ -3,11 +3,15 @@ module Datadog
     module Contrib
       module Excon
         class SSRFDetectionMiddleware
+          ANALYZE_BODY_KEY: ::Symbol
+
           def request_call: (::Excon::Middleware::Base::datum data) -> Excon::Middleware::Base::datum
 
           def response_call: (::Excon::Middleware::Base::datum data) -> ::Excon::Middleware::Base::datum
 
           private
+
+          def analyze_body?: (Context context) -> bool
 
           def request_url: (::Excon::Middleware::Base::datum data) -> ::String
 

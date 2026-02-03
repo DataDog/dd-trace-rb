@@ -14,9 +14,13 @@ module Datadog
       module Excon
         # AppSec Middleware for Excon
         class SSRFDetectionMiddleware < ::Excon::Middleware::Base
+          ANALYZE_BODY_KEY = :__datadog_appsec_analyze_body
+
           def request_call(data)
             context = AppSec.active_context
             return super unless context && AppSec.rasp_enabled?
+
+            data[ANALYZE_BODY_KEY] = analyze_body?(context)
 
             headers = normalize_headers(data[:headers])
             ephemeral_data = {
@@ -25,7 +29,7 @@ module Datadog
               'server.io.net.request.headers' => headers
             }
 
-            if (media_type = Utils::HTTP::MediaType.parse(headers['content-type']))
+            if data[ANALYZE_BODY_KEY] && (media_type = Utils::HTTP::MediaType.parse(headers['content-type']))
               body = Utils::HTTP::Body.parse(data[:body], media_type: media_type)
               ephemeral_data['server.io.net.request.body'] = body if body
             end
@@ -47,7 +51,7 @@ module Datadog
               'server.io.net.response.headers' => headers
             }
 
-            if (media_type = Utils::HTTP::MediaType.parse(headers['content-type']))
+            if data[ANALYZE_BODY_KEY] && (media_type = Utils::HTTP::MediaType.parse(headers['content-type']))
               body = Utils::HTTP::Body.parse(data.dig(:response, :body), media_type: media_type)
               ephemeral_data['server.io.net.response.body'] = body if body
             end
@@ -61,8 +65,17 @@ module Datadog
 
           private
 
+          def analyze_body?(context)
+            max = Datadog.configuration.appsec.api_security.downstream_body_analysis.max_requests
+            return false if context.state[:downstream_body_analyzed_count] >= max
+            return false unless context.downstream_body_sampler.sample?
+
+            context.state[:downstream_body_analyzed_count] += 1
+            true
+          end
+
           def request_url(data)
-            klass = data[:scheme] == 'https' ? URI::HTTPS : URI::HTTP
+            klass = (data[:scheme] == 'https') ? URI::HTTPS : URI::HTTP
             klass.build(host: data[:host], path: data[:path], query: data[:query]).to_s
           end
 

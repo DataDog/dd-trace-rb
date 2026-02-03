@@ -1,12 +1,20 @@
 # frozen_string_literal: true
 
 require 'datadog/appsec/spec_helper'
+require 'datadog/appsec/counter_sampler'
 require 'excon'
 require 'stringio'
 require 'tempfile'
 
 RSpec.describe 'AppSec excon SSRF detection middleware' do
-  let(:context) { instance_double(Datadog::AppSec::Context, run_rasp: waf_response) }
+  let(:context) do
+    instance_double(
+      Datadog::AppSec::Context,
+      run_rasp: waf_response,
+      downstream_body_sampler: Datadog::AppSec::CounterSampler.new(1.0),
+      state: {downstream_body_analyzed_count: 0}
+    )
+  end
   let(:waf_response) { instance_double(Datadog::AppSec::SecurityEngine::Result::Ok, match?: false) }
 
   let(:client) do
@@ -258,6 +266,63 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
     it 'does not include body in ephemeral data' do
       expect(context).to have_received(:run_rasp)
         .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+    end
+  end
+
+  describe 'downstream body analysis sampling' do
+    context 'when max_requests is 1' do
+      before do
+        Datadog.configuration.appsec.api_security.downstream_body_analysis.max_requests = 1
+        Datadog.configuration.appsec.api_security.downstream_body_analysis.sample_rate = 1.0
+
+        client.post(path: '/application-json', headers: {'Content-Type' => 'application/json'}, body: '{"r":"1"}')
+        client.post(path: '/application-json', headers: {'Content-Type' => 'application/json'}, body: '{"r":"2"}')
+      end
+
+      let(:context) do
+        instance_double(
+          Datadog::AppSec::Context,
+          run_rasp: waf_response,
+          downstream_body_sampler: Datadog::AppSec::CounterSampler.new(1.0),
+          state: {downstream_body_analyzed_count: 0}
+        )
+      end
+
+      it 'analyzes body only for the first request' do
+        expect(context).to have_received(:run_rasp)
+          .with('ssrf', {}, hash_including('server.io.net.request.body' => {'r' => '1'}), anything, phase: 'request')
+
+        expect(context).to have_received(:run_rasp)
+          .with('ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'request')
+      end
+    end
+
+    context 'when sample_rate is 0.5' do
+      before do
+        Datadog.configuration.appsec.api_security.downstream_body_analysis.max_requests = 5
+        Datadog.configuration.appsec.api_security.downstream_body_analysis.sample_rate = 0.5
+
+        client.post(path: '/application-json', headers: {'Content-Type' => 'application/json'}, body: '{"r":"1"}')
+        client.post(path: '/application-json', headers: {'Content-Type' => 'application/json'}, body: '{"r":"2"}')
+        client.post(path: '/application-json', headers: {'Content-Type' => 'application/json'}, body: '{"r":"3"}')
+      end
+
+      let(:context) do
+        instance_double(
+          Datadog::AppSec::Context,
+          run_rasp: waf_response,
+          downstream_body_sampler: Datadog::AppSec::CounterSampler.new(0.5),
+          state: {downstream_body_analyzed_count: 0}
+        )
+      end
+
+      it 'analyzes request body only for the second request' do
+        expect(context).to have_received(:run_rasp)
+          .with('ssrf', {}, hash_including('server.io.net.request.body' => {'r' => '2'}), anything, phase: 'request')
+
+        expect(context).to have_received(:run_rasp)
+          .with('ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'request').twice
+      end
     end
   end
 end
