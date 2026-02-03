@@ -40,11 +40,22 @@ module Datadog
             raise NoMethodError, "undefined method #{method_name.inspect} for class #{mod}" unless mod.method_defined?(method_name)
 
             hook_point = "#{mod.name}##{method_name}"
+            custom_span_name = span_name
             span_name ||= hook_point
 
             args = (RUBY_VERSION >= '2.7.') ? '...' : '*args, &block'
 
             hook_module = Module.new do
+              define_singleton_method(:inspect) do
+                suffix = custom_span_name ? ", #{custom_span_name.inspect}" : ''
+                name || "#<Datadog::Tracing::Kit::MethodTracer(#{method_name.inspect}#{suffix})>"
+              end
+
+              define_singleton_method(:to_s) do
+                suffix = custom_span_name ? ", #{custom_span_name.inspect}" : ''
+                name || "#<Datadog::Tracing::Kit::MethodTracer(#{method_name.inspect}#{suffix})>"
+              end
+
               # `args` is static, `method_name` is validated by the `method_defined?` check
               # thus this `eval` is safe
               eval(<<-RUBY, nil, __FILE__, __LINE__ + 1) # standard:disable Security/Eval

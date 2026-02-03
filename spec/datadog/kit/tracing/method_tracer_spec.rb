@@ -86,6 +86,44 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       end
     end
 
+    describe 'hook module naming' do
+      it 'provides a descriptive #inspect for the prepended module' do
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo)
+
+        hook_module = Dummy.ancestors.find { |m| m.inspect.include?('MethodTracer') }
+
+        expect(hook_module).not_to be_nil
+        expect(hook_module.inspect).to eq('#<Datadog::Tracing::Kit::MethodTracer(:foo)>')
+      end
+
+      it 'provides a descriptive #to_s for the prepended module' do
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo)
+
+        hook_module = Dummy.ancestors.find { |m| m.to_s.include?('MethodTracer') }
+
+        expect(hook_module).not_to be_nil
+        expect(hook_module.to_s).to eq('#<Datadog::Tracing::Kit::MethodTracer(:foo)>')
+      end
+
+      it 'includes span name in #inspect when provided' do
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, 'custom_name')
+
+        hook_module = Dummy.ancestors.find { |m| m.inspect.include?('MethodTracer') }
+
+        expect(hook_module).not_to be_nil
+        expect(hook_module.inspect).to eq('#<Datadog::Tracing::Kit::MethodTracer(:foo, "custom_name")>')
+      end
+
+      it 'includes span name in #to_s when provided' do
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, 'custom_name')
+
+        hook_module = Dummy.ancestors.find { |m| m.to_s.include?('MethodTracer') }
+
+        expect(hook_module).not_to be_nil
+        expect(hook_module.to_s).to eq('#<Datadog::Tracing::Kit::MethodTracer(:foo, "custom_name")>')
+      end
+    end
+
     # There are many issues with kwargs, `ruby2_keywords`, and other gnarliness
     # across time, so here's a place where we test passing arguments through
     # works as expected.
