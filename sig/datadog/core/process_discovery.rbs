@@ -26,6 +26,8 @@ module Datadog
 
       def self.shutdown!: () -> void
 
+      def self.after_fork: () -> void
+
       def self.get_metadata: (Datadog::Core::Configuration::Settings settings) -> {
         runtime_id: String,
         tracer_language: String,
