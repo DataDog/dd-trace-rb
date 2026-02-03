@@ -101,11 +101,9 @@ module Datadog
         # https://github.com/DataDog/datadog-agent/pull/38515
         attr_reader :container_tags_checksum
 
-        # Computes the propagation checksum from process tags and optionally container tags when process tags change
-        # Controlled by DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED
-        # This is needed in traces (dsm and dbm related spans), DBM, and DSM.
-        #
-        # Only runs when  is true.
+        # Setting DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED to true enables the following behavior:
+        #  - Computes a propagation checksum from process tags and optionally container tags when tags change
+        #  - This is needed in traces (dsm and dbm related spans), DBM, and DSM.
         #
         # Container tags extraction:
         # Datadog::Core::Environment::Container extracts the container id from the cgroup folder if possible
@@ -123,19 +121,19 @@ module Datadog
           return unless Datadog.configuration.experimental_propagate_process_tags_enabled
 
           header_value = res.headers[Core::Transport::Ext::HTTP::HEADER_CONTAINER_TAGS_HASH]
-          new_container_tags_value = header_value if header_value && !header_value.empty?
+          new_container_tags_checksum = header_value if header_value && !header_value.empty?
 
           # if the Trace Agent returns a new value for the checksum, calculate and cache the propagation checksum
           # If there was no previous propagation_checksum, then we should calculate the checksum by checking the agent and getting process info
-          if @propagation_checksum.nil? || (new_container_tags_value && new_container_tags_value != @container_tags_checksum)
-            @container_tags_checksum = new_container_tags_value
+          if @propagation_checksum.nil? || (new_container_tags_checksum && new_container_tags_checksum != @container_tags_checksum)
+            @container_tags_checksum = new_container_tags_checksum
 
-            data = Process.serialized
-            # Add container tags if available (helps Steep with type narrowing)
-            container_tags = @container_tags_checksum
-            data += container_tags if container_tags
+            checksum_input = Process.serialized
+            # Use local variable for Steep type narrowing (helps Steep with type narrowing)
+            container_checksum = @container_tags_checksum
+            checksum_input += container_checksum if container_checksum
 
-            @propagation_checksum = Core::Utils::FNV.fnv1_64(data)
+            @propagation_checksum = Core::Utils::FNV.fnv1_64(checksum_input)
           end
         end
       end
