@@ -37,6 +37,7 @@ module Datadog
           def trace_method(mod, method_name, span_name = nil)
             raise ArgumentError, 'mod is not a module' unless mod.is_a?(Module)
             raise ArgumentError, 'module name is nil' if mod.name.nil? && span_name.nil?
+            raise NoMethodError, "private method #{method_name.inspect} for class #{mod}" if mod.private_method_defined?(method_name)
             raise NoMethodError, "undefined method #{method_name.inspect} for class #{mod}" unless mod.method_defined?(method_name)
 
             hook_point = "#{mod.name}##{method_name}"

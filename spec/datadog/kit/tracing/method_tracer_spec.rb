@@ -49,6 +49,19 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       expect { Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :bar) }.to raise_error(NoMethodError)
     end
 
+    it 'raises when method is private' do
+      dummy_class.class_eval do
+        private
+
+        def secret; end
+      end
+
+      expect { Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :secret) }.to raise_error(
+        NoMethodError,
+        /private method :secret for class/
+      )
+    end
+
     context 'outside of a trace context' do
       it 'does not trace' do
         Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo)
