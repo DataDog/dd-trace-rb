@@ -7,8 +7,6 @@ class EverythingFromRemoteConfigSpecTestClass
   end
 end
 
-LOWERCASE_UUID_REGEXP = /\A[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}\z/
-
 RSpec.describe 'DI integration from remote config' do
   di_test
   skip_unless_integration_testing_enabled
