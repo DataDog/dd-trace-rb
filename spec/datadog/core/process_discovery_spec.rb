@@ -35,6 +35,10 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
           end
         end
 
+        after do
+          Datadog.configuration.reset!
+        end
+
         let(:settings) do
           instance_double(
             'Datadog::Core::Configuration::Setting',
@@ -109,6 +113,10 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
       Datadog.configure do |c|
         c.service = 'test-service' # Manually set so it isn't set to fallback service name that we don't control
       end
+    end
+
+    after do
+      Datadog.configuration.reset!
     end
 
     it 'updates the process discovery file descriptor' do
