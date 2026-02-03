@@ -250,7 +250,9 @@ RSpec.describe Datadog::Core::Remote::Component do
         expect(child_runtime_id).not_to eq(parent_runtime_id)
         expect(child_runtime_id).to match(/^[0-9a-f-]+$/)
 
-        # Trigger a sync in the child to make a network request
+        # Start the worker in the child process (after_fork recreates the client but doesn't restart the worker).
+        # The barrier call starts the worker via `start`, though `wait_once` immediately returns :pass
+        # because the barrier state was inherited from the parent with @once = true.
         result = child_component.barrier(:once)
 
         # In the child, barrier returns :pass because the barrier was already lifted in the parent before fork
