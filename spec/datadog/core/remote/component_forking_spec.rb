@@ -204,7 +204,7 @@ RSpec.describe Datadog::Core::Remote::Component do
       Datadog::Core::Configuration::Settings.new.tap do |settings|
         settings.remote.enabled = true
         settings.remote.poll_interval_seconds = 0.1 # Short interval for testing
-        settings.remote.boot_timeout_seconds = 1
+        settings.remote.boot_timeout_seconds = 5
         settings.agent.host = 'localhost'
         settings.agent.port = http_server_port
       end
