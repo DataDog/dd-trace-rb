@@ -37,10 +37,11 @@ module Datadog
           def trace_method(mod, method_name, span_name = nil)
             raise ArgumentError, 'mod is not a module' unless mod.is_a?(Module)
             raise ArgumentError, 'module name is nil' if mod.name.nil? && span_name.nil?
-            raise NoMethodError, "private method #{method_name.inspect} for class #{mod}" if mod.private_method_defined?(method_name)
-            raise NoMethodError, "undefined method #{method_name.inspect} for class #{mod}" unless mod.method_defined?(method_name)
-
+            is_private = mod.private_method_defined?(method_name)
             is_protected = mod.protected_method_defined?(method_name)
+            is_defined = is_private || mod.method_defined?(method_name)
+
+            raise NoMethodError, "undefined method #{method_name.inspect} for class #{mod}" unless is_defined
 
             hook_point = "#{mod.name}##{method_name}"
             custom_span_name = span_name
@@ -69,6 +70,7 @@ module Datadog
               end
               RUBY
 
+              private method_name if is_private
               protected method_name if is_protected
             end
 

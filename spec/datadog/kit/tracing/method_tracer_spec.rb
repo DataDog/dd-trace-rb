@@ -58,7 +58,7 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       )
     end
 
-    it 'raises when method is private' do
+    it 'preserves private visibility' do
       dummy_class.class_eval do
         private
 
@@ -66,10 +66,50 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
         end
       end
 
-      expect { Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :secret) }.to raise_error(
-        NoMethodError,
-        /private method :secret for class/
-      )
+      Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :secret)
+
+      expect(Dummy.private_method_defined?(:secret)).to be true
+    end
+
+    it 'allows private method to be called from within the class' do
+      dummy_class.class_eval do
+        def call_secret
+          secret
+        end
+
+        private
+
+        def secret
+          :private_result
+        end
+      end
+
+      Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :secret)
+
+      result = Datadog::Tracing.trace('wrapper') do
+        dummy.call_secret
+      end
+
+      expect(result).to eq(:private_result)
+      expect(spans.count { |s| s.name == 'Dummy#secret' }).to eq(1)
+    end
+
+    it 'does not allow private method to be called from outside the class' do
+      dummy_class.class_eval do
+        private
+
+        def secret
+          :private_result
+        end
+      end
+
+      Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :secret)
+
+      Datadog::Tracing.trace('wrapper') do
+        expect { dummy.secret }.to raise_error(NoMethodError, /private method/)
+      end
+
+      expect(spans.count { |s| s.name == 'Dummy#secret' }).to eq(0)
     end
 
     it 'preserves protected visibility' do
