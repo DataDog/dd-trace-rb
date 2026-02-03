@@ -82,19 +82,21 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
         allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
       end
 
-      context 'when fetch has populated the value with container tags' do
+      context 'and the trace agent is able to provide a container tags checksum (containerized environment)' do
         let(:process_tags) { 'entrypoint.workdir:app,entrypoint.name:rspec,entrypoint.basedir:bin,entrypoint.type:script' }
+        let(:container_tags_checksum) { 'test' }
+        let(:expected_checksum) { 345 }
 
         before do
-          allow(response).to receive(:headers).and_return({'Datadog-Container-Tags-Hash' => 'test'})
+          allow(response).to receive(:headers).and_return({'Datadog-Container-Tags-Hash' => container_tags_checksum})
           allow(Datadog::Core::Environment::Process).to receive(:serialized).and_return(process_tags)
+          allow(Datadog::Core::Utils::FNV).to receive(:fnv1_64).with(process_tags + container_tags_checksum).and_return(expected_checksum)
           agent_info.fetch
         end
 
-        it 'returns the cached value' do
+        it 'returns a computed checksum based on the process tags and container tags' do
           result = agent_info.propagation_checksum
-          expect(result).to be_a(Integer)
-          expect(result).to eq(Datadog::Core::Utils::FNV.fnv1_64(process_tags + 'test'))
+          expect(result).to eq(expected_checksum)
         end
 
         it 'returns the same cached value on subsequent calls' do
@@ -106,22 +108,7 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
         end
       end
 
-      context 'when fetch returns response without container tags (non-containerized environment)' do
-        let(:process_tags) { 'entrypoint.workdir:app,entrypoint.name:rspec,entrypoint.basedir:bin,entrypoint.type:script' }
-
-        before do
-          allow(response).to receive(:headers).and_return({})
-          allow(Datadog::Core::Environment::Process).to receive(:serialized).and_return(process_tags)
-          agent_info.fetch
-        end
-
-        it 'computes hash with only process tags (not nil)' do
-          result = agent_info.propagation_checksum
-          expect(result).to eq(Datadog::Core::Utils::FNV.fnv1_64(process_tags))
-        end
-      end
-
-      context 'when fetch fails to get a response' do
+      context 'when fetch fails to get a response from the trace agent' do
         before { allow(response).to receive(:ok?).and_return(false) }
 
         it 'returns nil before fetch' do
@@ -154,56 +141,54 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
         allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
       end
 
-      context 'when the header is missing' do
-        before { allow(response).to receive(:headers).and_return({}) }
+      context 'and the trace agent is not able to provide container tags from the headers (non-containerized environment)' do
+        let(:process_tags) { 'entrypoint.workdir:app,entrypoint.name:rspec,entrypoint.basedir:bin,entrypoint.type:script' }
+        let(:expected_checksum) { 123 }
 
-        it 'returns nil for container_tags_checksum but computes propagation checksum with process tags only' do
-          process_tags = 'entrypoint.workdir:app,entrypoint.name:rspec,entrypoint.basedir:bin,entrypoint.type:script'
+        before do
+          allow(response).to receive(:headers).and_return({}) # No Datadog-Container-Tags-Hash header means no container tags
           allow(Datadog::Core::Environment::Process).to receive(:serialized).and_return(process_tags)
+          allow(Datadog::Core::Utils::FNV).to receive(:fnv1_64).with(process_tags).and_return(expected_checksum)
+        end
 
+        it 'computes a propagation checksum with process tags only' do
           agent_info.fetch
           expect(agent_info.send(:container_tags_checksum)).to be nil
-          expect(agent_info.propagation_checksum).to eq(Datadog::Core::Utils::FNV.fnv1_64(process_tags))
+          expect(agent_info.propagation_checksum).to eq(expected_checksum)
         end
       end
 
-      context 'when the header is present' do
+      context 'when the trace agent provides container tags from the headers (containerized environment)' do
         let(:process_tags) { 'entrypoint.workdir:app,entrypoint.name:rspec,entrypoint.basedir:bin,entrypoint.type:script' }
+        let(:container_tags_checksum) { 'test' }
+        let(:expected_checksum) { 345 }
 
         before do
-          allow(response).to receive(:headers).and_return({'Datadog-Container-Tags-Hash' => 'testhash'})
+          allow(response).to receive(:headers).and_return({'Datadog-Container-Tags-Hash' => container_tags_checksum})
           allow(Datadog::Core::Environment::Process).to receive(:serialized).and_return(process_tags)
+          allow(Datadog::Core::Utils::FNV).to receive(:fnv1_64).with(process_tags + container_tags_checksum).and_return(expected_checksum)
         end
 
-        it 'grabs the containers tags' do
+        it 'extracts the container tags checksum from the response header' do
           agent_info.fetch
-          expect(agent_info.send(:container_tags_checksum)).to eq('testhash')
-        end
-
-        it 'computes the correct propagation hash' do
-          agent_info.fetch
-
-          generated_hash = agent_info.propagation_checksum
-
-          container_tags_checksum = agent_info.send(:container_tags_checksum)
-          data = process_tags + container_tags_checksum
-          expected_checksum = Datadog::Core::Utils::FNV.fnv1_64(data)
-
-          expect(generated_hash).to be_a(Integer)
-          expect(generated_hash).to eq(expected_checksum)
+          expect(agent_info.send(:container_tags_checksum)).to eq(container_tags_checksum)
         end
       end
 
       context 'when the header is present but empty' do
-        before { allow(response).to receive(:headers).and_return({'Datadog-Container-Tags-Hash' => ''}) }
+        let(:process_tags) { 'entrypoint.workdir:app,entrypoint.name:rspec,entrypoint.basedir:bin,entrypoint.type:script' }
+        let(:expected_checksum) { 678 }
 
-        it 'does not set container_tags_checksum but computes propagation_checksum with process tags only' do
-          process_tags = 'entrypoint.workdir:app,entrypoint.name:rspec,entrypoint.basedir:bin,entrypoint.type:script'
+        before do
+          allow(response).to receive(:headers).and_return({'Datadog-Container-Tags-Hash' => ''})
           allow(Datadog::Core::Environment::Process).to receive(:serialized).and_return(process_tags)
+          allow(Datadog::Core::Utils::FNV).to receive(:fnv1_64).with(process_tags).and_return(expected_checksum)
+        end
 
+        it 'treats empty header as missing and computes propagation checksum with process tags only' do
           agent_info.fetch
           expect(agent_info.send(:container_tags_checksum)).to be_nil
-          expect(agent_info.propagation_checksum).to eq(Datadog::Core::Utils::FNV.fnv1_64(process_tags))
+          expect(agent_info.propagation_checksum).to eq(expected_checksum)
         end
       end
 
@@ -214,38 +199,44 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
           allow(Datadog::Core::Environment::Process).to receive(:serialized).and_return(process_tags)
         end
 
-        it 'updates propagation_checksum with new value' do
+        it 'updates propagation_checksum when container tags change' do
+          first_expected = 111
+          second_expected = 222
+
+          allow(Datadog::Core::Utils::FNV).to receive(:fnv1_64)
+            .with(process_tags + 'value1').and_return(first_expected)
+          allow(Datadog::Core::Utils::FNV).to receive(:fnv1_64)
+            .with(process_tags + 'value2').and_return(second_expected)
+
           allow(response).to receive(:headers).and_return({'Datadog-Container-Tags-Hash' => 'value1'})
           agent_info.fetch
-          first_checksum = agent_info.propagation_checksum
+          expect(agent_info.propagation_checksum).to eq(first_expected)
 
           allow(response).to receive(:headers).and_return({'Datadog-Container-Tags-Hash' => 'value2'})
           agent_info.fetch
-          second_checksum = agent_info.propagation_checksum
-
-          expect(first_checksum).not_to eq(second_checksum)
+          expect(agent_info.propagation_checksum).to eq(second_expected)
           expect(agent_info.send(:container_tags_checksum)).to eq('value2')
-
-          expected_checksum = Datadog::Core::Utils::FNV.fnv1_64(process_tags + 'value2')
-          expect(second_checksum).to eq(expected_checksum)
         end
 
         it 'computes propagation_checksum with process tags first, then updates when container tags arrive' do
           # This scenario: app starts in non-containerized env, then container tags become available later
+          process_tags_only_checksum = 333
+          with_container_tags_checksum = 444
+
+          allow(Datadog::Core::Utils::FNV).to receive(:fnv1_64)
+            .with(process_tags).and_return(process_tags_only_checksum)
+          allow(Datadog::Core::Utils::FNV).to receive(:fnv1_64)
+            .with(process_tags + 'test').and_return(with_container_tags_checksum)
+
+          # First fetch: no container tags
           allow(response).to receive(:headers).and_return({})
           agent_info.fetch
+          expect(agent_info.propagation_checksum).to eq(process_tags_only_checksum)
 
-          # First call has no headers yet, so it only checksums the process tags
-          first_checksum = agent_info.propagation_checksum
-          expect(first_checksum).to eq(Datadog::Core::Utils::FNV.fnv1_64(process_tags))
-
+          # Second fetch: container tags now available
           allow(response).to receive(:headers).and_return({'Datadog-Container-Tags-Hash' => 'test'})
           agent_info.fetch
-
-          # When container tags are available, the new checksum includes the container tags
-          new_value = agent_info.propagation_checksum
-          expect(new_value).not_to eq(first_checksum)
-          expect(new_value).to eq(Datadog::Core::Utils::FNV.fnv1_64(process_tags + 'test'))
+          expect(agent_info.propagation_checksum).to eq(with_container_tags_checksum)
         end
 
         it 'does not recalculate propagation_checksum when container tags unchanged' do
