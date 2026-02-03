@@ -99,11 +99,11 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
           end
 
           def received
-            @received
+            @received ||= []
           end
 
           def result
-            @result
+            @result ||= nil
           end
         end
       end
@@ -138,11 +138,11 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
           end
 
           def received
-            @received
+            @received ||= nil
           end
 
           def result
-            @result
+            @result ||= nil
           end
         end
       end
@@ -177,11 +177,11 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
           end
 
           def received
-            @received
+            @received ||= nil
           end
 
           def result
-            @result
+            @result ||= nil
           end
         end
       end
@@ -203,13 +203,13 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
         args = [1, 2]
         dummy.foo(*args, a: 1, b: 2)
 
-        expect(dummy.received).to eq [1, 2, { a: 1, b: 2 }]
+        expect(dummy.received).to eq [1, 2, {a: 1, b: 2}]
       end
 
       it 'passes block arguments' do
         dummy.foo(1, 2, a: 1, b: 2) { 42 }
 
-        expect(dummy.received).to eq [1, 2, { a:1, b: 2 }]
+        expect(dummy.received).to eq [1, 2, {a: 1, b: 2}]
         expect(dummy.result).to eq 42
       end
     end
@@ -223,11 +223,11 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
           end
 
           def received
-            @received
+            @received ||= nil
           end
 
           def result
-            @result
+            @result ||= nil
           end
         end
       end
@@ -249,13 +249,13 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
         args = [1, 2]
         dummy.foo(*args, a: 1, b: 2)
 
-        expect(dummy.received).to eq [1, 2, { a: 1, b: 2 }]
+        expect(dummy.received).to eq [1, 2, {a: 1, b: 2}]
       end
 
       it 'passes block arguments' do
         dummy.foo(1, 2, a: 1, b: 2) { 42 }
 
-        expect(dummy.received).to eq [1, 2, { a:1, b: 2 }]
+        expect(dummy.received).to eq [1, 2, {a: 1, b: 2}]
         expect(dummy.result).to eq 42
       end
     end
