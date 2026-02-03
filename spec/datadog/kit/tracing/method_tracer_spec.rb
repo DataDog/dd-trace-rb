@@ -1,14 +1,18 @@
 require 'spec_helper'
 
-require 'datadog/tracing/contrib/support/spec_helper'
+require 'datadog/tracing'
+
 require 'datadog/kit/tracing/method_tracer'
 
 RSpec.describe Datadog::Kit::Tracing::MethodTracer do
-  let(:configuration_options) { {} }
+  let(:tracer) { Datadog::Tracing::Tracer.new(writer: FauxWriter.new) }
 
   before do
+    allow(Datadog::Tracing).to receive(:tracer).and_return(tracer)
     stub_const('Dummy', dummy_class)
   end
+
+  after { tracer.shutdown! }
 
   let(:dummy_class) do
     # The following performs monkeypatches that kind of conflicts and messes
