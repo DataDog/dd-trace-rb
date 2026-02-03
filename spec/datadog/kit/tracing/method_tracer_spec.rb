@@ -51,6 +51,55 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       )
     end
 
+    context 'with anonymous module and explicit span_name' do
+      let(:anonymous_class) do
+        Class.new do
+          def bar
+            @called = true
+            'result'
+          end
+
+          def called?
+            @called || false
+          end
+        end
+      end
+
+      it 'works when span_name is explicitly provided' do
+        expect { Datadog::Kit::Tracing::MethodTracer.trace_method(anonymous_class, :bar, 'explicit_span_name') }
+          .not_to raise_error
+      end
+
+      it 'traces the method with the explicit span name' do
+        Datadog::Kit::Tracing::MethodTracer.trace_method(anonymous_class, :bar, 'explicit_span_name')
+
+        instance = anonymous_class.new
+        result = Datadog::Tracing.trace('wrapper') { instance.bar }
+
+        expect(instance.called?).to be true
+        expect(result).to eq('result')
+        expect(spans.count { |s| s.name == 'explicit_span_name' }).to eq(1)
+      end
+
+      it 'provides a descriptive #inspect for the prepended module' do
+        Datadog::Kit::Tracing::MethodTracer.trace_method(anonymous_class, :bar, 'explicit_span_name')
+
+        hook_module = anonymous_class.ancestors.find { |m| m.inspect.include?('MethodTracer') }
+
+        expect(hook_module).not_to be_nil
+        expect(hook_module.inspect).to eq('#<Datadog::Tracing::Kit::MethodTracer(:bar, "explicit_span_name")>')
+      end
+
+      it 'provides a descriptive #to_s for the prepended module' do
+        Datadog::Kit::Tracing::MethodTracer.trace_method(anonymous_class, :bar, 'explicit_span_name')
+
+        hook_module = anonymous_class.ancestors.find { |m| m.to_s.include?('MethodTracer') }
+
+        expect(hook_module).not_to be_nil
+        expect(hook_module.to_s).to eq('#<Datadog::Tracing::Kit::MethodTracer(:bar, "explicit_span_name")>')
+      end
+    end
+
     it 'raises when method is not defined' do
       expect { Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :bar) }.to raise_error(
         NoMethodError,
