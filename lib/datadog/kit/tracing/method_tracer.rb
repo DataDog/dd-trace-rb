@@ -36,7 +36,7 @@ module Datadog
             hook_point = "#{mod.name}##{method_name}"
             span_name ||= hook_point
 
-            args = RUBY_VERSION >= '2.7.' ? '...' : '*args, &block'
+            args = (RUBY_VERSION >= '2.7.') ? '...' : '*args, &block'
 
             hook_module = Module.new do
               # `args` is static, `method_name` is validated by the `method_defined?` check
