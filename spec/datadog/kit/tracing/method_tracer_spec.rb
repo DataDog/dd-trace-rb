@@ -71,6 +71,59 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       )
     end
 
+    it 'preserves protected visibility' do
+      dummy_class.class_eval do
+        protected
+
+        def guarded; end
+      end
+
+      Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :guarded)
+
+      expect(Dummy.protected_method_defined?(:guarded)).to be true
+    end
+
+    it 'allows protected method to be called from within the class' do
+      dummy_class.class_eval do
+        def call_guarded
+          guarded
+        end
+
+        protected
+
+        def guarded
+          :protected_result
+        end
+      end
+
+      Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :guarded)
+
+      result = Datadog::Tracing.trace('wrapper') do
+        dummy.call_guarded
+      end
+
+      expect(result).to eq(:protected_result)
+      expect(spans.count { |s| s.name == 'Dummy#guarded' }).to eq(1)
+    end
+
+    it 'does not allow protected method to be called from outside the class' do
+      dummy_class.class_eval do
+        protected
+
+        def guarded
+          :protected_result
+        end
+      end
+
+      Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :guarded)
+
+      Datadog::Tracing.trace('wrapper') do
+        expect { dummy.guarded }.to raise_error(NoMethodError, /protected method/)
+      end
+
+      expect(spans.count { |s| s.name == 'Dummy#guarded' }).to eq(0)
+    end
+
     context 'outside of a trace context' do
       it 'does not trace' do
         Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo)

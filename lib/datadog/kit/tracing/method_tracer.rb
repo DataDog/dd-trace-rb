@@ -40,6 +40,8 @@ module Datadog
             raise NoMethodError, "private method #{method_name.inspect} for class #{mod}" if mod.private_method_defined?(method_name)
             raise NoMethodError, "undefined method #{method_name.inspect} for class #{mod}" unless mod.method_defined?(method_name)
 
+            is_protected = mod.protected_method_defined?(method_name)
+
             hook_point = "#{mod.name}##{method_name}"
             custom_span_name = span_name
             span_name ||= hook_point
@@ -66,6 +68,8 @@ module Datadog
                 ::Datadog::Tracing.trace('#{span_name}') { super(#{args}) }
               end
               RUBY
+
+              protected method_name if is_protected
             end
 
             mod.prepend(hook_module)
