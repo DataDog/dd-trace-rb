@@ -7,8 +7,8 @@ set -ex
 
 # Use taskset for CPU pinning if we have enough CPUs
 NPROC=$(nproc 2>/dev/null || echo 1)
-if [ "$NPROC" -ge 30 ]; then
-  TASKSET_PREFIX="taskset -c 26-29"
+if [ "$NPROC" -ge 24 ]; then
+  TASKSET_PREFIX="taskset -c 20-23"
 else
   TASKSET_PREFIX=""
 fi
