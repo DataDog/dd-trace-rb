@@ -10,19 +10,19 @@ module Datadog
 
         USER_LOGIN_KEYS: Array[String | Symbol]
 
-        def self.track_login_success: (?Tracing::TraceOperation? trace, ?Tracing::SpanOperation? span, user: Hash[Symbol, String], **Hash[Symbol | String, String] others) -> void
+        def self.track_login_success: (?::Datadog::Tracing::TraceOperation? trace, ?::Datadog::Tracing::SpanOperation? span, user: Hash[Symbol, String], **Hash[Symbol | String, String] others) -> void
 
-        def self.track_login_failure: (?Tracing::TraceOperation? trace, ?Tracing::SpanOperation? span, user_exists: bool, ?user_id: String?, **Hash[Symbol | String, String] others) -> void
+        def self.track_login_failure: (?::Datadog::Tracing::TraceOperation? trace, ?::Datadog::Tracing::SpanOperation? span, user_exists: bool, ?user_id: String?, **Hash[Symbol | String, String] others) -> void
 
-        def self.track_signup: (?Tracing::TraceOperation? trace, ?Tracing::SpanOperation? span, user: Hash[Symbol, String], **Hash[Symbol | String, String] others) -> void
+        def self.track_signup: (?::Datadog::Tracing::TraceOperation? trace, ?::Datadog::Tracing::SpanOperation? span, user: Hash[Symbol, String], **Hash[Symbol | String, String] others) -> void
 
-        def self.track: (String event, ?Tracing::TraceOperation? trace, ?Tracing::SpanOperation? span, **Hash[Symbol, String] others) -> void
+        def self.track: (String event, ?::Datadog::Tracing::TraceOperation? trace, ?::Datadog::Tracing::SpanOperation? span, **Hash[Symbol, String] others) -> void
 
         private
 
-        def self.set_trace_and_span_context: (String method, ?Tracing::TraceOperation? trace, ?Tracing::SpanOperation? span) { (Tracing::TraceOperation, Tracing::SpanOperation) -> void } -> void
+        def self.set_trace_and_span_context: (String method, ?::Datadog::Tracing::TraceOperation? trace, ?::Datadog::Tracing::SpanOperation? span) { (::Datadog::Tracing::TraceOperation, ::Datadog::Tracing::SpanOperation) -> void } -> void
 
-        def self.check_trace_span_integrity: (Tracing::TraceOperation trace, Tracing::SpanOperation span) -> void
+        def self.check_trace_span_integrity: (::Datadog::Tracing::TraceOperation trace, ::Datadog::Tracing::SpanOperation span) -> void
       end
     end
   end
