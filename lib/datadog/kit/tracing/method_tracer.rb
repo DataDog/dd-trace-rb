@@ -41,6 +41,7 @@ module Datadog
           def trace_method(mod, method_name, span_name: nil, dynamic: false)
             raise ArgumentError, 'mod is not a module' unless mod.is_a?(Module)
             raise ArgumentError, 'module name is nil' if mod.name.nil? && span_name.nil?
+
             is_private = mod.private_method_defined?(method_name)
             is_protected = mod.protected_method_defined?(method_name)
             is_defined = is_private || mod.method_defined?(method_name)
@@ -52,6 +53,10 @@ module Datadog
             hook_point = "#{mod.name}##{method_name}"
             custom_span_name = span_name
             span_name ||= hook_point
+
+            unless span_name.is_a?(String)
+              raise ArgumentError, 'span name is not a String'
+            end
 
             args = (RUBY_VERSION >= '2.7.') ? '...' : '*args, &block'
 
@@ -66,13 +71,15 @@ module Datadog
                 name || "#<Datadog::Tracing::Kit::MethodTracer(#{method_name.inspect}#{suffix})>"
               end
 
-              # `args` is static, `method_name` is validated by the `method_defined?` check
-              # thus this `eval` is safe
+              # this `eval` is safe:
+              # - `args` is static
+              # - `method_name` is validated by the `method_defined?` check
+              # - `span_name` is validated to be a String and inspected to be quoted
               eval(<<-RUBY, nil, __FILE__, __LINE__ + 1) # standard:disable Security/Eval
               def #{method_name}(#{args})
                 return super(#{args}) unless ::Datadog::Tracing.active_trace
 
-                ::Datadog::Tracing.trace('#{span_name}') { super(#{args}) }
+                ::Datadog::Tracing.trace(#{span_name.inspect}) { super(#{args}) }
               end
               RUBY
 

@@ -756,6 +756,29 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
         expect(spans.count { |s| s.name == 'custom_name' }).to eq(1)
         expect(spans.find { |s| s.name == 'custom_name' }).to be_a Datadog::Tracing::Span
       end
+
+      it 'safely escapes malicious span_name to prevent code injection' do
+        # This span_name attempts to break out of the string interpolation in eval
+        evil_span_name = '"); system("echo pwned"); #'
+
+        # Ensure system is never called (would indicate code injection succeeded)
+        expect(Kernel).not_to receive(:system)
+
+        # Should not raise and should not execute the injected code
+        expect {
+          Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, span_name: evil_span_name)
+        }.not_to raise_error
+
+        result = Datadog::Tracing.trace('wrapper') do
+          dummy.foo
+        end
+
+        expect(dummy.called).to eq(1)
+        expect(result).to eq(1)
+        # The span name should be the literal evil string, properly escaped
+        expect(spans.count { |s| s.name == evil_span_name }).to eq(1)
+        expect(spans.find { |s| s.name == evil_span_name }).to be_a Datadog::Tracing::Span
+      end
     end
   end
 end
