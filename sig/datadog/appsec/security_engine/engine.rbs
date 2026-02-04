@@ -40,7 +40,7 @@ module Datadog
 
         def report_configuration_diagnostics: (WAF::diagnostics diagnostics, action: ::String, telemetry: Core::Telemetry::Component) -> void
 
-        def increment_waf_metric: (::String metric_name, success: bool, ruleset_version: ::String, telemetry: Core::Telemetry::Component) -> void
+        def metric: (::String metric_name, success: bool, ruleset_version: ::String, telemetry: Core::Telemetry::Component) -> void
       end
     end
   end
