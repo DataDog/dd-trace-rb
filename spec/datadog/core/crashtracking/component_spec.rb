@@ -299,7 +299,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
           # because normally it would be added during library initialization
           # and if the fork monkey patch test runs before this test,
           # the handler would get cleared out.
-          described_class.const_get(:ONLY_ONCE).send(:reset_ran_once_state_for_tests)
+          Datadog::Core::Configuration::Components.const_get(:AT_FORK_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
 
           # We also need to clear out the handlers because we could have
           # our own handler registered from the library initialization time,
