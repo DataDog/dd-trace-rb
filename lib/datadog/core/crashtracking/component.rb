@@ -3,8 +3,6 @@
 require 'libdatadog'
 
 require_relative 'tag_builder'
-require_relative '../utils/only_once'
-require_relative '../utils/at_fork_monkey_patch'
 
 module Datadog
   module Core
@@ -18,8 +16,6 @@ module Datadog
       #
       # Methods prefixed with _native_ are implemented in `crashtracker.c`
       class Component
-        ONLY_ONCE = Core::Utils::OnlyOnce.new
-
         def self.build(settings, agent_settings, logger:)
           tags = TagBuilder.call(settings)
           agent_base_url = agent_settings.url
@@ -54,18 +50,7 @@ module Datadog
         end
 
         def start
-          Utils::AtForkMonkeyPatch.apply!
-
           start_or_update_on_fork(action: :start, tags: tags)
-
-          ONLY_ONCE.run do
-            Utils::AtForkMonkeyPatch.at_fork(:child) do
-              # Must NOT reference `self` here, as only the first instance will
-              # be captured by the ONLY_ONCE and we want to pick the latest active one
-              # (which may have different tags or agent config)
-              Datadog.send(:components, allow_initialization: false)&.crashtracker&.update_on_fork
-            end
-          end
         end
 
         def update_on_fork(settings: Datadog.configuration)

@@ -158,6 +158,7 @@ RSpec.describe Datadog::AppSec::Remote do
         end
 
         before do
+          allow(telemetry).to receive(:inc)
           allow(Datadog::AppSec).to receive(:security_engine).and_return(appsec_component.security_engine)
         end
 

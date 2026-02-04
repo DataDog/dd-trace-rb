@@ -21,8 +21,6 @@ module Datadog
       class Component
         ENDPOINT_COLLECTION_MESSAGE_LIMIT = 300
 
-        ONLY_ONCE = Utils::OnlyOnce.new
-
         attr_reader :enabled
         attr_reader :logger
         attr_reader :transport
@@ -62,17 +60,6 @@ module Datadog
           logger:,
           enabled:
         )
-          ONLY_ONCE.run do
-            Utils::AtForkMonkeyPatch.apply!
-
-            # All of the other at fork monkey patch callbacks reference
-            # globals, follow that pattern here to avoid having the component
-            # referenced via the at fork callbacks.
-            Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:child) do
-              Datadog.send(:components, allow_initialization: false)&.telemetry&.after_fork
-            end
-          end
-
           @enabled = enabled
           @log_collection_enabled = settings.telemetry.log_collection_enabled
           @logger = logger

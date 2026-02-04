@@ -45,6 +45,28 @@ module Datadog
                 o.default []
               end
 
+              # An array of variable and key names to exclude from the
+              # built-in redaction list.
+              #
+              # This allows users to capture values of variables that would
+              # otherwise be redacted by the default identifier list.
+              # For example, if an application has a "session" variable
+              # that does not contain sensitive data, "session" can be added
+              # to this list to exclude it from redaction.
+              #
+              # The names will be normalized the same way as redacted_identifiers,
+              # by removing the following symbols: _, -, @, $, and then matched
+              # against the complete variable or key name while ignoring the case.
+              option :redaction_excluded_identifiers do |o|
+                o.env "DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS"
+                o.env_parser do |value|
+                  value&.split(",")&.map(&:strip)
+                end
+
+                o.type :array
+                o.default []
+              end
+
               # An array of class names, values of which will be redacted from
               # dynamic instrumentation snapshots. Example: FooClass.
               # If a name is suffixed by '*', it becomes a wildcard and
