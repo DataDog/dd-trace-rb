@@ -84,7 +84,7 @@ RSpec.describe Datadog::Core::Remote::Component do
         parent_client_object_id = component.client.object_id
 
         expect(component.started?).to be true
-        expect(parent_client_id).to match(/^[0-9a-f-]+$/)
+        expect(parent_client_id).to be_valid_uuid
 
         expect_in_fork do
           child_component = components.remote
@@ -97,7 +97,7 @@ RSpec.describe Datadog::Core::Remote::Component do
 
           # Client ID should be different
           child_client_id = child_component.client.id
-          expect(child_client_id).to match(/^[0-9a-f-]+$/)
+          expect(child_client_id).to be_valid_uuid
           expect(child_client_id).not_to eq(parent_client_id)
         end
       end
@@ -228,8 +228,8 @@ RSpec.describe Datadog::Core::Remote::Component do
 
       parent_client_id = parent_requests.first[:client_id]
       parent_runtime_id = parent_requests.first[:runtime_id]
-      expect(parent_client_id).to match(/^[0-9a-f-]+$/)
-      expect(parent_runtime_id).to match(/^[0-9a-f-]+$/)
+      expect(parent_client_id).to be_valid_uuid
+      expect(parent_runtime_id).to be_valid_uuid
 
       # Record the parent PID
       parent_pid = Process.pid
@@ -246,11 +246,11 @@ RSpec.describe Datadog::Core::Remote::Component do
 
         # Client ID should be different after fork
         expect(child_client_id).not_to eq(parent_client_id)
-        expect(child_client_id).to match(/^[0-9a-f-]+$/)
+        expect(child_client_id).to be_valid_uuid
 
         # Runtime ID should also be different
         expect(child_runtime_id).not_to eq(parent_runtime_id)
-        expect(child_runtime_id).to match(/^[0-9a-f-]+$/)
+        expect(child_runtime_id).to be_valid_uuid
 
         # Start the worker in the child process (after_fork recreates the client but doesn't restart the worker).
         # The barrier call starts the worker via `start`, though `wait_once` immediately returns :pass
