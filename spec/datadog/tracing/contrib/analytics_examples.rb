@@ -16,11 +16,7 @@ RSpec.shared_examples_for 'analytics for integration' do |options = {ignore_glob
     end
 
     context 'and the global flag is enabled' do
-      around do |example|
-        ClimateControl.modify(Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'true') do
-          example.run
-        end
-      end
+      with_env Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'true'
 
       # Most integrations ignore the global flag by default,
       # because they aren't considered "key" integrations.
@@ -37,11 +33,7 @@ RSpec.shared_examples_for 'analytics for integration' do |options = {ignore_glob
     end
 
     context 'and the global flag is disabled' do
-      around do |example|
-        ClimateControl.modify(Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'false') do
-          example.run
-        end
-      end
+      with_env Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'false'
 
       it 'is not included in the tags' do
         expect(span.get_metric(Datadog::Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil

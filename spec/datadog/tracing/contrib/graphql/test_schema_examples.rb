@@ -230,12 +230,8 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
     end
 
     context 'with error tracking enabled' do
-      around do |ex|
-        ClimateControl.modify(
-          'DD_TRACE_GRAPHQL_ERROR_TRACKING' => 'true',
-          'DD_TRACE_GRAPHQL_ERROR_EXTENSIONS' => 'int'
-        ) { ex.run }
-      end
+      with_env 'DD_TRACE_GRAPHQL_ERROR_TRACKING' => 'true',
+        'DD_TRACE_GRAPHQL_ERROR_EXTENSIONS' => 'int'
 
       it 'creates exception span events with OpenTelemetry semantics and extensions' do
         expect(result.to_h['errors'][0]['message']).to eq('GraphQL error')
