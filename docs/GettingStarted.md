@@ -1188,10 +1188,10 @@ end
 
 ### Kicks
 
-The Kicks integration is a server-side middleware which will trace job executions.
+The Kicks integration is a server-side middleware which traces job executions.
 
 <div class="alert alert-warning">
-Kicks is a continuation of Sneakers and both cannot be active at the same time, as they share their Ruby class namespace. Configurations to the Sneakers integration will be safely merged with any Kicks configuration.
+Kicks is a continuation of Sneakers, and the two cannot be active at the same time because they share the same Ruby class namespace. Existing Sneakers configuration is automatically merged with any Kicks configuration.
 </div>
 
 You can enable it through `Datadog.configure`:
@@ -1204,13 +1204,13 @@ Datadog.configure do |c|
 end
 ```
 
-`options` are the following keyword arguments:
+The following keyword arguments are available for `options`:
 
 | Key        | Env Var | Type   | Description                                                                                                                                                                 | Default                                                           |
 | ---------- | - | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | `enabled`  | `DD_TRACE_SNEAKERS_ENABLED` | `Bool` | Whether the integration should create spans.                                                                      | `true`                                                            |
-| `tag_body` | | `Bool` | Enable tagging of job message. `true` for on, `false` for off.                                                                                                              | `false`                                                           |
-| `on_error` | | `Proc` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| `tag_body` | | `Bool` | Whether to tag the job message on spans.                                                                                                                 | `false`                                                           |
+| `on_error` | | `Proc` | Custom error handler invoked when a job raises an error. Receives `span` and `error` as arguments. By default, sets the error on the span. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### MongoDB
 
@@ -2041,7 +2041,7 @@ end
 The Sneakers integration is a server-side middleware which will trace job executions.
 
 <div class="alert alert-warning">
-Kicks is a continuation of Sneakers and both cannot be active at the same time, as they share their Ruby class namespace. Configurations to the Sneakers integration will be safely merged with any Kicks configuration.
+Kicks is a continuation of Sneakers, and the two cannot be active at the same time because they share the same Ruby class namespace. Existing Sneakers configuration is automatically merged with any Kicks configuration.
 </div>
 
 You can enable it through `Datadog.configure`:
