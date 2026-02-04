@@ -21,7 +21,7 @@ task :"build:after_check" do
 end
 
 # TODO: Task is deprecated and doesn't work anymore.
-desc 'Create a new indexed repository'
+desc 'Create a new indexed repository (TODO: Task is deprecated and doesn't work anymore.)'
 task :"release:gem" do
   raise 'Missing environment variable S3_DIR' if !S3_DIR || S3_DIR.empty?
   # load existing deployed gems

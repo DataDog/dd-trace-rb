@@ -15,6 +15,7 @@ alwaysApply: false
 - Do not make changes to `release_gem_spec.rb` if not asked
 
 ### RSpec Style
+- Rule of thumb is trying to have a 1:1 filename mapping between `lib/**/*.rb` and `spec/**/*_spec.rb`; sometimes this is not possible but should be justified (e.g integration tests), ask for guidance and explain rationale when deviating form the rule.
 - Do not use focused tests feature (fit, fdescribe)
 - Always name the `subject`, and name it after the closest concept (e.g. the method if testing a method, the return object if testing an object), and keep the name short.
 - Keep `subject` close to its `describe`.
@@ -38,6 +39,7 @@ alwaysApply: false
 - Dependency configurations are managed with [Appraisal](mdc:https:/github.com/thoughtbot/appraisal), under `appraisal/`.
 - When editting `appraisal/`, run `bundle exec rake dependency:generate` to regenerate `gemfiles/`.
 - Install dependencies with `bundle exec rake dependency:lock`.
+- More info `docs/DevelopmentGuide.md#working-with-different-dependencies`.
 
 ## Example
 
