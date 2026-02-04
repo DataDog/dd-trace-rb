@@ -27,10 +27,10 @@ module Datadog
           def infer(path)
             segments = path.delete_prefix('/').split('/', MAX_NUMBER_OF_SEGMENTS + 1).first(MAX_NUMBER_OF_SEGMENTS)
 
-            segments.map! do |segment| #: Array[String?]
+            inferred = segments.each_with_object([]) do |segment, a|
               next if segment.empty?
 
-              case segment
+              a << case segment
               when INT_PARAM_REGEX then '{param:int}'
               when INT_ID_PARAM_REGEX then '{param:int_id}'
               when HEX_PARAM_REGEX then '{param:hex}'
@@ -40,9 +40,7 @@ module Datadog
               end
             end
 
-            segments.compact! #: Array[String]
-
-            "/#{segments.join("/")}"
+            "/#{inferred.join("/")}"
           rescue
             nil
           end
