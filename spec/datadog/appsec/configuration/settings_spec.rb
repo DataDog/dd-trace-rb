@@ -844,21 +844,13 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
       end
 
       context 'when valid DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE is set' do
-        around do |example|
-          ClimateControl.modify('DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE' => 'disabled') do
-            example.run
-          end
-        end
+        with_env 'DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE' => 'disabled'
 
         it { expect(settings.appsec.auto_user_instrumentation.mode).to eq('disabled') }
       end
 
       context 'when valid DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE short value is set' do
-        around do |example|
-          ClimateControl.modify('DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE' => 'anon') do
-            example.run
-          end
-        end
+        with_env 'DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE' => 'anon'
 
         it 'expands the alias value to the long version' do
           expect(settings.appsec.auto_user_instrumentation.mode).to eq('anonymization')
@@ -866,11 +858,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
       end
 
       context 'when invalid DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE is set' do
-        around do |example|
-          ClimateControl.modify('DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE' => 'unknown') do
-            example.run
-          end
-        end
+        with_env 'DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE' => 'unknown'
 
         it 'sets the value to the default and writes a warning message' do
           expect(logger).to receive(:warn).with(/value provided is not supported/)

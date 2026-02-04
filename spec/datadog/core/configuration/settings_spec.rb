@@ -171,22 +171,14 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     context 'when an env tag is defined in DD_TAGS' do
-      around do |example|
-        ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_TAGS => 'env:env-from-tag') do
-          example.run
-        end
-      end
+      with_env Datadog::Core::Environment::Ext::ENV_TAGS => 'env:env-from-tag'
 
       it 'uses the env from DD_TAGS' do
         is_expected.to eq('env-from-tag')
       end
 
       context 'and defined via DD_ENV' do
-        around do |example|
-          ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_ENVIRONMENT => 'env-from-dd-env') do
-            example.run
-          end
-        end
+        with_env Datadog::Core::Environment::Ext::ENV_ENVIRONMENT => 'env-from-dd-env'
 
         it 'uses the env from DD_ENV' do
           is_expected.to eq('env-from-dd-env')
@@ -1112,25 +1104,15 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     context 'when a service tag is defined in DD_TAGS' do
-      around do |example|
-        ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_TAGS => 'service:service-name-from-tag') do
-          example.run
-        end
-      end
+      with_env Datadog::Core::Environment::Ext::ENV_TAGS => 'service:service-name-from-tag'
 
       it 'uses the service name from DD_TAGS' do
         is_expected.to eq('service-name-from-tag')
       end
 
       context 'and defined via DD_SERVICE and OTEL_SERVICE_NAME' do
-        around do |example|
-          ClimateControl.modify(
-            Datadog::Core::Environment::Ext::ENV_SERVICE => 'service-name-from-dd-service',
-            'OTEL_SERVICE_NAME' => 'otel-service-name'
-          ) do
-            example.run
-          end
-        end
+        with_env Datadog::Core::Environment::Ext::ENV_SERVICE => 'service-name-from-dd-service',
+          'OTEL_SERVICE_NAME' => 'otel-service-name'
 
         it 'uses the service name from DD_SERVICE' do
           is_expected.to eq('service-name-from-dd-service')
@@ -1138,11 +1120,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
 
       context 'and defined via OTEL_SERVICE_NAME' do
-        around do |example|
-          ClimateControl.modify('OTEL_SERVICE_NAME' => 'otel-service-name') do
-            example.run
-          end
-        end
+        with_env 'OTEL_SERVICE_NAME' => 'otel-service-name'
 
         it 'uses the service name from OTEL_SERVICE_NAME' do
           is_expected.to eq('otel-service-name')
@@ -1185,11 +1163,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     context 'when a service name is configured' do
-      around do |example|
-        ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_SERVICE => 'test_service_name') do
-          example.run
-        end
-      end
+      with_env Datadog::Core::Environment::Ext::ENV_SERVICE => 'test_service_name'
 
       it 'returns the service name' do
         is_expected.to eq 'test_service_name'
@@ -1617,22 +1591,14 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     context 'when a version tag is defined in DD_TAGS' do
-      around do |example|
-        ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_TAGS => 'version:version-from-tag') do
-          example.run
-        end
-      end
+      with_env Datadog::Core::Environment::Ext::ENV_TAGS => 'version:version-from-tag'
 
       it 'uses the version from DD_TAGS' do
         is_expected.to eq('version-from-tag')
       end
 
       context 'and defined via DD_VERSION' do
-        around do |example|
-          ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_VERSION => 'version-from-dd-version') do
-            example.run
-          end
-        end
+        with_env Datadog::Core::Environment::Ext::ENV_VERSION => 'version-from-dd-version'
 
         it 'uses the version from DD_VERSION' do
           is_expected.to eq('version-from-dd-version')
