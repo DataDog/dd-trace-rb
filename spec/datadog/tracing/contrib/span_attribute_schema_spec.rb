@@ -54,11 +54,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
     let(:span) { Datadog::Tracing::Span.new('testPeerServiceLogicSpan', parent_id: 0) }
     subject(:set_peer_service!) { described_class.set_peer_service!(span, precursors) }
 
-    around do |example|
-      ClimateControl.modify('DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => 'true') do
-        example.run
-      end
-    end
+    with_env 'DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => 'true'
 
     context 'precursor tags set' do
       context 'AWS Span' do
@@ -89,11 +85,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
         end
 
         context 'peer service defaults disabled' do
-          around do |example|
-            ClimateControl.modify('DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => 'false') do
-              example.run
-            end
-          end
+          with_env 'DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => 'false'
 
           it 'does not set peer.service' do
             span.set_tag('aws_service', 'test-service')
@@ -292,11 +284,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
       end
 
       context 'peer service defaults disabled' do
-        around do |example|
-          ClimateControl.modify('DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => 'false') do
-            example.run
-          end
-        end
+        with_env 'DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => 'false'
 
         it 'keeps explicit peer.service' do
           span.set_tag('peer.service', 'peer-service-value')

@@ -201,9 +201,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
     end
 
     context 'with error extension capture enabled' do
-      around do |ex|
-        ClimateControl.modify('DD_TRACE_GRAPHQL_ERROR_EXTENSIONS' => 'int,str,bool,array-1-2,hash-a-b,object') { ex.run }
-      end
+      with_env 'DD_TRACE_GRAPHQL_ERROR_EXTENSIONS' => 'int,str,bool,array-1-2,hash-a-b,object'
 
       it 'creates query span for error with extensions' do
         expect(result.to_h['errors'][0]['message']).to eq('GraphQL error')
