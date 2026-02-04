@@ -41,28 +41,14 @@ module Datadog
 
           @handle_ref = ThreadSafeRef.new(@waf_builder.build_handle)
 
-          telemetry.inc(
-            Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.init', 1,
-            tags: {
-              waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
-              event_rules_version: @ruleset_version.to_s,
-              success: 'true'
-            }
-          )
+          increment_waf_metric('init', success: true, ruleset_version: @ruleset_version, telemetry: telemetry)
         rescue WAF::Error => e
-          error_message = "AppSec security engine failed to initialize"
+          error_message = 'AppSec security engine failed to initialize'
 
           Datadog.logger.error("#{error_message}, error #{e.inspect}")
           telemetry.report(e, description: error_message)
 
-          telemetry.inc(
-            Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.init', 1,
-            tags: {
-              waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
-              event_rules_version: @ruleset_version.to_s,
-              success: 'false'
-            }
-          )
+          increment_waf_metric('init', success: false, ruleset_version: @ruleset_version, telemetry: telemetry)
 
           raise e
         end
@@ -122,33 +108,37 @@ module Datadog
 
           @handle_ref.current = new_waf_handle
 
-          AppSec.telemetry.inc(
-            Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.updates', 1,
-            tags: {
-              waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
-              event_rules_version: @ruleset_version.to_s,
-              success: 'true'
-            }
-          )
+          increment_waf_metric('updates', success: true, ruleset_version: @ruleset_version, telemetry: AppSec.telemetry)
         rescue WAF::Error => e
           # WAF::Error can only be raised during new WAF handle creation or when reading known addresses.
           # This means that the current WAF handle was not yet substituted.
-          error_message = "AppSec security engine failed to reconfigure, reverting to the previous configuration"
+          error_message = 'AppSec security engine failed to reconfigure, reverting to the previous configuration'
 
           Datadog.logger.error("#{error_message}, error #{e.inspect}")
           AppSec.telemetry.report(e, description: error_message)
 
-          AppSec.telemetry.inc(
-            Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.updates', 1,
-            tags: {
-              waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
-              event_rules_version: @reconfigured_ruleset_version.to_s,
-              success: 'false'
-            }
+          increment_waf_metric(
+            'updates',
+            success: false,
+            ruleset_version: @reconfigured_ruleset_version,
+            telemetry: AppSec.telemetry
           )
         end
 
         private
+
+        def increment_waf_metric(metric_name, success:, ruleset_version:, telemetry:)
+          telemetry.inc(
+            Ext::TELEMETRY_METRICS_NAMESPACE,
+            "waf.#{metric_name}",
+            1,
+            tags: {
+              waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
+              event_rules_version: ruleset_version.to_s,
+              success: success.to_s
+            }
+          )
+        end
 
         def load_default_config(telemetry:)
           config = AppSec::Processor::RuleLoader.load_rules(telemetry: telemetry, ruleset: @default_ruleset)
