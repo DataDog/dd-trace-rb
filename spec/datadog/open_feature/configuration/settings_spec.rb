@@ -11,9 +11,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
       subject(:enabled) { settings.open_feature.enabled }
 
       context 'when DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED is not defined' do
-        around do |example|
-          ClimateControl.modify('DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED' => nil) { example.run }
-        end
+        with_env 'DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED' => nil
 
         it { expect(enabled).to be(false) }
       end
