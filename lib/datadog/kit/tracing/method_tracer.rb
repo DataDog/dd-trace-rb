@@ -38,7 +38,7 @@ module Datadog
           # @param span_name [String, nil] optional span name (defaults to "Module#method")
           # @param dynamic [Boolean] if true, skip method existence check (for method_missing-handled methods)
           # @return [void]
-          def trace_method(mod, method_name, span_name = nil, dynamic: false)
+          def trace_method(mod, method_name, span_name: nil, dynamic: false)
             raise ArgumentError, 'mod is not a module' unless mod.is_a?(Module)
             raise ArgumentError, 'module name is nil' if mod.name.nil? && span_name.nil?
             is_private = mod.private_method_defined?(method_name)
@@ -90,8 +90,8 @@ module Datadog
         # @param span_name [String, nil] optional span name (defaults to "Module#method")
         # @param dynamic [Boolean] if true, skip method existence check (for method_missing-handled methods)
         # @return [void]
-        def trace_method(method_name, span_name = nil, dynamic: false)
-          MethodTracer.trace_method(self, method_name, span_name, dynamic: dynamic)
+        def trace_method(method_name, span_name: nil, dynamic: false)
+          MethodTracer.trace_method(self, method_name, span_name: span_name, dynamic: dynamic)
         end
       end
     end

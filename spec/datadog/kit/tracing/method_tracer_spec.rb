@@ -66,12 +66,12 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       end
 
       it 'works when span_name is explicitly provided' do
-        expect { Datadog::Kit::Tracing::MethodTracer.trace_method(anonymous_class, :bar, 'explicit_span_name') }
+        expect { Datadog::Kit::Tracing::MethodTracer.trace_method(anonymous_class, :bar, span_name: 'explicit_span_name') }
           .not_to raise_error
       end
 
       it 'traces the method with the explicit span name' do
-        Datadog::Kit::Tracing::MethodTracer.trace_method(anonymous_class, :bar, 'explicit_span_name')
+        Datadog::Kit::Tracing::MethodTracer.trace_method(anonymous_class, :bar, span_name: 'explicit_span_name')
 
         instance = anonymous_class.new
         result = Datadog::Tracing.trace('wrapper') { instance.bar }
@@ -82,7 +82,7 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       end
 
       it 'provides a descriptive #inspect for the prepended module' do
-        Datadog::Kit::Tracing::MethodTracer.trace_method(anonymous_class, :bar, 'explicit_span_name')
+        Datadog::Kit::Tracing::MethodTracer.trace_method(anonymous_class, :bar, span_name: 'explicit_span_name')
 
         hook_module = anonymous_class.ancestors.find { |m| m.inspect.include?('MethodTracer') }
 
@@ -91,7 +91,7 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       end
 
       it 'provides a descriptive #to_s for the prepended module' do
-        Datadog::Kit::Tracing::MethodTracer.trace_method(anonymous_class, :bar, 'explicit_span_name')
+        Datadog::Kit::Tracing::MethodTracer.trace_method(anonymous_class, :bar, span_name: 'explicit_span_name')
 
         hook_module = anonymous_class.ancestors.find { |m| m.to_s.include?('MethodTracer') }
 
@@ -105,7 +105,7 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
         dummy1 = dummy_class.new
         dummy2 = dummy_class.new
 
-        Datadog::Kit::Tracing::MethodTracer.trace_method(dummy1.singleton_class, :foo, 'singleton_span')
+        Datadog::Kit::Tracing::MethodTracer.trace_method(dummy1.singleton_class, :foo, span_name: 'singleton_span')
 
         Datadog::Tracing.trace('wrapper') do
           dummy1.foo
@@ -121,7 +121,7 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
         dummy1 = dummy_class.new
         dummy2 = dummy_class.new
 
-        Datadog::Kit::Tracing::MethodTracer.trace_method(dummy1.singleton_class, :foo, 'singleton_span')
+        Datadog::Kit::Tracing::MethodTracer.trace_method(dummy1.singleton_class, :foo, span_name: 'singleton_span')
 
         result1 = Datadog::Tracing.trace('wrapper1') { dummy1.foo }
         result2 = Datadog::Tracing.trace('wrapper2') { dummy2.foo }
@@ -164,12 +164,12 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       end
 
       it 'does not raise when method is handled by method_missing' do
-        expect { Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :dynamic_method, nil, dynamic: true) }
+        expect { Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :dynamic_method, dynamic: true) }
           .not_to raise_error
       end
 
       it 'traces dynamic method within a trace context' do
-        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :dynamic_method, nil, dynamic: true)
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :dynamic_method, dynamic: true)
 
         result = Datadog::Tracing.trace('wrapper') do
           dummy.dynamic_method
@@ -181,7 +181,9 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       end
 
       it 'traces dynamic method with custom span name' do
-        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :dynamic_method, 'custom_dynamic_span', dynamic: true)
+        Datadog::Kit::Tracing::MethodTracer.trace_method(
+          Dummy, :dynamic_method, span_name: 'custom_dynamic_span', dynamic: true
+        )
 
         result = Datadog::Tracing.trace('wrapper') do
           dummy.dynamic_method
@@ -193,7 +195,7 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       end
 
       it 'does not trace dynamic method outside of a trace context' do
-        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :dynamic_method, nil, dynamic: true)
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :dynamic_method, dynamic: true)
 
         result = dummy.dynamic_method
 
@@ -203,7 +205,7 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       end
 
       it 'raises NoMethodError when dynamic method is not handled by method_missing' do
-        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :unhandled_method, nil, dynamic: true)
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :unhandled_method, dynamic: true)
 
         Datadog::Tracing.trace('wrapper') do
           expect { dummy.unhandled_method }.to raise_error(NoMethodError, /unhandled_method/)
@@ -345,7 +347,7 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       end
 
       it 'traces a method with a name' do
-        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, 'custom_name')
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, span_name: 'custom_name')
 
         result = Datadog::Tracing.trace('wrapper') do
           dummy.foo
@@ -408,8 +410,8 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
 
     context 'when tracing the same method twice' do
       it 'creates multiple spans due to stacked prepends' do
-        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, 'first_span')
-        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, 'second_span')
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, span_name: 'first_span')
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, span_name: 'second_span')
 
         Datadog::Tracing.trace('wrapper') { dummy.foo }
 
@@ -419,8 +421,8 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       end
 
       it 'prepends multiple hook modules to the ancestors chain' do
-        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, 'first_span')
-        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, 'second_span')
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, span_name: 'first_span')
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, span_name: 'second_span')
 
         hook_modules = Dummy.ancestors.select { |m| m.inspect.include?('MethodTracer') }
 
@@ -428,8 +430,8 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       end
 
       it 'nests spans in the order they were traced' do
-        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, 'first_span')
-        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, 'second_span')
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, span_name: 'first_span')
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, span_name: 'second_span')
 
         Datadog::Tracing.trace('wrapper') { dummy.foo }
 
@@ -462,7 +464,7 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       end
 
       it 'includes span name in #inspect when provided' do
-        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, 'custom_name')
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, span_name: 'custom_name')
 
         hook_module = Dummy.ancestors.find { |m| m.inspect.include?('MethodTracer') }
 
@@ -471,7 +473,7 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       end
 
       it 'includes span name in #to_s when provided' do
-        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, 'custom_name')
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :foo, span_name: 'custom_name')
 
         hook_module = Dummy.ancestors.find { |m| m.to_s.include?('MethodTracer') }
 
@@ -698,8 +700,8 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
             @called || false
           end
 
-          trace_method :dynamic_method, 'dynamic_method_span', dynamic: true
-          trace_method :unhandled_method, 'unhandled_method_span', dynamic: true
+          trace_method :dynamic_method, span_name: 'dynamic_method_span', dynamic: true
+          trace_method :unhandled_method, span_name: 'unhandled_method_span', dynamic: true
         end
       end
 
@@ -742,7 +744,7 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
         dummy_class.instance_eval do
           extend Datadog::Kit::Tracing::MethodTracer
 
-          trace_method :foo, 'custom_name'
+          trace_method :foo, span_name: 'custom_name'
         end
 
         result = Datadog::Tracing.trace('wrapper') do
