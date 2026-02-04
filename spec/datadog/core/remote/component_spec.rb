@@ -12,9 +12,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
 
   let(:logger) { logger_allowing_debug }
 
-  around do |example|
-    ClimateControl.modify('DD_REMOTE_CONFIGURATION_ENABLED' => nil) { example.run }
-  end
+  with_env 'DD_REMOTE_CONFIGURATION_ENABLED' => nil
 
   describe '.build' do
     subject(:build) { described_class.build(settings, agent_settings, logger: logger, telemetry: telemetry) }
