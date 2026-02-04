@@ -22,6 +22,9 @@ module Datadog
 
       # Shared mutable storage for counters, flags, and data accumulated during
       # the request's lifecycle.
+      #
+      # NOTE: This attribute is a subject to change, but in a current form
+      #       it's a `Hash`-like structure.
       attr_reader :state
 
       class << self
