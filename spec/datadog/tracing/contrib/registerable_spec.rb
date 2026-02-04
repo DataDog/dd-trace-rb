@@ -64,7 +64,7 @@ RSpec.describe Datadog::Tracing::Contrib::Registerable do
 
         context 'when a registry' do
           context 'is provided' do
-            let(:options) { { registry: registry } }
+            let(:options) { {registry: registry} }
             let(:registry) { Datadog::Tracing::Contrib::Registry.new }
 
             context 'with the original integration not registered' do
