@@ -546,6 +546,7 @@ NATIVE_EXTS = [
 ].freeze
 
 NATIVE_CLEAN = ::Rake::FileList[]
+# DEV: Should we suggest this Rake task for native development onboarding?
 namespace :native_dev do
   compile_commands_tasks = NATIVE_EXTS.map do |ext|
     tmp_dir_dd_native_dev = "#{ext.tmp_dir}/dd_native_dev"

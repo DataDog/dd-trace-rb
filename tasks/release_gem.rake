@@ -20,6 +20,7 @@ task :"build:after_check" do
   raise "Release tests failed! See error output above." if ret != 0
 end
 
+# TODO: Task is deprecated and doesn't work anymore.
 desc 'Create a new indexed repository'
 task :"release:gem" do
   raise 'Missing environment variable S3_DIR' if !S3_DIR || S3_DIR.empty?
