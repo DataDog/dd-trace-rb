@@ -68,7 +68,7 @@ RSpec.describe Datadog::Tracing::Contrib::Registerable do
             let(:registry) { Datadog::Tracing::Contrib::Registry.new }
 
             context 'with the original integration not registered' do
-              it { expect { register_as_alias }.to raise_error(ArgumentError) }
+              it { expect { register_as_alias }.to raise_error(ArgumentError, "integration 'original' not registered") }
             end
 
             context 'with the original integration registered' do
