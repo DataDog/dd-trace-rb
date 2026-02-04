@@ -48,7 +48,6 @@ RSpec.describe Datadog::AppSec::Component do
       it 'returns nil when security engine fails to instantiate' do
         settings.appsec.ruleset = {}
 
-        allow(telemetry).to receive(:inc)
         expect(telemetry).to receive(:report)
         expect(Datadog.logger).to receive(:warn)
 
