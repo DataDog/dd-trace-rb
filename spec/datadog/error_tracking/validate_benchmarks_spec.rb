@@ -3,11 +3,7 @@ require 'datadog/error_tracking/spec_helper'
 RSpec.describe 'Error Tracking benchmarks', :memcheck_valgrind_skip do
   error_tracking_test
 
-  around do |example|
-    ClimateControl.modify('VALIDATE_BENCHMARK' => 'true') do
-      example.run
-    end
-  end
+  with_env 'VALIDATE_BENCHMARK' => 'true'
 
   benchmarks_to_validate = [
     'error_tracking_simple',

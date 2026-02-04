@@ -978,25 +978,19 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     describe 'api_security' do
       describe '#enabled' do
         context 'when DD_API_SECURITY_ENABLED is undefined' do
-          around do |example|
-            ClimateControl.modify('DD_API_SECURITY_ENABLED' => nil) { example.run }
-          end
+          with_env 'DD_API_SECURITY_ENABLED' => nil
 
           it { expect(settings.appsec.api_security.enabled).to eq(true) }
         end
 
         context 'when DD_API_SECURITY_ENABLED is set to true' do
-          around do |example|
-            ClimateControl.modify('DD_API_SECURITY_ENABLED' => 'true') { example.run }
-          end
+          with_env 'DD_API_SECURITY_ENABLED' => 'true'
 
           it { expect(settings.appsec.api_security.enabled).to eq(true) }
         end
 
         context 'when DD_API_SECURITY_ENABLED is set to false' do
-          around do |example|
-            ClimateControl.modify('DD_API_SECURITY_ENABLED' => 'false') { example.run }
-          end
+          with_env 'DD_API_SECURITY_ENABLED' => 'false'
 
           it { expect(settings.appsec.api_security.enabled).to eq(false) }
         end
@@ -1019,25 +1013,19 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
       describe 'endpoint_collection' do
         describe '#enabled' do
           context 'when DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED is undefined' do
-            around do |example|
-              ClimateControl.modify('DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED' => nil) { example.run }
-            end
+            with_env 'DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED' => nil
 
             it { expect(settings.appsec.api_security.endpoint_collection.enabled).to eq(true) }
           end
 
           context 'when DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED is set to true' do
-            around do |example|
-              ClimateControl.modify('DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED' => 'true') { example.run }
-            end
+            with_env 'DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED' => 'true'
 
             it { expect(settings.appsec.api_security.endpoint_collection.enabled).to eq(true) }
           end
 
           context 'when DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED is set to false' do
-            around do |example|
-              ClimateControl.modify('DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED' => 'false') { example.run }
-            end
+            with_env 'DD_API_SECURITY_ENDPOINT_COLLECTION_ENABLED' => 'false'
 
             it { expect(settings.appsec.api_security.endpoint_collection.enabled).to eq(false) }
           end
