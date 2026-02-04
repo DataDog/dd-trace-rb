@@ -454,11 +454,7 @@ RSpec.describe Datadog::Core::Configuration do
       end
 
       context 'when configuration is not initialized and DD_TRACE_DEBUG is set' do
-        around do |example|
-          ClimateControl.modify('DD_TRACE_DEBUG' => 'true') do
-            example.run
-          end
-        end
+        with_env 'DD_TRACE_DEBUG' => 'true'
 
         it { expect(logger_without_configuration.level).to be ::Logger::DEBUG }
       end
