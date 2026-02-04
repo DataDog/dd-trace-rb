@@ -112,32 +112,25 @@ module CoreHelpers
       end
     end
 
-    # Resets Components at_fork registration state for test isolation.
-    # Use this at the describe/context level to ensure clean fork state before all examples.
-    #
-    # @example
-    #   describe 'component forking behavior' do
-    #     reset_at_fork_monkey_patch_for_components!
-    #
-    #     it 'handles fork callbacks' do
-    #       # Components::AT_FORK_ONLY_ONCE and AT_FORK_CHILD_BLOCKS are already reset
-    #     end
-    #   end
+    # Resets Components AtForkMonkeyPatch registration state.
+    # Use this at describe/context level in tests that exercise or
+    # assert on the forking behavior of components.
     def reset_at_fork_monkey_patch_for_components!
       before(:all) do
         # Unit tests for at fork monkey patch module reset its state,
         # including the defined handlers.
-        # We need to make sure that our handler is added to the list,
+        # We need to make sure that the handler for Components is registered,
         # because normally it would be added during library initialization
-        # and if the fork monkey patch test runs before this test,
-        # the handler would get cleared out.
+        # and after the fork monkey patch test runs, the handler would get
+        # cleared out.
         Datadog::Core::Configuration::Components.const_get(:AT_FORK_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
 
         # We also need to clear out the handlers because we could have
-        # our own handler registered from the library initialization time,
-        # if the at fork monkey patch did not run before this test.
-        # In this case the handler would be executed twice which is
-        # 1) probably not good and 2) would fail our assertions.
+        # the handlers registered from the library initialization time,
+        # if the at fork monkey patch unit test did not yet run.
+        # In this case the handlers that are already registered would be
+        # executed twice which is 1) probably not good and 2) would fail
+        # our assertions.
         Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
       end
     end
