@@ -7,9 +7,7 @@ require 'datadog/core/utils/base64'
 RSpec.describe Datadog::Core::Remote::Component do
   forking_platform_only
 
-  before(:all) do
-    reset_at_fork_monkey_patch_for_components!
-  end
+  reset_at_fork_monkey_patch_for_components!
 
   let(:settings) do
     Datadog::Core::Configuration::Settings.new.tap do |settings|

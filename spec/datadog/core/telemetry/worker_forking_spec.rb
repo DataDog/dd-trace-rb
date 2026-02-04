@@ -3,9 +3,7 @@ require 'spec_helper'
 RSpec.describe Datadog::Core::Telemetry::Component do
   forking_platform_only
 
-  before(:all) do
-    reset_at_fork_monkey_patch_for_components!
-  end
+  reset_at_fork_monkey_patch_for_components!
 
   let(:sent_payloads) { [] }
 
