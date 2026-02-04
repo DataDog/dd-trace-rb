@@ -6,7 +6,7 @@
 set -ex
 
 # Print the CPU affinity of the current process
-taskset -pc 0
+taskset -pc $$
 
 for run in 1 2 3 4 5; do
   for file in \
