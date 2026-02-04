@@ -30,7 +30,7 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
     end
 
     context "when disabled via the DD_PROFILING_NO_EXTENSION environment variable" do
-      around { |example| ClimateControl.modify("DD_PROFILING_NO_EXTENSION" => "true") { example.run } }
+      with_env "DD_PROFILING_NO_EXTENSION" => "true"
 
       it { is_expected.to include "DD_PROFILING_NO_EXTENSION" }
     end
