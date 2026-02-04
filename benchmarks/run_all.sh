@@ -5,13 +5,8 @@
 
 set -ex
 
-# Use taskset for CPU pinning if we have enough CPUs
-NPROC=$(nproc 2>/dev/null || echo 1)
-if [ "$NPROC" -ge 24 ]; then
-  TASKSET_PREFIX="taskset -c 20-23"
-else
-  TASKSET_PREFIX=""
-fi
+# Print the CPU affinity of the current process
+taskset -pc 0
 
 for run in 1 2 3 4 5; do
   for file in \
@@ -29,7 +24,7 @@ for run in 1 2 3 4 5; do
     $(dirname "$0")/profiling_string_storage_intern.rb \
     $(dirname "$0")/tracing_trace.rb;
   do
-    $TASKSET_PREFIX bundle exec ruby "$file"
+    taskset -c 20-23 bundle exec ruby "$file"
   done
   # Rename results with run ID (e.g., tracing_trace-results.json -> tracing_trace--1--results.json)
   for f in *-results.json; do
