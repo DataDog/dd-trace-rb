@@ -68,7 +68,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             event_rules_version: '1.0.0',
             success: 'true'
           }
-        ).once
+        )
 
         engine
       end
@@ -110,7 +110,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             event_rules_version: '',
             success: 'false'
           }
-        ).once
+        )
 
         expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
       end
@@ -174,7 +174,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             event_rules_version: '',
             success: 'false'
           }
-        ).once
+        )
 
         expect { engine }.to raise_error(Datadog::AppSec::WAF::LibDDWAFError)
       end
@@ -682,7 +682,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
           event_rules_version: '1.0.0',
           success: 'true'
         }
-      ).once
+      )
 
       engine.reconfigure!
     end
@@ -730,7 +730,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
             event_rules_version: '2.0.0',
             success: 'false'
           }
-        ).once
+        )
 
         engine.reconfigure!
       end
