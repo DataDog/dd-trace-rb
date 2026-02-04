@@ -32,7 +32,6 @@ alwaysApply: true
 
 - @standardrb is used for code style enforcement
 - Run `STANDARDOPTS="path/file.rb spec/whole_dir" bundle exec rake standard` to check specific paths, and `STANDARDOPTS="..." rake standard:fix` to fix violations.
-  - ⚠️ Ask before running `bundle exec rake standard:fix_unsafely`.
 - `bundle exec rake lint:frozen_string_literal`: on new `lib/` files only.
 - `yamllint --strict .`: on any `.yml` edit.
 - `actionlint`: on `.github/*.yml` edits.
