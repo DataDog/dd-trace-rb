@@ -1,0 +1,15 @@
+module Datadog
+  module AIGuard
+    module Contrib
+      module RubyLLM
+        module Patcher
+          def self?.patched?: () -> bool?
+
+          def self?.target_version: () -> Gem::Version?
+
+          def self?.patch: () -> void
+        end
+      end
+    end
+  end
+end

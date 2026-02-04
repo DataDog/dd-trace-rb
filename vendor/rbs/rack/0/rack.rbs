@@ -1,0 +1,17 @@
+module Rack
+  class Request
+    def initialize: (::Hash[::String, untyped] env) -> void
+
+    def env: () -> ::Hash[::String, untyped]
+
+    def params: () -> ::Hash[::String, untyped]
+
+    def body: () -> untyped
+
+    def get?: () -> bool
+
+    def post?: () -> bool
+
+    def path: () -> ::String
+  end
+end

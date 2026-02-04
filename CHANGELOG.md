@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [2.28.0] - 2026-02-04
+
+### Added
+
+* AI Guard: Add instrumentation for `ruby_llm` gem. ([#5273][])
+
+### Changed
+
+* Core: Bump minimum version of datadog-ruby_core_source to 3.5.2 ([#5278][])
+
+### Fixed
+
+* AppSec: Fix exception in Rails contrib `:after_routes_loaded` hook when routes are reloaded. ([#5283][])
+
 ## [2.27.0] - 2026-01-21
 
 ### Added
@@ -3472,7 +3486,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.27.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.28.0...master
+[2.28.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.27.0...v2.28.0
 [2.27.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.26.0...v2.27.0
 [2.26.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.25.0...v2.26.0
 [2.25.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.24.0...v2.25.0
@@ -5148,6 +5163,9 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#5246]: https://github.com/DataDog/dd-trace-rb/issues/5246
 [#5247]: https://github.com/DataDog/dd-trace-rb/issues/5247
 [#5254]: https://github.com/DataDog/dd-trace-rb/issues/5254
+[#5273]: https://github.com/DataDog/dd-trace-rb/issues/5273
+[#5278]: https://github.com/DataDog/dd-trace-rb/issues/5278
+[#5283]: https://github.com/DataDog/dd-trace-rb/issues/5283
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
