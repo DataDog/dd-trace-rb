@@ -24,7 +24,7 @@ for run in 1 2 3 4 5; do
     $(dirname "$0")/profiling_string_storage_intern.rb \
     $(dirname "$0")/tracing_trace.rb;
   do
-    taskset -c 20-23 bundle exec ruby "$file"
+    taskset -c 24-27 bundle exec ruby "$file"
   done
   # Rename results with run ID (e.g., tracing_trace-results.json -> tracing_trace--1--results.json)
   for f in *-results.json; do
