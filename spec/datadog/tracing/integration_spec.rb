@@ -262,11 +262,7 @@ RSpec.describe 'Tracer integration tests' do
     context 'with rate set through DD_TRACE_SAMPLE_RATE environment variable' do
       let(:sampler) { nil }
 
-      around do |example|
-        ClimateControl.modify('DD_TRACE_SAMPLE_RATE' => '1.0') do
-          example.run
-        end
-      end
+      with_env 'DD_TRACE_SAMPLE_RATE' => '1.0'
 
       it_behaves_like 'flushed trace'
       it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
