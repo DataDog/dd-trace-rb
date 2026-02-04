@@ -110,29 +110,6 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         expect(span_op.get_tag('_dd.propagated_hash')).to be_nil
       end
     end
-
-    context 'when DD_DBM_INJECT_SQL_BASEHASH=true and DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED=true but propagation_checksum returns nil' do
-      let(:mode) { 'service' }
-      let(:inject_sql_basehash) { true }
-
-      before do
-        allow(agent_info).to receive(:propagation_checksum).and_return(nil)
-      end
-
-      around do |example|
-        without_warnings { Datadog.configuration.reset! }
-        Datadog.configure do |c|
-          c.experimental_propagate_process_tags_enabled = true
-        end
-        example.run
-        without_warnings { Datadog.configuration.reset! }
-      end
-
-      it 'does not set the propagated hash (_dd.propagated_hash) span tag' do
-        described_class.annotate!(span_op, propagation_mode)
-        expect(span_op.get_tag('_dd.propagated_hash')).to be_nil
-      end
-    end
   end
 
   describe '.prepend_comment' do
@@ -210,7 +187,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
               allow(agent_info).to receive(:propagation_checksum).and_return(1234567890)
             end
 
-            it 'includes the base hash (ddsh) in the SQL comment' do
+            it 'includes the propagation hash (ddsh) in the SQL comment' do
               is_expected.to include("ddsh='1234567890'")
             end
           end
@@ -223,7 +200,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
               allow(agent_info).to receive(:propagation_checksum).and_return(1234567890)
             end
 
-            it 'does not include the base hash (ddsh) in the SQL comment' do
+            it 'does not include the propagation hash (ddsh) in the SQL comment' do
               is_expected.not_to include('ddsh')
             end
           end
@@ -236,20 +213,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
               allow(agent_info).to receive(:propagation_checksum).and_return(1234567890)
             end
 
-            it 'does not include the base hash (ddsh) in the SQL comment' do
-              is_expected.not_to include('ddsh')
-            end
-          end
-
-          context 'when DD_DBM_INJECT_SQL_BASEHASH=true and DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED=true but propagation_checksum returns nil' do
-            let(:inject_sql_basehash) { true }
-
-            before do
-              Datadog.configuration.experimental_propagate_process_tags_enabled = true
-              allow(agent_info).to receive(:propagation_checksum).and_return(nil)
-            end
-
-            it 'does not include the base hash (ddsh) in the SQL comment' do
+            it 'does not include the propagation hash (ddsh) in the SQL comment' do
               is_expected.not_to include('ddsh')
             end
           end

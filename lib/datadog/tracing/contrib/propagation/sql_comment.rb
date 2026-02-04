@@ -16,15 +16,12 @@ module Datadog
 
             config = Datadog.configuration
 
-            # Add base hash to the span tag if both flags are enabled:
-            # 1. DD_DBM_INJECT_SQL_BASEHASH set globally or via the per db integration inject_sql_basehash flag
-            # 2. DD_PROPAGATE_PROCESS_TAGS_ENABLED set globally
-            # This check matches the behavior in Python
+            # Add DBM propagation hash when enabled and available.
+            # This matches the behavior in the Python tracer:
             # https://github.com/DataDog/dd-trace-py/blob/5e94be5c97b42060e5800e35d8fa41472fb8c569/ddtrace/propagation/_database_monitoring.py#L89
-            # TODO: Check if we actually want inject_sql_basehash to control a span tag since the name only implies sql comments
             if mode.inject_sql_basehash? && config.experimental_propagate_process_tags_enabled
-              base_hash = Datadog.send(:components).agent_info.propagation_checksum
-              span_op.set_tag(Ext::TAG_PROPAGATED_HASH, base_hash.to_s) if base_hash
+              checksum = Datadog.send(:components).agent_info.propagation_checksum
+              span_op.set_tag(Ext::TAG_PROPAGATED_HASH, checksum.to_s) if checksum
             end
 
             span_op.set_tag(Ext::TAG_DBM_TRACE_INJECTED, true) if mode.full?
@@ -49,14 +46,12 @@ module Datadog
               Ext::KEY_PEER_SERVICE => peer_service,
             }
 
-            # Add base hash to SQL comment if both flags are enabled:
-            # 1. DD_DBM_INJECT_SQL_BASEHASH set globally or via the per db integration inject_sql_basehash flag
-            # 2. DD_PROPAGATE_PROCESS_TAGS_ENABLED set globally
-            # This matches the behavior in Python:
-            # # https://github.com/DataDog/dd-trace-py/blob/5e94be5c97b42060e5800e35d8fa41472fb8c569/ddtrace/propagation/_database_monitoring.py#L139
+            # Add DBM propagation hash to SQL comment when enabled and available.
+            # This matches the behavior in the Python tracer:
+            # https://github.com/DataDog/dd-trace-py/blob/5e94be5c97b42060e5800e35d8fa41472fb8c569/ddtrace/propagation/_database_monitoring.py#L139
             if mode.inject_sql_basehash? && config.experimental_propagate_process_tags_enabled
-              base_hash = Datadog.send(:components).agent_info.propagation_checksum
-              tags[Ext::KEY_BASE_HASH] = base_hash.to_s if base_hash
+              checksum = Datadog.send(:components).agent_info.propagation_checksum
+              tags[Ext::KEY_BASE_HASH] = checksum.to_s if checksum
             end
 
             db_service = peer_service || span_op.service
