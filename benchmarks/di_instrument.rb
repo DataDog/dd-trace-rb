@@ -95,7 +95,7 @@ class DIInstrumentBenchmark
     file, line = m.source_location
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 60, warmup: 0}
       x.config(
         **benchmark_time,
       )
@@ -125,7 +125,7 @@ class DIInstrumentBenchmark
     end
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 60, warmup: 0}
       x.config(
         **benchmark_time,
       )
@@ -171,7 +171,7 @@ class DIInstrumentBenchmark
     end
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 60, warmup: 0}
       x.config(
         **benchmark_time,
       )
@@ -222,7 +222,7 @@ class DIInstrumentBenchmark
     end
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 60, warmup: 0}
       x.config(
         **benchmark_time,
       )
@@ -251,7 +251,7 @@ class DIInstrumentBenchmark
     calls = 0
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 60, warmup: 0}
       x.config(
         **benchmark_time,
       )
@@ -271,7 +271,7 @@ class DIInstrumentBenchmark
     end
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 60, warmup: 0}
       x.config(
         **benchmark_time,
       )
@@ -291,7 +291,7 @@ class DIInstrumentBenchmark
     end
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 60, warmup: 0}
       x.config(
         **benchmark_time,
       )
