@@ -24,6 +24,9 @@ module Datadog
       # Traced methods are only traced if already within a trace (i.e they do
       # not create traces by themselves).
       #
+      # Dynamic methods (e.g via `method_missing`) can be traced via `dynamic: true`
+      # by relaxing method existence sanity checks.
+      #
       # Note: this uses Module#Prepend, so do not use on methods that have been
       # alias method chained or you risk an infinite recusion crash.
       module MethodTracer
@@ -33,15 +36,18 @@ module Datadog
           # @param mod [Module] module or class containing the method to trace
           # @param method_name [Symbol] name of the method to trace
           # @param span_name [String, nil] optional span name (defaults to "Module#method")
+          # @param dynamic [Boolean] if true, skip method existence check (for method_missing-handled methods)
           # @return [void]
-          def trace_method(mod, method_name, span_name = nil)
+          def trace_method(mod, method_name, span_name = nil, dynamic: false)
             raise ArgumentError, 'mod is not a module' unless mod.is_a?(Module)
             raise ArgumentError, 'module name is nil' if mod.name.nil? && span_name.nil?
             is_private = mod.private_method_defined?(method_name)
             is_protected = mod.protected_method_defined?(method_name)
             is_defined = is_private || mod.method_defined?(method_name)
 
-            raise NoMethodError, "undefined method #{method_name.inspect} for class #{mod}" unless is_defined
+            unless is_defined || dynamic
+              raise NoMethodError, "undefined method #{method_name.inspect} for class #{mod}"
+            end
 
             hook_point = "#{mod.name}##{method_name}"
             custom_span_name = span_name
@@ -82,9 +88,10 @@ module Datadog
         #
         # @param method_name [Symbol] name of the method to trace
         # @param span_name [String, nil] optional span name (defaults to "Module#method")
+        # @param dynamic [Boolean] if true, skip method existence check (for method_missing-handled methods)
         # @return [void]
-        def trace_method(method_name, span_name = nil)
-          MethodTracer.trace_method(self, method_name, span_name)
+        def trace_method(method_name, span_name = nil, dynamic: false)
+          MethodTracer.trace_method(self, method_name, span_name, dynamic: dynamic)
         end
       end
     end

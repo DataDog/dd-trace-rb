@@ -2,8 +2,8 @@ module Datadog
   module Kit
     module Tracing
       module MethodTracer : Module
-        def self.trace_method: (Module klass, Symbol method_name, ?String? span_name) -> void
-        def trace_method: (Symbol method_name, ?String? span_name) -> void
+        def self.trace_method: (Module klass, Symbol method_name, ?String? span_name, ?dynamic: bool) -> void
+        def trace_method: (Symbol method_name, ?String? span_name, ?dynamic: bool) -> void
       end
     end
   end

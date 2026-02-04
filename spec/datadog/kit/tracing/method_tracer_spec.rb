@@ -140,6 +140,77 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       )
     end
 
+    context 'with dynamic: true for method_missing-handled methods' do
+      let(:dummy_class) do
+        Class.new do
+          def method_missing(method_name, *args, &block)
+            case method_name
+            when :dynamic_method
+              @called = true
+              42
+            else
+              super
+            end
+          end
+
+          def respond_to_missing?(method_name, include_private = false)
+            method_name == :dynamic_method || super
+          end
+
+          def called?
+            @called || false
+          end
+        end
+      end
+
+      it 'does not raise when method is handled by method_missing' do
+        expect { Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :dynamic_method, nil, dynamic: true) }
+          .not_to raise_error
+      end
+
+      it 'traces dynamic method within a trace context' do
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :dynamic_method, nil, dynamic: true)
+
+        result = Datadog::Tracing.trace('wrapper') do
+          dummy.dynamic_method
+        end
+
+        expect(dummy.called?).to be true
+        expect(result).to eq(42)
+        expect(spans.count { |s| s.name == 'Dummy#dynamic_method' }).to eq(1)
+      end
+
+      it 'traces dynamic method with custom span name' do
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :dynamic_method, 'custom_dynamic_span', dynamic: true)
+
+        result = Datadog::Tracing.trace('wrapper') do
+          dummy.dynamic_method
+        end
+
+        expect(dummy.called?).to be true
+        expect(result).to eq(42)
+        expect(spans.count { |s| s.name == 'custom_dynamic_span' }).to eq(1)
+      end
+
+      it 'does not trace dynamic method outside of a trace context' do
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :dynamic_method, nil, dynamic: true)
+
+        result = dummy.dynamic_method
+
+        expect(dummy.called?).to be true
+        expect(result).to eq(42)
+        expect(spans.count { |s| s.name == 'Dummy#dynamic_method' }).to eq(0)
+      end
+
+      it 'raises NoMethodError when dynamic method is not handled by method_missing' do
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :unhandled_method, nil, dynamic: true)
+
+        Datadog::Tracing.trace('wrapper') do
+          expect { dummy.unhandled_method }.to raise_error(NoMethodError, /unhandled_method/)
+        end
+      end
+    end
+
     it 'preserves private visibility' do
       dummy_class.class_eval do
         private
@@ -601,6 +672,51 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
 
         expect(dummy.called).to eq(1)
         expect(spans.count { |s| s.name == 'Dummy#foo' }).to eq(0)
+      end
+    end
+
+    context 'with dynamic: true for method_missing-handled methods' do
+      let(:dummy_class) do
+        Class.new do
+          extend Datadog::Kit::Tracing::MethodTracer
+
+          def method_missing(method_name, *args, &block)
+            case method_name
+            when :dynamic_method
+              @called = true
+              42
+            else
+              super
+            end
+          end
+
+          def respond_to_missing?(method_name, include_private = false)
+            method_name == :dynamic_method || super
+          end
+
+          def called?
+            @called || false
+          end
+
+          trace_method :dynamic_method, 'dynamic_method_span', dynamic: true
+          trace_method :unhandled_method, 'unhandled_method_span', dynamic: true
+        end
+      end
+
+      it 'traces dynamic method within a trace context' do
+        result = Datadog::Tracing.trace('wrapper') do
+          dummy.dynamic_method
+        end
+
+        expect(dummy.called?).to be true
+        expect(result).to eq(42)
+        expect(spans.count { |s| s.name == 'dynamic_method_span' }).to eq(1)
+      end
+
+      it 'raises NoMethodError when dynamic method is not handled by method_missing' do
+        Datadog::Tracing.trace('wrapper') do
+          expect { dummy.unhandled_method }.to raise_error(NoMethodError, /unhandled_method/)
+        end
       end
     end
 
