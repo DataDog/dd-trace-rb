@@ -9,6 +9,7 @@ module Datadog
             ENV_DBM_PROPAGATION_MODE = 'DD_DBM_PROPAGATION_MODE'
 
             # Determines whether to inject the propagation hash into the SQL comment
+            # TODO: BASEHASH is confusing as a name, so look into better names that can apply cross tracer in the future
             ENV_DBM_INJECT_SQL_BASEHASH = 'DD_DBM_INJECT_SQL_BASEHASH'
 
             # The default mode for sql comment propagation
