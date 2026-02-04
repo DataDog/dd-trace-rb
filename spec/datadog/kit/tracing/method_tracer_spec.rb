@@ -365,7 +365,7 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
         dummy_class.class_eval do
           def explode
             @called = true
-            raise RuntimeError, 'boom'
+            raise RuntimeError, 'boom' # standard:disable Style/RedundantException # intentionally explicit
           end
 
           def called?
