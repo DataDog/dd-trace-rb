@@ -181,7 +181,7 @@ module Datadog
               )
             elsif config_diagnostics['errors']
               config_diagnostics['errors'].each do |error, config_ids|
-                telemetry.error("#{error}: [#{config_ids.join(',')}]")
+                telemetry.error("#{error}: [#{config_ids.join(",")}]")
               end
 
               telemetry.inc(
