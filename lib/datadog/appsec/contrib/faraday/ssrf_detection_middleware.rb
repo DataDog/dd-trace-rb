@@ -12,13 +12,13 @@ module Datadog
       module Faraday
         # AppSec SSRF detection Middleware for Faraday
         class SSRFDetectionMiddleware < ::Faraday::Middleware
-          ANALYZE_BODY_KEY = :__datadog_appsec_analyze_body
+          SAMPLE_BODY_KEY = :__datadog_appsec_sample_downstream_body
 
           def call(env)
             context = AppSec.active_context
             return @app.call(env) unless context && AppSec.rasp_enabled?
 
-            env[ANALYZE_BODY_KEY] = analyze_body?(context)
+            mark_body_sampling!(env, context: context)
 
             headers = normalize_headers(env.request_headers)
             ephemeral_data = {
@@ -27,9 +27,8 @@ module Datadog
               'server.io.net.request.headers' => headers
             }
 
-            if env[ANALYZE_BODY_KEY] && (media_type = Utils::HTTP::MediaType.parse(headers['content-type']))
-              body = Utils::HTTP::Body.parse(env.body, media_type: media_type)
-              ephemeral_data['server.io.net.request.body'] = body if body
+            if env[SAMPLE_BODY_KEY] && (body = parse_body(env.body, content_type: headers['content-type']))
+              ephemeral_data['server.io.net.request.body'] = body
             end
 
             timeout = Datadog.configuration.appsec.waf_timeout
@@ -48,9 +47,8 @@ module Datadog
               'server.io.net.response.headers' => headers
             }
 
-            if env[ANALYZE_BODY_KEY] && (media_type = Utils::HTTP::MediaType.parse(headers['content-type']))
-              body = Utils::HTTP::Body.parse(env.body, media_type: media_type)
-              ephemeral_data['server.io.net.response.body'] = body if body
+            if env[SAMPLE_BODY_KEY] && (body = parse_body(env.body, content_type: headers['content-type']))
+              ephemeral_data['server.io.net.response.body'] = body
             end
 
             timeout = Datadog.configuration.appsec.waf_timeout
@@ -58,13 +56,20 @@ module Datadog
             handle(result, context: context) if result.match?
           end
 
-          def analyze_body?(context)
+          def mark_body_sampling!(env, context:)
             max = Datadog.configuration.appsec.api_security.downstream_body_analysis.max_requests
-            return false if context.state[:downstream_body_analyzed_count] >= max
-            return false unless context.downstream_body_sampler.sample?
+            return if context.state[:downstream_body_analyzed_count] >= max
+            return unless context.downstream_body_sampler.sample?
 
             context.state[:downstream_body_analyzed_count] += 1
-            true
+            env[SAMPLE_BODY_KEY] = true
+          end
+
+          def parse_body(body, content_type:)
+            media_type = Utils::HTTP::MediaType.parse(content_type)
+            return unless media_type
+
+            Utils::HTTP::Body.parse(body, media_type: media_type)
           end
 
           def normalize_headers(headers)
