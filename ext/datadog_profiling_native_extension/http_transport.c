@@ -89,12 +89,17 @@ static ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration) {
     return ddog_prof_Endpoint_agentless(
       char_slice_from_ruby_string(site),
       char_slice_from_ruby_string(api_key),
-      timeout_milliseconds
+      timeout_milliseconds,
+      false // use_system_resolver
     );
   } else if (working_mode == rb_intern("agent")) {
     VALUE base_url = rb_ary_entry(exporter_configuration, 2);
 
-    return ddog_prof_Endpoint_agent(char_slice_from_ruby_string(base_url), timeout_milliseconds);
+    return ddog_prof_Endpoint_agent(
+      char_slice_from_ruby_string(base_url),
+      timeout_milliseconds,
+      false // use_system_resolver
+    );
   } else {
     raise_error(rb_eArgError, "Failed to initialize transport: Unexpected working mode, expected :agentless or :agent");
   }
