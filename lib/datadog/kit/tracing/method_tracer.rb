@@ -29,6 +29,8 @@ module Datadog
       #
       # Note: this uses Module#Prepend, so do not use on methods that have been
       # alias method chained or you risk an infinite recusion crash.
+      #
+      # @public_api
       module MethodTracer
         class << self
           # Trace an instance method by module and name
