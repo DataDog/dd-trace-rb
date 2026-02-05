@@ -23,10 +23,9 @@ module Datadog
               'server.io.net.request.headers' => headers
             }
 
-            analyze_body = analyze_body?(context)
-            if analyze_body && payload && (media_type = Utils::HTTP::MediaType.parse(headers['content-type']))
-              body = Utils::HTTP::Body.parse(payload.to_s, media_type: media_type)
-              ephemeral_data['server.io.net.request.body'] = body if body
+            sample_body = mark_body_sampling!(context)
+            if sample_body && (body = parse_body(payload.to_s, content_type: headers['content-type']))
+              ephemeral_data['server.io.net.request.body'] = body
             end
 
             timeout = Datadog.configuration.appsec.waf_timeout
@@ -41,9 +40,8 @@ module Datadog
               'server.io.net.response.headers' => headers
             }
 
-            if analyze_body && (media_type = Utils::HTTP::MediaType.parse(headers['content-type']))
-              body = Utils::HTTP::Body.parse(response.body, media_type: media_type)
-              ephemeral_data['server.io.net.response.body'] = body if body
+            if sample_body && (body = parse_body(response.body, content_type: headers['content-type']))
+              ephemeral_data['server.io.net.response.body'] = body
             end
 
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
@@ -54,13 +52,22 @@ module Datadog
 
           private
 
-          def analyze_body?(context)
+          def mark_body_sampling!(context)
             max = Datadog.configuration.appsec.api_security.downstream_body_analysis.max_requests
             return false if context.state[:downstream_body_analyzed_count] >= max
             return false unless context.downstream_body_sampler.sample?
 
             context.state[:downstream_body_analyzed_count] += 1
             true
+          end
+
+          def parse_body(body, content_type:)
+            return if body.empty?
+
+            media_type = Utils::HTTP::MediaType.parse(content_type)
+            return unless media_type
+
+            Utils::HTTP::Body.parse(body, media_type: media_type)
           end
 
           # NOTE: Starting version 2.1.0 headers are already normalized via internal

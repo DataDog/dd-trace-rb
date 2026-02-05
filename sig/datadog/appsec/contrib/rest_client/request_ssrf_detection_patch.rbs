@@ -9,7 +9,9 @@ module Datadog
 
           private
 
-          def analyze_body?: (Context context) -> bool
+          def mark_body_sampling!: (Context context) -> bool
+
+          def parse_body: (::String body, content_type: ::String?) -> untyped
 
           def normalize_request_headers: () -> headers
 
