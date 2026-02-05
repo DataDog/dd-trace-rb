@@ -159,9 +159,11 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
   context 'when request content-type is not JSON' do
     before { client.post('/application-json', '{"key":"value"}', {'Content-Type' => 'text/plain'}) }
 
-    it 'does not include body in ephemeral data' do
+    it 'does not include request body in ephemeral data' do
       expect(context).to have_received(:run_rasp)
         .with('ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'request')
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'response' => 'OK'}), anything, phase: 'response')
     end
   end
 

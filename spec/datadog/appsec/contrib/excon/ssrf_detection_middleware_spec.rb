@@ -208,10 +208,11 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
       client.post(path: '/application-json', headers: {'Content-Type' => 'text/plain'}, body: '{"key":"value"}')
     end
 
-    it 'does not include body in ephemeral data' do
-      expect(context).to have_received(:run_rasp).with('ssrf', {}, anything, anything, phase: 'request')
+    it 'does not include request body in ephemeral data' do
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'response')
+        .with('ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'request')
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'response' => 'OK'}), anything, phase: 'response')
     end
   end
 
