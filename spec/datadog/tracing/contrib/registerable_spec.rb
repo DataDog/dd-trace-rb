@@ -59,40 +59,38 @@ RSpec.describe Datadog::Tracing::Contrib::Registerable do
         end
       end
 
-      describe '#register_as_alias' do
-        subject(:register_as_alias) { registerable_class.register_as_alias(:original, :alias, **options) }
+      describe '#register_alias_for' do
+        subject(:register_alias_for) { registerable_class.register_alias_for(:original, as: :alias, **options) }
 
-        context 'when a registry' do
-          context 'is provided' do
-            let(:options) { {registry: registry} }
-            let(:registry) { Datadog::Tracing::Contrib::Registry.new }
+        context 'when the registry is not provided' do
+          let(:options) { {} }
+          let(:registry) { Datadog::Tracing::Contrib::Registry.new }
 
-            context 'with the original integration not registered' do
-              it { expect { register_as_alias }.to raise_error(ArgumentError, "integration 'original' not registered") }
-            end
+          before { registerable_class.register_as(:original, registry: registry) }
 
-            context 'with the original integration registered' do
-              before { registerable_class.register_as(:original, registry: registry) }
+          it 'invokes the global Datadog.registry' do
+            stub_const('Datadog::Tracing::Contrib::REGISTRY', registry)
 
-              it 'creates an alias to the original integration object' do
-                register_as_alias
-                expect(registry[:alias]).to be(registry[:original])
-              end
-            end
+            register_alias_for
+            expect(registry[:alias]).to be(registry[:original])
           end
+        end
 
-          context 'is not provided' do
-            let(:options) { {} }
-            let(:registry) { Datadog::Tracing::Contrib::Registry.new }
+        context 'when the original integration is not registered' do
+          let(:options) { {registry: registry} }
+          let(:registry) { Datadog::Tracing::Contrib::Registry.new }
 
-            before { registerable_class.register_as(:original, registry: registry) }
+          it { expect { register_alias_for }.to raise_error(ArgumentError, "integration 'original' not registered") }
+        end
 
-            it 'invokes the global Datadog.registry' do
-              stub_const('Datadog::Tracing::Contrib::REGISTRY', registry)
+        context 'when the original integration is registered' do
+          let(:options) { {registry: registry} }
+          let(:registry) { Datadog::Tracing::Contrib::Registry.new }
+          before { registerable_class.register_as(:original, registry: registry) }
 
-              register_as_alias
-              expect(registry[:alias]).to be(registry[:original])
-            end
+          it 'creates an alias to the original integration object' do
+            register_alias_for
+            expect(registry[:alias]).to be(registry[:original])
           end
         end
       end

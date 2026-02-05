@@ -19,7 +19,7 @@ module Datadog
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :sneakers, auto_patch: true
-          register_as_alias :sneakers, :kicks
+          register_alias_for :sneakers, as: :kicks
 
           # Sneakers development continues in the Kicks gem.
           # The **only** thing that has changed is the gem name,
@@ -38,7 +38,7 @@ module Datadog
           end
 
           def self.compatible?
-            super && version >= MINIMUM_SNEAKERS_VERSION
+            super && !!(version&.>= MINIMUM_SNEAKERS_VERSION)
           end
 
           def new_configuration

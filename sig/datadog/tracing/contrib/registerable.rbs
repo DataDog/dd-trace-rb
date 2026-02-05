@@ -6,7 +6,7 @@ module Datadog
         module ClassMethods
           def register_as: (untyped name, ?registry: untyped, ?auto_patch: bool, **untyped options) -> untyped
 
-          def register_as_alias: (Symbol original_name, Symbol  alias_name, registry: Registry) -> void
+          def register_alias_for: (Symbol original_name, as: Symbol, registry: Registry) -> void
         end
         module InstanceMethods
           attr_reader name: untyped
