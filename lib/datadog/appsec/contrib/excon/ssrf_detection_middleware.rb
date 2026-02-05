@@ -23,6 +23,7 @@ module Datadog
             mark_body_sampling!(data, context: context)
 
             headers = normalize_headers(data[:headers])
+            # @type var ephemeral_data: ::Datadog::AppSec::Context::input_data
             ephemeral_data = {
               'server.io.net.url' => request_url(data),
               'server.io.net.request.method' => data[:method].to_s.upcase,
@@ -45,6 +46,7 @@ module Datadog
             return super unless context && AppSec.rasp_enabled?
 
             headers = normalize_headers(data.dig(:response, :headers))
+            # @type var ephemeral_data: ::Datadog::AppSec::Context::input_data
             ephemeral_data = {
               'server.io.net.response.status' => data.dig(:response, :status).to_s,
               'server.io.net.response.headers' => headers

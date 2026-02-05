@@ -11,7 +11,7 @@ module Datadog
 
           def mark_body_sampling!: (Context context) -> bool
 
-          def parse_body: (::String body, content_type: ::String?) -> untyped
+          def parse_body: (::String body, content_type: ::String?) -> ::Helpers::json?
 
           def normalize_request_headers: () -> headers
 

@@ -2,7 +2,7 @@ module Datadog
   module AppSec
     module SecurityEngine
       class Runner
-        type input_data = ::Hash[::String, untyped]
+        type input_data = ::Hash[::String, any]
 
         @mutex: ::Mutex
 

@@ -10,21 +10,27 @@ require 'tempfile'
 RSpec.describe Datadog::AppSec::Utils::HTTP::Body do
   describe '.parse' do
     context 'when body is nil' do
-      let(:media_type) { Datadog::AppSec::Utils::HTTP::MediaType.new('application/json') }
+      let(:media_type) do
+        Datadog::AppSec::Utils::HTTP::MediaType.new(type: 'application', subtype: 'json')
+      end
       let(:result) { described_class.parse(nil, media_type: media_type) }
 
       it { expect(result).to be_nil }
     end
 
     context 'when body is empty' do
-      let(:media_type) { Datadog::AppSec::Utils::HTTP::MediaType.new('application/x-www-form-urlencoded') }
+      let(:media_type) do
+        Datadog::AppSec::Utils::HTTP::MediaType.new(type: 'application', subtype: 'x-www-form-urlencoded')
+      end
       let(:result) { described_class.parse('', media_type: media_type) }
 
       it { expect(result).to be_nil }
     end
 
     context 'when media type is application/json' do
-      let(:media_type) { Datadog::AppSec::Utils::HTTP::MediaType.new('application/json') }
+      let(:media_type) do
+        Datadog::AppSec::Utils::HTTP::MediaType.new(type: 'application', subtype: 'json')
+      end
 
       context 'when body is a String' do
         let(:result) { described_class.parse('{"key":"value"}', media_type: media_type) }
@@ -66,14 +72,18 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::Body do
     end
 
     context 'when media type is application/vnd.api+json' do
-      let(:media_type) { Datadog::AppSec::Utils::HTTP::MediaType.new('application/vnd.api+json') }
+      let(:media_type) do
+        Datadog::AppSec::Utils::HTTP::MediaType.new(type: 'application', subtype: 'vnd.api+json')
+      end
       let(:result) { described_class.parse('{"data":"value"}', media_type: media_type) }
 
       it { expect(result).to eq({'data' => 'value'}) }
     end
 
     context 'when media type is application/x-www-form-urlencoded' do
-      let(:media_type) { Datadog::AppSec::Utils::HTTP::MediaType.new('application/x-www-form-urlencoded') }
+      let(:media_type) do
+        Datadog::AppSec::Utils::HTTP::MediaType.new(type: 'application', subtype: 'x-www-form-urlencoded')
+      end
 
       context 'when body is a String' do
         let(:result) { described_class.parse('key=value&foo=bar', media_type: media_type) }
@@ -89,7 +99,9 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::Body do
     end
 
     context 'when media type is unsupported' do
-      let(:media_type) { Datadog::AppSec::Utils::HTTP::MediaType.new('text/plain') }
+      let(:media_type) do
+        Datadog::AppSec::Utils::HTTP::MediaType.new(type: 'text', subtype: 'plain')
+      end
       let(:result) { described_class.parse('some text', media_type: media_type) }
 
       it { expect(result).to be_nil }

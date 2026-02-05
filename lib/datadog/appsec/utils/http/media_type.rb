@@ -73,7 +73,7 @@ module Datadog
               end
             end
 
-            self.new(type: type, subtype: subtype, parameters: parameters)
+            new(type: type, subtype: subtype, parameters: parameters)
           end
 
           def initialize(type:, subtype:, parameters: {})

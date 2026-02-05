@@ -13,7 +13,7 @@ module Datadog
 
           def mark_body_sampling!: (::Excon::Middleware::Base::datum data, context: Context) -> void
 
-          def parse_body: (Utils::HTTP::Body::body body, content_type: ::String?) -> untyped
+          def parse_body: (Utils::HTTP::Body::body body, content_type: ::String?) -> ::Helpers::json?
 
           def request_url: (::Excon::Middleware::Base::datum data) -> ::String
 

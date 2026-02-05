@@ -17,6 +17,7 @@ module Datadog
             return super unless context && AppSec.rasp_enabled?
 
             headers = normalize_request_headers
+            # @type var ephemeral_data: ::Datadog::AppSec::Context::input_data
             ephemeral_data = {
               'server.io.net.url' => url,
               'server.io.net.request.method' => method.to_s.upcase,
@@ -35,6 +36,7 @@ module Datadog
             response = super
 
             headers = normalize_response_headers(response)
+            # @type var ephemeral_data: ::Datadog::AppSec::Context::input_data
             ephemeral_data = {
               'server.io.net.response.status' => response.code.to_s,
               'server.io.net.response.headers' => headers

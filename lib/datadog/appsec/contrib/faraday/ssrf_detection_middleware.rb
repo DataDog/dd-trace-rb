@@ -21,6 +21,7 @@ module Datadog
             mark_body_sampling!(env, context: context)
 
             headers = normalize_headers(env.request_headers)
+            # @type var ephemeral_data: ::Datadog::AppSec::Context::input_data
             ephemeral_data = {
               'server.io.net.url' => env.url.to_s,
               'server.io.net.request.method' => env.method.to_s.upcase,
@@ -42,6 +43,7 @@ module Datadog
 
           def on_complete(env, context:)
             headers = normalize_headers(env.response_headers)
+            # @type var ephemeral_data: ::Datadog::AppSec::Context::input_data
             ephemeral_data = {
               'server.io.net.response.status' => env.status.to_s,
               'server.io.net.response.headers' => headers
