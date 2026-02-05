@@ -7,6 +7,8 @@ set -ex
 
 SCRIPT_DIR="$(dirname "$0")"
 
+nproc
+
 # Print the CPU affinity of the current process
 taskset -pc $$
 
