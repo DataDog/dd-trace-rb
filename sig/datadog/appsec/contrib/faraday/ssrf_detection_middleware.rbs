@@ -13,7 +13,7 @@ module Datadog
 
           def mark_body_sampling!: (::Faraday::Env env, context: Context) -> void
 
-          def parse_body: (Utils::HTTP::Body::body body, content_type: ::String?) -> untyped
+          def parse_body: (Utils::HTTP::Body::body body, content_type: ::String?) -> ::Helpers::json?
 
           def normalize_headers: (::Faraday::Utils::Headers? headers) -> ::Hash[::String, ::String]
 
