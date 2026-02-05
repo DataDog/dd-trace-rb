@@ -167,6 +167,7 @@ microbenchmarks:
     - interruptible: true
   timeout: 4h
   script:
+    - set -x
     - export ARTIFACTS_DIR="$(pwd)/artifacts" && (mkdir "${ARTIFACTS_DIR}" || :)
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
     - git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform benchmarking-platform && cd benchmarking-platform
