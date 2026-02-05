@@ -28,7 +28,7 @@ module Datadog
 
         if message.nil?
           if block
-            super(severity) do
+            super(severity, nil, progname) do
               "[#{self.progname}] #{where}#{yield}"
             end
           else
