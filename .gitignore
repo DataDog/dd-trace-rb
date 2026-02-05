@@ -18,7 +18,6 @@ TODO
 ext/**/skipped_reason.txt
 .cursor/
 .cache/
-.vscode/
 compile_commands.json
 
 ## Documentation cache and generated files:

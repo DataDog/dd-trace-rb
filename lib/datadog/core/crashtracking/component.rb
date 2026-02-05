@@ -51,12 +51,21 @@ module Datadog
 
         def start
           start_or_update_on_fork(action: :start, tags: tags)
+
+          # Install Ruby exception crash reporting at_exit hook
+          # This complements signal-based crash reporting by capturing unhandled Ruby exceptions
+          install_ruby_crash_reporting_hook
         end
 
         def update_on_fork(settings: Datadog.configuration)
           # Here we pick up the latest settings, so that we pick up any tags that change after forking
           # such as the pid or runtime-id
           start_or_update_on_fork(action: :update_on_fork, tags: TagBuilder.call(settings))
+
+          # Update crash data after fork (mainly PID)
+          self.class._native_update_crash_data_on_fork
+        rescue => e
+          logger.error("Failed to update crash data on fork: #{e.message}")
         end
 
         def stop
@@ -83,6 +92,49 @@ module Datadog
           logger.debug("Crash tracking action: #{action} successful")
         rescue => e
           logger.error("Failed to #{action} crash tracking: #{e.message}")
+        end
+
+        def report_unhandled_exception(exception)
+          return unless exception
+          return if exception.is_a?(SystemExit) || exception.is_a?(Interrupt)
+
+          begin
+            # Pass backtrace_locations directly to native code for clean access
+            backtrace_locations = exception.backtrace_locations || []
+
+            self.class._native_report_ruby_exception(
+              agent_base_url,
+              exception.class.name,
+              exception.message || '',
+              backtrace_locations,
+              tags.to_a
+            )
+
+            Datadog.logger.info("Reported Ruby exception crash: #{exception.class.name}: #{exception.message}")
+          rescue => e
+            # don't let crash reporting itself crash the exit process
+            Datadog.logger.error("Failed to report Ruby exception crash: #{e.message}")
+          end
+        end
+
+        def install_ruby_crash_reporting_hook
+          # install our crash reporting hook early in the at_exit chain
+          # this runs before the main Datadog shutdown hook
+          at_exit do
+            exception = $!
+
+            # report the exception if it's an unhandled crash
+            if exception &&
+                !exception.is_a?(SystemExit) &&
+                !exception.is_a?(Interrupt) &&
+                !Thread.current[:_dd_crash_reported] # avoid double reporting
+
+              Thread.current[:_dd_crash_reported] = true
+              report_unhandled_exception(exception)
+            end
+          end
+
+          Datadog.logger.debug { 'Ruby crash reporting at_exit hook installed' }
         end
       end
     end
