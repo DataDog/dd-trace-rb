@@ -12,22 +12,24 @@ module Datadog
       #
       #       def foo; 'hello'; end
       #
-      #       trace_method :foo, 'my_span_name'
+      #       trace_method :foo, span_name: 'optional_span_name'
       #     end
       #
       # Or directly:
       #
-      #     Datadog::Kit::Tracing::MethodTracer.trace_method(MyClass, :foo, 'my_span_name')
+      #     Datadog::Kit::Tracing::MethodTracer.trace_method(MyClass, :foo, span_name: 'optional_span_name')
       #
-      # Span name is optional and defaults to 'Class#method'
+      # Span name is optional and defaults to 'Class#method'.
       #
       # Traced methods are only traced if already within a trace (i.e they do
       # not create traces by themselves).
       #
-      # Dynamic methods (e.g via `method_missing`) can be traced via `dynamic: true`
-      # by relaxing method existence sanity checks.
+      # Regular methods must be defined before `trace_method` can be called.
+      # Dynamic methods (e.g via `method_missing` or defined later) can be
+      # traced via `dynamic: true`, which relaxes method existence sanity
+      # checks, but will prevent preserving method visibility.
       #
-      # Note: this uses Module#Prepend, so do not use on methods that have been
+      # Note that this uses Module#prepend, so do not use on methods that have been
       # alias method chained or you risk an infinite recusion crash.
       #
       # @public_api
