@@ -166,6 +166,10 @@ microbenchmarks:
       interruptible: false
     - interruptible: true
   timeout: 4h
+  parallel:
+    matrix:
+      - BENCHMARKS: "profiling_allocation.rb profiling_gc.rb profiling_hold_resume_interruptions.rb profiling_http_transport.rb profiling_memory_sample_serialize.rb profiling_sample_loop_v2.rb profiling_sample_serialize.rb profiling_sample_gvl.rb profiling_string_storage_intern.rb"
+      - BENCHMARKS: "error_tracking_simple.rb tracing_trace.rb di_instrument.rb library_gem_loading.rb"
   script:
     - set -x
     - export ARTIFACTS_DIR="$(pwd)/artifacts" && (mkdir "${ARTIFACTS_DIR}" || :)
@@ -187,6 +191,11 @@ microbenchmarks:
       - artifacts/
     expire_in: 3 months
   variables:
+    # Benchmark execution settings
+    REPETITIONS: "10"
+    CPU_AFFINITY: "24-47"
+    CPUS_PER_BENCHMARK: "2"
+
     KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: dd-trace-rb
     FF_USE_LEGACY_KUBERNETES_EXECUTION_STRATEGY: "true"
     UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
