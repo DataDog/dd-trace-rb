@@ -432,9 +432,12 @@ static VALUE end_heap_allocation_recording(VALUE protect_args) {
     // data required for committing though.
     heap_recorder->active_recording = NULL;
 
-    if (active_recording == &SKIPPED_RECORD) { // special marker when we decided to skip due to sampling
-      // Note: Remember to update the short circuit in end_heap_allocation_recording_with_rb_protect if this logic changes
-      return Qnil;
+    if (active_recording == &SKIPPED_RECORD) {
+      raise_error(
+        rb_eRuntimeError,
+        "BUG: end_heap_allocation_recording should never observe SKIPPED_RECORDING because " \
+        "end_heap_allocation_recording_with_rb_protect is supposed to test for it directly"
+      );
     }
   #endif
 
