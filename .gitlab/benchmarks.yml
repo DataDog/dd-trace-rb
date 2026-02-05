@@ -159,7 +159,7 @@ microbenchmarks:
   stage: microbenchmarks
   when: always
   needs: []
-  tags: ["runner:apm-k8s-tweaked-metal"]
+  tags: ["runner:apm-k8s-same-cpu"]
   image: $BASE_CI_IMAGE
   rules:
     - if: $CI_COMMIT_REF_NAME == "master"
