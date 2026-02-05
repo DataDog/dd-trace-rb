@@ -44,7 +44,7 @@ module Datadog
           # @return [void]
           def trace_method(mod, method_name, span_name: nil, dynamic: false)
             raise ArgumentError, 'mod is not a module' unless mod.is_a?(Module)
-            raise ArgumentError, 'module name is nil' if mod.name.nil? && span_name.nil?
+            raise ArgumentError, 'ambiguous span name: provide one or define mod.name' if mod.name.nil? && span_name.nil?
 
             is_private = mod.private_method_defined?(method_name)
             is_protected = mod.protected_method_defined?(method_name)

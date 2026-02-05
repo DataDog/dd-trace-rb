@@ -47,7 +47,7 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
     it 'raises when span name is ambiguous' do
       expect { Datadog::Kit::Tracing::MethodTracer.trace_method(Class.new, :bar) }.to raise_error(
         ArgumentError,
-        /module name is nil/
+        /ambiguous span name: provide one or define mod.name/
       )
     end
 
