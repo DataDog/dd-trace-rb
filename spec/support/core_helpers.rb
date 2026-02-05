@@ -116,7 +116,7 @@ module CoreHelpers
     # Use this at describe/context level in tests that exercise or
     # assert on the forking behavior of components.
     def reset_at_fork_monkey_patch_for_components!
-      before(:all) do
+      before do
         # Unit tests for at fork monkey patch module reset its state,
         # including the defined handlers.
         # We need to make sure that the handler for Components is registered,
