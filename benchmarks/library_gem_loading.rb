@@ -26,7 +26,7 @@ class GemLoadingBenchmark
 
       Benchmark.ips do |x|
         # Gem loading is quite slower than the other microbenchmarks
-        benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: 60, warmup: 0 }
+        benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: 60, warmup: 5 }
         x.config(**benchmark_time)
 
         # Because this benchmark is run in a forked process that is passed

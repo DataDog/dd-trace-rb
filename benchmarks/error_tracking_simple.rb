@@ -20,7 +20,7 @@ class ErrorTrackingSimpleBenchmark
   # run one iteration per 100ms, this means we'll have around 120 samples
   # (give or take a small margin of error).
   # @param [Integer] warmup in seconds. The default is 2 seconds.
-  def benchmark_time(time: 60, warmup: 0)
+  def benchmark_time(time: 12, warmup: 2)
     VALIDATE_BENCHMARK_MODE ? {time: 0.001, warmup: 0} : {time: time, warmup: warmup}
   end
 
