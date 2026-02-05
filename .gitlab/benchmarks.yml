@@ -172,6 +172,7 @@ microbenchmarks:
       - BENCHMARKS: "error_tracking_simple.rb tracing_trace.rb di_instrument.rb library_gem_loading.rb"
   script:
     - echo "Hello, world!"
+    - echo "results" > artifacts/candidate.converted.json
   artifacts:
     name: "artifacts"
     when: always
