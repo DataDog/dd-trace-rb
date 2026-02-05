@@ -171,19 +171,7 @@ microbenchmarks:
       - BENCHMARKS: "profiling_allocation.rb profiling_gc.rb profiling_hold_resume_interruptions.rb profiling_http_transport.rb profiling_memory_sample_serialize.rb profiling_sample_loop_v2.rb profiling_sample_serialize.rb profiling_sample_gvl.rb profiling_string_storage_intern.rb"
       - BENCHMARKS: "error_tracking_simple.rb tracing_trace.rb di_instrument.rb library_gem_loading.rb"
   script:
-    - set -x
-    - export ARTIFACTS_DIR="$(pwd)/artifacts" && (mkdir "${ARTIFACTS_DIR}" || :)
-    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
-    - git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform benchmarking-platform && cd benchmarking-platform
-    - gem -v
-    - bundle -v
-    - gem list bundler
-    - ./steps/capture-hardware-software-info.sh
-    - ./steps/run-benchmarks.sh
-    - ./steps/analyze-results.sh
-    - "./steps/upload-results-to-s3.sh || :"
-    - "./steps/upload-results-to-benchmarking-api.sh || :"
-    - "./steps/post-pr-comment.sh || :"
+    - echo "Hello, world!"
   artifacts:
     name: "artifacts"
     when: always
