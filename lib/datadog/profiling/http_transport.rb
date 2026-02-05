@@ -11,16 +11,16 @@ module Datadog
       attr_reader :exporter_configuration
 
       def initialize(agent_settings:, site:, api_key:, upload_timeout_seconds:)
-        @upload_timeout_milliseconds = (upload_timeout_seconds * 1_000).to_i
+        timeout_milliseconds = (upload_timeout_seconds * 1_000).to_i
 
         # Steep: multiple issues here
         # first https://github.com/soutaro/steep/issues/363
         # then https://github.com/soutaro/steep/issues/1603 (remove the .freeze to see it)
         @exporter_configuration = # steep:ignore IncompatibleAssignment
           if agentless?(site, api_key)
-            [:agentless, site, api_key].freeze
+            [:agentless, timeout_milliseconds, site, api_key].freeze
           else
-            [:agent, agent_settings.url].freeze
+            [:agent, timeout_milliseconds, agent_settings.url].freeze
           end
 
         status, result = self.class._native_validate_exporter(exporter_configuration)
@@ -31,7 +31,6 @@ module Datadog
       def export(flush)
         status, result = self.class._native_do_export(
           exporter_configuration,
-          @upload_timeout_milliseconds,
           flush
         )
 
@@ -63,7 +62,7 @@ module Datadog
       end
 
       def config_without_api_key
-        "#{exporter_configuration[0]}: #{exporter_configuration[1]}"
+        "#{exporter_configuration[0]}: #{exporter_configuration[2]}"
       end
     end
   end

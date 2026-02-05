@@ -16,7 +16,11 @@ static VALUE library_version_string = Qnil;
 
 typedef struct {
   ddog_prof_ProfileExporter *exporter;
-  ddog_prof_Request_Result *build_result;
+  ddog_prof_EncodedProfile *profile;
+  ddog_prof_Exporter_Slice_File files_to_compress_and_export;
+  ddog_CharSlice internal_metadata;
+  ddog_CharSlice info;
+  ddog_CharSlice *process_tags;
   ddog_CancellationToken *cancel_token;
   ddog_prof_Result_HttpStatus result;
   bool send_ran;
@@ -29,7 +33,6 @@ static VALUE handle_exporter_failure(ddog_prof_ProfileExporter_Result exporter_r
 static VALUE _native_do_export(
   VALUE self,
   VALUE exporter_configuration,
-  VALUE upload_timeout_milliseconds,
   VALUE flush
 );
 static void *call_exporter_without_gvl(void *call_args);
@@ -39,7 +42,7 @@ void http_transport_init(VALUE profiling_module) {
   VALUE http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
 
   rb_define_singleton_method(http_transport_class, "_native_validate_exporter",  _native_validate_exporter, 1);
-  rb_define_singleton_method(http_transport_class, "_native_do_export",  _native_do_export, 3);
+  rb_define_singleton_method(http_transport_class, "_native_do_export",  _native_do_export, 2);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -75,15 +78,23 @@ static ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration) {
   ENFORCE_TYPE(exporter_working_mode, T_SYMBOL);
   ID working_mode = SYM2ID(exporter_working_mode);
 
+  VALUE timeout_milliseconds_value = rb_ary_entry(exporter_configuration, 1);
+  ENFORCE_TYPE(timeout_milliseconds_value, T_FIXNUM);
+  uint64_t timeout_milliseconds = NUM2ULONG(timeout_milliseconds_value);
+
   if (working_mode == rb_intern("agentless")) {
-    VALUE site = rb_ary_entry(exporter_configuration, 1);
-    VALUE api_key = rb_ary_entry(exporter_configuration, 2);
+    VALUE site = rb_ary_entry(exporter_configuration, 2);
+    VALUE api_key = rb_ary_entry(exporter_configuration, 3);
 
-    return ddog_prof_Endpoint_agentless(char_slice_from_ruby_string(site), char_slice_from_ruby_string(api_key));
+    return ddog_prof_Endpoint_agentless(
+      char_slice_from_ruby_string(site),
+      char_slice_from_ruby_string(api_key),
+      timeout_milliseconds
+    );
   } else if (working_mode == rb_intern("agent")) {
-    VALUE base_url = rb_ary_entry(exporter_configuration, 1);
+    VALUE base_url = rb_ary_entry(exporter_configuration, 2);
 
-    return ddog_prof_Endpoint_agent(char_slice_from_ruby_string(base_url));
+    return ddog_prof_Endpoint_agent(char_slice_from_ruby_string(base_url), timeout_milliseconds);
   } else {
     raise_error(rb_eArgError, "Failed to initialize transport: Unexpected working mode, expected :agentless or :agent");
   }
@@ -123,41 +134,18 @@ static VALUE handle_exporter_failure(ddog_prof_ProfileExporter_Result exporter_r
 
 // Note: This function handles a bunch of libdatadog dynamically-allocated objects, so it MUST not use any Ruby APIs
 // which can raise exceptions, otherwise the objects will be leaked.
-static VALUE perform_export(
-  ddog_prof_ProfileExporter *exporter,
-  ddog_prof_EncodedProfile *profile,
-  ddog_prof_Exporter_Slice_File files_to_compress_and_export,
-  ddog_CharSlice internal_metadata,
-  ddog_CharSlice info,
-  ddog_CharSlice *process_tags
-) {
-  ddog_prof_Request_Result build_result = ddog_prof_Exporter_Request_build(
-    exporter,
-    profile,
-    files_to_compress_and_export,
-    /* files_to_export_unmodified: */ ddog_prof_Exporter_Slice_File_empty(),
-    /* optional_additional_tags: */ NULL,
-    /* optional_process_tags: */ process_tags,
-    &internal_metadata,
-    &info
-  );
-
-  if (build_result.tag == DDOG_PROF_REQUEST_RESULT_ERR_HANDLE_REQUEST) {
-    ddog_prof_Exporter_drop(exporter);
-    return rb_ary_new_from_args(2, error_symbol, get_error_details_and_drop(&build_result.err));
-  }
-
+static VALUE perform_export(call_exporter_without_gvl_arguments args) {
   ddog_CancellationToken cancel_token_request = ddog_CancellationToken_new();
   ddog_CancellationToken cancel_token_interrupt = ddog_CancellationToken_clone(&cancel_token_request);
 
   validate_token(cancel_token_request, __FILE__, __LINE__);
   validate_token(cancel_token_interrupt, __FILE__, __LINE__);
 
+  args.cancel_token = &cancel_token_request;
+  args.send_ran = false;
+
   // We'll release the Global VM Lock while we're calling send, so that the Ruby VM can continue to work while this
   // is pending
-  call_exporter_without_gvl_arguments args =
-    {.exporter = exporter, .build_result = &build_result, .cancel_token = &cancel_token_request, .send_ran = false};
-
   // We use rb_thread_call_without_gvl2 instead of rb_thread_call_without_gvl as the gvl2 variant never raises any
   // exceptions.
   //
@@ -182,17 +170,12 @@ static VALUE perform_export(
   // Cleanup exporter and token, no longer needed
   ddog_CancellationToken_drop(&cancel_token_request);
   ddog_CancellationToken_drop(&cancel_token_interrupt);
-  ddog_prof_Exporter_drop(exporter);
+  ddog_prof_Exporter_drop(args.exporter);
 
   if (pending_exception) {
-    // If we got here send did not run, so we need to explicitly dispose of the request
-    ddog_prof_Exporter_Request_drop(&build_result.ok);
-
     // Let Ruby propagate the exception. This will not return.
     rb_jump_tag(pending_exception);
   }
-
-  // The request itself does not need to be freed as libdatadog takes ownership of it as part of sending.
 
   ddog_prof_Result_HttpStatus result = args.result;
 
@@ -204,7 +187,6 @@ static VALUE perform_export(
 static VALUE _native_do_export(
   DDTRACE_UNUSED VALUE _self,
   VALUE exporter_configuration,
-  VALUE upload_timeout_milliseconds,
   VALUE flush
 ) {
   VALUE encoded_profile = rb_funcall(flush, rb_intern("encoded_profile"), 0);
@@ -215,7 +197,6 @@ static VALUE _native_do_export(
   VALUE info_json = rb_funcall(flush, rb_intern("info_json"), 0);
   VALUE process_tags = rb_funcall(flush, rb_intern("process_tags"), 0);
 
-  ENFORCE_TYPE(upload_timeout_milliseconds, T_FIXNUM);
   enforce_encoded_profile_instance(encoded_profile);
   ENFORCE_TYPE(code_provenance_file_name, T_STRING);
   ENFORCE_TYPE(tags_as_array, T_ARRAY);
@@ -226,8 +207,6 @@ static VALUE _native_do_export(
   // Code provenance can be disabled and in that case will be set to nil
   bool have_code_provenance = !NIL_P(code_provenance_data);
   if (have_code_provenance) ENFORCE_TYPE(code_provenance_data, T_STRING);
-
-  uint64_t timeout_milliseconds = NUM2ULONG(upload_timeout_milliseconds);
 
   int to_compress_length = have_code_provenance ? 1 : 0;
   ddog_prof_Exporter_File to_compress[to_compress_length];
@@ -250,29 +229,29 @@ static VALUE _native_do_export(
   VALUE failure_tuple = handle_exporter_failure(exporter_result);
   if (!NIL_P(failure_tuple)) return failure_tuple;
 
-  ddog_VoidResult timeout_result = ddog_prof_Exporter_set_timeout(&exporter_result.ok, timeout_milliseconds);
-  if (timeout_result.tag == DDOG_VOID_RESULT_ERR) {
-    // NOTE: Seems a bit harsh to fail the upload if we can't set a timeout. OTOH, this is only expected to fail
-    // if the exporter is not well built. Because such a situation should already be caught above I think it's
-    // preferable to leave this here as a virtually unreachable exception rather than ignoring it.
-    ddog_prof_Exporter_drop(&exporter_result.ok);
-    return rb_ary_new_from_args(2, error_symbol, get_error_details_and_drop(&timeout_result.err));
-  }
-
-  return perform_export(
-    &exporter_result.ok,
-    to_ddog_prof_EncodedProfile(encoded_profile),
-    files_to_compress_and_export,
-    internal_metadata,
-    info,
-    &process_tags_slice
-  );
+  return perform_export((call_exporter_without_gvl_arguments) {
+    .exporter = &exporter_result.ok,
+    .profile = to_ddog_prof_EncodedProfile(encoded_profile),
+    .files_to_compress_and_export = files_to_compress_and_export,
+    .internal_metadata = internal_metadata,
+    .info = info,
+    .process_tags = &process_tags_slice
+  });
 }
 
 static void *call_exporter_without_gvl(void *call_args) {
   call_exporter_without_gvl_arguments *args = (call_exporter_without_gvl_arguments*) call_args;
 
-  args->result = ddog_prof_Exporter_send(args->exporter, &args->build_result->ok, args->cancel_token);
+  args->result = ddog_prof_Exporter_send_blocking(
+    args->exporter,
+    args->profile,
+    args->files_to_compress_and_export,
+    /* optional_additional_tags: */ NULL,
+    /* optional_process_tags: */ args->process_tags,
+    &args->internal_metadata,
+    &args->info,
+    args->cancel_token
+  );
   args->send_ran = true;
 
   return NULL; // Unused
