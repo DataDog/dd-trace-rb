@@ -24,6 +24,8 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
       c.appsec.instrument :excon
     end
 
+    WebMock.disable_net_connect!(allow: agent_url)
+
     allow(Datadog::AppSec).to receive(:active_context).and_return(context)
   end
 
@@ -35,7 +37,7 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
     it 'does not call waf when making a request' do
       expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
 
-      client.get(path: '/success')
+      client.get(path: '/success', query: 'z=1')
     end
   end
 
@@ -45,7 +47,7 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
     it 'does not call waf when making a request' do
       expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
 
-      client.get(path: '/success')
+      client.get(path: '/success', query: 'z=1')
     end
   end
 

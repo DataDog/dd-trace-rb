@@ -1,9 +1,9 @@
 PATH
   remote: ..
   specs:
-    datadog (2.28.0)
+    datadog (2.29.0)
       cgi
-      datadog-ruby_core_source (~> 3.5, >= 3.5.1)
+      datadog-ruby_core_source (~> 3.5, >= 3.5.2)
       libdatadog (~> 25.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
@@ -50,7 +50,7 @@ GEM
       bigdecimal
       rexml
     crass (1.0.6)
-    datadog-ruby_core_source (3.5.1)
+    datadog-ruby_core_source (3.5.2)
     date (3.4.1)
     debug (1.10.0)
       irb (~> 1.10)

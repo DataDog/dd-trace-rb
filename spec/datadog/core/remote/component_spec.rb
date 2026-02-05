@@ -215,6 +215,42 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
       end
     end
   end
+
+  describe '#after_fork' do
+    subject(:after_fork) { component.after_fork }
+
+    let(:original_client) { component.client }
+    let(:original_client_id) { original_client.id }
+
+    after { component.shutdown! }
+
+    it 'creates a new client instance' do
+      expect { after_fork }.to change { component.client.object_id }
+    end
+
+    it 'generates a new client ID' do
+      expect { after_fork }.to change { component.client.id }.from(original_client_id)
+    end
+
+    it 'resets healthy flag to false' do
+      component.instance_variable_set(:@healthy, true)
+      expect { after_fork }.to change { component.healthy }.from(true).to(false)
+    end
+
+    it 'logs the new client ID' do
+      # Allow the initial debug message during component initialization
+      allow(logger).to receive(:debug)
+
+      # Capture the original client to ensure the component is initialized
+      original_client
+
+      # Now expect the after_fork debug message
+      expect(logger).to receive(:debug) do |&block|
+        expect(block.call).to match(/remote configuration client recreated after fork: [0-9a-f-]+/)
+      end
+      after_fork
+    end
+  end
 end
 
 RSpec.describe Datadog::Core::Remote::Component::Barrier do

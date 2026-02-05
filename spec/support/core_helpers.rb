@@ -1,4 +1,6 @@
 module CoreHelpers
+  LOWERCASE_UUID_REGEXP = /\A[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}\z/
+
   RSpec.shared_context 'non-development execution environment' do
     before { allow(Datadog::Core::Environment::Execution).to receive(:development?).and_return(false) }
   end
@@ -59,6 +61,16 @@ module CoreHelpers
         self
       end
       ruby2_keywords(method) if respond_to?(:ruby2_keywords, true)
+    end
+  end
+
+  RSpec::Matchers.define :be_valid_uuid do
+    match do |actual|
+      actual =~ CoreHelpers::LOWERCASE_UUID_REGEXP
+    end
+
+    failure_message do |actual|
+      "expected #{actual.inspect} to be a valid lowercase UUID"
     end
   end
 

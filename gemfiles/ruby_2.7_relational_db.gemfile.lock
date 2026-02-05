@@ -1,9 +1,9 @@
 PATH
   remote: ..
   specs:
-    datadog (2.28.0)
+    datadog (2.29.0)
       cgi
-      datadog-ruby_core_source (~> 3.5, >= 3.5.1)
+      datadog-ruby_core_source (~> 3.5, >= 3.5.2)
       libdatadog (~> 25.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
@@ -35,7 +35,7 @@ GEM
     concurrent-ruby (1.2.2)
     crack (0.4.5)
       rexml
-    datadog-ruby_core_source (3.5.1)
+    datadog-ruby_core_source (3.5.2)
     delayed_job (4.1.11)
       activesupport (>= 3.0, < 8.0)
     delayed_job_active_record (4.1.7)

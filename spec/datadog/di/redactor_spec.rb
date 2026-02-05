@@ -40,6 +40,7 @@ RSpec.describe Datadog::DI::Redactor do
     double("di settings").tap do |settings|
       allow(settings).to receive(:enabled).and_return(true)
       allow(settings).to receive(:redacted_identifiers).and_return([])
+      allow(settings).to receive(:redaction_excluded_identifiers).and_return([])
     end
   end
 
@@ -89,6 +90,35 @@ RSpec.describe Datadog::DI::Redactor do
         ["@ in definition but name does not match", "var1", false],
         ["@ in target identifier", "@foo", true],
         ["@ in target identifier but name does not match", "@foo1", false],
+      ]
+
+      define_cases(cases)
+    end
+
+    context "when excluded identifiers are specified" do
+      before do
+        expect(di_settings).to receive(:redaction_excluded_identifiers).and_return(%w[password token session])
+      end
+
+      cases = [
+        ["excluded default identifier", "password", false],
+        ["excluded identifier with different case", "PASSWORD", false],
+        ["excluded identifier with punctuation", "pass_word", false],
+        ["non-excluded default identifier", "secret", true],
+      ]
+
+      define_cases(cases)
+    end
+
+    context "when excluded identifiers with normalization are specified" do
+      before do
+        expect(di_settings).to receive(:redaction_excluded_identifiers).and_return(%w[pass_word])
+      end
+
+      cases = [
+        ["excluded identifier normalized from pass_word matches password", "password", false],
+        ["excluded identifier normalized from pass_word matches pass_word", "pass_word", false],
+        ["excluded identifier normalized from pass_word matches PASSWORD", "PASSWORD", false],
       ]
 
       define_cases(cases)
