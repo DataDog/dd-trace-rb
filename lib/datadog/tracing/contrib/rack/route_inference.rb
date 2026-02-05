@@ -25,12 +25,14 @@ module Datadog
           end
 
           def infer(path)
-            segments = path.delete_prefix('/').split('/', MAX_NUMBER_OF_SEGMENTS + 1).first(MAX_NUMBER_OF_SEGMENTS)
+            count = 0
+            result = +''
 
-            inferred = segments.each_with_object([]) do |segment, a|
-              next if segment.empty?
+            path.scan(/[^\/]+/) do |segment|
+              break if count >= MAX_NUMBER_OF_SEGMENTS
+              count += 1
 
-              a << case segment
+              result << '/' << case segment
               when INT_PARAM_REGEX then '{param:int}'
               when INT_ID_PARAM_REGEX then '{param:int_id}'
               when HEX_PARAM_REGEX then '{param:hex}'
@@ -40,7 +42,7 @@ module Datadog
               end
             end
 
-            "/#{inferred.join("/")}"
+            result.empty? ? '/' : result
           rescue
             nil
           end
