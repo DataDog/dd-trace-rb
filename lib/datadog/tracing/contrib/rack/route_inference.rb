@@ -48,8 +48,15 @@ module Datadog
             nil
           end
 
-          def split(path, pattern = nil, &block)
-            (RUBY_VERSION >= '2.6.') ? path.split(pattern, &block) : path.tap { |p| p.split(pattern).each(&block) }
+          if RUBY_VERSION >= '2.6.'
+            def split(path, pattern = nil, &block)
+              path.split(pattern, &block)
+            end
+          else
+            def split(path, pattern = nil, &block)
+              path.split(pattern).each(&block)
+              path
+            end
           end
         end
       end
