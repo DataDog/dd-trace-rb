@@ -344,12 +344,24 @@ bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
     return false;
   }
 
+  bool needs_after_allocation = false;
+
   #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
   // Skip if we've hit the pending recordings limit or if there's already a deferred object being recorded
   if (heap_recorder->pending_recordings_count >= MAX_PENDING_RECORDINGS) {
     heap_recorder->stats_lifetime.deferred_recordings_skipped_buffer_full++;
     heap_recorder->active_recording = &SKIPPED_RECORD;
     return true; // If the buffer is full, we keep asking for a callback (see `needs_after_allocation` below)
+  } else {
+    // The intuition here is: We start by asking for an `after_allocation` callback when the buffer is about to go
+    // from empty -> non-empty, because this is going to be mapped onto a postponed job, so after it gets queued once
+    // it doesn't seem worth it to keep spamming requests.
+    //
+    // Yet, if for some reason the postponed job doesn't flush the pending list (or if e.g. it ran with `during_sample == true` and thus
+    // was skipped) we need to have some mechanism to recover -- and so if the buffer starts accumulating too much we
+    // start always requesting the callback to happen so that we eventually flush the buffer.
+    needs_after_allocation =
+      heap_recorder->pending_recordings_count == 0 || heap_recorder->pending_recordings_count >= (MAX_PENDING_RECORDINGS / 2);
   }
   #endif
 
@@ -367,21 +379,11 @@ bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
     // active_deferred_object != Qnil indicates we're in deferred mode.
     heap_recorder->active_deferred_object = new_obj;
     heap_recorder->active_deferred_object_data = object_data;
-
-    // The intuition here is: Usually we ask for an `after_allocation` callback only when the buffer is about to go
-    // from empty -> non-empty, because this is going to be mapped onto a postponed job, so after it gets queued once
-    // it doesn't seem worth it to keep spamming requests.
-    // Yet, if for some reason the postponed job doesn't flush the pending list (or if e.g. it ran with `during_sample == true ` and thus
-    // was skipped) we need to have some mechanism to recover -- and so if the buffer starts accumulating too much we
-    // start always requesting the callback to happen so that we eventually flush the buffer.
-    bool needs_after_allocation =
-      heap_recorder->pending_recordings_count == 0 || heap_recorder->pending_recordings_count >= MAX_PENDING_RECORDINGS / 2;
-
-    return needs_after_allocation;
   #else
     heap_recorder->active_recording = object_record_new(obj_id_or_fail(new_obj), NULL, object_data);
-    return false;
   #endif
+
+  return needs_after_allocation;
 }
 
 // end_heap_allocation_recording_with_rb_protect gets called while the stack_recorder is holding one of the profile
