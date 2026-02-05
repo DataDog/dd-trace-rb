@@ -84,7 +84,7 @@ end
 #     └─ appraise 'devise-latest'
 #         ├─ gem 'devise'
 #         └─ gem 'bigdecimal', '3.0.0'
-def build_coverage_matrix(integration, range = [], gem: nil, min: nil, meta: {}, latest: true)
+def build_coverage_matrix(integration, range = [], gem: nil, min: nil, meta: {})
   gem ||= integration
 
   meta_versions = meta.each_with_object({}) do |(key, value), memo|
@@ -106,14 +106,12 @@ def build_coverage_matrix(integration, range = [], gem: nil, min: nil, meta: {},
     end
   end
 
-  if latest
-    appraise "#{integration}-latest" do
-      # The latest group declares dependencies without version constraints,
-      # still requires being updated to pick up the next major version and
-      # committing the changes to lockfiles.
-      gem gem
-      meta_versions[:latest].to_h.merge(meta).each { |k, v| v ? gem(k, v) : gem(k) }
-    end
+  appraise "#{integration}-latest" do
+    # The latest group declares dependencies without version constraints,
+    # still requires being updated to pick up the next major version and
+    # committing the changes to lockfiles.
+    gem gem
+    meta_versions[:latest].to_h.merge(meta).each { |k, v| v ? gem(k, v) : gem(k) }
   end
 end
 

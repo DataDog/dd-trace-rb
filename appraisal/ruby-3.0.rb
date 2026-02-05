@@ -99,8 +99,11 @@ build_coverage_matrix('mongo', min: '2.1.0')
 build_coverage_matrix('dalli', [2])
 build_coverage_matrix('karafka', min: '2.3.0')
 build_coverage_matrix('devise', min: '3.2.1')
-build_coverage_matrix('kicks', [], min: '3.0.0')
-build_coverage_matrix('sneakers', [], min: '2.12.0', latest: false) # Sneakers is not receiving updates anymore and 2.12.0 is the last version
+build_coverage_matrix('kicks', min: '3.0.0')
+
+appraise 'sneakers' do
+  gem 'sneakers', '= 2.12.0' # Sneakers is not receiving updates anymore and 2.12.0 is the last version
+end
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 7'
