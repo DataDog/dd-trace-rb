@@ -21,6 +21,7 @@ alwaysApply: false
 - Keep `subject` close to its `describe`.
 - Share `subject` when possible, making it parametric using `let`.
 - Use `is_expected` instead of `expect(subject)`.
+- Prefer `expect { }.to change` when asserting side-effects.
 
 ### Test types
 - Integration tests (`spec/datadog/*/contrib/`): avoid mocking, realistic apps, real dependencies.
@@ -102,4 +103,24 @@ RSpec.describe Datadog::ExampleBucket do
     end
   end
 end
+```
+
+- `expect { }.to change` examples:
+  - From:
+```ruby
+expect(context.events).to receive(:<<).and_call_original
+load_records
+```
+  - To:
+```ruby
+expect { load_records }.to change(context.events, :size).by(1)
+```
+  - From:
+```ruby
+audit(span)
+expect(span.tags).to include('audited' => 1)
+```
+  - To:
+```ruby
+expect { audit(span) }.to change { span.tags }.from({}).to include('audited' => 1)
 ```
