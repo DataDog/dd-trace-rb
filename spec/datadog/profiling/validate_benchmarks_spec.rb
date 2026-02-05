@@ -27,11 +27,7 @@ RSpec.describe "Profiling benchmarks", :memcheck_valgrind_skip do
     skip("Skipping on Ruby 2.5 as it's flaky and we couldn't figure out why yet") if RUBY_VERSION.start_with?("2.5")
   end
 
-  around do |example|
-    ClimateControl.modify("VALIDATE_BENCHMARK" => "true") do
-      example.run
-    end
-  end
+  with_env "VALIDATE_BENCHMARK" => "true"
 
   benchmarks_to_validate = [
     "profiling_allocation",
