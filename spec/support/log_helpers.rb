@@ -1,4 +1,64 @@
 module LogHelpers
+  def self.included(base)
+    # Ensures we don't log messages to the users unintentionally.
+    # This can also help catch bugs that are unintentionally swallowed during testing.
+    base.before do
+      allow_any_instance_of(Datadog::Core::Logger).to receive(:warn).and_wrap_original do |m, msg, &block|
+        if !(defined?(@allow_log_warnings) && @allow_log_warnings)
+          # Emit a log message directly to the user, because if the exception raised bellow is
+          # rescued, it will be pretty hard to find the source of the problem.
+          RSpec.warning("Unexpected Datadog.logger.warn(): #{msg}")
+
+          raise "Unexpected Datadog.logger.warn(): #{msg}"
+        else
+          m.call(msg, &block)
+        end
+      end
+
+      allow_any_instance_of(Datadog::Core::Logger).to receive(:error).and_wrap_original do |m, msg, &block|
+        if !(defined?(@allow_log_errors) && @allow_log_errors)
+          # Emit a log message directly to the user, because if the exception raised bellow is
+          # rescued, it will be pretty hard to find the source of the problem.
+          RSpec.warning("Unexpected Datadog.logger.error(): #{msg}")
+
+          raise "Unexpected Datadog.logger.error(): #{msg}"
+        else
+          m.call(msg, &block)
+        end
+      end
+    end
+  end
+
+  # Allow log warnings to be emitted by `Datadog.logger.warn`.
+  # @yield [block] if a block is given, it will be executed with log warnings enabled
+  def allow_log_warnings
+    if block_given?
+      begin
+        @allow_log_warnings = true
+        yield
+      ensure
+        @allow_log_warnings = false
+      end
+    else
+      @allow_log_warnings = true
+    end
+  end
+
+  # Allow log errors to be emitted by `Datadog.logger.error`.
+  # @yield [block] if a block is given, it will be executed with log errors enabled
+  def allow_log_errors
+    if block_given?
+      begin
+        @allow_log_errors = true
+        yield
+      ensure
+        @allow_log_errors = false
+      end
+    else
+      @allow_log_errors = true
+    end
+  end
+
   def without_warnings(&block)
     LogHelpers.without_warnings(&block)
   end
