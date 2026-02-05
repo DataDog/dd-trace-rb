@@ -28,7 +28,7 @@ module Datadog
             count = 0
             result = []
 
-            path.split('/') do |segment|
+            split(path, '/') do |segment|
               next if segment.empty?
               break if count >= MAX_NUMBER_OF_SEGMENTS
               count += 1
@@ -46,6 +46,10 @@ module Datadog
             result.empty? ? '/' : "/#{result.join('/')}"
           rescue
             nil
+          end
+
+          def split(path, pattern = nil, &block)
+            (RUBY_VERSION >= '2.6.') ? path.split(pattern, &block) : path.tap { |p| p.split(pattern).each(&block) }
           end
         end
       end
