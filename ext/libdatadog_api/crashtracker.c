@@ -7,7 +7,7 @@
 static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self);
 
-void ruby_crash_reporting_init(VALUE crashtracking_module);
+void crashtracker_report_exception_init(VALUE crashtracker_class);
 
 static bool first_init = true;
 
@@ -22,7 +22,7 @@ void crashtracker_init(VALUE core_module) {
   rb_define_singleton_method(crashtracker_class, "_native_stop", _native_stop, 0);
 
   // Initialize Ruby non-signal-crash reporting
-  ruby_crash_reporting_init(crashtracking_module);
+  crashtracker_report_exception_init(crashtracker_class);
 }
 
 static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
