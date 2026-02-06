@@ -563,12 +563,6 @@ target :datadog do
   # References `RubyVM::YJIT`, which does not have type information.
   ignore 'lib/datadog/core/environment/yjit.rb'
 
-  # These blow up with `FATAL`:
-  ignore 'lib/datadog/open_feature/resolution_details.rb'
-  ignore 'lib/datadog/kit/appsec/events/v2.rb'
-  ignore 'lib/datadog/core/logger.rb'
-  ignore 'lib/datadog/tracing/contrib/rack/route_inference.rb'
-
   library 'bundler'
   library 'pathname'
   library 'cgi'
