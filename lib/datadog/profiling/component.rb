@@ -219,12 +219,6 @@ module Datadog
             "Please upgrade to Ruby >= 3.1 in order to use this feature. Heap profiling has been disabled."
           )
           return false
-        elsif RUBY_VERSION.start_with?("4.")
-          logger.warn(
-            "Datadog Ruby heap profiler is currently incompatible with Ruby 4. " \
-            "Heap profiling has been disabled."
-          )
-          return false
         end
 
         unless allocation_profiling_enabled

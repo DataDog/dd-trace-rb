@@ -76,6 +76,7 @@ RSpec.describe 'Mysql2::Client patcher' do
         end
 
         it_behaves_like 'with sql comment propagation', span_op_name: 'mysql2.query'
+        it_behaves_like 'with sql comment base hash injection', span_op_name: 'mysql2.query'
 
         context 'when configured with `on_error`' do
           before do
