@@ -8,7 +8,7 @@ module Datadog
       module Propagation
         # Implements sql comment propagation related contracts.
         module SqlComment
-          Mode = Struct.new(:mode, :append) do
+          Mode = Struct.new(:mode, :append, :inject_sql_basehash) do
             def enabled?
               service? || full?
             end
@@ -23,6 +23,10 @@ module Datadog
 
             def append?
               append
+            end
+
+            def inject_sql_basehash?
+              inject_sql_basehash
             end
           end
         end

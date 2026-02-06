@@ -14,9 +14,15 @@ module Datadog
           def self.annotate!(span_op, mode)
             return unless mode.enabled?
 
-            # Add base hash to the span tag
-            base_hash = Datadog.send(:components).agent_info.propagation_checksum
-            span_op.set_tag(Ext::TAG_PROPAGATED_HASH, base_hash.to_s) if base_hash
+            config = Datadog.configuration
+
+            # Add DBM propagation hash when enabled and available.
+            # This matches the behavior in the Python tracer:
+            # https://github.com/DataDog/dd-trace-py/blob/5e94be5c97b42060e5800e35d8fa41472fb8c569/ddtrace/propagation/_database_monitoring.py#L89
+            if inject_hash?(mode, config)
+              checksum = Datadog.send(:components).agent_info.propagation_checksum
+              span_op.set_tag(Ext::TAG_PROPAGATED_HASH, checksum.to_s) if checksum
+            end
 
             span_op.set_tag(Ext::TAG_DBM_TRACE_INJECTED, true) if mode.full?
           end
@@ -40,8 +46,13 @@ module Datadog
               Ext::KEY_PEER_SERVICE => peer_service,
             }
 
-            base_hash = Datadog.send(:components).agent_info.propagation_checksum
-            tags[Ext::KEY_BASE_HASH] = base_hash.to_s if base_hash
+            # Add DBM propagation hash to SQL comment when enabled and available.
+            # This matches the behavior in the Python tracer:
+            # https://github.com/DataDog/dd-trace-py/blob/5e94be5c97b42060e5800e35d8fa41472fb8c569/ddtrace/propagation/_database_monitoring.py#L139
+            if inject_hash?(mode, config)
+              checksum = Datadog.send(:components).agent_info.propagation_checksum
+              tags[Ext::KEY_BASE_HASH] = checksum.to_s if checksum
+            end
 
             db_service = peer_service || span_op.service
             if parent_service != db_service # Only set if it's different from parent_service; otherwise it's redundant
@@ -67,6 +78,12 @@ module Datadog
               "#{Comment.new(tags)} #{sql}"
             end
           end
+
+          # @return [Boolean] whether to inject the propagation checksum (basehash)
+          def self.inject_hash?(mode, config)
+            mode.inject_sql_basehash? && config.experimental_propagate_process_tags_enabled
+          end
+          private_class_method :inject_hash?
         end
       end
     end
