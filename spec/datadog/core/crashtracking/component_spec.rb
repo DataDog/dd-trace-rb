@@ -142,9 +142,14 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
 
       include_context 'Ruby exception HTTP server'
 
+      let(:ruby_crash_ping_request) do
+        # first message should be the crash ping
+        messages[0]
+      end
+
       let(:ruby_exception_request) do
-        # find the crash report messages
-        messages.find { |msg| msg.body&.include?('UnhandledException') || msg.body&.include?('is_crash') }
+        # second message should be the crash report
+        messages[1]
       end
 
       let(:agent_base_url) { "http://#{hostname}:#{http_server_port}" }
@@ -168,9 +173,29 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
             trigger.call
           end
 
-          # check that a crash report was sent
+          # check that both crash ping and crash report were sent
+          expect(ruby_crash_ping_request).to_not be_nil,
+            "Expected crash ping HTTP request but none was received. Messages: #{messages.map(&:path)}"
           expect(ruby_exception_request).to_not be_nil,
             "Expected crash report HTTP request but none was received. Messages: #{messages.map(&:path)}"
+
+          if ruby_crash_ping_request
+            # parse the crash ping telemetry transport format
+            parsed_ping_telemetry = JSON.parse(ruby_crash_ping_request.body.to_s, symbolize_names: true)
+            expect(parsed_ping_telemetry).to include(:api_version, :payload, :request_type)
+            expect(parsed_ping_telemetry[:request_type]).to eq('logs')
+
+            # extract the crash ping from the payload
+            ping_payload_item = parsed_ping_telemetry[:payload].first
+            expect(ping_payload_item).to include(:message, :is_crash)
+            expect(ping_payload_item[:is_crash]).to be false
+            expect(ping_payload_item[:tags]).to include('is_crash_ping:true')
+
+            # parse the crash ping JSON from the message
+            crash_ping = JSON.parse(ping_payload_item[:message], symbolize_names: true)
+            expect(crash_ping).to include(:metadata, :kind)
+            expect(crash_ping[:kind]).to eq('Crash ping')
+          end
 
           if ruby_exception_request
             # parse the telemetry transport format
@@ -180,7 +205,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
 
             # extract the crash report from the payload
             payload_item = parsed_telemetry[:payload].first
-            puts "payload_item: #{payload_item[:message]}"
             expect(payload_item).to include(:message, :is_crash)
             expect(payload_item[:is_crash]).to be true
 

@@ -99,29 +99,28 @@ _native_report_ruby_exception(DDTRACE_UNUSED VALUE _self, VALUE agent_base_url,
 
   ddog_VoidResult result;
 
-  // metadata
   result = ddog_crasht_CrashInfoBuilder_with_metadata(builder, metadata);
   if (result.tag != DDOG_VOID_RESULT_OK)
     goto cleanup;
 
-  // error kind
+  result = ddog_crasht_CrashInfoBuilder_upload_ping_to_endpoint(builder, endpoint);
+  if (result.tag != DDOG_VOID_RESULT_OK)
+    goto cleanup;
+
   result = ddog_crasht_CrashInfoBuilder_with_kind(
       builder, DDOG_CRASHT_ERROR_KIND_UNHANDLED_EXCEPTION);
   if (result.tag != DDOG_VOID_RESULT_OK)
     goto cleanup;
 
-  // timestamp
   result = ddog_crasht_CrashInfoBuilder_with_timestamp_now(builder);
   if (result.tag != DDOG_VOID_RESULT_OK)
     goto cleanup;
 
-  // proc_info
   result = ddog_crasht_CrashInfoBuilder_with_proc_info(
       builder, static_crash_data.proc_info);
   if (result.tag != DDOG_VOID_RESULT_OK)
     goto cleanup;
 
-  // os_info
   result = ddog_crasht_CrashInfoBuilder_with_os_info_this_machine(builder);
   if (result.tag != DDOG_VOID_RESULT_OK)
     goto cleanup;
