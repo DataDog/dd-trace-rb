@@ -179,8 +179,8 @@ microbenchmarks:
   # We split benchmarks into two groups so we can run them in parallel with
   # 2 CPUs per benchmark (as defined by CPUS_PER_BENCHMARK in 'variables').
 
-  # When adding new benchmarks, make sure that for each group the number of
-  # benchmarks times the number of CPUs is under 24 (the available CPUs in
+  # When adding new benchmarks, make sure that for each entry the number of
+  # benchmarks times `CPUS_PER_BENCHMARK` is under 24 (the available CPUs in
   # the benchmark runner, made explicit by CPU_AFFINITY).
   parallel:
     matrix:
