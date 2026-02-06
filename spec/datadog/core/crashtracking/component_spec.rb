@@ -294,7 +294,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         end
       end
 
-      # Ruby exception crash reporting tests
       context 'Ruby exception crash reporting' do
         let(:ruby_crash_expectations) do
           proc do |status:, stdout:, stderr:|
