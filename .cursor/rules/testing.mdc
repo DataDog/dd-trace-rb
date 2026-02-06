@@ -22,6 +22,7 @@ alwaysApply: false
 - Share `subject` when possible, making it parametric using `let`.
 - Use `is_expected` instead of `expect(subject)`.
 - Prefer `expect { }.to change` when asserting side-effects.
+- Run `rake spec:custom_matchers` to list all useful custom RSpec::Matchers in this repo.
 
 ### Test types
 - Integration tests (`spec/datadog/*/contrib/`): avoid mocking, realistic apps, real dependencies.
