@@ -17,7 +17,7 @@ module Datadog
       # Methods prefixed with _native_ are implemented in `crashtracker.c`
       class Component
         def self.build(settings, agent_settings, logger:)
-          tags = TagBuilder.call(settings)
+          tags = latest_tags(settings)
           agent_base_url = agent_settings.url
 
           ld_library_path = ::Libdatadog.ld_library_path
@@ -41,6 +41,32 @@ module Datadog
           ).tap(&:start)
         end
 
+        # Reports unhandled exceptions to the crash tracker if available and appropriate.
+        # This is called from the at_exit hook to report unhandled exceptions.
+        def self.report_unhandled_exception(exception)
+          return unless exception && !exception.is_a?(SystemExit) && !exception.is_a?(NoMemoryError)
+
+          begin
+            crashtracker = Datadog.send(:components, allow_initialization: false)&.crashtracker
+            return unless crashtracker
+
+            crashtracker.report_unhandled_exception(exception)
+          rescue => e
+            # Unhandled exception report triggering means that the application is already in a bad state
+            # We don't want to swallow non-StandardError exceptions here; we would rather just let the
+            # application crash
+            Datadog.logger.debug("Crashtracker failed to report unhandled exception: #{e.message}")
+          end
+        end
+
+        # Gets the latest tags from the current configuration.
+        #
+        # We always fetch fresh tags because:
+        # After forking, we need the latest tags, not the parent's tags, such as the pid or runtime-id
+        def self.latest_tags(settings)
+          TagBuilder.call(settings)
+        end
+
         def initialize(tags:, agent_base_url:, ld_library_path:, path_to_crashtracking_receiver_binary:, logger:)
           @tags = tags
           @agent_base_url = agent_base_url
@@ -51,21 +77,55 @@ module Datadog
 
         def start
           start_or_update_on_fork(action: :start, tags: tags)
-
-          # Install Ruby exception crash reporting at_exit hook
-          # This complements signal-based crash reporting by capturing unhandled Ruby exceptions
-          install_ruby_crash_reporting_hook
         end
 
         def update_on_fork(settings: Datadog.configuration)
           # Here we pick up the latest settings, so that we pick up any tags that change after forking
           # such as the pid or runtime-id
-          start_or_update_on_fork(action: :update_on_fork, tags: TagBuilder.call(settings))
+          start_or_update_on_fork(action: :update_on_fork, tags: self.class.latest_tags(settings))
+        end
 
-          # Update crash data after fork (mainly PID)
-          self.class._native_update_crash_data_on_fork
-        rescue => e
-          logger.error("Failed to update crash data on fork: #{e.message}")
+        def report_unhandled_exception(exception, settings: Datadog.configuration)
+          # Maximum number of stack frames to include in exception crash reports
+          # This is the same number used for profiling and signal-based crashtracking
+          max_exception_stack_frames = 400
+
+          current_tags = self.class.latest_tags(settings)
+          # extract all frame data upfront; c expects exactly 3 elements, proper types, no nils
+          # limit to max_exception_stack_frames frames
+          all_backtrace_locations = exception.backtrace_locations || []
+          was_truncated = all_backtrace_locations.length > max_exception_stack_frames
+
+          frames_data = all_backtrace_locations[0...max_exception_stack_frames].map do |loc|
+            file = loc.path
+            file = '<unknown>' if file.nil? || file.empty? || !file.is_a?(String)
+
+            function = loc.label
+            function = '<unknown>' if function.nil? || function.empty? || !function.is_a?(String)
+
+            line = loc.lineno
+            line = 0 if line.nil? || line < 0 || !line.is_a?(Integer)
+
+            [file, function, line] # Always String, String, Integer
+          end
+
+          # Add truncation indicator frame if we had to cut off frames
+          if was_truncated
+            truncated_count = all_backtrace_locations.length - max_exception_stack_frames
+            frames_data << ['<truncated>', "<truncated #{truncated_count} more frames>", 0]
+          end
+
+          message = "Unhandled #{exception.class}: #{exception.message || "<no message>"}"
+
+          success = self.class._native_report_ruby_exception(
+            agent_base_url,
+            message,
+            frames_data,
+            current_tags.to_a,
+            Datadog::VERSION::STRING
+          )
+
+          logger.debug('Crashtracker failed to report unhandled exception to crash tracker') unless success
         end
 
         def stop
@@ -92,49 +152,6 @@ module Datadog
           logger.debug("Crash tracking action: #{action} successful")
         rescue => e
           logger.error("Failed to #{action} crash tracking: #{e.message}")
-        end
-
-        def report_unhandled_exception(exception)
-          return unless exception
-          return if exception.is_a?(SystemExit) || exception.is_a?(Interrupt)
-
-          begin
-            # Pass backtrace_locations directly to native code for clean access
-            backtrace_locations = exception.backtrace_locations || []
-
-            self.class._native_report_ruby_exception(
-              agent_base_url,
-              exception.class.name,
-              exception.message || '',
-              backtrace_locations,
-              tags.to_a
-            )
-
-            Datadog.logger.info("Reported Ruby exception crash: #{exception.class.name}: #{exception.message}")
-          rescue => e
-            # don't let crash reporting itself crash the exit process
-            Datadog.logger.error("Failed to report Ruby exception crash: #{e.message}")
-          end
-        end
-
-        def install_ruby_crash_reporting_hook
-          # install our crash reporting hook early in the at_exit chain
-          # this runs before the main Datadog shutdown hook
-          at_exit do
-            exception = $!
-
-            # report the exception if it's an unhandled crash
-            if exception &&
-                !exception.is_a?(SystemExit) &&
-                !exception.is_a?(Interrupt) &&
-                !Thread.current[:_dd_crash_reported] # avoid double reporting
-
-              Thread.current[:_dd_crash_reported] = true
-              report_unhandled_exception(exception)
-            end
-          end
-
-          Datadog.logger.debug { 'Ruby crash reporting at_exit hook installed' }
         end
       end
     end

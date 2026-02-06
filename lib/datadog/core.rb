@@ -29,9 +29,14 @@ module Datadog
   # Ensures the Datadog components have a chance to gracefully
   # shut down and cleanup before terminating the process.
   at_exit do
-    if Interrupt === $! # rubocop:disable Style/SpecialGlobalVars is process terminating due to a ctrl+c or similar?
+    exception = $! # rubocop:disable Style/SpecialGlobalVars
+
+    if Interrupt === exception # is process terminating due to a ctrl+c or similar?
       Datadog.send(:handle_interrupt_shutdown!)
     else
+      # Report unhandled exception to crash tracker before shutdown
+      Datadog::Core::Crashtracking::Component.report_unhandled_exception(exception)
+
       Datadog.shutdown!
     end
   end

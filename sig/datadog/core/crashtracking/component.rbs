@@ -2,13 +2,15 @@ module Datadog
   module Core
     module Crashtracking
       class Component
-        ONLY_ONCE: Core::Utils::OnlyOnce
-
         def self.build: (
           Datadog::Core::Configuration::Settings settings,
           Datadog::Core::Configuration::AgentSettings agent_settings,
           logger: untyped
         ) -> Datadog::Core::Crashtracking::Component?
+
+        def self.report_unhandled_exception: (::Exception) -> void
+
+        def self.latest_tags: (Datadog::Core::Configuration::Settings) -> ::Hash[::String, ::String]
 
         def initialize: (
           tags: ::Hash[::String, ::String],
@@ -34,9 +36,7 @@ module Datadog
 
         def start_or_update_on_fork: (action: :start | :update_on_fork, tags: ::Hash[::String, ::String]) -> void
 
-        def report_unhandled_exception: (::Exception) -> void
-
-        def install_ruby_crash_reporting_hook: -> void
+        def report_unhandled_exception: (::Exception, ?settings: Datadog::Core::Configuration::Settings) -> void
 
         def self._native_start_or_update_on_fork: (
           action: :start | :update_on_fork,
@@ -51,13 +51,11 @@ module Datadog
 
         def self._native_report_ruby_exception: (
           ::String agent_base_url,
-          ::String exception_class,
-          ::String exception_message,
-          ::Array[Thread::Backtrace::Location] backtrace_locations,
-          ::Array[[::String, ::String]] tags_as_array
-        ) -> void
-
-        def self._native_update_crash_data_on_fork: -> void
+          ::String message,
+          ::Array[[::String, ::String, ::Integer]] frames_data,
+          ::Array[[::String, ::String]] tags_as_array,
+          ::String library_version
+        ) -> bool
       end
     end
   end
