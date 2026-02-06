@@ -10,7 +10,9 @@
   - `di_` (spec in `./spec/datadog/di/validate_benchmarks_spec.rb`)
   - `error_tracking` (spec in `./spec/datadog/error_tracing/validate_benchmarks_spec.rb`)
 
-2. Add the new file to `run_all.sh` in this directory.
+2. Add the new benchmark to an appropriate `BENCHMARKS` variable in `.gitlab/benchmarks.yml`, under the `parallel:matrix` section.
+
+  - Make sure that for each `parallel:matrix` entry the number of benchmarks in `BENCHMARKS` times `CPUS_PER_BENCHMARK` is under 24 (the default number of available CPUs in the benchmark runner, made explicit by `CPU_AFFINITY`).
 
 3. Depending on the prefix, add the new file to the correct
   `validate_benchmarks_spec.rb` as listed above
