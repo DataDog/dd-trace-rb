@@ -166,6 +166,16 @@ microbenchmarks:
       interruptible: false
     - interruptible: true
   timeout: 4h
+  variables:
+    # Benchmark execution settings
+    REPETITIONS: "10"        # How many times to run each benchmarks
+    CPU_AFFINITY: "24-47"    # Which CPUs to use for all benchmarks
+    CPUS_PER_BENCHMARK: "2"  # How many CPUs to use for each benchmark
+
+    UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
+    UPSTREAM_PROJECT_ID: $CI_PROJECT_ID
+    UPSTREAM_PROJECT_NAME: $CI_PROJECT_NAME
+    UPSTREAM_COMMIT_SHA: $CI_COMMIT_SHA
   # We split benchmarks into two groups so we can run them in parallel with
   # 2 CPUs per benchmark (as defined by CPUS_PER_BENCHMARK in 'variables').
 
@@ -195,13 +205,3 @@ microbenchmarks:
     paths:
       - artifacts/
     expire_in: 3 months
-  variables:
-    # Benchmark execution settings
-    REPETITIONS: "10"
-    CPU_AFFINITY: "24-47"
-    CPUS_PER_BENCHMARK: "2"
-
-    UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
-    UPSTREAM_PROJECT_ID: $CI_PROJECT_ID
-    UPSTREAM_PROJECT_NAME: $CI_PROJECT_NAME
-    UPSTREAM_COMMIT_SHA: $CI_COMMIT_SHA
