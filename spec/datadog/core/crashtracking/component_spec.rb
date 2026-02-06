@@ -285,12 +285,8 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         # This tests that the callback registered with `Utils::AtForkMonkeyPatch.at_fork`
         # does not contain a stale instance of the crashtracker component.
 
-        around do |example|
-          # Avoid triggering warnings from the agent settings resolver when these are set in the testing environment
-          ClimateControl.modify('DD_AGENT_HOST' => nil, 'DD_TRACE_AGENT_PORT' => nil) do
-            example.run
-          end
-        end
+        # Avoid triggering warnings from the agent settings resolver when these are set in the testing environment
+        with_env 'DD_AGENT_HOST' => nil, 'DD_TRACE_AGENT_PORT' => nil
 
         before do
           # Unit tests for at fork monkey patch module reset its state,
@@ -299,7 +295,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
           # because normally it would be added during library initialization
           # and if the fork monkey patch test runs before this test,
           # the handler would get cleared out.
-          described_class.const_get(:ONLY_ONCE).send(:reset_ran_once_state_for_tests)
+          Datadog::Core::Configuration::Components.const_get(:AT_FORK_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
 
           # We also need to clear out the handlers because we could have
           # our own handler registered from the library initialization time,

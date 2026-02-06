@@ -227,6 +227,8 @@ RSpec.describe Datadog::Kit::Identity do
       let(:appsec_active_context) { nil }
 
       before do
+        allow(telemetry).to receive(:inc)
+        allow(telemetry).to receive(:error)
         allow(Datadog::AppSec).to receive(:active_context).and_return(appsec_active_context)
       end
 

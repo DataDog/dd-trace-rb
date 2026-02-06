@@ -76,11 +76,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
         )
       end
 
-      around do |example|
-        ClimateControl.modify('DD_SUPPORTED_ENV_VAR' => 'true') do
-          example.run
-        end
-      end
+      with_env 'DD_SUPPORTED_ENV_VAR' => 'true'
 
       it 'returns the environment variable value' do
         expect(subject.get_environment_variable('DD_SUPPORTED_ENV_VAR')).to eq('true')

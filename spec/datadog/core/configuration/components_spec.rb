@@ -53,9 +53,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
     allow(Datadog::Core::Telemetry::Component).to receive(:new).and_return(telemetry)
   end
 
-  around do |example|
-    ClimateControl.modify('DD_REMOTE_CONFIGURATION_ENABLED' => nil) { example.run }
-  end
+  with_env 'DD_REMOTE_CONFIGURATION_ENABLED' => nil
 
   describe '::new' do
     let(:tracer) { instance_double(Datadog::Tracing::Tracer) }

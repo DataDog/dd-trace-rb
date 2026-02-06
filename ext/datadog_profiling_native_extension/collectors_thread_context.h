@@ -11,12 +11,14 @@ void thread_context_collector_sample(
   VALUE profiler_overhead_stack_thread
 );
 __attribute__((warn_unused_result)) bool thread_context_collector_prepare_sample_inside_signal_handler(VALUE self_instance);
-void thread_context_collector_sample_allocation(VALUE self_instance, unsigned int sample_weight, VALUE new_object);
+__attribute__((warn_unused_result)) bool thread_context_collector_sample_allocation(VALUE self_instance, unsigned int sample_weight, VALUE new_object);
+void thread_context_collector_after_allocation(VALUE self_instance);
 void thread_context_collector_sample_skipped_allocation_samples(VALUE self_instance, unsigned int skipped_samples);
 VALUE thread_context_collector_sample_after_gc(VALUE self_instance);
 void thread_context_collector_on_gc_start(VALUE self_instance);
 __attribute__((warn_unused_result)) bool thread_context_collector_on_gc_finish(VALUE self_instance);
 VALUE enforce_thread_context_collector_instance(VALUE object);
+
 
 #ifndef NO_GVL_INSTRUMENTATION
   typedef enum {

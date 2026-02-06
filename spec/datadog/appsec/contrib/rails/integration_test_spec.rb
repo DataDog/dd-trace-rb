@@ -170,6 +170,7 @@ RSpec.describe 'Rails integration tests', execute_in_fork: Rails.version.to_i >=
   after do
     Datadog.configuration.reset!
     Datadog.registry[:rails].reset_configuration!
+    Datadog::AppSec::APISecurity::Sampler.reset!
   end
 
   context 'for an application' do
