@@ -33,6 +33,17 @@ module Datadog
           def register_as(name, registry: Contrib::REGISTRY, auto_patch: false, **options)
             registry.add(name, new(name, **options), auto_patch)
           end
+
+          # Registers this `as` in the global tracer registry as an alias of `original_name`.
+          # Using `as` or `original_name` become interchangeable.
+          # The configuration object is shared between the two names.
+          # The patcher will only run once if both are activated.
+          def register_alias_for(original_name, as:, registry: Contrib::REGISTRY)
+            original = registry[original_name]
+            raise ArgumentError, "integration '#{original_name}' not registered" unless original
+
+            registry.add(as, original, false)
+          end
         end
 
         # Instance methods for registerable behavior

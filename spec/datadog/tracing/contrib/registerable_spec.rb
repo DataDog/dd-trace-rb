@@ -58,6 +58,42 @@ RSpec.describe Datadog::Tracing::Contrib::Registerable do
           end
         end
       end
+
+      describe '#register_alias_for' do
+        subject(:register_alias_for) { registerable_class.register_alias_for(:original, as: :alias, **options) }
+
+        context 'when the registry is not provided' do
+          let(:options) { {} }
+          let(:registry) { Datadog::Tracing::Contrib::Registry.new }
+
+          before { registerable_class.register_as(:original, registry: registry) }
+
+          it 'invokes the global Datadog.registry' do
+            stub_const('Datadog::Tracing::Contrib::REGISTRY', registry)
+
+            register_alias_for
+            expect(registry[:alias]).to be(registry[:original])
+          end
+        end
+
+        context 'when the original integration is not registered' do
+          let(:options) { {registry: registry} }
+          let(:registry) { Datadog::Tracing::Contrib::Registry.new }
+
+          it { expect { register_alias_for }.to raise_error(ArgumentError, "integration 'original' not registered") }
+        end
+
+        context 'when the original integration is registered' do
+          let(:options) { {registry: registry} }
+          let(:registry) { Datadog::Tracing::Contrib::Registry.new }
+          before { registerable_class.register_as(:original, registry: registry) }
+
+          it 'creates an alias to the original integration object' do
+            register_alias_for
+            expect(registry[:alias]).to be(registry[:original])
+          end
+        end
+      end
     end
 
     describe 'instance behavior' do
