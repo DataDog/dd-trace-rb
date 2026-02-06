@@ -1,0 +1,13 @@
+module Datadog
+  module Core
+    module Utils
+      module FNV
+        FNV_OFFSET_BASIS: ::Integer
+        FNV_PRIME: ::Integer
+        FNV_64_BIT_MASK: ::Integer
+
+        def self.fnv1_64: (::String data) -> ::Integer
+      end
+    end
+  end
+end
