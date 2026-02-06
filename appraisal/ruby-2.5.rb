@@ -225,6 +225,14 @@ build_coverage_matrix('mongo', min: '2.1.0')
 build_coverage_matrix('dalli')
 build_coverage_matrix('devise', min: '3.2.1', meta: { min: { 'bigdecimal' => '1.3.4' } })
 
+appraise 'kicks-min' do
+  gem 'kicks', '= 3.0.0' # kicks 3.1+ requires Ruby 3.0+
+end
+
+appraise 'sneakers' do
+  gem 'sneakers', '= 2.12.0' # Sneakers is not receiving updates anymore and 2.12.0 is the last version
+end
+
 appraise 'relational_db' do
   gem 'activerecord', '~> 5'
   gem 'delayed_job'
@@ -258,7 +266,6 @@ appraise 'contrib' do
   gem 'roda', '>= 2.0.0'
   gem 'semantic_logger', '~> 4.0'
   gem 'sidekiq'
-  gem 'sneakers', '>= 2.12.0'
   gem 'bunny', '~> 2.19.0' # uninitialized constant OpenSSL::SSL::TLS1_3_VERSION for jruby, https://github.com/ruby-amqp/bunny/issues/645
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0', '< 2.0.0'
