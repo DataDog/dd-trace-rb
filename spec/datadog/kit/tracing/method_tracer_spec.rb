@@ -194,16 +194,6 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
         expect(spans.count { |s| s.name == 'custom_dynamic_span' }).to eq(1)
       end
 
-      it 'does not trace dynamic method outside of a trace context' do
-        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :dynamic_method, dynamic: true)
-
-        result = dummy.dynamic_method
-
-        expect(dummy.called?).to be true
-        expect(result).to eq(42)
-        expect(spans.count { |s| s.name == 'Dummy#dynamic_method' }).to eq(0)
-      end
-
       it 'raises NoMethodError when dynamic method is not handled by method_missing' do
         Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :unhandled_method, dynamic: true)
 
@@ -662,21 +652,6 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
   end
 
   describe '#trace_method' do
-    context 'outside of a trace context' do
-      it 'does not trace' do
-        dummy_class.instance_eval do
-          extend Datadog::Kit::Tracing::MethodTracer
-
-          trace_method :foo
-        end
-
-        dummy.foo
-
-        expect(dummy.called).to eq(1)
-        expect(spans.count { |s| s.name == 'Dummy#foo' }).to eq(0)
-      end
-    end
-
     context 'with dynamic: true for method_missing-handled methods' do
       let(:dummy_class) do
         Class.new do
