@@ -35,12 +35,12 @@ module Datadog
       Datadog.send(:handle_interrupt_shutdown!)
     else
       # Report unhandled exception to crash tracker before shutdown
-      if exception && !exception.is_a?(SystemExit)
+      if exception && !exception.is_a?(SystemExit) && !exception.is_a?(NoMemoryError)
         begin
           Datadog.send(:components, allow_initialization: false)&.crashtracker&.report_unhandled_exception(exception)
         rescue => e
           # Don't let crash reporting itself crash the exit process
-          Datadog.logger.error("Failed to report unhandled exception: #{e.message}")
+          Datadog.logger.debug("Crashtracker failed to report unhandled exception: #{e.message}")
         end
       end
 

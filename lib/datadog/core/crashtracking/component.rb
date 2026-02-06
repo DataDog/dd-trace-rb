@@ -57,8 +57,6 @@ module Datadog
           # Here we pick up the latest settings, so that we pick up any tags that change after forking
           # such as the pid or runtime-id
           start_or_update_on_fork(action: :update_on_fork, tags: TagBuilder.call(settings))
-        rescue => e
-          logger.error("Failed to update settings on fork: #{e.message}")
         end
 
         def report_unhandled_exception(exception, settings: Datadog.configuration)
@@ -89,7 +87,7 @@ module Datadog
             frames_data << ['<truncated>', "<truncated #{truncated_count} more frames>", 0]
           end
 
-          message = "Unhandled #{exception.class.name}: #{exception.message || ""}"
+          message = "Unhandled #{exception.class}: #{exception.message || ""}"
 
           success = self.class._native_report_ruby_exception(
             agent_base_url,
@@ -99,10 +97,10 @@ module Datadog
             Datadog::VERSION::STRING
           )
 
-          logger.error('Failed to report unhandled exception to crash tracker') unless success
+          logger.debug('Crashtracker failed to report unhandled exception to crash tracker') unless success
         rescue => e
-          # don't let crash reporting itself crash the exit process
-          Datadog.logger.debug("Failed to report Ruby exception crash: #{e.message}")
+          # don't let crash reporting itself raise an error
+          logger.debug("Crashtracker failed to report Ruby exception crash: #{e.message}")
         end
 
         def stop
