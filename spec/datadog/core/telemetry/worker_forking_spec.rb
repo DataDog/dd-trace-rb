@@ -3,16 +3,7 @@ require 'spec_helper'
 RSpec.describe Datadog::Core::Telemetry::Component do
   forking_platform_only
 
-  before(:all) do
-    # We need to ensure the patch is present.
-    # There is a unit test for the patcher itself which clears the callbacks,
-    # we need to reinstall our callback if the callback got installed before
-    # that test is run and this test is run even later.
-    Datadog::Core::Configuration::Components.const_get(:AT_FORK_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
-
-    # Clear out existing handlers so that our handler is registered exactly once.
-    Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
-  end
+  reset_at_fork_monkey_patch_for_components!
 
   let(:sent_payloads) { [] }
 

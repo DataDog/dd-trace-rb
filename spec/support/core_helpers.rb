@@ -111,6 +111,41 @@ module CoreHelpers
         end
       end
     end
+
+    # Resets Components AtForkMonkeyPatch registration state.
+    # Use this at describe/context level in tests that exercise or
+    # assert on the forking behavior of components.
+    def reset_at_fork_monkey_patch_for_components!
+      # This helper uses `before` and not `before(all)` due to feedback in
+      # https://github.com/DataDog/dd-trace-rb/pull/5315 and
+      # https://github.com/DataDog/dd-trace-rb/pull/5304
+      # where reviewers preferred to have the state reset for each test.
+      #
+      # The only time when the state should be reset per-test is when the
+      # same describe/context block tests both the AtForkMonkeyPatch itself
+      # and one of its clients. Our existing tests for the monkey patch itself
+      # do not use this helper as of this writing.
+      #
+      # In practice, in our current test suite, it is safe to reset the
+      # monkey patch state once per test file.
+      before do
+        # Unit tests for at fork monkey patch module reset its state,
+        # including the defined handlers.
+        # We need to make sure that the handler for Components is registered,
+        # because normally it would be added during library initialization
+        # and after the fork monkey patch test runs, the handler would get
+        # cleared out.
+        Datadog::Core::Configuration::Components.const_get(:AT_FORK_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
+
+        # We also need to clear out the handlers because we could have
+        # the handlers registered from the library initialization time,
+        # if the at fork monkey patch unit test did not yet run.
+        # In this case the handlers that are already registered would be
+        # executed twice which is 1) probably not good and 2) would fail
+        # our assertions.
+        Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
+      end
+    end
   end
 
   def self.included(base)
