@@ -59,6 +59,50 @@ module Datadog
           start_or_update_on_fork(action: :update_on_fork, tags: TagBuilder.call(settings))
         end
 
+        def report_unhandled_exception(exception, settings: Datadog.configuration)
+          # Get fresh tags (important after forking, similar to update_on_fork)
+          current_tags = TagBuilder.call(settings)
+          # extract all frame data upfront; c expects exactly 3 elements, proper types, no nils
+          # limit to 256 frames
+          all_backtrace_locations = exception.backtrace_locations || []
+          was_truncated = all_backtrace_locations.length > 256
+
+          backtrace_locations = was_truncated ? all_backtrace_locations.take(255) : all_backtrace_locations
+          frames_data = backtrace_locations.map do |loc|
+            file = loc.path
+            file = '<unknown>' if file.nil? || file.empty? || !file.is_a?(String)
+
+            function = loc.label
+            function = '<unknown>' if function.nil? || function.empty? || !function.is_a?(String)
+
+            line = loc.lineno
+            line = 0 if line.nil? || line < 0 || !line.is_a?(Integer)
+
+            [file, function, line] # Always String, String, Integer
+          end
+
+          # Add truncation indicator frame if we had to cut off frames
+          if was_truncated
+            truncated_count = all_backtrace_locations.length - 255
+            frames_data << ['<truncated>', "<truncated #{truncated_count} more frames>", 0]
+          end
+
+          message = "Unhandled #{exception.class}: #{exception.message || ""}"
+
+          success = self.class._native_report_ruby_exception(
+            agent_base_url,
+            message,
+            frames_data,
+            current_tags.to_a,
+            Datadog::VERSION::STRING
+          )
+
+          logger.debug('Crashtracker failed to report unhandled exception to crash tracker') unless success
+        rescue => e
+          # don't let crash reporting itself raise an error
+          logger.debug("Crashtracker failed to report Ruby exception crash: #{e.message}")
+        end
+
         def stop
           self.class._native_stop
           logger.debug('Crash tracking stopped successfully')
