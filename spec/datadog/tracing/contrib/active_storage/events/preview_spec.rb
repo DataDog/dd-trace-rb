@@ -56,5 +56,11 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::Preview do
       described_class.process(span, event, id, payload)
       expect(span.get_tag('active_storage.service')).to be_nil
     end
+
+    it 'sets component and operation tags' do
+      described_class.process(span, event, id, payload)
+      expect(span.get_tag('component')).to eq('active_storage')
+      expect(span.get_tag('operation')).to eq('preview')
+    end
   end
 end

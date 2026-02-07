@@ -55,5 +55,11 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::Exist do
       expect(span.get_tag('active_storage.key')).to eq('test_file.txt')
       expect(span.get_tag('active_storage.exist')).to eq(true)
     end
+
+    it 'sets component and operation tags' do
+      described_class.process(span, event, id, payload)
+      expect(span.get_tag('component')).to eq('active_storage')
+      expect(span.get_tag('operation')).to eq('exist')
+    end
   end
 end
