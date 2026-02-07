@@ -18,6 +18,8 @@ module Datadog
           def send_input: (untyped payload, untyped tags) -> untyped
 
           def send_input_chunk: (untyped chunked_payload, untyped serialized_tags) -> untyped
+
+          def encoder: () -> singleton(Core::Encoding::JSONEncoder)
         end
       end
     end

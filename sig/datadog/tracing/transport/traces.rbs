@@ -7,7 +7,7 @@ module Datadog
 
           attr_reader trace_count: Integer
 
-          def initialize: (String data, trace_count: Integer, ?content_type: String?, ?content_encoding: String?) -> void
+          def initialize: (String data, trace_count: Integer, **untyped) -> void
         end
         class Request < Datadog::Core::Transport::Request
         end
