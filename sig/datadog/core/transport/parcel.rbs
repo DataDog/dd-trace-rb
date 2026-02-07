@@ -17,8 +17,6 @@ module Datadog
         attr_reader content_type: untyped
 
         attr_reader content_encoding: untyped
-
-        def encode_with: (untyped encoder) -> untyped
       end
     end
   end

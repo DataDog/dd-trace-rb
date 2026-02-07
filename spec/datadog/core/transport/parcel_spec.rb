@@ -14,18 +14,10 @@ RSpec.describe Datadog::Core::Transport::Parcel do
   describe '#length' do
     subject(:length) { parcel.length }
 
-    let(:length) { double('length') }
+    let(:expected_length) { double('length') }
 
-    before { expect(data).to receive(:length).and_return(length) }
+    before { expect(data).to receive(:length).and_return(expected_length) }
 
-    it { is_expected.to be length }
-  end
-
-  describe '#encode_with' do
-    subject(:encode_with) { parcel.encode_with(encoder) }
-
-    let(:encoder) { double('encoder') }
-
-    it { expect { encode_with }.to raise_error(NotImplementedError) }
+    it { is_expected.to be expected_length }
   end
 end

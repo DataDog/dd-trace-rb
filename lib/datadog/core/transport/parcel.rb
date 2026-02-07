@@ -20,10 +20,6 @@ module Datadog
         attr_reader :content_type
 
         attr_reader :content_encoding
-
-        def encode_with(encoder)
-          raise NotImplementedError
-        end
       end
     end
   end
