@@ -9,12 +9,12 @@ RSpec.describe Datadog::DataStreams::Transport do
   let(:settings) do
     double('Settings',
       service: Datadog.configuration.service,
-      env: Datadog.configuration.env,
-    )
+      env: Datadog.configuration.env,)
   end
   let(:agent_settings) do
     Datadog::Core::Configuration::AgentSettings.new(
-      adapter: :net_http, hostname: 'localhost', port: http_server_port)
+      adapter: :net_http, hostname: 'localhost', port: http_server_port
+    )
   end
   let(:processor) { Datadog::DataStreams::Processor.new(interval: 10.0, logger: logger, settings: settings, agent_settings: agent_settings) }
 
@@ -25,7 +25,7 @@ RSpec.describe Datadog::DataStreams::Transport do
       received_requests << req
     end
   end
-  
+
   it 'sets the expected headers' do
     # DSM does not implemement a flush method of its own and also
     # does not use the Queue worker module, which provides a flush method.
@@ -37,8 +37,7 @@ RSpec.describe Datadog::DataStreams::Transport do
       partition: 0,
       offset: 0,
       timestamp: Time.now,
-      timestamp_sec: 1,
-    )
+      timestamp_sec: 1,)
     processor.send(:flush_stats)
     expect(received_requests.length).to be 1
     req = received_requests.first
@@ -50,5 +49,4 @@ RSpec.describe Datadog::DataStreams::Transport do
     )
     expect(headers).to include(Datadog::Core::Transport::HTTP.default_headers.transform_keys(&:downcase))
   end
-
 end

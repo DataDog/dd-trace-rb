@@ -15,7 +15,6 @@ module Datadog
       module Traces
         # Data transfer object for encoded traces
         class Parcel < Core::Transport::Parcel
-
           attr_reader :trace_count
 
           def initialize(data, trace_count:, **opts)

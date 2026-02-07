@@ -50,7 +50,7 @@ RSpec.describe Datadog::Tracing::Transport::IO::Traces::Encoder do
 
       it 'which is wrapped' do
         is_expected.to be_a_kind_of(Hash)
-        is_expected.to include(:traces => kind_of(Array))
+        is_expected.to include(traces: kind_of(Array))
       end
 
       describe 'whose encoded traces' do
@@ -64,9 +64,9 @@ RSpec.describe Datadog::Tracing::Transport::IO::Traces::Encoder do
           compare_arrays(traces, encoded_traces) do |trace, encoded_trace|
             compare_arrays(trace.spans, encoded_trace) do |span, encoded_span|
               expect(encoded_span).to include(
-                :trace_id => span.trace_id.to_s(16),
-                :span_id => span.id.to_s(16),
-                :parent_id => span.parent_id.to_s(16),
+                trace_id: span.trace_id.to_s(16),
+                span_id: span.id.to_s(16),
+                parent_id: span.parent_id.to_s(16),
               )
             end
           end
