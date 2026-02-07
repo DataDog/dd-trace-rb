@@ -1,5 +1,7 @@
 require 'spec_helper'
 
+require 'stringio'
+require 'json'
 require 'datadog/tracing/transport/io/client'
 require 'datadog/tracing/transport/io/traces'
 
@@ -148,6 +150,53 @@ RSpec.describe Datadog::Tracing::Transport::IO::Client do
       it do
         is_expected.to all(be_a(Datadog::Tracing::Transport::IO::Traces::Response))
         expect(send_traces.first.result).to eq(result)
+      end
+    end
+
+    context 'integration test with real IO' do
+      subject(:send_traces) { client.send_traces(traces) }
+
+      let(:out) { StringIO.new }
+      let(:encoder) { Datadog::Core::Encoding::JSONEncoder }
+      let(:traces) { get_test_traces(2) }
+
+      it 'writes valid JSON with correct trace structure' do
+        # Send traces and capture output
+        responses = send_traces
+        output = out.string
+
+        # Verify response
+        expect(responses).to all(be_a(Datadog::Tracing::Transport::IO::Traces::Response))
+
+        # Parse and verify it's valid JSON
+        parsed = JSON.parse(output)
+        expect(parsed).to be_a(Hash)
+        expect(parsed).to have_key('traces')
+        expect(parsed['traces']).to be_an(Array)
+        expect(parsed['traces']).not_to be_empty
+
+        # Sample check: verify first trace has correct structure
+        first_trace = traces.first
+        first_encoded = parsed['traces'].first
+
+        expect(first_encoded).to be_an(Array)
+        expect(first_encoded).not_to be_empty
+
+        # Sample check: verify first span is correctly encoded
+        first_span = first_trace.spans.first
+        first_encoded_span = first_encoded.first
+
+        expect(first_encoded_span).to be_a(Hash)
+        expect(first_encoded_span['name']).to eq(first_span.name)
+
+        # Critical: Verify IDs are hex-encoded (this is what would break in production)
+        expect(first_encoded_span['trace_id']).to eq(first_span.trace_id.to_s(16))
+        expect(first_encoded_span['span_id']).to eq(first_span.id.to_s(16))
+        expect(first_encoded_span['parent_id']).to eq(first_span.parent_id.to_s(16))
+
+        # Verify numeric fields have correct types
+        expect(first_encoded_span['start']).to be_a(Integer)
+        expect(first_encoded_span['duration']).to be_a(Integer)
       end
     end
   end
