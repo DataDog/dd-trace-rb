@@ -102,7 +102,7 @@ RSpec.describe Datadog::Tracing::Transport::IO::Traces::Encoder do
     let(:encoder) { Datadog::Core::Encoding::JSONEncoder }
 
     describe '.encode_traces' do
-      subject(:encode_traces) { trace_encoder.encode_traces(encoder, traces) }
+      subject(:encode_traces) { trace_encoder.encode_traces(traces) }
 
       let(:traces) { get_test_traces(2) }
 
