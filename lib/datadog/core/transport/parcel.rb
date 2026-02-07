@@ -13,7 +13,7 @@ module Datadog
       #   encoder = Core::Encoding::JSONEncoder
       #   parcel = Parcel.new(
       #     encoder.encode(payload),
-      #     content_type: encoder.content_type
+      #     content_type: encoder.content_type,
       #   )
       #
       # @example Creating a Parcel with compressed MessagePack data
@@ -22,7 +22,7 @@ module Datadog
       #   parcel = Parcel.new(
       #     compressed_data,
       #     content_type: 'application/msgpack',
-      #     content_encoding: 'gzip'
+      #     content_encoding: 'gzip',
       #   )
       #
       # @example Accessing Parcel data in HTTP transport
