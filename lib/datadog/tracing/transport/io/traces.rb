@@ -70,8 +70,8 @@ module Datadog
               req = Transport::Traces::Request.new(parcel)
 
               [send_request(req) do |out, request|
-                # Encode trace data
-                data = encode_data(encoder, request)
+                # Get already-encoded data from parcel
+                data = request.parcel.data
 
                 # Write to IO
                 result = if block_given?

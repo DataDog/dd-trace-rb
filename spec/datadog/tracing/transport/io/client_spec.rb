@@ -27,16 +27,11 @@ RSpec.describe Datadog::Tracing::Transport::IO::Client do
       let(:request) { instance_double(Datadog::Core::Transport::Request, parcel: parcel) }
       let(:parcel) { instance_double(Datadog::Core::Transport::Parcel, data: data) }
       let(:data) { 'Hello, world!' }
-      let(:encoded_data) { double('encoded data') }
       let(:result) { double('IO result') }
 
       before do
-        expect(parcel).to receive(:encode_with)
-          .with(encoder)
-          .and_return(encoded_data)
-
         expect(client.out).to receive(:puts)
-          .with(encoded_data)
+          .with(data)
           .and_return(result)
 
         expect(client).to receive(:update_stats_from_response!)
@@ -74,23 +69,6 @@ RSpec.describe Datadog::Tracing::Transport::IO::Client do
         is_expected.to be response
       end
     end
-  end
-
-  describe '#encode_data' do
-    subject(:encode_data) { client.encode_data(encoder, request) }
-
-    let(:request) { instance_double(Datadog::Core::Transport::Request, parcel: parcel) }
-    let(:parcel) { instance_double(Datadog::Core::Transport::Parcel) }
-    let(:data) { double('data') }
-
-    before do
-      expect(parcel)
-        .to receive(:encode_with)
-        .with(encoder)
-        .and_return(data)
-    end
-
-    it { is_expected.to be data }
   end
 
   describe '#write_data' do
