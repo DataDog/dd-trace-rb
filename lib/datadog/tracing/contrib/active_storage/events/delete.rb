@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/contrib/active_storage/event'
-require 'datadog/tracing/contrib/active_storage/ext'
-require 'datadog/tracing/contrib/analytics'
+require_relative '../../../metadata/ext'
+require_relative '../event'
+require_relative '../ext'
+require_relative '../../analytics'
 
 module Datadog
   module Tracing

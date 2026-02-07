@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/contrib/integration'
-require 'datadog/tracing/contrib/active_storage/configuration/settings'
-require 'datadog/tracing/contrib/active_storage/patcher'
-require 'datadog/tracing/contrib/rails/utils'
+require_relative '../integration'
+require_relative 'configuration/settings'
+require_relative 'patcher'
+require_relative '../rails/utils'
 
 module Datadog
   module Tracing
