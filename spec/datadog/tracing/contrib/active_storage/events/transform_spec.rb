@@ -24,13 +24,11 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::Transform do
     let(:payload) { {} }
 
     before do
-      allow(Datadog.configuration.tracing).to receive(:[]).with(:active_storage).and_return(
-        double(
-          service_name: nil,
-          analytics_enabled: false,
-          analytics_sample_rate: 1.0
-        )
-      )
+      config = double('config')
+      allow(config).to receive(:[]).with(:service_name).and_return(nil)
+      allow(config).to receive(:[]).with(:analytics_enabled).and_return(false)
+      allow(config).to receive(:[]).with(:analytics_sample_rate).and_return(1.0)
+      allow(Datadog.configuration.tracing).to receive(:[]).with(:active_storage).and_return(config)
     end
 
     it 'sets the span type' do
@@ -46,13 +44,11 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::Transform do
 
     context 'when service_name is configured' do
       before do
-        allow(Datadog.configuration.tracing).to receive(:[]).with(:active_storage).and_return(
-          double(
-            service_name: 'custom_storage',
-            analytics_enabled: false,
-            analytics_sample_rate: 1.0
-          )
-        )
+        config = double('config')
+        allow(config).to receive(:[]).with(:service_name).and_return('custom_storage')
+        allow(config).to receive(:[]).with(:analytics_enabled).and_return(false)
+        allow(config).to receive(:[]).with(:analytics_sample_rate).and_return(1.0)
+        allow(Datadog.configuration.tracing).to receive(:[]).with(:active_storage).and_return(config)
       end
 
       it 'sets the custom service name' do
