@@ -6,9 +6,9 @@ require_relative '../ext'
 module Datadog
   module Tracing
     module Contrib
-      module ActiveStorge
+      module ActiveStorage
         module Configuration
-          # Custom settings for the ActiveStorge integration
+          # Custom settings for the ActiveStorage integration
           # @public_api
           class Settings < Contrib::Configuration::Settings
             option :enabled do |o|
