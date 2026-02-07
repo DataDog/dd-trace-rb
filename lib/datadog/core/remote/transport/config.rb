@@ -10,15 +10,6 @@ module Datadog
     module Remote
       module Transport
         module Config
-          # Data transfer object for encoded traces
-          class EncodedParcel
-            include Datadog::Core::Transport::Parcel
-
-            def count
-              data.length
-            end
-          end
-
           # Config request
           class Request < Datadog::Core::Transport::Request
           end
@@ -26,8 +17,11 @@ module Datadog
           # Config transport
           class Transport < Core::Transport::Transport
             def send_config(payload)
-              json = JSON.dump(payload)
-              parcel = EncodedParcel.new(json)
+              encoder = Core::Encoding::JSONEncoder
+              parcel = Core::Transport::Parcel.new(
+                encoder.encode(payload),
+                content_type: encoder.content_type,
+              )
               request = Request.new(parcel)
 
               @client.send_request(:config, request)

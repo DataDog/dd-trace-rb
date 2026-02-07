@@ -23,10 +23,6 @@ module Datadog
           Core::Transport::HTTP.build(
             agent_settings: agent_settings,
             logger: logger,
-            headers: {
-              'Content-Type' => 'application/msgpack',
-              'Content-Encoding' => 'gzip'
-            }
           ) do |transport|
             transport.api 'v0.1', V01, default: true
 

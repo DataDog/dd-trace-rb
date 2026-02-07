@@ -15,20 +15,11 @@ module Datadog
           end
           module Encoder
             ENCODED_IDS: ::Array[:trace_id | :span_id | :parent_id]
-            def encode_traces: (untyped encoder, untyped traces) -> untyped
+            def encode_traces: (untyped traces) -> untyped
 
             private
 
             def encode_trace: (untyped trace) -> untyped
-          end
-          class Parcel
-            include Datadog::Core::Transport::Parcel
-
-            include Encoder
-
-            def count: () -> untyped
-
-            def encode_with: (untyped encoder) -> untyped
           end
         end
       end
