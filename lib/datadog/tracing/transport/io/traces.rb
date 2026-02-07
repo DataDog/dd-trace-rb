@@ -31,7 +31,7 @@ module Datadog
             ].freeze
 
             # Encodes a list of traces
-            def encode_traces(encoder, traces)
+            def encode_traces(traces)
               trace_hashes = traces.map do |trace|
                 encode_trace(trace)
               end
