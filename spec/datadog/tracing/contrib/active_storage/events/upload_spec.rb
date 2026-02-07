@@ -54,6 +54,12 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::Upload do
       expect(span.get_tag('active_storage.key')).to eq('test_key_123')
     end
 
+    it 'sets component and operation tags' do
+      described_class.process(span, event, id, payload)
+      expect(span.get_tag('component')).to eq('active_storage')
+      expect(span.get_tag('operation')).to eq('upload')
+    end
+
     context 'when service_name is configured' do
       before do
         allow(Datadog.configuration.tracing).to receive(:[]).with(:active_storage).and_return(

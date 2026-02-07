@@ -53,5 +53,11 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::Download do
       expect(span.get_tag('active_storage.service')).to eq('S3')
       expect(span.get_tag('active_storage.key')).to eq('documents/file.pdf')
     end
+
+    it 'sets component and operation tags' do
+      described_class.process(span, event, id, payload)
+      expect(span.get_tag('component')).to eq('active_storage')
+      expect(span.get_tag('operation')).to eq('download')
+    end
   end
 end
