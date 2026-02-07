@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# typed: false
-
 require 'datadog/tracing/metadata/ext'
 require 'datadog/tracing/contrib/active_storage/event'
 require 'datadog/tracing/contrib/active_storage/ext'
