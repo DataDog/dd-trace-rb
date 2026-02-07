@@ -44,14 +44,14 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::Exist do
 
     it 'sets the span type' do
       described_class.process(span, event, id, payload)
-      expect(span.span_type).to eq('http')
+      expect(span.type).to eq('http')
     end
 
     it 'sets service, key, and exist tags' do
       described_class.process(span, event, id, payload)
       expect(span.get_tag('active_storage.service')).to eq('Disk')
       expect(span.get_tag('active_storage.key')).to eq('test_file.txt')
-      expect(span.get_tag('active_storage.exist')).to eq(true)
+      expect(span.get_tag('active_storage.exist')).to eq('true')
     end
 
     it 'sets component and operation tags' do

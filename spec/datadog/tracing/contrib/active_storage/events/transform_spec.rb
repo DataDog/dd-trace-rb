@@ -33,7 +33,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::Transform do
 
     it 'sets the span type' do
       described_class.process(span, event, id, payload)
-      expect(span.span_type).to eq('http')
+      expect(span.type).to eq('http')
     end
 
     it 'sets component and operation tags' do
