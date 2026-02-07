@@ -1,0 +1,59 @@
+# frozen_string_literal: true
+
+require 'spec_helper'
+require 'datadog/tracing/contrib/active_storage/events/exist'
+require 'datadog/tracing/span_operation'
+
+RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::Exist do
+  describe '.event_name' do
+    it 'returns the correct event name' do
+      expect(described_class.event_name).to eq('service_exist.active_storage')
+    end
+  end
+
+  describe '.span_name' do
+    it 'returns the correct span name' do
+      expect(described_class.span_name).to eq('active_storage.exist')
+    end
+  end
+
+  describe '.process' do
+    let(:span) { Datadog::Tracing::SpanOperation.new('active_storage.exist') }
+    let(:event) { double('event') }
+    let(:id) { double('id') }
+    let(:payload) do
+      {
+        service: 'Disk',
+        key: 'test_file.txt',
+        exist: true
+      }
+    end
+
+    before do
+      allow(Datadog.configuration.tracing).to receive(:[]).with(:active_storage).and_return(
+        double(
+          service_name: nil,
+          analytics_enabled: false,
+          analytics_sample_rate: 1.0
+        )
+      )
+    end
+
+    it 'sets the span resource' do
+      described_class.process(span, event, id, payload)
+      expect(span.resource).to eq('Disk: test_file.txt')
+    end
+
+    it 'sets the span type' do
+      described_class.process(span, event, id, payload)
+      expect(span.span_type).to eq('http')
+    end
+
+    it 'sets service, key, and exist tags' do
+      described_class.process(span, event, id, payload)
+      expect(span.get_tag('active_storage.service')).to eq('Disk')
+      expect(span.get_tag('active_storage.key')).to eq('test_file.txt')
+      expect(span.get_tag('active_storage.exist')).to eq(true)
+    end
+  end
+end
