@@ -2,21 +2,21 @@ module Datadog
   module Core
     module Transport
       class Parcel
-        @data: untyped
+        @data: String
 
-        @content_type: untyped
+        @content_type: String?
 
-        @content_encoding: untyped
+        @content_encoding: String?
 
-        def initialize: (untyped data, ?content_type: untyped?, ?content_encoding: untyped?) -> void
+        def initialize: (String data, ?content_type: String?, ?content_encoding: String?) -> void
 
-        attr_reader data: untyped
+        attr_reader data: String
 
-        def length: () -> untyped
+        def length: () -> Integer
 
-        attr_reader content_type: untyped
+        attr_reader content_type: String?
 
-        attr_reader content_encoding: untyped
+        attr_reader content_encoding: String?
       end
     end
   end

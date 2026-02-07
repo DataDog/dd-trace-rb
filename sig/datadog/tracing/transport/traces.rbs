@@ -3,11 +3,11 @@ module Datadog
     module Transport
       module Traces
         class Parcel < Core::Transport::Parcel
-          @trace_count: untyped
+          @trace_count: Integer
 
-          attr_reader trace_count: untyped
+          attr_reader trace_count: Integer
 
-          def initialize: (untyped data, trace_count: Integer, ?content_type: untyped?, ?content_encoding: untyped?) -> void
+          def initialize: (String data, trace_count: Integer, ?content_type: String?, ?content_encoding: String?) -> void
         end
         class Request < Datadog::Core::Transport::Request
         end
