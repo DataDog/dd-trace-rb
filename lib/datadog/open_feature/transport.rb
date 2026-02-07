@@ -22,7 +22,7 @@ module Datadog
           # TODO rename to send_request?
           def call(env, &block)
             @endpoint.call(env) do |request_env|
-              request_env.headers['Content-Type'] = env.request.parcel.content_type || Core::Encoding::JSONEncoder.content_type
+              request_env.headers['Content-Type'] = env.request.parcel.content_type
               request_env.headers['X-Datadog-EVP-Subdomain'] = 'event-platform-intake'
               request_env.body = env.request.parcel.data
 
