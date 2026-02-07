@@ -31,6 +31,18 @@ module Datadog
           TAG_EXIST = 'active_storage.exist'.freeze
           TAG_CONTENT_TYPE = 'active_storage.content_type'.freeze
           TAG_DISPOSITION = 'active_storage.disposition'.freeze
+          TAG_COMPONENT = 'active_storage'.freeze
+          TAG_OPERATION_DELETE = 'delete'.freeze
+          TAG_OPERATION_DELETE_PREFIXED = 'delete_prefixed'.freeze
+          TAG_OPERATION_DOWNLOAD = 'download'.freeze
+          TAG_OPERATION_DOWNLOAD_CHUNK = 'download_chunk'.freeze
+          TAG_OPERATION_EXIST = 'exist'.freeze
+          TAG_OPERATION_PREVIEW = 'preview'.freeze
+          TAG_OPERATION_STREAMING_DOWNLOAD = 'streaming_download'.freeze
+          TAG_OPERATION_TRANSFORM = 'transform'.freeze
+          TAG_OPERATION_UPDATE_METADATA = 'update_metadata'.freeze
+          TAG_OPERATION_UPLOAD = 'upload'.freeze
+          TAG_OPERATION_URL = 'url'.freeze
         end
       end
     end
