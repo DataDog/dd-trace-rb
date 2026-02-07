@@ -106,18 +106,18 @@ RSpec.describe Datadog::Tracing::Transport::IO::Traces::Encoder do
 
       let(:traces) { get_test_traces(2) }
 
-      it { is_expected.to be_a_kind_of(String) }
+      it { is_expected.to be_a_kind_of(Hash) }
 
-      describe 'produces a JSON schema' do
-        subject(:schema) { JSON.parse(encode_traces) }
+      describe 'produces a hash schema' do
+        subject(:schema) { encode_traces }
 
         it 'which is wrapped' do
           is_expected.to be_a_kind_of(Hash)
-          is_expected.to include('traces' => kind_of(Array))
+          is_expected.to include(:traces => kind_of(Array))
         end
 
         describe 'whose encoded traces' do
-          subject(:encoded_traces) { schema['traces'] }
+          subject(:encoded_traces) { schema[:traces] }
 
           it 'contains the traces' do
             is_expected.to have(traces.length).items
@@ -127,9 +127,9 @@ RSpec.describe Datadog::Tracing::Transport::IO::Traces::Encoder do
             compare_arrays(traces, encoded_traces) do |trace, encoded_trace|
               compare_arrays(trace.spans, encoded_trace) do |span, encoded_span|
                 expect(encoded_span).to include(
-                  'trace_id' => span.trace_id.to_s(16),
-                  'span_id' => span.id.to_s(16),
-                  'parent_id' => span.parent_id.to_s(16)
+                  :trace_id => span.trace_id.to_s(16),
+                  :span_id => span.id.to_s(16),
+                  :parent_id => span.parent_id.to_s(16)
                 )
               end
             end
@@ -138,7 +138,7 @@ RSpec.describe Datadog::Tracing::Transport::IO::Traces::Encoder do
       end
 
       context 'when ID is missing' do
-        subject(:encoded_traces) { JSON.parse(encode_traces)['traces'] }
+        subject(:encoded_traces) { encode_traces[:traces] }
 
         let(:missing_id) { :span_id }
 
