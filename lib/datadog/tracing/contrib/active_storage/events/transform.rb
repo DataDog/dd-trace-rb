@@ -38,7 +38,7 @@ module Datadog
               # https://edgeguides.rubyonrails.org/active_support_instrumentation.html#transform-active-storage
 
               span.service = configuration[:service_name] if configuration[:service_name]
-              span.span_type = span_type
+              span.type = span_type
 
               # Set analytics sample rate
               if Contrib::Analytics.enabled?(configuration[:analytics_enabled])

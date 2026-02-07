@@ -41,7 +41,7 @@ module Datadog
               # so just use resource prefix
               # https://edgeguides.rubyonrails.org/active_support_instrumentation.html#preview-active-storage
               span.resource = as_key
-              span.span_type = span_type
+              span.type = span_type
 
               # Set analytics sample rate
               if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
