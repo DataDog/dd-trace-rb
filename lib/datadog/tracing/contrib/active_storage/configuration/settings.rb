@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/contrib/configuration/settings'
-require 'datadog/tracing/contrib/active_storage/ext'
+require_relative '../../configuration/settings'
+require_relative '../ext'
 
 module Datadog
   module Tracing
