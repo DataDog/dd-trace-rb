@@ -9,8 +9,6 @@ module Datadog
 
           @request_block: untyped
 
-          @encode_block: untyped
-
           @write_block: untyped
 
           @response_block: untyped
@@ -24,8 +22,6 @@ module Datadog
           def initialize: (untyped out, untyped encoder, ?::Hash[untyped, untyped] options) -> void
 
           def send_request: (untyped request) ?{ (untyped, untyped) -> untyped } -> untyped
-
-          def encode_data: (untyped encoder, untyped request) -> untyped
 
           def write_data: (untyped out, untyped data) -> untyped
 
