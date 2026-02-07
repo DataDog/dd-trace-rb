@@ -48,6 +48,9 @@ module Datadog
                 Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
               end
 
+              span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_UPDATE_METADATA)
+
               span.set_tag(Ext::TAG_SERVICE, as_service)
               span.set_tag(Ext::TAG_KEY, as_key)
               span.set_tag(Ext::TAG_CONTENT_TYPE, as_content_type)
