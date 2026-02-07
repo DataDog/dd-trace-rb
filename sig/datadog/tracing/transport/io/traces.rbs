@@ -15,7 +15,7 @@ module Datadog
           end
           module Encoder
             ENCODED_IDS: ::Array[:trace_id | :span_id | :parent_id]
-            def encode_traces: (untyped encoder, untyped traces) -> untyped
+            def encode_traces: (untyped traces) -> untyped
 
             private
 
