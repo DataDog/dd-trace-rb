@@ -18,8 +18,21 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
   end
 
   describe '#query' do
-    it 'returns URL query information' do
-      expect(request.query).to eq({'a' => ['foo', 'bar'], 'b' => ['baz']})
+    context 'when query string parsing succeeds' do
+      it 'returns URL query information' do
+        expect(request.query).to eq({'a' => ['foo', 'bar'], 'b' => 'baz'})
+      end
+    end
+
+    context 'when query string parsing failed' do
+      before { allow(::Rack::Utils).to receive(:parse_query).and_raise RangeError, 'too big' }
+
+      it 'returns empty query' do
+        expect(Datadog::AppSec.telemetry).to receive(:report)
+          .with(instance_of(RangeError), description: 'AppSec: Failed to parse request query string')
+
+        expect(request.query).to eq({})
+      end
     end
   end
 

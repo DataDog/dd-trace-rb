@@ -1,0 +1,11 @@
+module Datadog
+  module AppSec
+    module Utils
+      module HTTP
+        module URLEncoded
+          def self.parse: (::String?) -> ::Hash[::String, (::String | ::Array[::String])?]
+        end
+      end
+    end
+  end
+end
