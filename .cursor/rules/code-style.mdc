@@ -6,9 +6,15 @@ alwaysApply: true
 
 ## Ruby usage
 
-- We use Ruby 2.5 syntax
+- Code is in Ruby 2.5 syntax.
 - Use exceptions for exceptional cases, not for control flow.
-- Implement proper error logging and user-friendly messages.
+- Logging: log statements should only be used when either communicating important information to end-users (e.g. that something failed and the library somehow recovered from it) OR when not intended for end-users should be always at debug level
+- Code annotated with `@public_api` is user-facing, and subject to semantic versioning. ⚠️ Before modifying existing or introducing new `@public_api`, you MUST read `docs/PublicApi.md` and MUST ask the user for guidance.
+
+## Patterns
+
+- Use `DATADOG_ENV`, never `ENV`: ENV.[]/fetch/key? -> DATADOG_ENV.[]/fetch/key?. See `docs/AccessEnvironmentVariables.md` if in doubt.
+  - Run `rake local_config_map:generate` every time you add new env var.
 
 ## Type checking
 
@@ -19,22 +25,56 @@ alwaysApply: true
 - Always run `bundle exec rake steep:check` after any update to RBS files
 - When deleting Ruby files, delete corresponding RBS file. Run `bundle exec rake rbs:clean` to make sure that there are no unnecessary RBS files.
 - Avoid using `untyped` type, use it only when it is not feasible to derive the correct type
+- When types get long (e.g. tuple or union) or have names not matching the class/method context, improve readability and semantics by using interfaces and type aliases.
 - Do not write types like `(nil | Type)`, use `Type?` instead
-- See [StaticTypingGuide.md](mdc:docs/StaticTypingGuide.md) for details
+- MUST read `docs/StaticTypingGuide.md` if: modifying types; or having issues with type checking
 
 ## Code Quality
 
 - @standardrb is used for code style enforcement
-- Run `bundle exec standardrb` to check code quality
-- Ensure all code passes style checks before submitting
+- Run `STANDARDOPTS="path/file.rb spec/whole_dir" bundle exec rake standard` to check specific paths, and `STANDARDOPTS="..." rake standard:fix` to fix violations.
+- `bundle exec rake lint:frozen_string_literal`: on new `lib/` files only.
+- `yamllint --strict .`: on any `.yml` edit.
+- `actionlint`: on `.github/*.yml` edits.
+- ⚠️ IMPORTANT: Ensure all code passes style checks before submitting
 
-## Commands
+## Performance
 
-- %steep run `bundle exec rake steep:check`. If there are typechecking errors, examine and fix them.
+- Code in `lib/` and `ext/` is performance sensitive, except for: configuration,  gem startup/shutdown
+- Avoid:
+  - `#tap` (adds runtime overhead that easily avoidable)
+  - unnecessary string copy and array/hash creation;
+- Prefer: mutating methods (`map!`, `compact!`, `delete_prefix!`, `sub!`).
+
+### Benchmark experiments
+
+- Create when needed with alternative implementations.
+- Separate initialization from hot-path and create:
+  - Ensure code inside `#report{}` only includes hot-path.
+  - Runtime performance: `benchmark/ips` experiments.
+    - ⚠️ Set `config(warmup: 0.1, time: 0.5)` to avoid timeouts.
+    - From the output, report the `Comparison:` section verbatim.
+  - Allocation (memory) performance: `benchmark/memory` experiments.
+    - Report the whole output verbatim.
+
+## Static analysis commands
+
+- %steep run `bundle exec rake "steep:check[path/file.rb,spec/whole_dir]"` on specific files. If there are typechecking errors, examine and fix them.
 - %rbs for the files the current context examine the current changes and fix (or create) corresponding rbs files
+  - Create new file: `bundle exec rbs:prototype`. Generates a rough draft, MUST be refined.
+  - Rule is having a 1:1 filename mapping between `lib/**/*.rb` and `sig/**/*.rbs`: check consistency between `lib` and `sig` files with `bundle exec rake rbs:missing rbs:stale`
+
+## Documentation
+
+- Review if `docs/GettingStarted.md` needs to be updated due to the PR changes.
+  - When introducing new settings and env vars, `docs/GettingStarted.md` MUST be updated, unless they are experimental.
 
 ## Commits and Pull Requests
 
 When creating a pull request and committing code, follow the [PULL_REQUEST_TEMPLATE.md](mdc:.github/PULL_REQUEST_TEMPLATE.md) template.
 
 When submitting a pull request that includes a significant amount of AI-generated code, this must be disclosed using the specific repository label "AI Generated" and at the top of the description.
+
+## More info
+
+See `docs/DevelopmentGuide.md` for more information.
