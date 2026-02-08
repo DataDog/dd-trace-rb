@@ -14,6 +14,7 @@ GEM
   specs:
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
+    base64 (0.3.0)
     benchmark-ips (2.14.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -33,12 +34,13 @@ GEM
     elastic-transport (8.4.1)
       faraday (< 3)
       multi_json
-    elasticsearch (9.2.0)
+    elasticsearch (9.3.0)
       elastic-transport (~> 8.3)
-      elasticsearch-api (= 9.2.0)
-    elasticsearch-api (9.2.0)
+      elasticsearch-api (= 9.3.0)
+    elasticsearch-api (9.3.0)
+      base64
       multi_json
-    faraday (2.14.0)
+    faraday (2.14.1)
       faraday-net_http (>= 2.0, < 3.5)
       json
       logger
@@ -49,7 +51,7 @@ GEM
     google-protobuf (3.25.4-aarch64-linux)
     google-protobuf (3.25.4-x86_64-linux)
     hashdiff (1.1.1)
-    json (2.18.0)
+    json (2.18.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (25.0.0.1.0-aarch64-linux)

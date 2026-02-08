@@ -38,7 +38,7 @@ GEM
     fiddle (1.1.8)
     google-protobuf (3.25.8)
     hashdiff (1.2.1)
-    json (2.18.0)
+    json (2.18.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
     karafka (2.5.5)
