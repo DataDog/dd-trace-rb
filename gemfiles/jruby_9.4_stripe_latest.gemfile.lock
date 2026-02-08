@@ -81,7 +81,7 @@ GEM
     simplecov_json_formatter (0.1.4)
     spoon (0.0.6)
       ffi
-    stripe (18.3.0)
+    stripe (18.3.1)
     warning (1.4.0)
     webmock (3.23.1)
       addressable (>= 2.8.0)
