@@ -4,7 +4,7 @@ PATH
     datadog (2.29.0)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
-      libdatadog (~> 25.0.0.1.0)
+      libdatadog (~> 26.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
@@ -101,7 +101,7 @@ GEM
     io-wait (0.3.1-java)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (25.0.0.1.0)
+    libdatadog (26.0.0.1.0)
     libddwaf (1.30.0.0.0)
       ffi (~> 1.0)
     logger (1.7.0)
