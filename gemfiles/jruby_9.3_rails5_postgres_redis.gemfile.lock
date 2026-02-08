@@ -245,5 +245,8 @@ DEPENDENCIES
   warning (~> 1)
   webmock (>= 3.10.0)
 
+RUBY VERSION
+   ruby 2.6.8p0 (jruby 9.3.15.0)
+
 BUNDLED WITH
    2.4.22

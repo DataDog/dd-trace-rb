@@ -92,6 +92,7 @@ GEM
       zeitwerk (~> 2.6)
     erubi (1.13.0)
     ffi (1.17.3-aarch64-linux-gnu)
+    ffi (1.17.3-arm64-darwin)
     ffi (1.17.3-x86_64-linux-gnu)
     google-protobuf (3.25.3)
     grape (2.1.2)
@@ -111,9 +112,12 @@ GEM
       addressable (>= 2.4)
     jsonapi-renderer (0.2.2)
     king_konf (1.0.1)
+    libdatadog (25.0.0.1.0)
     libdatadog (25.0.0.1.0-aarch64-linux)
     libdatadog (25.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.0-aarch64-linux)
+      ffi (~> 1.0)
+    libddwaf (1.30.0.0.0-arm64-darwin)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.0-x86_64-linux)
       ffi (~> 1.0)
@@ -233,6 +237,7 @@ GEM
 
 PLATFORMS
   aarch64-linux
+  arm64-darwin-23
   x86_64-linux
 
 DEPENDENCIES
@@ -272,6 +277,9 @@ DEPENDENCIES
   webmock (>= 3.10.0)
   webrick (>= 1.8.2)
   zstd-ruby
+
+RUBY VERSION
+   ruby 3.4.7p58
 
 BUNDLED WITH
    2.7.2
