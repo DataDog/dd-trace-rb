@@ -422,4 +422,49 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
       expect(context.state[:downstream_redirect_url]).to be_nil
     end
   end
+
+  context 'when using faraday-follow_redirects middleware', ruby: '> 2.5' do
+    # NOTE: Hardcoded Ruby version limits in the gem
+    require('faraday/follow_redirects') unless PlatformHelpers.ruby_version_matches?('2.5')
+
+    before { client.get('/redirect-chain-start') }
+
+    let(:client) do
+      ::Faraday.new('http://example.com') do |faraday|
+        faraday.response(:follow_redirects)
+        faraday.adapter(:test) do |stub|
+          stub.get('/redirect-chain-start') do |_|
+            [301, {'Location' => 'http://example.com/redirect-chain-hop', 'Content-Type' => 'application/json'}, '{"hop":"1"}']
+          end
+          stub.get('/redirect-chain-hop') do |_|
+            [302, {'Location' => 'http://example.com/redirect-chain-finish', 'Content-Type' => 'application/json'}, '{"hop":"2"}']
+          end
+          stub.get('/redirect-chain-finish') do |_|
+            [200, {'Content-Type' => 'application/json'}, '{"final":"response"}']
+          end
+        end
+      end
+    end
+
+    it 'includes request URL for each hop in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com/redirect-chain-start'), anything, phase: 'request')
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com/redirect-chain-hop'), anything, phase: 'request')
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com/redirect-chain-finish'), anything, phase: 'request')
+    end
+
+    it 'does not include redirect response bodies in ephemeral data' do
+      expect(context).not_to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'hop' => '1'}), anything, phase: 'response')
+      expect(context).not_to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'hop' => '2'}), anything, phase: 'response')
+    end
+
+    it 'includes final response body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'final' => 'response'}), anything, phase: 'response')
+    end
+  end
 end
