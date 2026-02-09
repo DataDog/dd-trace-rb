@@ -3,6 +3,7 @@
 require 'datadog/di/spec_helper'
 require 'datadog/di/instrumenter'
 require_relative 'hook_method'
+require_relative 'hook_line_basic'
 
 RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
   di_test
@@ -97,5 +98,50 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
     HookTestClass.new.hook_test_method
     expect(observed_calls.length).to eq 1  # Still 1, not 2
     expect(disabled_calls.length).to eq 1  # Still 1, not 2
+  end
+
+  context 'line probe' do
+    let(:line_probe) do
+      Datadog::DI::Probe.new(
+        id: 'test-line-probe-1',
+        type: :log,
+        file: 'hook_line_basic.rb',
+        line_no: 3,
+      )
+    end
+
+    before do
+      # We need untargeted trace points since the file is already loaded
+      allow(settings.dynamic_instrumentation.internal).to receive(:untargeted_trace_points).and_return(true)
+    end
+
+    after do
+      instrumenter.unhook(line_probe)
+    end
+
+    it 'disables probe when max_processing_time is zero' do
+      # Instrument the line
+      instrumenter.hook_line(line_probe, responder)
+
+      # Execute the instrumented method
+      result = HookLineBasicTestClass.new.test_method
+
+      # Verify method still works correctly
+      expect(result).to eq 42
+
+      # Verify probe was executed once
+      expect(observed_calls.length).to eq 1
+
+      # Verify circuit breaker triggered and probe was disabled
+      expect(disabled_calls.length).to eq 1
+      expect(disabled_calls.first[:probe]).to eq line_probe
+      expect(disabled_calls.first[:duration]).to be >= 0
+      expect(line_probe.enabled?).to be false
+
+      # Verify subsequent calls do not execute the probe
+      HookLineBasicTestClass.new.test_method
+      expect(observed_calls.length).to eq 1  # Still 1, not 2
+      expect(disabled_calls.length).to eq 1  # Still 1, not 2
+    end
   end
 end
