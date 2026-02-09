@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require_relative '../active_support/notifications/event'
+require_relative '../analytics'
+require_relative '../../metadata/ext'
 
 module Datadog
   module Tracing
@@ -25,6 +27,19 @@ module Datadog
 
             def configuration
               Datadog.configuration.tracing[:active_storage]
+            end
+
+            # Set analytics sample rate on span if enabled
+            def set_analytics(span)
+              return unless Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+
+              Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
+            end
+
+            # Set component and operation tags on span
+            def set_tags(span, operation_tag)
+              span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, operation_tag)
             end
           end
         end
