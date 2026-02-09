@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require_relative '../support/event_helpers'
 require 'datadog/tracing/contrib/active_storage/events/transform'
 require 'datadog/tracing/span_operation'
 
@@ -23,13 +24,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::Transform do
     let(:id) { double('id') }
     let(:payload) { {} }
 
-    before do
-      config = double('config')
-      allow(config).to receive(:[]).with(:service_name).and_return(nil)
-      allow(config).to receive(:[]).with(:analytics_enabled).and_return(false)
-      allow(config).to receive(:[]).with(:analytics_sample_rate).and_return(1.0)
-      allow(Datadog.configuration.tracing).to receive(:[]).with(:active_storage).and_return(config)
-    end
+    include_context 'Active Storage configuration'
 
     it 'sets the span type' do
       described_class.process(span, event, id, payload)
