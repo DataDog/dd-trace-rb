@@ -481,6 +481,11 @@ module Datadog
       attr_reader :lock
 
       def line_trace_point_callback(probe, iseq, responder, tp)
+        di_start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+        # Check if probe is enabled before doing any processing
+        return unless probe.enabled?
+
         # If trace point is not targeted, we must verify that the invocation
         # is the file & line that we want, because untargeted trace points
         # are invoked for *each* line of Ruby executed.
@@ -556,6 +561,16 @@ module Datadog
         context ||= build_trace_point_context(probe, tp)
 
         responder.probe_executed_callback(context)
+
+        if max_processing_time = settings.dynamic_instrumentation.internal.max_processing_time
+          di_duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - di_start_time
+          if di_duration > max_processing_time
+            # We disable the probe here rather than remove it to
+            # avoid a dependency on ProbeManager from Instrumenter.
+            probe.disable!
+            responder.probe_disabled_callback(probe, di_duration)
+          end
+        end
       rescue => exc
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
         logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc}" }
