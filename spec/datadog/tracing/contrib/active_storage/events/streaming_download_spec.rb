@@ -24,7 +24,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::StreamingDownlo
     let(:payload) do
       {
         service: 'GCS',
-        key: 'media/stream.mp4'
+        key: 'media/stream.mp4',
       }
     end
 

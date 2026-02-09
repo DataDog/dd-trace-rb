@@ -25,7 +25,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::DownloadChunk d
       {
         service: 'S3',
         key: 'videos/large_file.mp4',
-        range: 'bytes=0-1023'
+        range: 'bytes=0-1023',
       }
     end
 

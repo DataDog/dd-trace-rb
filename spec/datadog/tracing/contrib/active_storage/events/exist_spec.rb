@@ -25,7 +25,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::Exist do
       {
         service: 'Disk',
         key: 'test_file.txt',
-        exist: true
+        exist: true,
       }
     end
 

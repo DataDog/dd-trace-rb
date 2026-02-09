@@ -23,7 +23,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::Preview do
     let(:id) { double('id') }
     let(:payload) do
       {
-        key: 'variants/abc123/preview.jpg'
+        key: 'variants/abc123/preview.jpg',
       }
     end
 
