@@ -337,7 +337,7 @@ RSpec.describe Datadog::DataStreams::Processor do
     end
   end
 
-  describe '#compute_pathway_hash with base hash' do
+  describe '#compute_pathway_hash' do
     subject(:pathway_hash) { processor.send(:compute_pathway_hash, 0, ['type:kafka']) }
 
     shared_examples 'a valid pathway hash' do
@@ -350,7 +350,7 @@ RSpec.describe Datadog::DataStreams::Processor do
     context 'when process tags are enabled' do
       let(:settings) { double('Settings', service: 'test-service', env: 'test', experimental_propagate_process_tags_enabled: true) }
 
-      context 'when propagation checksum is present' do
+      context 'and agent info has been fetched' do
         let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: 1234567890) }
 
         include_examples 'a valid pathway hash'
@@ -365,7 +365,8 @@ RSpec.describe Datadog::DataStreams::Processor do
         end
       end
 
-      context 'when propagation checksum is not present' do
+      context 'and agent info has not been fetched yet' do
+        # We must always return a valid pathway hash when agent info has not been fetched yet
         let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: nil) }
 
         include_examples 'a valid pathway hash'
@@ -375,7 +376,7 @@ RSpec.describe Datadog::DataStreams::Processor do
     context 'when process tags are not enabled' do
       let(:settings) { double('Settings', service: 'test-service', env: 'test', experimental_propagate_process_tags_enabled: false) }
 
-      context 'when propagation checksum is present' do
+      context 'and agent info has been fetched' do
         let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: 1234567890) }
 
         include_examples 'a valid pathway hash'
@@ -390,7 +391,8 @@ RSpec.describe Datadog::DataStreams::Processor do
         end
       end
 
-      context 'when propagation checksum is not present' do
+      context 'and agent info has not been fetched yet' do
+        # We must always return a valid pathway hash when agent info has not been fetched yet
         let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: nil) }
 
         include_examples 'a valid pathway hash'
