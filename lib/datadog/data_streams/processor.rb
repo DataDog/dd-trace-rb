@@ -317,13 +317,7 @@ module Datadog
           }
 
           if @settings.experimental_propagate_process_tags_enabled && payload
-            process_tags = Core::Environment::Process.serialized
-            # Datadog Agent expects an array of tag strings, not a single serialized string
-            # Otherwise it fails at "Error decoding request msgp: attempted to decode type \"str\" with method for \"array\" at ProcessTags"}
-            # Split "key1:val1,key2:val2" into ["key1:val1", "key2:val2"]
-            unless process_tags.empty?
-              payload['ProcessTags'] = process_tags.split(',')
-            end
+            payload['ProcessTags'] = Core::Environment::Process.tags
           end
 
           # Clear consumer stats even if sending fails to prevent unbounded memory growth
