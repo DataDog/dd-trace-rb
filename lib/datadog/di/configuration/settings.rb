@@ -228,7 +228,7 @@ module Datadog
                 # If the time taken for DI processing exceeds this amount,
                 # the offending probe will be automatically disabled.
                 # Set to nil to disable the circuit breaker.
-                # Set to zero to disable every probe after it executed once.
+                # Set to zero to disable every probe after it executes once.
                 option :max_processing_time do |o|
                   o.type :float
                   o.default 0.5
