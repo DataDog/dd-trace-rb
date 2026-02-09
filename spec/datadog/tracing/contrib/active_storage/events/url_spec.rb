@@ -25,7 +25,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::Url do
       {
         service: 'S3',
         key: 'images/photo.jpg',
-        url: 'https://s3.amazonaws.com/bucket/images/photo.jpg'
+        url: 'https://s3.amazonaws.com/bucket/images/photo.jpg',
       }
     end
 

@@ -24,7 +24,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::DeletePrefixed 
     let(:payload) do
       {
         service: 'S3',
-        prefix: 'tmp/uploads/'
+        prefix: 'tmp/uploads/',
       }
     end
 

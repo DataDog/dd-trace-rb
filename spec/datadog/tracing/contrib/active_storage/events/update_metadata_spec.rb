@@ -26,7 +26,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::UpdateMetadata 
         service: 'S3',
         key: 'documents/report.pdf',
         content_type: 'application/pdf',
-        disposition: 'attachment'
+        disposition: 'attachment',
       }
     end
 

@@ -24,7 +24,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::Delete do
     let(:payload) do
       {
         service: 'GCS',
-        key: 'images/photo.jpg'
+        key: 'images/photo.jpg',
       }
     end
 

@@ -29,7 +29,7 @@ module Datadog
             Events::Transform,
             Events::UpdateMetadata,
             Events::Upload,
-            Events::Url
+            Events::Url,
           ].freeze
 
           module_function

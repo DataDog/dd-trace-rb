@@ -24,7 +24,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::Upload do
     let(:payload) do
       {
         service: 'Disk',
-        key: 'test_key_123'
+        key: 'test_key_123',
       }
     end
 

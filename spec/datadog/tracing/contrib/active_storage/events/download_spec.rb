@@ -24,7 +24,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveStorage::Events::Download do
     let(:payload) do
       {
         service: 'S3',
-        key: 'documents/file.pdf'
+        key: 'documents/file.pdf',
       }
     end
 
