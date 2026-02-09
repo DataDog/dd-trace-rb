@@ -96,7 +96,9 @@ module Datadog
           all_backtrace_locations = exception.backtrace_locations || []
           was_truncated = all_backtrace_locations.length > max_exception_stack_frames
 
-          frames_data = all_backtrace_locations[0...max_exception_stack_frames].map do |loc|
+          backtrace_slice = all_backtrace_locations[0...max_exception_stack_frames] || []
+          # @type var frames_data: Array[[String, String, Integer]]
+          frames_data = backtrace_slice.map do |loc|
             file = loc.path
             file = '<unknown>' if file.nil? || file.empty? || !file.is_a?(String)
 

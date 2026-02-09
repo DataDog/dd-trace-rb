@@ -89,7 +89,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
           .and_return(path_to_crashtracking_receiver_binary)
 
-        # diagnostics is only provided via the error report to logger,
+        # Diagnostics is only provided via the error report to logger,
         # there is no indication in the object state that it failed to start.
         expect(logger).to receive(:error).with(/Failed to start crash tracking/)
 
@@ -166,13 +166,25 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         # check that both crash ping and crash report were sent
         expect(messages).to be_an(Array)
         expect(messages.length).to eq(2)
-
-        # Parse all messages and categorize them
         parsed_messages = messages.map { |msg| JSON.parse(msg.body.to_s, symbolize_names: true) }
 
-        # crash report is the second message, (first is crash ping)
-        crash_report_message = parsed_messages[1]
+        # Don't assume order on network requests
+        # We send crash ping first, but it is sent in separate requests
+        # We are not guaranteed the order of the messages received in the array
+        #
+        # Find crash ping message (should have is_crash_ping:true tag)
+        crash_ping_message = parsed_messages.find do |msg|
+          payload = msg[:payload].first
+          payload[:tags]&.include?('is_crash_ping:true')
+        end
+        expect(crash_ping_message).to_not be_nil, 'Expected crash ping message not found'
 
+        # Find crash report message (should have is_crash:true)
+        crash_report_message = parsed_messages.find do |msg|
+          payload = msg[:payload].first
+          payload[:is_crash] == true
+        end
+        expect(crash_report_message).to_not be_nil, 'Expected crash report message not found'
         # Verify crash report content
         crash_payload = crash_report_message[:payload].first
         crash_report = JSON.parse(crash_payload[:message], symbolize_names: true)
@@ -188,10 +200,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
 
         # Verify error kind is unhandled exception (ddog_crasht_CrashInfoBuilder_with_kind)
         expect(crash_report[:error][:kind]).to eq('UnhandledException')
-
-        # Verify timestamp is present (ddog_crasht_CrashInfoBuilder_with_timestamp_now)
-        expect(crash_report[:timestamp]).to be_a(String)
-        expect(crash_report[:timestamp]).to_not be_empty
 
         # Verify process info is present (ddog_crasht_CrashInfoBuilder_with_proc_info)
         expect(crash_report[:proc_info]).to be_a(Hash)
@@ -213,6 +221,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         exception_backtrace = exception.backtrace_locations
         expect(stack_frames).to be_an(Array)
         expect(stack_frames.length).to be > 0
+        expect(crash_report[:error][:stack][:incomplete]).to be false
 
         # Verify that the stack frames match the exception backtrace
         (0..stack_frames.length - 1).each do |i|
@@ -324,7 +333,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
           end
         end
 
-        it 'Ruby unhandled exceptions trigger at_exit hook, which reports the exception via http' do
+        it 'gets triggered by at_exit hook, which reports the exception via http' do
           expect_in_fork(fork_expectations: ruby_crash_expectations, timeout_seconds: 15) do
             # Configure Datadog so the at_exit hook can find the crashtracker
             Datadog.configure do |c|

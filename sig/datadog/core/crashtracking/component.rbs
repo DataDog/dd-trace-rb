@@ -8,7 +8,7 @@ module Datadog
           logger: untyped
         ) -> Datadog::Core::Crashtracking::Component?
 
-        def self.report_unhandled_exception: (::Exception) -> void
+        def self.report_unhandled_exception: (::Exception?) -> void
 
         def self.latest_tags: (Datadog::Core::Configuration::Settings) -> ::Hash[::String, ::String]
 

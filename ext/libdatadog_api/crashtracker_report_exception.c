@@ -43,7 +43,7 @@ static VALUE _native_report_ruby_exception(DDTRACE_UNUSED VALUE _self, VALUE age
     .tags = &tags,
   };
 
-  // Send crash ping and build crash report
+  // Build and send report
   bool success = build_and_send_crash_report(metadata, endpoint, message, frames_data);
   ddog_Vec_Tag_drop(tags);
   ddog_endpoint_drop(endpoint);
@@ -53,6 +53,12 @@ static VALUE _native_report_ruby_exception(DDTRACE_UNUSED VALUE _self, VALUE age
 
 static bool process_crash_frames(VALUE frames_data, ddog_crasht_Handle_StackTrace *stack_trace) {
   size_t frame_count = RARRAY_LEN(frames_data);
+
+  // Return false and early so we can mark the stack as incomplete
+  // libdatadog's definition of an incomplete stack is that it has no frames
+  if (frame_count == 0) {
+    return false;
+  }
 
   for (size_t i = 0; i < frame_count; i++) {
     VALUE frame_array = RARRAY_AREF(frames_data, i);
@@ -136,11 +142,6 @@ static bool build_and_send_crash_report(ddog_crasht_Metadata metadata,
     return false;
   }
 
-  if (ddog_crasht_CrashInfoBuilder_with_timestamp_now(builder).tag != DDOG_VOID_RESULT_OK) {
-    ddog_crasht_CrashInfoBuilder_drop(builder);
-    return false;
-  }
-
   ddog_crasht_ProcInfo proc_info = { .pid = (uint32_t)getpid() };
   if (ddog_crasht_CrashInfoBuilder_with_proc_info(builder, proc_info).tag != DDOG_VOID_RESULT_OK) {
     ddog_crasht_CrashInfoBuilder_drop(builder);
@@ -166,17 +167,18 @@ static bool build_and_send_crash_report(ddog_crasht_Metadata metadata,
 
   stack_trace = &stack_result.ok;
 
-  if (!process_crash_frames(frames_data, stack_trace)) {
-    ddog_crasht_StackTrace_drop(stack_trace);
-    ddog_crasht_CrashInfoBuilder_drop(builder);
-    return false;
-  }
+  bool frames_processed_successfully = process_crash_frames(frames_data, stack_trace);
 
-  if (ddog_crasht_StackTrace_set_complete(stack_trace).tag != DDOG_VOID_RESULT_OK) {
-    ddog_crasht_StackTrace_drop(stack_trace);
-    ddog_crasht_CrashInfoBuilder_drop(builder);
-    return false;
+  // Only mark as complete if we successfully processed all frames
+  if (frames_processed_successfully) {
+    if (ddog_crasht_StackTrace_set_complete(stack_trace).tag != DDOG_VOID_RESULT_OK) {
+      ddog_crasht_StackTrace_drop(stack_trace);
+      ddog_crasht_CrashInfoBuilder_drop(builder);
+      return false;
+    }
   }
+  // If frames processing failed, we still include the stack trace (which may be empty or partial)
+  // but don't mark it as complete, indicating it's incomplete
 
   if (ddog_crasht_CrashInfoBuilder_with_stack(builder, stack_trace).tag != DDOG_VOID_RESULT_OK) {
     ddog_crasht_StackTrace_drop(stack_trace);
