@@ -104,6 +104,18 @@ module Datadog
         def trace_method(method_name, span_name: nil, dynamic: false)
           MethodTracer.trace_method(self, method_name, span_name: span_name, dynamic: dynamic)
         end
+
+        # Trace a method by name in a module's singleton context (a.k.a "class method")
+        #
+        # @param method_name [Symbol] name of the method to trace
+        # @param span_name [String, nil] optional span name (defaults to "Module.method")
+        # @param dynamic [Boolean] if true, skip method existence check (for method_missing-handled methods)
+        # @return [void]
+        def trace_singleton_class_method(method_name, span_name: nil, dynamic: false)
+          span_name ||= "#{name}.#{method_name}" if respond_to?(:name)
+
+          MethodTracer.trace_method(singleton_class, method_name, span_name: span_name, dynamic: dynamic)
+        end
       end
     end
   end
