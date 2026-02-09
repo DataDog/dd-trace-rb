@@ -356,12 +356,9 @@ RSpec.describe Datadog::DataStreams::Processor do
         include_examples 'a valid pathway hash'
 
         it 'includes the propagation checksum in the pathway hash' do
-          hash_with_checksum = pathway_hash
-
-          allow(agent_info).to receive(:propagation_checksum).and_return(nil)
-          hash_without_checksum = processor.send(:compute_pathway_hash, 0, ['type:kafka'])
-
-          expect(hash_with_checksum).not_to eq(hash_without_checksum)
+          expect do
+            allow(agent_info).to receive(:propagation_checksum).and_return(nil)
+          end.to change { processor.send(:compute_pathway_hash, 0, ['type:kafka']) }.from(0x1ca26aa13235b3b7).to(0x42fc8338f4ba11f9)
         end
       end
 
@@ -382,12 +379,9 @@ RSpec.describe Datadog::DataStreams::Processor do
         include_examples 'a valid pathway hash'
 
         it 'does not include the propagation checksum in the pathway hash' do
-          hash_with_checksum_available = pathway_hash
-
-          allow(agent_info).to receive(:propagation_checksum).and_return(nil)
-          hash_without_checksum = processor.send(:compute_pathway_hash, 0, ['type:kafka'])
-
-          expect(hash_with_checksum_available).to eq(hash_without_checksum)
+          expect do
+            allow(agent_info).to receive(:propagation_checksum).and_return(nil)
+          end.not_to change { processor.send(:compute_pathway_hash, 0, ['type:kafka']) }.from(0x42fc8338f4ba11f9)
         end
       end
 
