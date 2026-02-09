@@ -5,6 +5,10 @@ module Datadog
         module SqlComment
           def self.annotate!: (SpanOperation span_op, Mode mode) -> void
           def self.prepend_comment: (String sql, SpanOperation span_op, TraceOperation trace_op, Mode mode) -> String
+
+          private
+
+          def self.inject_hash?: (Mode mode, Core::Configuration config) -> bool
         end
       end
     end

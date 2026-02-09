@@ -84,6 +84,11 @@ build_coverage_matrix('rest-client')
 build_coverage_matrix('dalli', [2])
 build_coverage_matrix('karafka', min: '2.3.0')
 build_coverage_matrix('waterdrop', min: '2.8.8.rc1')
+build_coverage_matrix('kicks', min: '3.0.0')
+
+appraise 'sneakers' do
+  gem 'sneakers', '= 2.12.0' # Sneakers is not receiving updates anymore and 2.12.0 is the last version
+end
 
 appraise 'karafka-min' do
   gem 'karafka', '= 2.3.0'

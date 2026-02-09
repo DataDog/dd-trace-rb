@@ -6,12 +6,7 @@ RSpec.shared_examples_for 'with sql comment propagation' do |span_op_name:, erro
   end
 
   context 'when ENV variable `DD_DBM_PROPAGATION_MODE` is provided' do
-    around do |example|
-      ClimateControl.modify(
-        'DD_DBM_PROPAGATION_MODE' => 'service',
-        &example
-      )
-    end
+    with_env 'DD_DBM_PROPAGATION_MODE' => 'service'
 
     it_behaves_like 'propagates with sql comment', mode: 'service', span_op_name: span_op_name, error: error do
       let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('service', append_comment, inject_sql_basehash) }

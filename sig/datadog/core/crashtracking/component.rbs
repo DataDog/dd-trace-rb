@@ -2,8 +2,6 @@ module Datadog
   module Core
     module Crashtracking
       class Component
-        ONLY_ONCE: Core::Utils::OnlyOnce
-
         def self.build: (
           Datadog::Core::Configuration::Settings settings,
           Datadog::Core::Configuration::AgentSettings agent_settings,

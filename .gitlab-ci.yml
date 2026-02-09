@@ -58,7 +58,7 @@ build-image-amd64:
 
 build-image-arm64:
   extends: .build-image-base
-  tags: ["docker-in-docker:microvm-arm64"]
+  tags: ["docker-in-docker:arm64"]
   variables:
     ARCHITECTURE: arm64
 
@@ -148,8 +148,8 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: bafc8bc606d76170d98ce3cdb13c75a1ea9cf924 # Automated: This reference is automatically updated.
-    SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,lib-injection,docker_ssi"
+    SYSTEM_TESTS_REF: faabbe56b8148a9ac11583cfe92ebd015e2c7a7e # Automated: This reference is automatically updated.
+    SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,simple_onboarding_appsec,lib-injection,docker_ssi"
     SYSTEM_TEST_BUILD_ATTEMPTS: 3
 
 save_versions:

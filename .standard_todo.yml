@@ -9,6 +9,7 @@ ignore:
       - Style/TrailingCommaInArrayLiteral
       - Style/TrailingCommaInHashLiteral
       - Style/StringLiterals
+      - Style/StringLiteralsInInterpolation
       # These complain about strings that contain interpolation, demanding
       # additional conversion to symbol which is extra overhead:
       # https://github.com/rubocop/rubocop/issues/13955

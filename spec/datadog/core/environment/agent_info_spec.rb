@@ -69,11 +69,12 @@ RSpec.describe Datadog::Core::Environment::AgentInfo do
         expect(agent_info.propagation_checksum).to be_nil
       end
 
-      it 'returns nil when container tags are not present' do
-        allow(response).to receive(:headers).and_return({})
-        agent_info.fetch
+      context 'and container tags are not present' do
+        before { allow(response).to receive(:headers).and_return({}) }
 
-        expect(agent_info.propagation_checksum).to be_nil
+        it 'does not set propagation checksum' do
+          expect { agent_info.fetch }.not_to change { agent_info.propagation_checksum }.from(nil)
+        end
       end
     end
 
