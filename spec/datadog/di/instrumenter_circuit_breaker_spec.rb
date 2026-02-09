@@ -27,8 +27,9 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
   mock_settings_for_di do |settings|
     allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(true)
     allow(settings.dynamic_instrumentation.internal).to receive(:untargeted_trace_points).and_return(false)
-    allow(settings.dynamic_instrumentation).to receive(:max_capture_depth).and_return(2)
-    allow(settings.dynamic_instrumentation).to receive(:max_capture_attribute_count).and_return(2)
+    allow(settings.dynamic_instrumentation).to receive(:max_capture_depth).and_return(10)
+    allow(settings.dynamic_instrumentation).to receive(:max_capture_attribute_count).and_return(20)
+    allow(settings.dynamic_instrumentation).to receive(:max_capture_collection_size).and_return(20)
     allow(settings.dynamic_instrumentation).to receive(:max_capture_string_length).and_return(100)
     allow(settings.dynamic_instrumentation).to receive(:redacted_type_names).and_return([])
     allow(settings.dynamic_instrumentation).to receive(:redacted_identifiers).and_return([])
@@ -178,6 +179,22 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
         # Verify probe was executed once
         expect(observed_calls.length).to eq 1
 
+        # Verify snapshot captured the argument with 10 top-level keys
+        context = observed_calls.first
+        expect(context).to be_a(Datadog::DI::Context)
+        expect(context.serialized_entry_args).to be_a(Hash)
+        expect(context.serialized_entry_args).to have_key(:arg1)
+
+        arg_data = context.serialized_entry_args[:arg1]
+        expect(arg_data).to be_a(Hash)
+        expect(arg_data[:type]).to eq('Hash')
+        expect(arg_data[:entries]).to be_a(Array)
+
+        # Verify all 10 top-level keys are captured
+        expect(arg_data[:entries].size).to eq(10)
+        expect(arg_data[:entries][0][0]).to eq({type: 'Symbol', value: 'key_0'})
+        expect(arg_data[:entries][9][0]).to eq({type: 'Symbol', value: 'key_9'})
+
         # Verify circuit breaker triggered and probe was disabled
         expect(disabled_calls.length).to eq 1
         expect(disabled_calls.first[:probe]).to eq snapshot_probe
@@ -295,6 +312,19 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
 
         # Verify probe was executed once
         expect(observed_calls.length).to eq 1
+
+        # Verify snapshot captured the local variables with all 10 top-level keys
+        context = observed_calls.first
+        expect(context).to be_a(Datadog::DI::Context)
+        expect(context.locals).to be_a(Hash)
+        expect(context.locals).to have_key(:arg)
+
+        # Verify all 10 top-level keys are captured without truncation
+        arg_hash = context.locals[:arg]
+        expect(arg_hash).to be_a(Hash)
+        expect(arg_hash.keys.size).to eq(10)
+        expect(arg_hash).to have_key(:key_0)
+        expect(arg_hash).to have_key(:key_9)
 
         # Verify circuit breaker triggered and probe was disabled
         expect(disabled_calls.length).to eq 1
