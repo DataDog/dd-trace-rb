@@ -42,7 +42,7 @@ module Datadog
 
       def build_disabled(probe, duration)
         build_status(probe,
-          message: "Probe #{probe.id} was disabled because it took #{duration} seconds of DI processing",
+          message: "Probe #{probe.id} was disabled because it consumed #{duration} seconds of CPU time in DI processing",
           status: 'ERROR',)
       end
 
