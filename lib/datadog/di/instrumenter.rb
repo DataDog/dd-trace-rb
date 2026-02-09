@@ -112,6 +112,7 @@ module Datadog
         end
         rate_limiter = probe.rate_limiter
         settings = self.settings
+        instrumenter = self
 
         mod = Module.new do
           define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore NoMethod
@@ -238,15 +239,7 @@ module Datadog
 
               responder.probe_executed_callback(context)
 
-              if max_processing_time = settings.dynamic_instrumentation.internal.max_processing_time
-                di_duration += Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID) - di_start_time
-                if di_duration > max_processing_time
-                  # We disable the probe here rather than remove it to
-                  # avoid a dependency on ProbeManager from Instrumenter.
-                  probe.disable!
-                  responder.probe_disabled_callback(probe, di_duration)
-                end
-              end
+              instrumenter.send(:check_and_disable_if_exceeded, probe, responder, di_start_time, di_duration)
 
               if exc
                 raise exc
@@ -562,15 +555,7 @@ module Datadog
 
         responder.probe_executed_callback(context)
 
-        if max_processing_time = settings.dynamic_instrumentation.internal.max_processing_time
-          di_duration = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID) - di_start_time
-          if di_duration > max_processing_time
-            # We disable the probe here rather than remove it to
-            # avoid a dependency on ProbeManager from Instrumenter.
-            probe.disable!
-            responder.probe_disabled_callback(probe, di_duration)
-          end
-        end
+        check_and_disable_if_exceeded(probe, responder, di_start_time)
       rescue => exc
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
         logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc}" }
@@ -594,6 +579,20 @@ module Datadog
           path: tp.path,
           caller_locations: stack,
         )
+      end
+
+      # Circuit breaker: disables the probe if total CPU time consumed by
+      # DI processing exceeds the configured threshold.
+      def check_and_disable_if_exceeded(probe, responder, di_start_time, accumulated_duration = 0)
+        return unless max_processing_time = settings.dynamic_instrumentation.internal.max_processing_time
+
+        di_duration = accumulated_duration + Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID) - di_start_time
+        if di_duration > max_processing_time
+          # We disable the probe here rather than remove it to
+          # avoid a dependency on ProbeManager from Instrumenter.
+          probe.disable!
+          responder.probe_disabled_callback(probe, di_duration)
+        end
       end
 
       def raise_if_probe_in_loaded_features(probe)

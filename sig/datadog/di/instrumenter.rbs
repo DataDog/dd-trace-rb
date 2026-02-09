@@ -55,6 +55,8 @@ module Datadog
 
       def build_trace_point_context: (untyped probe, untyped tp) -> untyped
 
+      def check_and_disable_if_exceeded: (untyped probe, untyped responder, untyped di_start_time, ?untyped accumulated_duration) -> untyped
+
       def symbolize_class_name: (untyped cls_name) -> untyped
       def raise_if_probe_in_loaded_features: (Probe probe) -> void
     end
