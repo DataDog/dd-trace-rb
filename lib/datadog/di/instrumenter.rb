@@ -583,7 +583,7 @@ module Datadog
 
       # Circuit breaker: disables the probe if total CPU time consumed by
       # DI processing exceeds the configured threshold.
-      def check_and_disable_if_exceeded(probe, responder, di_start_time, accumulated_duration = 0)
+      def check_and_disable_if_exceeded(probe, responder, di_start_time, accumulated_duration = 0.0)
         return unless max_processing_time = settings.dynamic_instrumentation.internal.max_processing_time
 
         di_duration = accumulated_duration + Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID) - di_start_time
