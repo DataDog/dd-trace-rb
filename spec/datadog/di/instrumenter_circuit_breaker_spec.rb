@@ -11,19 +11,6 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
   let(:observed_calls) { [] }
   let(:disabled_calls) { [] }
 
-  # Helper method to generate a deeply nested hash
-  # Creates a hash with the specified number of keys at each level
-  # and nests to the specified depth
-  def generate_deep_hash(keys_per_level, depth)
-    return "leaf_value" if depth == 0
-
-    hash = {}
-    keys_per_level.times do |i|
-      hash[:"key_#{i}"] = generate_deep_hash(keys_per_level, depth - 1)
-    end
-    hash
-  end
-
   mock_settings_for_di do |settings|
     allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(true)
     allow(settings.dynamic_instrumentation.internal).to receive(:untargeted_trace_points).and_return(false)

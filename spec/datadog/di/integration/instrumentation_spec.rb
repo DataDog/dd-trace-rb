@@ -692,17 +692,6 @@ RSpec.describe 'Instrumentation integration' do
       end
 
       context 'circuit breaker' do
-        # Helper method to generate a deeply nested hash
-        def generate_deep_hash(keys_per_level, depth)
-          return "leaf_value" if depth == 0
-
-          hash = {}
-          keys_per_level.times do |i|
-            hash["key_#{i}".to_sym] = generate_deep_hash(keys_per_level, depth - 1)
-          end
-          hash
-        end
-
         before do
           # Set very low threshold to trigger circuit breaker
           settings.dynamic_instrumentation.internal.max_processing_time = 1e-8
@@ -1254,17 +1243,6 @@ RSpec.describe 'Instrumentation integration' do
 
       context 'circuit breaker' do
         with_code_tracking
-
-        # Helper method to generate a deeply nested hash
-        def generate_deep_hash(keys_per_level, depth)
-          return "leaf_value" if depth == 0
-
-          hash = {}
-          keys_per_level.times do |i|
-            hash["key_#{i}".to_sym] = generate_deep_hash(keys_per_level, depth - 1)
-          end
-          hash
-        end
 
         before do
           # Set very low threshold to trigger circuit breaker
