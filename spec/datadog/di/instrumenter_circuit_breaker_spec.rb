@@ -152,21 +152,23 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
 
       it 'disables probe after first execution due to snapshot overhead' do
         # Generate a deeply nested hash (10 keys per level, 5 levels deep)
+        # Wrap in array to avoid keyword argument ambiguity in different Ruby versions
         deep_hash = generate_deep_hash(10, 5)
+        deep_data = [deep_hash]
 
         # Instrument the method
         instrumenter.hook_method(snapshot_probe, responder)
 
-        # Execute the instrumented method with the deep hash
-        result = HookTestClass.new.hook_test_method_with_arg(deep_hash)
+        # Execute the instrumented method with the deep data
+        result = HookTestClass.new.hook_test_method_with_arg(deep_data)
 
         # Verify method still works correctly
-        expect(result).to eq deep_hash
+        expect(result).to eq deep_data
 
         # Verify probe was executed once
         expect(observed_calls.length).to eq 1
 
-        # Verify snapshot captured the argument with 10 top-level keys
+        # Verify snapshot captured the argument
         context = observed_calls.first
         expect(context).to be_a(Datadog::DI::Context)
         expect(context.serialized_entry_args).to be_a(Hash)
@@ -174,13 +176,15 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
 
         arg_data = context.serialized_entry_args[:arg1]
         expect(arg_data).to be_a(Hash)
-        expect(arg_data[:type]).to eq('Hash')
-        expect(arg_data[:entries]).to be_a(Array)
+        expect(arg_data[:type]).to eq('Array')
+        expect(arg_data[:elements]).to be_a(Array)
 
-        # Verify all 10 top-level keys are captured
-        expect(arg_data[:entries].size).to eq(10)
-        expect(arg_data[:entries][0][0]).to eq({type: 'Symbol', value: 'key_0'})
-        expect(arg_data[:entries][9][0]).to eq({type: 'Symbol', value: 'key_9'})
+        # Verify the array contains the deep hash
+        expect(arg_data[:elements].size).to eq(1)
+        hash_data = arg_data[:elements][0]
+        expect(hash_data[:type]).to eq('Hash')
+        expect(hash_data[:entries]).to be_a(Array)
+        expect(hash_data[:entries].size).to eq(10)
 
         # Verify circuit breaker triggered and probe was disabled
         expect(disabled_calls.length).to eq 1
