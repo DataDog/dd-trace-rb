@@ -19,7 +19,7 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
 
     hash = {}
     keys_per_level.times do |i|
-      hash["key_#{i}".to_sym] = generate_deep_hash(keys_per_level, depth - 1)
+      hash[:"key_#{i}"] = generate_deep_hash(keys_per_level, depth - 1)
     end
     hash
   end
@@ -70,7 +70,7 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
       end
 
       def probe_disabled_callback(probe, duration)
-        @disabled_calls << { probe: probe, duration: duration }
+        @disabled_calls << {probe: probe, duration: duration}
       end
     end.new(observed_calls, disabled_calls)
   end
