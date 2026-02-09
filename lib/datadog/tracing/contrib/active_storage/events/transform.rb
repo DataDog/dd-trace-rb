@@ -40,13 +40,8 @@ module Datadog
               span.service = configuration[:service_name] if configuration[:service_name]
               span.type = span_type
 
-              # Set analytics sample rate
-              if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
-                Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
-              end
-
-              span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
-              span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_TRANSFORM)
+              set_analytics(span)
+              set_tags(span, Ext::TAG_OPERATION_TRANSFORM)
             end
           end
         end
