@@ -11,6 +11,19 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
   let(:observed_calls) { [] }
   let(:disabled_calls) { [] }
 
+  # Helper method to generate a deeply nested hash
+  # Creates a hash with the specified number of keys at each level
+  # and nests to the specified depth
+  def generate_deep_hash(keys_per_level, depth)
+    return "leaf_value" if depth == 0
+
+    hash = {}
+    keys_per_level.times do |i|
+      hash["key_#{i}".to_sym] = generate_deep_hash(keys_per_level, depth - 1)
+    end
+    hash
+  end
+
   mock_settings_for_di do |settings|
     allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(true)
     allow(settings.dynamic_instrumentation.internal).to receive(:untargeted_trace_points).and_return(false)
@@ -136,7 +149,7 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
           id: 'test-probe-snapshot',
           type: :log,
           type_name: 'HookTestClass',
-          method_name: 'hook_test_method',
+          method_name: 'hook_test_method_with_arg',
           capture_snapshot: true,
         )
       end
@@ -150,14 +163,17 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
       end
 
       it 'disables probe after first execution due to snapshot overhead' do
+        # Generate a deeply nested hash (10 keys per level, 5 levels deep)
+        deep_hash = generate_deep_hash(10, 5)
+
         # Instrument the method
         instrumenter.hook_method(snapshot_probe, responder)
 
-        # Execute the instrumented method
-        result = HookTestClass.new.hook_test_method
+        # Execute the instrumented method with the deep hash
+        result = HookTestClass.new.hook_test_method_with_arg(deep_hash)
 
         # Verify method still works correctly
-        expect(result).to eq 42
+        expect(result).to eq deep_hash
 
         # Verify probe was executed once
         expect(observed_calls.length).to eq 1
@@ -251,7 +267,7 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
           id: 'test-line-probe-snapshot',
           type: :log,
           file: 'hook_line_basic.rb',
-          line_no: 3,
+          line_no: 7,
           capture_snapshot: true,
         )
       end
@@ -265,14 +281,17 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
       end
 
       it 'disables probe after first execution due to snapshot overhead' do
+        # Generate a deeply nested hash (10 keys per level, 5 levels deep)
+        deep_hash = generate_deep_hash(10, 5)
+
         # Instrument the line
         instrumenter.hook_line(snapshot_line_probe, responder)
 
-        # Execute the instrumented method
-        result = HookLineBasicTestClass.new.test_method
+        # Execute the instrumented method with the deep hash
+        result = HookLineBasicTestClass.new.test_method_with_arg(deep_hash)
 
         # Verify method still works correctly
-        expect(result).to eq 42
+        expect(result).to eq deep_hash
 
         # Verify probe was executed once
         expect(observed_calls.length).to eq 1
