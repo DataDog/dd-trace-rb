@@ -67,6 +67,9 @@ module Datadog
       def executed_on_line!: -> void
       def executed_on_line?: -> bool
 
+      def enabled?: () -> bool
+      def disable!: () -> void
+
       attr_accessor instrumentation_module: Module?
       attr_accessor instrumentation_trace_point: TracePoint?
       attr_accessor instrumented_path: String?
