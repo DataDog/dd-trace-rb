@@ -59,9 +59,22 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
               'hostname' => Datadog::Core::Environment::Socket.hostname,
               'service_name' => 'test-service',
               'service_env' => 'test-env',
-              'service_version' => '1.0.0'
+              'service_version' => '1.0.0',
+              'process_tags' => Datadog::Core::Environment::Process.serialized
             }
           )
+        end
+
+        context 'when running in a containerized environment' do
+          before do
+            allow(Datadog::Core::Environment::Container).to receive(:container_id).and_return('container-id-1')
+          end
+
+          it 'includes container_id in metadata' do
+            described_class.publish(settings)
+
+            expect(content).to include('container_id' => 'container-id-1')
+          end
         end
       end
 
@@ -85,7 +98,8 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
               'runtime_id' => Datadog::Core::Environment::Identity.id,
               'tracer_language' => Datadog::Core::Environment::Identity.lang,
               'tracer_version' => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
-              'hostname' => Datadog::Core::Environment::Socket.hostname
+              'hostname' => Datadog::Core::Environment::Socket.hostname,
+              'process_tags' => Datadog::Core::Environment::Process.serialized
             }
           )
         end
@@ -119,7 +133,8 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
             'tracer_language' => Datadog::Core::Environment::Identity.lang,
             'tracer_version' => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
             'hostname' => Datadog::Core::Environment::Socket.hostname,
-            'service_name' => 'test-service'
+            'service_name' => 'test-service',
+            'process_tags' => Datadog::Core::Environment::Process.serialized
           }
         )
         expect(content.fetch('runtime_id')).to_not eq(parent_runtime_id)
