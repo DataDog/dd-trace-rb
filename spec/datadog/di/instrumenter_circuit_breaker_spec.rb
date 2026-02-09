@@ -21,7 +21,6 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
     allow(settings.dynamic_instrumentation).to receive(:redacted_identifiers).and_return([])
     allow(settings.dynamic_instrumentation).to receive(:redaction_excluded_identifiers).and_return([])
     allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(true)
-    allow(settings.dynamic_instrumentation.internal).to receive(:max_processing_time).and_return(0)
   end
 
   let(:redactor) do
@@ -62,42 +61,74 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
     end.new(observed_calls, disabled_calls)
   end
 
-  let(:probe) do
-    Datadog::DI::Probe.new(
-      id: 'test-probe-1',
-      type: :log,
-      type_name: 'HookTestClass',
-      method_name: 'hook_test_method',
-    )
-  end
+  context 'method probe' do
+    let(:probe) do
+      Datadog::DI::Probe.new(
+        id: 'test-probe-1',
+        type: :log,
+        type_name: 'HookTestClass',
+        method_name: 'hook_test_method',
+      )
+    end
 
-  after do
-    instrumenter.unhook(probe)
-  end
+    after do
+      instrumenter.unhook(probe)
+    end
 
-  it 'disables probe when max_processing_time is zero' do
-    # Instrument the method
-    instrumenter.hook_method(probe, responder)
+    context 'when max_processing_time is zero' do
+      before do
+        allow(settings.dynamic_instrumentation.internal).to receive(:max_processing_time).and_return(0)
+      end
 
-    # Execute the instrumented method
-    result = HookTestClass.new.hook_test_method
+      it 'disables probe after first execution' do
+        # Instrument the method
+        instrumenter.hook_method(probe, responder)
 
-    # Verify method still works correctly
-    expect(result).to eq 42
+        # Execute the instrumented method
+        result = HookTestClass.new.hook_test_method
 
-    # Verify probe was executed once
-    expect(observed_calls.length).to eq 1
+        # Verify method still works correctly
+        expect(result).to eq 42
 
-    # Verify circuit breaker triggered and probe was disabled
-    expect(disabled_calls.length).to eq 1
-    expect(disabled_calls.first[:probe]).to eq probe
-    expect(disabled_calls.first[:duration]).to be >= 0
-    expect(probe.enabled?).to be false
+        # Verify probe was executed once
+        expect(observed_calls.length).to eq 1
 
-    # Verify subsequent calls do not execute the probe
-    HookTestClass.new.hook_test_method
-    expect(observed_calls.length).to eq 1  # Still 1, not 2
-    expect(disabled_calls.length).to eq 1  # Still 1, not 2
+        # Verify circuit breaker triggered and probe was disabled
+        expect(disabled_calls.length).to eq 1
+        expect(disabled_calls.first[:probe]).to eq probe
+        expect(disabled_calls.first[:duration]).to be >= 0
+        expect(probe.enabled?).to be false
+
+        # Verify subsequent calls do not execute the probe
+        HookTestClass.new.hook_test_method
+        expect(observed_calls.length).to eq 1  # Still 1, not 2
+        expect(disabled_calls.length).to eq 1  # Still 1, not 2
+      end
+    end
+
+    context 'when max_processing_time is high' do
+      before do
+        allow(settings.dynamic_instrumentation.internal).to receive(:max_processing_time).and_return(1000)
+      end
+
+      it 'keeps probe enabled after multiple executions' do
+        # Instrument the method
+        instrumenter.hook_method(probe, responder)
+
+        # Execute the instrumented method 5 times
+        5.times do
+          result = HookTestClass.new.hook_test_method
+          expect(result).to eq 42
+        end
+
+        # Verify probe was executed 5 times
+        expect(observed_calls.length).to eq 5
+
+        # Verify circuit breaker never triggered
+        expect(disabled_calls).to be_empty
+        expect(probe.enabled?).to be true
+      end
+    end
   end
 
   context 'line probe' do
@@ -119,29 +150,59 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
       instrumenter.unhook(line_probe)
     end
 
-    it 'disables probe when max_processing_time is zero' do
-      # Instrument the line
-      instrumenter.hook_line(line_probe, responder)
+    context 'when max_processing_time is zero' do
+      before do
+        allow(settings.dynamic_instrumentation.internal).to receive(:max_processing_time).and_return(0)
+      end
 
-      # Execute the instrumented method
-      result = HookLineBasicTestClass.new.test_method
+      it 'disables probe after first execution' do
+        # Instrument the line
+        instrumenter.hook_line(line_probe, responder)
 
-      # Verify method still works correctly
-      expect(result).to eq 42
+        # Execute the instrumented method
+        result = HookLineBasicTestClass.new.test_method
 
-      # Verify probe was executed once
-      expect(observed_calls.length).to eq 1
+        # Verify method still works correctly
+        expect(result).to eq 42
 
-      # Verify circuit breaker triggered and probe was disabled
-      expect(disabled_calls.length).to eq 1
-      expect(disabled_calls.first[:probe]).to eq line_probe
-      expect(disabled_calls.first[:duration]).to be >= 0
-      expect(line_probe.enabled?).to be false
+        # Verify probe was executed once
+        expect(observed_calls.length).to eq 1
 
-      # Verify subsequent calls do not execute the probe
-      HookLineBasicTestClass.new.test_method
-      expect(observed_calls.length).to eq 1  # Still 1, not 2
-      expect(disabled_calls.length).to eq 1  # Still 1, not 2
+        # Verify circuit breaker triggered and probe was disabled
+        expect(disabled_calls.length).to eq 1
+        expect(disabled_calls.first[:probe]).to eq line_probe
+        expect(disabled_calls.first[:duration]).to be >= 0
+        expect(line_probe.enabled?).to be false
+
+        # Verify subsequent calls do not execute the probe
+        HookLineBasicTestClass.new.test_method
+        expect(observed_calls.length).to eq 1  # Still 1, not 2
+        expect(disabled_calls.length).to eq 1  # Still 1, not 2
+      end
+    end
+
+    context 'when max_processing_time is high' do
+      before do
+        allow(settings.dynamic_instrumentation.internal).to receive(:max_processing_time).and_return(1000)
+      end
+
+      it 'keeps probe enabled after multiple executions' do
+        # Instrument the line
+        instrumenter.hook_line(line_probe, responder)
+
+        # Execute the instrumented method 5 times
+        5.times do
+          result = HookLineBasicTestClass.new.test_method
+          expect(result).to eq 42
+        end
+
+        # Verify probe was executed 5 times
+        expect(observed_calls.length).to eq 5
+
+        # Verify circuit breaker never triggered
+        expect(disabled_calls).to be_empty
+        expect(line_probe.enabled?).to be true
+      end
     end
   end
 end
