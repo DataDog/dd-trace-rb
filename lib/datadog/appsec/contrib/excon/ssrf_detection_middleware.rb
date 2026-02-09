@@ -20,18 +20,27 @@ module Datadog
             context = AppSec.active_context
             return super unless context && AppSec.rasp_enabled?
 
-            mark_body_sampling!(data, context: context)
-
+            url = request_url(data)
             headers = normalize_headers(data[:headers])
             # @type var ephemeral_data: ::Datadog::AppSec::Context::input_data
             ephemeral_data = {
-              'server.io.net.url' => request_url(data),
+              'server.io.net.url' => url,
               'server.io.net.request.method' => data[:method].to_s.upcase,
               'server.io.net.request.headers' => headers
             }
 
-            if data[SAMPLE_BODY_KEY] && (body = parse_body(data[:body], content_type: headers['content-type']))
-              ephemeral_data['server.io.net.request.body'] = body
+            is_redirect = context.state[:downstream_redirect_url] == url
+
+            if is_redirect
+              context.state.delete(:downstream_redirect_url)
+              data[SAMPLE_BODY_KEY] = true
+            else
+              mark_body_sampling!(data, context: context)
+            end
+
+            if !is_redirect && data[SAMPLE_BODY_KEY]
+              body = parse_body(data[:body], content_type: headers['content-type'])
+              ephemeral_data['server.io.net.request.body'] = body if body
             end
 
             timeout = Datadog.configuration.appsec.waf_timeout
@@ -52,8 +61,14 @@ module Datadog
               'server.io.net.response.headers' => headers
             }
 
-            if data[SAMPLE_BODY_KEY] && (body = parse_body(data.dig(:response, :body), content_type: headers['content-type']))
-              ephemeral_data['server.io.net.response.body'] = body
+            is_redirect = (300...400).cover?(data.dig(:response, :status)) && headers.key?('location')
+            if is_redirect && data[SAMPLE_BODY_KEY]
+              context.state[:downstream_redirect_url] = URI.join(request_url(data), headers['location']).to_s
+            end
+
+            if !is_redirect && data[SAMPLE_BODY_KEY]
+              body = parse_body(data.dig(:response, :body), content_type: headers['content-type'])
+              ephemeral_data['server.io.net.response.body'] = body if body
             end
 
             timeout = Datadog.configuration.appsec.waf_timeout
