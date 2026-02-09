@@ -45,7 +45,7 @@ module Datadog
             service_env: settings.env || '',
             service_version: settings.version || '',
             # Follows Java: https://github.com/DataDog/dd-trace-java/blob/master/dd-trace-core/src/main/java/datadog/trace/core/servicediscovery/ServiceDiscovery.java#L37-L38
-            process_tags: Core::Environment::Process.serialized || '',
+            process_tags: settings.experimental_propagate_process_tags_enabled ? Core::Environment::Process.serialized : '',
             container_id: Core::Environment::Container.container_id || ''
           }
         end
