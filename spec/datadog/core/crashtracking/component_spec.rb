@@ -176,8 +176,40 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         # Verify crash report content
         crash_payload = crash_report_message[:payload].first
         crash_report = JSON.parse(crash_payload[:message], symbolize_names: true)
-        stack_frames = crash_report[:error][:stack][:frames]
 
+        # Verify metadata (ddog_crasht_CrashInfoBuilder_with_metadata)
+        expect(crash_report[:metadata]).to include(
+          library_name: 'dd-trace-rb',
+          library_version: Datadog::VERSION::STRING,
+          family: 'ruby'
+        )
+        expect(crash_report[:metadata][:tags]).to be_an(Array)
+        expect(crash_report[:metadata][:tags]).to_not be_empty
+
+        # Verify error kind is unhandled exception (ddog_crasht_CrashInfoBuilder_with_kind)
+        expect(crash_report[:error][:kind]).to eq('UnhandledException')
+
+        # Verify timestamp is present (ddog_crasht_CrashInfoBuilder_with_timestamp_now)
+        expect(crash_report[:timestamp]).to be_a(String)
+        expect(crash_report[:timestamp]).to_not be_empty
+
+        # Verify process info is present (ddog_crasht_CrashInfoBuilder_with_proc_info)
+        expect(crash_report[:proc_info]).to be_a(Hash)
+        expect(crash_report[:proc_info][:pid]).to be_a(Integer)
+        expect(crash_report[:proc_info][:pid]).to be > 0
+
+        # Verify OS info is present (ddog_crasht_CrashInfoBuilder_with_os_info_this_machine)
+        expect(crash_report[:os_info]).to be_a(Hash)
+        expect(crash_report[:os_info]).to_not be_empty
+        # should not be unknown os_info
+        expect(crash_report[:os_info][:architecture]).to_not eq('unknown')
+
+        # Verify exception message is present (ddog_crasht_CrashInfoBuilder_with_message)
+        expect(crash_report[:error][:message]).to include('StandardError')
+        expect(crash_report[:error][:message]).to include('Test unhandled exception with backtrace')
+
+        # Verify stack trace is present (ddog_crasht_CrashInfoBuilder_with_stack)
+        stack_frames = crash_report[:error][:stack][:frames]
         exception_backtrace = exception.backtrace_locations
         expect(stack_frames).to be_an(Array)
         expect(stack_frames.length).to be > 0
