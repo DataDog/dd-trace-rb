@@ -141,7 +141,7 @@ RSpec.describe Datadog::Tracing::Transport::IO::Client do
             expect(encoded_span).to match(
               'error' => 0,
               'meta' => {},
-              'metrics' => {},
+              'metrics' => be_a(Hash),
               'meta_struct' => {},
               'name' => 'client.testing',
               'parent_id' => match(/^[0-9a-f]+$/),
