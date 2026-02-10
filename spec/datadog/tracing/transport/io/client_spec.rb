@@ -128,30 +128,39 @@ RSpec.describe Datadog::Tracing::Transport::IO::Client do
         expect(parsed).to be_a(Hash)
         expect(parsed).to have_key('traces')
         expect(parsed['traces']).to be_an(Array)
-        expect(parsed['traces']).not_to be_empty
+        expect(parsed['traces'].length).to eq(traces.length)
 
-        # Sample check: verify first trace has correct structure
-        first_trace = traces.first
-        first_encoded = parsed['traces'].first
+        # Verify all traces have correct structure
+        traces.zip(parsed['traces']).each do |trace, encoded_trace|
+          expect(encoded_trace).to be_an(Array)
+          expect(encoded_trace.length).to eq(trace.spans.length)
 
-        expect(first_encoded).to be_an(Array)
-        expect(first_encoded).not_to be_empty
+          # Verify all spans in the trace are correctly encoded
+          trace.spans.zip(encoded_trace).each do |span, encoded_span|
+            # Match complete encoded span structure
+            expect(encoded_span).to match(
+              'error' => 0,
+              'meta' => {},
+              'metrics' => {},
+              'meta_struct' => {},
+              'name' => 'client.testing',
+              'parent_id' => match(/^[0-9a-f]+$/),
+              'resource' => '/traces',
+              'service' => 'test-app',
+              'span_id' => match(/^[0-9a-f]+$/),
+              'trace_id' => match(/^[0-9a-f]+$/),
+              'type' => 'web',
+              'span_links' => [],
+              'start' => be_an(Integer),
+              'duration' => be_an(Integer),
+            )
 
-        # Sample check: verify first span is correctly encoded
-        first_span = first_trace.spans.first
-        first_encoded_span = first_encoded.first
-
-        expect(first_encoded_span).to be_a(Hash)
-        expect(first_encoded_span['name']).to eq(first_span.name)
-
-        # Critical: Verify IDs are hex-encoded (this is what would break in production)
-        expect(first_encoded_span['trace_id']).to eq(first_span.trace_id.to_s(16))
-        expect(first_encoded_span['span_id']).to eq(first_span.id.to_s(16))
-        expect(first_encoded_span['parent_id']).to eq(first_span.parent_id.to_s(16))
-
-        # Verify numeric fields have correct types
-        expect(first_encoded_span['start']).to be_a(Integer)
-        expect(first_encoded_span['duration']).to be_a(Integer)
+            # Verify hex-encoded IDs match actual span values
+            expect(encoded_span['trace_id']).to eq(span.trace_id.to_s(16))
+            expect(encoded_span['span_id']).to eq(span.id.to_s(16))
+            expect(encoded_span['parent_id']).to eq(span.parent_id.to_s(16))
+          end
+        end
       end
     end
   end
