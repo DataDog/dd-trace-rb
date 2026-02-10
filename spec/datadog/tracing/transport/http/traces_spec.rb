@@ -90,7 +90,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Traces::API::Endpoint do
 
     let(:env) { Datadog::Core::Transport::HTTP::Env.new(request) }
     let(:request) { Datadog::Tracing::Transport::Traces::Request.new(parcel) }
-    let(:parcel) { double(Datadog::Tracing::Transport::Traces::Parcel, data: data, trace_count: trace_count) }
+    let(:parcel) { Datadog::Tracing::Transport::Traces::Parcel.new(data, trace_count: trace_count) }
     let(:data) { double('trace_once') }
     let(:trace_count) { 123 }
 
