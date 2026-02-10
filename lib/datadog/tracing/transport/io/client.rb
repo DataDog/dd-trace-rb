@@ -41,7 +41,6 @@ module Datadog
             # Update statistics
             update_stats_from_response!(response)
 
-            # Return response
             response
           rescue => e
             message =
