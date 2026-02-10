@@ -107,9 +107,12 @@ module Datadog
 
             if AppSec::APISecurity.enabled? && AppSec::APISecurity.sample_trace?(ctx.trace) &&
                 AppSec::APISecurity.sample?(gateway_request.request, tmp_response.response)
-              ctx.events.push(
-                AppSec::SecurityEvent.new(ctx.extract_schema, trace: ctx.trace, span: ctx.span)
-              )
+              security_event = AppSec::SecurityEvent.new(ctx.extract_schema, trace: ctx.trace, span: ctx.span)
+              ctx.events.push(security_event)
+
+              report_api_security_telemetry(has_schema: security_event.schema?)
+            else
+              report_api_security_telemetry(has_schema: false)
             end
 
             AppSec::Event.record(ctx, request: gateway_request, response: gateway_response)
@@ -210,6 +213,20 @@ module Datadog
 
           def to_rack_header(header)
             @rack_headers[header] ||= Datadog::Tracing::Contrib::Rack::Header.to_rack_header(header)
+          end
+
+          def report_api_security_telemetry(has_schema:)
+            metric_name = has_schema ? 'api_security.request.schema' : 'api_security.request.no_schema'
+
+            framework = if defined?(::Rails)
+              'rails'
+            elsif defined?(::Sinatra)
+              'sinatra'
+            else
+              'rack'
+            end
+
+            AppSec.telemetry.inc(AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, metric_name, 1, tags: {framework: framework})
           end
         end
       end
