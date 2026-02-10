@@ -85,8 +85,8 @@ module Datadog
 
         def report_unhandled_exception(exception, settings: Datadog.configuration)
           # Maximum number of stack frames to include in exception crash reports
-          # This is the same number used for profiling and signal-based crashtracking
-          max_exception_stack_frames = 400
+          # This is the same number used for signal-based crashtracking
+          max_exception_stack_frames = 512
 
           current_tags = self.class.latest_tags(settings)
           # extract all frame data upfront; c expects exactly 3 elements, proper types, no nils
