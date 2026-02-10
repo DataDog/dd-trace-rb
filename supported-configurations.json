@@ -75,7 +75,7 @@
     "DD_API_SECURITY_MAX_DOWNSTREAM_REQUEST_BODY_ANALYSIS": [
       {
         "version": "A",
-        "type": "integer",
+        "type": "int",
         "default": "1"
       }
     ],
