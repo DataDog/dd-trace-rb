@@ -301,6 +301,8 @@ module Datadog
       end
 
       def flush_stats
+        # payload assignment is to reduce how we have to mangle our code for
+        # steep to run successfully.
         payload = @stats_mutex.synchronize do
           return if @buckets.empty? && @consumer_stats.empty?
 
@@ -315,6 +317,8 @@ module Datadog
           }
 
           if @settings.experimental_propagate_process_tags_enabled
+            # steep ignore for https://github.com/soutaro/steep/issues/1860,
+            # I assume.
             payload['ProcessTags'] = Core::Environment::Process.tags # steep:ignore ArgumentTypeMismatch
           end
 
