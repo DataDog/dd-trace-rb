@@ -370,11 +370,8 @@ module Datadog
 
         bytes = service.bytes + env.bytes
 
-        # If there is a propagation checksum, add it to DSM back propagation
-        # Current bytes order follows Python: https://github.com/DataDog/dd-trace-py/blob/8b739fe0837a22cab76116050e8b7e4b45407c6c/ddtrace/internal/datastreams/processor.py#L423
-        # Python order: service + env + process tags + container tags
-        # Note: Java does it differently https://github.com/DataDog/dd-trace-java/blob/d10055d2a1d3e41671ab944e97192919d3797f11/internal-api/src/main/java/datadog/trace/api/BaseHash.java#L38-L53
-        # Java order: service + env + primary tag + process tags + container tags
+        # Note: The order of the bytes needs to be consistent within a tracer.
+        # The other tracers don't have consistency (Java adds a primary tag, Python does not).
         if @settings.experimental_propagate_process_tags_enabled
           propagation_checksum = Datadog.send(:components).agent_info.propagation_checksum
           if propagation_checksum
