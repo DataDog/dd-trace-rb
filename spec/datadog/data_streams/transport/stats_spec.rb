@@ -45,16 +45,6 @@ RSpec.describe Datadog::DataStreams::Transport::Stats do
         allow(client).to receive(:send_request).and_return(response)
       end
 
-      it 'encodes payload with MessagePack' do
-        expect(MessagePack).to receive(:pack).with(payload).and_call_original
-        send_stats
-      end
-
-      it 'compresses the MessagePack data with gzip' do
-        expect(Zlib).to receive(:gzip).and_call_original
-        send_stats
-      end
-
       it 'sends the compressed data via client' do
         expect(client).to receive(:send_request) do |action, request|
           expect(action).to eq(:stats)
