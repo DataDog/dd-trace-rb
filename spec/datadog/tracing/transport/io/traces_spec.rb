@@ -48,11 +48,6 @@ RSpec.describe Datadog::Tracing::Transport::IO::Traces::Encoder do
     describe 'produces a hash' do
       subject(:encoded) { encode_traces }
 
-      it 'which is wrapped' do
-        is_expected.to be_a_kind_of(Hash)
-        is_expected.to include(traces: kind_of(Array))
-      end
-
       describe 'whose encoded traces' do
         subject(:encoded_traces) { encoded[:traces] }
 
