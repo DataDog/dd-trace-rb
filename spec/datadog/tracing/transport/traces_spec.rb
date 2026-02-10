@@ -8,8 +8,6 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Parcel do
   let(:data) { instance_double(Array) }
   let(:trace_count) { 123 }
 
-  it { is_expected.to be_a_kind_of(Datadog::Core::Transport::Parcel) }
-
   describe '#initialize' do
     it { is_expected.to have_attributes(data: data) }
   end
@@ -18,20 +16,6 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Parcel do
     subject { parcel.trace_count }
 
     it { is_expected.to eq(trace_count) }
-  end
-end
-
-RSpec.describe Datadog::Tracing::Transport::Traces::Request do
-  subject(:request) { described_class.new(parcel) }
-
-  let(:parcel) { double }
-
-  it { is_expected.to be_a_kind_of(Datadog::Core::Transport::Request) }
-
-  describe '#initialize' do
-    it do
-      is_expected.to have_attributes(parcel: parcel)
-    end
   end
 end
 
