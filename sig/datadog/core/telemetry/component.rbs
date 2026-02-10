@@ -3,7 +3,6 @@ module Datadog
     module Telemetry
       class Component
         ENDPOINT_COLLECTION_MESSAGE_LIMIT: Integer
-	ONLY_ONCE: Core::Utils::OnlyOnce
 
         @enabled: bool
         @log_collection_enabled: bool

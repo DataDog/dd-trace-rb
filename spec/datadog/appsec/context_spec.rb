@@ -22,6 +22,7 @@ RSpec.describe Datadog::AppSec::Context do
 
   before do
     allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry)
+    allow(telemetry).to receive(:inc)
   end
 
   after do
@@ -178,8 +179,9 @@ RSpec.describe Datadog::AppSec::Context do
         }
       end
 
-      it 'sends telemetry metrics' do
+      it 'does not send RASP telemetry metrics' do
         expect(telemetry).not_to receive(:inc)
+          .with('appsec', be_in(['rasp.rule.eval', 'rasp.rule.match', 'rasp.timeout']), kind_of(Integer), anything)
 
         context.run_rasp('sqli', persistent_data, ephemeral_data, 1_000_000)
       end

@@ -7,8 +7,6 @@ class EverythingFromRemoteConfigSpecTestClass
   end
 end
 
-LOWERCASE_UUID_REGEXP = /\A[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}\z/
-
 RSpec.describe 'DI integration from remote config' do
   di_test
   skip_unless_integration_testing_enabled
@@ -102,7 +100,7 @@ RSpec.describe 'DI integration from remote config' do
           parentId: nil,
           probeId: '11',
           probeVersion: 0,
-          runtimeId: LOWERCASE_UUID_REGEXP,
+          runtimeId: be_valid_uuid,
           status: 'RECEIVED',
         },
       },
@@ -121,7 +119,7 @@ RSpec.describe 'DI integration from remote config' do
           parentId: nil,
           probeId: '11',
           probeVersion: 0,
-          runtimeId: LOWERCASE_UUID_REGEXP,
+          runtimeId: be_valid_uuid,
           status: 'INSTALLED',
         },
       },
@@ -140,7 +138,7 @@ RSpec.describe 'DI integration from remote config' do
           parentId: nil,
           probeId: '11',
           probeVersion: 0,
-          runtimeId: LOWERCASE_UUID_REGEXP,
+          runtimeId: be_valid_uuid,
           status: 'EMITTING',
         },
       },
@@ -159,7 +157,7 @@ RSpec.describe 'DI integration from remote config' do
           parentId: nil,
           probeId: '11',
           probeVersion: 0,
-          runtimeId: LOWERCASE_UUID_REGEXP,
+          runtimeId: be_valid_uuid,
           status: 'ERROR',
         },
       },
@@ -180,7 +178,7 @@ RSpec.describe 'DI integration from remote config' do
         snapshot: {
           captures: {},
           evaluationErrors: [],
-          id: LOWERCASE_UUID_REGEXP,
+          id: be_valid_uuid,
           language: 'ruby',
           probe: {
             id: '11',
@@ -447,7 +445,7 @@ RSpec.describe 'DI integration from remote config' do
               evaluationErrors: [
                 {'expr' => '(failing expression)', 'message' => 'Datadog::DI::Error::ExpressionEvaluationError: Bad collection type for filter: NilClass'},
               ],
-              id: LOWERCASE_UUID_REGEXP,
+              id: be_valid_uuid,
               language: 'ruby',
               probe: {
                 id: '11',
@@ -624,7 +622,7 @@ RSpec.describe 'DI integration from remote config' do
               evaluationErrors: [
                 {'expr' => '(expression)', 'message' => evaluation_error_message},
               ],
-              id: LOWERCASE_UUID_REGEXP,
+              id: be_valid_uuid,
               language: 'ruby',
               probe: {
                 id: '11',
@@ -709,7 +707,7 @@ RSpec.describe 'DI integration from remote config' do
               snapshot: {
                 captures: expected_captures,
                 evaluationErrors: [],
-                id: LOWERCASE_UUID_REGEXP,
+                id: be_valid_uuid,
                 language: 'ruby',
                 probe: {
                   id: '11',

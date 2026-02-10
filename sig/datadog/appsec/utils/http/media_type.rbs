@@ -3,9 +3,6 @@ module Datadog
     module Utils
       module HTTP
         class MediaType
-          class ParseError < StandardError
-          end
-
           WILDCARD: ::String
 
           TOKEN_RE: ::Regexp
@@ -14,15 +11,21 @@ module Datadog
 
           MEDIA_TYPE_RE: ::Regexp
 
+          @type: ::String
+
+          @subtype: ::String
+
+          @parameters: ::Hash[::String, ::String]
+
           attr_reader type: ::String
 
           attr_reader subtype: ::String
 
           attr_reader parameters: ::Hash[::String, ::String]
 
-          def self.json?: (::String?) -> bool
+          def self.parse: (::String? media) -> MediaType?
 
-          def initialize: (::String?) -> void
+          def initialize: (type: ::String, subtype: ::String, ?parameters: ::Hash[::String, ::String]) -> void
 
           def to_s: () -> ::String
         end

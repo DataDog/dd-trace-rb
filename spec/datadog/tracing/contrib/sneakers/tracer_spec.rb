@@ -62,7 +62,7 @@ RSpec.describe Datadog::Tracing::Contrib::Sneakers::Tracer do
     let(:delivery_info) { double }
     let(:message) { Sneakers::ContentType.deserialize('{"foo":"bar"}', 'application/json') }
     let(:handler) { Object.new }
-    let(:metadata) { double }
+    let(:metadata) { {content_type: 'application/json'} }
     let(:routing_key) { 'something' }
     let(:consumer) { double('Consumer') }
 
@@ -72,7 +72,6 @@ RSpec.describe Datadog::Tracing::Contrib::Sneakers::Tracer do
       allow(delivery_info).to receive(:routing_key).and_return(routing_key)
       allow(delivery_info).to receive(:consumer).and_return(consumer)
       allow(consumer).to receive(:queue).and_return(queue)
-      allow(metadata).to receive(:[]).with(:content_type).and_return('application/json')
     end
 
     it do
