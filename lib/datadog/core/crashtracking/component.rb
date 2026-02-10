@@ -80,8 +80,6 @@ module Datadog
         end
 
         def update_on_fork(settings: Datadog.configuration)
-          # Here we pick up the latest settings, so that we pick up any tags that change after forking
-          # such as the pid or runtime-id
           start_or_update_on_fork(action: :update_on_fork, tags: self.class.latest_tags(settings))
         end
 
@@ -108,7 +106,7 @@ module Datadog
             line = loc.lineno
             line = 0 if line.nil? || line < 0 || !line.is_a?(Integer)
 
-            [file, function, line] # Always String, String, Integer
+            [file, function, line]
           end
 
           # Add truncation indicator frame if we had to cut off frames

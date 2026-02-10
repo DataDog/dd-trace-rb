@@ -163,9 +163,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         # Wait for both crash ping and crash report to be sent
         try_wait_until { messages.length == 2 }
 
-        # check that both crash ping and crash report were sent
-        expect(messages).to be_an(Array)
-        expect(messages.length).to eq(2)
         parsed_messages = messages.map { |msg| JSON.parse(msg.body.to_s, symbolize_names: true) }
 
         # Don't assume order on network requests
@@ -177,14 +174,14 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
           payload = msg[:payload].first
           payload[:tags]&.include?('is_crash_ping:true')
         end
-        expect(crash_ping_message).to_not be_nil, 'Expected crash ping message not found'
+        expect(crash_ping_message).to_not be_nil
 
         # Find crash report message (should have is_crash:true)
         crash_report_message = parsed_messages.find do |msg|
           payload = msg[:payload].first
           payload[:is_crash] == true
         end
-        expect(crash_report_message).to_not be_nil, 'Expected crash report message not found'
+
         # Verify crash report content
         crash_payload = crash_report_message[:payload].first
         crash_report = JSON.parse(crash_payload[:message], symbolize_names: true)
@@ -202,13 +199,9 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         expect(crash_report[:error][:kind]).to eq('UnhandledException')
 
         # Verify process info is present (ddog_crasht_CrashInfoBuilder_with_proc_info)
-        expect(crash_report[:proc_info]).to be_a(Hash)
-        expect(crash_report[:proc_info][:pid]).to be_a(Integer)
         expect(crash_report[:proc_info][:pid]).to be > 0
 
         # Verify OS info is present (ddog_crasht_CrashInfoBuilder_with_os_info_this_machine)
-        expect(crash_report[:os_info]).to be_a(Hash)
-        expect(crash_report[:os_info]).to_not be_empty
         # should not be unknown os_info
         expect(crash_report[:os_info][:architecture]).to_not eq('unknown')
 

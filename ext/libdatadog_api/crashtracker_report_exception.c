@@ -43,7 +43,6 @@ static VALUE _native_report_ruby_exception(DDTRACE_UNUSED VALUE _self, VALUE age
     .tags = &tags,
   };
 
-  // Build and send report
   bool success = build_and_send_crash_report(metadata, endpoint, message, frames_data);
   ddog_Vec_Tag_drop(tags);
   ddog_endpoint_drop(endpoint);
@@ -56,6 +55,7 @@ static bool process_crash_frames(VALUE frames_data, ddog_crasht_Handle_StackTrac
 
   // Return false and early so we can mark the stack as incomplete
   // libdatadog's definition of an incomplete stack is that it has no frames
+  // or that report generation died in the middle of unwinding frames
   if (frame_count == 0) {
     return false;
   }
