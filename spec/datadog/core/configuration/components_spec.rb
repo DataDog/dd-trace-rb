@@ -242,7 +242,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         before do
           expect(Datadog::Core::Logger).to receive(:new)
-            .with($stdout)
+            .with($stderr)
             .and_return(logger)
 
           expect(logger).to receive(:level=).with(level)

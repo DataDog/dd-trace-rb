@@ -38,7 +38,7 @@ module Datadog
           end
 
           def build_logger(settings)
-            logger = settings.logger.instance || Core::Logger.new($stdout)
+            logger = settings.logger.instance || Core::Logger.new($stderr)
             logger.level = settings.diagnostics.debug ? ::Logger::DEBUG : settings.logger.level
 
             logger
