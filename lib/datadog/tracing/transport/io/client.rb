@@ -72,7 +72,6 @@ module Datadog
           private
 
           def send_default_request(out, request)
-            # Get already-encoded data from parcel
             data = request.parcel.data
 
             # Write to IO
