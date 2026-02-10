@@ -86,7 +86,11 @@ RSpec.describe 'WAF requests telemetry' do
   describe 'appsec.waf.requests telemetry' do
     context 'when WAF check triggered for HTTP request' do
       it 'exports correct tags' do
-        expect(Datadog::AppSec.telemetry).to receive(:inc).with(
+        allow(Datadog::AppSec.telemetry).to receive(:inc)
+
+        get('/waf', {}, {'REMOTE_ADDR' => '127.0.0.1', 'HTTP_USER_AGENT' => 'Nessus SOAP'})
+
+        expect(Datadog::AppSec.telemetry).to have_received(:inc).with(
           Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.requests', 1,
           tags: hash_including(
             rule_triggered: 'true',
@@ -96,14 +100,16 @@ RSpec.describe 'WAF requests telemetry' do
             rate_limited: 'false'
           )
         )
-
-        get('/waf', {}, {'REMOTE_ADDR' => '127.0.0.1', 'HTTP_USER_AGENT' => 'Nessus SOAP'})
       end
     end
 
     context 'when WAF check did not trigger for HTTP request' do
       it 'exports correct tags' do
-        expect(Datadog::AppSec.telemetry).to receive(:inc).with(
+        allow(Datadog::AppSec.telemetry).to receive(:inc)
+
+        get('/waf', {}, {})
+
+        expect(Datadog::AppSec.telemetry).to have_received(:inc).with(
           Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'waf.requests', 1,
           tags: hash_including(
             rule_triggered: 'false',
@@ -112,8 +118,6 @@ RSpec.describe 'WAF requests telemetry' do
             request_blocked: 'false'
           )
         )
-
-        get('/waf', {}, {})
       end
     end
   end

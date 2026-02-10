@@ -14,7 +14,12 @@ require 'devise'
 RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
   include Rack::Test::Methods
 
+  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
   before do
+    allow(telemetry).to receive(:inc)
+    allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry)
+
     # NOTE: Due to the legacy code in AppSec component we always patch Devise
     #       and this is a minimalistic workaround to trigger the patching and
     #       have it configured properly.
@@ -256,6 +261,15 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
         match(%r{_dd.appsec.s.res.*})
       )
     end
+
+    it 'reports api_security.request.schema telemetry with framework tag' do
+      expect(telemetry).to have_received(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
+        'api_security.request.schema',
+        1,
+        tags: {framework: 'rails'}
+      )
+    end
   end
 
   context 'when API security is enabled but request is not sampled' do
@@ -279,6 +293,15 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
           match(%r{_dd.appsec.s.res.*})
         )
       end
+
+      it 'reports api_security.request.no_schema telemetry with framework tag' do
+        expect(telemetry).to have_received(:inc).with(
+          Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
+          'api_security.request.no_schema',
+          1,
+          tags: {framework: 'rails'}
+        )
+      end
     end
 
     context 'when API security sampler rejects the request' do
@@ -295,6 +318,15 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
         expect(http_service_entry_span.tags).to_not include(
           match(%r{_dd.appsec.s.req.*}),
           match(%r{_dd.appsec.s.res.*})
+        )
+      end
+
+      it 'reports api_security.request.no_schema telemetry with framework tag' do
+        expect(telemetry).to have_received(:inc).with(
+          Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
+          'api_security.request.no_schema',
+          1,
+          tags: {framework: 'rails'}
         )
       end
     end
@@ -315,6 +347,15 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
       expect(http_service_entry_span.tags).to_not include(
         match(%r{_dd.appsec.s.req.*}),
         match(%r{_dd.appsec.s.res.*})
+      )
+    end
+
+    it 'reports api_security.request.no_schema telemetry with framework tag' do
+      expect(telemetry).to have_received(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
+        'api_security.request.no_schema',
+        1,
+        tags: {framework: 'rails'}
       )
     end
   end
@@ -343,6 +384,15 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
           match(%r{_dd.appsec.s.res.*})
         )
       end
+
+      it 'reports api_security.request.schema telemetry with framework tag' do
+        expect(Datadog::AppSec.telemetry).to have_received(:inc).with(
+          Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
+          'api_security.request.schema',
+          1,
+          tags: {framework: 'rails'}
+        )
+      end
     end
 
     context 'when trace is priority sampled' do
@@ -356,6 +406,15 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
         expect(http_service_entry_span.tags).to include(
           match(%r{_dd.appsec.s.req.*}),
           match(%r{_dd.appsec.s.res.*})
+        )
+      end
+
+      it 'reports api_security.request.schema telemetry with framework tag' do
+        expect(Datadog::AppSec.telemetry).to have_received(:inc).with(
+          Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
+          'api_security.request.schema',
+          1,
+          tags: {framework: 'rails'}
         )
       end
     end
@@ -376,6 +435,15 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
       expect(http_service_entry_span.tags).to include(match(%r{_dd.appsec.s.req.*}))
       expect(http_service_entry_span.tags).not_to include(match(%r{_dd.appsec.s.res.*}))
     end
+
+    it 'reports api_security.request.schema telemetry with framework tag' do
+      expect(telemetry).to have_received(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
+        'api_security.request.schema',
+        1,
+        tags: {framework: 'rails'}
+      )
+    end
   end
 
   context 'when response body schema is collected' do
@@ -391,6 +459,15 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
     it 'extracts request and response body schema' do
       expect(response).to be_ok
       expect(http_service_entry_span.tags).to have_key('_dd.appsec.s.res.body')
+    end
+
+    it 'reports api_security.request.schema telemetry with framework tag' do
+      expect(telemetry).to have_received(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
+        'api_security.request.schema',
+        1,
+        tags: {framework: 'rails'}
+      )
     end
   end
 end
