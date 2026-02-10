@@ -363,7 +363,6 @@ RSpec.describe Datadog::DataStreams::Processor do
       end
 
       context 'and agent info has not been fetched yet' do
-        # We must always return a valid pathway hash when agent info has not been fetched yet
         let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: nil) }
 
         include_examples 'a valid pathway hash'
@@ -386,7 +385,6 @@ RSpec.describe Datadog::DataStreams::Processor do
       end
 
       context 'and agent info has not been fetched yet' do
-        # We must always return a valid pathway hash when agent info has not been fetched yet
         let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: nil) }
 
         include_examples 'a valid pathway hash'

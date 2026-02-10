@@ -316,9 +316,8 @@ module Datadog
             'Hostname' => hostname
           }
 
-          # payload cannot be nil, but the check here is for steep
-          if @settings.experimental_propagate_process_tags_enabled && payload
-            payload['ProcessTags'] = Core::Environment::Process.tags
+          if @settings.experimental_propagate_process_tags_enabled
+            payload['ProcessTags'] = Core::Environment::Process.tags # steep:ignore NoMethod
           end
 
           # Clear consumer stats even if sending fails to prevent unbounded memory growth
