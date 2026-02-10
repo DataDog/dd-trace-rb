@@ -99,6 +99,20 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
   end
 
   context 'instance methods' do
+    shared_context 'HTTP server' do
+      http_server do |http_server|
+        http_server.mount_proc('/', &server_proc)
+      end
+      let(:hostname) { '127.0.0.1' }
+      let(:server_proc) do
+        proc do |req, res|
+          messages << req.tap { req.body } # read body, store message before socket closes.
+          res.body = '{}'
+        end
+      end
+      let(:messages) { [] }
+    end
+
     describe '#start' do
       context 'when _native_start_or_update_on_fork raises an exception' do
         it 'logs the exception' do
@@ -121,6 +135,92 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
           expect(logger).to receive(:error).with(/Failed to stop crash tracking: Test failure/)
 
           crashtracker.stop
+        end
+      end
+    end
+
+    describe '#report_unhandled_exception' do
+      include_context 'HTTP server'
+
+      let(:agent_base_url) { "http://#{hostname}:#{http_server_port}" }
+
+      # exception only gets stack attached when raised
+      def method_that_raises
+        raise StandardError, 'Test unhandled exception with backtrace'
+      end
+
+      it 'reports the unhandled exception' do
+        crashtracker = build_crashtracker(agent_base_url: agent_base_url, logger: logger)
+        exception =
+          begin
+            method_that_raises
+          rescue => e
+            e
+          end
+
+        crashtracker.report_unhandled_exception(exception)
+
+        # Wait for both crash ping and crash report to be sent
+        try_wait_until { messages.length == 2 }
+
+        parsed_messages = messages.map { |msg| JSON.parse(msg.body.to_s, symbolize_names: true) }
+
+        # Don't assume order on network requests
+        # We send crash ping first, but it is sent in separate requests
+        # We are not guaranteed the order of the messages received in the array
+        #
+        # Find crash ping message (should have is_crash_ping:true tag)
+        crash_ping_message = parsed_messages.find do |msg|
+          payload = msg[:payload].first
+          payload[:tags]&.include?('is_crash_ping:true')
+        end
+        expect(crash_ping_message).to_not be_nil
+
+        # Find crash report message (should have is_crash:true)
+        crash_report_message = parsed_messages.find do |msg|
+          payload = msg[:payload].first
+          payload[:is_crash] == true
+        end
+
+        # Verify crash report content
+        crash_payload = crash_report_message[:payload].first
+        crash_report = JSON.parse(crash_payload[:message], symbolize_names: true)
+
+        # Verify metadata (ddog_crasht_CrashInfoBuilder_with_metadata)
+        expect(crash_report[:metadata]).to include(
+          library_name: 'dd-trace-rb',
+          library_version: Datadog::VERSION::STRING,
+          family: 'ruby'
+        )
+        expect(crash_report[:metadata][:tags]).to be_an(Array)
+        expect(crash_report[:metadata][:tags]).to_not be_empty
+
+        # Verify error kind is unhandled exception (ddog_crasht_CrashInfoBuilder_with_kind)
+        expect(crash_report[:error][:kind]).to eq('UnhandledException')
+
+        # Verify process info is present (ddog_crasht_CrashInfoBuilder_with_proc_info)
+        expect(crash_report[:proc_info][:pid]).to be > 0
+
+        # Verify OS info is present (ddog_crasht_CrashInfoBuilder_with_os_info_this_machine)
+        # should not be unknown os_info
+        expect(crash_report[:os_info][:architecture]).to_not eq('unknown')
+
+        # Verify exception message is present (ddog_crasht_CrashInfoBuilder_with_message)
+        expect(crash_report[:error][:message]).to include('StandardError')
+        expect(crash_report[:error][:message]).to include('Test unhandled exception with backtrace')
+
+        # Verify stack trace is present (ddog_crasht_CrashInfoBuilder_with_stack)
+        stack_frames = crash_report[:error][:stack][:frames]
+        exception_backtrace = exception.backtrace_locations
+        expect(stack_frames).to be_an(Array)
+        expect(stack_frames.length).to be > 0
+        expect(crash_report[:error][:stack][:incomplete]).to be false
+
+        # Verify that the stack frames match the exception backtrace
+        (0..stack_frames.length - 1).each do |i|
+          expect(stack_frames[i][:function]).to eq(exception_backtrace[i].label)
+          expect(stack_frames[i][:file]).to eq(exception_backtrace[i].path)
+          expect(stack_frames[i][:line]).to eq(exception_backtrace[i].lineno)
         end
       end
     end
@@ -164,22 +264,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
     end
 
     context 'integration testing' do
-      shared_context 'HTTP server' do
-        http_server do |http_server|
-          http_server.mount_proc('/', &server_proc)
-        end
-        let(:hostname) { '127.0.0.1' }
-        let(:server_proc) do
-          proc do |req, res|
-            messages << req.tap { req.body } # Read body, store message before socket closes.
-            res.body = '{}'
-          end
-        end
-        let(:init_signal) { Queue.new }
-
-        let(:messages) { [] }
-      end
-
       include_context 'HTTP server'
 
       let(:request) do
@@ -190,6 +274,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       let(:agent_base_url) { "http://#{hostname}:#{http_server_port}" }
       let(:fork_expectations) do
         proc do |status:, stdout:, stderr:|
+          expect(status.termsig).to_not be_nil
           expect(Signal.signame(status.termsig)).to eq('SEGV').or eq('ABRT')
           expect(stderr).to include('[BUG] Segmentation fault')
         end
@@ -230,6 +315,31 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
             service_name: 'ruby-testing-123',
             language_name: 'ruby-testing-123',
           )
+        end
+      end
+
+      context 'Ruby unhandled exception crash reporting' do
+        let(:ruby_crash_expectations) do
+          proc do |status:, stdout:, stderr:|
+            # ruby exceptions should exit with status 1, not signal termination
+            expect(status.exitstatus).to eq(1)
+          end
+        end
+
+        it 'gets triggered by at_exit hook, which reports the exception via http' do
+          expect_in_fork(fork_expectations: ruby_crash_expectations, timeout_seconds: 15) do
+            # Configure Datadog so the at_exit hook can find the crashtracker
+            Datadog.configure do |c|
+              c.agent.host = '127.0.0.1'
+              c.agent.port = http_server_port
+            end
+
+            raise StandardError, 'Test Ruby unhandled exception'
+          end
+
+          # check that both crash ping and crash report were sent
+          # Content is checked in unit test
+          expect(messages.length).to eq(2)
         end
       end
 
