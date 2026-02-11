@@ -243,7 +243,7 @@ module Datadog
         current_context = get_current_context
         tags = tags.sort
 
-        direction = nil #: ::String?
+        direction = nil # : ::String?
         tags.each do |tag|
           if tag.start_with?('direction:')
             direction = tag
@@ -364,19 +364,18 @@ module Datadog
 
       # Compute new pathway hash using FNV-1a algorithm.
       # Combines service, env, tags, and parent hash to create unique pathway identifier.
+      #
+      # The hash only needs to be internally consistent:
+      # @see Datadog::Core::Environment::AgentInfo#container_tags_checksum
       def compute_pathway_hash(current_hash, tags)
         service = @settings.service || 'ruby-service'
         env = @settings.env || 'none'
 
         bytes = service.bytes + env.bytes
 
-        # Note: The order of the bytes needs to be consistent within a tracer.
-        # The other tracers don't have consistency (Java adds a primary tag, Python does not).
         if @settings.experimental_propagate_process_tags_enabled
           propagation_checksum = Datadog.send(:components).agent_info.propagation_checksum
-          if propagation_checksum
-            bytes += [propagation_checksum].pack('Q<').bytes
-          end
+          bytes += [propagation_checksum].pack('Q<').bytes if propagation_checksum
         end
 
         tags.each { |tag| bytes += tag.bytes }
