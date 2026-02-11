@@ -12,6 +12,8 @@ module Datadog
       module RestClient
         # Module that adds SSRF detection to RestClient::Request#execute
         module RequestSSRFDetectionPatch
+          REDIRECT_STATUS_CODES = (300..399).freeze
+
           def execute(&block)
             context = AppSec.active_context
             return super unless context && AppSec.rasp_enabled?
@@ -24,16 +26,42 @@ module Datadog
               'server.io.net.request.headers' => headers
             }
 
-            sample_body = mark_body_sampling!(context)
-            if sample_body && (body = parse_body(payload.to_s, content_type: headers['content-type']))
-              ephemeral_data['server.io.net.request.body'] = body
+            is_redirect = context.state[:downstream_redirect_url] == url
+            if is_redirect
+              context.state.delete(:downstream_redirect_url)
+              sample_body = true
+            else
+              sample_body = mark_body_sampling!(context)
+            end
+
+            if !is_redirect && sample_body
+              body = parse_body(payload.to_s, content_type: headers['content-type'])
+              ephemeral_data['server.io.net.request.body'] = body if body
             end
 
             timeout = Datadog.configuration.appsec.waf_timeout
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_REQUEST_PHASE)
             handle(result, context: context) if result.match?
 
-            response = super
+            # NOTE: RestClient raises exceptions for non-2xx responses. For POST/PUT/PATCH
+            #       requests with 3xx redirects, RestClient raises instead of auto-following.
+            #       We rescue to process the response before re-raising.
+            begin
+              response = super
+            rescue ::RestClient::Exception => e
+              response = e.response
+              process_response(response, sample_body: sample_body) if response
+
+              raise
+            end
+
+            process_response(response, sample_body: sample_body)
+            response
+          end
+
+          def process_response(response, sample_body:)
+            context = AppSec.active_context
+            return unless context
 
             headers = normalize_response_headers(response)
             # @type var ephemeral_data: ::Datadog::AppSec::Context::input_data
@@ -42,14 +70,17 @@ module Datadog
               'server.io.net.response.headers' => headers
             }
 
-            if sample_body && (body = parse_body(response.body, content_type: headers['content-type']))
-              ephemeral_data['server.io.net.response.body'] = body
+            is_redirect = REDIRECT_STATUS_CODES.cover?(response.code.to_i) && headers.key?('location')
+            context.state[:downstream_redirect_url] = URI.join(url, headers['location']).to_s if is_redirect && sample_body
+
+            if sample_body && !is_redirect
+              body = parse_body(response.body, content_type: headers['content-type'])
+              ephemeral_data['server.io.net.response.body'] = body if body
             end
 
+            timeout = Datadog.configuration.appsec.waf_timeout
             result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, timeout, phase: Ext::RASP_RESPONSE_PHASE)
             handle(result, context: context) if result.match?
-
-            response
           end
 
           private
@@ -88,7 +119,8 @@ module Datadog
           # FIXME: Steep has issues with `transform_values!` modifying the original
           #        type and it failed with "Cannot allow block body" error
           def normalize_response_headers(response) # steep:ignore MethodBodyTypeMismatch
-            response.net_http_res.to_hash.transform_values! { |value| Array(value).join(', ') } # steep:ignore BlockBodyTypeMismatch
+            response.net_http_res.to_hash
+              .transform_values! { |value| Array(value).join(', ') } # steep:ignore BlockBodyTypeMismatch
           end
 
           def handle(result, context:)

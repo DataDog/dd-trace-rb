@@ -42,6 +42,42 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
         status: 200,
         headers: {'Content-Type' => 'application/json'}
       )
+      ::Excon.stub(
+        {method: :post, path: '/redirect-301'},
+        body: '{"redirect":"body"}',
+        status: 301,
+        headers: {'Location' => 'http://example.com/application-json', 'Content-Type' => 'application/json'}
+      )
+      ::Excon.stub(
+        {method: :post, path: '/redirect-302'},
+        body: '<html>Redirecting...</html>',
+        status: 302,
+        headers: {'Location' => 'http://example.com/application-json', 'Content-Type' => 'text/html'}
+      )
+      ::Excon.stub(
+        {method: :post, path: '/redirect-no-location'},
+        body: '{"redirect":"body"}',
+        status: 301,
+        headers: {'Content-Type' => 'application/json'}
+      )
+      ::Excon.stub(
+        {method: :get, path: '/redirect-chain-start'},
+        body: '{"hop":"1"}',
+        status: 301,
+        headers: {'Location' => 'http://example.com/redirect-chain-hop', 'Content-Type' => 'application/json'}
+      )
+      ::Excon.stub(
+        {method: :get, path: '/redirect-chain-hop'},
+        body: '{"hop":"2"}',
+        status: 302,
+        headers: {'Location' => '/redirect-chain-finish', 'Content-Type' => 'application/json'}
+      )
+      ::Excon.stub(
+        {method: :get, path: '/redirect-chain-finish'},
+        body: '{"final":"response"}',
+        status: 200,
+        headers: {'Content-Type' => 'application/json'}
+      )
     end
   end
 
@@ -324,6 +360,153 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
         expect(context).to have_received(:run_rasp)
           .with('ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'request').twice
       end
+    end
+  end
+
+  context 'when response is 301 redirect with Location header' do
+    before do
+      client.post(path: '/redirect-301', headers: {'Content-Type' => 'application/json'}, body: '{"key":"value"}')
+    end
+
+    it 'includes request body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.request.body' => {'key' => 'value'}), anything, phase: 'request')
+    end
+
+    it 'does not include redirect response body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+    end
+
+    it 'includes redirect response status and headers in ephemeral data' do
+      expect(context).to have_received(:run_rasp).with(
+        'ssrf',
+        {},
+        hash_including(
+          'server.io.net.response.status' => '301',
+          'server.io.net.response.headers' => hash_including('location' => 'http://example.com/application-json')
+        ),
+        anything,
+        phase: 'response'
+      )
+    end
+  end
+
+  context 'when response is 302 redirect with non-JSON content-type' do
+    before do
+      client.post(path: '/redirect-302', headers: {'Content-Type' => 'application/json'}, body: '{"key":"value"}')
+    end
+
+    it 'does not include redirect response body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+    end
+
+    it 'includes redirect response status in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.status' => '302'), anything, phase: 'response')
+    end
+  end
+
+  context 'when response is 301 without Location header' do
+    before do
+      client.post(path: '/redirect-no-location', headers: {'Content-Type' => 'application/json'}, body: '{"key":"value"}')
+    end
+
+    it 'includes response body in ephemeral data since it is not a true redirect' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'redirect' => 'body'}), anything, phase: 'response')
+    end
+  end
+
+  context 'when following redirect chain manually' do
+    before do
+      Datadog.configuration.appsec.api_security.downstream_body_analysis.max_requests = 10
+
+      client.get(path: '/redirect-chain-start')
+      client.get(path: '/redirect-chain-hop')
+      client.get(path: '/redirect-chain-finish')
+    end
+
+    it 'includes request URL for each hop in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com/redirect-chain-start'), anything, phase: 'request')
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com/redirect-chain-hop'), anything, phase: 'request')
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com/redirect-chain-finish'), anything, phase: 'request')
+    end
+
+    it 'does not include redirect response bodies in ephemeral data' do
+      expect(context).not_to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'hop' => '1'}), anything, phase: 'response')
+      expect(context).not_to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'hop' => '2'}), anything, phase: 'response')
+    end
+
+    it 'includes final response body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'final' => 'response'}), anything, phase: 'response')
+    end
+
+    it 'clears downstream_redirect_url state after following redirect chain with relative URL' do
+      expect(context.state[:downstream_redirect_url]).to be_nil
+    end
+  end
+
+  context 'when using Excon::Middleware::RedirectFollower' do
+    before do
+      Datadog.configuration.appsec.api_security.downstream_body_analysis.max_requests = 10
+      client.get(path: '/redirect-chain-start')
+    end
+
+    let(:client) do
+      middlewares = ::Excon.defaults[:middlewares] + [::Excon::Middleware::RedirectFollower]
+      ::Excon.new('http://example.com', mock: true, middlewares: middlewares).tap do
+        ::Excon.stub(
+          {method: :get, path: '/redirect-chain-start'},
+          body: '{"hop":"1"}',
+          status: 301,
+          headers: {'Location' => 'http://example.com/redirect-chain-hop', 'Content-Type' => 'application/json'}
+        )
+        ::Excon.stub(
+          {method: :get, path: '/redirect-chain-hop'},
+          body: '{"hop":"2"}',
+          status: 302,
+          headers: {'Location' => '/redirect-chain-finish', 'Content-Type' => 'application/json'}
+        )
+        ::Excon.stub(
+          {method: :get, path: '/redirect-chain-finish'},
+          body: '{"final":"response"}',
+          status: 200,
+          headers: {'Content-Type' => 'application/json'}
+        )
+      end
+    end
+
+    it 'includes request URL for each hop in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com/redirect-chain-start'), anything, phase: 'request')
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com/redirect-chain-hop'), anything, phase: 'request')
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com/redirect-chain-finish'), anything, phase: 'request')
+    end
+
+    it 'does not include redirect response bodies in ephemeral data' do
+      expect(context).not_to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'hop' => '1'}), anything, phase: 'response')
+      expect(context).not_to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'hop' => '2'}), anything, phase: 'response')
+    end
+
+    it 'includes final response body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'final' => 'response'}), anything, phase: 'response')
+    end
+
+    it 'clears downstream_redirect_url state after following redirect chain with relative URL' do
+      expect(context.state[:downstream_redirect_url]).to be_nil
     end
   end
 end
