@@ -196,7 +196,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       end
 
       let(:parsed_request) { JSON.parse(request.body, symbolize_names: true) }
-      let(:crash_report) { parsed_request.fetch(:payload).first }
+      let(:crash_report) { parsed_request.fetch(:payload).fetch(:logs).first }
       let(:crash_report_message) { JSON.parse(crash_report.fetch(:message), symbolize_names: true) }
       let(:crash_report_experimental) { crash_report_message.fetch(:experimental) }
       let(:stack_trace) { crash_report_message.fetch(:error).fetch(:stack).fetch(:frames) }
