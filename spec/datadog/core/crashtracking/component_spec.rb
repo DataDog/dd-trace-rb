@@ -205,9 +205,10 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         # should not be unknown os_info
         expect(crash_report[:os_info][:architecture]).to_not eq('unknown')
 
-        # Verify exception message is present (ddog_crasht_CrashInfoBuilder_with_message)
-        expect(crash_report[:error][:message]).to include('StandardError')
-        expect(crash_report[:error][:message]).to include('Test unhandled exception with backtrace')
+        # Verify exception message format (ddog_crasht_CrashInfoBuilder_with_message)
+        expect(crash_report[:error][:message]).to eq(
+          "Process was terminated due to an unhandled exception of type 'StandardError'. Message: \"Test unhandled exception with backtrace\""
+        )
 
         # Verify stack trace is present (ddog_crasht_CrashInfoBuilder_with_stack)
         stack_frames = crash_report[:error][:stack][:frames]
