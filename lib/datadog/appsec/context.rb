@@ -122,7 +122,10 @@ module Datadog
         return if @trace.nil?
 
         Metrics::TelemetryExporter.export_waf_request_metrics(@metrics.waf, self)
-        Metrics::TelemetryExporter.export_api_security_metrics(self)
+        Metrics::TelemetryExporter.export_api_security_metrics(
+          schema_extracted: !!@state[:schema_extracted],
+          web_framework: @state[:web_framework]
+        )
       end
 
       def finalize!

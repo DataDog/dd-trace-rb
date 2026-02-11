@@ -117,55 +117,28 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
   end
 
   describe '.export_api_security_metrics' do
-    let(:context) do
-      instance_double(Datadog::AppSec::Context, state: context_state)
+    it 'increases api_security.request.schema metric when schema_extracted is true' do
+      expect(telemetry).to receive(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'api_security.request.schema', 1,
+        tags: {framework: 'rails'}
+      )
+
+      described_class.export_api_security_metrics(schema_extracted: true, web_framework: 'rails')
     end
 
-    context 'when schema_extracted is set to true in context state' do
-      let(:context_state) do
-        {
-          instrumented_web_framework: 'rails',
-          schema_extracted: true
-        }
-      end
+    it 'increases api_security.request.no_schema metric when schema_extracted is false' do
+      expect(telemetry).to receive(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'api_security.request.no_schema', 1,
+        tags: {framework: 'rails'}
+      )
 
-      it 'increases api_security.request.schema metric' do
-        expect(telemetry).to receive(:inc).with(
-          Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'api_security.request.schema', 1,
-          tags: {framework: 'rails'}
-        )
-
-        described_class.export_api_security_metrics(context)
-      end
+      described_class.export_api_security_metrics(schema_extracted: false, web_framework: 'rails')
     end
 
-    context 'when schema_extracted is not set in context state' do
-      let(:context_state) do
-        {
-          instrumented_web_framework: 'rails'
-        }
-      end
+    it 'does not export telemetry when web framework is nil' do
+      expect(telemetry).not_to receive(:inc)
 
-      it 'increases api_security.request.no_schema metric' do
-        expect(telemetry).to receive(:inc).with(
-          Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'api_security.request.no_schema', 1,
-          tags: {framework: 'rails'}
-        )
-
-        described_class.export_api_security_metrics(context)
-      end
-    end
-
-    context 'when instrumented web framework is not set in context state' do
-      let(:context_state) do
-        {schema_extracted: true}
-      end
-
-      it 'does not export telemetry' do
-        expect(telemetry).not_to receive(:inc)
-
-        described_class.export_api_security_metrics(context)
-      end
+      described_class.export_api_security_metrics(schema_extracted: true, web_framework: nil)
     end
   end
 end
