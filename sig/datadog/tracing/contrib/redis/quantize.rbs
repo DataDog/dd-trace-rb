@@ -3,7 +3,7 @@ module Datadog
     module Contrib
       module Redis
         module Quantize
-          type command = ::String | ::Symbol | ::Array[command]
+          type command = ::Array[::String | ::Symbol | command]
 
           PLACEHOLDER: "?"
 
@@ -29,7 +29,7 @@ module Datadog
 
           def self?.get_verb: (untyped command_args) -> (nil | untyped | ::String)
 
-          def self?.obfuscate_auth_args!: (command command_args) -> void
+          def self?.obfuscate_auth_args: (command command_args) -> command
 
           def self?.resolve_command_args: (untyped command_args) -> untyped
         end
