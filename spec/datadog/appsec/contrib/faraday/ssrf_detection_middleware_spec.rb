@@ -371,9 +371,12 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
     end
   end
 
-  context 'when using faraday-follow_redirects middleware', ruby: '> 2.5' do
-    # NOTE: Hardcoded Ruby version limits in the gem
-    require('faraday/follow_redirects') unless PlatformHelpers.ruby_version_matches?('2.5')
+  context 'when using faraday-follow_redirects middleware' do
+    before(:context) do
+      skip 'Requires Faraday >= 2' if Gem::Version.new(Faraday::VERSION) < Gem::Version.new('2')
+
+      require 'faraday/follow_redirects'
+    end
 
     before do
       Datadog.configuration.appsec.api_security.downstream_body_analysis.max_requests = 10
@@ -423,9 +426,12 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
     end
   end
 
-  context 'when using faraday-follow_redirects middleware', ruby: '> 2.5' do
-    # NOTE: Hardcoded Ruby version limits in the gem
-    require('faraday/follow_redirects') unless PlatformHelpers.ruby_version_matches?('2.5')
+  context 'when using faraday-follow_redirects middleware' do
+    before(:context) do
+      skip 'Requires Faraday >= 2' if Gem::Version.new(Faraday::VERSION) < Gem::Version.new('2')
+
+      require 'faraday/follow_redirects'
+    end
 
     before { client.get('/redirect-chain-start') }
 
