@@ -1,0 +1,101 @@
+name: 'Generate and cache lockfiles'
+
+description: 'Generates lockfiles for all gemfiles, saves to cache, and uploads artifacts'
+
+inputs:
+  engine-name:
+    description: 'Ruby engine name (ruby or jruby)'
+    required: true
+  engine-version:
+    description: 'Ruby engine version'
+    required: true
+
+outputs:
+  cache-key:
+    description: 'Cache key for the bundle'
+    value: ${{ steps.restore-matrix-cache.outputs.cache-primary-key }}
+  base-cache-key:
+    description: 'Cache key for the base bundle'
+    value: ${{ steps.restore-base-cache.outputs.cache-primary-key }}
+  lockfile:
+    description: 'Name of the uploaded lockfile artifact'
+    value: lockfile-${{ github.run_id }}-${{ inputs.engine-name }}-${{ inputs.engine-version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Restore base cache for Gemfile.lock generation
+      id: restore-base-cache
+      uses: ./.github/actions/bundle-restore
+      with:
+        namespace: base
+    - if: steps.restore-base-cache.outputs.cache-hit == 'true'
+      name: Generate lockfile and install missing gems
+      shell: bash
+      run: bundle install
+    - if: steps.restore-base-cache.outputs.cache-hit != 'true'
+      name: Generate lockfile and install missing gems
+      shell: bash
+      run: |
+        set -o pipefail
+        bundle install --verbose 2>&1 | grep -E '^(Fetching|Downloading)\b' >> /tmp/bundle-downloads-base.txt || true
+    - if: steps.restore-base-cache.outputs.cache-hit != 'true'
+      name: Save Restore base cache for Gemfile.lock generation
+      uses: ./.github/actions/bundle-save
+      with:
+        cache-key: ${{ steps.restore-base-cache.outputs.cache-primary-key }}
+    - name: Upload lockfile
+      uses: actions/upload-artifact@v4 # v4
+      with:
+        name: lockfile-${{ github.run_id }}-${{ inputs.engine-name }}-${{ inputs.engine-version }}
+        path: "*.lock"
+    - name: Check if matrix cache exists, without downloading
+      id: restore-matrix-cache
+      uses: ./.github/actions/bundle-restore
+      with:
+        namespace: matrix
+        lookup-only: 'true'
+    # TODO: We really should restore previously cached gems right here, to speed up the
+    # TODO: matrix gem installation. Most of them are the same as the previous cache.
+    # TODO: But this requires cleaning up old versions of gems, otherwise
+    # TODO: the cache can grow indefinitely.
+    # TODO: We have a `dependency:clean_unused_gems` task to do that,
+    # TODO: but it's so slow for JRuby (7+ minutes) that it's faster to *not* restore a
+    # TODO: previous cache and install JRuby gems from scratch. CRuby cleans
+    # TODO: up old gems super fast (< 1 minute).
+    # TODO: And because CI won't go green unless the all tests pass,
+    # TODO: enabling this optimizations for the fast path won't help much.
+    - if: steps.restore-matrix-cache.outputs.cache-hit != 'true'
+      name: Generate gemfiles
+      shell: bash
+      run: bundle exec rake dependency:generate
+    - if: steps.restore-matrix-cache.outputs.cache-hit != 'true'
+      name: Install all gemfiles
+      shell: bash
+      run: bundle exec rake dependency:install
+    - if: steps.restore-matrix-cache.outputs.cache-hit != 'true'
+      name: Save matrix cache
+      uses: ./.github/actions/bundle-save
+      with:
+        cache-key: ${{ steps.restore-matrix-cache.outputs.cache-primary-key }}
+    - if: steps.restore-matrix-cache.outputs.cache-hit != 'true'
+      name: Upload matrix lockfiles
+      uses: actions/upload-artifact@v4 # v4
+      with:
+        name: lockfile-updates-${{ github.branch }}-${{ inputs.engine-name }}-${{ inputs.engine-version }}
+        path: gemfiles/${{ inputs.engine-name }}_${{ inputs.engine-version }}*
+        retention-days: 1
+    - name: Upload base download log
+      uses: actions/upload-artifact@v4 # v4
+      with:
+        name: bundle-downloads-base-${{ inputs.engine-name }}-${{ inputs.engine-version }}
+        path: /tmp/bundle-downloads-base.txt
+        retention-days: 1
+        if-no-files-found: ignore
+    - name: Upload matrix download logs
+      if: ${{ hashFiles('tmp/bundle-downloads-matrix/**') != '' }}
+      uses: actions/upload-artifact@v4 # v4
+      with:
+        name: bundle-downloads-matrix-${{ inputs.engine-name }}-${{ inputs.engine-version }}
+        path: tmp/bundle-downloads-matrix
+        retention-days: 1
