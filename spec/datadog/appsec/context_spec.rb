@@ -259,6 +259,7 @@ RSpec.describe Datadog::AppSec::Context do
   describe '#export_request_telemetry' do
     it 'calls telemetry exporter' do
       expect(Datadog::AppSec::Metrics::TelemetryExporter).to receive(:export_waf_request_metrics).with(anything, context)
+      expect(Datadog::AppSec::Metrics::TelemetryExporter).to receive(:export_api_security_metrics).with(context)
 
       context.export_request_telemetry
     end
@@ -268,6 +269,7 @@ RSpec.describe Datadog::AppSec::Context do
 
       it 'does not call telemetry exporter' do
         expect(Datadog::AppSec::Metrics::TelemetryExporter).not_to receive(:export_waf_request_metrics)
+      expect(Datadog::AppSec::Metrics::TelemetryExporter).not_to receive(:export_api_security_metrics)
 
         context.export_request_telemetry
       end
