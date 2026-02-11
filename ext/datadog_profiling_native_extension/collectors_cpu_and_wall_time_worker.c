@@ -139,6 +139,8 @@ typedef struct {
     // # Generic stats
     // How many times we tried to trigger a sample
     unsigned int trigger_sample_attempts;
+    // How many times extra sleep was triggered by dynamic sampling rate
+    unsigned int trigger_sample_extra_sleep;
     // How many times we tried to simulate signal delivery
     unsigned int trigger_simulated_signal_delivery_attempts;
     // How many times we actually simulated signal delivery
@@ -719,7 +721,10 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
     // `dynamic_sampling_rate_get_sleep` may have changed while the above sleep was ongoing.
     uint64_t extra_sleep =
       dynamic_sampling_rate_get_sleep(&state->cpu_dynamic_sampling_rate, monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE));
-    if (state->dynamic_sampling_rate_enabled && extra_sleep > 0) sleep_for(extra_sleep);
+    if (state->dynamic_sampling_rate_enabled && extra_sleep > 0) {
+      state->stats.trigger_sample_extra_sleep++;
+      sleep_for(extra_sleep);
+    }
   }
 
   return NULL; // Unused
@@ -1055,6 +1060,7 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
   VALUE stats_as_hash = rb_hash_new();
   VALUE arguments[] = {
     ID2SYM(rb_intern("trigger_sample_attempts")),                    /* => */ UINT2NUM(state->stats.trigger_sample_attempts),
+    ID2SYM(rb_intern("trigger_sample_extra_sleep")),                 /* => */ UINT2NUM(state->stats.trigger_sample_extra_sleep),
     ID2SYM(rb_intern("trigger_simulated_signal_delivery_attempts")), /* => */ UINT2NUM(state->stats.trigger_simulated_signal_delivery_attempts),
     ID2SYM(rb_intern("simulated_signal_delivery")),                  /* => */ UINT2NUM(state->stats.simulated_signal_delivery),
     ID2SYM(rb_intern("signal_handler_enqueued_sample")),             /* => */ UINT2NUM(state->stats.signal_handler_enqueued_sample),

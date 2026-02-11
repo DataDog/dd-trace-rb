@@ -1323,6 +1323,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(cpu_and_wall_time_worker.stats).to match(
         {
           trigger_sample_attempts: 0,
+          trigger_sample_extra_sleep: 0,
           trigger_simulated_signal_delivery_attempts: 0,
           simulated_signal_delivery: 0,
           signal_handler_enqueued_sample: 0,
