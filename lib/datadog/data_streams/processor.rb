@@ -301,32 +301,30 @@ module Datadog
       end
 
       def flush_stats
-        payload = nil # : ::Hash[::String, untyped]?
-
-        @stats_mutex.synchronize do
+        stats_buckets = @stats_mutex.synchronize do
           return if @buckets.empty? && @consumer_stats.empty?
 
-          stats_buckets = serialize_buckets
+          serialized_buckets = serialize_buckets
 
-          payload = {
-            'Service' => @settings.service,
-            'TracerVersion' => Datadog::VERSION::STRING,
-            'Lang' => 'ruby',
-            'Stats' => stats_buckets,
-            'Hostname' => hostname
-          }
-
-          if @settings.experimental_propagate_process_tags_enabled
-            payload['ProcessTags'] = Core::Environment::Process.tags # steep:ignore NoMethod
-          end
-
-          # Clear consumer stats even if sending fails to prevent unbounded memory growth
-          # Must be done inside mutex before we release it
+          # Clear consumer stats even if sending fails to prevent unbounded memory growth.
+          # Must be done inside mutex before we release it.
           @consumer_stats.clear
+
+          serialized_buckets
         end
 
-        # Send to agent outside mutex to avoid blocking customer code if agent is slow/hung
-        send_stats_to_agent(payload) if payload
+        payload = {
+          'Service' => @settings.service,
+          'TracerVersion' => Datadog::VERSION::STRING,
+          'Lang' => 'ruby',
+          'Stats' => stats_buckets,
+          'Hostname' => hostname
+        } # : ::Hash[::String, (String | ::Array[::String])]
+
+        payload['ProcessTags'] = Core::Environment::Process.tags if @settings.experimental_propagate_process_tags_enabled
+
+        # Send to agent outside mutex to avoid blocking customer code if agent is slow/hung.
+        send_stats_to_agent(payload)
       rescue => e
         @logger.debug("Failed to flush DSM stats to agent: #{e.class}: #{e}")
       end
