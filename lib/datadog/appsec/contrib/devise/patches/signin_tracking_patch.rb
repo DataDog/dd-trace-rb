@@ -49,6 +49,8 @@ module Datadog
               id = extractor.extract_id(resource)
               login = extractor.extract_login(authentication_hash) || extractor.extract_login(resource)
 
+              report_missing_login_or_id(login: login, id: id, event_type: 'login_success')
+
               if id
                 context.span[Ext::TAG_USR_ID] ||= id
                 context.span[Ext::TAG_DD_USR_ID] = id
@@ -76,6 +78,8 @@ module Datadog
               unless resource
                 login = extractor.extract_login(authentication_hash)
 
+                report_missing_login_or_id(login: login, id: nil, event_type: 'login_failure')
+
                 context.span[Ext::TAG_DD_USR_LOGIN] = login
                 context.span[Ext::TAG_LOGIN_FAILURE_USR_LOGIN] ||= login
                 context.span[Ext::TAG_LOGIN_FAILURE_USR_EXISTS] ||= 'false'
@@ -86,6 +90,8 @@ module Datadog
               id = extractor.extract_id(resource)
               login = extractor.extract_login(authentication_hash) || extractor.extract_login(resource)
 
+              report_missing_login_or_id(login: login, id: id, event_type: 'login_failure')
+
               if id
                 context.span[Ext::TAG_DD_USR_ID] = id
                 context.span[Ext::TAG_LOGIN_FAILURE_USR_ID] ||= id
@@ -94,6 +100,18 @@ module Datadog
               context.span[Ext::TAG_DD_USR_LOGIN] = login
               context.span[Ext::TAG_LOGIN_FAILURE_USR_LOGIN] ||= login
               context.span[Ext::TAG_LOGIN_FAILURE_USR_EXISTS] ||= 'true'
+            end
+
+            def report_missing_login_or_id(login:, id:, event_type:)
+              # missing_user_id is reported only if login is also missing
+              return if login
+
+              metric_name = id ? 'missing_user_login' : 'missing_user_id'
+
+              AppSec.telemetry.inc(
+                AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "instrum.user_auth.#{metric_name}", 1,
+                tags: {framework: 'devise', event_type: event_type}
+              )
             end
           end
         end

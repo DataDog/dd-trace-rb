@@ -122,6 +122,9 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
     allow_any_instance_of(Datadog::Tracing::Transport::Traces::Transport).to receive(:native_events_supported?)
       .and_return(true)
+
+    allow(telemetry).to receive(:inc)
+    allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry)
   end
 
   after do
@@ -151,6 +154,8 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     Rails.app_class = nil
     Rails.cache = nil
   end
+
+  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
   let(:sessions_controller) do
     stub_const('TestSessionsController', Class.new(Devise::SessionsController)).class_eval do
@@ -209,6 +214,18 @@ RSpec.describe 'Devise auto login and signup events tracking' do
 
       expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
     end
+
+    it 'does not report missing user login or id' do
+      expect(telemetry).not_to have_received(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
+        'instrum.user_auth.missing_user_login', 1, anything
+      )
+
+      expect(telemetry).not_to have_received(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
+        'instrum.user_auth.missing_user_id', 1, anything
+      )
+    end
   end
 
   context 'when user successfully logging in and ID is unavailable' do
@@ -238,6 +255,18 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       expect(http_service_entry_span.tags).not_to have_key('_dd.appsec.usr.id')
 
       expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
+    end
+
+    it 'does not report missing user login or id' do
+      expect(telemetry).not_to have_received(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
+        'instrum.user_auth.missing_user_login', 1, anything
+      )
+
+      expect(telemetry).not_to have_received(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
+        'instrum.user_auth.missing_user_id', 1, anything
+      )
     end
   end
 
