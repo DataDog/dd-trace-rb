@@ -115,7 +115,13 @@ module Datadog
             frames_data << ['<truncated>', "<truncated #{truncated_count} more frames>", 0]
           end
 
-          message = "Unhandled #{exception.class}: #{exception.message || "<no message>"}"
+          exception_message = exception.message
+          message =
+            if exception_message && !exception_message.empty?
+              "Process was terminated due to an unhandled exception of type '#{exception.class}'. Message: \"#{exception_message}\""
+            else
+              "Process was terminated due to an unhandled exception of type '#{exception.class}'."
+            end
 
           success = self.class._native_report_ruby_exception(
             agent_base_url,
