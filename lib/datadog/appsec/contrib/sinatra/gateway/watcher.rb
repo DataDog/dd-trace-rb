@@ -25,6 +25,8 @@ module Datadog
                 gateway.watch('sinatra.request.dispatch', :appsec) do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY] # : Context
 
+                  context.state[:web_framework] = 'sinatra'
+
                   persistent_data = {
                     'server.request.body' => gateway_request.form_hash
                   }
