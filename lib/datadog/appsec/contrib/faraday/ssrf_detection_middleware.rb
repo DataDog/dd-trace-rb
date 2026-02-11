@@ -12,6 +12,7 @@ module Datadog
       module Faraday
         # AppSec SSRF detection Middleware for Faraday
         class SSRFDetectionMiddleware < ::Faraday::Middleware
+          REDIRECT_STATUS_CODES = (300..399).freeze
           SAMPLE_BODY_KEY = :__datadog_appsec_sample_downstream_body
 
           def call(env)
@@ -28,7 +29,6 @@ module Datadog
             }
 
             is_redirect = context.state[:downstream_redirect_url] == url
-
             if is_redirect
               context.state.delete(:downstream_redirect_url)
               env[SAMPLE_BODY_KEY] = true
@@ -58,7 +58,7 @@ module Datadog
               'server.io.net.response.headers' => headers
             }
 
-            is_redirect = (300...400).cover?(env.status) && headers.key?('location')
+            is_redirect = REDIRECT_STATUS_CODES.cover?(env.status) && headers.key?('location')
             if is_redirect && env[SAMPLE_BODY_KEY]
               context.state[:downstream_redirect_url] = URI.join(env.url.to_s, headers['location']).to_s
             end

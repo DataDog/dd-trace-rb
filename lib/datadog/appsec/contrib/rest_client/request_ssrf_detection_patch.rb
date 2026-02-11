@@ -12,7 +12,7 @@ module Datadog
       module RestClient
         # Module that adds SSRF detection to RestClient::Request#execute
         module RequestSSRFDetectionPatch
-          REDIRECT_STATUS_CODES = (300...400).freeze
+          REDIRECT_STATUS_CODES = (300..399).freeze
 
           def execute(&block)
             context = AppSec.active_context
@@ -49,12 +49,13 @@ module Datadog
             begin
               response = super
             rescue ::RestClient::Exception => e
-              process_response(e.response, sample_body: sample_body) if e.response
+              response = e.response
+              process_response(response, sample_body: sample_body) if response
+
               raise
             end
 
             process_response(response, sample_body: sample_body)
-
             response
           end
 
@@ -70,9 +71,7 @@ module Datadog
             }
 
             is_redirect = REDIRECT_STATUS_CODES.cover?(response.code.to_i) && headers.key?('location')
-            if is_redirect && sample_body
-              context.state[:downstream_redirect_url] = URI.join(url, headers['location']).to_s
-            end
+            context.state[:downstream_redirect_url] = URI.join(url, headers['location']).to_s if is_redirect && sample_body
 
             if sample_body && !is_redirect
               body = parse_body(response.body, content_type: headers['content-type'])
@@ -120,10 +119,8 @@ module Datadog
           # FIXME: Steep has issues with `transform_values!` modifying the original
           #        type and it failed with "Cannot allow block body" error
           def normalize_response_headers(response) # steep:ignore MethodBodyTypeMismatch
-            # steep:ignore BlockBodyTypeMismatch
-            response.net_http_res.to_hash.transform_values! do |value|
-              Array(value).join(', ')
-            end
+            response.net_http_res.to_hash
+              .transform_values! { |value| Array(value).join(', ') } # steep:ignore BlockBodyTypeMismatch
           end
 
           def handle(result, context:)

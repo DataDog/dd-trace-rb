@@ -3,6 +3,8 @@ module Datadog
     module Contrib
       module Faraday
         class SSRFDetectionMiddleware < ::Faraday::Middleware
+          REDIRECT_STATUS_CODES: ::Range[::Integer]
+
           SAMPLE_BODY_KEY: ::Symbol
 
           def call: (::Faraday::Env env) -> untyped

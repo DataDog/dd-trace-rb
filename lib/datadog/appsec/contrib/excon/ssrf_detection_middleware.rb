@@ -14,6 +14,7 @@ module Datadog
       module Excon
         # AppSec Middleware for Excon
         class SSRFDetectionMiddleware < ::Excon::Middleware::Base
+          REDIRECT_STATUS_CODES = (300..399).freeze
           SAMPLE_BODY_KEY = :__datadog_appsec_sample_downstream_body
 
           def request_call(data)
@@ -30,7 +31,6 @@ module Datadog
             }
 
             is_redirect = context.state[:downstream_redirect_url] == url
-
             if is_redirect
               context.state.delete(:downstream_redirect_url)
               data[SAMPLE_BODY_KEY] = true
@@ -61,7 +61,7 @@ module Datadog
               'server.io.net.response.headers' => headers
             }
 
-            is_redirect = (300...400).cover?(data.dig(:response, :status)) && headers.key?('location')
+            is_redirect = REDIRECT_STATUS_CODES.cover?(data.dig(:response, :status)) && headers.key?('location')
             if is_redirect && data[SAMPLE_BODY_KEY]
               context.state[:downstream_redirect_url] = URI.join(request_url(data), headers['location']).to_s
             end
