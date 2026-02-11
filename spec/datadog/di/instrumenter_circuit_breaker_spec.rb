@@ -32,9 +32,7 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
     Datadog::DI::Serializer.new(settings, redactor)
   end
 
-  let(:logger) do
-    instance_double(Logger)
-  end
+  let(:logger) { logger_allowing_debug }
 
   let(:instrumenter) do
     Datadog::DI::Instrumenter.new(settings, serializer, logger, code_tracker: nil)

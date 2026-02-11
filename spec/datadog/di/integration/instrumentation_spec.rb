@@ -92,9 +92,7 @@ RSpec.describe 'Instrumentation integration' do
     instance_double_agent_settings
   end
 
-  let(:logger) do
-    instance_double(Logger)
-  end
+  let(:logger) { logger_allowing_debug }
 
   let(:component) do
     # TODO should this use Component.new? We have to manually pass in
