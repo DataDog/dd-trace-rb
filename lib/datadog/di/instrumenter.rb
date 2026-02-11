@@ -588,6 +588,7 @@ module Datadog
 
         di_duration = accumulated_duration + Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID) - di_start_time
         if di_duration > max_processing_time
+          logger.debug { "di: disabling probe: consumed #{di_duration}: #{probe}" }
           # We disable the probe here rather than remove it to
           # avoid a dependency on ProbeManager from Instrumenter.
           probe.disable!
