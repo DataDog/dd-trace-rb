@@ -465,7 +465,6 @@ target :datadog do
   ignore 'lib/datadog/tracing/contrib/redis/instrumentation.rb'
   ignore 'lib/datadog/tracing/contrib/redis/integration.rb'
   ignore 'lib/datadog/tracing/contrib/redis/patcher.rb'
-  ignore 'lib/datadog/tracing/contrib/redis/quantize.rb'
   ignore 'lib/datadog/tracing/contrib/redis/tags.rb'
   ignore 'lib/datadog/tracing/contrib/redis/trace_middleware.rb'
   ignore 'lib/datadog/tracing/contrib/redis/vendor/resolver.rb'
