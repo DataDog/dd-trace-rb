@@ -188,13 +188,37 @@ RSpec.describe Datadog::AppSec::Context do
     end
   end
 
-  describe '#extract_schema' do
-    it 'calls the waf runner with specific addresses' do
+  describe '#extract_schema!' do
+    it 'calls waf runner with correct addresses and stores new security event' do
       expect_any_instance_of(Datadog::AppSec::SecurityEngine::Runner).to receive(:run)
         .with({'waf.context.processor' => {'extract-schema' => true}}, {})
         .and_call_original
 
-      expect(context.extract_schema).to be_instance_of(Datadog::AppSec::SecurityEngine::Result::Ok)
+      expect { context.extract_schema! }.to change { context.events.count }.by(1)
+    end
+
+    context 'when created security event has a schema' do
+      before do
+        allow_any_instance_of(Datadog::AppSec::SecurityEvent).to receive(:schema?).and_return(true)
+      end
+
+      it 'sets schema_extracted attribute in state to true' do
+        context.extract_schema!
+
+        expect(context.state.fetch(:schema_extracted)).to eq(true)
+      end
+    end
+
+    context 'when created security event has no schema' do
+      before do
+        allow_any_instance_of(Datadog::AppSec::SecurityEvent).to receive(:schema?).and_return(false)
+      end
+
+      it 'sets schema_extracted attribute in state to false' do
+        context.extract_schema!
+
+        expect(context.state.fetch(:schema_extracted)).to eq(false)
+      end
     end
   end
 
