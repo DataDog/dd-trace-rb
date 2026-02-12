@@ -9,14 +9,16 @@ RSpec.describe Datadog::DataStreams::Transport do
   let(:settings) do
     double('Settings',
       service: Datadog.configuration.service,
-      env: Datadog.configuration.env,)
+      env: Datadog.configuration.env,
+      experimental_propagate_process_tags_enabled: false)
   end
   let(:agent_settings) do
     Datadog::Core::Configuration::AgentSettings.new(
       adapter: :net_http, hostname: 'localhost', port: http_server_port
     )
   end
-  let(:processor) { Datadog::DataStreams::Processor.new(interval: 10.0, logger: logger, settings: settings, agent_settings: agent_settings) }
+  let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: nil) }
+  let(:processor) { Datadog::DataStreams::Processor.new(interval: 10.0, logger: logger, settings: settings, agent_settings: agent_settings, agent_info: agent_info) }
 
   let(:received_requests) { [] }
 
