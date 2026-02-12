@@ -30,7 +30,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
     context 'when libdatadog API is available' do
       before do
         Datadog.configure do |c|
-          c.service = 'test-service' # Manually set so it isn't set to fallback service name that we don't control
+          c.service = 'dummy-service' # Manually set so it isn't set to fallback service name that we don't control
         end
       end
 
@@ -151,6 +151,46 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
           'process_tags' => Datadog::Core::Environment::Process.serialized
         )
         expect(content.fetch('runtime_id')).to_not eq(parent_runtime_id)
+      end
+    end
+  end
+
+  describe 'with real configuration', skip: !LibdatadogHelpers.supported? do
+    before do
+      described_class.shutdown!
+    end
+
+    after do
+      Datadog.configuration.reset!
+      described_class.shutdown!
+    end
+
+    context 'when process tags are enabled' do
+      it 'includes process tags' do
+        Datadog.configure do |c|
+          c.service = 'test-service'
+          c.experimental_propagate_process_tags_enabled = true
+        end
+
+        expected_tags = Datadog::Core::Environment::Process.serialized
+
+        described_class.publish(Datadog.configuration)
+
+        expect(content).to include('process_tags' => expected_tags)
+        expect(expected_tags).not_to be_empty
+      end
+    end
+
+    context 'when process tags are disabled' do
+      it 'excludes process tags' do
+        Datadog.configure do |c|
+          c.service = 'test-service'
+          c.experimental_propagate_process_tags_enabled = false
+        end
+
+        described_class.publish(Datadog.configuration)
+
+        expect(content).to include('process_tags' => '')
       end
     end
   end
