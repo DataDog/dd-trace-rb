@@ -3,7 +3,6 @@
 require 'datadog/core'
 require 'datadog/data_streams/processor'
 require 'datadog/core/ddsketch'
-require_relative 'spec_helper'
 
 # Expected deterministic hash values for specific pathways (with manual_checkpoint: false)
 KAFKA_ORDERS_PRODUCE_HASH = 17981503584283442515
@@ -15,7 +14,7 @@ KAFKA_PAYMENTS_PRODUCE_HASH = 10550901661805295262
 RSpec.describe Datadog::DataStreams::Processor do
   let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: nil) }
   before do
-    skip_if_data_streams_not_supported(self)
+    skip_if_libdatadog_not_supported(self)
   end
 
   let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }
