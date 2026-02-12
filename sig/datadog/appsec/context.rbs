@@ -7,13 +7,13 @@ module Datadog
 
       @span: Tracing::SpanOperation
 
-      @events: ::Array[untyped]
-
       @waf_runner: SecurityEngine::Runner
 
       @metrics: Metrics::Collector
 
-      @interrupted: bool
+      @state: ::Hash[::Symbol, any]
+
+      @downstream_body_sampler: CounterSampler
 
       ActiveContextError: StandardError
 
@@ -21,7 +21,9 @@ module Datadog
 
       attr_reader span: Tracing::SpanOperation
 
-      attr_reader events: ::Array[untyped]
+      attr_reader state: ::Hash[::Symbol, any]
+
+      attr_reader downstream_body_sampler: CounterSampler
 
       def self.activate: (Context context) -> Context
 
@@ -34,6 +36,8 @@ module Datadog
       def run_waf: (input_data persistent_data, input_data ephemeral_data, ?Integer timeout) -> SecurityEngine::result
 
       def run_rasp: (Ext::rasp_rule_type type, input_data persistent_data, input_data ephemeral_data, ?Integer timeout, ?phase: ::String?) -> SecurityEngine::result
+
+      def events: () -> ::Array[SecurityEvent]
 
       def mark_as_interrupted!: () -> void
 

@@ -26,7 +26,11 @@ Please do not remove this section from the PR though.
 -->
 
 **Additional Notes:**
-<!-- Anything else we should know when reviewing? -->
+<!--
+If you used AI, have you read and understood what AI wrote?
+
+Anything else we should know when reviewing?
+-->
 
 **How to test the change?**
 <!--

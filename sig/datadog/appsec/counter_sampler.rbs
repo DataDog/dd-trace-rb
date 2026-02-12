@@ -1,0 +1,13 @@
+module Datadog
+  module AppSec
+    class CounterSampler
+      @sampler: Core::KnuthSampler
+
+      @counter: ::Integer
+
+      def initialize: (?::Float | ::Integer rate) -> void
+
+      def sample?: () -> bool
+    end
+  end
+end

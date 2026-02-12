@@ -3,16 +3,7 @@ require 'spec_helper'
 RSpec.describe Datadog::Core::Telemetry::Component do
   forking_platform_only
 
-  before(:all) do
-    # We need to ensure the patch is present.
-    # There is a unit test for the patcher itself which clears the callbacks,
-    # we need to reinstall our callback if the callback got installed before
-    # that test is run and this test is run even later.
-    described_class.const_get(:ONLY_ONCE).send(:reset_ran_once_state_for_tests)
-
-    # Clear out existing handlers so that our handler is registered exactly once.
-    Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
-  end
+  reset_at_fork_monkey_patch_for_components!
 
   let(:sent_payloads) { [] }
 
@@ -44,33 +35,21 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     end
   end
 
-  let(:component) do
-    described_class.build(settings, agent_settings, logger)
-  end
-
-  let(:agent_settings) do
-    Datadog::Core::Configuration::AgentSettingsResolver.call(settings)
-  end
-
   let(:logger) { logger_allowing_debug }
 
   # Uncomment for debugging to see the log entries.
   #let(:logger) { Logger.new(STDERR) }
 
   let(:components) do
-    double(Datadog::Core::Configuration::Components,
-      settings: settings,
-      agent_settings: agent_settings,
-      # This is required for the forking tests.
-      telemetry: component,
-      # Forking test logges to this logger in the forked child process.
-      logger: logger,
-      # Crash tracking registers a handler via at fork monkey patch,
-      # this handler tries to access the crash tracking component from the
-      # global component tree.
-      crashtracker: nil,
-      profiler: nil,
-      dynamic_instrumentation: nil,)
+    Datadog::Core::Configuration::Components.new(settings)
+  end
+
+  let(:component) do
+    components.telemetry
+  end
+
+  let(:agent_settings) do
+    components.agent_settings
   end
 
   after do

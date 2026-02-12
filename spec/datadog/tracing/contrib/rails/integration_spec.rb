@@ -68,21 +68,13 @@ RSpec.describe Datadog::Tracing::Contrib::Rails::Integration do
 
       context "and #{Datadog::Tracing::Contrib::Rails::Ext::ENV_DISABLE}" do
         context 'is not set' do
-          around do |example|
-            ClimateControl.modify Datadog::Tracing::Contrib::Rails::Ext::ENV_DISABLE => nil do
-              example.run
-            end
-          end
+          with_env Datadog::Tracing::Contrib::Rails::Ext::ENV_DISABLE => nil
 
           it { is_expected.to be true }
         end
 
         context 'is set' do
-          around do |example|
-            ClimateControl.modify Datadog::Tracing::Contrib::Rails::Ext::ENV_DISABLE => '1' do
-              example.run
-            end
-          end
+          with_env Datadog::Tracing::Contrib::Rails::Ext::ENV_DISABLE => '1'
 
           it { is_expected.to be false }
         end
@@ -90,11 +82,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rails::Integration do
 
       context 'and DISABLE_DATADOG_RAILS' do
         context 'is set' do
-          around do |example|
-            ClimateControl.modify 'DISABLE_DATADOG_RAILS' => '1' do
-              example.run
-            end
-          end
+          with_env 'DISABLE_DATADOG_RAILS' => '1'
 
           it { is_expected.to be false }
         end

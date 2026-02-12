@@ -11,6 +11,8 @@ require_relative '../runtime/metrics'
 require_relative '../telemetry/component'
 require_relative '../workers/runtime_metrics'
 require_relative '../remote/component'
+require_relative '../utils/at_fork_monkey_patch'
+require_relative '../utils/only_once'
 require_relative '../../tracing/component'
 require_relative '../../profiling/component'
 require_relative '../../appsec/component'
@@ -28,6 +30,9 @@ module Datadog
     module Configuration
       # Global components for the trace library.
       class Components
+        # Class-level constant to ensure fork patch is applied only once
+        AT_FORK_ONLY_ONCE = Utils::OnlyOnce.new
+
         class << self
           def build_health_metrics(settings, logger, telemetry)
             settings = settings.health_metrics
@@ -38,7 +43,7 @@ module Datadog
           end
 
           def build_logger(settings)
-            logger = settings.logger.instance || Core::Logger.new($stdout)
+            logger = settings.logger.instance || Core::Logger.new($stderr)
             logger.level = settings.diagnostics.debug ? ::Logger::DEBUG : settings.logger.level
 
             logger
@@ -121,6 +126,17 @@ module Datadog
           StableConfig.log_result(@logger)
           Deprecations.log_deprecations_from_all_sources(@logger)
 
+          # Register fork handling once globally
+          self.class::AT_FORK_ONLY_ONCE.run do
+            Utils::AtForkMonkeyPatch.apply!
+
+            # Register callback that calls Components.after_fork
+            Utils::AtForkMonkeyPatch.at_fork(:child) do
+              # Access via global to avoid capturing 'self'
+              Datadog.send(:components, allow_initialization: false)&.after_fork
+            end
+          end
+
           # This agent_settings is intended for use within Core. If you require
           # agent_settings within a product outside of core you should extend
           # the Core resolver from within your product/component's namespace.
@@ -155,6 +171,14 @@ module Datadog
 
           # Configure non-privileged components.
           Datadog::Tracing::Contrib::Component.configure(settings)
+        end
+
+        # Called when a fork is detected
+        def after_fork
+          telemetry.after_fork
+          remote&.after_fork
+          crashtracker&.update_on_fork
+          ProcessDiscovery.after_fork
         end
 
         # Hot-swaps with a new sampler.

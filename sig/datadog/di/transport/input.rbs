@@ -2,10 +2,6 @@ module Datadog
   module DI
     module Transport
       module Input
-        class EncodedParcel
-          include Datadog::Core::Transport::Parcel
-        end
-
         class Request < Datadog::Core::Transport::Request
           @serialized_tags: untyped
 
@@ -22,6 +18,8 @@ module Datadog
           def send_input: (untyped payload, untyped tags) -> untyped
 
           def send_input_chunk: (untyped chunked_payload, untyped serialized_tags) -> untyped
+
+          def encoder: () -> singleton(Core::Encoding::JSONEncoder)
         end
       end
     end
