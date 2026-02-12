@@ -117,7 +117,7 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
   end
 
   describe '.export_api_security_metrics' do
-    it 'increases api_security.request.schema metric when schema_extracted is true' do
+    it 'increases api_security.request.schema metric when schema was extracted' do
       expect(telemetry).to receive(:inc).with(
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'api_security.request.schema', 1,
         tags: {framework: 'rails'}
@@ -126,7 +126,7 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
       described_class.export_api_security_metrics(schema_extracted: true, web_framework: 'rails')
     end
 
-    it 'increases api_security.request.no_schema metric when schema_extracted is false' do
+    it 'increases api_security.request.no_schema metric when schema was not extracted' do
       expect(telemetry).to receive(:inc).with(
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'api_security.request.no_schema', 1,
         tags: {framework: 'rails'}
