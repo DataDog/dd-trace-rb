@@ -3,7 +3,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/core'
 require 'datadog/core/ddsketch'
-require 'datadog/data_streams/spec_helper'
 require 'ostruct'
 require 'datadog/tracing/contrib/kafka/integration'
 require 'datadog/tracing/contrib/kafka/instrumentation/producer'
