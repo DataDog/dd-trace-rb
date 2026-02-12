@@ -15,9 +15,11 @@ RSpec.describe Datadog::Core::Configuration::StableConfig do
     end
   end
 
-  describe '#configuration', skip: !LibdatadogHelpers.supported? do
+  describe '#configuration' do
     let(:tmpdir) { Dir.mktmpdir }
     before do
+      skip_if_libdatadog_not_supported(self)
+
       Datadog::Core::Configuration::StableConfig.instance_variable_set(:@configuration, nil)
 
       if defined?(local_config_content)
