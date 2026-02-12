@@ -30,6 +30,8 @@ RSpec.describe 'gem release process' do
            |CONTRIBUTING.md
            |SECURITY.md
            |Gemfile
+           |AGENTS\.md
+           |AGENTS_TODO\.md
            |(ruby|jruby)-\d+.\d+.gemfile
            |Rakefile
            |Matrixfile
