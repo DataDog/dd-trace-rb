@@ -36,6 +36,24 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
         stub.post('/invalid-json') do |_|
           [200, {'Content-Type' => 'application/json'}, 'not json']
         end
+        stub.post('/redirect-301') do |_|
+          [301, {'Location' => 'http://example.com/application-json', 'Content-Type' => 'application/json'}, '{"redirect":"body"}']
+        end
+        stub.post('/redirect-302') do |_|
+          [302, {'Location' => 'http://example.com/application-json', 'Content-Type' => 'text/html'}, '<html>Redirecting...</html>']
+        end
+        stub.post('/redirect-no-location') do |_|
+          [301, {'Content-Type' => 'application/json'}, '{"redirect":"body"}']
+        end
+        stub.get('/redirect-chain-start') do |_|
+          [301, {'Location' => 'http://example.com/redirect-chain-hop', 'Content-Type' => 'application/json'}, '{"hop":"1"}']
+        end
+        stub.get('/redirect-chain-hop') do |_|
+          [302, {'Location' => '/redirect-chain-finish', 'Content-Type' => 'application/json'}, '{"hop":"2"}']
+        end
+        stub.get('/redirect-chain-finish') do |_|
+          [200, {'Content-Type' => 'application/json'}, '{"final":"response"}']
+        end
       end
     end
   end
@@ -213,60 +231,246 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
     end
   end
 
-  describe 'downstream body analysis sampling' do
-    context 'when max_requests is 1' do
-      before do
-        Datadog.configuration.appsec.api_security.downstream_body_analysis.max_requests = 1
-        Datadog.configuration.appsec.api_security.downstream_body_analysis.sample_rate = 1.0
+  context 'when body sampling max_requests is 1' do
+    before do
+      Datadog.configuration.appsec.api_security.downstream_body_analysis.max_requests = 1
+      Datadog.configuration.appsec.api_security.downstream_body_analysis.sample_rate = 1.0
 
-        client.post('/application-json', '{"r":"1"}', {'Content-Type' => 'application/json'})
-        client.post('/application-json', '{"r":"2"}', {'Content-Type' => 'application/json'})
-      end
+      client.post('/application-json', '{"r":"1"}', {'Content-Type' => 'application/json'})
+      client.post('/application-json', '{"r":"2"}', {'Content-Type' => 'application/json'})
+    end
 
-      let(:context) do
-        instance_double(
-          Datadog::AppSec::Context,
-          run_rasp: waf_response,
-          downstream_body_sampler: Datadog::AppSec::CounterSampler.new(1.0),
-          state: {downstream_body_analyzed_count: 0}
-        )
-      end
+    let(:context) do
+      instance_double(
+        Datadog::AppSec::Context,
+        run_rasp: waf_response,
+        downstream_body_sampler: Datadog::AppSec::CounterSampler.new(1.0),
+        state: {downstream_body_analyzed_count: 0}
+      )
+    end
 
-      it 'analyzes body only for the first request' do
-        expect(context).to have_received(:run_rasp)
-          .with('ssrf', {}, hash_including('server.io.net.request.body' => {'r' => '1'}), anything, phase: 'request')
+    it 'analyzes body only for the first request' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.request.body' => {'r' => '1'}), anything, phase: 'request')
 
-        expect(context).to have_received(:run_rasp)
-          .with('ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'request')
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'request')
+    end
+  end
+
+  context 'when body sampling sample_rate is 0.5' do
+    before do
+      Datadog.configuration.appsec.api_security.downstream_body_analysis.max_requests = 5
+      Datadog.configuration.appsec.api_security.downstream_body_analysis.sample_rate = 0.5
+
+      client.post('/application-json', '{"r":"1"}', {'Content-Type' => 'application/json'})
+      client.post('/application-json', '{"r":"2"}', {'Content-Type' => 'application/json'})
+      client.post('/application-json', '{"r":"3"}', {'Content-Type' => 'application/json'})
+    end
+
+    let(:context) do
+      instance_double(
+        Datadog::AppSec::Context,
+        run_rasp: waf_response,
+        downstream_body_sampler: Datadog::AppSec::CounterSampler.new(0.5),
+        state: {downstream_body_analyzed_count: 0}
+      )
+    end
+
+    it 'analyzes request body only for the second request' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.request.body' => {'r' => '2'}), anything, phase: 'request')
+
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'request').twice
+    end
+  end
+
+  context 'when response is 301 redirect with Location header' do
+    before { client.post('/redirect-301', '{"key":"value"}', {'Content-Type' => 'application/json'}) }
+
+    it 'includes request body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.request.body' => {'key' => 'value'}), anything, phase: 'request')
+    end
+
+    it 'does not include redirect response body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+    end
+
+    it 'includes redirect response status and headers in ephemeral data' do
+      expect(context).to have_received(:run_rasp).with(
+        'ssrf',
+        {},
+        hash_including(
+          'server.io.net.response.status' => '301',
+          'server.io.net.response.headers' => hash_including('location' => 'http://example.com/application-json')
+        ),
+        anything,
+        phase: 'response'
+      )
+    end
+  end
+
+  context 'when response is 302 redirect with non-JSON content-type' do
+    before { client.post('/redirect-302', '{"key":"value"}', {'Content-Type' => 'application/json'}) }
+
+    it 'does not include redirect response body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+    end
+
+    it 'includes redirect response status in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.status' => '302'), anything, phase: 'response')
+    end
+  end
+
+  context 'when response is 301 without Location header' do
+    before { client.post('/redirect-no-location', '{"key":"value"}', {'Content-Type' => 'application/json'}) }
+
+    it 'includes response body in ephemeral data since it is not a true redirect' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'redirect' => 'body'}), anything, phase: 'response')
+    end
+  end
+
+  context 'when following redirect chain manually' do
+    before do
+      Datadog.configuration.appsec.api_security.downstream_body_analysis.max_requests = 10
+
+      client.get('/redirect-chain-start')
+      client.get('/redirect-chain-hop')
+      client.get('/redirect-chain-finish')
+    end
+
+    it 'includes request URL for each hop in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com/redirect-chain-start'), anything, phase: 'request')
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com/redirect-chain-hop'), anything, phase: 'request')
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com/redirect-chain-finish'), anything, phase: 'request')
+    end
+
+    it 'does not include redirect response bodies in ephemeral data' do
+      expect(context).not_to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'hop' => '1'}), anything, phase: 'response')
+      expect(context).not_to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'hop' => '2'}), anything, phase: 'response')
+    end
+
+    it 'includes final response body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'final' => 'response'}), anything, phase: 'response')
+    end
+
+    it 'clears downstream_redirect_url state after following redirect chain' do
+      expect(context.state[:downstream_redirect_url]).to be_nil
+    end
+  end
+
+  context 'when using faraday-follow_redirects middleware' do
+    before(:context) do
+      skip 'Requires Faraday >= 2' if Gem::Version.new(Faraday::VERSION) < Gem::Version.new('2')
+
+      require 'faraday/follow_redirects'
+    end
+
+    before do
+      Datadog.configuration.appsec.api_security.downstream_body_analysis.max_requests = 10
+      client.get('/redirect-chain-start')
+    end
+
+    let(:client) do
+      ::Faraday.new('http://example.com') do |faraday|
+        faraday.response(:follow_redirects)
+        faraday.adapter(:test) do |stub|
+          stub.get('/redirect-chain-start') do |_|
+            [301, {'Location' => 'http://example.com/redirect-chain-hop', 'Content-Type' => 'application/json'}, '{"hop":"1"}']
+          end
+          stub.get('/redirect-chain-hop') do |_|
+            [302, {'Location' => '/redirect-chain-finish', 'Content-Type' => 'application/json'}, '{"hop":"2"}']
+          end
+          stub.get('/redirect-chain-finish') do |_|
+            [200, {'Content-Type' => 'application/json'}, '{"final":"response"}']
+          end
+        end
       end
     end
 
-    context 'when sample_rate is 0.5' do
-      before do
-        Datadog.configuration.appsec.api_security.downstream_body_analysis.max_requests = 5
-        Datadog.configuration.appsec.api_security.downstream_body_analysis.sample_rate = 0.5
+    it 'includes request URL for each hop in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com/redirect-chain-start'), anything, phase: 'request')
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com/redirect-chain-hop'), anything, phase: 'request')
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com/redirect-chain-finish'), anything, phase: 'request')
+    end
 
-        client.post('/application-json', '{"r":"1"}', {'Content-Type' => 'application/json'})
-        client.post('/application-json', '{"r":"2"}', {'Content-Type' => 'application/json'})
-        client.post('/application-json', '{"r":"3"}', {'Content-Type' => 'application/json'})
+    it 'does not include redirect response bodies in ephemeral data' do
+      expect(context).not_to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'hop' => '1'}), anything, phase: 'response')
+      expect(context).not_to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'hop' => '2'}), anything, phase: 'response')
+    end
+
+    it 'includes final response body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'final' => 'response'}), anything, phase: 'response')
+    end
+
+    it 'clears downstream_redirect_url state after following redirect chain' do
+      expect(context.state[:downstream_redirect_url]).to be_nil
+    end
+  end
+
+  context 'when using faraday-follow_redirects middleware' do
+    before(:context) do
+      skip 'Requires Faraday >= 2' if Gem::Version.new(Faraday::VERSION) < Gem::Version.new('2')
+
+      require 'faraday/follow_redirects'
+    end
+
+    before { client.get('/redirect-chain-start') }
+
+    let(:client) do
+      ::Faraday.new('http://example.com') do |faraday|
+        faraday.response(:follow_redirects)
+        faraday.adapter(:test) do |stub|
+          stub.get('/redirect-chain-start') do |_|
+            [301, {'Location' => 'http://example.com/redirect-chain-hop', 'Content-Type' => 'application/json'}, '{"hop":"1"}']
+          end
+          stub.get('/redirect-chain-hop') do |_|
+            [302, {'Location' => 'http://example.com/redirect-chain-finish', 'Content-Type' => 'application/json'}, '{"hop":"2"}']
+          end
+          stub.get('/redirect-chain-finish') do |_|
+            [200, {'Content-Type' => 'application/json'}, '{"final":"response"}']
+          end
+        end
       end
+    end
 
-      let(:context) do
-        instance_double(
-          Datadog::AppSec::Context,
-          run_rasp: waf_response,
-          downstream_body_sampler: Datadog::AppSec::CounterSampler.new(0.5),
-          state: {downstream_body_analyzed_count: 0}
-        )
-      end
+    it 'includes request URL for each hop in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com/redirect-chain-start'), anything, phase: 'request')
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com/redirect-chain-hop'), anything, phase: 'request')
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com/redirect-chain-finish'), anything, phase: 'request')
+    end
 
-      it 'analyzes request body only for the second request' do
-        expect(context).to have_received(:run_rasp)
-          .with('ssrf', {}, hash_including('server.io.net.request.body' => {'r' => '2'}), anything, phase: 'request')
+    it 'does not include redirect response bodies in ephemeral data' do
+      expect(context).not_to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'hop' => '1'}), anything, phase: 'response')
+      expect(context).not_to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'hop' => '2'}), anything, phase: 'response')
+    end
 
-        expect(context).to have_received(:run_rasp)
-          .with('ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'request').twice
-      end
+    it 'includes final response body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'final' => 'response'}), anything, phase: 'response')
     end
   end
 end

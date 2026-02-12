@@ -32,4 +32,8 @@ module RestClient
   class Response < ::String
     include AbstractResponse
   end
+
+  class Exception < ::StandardError
+    def response: () -> Response?
+  end
 end

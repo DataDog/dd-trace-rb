@@ -3,6 +3,8 @@ module Datadog
     module Contrib
       module Excon
         class SSRFDetectionMiddleware
+          REDIRECT_STATUS_CODES: ::Range[::Integer]
+
           SAMPLE_BODY_KEY: ::Symbol
 
           def request_call: (::Excon::Middleware::Base::datum data) -> Excon::Middleware::Base::datum
