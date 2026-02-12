@@ -18,6 +18,7 @@ RSpec.describe 'Schema extraction for API security', execute_in_fork: true do
 
   before do
     allow(telemetry).to receive(:inc)
+    allow(telemetry).to receive(:app_endpoints_loaded)
     allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry)
 
     # NOTE: Due to the legacy code in AppSec component we always patch Devise
