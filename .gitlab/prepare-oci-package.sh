@@ -44,10 +44,6 @@ cp -r "../tmp/${ARCH}"/* sources
 
 cp ../tmp/version sources
 
-## List sources content
-
-find sources
-
 ## Some packages we know are Ruby version-independent; let's store them once only
 
 mkdir -p sources/ruby/common/gems
@@ -66,7 +62,3 @@ for package in libdatadog libddwaf; do
         ln -srvf "${dest}" "${orig}"
     done
 done
-
-## List sources content
-
-find sources
