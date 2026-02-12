@@ -4,8 +4,11 @@ module Datadog
       module GraphQL
         class Integration
           include Datadog::AppSec::Contrib::Integration
+          extend Datadog::AppSec::Contrib::Integration::ClassMethods
 
           MINIMUM_VERSION: ::Gem::Version
+
+          AST_NODE_CLASS_NAMES: ::Hash[::Symbol, ::String]
 
           def self.version: () -> ::Gem::Version?
 
@@ -15,7 +18,9 @@ module Datadog
 
           def self.auto_instrument?: () -> bool
 
-          def patcher: () -> Datadog::AppSec::Contrib::GraphQL::Patcher
+          def self.ast_node_classes_defined?: () -> bool
+
+          def patcher: () -> singleton(Patcher)
         end
       end
     end
