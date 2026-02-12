@@ -580,8 +580,10 @@ target :datadog do
 
   # Load all dependency signatures from the `vendor/rbs` directory
   repo_path 'vendor/rbs'
-  Dir.children('vendor/rbs').each do |vendor_gem|
-    library vendor_gem
+  Dir.children('vendor/rbs').sort.each do |entry|
+    next unless File.directory?(File.join('vendor/rbs', entry))
+
+    library entry
   end
 
   # ffi version 1.17 was shipped with invalid rbs types:
