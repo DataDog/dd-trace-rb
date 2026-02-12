@@ -63,7 +63,7 @@ for package in libdatadog libddwaf; do
         else
             mv -vf "${orig}" "${dest}"
         fi
-        ln -svf "${dest}" "${orig}"
+        ln -srvf "${dest}" "${orig}"
     done
 done
 
