@@ -43,3 +43,22 @@ cp -r "../tmp/${ARCH}"/* sources
 ## Add `datadog` gem version information
 
 cp ../tmp/version sources
+
+## Some packages we know are Ruby version-independent; let's store them once only
+
+mkdir -p sources/ruby/common/gems
+
+for package in libdatadog libddwaf; do
+    echo ".. scanning for ${package}"
+
+    ls -1d sources/ruby/*/gems/${package}-* | while read -r orig; do
+        dest="sources/ruby/common/gems/${orig##*/}"
+        if [[ -e "${dest}" ]]; then
+            echo "found ${dest}; removing ${orig}"
+            rm -rf "${orig}"
+        else
+            mv -vf "${orig}" "${dest}"
+        fi
+        ln -srvf "${dest}" "${orig}"
+    done
+done
