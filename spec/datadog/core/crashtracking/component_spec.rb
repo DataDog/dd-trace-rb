@@ -171,19 +171,19 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         #
         # Find crash ping message (should have is_crash_ping:true tag)
         crash_ping_message = parsed_messages.find do |msg|
-          payload = msg[:payload].first
+          payload = msg[:payload][:logs].first
           payload[:tags]&.include?('is_crash_ping:true')
         end
         expect(crash_ping_message).to_not be_nil
 
         # Find crash report message (should have is_crash:true)
         crash_report_message = parsed_messages.find do |msg|
-          payload = msg[:payload].first
+          payload = msg[:payload][:logs].first
           payload[:is_crash] == true
         end
 
         # Verify crash report content
-        crash_payload = crash_report_message[:payload].first
+        crash_payload = crash_report_message[:payload][:logs].first
         crash_report = JSON.parse(crash_payload[:message], symbolize_names: true)
 
         # Verify metadata (ddog_crasht_CrashInfoBuilder_with_metadata)
