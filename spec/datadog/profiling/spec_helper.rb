@@ -18,8 +18,8 @@ module ProfileHelpers
   end
   Frame = Struct.new(:base_label, :path, :lineno)
 
-  def skip_if_profiling_not_supported(testcase)
-    skip_if_libdatadog_not_supported(testcase)
+  def skip_if_profiling_not_supported
+    skip_if_libdatadog_not_supported
 
     # Profiling is not officially supported on macOS
     # but it's still useful to allow it to be enabled for development.

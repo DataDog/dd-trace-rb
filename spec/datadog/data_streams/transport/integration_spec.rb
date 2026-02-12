@@ -1,6 +1,6 @@
 RSpec.describe Datadog::DataStreams::Transport do
   before do
-    skip_if_libdatadog_not_supported(self)
+    skip_if_libdatadog_not_supported
   end
 
   let(:logger) { logger_allowing_debug }

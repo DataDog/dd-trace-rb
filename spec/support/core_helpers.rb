@@ -74,9 +74,9 @@ module CoreHelpers
     end
   end
 
-  def skip_if_libdatadog_not_supported(testcase)
-    testcase.skip("Testcase requires libdatadog and it is not supported on JRuby") if PlatformHelpers.jruby?
-    testcase.skip("Testcase requires libdatadog and it is not supported on TruffleRuby") if PlatformHelpers.truffleruby?
+  def skip_if_libdatadog_not_supported
+    skip("Testcase requires libdatadog and it is not supported on JRuby") if PlatformHelpers.jruby?
+    skip("Testcase requires libdatadog and it is not supported on TruffleRuby") if PlatformHelpers.truffleruby?
 
     return if Datadog::Core::LIBDATADOG_API_FAILURE.nil?
 

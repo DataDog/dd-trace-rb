@@ -97,7 +97,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
     reset_at_fork_monkey_patch_for_components!
 
     before do
-      skip_if_libdatadog_not_supported(self)
+      skip_if_libdatadog_not_supported
 
       Datadog.configure do |c|
         c.service = 'test-service' # Manually set so it isn't set to fallback service name that we don't control

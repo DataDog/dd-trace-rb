@@ -4,7 +4,7 @@ require "datadog/profiling/spec_helper"
 require "datadog/profiling/profiler"
 
 RSpec.describe Datadog::Profiling::Profiler do
-  before { skip_if_profiling_not_supported(self) }
+  before { skip_if_profiling_not_supported }
 
   subject(:profiler) do
     described_class.new(worker: worker, scheduler: scheduler)

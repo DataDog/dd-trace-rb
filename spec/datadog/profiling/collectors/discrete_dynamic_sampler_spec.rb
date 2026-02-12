@@ -5,7 +5,7 @@ RSpec.describe "Datadog::Profiling::Collectors::DiscreteDynamicSampler" do
   let(:max_overhead_target) { 2.0 }
 
   before do
-    skip_if_profiling_not_supported(self)
+    skip_if_profiling_not_supported
     @now = Time.now.to_f
   end
 

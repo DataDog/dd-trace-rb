@@ -9,7 +9,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
 
     context "when libdatadog is available" do
       before do
-        skip_if_profiling_not_supported(self)
+        skip_if_profiling_not_supported
         if PlatformHelpers.mac? && Libdatadog.pkgconfig_folder.nil? && ENV["LIBDATADOG_VENDOR_OVERRIDE"].nil?
           skip "Needs LIBDATADOG_VENDOR_OVERRIDE pointing at a valid libdatadog build on macOS"
         end
@@ -44,7 +44,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
   describe ".libdatadog_folder_relative_to_ruby_extensions_folders" do
     context "when libdatadog is available" do
       before do
-        skip_if_profiling_not_supported(self)
+        skip_if_profiling_not_supported
         if PlatformHelpers.mac? && Libdatadog.pkgconfig_folder.nil? && ENV["LIBDATADOG_VENDOR_OVERRIDE"].nil?
           skip "Needs LIBDATADOG_VENDOR_OVERRIDE pointing at a valid libdatadog build on macOS"
         end
@@ -96,7 +96,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
     subject(:pkg_config_missing) { described_class.pkg_config_missing?(command: command) }
 
     before do
-      skip_if_profiling_not_supported(self)
+      skip_if_profiling_not_supported
     end
 
     context "when command is not available" do
@@ -138,7 +138,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
     subject(:load_libdatadog_or_get_issue) { described_class.load_libdatadog_or_get_issue }
 
     before do
-      skip_if_profiling_not_supported(self)
+      skip_if_profiling_not_supported
     end
 
     context "when libdatadog gem fails to load" do

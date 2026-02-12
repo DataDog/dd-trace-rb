@@ -7,7 +7,7 @@ require "datadog/profiling/ext/dir_monkey_patches"
 # test executes. They do this by only applying these monkey patches in a separate process.
 RSpec.describe Datadog::Profiling::Ext::DirMonkeyPatches do
   before do
-    skip_if_profiling_not_supported(self)
+    skip_if_profiling_not_supported
 
     File.write("#{temporary_directory}/file1", "file1")
     File.write("#{temporary_directory}/file2", "file2")

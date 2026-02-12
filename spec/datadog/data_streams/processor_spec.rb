@@ -13,7 +13,7 @@ KAFKA_PAYMENTS_PRODUCE_HASH = 10550901661805295262
 
 RSpec.describe Datadog::DataStreams::Processor do
   before do
-    skip_if_libdatadog_not_supported(self)
+    skip_if_libdatadog_not_supported
   end
 
   let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }

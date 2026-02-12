@@ -4,7 +4,7 @@ require "datadog/profiling/stack_recorder"
 require "objspace"
 
 RSpec.describe Datadog::Profiling::StackRecorder do
-  before { skip_if_profiling_not_supported(self) }
+  before { skip_if_profiling_not_supported }
 
   let(:numeric_labels) { [] }
   let(:cpu_time_enabled) { true }
