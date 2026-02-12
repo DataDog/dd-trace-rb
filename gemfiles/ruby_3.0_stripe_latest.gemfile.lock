@@ -81,7 +81,7 @@ GEM
       simplecov_json_formatter (~> 0.1)
     simplecov-html (0.13.1)
     simplecov_json_formatter (0.1.4)
-    stripe (18.3.1)
+    stripe (18.3.0)
     warning (1.4.0)
     webmock (3.23.1)
       addressable (>= 2.8.0)

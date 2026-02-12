@@ -27,7 +27,7 @@ GEM
     diff-lcs (1.5.0)
     docile (1.4.1)
     dogstatsd-ruby (5.6.1)
-    faraday (2.14.1)
+    faraday (2.14.0)
       faraday-net_http (>= 2.0, < 3.5)
       json
       logger
@@ -35,7 +35,7 @@ GEM
       net-http (~> 0.5)
     ffi (1.17.3-java)
     hashdiff (1.0.1)
-    json (2.18.1-java)
+    json (2.18.0-java)
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (25.0.0.1.0)
