@@ -7,7 +7,7 @@ require 'fiddle'
 RSpec.describe Datadog::Core::Crashtracking::Component do
   let(:logger) { Logger.new($stdout) }
 
-  before { skip_if_libdatadog_not_supported(self) }
+  before { skip_if_libdatadog_not_supported }
 
   describe '.build' do
     let(:settings) { Datadog::Core::Configuration::Settings.new }

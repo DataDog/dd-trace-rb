@@ -59,7 +59,7 @@ RSpec.describe 'Karafka Data Streams Integration' do
 
   describe 'auto-instrumentation' do
     before do
-      skip_if_libdatadog_not_supported(self)
+      skip_if_libdatadog_not_supported
     end
 
     it 'automatically extracts and processes pathway context when consuming messages' do
@@ -129,7 +129,7 @@ RSpec.describe 'Karafka Data Streams Integration' do
 
   describe 'pathway propagation across services' do
     before do
-      skip_if_libdatadog_not_supported(self)
+      skip_if_libdatadog_not_supported
     end
 
     it 'maintains pathway continuity through produce → consume → produce chain' do

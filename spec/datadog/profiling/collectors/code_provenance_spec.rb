@@ -5,7 +5,7 @@ require "yaml"
 require "datadog/profiling/spec_helper"
 
 RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
-  before { skip_if_profiling_not_supported(self) }
+  before { skip_if_profiling_not_supported }
 
   subject(:code_provenance) { described_class.new(ruby_native_filename: ruby_native_filename) }
 

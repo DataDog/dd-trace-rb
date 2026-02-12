@@ -2,7 +2,7 @@ require "datadog/profiling/spec_helper"
 require "datadog/profiling/collectors/idle_sampling_helper"
 
 RSpec.describe Datadog::Profiling::Collectors::IdleSamplingHelper do
-  before { skip_if_profiling_not_supported(self) }
+  before { skip_if_profiling_not_supported }
 
   subject(:idle_sampling_helper) { described_class.new }
 

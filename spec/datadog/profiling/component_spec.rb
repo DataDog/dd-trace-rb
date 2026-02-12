@@ -52,7 +52,7 @@ RSpec.describe Datadog::Profiling::Component do
 
     context "with :enabled true" do
       before do
-        skip_if_profiling_not_supported(self)
+        skip_if_profiling_not_supported
 
         settings.profiling.enabled = true
         # Disabled to avoid warnings on Rubies where it's not supported; there's separate specs that test it when enabled
@@ -795,7 +795,7 @@ RSpec.describe Datadog::Profiling::Component do
   describe ".no_signals_workaround_enabled?" do
     subject(:no_signals_workaround_enabled?) { described_class.send(:no_signals_workaround_enabled?, settings, logger) }
 
-    before { skip_if_profiling_not_supported(self) }
+    before { skip_if_profiling_not_supported }
 
     context "when no_signals_workaround_enabled is false" do
       before do

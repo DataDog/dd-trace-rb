@@ -8,7 +8,7 @@ require "bigdecimal"
 #
 # rubocop:disable Layout/LineLength
 RSpec.describe Datadog::Profiling::Collectors::Stack do
-  before { skip_if_profiling_not_supported(self) }
+  before { skip_if_profiling_not_supported }
 
   subject(:collectors_stack) { described_class.new }
 
