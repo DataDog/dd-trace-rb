@@ -95,12 +95,12 @@ module Datadog
 
               case value.class.name
               when Integration::AST_NODE_CLASS_NAMES[:variable_identifier]
-                value = value # : GraphQL::Language::Nodes::VariableIdentifier
+                # @type var value: GraphQL::Language::Nodes::VariableIdentifier
                 # we need to pass query.variables here instead of query.provided_variables,
                 # since #provided_variables don't know anything about variable default value
                 query_variables[value.name]
               when Integration::AST_NODE_CLASS_NAMES[:input_object]
-                value = value # : GraphQL::Language::Nodes::InputObject
+                # @type var value: GraphQL::Language::Nodes::InputObject
                 arguments_hash(value.arguments, query_variables)
               else
                 value
