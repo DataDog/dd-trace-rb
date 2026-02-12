@@ -8,18 +8,32 @@ module RestClient
 
     def method: () -> ::Symbol
 
+    def payload: () -> ::RestClient::Payload::Base?
+
     def processed_headers: () -> headers
 
     def execute: () ?{ (*untyped) -> untyped } -> Response
+  end
+
+  module Payload
+    class Base
+      def to_s: () -> ::String
+    end
   end
 
   module AbstractResponse
     def net_http_res: () -> ::Net::HTTPResponse
 
     def code: () -> ::Integer
+
+    def body: () -> ::String
   end
 
   class Response < ::String
     include AbstractResponse
+  end
+
+  class Exception < ::StandardError
+    def response: () -> Response?
   end
 end

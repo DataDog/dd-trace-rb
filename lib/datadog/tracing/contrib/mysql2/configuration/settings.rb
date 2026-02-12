@@ -53,6 +53,12 @@ module Datadog
               o.default false
             end
 
+            option :inject_sql_basehash do |o|
+              o.type :bool
+              o.env Contrib::Propagation::SqlComment::Ext::ENV_DBM_INJECT_SQL_BASEHASH
+              o.default false
+            end
+
             option :peer_service do |o|
               o.type :string, nilable: true
               o.env Ext::ENV_PEER_SERVICE

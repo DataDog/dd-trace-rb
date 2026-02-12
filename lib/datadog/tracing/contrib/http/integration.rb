@@ -18,8 +18,6 @@ module Datadog
         class Integration
           include Contrib::Integration
 
-          MINIMUM_VERSION = Datadog::VERSION::MINIMUM_RUBY_VERSION
-
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :http, auto_patch: true
           def self.gem_name

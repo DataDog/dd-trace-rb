@@ -8,6 +8,10 @@ module Datadog
           module Ext
             ENV_DBM_PROPAGATION_MODE = 'DD_DBM_PROPAGATION_MODE'
 
+            # Determines whether to inject the propagation hash into the SQL comment
+            # TODO: BASEHASH is confusing as a name, so look into better names that can apply cross tracer in the future
+            ENV_DBM_INJECT_SQL_BASEHASH = 'DD_DBM_INJECT_SQL_BASEHASH'
+
             # The default mode for sql comment propagation
             DISABLED = 'disabled'
 
@@ -19,6 +23,9 @@ module Datadog
 
             # The value should be `true` when `full` mode
             TAG_DBM_TRACE_INJECTED = '_dd.dbm_trace_injected'
+
+            # Checksum of the agent's container tags and this process' tags
+            TAG_PROPAGATED_HASH = '_dd.propagated_hash'
 
             # Database service/sql span service (i.e. the service executing the actual query)
             #
@@ -51,6 +58,9 @@ module Datadog
             # We should grab this attribute only if the user is EXPLICITLY specifying it.
             # @see Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE
             KEY_PEER_SERVICE = 'ddprs'
+
+            # DBM service hash (ddsh) for propagation
+            KEY_BASE_HASH = 'ddsh'
 
             KEY_TRACEPARENT = 'traceparent'
           end

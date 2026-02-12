@@ -137,7 +137,7 @@ end
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
 build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
-build_coverage_matrix('faraday')
+build_coverage_matrix('faraday', meta: { 'faraday-follow_redirects' => nil })
 build_coverage_matrix('excon')
 build_coverage_matrix('rest-client')
 build_coverage_matrix('mongo', min: '2.1.0')
@@ -147,6 +147,11 @@ build_coverage_matrix('waterdrop', min: '2.8.8.rc1')
 build_coverage_matrix('devise', min: '3.2.1')
 build_coverage_matrix('openfeature', min: '0.3.1', gem: 'openfeature-sdk')
 build_coverage_matrix('ruby-llm', gem: 'ruby_llm')
+build_coverage_matrix('kicks', min: '3.0.0')
+
+appraise 'sneakers' do
+  gem 'sneakers', '= 2.12.0' # Sneakers is not receiving updates anymore and 2.12.0 is the last version
+end
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 7'
@@ -181,7 +186,6 @@ appraise 'contrib' do
   gem 'roda', '>= 2.0.0'
   gem 'semantic_logger', '~> 4.0'
   gem 'sidekiq', '~> 7'
-  gem 'sneakers', '>= 2.12.0'
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0'
 end

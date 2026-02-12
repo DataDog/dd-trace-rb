@@ -1,12 +1,6 @@
 module Datadog
   module OpenFeature
     module Transport
-      class EncodedParcel
-        include Core::Transport::Parcel
-
-        def encode_with: (Core::Encoding::Encoder) -> ::String
-      end
-
       class HTTP
         class Spec
           @endpoint: Core::Transport::HTTP::API::Endpoint

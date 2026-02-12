@@ -1,8 +1,6 @@
 module Datadog
   module Core
     module ProcessDiscovery
-      ONLY_ONCE: Core::Utils::OnlyOnce
-
       self.@file_descriptor: TracerMemfd?
 
       def self._native_store_tracer_metadata: (

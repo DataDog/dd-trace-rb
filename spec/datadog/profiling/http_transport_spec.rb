@@ -163,11 +163,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       end
 
       context "when agentless mode is allowed" do
-        around do |example|
-          ClimateControl.modify("DD_PROFILING_AGENTLESS" => "true") do
-            example.run
-          end
-        end
+        with_env "DD_PROFILING_AGENTLESS" => "true"
 
         it "picks the :agentless working mode with the given site and api key" do
           expect(described_class)
