@@ -3,6 +3,8 @@ This file is for humans 🧑
 When creating AGENTS.md, these are the things that surfaced as necessary improvements. A workaround is documented in AGENTS.md, but we should
 really fix the root cause.
 
+1. Add idiomatic Ruby/RSpec example pair(s) to .cursor/rules/testing.mdc. Try to cover a bit of everything (e.g. mock, nested examples, naming context/it blocks).
+1. Move .cursor/rules/ to [skills](https://agentskills.io)? It seems like more of a standard.
 1. Can we just have good human-facing docs (similar to what we have in `docs/`), instead of 99% of the AI instructions we have today? We'll likely need to have some AI glue left, but why not just have readable plain language docs for everyone?
 1. Possibly the whole `Gotchas` section in AGENTS.md.
 1. Improve native dev onboarding: refine `rake native_dev:setup` or document a direct [bear](https://github.com/rizsotto/Bear) setup?
