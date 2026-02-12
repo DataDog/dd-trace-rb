@@ -1,10 +1,9 @@
 require "ext/libdatadog_extconf_helpers"
 require "libdatadog"
-require "datadog/profiling/spec_helper"
 
 RSpec.describe Datadog::LibdatadogExtconfHelpers do
   describe ".libdatadog_folder_relative_to_native_lib_folder" do
-    let(:extension_folder) { "#{__dir__}/../../../ext/datadog_profiling_native_extension/." }
+    let(:extension_folder) { "#{__dir__}/../../../ext/libdatadog_api/." }
 
     context "when libdatadog is available" do
       before { skip_if_libdatadog_not_supported }
@@ -85,7 +84,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
     subject(:pkg_config_missing) { described_class.pkg_config_missing?(command: command) }
 
     before do
-      skip_if_profiling_not_supported
+      skip_if_libdatadog_not_supported
     end
 
     context "when command is not available" do
@@ -96,8 +95,8 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
 
     # This spec is semi-realistic, because it actually calls into the pkg-config external process.
     #
-    # We know pkg-config must be available on the machine running the tests because otherwise profiling would not be
-    # supported (and thus `skip_if_profiling_not_supported` would've been triggered).
+    # We know pkg-config must be available on the machine running the tests because otherwise libdatadog would not be
+    # supported (and thus `skip_if_libdatadog_not_supported` would've been triggered).
     #
     # We could also mock the entire interaction, but this seemed like a simple enough way to go.
     context "when command is available" do
