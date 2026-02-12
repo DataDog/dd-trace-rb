@@ -15,8 +15,8 @@ variables:
   REPO_LANG: ruby # ruby is used rather that "rb"
   BUILD_JOB_NAME: save_versions
   REPO_NOTIFICATION_CHANNEL: "#guild-dd-ruby"
-  OCI_PACKAGE_MAX_SIZE_BYTES: 160000000
-  LIB_INJECTION_IMAGE_MAX_SIZE_BYTES: 200000000
+  OCI_PACKAGE_MAX_SIZE_BYTES: 40000000
+  LIB_INJECTION_IMAGE_MAX_SIZE_BYTES: 70000000
 
 default:
   tags: ["arch:amd64"]
