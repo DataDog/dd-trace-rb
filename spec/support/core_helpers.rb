@@ -83,6 +83,7 @@ module CoreHelpers
     raise "Libdatadog does not seem to be available: #{Datadog::Core::LIBDATADOG_API_FAILURE}. " \
       "Try running `bundle exec rake compile` before running this test."
   end
+
   module ClassMethods
     def skip_unless_integration_testing_enabled
       unless ENV['TEST_DATADOG_INTEGRATION']
