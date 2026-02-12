@@ -2,18 +2,12 @@ require "ext/libdatadog_extconf_helpers"
 require "libdatadog"
 require "datadog/profiling/spec_helper"
 
-# TODO: This should be extracted out once the test suite setup is updated to build libdatadog_api separate from profiling
 RSpec.describe Datadog::LibdatadogExtconfHelpers do
   describe ".libdatadog_folder_relative_to_native_lib_folder" do
     let(:extension_folder) { "#{__dir__}/../../../ext/datadog_profiling_native_extension/." }
 
     context "when libdatadog is available" do
-      before do
-        skip_if_profiling_not_supported
-        if PlatformHelpers.mac? && Libdatadog.pkgconfig_folder.nil? && ENV["LIBDATADOG_VENDOR_OVERRIDE"].nil?
-          skip "Needs LIBDATADOG_VENDOR_OVERRIDE pointing at a valid libdatadog build on macOS"
-        end
-      end
+      before { skip_if_libdatadog_not_supported }
 
       it "returns a relative path to libdatadog folder from the gem lib folder" do
         relative_path = described_class.libdatadog_folder_relative_to_native_lib_folder(current_folder: extension_folder)
@@ -43,12 +37,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
 
   describe ".libdatadog_folder_relative_to_ruby_extensions_folders" do
     context "when libdatadog is available" do
-      before do
-        skip_if_profiling_not_supported
-        if PlatformHelpers.mac? && Libdatadog.pkgconfig_folder.nil? && ENV["LIBDATADOG_VENDOR_OVERRIDE"].nil?
-          skip "Needs LIBDATADOG_VENDOR_OVERRIDE pointing at a valid libdatadog build on macOS"
-        end
-      end
+      before { skip_if_libdatadog_not_supported }
 
       it "returns a relative path to libdatadog folder from the ruby extensions folders" do
         extensions_relative, bundler_extensions_relative =
@@ -137,9 +126,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
   describe ".load_libdatadog_or_get_issue" do
     subject(:load_libdatadog_or_get_issue) { described_class.load_libdatadog_or_get_issue }
 
-    before do
-      skip_if_profiling_not_supported
-    end
+    before { skip_if_libdatadog_not_supported }
 
     context "when libdatadog gem fails to load" do
       before do
