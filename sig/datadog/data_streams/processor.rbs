@@ -27,6 +27,8 @@ module Datadog
 
         @agent_settings: Core::Configuration::AgentSettings
 
+        @agent_info: Core::Environment::AgentInfo
+
         @latest_consumer_offsets: ::Hash[::String, ::Integer]
 
         @consumer_lag_events: ::Array[consumer_lag_event]
@@ -34,7 +36,7 @@ module Datadog
         include Core::Workers::Polling
         include Core::Workers::IntervalLoop
 
-        def initialize: (interval: ::Float, logger: Core::Logger, settings: Core::Configuration::Settings, agent_settings: Core::Configuration::AgentSettings, ?buffer_size: ::Integer) -> void
+        def initialize: (interval: ::Float, logger: Core::Logger, settings: Core::Configuration::Settings, agent_settings: Core::Configuration::AgentSettings, agent_info: Core::Environment::AgentInfo, ?buffer_size: ::Integer) -> void
         def track_kafka_produce: (::String topic, ::Integer partition, ::Integer offset, ::Time now) -> true
         def track_kafka_consume: (::String topic, ::Integer partition, ::Integer offset, ::Time now) -> true
         def set_produce_checkpoint: (type: ::String, destination: ::String, ?manual_checkpoint: bool, ?tags: ::Hash[::String, ::String]) ?{ (::String, ::String) -> void } -> ::String?

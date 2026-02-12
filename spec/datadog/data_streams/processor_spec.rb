@@ -16,14 +16,12 @@ RSpec.describe Datadog::DataStreams::Processor do
   let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: nil) }
   before do
     skip_if_data_streams_not_supported(self)
-    # Stub agent_info and tracer for the existing tests
-    allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info, tracer: nil))
   end
 
   let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }
   let(:settings) { double('Settings', service: Datadog.configuration.service, env: Datadog.configuration.env, experimental_propagate_process_tags_enabled: false) }
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettings.new(adapter: :test, hostname: 'localhost', port: 9999) }
-  let(:processor) { described_class.new(interval: 10.0, logger: logger, settings: settings, agent_settings: agent_settings) }
+  let(:processor) { described_class.new(interval: 10.0, logger: logger, settings: settings, agent_settings: agent_settings, agent_info: agent_info) }
 
   after do
     processor.stop(true)
@@ -39,7 +37,7 @@ RSpec.describe Datadog::DataStreams::Processor do
   describe '#initialize' do
     context 'when custom interval is provided' do
       let(:processor) do
-        described_class.new(interval: 5.0, logger: logger, settings: settings, agent_settings: agent_settings)
+        described_class.new(interval: 5.0, logger: logger, settings: settings, agent_settings: agent_settings, agent_info: agent_info)
       end
 
       it 'sets up periodic worker with custom interval' do
@@ -117,7 +115,7 @@ RSpec.describe Datadog::DataStreams::Processor do
 
       it 'can get a previous hash from the carrier' do
         # Producer creates context in carrier
-        producer = described_class.new(interval: 10.0, logger: logger, settings: settings, agent_settings: agent_settings)
+        producer = described_class.new(interval: 10.0, logger: logger, settings: settings, agent_settings: agent_settings, agent_info: agent_info)
         carrier = {}
         producer.set_produce_checkpoint(type: 'kafka', destination: 'orders', manual_checkpoint: false) do |key, value|
           carrier[key] = value

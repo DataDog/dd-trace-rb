@@ -36,14 +36,16 @@ module Datadog
       # @param logger [Datadog::Core::Logger] Logger instance for debugging
       # @param settings [Datadog::Core::Configuration::Settings] Global configuration settings
       # @param agent_settings [Datadog::Core::Configuration::AgentSettings] Agent connection settings
+      # @param agent_info [Datadog::Core::Environment::AgentInfo] Agent capability information
       # @param buffer_size [Integer] Size of the lock-free event buffer for async stat collection
       #   (default: DEFAULT_BUFFER_SIZE). Higher values support more throughput but use more memory.
       # @raise [UnsupportedError] if DDSketch is not available on this platform
-      def initialize(interval:, logger:, settings:, agent_settings:, buffer_size: DEFAULT_BUFFER_SIZE)
+      def initialize(interval:, logger:, settings:, agent_settings:, agent_info:, buffer_size: DEFAULT_BUFFER_SIZE)
         raise UnsupportedError, 'DDSketch is not supported' unless Datadog::Core::DDSketch.supported?
 
         @settings = settings
         @agent_settings = agent_settings
+        @agent_info = agent_info
         @logger = logger
 
         now = Core::Utils::Time.now
@@ -372,7 +374,7 @@ module Datadog
         bytes = service.bytes + env.bytes
 
         if @settings.experimental_propagate_process_tags_enabled
-          propagation_checksum = Datadog.send(:components).agent_info.propagation_checksum
+          propagation_checksum = @agent_info.propagation_checksum
           bytes += [propagation_checksum].pack('Q<').bytes if propagation_checksum
         end
 
