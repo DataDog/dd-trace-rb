@@ -28,7 +28,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
 
   describe 'pathway context' do
     before do
-      skip_if_data_streams_not_supported(self)
+      skip_if_libdatadog_not_supported(self)
     end
 
     let(:test_producer_class) do
@@ -76,7 +76,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
 
   describe 'checkpointing' do
     before do
-      skip_if_data_streams_not_supported(self)
+      skip_if_libdatadog_not_supported(self)
     end
 
     let(:test_producer_class) do

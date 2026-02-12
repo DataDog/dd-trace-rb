@@ -74,6 +74,15 @@ module CoreHelpers
     end
   end
 
+  def skip_if_libdatadog_not_supported(testcase)
+    testcase.skip("Testcase requires libdatadog and it is not supported on JRuby") if PlatformHelpers.jruby?
+    testcase.skip("Testcase requires libdatadog and it is not supported on TruffleRuby") if PlatformHelpers.truffleruby?
+
+    return if Datadog::Core::LIBDATADOG_API_FAILURE.nil?
+
+    raise "Libdatadog does not seem to be available: #{Datadog::Core::LIBDATADOG_API_FAILURE}. " \
+      "Try running `bundle exec rake compile` before running this test."
+  end
   module ClassMethods
     def skip_unless_integration_testing_enabled
       unless ENV['TEST_DATADOG_INTEGRATION']

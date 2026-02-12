@@ -1,8 +1,6 @@
-require_relative '../spec_helper'
-
 RSpec.describe Datadog::DataStreams::Transport do
   before do
-    skip_if_data_streams_not_supported(self)
+    skip_if_libdatadog_not_supported(self)
   end
 
   let(:logger) { logger_allowing_debug }
