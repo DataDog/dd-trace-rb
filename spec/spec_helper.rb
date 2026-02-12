@@ -44,7 +44,6 @@ require 'support/tag_builder_helpers'
 require 'support/test_helpers'
 require 'support/telemetry_helpers'
 require 'support/tracer_helpers'
-require 'support/libdatadog_helpers'
 require 'support/http_server_helpers'
 
 begin
