@@ -144,7 +144,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
 
       let(:agent_base_url) { "http://#{hostname}:#{http_server_port}" }
 
-      # exception only gets stack attached when raised
       def method_that_raises
         raise StandardError, 'Test unhandled exception with backtrace'
       end
@@ -160,31 +159,16 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
 
         crashtracker.report_unhandled_exception(exception)
 
-        # Wait for both crash ping and crash report to be sent
         try_wait_until { messages.length == 2 }
 
-        parsed_messages = messages.map { |msg| JSON.parse(msg.body.to_s, symbolize_names: true) }
+        parsed_messages = messages.map { |msg| JSON.parse(msg.body.to_s, symbolize_names: true).fetch(:payload).fetch(:logs).first }
 
-        # Don't assume order on network requests
-        # We send crash ping first, but it is sent in separate requests
-        # We are not guaranteed the order of the messages received in the array
-        #
-        # Find crash ping message (should have is_crash_ping:true tag)
-        crash_ping_message = parsed_messages.find do |msg|
-          payload = msg[:payload][:logs].first
-          payload[:tags]&.include?('is_crash_ping:true')
-        end
-        expect(crash_ping_message).to_not be_nil
+        expect(parsed_messages).to include(
+          a_hash_including(is_crash: false, tags: a_string_including('is_crash_ping')),
+          a_hash_including(is_crash: true),
+        )
 
-        # Find crash report message (should have is_crash:true)
-        crash_report_message = parsed_messages.find do |msg|
-          payload = msg[:payload][:logs].first
-          payload[:is_crash] == true
-        end
-
-        # Verify crash report content
-        crash_payload = crash_report_message[:payload][:logs].first
-        crash_report = JSON.parse(crash_payload[:message], symbolize_names: true)
+        crash_report = JSON.parse(parsed_messages.find { |msg| msg[:is_crash] == true }.fetch(:message), symbolize_names: true)
 
         # Verify metadata (ddog_crasht_CrashInfoBuilder_with_metadata)
         expect(crash_report[:metadata]).to include(
