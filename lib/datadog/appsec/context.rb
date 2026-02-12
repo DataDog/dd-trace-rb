@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative 'counter_sampler'
 require_relative 'metrics'
 
 module Datadog
@@ -27,6 +28,9 @@ module Datadog
       #       it's a `Hash`-like structure.
       attr_reader :state
 
+      # Sampler for downstream HTTP request/response body analysis.
+      attr_reader :downstream_body_sampler
+
       class << self
         def activate(context)
           raise ArgumentError, 'not a Datadog::AppSec::Context' unless context.instance_of?(Context)
@@ -51,9 +55,13 @@ module Datadog
         @span = span
         @waf_runner = waf_runner
         @metrics = Metrics::Collector.new
+        @downstream_body_sampler = CounterSampler.new(
+          Datadog.configuration.appsec.api_security.downstream_body_analysis.sample_rate
+        )
         @state = {
           events: [],
-          interrupted: false
+          interrupted: false,
+          downstream_body_analyzed_count: 0
         }
       end
 

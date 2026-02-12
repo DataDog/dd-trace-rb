@@ -11,14 +11,6 @@ require_relative '../core/transport/request'
 module Datadog
   module OpenFeature
     module Transport
-      class EncodedParcel
-        include Core::Transport::Parcel
-
-        def encode_with(encoder)
-          encoder.encode(data)
-        end
-      end
-
       class HTTP
         class Spec
           def initialize
@@ -30,9 +22,9 @@ module Datadog
           # TODO rename to send_request?
           def call(env, &block)
             @endpoint.call(env) do |request_env|
-              request_env.headers['Content-Type'] = Core::Encoding::JSONEncoder.content_type
+              request_env.headers['Content-Type'] = env.request.parcel.content_type
               request_env.headers['X-Datadog-EVP-Subdomain'] = 'event-platform-intake'
-              request_env.body = env.request.parcel.encode_with(Core::Encoding::JSONEncoder)
+              request_env.body = env.request.parcel.data
 
               block.call(request_env)
             end
@@ -52,7 +44,12 @@ module Datadog
         end
 
         def send_exposures(payload)
-          request = Core::Transport::Request.new(EncodedParcel.new(payload))
+          encoder = Core::Encoding::JSONEncoder
+          parcel = Core::Transport::Parcel.new(
+            encoder.encode(payload),
+            content_type: encoder.content_type
+          )
+          request = Core::Transport::Request.new(parcel)
 
           @api.endpoint.call(Core::Transport::HTTP::Env.new(request)) do |env|
             @api.call(env)
