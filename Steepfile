@@ -112,7 +112,6 @@ target :datadog do
   ignore 'lib/datadog/core/workers/runtime_metrics.rb'
   ignore 'lib/datadog/di/configuration/settings.rb'
   ignore 'lib/datadog/di/contrib/railtie.rb'
-  ignore 'lib/datadog/di/transport/http/api.rb'
   ignore 'lib/datadog/di/transport/http/diagnostics.rb'
   ignore 'lib/datadog/di/transport/http/input.rb'
   # steep thinks the type of the class is 'self', whatever that is,
@@ -549,8 +548,6 @@ target :datadog do
   ignore 'lib/datadog/tracing/trace_operation.rb'
   ignore 'lib/datadog/tracing/tracer.rb'
   ignore 'lib/datadog/tracing/transport/http.rb'
-  ignore 'lib/datadog/tracing/transport/http/api.rb'
-  ignore 'lib/datadog/tracing/transport/http/client.rb'
   ignore 'lib/datadog/tracing/transport/http/traces.rb'
   ignore 'lib/datadog/tracing/transport/io/client.rb'
   ignore 'lib/datadog/tracing/transport/io/traces.rb'
