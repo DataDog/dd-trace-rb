@@ -10,8 +10,6 @@ module Datadog
         # - https://www.rfc-editor.org/rfc/rfc7231#section-5.3.1
         # - https://www.rfc-editor.org/rfc/rfc7231#section-5.3.2
         class MediaType
-          ParseError = Class.new(StandardError) # steep:ignore IncompatibleAssignment
-
           WILDCARD = '*'
 
           # See: https://www.rfc-editor.org/rfc/rfc7230#section-3.2.6
@@ -45,48 +43,43 @@ module Datadog
 
           attr_reader :type, :subtype, :parameters
 
-          def self.json?(media_type)
-            return false if media_type.nil? || media_type.empty?
+          def self.parse(media)
+            match = MEDIA_TYPE_RE.match(media)
+            return if match.nil?
 
-            match = MEDIA_TYPE_RE.match(media_type)
-            return false if match.nil?
+            type = match['type'] || WILDCARD
+            type.downcase!
 
-            subtype = match['subtype']
-            return false if subtype.nil? || subtype.empty?
-
+            subtype = match['subtype'] || WILDCARD
             subtype.downcase!
-            subtype == 'json' || subtype.end_with?('+json')
+
+            parameters = {}
+            params = match['parameters']
+
+            unless params.nil? || params.empty?
+              params.scan(PARAMETER_RE) do |name, unquoted_value, quoted_value|
+                # NOTE: Order of unquoted_value and quoted_value does not matter,
+                #       as they are mutually exclusive by the regex.
+                # @type var value: ::String?
+                value = unquoted_value || quoted_value
+                next if name.nil? || value.nil?
+
+                # See https://github.com/soutaro/steep/issues/2051
+                name.downcase! # steep:ignore NoMethod
+                value.downcase!
+
+                # See https://github.com/soutaro/steep/issues/2051
+                parameters[name] = value # steep:ignore ArgumentTypeMismatch
+              end
+            end
+
+            new(type: type, subtype: subtype, parameters: parameters)
           end
 
-          def initialize(media_type)
-            match = MEDIA_TYPE_RE.match(media_type)
-            raise ParseError, media_type.inspect if match.nil?
-
-            @type = match['type'] || WILDCARD
-            @type.downcase!
-
-            @subtype = match['subtype'] || WILDCARD
-            @subtype.downcase!
-
-            @parameters = {}
-
-            parameters = match['parameters']
-            return if parameters.nil? || parameters.empty?
-
-            parameters.scan(PARAMETER_RE) do |name, unquoted_value, quoted_value|
-              # NOTE: Order of unquoted_value and quoted_value does not matter,
-              #       as they are mutually exclusive by the regex.
-              # @type var value: ::String?
-              value = unquoted_value || quoted_value
-              next if name.nil? || value.nil?
-
-              # See https://github.com/soutaro/steep/issues/2051
-              name.downcase! # steep:ignore NoMethod
-              value.downcase!
-
-              # See https://github.com/soutaro/steep/issues/2051
-              @parameters[name] = value # steep:ignore ArgumentTypeMismatch
-            end
+          def initialize(type:, subtype:, parameters: {})
+            @type = type
+            @subtype = subtype
+            @parameters = parameters
           end
 
           def to_s

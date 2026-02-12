@@ -1029,6 +1029,56 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
           end
         end
       end
+
+      describe 'downstream_body_analysis' do
+        describe '#sample_rate' do
+          context 'when DD_API_SECURITY_DOWNSTREAM_BODY_ANALYSIS_SAMPLE_RATE is undefined' do
+            around do |example|
+              ClimateControl.modify('DD_API_SECURITY_DOWNSTREAM_BODY_ANALYSIS_SAMPLE_RATE' => nil) { example.run }
+            end
+
+            it { expect(settings.appsec.api_security.downstream_body_analysis.sample_rate).to eq(0.5) }
+          end
+
+          context 'when DD_API_SECURITY_DOWNSTREAM_BODY_ANALYSIS_SAMPLE_RATE is set' do
+            around do |example|
+              ClimateControl.modify('DD_API_SECURITY_DOWNSTREAM_BODY_ANALYSIS_SAMPLE_RATE' => '0.3') { example.run }
+            end
+
+            it { expect(settings.appsec.api_security.downstream_body_analysis.sample_rate).to eq(0.3) }
+          end
+        end
+
+        describe '#sample_rate=' do
+          before { settings.appsec.api_security.downstream_body_analysis.sample_rate = 0.7 }
+
+          it { expect(settings.appsec.api_security.downstream_body_analysis.sample_rate).to eq(0.7) }
+        end
+
+        describe '#max_requests' do
+          context 'when DD_API_SECURITY_MAX_DOWNSTREAM_REQUEST_BODY_ANALYSIS is undefined' do
+            around do |example|
+              ClimateControl.modify('DD_API_SECURITY_MAX_DOWNSTREAM_REQUEST_BODY_ANALYSIS' => nil) { example.run }
+            end
+
+            it { expect(settings.appsec.api_security.downstream_body_analysis.max_requests).to eq(1) }
+          end
+
+          context 'when DD_API_SECURITY_MAX_DOWNSTREAM_REQUEST_BODY_ANALYSIS is set' do
+            around do |example|
+              ClimateControl.modify('DD_API_SECURITY_MAX_DOWNSTREAM_REQUEST_BODY_ANALYSIS' => '5') { example.run }
+            end
+
+            it { expect(settings.appsec.api_security.downstream_body_analysis.max_requests).to eq(5) }
+          end
+        end
+
+        describe '#max_requests=' do
+          before { settings.appsec.api_security.downstream_body_analysis.max_requests = 3 }
+
+          it { expect(settings.appsec.api_security.downstream_body_analysis.max_requests).to eq(3) }
+        end
+      end
     end
 
     describe 'sca' do

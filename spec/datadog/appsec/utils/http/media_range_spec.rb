@@ -377,13 +377,21 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
         'text/html',
         'text/html;level=1;foo=bar',
       ] => false,
+      [
+        'text/html',
+        nil,
+      ] => false,
+      [
+        'text/html',
+        'invalid',
+      ] => false,
     }
 
     expectations.each do |(range, type), expected|
       let(:type_class) { Datadog::AppSec::Utils::HTTP::MediaType }
 
       it "returns #{expected.inspect} for #{range.inspect} <=> #{type.inspect}" do
-        expect(described_class.new(range) === type_class.new(type)).to eq expected
+        expect(described_class.new(range) === type_class.parse(type)).to eq(expected)
       end
     end
   end

@@ -51,6 +51,13 @@
         "default": null
       }
     ],
+    "DD_API_SECURITY_DOWNSTREAM_BODY_ANALYSIS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "0.5"
+      }
+    ],
     "DD_API_SECURITY_ENABLED": [
       {
         "version": "A",
@@ -63,6 +70,13 @@
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_API_SECURITY_MAX_DOWNSTREAM_REQUEST_BODY_ANALYSIS": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "1"
       }
     ],
     "DD_API_SECURITY_REQUEST_SAMPLE_RATE": [

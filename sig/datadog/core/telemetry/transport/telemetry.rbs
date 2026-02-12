@@ -3,10 +3,6 @@ module Datadog
     module Telemetry
       module Transport
         module Telemetry
-          class EncodedParcel
-            include Datadog::Core::Transport::Parcel
-          end
-
           class Request < Datadog::Core::Transport::Request
             @request_type: untyped
 
