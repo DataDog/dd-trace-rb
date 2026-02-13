@@ -36,14 +36,16 @@ module Datadog
       # @param logger [Datadog::Core::Logger] Logger instance for debugging
       # @param settings [Datadog::Core::Configuration::Settings] Global configuration settings
       # @param agent_settings [Datadog::Core::Configuration::AgentSettings] Agent connection settings
+      # @param agent_info [Datadog::Core::Environment::AgentInfo] Agent capability information
       # @param buffer_size [Integer] Size of the lock-free event buffer for async stat collection
       #   (default: DEFAULT_BUFFER_SIZE). Higher values support more throughput but use more memory.
       # @raise [UnsupportedError] if DDSketch is not available on this platform
-      def initialize(interval:, logger:, settings:, agent_settings:, buffer_size: DEFAULT_BUFFER_SIZE)
+      def initialize(interval:, logger:, settings:, agent_settings:, agent_info:, buffer_size: DEFAULT_BUFFER_SIZE)
         raise UnsupportedError, 'DDSketch is not supported' unless Datadog::Core::DDSketch.supported?
 
         @settings = settings
         @agent_settings = agent_settings
+        @agent_info = agent_info
         @logger = logger
 
         now = Core::Utils::Time.now
@@ -243,7 +245,7 @@ module Datadog
         current_context = get_current_context
         tags = tags.sort
 
-        direction = nil #: ::String?
+        direction = nil # : ::String?
         tags.each do |tag|
           if tag.start_with?('direction:')
             direction = tag
@@ -301,28 +303,30 @@ module Datadog
       end
 
       def flush_stats
-        payload = nil # : ::Hash[::String, untyped]?
-
-        @stats_mutex.synchronize do
+        stats_buckets = @stats_mutex.synchronize do
           return if @buckets.empty? && @consumer_stats.empty?
 
-          stats_buckets = serialize_buckets
+          serialized_buckets = serialize_buckets
 
-          payload = {
-            'Service' => @settings.service,
-            'TracerVersion' => Datadog::VERSION::STRING,
-            'Lang' => 'ruby',
-            'Stats' => stats_buckets,
-            'Hostname' => hostname
-          }
-
-          # Clear consumer stats even if sending fails to prevent unbounded memory growth
-          # Must be done inside mutex before we release it
+          # Clear consumer stats even if sending fails to prevent unbounded memory growth.
+          # Must be done inside mutex before we release it.
           @consumer_stats.clear
+
+          serialized_buckets
         end
 
-        # Send to agent outside mutex to avoid blocking customer code if agent is slow/hung
-        send_stats_to_agent(payload) if payload
+        payload = {
+          'Service' => @settings.service,
+          'TracerVersion' => Datadog::VERSION::STRING,
+          'Lang' => 'ruby',
+          'Stats' => stats_buckets,
+          'Hostname' => hostname
+        } # : ::Hash[::String, (::String | ::Array[::String])]
+
+        payload['ProcessTags'] = Core::Environment::Process.tags if @settings.experimental_propagate_process_tags_enabled
+
+        # Send to agent outside mutex to avoid blocking customer code if agent is slow/hung.
+        send_stats_to_agent(payload)
       rescue => e
         @logger.debug("Failed to flush DSM stats to agent: #{e.class}: #{e}")
       end
@@ -360,11 +364,20 @@ module Datadog
 
       # Compute new pathway hash using FNV-1a algorithm.
       # Combines service, env, tags, and parent hash to create unique pathway identifier.
+      #
+      # The hash only needs to be internally consistent:
+      # @see Datadog::Core::Environment::AgentInfo#container_tags_checksum
       def compute_pathway_hash(current_hash, tags)
         service = @settings.service || 'ruby-service'
         env = @settings.env || 'none'
 
         bytes = service.bytes + env.bytes
+
+        if @settings.experimental_propagate_process_tags_enabled
+          propagation_checksum = @agent_info.propagation_checksum
+          bytes += [propagation_checksum].pack('Q<').bytes if propagation_checksum
+        end
+
         tags.each { |tag| bytes += tag.bytes }
         byte_string = bytes.pack('C*')
 
