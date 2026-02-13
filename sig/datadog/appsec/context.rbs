@@ -47,7 +47,7 @@ module Datadog
 
       def waf_runner_known_addresses: () -> WAF::known_addresses
 
-      def extract_schema: () -> SecurityEngine::result
+      def extract_schema!: () -> void
 
       def export_metrics: () -> void
 

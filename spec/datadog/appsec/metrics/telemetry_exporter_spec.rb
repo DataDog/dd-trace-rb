@@ -6,6 +6,12 @@ require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/metrics/telemetry_exporter'
 
 RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
+  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
+  before do
+    allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry)
+  end
+
   describe '.export_waf_request_metrics' do
     let(:context) do
       instance_double(
@@ -23,12 +29,6 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
         evals: 0, matches: 0, errors: 0, timeouts: 0, duration_ns: 0, duration_ext_ns: 0,
         inputs_truncated: 0, downstream_requests: 0
       )
-    end
-
-    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-
-    before do
-      allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry)
     end
 
     it 'exports all required tags via Telemetry' do
@@ -113,6 +113,32 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
       )
 
       described_class.export_waf_request_metrics(waf_metrics, context)
+    end
+  end
+
+  describe '.export_api_security_metrics' do
+    it 'increases api_security.request.schema metric when schema was extracted' do
+      expect(telemetry).to receive(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'api_security.request.schema', 1,
+        tags: {framework: 'rails'}
+      )
+
+      described_class.export_api_security_metrics(schema_extracted: true, web_framework: 'rails')
+    end
+
+    it 'increases api_security.request.no_schema metric when schema was not extracted' do
+      expect(telemetry).to receive(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'api_security.request.no_schema', 1,
+        tags: {framework: 'rails'}
+      )
+
+      described_class.export_api_security_metrics(schema_extracted: false, web_framework: 'rails')
+    end
+
+    it 'does not export telemetry when web framework is nil' do
+      expect(telemetry).not_to receive(:inc)
+
+      described_class.export_api_security_metrics(schema_extracted: true, web_framework: nil)
     end
   end
 end

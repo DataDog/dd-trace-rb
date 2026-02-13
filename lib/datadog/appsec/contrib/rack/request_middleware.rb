@@ -107,9 +107,7 @@ module Datadog
 
             if AppSec::APISecurity.enabled? && AppSec::APISecurity.sample_trace?(ctx.trace) &&
                 AppSec::APISecurity.sample?(gateway_request.request, tmp_response.response)
-              ctx.events.push(
-                AppSec::SecurityEvent.new(ctx.extract_schema, trace: ctx.trace, span: ctx.span)
-              )
+              ctx.extract_schema!
             end
 
             AppSec::Event.record(ctx, request: gateway_request, response: gateway_response)
