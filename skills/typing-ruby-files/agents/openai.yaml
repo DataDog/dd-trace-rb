@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ruby File Typing"
+  short_description: "Precision typing workflow for Ruby+RBS files"
+  default_prompt: "Use $typing-ruby-files to type one or a few dd-trace-rb files with minimal untyped and full compromise reporting."
