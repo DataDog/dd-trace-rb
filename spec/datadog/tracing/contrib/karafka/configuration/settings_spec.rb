@@ -1,9 +1,6 @@
-require 'datadog/tracing/contrib/sidekiq/configuration/settings'
-require 'datadog/tracing/contrib/shared_settings_examples'
+require 'datadog/tracing/contrib/karafka/configuration/settings'
 
-RSpec.describe Datadog::Tracing::Contrib::Sidekiq::Configuration::Settings do
-  it_behaves_like 'with on_error setting'
-
+RSpec.describe Datadog::Tracing::Contrib::Karafka::Configuration::Settings do
   describe '#distributed_tracing' do
     subject(:distributed_tracing) { described_class.new.distributed_tracing }
 
@@ -13,7 +10,7 @@ RSpec.describe Datadog::Tracing::Contrib::Sidekiq::Configuration::Settings do
 
     context 'when configured via environment variable' do
       around do |example|
-        ClimateControl.modify('DD_TRACE_SIDEKIQ_DISTRIBUTED_TRACING' => 'true') do
+        ClimateControl.modify('DD_TRACE_KARAFKA_DISTRIBUTED_TRACING' => 'true') do
           example.run
         end
       end
