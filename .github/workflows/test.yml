@@ -207,7 +207,7 @@ jobs:
       - jruby-93
       - jruby-92
     container:
-      image: datadog/ci:v3.20.0
+      image: datadog/ci:v5.7.0
       credentials:
         username: "${{ secrets.DOCKERHUB_USERNAME }}"
         password: "${{ secrets.DOCKERHUB_TOKEN }}"
