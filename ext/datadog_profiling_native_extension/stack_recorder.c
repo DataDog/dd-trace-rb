@@ -131,46 +131,32 @@
 static VALUE ok_symbol = Qnil; // :ok in Ruby
 static VALUE error_symbol = Qnil; // :error in Ruby
 
-// Note: Please DO NOT use `VALUE_STRING` anywhere else, instead use `DDOG_CHARSLICE_C`.
-// `VALUE_STRING` is only needed because older versions of gcc (4.9.2, used in our Ruby 2.2 CI test images)
-// tripped when compiling `enabled_value_types` using `-std=gnu99` due to the extra cast that is included in
-// `DDOG_CHARSLICE_C` with the following error:
-//
-// ```
-// compiling ../../../../ext/ddtrace_profiling_native_extension/stack_recorder.c
-// ../../../../ext/ddtrace_profiling_native_extension/stack_recorder.c:23:1: error: initializer element is not constant
-// static const ddog_prof_ValueType enabled_value_types[] = {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE};
-// ^
-// ```
-#define VALUE_STRING(string) {.ptr = "" string, .len = sizeof(string) - 1}
-
-#define CPU_TIME_VALUE          {.type_ = VALUE_STRING("cpu-time"),          .unit = VALUE_STRING("nanoseconds")}
 #define CPU_TIME_VALUE_ID 0
-#define CPU_SAMPLES_VALUE       {.type_ = VALUE_STRING("cpu-samples"),       .unit = VALUE_STRING("count")}
 #define CPU_SAMPLES_VALUE_ID 1
-#define WALL_TIME_VALUE         {.type_ = VALUE_STRING("wall-time"),         .unit = VALUE_STRING("nanoseconds")}
 #define WALL_TIME_VALUE_ID 2
-#define ALLOC_SAMPLES_VALUE     {.type_ = VALUE_STRING("alloc-samples"),     .unit = VALUE_STRING("count")}
 #define ALLOC_SAMPLES_VALUE_ID 3
-#define ALLOC_SAMPLES_UNSCALED_VALUE {.type_ = VALUE_STRING("alloc-samples-unscaled"), .unit = VALUE_STRING("count")}
 #define ALLOC_SAMPLES_UNSCALED_VALUE_ID 4
-#define HEAP_SAMPLES_VALUE      {.type_ = VALUE_STRING("heap-live-samples"), .unit = VALUE_STRING("count")}
 #define HEAP_SAMPLES_VALUE_ID 5
-#define HEAP_SIZE_VALUE         {.type_ = VALUE_STRING("heap-live-size"),    .unit = VALUE_STRING("bytes")}
 #define HEAP_SIZE_VALUE_ID 6
-#define TIMELINE_VALUE          {.type_ = VALUE_STRING("timeline"),          .unit = VALUE_STRING("nanoseconds")}
 #define TIMELINE_VALUE_ID 7
 
-static const ddog_prof_ValueType all_value_types[] =
-  {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE, ALLOC_SAMPLES_VALUE, ALLOC_SAMPLES_UNSCALED_VALUE, HEAP_SAMPLES_VALUE, HEAP_SIZE_VALUE, TIMELINE_VALUE};
+static const ddog_prof_SampleType all_sample_types[] = {
+  DDOG_PROF_SAMPLE_TYPE_CPU_TIME,
+  DDOG_PROF_SAMPLE_TYPE_CPU_SAMPLES,
+  DDOG_PROF_SAMPLE_TYPE_WALL_TIME,
+  DDOG_PROF_SAMPLE_TYPE_ALLOC_SAMPLES,
+  DDOG_PROF_SAMPLE_TYPE_ALLOC_SAMPLES_UNSCALED,
+  DDOG_PROF_SAMPLE_TYPE_HEAP_LIVE_SAMPLES,
+  DDOG_PROF_SAMPLE_TYPE_HEAP_LIVE_SIZE,
+  DDOG_PROF_SAMPLE_TYPE_TIMELINE,
+};
 
-// This array MUST be kept in sync with all_value_types above and is intended to act as a "hashmap" between VALUE_ID and the position it
-// occupies on the all_value_types array.
-// E.g. all_value_types_positions[CPU_TIME_VALUE_ID] => 0, means that CPU_TIME_VALUE was declared at position 0 of all_value_types.
+// This array MUST be kept in sync with all_sample_types above and is intended to act as a "hashmap" between VALUE_ID and the position it
+// occupies on the all_sample_types array.
 static const uint8_t all_value_types_positions[] =
   {CPU_TIME_VALUE_ID, CPU_SAMPLES_VALUE_ID, WALL_TIME_VALUE_ID, ALLOC_SAMPLES_VALUE_ID, ALLOC_SAMPLES_UNSCALED_VALUE_ID, HEAP_SAMPLES_VALUE_ID, HEAP_SIZE_VALUE_ID, TIMELINE_VALUE_ID};
 
-#define ALL_VALUE_TYPES_COUNT (sizeof(all_value_types) / sizeof(ddog_prof_ValueType))
+#define ALL_VALUE_TYPES_COUNT (sizeof(all_sample_types) / sizeof(ddog_prof_SampleType))
 
 // Struct for storing stats related to a profile in a particular slot.
 // These stats will share the same lifetime as the data in that profile slot.
@@ -242,7 +228,7 @@ typedef struct {
 
 static VALUE _native_new(VALUE klass);
 static void initialize_slot_concurrency_control(stack_recorder_state *state);
-static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_ValueType sample_types);
+static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_SampleType sample_types);
 static void stack_recorder_typed_data_mark(void *data);
 static void stack_recorder_typed_data_free(void *data);
 static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
@@ -335,7 +321,7 @@ static VALUE _native_new(VALUE klass) {
 
   state->heap_clean_after_gc_enabled = false;
 
-  ddog_prof_Slice_ValueType sample_types = {.ptr = all_value_types, .len = ALL_VALUE_TYPES_COUNT};
+  ddog_prof_Slice_SampleType sample_types = {.ptr = all_sample_types, .len = ALL_VALUE_TYPES_COUNT};
 
   initialize_slot_concurrency_control(state);
   for (uint8_t i = 0; i < ALL_VALUE_TYPES_COUNT; i++) { state->position_for[i] = all_value_types_positions[i]; }
@@ -379,7 +365,7 @@ static void initialize_slot_concurrency_control(stack_recorder_state *state) {
   state->active_slot = 1;
 }
 
-static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_ValueType sample_types) {
+static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_SampleType sample_types) {
   ddog_Timespec start_timestamp = system_epoch_now_timespec();
 
   ddog_prof_Profile_NewResult slot_one_profile_result =
@@ -468,30 +454,30 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
 
   state->enabled_values_count = requested_values_count;
 
-  ddog_prof_ValueType enabled_value_types[ALL_VALUE_TYPES_COUNT];
+  ddog_prof_SampleType enabled_sample_types[ALL_VALUE_TYPES_COUNT];
   uint8_t next_enabled_pos = 0;
   uint8_t next_disabled_pos = requested_values_count;
 
-  // CPU_SAMPLES_VALUE is always enabled
-  enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) CPU_SAMPLES_VALUE;
+  // CPU_SAMPLES is always enabled
+  enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_CPU_SAMPLES;
   state->position_for[CPU_SAMPLES_VALUE_ID] = next_enabled_pos++;
 
-  // WALL_TIME_VALUE is always enabled
-  enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) WALL_TIME_VALUE;
+  // WALL_TIME is always enabled
+  enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_WALL_TIME;
   state->position_for[WALL_TIME_VALUE_ID] = next_enabled_pos++;
 
   if (cpu_time_enabled == Qtrue) {
-    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) CPU_TIME_VALUE;
+    enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_CPU_TIME;
     state->position_for[CPU_TIME_VALUE_ID] = next_enabled_pos++;
   } else {
     state->position_for[CPU_TIME_VALUE_ID] = next_disabled_pos++;
   }
 
   if (alloc_samples_enabled == Qtrue) {
-    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) ALLOC_SAMPLES_VALUE;
+    enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_ALLOC_SAMPLES;
     state->position_for[ALLOC_SAMPLES_VALUE_ID] = next_enabled_pos++;
 
-    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) ALLOC_SAMPLES_UNSCALED_VALUE;
+    enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_ALLOC_SAMPLES_UNSCALED;
     state->position_for[ALLOC_SAMPLES_UNSCALED_VALUE_ID] = next_enabled_pos++;
   } else {
     state->position_for[ALLOC_SAMPLES_VALUE_ID] = next_disabled_pos++;
@@ -499,14 +485,14 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   }
 
   if (heap_samples_enabled == Qtrue) {
-    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) HEAP_SAMPLES_VALUE;
+    enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_HEAP_LIVE_SAMPLES;
     state->position_for[HEAP_SAMPLES_VALUE_ID] = next_enabled_pos++;
   } else {
     state->position_for[HEAP_SAMPLES_VALUE_ID] = next_disabled_pos++;
   }
 
   if (heap_size_enabled == Qtrue) {
-    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) HEAP_SIZE_VALUE;
+    enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_HEAP_LIVE_SIZE;
     state->position_for[HEAP_SIZE_VALUE_ID] = next_enabled_pos++;
   } else {
     state->position_for[HEAP_SIZE_VALUE_ID] = next_disabled_pos++;
@@ -521,7 +507,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   }
 
   if (timeline_enabled == Qtrue) {
-    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) TIMELINE_VALUE;
+    enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_TIMELINE;
     state->position_for[TIMELINE_VALUE_ID] = next_enabled_pos++;
   } else {
     state->position_for[TIMELINE_VALUE_ID] = next_disabled_pos++;
@@ -530,7 +516,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   ddog_prof_Profile_drop(&state->profile_slot_one.profile);
   ddog_prof_Profile_drop(&state->profile_slot_two.profile);
 
-  ddog_prof_Slice_ValueType sample_types = {.ptr = enabled_value_types, .len = state->enabled_values_count};
+  ddog_prof_Slice_SampleType sample_types = {.ptr = enabled_sample_types, .len = state->enabled_values_count};
   initialize_profiles(state, sample_types);
 
   return Qtrue;
@@ -1079,7 +1065,7 @@ static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE
     raise_error(rb_eRuntimeError, "Failed to initialize string storage: %"PRIsVALUE, get_error_details_and_drop(&string_storage.err));
   }
 
-  ddog_prof_Slice_ValueType sample_types = {.ptr = all_value_types, .len = ALL_VALUE_TYPES_COUNT};
+  ddog_prof_Slice_SampleType sample_types = {.ptr = all_sample_types, .len = ALL_VALUE_TYPES_COUNT};
   ddog_prof_Profile_NewResult profile = ddog_prof_Profile_with_string_storage(sample_types, NULL, string_storage.ok);
 
   if (profile.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
