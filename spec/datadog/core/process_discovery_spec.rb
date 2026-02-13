@@ -166,18 +166,18 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
     end
 
     context 'when process tags are enabled' do
-      it 'includes process tags' do
+      before do
         Datadog.configure do |c|
           c.service = 'test-service'
           c.experimental_propagate_process_tags_enabled = true
         end
+      end
 
-        expected_tags = Datadog::Core::Environment::Process.serialized
+      let(:expected_tags) { Datadog::Core::Environment::Process.serialized }
 
-        described_class.publish(Datadog.configuration)
-
-        expect(content).to include('process_tags' => expected_tags)
-        expect(expected_tags).not_to be_empty
+      it 'includes process tags' do
+        expect { described_class.publish(Datadog.configuration) }.to
+        change { content }.to hash_including('process_tags' => expected_tags)
       end
     end
 
