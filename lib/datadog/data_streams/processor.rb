@@ -321,7 +321,7 @@ module Datadog
           'Lang' => 'ruby',
           'Stats' => stats_buckets,
           'Hostname' => hostname
-        } # : ::Hash[::String, (String | ::Array[::String])]
+        } # : ::Hash[::String, (::String | ::Array[::String])]
 
         payload['ProcessTags'] = Core::Environment::Process.tags if @settings.experimental_propagate_process_tags_enabled
 
