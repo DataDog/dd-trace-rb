@@ -338,20 +338,16 @@ RSpec.describe Datadog::DataStreams::Processor do
   describe '#compute_pathway_hash' do
     subject(:pathway_hash) { processor.send(:compute_pathway_hash, 0, ['type:kafka']) }
 
-    shared_examples 'a valid pathway hash' do
-      it 'computes a valid pathway hash' do
-        expect(pathway_hash).to be_a(Integer)
-        expect(pathway_hash).to be > 0
-      end
-    end
-
     context 'when process tags are enabled' do
       let(:settings) { double('Settings', service: 'test-service', env: 'test', experimental_propagate_process_tags_enabled: true) }
 
       context 'and agent info has been fetched' do
         let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: 1234567890) }
 
-        include_examples 'a valid pathway hash'
+        it 'computes a valid pathway hash' do
+          expect(pathway_hash).to be_a(Integer)
+          expect(pathway_hash).to be > 0
+        end
 
         it 'includes the propagation checksum in the pathway hash' do
           expect do
@@ -363,7 +359,10 @@ RSpec.describe Datadog::DataStreams::Processor do
       context 'and agent info has not been fetched yet' do
         let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: nil) }
 
-        include_examples 'a valid pathway hash'
+        it 'computes a valid pathway hash' do
+          expect(pathway_hash).to be_a(Integer)
+          expect(pathway_hash).to be > 0
+        end
       end
     end
 
@@ -373,7 +372,10 @@ RSpec.describe Datadog::DataStreams::Processor do
       context 'and agent info has been fetched' do
         let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: 1234567890) }
 
-        include_examples 'a valid pathway hash'
+        it 'computes a valid pathway hash' do
+          expect(pathway_hash).to be_a(Integer)
+          expect(pathway_hash).to be > 0
+        end
 
         it 'does not include the propagation checksum in the pathway hash' do
           expect do
@@ -385,7 +387,10 @@ RSpec.describe Datadog::DataStreams::Processor do
       context 'and agent info has not been fetched yet' do
         let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: nil) }
 
-        include_examples 'a valid pathway hash'
+        it 'computes a valid pathway hash' do
+          expect(pathway_hash).to be_a(Integer)
+          expect(pathway_hash).to be > 0
+        end
       end
     end
   end
