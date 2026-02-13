@@ -1170,7 +1170,7 @@ end
 | Key                   | Env Var                    | Type   | Description                                                                                                                                                                  | Default |
 | --------------------- | -------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | `enabled`             | `DD_TRACE_KARAFKA_ENABLED` | `Bool` | Specifies whether the integration should create spans.                                                                                                                       | `true`  |
-| `distributed_tracing` |                            | `Bool` | Enables [distributed tracing](#distributed-tracing) (when iterating through the kafka messages, each of the messages' traces will be resumed for the duration of the block). | `false` |
+| `distributed_tracing` | `DD_TRACE_KARAFKA_DISTRIBUTED_TRACING` | `Bool` | Enables [distributed tracing](#distributed-tracing) (when iterating through the kafka messages, each of the messages' traces will be resumed for the duration of the block). | `false` |
 
 ### WaterDrop
 
