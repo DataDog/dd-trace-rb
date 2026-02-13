@@ -2097,6 +2097,13 @@
         "default": "1.0"
       }
     ],
+    "DD_TRACE_SIDEKIQ_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_TRACE_SIDEKIQ_ENABLED": [
       {
         "version": "A",
