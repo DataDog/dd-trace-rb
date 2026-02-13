@@ -5,7 +5,7 @@ require "datadog/profiling/collectors/code_provenance"
 require "datadog/core/logger"
 
 RSpec.describe Datadog::Profiling::Exporter do
-  before { skip_if_profiling_not_supported(self) }
+  before { skip_if_profiling_not_supported }
 
   subject(:exporter) do
     described_class.new(

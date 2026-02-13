@@ -63,7 +63,7 @@ jobs:
       - name: Install dependencies
         run: bundle install
       - name: Run specs
-        run: bundle exec rake spec:main
+        run: bundle exec rake spec:core_with_libdatadog_api spec:main
 
   complete:
     name: Test macOS (complete)

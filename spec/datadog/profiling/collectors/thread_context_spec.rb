@@ -4,7 +4,7 @@ require "datadog/profiling/collectors/thread_context"
 RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   before do
     @clean_threads_required = false
-    skip_if_profiling_not_supported(self)
+    skip_if_profiling_not_supported
 
     @clean_threads_required = true
     testing_threads.each { ready_queue.pop }

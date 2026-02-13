@@ -2,7 +2,7 @@ require "datadog/profiling/spec_helper"
 
 RSpec.describe "Profiling benchmarks", :memcheck_valgrind_skip do
   before do
-    skip_if_profiling_not_supported(self)
+    skip_if_profiling_not_supported
 
     # @ivoanjo: We've seen these tests be flaky especially on Ruby 2.6: https://github.com/DataDog/dd-trace-rb/pull/4947
     # Even when trying to get a backtrace out of Ruby, all we saw was one of the Ruby threads sleeping
