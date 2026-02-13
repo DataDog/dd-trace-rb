@@ -221,7 +221,7 @@ jobs:
           DD_DISABLE_ERROR_RESPONSES: 'true'
           ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
       elasticsearch:
-        image: ghcr.io/datadog/images-rb/services/elasticsearch:8.1.3
+        image: ghcr.io/datadog/images-rb/services/elasticsearch:8.19.11
         env:
           discovery.type: single-node
           xpack.security.enabled: 'false'
