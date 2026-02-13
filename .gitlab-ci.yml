@@ -2,7 +2,6 @@ stages:
   - manual-images
   - package
   - shared-pipeline
-  - vaccine
   - macrobenchmarks
   - microbenchmarks
 
@@ -167,37 +166,6 @@ save_versions:
 deploy_to_reliability_env:
   needs:
     - save_versions
-
-# Currently, the job is implemented with polling mechanism.
-#
-# Due to the constraints of Github workflow dispatch endpoint, it does not return the workflow run id.
-# https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#create-a-workflow-dispatch-event
-#
-# We fetch the latest workflow runs from vaccine then match against the run name, polling until we find it.
-vaccine:
-  image: registry.ddbuild.io/images/dd-octo-sts-ci-base:v68058725-73f34e7-2025.06-1
-  tags: ["arch:amd64"]
-  stage: vaccine
-  needs:
-    - create-multiarch-lib-injection-image
-    - kubernetes-injection-test-ecr-publish
-  id_tokens:
-    DDOCTOSTS_ID_TOKEN:
-      aud: dd-octo-sts
-
-  before_script:
-    # Get a token
-    - dd-octo-sts version
-    # - dd-octo-sts debug --scope DataDog/vaccine --policy dd-trace-rb.dispatch # Uncomment to debug
-    - dd-octo-sts token --scope DataDog/vaccine --policy dd-trace-rb.dispatch > token.txt
-
-  script:
-    - export GITHUB_TOKEN=$(cat token.txt)
-    - .gitlab/scripts/vaccine.sh master "${CI_COMMIT_SHA}" "glci:${CI_PIPELINE_ID}"
-
-  after_script:
-    # Revoke the token after usage
-    - dd-octo-sts revoke -t $(cat token.txt)
 
 # Config inversion CI steps
 validate_supported_configurations_v2_local_file:
