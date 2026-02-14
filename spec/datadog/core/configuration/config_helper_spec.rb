@@ -170,9 +170,9 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       end
     end
 
-    context 'when Datadog::CI is defined' do
+    context 'when Datadog::CI is defined but version is too low' do
       before do
-        stub_const('Datadog::CI', Module.new)
+        stub_const('Datadog::CI::VERSION::STRING', '1.26.0')
       end
 
       subject do
