@@ -159,13 +159,33 @@ microbenchmarks:
   stage: microbenchmarks
   when: always
   needs: []
-  tags: ["runner:apm-k8s-tweaked-metal"]
+  tags: ["runner:apm-k8s-same-cpu"]
   image: $BASE_CI_IMAGE
   rules:
     - if: $CI_COMMIT_REF_NAME == "master"
       interruptible: false
     - interruptible: true
-  timeout: 1h
+  timeout: 4h
+  variables:
+    # Benchmark execution settings
+    REPETITIONS: "10"        # How many times to run each benchmarks
+    CPU_AFFINITY: "24-47"    # Which CPUs to use for all benchmarks
+    CPUS_PER_BENCHMARK: "2"  # How many CPUs to use for each benchmark
+
+    UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
+    UPSTREAM_PROJECT_ID: $CI_PROJECT_ID
+    UPSTREAM_PROJECT_NAME: $CI_PROJECT_NAME
+    UPSTREAM_COMMIT_SHA: $CI_COMMIT_SHA
+  # We split benchmarks into two groups so we can run them in parallel with
+  # 2 CPUs per benchmark (as defined by CPUS_PER_BENCHMARK in 'variables').
+
+  # When adding new benchmarks, make sure that for each entry the number of
+  # benchmarks times `CPUS_PER_BENCHMARK` is under 24 (the available CPUs in
+  # the benchmark runner, made explicit by CPU_AFFINITY).
+  parallel:
+    matrix:
+      - BENCHMARKS: "profiling_allocation.rb profiling_gc.rb profiling_hold_resume_interruptions.rb profiling_http_transport.rb profiling_memory_sample_serialize.rb profiling_sample_loop_v2.rb profiling_sample_serialize.rb profiling_sample_gvl.rb profiling_string_storage_intern.rb"
+      - BENCHMARKS: "error_tracking_simple.rb tracing_trace.rb di_instrument.rb library_gem_loading.rb"
   script:
     - export ARTIFACTS_DIR="$(pwd)/artifacts" && (mkdir "${ARTIFACTS_DIR}" || :)
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
@@ -185,10 +205,3 @@ microbenchmarks:
     paths:
       - artifacts/
     expire_in: 3 months
-  variables:
-    KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: dd-trace-rb
-    FF_USE_LEGACY_KUBERNETES_EXECUTION_STRATEGY: "true"
-    UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
-    UPSTREAM_PROJECT_ID: $CI_PROJECT_ID
-    UPSTREAM_PROJECT_NAME: $CI_PROJECT_NAME
-    UPSTREAM_COMMIT_SHA: $CI_COMMIT_SHA
