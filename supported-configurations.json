@@ -798,6 +798,27 @@
         "default": "true"
       }
     ],
+    "DD_TRACE_ACTIVE_STORAGE_ANALYTICS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_ACTIVE_STORAGE_ANALYTICS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
+    "DD_TRACE_ACTIVE_STORAGE_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_TRACE_ACTION_VIEW_ANALYTICS_ENABLED": [
       {
         "version": "A",

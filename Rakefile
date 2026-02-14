@@ -283,6 +283,7 @@ namespace :spec do
     :action_view,
     :active_model_serializers,
     :active_record,
+    :active_storage,
     :active_support,
     :aws,
     :concurrent_ruby,
