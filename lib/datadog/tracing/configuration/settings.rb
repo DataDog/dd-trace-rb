@@ -269,7 +269,11 @@ module Datadog
                 #
                 # @default 500
                 # @return [Integer]
-                option :min_spans_threshold, default: 500, type: :int
+                option :min_spans_threshold do |o|
+                  o.type :int
+                  o.env Tracing::Configuration::Ext::PartialFlush::ENV_MIN_SPANS_THRESHOLD
+                  o.default 500
+                end
               end
 
               option :report_hostname do |o|
