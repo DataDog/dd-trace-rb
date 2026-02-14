@@ -60,6 +60,9 @@ module Datadog
               span.set_tag(Ext::TAG_FIRST_OFFSET, payload[:first_offset]) if payload.key?(:first_offset)
               span.set_tag(Ext::TAG_MESSAGE_COUNT, payload[:message_count]) if payload.key?(:message_count)
               span.set_error(payload[:exception_object]) if payload[:exception_object]
+
+              # DSM: Set consume checkpoint and track offset for lag monitoring
+              set_dsm_checkpoint(payload)
             end
 
             private
@@ -72,6 +75,44 @@ module Datadog
               return unless Tracing.active_span
 
               Tracing.send(:tracer).provider.context = Context.new
+            end
+
+            # Sets DSM consume checkpoint and tracks Kafka consumer offset
+            def set_dsm_checkpoint(payload)
+              return unless Datadog.configuration.data_streams.enabled
+              return unless Datadog::DataStreams.enabled?
+
+              topic = payload[:topic]
+              partition = payload[:partition]
+
+              begin
+                # Single message processing - has headers for context extraction
+                if payload.key?(:offset) && payload.key?(:headers)
+                  headers = payload[:headers] || {}
+                  Datadog::DataStreams.set_consume_checkpoint(
+                    type: 'kafka',
+                    source: topic,
+                    auto_instrumentation: true
+                  ) { |key| headers[key] }
+
+                  # Track offset for consumer lag monitoring
+                  Datadog::DataStreams.track_kafka_consume(topic, partition, payload[:offset])
+
+                # Batch processing - no headers in payload, but can still track offsets
+                elsif payload.key?(:first_offset) && payload.key?(:last_offset)
+                  # For batches, set checkpoint without context extraction
+                  Datadog::DataStreams.set_consume_checkpoint(
+                    type: 'kafka',
+                    source: topic,
+                    auto_instrumentation: true
+                  )
+
+                  # Track the last offset in the batch for lag monitoring
+                  Datadog::DataStreams.track_kafka_consume(topic, partition, payload[:last_offset])
+                end
+              rescue => e
+                Datadog.logger.debug("Error setting Racecar DSM checkpoint: #{e.class}: #{e}")
+              end
             end
           end
         end
