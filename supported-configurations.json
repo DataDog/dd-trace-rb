@@ -1654,6 +1654,13 @@
         "default": "opensearch"
       }
     ],
+    "DD_TRACE_PARTIAL_FLUSH_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED": [
       {
         "version": "A",
