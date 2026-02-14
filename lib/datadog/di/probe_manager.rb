@@ -256,6 +256,11 @@ module Datadog
         end
       end
 
+      def probe_disabled_callback(probe, duration)
+        payload = probe_notification_builder.build_disabled(probe, duration)
+        probe_notifier_worker.add_status(payload)
+      end
+
       # Class/module definition trace point (:end type).
       # Used to install hooks when the target classes/modules aren't yet
       # defined when the hook request is received.

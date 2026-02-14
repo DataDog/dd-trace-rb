@@ -19,6 +19,8 @@ module Datadog
 
       def build_errored: (Probe probe, Exception exception) -> Hash[Symbol,untyped]
 
+      def build_disabled: (Probe probe, Float duration) -> Hash[Symbol,untyped]
+
       def build_executed: (Context context) -> Hash[Symbol,untyped]
 
       def build_snapshot: (Context context) -> Hash[Symbol,untyped]
