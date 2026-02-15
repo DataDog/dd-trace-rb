@@ -84,6 +84,8 @@ module Datadog
             )
           end
 
+          ::Datadog.logger.debug{"Injected distributed trace data into headers: #{data}"} if result
+
           result
         end
 
@@ -96,6 +98,8 @@ module Datadog
         def extract(data)
           return unless data
           return if data.empty?
+
+          ::Datadog.logger.debug{"Extracting distributed trace data from headers: #{data}"}
 
           extracted_trace_digest = nil
 
