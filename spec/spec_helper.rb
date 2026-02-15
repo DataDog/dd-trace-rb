@@ -45,6 +45,7 @@ require 'support/test_helpers'
 require 'support/telemetry_helpers'
 require 'support/tracer_helpers'
 require 'support/libdatadog_helpers'
+require 'support/loading_helpers'
 require 'support/http_server_helpers'
 
 begin
@@ -77,6 +78,7 @@ RSpec.configure do |config|
   config.include TracerHelpers
   config.include TestHelpers::RSpec::Integration, :integration
   config.include HttpServerHelpers
+  config.include LoadingHelpers::InstanceMethods
   config.extend PlatformHelpers::ClassMethods
 
   config.expect_with :rspec do |expectations|
