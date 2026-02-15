@@ -5,12 +5,12 @@ module Datadog
 
     def gem_spec(gem_name)
       args = if local_gem(gem_name)
-               [local_gem(gem_name)]
-             elsif git_gem(gem_name)
-               [git_gem(gem_name)]
-             else
-               []
-             end
+        [local_gem(gem_name)]
+      elsif git_gem(gem_name)
+        [git_gem(gem_name)]
+      else
+        []
+      end
 
       yield(args) if block_given?
 
@@ -38,7 +38,7 @@ module Datadog
 
       return unless ENV.key?(local_env_name)
 
-      { path: ENV[local_env_name] }
+      {path: ENV[local_env_name]}
     end
 
     def git_gem(gem_name)
@@ -47,7 +47,7 @@ module Datadog
 
       return unless [git_env_name, ref_env_name].all? { |var| ENV.key?(var) && !ENV[var].empty? }
 
-      { git: ENV[git_env_name], ref: ENV[ref_env_name] }
+      {git: ENV[git_env_name], ref: ENV[ref_env_name]}
     end
 
     def process
@@ -69,7 +69,7 @@ module Datadog
       puts "Ruby engine:     #{RUBY_ENGINE}"
       puts "Process:         #{process}"
       puts "Features:        #{features}"
-      puts "Rails env:       #{ENV['RAILS_ENV']}" if ENV['RAILS_ENV']
+      puts "Rails env:       #{ENV["RAILS_ENV"]}" if ENV['RAILS_ENV']
       puts "PID:             #{Process.pid}"
       if (datadog = Gem.loaded_specs['datadog'])
         puts "Runtime ID:      #{Datadog::Core::Environment::Identity.id}" if defined?(Datadog::Core::Environment::Identity)
