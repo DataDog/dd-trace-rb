@@ -6,7 +6,6 @@ require_relative 'transport/http'
 require_relative '../version'
 require_relative '../core/worker'
 require_relative '../core/workers/polling'
-require_relative '../core/ddsketch'
 require_relative '../core/buffer/cruby'
 require_relative '../core/utils/time'
 require_relative '../core/utils/fnv'
@@ -40,7 +39,7 @@ module Datadog
       #   (default: DEFAULT_BUFFER_SIZE). Higher values support more throughput but use more memory.
       # @raise [UnsupportedError] if DDSketch is not available on this platform
       def initialize(interval:, logger:, settings:, agent_settings:, buffer_size: DEFAULT_BUFFER_SIZE)
-        raise UnsupportedError, 'DDSketch is not supported' unless Datadog::Core::DDSketch.supported?
+        raise UnsupportedError, 'DDSketch is not supported' unless Datadog::Core.ddsketch_supported?
 
         @settings = settings
         @agent_settings = agent_settings

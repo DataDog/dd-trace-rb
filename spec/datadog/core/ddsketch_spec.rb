@@ -1,18 +1,6 @@
-require 'datadog/core'
-require 'datadog/core/ddsketch'
 require 'datadog/core/ddsketch_pprof/ddsketch_pb'
 
 RSpec.describe Datadog::Core::DDSketch do
-  context 'when DDSketch is not supported' do
-    before do
-      stub_const('Datadog::Core::LIBDATADOG_API_FAILURE', 'Example error loading libdatadog_api')
-    end
-
-    it 'raises an error' do
-      expect { described_class.new }.to raise_error(ArgumentError, 'DDSketch is not supported: Example error loading libdatadog_api')
-    end
-  end
-
   context 'when DDSketch is supported' do
     subject(:sketch) { described_class.new }
 
