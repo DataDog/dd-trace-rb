@@ -57,7 +57,7 @@ GEM
       pp (>= 0.6.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
-    json (2.18.0)
+    json (2.18.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
     karafka (2.5.5)

@@ -33,10 +33,11 @@ GEM
     elastic-transport (8.4.1)
       faraday (< 3)
       multi_json
-    elasticsearch (9.2.0)
+    elasticsearch (9.3.0)
       elastic-transport (~> 8.3)
-      elasticsearch-api (= 9.2.0)
-    elasticsearch-api (9.2.0)
+      elasticsearch-api (= 9.3.0)
+    elasticsearch-api (9.3.0)
+      base64
       multi_json
     faraday (2.8.1)
       base64
