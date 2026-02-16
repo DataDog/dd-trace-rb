@@ -148,6 +148,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             probeVersion: 0,
             runtimeId: String,
             status: 'ERROR',
+            exception: {
+              type: 'Exception',
+              message: 'Test message',
+            },
           },
         },
         message: "Instrumentation for probe 123 failed: Test message",

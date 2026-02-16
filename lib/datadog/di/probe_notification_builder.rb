@@ -37,7 +37,8 @@ module Datadog
       def build_errored(probe, exc)
         build_status(probe,
           message: "Instrumentation for probe #{probe.id} failed: #{exc}",
-          status: 'ERROR',)
+          status: 'ERROR',
+          exception: exc)
       end
 
       def build_disabled(probe, duration)
@@ -201,20 +202,29 @@ module Datadog
         payload
       end
 
-      def build_status(probe, message:, status:)
+      def build_status(probe, message:, status:, exception: nil)
+        diagnostics = {
+          probeId: probe.id,
+          probeVersion: 0,
+          runtimeId: Core::Environment::Identity.id,
+          parentId: nil,
+          status: status,
+        }
+
+        if exception
+          diagnostics[:exception] = {
+            type: exception.class.name,
+            message: exception.message,
+          }
+        end
+
         {
           service: settings.service,
           timestamp: timestamp_now,
           message: message,
           ddsource: 'dd_debugger',
           debugger: {
-            diagnostics: {
-              probeId: probe.id,
-              probeVersion: 0,
-              runtimeId: Core::Environment::Identity.id,
-              parentId: nil,
-              status: status,
-            },
+            diagnostics: diagnostics,
           },
         }
       end
