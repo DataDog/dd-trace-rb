@@ -24,10 +24,11 @@ module Datadog
           )
         end
 
-        def export_api_security_metrics(schema_extracted:, web_framework:)
+        def export_api_security_metrics(context_state)
+          web_framework = context_state[:web_framework]
           return unless web_framework
 
-          metric_name = schema_extracted ? 'schema' : 'no_schema'
+          metric_name = context_state[:schema_extracted] ? 'schema' : 'no_schema'
 
           AppSec.telemetry.inc(
             AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "api_security.request.#{metric_name}", 1,
