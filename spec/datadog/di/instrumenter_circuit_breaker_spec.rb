@@ -360,7 +360,7 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
           @status_payloads = status_payloads
         end
 
-        def add_status(payload)
+        def add_status(payload, probe: nil)
           @status_payloads << payload
         end
 
