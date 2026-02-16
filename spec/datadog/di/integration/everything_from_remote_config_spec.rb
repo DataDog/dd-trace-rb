@@ -159,6 +159,10 @@ RSpec.describe 'DI integration from remote config' do
           probeVersion: 0,
           runtimeId: be_valid_uuid,
           status: 'ERROR',
+          exception: {
+            type: 'Datadog::DI::Error::DITargetNotInRegistry',
+            message: String,
+          },
         },
       },
       message: /Instrumentation for probe 11 failed: File matching probe path \(instrumentation_integration_test_class.rb\) was loaded and is not in code tracker registry:/,
@@ -401,6 +405,10 @@ RSpec.describe 'DI integration from remote config' do
               probeVersion: 0,
               runtimeId: String,
               status: 'ERROR',
+              exception: {
+                type: 'Datadog::DI::Error::InvalidExpression',
+                message: String,
+              },
             },
           },
           path: '/debugger/v1/diagnostics',
