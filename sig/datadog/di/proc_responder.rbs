@@ -14,6 +14,8 @@ module Datadog
       def probe_executed_callback: (untyped context) -> untyped
 
       def probe_condition_evaluation_failed_callback: (untyped context, untyped exc) -> untyped
+
+      def probe_disabled_callback: (Probe probe, Float duration) -> void
     end
   end
 end

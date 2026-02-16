@@ -162,6 +162,35 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     end
   end
 
+  describe '#build_disabled' do
+    let(:payload) do
+      builder.build_disabled(probe, 0.75)
+    end
+
+    let(:expected) do
+      {
+        ddsource: 'dd_debugger',
+        debugger: {
+          diagnostics: {
+            parentId: nil,
+            probeId: '123',
+            probeVersion: 0,
+            runtimeId: String,
+            status: 'ERROR',
+          },
+        },
+        message: "Probe 123 was disabled because it consumed 0.75 seconds of CPU time in DI processing",
+        service: 'test service',
+        timestamp: Integer,
+      }
+    end
+
+    it 'returns a hash with expected contents' do
+      expect(payload).to be_a(Hash)
+      expect(payload).to match(expected)
+    end
+  end
+
   describe '#build_executed' do
     let(:payload) { builder.build_executed(context) }
 
