@@ -10,6 +10,7 @@ module Datadog
         IDENTITY = ->(new_value, _old_value) { new_value }
 
         attr_reader \
+          :parent,
           :default,
           :default_proc,
           :env,
@@ -21,7 +22,9 @@ module Datadog
           :type,
           :type_options
 
-        def initialize(name, meta, &block)
+        def initialize(name, meta, parent = nil, &block)
+          @parent = parent
+
           @default = meta[:default]
           @default_proc = meta[:default_proc]
           @env = meta[:env]
@@ -48,7 +51,9 @@ module Datadog
           attr_reader \
             :helpers
 
-          def initialize(name, options = {})
+          def initialize(name, options = {}, parent = nil)
+            @parent = parent
+
             @env = nil
             @env_parser = nil
             @default = nil
@@ -126,7 +131,7 @@ module Datadog
           end
 
           def to_definition
-            OptionDefinition.new(@name, meta)
+            OptionDefinition.new(@name, meta, @parent)
           end
 
           def meta

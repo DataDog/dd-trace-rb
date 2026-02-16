@@ -16,6 +16,14 @@ module Datadog
         # Class behavior for a configuration object with options
         # @public_api
         module ClassMethods
+          attr_reader \
+            :settings_name,
+            :parent
+
+          def settings_path
+            @settings_path ||= (@parent.nil? || @parent.settings_path.nil?) ? @settings_name : "#{@parent.settings_path}.#{@settings_name}"
+          end
+
           def options
             # Allows for class inheritance of option definitions
             @options ||= (superclass <= Options) ? superclass.options.dup : {}
@@ -24,9 +32,8 @@ module Datadog
           protected
 
           def option(name, meta = {}, &block)
-            settings_name = defined?(@settings_name) && @settings_name
-            option_name = settings_name ? "#{settings_name}.#{name}" : name
-            builder = OptionDefinition::Builder.new(option_name, meta, &block)
+            option_name = settings_path ? "#{settings_path}.#{name}" : name
+            builder = OptionDefinition::Builder.new(option_name, meta, self, &block)
             options[name] = builder.to_definition.tap do
               # Resolve and define helper functions
               helpers = default_helpers(name)
