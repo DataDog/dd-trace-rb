@@ -203,9 +203,7 @@ RSpec.describe Datadog::AppSec::Context do
       end
 
       it 'sets schema_extracted attribute in state to true' do
-        context.extract_schema!
-
-        expect(context.state.fetch(:schema_extracted)).to eq(true)
+        expect { context.extract_schema! }.to change { context.state[:schema_extracted] }.from(nil).to(true)
       end
     end
 
@@ -215,9 +213,7 @@ RSpec.describe Datadog::AppSec::Context do
       end
 
       it 'sets schema_extracted attribute in state to false' do
-        context.extract_schema!
-
-        expect(context.state.fetch(:schema_extracted)).to eq(false)
+        expect { context.extract_schema! }.to change { context.state[:schema_extracted] }.from(nil).to(false)
       end
     end
   end
