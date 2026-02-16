@@ -211,11 +211,21 @@ module Datadog
           status: status,
         }
 
-        if exception
-          diagnostics[:exception] = {
-            type: exception.class.name,
-            message: exception.message,
-          }
+        # Exception field is required by the backend for ERROR status.
+        # If the ERROR status is sent without the exception field, the status
+        # appears to be completely ignored by the backend.
+        if status == 'ERROR'
+          if exception
+            diagnostics[:exception] = {
+              type: exception.class.name,
+              message: exception.message,
+            }
+          else
+            diagnostics[:exception] = {
+              type: 'Error',
+              message: message,
+            }
+          end
         end
 
         {
