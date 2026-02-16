@@ -208,13 +208,18 @@ module Datadog
         # Signals the background thread to wake up (and do the sending)
         # if it has been more than 1 second since the last send of the same
         # event type.
-        define_method("add_#{event_type}") do |event|
+        define_method("add_#{event_type}") do |event, probe: nil|
           @lock.synchronize do
             queue = send("#{event_type}_queue")
             if queue.length > settings.dynamic_instrumentation.internal.snapshot_queue_capacity
               logger.debug { "di: #{self.class.name}: dropping #{event_type} event because queue is full" }
             else
-              logger.trace { "di: #{self.class.name}: queueing #{event_type} event" }
+              if event_type == :status && probe
+                status = event.dig(:debugger, :diagnostics, :status)
+                logger.trace { "di: queueing status for #{probe.type} probe at #{probe.location} (#{probe.id}): #{status}" }
+              else
+                logger.trace { "di: #{self.class.name}: queueing #{event_type} event" }
+              end
               queue << event
             end
           end

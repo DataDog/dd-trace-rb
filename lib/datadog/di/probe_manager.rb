@@ -118,7 +118,7 @@ module Datadog
 
             @installed_probes[probe.id] = probe
             payload = probe_notification_builder.build_installed(probe)
-            probe_notifier_worker.add_status(payload)
+            probe_notifier_worker.add_status(payload, probe: probe)
             # The probe would only be in the pending probes list if it was
             # previously attempted to be installed and the target was not loaded.
             # Always remove from pending list here because it makes the
@@ -240,7 +240,7 @@ module Datadog
         logger.trace { "di: executed #{probe.type} probe at #{probe.location} (#{probe.id})" }
         unless probe.emitting_notified?
           payload = probe_notification_builder.build_emitting(probe)
-          probe_notifier_worker.add_status(payload)
+          probe_notifier_worker.add_status(payload, probe: probe)
           probe.emitting_notified = true
         end
 
@@ -258,7 +258,7 @@ module Datadog
 
       def probe_disabled_callback(probe, duration)
         payload = probe_notification_builder.build_disabled(probe, duration)
-        probe_notifier_worker.add_status(payload)
+        probe_notifier_worker.add_status(payload, probe: probe)
       end
 
       # Class/module definition trace point (:end type).
