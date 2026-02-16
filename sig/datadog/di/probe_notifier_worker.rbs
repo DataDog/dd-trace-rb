@@ -38,7 +38,7 @@ module Datadog
       def stop: (?::Integer timeout) -> void
       def flush: () -> void
       
-      def add_status: (Hash[Symbol, untyped]) -> void
+      def add_status: (Hash[Symbol, untyped], ?probe: DI::Probe?) -> void
       def add_snapshot: (Hash[Symbol, untyped]) -> void
       
       def status_transport: () -> DI::Transport::Diagnostics::Transport
