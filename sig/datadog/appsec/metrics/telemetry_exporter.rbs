@@ -3,6 +3,8 @@ module Datadog
     module Metrics
       module TelemetryExporter
         def self?.export_waf_request_metrics: (Metrics::Collector::Store metrics, AppSec::Context context) -> void
+
+        def self?.export_api_security_metrics: (::Hash[::Symbol, any] state) -> void
       end
     end
   end
