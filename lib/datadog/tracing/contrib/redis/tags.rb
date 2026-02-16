@@ -45,8 +45,38 @@ module Datadog
               span.set_tag Ext::TAG_DB, client.db
               span.set_tag Ext::TAG_RAW_COMMAND, raw_command
 
+              ### BRAZE MODIFICATION
+              if !Thread.current[Contrib::Redis::Ext::THREAD_GLOBAL_FILEPATH].nil?
+                span.set_tag(
+                  Contrib::Redis::Ext::METRIC_FILEPATH,
+                  Thread.current[Contrib::Redis::Ext::THREAD_GLOBAL_FILEPATH]
+                )
+              end
+
+              if !Thread.current[Contrib::Redis::Ext::THREAD_GLOBAL_CODEOWNER].nil?
+                span.set_tag(
+                  Contrib::Redis::Ext::METRIC_CODEOWNER,
+                  Thread.current[Contrib::Redis::Ext::THREAD_GLOBAL_CODEOWNER]
+                )
+              end
+
+              if !Thread.current[Contrib::Redis::Ext::THREAD_GLOBAL_SHARD_INDEX].nil?
+                span.set_tag(
+                  Contrib::Redis::Ext::METRIC_SHARD_INDEX,
+                  Thread.current[Contrib::Redis::Ext::THREAD_GLOBAL_SHARD_INDEX]
+                )
+              end
+
+              if !Thread.current[Contrib::Redis::Ext::THREAD_GLOBAL_COMPANY_NAME].nil?
+                span.set_tag(
+                  Contrib::Redis::Ext::METRIC_COMPANY_NAME,
+                  Thread.current[Contrib::Redis::Ext::THREAD_GLOBAL_COMPANY_NAME]
+                )
+              end
+              ### END BRAZE MODIFICATION
+
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
-            rescue => e
+            rescue StandardError => e
               Datadog.logger.error(e.message)
               Datadog::Core::Telemetry::Logger.report(e)
             end

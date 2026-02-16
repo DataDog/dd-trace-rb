@@ -19,6 +19,19 @@ module Datadog
           SPAN_COMMAND = 'redis.command'
           TAG_DB = 'out.redis_db'
           TAG_RAW_COMMAND = 'redis.raw_command'
+          ### BRAZE MODIFICATION
+          METRIC_RAW_COMMAND_LEN = 'redis.raw_command_length'.freeze
+          METRIC_RESP_COMMAND_LEN = 'redis.raw_response_length'.freeze
+          METRIC_FILEPATH = 'redis.filepath'.freeze
+          METRIC_CODEOWNER = 'redis.codeowner'.freeze
+          METRIC_SHARD_INDEX = 'redis.shard_index'.freeze
+          METRIC_COMPANY_NAME = 'company_name'.freeze
+          METRIC_KEY = 'redis.key'.freeze
+          THREAD_GLOBAL_FILEPATH = :redis_operation_filepath
+          THREAD_GLOBAL_CODEOWNER = :redis_operation_codeowner
+          THREAD_GLOBAL_SHARD_INDEX = :redis_operation_shard_index
+          THREAD_GLOBAL_COMPANY_NAME = :redis_operation_company_name
+          ### END BRAZE MODIFICATION
           TYPE = 'redis'
           TAG_COMPONENT = 'redis'
           TAG_OPERATION_COMMAND = 'command'
