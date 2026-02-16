@@ -57,3 +57,4 @@ lib/*.so
 
 # Benchmark result files
 /benchmarks/*.json
+.worktrees/
