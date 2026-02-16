@@ -214,6 +214,8 @@ module Datadog
         # Exception field is required by the backend for ERROR status.
         # If the ERROR status is sent without the exception field, the status
         # appears to be completely ignored by the backend.
+        # Note: The Go DI implementation does not send the top-level message
+        # field at all when sending error statuses.
         if status == 'ERROR'
           if exception
             diagnostics[:exception] = {
