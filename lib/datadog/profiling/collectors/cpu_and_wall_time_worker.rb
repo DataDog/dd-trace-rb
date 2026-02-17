@@ -75,6 +75,13 @@ module Datadog
               self.class._native_sampling_loop(self)
 
               Datadog.logger.debug("CpuAndWallTimeWorker thread stopping cleanly")
+            rescue Profiling::ExistingSignalHandler => e
+              @failure_exception = e
+              Datadog.logger.warn(
+                "Profiling was not started as another profiler or gem is already using the SIGPROF signal. " \
+                "Please disable the other profiler to use Datadog profiling."
+              )
+              on_failure_proc&.call
             rescue Exception => e # rubocop:disable Lint/RescueException
               @failure_exception = e
               operation_name = self.class._native_failure_exception_during_operation(self).inspect

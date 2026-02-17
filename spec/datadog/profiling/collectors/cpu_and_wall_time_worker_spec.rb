@@ -209,6 +209,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         expect(described_class::Testing._native_current_sigprof_signal_handler).to be :other
       end
+
+      it "logs a user-friendly warning message" do
+        expect(Datadog.logger).to receive(:warn).with(/another profiler or gem is already using the SIGPROF signal/)
+
+        cpu_and_wall_time_worker.start
+
+        try_wait_until(backoff: 0.01) { cpu_and_wall_time_worker.send(:failure_exception) }
+      end
     end
 
     context "sampling of active threads" do
