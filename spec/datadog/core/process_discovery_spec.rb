@@ -176,8 +176,9 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
       let(:expected_tags) { Datadog::Core::Environment::Process.serialized }
 
       it 'includes process tags' do
-        expect { described_class.publish(Datadog.configuration) }.to
-        change { content }.to hash_including('process_tags' => expected_tags)
+        described_class.publish(Datadog.configuration)
+
+        expect(content).to include('process_tags' => expected_tags)
       end
     end
 

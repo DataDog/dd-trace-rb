@@ -22,8 +22,10 @@ module Datadog
         end
 
         def shutdown!
-          @file_descriptor&.shutdown!(Datadog.logger)
-          @file_descriptor = nil
+          if defined?(@file_descriptor)
+            @file_descriptor&.shutdown!(Datadog.logger)
+            @file_descriptor = nil
+          end
         end
 
         def after_fork
