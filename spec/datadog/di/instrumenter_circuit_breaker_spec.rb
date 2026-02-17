@@ -323,4 +323,118 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
       end
     end
   end
+
+  context 'probe status payload when circuit breaker triggers' do
+    # Need to add additional settings mocks for ProbeNotificationBuilder
+    before do
+      allow(settings).to receive(:service).and_return('rspec')
+      allow(settings).to receive(:env).and_return('test')
+      allow(settings).to receive(:tags).and_return({})
+      allow(settings).to receive(:version).and_return('1.0')
+      allow(settings).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
+      # di_logger_double only stubs trace, but ProbeManager also calls debug
+      allow(logger).to receive(:debug)
+    end
+
+    let(:probe) do
+      Datadog::DI::Probe.new(
+        id: 'test-probe-status',
+        type: :log,
+        type_name: 'HookTestClass',
+        method_name: 'hook_test_method',
+      )
+    end
+
+    let(:status_payloads) { [] }
+
+    di_logger_double
+
+    let(:probe_notification_builder) do
+      Datadog::DI::ProbeNotificationBuilder.new(settings, serializer)
+    end
+
+    let(:probe_notifier_worker) do
+      # Mock worker that captures status payloads
+      Class.new do
+        def initialize(status_payloads)
+          @status_payloads = status_payloads
+        end
+
+        def add_status(payload)
+          @status_payloads << payload
+        end
+
+        def add_snapshot(payload)
+          # Not used in this test
+        end
+      end.new(status_payloads)
+    end
+
+    let(:probe_manager) do
+      Datadog::DI::ProbeManager.new(
+        settings,
+        instrumenter,
+        probe_notification_builder,
+        probe_notifier_worker,
+        logger
+      )
+    end
+
+    after do
+      instrumenter.unhook(probe)
+    end
+
+    context 'when max_processing_time is zero' do
+      before do
+        allow(settings.dynamic_instrumentation.internal).to receive(:max_processing_time).and_return(0)
+      end
+
+      it 'sends ERROR status with exception field when probe is disabled' do
+        # Instrument the method
+        instrumenter.hook_method(probe, probe_manager)
+
+        # Execute the instrumented method to trigger circuit breaker
+        result = HookTestClass.new.hook_test_method
+
+        # Verify method still works correctly
+        expect(result).to eq 42
+
+        # Verify probe was disabled
+        expect(probe.enabled?).to be false
+
+        # Find the ERROR status payload
+        error_payload = status_payloads.find do |payload|
+          payload.dig(:debugger, :diagnostics, :status) == 'ERROR'
+        end
+
+        # Verify ERROR status payload was sent
+        expect(error_payload).not_to be_nil
+
+        # Verify payload structure
+        expect(error_payload).to match(
+          ddsource: 'dd_debugger',
+          debugger: {
+            diagnostics: {
+              parentId: nil,
+              probeId: 'test-probe-status',
+              probeVersion: 0,
+              runtimeId: String,
+              status: 'ERROR',
+              exception: {
+                type: 'Error',
+                message: String,
+              },
+            },
+          },
+          message: String,
+          service: 'rspec',
+          timestamp: Integer,
+        )
+
+        # Verify exception message mentions CPU time
+        exception_message = error_payload.dig(:debugger, :diagnostics, :exception, :message)
+        expect(exception_message).to match(/consumed .* seconds of CPU time/)
+      end
+    end
+  end
 end
