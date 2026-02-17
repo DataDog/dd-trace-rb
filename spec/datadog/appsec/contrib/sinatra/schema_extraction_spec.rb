@@ -12,7 +12,12 @@ require 'datadog/appsec'
 RSpec.describe 'Schema extraction for API security in Sinatra' do
   include Rack::Test::Methods
 
+  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
   before do
+    allow(telemetry).to receive(:inc)
+    allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry)
+
     Datadog.configure do |config|
       config.tracing.enabled = true
       config.tracing.instrument :sinatra
@@ -167,6 +172,15 @@ RSpec.describe 'Schema extraction for API security in Sinatra' do
     it 'extracts request and response body schema' do
       expect(response).to be_ok
       expect(http_service_entry_span.tags).to have_key('_dd.appsec.s.res.body')
+    end
+
+    it 'reports api_security.request.schema telemetry with framework tag' do
+      expect(telemetry).to have_received(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE,
+        'api_security.request.schema',
+        1,
+        tags: {framework: 'sinatra'}
+      )
     end
   end
 end

@@ -27,6 +27,10 @@ module Datadog
 
         failed_proc.call(context, exc)
       end
+
+      def probe_disabled_callback(probe, duration)
+        raise NotImplementedError
+      end
     end
   end
 end
