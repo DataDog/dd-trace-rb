@@ -81,7 +81,7 @@ module Datadog
                 "Profiling was not started as another profiler or gem is already using the SIGPROF signal. " \
                 "Please disable the other profiler to use Datadog profiling."
               )
-              on_failure_proc&.call
+              on_failure_proc&.call(log_failure: false)
             rescue Exception => e # rubocop:disable Lint/RescueException
               @failure_exception = e
               operation_name = self.class._native_failure_exception_during_operation(self).inspect

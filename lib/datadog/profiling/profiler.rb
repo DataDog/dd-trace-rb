@@ -27,7 +27,11 @@ module Datadog
           scheduler.reset_after_fork
         end
 
-        worker.start(on_failure_proc: proc { component_failed(:worker) })
+        worker.start(
+          on_failure_proc: proc do |log_failure: true|
+            component_failed(:worker, log_failure: log_failure)
+          end
+        )
         scheduler.start(on_failure_proc: proc { component_failed(:scheduler) })
       end
 
@@ -50,13 +54,15 @@ module Datadog
         scheduler.stop(true)
       end
 
-      def component_failed(failed_component)
-        Datadog.logger.warn(
-          "Detected issue with profiler (#{failed_component} component), stopping profiling. " \
-          "See previous log messages for details."
-        )
-        Datadog::Core::Telemetry::Logger
-          .error("Detected issue with profiler (#{failed_component} component), stopping profiling")
+      def component_failed(failed_component, log_failure: true)
+        if log_failure
+          Datadog.logger.warn(
+            "Detected issue with profiler (#{failed_component} component), stopping profiling. " \
+            "See previous log messages for details."
+          )
+          Datadog::Core::Telemetry::Logger
+            .error("Detected issue with profiler (#{failed_component} component), stopping profiling")
+        end
 
         if failed_component == :worker
           scheduler.disable_reporting
