@@ -12,11 +12,11 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
   end
   let(:default_configuration) do
     [
-      # ['DD_AGENT_HOST', '1.2.3.4'], # not reported by default
-      # ['DD_TRACE_SAMPLE_RATE', '0.5'], # not reported by default
-      ['DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED', false],
-      ['DD_TRACE_DEBUG', false],
-      ['DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED', false],
+      # ['agent.host', '1.2.3.4'], # not reported by default
+      # ['tracing.sampling.default_rate', '0.5'], # not reported by default
+      ['tracing.contrib.global_default_service_name.enabled', false],
+      ['diagnostics.debug', false],
+      ['tracing.contrib.peer_service_defaults', false],
       ['DD_TRACE_PEER_SERVICE_MAPPING', ''],
       ['dynamic_instrumentation.enabled', false],
       ['logger.level', 1],
@@ -151,19 +151,19 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
 
       it 'reports OpenTelemetry configurations with environment variable names' do
         expect(event.payload[:configuration]).to include(
-          {name: 'OTEL_EXPORTER_OTLP_ENDPOINT', origin: 'env_var', seq_id: id, value: 'http://otel:4317'},
+          {name: 'opentelemetry.exporter.endpoint', origin: 'env_var', seq_id: id, value: 'http://otel:4317'},
           {name: 'OTEL_EXPORTER_OTLP_HEADERS', origin: 'env_var', seq_id: id, value: 'key1=value1,key2=value2'},
-          {name: 'OTEL_EXPORTER_OTLP_PROTOCOL', origin: 'env_var', seq_id: id, value: 'http/protobuf'},
-          {name: 'OTEL_EXPORTER_OTLP_TIMEOUT', origin: 'env_var', seq_id: id, value: 5000},
-          {name: 'DD_METRICS_OTEL_ENABLED', origin: 'env_var', seq_id: id, value: true},
-          {name: 'OTEL_METRICS_EXPORTER', origin: 'env_var', seq_id: id, value: 'otlp'},
-          {name: 'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT', origin: 'env_var', seq_id: id, value: 'http://metrics:4318'},
+          {name: 'opentelemetry.exporter.protocol', origin: 'env_var', seq_id: id, value: 'http/protobuf'},
+          {name: 'opentelemetry.exporter.timeout_millis', origin: 'env_var', seq_id: id, value: 5000},
+          {name: 'opentelemetry.metrics.enabled', origin: 'env_var', seq_id: id, value: true},
+          {name: 'opentelemetry.metrics.exporter', origin: 'env_var', seq_id: id, value: 'otlp'},
+          {name: 'opentelemetry.metrics.endpoint', origin: 'env_var', seq_id: id, value: 'http://metrics:4318'},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_HEADERS', origin: 'env_var', seq_id: id, value: 'metrics_key=metrics_value'},
-          {name: 'OTEL_EXPORTER_OTLP_METRICS_PROTOCOL', origin: 'env_var', seq_id: id, value: 'http/protobuf'},
-          {name: 'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT', origin: 'env_var', seq_id: id, value: 3000},
-          {name: 'OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE', origin: 'env_var', seq_id: id, value: 'cumulative'},
-          {name: 'OTEL_METRIC_EXPORT_INTERVAL', origin: 'env_var', seq_id: id, value: 4000},
-          {name: 'OTEL_METRIC_EXPORT_TIMEOUT', origin: 'env_var', seq_id: id, value: 2000},
+          {name: 'opentelemetry.metrics.protocol', origin: 'env_var', seq_id: id, value: 'http/protobuf'},
+          {name: 'opentelemetry.metrics.timeout_millis', origin: 'env_var', seq_id: id, value: 3000},
+          {name: 'opentelemetry.metrics.temporality_preference', origin: 'env_var', seq_id: id, value: 'cumulative'},
+          {name: 'opentelemetry.metrics.export_interval_millis', origin: 'env_var', seq_id: id, value: 4000},
+          {name: 'opentelemetry.metrics.export_timeout_millis', origin: 'env_var', seq_id: id, value: 2000},
         )
       end
     end
@@ -172,8 +172,8 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       it 'reports default configuration' do
         expect(event.payload[:configuration]).to include(*default_configuration.map { |name, value| {name: name, origin: 'default', seq_id: id, value: value} })
         expect(event.payload[:configuration]).to_not include(
-          hash_including(name: 'DD_AGENT_HOST'),
-          hash_including(name: 'DD_TRACE_SAMPLE_RATE'),
+          hash_including(name: 'agent.host'),
+          hash_including(name: 'tracing.sampling.default_rate'),
           hash_including(name: 'tracing.analytics.enabled'),
           hash_including(name: 'tracing.writer_options.buffer_size'),
           hash_including(name: 'tracing.writer_options.flush_interval'),
@@ -203,9 +203,9 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
 
       it 'reports set configuration' do
         expect(event.payload[:configuration]).to include(
-          {name: 'DD_AGENT_HOST', origin: 'code', seq_id: id, value: '1.2.3.4'},
-          {name: 'DD_TRACE_SAMPLE_RATE', origin: 'code', seq_id: id, value: '0.5'},
-          {name: 'DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED', origin: 'code', seq_id: id, value: true},
+          {name: 'agent.host', origin: 'code', seq_id: id, value: '1.2.3.4'},
+          {name: 'tracing.sampling.default_rate', origin: 'code', seq_id: id, value: '0.5'},
+          {name: 'tracing.contrib.global_default_service_name.enabled', origin: 'code', seq_id: id, value: true},
           {name: 'DD_TRACE_PEER_SERVICE_MAPPING', origin: 'code', seq_id: id, value: 'foo:bar'},
           {name: 'tracing.analytics.enabled', origin: 'code', seq_id: id, value: true},
           {name: 'tracing.writer_options.buffer_size', origin: 'code', seq_id: id, value: 123},
