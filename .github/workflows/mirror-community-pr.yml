@@ -53,7 +53,7 @@ jobs:
       - name: Set workflow dispatch permission
         if: github.event_name == 'workflow_dispatch'
         id: check-dispatch
-        run: echo "has-permission=true" >> $GITHUB_OUTPUT
+        run: echo "has-permission=true" >> "$GITHUB_OUTPUT"
 
       - name: Parse command
         id: parse
@@ -101,13 +101,15 @@ jobs:
           PR_LABELS=$(echo "$PR_DATA" | jq -r '[.labels[].name] | join(",") // empty')
           PR_BODY=$(echo "$PR_DATA" | jq -r '.body // empty')
 
-          echo "fork-owner=$FORK_OWNER" >> $GITHUB_OUTPUT
-          echo "fork-repo=$FORK_REPO" >> $GITHUB_OUTPUT
-          echo "fork-branch=$FORK_BRANCH" >> $GITHUB_OUTPUT
-          echo "base-branch=$BASE_BRANCH" >> $GITHUB_OUTPUT
-          echo "pr-title=$PR_TITLE" >> $GITHUB_OUTPUT
-          echo "pr-author=$PR_AUTHOR" >> $GITHUB_OUTPUT
-          echo "pr-labels=$PR_LABELS" >> $GITHUB_OUTPUT
+          {
+            echo "fork-owner=$FORK_OWNER"
+            echo "fork-repo=$FORK_REPO"
+            echo "fork-branch=$FORK_BRANCH"
+            echo "base-branch=$BASE_BRANCH"
+            echo "pr-title=$PR_TITLE"
+            echo "pr-author=$PR_AUTHOR"
+            echo "pr-labels=$PR_LABELS"
+          } >> "$GITHUB_OUTPUT"
 
           # Save PR body to file to handle multiline content
           echo "$PR_BODY" > /tmp/pr_body.txt
@@ -261,7 +263,7 @@ jobs:
           if [ -n "$EXISTING_PR" ]; then
             echo "Updating existing mirror PR: #$EXISTING_PR"
             gh pr edit "$EXISTING_PR" --repo "$REPO" --title "$MIRROR_PR_TITLE" --body-file /tmp/mirror_pr_body.txt
-            echo "mirror-pr-number=$EXISTING_PR" >> $GITHUB_OUTPUT
+            echo "mirror-pr-number=$EXISTING_PR" >> "$GITHUB_OUTPUT"
           else
             echo "Creating new mirror PR"
             CREATE_ARGS=(--repo "$REPO" --base "$BASE_BRANCH" --head "$MIRROR_BRANCH" --title "$MIRROR_PR_TITLE" --body-file /tmp/mirror_pr_body.txt)
@@ -270,7 +272,7 @@ jobs:
             fi
             MIRROR_PR_NUMBER=$(gh pr create "${CREATE_ARGS[@]}" | grep -o '[0-9]*$')
             echo "Created mirror PR: #$MIRROR_PR_NUMBER"
-            echo "mirror-pr-number=$MIRROR_PR_NUMBER" >> $GITHUB_OUTPUT
+            echo "mirror-pr-number=$MIRROR_PR_NUMBER" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Comment on original PR
