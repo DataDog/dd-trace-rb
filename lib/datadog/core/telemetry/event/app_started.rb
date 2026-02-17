@@ -93,6 +93,7 @@ module Datadog
             tracing.sampling.default_rate
             tracing.contrib.global_default_service_name.enabled
             tracing.contrib.peer_service_defaults
+            tracing.contrib.peer_service_mapping
             diagnostics.debug
             opentelemetry.exporter.endpoint
             opentelemetry.exporter.protocol
@@ -153,18 +154,6 @@ module Datadog
               )
             )
 
-            peer_service_mapping_str = ''
-            unless settings.tracing.contrib.peer_service_mapping.empty?
-              peer_service_mapping = settings.tracing.contrib.peer_service_mapping
-              peer_service_mapping_str = peer_service_mapping.map { |key, value| "#{key}:#{value}" }.join(',')
-            end
-            list << conf_value(
-              'DD_TRACE_PEER_SERVICE_MAPPING',
-              peer_service_mapping_str,
-              seq_id,
-              get_telemetry_origin(settings, 'tracing.contrib.peer_service_mapping')
-            )
-
             # OpenTelemetry configuration options (using environment variable names)
             otel_exporter_headers_string = settings.opentelemetry.exporter.headers&.map { |key, value| "#{key}=#{value}" }&.join(',')
             otel_exporter_metrics_headers_string = settings.opentelemetry.metrics.headers&.map { |key, value| "#{key}=#{value}" }&.join(',')
@@ -175,13 +164,7 @@ module Datadog
 
             # Whitelist of configuration options to send in additional payload object
             TARGET_OPTIONS.each do |option_path|
-              split_option = option_path.split('.')
-              list << conf_value(
-                option_path,
-                to_value(settings.dig(*split_option)),
-                seq_id,
-                get_telemetry_origin(settings, option_path)
-              )
+              list.push(*get_telemetry_payload(settings, option_path))
             end
 
             instrumentation_source = if Datadog.const_defined?(:SingleStepInstrument, false) &&
@@ -208,26 +191,11 @@ module Datadog
               )
             end
             if settings.respond_to?('appsec')
-              list << conf_value(
-                'appsec.enabled',
-                settings.dig('appsec', 'enabled'),
-                seq_id,
-                get_telemetry_origin(settings, 'appsec.enabled')
-              )
-              list << conf_value(
-                'appsec.sca_enabled',
-                settings.dig('appsec', 'sca_enabled'),
-                seq_id,
-                get_telemetry_origin(settings, 'appsec.sca_enabled')
-              )
+              list.push(*get_telemetry_payload(settings, 'appsec.enabled'))
+              list.push(*get_telemetry_payload(settings, 'appsec.sca_enabled'))
             end
             if settings.respond_to?('ci')
-              list << conf_value(
-                'ci.enabled',
-                settings.dig('ci', 'enabled'),
-                seq_id,
-                get_telemetry_origin(settings, 'ci.enabled')
-              )
+              list.push(*get_telemetry_payload(settings, 'ci.enabled'))
             end
 
             list.reject! { |entry| entry[:value].nil? }
@@ -297,6 +265,18 @@ module Datadog
             parent_setting = settings.dig(*split_option)
             option = parent_setting.send(:resolve_option, option_name.to_sym)
             option.precedence_set&.origin || 'unknown'
+          end
+
+          def get_telemetry_payload(settings, config_path)
+            split_option = config_path.split('.')
+            option_name = split_option.pop
+            return [] if option_name.nil?
+
+            # @type var parent_setting: Core::Configuration::Options
+            # @type var option: Core::Configuration::Option
+            parent_setting = settings.dig(*split_option)
+            option = parent_setting.send(:resolve_option, option_name.to_sym)
+            option.telemetry_payload
           end
         end
       end

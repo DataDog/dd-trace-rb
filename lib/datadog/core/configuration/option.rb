@@ -177,7 +177,43 @@ module Datadog
           precedence_set == Precedence::DEFAULT
         end
 
+        def telemetry_payload
+          name = if @definition.env
+            # Steep: https://github.com/soutaro/steep/issues/477
+            @definition.env.downcase.sub(/^dd_/, '') # steep:ignore NoMethod
+          else
+            @definition.name.to_s
+          end
+          # value_per_precedence is only filled after we call `get` once.
+          get
+          @value_per_precedence.each_with_object([]) do |(precedence, value), arr|
+            # For now. let's send an already normalized name, but later we should be able to simply send the env var.
+            result = {name: name, value: to_telemetry_value(value), origin: precedence.origin, seq_id: precedence.numeric + 1}
+            if precedence.origin == 'fleet_stable_config'
+              fleet_id = Core::Configuration::StableConfig.configuration.dig(:fleet, :id)
+              result[:config_id] = fleet_id if fleet_id
+            elsif precedence.origin == 'local_stable_config'
+              local_id = Core::Configuration::StableConfig.configuration.dig(:local, :id)
+              result[:config_id] = local_id if local_id
+            end
+            arr << result
+          end
+        end
+
         private
+
+        def to_telemetry_value(value)
+          case value
+          when Integer, String, true, false, nil
+            value
+          when Hash
+            value.map { |key, value| "#{key}:#{value}" }.join(',')
+          when Array
+            value.join(',')
+          else
+            value.to_s
+          end
+        end
 
         def coerce_env_variable(value)
           env_parser = @definition.env_parser
