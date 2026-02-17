@@ -327,13 +327,11 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
   context 'probe status payload when circuit breaker triggers' do
     # Need to add additional settings mocks for ProbeNotificationBuilder
     before do
-      allow(settings).to receive(
-        service: 'rspec',
-        env: 'test',
-        tags: {},
-        version: '1.0',
-        experimental_propagate_process_tags_enabled: false
-      )
+      allow(settings).to receive(:service).and_return('rspec')
+      allow(settings).to receive(:env).and_return('test')
+      allow(settings).to receive(:tags).and_return({})
+      allow(settings).to receive(:version).and_return('1.0')
+      allow(settings).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
       # di_logger_double only stubs trace, but ProbeManager also calls debug
       allow(logger).to receive(:debug)
     end
