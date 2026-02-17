@@ -23,7 +23,7 @@ jobs:
       github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-22.04
     outputs:
-      has-permission: ${{ steps.check.outputs.has-permission }}
+      has-permission: ${{ steps.check.outputs.has-permission || steps.check-dispatch.outputs.has-permission }}
       pr-number: ${{ steps.parse.outputs.pr-number }}
       rebase: ${{ steps.parse.outputs.rebase }}
     steps:
@@ -52,7 +52,7 @@ jobs:
 
       - name: Set workflow dispatch permission
         if: github.event_name == 'workflow_dispatch'
-        id: check
+        id: check-dispatch
         run: echo "has-permission=true" >> $GITHUB_OUTPUT
 
       - name: Parse command
