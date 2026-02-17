@@ -217,7 +217,7 @@ module Datadog
         # Note: The Go DI implementation does not send the top-level message
         # field at all when sending error statuses.
         if status == 'ERROR'
-          diagnostics[:exception] = {
+          diagnostics[:exception] = { # steep:ignore
             type: exception ? exception.class.name : 'Error',
             message: exception ? exception.message : message
           }
