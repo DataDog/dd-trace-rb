@@ -13,32 +13,32 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
   let(:default_configuration) do
     [
       # ['agent.host', '1.2.3.4'], # not reported by default
-      # ['tracing.sampling.default_rate', '0.5'], # not reported by default
-      ['tracing.contrib.global_default_service_name.enabled', false],
-      ['diagnostics.debug', false],
-      ['tracing.contrib.peer_service_defaults', false],
-      ['DD_TRACE_PEER_SERVICE_MAPPING', ''],
-      ['dynamic_instrumentation.enabled', false],
+      # ['trace_sample_rate', '0.5'], # not reported by default
+      ['trace_remove_integration_service_names_enabled', false],
+      ['trace_debug', false],
+      ['trace_peer_service_defaults_enabled', false],
+      ['trace_peer_service_mapping', ''],
+      ['dynamic_instrumentation_enabled', false],
       ['logger.level', 1],
       ['profiling.advanced.code_provenance_enabled', true],
-      ['profiling.advanced.endpoint.collection.enabled', true],
-      ['profiling.enabled', false],
-      ['runtime_metrics.enabled', false],
-      # ['tracing.analytics.enabled', true], # not reported by default
-      ['tracing.propagation_style_extract', '["datadog", "tracecontext", "baggage"]'],
-      ['tracing.propagation_style_inject', '["datadog", "tracecontext", "baggage"]'],
-      ['tracing.enabled', true],
-      ['tracing.log_injection', true],
+      ['profiling_endpoint_collection_enabled', true],
+      ['profiling_enabled', false],
+      ['runtime_metrics_enabled', false],
+      # ['trace_analytics_enabled', true], # not reported by default
+      ['trace_propagation_style_extract', 'datadog,tracecontext,baggage'],
+      ['trace_propagation_style_inject', 'datadog,tracecontext,baggage'],
+      ['trace_enabled', true],
+      ['logs_injection', true],
       ['tracing.partial_flush.enabled', false],
       ['tracing.partial_flush.min_spans_threshold', 500],
-      ['tracing.report_hostname', false],
-      ['tracing.sampling.rate_limit', 100],
+      ['trace_report_hostname', false],
+      ['trace_rate_limit', 100],
       # ['tracing.writer_options.buffer_size', 123], # not reported by default
       # ['tracing.writer_options.flush_interval', 456], # not reported by default
       # ['logger.instance', 'MyLogger'], # not reported by default
-      ['appsec.enabled', false],
-      # ['appsec.sca_enabled', false], # not reported by default
-      ['apm.tracing.enabled', true]
+      ['appsec_enabled', false],
+      # ['appsec_sca_enabled', false], # not reported by default
+      ['apm_tracing_enabled', true]
     ].freeze
   end
   let(:expected_install_signature) do
@@ -151,34 +151,34 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
 
       it 'reports OpenTelemetry configurations with environment variable names' do
         expect(event.payload[:configuration]).to include(
-          {name: 'opentelemetry.exporter.endpoint', origin: 'env_var', seq_id: id, value: 'http://otel:4317'},
+          {name: 'otel_exporter_otlp_endpoint', origin: 'env_var', seq_id: 3, value: 'http://otel:4317'},
           {name: 'OTEL_EXPORTER_OTLP_HEADERS', origin: 'env_var', seq_id: id, value: 'key1=value1,key2=value2'},
-          {name: 'opentelemetry.exporter.protocol', origin: 'env_var', seq_id: id, value: 'http/protobuf'},
-          {name: 'opentelemetry.exporter.timeout_millis', origin: 'env_var', seq_id: id, value: 5000},
-          {name: 'opentelemetry.metrics.enabled', origin: 'env_var', seq_id: id, value: true},
-          {name: 'opentelemetry.metrics.exporter', origin: 'env_var', seq_id: id, value: 'otlp'},
-          {name: 'opentelemetry.metrics.endpoint', origin: 'env_var', seq_id: id, value: 'http://metrics:4318'},
+          {name: 'otel_exporter_otlp_protocol', origin: 'env_var', seq_id: 3, value: 'http/protobuf'},
+          {name: 'otel_exporter_otlp_timeout', origin: 'env_var', seq_id: 3, value: 5000},
+          {name: 'metrics_otel_enabled', origin: 'env_var', seq_id: 3, value: true},
+          {name: 'otel_metrics_exporter', origin: 'env_var', seq_id: 3, value: 'otlp'},
+          {name: 'otel_exporter_otlp_metrics_endpoint', origin: 'env_var', seq_id: 3, value: 'http://metrics:4318'},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_HEADERS', origin: 'env_var', seq_id: id, value: 'metrics_key=metrics_value'},
-          {name: 'opentelemetry.metrics.protocol', origin: 'env_var', seq_id: id, value: 'http/protobuf'},
-          {name: 'opentelemetry.metrics.timeout_millis', origin: 'env_var', seq_id: id, value: 3000},
-          {name: 'opentelemetry.metrics.temporality_preference', origin: 'env_var', seq_id: id, value: 'cumulative'},
-          {name: 'opentelemetry.metrics.export_interval_millis', origin: 'env_var', seq_id: id, value: 4000},
-          {name: 'opentelemetry.metrics.export_timeout_millis', origin: 'env_var', seq_id: id, value: 2000},
+          {name: 'otel_exporter_otlp_metrics_protocol', origin: 'env_var', seq_id: 3, value: 'http/protobuf'},
+          {name: 'otel_exporter_otlp_metrics_timeout', origin: 'env_var', seq_id: 3, value: 3000},
+          {name: 'otel_exporter_otlp_metrics_temporality_preference', origin: 'env_var', seq_id: 3, value: 'cumulative'},
+          {name: 'otel_metric_export_interval', origin: 'env_var', seq_id: 3, value: 4000},
+          {name: 'otel_metric_export_timeout', origin: 'env_var', seq_id: 3, value: 2000},
         )
       end
     end
 
     context 'with default configuration' do
       it 'reports default configuration' do
-        expect(event.payload[:configuration]).to include(*default_configuration.map { |name, value| {name: name, origin: 'default', seq_id: id, value: value} })
+        expect(event.payload[:configuration]).to include(*default_configuration.map { |name, value| {name: name, origin: 'default', seq_id: 1, value: value} })
         expect(event.payload[:configuration]).to_not include(
           hash_including(name: 'agent.host'),
-          hash_including(name: 'tracing.sampling.default_rate'),
-          hash_including(name: 'tracing.analytics.enabled'),
+          hash_including(name: 'trace_sample_rate'),
+          hash_including(name: 'trace_analytics_enabled'),
           hash_including(name: 'tracing.writer_options.buffer_size'),
           hash_including(name: 'tracing.writer_options.flush_interval'),
           hash_including(name: 'logger.instance'),
-          hash_including(name: 'appsec.sca_enabled'),
+          hash_including(name: 'appsec_sca_enabled'),
         )
       end
     end
@@ -203,16 +203,16 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
 
       it 'reports set configuration' do
         expect(event.payload[:configuration]).to include(
-          {name: 'agent.host', origin: 'code', seq_id: id, value: '1.2.3.4'},
-          {name: 'tracing.sampling.default_rate', origin: 'code', seq_id: id, value: '0.5'},
-          {name: 'tracing.contrib.global_default_service_name.enabled', origin: 'code', seq_id: id, value: true},
-          {name: 'DD_TRACE_PEER_SERVICE_MAPPING', origin: 'code', seq_id: id, value: 'foo:bar'},
-          {name: 'tracing.analytics.enabled', origin: 'code', seq_id: id, value: true},
+          {name: 'agent.host', origin: 'code', seq_id: 5, value: '1.2.3.4'},
+          {name: 'trace_sample_rate', origin: 'code', seq_id: 5, value: '0.5'},
+          {name: 'trace_remove_integration_service_names_enabled', origin: 'code', seq_id: 5, value: true},
+          {name: 'trace_peer_service_mapping', origin: 'code', seq_id: 5, value: 'foo:bar'},
+          {name: 'trace_analytics_enabled', origin: 'code', seq_id: 5, value: true},
           {name: 'tracing.writer_options.buffer_size', origin: 'code', seq_id: id, value: 123},
           {name: 'tracing.writer_options.flush_interval', origin: 'code', seq_id: id, value: 456},
           {name: 'logger.instance', origin: 'code', seq_id: id, value: 'MyLogger'},
-          {name: 'logger.level', origin: 'code', seq_id: id, value: 0},
-          {name: 'appsec.sca_enabled', origin: 'code', seq_id: id, value: false},
+          {name: 'logger.level', origin: 'code', seq_id: 5, value: 0},
+          {name: 'appsec_sca_enabled', origin: 'code', seq_id: 5, value: false},
           {name: 'instrumentation_source', origin: 'code', seq_id: id, value: 'manual'},
           {name: 'DD_INJECT_FORCE', origin: 'env_var', seq_id: id, value: false},
           {name: 'DD_INJECTION_ENABLED', origin: 'env_var', seq_id: id, value: ''},
@@ -233,8 +233,8 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
 
         it 'reports config id' do
           expect(event.payload[:configuration]).to include(
-            {name: 'appsec.enabled', origin: 'fleet_stable_config', seq_id: id, value: true, config_id: '12345'},
-            {name: 'tracing.log_injection', origin: 'local_stable_config', seq_id: id, value: false, config_id: '56789'},
+            {name: 'appsec_enabled', origin: 'fleet_stable_config', seq_id: 4, value: true, config_id: '12345'},
+            {name: 'logs_injection', origin: 'local_stable_config', seq_id: 2, value: false, config_id: '56789'},
           )
         end
 
@@ -250,8 +250,8 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
 
           it 'does not report config id' do
             expect(event.payload[:configuration]).to include(
-              {name: 'appsec.enabled', origin: 'fleet_stable_config', seq_id: id, value: true},
-              {name: 'tracing.log_injection', origin: 'local_stable_config', seq_id: id, value: false},
+              {name: 'appsec_enabled', origin: 'fleet_stable_config', seq_id: 4, value: true},
+              {name: 'logs_injection', origin: 'local_stable_config', seq_id: 2, value: false},
             )
           end
         end
