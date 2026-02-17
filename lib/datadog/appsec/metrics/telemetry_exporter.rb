@@ -28,8 +28,14 @@ module Datadog
           web_framework = context_state[:web_framework]
           return unless web_framework
 
-          metric_name = context_state[:schema_extracted] ? 'schema' : 'no_schema'
+          if context_state[:missing_route]
+            AppSec.telemetry.inc(
+              AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'api_security.missing_route', 1,
+              tags: {framework: web_framework}
+            )
+          end
 
+          metric_name = context_state[:schema_extracted] ? 'schema' : 'no_schema'
           AppSec.telemetry.inc(
             AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "api_security.request.#{metric_name}", 1,
             tags: {framework: web_framework}

@@ -6,7 +6,7 @@ require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/processor/rule_loader'
 
 RSpec.describe Datadog::AppSec::Context do
-  let(:span) { instance_double(Datadog::Tracing::SpanOperation) }
+  let(:span) { Datadog::Tracing::SpanOperation.new('root') }
   let(:trace) { instance_double(Datadog::Tracing::TraceOperation) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:settings) do
@@ -268,6 +268,48 @@ RSpec.describe Datadog::AppSec::Context do
         expect(Datadog::AppSec::Metrics::TelemetryExporter).not_to receive(:export_api_security_metrics)
 
         context.export_request_telemetry
+      end
+    end
+
+    context 'when span has http.route tag' do
+      before do
+        span.set_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE, '/users/:id')
+        allow(Datadog::AppSec::Metrics::TelemetryExporter).to receive(:export_waf_request_metrics)
+        allow(Datadog::AppSec::Metrics::TelemetryExporter).to receive(:export_api_security_metrics)
+      end
+
+      it 'sets missing_route state to false' do
+        context.export_request_telemetry
+
+        expect(context.state[:missing_route]).to be false
+      end
+    end
+
+    context 'when span does not have http.route tag' do
+      before do
+        allow(Datadog::AppSec::Metrics::TelemetryExporter).to receive(:export_waf_request_metrics)
+        allow(Datadog::AppSec::Metrics::TelemetryExporter).to receive(:export_api_security_metrics)
+      end
+
+      it 'sets missing_route state to true' do
+        context.export_request_telemetry
+
+        expect(context.state[:missing_route]).to be true
+      end
+    end
+
+    context 'when span is nil' do
+      let(:context) { described_class.new(trace, nil, waf_runner) }
+
+      before do
+        allow(Datadog::AppSec::Metrics::TelemetryExporter).to receive(:export_waf_request_metrics)
+        allow(Datadog::AppSec::Metrics::TelemetryExporter).to receive(:export_api_security_metrics)
+      end
+
+      it 'sets missing_route state to true' do
+        context.export_request_telemetry
+
+        expect(context.state[:missing_route]).to be true
       end
     end
   end

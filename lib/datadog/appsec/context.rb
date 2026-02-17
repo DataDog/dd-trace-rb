@@ -121,6 +121,8 @@ module Datadog
       def export_request_telemetry
         return if @trace.nil?
 
+        @state[:missing_route] = @span&.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE).nil?
+
         Metrics::TelemetryExporter.export_waf_request_metrics(@metrics.waf, self)
         Metrics::TelemetryExporter.export_api_security_metrics(@state)
       end
