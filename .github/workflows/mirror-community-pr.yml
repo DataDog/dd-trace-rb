@@ -14,6 +14,9 @@ on: # yamllint disable-line rule:truthy
         type: boolean
         default: false
 
+# Default permissions for all jobs
+permissions: {}
+
 jobs:
   check-permissions:
     if: |
@@ -22,6 +25,10 @@ jobs:
        (startsWith(github.event.comment.body, '/mirror-rebase') || startsWith(github.event.comment.body, '/mirror'))) ||
       github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
     outputs:
       has-permission: ${{ steps.check.outputs.has-permission || steps.check-dispatch.outputs.has-permission }}
       pr-number: ${{ steps.parse.outputs.pr-number }}
