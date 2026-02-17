@@ -1663,7 +1663,7 @@
     ],
     "DD_TRACE_PARTIAL_FLUSH_MIN_SPANS": [
       {
-        "version": "A",
+        "version": "C",
         "type": "int",
         "default": "500"
       }
