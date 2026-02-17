@@ -188,13 +188,33 @@ RSpec.describe Datadog::AppSec::Context do
     end
   end
 
-  describe '#extract_schema' do
-    it 'calls the waf runner with specific addresses' do
+  describe '#extract_schema!' do
+    it 'calls waf runner with correct addresses and stores new security event' do
       expect_any_instance_of(Datadog::AppSec::SecurityEngine::Runner).to receive(:run)
         .with({'waf.context.processor' => {'extract-schema' => true}}, {})
         .and_call_original
 
-      expect(context.extract_schema).to be_instance_of(Datadog::AppSec::SecurityEngine::Result::Ok)
+      expect { context.extract_schema! }.to change { context.events.count }.by(1)
+    end
+
+    context 'when created security event has a schema' do
+      before do
+        allow_any_instance_of(Datadog::AppSec::SecurityEvent).to receive(:schema?).and_return(true)
+      end
+
+      it 'sets schema_extracted attribute in state to true' do
+        expect { context.extract_schema! }.to change { context.state[:schema_extracted] }.from(nil).to(true)
+      end
+    end
+
+    context 'when created security event has no schema' do
+      before do
+        allow_any_instance_of(Datadog::AppSec::SecurityEvent).to receive(:schema?).and_return(false)
+      end
+
+      it 'sets schema_extracted attribute in state to false' do
+        expect { context.extract_schema! }.to change { context.state[:schema_extracted] }.from(nil).to(false)
+      end
     end
   end
 
@@ -235,6 +255,7 @@ RSpec.describe Datadog::AppSec::Context do
   describe '#export_request_telemetry' do
     it 'calls telemetry exporter' do
       expect(Datadog::AppSec::Metrics::TelemetryExporter).to receive(:export_waf_request_metrics).with(anything, context)
+      expect(Datadog::AppSec::Metrics::TelemetryExporter).to receive(:export_api_security_metrics)
 
       context.export_request_telemetry
     end
@@ -244,6 +265,7 @@ RSpec.describe Datadog::AppSec::Context do
 
       it 'does not call telemetry exporter' do
         expect(Datadog::AppSec::Metrics::TelemetryExporter).not_to receive(:export_waf_request_metrics)
+        expect(Datadog::AppSec::Metrics::TelemetryExporter).not_to receive(:export_api_security_metrics)
 
         context.export_request_telemetry
       end

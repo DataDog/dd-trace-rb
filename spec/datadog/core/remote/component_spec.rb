@@ -61,6 +61,17 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
       component.shutdown!
     end
 
+    context 'logging' do
+      it 'logs client ID and registered products' do
+        expect(logger).to receive(:debug) do |&block|
+          message = block.call
+          expect(message).to match(/new remote configuration client: [0-9a-f-]+/)
+          expect(message).to match(/products:/)
+        end
+        component
+      end
+    end
+
     context 'worker' do
       let(:worker) { component.instance_eval { @worker } }
       let(:client) { double }
@@ -235,7 +246,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
       expect { after_fork }.to change { component.healthy }.from(true).to(false)
     end
 
-    it 'logs the new client ID' do
+    it 'logs the new client ID and products' do
       # Allow the initial debug message during component initialization
       allow(logger).to receive(:debug)
 
@@ -244,7 +255,9 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
 
       # Now expect the after_fork debug message
       expect(logger).to receive(:debug) do |&block|
-        expect(block.call).to match(/remote configuration client recreated after fork: [0-9a-f-]+/)
+        message = block.call
+        expect(message).to match(/remote configuration client recreated after fork: [0-9a-f-]+/)
+        expect(message).to match(/products:/)
       end
       after_fork
     end

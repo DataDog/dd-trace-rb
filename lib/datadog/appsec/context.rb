@@ -2,6 +2,7 @@
 
 require_relative 'counter_sampler'
 require_relative 'metrics'
+require_relative 'security_event'
 
 module Datadog
   module AppSec
@@ -101,8 +102,13 @@ module Datadog
         @waf_runner.waf_addresses
       end
 
-      def extract_schema
-        @waf_runner.run({'waf.context.processor' => {'extract-schema' => true}}, {})
+      def extract_schema!
+        waf_result = @waf_runner.run({'waf.context.processor' => {'extract-schema' => true}}, {})
+        security_event = AppSec::SecurityEvent.new(waf_result, trace: trace, span: span)
+
+        @state[:schema_extracted] = security_event.schema?
+
+        events.push(security_event)
       end
 
       def export_metrics
@@ -116,6 +122,7 @@ module Datadog
         return if @trace.nil?
 
         Metrics::TelemetryExporter.export_waf_request_metrics(@metrics.waf, self)
+        Metrics::TelemetryExporter.export_api_security_metrics(@state)
       end
 
       def finalize!
