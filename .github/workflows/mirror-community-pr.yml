@@ -231,39 +231,43 @@ jobs:
 
           MIRROR_PR_TITLE="[IGNORE] 🪞 #$PR_NUMBER - $PR_TITLE"
 
-          # Read original PR body from file
-          ORIGINAL_PR_BODY=$(cat /tmp/pr_body.txt)
-
           # Build mirror PR body with original description
-          MIRROR_PR_BODY="This PR mirrors the changes from the original community contribution to enable CI testing with maintainer privileges.
+          cat > /tmp/mirror_pr_body.txt <<'EOF'
+This PR mirrors the changes from the original community contribution to enable CI testing with maintainer privileges.
+EOF
 
-          **Original PR:** https://github.com/${{ github.repository }}/pull/$PR_NUMBER
-          **Original Author:** @$PR_AUTHOR
-          **Original Branch:** $FORK_OWNER/$FORK_REPO:$FORK_BRANCH
-          **Mirror Type:** $MIRROR_TYPE
+          cat >> /tmp/mirror_pr_body.txt <<EOF
 
-          Closes #$PR_NUMBER
+**Original PR:** https://github.com/${{ github.repository }}/pull/$PR_NUMBER
+**Original Author:** @$PR_AUTHOR
+**Original Branch:** $FORK_OWNER/$FORK_REPO:$FORK_BRANCH
+**Mirror Type:** $MIRROR_TYPE
 
-          ---
+Closes #$PR_NUMBER
 
-          *This is an automated mirror created to run CI checks.*
+---
 
-          ---
+*This is an automated mirror created to run CI checks.*
 
-          ## Original PR Description
+---
 
-          $ORIGINAL_PR_BODY"
+## Original PR Description
+
+EOF
+
+          # Append original PR body
+          cat /tmp/pr_body.txt >> /tmp/mirror_pr_body.txt
 
           # Check if mirror PR exists
           EXISTING_PR=$(gh pr list --repo ${{ github.repository }} --head "$MIRROR_BRANCH" --json number --jq '.[0].number // empty' 2>/dev/null || echo "")
 
           if [ -n "$EXISTING_PR" ]; then
             echo "Updating existing mirror PR: #$EXISTING_PR"
-            gh pr edit "$EXISTING_PR" --repo ${{ github.repository }} --title "$MIRROR_PR_TITLE" --body "$MIRROR_PR_BODY"
+            gh pr edit "$EXISTING_PR" --repo ${{ github.repository }} --title "$MIRROR_PR_TITLE" --body-file /tmp/mirror_pr_body.txt
             echo "mirror-pr-number=$EXISTING_PR" >> $GITHUB_OUTPUT
           else
             echo "Creating new mirror PR"
-            CREATE_ARGS=(--repo ${{ github.repository }} --base "$BASE_BRANCH" --head "$MIRROR_BRANCH" --title "$MIRROR_PR_TITLE" --body "$MIRROR_PR_BODY")
+            CREATE_ARGS=(--repo ${{ github.repository }} --base "$BASE_BRANCH" --head "$MIRROR_BRANCH" --title "$MIRROR_PR_TITLE" --body-file /tmp/mirror_pr_body.txt)
             if [ -n "$PR_LABELS" ]; then
               CREATE_ARGS+=(--label "$PR_LABELS")
             fi
