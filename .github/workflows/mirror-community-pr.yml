@@ -90,7 +90,7 @@ jobs:
           PR_NUMBER="${{ needs.check-permissions.outputs.pr-number }}"
 
           # Get PR data
-          PR_DATA=$(gh pr view "$PR_NUMBER" --repo ${{ github.repository }} --json headRepository,headRepositoryOwner,headRefName,title,author,labels,baseRefName)
+          PR_DATA=$(gh pr view "$PR_NUMBER" --repo ${{ github.repository }} --json headRepository,headRepositoryOwner,headRefName,title,author,labels,baseRefName,body)
 
           FORK_OWNER=$(echo "$PR_DATA" | jq -r '.headRepositoryOwner.login // empty')
           FORK_REPO=$(echo "$PR_DATA" | jq -r '.headRepository.name // empty')
@@ -99,6 +99,7 @@ jobs:
           PR_TITLE=$(echo "$PR_DATA" | jq -r '.title // empty')
           PR_AUTHOR=$(echo "$PR_DATA" | jq -r '.author.login // empty')
           PR_LABELS=$(echo "$PR_DATA" | jq -r '[.labels[].name] | join(",") // empty')
+          PR_BODY=$(echo "$PR_DATA" | jq -r '.body // empty')
 
           echo "fork-owner=$FORK_OWNER" >> $GITHUB_OUTPUT
           echo "fork-repo=$FORK_REPO" >> $GITHUB_OUTPUT
@@ -107,6 +108,9 @@ jobs:
           echo "pr-title=$PR_TITLE" >> $GITHUB_OUTPUT
           echo "pr-author=$PR_AUTHOR" >> $GITHUB_OUTPUT
           echo "pr-labels=$PR_LABELS" >> $GITHUB_OUTPUT
+
+          # Save PR body to file to handle multiline content
+          echo "$PR_BODY" > /tmp/pr_body.txt
 
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -226,6 +230,11 @@ jobs:
           fi
 
           MIRROR_PR_TITLE="[IGNORE] 🪞 #$PR_NUMBER - $PR_TITLE"
+
+          # Read original PR body from file
+          ORIGINAL_PR_BODY=$(cat /tmp/pr_body.txt)
+
+          # Build mirror PR body with original description
           MIRROR_PR_BODY="This PR mirrors the changes from the original community contribution to enable CI testing with maintainer privileges.
 
           **Original PR:** https://github.com/${{ github.repository }}/pull/$PR_NUMBER
@@ -237,7 +246,13 @@ jobs:
 
           ---
 
-          *This is an automated mirror created to run CI checks.*"
+          *This is an automated mirror created to run CI checks.*
+
+          ---
+
+          ## Original PR Description
+
+          $ORIGINAL_PR_BODY"
 
           # Check if mirror PR exists
           EXISTING_PR=$(gh pr list --repo ${{ github.repository }} --head "$MIRROR_BRANCH" --json number --jq '.[0].number // empty' 2>/dev/null || echo "")
