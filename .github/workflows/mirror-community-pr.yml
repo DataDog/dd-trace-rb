@@ -1,0 +1,277 @@
+name: Mirror Community Pull Request
+
+on: # yamllint disable-line rule:truthy
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to mirror'
+        required: true
+        type: number
+      rebase:
+        description: 'Rebase and re-sign commits'
+        type: boolean
+        default: false
+
+jobs:
+  check-permissions:
+    if: |
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       (startsWith(github.event.comment.body, '/mirror-rebase') || startsWith(github.event.comment.body, '/mirror'))) ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-22.04
+    outputs:
+      has-permission: ${{ steps.check.outputs.has-permission }}
+      pr-number: ${{ steps.parse.outputs.pr-number }}
+      rebase: ${{ steps.parse.outputs.rebase }}
+    steps:
+      - name: Check commenter permission
+        if: github.event_name == 'issue_comment'
+        id: check
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const { data: permission } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username: context.actor
+            });
+            const hasPermission = ['admin', 'write'].includes(permission.permission);
+            core.setOutput('has-permission', hasPermission);
+            if (!hasPermission) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: '❌ Only maintainers and collaborators can use the /mirror command.'
+              });
+            }
+            return hasPermission;
+
+      - name: Set workflow dispatch permission
+        if: github.event_name == 'workflow_dispatch'
+        id: check
+        run: echo "has-permission=true" >> $GITHUB_OUTPUT
+
+      - name: Parse command
+        id: parse
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "pr-number=${{ inputs.pr_number }}" >> $GITHUB_OUTPUT
+            echo "rebase=${{ inputs.rebase }}" >> $GITHUB_OUTPUT
+          else
+            COMMENT="${{ github.event.comment.body }}"
+            echo "pr-number=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+            if [[ "$COMMENT" == "/mirror-rebase"* ]]; then
+              echo "rebase=true" >> $GITHUB_OUTPUT
+            else
+              echo "rebase=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+  mirror:
+    needs: check-permissions
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' && needs.check-permissions.outputs.has-permission == 'true')
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Get PR details
+        id: pr-details
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ needs.check-permissions.outputs.pr-number }}"
+
+          # Get PR data
+          PR_DATA=$(gh pr view "$PR_NUMBER" --repo ${{ github.repository }} --json headRepository,headRepositoryOwner,headRefName,title,author,labels,baseRefName)
+
+          FORK_OWNER=$(echo "$PR_DATA" | jq -r '.headRepositoryOwner.login // empty')
+          FORK_REPO=$(echo "$PR_DATA" | jq -r '.headRepository.name // empty')
+          FORK_BRANCH=$(echo "$PR_DATA" | jq -r '.headRefName // empty')
+          BASE_BRANCH=$(echo "$PR_DATA" | jq -r '.baseRefName // empty')
+          PR_TITLE=$(echo "$PR_DATA" | jq -r '.title // empty')
+          PR_AUTHOR=$(echo "$PR_DATA" | jq -r '.author.login // empty')
+          PR_LABELS=$(echo "$PR_DATA" | jq -r '[.labels[].name] | join(",") // empty')
+
+          echo "fork-owner=$FORK_OWNER" >> $GITHUB_OUTPUT
+          echo "fork-repo=$FORK_REPO" >> $GITHUB_OUTPUT
+          echo "fork-branch=$FORK_BRANCH" >> $GITHUB_OUTPUT
+          echo "base-branch=$BASE_BRANCH" >> $GITHUB_OUTPUT
+          echo "pr-title=$PR_TITLE" >> $GITHUB_OUTPUT
+          echo "pr-author=$PR_AUTHOR" >> $GITHUB_OUTPUT
+          echo "pr-labels=$PR_LABELS" >> $GITHUB_OUTPUT
+
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ steps.pr-details.outputs.base-branch }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch PR branch
+        run: |
+          FORK_OWNER="${{ steps.pr-details.outputs.fork-owner }}"
+          FORK_REPO="${{ steps.pr-details.outputs.fork-repo }}"
+          FORK_BRANCH="${{ steps.pr-details.outputs.fork-branch }}"
+
+          echo "Fetching from https://github.com/$FORK_OWNER/$FORK_REPO.git branch $FORK_BRANCH"
+          git fetch "https://github.com/$FORK_OWNER/$FORK_REPO.git" "$FORK_BRANCH"
+
+      - name: Create mirror branch (exact mode)
+        if: needs.check-permissions.outputs.rebase == 'false'
+        run: |
+          MIRROR_BRANCH="community-pr-${{ needs.check-permissions.outputs.pr-number }}"
+
+          # Delete local branch if exists
+          git branch -D "$MIRROR_BRANCH" 2>/dev/null || true
+
+          # Create mirror branch from fetched head
+          git checkout -b "$MIRROR_BRANCH" FETCH_HEAD
+
+          echo "Created exact mirror branch $MIRROR_BRANCH"
+
+      - name: Create mirror branch (rebase mode)
+        if: needs.check-permissions.outputs.rebase == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          MIRROR_BRANCH="community-pr-${{ needs.check-permissions.outputs.pr-number }}"
+          BASE_BRANCH="${{ steps.pr-details.outputs.base-branch }}"
+          PR_NUMBER="${{ needs.check-permissions.outputs.pr-number }}"
+
+          # Delete local branch if exists
+          git branch -D "$MIRROR_BRANCH" 2>/dev/null || true
+
+          # Create mirror branch from base
+          git checkout -b "$MIRROR_BRANCH" "origin/$BASE_BRANCH"
+
+          # Get commits from PR
+          echo "Getting commits from PR #$PR_NUMBER"
+          PR_COMMITS=$(gh pr view "$PR_NUMBER" --repo ${{ github.repository }} --json commits --jq '.commits[].oid')
+
+          if [ -z "$PR_COMMITS" ]; then
+            echo "❌ No commits found in PR #$PR_NUMBER"
+            exit 1
+          fi
+
+          # Cherry-pick each commit
+          for COMMIT in $PR_COMMITS; do
+            echo "Cherry-picking $COMMIT"
+            PARENT_COUNT=$(git rev-list --parents -n 1 "$COMMIT" 2>/dev/null | wc -w)
+            if [ "$PARENT_COUNT" -gt 2 ]; then
+              # Merge commit - use first parent
+              if ! git cherry-pick -m 1 "$COMMIT"; then
+                if ! git diff --cached --quiet || ! git diff --quiet; then
+                  echo "❌ Failed to cherry-pick merge commit $COMMIT"
+                  exit 1
+                else
+                  echo "Empty commit, skipping"
+                  git cherry-pick --skip
+                fi
+              fi
+            else
+              # Regular commit
+              if ! git cherry-pick "$COMMIT"; then
+                if ! git diff --cached --quiet || ! git diff --quiet; then
+                  echo "❌ Failed to cherry-pick commit $COMMIT"
+                  exit 1
+                else
+                  echo "Empty commit, skipping"
+                  git cherry-pick --skip
+                fi
+              fi
+            fi
+          done
+
+          echo "Created rebased mirror branch $MIRROR_BRANCH"
+
+      - name: Push mirror branch
+        run: |
+          MIRROR_BRANCH="community-pr-${{ needs.check-permissions.outputs.pr-number }}"
+          echo "Pushing $MIRROR_BRANCH to origin"
+          git push origin "$MIRROR_BRANCH" --force
+
+      - name: Create or update mirror PR
+        id: mirror-pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          MIRROR_BRANCH="community-pr-${{ needs.check-permissions.outputs.pr-number }}"
+          PR_NUMBER="${{ needs.check-permissions.outputs.pr-number }}"
+          BASE_BRANCH="${{ steps.pr-details.outputs.base-branch }}"
+          PR_TITLE="${{ steps.pr-details.outputs.pr-title }}"
+          PR_AUTHOR="${{ steps.pr-details.outputs.pr-author }}"
+          FORK_OWNER="${{ steps.pr-details.outputs.fork-owner }}"
+          FORK_REPO="${{ steps.pr-details.outputs.fork-repo }}"
+          FORK_BRANCH="${{ steps.pr-details.outputs.fork-branch }}"
+          PR_LABELS="${{ steps.pr-details.outputs.pr-labels }}"
+          REBASE="${{ needs.check-permissions.outputs.rebase }}"
+
+          if [ "$REBASE" = "true" ]; then
+            MIRROR_TYPE="rebased mirror (commits cherry-picked and re-signed)"
+          else
+            MIRROR_TYPE="exact mirror (preserves original commits and signatures)"
+          fi
+
+          MIRROR_PR_TITLE="[IGNORE] 🪞 #$PR_NUMBER - $PR_TITLE"
+          MIRROR_PR_BODY="This PR mirrors the changes from the original community contribution to enable CI testing with maintainer privileges.
+
+          **Original PR:** https://github.com/${{ github.repository }}/pull/$PR_NUMBER
+          **Original Author:** @$PR_AUTHOR
+          **Original Branch:** $FORK_OWNER/$FORK_REPO:$FORK_BRANCH
+          **Mirror Type:** $MIRROR_TYPE
+
+          Closes #$PR_NUMBER
+
+          ---
+
+          *This is an automated mirror created to run CI checks.*"
+
+          # Check if mirror PR exists
+          EXISTING_PR=$(gh pr list --repo ${{ github.repository }} --head "$MIRROR_BRANCH" --json number --jq '.[0].number // empty' 2>/dev/null || echo "")
+
+          if [ -n "$EXISTING_PR" ]; then
+            echo "Updating existing mirror PR: #$EXISTING_PR"
+            gh pr edit "$EXISTING_PR" --repo ${{ github.repository }} --title "$MIRROR_PR_TITLE" --body "$MIRROR_PR_BODY"
+            echo "mirror-pr-number=$EXISTING_PR" >> $GITHUB_OUTPUT
+          else
+            echo "Creating new mirror PR"
+            CREATE_ARGS=(--repo ${{ github.repository }} --base "$BASE_BRANCH" --head "$MIRROR_BRANCH" --title "$MIRROR_PR_TITLE" --body "$MIRROR_PR_BODY")
+            if [ -n "$PR_LABELS" ]; then
+              CREATE_ARGS+=(--label "$PR_LABELS")
+            fi
+            MIRROR_PR_NUMBER=$(gh pr create "${CREATE_ARGS[@]}" | grep -o '[0-9]*$')
+            echo "Created mirror PR: #$MIRROR_PR_NUMBER"
+            echo "mirror-pr-number=$MIRROR_PR_NUMBER" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment on original PR
+        if: github.event_name == 'issue_comment'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const mirrorPrNumber = '${{ steps.mirror-pr.outputs.mirror-pr-number }}';
+            const mirrorBranch = 'community-pr-${{ needs.check-permissions.outputs.pr-number }}';
+            const rebase = '${{ needs.check-permissions.outputs.rebase }}' === 'true';
+            const mode = rebase ? 'rebase mode' : 'exact mirror mode';
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ needs.check-permissions.outputs.pr-number }},
+              body: `✅ Successfully mirrored to PR #${mirrorPrNumber} (${mode})\n\n` +
+                    `Mirror branch: \`${mirrorBranch}\`\n` +
+                    `View mirror: https://github.com/${{ github.repository }}/pull/${mirrorPrNumber}`
+            });
