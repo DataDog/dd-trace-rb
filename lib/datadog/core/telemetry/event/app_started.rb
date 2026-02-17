@@ -89,15 +89,28 @@ module Datadog
             tracing.report_hostname
             tracing.sampling.rate_limit
             apm.tracing.enabled
+            agent.host
+            tracing.sampling.default_rate
+            tracing.contrib.global_default_service_name.enabled
+            tracing.contrib.peer_service_defaults
+            diagnostics.debug
+            opentelemetry.exporter.endpoint
+            opentelemetry.exporter.protocol
+            opentelemetry.exporter.timeout_millis
+            opentelemetry.metrics.enabled
+            opentelemetry.metrics.exporter
+            opentelemetry.metrics.endpoint
+            opentelemetry.metrics.protocol
+            opentelemetry.metrics.timeout_millis
+            opentelemetry.metrics.temporality_preference
+            opentelemetry.metrics.export_interval_millis
+            opentelemetry.metrics.export_timeout_millis
           ].freeze
 
           # standard:disable Metrics/AbcSize
           # standard:disable Metrics/MethodLength
           def configuration(settings, agent_settings)
             seq_id = Event.configuration_sequence.next
-
-            # tracing.writer_options.buffer_size and tracing.writer_options.flush_interval have the same origin.
-            writer_option_origin = get_telemetry_origin(settings, 'tracing.writer_options')
 
             list = [
               # Only set using env var as of June 2025
@@ -120,7 +133,11 @@ module Datadog
 
               # Mix of env var, programmatic and default config, so we use unknown
               conf_value('DD_AGENT_TRANSPORT', agent_transport(agent_settings), seq_id, 'unknown'), # rubocop:disable CustomCops/EnvStringValidationCop
+            ]
 
+            # tracing.writer_options.buffer_size and tracing.writer_options.flush_interval have the same origin.
+            writer_option_origin = get_telemetry_origin(settings, 'tracing.writer_options')
+            list.push(
               # writer_options is defined as an option that has a Hash value.
               conf_value(
                 'tracing.writer_options.buffer_size',
@@ -133,34 +150,8 @@ module Datadog
                 to_value(settings.tracing.writer_options[:flush_interval]),
                 seq_id,
                 writer_option_origin
-              ),
-
-              conf_value('DD_AGENT_HOST', settings.agent.host, seq_id, get_telemetry_origin(settings, 'agent.host')),
-              conf_value(
-                'DD_TRACE_SAMPLE_RATE',
-                to_value(settings.tracing.sampling.default_rate),
-                seq_id,
-                get_telemetry_origin(settings, 'tracing.sampling.default_rate')
-              ),
-              conf_value(
-                'DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED',
-                settings.tracing.contrib.global_default_service_name.enabled,
-                seq_id,
-                get_telemetry_origin(settings, 'tracing.contrib.global_default_service_name.enabled')
-              ),
-              conf_value(
-                'DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED',
-                settings.tracing.contrib.peer_service_defaults,
-                seq_id,
-                get_telemetry_origin(settings, 'tracing.contrib.peer_service_defaults')
-              ),
-              conf_value(
-                'DD_TRACE_DEBUG',
-                settings.diagnostics.debug,
-                seq_id,
-                get_telemetry_origin(settings, 'diagnostics.debug')
               )
-            ]
+            )
 
             peer_service_mapping_str = ''
             unless settings.tracing.contrib.peer_service_mapping.empty?
@@ -178,19 +169,8 @@ module Datadog
             otel_exporter_headers_string = settings.opentelemetry.exporter.headers&.map { |key, value| "#{key}=#{value}" }&.join(',')
             otel_exporter_metrics_headers_string = settings.opentelemetry.metrics.headers&.map { |key, value| "#{key}=#{value}" }&.join(',')
             list.push(
-              conf_value('OTEL_EXPORTER_OTLP_ENDPOINT', settings.opentelemetry.exporter.endpoint, seq_id, get_telemetry_origin(settings, 'opentelemetry.exporter.endpoint')),
               conf_value('OTEL_EXPORTER_OTLP_HEADERS', otel_exporter_headers_string, seq_id, get_telemetry_origin(settings, 'opentelemetry.exporter.headers')),
-              conf_value('OTEL_EXPORTER_OTLP_PROTOCOL', settings.opentelemetry.exporter.protocol, seq_id, get_telemetry_origin(settings, 'opentelemetry.exporter.protocol')),
-              conf_value('OTEL_EXPORTER_OTLP_TIMEOUT', settings.opentelemetry.exporter.timeout_millis, seq_id, get_telemetry_origin(settings, 'opentelemetry.exporter.timeout_millis')),
-              conf_value('DD_METRICS_OTEL_ENABLED', settings.opentelemetry.metrics.enabled, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.enabled')),
-              conf_value('OTEL_METRICS_EXPORTER', settings.opentelemetry.metrics.exporter, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.exporter')),
-              conf_value('OTEL_EXPORTER_OTLP_METRICS_ENDPOINT', settings.opentelemetry.metrics.endpoint, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.endpoint')),
-              conf_value('OTEL_EXPORTER_OTLP_METRICS_HEADERS', otel_exporter_metrics_headers_string, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.headers')),
-              conf_value('OTEL_EXPORTER_OTLP_METRICS_PROTOCOL', settings.opentelemetry.metrics.protocol, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.protocol')),
-              conf_value('OTEL_EXPORTER_OTLP_METRICS_TIMEOUT', settings.opentelemetry.metrics.timeout_millis, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.timeout_millis')),
-              conf_value('OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE', settings.opentelemetry.metrics.temporality_preference, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.temporality_preference')),
-              conf_value('OTEL_METRIC_EXPORT_INTERVAL', settings.opentelemetry.metrics.export_interval_millis, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.export_interval_millis')),
-              conf_value('OTEL_METRIC_EXPORT_TIMEOUT', settings.opentelemetry.metrics.export_timeout_millis, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.export_timeout_millis')),
+              conf_value('OTEL_EXPORTER_OTLP_METRICS_HEADERS', otel_exporter_metrics_headers_string, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.headers'))
             )
 
             # Whitelist of configuration options to send in additional payload object
