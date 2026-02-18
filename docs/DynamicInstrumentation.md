@@ -16,6 +16,25 @@ languages (Java, Python, .NET) are not yet available for Ruby.
 This document covers Ruby-specific considerations, limitations, and best
 practices for using Dynamic Instrumentation.
 
+## Platform Requirements
+
+### Agent Requirements
+- Requires Datadog Agent 7.49.0 or higher
+
+### Supported Ruby Versions
+- Requires Ruby 2.6 or higher
+- Only MRI (CRuby) is supported; JRuby and other Ruby implementations
+  are not currently supported
+
+### Environment Restrictions
+- **Development environments are not supported**
+
+### Remote Configuration Management
+- Remote Configuration Management is enabled by default
+- If you have explicitly disabled Remote Configuration, Dynamic
+  Instrumentation will not work
+- To re-enable, see https://docs.datadoghq.com/agent/remote_config
+
 ## Getting Started
 
 To use dynamic instrumentation:
@@ -47,92 +66,65 @@ After setting the environment variables and restarting your application:
 For detailed instructions on creating and configuring probes, see the
 [Dynamic Instrumentation documentation](https://docs.datadoghq.com/dynamic_instrumentation/).
 
-## Platform Requirements
+## Probe Types
 
-### Agent Requirements
-- Requires Datadog Agent 7.49.0 or higher
+### Currently Supported
 
-### Supported Ruby Versions
-- Requires Ruby 2.6 or higher
-- Only MRI (CRuby) is supported; JRuby and other Ruby implementations
-  are not currently supported
+Ruby Dynamic Instrumentation currently supports **log probes**, which can be
+created as either line probes or method probes.
 
-### Environment Restrictions
-- **Development environments are not supported**
+#### Line Probes
 
-### Remote Configuration Management
-- Remote Configuration Management is enabled by default
-- If you have explicitly disabled Remote Configuration, Dynamic
-  Instrumentation will not work
-- To re-enable, see https://docs.datadoghq.com/agent/remote_config
+Line probes capture data at a specific line of code. They can be installed
+on lines containing executable code and the final lines of a method (which
+returns the method's value).
 
-## Code Loading and Instrumentation
+**What line probes capture:**
+- Local variables at that point in execution
+- Method parameters (if in scope)
+- Stack traces
+- Execution context
 
-### Code Tracking Requirement
-- Files must be loaded **after** Dynamic Instrumentation code tracking
-  starts
-- Code loaded before the tracer initializes cannot be instrumented with
-  line probes
-- Method probes can still work for classes defined before code tracking
-  starts
-- Best practice: Ensure the Datadog tracer initializes early in your
-  application boot process
+**Use line probes when:**
+- You need to inspect state at a specific point in a method
+- You want to capture local variables mid-execution
+- You're debugging a specific calculation or branch
 
-### Application Must Be Processing Requests
-- Dynamic Instrumentation is initialized via Rack middleware when
-  processing HTTP requests
-- An application that has just booted but has not yet served any requests
-  will not have Dynamic Instrumentation activated
-- Dynamic Instrumentation will be automatically activated when the first
-  HTTP request is processed
+#### Method Probes
 
-### File Path Matching
-- When creating a line probe, if multiple files match the path you
-  specify, instrumentation will fail
-- You'll need to provide a more specific file path to target the correct
-  file
-- Use unique file paths when creating line probes to avoid ambiguity
+Method probes instrument method entry and exit points, capturing data about
+the entire method execution.
 
-### Eval'd Code
-- Code executed via `eval()` cannot be targeted by Dynamic
-  Instrumentation
-- Only code in physical files (required or loaded) can be instrumented
+**What method probes capture:**
+- Method arguments at entry
+- Return value at exit
+- Method execution duration
+- Exceptions thrown
 
-## Instrumentable Code
+**Limitations:**
+- Local variables defined within the method are not currently captured
+- **Workaround:** Use line probes inside the method if you need to
+  capture local variables at specific points during execution
 
-Line probes can be installed on lines containing executable code and the
-final lines of a method (which returns the method's value). The
-following example Ruby method is annotated with which lines can be
-targeted by dynamic instrumentation:
+**Additional considerations:**
+- Methods defined via `method_missing` or similar metaprogramming may not
+  appear correctly in stack traces
+- The probe will still execute, but location information may be
+  incomplete
 
-    def foo(param)              # No    (*1)
-      rv = if param == 1        # Yes
-        'yes'                   # Yes
-      else                      # No
-        'no'                    # Yes
-      end                       # No    (*2)
-      rv                        # Yes
-    end                         # Yes   (*3)
+**Use method probes when:**
+- You want to understand method inputs and outputs
+- You're debugging method-level behavior
+- You need to track method execution time
 
-### Lines That Cannot Be Instrumented
+### Not Yet Supported
 
-When setting line probes, the following lines **cannot** be targeted:
-- Method definition lines (the `def` line itself - *1)
-- `else` and `elsif` clauses
-- `end` keywords (except the final `end` of a method - *3)
-- Comment-only lines
-- Empty lines
+The following probe types available in other languages are not yet
+supported for Ruby:
 
-**Note:** The method definition line (*1) is technically executable and
-can be targeted if you wish to instrument the method definition itself,
-but if you want to instrument the defined method's execution, you must
-set the line probe on a line inside of the method.
-
-**Important:** Dynamic instrumentation cannot currently report when line
-probes target non-executable lines. Setting line probes on non-executable
-lines will succeed (the UI will report that the code is instrumented, if
-the referenced file is loaded and tracked), but no snapshots will be
-generated.
+- Metric probes
+- Span probes
+- Dynamic span tags
 
 ## Expression Language
 
@@ -189,24 +181,73 @@ Some expression language operations have limited type support:
 Using these operations on unsupported types will raise an error and
 prevent the probe condition from being evaluated.
 
-## Method Probes
+## Instrumentable Code
 
-Method probes instrument method entry and exit points.
+Line probes can be installed on lines containing executable code and the
+final lines of a method (which returns the method's value). The
+following example Ruby method is annotated with which lines can be
+targeted by dynamic instrumentation:
 
-### Local Variable Capture
+    def foo(param)              # No    (*1)
+      rv = if param == 1        # Yes
+        'yes'                   # Yes
+      else                      # No
+        'no'                    # Yes
+      end                       # No    (*2)
+      rv                        # Yes
+    end                         # Yes   (*3)
 
-- Method probes capture arguments at method entry and the return value at
-  exit
-- Local variables defined within the method are not currently captured
-- **Workaround:** Use line probes inside the method if you need to
-  capture local variables at specific points during execution
+### Lines That Cannot Be Instrumented
 
-### Dynamic Methods
+When setting line probes, the following lines **cannot** be targeted:
+- Method definition lines (the `def` line itself - *1)
+- `else` and `elsif` clauses
+- `end` keywords (except the final `end` of a method - *3)
+- Comment-only lines
+- Empty lines
 
-- Methods defined via `method_missing` or similar metaprogramming may not
-  appear correctly in stack traces
-- The probe will still execute, but location information may be
-  incomplete
+**Note:** The method definition line (*1) is technically executable and
+can be targeted if you wish to instrument the method definition itself,
+but if you want to instrument the defined method's execution, you must
+set the line probe on a line inside of the method.
+
+**Important:** Dynamic instrumentation cannot currently report when line
+probes target non-executable lines. Setting line probes on non-executable
+lines will succeed (the UI will report that the code is instrumented, if
+the referenced file is loaded and tracked), but no snapshots will be
+generated.
+
+## Code Loading and Instrumentation
+
+### Code Tracking Requirement
+- Files must be loaded **after** Dynamic Instrumentation code tracking
+  starts
+- Code loaded before the tracer initializes cannot be instrumented with
+  line probes
+- Method probes can still work for classes defined before code tracking
+  starts
+- Best practice: Ensure the Datadog tracer initializes early in your
+  application boot process
+
+### Application Must Be Processing Requests
+- Dynamic Instrumentation is initialized via Rack middleware when
+  processing HTTP requests
+- An application that has just booted but has not yet served any requests
+  will not have Dynamic Instrumentation activated
+- Dynamic Instrumentation will be automatically activated when the first
+  HTTP request is processed
+
+### File Path Matching
+- When creating a line probe, if multiple files match the path you
+  specify, instrumentation will fail
+- You'll need to provide a more specific file path to target the correct
+  file
+- Use unique file paths when creating line probes to avoid ambiguity
+
+### Eval'd Code
+- Code executed via `eval()` cannot be targeted by Dynamic
+  Instrumentation
+- Only code in physical files (required or loaded) can be instrumented
 
 ## Data Capture Limits
 
@@ -276,22 +317,6 @@ application performance:
 - The probe will need to be recreated in the UI if you want to re-enable
   it
 - This threshold can be configured globally
-
-## Probe Types
-
-### Currently Supported
-
-- **Log probes** - Capture snapshots with variable values, stack traces,
-  and context
-
-### Not Yet Supported
-
-The following probe types available in other languages are not yet
-supported for Ruby:
-
-- Metric probes
-- Span probes
-- Dynamic span tags
 
 ## Getting Help
 
