@@ -85,14 +85,15 @@ module Datadog
             Datadog::Core::Crashtracking::Component.build(settings, agent_settings, logger: logger)
           end
 
-          def build_data_streams(settings, agent_settings, logger)
+          def build_data_streams(settings, agent_settings, logger, agent_info)
             return unless settings.data_streams.enabled
 
             Datadog::DataStreams::Processor.new(
               interval: settings.data_streams.interval,
               logger: logger,
               settings: settings,
-              agent_settings: agent_settings
+              agent_settings: agent_settings,
+              agent_info: agent_info
             )
           rescue => e
             logger.warn("Failed to initialize Data Streams Monitoring: #{e.class}: #{e}")
@@ -166,7 +167,7 @@ module Datadog
           @open_feature = OpenFeature::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
-          @data_streams = self.class.build_data_streams(settings, agent_settings, @logger)
+          @data_streams = self.class.build_data_streams(settings, agent_settings, @logger, @agent_info)
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
 
           # Configure non-privileged components.
