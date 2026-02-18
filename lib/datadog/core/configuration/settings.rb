@@ -888,6 +888,20 @@ module Datadog
             o.default 60.0
           end
 
+          # The interval in seconds when telemetry extended heartbeat events are emitted.
+          # Extended heartbeat events include full configuration, dependencies, and integrations data.
+          #
+          # This method is used internally, for testing purposes only.
+          #
+          # @default `DD_TELEMETRY_EXTENDED_HEARTBEAT_INTERVAL` environment variable, otherwise `86400` (24 hours).
+          # @return [Float]
+          # @!visibility private
+          option :extended_heartbeat_interval_seconds do |o|
+            o.type :float
+            o.env Core::Telemetry::Ext::ENV_EXTENDED_HEARTBEAT_INTERVAL
+            o.default 86400.0
+          end
+
           # The interval in seconds when telemetry metrics are aggregated.
           # Should be a denominator of `heartbeat_interval_seconds`.
           #

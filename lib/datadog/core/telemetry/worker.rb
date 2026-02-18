@@ -22,6 +22,7 @@ module Datadog
 
         def initialize(
           heartbeat_interval_seconds:,
+          extended_heartbeat_interval_seconds: nil,
           metrics_aggregation_interval_seconds:,
           emitter:,
           metrics_manager:,
@@ -38,6 +39,13 @@ module Datadog
 
           @ticks_per_heartbeat = (heartbeat_interval_seconds / metrics_aggregation_interval_seconds).to_i
           @current_ticks = 0
+
+          @ticks_per_extended_heartbeat = if extended_heartbeat_interval_seconds
+            (extended_heartbeat_interval_seconds / metrics_aggregation_interval_seconds).to_i
+          else
+            nil
+          end
+          @current_extended_heartbeat_ticks = 0
 
           # Workers::Polling settings
           self.enabled = enabled
@@ -73,10 +81,11 @@ module Datadog
         # Returns true if worker thread is successfully started,
         # false if worker thread was not started but telemetry is enabled,
         # nil if telemetry is disabled.
-        def start(initial_event)
+        def start(initial_event, extended_heartbeat_event: nil)
           return unless enabled?
 
           @initial_event = initial_event
+          @extended_heartbeat_event = extended_heartbeat_event
 
           # starts async worker
           # perform should return true if thread was actually started,
@@ -151,10 +160,18 @@ module Datadog
           end
 
           @current_ticks += 1
-          return if @current_ticks < @ticks_per_heartbeat
+          if @current_ticks >= @ticks_per_heartbeat
+            @current_ticks = 0
+            heartbeat!
+          end
 
-          @current_ticks = 0
-          heartbeat!
+          if @ticks_per_extended_heartbeat
+            @current_extended_heartbeat_ticks += 1
+            if @current_extended_heartbeat_ticks >= @ticks_per_extended_heartbeat
+              @current_extended_heartbeat_ticks = 0
+              extended_heartbeat!
+            end
+          end
         end
 
         def flush_events(events)
@@ -168,6 +185,12 @@ module Datadog
           return if !enabled? || !sent_initial_event?
 
           send_event(Event::AppHeartbeat.new)
+        end
+
+        def extended_heartbeat!
+          return if !enabled? || !sent_initial_event?
+
+          send_event(@extended_heartbeat_event) if @extended_heartbeat_event
         end
 
         def started!
