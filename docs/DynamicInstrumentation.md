@@ -238,33 +238,6 @@ supported for Ruby:
 - Span probes
 - Dynamic span tags
 
-## Best Practices
-
-To get the most out of Dynamic Instrumentation while working within its
-current limitations:
-
-1. **Start code tracking early**: Ensure the Datadog tracer initializes
-   before your application code loads to enable line probe instrumentation
-2. **Use specific file paths**: Provide unique file paths when creating
-   line probes to avoid ambiguity when multiple files have similar names
-3. **Target executable lines**: Set line probes on lines with actual code,
-   not structural elements like `def`, `else`, or `end`
-4. **Avoid reserved instance variable names**: Don't use `@return`,
-   `@duration`, `@exception`, `@it`, `@key`, or `@value` if you need to
-   access them via Dynamic Instrumentation expressions
-5. **Adjust capture limits**: If you're capturing large objects or
-   collections, consider increasing depth limits or reducing collection
-   sizes to stay under the 1MB snapshot limit
-6. **Use method probes for entry/exit**: Method probes are more efficient
-   than line probes when you only need to capture arguments and return
-   values
-7. **Monitor rate limits**: Check that your rate limits allow sufficient
-   snapshot capture for your debugging needs without overwhelming the
-   backend
-8. **Test in staging first**: Since development environments are not
-   supported, test your probes in a staging environment before deploying
-   to production
-
 ## Getting Help
 
 For the latest updates, known issues, and to provide feedback, please
