@@ -246,51 +246,6 @@ jobs:
           MIRROR_BRANCH: ${{ steps.branch.outputs.mirror-branch }}
         run: git push origin "$MIRROR_BRANCH" --force
 
-      - name: Build mirror PR body
-        id: pr-body
-        env:
-          PR_NUMBER: ${{ needs.check-permissions.outputs.pr-number }}
-          PR_AUTHOR: ${{ needs.get-pr-details.outputs.pr-author }}
-          FORK_OWNER: ${{ needs.get-pr-details.outputs.fork-owner }}
-          FORK_REPO: ${{ needs.get-pr-details.outputs.fork-repo }}
-          FORK_BRANCH: ${{ needs.get-pr-details.outputs.fork-branch }}
-          REBASE: ${{ needs.check-permissions.outputs.rebase }}
-          REPO: ${{ github.repository }}
-          ORIGINAL_BODY: ${{ needs.get-pr-details.outputs.pr-body }}
-        run: |
-          MIRROR_TYPE="exact mirror (preserves original commits and signatures)"
-          if [ "$REBASE" = "true" ]; then
-            MIRROR_TYPE="rebased mirror (commits cherry-picked and re-signed)"
-          fi
-
-          cat > /tmp/mirror_pr_body.txt << 'EOF'
-          This PR mirrors the changes from the original community contribution to enable CI testing with maintainer privileges.
-
-          **Original PR:** https://github.com/${{ github.repository }}/pull/${{ needs.check-permissions.outputs.pr-number }}
-          **Original Author:** @${{ needs.get-pr-details.outputs.pr-author }}
-          **Original Branch:** ${{ needs.get-pr-details.outputs.fork-owner }}/${{ needs.get-pr-details.outputs.fork-repo }}:${{ needs.get-pr-details.outputs.fork-branch }}
-          **Mirror Type:** ${MIRROR_TYPE}
-
-          Closes #${{ needs.check-permissions.outputs.pr-number }}
-
-          ---
-
-          *This is an automated mirror created to run CI checks.*
-
-          ---
-
-          ## Original PR Description
-
-          ${ORIGINAL_BODY}
-          EOF
-
-          # Set multiline output
-          {
-            echo 'body<<EOF'
-            cat /tmp/mirror_pr_body.txt
-            echo EOF
-          } >> "$GITHUB_OUTPUT"
-
       - name: Create or update mirror PR
         id: mirror-pr
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
