@@ -13,18 +13,25 @@ practices for using Dynamic Instrumentation.
 
 To use dynamic instrumentation:
 
-1. Ensure you are using a production environment (RAILS_ENV=production,
+1. Enable Dynamic Instrumentation:
+
+       export DD_DYNAMIC_INSTRUMENTATION_ENABLED=true
+
+2. Ensure you are using a production environment (RAILS_ENV=production,
    etc.).
-2. Ensure you have DD_ENV set:
+3. Ensure you have DD_ENV set:
 
        export DD_ENV=prod
 
-3. Ensure you set the source code metadata tags:
+4. Ensure you set the source code metadata tags:
 
        export DD_GIT_REPOSITORY_URL=https://github.com/example-org/repo
        export DD_GIT_COMMIT_SHA=`git rev-parse HEAD`
 
 ## Platform Requirements
+
+### Agent Requirements
+- Requires Datadog Agent 7.49.0 or higher
 
 ### Supported Ruby Versions
 - Requires Ruby 2.6 or higher
