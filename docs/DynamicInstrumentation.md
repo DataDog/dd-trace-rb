@@ -34,6 +34,12 @@ To use dynamic instrumentation:
 ### Environment Restrictions
 - **Development environments are not supported**
 
+### Remote Configuration Management
+- Remote Configuration Management is enabled by default
+- If you have explicitly disabled Remote Configuration, Dynamic
+  Instrumentation will not work
+- To re-enable, see https://docs.datadoghq.com/agent/remote_config
+
 ## Code Loading and Instrumentation
 
 ### Code Tracking Requirement
