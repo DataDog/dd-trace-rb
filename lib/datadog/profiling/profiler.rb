@@ -28,7 +28,8 @@ module Datadog
         end
 
         worker.start(
-          on_failure_proc: proc do |log_failure: true|
+          on_failure_proc: ->(log_failure: true) do
+            # @type var log_failure: bool
             component_failed(:worker, log_failure: log_failure)
           end
         )
