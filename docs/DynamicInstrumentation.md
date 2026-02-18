@@ -43,7 +43,7 @@ To use dynamic instrumentation:
 
        export DD_DYNAMIC_INSTRUMENTATION_ENABLED=true
 
-2. Ensure you are using a production environment (RAILS_ENV=production,
+2. Ensure you are using a production environment (`RAILS_ENV=production`,
    etc.).
 3. Ensure you have DD_ENV set:
 
@@ -81,7 +81,7 @@ returns the method's value).
 
 **What line probes capture:**
 - Local variables at that point in execution
-- Method parameters (if in scope)
+- Method parameters (when the probe is inside a method)
 - Stack traces
 - Execution context
 
@@ -99,7 +99,7 @@ the entire method execution.
 - Method arguments at entry
 - Return value at exit
 - Method execution duration
-- Exceptions thrown
+- Exceptions raised
 
 **Limitations:**
 - Local variables defined within the method are not currently captured
@@ -107,10 +107,10 @@ the entire method execution.
   capture local variables at specific points during execution
 
 **Additional considerations:**
-- Methods defined via `method_missing` or similar metaprogramming may not
-  appear correctly in stack traces
-- The probe will still execute, but location information may be
-  incomplete
+- Stack traces are always captured, but methods defined via
+  `method_missing` or similar metaprogramming will be omitted from the
+  call chain because they don't have a source location in Ruby's
+  internal representation
 
 **Use method probes when:**
 - You want to understand method inputs and outputs
@@ -129,7 +129,7 @@ supported for Ruby:
 ## Expression Language
 
 The Ruby tracer supports Dynamic Instrumentation expression language for
-setting conditions on probes. Message templates are coming soon.
+setting conditions on probes and for message templates in log messages.
 
 ### Instance Variable Name Conflicts
 
@@ -140,7 +140,7 @@ refer to the following special variables:
 
 - `@return` - The return value of the method
 - `@duration` - The duration of the method execution
-- `@exception` - Any exception thrown by the method
+- `@exception` - Any exception raised by the method
 - `@it` - Current item in collection operations
 - `@key` - Current key in hash operations
 - `@value` - Current value in hash operations
