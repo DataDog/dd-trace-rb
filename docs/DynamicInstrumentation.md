@@ -46,6 +46,14 @@ To use dynamic instrumentation:
 - Best practice: Ensure the Datadog tracer initializes early in your
   application boot process
 
+### Application Must Be Processing Requests
+- Dynamic Instrumentation is initialized via Rack middleware when
+  processing HTTP requests
+- An application that has just booted but has not yet served any requests
+  will not have Dynamic Instrumentation activated
+- Dynamic Instrumentation will be automatically activated when the first
+  HTTP request is processed
+
 ### File Path Matching
 - When creating a line probe, if multiple files match the path you
   specify, instrumentation will fail
