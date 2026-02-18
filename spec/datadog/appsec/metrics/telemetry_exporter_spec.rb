@@ -119,13 +119,18 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
   describe '.export_api_security_metrics' do
     before { allow(telemetry).to receive(:inc) }
 
+    let(:span) { Datadog::Tracing::SpanOperation.new('root') }
+    let(:context) { instance_double(Datadog::AppSec::Context, state: {}, span: span) }
+
     it 'increases api_security.request.schema metric when schema was extracted' do
       expect(telemetry).to receive(:inc).with(
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'api_security.request.schema', 1,
         tags: {framework: 'rails'}
       )
 
-      described_class.export_api_security_metrics(schema_extracted: true, web_framework: 'rails')
+      context.state[:schema_extracted] = true
+      context.state[:web_framework] = 'rails'
+      described_class.export_api_security_metrics(context)
     end
 
     it 'increases api_security.request.no_schema metric when schema was not extracted' do
@@ -134,31 +139,37 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
         tags: {framework: 'rails'}
       )
 
-      described_class.export_api_security_metrics(schema_extracted: false, web_framework: 'rails')
+      context.state[:schema_extracted] = false
+      context.state[:web_framework] = 'rails'
+      described_class.export_api_security_metrics(context)
     end
 
     it 'does not export telemetry when web framework is nil' do
       expect(telemetry).not_to receive(:inc)
 
-      described_class.export_api_security_metrics(schema_extracted: true, web_framework: nil)
+      context.state[:schema_extracted] = true
+      described_class.export_api_security_metrics(context)
     end
 
-    it 'increases api_security.missing_route metric when route is missing' do
+    it 'increases api_security.missing_route metric when http.route tag is missing on the context span' do
       expect(telemetry).to receive(:inc).with(
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'api_security.missing_route', 1,
         tags: {framework: 'rails'}
       )
 
-      described_class.export_api_security_metrics(schema_extracted: true, web_framework: 'rails', missing_route: true)
+      context.state[:web_framework] = 'rails'
+      described_class.export_api_security_metrics(context)
     end
 
-    it 'does not increase api_security.missing_route metric when route is present' do
+    it 'does not increase api_security.missing_route metric when http.route tag is present on the context span' do
       expect(telemetry).not_to receive(:inc).with(
         Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'api_security.missing_route', 1,
         tags: {framework: 'rails'}
       )
 
-      described_class.export_api_security_metrics(schema_extracted: true, web_framework: 'rails', missing_route: false)
+      span.set_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE, '/foo')
+      context.state[:web_framework] = 'rails'
+      described_class.export_api_security_metrics(context)
     end
   end
 end
