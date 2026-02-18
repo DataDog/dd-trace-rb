@@ -9,6 +9,21 @@ languages (Java, Python, .NET) are not yet available for Ruby.
 This document covers Ruby-specific considerations, limitations, and best
 practices for using Dynamic Instrumentation.
 
+## Getting Started
+
+To use dynamic instrumentation:
+
+1. Ensure you are using a production environment (RAILS_ENV=production,
+   etc.).
+2. Ensure you have DD_ENV set:
+
+       export DD_ENV=prod
+
+3. Ensure you set the source code metadata tags:
+
+       export DD_GIT_REPOSITORY_URL=https://github.com/example-org/repo
+       export DD_GIT_COMMIT_SHA=`git rev-parse HEAD`
+
 ## Platform Requirements
 
 ### Supported Ruby Versions
