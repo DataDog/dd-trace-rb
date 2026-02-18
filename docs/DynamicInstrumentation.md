@@ -6,6 +6,13 @@ Dynamic Instrumentation for Ruby is currently in **limited preview**.
 While the core functionality is stable, some features available in other
 languages (Java, Python, .NET) are not yet available for Ruby.
 
+> **New to Dynamic Instrumentation?**
+> This document covers Ruby-specific setup and limitations. For an
+> introduction to Dynamic Instrumentation concepts, probe types, and UI
+> workflow, see:
+> - [Dynamic Instrumentation overview](https://docs.datadoghq.com/dynamic_instrumentation/)
+> - [Expression Language reference](https://docs.datadoghq.com/dynamic_instrumentation/expression-language/)
+
 This document covers Ruby-specific considerations, limitations, and best
 practices for using Dynamic Instrumentation.
 
@@ -27,6 +34,18 @@ To use dynamic instrumentation:
 
        export DD_GIT_REPOSITORY_URL=https://github.com/example-org/repo
        export DD_GIT_COMMIT_SHA=`git rev-parse HEAD`
+
+## Creating Your First Probe
+
+After setting the environment variables and restarting your application:
+
+1. Navigate to **APM > Dynamic Instrumentation** in the Datadog UI
+2. Select your service and environment
+3. Browse to the file and line you want to instrument
+4. Create a log probe to capture variable values
+
+For detailed instructions on creating and configuring probes, see the
+[Dynamic Instrumentation documentation](https://docs.datadoghq.com/dynamic_instrumentation/).
 
 ## Platform Requirements
 
