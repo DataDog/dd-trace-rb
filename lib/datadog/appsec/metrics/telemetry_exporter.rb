@@ -41,6 +41,25 @@ module Datadog
             tags: {framework: web_framework}
           )
         end
+
+        def export_user_auth_metrics(context)
+          user_auth = context.state[:user_auth]
+          return unless user_auth
+
+          tags = {event_type: user_auth[:event].to_s, framework: user_auth[:framework].to_s}
+
+          if user_auth[:login].nil?
+            AppSec.telemetry.inc(
+              AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'instrum.user_auth.missing_user_login', 1, tags: tags
+            )
+
+            if user_auth[:id].nil?
+              AppSec.telemetry.inc(
+                AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'instrum.user_auth.missing_user_id', 1, tags: tags
+              )
+            end
+          end
+        end
       end
     end
   end

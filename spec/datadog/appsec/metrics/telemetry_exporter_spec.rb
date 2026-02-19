@@ -172,4 +172,52 @@ RSpec.describe Datadog::AppSec::Metrics::TelemetryExporter do
       described_class.export_api_security_metrics(context)
     end
   end
+
+  describe '.export_user_auth_metrics' do
+    let(:context) { instance_double(Datadog::AppSec::Context, state: {}) }
+
+    it 'does not export telemetry when user_auth is not set' do
+      expect(telemetry).not_to receive(:inc)
+
+      described_class.export_user_auth_metrics(context)
+    end
+
+    it 'does not export telemetry when both login and id are present' do
+      expect(telemetry).not_to receive(:inc)
+
+      context.state[:user_auth] = {id: '1', login: 'john@example.com', event: :login_success, framework: 'devise'}
+      described_class.export_user_auth_metrics(context)
+    end
+
+    it 'does not export telemetry when login is present and id is nil' do
+      expect(telemetry).not_to receive(:inc)
+
+      context.state[:user_auth] = {id: nil, login: 'john@example.com', event: :login_failure, framework: 'devise'}
+      described_class.export_user_auth_metrics(context)
+    end
+
+    it 'increases missing_user_login metric when login is nil' do
+      expect(telemetry).to receive(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'instrum.user_auth.missing_user_login', 1,
+        tags: {event_type: 'authenticated_request', framework: 'devise'}
+      )
+
+      context.state[:user_auth] = {id: '1', login: nil, event: :authenticated_request, framework: 'devise'}
+      described_class.export_user_auth_metrics(context)
+    end
+
+    it 'increases both missing_user_login and missing_user_id metrics when both login and id are nil' do
+      expect(telemetry).to receive(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'instrum.user_auth.missing_user_login', 1,
+        tags: {event_type: 'login_failure', framework: 'devise'}
+      )
+      expect(telemetry).to receive(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'instrum.user_auth.missing_user_id', 1,
+        tags: {event_type: 'login_failure', framework: 'devise'}
+      )
+
+      context.state[:user_auth] = {id: nil, login: nil, event: :login_failure, framework: 'devise'}
+      described_class.export_user_auth_metrics(context)
+    end
+  end
 end
