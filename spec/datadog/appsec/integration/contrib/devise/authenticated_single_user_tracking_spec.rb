@@ -131,6 +131,8 @@ RSpec.describe 'Devise auto authenticated sing-user tracking' do
     end
 
     allow(Rails).to receive(:application).and_return(app)
+    allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry)
+    allow(telemetry).to receive(:inc)
 
     # NOTE: Don't reach the agent in any way
     allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
@@ -176,6 +178,7 @@ RSpec.describe 'Devise auto authenticated sing-user tracking' do
     end
   end
 
+  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:http_service_entry_span) { spans.find { |s| s.name == 'rack.request' } }
   let(:http_service_entry_trace) { traces.find { |t| t.id == http_service_entry_span.trace_id } }
 
@@ -193,6 +196,19 @@ RSpec.describe 'Devise auto authenticated sing-user tracking' do
       expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.success.track')
       expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.failure.track')
       expect(http_service_entry_span.tags).not_to have_key('_dd.appsec.usr.id')
+    end
+
+    it 'does not send missing_user_login or missing_user_id telemetry' do
+      get('/public')
+
+      expect(telemetry).not_to have_received(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'instrum.user_auth.missing_user_login', 1,
+        tags: anything
+      )
+      expect(telemetry).not_to have_received(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'instrum.user_auth.missing_user_id', 1,
+        tags: anything
+      )
     end
 
     it 'forbids unauthenticated user to visit private page and does not track it' do
@@ -224,6 +240,19 @@ RSpec.describe 'Devise auto authenticated sing-user tracking' do
         'usr.id' => '1',
         '_dd.appsec.usr.id' => '1',
         '_dd.appsec.user.collection_mode' => 'identification'
+      )
+    end
+
+    it 'sends missing_user_login telemetry but not missing_user_id for authenticated request' do
+      get('/public')
+
+      expect(telemetry).to have_received(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'instrum.user_auth.missing_user_login', 1,
+        tags: {event_type: 'authenticated_request', framework: 'devise'}
+      )
+      expect(telemetry).not_to have_received(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'instrum.user_auth.missing_user_id', 1,
+        tags: anything
       )
     end
 

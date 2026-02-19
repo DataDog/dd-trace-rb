@@ -117,6 +117,8 @@ RSpec.describe 'Devise auto login and signup events tracking' do
 
     allow(Rails).to receive(:application).and_return(app)
     allow(Datadog::AppSec::Instrumentation).to receive(:gateway).and_return(gateway)
+    allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry)
+    allow(telemetry).to receive(:inc)
 
     # NOTE: Don't reach the agent in any way
     allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
@@ -179,6 +181,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
   end
 
   let(:gateway) { Datadog::AppSec::Instrumentation::Gateway.new }
+  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:http_service_entry_span) { spans.find { |s| s.name == 'rack.request' } }
   let(:http_service_entry_trace) { traces.find { |t| t.id == http_service_entry_span.trace_id } }
 
@@ -208,6 +211,17 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       )
 
       expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
+    end
+
+    it 'does not send missing_user_login or missing_user_id telemetry' do
+      expect(telemetry).not_to have_received(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'instrum.user_auth.missing_user_login', 1,
+        tags: anything
+      )
+      expect(telemetry).not_to have_received(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'instrum.user_auth.missing_user_id', 1,
+        tags: anything
+      )
     end
   end
 
@@ -382,6 +396,17 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       )
 
       expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
+    end
+
+    it 'does not send missing_user_login or missing_user_id telemetry' do
+      expect(telemetry).not_to have_received(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'instrum.user_auth.missing_user_login', 1,
+        tags: anything
+      )
+      expect(telemetry).not_to have_received(:inc).with(
+        Datadog::AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'instrum.user_auth.missing_user_id', 1,
+        tags: anything
+      )
     end
   end
 
