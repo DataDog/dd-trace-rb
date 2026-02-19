@@ -5,7 +5,10 @@
 variables:
   GITLAB_BENCHMARKS_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:ruby-gitlab
   GITLAB_DDPROF_BENCHMARK_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:ruby-ddprof-benchmark
-  BASE_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:dd-trace-rb
+
+# -----------------------------------------------------
+# Macrobenchmarks
+# -----------------------------------------------------
 
 .macrobenchmarks:
   stage: macrobenchmarks
