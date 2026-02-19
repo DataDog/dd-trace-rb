@@ -18,22 +18,13 @@ practices for using Dynamic Instrumentation.
 
 ## Platform Requirements
 
-### Agent Requirements
-- Requires Datadog Agent 7.49.0 or higher
-
-### Supported Ruby Versions
-- Requires Ruby 2.6 or higher
-- Only MRI (CRuby) is supported; JRuby and other Ruby implementations
-  are not currently supported
-
-### Environment Restrictions
+- Datadog Agent 7.49.0 or higher
+- Ruby 2.6 or higher
+  - Only MRI (CRuby) is supported; JRuby and other Ruby implementations are not currently supported
+- [Remote Configuration Management](https://docs.datadoghq.com/remote_configuration/) enabled
+  - Remote Configuration is enabled by default.
+  - If it's disabled, follow the [instructions to enable it](https://docs.datadoghq.com/remote_configuration/#enable-remote-configuration).
 - **Development environments are not supported**
-
-### Remote Configuration Management
-- Remote Configuration Management is enabled by default
-- If you have explicitly disabled Remote Configuration, Dynamic
-  Instrumentation will not work
-- To re-enable, see https://docs.datadoghq.com/agent/remote_config
 
 ## Getting Started
 
