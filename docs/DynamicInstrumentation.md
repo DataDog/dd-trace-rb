@@ -53,7 +53,7 @@ To use dynamic instrumentation:
 
 After setting the environment variables and restarting your application:
 
-1. Navigate to **APM > Dynamic Instrumentation** in the Datadog UI
+1. Navigate to [APM > Dynamic Instrumentation](https://app.datadoghq.com/dynamic-instrumentation) in the Datadog UI
 2. Select your service and environment
 3. Browse to the file and line you want to instrument
 4. Create a log probe to capture variable values
