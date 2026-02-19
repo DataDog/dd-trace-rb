@@ -49,7 +49,7 @@ module Datadog
               id = extractor.extract_id(resource)
               login = extractor.extract_login(authentication_hash) || extractor.extract_login(resource)
 
-              context.state[:user_auth] = { id: id, login: login, event: :login_success, framework: 'devise' }
+              context.state[:user_auth] = {id: id, login: login, event: :login_success, framework: 'devise'}
 
               if id
                 context.span[Ext::TAG_USR_ID] ||= id
@@ -78,7 +78,7 @@ module Datadog
               unless resource
                 login = extractor.extract_login(authentication_hash)
 
-                context.state[:user_auth] = { id: nil, login: login, event: :login_failure, framework: 'devise' }
+                context.state[:user_auth] = {id: nil, login: login, event: :login_failure, framework: 'devise'}
 
                 context.span[Ext::TAG_DD_USR_LOGIN] = login
                 context.span[Ext::TAG_LOGIN_FAILURE_USR_LOGIN] ||= login
@@ -90,7 +90,7 @@ module Datadog
               id = extractor.extract_id(resource)
               login = extractor.extract_login(authentication_hash) || extractor.extract_login(resource)
 
-              context.state[:user_auth] = { id: id, login: login, event: :login_failure, framework: 'devise' }
+              context.state[:user_auth] = {id: id, login: login, event: :login_failure, framework: 'devise'}
 
               if id
                 context.span[Ext::TAG_DD_USR_ID] = id
