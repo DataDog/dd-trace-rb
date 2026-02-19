@@ -111,56 +111,49 @@ module Datadog
           # standard:disable Metrics/AbcSize
           # standard:disable Metrics/MethodLength
           def configuration(settings, agent_settings)
-            seq_id = Event.configuration_sequence.next
-
             list = [
               # Only set using env var as of June 2025
-              conf_value('DD_GIT_REPOSITORY_URL', Core::Environment::Git.git_repository_url, seq_id, 'env_var'),
-              conf_value('DD_GIT_COMMIT_SHA', Core::Environment::Git.git_commit_sha, seq_id, 'env_var'),
+              conf_value('DD_GIT_REPOSITORY_URL', Core::Environment::Git.git_repository_url, 3, 'env_var'),
+              conf_value('DD_GIT_COMMIT_SHA', Core::Environment::Git.git_commit_sha, 3, 'env_var'),
 
               # Set by the customer application (eg. `require 'datadog/auto_instrument'`)
               conf_value(
                 'tracing.auto_instrument.enabled',
                 !defined?(Datadog::AutoInstrument::LOADED).nil?,
-                seq_id,
+                5,
                 'code'
               ),
               conf_value(
                 'tracing.opentelemetry.enabled',
                 !defined?(Datadog::OpenTelemetry::LOADED).nil?,
-                seq_id,
+                5,
                 'code'
               ),
 
               # Mix of env var, programmatic and default config, so we use unknown
-              conf_value('DD_AGENT_TRANSPORT', agent_transport(agent_settings), seq_id, 'unknown'), # rubocop:disable CustomCops/EnvStringValidationCop
+              conf_value('DD_AGENT_TRANSPORT', agent_transport(agent_settings), 7, 'unknown'), # rubocop:disable CustomCops/EnvStringValidationCop
             ]
 
             # tracing.writer_options.buffer_size and tracing.writer_options.flush_interval have the same origin.
-            writer_option_origin = get_telemetry_origin(settings, 'tracing.writer_options')
-            list.push(
-              # writer_options is defined as an option that has a Hash value.
-              conf_value(
-                'tracing.writer_options.buffer_size',
-                to_value(settings.tracing.writer_options[:buffer_size]),
-                seq_id,
-                writer_option_origin
-              ),
-              conf_value(
-                'tracing.writer_options.flush_interval',
-                to_value(settings.tracing.writer_options[:flush_interval]),
-                seq_id,
-                writer_option_origin
-              )
-            )
+            writer_option_sources = get_telemetry_payload(settings, 'tracing.writer_options', stringify_value: false)
+            writer_option_sources.each do |source|
+              buffer_size_source = source.dup
+              flush_interval_source = source
+              buffer_size_source[:name] = 'tracing.writer_options.buffer_size'
+              buffer_size_source[:value] = to_value(source[:value][:buffer_size])
+              flush_interval_source[:name] = 'tracing.writer_options.flush_interval'
+              flush_interval_source[:value] = to_value(source[:value][:flush_interval])
+              list.push(buffer_size_source, flush_interval_source)
+            end
 
             # OpenTelemetry configuration options (using environment variable names)
-            otel_exporter_headers_string = settings.opentelemetry.exporter.headers&.map { |key, value| "#{key}=#{value}" }&.join(',')
-            otel_exporter_metrics_headers_string = settings.opentelemetry.metrics.headers&.map { |key, value| "#{key}=#{value}" }&.join(',')
-            list.push(
-              conf_value('OTEL_EXPORTER_OTLP_HEADERS', otel_exporter_headers_string, seq_id, get_telemetry_origin(settings, 'opentelemetry.exporter.headers')),
-              conf_value('OTEL_EXPORTER_OTLP_METRICS_HEADERS', otel_exporter_metrics_headers_string, seq_id, get_telemetry_origin(settings, 'opentelemetry.metrics.headers'))
-            )
+            otel_exporter_headers_sources = get_telemetry_payload(settings, 'opentelemetry.exporter.headers', stringify_value: false)
+            otel_exporter_headers_sources.each { |source| source[:value] = source[:value]&.map { |key, value| "#{key}=#{value}" }&.join(',') }
+            list.push(*otel_exporter_headers_sources)
+
+            otel_exporter_metrics_headers_sources = get_telemetry_payload(settings, 'opentelemetry.metrics.headers', stringify_value: false)
+            otel_exporter_metrics_headers_sources.each { |source| source[:value] = source[:value]&.map { |key, value| "#{key}=#{value}" }&.join(',') }
+            list.push(*otel_exporter_metrics_headers_sources)
 
             # Whitelist of configuration options to send in additional payload object
             TARGET_OPTIONS.each do |option_path|
@@ -176,19 +169,16 @@ module Datadog
             end
             # Track ssi configurations
             list.push(
-              conf_value('instrumentation_source', instrumentation_source, seq_id, 'code'),
-              conf_value('DD_INJECT_FORCE', Core::Environment::VariableHelpers.env_to_bool('DD_INJECT_FORCE', false), seq_id, 'env_var'),
-              conf_value('DD_INJECTION_ENABLED', DATADOG_ENV['DD_INJECTION_ENABLED'] || '', seq_id, 'env_var'),
+              conf_value('instrumentation_source', instrumentation_source, 5, 'code'),
+              conf_value('DD_INJECT_FORCE', Core::Environment::VariableHelpers.env_to_bool('DD_INJECT_FORCE', false), 3, 'env_var'),
+              conf_value('DD_INJECTION_ENABLED', DATADOG_ENV['DD_INJECTION_ENABLED'] || '', 3, 'env_var'),
             )
 
             # Add some more custom additional payload values here
             if settings.logger.instance
-              list << conf_value(
-                'logger.instance',
-                settings.logger.instance.class.to_s,
-                seq_id,
-                get_telemetry_origin(settings, 'logger.instance')
-              )
+              logger_instance_sources = get_telemetry_payload(settings, 'logger.instance', stringify_value: false)
+              logger_instance_sources.each { |source| source[:value] = source[:value].class.to_s }
+              list.push(*logger_instance_sources)
             end
             if settings.respond_to?('appsec')
               list.push(*get_telemetry_payload(settings, 'appsec.enabled'))
@@ -214,16 +204,13 @@ module Datadog
           end
 
           # `origin`: Source of the configuration. One of :
-          # - `fleet_stable_config`: configuration is set via the fleet automation Datadog UI
-          # - `local_stable_config`: configuration set via a user-managed file
-          # - `env_var`: configurations that are set through environment variables
-          # - `jvm_prop`: JVM system properties passed on the command line
-          # - `code`: configurations that are set through the customer application
-          # - `dd_config`: set by the dd.yaml file or json
-          # - `remote_config`: values that are set using remote config
-          # - `app.config`: only applies to .NET
-          # - `default`: set when the user has not set any configuration for the key (defaults to a value)
-          # - `unknown`: set for cases where it is difficult/not possible to determine the source of a config.
+          # - 1: `default`: set when the user has not set any configuration for the key (defaults to a value)
+          # - 2:`local_stable_config`: configuration set via a user-managed file
+          # - 3:`env_var`: configurations that are set through environment variables
+          # - 4:`fleet_stable_config`: configuration is set via the fleet automation Datadog UI
+          # - 5:`code`: configurations that are set through the customer application
+          # - 6:`remote_config`: values that are set using remote config
+          # - 7:`unknown`: set for cases where it is difficult/not possible to determine the source of a config.
           def conf_value(name, value, seq_id, origin)
             # @type var result: telemetry_configuration
             result = {name: name, value: value, origin: origin, seq_id: seq_id}
@@ -267,7 +254,7 @@ module Datadog
             option.precedence_set&.origin || 'unknown'
           end
 
-          def get_telemetry_payload(settings, config_path)
+          def get_telemetry_payload(settings, config_path, stringify_value: true)
             split_option = config_path.split('.')
             option_name = split_option.pop
             return [] if option_name.nil?
@@ -276,7 +263,7 @@ module Datadog
             # @type var option: Core::Configuration::Option
             parent_setting = settings.dig(*split_option)
             option = parent_setting.send(:resolve_option, option_name.to_sym)
-            option.telemetry_payload
+            option.telemetry_payload(stringify_value: stringify_value)
           end
         end
       end

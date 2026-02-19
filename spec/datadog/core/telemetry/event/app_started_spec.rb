@@ -104,10 +104,10 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
           {
             name: 'DD_GIT_REPOSITORY_URL',
             origin: 'env_var',
-            seq_id: id,
+            seq_id: 3,
             value: 'https://github.com/datadog/hello'
           },
-          {name: 'DD_GIT_COMMIT_SHA', origin: 'env_var', seq_id: id, value: '1234hash'},
+          {name: 'DD_GIT_COMMIT_SHA', origin: 'env_var', seq_id: 3, value: '1234hash'},
         )
       end
     end
@@ -120,8 +120,8 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
 
       it 'reports values set by the customer application' do
         expect(event.payload[:configuration]).to include(
-          {name: 'tracing.auto_instrument.enabled', origin: 'code', seq_id: id, value: true},
-          {name: 'tracing.opentelemetry.enabled', origin: 'code', seq_id: id, value: true},
+          {name: 'tracing.auto_instrument.enabled', origin: 'code', seq_id: 5, value: true},
+          {name: 'tracing.opentelemetry.enabled', origin: 'code', seq_id: 5, value: true},
         )
       end
     end
@@ -129,7 +129,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
     context 'with DD_AGENT_TRANSPORT complex origin' do
       it 'reports unknown origin' do
         expect(event.payload[:configuration]).to include(
-          {name: 'DD_AGENT_TRANSPORT', origin: 'unknown', seq_id: id, value: 'TCP'},
+          {name: 'DD_AGENT_TRANSPORT', origin: 'unknown', seq_id: 7, value: 'TCP'},
         )
       end
     end
@@ -152,13 +152,13 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       it 'reports OpenTelemetry configurations with environment variable names' do
         expect(event.payload[:configuration]).to include(
           {name: 'otel_exporter_otlp_endpoint', origin: 'env_var', seq_id: 3, value: 'http://otel:4317'},
-          {name: 'OTEL_EXPORTER_OTLP_HEADERS', origin: 'env_var', seq_id: id, value: 'key1=value1,key2=value2'},
+          {name: 'otel_exporter_otlp_headers', origin: 'env_var', seq_id: 3, value: 'key1=value1,key2=value2'},
           {name: 'otel_exporter_otlp_protocol', origin: 'env_var', seq_id: 3, value: 'http/protobuf'},
           {name: 'otel_exporter_otlp_timeout', origin: 'env_var', seq_id: 3, value: 5000},
           {name: 'metrics_otel_enabled', origin: 'env_var', seq_id: 3, value: true},
           {name: 'otel_metrics_exporter', origin: 'env_var', seq_id: 3, value: 'otlp'},
           {name: 'otel_exporter_otlp_metrics_endpoint', origin: 'env_var', seq_id: 3, value: 'http://metrics:4318'},
-          {name: 'OTEL_EXPORTER_OTLP_METRICS_HEADERS', origin: 'env_var', seq_id: id, value: 'metrics_key=metrics_value'},
+          {name: 'otel_exporter_otlp_metrics_headers', origin: 'env_var', seq_id: 3, value: 'metrics_key=metrics_value'},
           {name: 'otel_exporter_otlp_metrics_protocol', origin: 'env_var', seq_id: 3, value: 'http/protobuf'},
           {name: 'otel_exporter_otlp_metrics_timeout', origin: 'env_var', seq_id: 3, value: 3000},
           {name: 'otel_exporter_otlp_metrics_temporality_preference', origin: 'env_var', seq_id: 3, value: 'cumulative'},
@@ -208,14 +208,14 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
           {name: 'trace_remove_integration_service_names_enabled', origin: 'code', seq_id: 5, value: true},
           {name: 'trace_peer_service_mapping', origin: 'code', seq_id: 5, value: 'foo:bar'},
           {name: 'trace_analytics_enabled', origin: 'code', seq_id: 5, value: true},
-          {name: 'tracing.writer_options.buffer_size', origin: 'code', seq_id: id, value: 123},
-          {name: 'tracing.writer_options.flush_interval', origin: 'code', seq_id: id, value: 456},
-          {name: 'logger.instance', origin: 'code', seq_id: id, value: 'MyLogger'},
+          {name: 'tracing.writer_options.buffer_size', origin: 'code', seq_id: 5, value: 123},
+          {name: 'tracing.writer_options.flush_interval', origin: 'code', seq_id: 5, value: 456},
+          {name: 'logger.instance', origin: 'code', seq_id: 5, value: 'MyLogger'},
           {name: 'logger.level', origin: 'code', seq_id: 5, value: 0},
           {name: 'appsec_sca_enabled', origin: 'code', seq_id: 5, value: false},
-          {name: 'instrumentation_source', origin: 'code', seq_id: id, value: 'manual'},
-          {name: 'DD_INJECT_FORCE', origin: 'env_var', seq_id: id, value: false},
-          {name: 'DD_INJECTION_ENABLED', origin: 'env_var', seq_id: id, value: ''},
+          {name: 'instrumentation_source', origin: 'code', seq_id: 5, value: 'manual'},
+          {name: 'DD_INJECT_FORCE', origin: 'env_var', seq_id: 3, value: false},
+          {name: 'DD_INJECTION_ENABLED', origin: 'env_var', seq_id: 3, value: ''},
         )
       end
     end
