@@ -1,0 +1,30 @@
+  .groups:
+    - &profiling >-
+        profiling_allocation.rb
+        profiling_gc.rb
+        profiling_hold_resume_interruptions.rb
+        profiling_http_transport.rb
+        profiling_memory_sample_serialize.rb
+        profiling_sample_loop_v2.rb
+        profiling_sample_serialize.rb
+        profiling_sample_gvl.rb
+        profiling_string_storage_intern.rb
+
+    - &other >-
+        error_tracking_simple.rb
+        tracing_trace.rb
+        di_instrument.rb
+        library_gem_loading.rb
+
+  .execution:
+    variables:
+      # Benchmark execution settings
+      # TODO: Switch to 10
+      REPETITIONS: "2"        # How many times to run each benchmark
+      CPU_AFFINITY: "24-47"    # Which CPUs to use for all benchmarks
+      CPUS_PER_BENCHMARK: "2"  # How many CPUs to use for each benchmark
+
+      # Benchmark groups split to run in parallel with 2 CPUs per benchmark.
+      # '<GROUP>' in 'BENCHMARKS_<GROUP>' matches '<GROUP>' in 'parallel:matrix'.
+      BENCHMARKS_profiling: *profiling
+      BENCHMARKS_other: *other

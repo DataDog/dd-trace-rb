@@ -155,7 +155,18 @@ ddprof-benchmark:
     LATEST_COMMIT_ID: $CI_COMMIT_SHA
     KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: dd-trace-rb
 
+
+# -----------------------------------------------------
+# Microbenchmarks
+# -----------------------------------------------------
+
+# Configuration for executing microbenchmarks in parallel
+# Choose which benchmarks to execute, with how many CPUs, on what CI job
+include:
+  - local: benchmarks/execution.yml
+
 microbenchmarks:
+  extends: .execution  # From benchmarks/execution.yml
   stage: microbenchmarks
   when: always
   needs: []
@@ -166,19 +177,20 @@ microbenchmarks:
       interruptible: false
     - interruptible: true
   timeout: 1h
+  variables:
+   # GitLab CI variables passed to bp-runner
+    CI_COMMIT_REF_NAME: $CI_COMMIT_REF_NAME
+    CI_COMMIT_SHA: $CI_COMMIT_SHA
+    CI_PROJECT_NAME: $CI_PROJECT_NAME
+    CI_JOB_ID: $CI_JOB_ID
+    CI_PIPELINE_ID: $CI_PIPELINE_ID
   script:
-    - export ARTIFACTS_DIR="$(pwd)/artifacts" && (mkdir "${ARTIFACTS_DIR}" || :)
+    - export ARTIFACTS_DIR="$(pwd)/artifacts" && mkdir -p "$ARTIFACTS_DIR"
+    # $GROUP is defined on benchmarks/execution.yml
+    - eval "export BENCHMARKS=\$BENCHMARKS_$GROUP"
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
-    - git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform benchmarking-platform && cd benchmarking-platform
-    - gem -v
-    - bundle -v
-    - gem list bundler
-    - ./steps/capture-hardware-software-info.sh
-    - ./steps/run-benchmarks.sh
-    - ./steps/analyze-results.sh
-    - "./steps/upload-results-to-s3.sh || :"
-    - "./steps/upload-results-to-benchmarking-api.sh || :"
-    - "./steps/post-pr-comment.sh || :"
+    - git clone --branch augusto/apmsp-2544.flakiness https://github.com/DataDog/benchmarking-platform platform && cd platform
+    - bp-runner bp-runner.yml --debug
   artifacts:
     name: "artifacts"
     when: always
