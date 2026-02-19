@@ -24,7 +24,7 @@ practices for using Dynamic Instrumentation.
 - Rack-based applications only
   - Includes Rails, Sinatra, and other Rack-compatible frameworks
   - Non-Rack applications are not currently supported
-  - Background processes and jobs (including Sidekiq, Resque, etc.) are not supported
+  - Background processes and jobs (including Sidekiq, Resque, etc.) are not yet supported
 - [Remote Configuration Management](https://docs.datadoghq.com/remote_configuration/) enabled
   - Remote Configuration is enabled by default.
   - If it's disabled, follow the [instructions to enable it](https://docs.datadoghq.com/remote_configuration/#enable-remote-configuration).
