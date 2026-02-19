@@ -197,10 +197,25 @@ microbenchmarks:
     paths:
       - artifacts/
     expire_in: 3 months
+
+microbenchmarks-pr-comment:
+  stage: microbenchmarks
+  when: always
+  needs: [microbenchmarks]
+  tags: ["arch:amd64"]
+  image: $BASE_CI_IMAGE
+  timeout: 30m
   variables:
-    KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: dd-trace-rb
-    FF_USE_LEGACY_KUBERNETES_EXECUTION_STRATEGY: "true"
-    UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
-    UPSTREAM_PROJECT_ID: $CI_PROJECT_ID
-    UPSTREAM_PROJECT_NAME: $CI_PROJECT_NAME
-    UPSTREAM_COMMIT_SHA: $CI_COMMIT_SHA
+    CI_COMMIT_REF_NAME: $CI_COMMIT_REF_NAME
+    CI_PROJECT_NAME: $CI_PROJECT_NAME
+  script:
+    - export ARTIFACTS_DIR="$(pwd)/artifacts" && mkdir -p "$ARTIFACTS_DIR"
+    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
+    - git clone --branch augusto/apmsp-2544.flakiness https://github.com/DataDog/benchmarking-platform platform && cd platform
+    - bp-runner bp-runner.pr-comment.yml --debug
+  artifacts:
+    name: "artifacts"
+    when: always
+    paths:
+      - artifacts/
+    expire_in: 3 months
