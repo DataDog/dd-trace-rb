@@ -6,7 +6,7 @@ require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/processor/rule_loader'
 
 RSpec.describe Datadog::AppSec::Context do
-  let(:span) { instance_double(Datadog::Tracing::SpanOperation) }
+  let(:span) { Datadog::Tracing::SpanOperation.new('root') }
   let(:trace) { instance_double(Datadog::Tracing::TraceOperation) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:settings) do
