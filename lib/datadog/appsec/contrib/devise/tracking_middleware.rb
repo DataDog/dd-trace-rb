@@ -39,7 +39,7 @@ module Datadog
             session_id = env[WARDEN_KEY].raw_session[SESSION_ID_KEY] if id
 
             if id
-              context.state[:user_auth] = { id: id, login: nil, event: :authenticated_request, framework: 'devise' }
+              context.state[:user_auth] = {id: id, login: nil, event: :authenticated_request, framework: 'devise'}
 
               # NOTE: There is no option to set session id without setting user id via SDK.
               unless context.span.has_tag?(Ext::TAG_USR_ID) && context.span.has_tag?(Ext::TAG_SESSION_ID)
