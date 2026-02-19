@@ -34,8 +34,7 @@
   .execution:
     variables:
       # Benchmark execution settings
-      # TODO: Switch to 10
-      REPETITIONS: "2"        # How many times to run each benchmark
+      REPETITIONS: "5"        # How many times to run each benchmark
       CPU_AFFINITY: "24-47"    # Which CPUs to use for all benchmarks
       CPUS_PER_BENCHMARK: "2"  # How many CPUs to use for each benchmark
 
