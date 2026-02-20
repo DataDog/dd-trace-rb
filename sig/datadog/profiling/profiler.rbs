@@ -25,7 +25,7 @@ module Datadog
 
       def stop_worker: () -> void
       def stop_scheduler: () -> void
-      def component_failed: (:worker | :scheduler failed_component) -> void
+      def component_failed: (:worker | :scheduler failed_component, ?log_failure: bool) -> void
     end
   end
 end
