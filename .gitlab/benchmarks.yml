@@ -193,7 +193,7 @@ microbenchmarks:
     # $GROUP is defined on benchmarks/execution.yml
     - eval "export BENCHMARKS=\$BENCHMARKS_$GROUP"
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
-    - git clone --branch augusto/apmsp-2544.flakiness https://github.com/DataDog/benchmarking-platform platform && cd platform
+    - git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform && cd platform
     - bp-runner bp-runner.yml --debug
   artifacts:
     name: "artifacts"
@@ -215,7 +215,7 @@ microbenchmarks-pr-comment:
   script:
     - export ARTIFACTS_DIR="$(pwd)/artifacts" && mkdir -p "$ARTIFACTS_DIR"
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
-    - git clone --branch augusto/apmsp-2544.flakiness https://github.com/DataDog/benchmarking-platform platform && cd platform
+    - git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform && cd platform
     - bp-runner bp-runner.pr-comment.yml --debug
   artifacts:
     name: "artifacts"
