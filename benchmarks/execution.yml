@@ -1,52 +1,52 @@
-  # This file defines how benchmarks are grouped and executed in CI:
-  #   1. Each GROUP runs as a separate CI job (defined by parallel:matrix)
-  #   2. Within a group, benchmarks run in parallel with CPU isolation
-  #   3. Each benchmark runs $REPETITIONS times for stability analysis
-  #
-  # Adding a new benchmark:
-  #   1. Add the benchmark filename to the appropriate group below
-  #   2. Ensure the benchmark outputs: <filename>-results.json (or <filename>-<variant>-results.json)
-  #   3. Ensure the number of requested CPUs (CPUS_PER_BENCHMARK * number of benchmarks) is within the CPU_AFFINITY range, otherwise benchmarks will be queued and make the CI job longer
-  #
-  # Adding a new group:
-  #   1. Define a new anchor (e.g., &mygroup) with the list of benchmarks
-  #   2. Add BENCHMARKS_mygroup: *mygroup to .execution.variables
-  #   3. Add GROUP: mygroup to parallel:matrix
+# This file defines how benchmarks are grouped and executed in CI:
+#   1. Each GROUP runs as a separate CI job (defined by parallel:matrix)
+#   2. Within a group, benchmarks run in parallel with CPU isolation
+#   3. Each benchmark runs $REPETITIONS times for stability analysis
+#
+# Adding a new benchmark:
+#   1. Add the benchmark filename to the appropriate group below
+#   2. Ensure the benchmark outputs: <filename>-results.json (or <filename>-<variant>-results.json)
+#   3. Ensure the number of requested CPUs (CPUS_PER_BENCHMARK * number of benchmarks) is within the CPU_AFFINITY range, otherwise benchmarks will be queued and make the CI job longer
+#
+# Adding a new group:
+#   1. Define a new anchor (e.g., &mygroup) with the list of benchmarks
+#   2. Add BENCHMARKS_mygroup: *mygroup to .execution.variables
+#   3. Add GROUP: mygroup to parallel:matrix
 
-  .groups:
-    - &profiling >-
-        profiling_allocation.rb
-        profiling_gc.rb
-        profiling_hold_resume_interruptions.rb
-        profiling_http_transport.rb
-        profiling_memory_sample_serialize.rb
-        profiling_sample_loop_v2.rb
-        profiling_sample_serialize.rb
-        profiling_sample_gvl.rb
-        profiling_string_storage_intern.rb
+.groups:
+  - &profiling >-
+      profiling_allocation.rb
+      profiling_gc.rb
+      profiling_hold_resume_interruptions.rb
+      profiling_http_transport.rb
+      profiling_memory_sample_serialize.rb
+      profiling_sample_loop_v2.rb
+      profiling_sample_serialize.rb
+      profiling_sample_gvl.rb
+      profiling_string_storage_intern.rb
 
-    - &other >-
-        error_tracking_simple.rb
-        tracing_trace.rb
-        di_instrument.rb
-        library_gem_loading.rb
+  - &other >-
+      error_tracking_simple.rb
+      tracing_trace.rb
+      di_instrument.rb
+      library_gem_loading.rb
 
-  .execution:
-    variables:
-      # Benchmark execution settings
-      REPETITIONS: "6"        # How many times to run each benchmark
-      CPU_AFFINITY: "24-47"    # Which CPUs to use for all benchmarks
-      CPUS_PER_BENCHMARK: "2"  # How many CPUs to use for each benchmark
+.execution:
+  variables:
+    # Benchmark execution settings
+    REPETITIONS: "6"        # How many times to run each benchmark
+    CPU_AFFINITY: "24-47"    # Which CPUs to use for all benchmarks
+    CPUS_PER_BENCHMARK: "2"  # How many CPUs to use for each benchmark
 
-      # NOTE: GitLab CI does not allow CI job names above 256 characters.
-      # Therefore, we use 'BENCHMARKS_<GROUP>' to hold the list of benchmarks to run in each group, otherwise the list (which is longer than 256 characters) would be set as the name of the CI job.
+    # NOTE: GitLab CI does not allow CI job names above 256 characters.
+    # Therefore, we use 'BENCHMARKS_<GROUP>' to hold the list of benchmarks to run in each group, otherwise the list (which is longer than 256 characters) would be set as the name of the CI job.
 
-      # Variables holding the list of benchmarks to run in each group.
-      # '<GROUP>' in 'BENCHMARKS_<GROUP>' matches '<GROUP>' in 'parallel:matrix'.
-      BENCHMARKS_profiling: *profiling
-      BENCHMARKS_other: *other
+    # Variables holding the list of benchmarks to run in each group.
+    # '<GROUP>' in 'BENCHMARKS_<GROUP>' matches '<GROUP>' in 'parallel:matrix'.
+    BENCHMARKS_profiling: *profiling
+    BENCHMARKS_other: *other
 
-    parallel:
-      matrix:
-        - GROUP: profiling
-        - GROUP: other
+  parallel:
+    matrix:
+      - GROUP: profiling
+      - GROUP: other
