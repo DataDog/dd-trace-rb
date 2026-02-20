@@ -229,9 +229,16 @@ module Datadog
                 # exceeds this amount, the offending probe will be automatically disabled.
                 # Set to nil to disable the circuit breaker.
                 # Set to zero to disable every probe after it executes once.
+                # Set to -1 (or any negative value) to disable the circuit breaker.
                 option :max_processing_time do |o|
                   o.type :float
                   o.default 0.5
+                  o.env 'DD_DYNAMIC_INSTRUMENTATION_MAX_PROCESSING_TIME'
+                  o.env_parser do |value|
+                    return nil if value.nil? || value.empty?
+                    float_value = value.to_f
+                    float_value < 0 ? nil : float_value
+                  end
                 end
               end
             end
