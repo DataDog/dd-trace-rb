@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.30.0)
+    datadog (2.30.0.dev)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
       libdatadog (~> 25.0.0.1.0)
@@ -200,4 +200,4 @@ DEPENDENCIES
   zstd-ruby
 
 BUNDLED WITH
-  4.0.3
+   2.7.2
