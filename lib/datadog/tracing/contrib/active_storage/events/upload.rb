@@ -1,0 +1,56 @@
+# frozen_string_literal: true
+
+require_relative '../../../metadata/ext'
+require_relative '../event'
+require_relative '../ext'
+require_relative '../../analytics'
+
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveStorage
+        module Events
+          # Defines instrumentation for 'service_upload.active_storage' event.
+          #
+          # Uploaded a file to the remote blob service
+          module Upload
+            include ActiveStorage::Event
+
+            EVENT_NAME = 'service_upload.active_storage'.freeze
+
+            module_function
+
+            def event_name
+              self::EVENT_NAME
+            end
+
+            def span_name
+              Ext::SPAN_UPLOAD
+            end
+
+            def span_type
+              # Interacting with a cloud-based blob service via HTTP
+              Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
+            end
+
+            def process(span, _event, _id, payload)
+              as_key = payload[:key]
+              as_service = payload[:service]
+              # checksum is also on payload but this has infinite cardinality and low value
+
+              span.service = configuration[:service_name] if configuration[:service_name]
+              span.resource = "#{as_service}: #{as_key}"
+              span.type = span_type
+
+              set_analytics(span)
+              set_tags(span, Ext::TAG_OPERATION_UPLOAD)
+
+              span.set_tag(Ext::TAG_SERVICE, as_service)
+              span.set_tag(Ext::TAG_KEY, as_key)
+            end
+          end
+        end
+      end
+    end
+  end
+end

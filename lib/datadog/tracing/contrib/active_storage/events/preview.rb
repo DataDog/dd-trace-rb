@@ -1,0 +1,56 @@
+# frozen_string_literal: true
+
+require_relative '../../../metadata/ext'
+require_relative '../event'
+require_relative '../ext'
+require_relative '../../analytics'
+
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveStorage
+        module Events
+          # Defines instrumentation for 'preview.active_storage' event.
+          #
+          # A preview image was generated for a blob hosted on the remote service
+          module Preview
+            include ActiveStorage::Event
+
+            EVENT_NAME = 'preview.active_storage'.freeze
+
+            module_function
+
+            def event_name
+              self::EVENT_NAME
+            end
+
+            def span_name
+              Ext::SPAN_PREVIEW
+            end
+
+            def span_type
+              # Interacting with a cloud-based blob service via HTTP
+              Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
+            end
+
+            def process(span, _event, _id, payload)
+              as_key = payload[:key]
+
+              span.service = configuration[:service_name] if configuration[:service_name]
+              # preview action is not specific to a service and key cardinality is too high for a resource
+              # so just use resource prefix
+              # https://edgeguides.rubyonrails.org/active_support_instrumentation.html#preview-active-storage
+              span.resource = as_key
+              span.type = span_type
+
+              set_analytics(span)
+              set_tags(span, Ext::TAG_OPERATION_PREVIEW)
+
+              span.set_tag(Ext::TAG_KEY, as_key)
+            end
+          end
+        end
+      end
+    end
+  end
+end
