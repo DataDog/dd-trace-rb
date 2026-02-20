@@ -12,11 +12,11 @@
 * SSI: Add support for Bundler vendored mode (`BUNDLE_PATH`) ([#5368][])
 * SSI: Default to local dependency resolution ([#5368][])
 * Dynamic Instrumentation: Added circuit breaker to automatically disable probes consuming excessive CPU time ([#5335][])
-* Tracing: Add `trace_singleton_class_method` for tracing singleton class methods. ([#5334][])
 * Crashtracking: Add reporting of unhandled exceptions ([#5321][])
 * Tracing: Add support for the `kicks` gem ([#5305][])
 * Profiling: Add heap profiling for ruby 4.x ([#5201][])
 * Tracing: Add simple method tracing API ([#5294][])
+* Tracing: Add `trace_singleton_class_method` for tracing singleton class methods. ([#5334][])
 
 ### Changed
 
