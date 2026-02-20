@@ -1,18 +1,29 @@
 #!/bin/bash
+
 set -e
 
-echo CI=$1
-echo MONOTONIC_ID=$2
-echo GIT_REF=$3
-echo GIT_COMMIT_SHA=$4
+CI=$1
+MONOTONIC_ID=$2
+GIT_REF=$3
+GIT_COMMIT_SHA=$4
 
-git_branch="${3#refs/heads/}"
+if test -z "$CI" || test -z "$MONOTONIC_ID" || test -z "$GIT_REF" || test -z "$GIT_COMMIT_SHA"; then
+  echo Some required variables are missing - this script is meant to run in a CI enviroment 1>&2
+  exit 1
+fi
+
+echo CI=$CI
+echo MONOTONIC_ID=$MONOTONIC_ID
+echo GIT_REF=$GIT_REF
+echo GIT_COMMIT_SHA=$GIT_COMMIT_SHA
+
+git_branch="${GIT_REF#refs/heads/}"
 echo git_branch="${git_branch}"
 
 git_branch_hash=$(echo "$git_branch" | ruby -rdigest -n -e 'print Digest::SHA256.hexdigest($_.chomp)[0, 6]')
 echo git_branch_hash="${git_branch_hash}"
 
-git_short_sha=${4:0:8}
+git_short_sha=${GIT_COMMIT_SHA:0:8}
 echo git_short_sha=$git_short_sha
 
 PRE=dev
@@ -26,7 +37,7 @@ echo PRE="${PRE}"
 #   for identification.
 # - BUILD has commit next for traceability, prefixed git-describe
 #   style by `g` for identification.
-BUILD="b${git_branch_hash}.${1}${2}.g${git_short_sha}"
+BUILD="b${git_branch_hash}.${CI}${MONOTONIC_ID}.g${git_short_sha}"
 echo BUILD="${BUILD}"
 
 # Patch in components
