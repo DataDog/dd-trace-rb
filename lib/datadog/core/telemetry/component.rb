@@ -99,6 +99,7 @@ module Datadog
           @worker = Telemetry::Worker.new(
             enabled: @enabled,
             heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
+            extended_heartbeat_interval_seconds: settings.telemetry.extended_heartbeat_interval_seconds,
             metrics_aggregation_interval_seconds: settings.telemetry.metrics_aggregation_interval_seconds,
             emitter: Emitter.new(
               @transport,
@@ -132,7 +133,11 @@ module Datadog
             )
           end
 
-          @worker.start(initial_event)
+          extended_heartbeat_event = Event::AppExtendedHeartbeat.new(
+            components: components,
+          )
+
+          @worker.start(initial_event, extended_heartbeat_event: extended_heartbeat_event)
         end
 
         def shutdown!
