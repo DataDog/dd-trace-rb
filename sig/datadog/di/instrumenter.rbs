@@ -50,6 +50,13 @@ module Datadog
       private
 
       attr_reader lock: untyped
+
+      def line_trace_point_callback: (Probe probe, RubyVM::InstructionSequence? iseq, untyped responder, TracePoint tp) -> void
+
+      def build_trace_point_context: (Probe probe, TracePoint tp) -> Context
+
+      def check_and_disable_if_exceeded: (Probe probe, untyped responder, Float di_start_time, ?Float accumulated_duration) -> void
+
       def symbolize_class_name: (untyped cls_name) -> untyped
       def raise_if_probe_in_loaded_features: (Probe probe) -> void
     end

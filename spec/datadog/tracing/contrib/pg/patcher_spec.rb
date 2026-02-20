@@ -93,6 +93,7 @@ RSpec.describe 'PG::Connection patcher' do
 
         context 'when a successful query is made' do
           it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec'
+          it_behaves_like 'with sql comment base hash injection', span_op_name: 'pg.exec'
 
           it 'produces a trace' do
             exec

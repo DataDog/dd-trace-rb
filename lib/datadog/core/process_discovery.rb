@@ -1,24 +1,19 @@
 # frozen_string_literal: true
 
-require 'datadog/core/process_discovery/tracer_memfd'
-
-require_relative 'utils/at_fork_monkey_patch'
-require_relative 'utils/only_once'
+require_relative 'process_discovery/tracer_memfd'
+require_relative 'environment/process'
+require_relative 'environment/container'
 
 module Datadog
   module Core
     # Class used to store tracer metadata in a native file descriptor.
     module ProcessDiscovery
-      ONLY_ONCE = Core::Utils::OnlyOnce.new
-
       class << self
         def publish(settings)
           if (libdatadog_api_failure = Datadog::Core::LIBDATADOG_API_FAILURE)
             Datadog.logger.debug { "Cannot enable process discovery: #{libdatadog_api_failure}" }
             return
           end
-
-          ONLY_ONCE.run { apply_at_fork_patch }
 
           metadata = get_metadata(settings)
 
@@ -27,8 +22,15 @@ module Datadog
         end
 
         def shutdown!
-          @file_descriptor&.shutdown!(Datadog.logger)
-          @file_descriptor = nil
+          if defined?(@file_descriptor)
+            @file_descriptor&.shutdown!(Datadog.logger)
+            @file_descriptor = nil
+          end
+        end
+
+        def after_fork
+          # The runtime-id changes after a fork. We call publish to ensure that the runtime-id is updated.
+          publish(Datadog.configuration)
         end
 
         private
@@ -44,16 +46,10 @@ module Datadog
             service_name: settings.service || '',
             service_env: settings.env || '',
             service_version: settings.version || '',
-            # TODO: Implement process tags and container id
-            process_tags: '',
-            container_id: ''
+            # Follows Java: https://github.com/DataDog/dd-trace-java/blob/2ebc964340ac530342cc389ba68ff0f5070d5f9f/dd-trace-core/src/main/java/datadog/trace/core/servicediscovery/ServiceDiscovery.java#L37-L38
+            process_tags: settings.experimental_propagate_process_tags_enabled ? Core::Environment::Process.serialized : '',
+            container_id: Core::Environment::Container.container_id || ''
           }
-        end
-
-        def apply_at_fork_patch
-          # The runtime-id changes after a fork. We apply this patch to at_fork to ensure that the runtime-id is updated.
-          Utils::AtForkMonkeyPatch.apply!
-          Utils::AtForkMonkeyPatch.at_fork(:child) { publish(Datadog.configuration) }
         end
       end
     end

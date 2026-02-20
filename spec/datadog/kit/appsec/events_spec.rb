@@ -24,6 +24,8 @@ RSpec.describe Datadog::Kit::AppSec::Events do
     let(:appsec_span) { trace_op.build_span('root') }
 
     before do
+      allow(telemetry).to receive(:inc)
+      allow(telemetry).to receive(:error)
       allow(Datadog::AppSec).to receive(:active_context).and_return(appsec_active_context)
     end
 

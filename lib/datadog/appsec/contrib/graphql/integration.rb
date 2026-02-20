@@ -31,7 +31,7 @@ module Datadog
           end
 
           def self.compatible?
-            super && version >= MINIMUM_VERSION && ast_node_classes_defined?
+            !!(super && version&.>=(MINIMUM_VERSION) && ast_node_classes_defined?)
           end
 
           def self.auto_instrument?

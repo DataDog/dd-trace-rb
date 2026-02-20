@@ -87,6 +87,7 @@ unsigned int MAX_ALLOC_WEIGHT = 10000;
   static rb_postponed_job_handle_t sample_from_postponed_job_handle;
   static rb_postponed_job_handle_t after_gc_from_postponed_job_handle;
   static rb_postponed_job_handle_t after_gvl_running_from_postponed_job_handle;
+  static rb_postponed_job_handle_t after_allocation_from_postponed_job_handle;
 #endif
 
 // Contains state for a single CpuAndWallTimeWorker instance
@@ -138,6 +139,8 @@ typedef struct {
     // # Generic stats
     // How many times we tried to trigger a sample
     unsigned int trigger_sample_attempts;
+    // How many times extra sleep was triggered by dynamic sampling rate
+    unsigned int trigger_sample_extra_sleep;
     // How many times we tried to simulate signal delivery
     unsigned int trigger_simulated_signal_delivery_attempts;
     // How many times we actually simulated signal delivery
@@ -229,6 +232,7 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
 static void disable_tracepoints(cpu_and_wall_time_worker_state *state);
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self);
 static VALUE rescued_sample_allocation(VALUE tracepoint_data);
+static VALUE rescued_after_allocation(VALUE self_instance);
 static void delayed_error(cpu_and_wall_time_worker_state *state, const char *error);
 static void delayed_error_clock_failure(cpu_and_wall_time_worker_state *state);
 static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg);
@@ -243,9 +247,11 @@ static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, VALUE 
 static VALUE handle_sampling_failure_rescued_sample_from_postponed_job(VALUE self_instance, VALUE exception);
 static VALUE handle_sampling_failure_thread_context_collector_sample_after_gc(VALUE self_instance, VALUE exception);
 static VALUE handle_sampling_failure_rescued_sample_allocation(VALUE self_instance, VALUE exception);
+static VALUE handle_sampling_failure_rescued_after_allocation(VALUE self_instance, VALUE exception);
 static VALUE handle_sampling_failure_rescued_after_gvl_running_from_postponed_job(VALUE self_instance, VALUE exception);
 static inline void during_sample_enter(cpu_and_wall_time_worker_state* state);
 static inline void during_sample_exit(cpu_and_wall_time_worker_state* state);
+static void after_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused);
 
 // We're using `on_newobj_event` function with `rb_add_event_hook2`, which requires in its public signature a function
 // with signature `rb_event_hook_func_t` which doesn't match `on_newobj_event`.
@@ -293,11 +299,13 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
     sample_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, sample_from_postponed_job, NULL);
     after_gc_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_gc_from_postponed_job, NULL);
     after_gvl_running_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_gvl_running_from_postponed_job, NULL);
+    after_allocation_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_allocation_from_postponed_job, NULL);
 
     if (
       sample_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
       after_gc_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
-      after_gvl_running_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID
+      after_gvl_running_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
+      after_allocation_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID
     ) {
       raise_error(rb_eRuntimeError, "Failed to register profiler postponed jobs (got POSTPONED_JOB_HANDLE_INVALID)");
     }
@@ -713,7 +721,10 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
     // `dynamic_sampling_rate_get_sleep` may have changed while the above sleep was ongoing.
     uint64_t extra_sleep =
       dynamic_sampling_rate_get_sleep(&state->cpu_dynamic_sampling_rate, monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE));
-    if (state->dynamic_sampling_rate_enabled && extra_sleep > 0) sleep_for(extra_sleep);
+    if (state->dynamic_sampling_rate_enabled && extra_sleep > 0) {
+      state->stats.trigger_sample_extra_sleep++;
+      sleep_for(extra_sleep);
+    }
   }
 
   return NULL; // Unused
@@ -1049,6 +1060,7 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
   VALUE stats_as_hash = rb_hash_new();
   VALUE arguments[] = {
     ID2SYM(rb_intern("trigger_sample_attempts")),                    /* => */ UINT2NUM(state->stats.trigger_sample_attempts),
+    ID2SYM(rb_intern("trigger_sample_extra_sleep")),                 /* => */ UINT2NUM(state->stats.trigger_sample_extra_sleep),
     ID2SYM(rb_intern("trigger_simulated_signal_delivery_attempts")), /* => */ UINT2NUM(state->stats.trigger_simulated_signal_delivery_attempts),
     ID2SYM(rb_intern("simulated_signal_delivery")),                  /* => */ UINT2NUM(state->stats.simulated_signal_delivery),
     ID2SYM(rb_intern("signal_handler_enqueued_sample")),             /* => */ UINT2NUM(state->stats.signal_handler_enqueued_sample),
@@ -1312,11 +1324,19 @@ static VALUE rescued_sample_allocation(DDTRACE_UNUSED VALUE unused) {
   // To control bias from sampling, we clamp the maximum weight attributed to a single allocation sample. This avoids
   // assigning a very large number to a sample, if for instance the dynamic sampling mechanism chose a really big interval.
   unsigned int weight = allocations_since_last_sample > MAX_ALLOC_WEIGHT ? MAX_ALLOC_WEIGHT : (unsigned int) allocations_since_last_sample;
-  thread_context_collector_sample_allocation(state->thread_context_collector_instance, weight, new_object);
+  bool needs_after_allocation = thread_context_collector_sample_allocation(state->thread_context_collector_instance, weight, new_object);
   // ...but we still represent the skipped samples in the profile, thus the data will account for all allocations.
   if (weight < allocations_since_last_sample) {
     uint32_t skipped_samples = (uint32_t) uint64_min_of(allocations_since_last_sample - weight, UINT32_MAX);
     thread_context_collector_sample_skipped_allocation_samples(state->thread_context_collector_instance, skipped_samples);
+  }
+
+  if (needs_after_allocation) {
+    #ifndef NO_POSTPONED_TRIGGER
+      rb_postponed_job_trigger(after_allocation_from_postponed_job_handle);
+    #else
+      // Not needed on legacy rubies
+    #endif
   }
 
   // Return a dummy VALUE because we're called from rb_rescue2 which requires it
@@ -1470,9 +1490,50 @@ static VALUE handle_sampling_failure_rescued_sample_allocation(VALUE self_instan
   return Qnil;
 }
 
+static VALUE handle_sampling_failure_rescued_after_allocation(VALUE self_instance, VALUE exception) {
+  stop(self_instance, exception, "rescued_after_allocation");
+  return Qnil;
+}
+
 static VALUE handle_sampling_failure_rescued_after_gvl_running_from_postponed_job(VALUE self_instance, VALUE exception) {
   stop(self_instance, exception, "rescued_after_gvl_running_from_postponed_job");
   return Qnil;
+}
+
+static VALUE rescued_after_allocation(VALUE self_instance) {
+  cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(self_instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  thread_context_collector_after_allocation(state->thread_context_collector_instance);
+
+  // Return a dummy VALUE because we're called from rb_rescue2 which requires it
+  return Qnil;
+}
+
+// This postponed job callback is used to finalize heap allocation recordings on Ruby 4+.
+// During on_newobj_event, calling rb_obj_id() is unsafe because it mutates the object.
+// So we defer getting the object_id until after the event completes.
+static void after_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused) {
+  cpu_and_wall_time_worker_state *state = active_sampler_instance_state;
+
+  if (state == NULL || !ddtrace_rb_ractor_main_p()) return;
+
+  // Protect against nested operations
+  if (state->during_sample) return;
+
+  during_sample_enter(state);
+
+  // NOTE: We're not updating the allocation_sampler here.
+  // This means work done in this function isn't accounted for as profiler overhead.
+  // This is acceptable as the amount of work done here is expected to be small.
+  safely_call(
+    rescued_after_allocation,
+    state->self_instance,
+    state->self_instance,
+    handle_sampling_failure_rescued_after_allocation
+  );
+
+  during_sample_exit(state);
 }
 
 static inline void during_sample_enter(cpu_and_wall_time_worker_state* state) {
