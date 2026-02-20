@@ -5,7 +5,7 @@
 variables:
   GITLAB_BENCHMARKS_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:ruby-gitlab
   GITLAB_DDPROF_BENCHMARK_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:ruby-ddprof-benchmark
-  BASE_CI_IMAGE: registry.ddbuild.io/ci/benchmarking-platform:dd-trace-rb
+  BASE_CI_IMAGE: registry.ddbuild.io/ci/benchmarking-platform:dd-trace-rb-test
 
 # -----------------------------------------------------
 # Macrobenchmarks
@@ -193,7 +193,7 @@ microbenchmarks:
     # $GROUP is defined on benchmarks/execution.yml
     - eval "export BENCHMARKS=\$BENCHMARKS_$GROUP"
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
-    - git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform && cd platform
+    - git clone --branch augusto/dd-trace-rb.combine-parallel-runs https://github.com/DataDog/benchmarking-platform platform && cd platform
     - bp-runner bp-runner.yml --debug
   artifacts:
     name: "artifacts"
