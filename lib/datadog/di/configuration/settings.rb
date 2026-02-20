@@ -230,14 +230,24 @@ module Datadog
                 # Set to nil to disable the circuit breaker.
                 # Set to zero to disable every probe after it executes once.
                 # Set to -1 (or any negative value) to disable the circuit breaker.
+                #
+                # Note: In Ruby, this tracks the full DI processing time (entry + exit),
+                # not just snapshot capture. However, we reuse the environment variable
+                # name DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT that Java already uses
+                # for cross-language consistency and discoverability.
+                #
+                # The environment variable value is specified in milliseconds and converted
+                # to seconds internally (e.g., DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT=200
+                # sets max_processing_time to 0.2 seconds).
                 option :max_processing_time do |o|
                   o.type :float
-                  o.default 0.5
-                  o.env 'DD_DYNAMIC_INSTRUMENTATION_MAX_PROCESSING_TIME'
+                  o.default 0.2
+                  o.env 'DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT'
                   o.env_parser do |value|
                     return nil if value.nil? || value.empty?
                     float_value = value.to_f
-                    float_value < 0 ? nil : float_value
+                    return nil if float_value < 0
+                    float_value / 1000.0  # Convert milliseconds to seconds
                   end
                 end
               end
