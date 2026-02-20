@@ -77,7 +77,7 @@ jobs:
   test:
     needs:
       - build
-    uses: DataDog/system-tests/.github/workflows/system-tests.yml@ec74ba8b7647f5d48432da42295cdf39211fbf6c  # Automated: This reference is automatically updated.
+    uses: DataDog/system-tests/.github/workflows/system-tests.yml@102cb85728e3dcf4a4e27e8ddb5aba265dbeadb6  # Automated: This reference is automatically updated.
     permissions:
       contents: read
       id-token: write
