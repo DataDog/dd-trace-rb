@@ -1,10 +1,186 @@
 # Dynamic Instrumentation
 
+## Overview
+
+Dynamic Instrumentation for Ruby is currently in **limited preview**.
+While the core functionality is stable, some features available in other
+languages (Java, Python, .NET) are not yet available for Ruby.
+
+> **New to Dynamic Instrumentation?**
+> This document covers Ruby-specific setup and limitations. For an
+> introduction to Dynamic Instrumentation concepts, probe types, and UI
+> workflow, see:
+> - [Dynamic Instrumentation overview](https://docs.datadoghq.com/dynamic_instrumentation/)
+> - [Expression Language reference](https://docs.datadoghq.com/dynamic_instrumentation/expression-language/)
+
+This document covers Ruby-specific considerations, limitations, and best
+practices for using Dynamic Instrumentation.
+
+## Platform Requirements
+
+- Datadog Agent 7.49.0 or higher
+- Ruby 2.6 or higher
+  - Only MRI (CRuby) is supported; JRuby and other Ruby implementations are not currently supported
+- Rack-based applications only
+  - Includes Rails, Sinatra, and other Rack-compatible frameworks
+  - Non-Rack applications are not currently supported
+  - Background processes and jobs (including Sidekiq, Resque, etc.) are not yet supported
+- [Remote Configuration Management](https://docs.datadoghq.com/remote_configuration/) enabled
+  - Remote Configuration is enabled by default.
+  - If it's disabled, follow the [instructions to enable it](https://docs.datadoghq.com/remote_configuration/#enable-remote-configuration).
+- **Development environments are not supported**
+
+## Getting Started
+
+To use dynamic instrumentation:
+
+1. Enable Dynamic Instrumentation:
+
+       export DD_DYNAMIC_INSTRUMENTATION_ENABLED=true
+
+2. Ensure you are using a production environment (`RAILS_ENV=production`,
+   etc.).
+3. Ensure you have DD_ENV set:
+
+       export DD_ENV=prod
+
+4. Ensure you set the source code metadata tags:
+
+       export DD_GIT_REPOSITORY_URL=https://github.com/example-org/repo
+       export DD_GIT_COMMIT_SHA=`git rev-parse HEAD`
+
+## Creating Your First Probe
+
+After setting the environment variables and restarting your application:
+
+1. Navigate to [APM > Dynamic Instrumentation](https://app.datadoghq.com/dynamic-instrumentation) in the Datadog UI
+2. Select your service and environment
+3. Browse to the file and line you want to instrument
+4. Create a log probe to capture variable values
+
+For detailed instructions on creating and configuring probes, see the
+[Dynamic Instrumentation documentation](https://docs.datadoghq.com/dynamic_instrumentation/).
+
+## Probe Types
+
+### Currently Supported
+
+Ruby Dynamic Instrumentation currently supports **log probes**, which can be
+created as either line probes or method probes.
+
+#### Line Probes
+
+Line probes capture data at a specific line of code. They can be installed
+on lines containing executable code and the final lines of a method (which
+returns the method's value).
+
+**What line probes capture:**
+- Local variables at that point in execution
+- Method parameters (when the probe is inside a method)
+- Stack traces
+- Execution context
+
+**Use line probes when:**
+- You need to inspect state at a specific point in a method
+- You want to capture local variables mid-execution
+- You're debugging a specific calculation or branch
+
+#### Method Probes
+
+Method probes instrument method entry and exit points, capturing data about
+the entire method execution.
+
+**What method probes capture:**
+- Method arguments at entry
+- Return value at exit
+- Method execution duration
+- Exceptions raised
+
+**Limitations:**
+- Local variables defined within the method are not currently captured
+- **Workaround:** Use line probes inside the method if you need to
+  capture local variables at specific points during execution
+
+**Additional considerations:**
+- Stack traces are always captured, but methods defined via
+  `method_missing` or similar metaprogramming will be omitted from the
+  call chain because they don't have a source location in Ruby's
+  internal representation
+
+**Use method probes when:**
+- You want to understand method inputs and outputs
+- You're debugging method-level behavior
+- You need to track method execution time
+
+### Not Yet Supported
+
+The following probe types available in other languages are not yet
+supported for Ruby:
+
+- Metric probes
+- Span probes
+- Dynamic span tags
+
+## Expression Language
+
+The Ruby tracer supports Dynamic Instrumentation expression language for
+setting conditions on probes and for message templates in log messages.
+
+### Instance Variable Name Conflicts
+
+Ruby differs from other programming languages supported by Dynamic
+Instrumentation in that instance variables are prefixed with the `@`
+sign. This creates a conflict because expression language uses `@` to
+refer to the following special variables:
+
+- `@return` - The return value of the method
+- `@duration` - The duration of the method execution
+- `@exception` - Any exception raised by the method
+- `@it` - Current item in collection operations
+- `@key` - Current key in hash operations
+- `@value` - Current value in hash operations
+
+**Important:** If you have instance variables with the above names, they
+will NOT be accessible via expression language expressions since the
+special DI variables will override them. You must rename the variables in
+your program if you use any of these variables and wish to refer to them
+from expression language expressions.
+
+### Field Access
+
+- `getmember` looks up instance variables directly, not attributes (which
+  look like method calls, and could be implemented via methods)
+- This means computed properties or attributes defined via methods won't
+  be accessible
+- DI avoids running application code as much as possible for safety and
+  performance reasons
+
+### Ruby-Specific Behavior
+
+- Accessing nonexistent array indices and nonexistent hash keys via
+  indexing yields `nil` (which is the Ruby language behavior) rather than
+  an error, as in some other languages' implementations of expression
+  language
+- Since expression language evaluation is done in Ruby, it is not
+  possible to guarantee that it will not invoke application code (since
+  all operations in Ruby can be redefined at runtime, even for example
+  addition of numbers)
+
+### Type Support in Expression Language Operations
+
+Some expression language operations have limited type support:
+- `len()` - Only supports Array, String, Hash
+- `isEmpty()` - Only supports nil, Numeric, Array, String
+- `contains()` - Only supports String in String or Array operations
+
+Using these operations on unsupported types will raise an error and
+prevent the probe condition from being evaluated.
+
 ## Instrumentable Code
 
-Instrumentation can be installed on lines containing executable code and
-the final lines of a method (which does not contain executable code).
-The following example Ruby method is annotated with which lines can be
+Line probes can be installed on lines containing executable code and the
+final lines of a method (which returns the method's value). The
+following example Ruby method is annotated with which lines can be
 targeted by dynamic instrumentation:
 
     def foo(param)              # No    (*1)
@@ -16,68 +192,128 @@ targeted by dynamic instrumentation:
       rv                        # Yes
     end                         # Yes   (*3)
 
-Note that the method definition line (*1) is executable and can be targeted
-if you wish to instrument the method definition, but if you want to instrument
-the defined method, you must set the line probe on a line inside of the
-method and not on the method definition line itself.
+### Lines That Cannot Be Instrumented
 
-Note that only the "end" that ends a method definition is specially handled
-(*3); other "end" lines, such as (*2), are not instrumentable.
+When setting line probes, the following lines **cannot** be targeted:
+- Method definition lines (the `def` line itself - *1)
+- `else` and `elsif` clauses
+- `end` keywords (except the final `end` of a method - *3)
+- Comment-only lines
+- Empty lines
 
-Dynamic instrumentation is not currently able to report when line probes target
-non-executable lines. Setting line probes on non-executable lines will succeed
-(the UI will report that the code is instrumented, if the referenced file
-is loaded and tracked), but no events will be emitted.
+**Note:** The method definition line (*1) is technically executable and
+can be targeted if you wish to instrument the method definition itself,
+but if you want to instrument the defined method's execution, you must
+set the line probe on a line inside of the method.
 
-## Expression Language
+**Important:** Dynamic instrumentation cannot currently report when line
+probes target non-executable lines. Setting line probes on non-executable
+lines will succeed (the UI will report that the code is instrumented, if
+the referenced file is loaded and tracked), but no snapshots will be
+generated.
 
-`dd-trace-rb` supports Dynamic Instrumentation expression language for
-setting conditions on probes (support for message templates is coming soon).
+## Code Loading and Instrumentation
 
-Ruby differs from other programming languages supported by Dynamic
-Instrumentation in that instance variables are prefixed with the `@` sign.
-This creates a conflict because expression language uses `@` to refer to
-the following special variables:
+### Code Tracking Requirement
+- Files must be loaded **after** Dynamic Instrumentation code tracking
+  starts
+- Code loaded before the tracer initializes cannot be instrumented with
+  line probes
+- Method probes can still work for classes defined before code tracking
+  starts
+- Best practice: Ensure the Datadog tracer initializes early in your
+  application boot process
 
-- `@return`
-- `@duration`
-- `@exception`
-- `@it`
-- `@key`
-- `@value`
+### Application Must Be Processing Requests
+- Dynamic Instrumentation is initialized via Rack middleware when
+  processing HTTP requests
+- An application that has just booted but has not yet served any requests
+  will not have Dynamic Instrumentation activated
+- Dynamic Instrumentation will be automatically activated when the first
+  HTTP request is processed
 
-If you have instance variables with the above names, they will NOT be
-accessible via expression language expressions since the special DI
-variables will override them. You must rename the variables in your program
-if you use any of these variables and wish to refer to them from
-expression language expressions.
+### File Path Matching
+- When creating a line probe, if multiple files match the path you
+  specify, instrumentation will fail
+- You'll need to provide a more specific file path to target the correct
+  file
+- Use unique file paths when creating line probes to avoid ambiguity
 
-Additionally, please note the following aspects of the expression language
-implementation in `dd-trace-rb`:
+### Eval'd Code
+- Code executed via `eval()` cannot be targeted by Dynamic
+  Instrumentation
+- Only code in physical files (required or loaded) can be instrumented
 
-- Accessing nonexistent array indices and nonexistent hash keys via
-indexing yields `nil` (which is the Ruby language behavior)
-rather than an error, as in some other languages' implementations of
-expression language.
-- `getmember` looks up instance variables, not attributes (which look
-like method calls, and could be implemented via methods).
-DI avoids running application code as much as possible for safety and
-performance reasons.
-- Since expression language evaluation is done in Ruby, it is not
-possible to guarantee that it will not invoke application code
-(since all operations in Ruby can be redefined at runtime, even for example
-addition of numbers).
+## Data Capture Limits
+
+### Snapshot Size
+
+- Maximum snapshot size is **1 MB**
+- Snapshots exceeding this size will be dropped entirely
+- Consider reducing capture depth or collection sizes if you encounter
+  this limit
+
+### Default Capture Limits
+
+The following limits control how much data is captured in each snapshot:
+
+- **Depth**: 3 levels of nested objects/collections
+- **Collection size**: 100 elements for arrays and hashes
+- **String length**: 255 characters
+- **Attributes per object**: 20 instance variables
+
+These limits can be configured globally via environment variables or
+per-probe in the probe definition.
+
+### Complex Objects
+
+- ActiveRecord models and similar complex objects may not capture useful
+  data at the default depth of 3
+- Their attributes are often nested deeper than 3 levels
+- Custom serializers are available for internal Datadog use but the API
+  is not yet finalized for customer use
+- **Workaround:** Increase the capture depth for probes targeting code
+  that works with complex objects
 
 ## Application Data Sent to Datadog
 
 Dynamic instrumentation sends some of the application data to Datadog.
 The following data is generally sent:
 
-- Class names of objects.
+- Class names of objects
 - Serialized object values, subject to redaction. There are built-in
-redaction rules based on identifier names that are always active.
-Additionally, it is possible to provide a list of class names whose
-object values should always be redacted, and a list of additional
-identifiers to be redacted.
-- Exception class names and messages.
-- Exception stack traces.
+  redaction rules based on identifier names that are always active.
+  Additionally, it is possible to provide a list of class names whose
+  object values should always be redacted, and a list of additional
+  identifiers to be redacted.
+- Exception class names and messages
+- Exception stack traces
+
+## Rate Limiting and Performance
+
+### Default Rate Limits
+
+To minimize performance impact, probes have default rate limits:
+
+- **Non-capturing probes**: 5,000 invocations per second
+- **Capturing probes** (with snapshots): 1 invocation per second
+
+These limits can be configured per probe in the probe definition.
+
+### Circuit Breaker
+
+Dynamic Instrumentation includes an automatic circuit breaker to protect
+application performance:
+
+- If a probe's execution overhead exceeds **0.5 seconds of CPU time**, it
+  will be automatically disabled
+- This prevents probes from significantly impacting application
+  performance
+- The probe will need to be recreated in the UI if you want to re-enable
+  it
+- This threshold can be configured globally
+
+## Getting Help
+
+For the latest updates, known issues, and to provide feedback, please
+contact Datadog support or your account team.
