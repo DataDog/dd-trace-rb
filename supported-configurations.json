@@ -271,6 +271,13 @@
         "default": null
       }
     ],
+    "DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT": [
+      {
+        "version": "B",
+        "type": "int",
+        "default": "200"
+      }
+    ],
     "DD_DYNAMIC_INSTRUMENTATION_ENABLED": [
       {
         "version": "A",

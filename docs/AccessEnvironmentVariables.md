@@ -96,6 +96,18 @@ Edit the `supported-configurations.json` file and add your variable (Please keep
   - `aliases`: Optional, maps the config to an array of alias names. These environment variables should not be used in dd-trace-rb code. These aliases are by default considered deprecated. To accept non-deprecated environment variables, you must also add them as a separate configuration.
   - `deprecated`: Optional, true | false, adds a log message to deprecated environment variables.
 
+#### Cross-Language Environment Variables
+
+Some environment variables are shared across multiple Datadog tracers (Java, Ruby, Node.js, etc.) but may have different default values optimized for each language's characteristics.
+
+**Example: DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT**
+
+- **Type:** int (milliseconds)
+- **Ruby Default:** 200ms (version B)
+- **Java Default:** 100ms (version A)
+
+Ruby, being a slower language, likely needs a higher timeout in practice to provide the same bounding behavior as Java.
+
 ### Step 2: Generate Configuration Assets
 
 This step requires Ruby 3.4 or higher due to the change in the format of
