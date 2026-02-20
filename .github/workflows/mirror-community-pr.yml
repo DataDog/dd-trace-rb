@@ -1,0 +1,354 @@
+name: Mirror Community Pull Request
+
+on: # yamllint disable-line rule:truthy
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to mirror'
+        required: true
+        type: number
+      rebase:
+        description: 'Rebase and re-sign commits'
+        type: boolean
+        default: false
+
+# Default permissions for all jobs
+permissions: {}
+
+jobs:
+  check-permissions:
+    if: |
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       (startsWith(github.event.comment.body, '/mirror-rebase') || startsWith(github.event.comment.body, '/mirror'))) ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    outputs:
+      has-permission: ${{ steps.check.outputs.has-permission || steps.check-dispatch.outputs.has-permission }}
+      pr-number: ${{ steps.parse.outputs.pr-number }}
+      rebase: ${{ steps.parse.outputs.rebase }}
+    steps:
+      - name: Check commenter permission
+        if: github.event_name == 'issue_comment'
+        id: check
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const { data: permission } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username: context.actor
+            });
+            const hasPermission = ['admin', 'write'].includes(permission.permission);
+            core.setOutput('has-permission', hasPermission);
+            if (!hasPermission) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: '❌ Only maintainers and collaborators can use the /mirror command.'
+              });
+            }
+            return hasPermission;
+
+      - name: Set workflow dispatch permission
+        if: github.event_name == 'workflow_dispatch'
+        id: check-dispatch
+        run: echo "has-permission=true" >> "$GITHUB_OUTPUT"
+
+      - name: Parse command
+        id: parse
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            if (context.eventName === 'workflow_dispatch') {
+              core.setOutput('pr-number', context.payload.inputs.pr_number);
+              core.setOutput('rebase', context.payload.inputs.rebase);
+            } else {
+              // issue_comment event
+              core.setOutput('pr-number', context.issue.number);
+              const commentBody = context.payload.comment.body;
+              const isRebase = commentBody.startsWith('/mirror-rebase');
+              core.setOutput('rebase', isRebase);
+            }
+
+  get-pr-details:
+    needs: check-permissions
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' && needs.check-permissions.outputs.has-permission == 'true')
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      fork-owner: ${{ steps.details.outputs.fork-owner }}
+      fork-repo: ${{ steps.details.outputs.fork-repo }}
+      fork-branch: ${{ steps.details.outputs.fork-branch }}
+      base-branch: ${{ steps.details.outputs.base-branch }}
+      pr-title: ${{ steps.details.outputs.pr-title }}
+      pr-author: ${{ steps.details.outputs.pr-author }}
+      pr-labels: ${{ steps.details.outputs.pr-labels }}
+      pr-body: ${{ steps.details.outputs.pr-body }}
+    steps:
+      - name: Get PR details via GitHub API
+        id: details
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const prNumber = ${{ needs.check-permissions.outputs.pr-number }};
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+
+            // Extract PR details
+            const forkOwner = pr.head.repo?.owner?.login || '';
+            const forkRepo = pr.head.repo?.name || '';
+            const forkBranch = pr.head.ref || '';
+            const baseBranch = pr.base.ref || '';
+            const prTitle = pr.title || '';
+            const prAuthor = pr.user?.login || '';
+            const prLabels = pr.labels.map(l => l.name).join(',');
+            const prBody = pr.body || '';
+
+            // Validate required fields
+            if (!forkOwner || !forkRepo || !forkBranch) {
+              core.setFailed('Unable to determine PR source repository or branch');
+              return;
+            }
+
+            // Set outputs
+            core.setOutput('fork-owner', forkOwner);
+            core.setOutput('fork-repo', forkRepo);
+            core.setOutput('fork-branch', forkBranch);
+            core.setOutput('base-branch', baseBranch);
+            core.setOutput('pr-title', prTitle);
+            core.setOutput('pr-author', prAuthor);
+            core.setOutput('pr-labels', prLabels);
+            core.setOutput('pr-body', prBody);
+
+            core.info(`PR Details: ${forkOwner}/${forkRepo}:${forkBranch} -> ${baseBranch}`);
+
+  mirror:
+    needs: [check-permissions, get-pr-details]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.get-pr-details.outputs.base-branch }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch PR branch
+        env:
+          FORK_OWNER: ${{ needs.get-pr-details.outputs.fork-owner }}
+          FORK_REPO: ${{ needs.get-pr-details.outputs.fork-repo }}
+          FORK_BRANCH: ${{ needs.get-pr-details.outputs.fork-branch }}
+        run: |
+          git fetch "https://github.com/$FORK_OWNER/$FORK_REPO.git" "$FORK_BRANCH"
+
+      - name: Create mirror branch name
+        id: branch
+        run: |
+          echo "mirror-branch=community-pr-${{ needs.check-permissions.outputs.pr-number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Create exact mirror branch
+        if: needs.check-permissions.outputs.rebase == 'false'
+        env:
+          MIRROR_BRANCH: ${{ steps.branch.outputs.mirror-branch }}
+        run: |
+          git branch -D "$MIRROR_BRANCH" 2>/dev/null || true
+          git checkout -b "$MIRROR_BRANCH" FETCH_HEAD
+
+      - name: Get PR commits for rebase
+        if: needs.check-permissions.outputs.rebase == 'true'
+        id: commits
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const prNumber = ${{ needs.check-permissions.outputs.pr-number }};
+            const { data: commits } = await github.rest.pulls.listCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            });
+
+            if (commits.length === 0) {
+              core.setFailed('No commits found in PR');
+              return;
+            }
+
+            const commitShas = commits.map(c => c.sha).join(' ');
+            core.setOutput('commit-shas', commitShas);
+            core.info(`Found ${commits.length} commits to cherry-pick`);
+
+      - name: Create rebase mirror branch
+        if: needs.check-permissions.outputs.rebase == 'true'
+        env:
+          MIRROR_BRANCH: ${{ steps.branch.outputs.mirror-branch }}
+          BASE_BRANCH: ${{ needs.get-pr-details.outputs.base-branch }}
+        run: |
+          git branch -D "$MIRROR_BRANCH" 2>/dev/null || true
+          git checkout -b "$MIRROR_BRANCH" "origin/$BASE_BRANCH"
+
+      - name: Cherry-pick commits
+        if: needs.check-permissions.outputs.rebase == 'true'
+        env:
+          COMMIT_SHAS: ${{ steps.commits.outputs.commit-shas }}
+        run: |
+          for COMMIT in $COMMIT_SHAS; do
+            echo "Cherry-picking $COMMIT"
+            PARENT_COUNT=$(git rev-list --parents -n 1 "$COMMIT" 2>/dev/null | wc -w)
+
+            if [ "$PARENT_COUNT" -gt 2 ]; then
+              git cherry-pick -m 1 "$COMMIT" || {
+                if git diff --cached --quiet && git diff --quiet; then
+                  echo "Empty commit, skipping"
+                  git cherry-pick --skip
+                else
+                  echo "❌ Failed to cherry-pick merge commit $COMMIT"
+                  exit 1
+                fi
+              }
+            else
+              git cherry-pick "$COMMIT" || {
+                if git diff --cached --quiet && git diff --quiet; then
+                  echo "Empty commit, skipping"
+                  git cherry-pick --skip
+                else
+                  echo "❌ Failed to cherry-pick commit $COMMIT"
+                  exit 1
+                fi
+              }
+            fi
+          done
+
+      - name: Push mirror branch
+        env:
+          MIRROR_BRANCH: ${{ steps.branch.outputs.mirror-branch }}
+        run: git push origin "$MIRROR_BRANCH" --force
+
+      - name: Create or update mirror PR
+        id: mirror-pr
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const mirrorBranch = '${{ steps.branch.outputs.mirror-branch }}';
+            const baseBranch = '${{ needs.get-pr-details.outputs.base-branch }}';
+            const prNumber = ${{ needs.check-permissions.outputs.pr-number }};
+            const prTitle = '${{ needs.get-pr-details.outputs.pr-title }}';
+            const prLabels = '${{ needs.get-pr-details.outputs.pr-labels }}'.split(',').filter(Boolean);
+            const mirrorPrTitle = `[IGNORE] 🪞 #${prNumber} - ${prTitle}`;
+
+            // Build PR body
+            const rebase = '${{ needs.check-permissions.outputs.rebase }}' === 'true';
+            const mirrorType = rebase
+              ? 'rebased mirror (commits cherry-picked and re-signed)'
+              : 'exact mirror (preserves original commits and signatures)';
+
+            const prBody = [
+              'This PR mirrors the changes from the original community contribution to enable CI testing with maintainer privileges.',
+              '',
+              `**Original PR:** https://github.com/${context.repo.owner}/${context.repo.repo}/pull/${prNumber}`,
+              `**Original Author:** @${{ needs.get-pr-details.outputs.pr-author }}`,
+              `**Original Branch:** ${{ needs.get-pr-details.outputs.fork-owner }}/${{ needs.get-pr-details.outputs.fork-repo }}:${{ needs.get-pr-details.outputs.fork-branch }}`,
+              `**Mirror Type:** ${mirrorType}`,
+              '',
+              `Closes #${prNumber}`,
+              '',
+              '---',
+              '',
+              '*This is an automated mirror created to run CI checks.*',
+              '',
+              '---',
+              '',
+              '## Original PR Description',
+              '',
+              '${{ needs.get-pr-details.outputs.pr-body }}'
+            ].join('\n');
+
+            // Check if mirror PR exists
+            const { data: existingPRs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${mirrorBranch}`,
+              state: 'all'
+            });
+
+            let mirrorPrNumber;
+
+            if (existingPRs.length > 0) {
+              mirrorPrNumber = existingPRs[0].number;
+              core.info(`Updating existing mirror PR: #${mirrorPrNumber}`);
+
+              await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: mirrorPrNumber,
+                title: mirrorPrTitle,
+                body: prBody
+              });
+            } else {
+              core.info('Creating new mirror PR');
+
+              const { data: newPR } = await github.rest.pulls.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: mirrorPrTitle,
+                head: mirrorBranch,
+                base: baseBranch,
+                body: prBody
+              });
+
+              mirrorPrNumber = newPR.number;
+
+              // Apply labels if present
+              if (prLabels.length > 0) {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: mirrorPrNumber,
+                  labels: prLabels
+                });
+              }
+            }
+
+            core.setOutput('mirror-pr-number', mirrorPrNumber);
+            core.info(`Mirror PR: #${mirrorPrNumber}`);
+
+      - name: Comment on original PR
+        if: github.event_name == 'issue_comment'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const mirrorPrNumber = '${{ steps.mirror-pr.outputs.mirror-pr-number }}';
+            const mirrorBranch = '${{ steps.branch.outputs.mirror-branch }}';
+            const rebase = '${{ needs.check-permissions.outputs.rebase }}' === 'true';
+            const mode = rebase ? 'rebase mode' : 'exact mirror mode';
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ needs.check-permissions.outputs.pr-number }},
+              body: `✅ Successfully mirrored to PR #${mirrorPrNumber} (${mode})\n\n` +
+                    `Mirror branch: \`${mirrorBranch}\`\n` +
+                    `View mirror: https://github.com/${{ github.repository }}/pull/${mirrorPrNumber}`
+            });
