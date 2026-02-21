@@ -14,6 +14,9 @@ module Datadog
           CMD_MAX_LEN = 500
 
           AUTH_COMMANDS = %w[AUTH auth].freeze
+          MIGRATE_COMMANDS = %w[MIGRATE migrate].freeze
+          HELLO_COMMANDS = %w[HELLO hello].freeze
+          KEYS_COMMANDS = %w[KEYS keys].freeze
 
           MULTI_VERB_COMMANDS = Set.new(
             %w[
@@ -40,7 +43,7 @@ module Datadog
 
           def format_command_args(command_args)
             command_args = resolve_command_args(command_args)
-            return 'AUTH ?' if auth_command?(command_args)
+            command_args = obfuscate_auth_args(command_args)
 
             verb, *args = command_args.map { |x| format_arg(x) }
             Core::Utils.truncate("#{verb.upcase} #{args.join(" ")}", CMD_MAX_LEN, TOO_LONG_MARK)
@@ -57,11 +60,38 @@ module Datadog
             "#{verb} #{command_args[1]}"
           end
 
-          def auth_command?(command_args)
-            return false unless command_args.is_a?(Array) && !command_args.empty?
+          def obfuscate_auth_args(command_args)
+            return command_args unless command_args.is_a?(Array) && !command_args.empty?
 
             verb = command_args.first.to_s
-            AUTH_COMMANDS.include?(verb)
+            case verb
+            when *AUTH_COMMANDS
+              return %w[AUTH ?]
+            when *HELLO_COMMANDS
+              auth_index = command_args.find_index { |arg| AUTH_COMMANDS.include?(arg.to_s) }
+              return command_args if auth_index.nil?
+
+              result = command_args.dup
+              result[auth_index + 1] = '?'
+              # HELLO was introduced in Redis 6, which always requires username and password.
+              # (username can be set to default in case there's only a requirepass mechanism, but it's always here so we can safely use delete_at)
+              result.delete_at(auth_index + 2)
+              return result
+            when *MIGRATE_COMMANDS
+              auth_index = command_args.find_index { |arg| AUTH_COMMANDS.include?(arg.to_s) }
+              return command_args if auth_index.nil?
+
+              result = command_args.dup
+              result[auth_index + 1] = '?'
+              keys_index = command_args.find_index { |arg| KEYS_COMMANDS.include?(arg.to_s) }
+              if auth_index + 2 < (keys_index.nil? ? command_args.length : keys_index)
+                # In this case there's both a username and a password
+                result.delete_at(auth_index + 2)
+              end
+              return result
+            end
+
+            command_args
           end
 
           # Unwraps command array when Redis is called with the following syntax:
@@ -72,7 +102,7 @@ module Datadog
             command_args
           end
 
-          private_class_method :auth_command?, :resolve_command_args
+          private_class_method :obfuscate_auth_args, :resolve_command_args
         end
       end
     end
