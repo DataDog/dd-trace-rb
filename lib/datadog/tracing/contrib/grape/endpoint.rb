@@ -43,7 +43,16 @@ module Datadog
               # collect endpoint details
               endpoint = payload.fetch(:endpoint)
               env = payload.fetch(:env)
-              api_view = api_view(endpoint.options[:for])
+              ### BRAZE MODIFICATION
+              # The upstream api_view helper calls api.base.to_s for Grape >= 1.2.0,
+              # which does not return the correct namespace for Braze's API structure.
+              # See: https://github.com/ruby-grape/grape/issues/1825
+              api = endpoint.options[:for]
+              api_view = api.to_s
+              if api_view.blank?
+                api_view = api_view(api)
+              end
+              ### END BRAZE MODIFICATION
               request_method = endpoint.options.fetch(:method).first
               path = endpoint_expand_path(endpoint)
               resource = "#{api_view} #{request_method} #{path}"
@@ -95,7 +104,14 @@ module Datadog
               begin
                 # collect endpoint details
                 endpoint = payload.fetch(:endpoint)
-                api_view = api_view(endpoint.options[:for])
+                ### BRAZE MODIFICATION
+                # Same fix as endpoint_start_process — see comment there.
+                api = endpoint.options[:for]
+                api_view = api.to_s
+                if api_view.blank?
+                  api_view = api_view(api)
+                end
+                ### END BRAZE MODIFICATION
                 request_method = endpoint.options.fetch(:method).first
                 path = endpoint_expand_path(endpoint)
 
