@@ -3,6 +3,7 @@
         "shopify.ruby-lsp",
         "editorconfig.editorconfig",
         "soutaro.rbs-syntax",
-        "soutaro.steep-vscode"
+        "soutaro.steep-vscode",
+        "testdouble.vscode-alternate-alternate-file"
     ]
 }
