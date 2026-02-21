@@ -89,6 +89,14 @@ jobs:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
+      - name: Generate PR description
+        run: |
+          {
+            echo '_This is an auto-generated PR from [here](https://github.com/DataDog/dd-trace-rb/blob/master/.github/workflows/update-latest-dependency.yml), which creates a pull request that will be continually updated with new changes until it is merged or closed)_'
+            echo
+            rake -f tasks/edge.rake edge:changes_summary
+          } > /tmp/description.md
+
       - name: Create Pull Request
         id: cpr
         uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 # v8.1.0
@@ -101,7 +109,4 @@ jobs:
           commit-message: "[🤖] Update Latest Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           delete-branch: true
           sign-commits: true
-          body: |
-            _This is an auto-generated PR from [here](https://github.com/DataDog/dd-trace-rb/blob/master/.github/workflows/update-latest-dependency.yml), which creates a pull request that will be continually updated with new changes until it is merged or closed)_
-
-            The PR updates latest versions of defined dependencies. Please review the changes and merge when ready.
+          body-path: /tmp/description.md
