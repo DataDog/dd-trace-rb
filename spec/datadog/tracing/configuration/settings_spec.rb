@@ -275,6 +275,49 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
+    describe '#context_scope' do
+      subject(:context_scope) { settings.tracing.context_scope }
+
+      let(:envs) { {Datadog::Tracing::Configuration::Ext::ENV_CONTEXT_SCOPE => scope} }
+      let(:scope) { nil }
+
+      context 'when DD_TRACE_CONTEXT_SCOPE is not defined' do
+        it { is_expected.to eq 'fiber_isolated' }
+      end
+
+      context "when #{Datadog::Tracing::Configuration::Ext::ENV_CONTEXT_SCOPE}" do
+        context 'is set to fiber_isolated' do
+          let(:scope) { 'fiber_isolated' }
+
+          it { is_expected.to eq 'fiber_isolated' }
+        end
+
+        context 'is set to thread' do
+          let(:scope) { 'thread' }
+
+          it { is_expected.to eq 'thread' }
+        end
+
+        context 'is set to an invalid value' do
+          let(:scope) { 'invalid' }
+
+          it 'returns the invalid value but logs a warning' do
+            expect(Datadog.logger).to receive(:warn).with(/Invalid value 'invalid' for context_scope/)
+            is_expected.to eq 'invalid'
+          end
+        end
+      end
+
+      describe '#context_scope=' do
+        it 'updates the #context_scope setting' do
+          expect { settings.tracing.context_scope = 'thread' }
+            .to change { settings.tracing.context_scope }
+            .from('fiber_isolated')
+            .to('thread')
+        end
+      end
+    end
+
     describe '#enabled' do
       subject(:enabled) { settings.tracing.enabled }
 

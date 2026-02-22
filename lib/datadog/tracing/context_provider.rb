@@ -5,25 +5,28 @@ require_relative 'context'
 
 module Datadog
   module Tracing
-    # DefaultContextProvider is a default context provider that retrieves
-    # all contexts from the current fiber-local storage. It is suitable for
-    # synchronous programming.
-    #
-    # @see https://ruby-doc.org/core-3.1.2/Thread.html#method-i-5B-5D Thread attributes are fiber-local
+    # A concurrency-safe repository for storing and retrieving the current trace context.
     class DefaultContextProvider
-      # Initializes the default context provider with a fiber-bound context.
-      def initialize
-        @context = FiberLocalContext.new
+      # @param scope [ContextScope] the scope to use for context storage.
+      #   The scope defines the lifecycle of the context.
+      def initialize(scope: FiberIsolatedScope.new)
+        @context = scope
       end
 
-      # Sets the current context.
-      def context=(ctx)
-        @context.local = ctx
+      # Initialize or override the active context.
+      # @param context [Context] the trace context to store in the active scope
+      def context=(context)
+        @context.current = context
       end
 
-      # Return the local context.
+      # Return the active context for the configured scope.
+      #
+      # @param key [Object, nil] provide a custom object to fetch the active context from.
+      #   DEV: Remove unused parameter `key`. It's never used, and makes the code complicate.
+      #   DEV: All the `get_local_for` methods can be removed if we remove this parameter.
+      # @return [Context, nil] the context for the active scope, or `nil` if none is set.
       def context(key = nil)
-        current_context = key.nil? ? @context.local : @context.local(key)
+        current_context = key.nil? ? @context.current : @context.current(key)
 
         # Rebuild/reset context after a fork
         #
@@ -31,7 +34,6 @@ module Datadog
         # that were generated from the parent process. Reset it such
         # that it acts like a distributed trace.
         current_context.after_fork! do
-          # TODO: Only assign to `self.context` when working on the current thread (`key == nil`)
           current_context = self.context = current_context.fork_clone
         end
 
@@ -39,43 +41,113 @@ module Datadog
       end
     end
 
-    # FiberLocalContext can be used as a tracer global reference to create
-    # a different {Datadog::Tracing::Context} for each fiber. This allows for the tracer
-    # to create a serial execution graph regardless of any concurrent execution: each
-    # concurrent execution path creates a new trace graph.
+    # A base class for context storage implementations.
+    # It provides unique instance ID generation to ensure multiple scope instances
+    # do not conflict with each other.
+    #
+    # @abstract
+    class ContextScope
+      def initialize
+        @key = :"datadog_context_#{self.class.next_instance_id}"
+
+        self.current = Context.new
+      end
+
+      # Initialize or override the active context.
+      # @param context [Context] the trace context to store in the active scope
+      # @abstract
+      def current=(context)
+        raise NotImplementedError
+      end
+
+      # Return the active context.
+      # @param storage [Object, nil] optional storage object to retrieve context from
+      # @return [Context, nil] the context for the current or specified storage, or `nil` if none is set.
+      def current(storage = nil)
+        if storage
+          get_current_for(storage)
+        else
+          get_current
+        end
+      end
+
+      class << self
+        def unique_instance_mutex
+          @unique_instance_mutex ||= Mutex.new
+        end
+
+        def unique_instance_generator
+          @unique_instance_generator ||= Datadog::Core::Utils::Sequence.new
+        end
+
+        # DEV: This is a very conservative way to ensure storage keys do not collide
+        # DEV: when threads/fibers are resued. We can probably find something faster.
+        def next_instance_id
+          unique_instance_mutex.synchronize { unique_instance_generator.next }
+        end
+      end
+
+      protected
+
+      # Retrieve context from the current execution unit's storage.
+      # @return [Context]
+      # @abstract
+      def get_current
+        raise NotImplementedError
+      end
+
+      # Retrieve context from a specific storage object.
+      # @param storage [Object] the storage object to retrieve context from
+      # @return [Context]
+      # @abstract
+      def get_current_for(storage)
+        raise NotImplementedError
+      end
+    end
+
+    # Stores context using thread-local variables, which are shared
+    # across all Fibers running on the same Thread.
+    #
+    # @see https://ruby-doc.org/core-3.1.2/Thread.html#method-i-thread_variable_get
+    class ThreadScope < ContextScope
+      def current=(context)
+        Thread.current.thread_variable_set(@key, context)
+      end
+
+      protected
+
+      def get_current
+        Thread.current.thread_variable_get(@key) || (self.current = Context.new)
+      end
+
+      def get_current_for(thread)
+        context = thread.thread_variable_get(@key)
+        return context if context
+
+        context = Context.new
+        thread.thread_variable_set(@key, context)
+        context
+      end
+    end
+
+    # Stores a different context for each Fiber.
+    # There's no context inheritance between Fibers, as the
+    # implementation is unrelated to `Fiber#storage`.
     #
     # @see https://ruby-doc.org/core-3.1.2/Thread.html#method-i-5B-5D Thread attributes are fiber-local
-    class FiberLocalContext
-      # To support multiple tracers simultaneously, each {Datadog::Tracing::FiberLocalContext}
-      # instance has its own fiber-local variable.
-      def initialize
-        @key = :"datadog_context_#{FiberLocalContext.next_instance_id}"
-
-        self.local = Context.new
+    class FiberIsolatedScope < ContextScope
+      def current=(context)
+        Thread.current[@key] = context
       end
 
-      # Override the fiber-local context with a new context.
-      def local=(ctx)
-        Thread.current[@key] = ctx
+      protected
+
+      def get_current
+        Thread.current[@key] ||= Context.new
       end
 
-      # Return the fiber-local context.
-      def local(storage = Thread.current)
+      def get_current_for(storage)
         storage[@key] ||= Context.new
-      end
-
-      # Ensure two instances of {FiberLocalContext} do not conflict.
-      # We previously used {FiberLocalContext#object_id} to ensure uniqueness
-      # but the VM is allowed to reuse `object_id`, allow for the possibility that
-      # a new FiberLocalContext would be able to read an old FiberLocalContext's
-      # value.
-      UNIQUE_INSTANCE_MUTEX = Mutex.new
-      UNIQUE_INSTANCE_GENERATOR = Datadog::Core::Utils::Sequence.new
-
-      private_constant :UNIQUE_INSTANCE_MUTEX, :UNIQUE_INSTANCE_GENERATOR
-
-      def self.next_instance_id
-        UNIQUE_INSTANCE_MUTEX.synchronize { UNIQUE_INSTANCE_GENERATOR.next }
       end
     end
   end
