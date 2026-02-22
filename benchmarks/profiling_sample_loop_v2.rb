@@ -111,7 +111,7 @@ class ProfilerSampleLoopBenchmark
         end
       end
 
-      x.save! "#{File.basename(__FILE__)}-#{mode}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, '.rb')}-#{mode}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -134,7 +134,7 @@ class ProfilerSampleLoopBenchmark
         add_extra_frame_and_sample(collector) # This makes the stack change
       end
 
-      x.save! "#{File.basename(__FILE__)}-varying-depth-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, '.rb')}-varying-depth-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
