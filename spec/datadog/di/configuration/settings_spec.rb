@@ -15,6 +15,9 @@ RSpec.describe Datadog::DI::Configuration::Settings do
         ['internal', 'min_send_interval', 5],
         ['internal', 'development', true],
         ['internal', 'development', false],
+        ['internal', 'max_processing_time', 0.0],
+        ['internal', 'max_processing_time', 1.5],
+        ['internal', 'max_processing_time', nil],
         [nil, "redacted_identifiers", ["foo"]],
         [nil, "redacted_identifiers", []],
         [nil, "redaction_excluded_identifiers", ["password"]],
@@ -74,6 +77,14 @@ RSpec.describe Datadog::DI::Configuration::Settings do
         ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES", "", "redacted_type_names", %w[]],
         ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES", ",", "redacted_type_names", %w[]],
         ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES", ".!", "redacted_type_names", %w[.!]],
+        ["DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT", "0", "internal.max_processing_time", 0.0],
+        ["DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT", "100", "internal.max_processing_time", 0.1],
+        ["DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT", "200", "internal.max_processing_time", 0.2],
+        ["DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT", "1500", "internal.max_processing_time", 1.5],
+        ["DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT", nil, "internal.max_processing_time", 0.2],
+        ["DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT", "", "internal.max_processing_time", nil],
+        ["DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT", "-1", "internal.max_processing_time", nil],
+        ["DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT", "-999", "internal.max_processing_time", nil],
       ].each do |(env_var_name_, env_var_value_, setting_name_, setting_value_)|
         env_var_name = env_var_name_
         env_var_value = env_var_value_
@@ -88,7 +99,12 @@ RSpec.describe Datadog::DI::Configuration::Settings do
           end
 
           it "sets dynamic_instrumentation.#{setting_name}=#{setting_value}" do
-            expect(settings.dynamic_instrumentation.public_send(setting_name)).to eq setting_value
+            # Handle nested settings like "internal.max_processing_time"
+            setting_path = setting_name.split('.')
+            actual_value = setting_path.reduce(settings.dynamic_instrumentation) do |obj, method|
+              obj.public_send(method)
+            end
+            expect(actual_value).to eq setting_value
           end
         end
       end
