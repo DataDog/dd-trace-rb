@@ -5,7 +5,7 @@ module Datadog
     MAJOR = 2
     MINOR = 30
     PATCH = 0
-    PRE = nil
+    PRE = 'dev'
     BUILD = nil
     # PRE and BUILD above are modified for dev gems during gem build GHA workflow
 
