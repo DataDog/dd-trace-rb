@@ -39,7 +39,7 @@ GEM
       ostruct
     elasticsearch-api (8.19.3)
       multi_json
-    faraday (1.10.4)
+    faraday (1.10.5)
       faraday-em_http (~> 1.0)
       faraday-em_synchrony (~> 1.0)
       faraday-excon (~> 1.1)
