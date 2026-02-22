@@ -69,7 +69,7 @@ GEM
       date
       stringio
     public_suffix (6.0.1)
-    rack (3.2.4)
+    rack (3.2.5)
     rack-contrib (2.5.0)
       rack (< 4)
     rack-test (2.1.0)

@@ -32,7 +32,7 @@ GEM
     dogstatsd-ruby (5.7.1)
     ffi (1.17.3-java)
     hashdiff (1.2.1)
-    json (2.18.0-java)
+    json (2.18.1-java)
     json-schema (2.8.1)
       addressable (>= 2.4)
     karafka (2.5.5)
@@ -109,7 +109,7 @@ GEM
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
     webrick (1.9.1)
-    zeitwerk (2.7.4)
+    zeitwerk (2.7.5)
 
 PLATFORMS
   universal-java-22

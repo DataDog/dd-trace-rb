@@ -45,7 +45,7 @@ GEM
     pry-debugger-jruby (2.1.1-java)
       pry (>= 0.13, < 0.15)
       ruby-debug-base (>= 0.10.4, < 0.12)
-    rack (2.2.21)
+    rack (2.2.22)
     rack-contrib (2.3.0)
       rack (~> 2.0)
     rack-test (2.1.0)

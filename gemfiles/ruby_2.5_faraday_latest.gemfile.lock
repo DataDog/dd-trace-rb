@@ -30,7 +30,7 @@ GEM
     diff-lcs (1.6.0)
     docile (1.4.1)
     dogstatsd-ruby (5.6.5)
-    faraday (1.10.4)
+    faraday (1.10.5)
       faraday-em_http (~> 1.0)
       faraday-em_synchrony (~> 1.0)
       faraday-excon (~> 1.1)

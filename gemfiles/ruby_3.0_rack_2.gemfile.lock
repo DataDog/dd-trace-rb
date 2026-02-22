@@ -48,7 +48,7 @@ GEM
     pry (0.14.2)
       coderay (~> 1.1)
       method_source (~> 1.0)
-    rack (2.2.21)
+    rack (2.2.22)
     rack-contrib (2.3.0)
       rack (~> 2.0)
     rack-test (2.1.0)
