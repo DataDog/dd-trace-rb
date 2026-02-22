@@ -16,7 +16,7 @@ RSpec.describe Datadog::Core::Configuration::Deprecations do
     end
 
     before do
-      described_class.const_get('LOG_DEPRECATIONS_ONLY_ONCE').send(:reset_ran_once_state_for_tests)
+      described_class.const_get('LOG_DEPRECATIONS_ONLY_ONCE').each_value { |only_once| only_once.send(:reset_ran_once_state_for_tests) }
     end
 
     context 'when deprecated env is set in ENV' do
