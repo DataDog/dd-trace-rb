@@ -43,6 +43,8 @@ module Datadog
               id = extractor.extract_id(resource)
               login = extractor.extract_login(resource_params) || extractor.extract_login(resource)
 
+              context.state[:user_auth] = {id: id, login: login, event: :signup, framework: 'devise'}
+
               context.span[Ext::TAG_SIGNUP_TRACK] = 'true'
               context.span[Ext::TAG_DD_USR_LOGIN] = login
               context.span[Ext::TAG_SIGNUP_USR_LOGIN] ||= login
