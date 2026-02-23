@@ -311,7 +311,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           "endpoint_counts" => nil,
           "internal" => hash_including("no_signals_workaround_enabled" => true),
           "info" => info_string_keys,
-          "process_tags" => "",
+          "process_tags" => nil,
         }
       }
 
@@ -409,7 +409,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       end
 
       it "logs an error" do
-        expect(Datadog.logger).to receive(:warn).with(/ddog_prof_Exporter_send failed/)
+        expect(Datadog.logger).to receive(:warn).with(/ddog_prof_Exporter_send_blocking failed/)
         expect(Datadog::Core::Telemetry::Logger).to receive(:error).with("Failed to report profiling data")
 
         http_transport.export(flush)
