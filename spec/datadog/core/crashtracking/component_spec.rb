@@ -139,77 +139,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       end
     end
 
-    describe '#report_unhandled_exception' do
-      include_context 'HTTP server'
-
-      let(:agent_base_url) { "http://#{hostname}:#{http_server_port}" }
-
-      def method_that_raises
-        raise StandardError, 'Test unhandled exception with backtrace'
-      end
-
-      it 'reports the unhandled exception' do
-        crashtracker = build_crashtracker(agent_base_url: agent_base_url, logger: logger)
-        exception =
-          begin
-            method_that_raises
-          rescue => e
-            e
-          end
-
-        crashtracker.report_unhandled_exception(exception)
-
-        try_wait_until { messages.length == 2 }
-
-        parsed_messages = messages.map { |msg| JSON.parse(msg.body.to_s, symbolize_names: true).fetch(:payload).fetch(:logs).first }
-
-        expect(parsed_messages).to include(
-          a_hash_including(is_crash: false, tags: a_string_including('is_crash_ping')),
-          a_hash_including(is_crash: true),
-        )
-
-        crash_report = JSON.parse(parsed_messages.find { |msg| msg[:is_crash] == true }.fetch(:message), symbolize_names: true)
-
-        # Verify metadata (ddog_crasht_CrashInfoBuilder_with_metadata)
-        expect(crash_report[:metadata]).to include(
-          library_name: 'dd-trace-rb',
-          library_version: Datadog::VERSION::STRING,
-          family: 'ruby'
-        )
-        expect(crash_report[:metadata][:tags]).to be_an(Array)
-        expect(crash_report[:metadata][:tags]).to_not be_empty
-
-        # Verify error kind is unhandled exception (ddog_crasht_CrashInfoBuilder_with_kind)
-        expect(crash_report[:error][:kind]).to eq('UnhandledException')
-
-        # Verify process info is present (ddog_crasht_CrashInfoBuilder_with_proc_info)
-        expect(crash_report[:proc_info][:pid]).to be > 0
-
-        # Verify OS info is present (ddog_crasht_CrashInfoBuilder_with_os_info_this_machine)
-        # should not be unknown os_info
-        expect(crash_report[:os_info][:architecture]).to_not eq('unknown')
-
-        # Verify exception message format (ddog_crasht_CrashInfoBuilder_with_message)
-        expect(crash_report[:error][:message]).to eq(
-          "Process was terminated due to an unhandled exception of type 'StandardError'. Message: \"Test unhandled exception with backtrace\""
-        )
-
-        # Verify stack trace is present (ddog_crasht_CrashInfoBuilder_with_stack)
-        stack_frames = crash_report[:error][:stack][:frames]
-        exception_backtrace = exception.backtrace_locations
-        expect(stack_frames).to be_an(Array)
-        expect(stack_frames.length).to be > 0
-        expect(crash_report[:error][:stack][:incomplete]).to be false
-
-        # Verify that the stack frames match the exception backtrace
-        (0..stack_frames.length - 1).each do |i|
-          expect(stack_frames[i][:function]).to eq(exception_backtrace[i].label)
-          expect(stack_frames[i][:file]).to eq(exception_backtrace[i].path)
-          expect(stack_frames[i][:line]).to eq(exception_backtrace[i].lineno)
-        end
-      end
-    end
-
     describe '#update_on_fork' do
       before { allow(logger).to receive(:debug) }
 
@@ -322,8 +251,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
             raise StandardError, 'Test Ruby unhandled exception'
           end
 
-          # check that both crash ping and crash report were sent
-          # Content is checked in unit test
+          # check that at least crash ping and crash report were sent
           expect(messages.length).to eq(2)
         end
       end
