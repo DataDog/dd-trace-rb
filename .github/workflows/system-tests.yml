@@ -77,7 +77,7 @@ jobs:
   test:
     needs:
       - build
-    uses: DataDog/system-tests/.github/workflows/system-tests.yml@09a7eee0385c3c28c0102bc1e2d3d06e208acc1b  # Automated: This reference is automatically updated.
+    uses: DataDog/system-tests/.github/workflows/system-tests.yml@d07ae29d88b7c67a3c06333c518bac0f1ed27e13  # Automated: This reference is automatically updated.
     secrets:
       TEST_OPTIMIZATION_API_KEY: ${{ secrets.DD_API_KEY }}  # key used to pushed test results to test optim
       DD_API_KEY: ${{ secrets.DD_API_KEY }}  # key used in tests runs
