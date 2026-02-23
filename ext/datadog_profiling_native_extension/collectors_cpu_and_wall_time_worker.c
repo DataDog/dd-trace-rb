@@ -556,8 +556,9 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   // @ivoanjo: I suspect this will never happen, but the cost of getting it wrong is really high (VM terminates) so this
   // is a just-in-case situation.
   //
-  // Note 2: This can raise exceptions as well, so make sure that all cleanups are done by the time we get here.
-  replace_sigprof_signal_handler_with_empty_handler(handle_sampling_signal);
+  // Note 2: If exception_state is set, we have a pending exception that we'll re-raise below.
+  // In that case, we don't want replace_sigprof_signal_handler_with_empty_handler to raise another exception.
+  replace_sigprof_signal_handler_with_empty_handler(handle_sampling_signal, !exception_state);
 
   // Ensure that instance is not garbage collected while the native sampling loop is running; this is probably not needed, but just in case
   RB_GC_GUARD(instance);
