@@ -96,9 +96,6 @@ module Datadog
           def configuration(settings, agent_settings)
             seq_id = Event.configuration_sequence.next
 
-            # tracing.writer_options.buffer_size and tracing.writer_options.flush_interval have the same origin.
-            writer_option_origin = get_telemetry_origin(settings, 'tracing.writer_options')
-
             list = [
               # Only set using env var as of June 2025
               conf_value('DD_GIT_REPOSITORY_URL', Core::Environment::Git.git_repository_url, seq_id, 'env_var'),
@@ -121,39 +118,7 @@ module Datadog
               # Mix of env var, programmatic and default config, so we use unknown
               conf_value('DD_AGENT_TRANSPORT', agent_transport(agent_settings), seq_id, 'unknown'), # rubocop:disable CustomCops/EnvStringValidationCop
 
-              # writer_options is defined as an option that has a Hash value.
-              conf_value(
-                'tracing.writer_options.buffer_size',
-                to_value(settings.tracing.writer_options[:buffer_size]),
-                seq_id,
-                writer_option_origin
-              ),
-              conf_value(
-                'tracing.writer_options.flush_interval',
-                to_value(settings.tracing.writer_options[:flush_interval]),
-                seq_id,
-                writer_option_origin
-              ),
-
               conf_value('DD_AGENT_HOST', settings.agent.host, seq_id, get_telemetry_origin(settings, 'agent.host')),
-              conf_value(
-                'DD_TRACE_SAMPLE_RATE',
-                to_value(settings.tracing.sampling.default_rate),
-                seq_id,
-                get_telemetry_origin(settings, 'tracing.sampling.default_rate')
-              ),
-              conf_value(
-                'DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED',
-                settings.tracing.contrib.global_default_service_name.enabled,
-                seq_id,
-                get_telemetry_origin(settings, 'tracing.contrib.global_default_service_name.enabled')
-              ),
-              conf_value(
-                'DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED',
-                settings.tracing.contrib.peer_service_defaults,
-                seq_id,
-                get_telemetry_origin(settings, 'tracing.contrib.peer_service_defaults')
-              ),
               conf_value(
                 'DD_TRACE_DEBUG',
                 settings.diagnostics.debug,
@@ -162,17 +127,56 @@ module Datadog
               )
             ]
 
-            peer_service_mapping_str = ''
-            unless settings.tracing.contrib.peer_service_mapping.empty?
-              peer_service_mapping = settings.tracing.contrib.peer_service_mapping
-              peer_service_mapping_str = peer_service_mapping.map { |key, value| "#{key}:#{value}" }.join(',')
+            # Tracing-specific configuration (only available when full tracing library is loaded)
+            if settings.respond_to?(:tracing)
+              # tracing.writer_options.buffer_size and tracing.writer_options.flush_interval have the same origin.
+              writer_option_origin = get_telemetry_origin(settings, 'tracing.writer_options')
+
+              # writer_options is defined as an option that has a Hash value.
+              list << conf_value(
+                'tracing.writer_options.buffer_size',
+                to_value(settings.tracing.writer_options[:buffer_size]),
+                seq_id,
+                writer_option_origin
+              )
+              list << conf_value(
+                'tracing.writer_options.flush_interval',
+                to_value(settings.tracing.writer_options[:flush_interval]),
+                seq_id,
+                writer_option_origin
+              )
+
+              list << conf_value(
+                'DD_TRACE_SAMPLE_RATE',
+                to_value(settings.tracing.sampling.default_rate),
+                seq_id,
+                get_telemetry_origin(settings, 'tracing.sampling.default_rate')
+              )
+              list << conf_value(
+                'DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED',
+                settings.tracing.contrib.global_default_service_name.enabled,
+                seq_id,
+                get_telemetry_origin(settings, 'tracing.contrib.global_default_service_name.enabled')
+              )
+              list << conf_value(
+                'DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED',
+                settings.tracing.contrib.peer_service_defaults,
+                seq_id,
+                get_telemetry_origin(settings, 'tracing.contrib.peer_service_defaults')
+              )
+
+              peer_service_mapping_str = ''
+              unless settings.tracing.contrib.peer_service_mapping.empty?
+                peer_service_mapping = settings.tracing.contrib.peer_service_mapping
+                peer_service_mapping_str = peer_service_mapping.map { |key, value| "#{key}:#{value}" }.join(',')
+              end
+              list << conf_value(
+                'DD_TRACE_PEER_SERVICE_MAPPING',
+                peer_service_mapping_str,
+                seq_id,
+                get_telemetry_origin(settings, 'tracing.contrib.peer_service_mapping')
+              )
             end
-            list << conf_value(
-              'DD_TRACE_PEER_SERVICE_MAPPING',
-              peer_service_mapping_str,
-              seq_id,
-              get_telemetry_origin(settings, 'tracing.contrib.peer_service_mapping')
-            )
 
             # OpenTelemetry configuration options (using environment variable names)
             otel_exporter_headers_string = settings.opentelemetry.exporter.headers&.map { |key, value| "#{key}=#{value}" }&.join(',')
