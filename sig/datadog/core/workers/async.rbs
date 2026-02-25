@@ -8,60 +8,74 @@ module Datadog
           FORK_POLICY_RESTART: :restart
 
           SHUTDOWN_TIMEOUT: 1
-          MUTEX_INIT: untyped
+          MUTEX_INIT: ::Mutex
+          @error: ::Exception?
+          @result: ::Object?
+          @fork_policy: ::Object?
+          @run_async: bool
+          @pid: ::Integer?
+          @mutex: ::Mutex?
+          @mutex_after_fork: ::Mutex?
+          @worker: ::Thread?
 
-          def self.included: (untyped base) -> untyped
+          def self.included: (Class | Module base) -> void
           module PrependedMethods
-            def perform: (*untyped args) -> (untyped | nil)
+            def perform: (*::Object args) -> bool?
+
+            private
+
+            def started?: () -> bool
+            def result=: (::Object?) -> ::Object?
+            def start_async: () { () -> ::Object } -> bool?
           end
 
-          attr_reader error: untyped
+          attr_reader error: ::Exception?
 
-          attr_reader result: untyped
+          attr_reader result: ::Object?
 
-          attr_writer fork_policy: untyped
+          attr_writer fork_policy: ::Object?
 
-          def join: (?untyped? timeout) -> (true | untyped)
+          def join: (?(::Numeric | nil) timeout) -> bool
 
           def terminate: () -> (false | true)
 
-          def run_async?: () -> (false | untyped)
+          def run_async?: () -> bool
 
-          def started?: () -> untyped
+          def started?: () -> bool
 
-          def running?: () -> untyped
+          def running?: () -> bool
 
-          def error?: () -> (false | untyped)
+          def error?: () -> bool
 
-          def completed?: () -> untyped
+          def completed?: () -> bool
 
-          def failed?: () -> untyped
+          def failed?: () -> bool
 
-          def forked?: () -> untyped
+          def forked?: () -> bool
 
-          def fork_policy: () -> untyped
+          def fork_policy: () -> ::Object
 
-          attr_writer result: untyped
+          attr_writer result: ::Object?
 
-          def mutex: () -> untyped
+          def mutex: () -> ::Mutex
 
           def after_fork: () -> nil
 
           private
 
-          attr_reader pid: untyped
+          attr_reader pid: ::Integer?
 
-          def mutex_after_fork: () -> untyped
+          def mutex_after_fork: () -> ::Mutex
 
-          def worker: () -> untyped
+          def worker: () -> ::Thread?
 
-          def start_async: () ?{ () -> untyped } -> untyped
+          def start_async: () { () -> ::Object } -> bool?
 
-          def start_worker: () { () -> untyped } -> nil
+          def start_worker: () { () -> ::Object } -> true
 
-          def stop_fork: () -> untyped
+          def stop_fork: () -> bool?
 
-          def restart_after_fork: () ?{ () -> untyped } -> untyped
+          def restart_after_fork: () { () -> ::Object } -> bool?
         end
       end
     end

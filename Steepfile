@@ -105,7 +105,6 @@ target :datadog do
   ignore 'lib/datadog/core/vendor/multipart-post/multipart/post/multipartable.rb'
   ignore 'lib/datadog/core/worker.rb'
   ignore 'lib/datadog/data_streams/configuration/settings.rb'
-  ignore 'lib/datadog/core/workers/async.rb'
   ignore 'lib/datadog/core/workers/interval_loop.rb'
   ignore 'lib/datadog/core/workers/polling.rb'
   ignore 'lib/datadog/core/workers/queue.rb'
