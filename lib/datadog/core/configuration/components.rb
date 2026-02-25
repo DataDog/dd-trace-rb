@@ -86,7 +86,7 @@ module Datadog
           end
 
           def build_data_streams(settings, agent_settings, logger, agent_info)
-            return unless settings.data_streams.enabled
+            return unless settings.respond_to?(:data_streams) && settings.data_streams.enabled
 
             Datadog::DataStreams::Processor.new(
               interval: settings.data_streams.interval,
