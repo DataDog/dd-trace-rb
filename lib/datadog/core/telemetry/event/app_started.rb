@@ -152,30 +152,34 @@ module Datadog
                 seq_id,
                 get_telemetry_origin(settings, 'tracing.sampling.default_rate')
               )
-              list << conf_value(
-                'DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED',
-                settings.tracing.contrib.global_default_service_name.enabled,
-                seq_id,
-                get_telemetry_origin(settings, 'tracing.contrib.global_default_service_name.enabled')
-              )
-              list << conf_value(
-                'DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED',
-                settings.tracing.contrib.peer_service_defaults,
-                seq_id,
-                get_telemetry_origin(settings, 'tracing.contrib.peer_service_defaults')
-              )
 
-              peer_service_mapping_str = ''
-              unless settings.tracing.contrib.peer_service_mapping.empty?
-                peer_service_mapping = settings.tracing.contrib.peer_service_mapping
-                peer_service_mapping_str = peer_service_mapping.map { |key, value| "#{key}:#{value}" }.join(',')
+              # Contrib-specific settings
+              if settings.tracing.respond_to?(:contrib)
+                list << conf_value(
+                  'DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED',
+                  settings.tracing.contrib.global_default_service_name.enabled,
+                  seq_id,
+                  get_telemetry_origin(settings, 'tracing.contrib.global_default_service_name.enabled')
+                )
+                list << conf_value(
+                  'DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED',
+                  settings.tracing.contrib.peer_service_defaults,
+                  seq_id,
+                  get_telemetry_origin(settings, 'tracing.contrib.peer_service_defaults')
+                )
+
+                peer_service_mapping_str = ''
+                unless settings.tracing.contrib.peer_service_mapping.empty?
+                  peer_service_mapping = settings.tracing.contrib.peer_service_mapping
+                  peer_service_mapping_str = peer_service_mapping.map { |key, value| "#{key}:#{value}" }.join(',')
+                end
+                list << conf_value(
+                  'DD_TRACE_PEER_SERVICE_MAPPING',
+                  peer_service_mapping_str,
+                  seq_id,
+                  get_telemetry_origin(settings, 'tracing.contrib.peer_service_mapping')
+                )
               end
-              list << conf_value(
-                'DD_TRACE_PEER_SERVICE_MAPPING',
-                peer_service_mapping_str,
-                seq_id,
-                get_telemetry_origin(settings, 'tracing.contrib.peer_service_mapping')
-              )
             end
 
             # OpenTelemetry configuration options (using environment variable names)
