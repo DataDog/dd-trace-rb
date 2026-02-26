@@ -1,8 +1,6 @@
-require 'datadog/tracing/contrib/ethon/configuration/settings'
-require 'datadog/tracing/contrib/service_name_settings_examples'
+require 'datadog/tracing/contrib/rack/configuration/settings'
 
-RSpec.describe Datadog::Tracing::Contrib::Ethon::Configuration::Settings do
-  it_behaves_like 'service name setting', 'ethon'
+RSpec.describe Datadog::Tracing::Contrib::Rack::Configuration::Settings do
 
   describe '#distributed_tracing' do
     subject(:distributed_tracing) { described_class.new.distributed_tracing }
@@ -13,7 +11,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::Configuration::Settings do
 
     context 'when configured via environment variable' do
       around do |example|
-        ClimateControl.modify('DD_TRACE_ETHON_DISTRIBUTED_TRACING' => 'false') do
+        ClimateControl.modify('DD_TRACE_RACK_DISTRIBUTED_TRACING' => 'false') do
           example.run
         end
       end
