@@ -11,6 +11,8 @@ module GraphQL
   end
 
   class Schema
+    def self.trace_with: (Module trace_mod, **bool options) -> void
+
     class Member
       def self.graphql_name: () -> String
     end
@@ -53,18 +55,40 @@ module GraphQL
 
   module Language
     module Nodes
-      class OperationDefinition
-        def name: () -> String?
-        def operation_type: () -> Symbol?
+      class AbstractNode
+        def name: () -> String
       end
 
-      class Field
+      class OperationDefinition < AbstractNode
+        def name: () -> String?
+        def operation_type: () -> Symbol?
+        def selections: () -> Array[Field]
+        def directives: () -> Array[Directive]
+      end
+
+      class Field < AbstractNode
+        def alias: () -> String?
+        def arguments: () -> Array[Argument]
+        def directives: () -> Array[Directive]
+        def selections: () -> Array[Field]
+      end
+
+      class Directive < AbstractNode
+        def arguments: () -> Array[Argument]
       end
 
       class Document
       end
 
-      class Argument
+      class Argument < AbstractNode
+        def value: () -> (VariableIdentifier | InputObject | String | Integer | Float | bool | nil)
+      end
+
+      class VariableIdentifier < AbstractNode
+      end
+
+      class InputObject < AbstractNode
+        def arguments: () -> Array[Argument]
       end
     end
   end

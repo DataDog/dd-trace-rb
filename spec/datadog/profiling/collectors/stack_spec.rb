@@ -292,7 +292,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: be_positive),
             # We expect the native filename for catch to be inside the Ruby VM -- either in the ruby binary or the libruby library
             # Note that this may not apply everywhere (e.g. you can rename your Ruby), but it seems sane enough to require this when running tests
-            have_attributes(base_label: "catch", path: end_with("/ruby").or(include("libruby.so")), lineno: 0),
+            have_attributes(base_label: "catch", path: end_with("/ruby").or(include("libruby").and(include(".so"))), lineno: 0),
           )
         end
       end
@@ -911,7 +911,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
   describe "_native_ruby_native_filename" do
     it "returns the correct filename", if: PlatformHelpers.linux? do
-      expect(described_class._native_ruby_native_filename).to end_with("/ruby").or(include("libruby.so"))
+      expect(described_class._native_ruby_native_filename).to end_with("/ruby").or(include("libruby").and(include(".so")))
     end
 
     it "returns the correct filename on Mac", if: PlatformHelpers.mac? do

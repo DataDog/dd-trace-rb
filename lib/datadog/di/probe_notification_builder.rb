@@ -37,7 +37,8 @@ module Datadog
       def build_errored(probe, exc)
         build_status(probe,
           message: "Instrumentation for probe #{probe.id} failed: #{exc}",
-          status: 'ERROR',)
+          status: 'ERROR',
+          exception: exc)
       end
 
       def build_disabled(probe, duration)
@@ -201,20 +202,34 @@ module Datadog
         payload
       end
 
-      def build_status(probe, message:, status:)
+      def build_status(probe, message:, status:, exception: nil)
+        diagnostics = {
+          probeId: probe.id,
+          probeVersion: 0,
+          runtimeId: Core::Environment::Identity.id,
+          parentId: nil,
+          status: status,
+        }
+
+        # Exception field is required by the backend for ERROR status.
+        # If the ERROR status is sent without the exception field, the status
+        # appears to be completely ignored by the backend.
+        # Note: The Go DI implementation does not send the top-level message
+        # field at all when sending error statuses.
+        if status == 'ERROR'
+          diagnostics[:exception] = { # steep:ignore
+            type: exception ? exception.class.name : 'Error',
+            message: exception ? exception.message : message
+          }
+        end
+
         {
           service: settings.service,
           timestamp: timestamp_now,
           message: message,
           ddsource: 'dd_debugger',
           debugger: {
-            diagnostics: {
-              probeId: probe.id,
-              probeVersion: 0,
-              runtimeId: Core::Environment::Identity.id,
-              parentId: nil,
-              status: status,
-            },
+            diagnostics: diagnostics,
           },
         }
       end

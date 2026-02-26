@@ -715,6 +715,10 @@ RSpec.describe 'Instrumentation integration' do
                 probeVersion: 0,
                 runtimeId: String,
                 status: 'ERROR',
+                exception: {
+                  type: 'Error',
+                  message: String,
+                },
               }
             },
             message: /Probe circuit-breaker-test was disabled because it consumed .+ seconds of CPU time in DI processing/,
@@ -1270,6 +1274,10 @@ RSpec.describe 'Instrumentation integration' do
                 probeVersion: 0,
                 runtimeId: String,
                 status: 'ERROR',
+                exception: {
+                  type: 'Error',
+                  message: String,
+                },
               }
             },
             message: /Probe circuit-breaker-line-test was disabled because it consumed .+ seconds of CPU time in DI processing/,

@@ -28,7 +28,7 @@ module Datadog
 
       def build_condition_evaluation_failed: (Context context, untyped expr, untyped exception) -> Hash[Symbol,untyped]
 
-      def build_status: (Probe probe, message: untyped, status: untyped) -> Hash[Symbol,untyped]
+      def build_status: (Probe probe, message: untyped, status: untyped, ?exception: Exception?) -> Hash[Symbol,untyped]
 
       def format_caller_locations: (Array[untyped] callers) -> Array[Hash[Symbol,untyped]]
 
