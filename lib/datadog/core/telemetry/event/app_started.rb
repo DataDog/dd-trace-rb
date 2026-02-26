@@ -52,7 +52,7 @@ module Datadog
             products = {
               appsec: {
                 # TODO take appsec status out of component tree?
-                enabled: components.settings.appsec.enabled,
+                enabled: components.settings.respond_to?(:appsec) && components.settings.appsec.enabled,
               },
               profiler: {
                 enabled: !!components.profiler&.enabled?,
@@ -72,23 +72,26 @@ module Datadog
             products
           end
 
-          TARGET_OPTIONS = %w[
-            dynamic_instrumentation.enabled
-            logger.level
-            profiling.advanced.code_provenance_enabled
-            profiling.advanced.endpoint.collection.enabled
-            profiling.enabled
-            runtime_metrics.enabled
-            tracing.analytics.enabled
-            tracing.propagation_style_extract
-            tracing.propagation_style_inject
-            tracing.enabled
-            tracing.log_injection
-            tracing.partial_flush.enabled
-            tracing.partial_flush.min_spans_threshold
-            tracing.report_hostname
-            tracing.sampling.rate_limit
-            apm.tracing.enabled
+          # Array of [setting_path, required_top_level_method] tuples
+          # The required_top_level_method is the method that settings must respond_to?
+          # before we attempt to access the setting. nil means always available.
+          TARGET_OPTIONS = [
+            ['dynamic_instrumentation.enabled', :dynamic_instrumentation],
+            ['logger.level', nil],
+            ['profiling.advanced.code_provenance_enabled', :profiling],
+            ['profiling.advanced.endpoint.collection.enabled', :profiling],
+            ['profiling.enabled', :profiling],
+            ['runtime_metrics.enabled', nil],
+            ['tracing.analytics.enabled', :tracing],
+            ['tracing.propagation_style_extract', :tracing],
+            ['tracing.propagation_style_inject', :tracing],
+            ['tracing.enabled', :tracing],
+            ['tracing.log_injection', :tracing],
+            ['tracing.partial_flush.enabled', :tracing],
+            ['tracing.partial_flush.min_spans_threshold', :tracing],
+            ['tracing.report_hostname', :tracing],
+            ['tracing.sampling.rate_limit', :tracing],
+            ['apm.tracing.enabled', :apm],
           ].freeze
 
           # standard:disable Metrics/AbcSize
@@ -202,7 +205,10 @@ module Datadog
             )
 
             # Whitelist of configuration options to send in additional payload object
-            TARGET_OPTIONS.each do |option_path|
+            TARGET_OPTIONS.each do |option_path, required_method|
+              # Skip if the required top-level setting doesn't exist
+              next if required_method && !settings.respond_to?(required_method)
+
               split_option = option_path.split('.')
               list << conf_value(
                 option_path,
