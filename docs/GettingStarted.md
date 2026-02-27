@@ -2309,7 +2309,7 @@ DD_SERVICE=my-service
      # ... for other integrations
    end
    ```
-3. **Use manual instrumentation**: Remove `require: 'datadog/auto_instrument'` from your Gemfile and explicitly call `c.tracing.instrument` for each integration in your initializer
+3. **Use manual instrumentation** (requires more setup): Remove `require: 'datadog/auto_instrument'` from your Gemfile. This lets you configure all options (including `global_default_service_name.enabled`) in your initializer, but you must manually instrument each integration you use by calling `c.tracing.instrument` for every one.
 
 ### Sampling
 
