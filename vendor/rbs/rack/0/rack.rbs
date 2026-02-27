@@ -14,4 +14,8 @@ module Rack
 
     def path: () -> ::String
   end
+
+  class Response
+    def initialize: (?untyped body, ?untyped status, ?untyped headers) -> void
+  end
 end

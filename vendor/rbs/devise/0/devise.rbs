@@ -1,0 +1,9 @@
+module Devise
+  class Mapping
+    def class_name: () -> ::String
+
+    def name: () -> ::Symbol
+  end
+
+  def self.mappings: () -> ::Hash[::Symbol, Mapping]
+end
