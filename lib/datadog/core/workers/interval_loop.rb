@@ -70,12 +70,14 @@ module Datadog
           true
         end
 
-        # TODO This overwrites Queue's +work_pending?+ method with an
-        # implementation that, to me, is at leat questionable semantically:
-        # the Queue's idea of pending work is if the buffer is not empty,
-        # but this module says that work is pending if the work processing
-        # loop is scheduled to run (in other words, as long as the background
-        # thread is running, there is always pending work).
+        # TODO: This method carries two semantics today:
+        # 1. Is there work available to process?
+        # 2. Should the main loop keep running?
+        # Things get messy when `Queue` is mixed in,
+        # wanting to override semantic 1 but not 2.
+        # This should probably be split into two methods:
+        # `work_pending?` (semantic 1) and `keep_running?` (semantic 2).
+        # Clean up {Workers::Queue} after this.
         def work_pending?
           run_loop?
         end
