@@ -585,8 +585,50 @@ RSpec.describe 'Telemetry integration tests' do
       )
     end
 
+    context 'when profiling is disabled' do
+      before do
+        # Avoid profiling reporting unsupported errors when disabled
+        allow(Datadog::Profiling).to receive(:unsupported_reason).and_return(nil)
+
+        Datadog.configure do |c|
+          common_configuration(c)
+
+          c.profiling.enabled = false
+        end
+      end
+
+      it 'reports profiling as being disabled' do
+        component.flush
+        expect(sent_payloads.length).to eq 3
+
+        payload = sent_payloads[0].fetch(:payload)
+        expect(payload).to include(
+          'request_type' => 'app-started',
+        )
+        expect(payload.dig('payload', 'configuration')).to include(
+          {'name' => 'profiling.enabled', 'value' => false, 'origin' => 'code', 'seq_id' => Integer},
+        )
+        expect(payload.dig('payload', 'products')).to include(
+          'profiler' => {'enabled' => false},
+        )
+
+        assert_remaining_events
+      end
+    end
+
     context 'when profiling is fully enabled' do
       before do
+        # Mock profiling as supported
+        allow(Datadog::Profiling).to receive(:unsupported_reason).and_return(nil)
+
+        # Create a simple stub object that responds to the minimal profiler interface
+        fake_profiler = Struct.new(:enabled) do
+          def shutdown!; end
+          def start; end
+        end.new(true)
+
+        allow(Datadog::Profiling::Component).to receive(:build_profiler_component).and_return([fake_profiler, nil])
+
         Datadog.configure do |c|
           common_configuration(c)
 
@@ -615,7 +657,7 @@ RSpec.describe 'Telemetry integration tests' do
 
     context 'when profiling is requested to be enabled but fails prerequisites' do
       before do
-        expect(Datadog::Profiling).to receive(:unsupported_reason).at_least(:once).and_return('fake not supported reason')
+        allow(Datadog::Profiling).to receive(:unsupported_reason).and_return('fake not supported reason')
 
         Datadog.configure do |c|
           common_configuration(c)
@@ -643,6 +685,34 @@ RSpec.describe 'Telemetry integration tests' do
               'message' => 'fake not supported reason',
             },
           },
+        )
+
+        assert_remaining_events
+      end
+    end
+
+    context 'when dynamic instrumentation is disabled' do
+      before do
+        Datadog.configure do |c|
+          common_configuration(c)
+
+          c.dynamic_instrumentation.enabled = false
+        end
+      end
+
+      it 'reports dynamic instrumentation as being disabled' do
+        component.flush
+        expect(sent_payloads.length).to eq 3
+
+        payload = sent_payloads[0].fetch(:payload)
+        expect(payload).to include(
+          'request_type' => 'app-started',
+        )
+        expect(payload.dig('payload', 'configuration')).to include(
+          {'name' => 'dynamic_instrumentation.enabled', 'value' => false, 'origin' => 'code', 'seq_id' => Integer},
+        )
+        expect(payload.dig('payload', 'products')).to include(
+          'dynamic_instrumentation' => {'enabled' => false},
         )
 
         assert_remaining_events
@@ -712,6 +782,34 @@ RSpec.describe 'Telemetry integration tests' do
       end
     end
 
+    context 'when appsec is disabled' do
+      before do
+        Datadog.configure do |c|
+          common_configuration(c)
+
+          c.appsec.enabled = false
+        end
+      end
+
+      it 'reports appsec as being disabled' do
+        component.flush
+        expect(sent_payloads.length).to eq 3
+
+        payload = sent_payloads[0].fetch(:payload)
+        expect(payload).to include(
+          'request_type' => 'app-started',
+        )
+        expect(payload.dig('payload', 'configuration')).to include(
+          {'name' => 'appsec.enabled', 'value' => false, 'origin' => 'code', 'seq_id' => Integer},
+        )
+        expect(payload.dig('payload', 'products')).to include(
+          'appsec' => {'enabled' => false},
+        )
+
+        assert_remaining_events
+      end
+    end
+
     context 'when appsec is fully enabled' do
       before do
         Datadog.configure do |c|
@@ -734,6 +832,41 @@ RSpec.describe 'Telemetry integration tests' do
         )
         expect(payload.dig('payload', 'products')).to include(
           'appsec' => {'enabled' => true},
+        )
+
+        assert_remaining_events
+      end
+    end
+
+    context 'when appsec is requested to be enabled but fails prerequisites' do
+      before do
+        # Simulate FFI gem not being loaded (prerequisite check)
+        allow(Gem.loaded_specs).to receive(:[]).and_call_original
+        allow(Gem.loaded_specs).to receive(:[]).with('ffi').and_return(nil)
+
+        Datadog.configure do |c|
+          common_configuration(c)
+
+          c.appsec.enabled = true
+        end
+      end
+
+      it 'reports appsec as being disabled' do
+        component.flush
+        expect(sent_payloads.length).to eq 3
+
+        payload = sent_payloads[0].fetch(:payload)
+        expect(payload).to include(
+          'request_type' => 'app-started',
+        )
+        expect(payload.dig('payload', 'configuration')).to include(
+          {'name' => 'appsec.enabled', 'value' => true, 'origin' => 'code', 'seq_id' => Integer},
+        )
+        expect(payload.dig('payload', 'products')).to include(
+          'appsec' => {
+            'enabled' => false,
+            # AppSec currently does not provide the reason why it's not enabled.
+          },
         )
 
         assert_remaining_events
