@@ -1594,7 +1594,7 @@ The Rails integration will trace requests, database calls, templates rendering, 
 
 To enable the Rails instrumentation, use the [Rails auto instrumentation instructions](#rails-or-hanami-applications).
 
-**Note on auto-instrumentation timing:** When using `require 'datadog/auto_instrument'` in your Gemfile, instrumentation is applied before `config/initializers/*.rb` files load. Some configuration options (like `global_default_service_name.enabled`) must be set via environment variables rather than in your initializer. See [Configuration timing with auto-instrumentation](#configuration-timing-with-auto-instrumentation) for details.
+**Note on auto-instrumentation timing:** When using `require 'datadog/auto_instrument'` in your Gemfile, instrumentation is applied before `config/initializers/*.rb` files load. Some configuration options (like `tracing.contrib.global_default_service_name.enabled`) must be set via environment variables rather than in your initializer. See [Configuration timing with auto-instrumentation](#configuration-timing-with-auto-instrumentation) for details.
 
 Alternatively, you can also create an initializer file in your `config/initializers` folder:
 
