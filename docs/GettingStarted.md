@@ -2290,18 +2290,9 @@ Some configuration options are read when integrations are patched (during auto-i
 **Example:**
 
 ```bash
-# Working approach for Rails auto-instrumentation
+# Set via environment variables for Rails auto-instrumentation
 DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED=true
 DD_SERVICE=my-service
-```
-
-```ruby
-# This will NOT work with Rails auto-instrumentation
-# config/initializers/datadog.rb
-Datadog.configure do |c|
-  c.service = 'my-service'  # This works fine
-  c.tracing.contrib.global_default_service_name.enabled = true  # Too late!
-end
 ```
 
 **Alternative approaches:**
