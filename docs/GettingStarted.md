@@ -2308,6 +2308,18 @@ DD_SERVICE=my-service
    end
    ```
 2. **Use manual instrumentation** (requires more setup): Remove `require: 'datadog/auto_instrument'` from your Gemfile. This lets you configure all options (including `global_default_service_name.enabled`) in your initializer, but you must manually instrument each integration you use by calling `c.tracing.instrument` for every one.
+   ```ruby
+   # Without auto-instrumentation; you must enable each integration
+   Datadog.configure do |c|
+     c.service = 'my-service'
+     c.tracing.contrib.global_default_service_name.enabled = true
+     # Must instrument every integration you use
+     c.tracing.instrument :redis
+     c.tracing.instrument :faraday
+     c.tracing.instrument :rails
+     # ... and so on for each integration
+   end
+   ```
 
 ### Sampling
 
