@@ -841,8 +841,9 @@ RSpec.describe 'Telemetry integration tests' do
     context 'when appsec is requested to be enabled but fails prerequisites' do
       before do
         # Simulate FFI gem not being loaded (prerequisite check)
-        allow(Gem.loaded_specs).to receive(:[]).and_call_original
-        allow(Gem.loaded_specs).to receive(:[]).with('ffi').and_return(nil)
+        fake_specs = Gem.loaded_specs.dup
+        fake_specs.delete('ffi')
+        allow(Gem).to receive(:loaded_specs).and_return(fake_specs)
 
         Datadog.configure do |c|
           common_configuration(c)
