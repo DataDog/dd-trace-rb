@@ -54,8 +54,6 @@ module Datadog
 
         attr_reader open_feature: Datadog::OpenFeature::Component?
 
-        attr_reader appsec: AppSec::Component?
-
         def initialize: (untyped settings) -> untyped
 
         def startup!: (untyped settings) -> untyped

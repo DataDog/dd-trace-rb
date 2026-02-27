@@ -633,8 +633,11 @@ RSpec.describe 'Telemetry integration tests' do
         # or mocking the entire profiler object. We mock it here to allow tests to run in
         # environments where the native extension hasn't been compiled.
         fake_profiler = Object.new
-        def fake_profiler.shutdown!; end
-        def fake_profiler.start; end
+        def fake_profiler.shutdown!
+        end
+
+        def fake_profiler.start
+        end
 
         allow(Datadog::Profiling::Component).to receive(:build_profiler_component).and_return([fake_profiler, nil])
 
