@@ -2295,6 +2295,8 @@ DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED=true
 DD_SERVICE=my-service
 ```
 
+**Note:** When using the environment variable approach, do not also set `c.tracing.contrib.global_default_service_name.enabled` in your initializer - it will be ignored with auto-instrumentation.
+
 **Alternative approaches:**
 
 1. **Use environment variables** (recommended for affected options)
