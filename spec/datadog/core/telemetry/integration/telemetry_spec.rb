@@ -588,7 +588,7 @@ RSpec.describe 'Telemetry integration tests' do
     context 'when profiling is disabled' do
       before do
         # Avoid profiling reporting unsupported errors when disabled
-        allow(Datadog::Profiling).to receive(:unsupported_reason).and_return(nil)
+        expect(Datadog::Profiling).to receive(:unsupported_reason).at_least(:once).and_return(nil)
 
         Datadog.configure do |c|
           common_configuration(c)
@@ -619,7 +619,7 @@ RSpec.describe 'Telemetry integration tests' do
     context 'when profiling is fully enabled' do
       before do
         # Mock profiling as supported
-        allow(Datadog::Profiling).to receive(:unsupported_reason).and_return(nil)
+        expect(Datadog::Profiling).to receive(:unsupported_reason).at_least(:once).and_return(nil)
 
         # Create a simple stub object that responds to the minimal profiler interface
         fake_profiler = Struct.new(:enabled) do
@@ -657,7 +657,7 @@ RSpec.describe 'Telemetry integration tests' do
 
     context 'when profiling is requested to be enabled but fails prerequisites' do
       before do
-        allow(Datadog::Profiling).to receive(:unsupported_reason).and_return('fake not supported reason')
+        expect(Datadog::Profiling).to receive(:unsupported_reason).at_least(:once).and_return('fake not supported reason')
 
         Datadog.configure do |c|
           common_configuration(c)
