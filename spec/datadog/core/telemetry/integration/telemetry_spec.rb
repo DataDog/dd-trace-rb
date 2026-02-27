@@ -585,6 +585,26 @@ RSpec.describe 'Telemetry integration tests' do
       )
     end
 
+    shared_examples 'reports component telemetry state' do |component_key, config_name, config_value, expected_state|
+      it "reports #{component_key} as being #{expected_state[:enabled] ? 'enabled' : 'disabled'}" do
+        component.flush
+        expect(sent_payloads.length).to eq 3
+
+        payload = sent_payloads[0].fetch(:payload)
+        expect(payload).to include(
+          'request_type' => 'app-started',
+        )
+        expect(payload.dig('payload', 'configuration')).to include(
+          {'name' => config_name, 'value' => config_value, 'origin' => 'code', 'seq_id' => Integer},
+        )
+        expect(payload.dig('payload', 'products')).to include(
+          component_key => expected_state,
+        )
+
+        assert_remaining_events
+      end
+    end
+
     context 'when profiling is disabled' do
       before do
         # Avoid profiling reporting unsupported errors when disabled
@@ -597,23 +617,11 @@ RSpec.describe 'Telemetry integration tests' do
         end
       end
 
-      it 'reports profiling as being disabled' do
-        component.flush
-        expect(sent_payloads.length).to eq 3
-
-        payload = sent_payloads[0].fetch(:payload)
-        expect(payload).to include(
-          'request_type' => 'app-started',
-        )
-        expect(payload.dig('payload', 'configuration')).to include(
-          {'name' => 'profiling.enabled', 'value' => false, 'origin' => 'code', 'seq_id' => Integer},
-        )
-        expect(payload.dig('payload', 'products')).to include(
-          'profiler' => {'enabled' => false},
-        )
-
-        assert_remaining_events
-      end
+      include_examples 'reports component telemetry state',
+        'profiler',
+        'profiling.enabled',
+        false,
+        {'enabled' => false}
     end
 
     context 'when profiling is fully enabled' do
@@ -636,23 +644,11 @@ RSpec.describe 'Telemetry integration tests' do
         end
       end
 
-      it 'reports profiling as being enabled' do
-        component.flush
-        expect(sent_payloads.length).to eq 3
-
-        payload = sent_payloads[0].fetch(:payload)
-        expect(payload).to include(
-          'request_type' => 'app-started',
-        )
-        expect(payload.dig('payload', 'configuration')).to include(
-          {'name' => 'profiling.enabled', 'value' => true, 'origin' => 'code', 'seq_id' => Integer},
-        )
-        expect(payload.dig('payload', 'products')).to include(
-          'profiler' => {'enabled' => true},
-        )
-
-        assert_remaining_events
-      end
+      include_examples 'reports component telemetry state',
+        'profiler',
+        'profiling.enabled',
+        true,
+        {'enabled' => true}
     end
 
     context 'when profiling is requested to be enabled but fails prerequisites' do
@@ -666,29 +662,17 @@ RSpec.describe 'Telemetry integration tests' do
         end
       end
 
-      it 'reports profiling as being disabled' do
-        component.flush
-        expect(sent_payloads.length).to eq 3
-
-        payload = sent_payloads[0].fetch(:payload)
-        expect(payload).to include(
-          'request_type' => 'app-started',
-        )
-        expect(payload.dig('payload', 'configuration')).to include(
-          {'name' => 'profiling.enabled', 'value' => true, 'origin' => 'code', 'seq_id' => Integer},
-        )
-        expect(payload.dig('payload', 'products')).to include(
-          'profiler' => {
-            'enabled' => false,
-            'error' => {
-              'code' => 1,
-              'message' => 'fake not supported reason',
-            },
+      include_examples 'reports component telemetry state',
+        'profiler',
+        'profiling.enabled',
+        true,
+        {
+          'enabled' => false,
+          'error' => {
+            'code' => 1,
+            'message' => 'fake not supported reason',
           },
-        )
-
-        assert_remaining_events
-      end
+        }
     end
 
     context 'when dynamic instrumentation is disabled' do
@@ -700,23 +684,11 @@ RSpec.describe 'Telemetry integration tests' do
         end
       end
 
-      it 'reports dynamic instrumentation as being disabled' do
-        component.flush
-        expect(sent_payloads.length).to eq 3
-
-        payload = sent_payloads[0].fetch(:payload)
-        expect(payload).to include(
-          'request_type' => 'app-started',
-        )
-        expect(payload.dig('payload', 'configuration')).to include(
-          {'name' => 'dynamic_instrumentation.enabled', 'value' => false, 'origin' => 'code', 'seq_id' => Integer},
-        )
-        expect(payload.dig('payload', 'products')).to include(
-          'dynamic_instrumentation' => {'enabled' => false},
-        )
-
-        assert_remaining_events
-      end
+      include_examples 'reports component telemetry state',
+        'dynamic_instrumentation',
+        'dynamic_instrumentation.enabled',
+        false,
+        {'enabled' => false}
     end
 
     context 'when dynamic instrumentation is fully enabled' do
@@ -730,23 +702,11 @@ RSpec.describe 'Telemetry integration tests' do
         end
       end
 
-      it 'reports dynamic instrumentation as being enabled' do
-        component.flush
-        expect(sent_payloads.length).to eq 3
-
-        payload = sent_payloads[0].fetch(:payload)
-        expect(payload).to include(
-          'request_type' => 'app-started',
-        )
-        expect(payload.dig('payload', 'configuration')).to include(
-          {'name' => 'dynamic_instrumentation.enabled', 'value' => true, 'origin' => 'code', 'seq_id' => Integer},
-        )
-        expect(payload.dig('payload', 'products')).to include(
-          'dynamic_instrumentation' => {'enabled' => true},
-        )
-
-        assert_remaining_events
-      end
+      include_examples 'reports component telemetry state',
+        'dynamic_instrumentation',
+        'dynamic_instrumentation.enabled',
+        true,
+        {'enabled' => true}
     end
 
     context 'when dynamic instrumentation is requested to be enabled but fails prerequisites' do
@@ -760,26 +720,14 @@ RSpec.describe 'Telemetry integration tests' do
         end
       end
 
-      it 'reports dynamic instrumentation as being disabled' do
-        component.flush
-        expect(sent_payloads.length).to eq 3
-
-        payload = sent_payloads[0].fetch(:payload)
-        expect(payload).to include(
-          'request_type' => 'app-started',
-        )
-        expect(payload.dig('payload', 'configuration')).to include(
-          {'name' => 'dynamic_instrumentation.enabled', 'value' => true, 'origin' => 'code', 'seq_id' => Integer},
-        )
-        expect(payload.dig('payload', 'products')).to include(
-          'dynamic_instrumentation' => {
-            'enabled' => false,
-            # DI currently does not provide the reason why it's not enabled.
-          },
-        )
-
-        assert_remaining_events
-      end
+      include_examples 'reports component telemetry state',
+        'dynamic_instrumentation',
+        'dynamic_instrumentation.enabled',
+        true,
+        {
+          'enabled' => false,
+          # DI currently does not provide the reason why it's not enabled.
+        }
     end
 
     context 'when appsec is disabled' do
@@ -791,23 +739,11 @@ RSpec.describe 'Telemetry integration tests' do
         end
       end
 
-      it 'reports appsec as being disabled' do
-        component.flush
-        expect(sent_payloads.length).to eq 3
-
-        payload = sent_payloads[0].fetch(:payload)
-        expect(payload).to include(
-          'request_type' => 'app-started',
-        )
-        expect(payload.dig('payload', 'configuration')).to include(
-          {'name' => 'appsec.enabled', 'value' => false, 'origin' => 'code', 'seq_id' => Integer},
-        )
-        expect(payload.dig('payload', 'products')).to include(
-          'appsec' => {'enabled' => false},
-        )
-
-        assert_remaining_events
-      end
+      include_examples 'reports component telemetry state',
+        'appsec',
+        'appsec.enabled',
+        false,
+        {'enabled' => false}
     end
 
     context 'when appsec is fully enabled' do
@@ -819,23 +755,11 @@ RSpec.describe 'Telemetry integration tests' do
         end
       end
 
-      it 'reports appsec as being enabled' do
-        component.flush
-        expect(sent_payloads.length).to eq 3
-
-        payload = sent_payloads[0].fetch(:payload)
-        expect(payload).to include(
-          'request_type' => 'app-started',
-        )
-        expect(payload.dig('payload', 'configuration')).to include(
-          {'name' => 'appsec.enabled', 'value' => true, 'origin' => 'code', 'seq_id' => Integer},
-        )
-        expect(payload.dig('payload', 'products')).to include(
-          'appsec' => {'enabled' => true},
-        )
-
-        assert_remaining_events
-      end
+      include_examples 'reports component telemetry state',
+        'appsec',
+        'appsec.enabled',
+        true,
+        {'enabled' => true}
     end
 
     context 'when appsec is requested to be enabled but fails prerequisites' do
@@ -852,26 +776,14 @@ RSpec.describe 'Telemetry integration tests' do
         end
       end
 
-      it 'reports appsec as being disabled' do
-        component.flush
-        expect(sent_payloads.length).to eq 3
-
-        payload = sent_payloads[0].fetch(:payload)
-        expect(payload).to include(
-          'request_type' => 'app-started',
-        )
-        expect(payload.dig('payload', 'configuration')).to include(
-          {'name' => 'appsec.enabled', 'value' => true, 'origin' => 'code', 'seq_id' => Integer},
-        )
-        expect(payload.dig('payload', 'products')).to include(
-          'appsec' => {
-            'enabled' => false,
-            # AppSec currently does not provide the reason why it's not enabled.
-          },
-        )
-
-        assert_remaining_events
-      end
+      include_examples 'reports component telemetry state',
+        'appsec',
+        'appsec.enabled',
+        true,
+        {
+          'enabled' => false,
+          # AppSec currently does not provide the reason why it's not enabled.
+        }
     end
 
     context 'when appsec is requested to be enabled but fails initialization' do
@@ -887,26 +799,14 @@ RSpec.describe 'Telemetry integration tests' do
         end
       end
 
-      it 'reports appsec as being disabled' do
-        component.flush
-        expect(sent_payloads.length).to eq 3
-
-        payload = sent_payloads[0].fetch(:payload)
-        expect(payload).to include(
-          'request_type' => 'app-started',
-        )
-        expect(payload.dig('payload', 'configuration')).to include(
-          {'name' => 'appsec.enabled', 'value' => true, 'origin' => 'code', 'seq_id' => Integer},
-        )
-        expect(payload.dig('payload', 'products')).to include(
-          'appsec' => {
-            'enabled' => false,
-            # AppSec currently does not provide the reason why it's not enabled.
-          },
-        )
-
-        assert_remaining_events
-      end
+      include_examples 'reports component telemetry state',
+        'appsec',
+        'appsec.enabled',
+        true,
+        {
+          'enabled' => false,
+          # AppSec currently does not provide the reason why it's not enabled.
+        }
     end
   end
 
