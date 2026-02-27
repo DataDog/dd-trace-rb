@@ -2286,7 +2286,6 @@ Some configuration options are read when integrations are patched (during auto-i
 
 - `tracing.contrib.global_default_service_name.enabled` (`DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`)
 - GraphQL `with_unified_tracer` (`DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER`)
-- Per-integration `service_name` environment variables (e.g., `DD_TRACE_REDIS_SERVICE_NAME`, `DD_TRACE_FARADAY_SERVICE_NAME`, etc.)
 
 **Example:**
 
@@ -2300,7 +2299,7 @@ DD_SERVICE=my-service
 # This will NOT work with Rails auto-instrumentation
 # config/initializers/datadog.rb
 Datadog.configure do |c|
-  c.service = 'my-service'
+  c.service = 'my-service'  # This works fine
   c.tracing.contrib.global_default_service_name.enabled = true  # Too late!
 end
 ```
