@@ -2276,7 +2276,7 @@ By default, this will be activated whenever `datadog` detects the application is
 
 ### Configuration timing with auto-instrumentation
 
-When using `require 'datadog/auto_instrument'` in Rails applications, instrumentation is applied **before** `config/initializers/*.rb` files are loaded. This is accomplished through a Rails Railtie that runs during the `:before_load_config_initializers` phase.
+When using `require 'datadog/auto_instrument'` in Rails applications, instrumentation is applied **before** your `config/initializers/*.rb` files are loaded.
 
 **This timing has important implications for certain configuration options:**
 
