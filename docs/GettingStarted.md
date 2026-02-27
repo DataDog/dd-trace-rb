@@ -2297,8 +2297,7 @@ DD_SERVICE=my-service
 
 **Alternative approaches:**
 
-1. **Use environment variables** (recommended for affected options)
-2. **Keep auto-instrumentation, override service names per-integration:**
+1. **Keep auto-instrumentation, override service names per-integration:**
    ```ruby
    # Auto-instrumentation still runs; this overrides the defaults
    Datadog.configure do |c|
@@ -2308,7 +2307,7 @@ DD_SERVICE=my-service
      # Only configure integrations where you want a custom service name
    end
    ```
-3. **Use manual instrumentation** (requires more setup): Remove `require: 'datadog/auto_instrument'` from your Gemfile. This lets you configure all options (including `global_default_service_name.enabled`) in your initializer, but you must manually instrument each integration you use by calling `c.tracing.instrument` for every one.
+2. **Use manual instrumentation** (requires more setup): Remove `require: 'datadog/auto_instrument'` from your Gemfile. This lets you configure all options (including `global_default_service_name.enabled`) in your initializer, but you must manually instrument each integration you use by calling `c.tracing.instrument` for every one.
 
 ### Sampling
 
