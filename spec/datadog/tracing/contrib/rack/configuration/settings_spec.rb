@@ -1,7 +1,6 @@
 require 'datadog/tracing/contrib/rack/configuration/settings'
 
 RSpec.describe Datadog::Tracing::Contrib::Rack::Configuration::Settings do
-
   describe '#distributed_tracing' do
     subject(:distributed_tracing) { described_class.new.distributed_tracing }
 
