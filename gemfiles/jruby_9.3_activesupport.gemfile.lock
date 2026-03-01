@@ -93,7 +93,7 @@ GEM
     jsonapi-renderer (0.2.2)
     king_konf (1.0.1)
     libdatadog (25.0.0.1.0)
-    libddwaf (1.30.0.0.0)
+    libddwaf (1.30.0.0.1)
       ffi (~> 1.0)
     logger (1.7.0)
     lograge (0.13.0)

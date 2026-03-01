@@ -27,7 +27,7 @@ GEM
     crack (1.0.0)
       bigdecimal
       rexml
-    dalli (4.2.0)
+    dalli (5.0.2)
       logger
     datadog-ruby_core_source (3.5.2)
     date (3.4.1)
@@ -54,11 +54,11 @@ GEM
     libdatadog (25.0.0.1.0)
     libdatadog (25.0.0.1.0-aarch64-linux)
     libdatadog (25.0.0.1.0-x86_64-linux)
-    libddwaf (1.30.0.0.0)
+    libddwaf (1.30.0.0.1)
       ffi (~> 1.0)
-    libddwaf (1.30.0.0.0-aarch64-linux)
+    libddwaf (1.30.0.0.1-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.30.0.0.0-x86_64-linux)
+    libddwaf (1.30.0.0.1-x86_64-linux)
       ffi (~> 1.0)
     logger (1.7.0)
     memory_profiler (0.9.14)
