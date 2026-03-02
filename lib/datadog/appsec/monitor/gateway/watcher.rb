@@ -3,6 +3,7 @@
 require_relative '../../event'
 require_relative '../../security_event'
 require_relative '../../instrumentation/gateway'
+require_relative '../../../core/utils/only_once'
 
 module Datadog
   module AppSec
@@ -15,6 +16,9 @@ module Datadog
           EVENT_LOGIN_FAILURE = 'users.login.failure'
           WATCHED_LOGIN_EVENTS = [EVENT_LOGIN_SUCCESS, EVENT_LOGIN_FAILURE].freeze
 
+          WATCH_USER_ID_ONCE = Core::Utils::OnlyOnce.new
+          WATCH_USER_LOGIN_ONCE = Core::Utils::OnlyOnce.new
+
           class << self
             def watch
               gateway = Instrumentation.gateway
@@ -24,57 +28,61 @@ module Datadog
             end
 
             def watch_user_id(gateway = Instrumentation.gateway)
-              gateway.watch('identity.set_user') do |stack, user|
-                context = AppSec.active_context
+              WATCH_USER_ID_ONCE.run do
+                gateway.watch('identity.set_user') do |stack, user|
+                  context = AppSec.active_context
 
-                if user.id.nil? && user.login.nil? && user.session_id.nil?
-                  Datadog.logger.debug { 'AppSec: skipping WAF check because no user information was provided' }
-                  next stack.call(user)
+                  if user.id.nil? && user.login.nil? && user.session_id.nil?
+                    Datadog.logger.debug { 'AppSec: skipping WAF check because no user information was provided' }
+                    next stack.call(user)
+                  end
+
+                  persistent_data = {}
+                  persistent_data['usr.id'] = user.id if user.id
+                  persistent_data['usr.login'] = user.login if user.login
+                  persistent_data['usr.session_id'] = user.session_id if user.session_id
+
+                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+
+                  if result.match? || result.attributes.any?
+                    context.events.push(
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                    )
+                  end
+
+                  if result.match?
+                    AppSec::Event.tag(context, result)
+                    AppSec::ActionsHandler.handle(result.actions)
+                  end
+
+                  stack.call(user)
                 end
-
-                persistent_data = {}
-                persistent_data['usr.id'] = user.id if user.id
-                persistent_data['usr.login'] = user.login if user.login
-                persistent_data['usr.session_id'] = user.session_id if user.session_id
-
-                result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
-
-                if result.match? || result.attributes.any?
-                  context.events.push(
-                    AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
-                  )
-                end
-
-                if result.match?
-                  AppSec::Event.tag(context, result)
-                  AppSec::ActionsHandler.handle(result.actions)
-                end
-
-                stack.call(user)
               end
             end
 
             def watch_user_login(gateway = Instrumentation.gateway)
-              gateway.watch('appsec.events.user_lifecycle') do |stack, kind|
-                context = AppSec.active_context
+              WATCH_USER_LOGIN_ONCE.run do
+                gateway.watch('appsec.events.user_lifecycle') do |stack, kind|
+                  context = AppSec.active_context
 
-                next stack.call(kind) unless WATCHED_LOGIN_EVENTS.include?(kind)
+                  next stack.call(kind) unless WATCHED_LOGIN_EVENTS.include?(kind)
 
-                persistent_data = {"server.business_logic.#{kind}" => ARBITRARY_VALUE}
-                result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                  persistent_data = {"server.business_logic.#{kind}" => ARBITRARY_VALUE}
+                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
-                if result.match? || result.attributes.any?
-                  context.events.push(
-                    AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
-                  )
+                  if result.match? || result.attributes.any?
+                    context.events.push(
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                    )
+                  end
+
+                  if result.match?
+                    AppSec::Event.tag(context, result)
+                    AppSec::ActionsHandler.handle(result.actions)
+                  end
+
+                  stack.call(kind)
                 end
-
-                if result.match?
-                  AppSec::Event.tag(context, result)
-                  AppSec::ActionsHandler.handle(result.actions)
-                end
-
-                stack.call(kind)
               end
             end
           end

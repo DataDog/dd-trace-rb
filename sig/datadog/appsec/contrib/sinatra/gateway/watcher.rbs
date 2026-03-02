@@ -4,6 +4,10 @@ module Datadog
       module Sinatra
         module Gateway
           module Watcher
+            WATCH_REQUEST_DISPATCH_ONCE: Core::Utils::OnlyOnce
+            WATCH_REQUEST_ROUTED_ONCE: Core::Utils::OnlyOnce
+            WATCH_RESPONSE_BODY_JSON_ONCE: Core::Utils::OnlyOnce
+
             def self.watch: () -> void
 
             def self.watch_request_dispatch: (?AppSec::Instrumentation::Gateway gateway) -> void
