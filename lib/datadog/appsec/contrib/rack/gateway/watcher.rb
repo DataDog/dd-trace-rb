@@ -14,9 +14,6 @@ module Datadog
         module Gateway
           # Watcher for Rack gateway events
           module Watcher
-            WATCH_REQUEST_ONCE = Core::Utils::OnlyOnce.new
-            WATCH_RESPONSE_ONCE = Core::Utils::OnlyOnce.new
-            WATCH_REQUEST_BODY_ONCE = Core::Utils::OnlyOnce.new
             WATCH_REQUEST_FINISH_ONCE = Core::Utils::OnlyOnce.new
 
             class << self
@@ -29,94 +26,91 @@ module Datadog
                 watch_request_finish(gateway)
               end
 
+              # NOTE: Called from `watch` which is guarded by the patcher's OnlyOnce.
               def watch_request(gateway = Instrumentation.gateway)
-                WATCH_REQUEST_ONCE.run do
-                  gateway.watch('rack.request') do |stack, gateway_request|
-                    context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
+                gateway.watch('rack.request') do |stack, gateway_request|
+                  context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
 
-                    persistent_data = {
-                      'server.request.cookies' => gateway_request.cookies,
-                      'server.request.query' => gateway_request.query,
-                      'server.request.uri.raw' => gateway_request.fullpath,
-                      'server.request.headers' => gateway_request.headers,
-                      'server.request.headers.no_cookies' => gateway_request.headers.dup.tap { |h| h.delete('cookie') },
-                      'http.client_ip' => gateway_request.client_ip,
-                      'server.request.method' => gateway_request.method
-                    }
+                  persistent_data = {
+                    'server.request.cookies' => gateway_request.cookies,
+                    'server.request.query' => gateway_request.query,
+                    'server.request.uri.raw' => gateway_request.fullpath,
+                    'server.request.headers' => gateway_request.headers,
+                    'server.request.headers.no_cookies' => gateway_request.headers.dup.tap { |h| h.delete('cookie') },
+                    'http.client_ip' => gateway_request.client_ip,
+                    'server.request.method' => gateway_request.method
+                  }
 
-                    result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
-                    if result.match? || !result.attributes.empty?
-                      context.events.push(
-                        AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
-                      )
-                    end
-
-                    if result.match?
-                      AppSec::Event.tag(context, result)
-                      TraceKeeper.keep!(context.trace) if result.keep?
-
-                      AppSec::ActionsHandler.handle(result.actions)
-                    end
-
-                    stack.call(gateway_request.request)
+                  if result.match? || !result.attributes.empty?
+                    context.events.push(
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                    )
                   end
+
+                  if result.match?
+                    AppSec::Event.tag(context, result)
+                    TraceKeeper.keep!(context.trace) if result.keep?
+
+                    AppSec::ActionsHandler.handle(result.actions)
+                  end
+
+                  stack.call(gateway_request.request)
                 end
               end
 
+              # NOTE: Called from `watch` which is guarded by the patcher's OnlyOnce.
               def watch_response(gateway = Instrumentation.gateway)
-                WATCH_RESPONSE_ONCE.run do
-                  gateway.watch('rack.response') do |stack, gateway_response|
-                    context = gateway_response.context
+                gateway.watch('rack.response') do |stack, gateway_response|
+                  context = gateway_response.context
 
-                    persistent_data = {
-                      'server.response.status' => gateway_response.status.to_s,
-                      'server.response.headers' => gateway_response.headers,
-                      'server.response.headers.no_cookies' => gateway_response.headers.dup.tap { |h| h.delete('set-cookie') }
-                    }
+                  persistent_data = {
+                    'server.response.status' => gateway_response.status.to_s,
+                    'server.response.headers' => gateway_response.headers,
+                    'server.response.headers.no_cookies' => gateway_response.headers.dup.tap { |h| h.delete('set-cookie') }
+                  }
 
-                    result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
-                    if result.match?
-                      AppSec::Event.tag(context, result)
-                      TraceKeeper.keep!(context.trace) if result.keep?
+                  if result.match?
+                    AppSec::Event.tag(context, result)
+                    TraceKeeper.keep!(context.trace) if result.keep?
 
-                      context.events.push(
-                        AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
-                      )
+                    context.events.push(
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                    )
 
-                      AppSec::ActionsHandler.handle(result.actions)
-                    end
-
-                    stack.call(gateway_response.response)
+                    AppSec::ActionsHandler.handle(result.actions)
                   end
+
+                  stack.call(gateway_response.response)
                 end
               end
 
+              # NOTE: Called from `watch` which is guarded by the patcher's OnlyOnce.
               def watch_request_body(gateway = Instrumentation.gateway)
-                WATCH_REQUEST_BODY_ONCE.run do
-                  gateway.watch('rack.request.body') do |stack, gateway_request|
-                    context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
+                gateway.watch('rack.request.body') do |stack, gateway_request|
+                  context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
 
-                    persistent_data = {
-                      'server.request.body' => gateway_request.form_hash
-                    }
+                  persistent_data = {
+                    'server.request.body' => gateway_request.form_hash
+                  }
 
-                    result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
-                    if result.match?
-                      AppSec::Event.tag(context, result)
-                      TraceKeeper.keep!(context.trace) if result.keep?
+                  if result.match?
+                    AppSec::Event.tag(context, result)
+                    TraceKeeper.keep!(context.trace) if result.keep?
 
-                      context.events.push(
-                        AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
-                      )
+                    context.events.push(
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                    )
 
-                      AppSec::ActionsHandler.handle(result.actions)
-                    end
-
-                    stack.call(gateway_request.request)
+                    AppSec::ActionsHandler.handle(result.actions)
                   end
+
+                  stack.call(gateway_request.request)
                 end
               end
 

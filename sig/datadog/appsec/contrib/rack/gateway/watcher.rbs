@@ -4,9 +4,6 @@ module Datadog
       module Rack
         module Gateway
           module Watcher
-            WATCH_REQUEST_ONCE: Core::Utils::OnlyOnce
-            WATCH_RESPONSE_ONCE: Core::Utils::OnlyOnce
-            WATCH_REQUEST_BODY_ONCE: Core::Utils::OnlyOnce
             WATCH_REQUEST_FINISH_ONCE: Core::Utils::OnlyOnce
 
             def self.watch: () -> void

@@ -4,9 +4,6 @@ module Datadog
       module Rails
         module Gateway
           module Watcher
-            WATCH_REQUEST_ACTION_ONCE: Core::Utils::OnlyOnce
-            WATCH_RESPONSE_BODY_JSON_ONCE: Core::Utils::OnlyOnce
-
             def self.watch: () -> void
 
             def self.watch_request_action: (?Datadog::AppSec::Instrumentation::Gateway gateway) -> void

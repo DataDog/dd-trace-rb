@@ -6,7 +6,6 @@ require_relative '../../../event'
 require_relative '../../../trace_keeper'
 require_relative '../../../security_event'
 require_relative '../../../instrumentation/gateway'
-require_relative '../../../../core/utils/only_once'
 
 module Datadog
   module AppSec
@@ -15,8 +14,6 @@ module Datadog
         module Gateway
           # Watcher for Rack gateway events
           module Watcher
-            WATCH_MULTIPLEX_ONCE = Core::Utils::OnlyOnce.new
-
             class << self
               def watch
                 gateway = Instrumentation.gateway
@@ -24,32 +21,31 @@ module Datadog
                 watch_multiplex(gateway)
               end
 
+              # NOTE: Called from `watch` which is guarded by the patcher's OnlyOnce.
               def watch_multiplex(gateway = Instrumentation.gateway)
-                WATCH_MULTIPLEX_ONCE.run do
-                  gateway.watch('graphql.multiplex') do |stack, gateway_multiplex|
-                    context = AppSec::Context.active
+                gateway.watch('graphql.multiplex') do |stack, gateway_multiplex|
+                  context = AppSec::Context.active
 
-                    if context
-                      persistent_data = {
-                        'graphql.server.all_resolvers' => gateway_multiplex.arguments
-                      }
+                  if context
+                    persistent_data = {
+                      'graphql.server.all_resolvers' => gateway_multiplex.arguments
+                    }
 
-                      result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                    result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
-                      if result.match?
-                        AppSec::Event.tag(context, result)
-                        TraceKeeper.keep!(context.trace) if result.keep?
+                    if result.match?
+                      AppSec::Event.tag(context, result)
+                      TraceKeeper.keep!(context.trace) if result.keep?
 
-                        context.events.push(
-                          AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
-                        )
+                      context.events.push(
+                        AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                      )
 
-                        AppSec::ActionsHandler.handle(result.actions)
-                      end
+                      AppSec::ActionsHandler.handle(result.actions)
                     end
-
-                    stack.call(gateway_multiplex.arguments)
                   end
+
+                  stack.call(gateway_multiplex.arguments)
                 end
               end
             end
