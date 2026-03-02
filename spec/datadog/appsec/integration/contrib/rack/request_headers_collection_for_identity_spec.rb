@@ -11,6 +11,8 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
   include Rack::Test::Methods
 
   before do
+    Datadog::AppSec::Contrib::Rack::Gateway::Watcher::WATCH_REQUEST_FINISH_ONCE.send(:reset_ran_once_state_for_tests)
+
     Datadog.configure do |c|
       c.tracing.enabled = true
 
