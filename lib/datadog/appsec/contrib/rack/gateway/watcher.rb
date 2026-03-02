@@ -5,8 +5,6 @@ require_relative '../../../event'
 require_relative '../../../trace_keeper'
 require_relative '../../../security_event'
 require_relative '../../../instrumentation/gateway'
-require_relative '../../../../core/utils/only_once'
-
 module Datadog
   module AppSec
     module Contrib
@@ -14,7 +12,6 @@ module Datadog
         module Gateway
           # Watcher for Rack gateway events
           module Watcher
-            WATCH_REQUEST_FINISH_ONCE = Core::Utils::OnlyOnce.new
 
             class << self
               def watch
@@ -116,25 +113,23 @@ module Datadog
               #       somewhere closer to identity related monitor.
               # WARNING: The Gateway is a subject of refactoring
               def watch_request_finish(gateway = Instrumentation.gateway)
-                WATCH_REQUEST_FINISH_ONCE.run do
-                  gateway.watch('rack.request.finish') do |stack, gateway_request|
-                    context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
+                gateway.watch('rack.request.finish') do |stack, gateway_request|
+                  context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
 
-                    if context.span.nil? || !gateway.pushed?('appsec.events.user_lifecycle')
-                      next stack.call(gateway_request.request)
-                    end
-
-                    gateway_request.headers.each do |name, value|
-                      if !Ext::COLLECTABLE_REQUEST_HEADERS.include?(name) &&
-                          !Ext::IDENTITY_COLLECTABLE_REQUEST_HEADERS.include?(name)
-                        next
-                      end
-
-                      context.span["http.request.headers.#{name}"] ||= value
-                    end
-
-                    stack.call(gateway_request.request)
+                  if context.span.nil? || !gateway.pushed?('appsec.events.user_lifecycle')
+                    next stack.call(gateway_request.request)
                   end
+
+                  gateway_request.headers.each do |name, value|
+                    if !Ext::COLLECTABLE_REQUEST_HEADERS.include?(name) &&
+                        !Ext::IDENTITY_COLLECTABLE_REQUEST_HEADERS.include?(name)
+                      next
+                    end
+
+                    context.span["http.request.headers.#{name}"] ||= value
+                  end
+
+                  stack.call(gateway_request.request)
                 end
               end
             end
