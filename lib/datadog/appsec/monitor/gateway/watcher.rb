@@ -23,7 +23,6 @@ module Datadog
               watch_user_login(gateway)
             end
 
-            # NOTE: Called from `watch` which is guarded by the patcher's OnlyOnce.
             def watch_user_id(gateway = Instrumentation.gateway)
               gateway.watch('identity.set_user') do |stack, user|
                 context = AppSec.active_context
@@ -55,7 +54,6 @@ module Datadog
               end
             end
 
-            # NOTE: Called from `watch` which is guarded by the patcher's OnlyOnce.
             def watch_user_login(gateway = Instrumentation.gateway)
               gateway.watch('appsec.events.user_lifecycle') do |stack, kind|
                 context = AppSec.active_context

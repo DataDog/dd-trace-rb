@@ -20,7 +20,6 @@ module Datadog
                 watch_response_body_json(gateway)
               end
 
-              # NOTE: Called from `watch` which is guarded by the patcher's OnlyOnce.
               def watch_request_action(gateway = Instrumentation.gateway)
                 gateway.watch('rails.request.action') do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
@@ -47,7 +46,6 @@ module Datadog
                 end
               end
 
-              # NOTE: Called from `watch` which is guarded by the patcher's OnlyOnce.
               def watch_response_body_json(gateway = Instrumentation.gateway)
                 gateway.watch('rails.response.body.json') do |stack, container|
                   context = container.context

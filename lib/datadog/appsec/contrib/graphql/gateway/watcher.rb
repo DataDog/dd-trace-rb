@@ -21,7 +21,6 @@ module Datadog
                 watch_multiplex(gateway)
               end
 
-              # NOTE: Called from `watch` which is guarded by the patcher's OnlyOnce.
               def watch_multiplex(gateway = Instrumentation.gateway)
                 gateway.watch('graphql.multiplex') do |stack, gateway_multiplex|
                   context = AppSec::Context.active

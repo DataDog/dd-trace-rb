@@ -26,7 +26,6 @@ module Datadog
                 watch_request_finish(gateway)
               end
 
-              # NOTE: Called from `watch` which is guarded by the patcher's OnlyOnce.
               def watch_request(gateway = Instrumentation.gateway)
                 gateway.watch('rack.request') do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
@@ -60,7 +59,6 @@ module Datadog
                 end
               end
 
-              # NOTE: Called from `watch` which is guarded by the patcher's OnlyOnce.
               def watch_response(gateway = Instrumentation.gateway)
                 gateway.watch('rack.response') do |stack, gateway_response|
                   context = gateway_response.context
@@ -88,7 +86,6 @@ module Datadog
                 end
               end
 
-              # NOTE: Called from `watch` which is guarded by the patcher's OnlyOnce.
               def watch_request_body(gateway = Instrumentation.gateway)
                 gateway.watch('rack.request.body') do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
