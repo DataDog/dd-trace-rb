@@ -41,8 +41,8 @@ module Datadog
           stack.call(env)
         end
 
-        def watch(name, key, &block)
-          @middlewares[name] << Middleware.new(key, &block) unless @middlewares[name].any? { |m| m.key == key }
+        def watch(name, &block)
+          @middlewares[name] << Middleware.new(&block)
         end
 
         def pushed?(name)
