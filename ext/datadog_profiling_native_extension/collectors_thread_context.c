@@ -1827,7 +1827,7 @@ static void otel_without_ddtrace_trace_identifiers_for(
   otel_span local_root_span = active_span;
 
   // Now find the oldest span starting from the active span that still has the same trace id as the active span
-  for (int i = active_context_index - 1; i >= 0; i--) {
+  for (long i = active_context_index - 1; i >= 0; i--) {
     otel_span checking_span = otel_span_from(rb_ary_entry(context_storage, i), otel_current_span_key);
     if (checking_span.span == Qnil) return;
 
