@@ -263,7 +263,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
         proc do |status:, stdout:, stderr:|
           expect(status.termsig).to_not be_nil
           expect(Signal.signame(status.termsig)).to eq('SEGV').or eq('ABRT')
-          expect(stderr).to include('[BUG] Segmentation fault')
+          expect(stderr).to include('[BUG] Segmentation fault').or include('[BUG] Aborted')
         end
       end
 
