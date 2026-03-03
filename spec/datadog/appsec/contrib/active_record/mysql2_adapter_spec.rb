@@ -27,6 +27,12 @@ RSpec.describe 'AppSec ActiveRecord integration for Mysql2 adapter' do
   let(:trace) { Datadog::Tracing::TraceOperation.new }
   let(:context) { Datadog::AppSec::Context.new(trace, span, security_engine.new_runner) }
 
+  before do
+    allow(telemetry).to receive(:inc)
+    allow(telemetry).to receive(:report)
+    allow(telemetry).to receive(:error)
+  end
+
   let!(:user_class) do
     stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
       klass.establish_connection(db_config)

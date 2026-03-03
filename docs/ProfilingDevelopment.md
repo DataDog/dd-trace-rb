@@ -337,3 +337,29 @@ make use of this field to store the information we need, as a replacement for `r
 
 Since presumably Ruby 3.2 will never see this field either removed or used during its remaining maintenance release
 period this should work fine, and we have a nice clean solution for 3.3+.
+
+## Measuring the performance of profiler sampling
+
+The profiler keeps a number of internal stats/counters (usually per profile period of 60 seconds).
+
+The most important to measure its internal performance are:
+
+* `trigger_sample_attempts`: Measures "ticks" of the cpu/wall-time sampling -- should be close to 100/second although
+  the dynamic sampling rate mechanism can reduce it to remain within the overhead target
+
+* `trigger_sample_extra_sleep`: Measures how often the cpu/wall-time sampling was delayed by the dynamic sampling rate
+  mechanism (e.g. the bigger this number the lower `trigger_sample_attempts` will be)
+
+* `cpu_sampling_time_ns_avg`: Cost per cpu/wall-time sample
+
+* `cpu_sampling_time_ns_total`: Total cost of cpu/wall-time sampling. Is expected to be kept to at most 60s *
+  overhead_target_percentage (defaults to 2% when allocation/heap are disabled, and 1% otherwise)
+
+* `allocation_sampling_time_ns_avg`: Cost per allocation/heap sample
+
+* `allocation_sampling_time_ns_total`: Total cost of allocation/heap sampling. Is expected to be kept to at most 60s *
+  overhead_target_percentage/2 (1% by default)
+
+Note that `cpu_sampling_time_ns_avg` and `allocation_sampling_time_ns_avg` in particular are very application,
+cpu and runtime-version dependent. That is, the more complex the application is (e.g. deeper stack traces, more threads,
+more allocated objects, etc), the more costly each sampling is.

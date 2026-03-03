@@ -6,11 +6,7 @@ RSpec.shared_examples 'a peer service span' do
   end
 
   context 'with default peer services enabled' do
-    around do |example|
-      ClimateControl.modify('DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => 'true') do
-        example.run
-      end
-    end
+    with_env 'DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => 'true'
 
     it 'contains extracted peer service tag' do
       expect(span.get_tag('peer.service')).to eq(peer_service_val)

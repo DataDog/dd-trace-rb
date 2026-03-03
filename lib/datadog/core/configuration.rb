@@ -284,7 +284,7 @@ module Datadog
         # This enables logging during initialization, otherwise we'd run into deadlocks.
 
         @temp_logger ||= begin
-          logger = configuration.logger.instance || Core::Logger.new($stdout)
+          logger = configuration.logger.instance || Core::Logger.new($stderr)
           logger.level = configuration.diagnostics.debug ? ::Logger::DEBUG : configuration.logger.level
           logger
         end
@@ -298,7 +298,7 @@ module Datadog
           debug_env_value = DATADOG_ENV[Ext::Diagnostics::ENV_DEBUG_ENABLED]&.strip&.downcase
           debug_value = debug_env_value == 'true' || debug_env_value == '1'
 
-          logger = Core::Logger.new($stdout)
+          logger = Core::Logger.new($stderr)
           # We cannot access config and the default level is INFO, so we need to set the level manually
           logger.level = debug_value ? ::Logger::DEBUG : ::Logger::INFO
           logger

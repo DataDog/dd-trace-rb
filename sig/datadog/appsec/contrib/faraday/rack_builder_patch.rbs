@@ -2,8 +2,8 @@ module Datadog
   module AppSec
     module Contrib
       module Faraday
-        module RackBuilder
-          def adapter: (*untyped args) -> untyped
+        module RackBuilderPatch : ::Faraday::RackBuilder
+          def adapter: (*untyped) -> ::Faraday::RackBuilder::Handler?
         end
       end
     end

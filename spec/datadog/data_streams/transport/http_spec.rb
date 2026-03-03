@@ -45,11 +45,31 @@ RSpec.describe Datadog::DataStreams::Transport::HTTP do
 
     it 'configures the transport with correct headers' do
       api = default.apis['v0.1']
-      expect(api.headers).to include(
-        'Content-Type' => 'application/msgpack',
-        'Content-Encoding' => 'gzip'
-      )
       expect(api.headers).to include(Datadog::Core::Transport::HTTP.default_headers)
+    end
+
+    context 'integration test with real HTTP request' do
+      subject(:send_stats) { transport.send_stats(payload) }
+
+      let(:transport) { default }
+      let(:payload) { {'key' => 'value'} }
+
+      before do
+        # Stub the HTTP request to capture the request details
+        stub_request(:post, 'http://localhost:8126/v0.1/pipeline_stats')
+          .to_return(status: 200, body: '')
+      end
+
+      it 'sends request with correct headers from Parcel metadata' do
+        send_stats
+
+        # Verify the request was made with correct headers
+        expect(WebMock).to have_requested(:post, 'http://localhost:8126/v0.1/pipeline_stats')
+          .with(headers: {
+            'Content-Type' => 'application/msgpack',
+            'Content-Encoding' => 'gzip',
+          })
+      end
     end
 
     context 'with Net::HTTP adapter' do

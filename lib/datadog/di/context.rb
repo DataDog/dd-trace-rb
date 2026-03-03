@@ -33,17 +33,23 @@ module Datadog
       attr_reader :serializer
       attr_reader :locals
       attr_reader :target_self
+
       # Actual path of the instrumented file.
       attr_reader :path
+
       # TODO check how many stack frames we should be keeping/sending,
       # this should be all frames for enriched probes and no frames for
       # non-enriched probes?
       attr_reader :caller_locations
+
       attr_reader :serialized_entry_args
+
       # Return value for the method, for a method probe
       attr_reader :return_value
+
       # How long the method took to execute, for a method probe
       attr_reader :duration
+
       # Exception raised by the method, if any, for a method probe
       attr_reader :exception
 

@@ -25,12 +25,15 @@ module Datadog
           end
 
           def infer(path)
-            segments = path.delete_prefix('/').split('/', MAX_NUMBER_OF_SEGMENTS + 1).first(MAX_NUMBER_OF_SEGMENTS)
+            count = 0
+            result = []
 
-            segments.map! do |segment| #: Array[String?]
+            split(path, '/') do |segment|
               next if segment.empty?
+              break if count >= MAX_NUMBER_OF_SEGMENTS
+              count += 1
 
-              case segment
+              result << case segment
               when INT_PARAM_REGEX then '{param:int}'
               when INT_ID_PARAM_REGEX then '{param:int_id}'
               when HEX_PARAM_REGEX then '{param:hex}'
@@ -40,11 +43,20 @@ module Datadog
               end
             end
 
-            segments.compact! #: Array[String]
-
-            "/#{segments.join("/")}"
+            result.empty? ? '/' : "/#{result.join('/')}"
           rescue
             nil
+          end
+
+          if RUBY_VERSION >= '2.6.'
+            def split(path, pattern = nil, &block)
+              path.split(pattern, &block)
+            end
+          else
+            def split(path, pattern = nil, &block)
+              path.split(pattern).each(&block)
+              path
+            end
           end
         end
       end

@@ -16,6 +16,8 @@ module Datadog
           def self?.read_or_infer: (Hash[::String, untyped] request_env) -> ::String?
 
           def self?.infer: (::String path) -> ::String?
+
+          def self?.split: (::String path, ?::String? pattern) { (::String) -> void } -> ::String
         end
       end
     end

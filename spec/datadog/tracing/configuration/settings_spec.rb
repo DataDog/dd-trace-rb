@@ -669,11 +669,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         end
 
         context 'when ENV is provided' do
-          around do |example|
-            ClimateControl.modify(Datadog::Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT => '20') do
-              example.run
-            end
-          end
+          with_env Datadog::Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT => '20'
 
           it { is_expected.to eq(20) }
         end
@@ -687,11 +683,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         end
 
         context 'when DD_TRACE_SAMPLE_RATE is provided' do
-          around do |example|
-            ClimateControl.modify(Datadog::Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE => '0.5') do
-              example.run
-            end
-          end
+          with_env Datadog::Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE => '0.5'
 
           it { is_expected.to eq(0.5) }
         end
@@ -765,11 +757,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         end
 
         context 'when ENV is provided' do
-          around do |example|
-            ClimateControl.modify('DD_TRACE_SAMPLING_RULES' => '[{"sample_rate":0.2}]') do
-              example.run
-            end
-          end
+          with_env 'DD_TRACE_SAMPLING_RULES' => '[{"sample_rate":0.2}]'
 
           it { is_expected.to eq('[{"sample_rate":0.2}]') }
         end

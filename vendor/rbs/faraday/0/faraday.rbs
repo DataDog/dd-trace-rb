@@ -1,4 +1,70 @@
 module Faraday
-  class Middleware
+  module Utils
+    class Headers < ::Hash[::String, ::String]
+    end
   end
+
+  class Env
+    attr_accessor method: ::Symbol
+
+    attr_accessor url: ::URI::Generic
+
+    attr_accessor body: untyped
+
+    attr_accessor request_headers: Utils::Headers
+
+    attr_accessor response_headers: Utils::Headers?
+
+    attr_accessor status: ::Integer?
+
+    def []: (::Symbol key) -> untyped
+
+    def []=: (::Symbol key, untyped value) -> untyped
+  end
+
+  class Response
+    def env: () -> Env?
+
+    def status: () -> ::Integer?
+
+    def headers: () -> ::Hash[::String, ::String]
+
+    def body: () -> ::String?
+
+    def on_complete: () { (Env) -> void } -> self
+  end
+
+  class Middleware
+    attr_reader app: Middleware
+
+    attr_reader options: ::Hash[::Symbol, untyped]
+
+    def self.register_middleware: (**singleton(Middleware)) -> void
+
+    def call: (Env env) -> Response
+  end
+
+  class Connection
+    attr_reader builder: RackBuilder
+
+    def use: (::Symbol | singleton(Middleware) middleware, *untyped) -> void
+  end
+
+  class RackBuilder
+    class Handler
+      def klass: () -> ::Class
+    end
+
+    @handlers: ::Array[Handler]
+
+    def handlers: () -> ::Array[Handler]
+
+    def insert: (::Integer index, singleton(Middleware) middleware) -> void
+
+    def use: (::Symbol | singleton(Middleware) middleware, *untyped) -> void
+
+    def adapter: (*untyped) -> Handler?
+  end
+
+  def self.default_connection: () -> Connection
 end

@@ -15,9 +15,7 @@ require 'webrick'
 # rubocop:disable RSpec/ScatteredLet
 
 RSpec.describe 'contrib integration testing', :integration do
-  around do |example|
-    ClimateControl.modify('DD_REMOTE_CONFIGURATION_ENABLED' => nil) { example.run }
-  end
+  with_env 'DD_REMOTE_CONFIGURATION_ENABLED' => nil
 
   describe 'dynamic configuration' do
     subject(:update_config) do

@@ -79,6 +79,16 @@ static void object_record_free(heap_recorder*, object_record*);
 static VALUE object_record_inspect(heap_recorder*, object_record*);
 static object_record SKIPPED_RECORD = {0};
 
+// A pending recording is used to defer the object_id call on Ruby 4+
+// where calling rb_obj_id during on_newobj_event is unsafe.
+typedef struct {
+  VALUE object_ref;
+  heap_record *heap_record;
+  live_object_data object_data;
+} pending_recording;
+
+#define MAX_PENDING_RECORDINGS 256
+
 struct heap_recorder {
   // Config
   // Whether the recorder should try to determine approximate sizes for tracked objects.
@@ -130,6 +140,15 @@ struct heap_recorder {
   // Data for a heap recording that was started but not yet ended
   object_record *active_recording;
 
+  // Pending recordings that need to be finalized after on_newobj_event completes.
+  // On Ruby 4+, we can't call rb_obj_id during the newobj event, so we store the
+  // VALUE reference here and finalize it via a postponed job.
+  pending_recording pending_recordings[MAX_PENDING_RECORDINGS];
+  // Temporary storage for the recording in progress, used between start and end
+  VALUE active_deferred_object;
+  live_object_data active_deferred_object_data;
+  uint16_t pending_recordings_count;
+
   // Reusable arrays, implementing a flyweight pattern for things like iteration
   #define REUSABLE_LOCATIONS_SIZE MAX_FRAMES_LIMIT
   ddog_prof_Location *reusable_locations;
@@ -163,6 +182,9 @@ struct heap_recorder {
     double ewma_objects_alive;
     double ewma_objects_dead;
     double ewma_objects_skipped;
+
+    unsigned long deferred_recordings_skipped_buffer_full;
+    unsigned long deferred_recordings_finalized;
   } stats_lifetime;
 };
 
@@ -180,6 +202,7 @@ static int st_object_record_update(st_data_t, st_data_t, st_data_t);
 static int st_object_records_iterate(st_data_t, st_data_t, st_data_t);
 static int st_object_records_debug(st_data_t key, st_data_t value, st_data_t extra);
 static int update_object_record_entry(st_data_t*, st_data_t*, st_data_t, int);
+static void inc_tracked_objects_or_fail(heap_record *heap_record);
 static void commit_recording(heap_recorder *, heap_record *, object_record *active_recording);
 static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args);
 static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update);
@@ -187,6 +210,7 @@ static inline double ewma_stat(double previous, double current);
 static void unintern_or_raise(heap_recorder *, ddog_prof_ManagedStringId);
 static void unintern_all_or_raise(heap_recorder *recorder, ddog_prof_Slice_ManagedStringId ids);
 static VALUE get_ruby_string_or_raise(heap_recorder*, ddog_prof_ManagedStringId);
+static long obj_id_or_fail(VALUE obj);
 
 // ==========================
 // Heap Recorder External API
@@ -210,6 +234,7 @@ heap_recorder* heap_recorder_new(ddog_prof_ManagedStringStorage string_storage) 
   recorder->size_enabled = true;
   recorder->sample_rate = 1; // By default do no sampling on top of what allocation profiling already does
   recorder->string_storage = string_storage;
+  recorder->active_deferred_object = Qnil;
 
   return recorder;
 }
@@ -294,9 +319,9 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder) {
   heap_recorder->stats_lifetime = (struct stats_lifetime) {0};
 }
 
-void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice alloc_class) {
+bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice alloc_class) {
   if (heap_recorder == NULL) {
-    return;
+    return false;
   }
 
   if (heap_recorder->active_recording != NULL) {
@@ -316,25 +341,49 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
       || heap_recorder->updating
     ) {
     heap_recorder->active_recording = &SKIPPED_RECORD;
-    return;
+    return false;
   }
+
+  bool needs_after_allocation = false;
+
+  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
+  // Skip if we've hit the pending recordings limit or if there's already a deferred object being recorded
+  if (heap_recorder->pending_recordings_count >= MAX_PENDING_RECORDINGS) {
+    heap_recorder->stats_lifetime.deferred_recordings_skipped_buffer_full++;
+    heap_recorder->active_recording = &SKIPPED_RECORD;
+    return true; // If the buffer is full, we keep asking for a callback (see `needs_after_allocation` below)
+  } else {
+    // The intuition here is: We start by asking for an `after_allocation` callback when the buffer is about to go
+    // from empty -> non-empty, because this is going to be mapped onto a postponed job, so after it gets queued once
+    // it doesn't seem worth it to keep spamming requests.
+    //
+    // Yet, if for some reason the postponed job doesn't flush the pending list (or if e.g. it ran with `during_sample == true` and thus
+    // was skipped) we need to have some mechanism to recover -- and so if the buffer starts accumulating too much we
+    // start always requesting the callback to happen so that we eventually flush the buffer.
+    needs_after_allocation =
+      heap_recorder->pending_recordings_count == 0 || heap_recorder->pending_recordings_count >= (MAX_PENDING_RECORDINGS / 2);
+  }
+  #endif
 
   heap_recorder->num_recordings_skipped = 0;
 
-  VALUE ruby_obj_id = rb_obj_id(new_obj);
-  if (!FIXNUM_P(ruby_obj_id)) {
-    raise_error(rb_eRuntimeError, "Detected a bignum object id. These are not supported by heap profiling.");
-  }
+  live_object_data object_data = (live_object_data) {
+    .weight = weight * heap_recorder->sample_rate,
+    .class = intern_or_raise(heap_recorder->string_storage, alloc_class),
+    .alloc_gen = rb_gc_count(),
+  };
 
-  heap_recorder->active_recording = object_record_new(
-    FIX2LONG(ruby_obj_id),
-    NULL,
-    (live_object_data) {
-      .weight = weight * heap_recorder->sample_rate,
-      .class = intern_or_raise(heap_recorder->string_storage, alloc_class),
-      .alloc_gen = rb_gc_count(),
-    }
-  );
+  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
+    // On Ruby 4+, we can't call rb_obj_id during on_newobj_event as it mutates the object.
+    // Instead, we store the VALUE reference and will get the object_id later via a postponed job.
+    // active_deferred_object != Qnil indicates we're in deferred mode.
+    heap_recorder->active_deferred_object = new_obj;
+    heap_recorder->active_deferred_object_data = object_data;
+  #else
+    heap_recorder->active_recording = object_record_new(obj_id_or_fail(new_obj), NULL, object_data);
+  #endif
+
+  return needs_after_allocation;
 }
 
 // end_heap_allocation_recording_with_rb_protect gets called while the stack_recorder is holding one of the profile
@@ -351,7 +400,6 @@ int end_heap_allocation_recording_with_rb_protect(heap_recorder *heap_recorder, 
     return 0;
   }
 
-
   int exception_state;
   end_heap_allocation_args args = {
     .heap_recorder = heap_recorder,
@@ -367,26 +415,48 @@ static VALUE end_heap_allocation_recording(VALUE protect_args) {
   heap_recorder *heap_recorder = args->heap_recorder;
   ddog_prof_Slice_Location locations = args->locations;
 
-  object_record *active_recording = heap_recorder->active_recording;
+  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
+    if (heap_recorder->active_deferred_object == Qnil) {
+      // Recording ended without having been started?
+      raise_error(rb_eRuntimeError, "Ended a heap recording that was not started");
+    }
+  #else
+    object_record *active_recording = heap_recorder->active_recording;
 
-  if (active_recording == NULL) {
-    // Recording ended without having been started?
-    raise_error(rb_eRuntimeError, "Ended a heap recording that was not started");
-  }
-  // From now on, mark the global active recording as invalid so we can short-circuit at any point
-  // and not end up with a still active recording. the local active_recording still holds the
-  // data required for committing though.
-  heap_recorder->active_recording = NULL;
+    if (active_recording == NULL) {
+      // Recording ended without having been started?
+      raise_error(rb_eRuntimeError, "Ended a heap recording that was not started");
+    }
+    // From now on, mark the global active recording as invalid so we can short-circuit at any point
+    // and not end up with a still active recording. the local active_recording still holds the
+    // data required for committing though.
+    heap_recorder->active_recording = NULL;
 
-  if (active_recording == &SKIPPED_RECORD) { // special marker when we decided to skip due to sampling
-    // Note: Remember to update the short circuit in end_heap_allocation_recording_with_rb_protect if this logic changes
-    return Qnil;
-  }
+    if (active_recording == &SKIPPED_RECORD) {
+      raise_error(
+        rb_eRuntimeError,
+        "BUG: end_heap_allocation_recording should never observe SKIPPED_RECORDING because " \
+        "end_heap_allocation_recording_with_rb_protect is supposed to test for it directly"
+      );
+    }
+  #endif
 
   heap_record *heap_record = get_or_create_heap_record(heap_recorder, locations);
+  inc_tracked_objects_or_fail(heap_record);
 
-  // And then commit the new allocation.
-  commit_recording(heap_recorder, heap_record, active_recording);
+  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
+    // Commit is delayed, so we need to record all we'll need for it
+    pending_recording *pending = &heap_recorder->pending_recordings[heap_recorder->pending_recordings_count++];
+    pending->object_ref = heap_recorder->active_deferred_object;
+    pending->heap_record = heap_record;
+    pending->object_data = heap_recorder->active_deferred_object_data;
+
+    heap_recorder->active_deferred_object = Qnil;
+    heap_recorder->active_deferred_object_data = (live_object_data) {0};
+  #else
+    // And then commit the new allocation
+    commit_recording(heap_recorder, heap_record, active_recording);
+  #endif
 
   return Qnil;
 }
@@ -397,6 +467,48 @@ void heap_recorder_update_young_objects(heap_recorder *heap_recorder) {
   }
 
   heap_recorder_update(heap_recorder, /* full_update: */ false);
+}
+
+void heap_recorder_finalize_pending_recordings(heap_recorder *heap_recorder) {
+  if (heap_recorder == NULL) {
+    return; // Nothing to do
+  }
+
+  uint count = heap_recorder->pending_recordings_count;
+  if (count == 0) {
+    return; // Nothing to do
+  }
+
+  heap_recorder->stats_lifetime.deferred_recordings_finalized += count;
+
+  for (uint i = 0; i < count; i++) {
+    pending_recording *pending = &heap_recorder->pending_recordings[i];
+
+    // This is the step we couldn't do during the original sample call -- we're now expected to be called in a context
+    // where it's finally safe to call this
+    long obj_id = obj_id_or_fail(pending->object_ref);
+
+    // Create the object record now that we have the object_id
+    object_record *record = object_record_new(obj_id, pending->heap_record, pending->object_data);
+
+    commit_recording(heap_recorder, pending->heap_record, record);
+  }
+
+  heap_recorder->pending_recordings_count = 0;
+}
+
+// Mark pending recordings to prevent GC from collecting the objects
+// while they're waiting to be finalized
+void heap_recorder_mark_pending_recordings(heap_recorder *heap_recorder) {
+  if (heap_recorder == NULL) {
+    return;
+  }
+
+  for (uint i = 0; i < heap_recorder->pending_recordings_count; i++) {
+    rb_gc_mark(heap_recorder->pending_recordings[i].object_ref);
+  }
+
+  rb_gc_mark(heap_recorder->active_deferred_object);
 }
 
 // NOTE: This function needs and assumes it gets called with the GVL being held.
@@ -547,20 +659,21 @@ bool heap_recorder_for_each_live_object(
 
 VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder) {
   VALUE arguments[] = {
-    ID2SYM(rb_intern("num_object_records")), /* => */ LONG2NUM(heap_recorder->object_records->num_entries),
-    ID2SYM(rb_intern("num_heap_records")),   /* => */ LONG2NUM(heap_recorder->heap_records->num_entries),
+    ID2SYM(rb_intern("num_object_records")), /* => */ ULONG2NUM(heap_recorder->object_records->num_entries),
+    ID2SYM(rb_intern("num_heap_records")),   /* => */ ULONG2NUM(heap_recorder->heap_records->num_entries),
+    ID2SYM(rb_intern("pending_recordings_count")), /* => */ ULONG2NUM(heap_recorder->pending_recordings_count),
 
     // Stats as of last update
-    ID2SYM(rb_intern("last_update_objects_alive")), /* => */ LONG2NUM(heap_recorder->stats_last_update.objects_alive),
-    ID2SYM(rb_intern("last_update_objects_dead")), /* => */ LONG2NUM(heap_recorder->stats_last_update.objects_dead),
-    ID2SYM(rb_intern("last_update_objects_skipped")), /* => */ LONG2NUM(heap_recorder->stats_last_update.objects_skipped),
-    ID2SYM(rb_intern("last_update_objects_frozen")), /* => */ LONG2NUM(heap_recorder->stats_last_update.objects_frozen),
+    ID2SYM(rb_intern("last_update_objects_alive")), /* => */ ULONG2NUM(heap_recorder->stats_last_update.objects_alive),
+    ID2SYM(rb_intern("last_update_objects_dead")), /* => */ ULONG2NUM(heap_recorder->stats_last_update.objects_dead),
+    ID2SYM(rb_intern("last_update_objects_skipped")), /* => */ ULONG2NUM(heap_recorder->stats_last_update.objects_skipped),
+    ID2SYM(rb_intern("last_update_objects_frozen")), /* => */ ULONG2NUM(heap_recorder->stats_last_update.objects_frozen),
 
     // Lifetime stats
-    ID2SYM(rb_intern("lifetime_updates_successful")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.updates_successful),
-    ID2SYM(rb_intern("lifetime_updates_skipped_concurrent")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.updates_skipped_concurrent),
-    ID2SYM(rb_intern("lifetime_updates_skipped_gcgen")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.updates_skipped_gcgen),
-    ID2SYM(rb_intern("lifetime_updates_skipped_time")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.updates_skipped_time),
+    ID2SYM(rb_intern("lifetime_updates_successful")), /* => */ ULONG2NUM(heap_recorder->stats_lifetime.updates_successful),
+    ID2SYM(rb_intern("lifetime_updates_skipped_concurrent")), /* => */ ULONG2NUM(heap_recorder->stats_lifetime.updates_skipped_concurrent),
+    ID2SYM(rb_intern("lifetime_updates_skipped_gcgen")), /* => */ ULONG2NUM(heap_recorder->stats_lifetime.updates_skipped_gcgen),
+    ID2SYM(rb_intern("lifetime_updates_skipped_time")), /* => */ ULONG2NUM(heap_recorder->stats_lifetime.updates_skipped_time),
     ID2SYM(rb_intern("lifetime_ewma_young_objects_alive")), /* => */ DBL2NUM(heap_recorder->stats_lifetime.ewma_young_objects_alive),
     ID2SYM(rb_intern("lifetime_ewma_young_objects_dead")), /* => */ DBL2NUM(heap_recorder->stats_lifetime.ewma_young_objects_dead),
       // Note: Here "young" refers to the young update; objects skipped includes non-young objects
@@ -568,9 +681,13 @@ VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder) {
     ID2SYM(rb_intern("lifetime_ewma_objects_alive")), /* => */ DBL2NUM(heap_recorder->stats_lifetime.ewma_objects_alive),
     ID2SYM(rb_intern("lifetime_ewma_objects_dead")), /* => */ DBL2NUM(heap_recorder->stats_lifetime.ewma_objects_dead),
     ID2SYM(rb_intern("lifetime_ewma_objects_skipped")), /* => */ DBL2NUM(heap_recorder->stats_lifetime.ewma_objects_skipped),
+
+    ID2SYM(rb_intern("lifetime_deferred_recordings_skipped_buffer_full")), /* => */ ULONG2NUM(heap_recorder->stats_lifetime.deferred_recordings_skipped_buffer_full),
+    ID2SYM(rb_intern("lifetime_deferred_recordings_finalized")), /* => */ ULONG2NUM(heap_recorder->stats_lifetime.deferred_recordings_finalized),
   };
   VALUE hash = rb_hash_new();
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(hash, arguments[i], arguments[i+1]);
+
   return hash;
 }
 
@@ -584,13 +701,14 @@ VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder) {
     raise_error(rb_eArgError, "heap_recorder is NULL");
   }
 
-  VALUE debug_str = rb_str_new2("object records:\n");
+  VALUE debug_str = rb_str_new2("");
   debug_context context = (debug_context) {.recorder = heap_recorder, .debug_str = debug_str};
   st_foreach(heap_recorder->object_records, st_object_records_debug, (st_data_t) &context);
 
-  rb_str_catf(debug_str, "state snapshot: %"PRIsVALUE"\n------\n", heap_recorder_state_snapshot(heap_recorder));
-
-  return debug_str;
+  return rb_ary_new_from_args(2,
+    rb_ary_new_from_args(2, ID2SYM(rb_intern("records")), debug_str),
+    rb_ary_new_from_args(2, ID2SYM(rb_intern("state")), heap_recorder_state_snapshot(heap_recorder))
+  );
 }
 
 // ==========================
@@ -728,14 +846,17 @@ static int update_object_record_entry(DDTRACE_UNUSED st_data_t *key, st_data_t *
   return ST_CONTINUE;
 }
 
-static void commit_recording(heap_recorder *heap_recorder, heap_record *heap_record, object_record *active_recording) {
-  // Link the object record with the corresponding heap record. This was the last remaining thing we
-  // needed to fully build the object_record.
-  active_recording->heap_record = heap_record;
+static void inc_tracked_objects_or_fail(heap_record *heap_record) {
   if (heap_record->num_tracked_objects == UINT32_MAX) {
     raise_error(rb_eRuntimeError, "Reached maximum number of tracked objects for heap record");
   }
   heap_record->num_tracked_objects++;
+}
+
+static void commit_recording(heap_recorder *heap_recorder, heap_record *heap_record, object_record *active_recording) {
+  // Link the object record with the corresponding heap record. This was the last remaining thing we
+  // needed to fully build the object_record.
+  active_recording->heap_record = heap_record;
 
   int existing_error = st_update(heap_recorder->object_records, active_recording->obj_id, update_object_record_entry, (st_data_t) active_recording);
   if (existing_error) {
@@ -953,6 +1074,17 @@ static VALUE get_ruby_string_or_raise(heap_recorder *recorder, ddog_prof_Managed
   ddog_StringWrapper_drop((ddog_StringWrapper *) &get_string_result.ok);
 
   return ruby_string;
+}
+
+static long obj_id_or_fail(VALUE obj) {
+  VALUE ruby_obj_id = rb_obj_id(obj);
+  if (!FIXNUM_P(ruby_obj_id)) {
+    // Bignum object ids indicate the fixnum range is exhausted - all future IDs will also be bignums.
+    // Heap profiling cannot continue.
+    raise_error(rb_eRuntimeError, "Heap profiling: bignum object id detected. Heap profiling cannot continue.");
+  }
+
+  return FIX2LONG(ruby_obj_id);
 }
 
 static inline double ewma_stat(double previous, double current) {

@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/release-25.05";
+    nixpkgs.url = "github:nixos/nixpkgs/release-25.11";
 
     # cross-platform convenience
     flake-utils.url = "github:numtide/flake-utils";
@@ -17,7 +17,7 @@
         pkgs = nixpkgs.legacyPackages.${system};
 
         # control versions
-        ruby = pkgs.ruby_3_4;
+        ruby = pkgs.ruby_4_0;
         llvm = pkgs.llvmPackages_19;
         gcc = pkgs.gcc14;
 
@@ -41,7 +41,8 @@
         '';
 
         deps = [
-          pkgs.libyaml.dev
+          pkgs.libyaml.dev  # for gem psych
+          pkgs.libffi.dev   # for gem fiddle
 
           # TODO: some gems insist on using `gcc` on Linux, satisfy them for now:
           # - json
@@ -54,6 +55,22 @@
           name = "devshell";
 
           buildInputs = [ ruby ] ++ deps;
+
+          shellHook = hook;
+        };
+
+        devShells.ruby40 = llvm.stdenv.mkDerivation {
+          name = "devshell";
+
+          buildInputs = [ pkgs.ruby_4_0 ] ++ deps;
+
+          shellHook = hook;
+        };
+
+        devShells.ruby34 = llvm.stdenv.mkDerivation {
+          name = "devshell";
+
+          buildInputs = [ pkgs.ruby_3_4 ] ++ deps;
 
           shellHook = hook;
         };

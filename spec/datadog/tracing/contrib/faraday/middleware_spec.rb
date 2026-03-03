@@ -320,11 +320,7 @@ RSpec.describe 'Faraday middleware' do
     end
 
     context 'when configured from env' do
-      around do |example|
-        ClimateControl.modify('DD_TRACE_FARADAY_ERROR_STATUS_CODES' => '500-600') do
-          example.run
-        end
-      end
+      with_env 'DD_TRACE_FARADAY_ERROR_STATUS_CODES' => '500-600'
 
       it do
         client.get('not_found')

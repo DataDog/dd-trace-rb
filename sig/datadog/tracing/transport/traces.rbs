@@ -2,16 +2,12 @@ module Datadog
   module Tracing
     module Transport
       module Traces
-        class EncodedParcel
-          @trace_count: untyped
+        class Parcel < Core::Transport::Parcel
+          @trace_count: Integer
 
-          include Datadog::Core::Transport::Parcel
+          attr_reader trace_count: Integer
 
-          attr_reader trace_count: untyped
-
-          def initialize: (untyped data, untyped trace_count) -> void
-
-          def count: () -> untyped
+          def initialize: (String data, trace_count: Integer, **untyped) -> void
         end
         class Request < Datadog::Core::Transport::Request
         end

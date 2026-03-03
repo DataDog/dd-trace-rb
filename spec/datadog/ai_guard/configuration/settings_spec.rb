@@ -8,25 +8,19 @@ RSpec.describe Datadog::AIGuard::Configuration::Settings do
   describe "ai_guard" do
     describe "#enabled" do
       context "when DD_AI_GUARD_ENABLED is not defined" do
-        around do |example|
-          ClimateControl.modify("DD_AI_GUARD_ENABLED" => nil) { example.run }
-        end
+        with_env "DD_AI_GUARD_ENABLED" => nil
 
         it { expect(settings.ai_guard.enabled).to be(false) }
       end
 
       context "when DD_AI_GUARD_ENABLED is defined as true" do
-        around do |example|
-          ClimateControl.modify("DD_AI_GUARD_ENABLED" => "true") { example.run }
-        end
+        with_env "DD_AI_GUARD_ENABLED" => "true"
 
         it { expect(settings.ai_guard.enabled).to be(true) }
       end
 
       context "when DD_AI_GUARD_ENABLED is defined as false" do
-        around do |example|
-          ClimateControl.modify("DD_AI_GUARD_ENABLED" => "false") { example.run }
-        end
+        with_env "DD_AI_GUARD_ENABLED" => "false"
 
         it { expect(settings.ai_guard.enabled).to be(false) }
       end
@@ -48,19 +42,13 @@ RSpec.describe Datadog::AIGuard::Configuration::Settings do
 
     describe "#endpoint" do
       context "when DD_AI_GUARD_ENDPOINT is not defined" do
-        around do |example|
-          ClimateControl.modify("DD_AI_GUARD_ENDPOINT" => nil) { example.run }
-        end
+        with_env "DD_AI_GUARD_ENDPOINT" => nil
 
         it { expect(settings.ai_guard.endpoint).to be_nil }
       end
 
       context "when DD_AI_GUARD_ENDPOINT is defined" do
-        around do |example|
-          ClimateControl.modify("DD_AI_GUARD_ENDPOINT" => "https://ap.datadoghq.com/api/v2/ai-guard") do
-            example.run
-          end
-        end
+        with_env "DD_AI_GUARD_ENDPOINT" => "https://ap.datadoghq.com/api/v2/ai-guard"
 
         it { expect(settings.ai_guard.endpoint).to eq("https://ap.datadoghq.com/api/v2/ai-guard") }
       end
@@ -92,16 +80,12 @@ RSpec.describe Datadog::AIGuard::Configuration::Settings do
 
     describe "#app_key" do
       context "when DD_APP_KEY is not defined" do
-        around do |example|
-          ClimateControl.modify("DD_APP_KEY" => nil) { example.run }
-        end
+        with_env "DD_APP_KEY" => nil
 
         it { expect(settings.ai_guard.app_key).to be nil }
 
         context "when DD_APP_KEY is defined" do
-          around do |example|
-            ClimateControl.modify("DD_APP_KEY" => "some-app-key") { example.run }
-          end
+          with_env "DD_APP_KEY" => "some-app-key"
 
           it { expect(settings.ai_guard.app_key).to eq("some-app-key") }
         end
@@ -117,17 +101,13 @@ RSpec.describe Datadog::AIGuard::Configuration::Settings do
 
     describe "#timeout_ms" do
       context "when DD_AI_GUARD_TIMEOUT is not defined" do
-        around do |example|
-          ClimateControl.modify("DD_AI_GUARD_TIMEOUT" => nil) { example.run }
-        end
+        with_env "DD_AI_GUARD_TIMEOUT" => nil
 
         it { expect(settings.ai_guard.timeout_ms).to eq(10_000) }
       end
 
       context "when DD_AI_GUARD_TIMEOUT is defined" do
-        around do |example|
-          ClimateControl.modify("DD_AI_GUARD_TIMEOUT" => "20000") { example.run }
-        end
+        with_env "DD_AI_GUARD_TIMEOUT" => "20000"
 
         it { expect(settings.ai_guard.timeout_ms).to eq(20_000) }
       end
@@ -142,17 +122,13 @@ RSpec.describe Datadog::AIGuard::Configuration::Settings do
 
     describe "#max_content_size_bytes" do
       context "when DD_AI_GUARD_MAX_CONTENT_SIZE is not defined" do
-        around do |example|
-          ClimateControl.modify("DD_AI_GUARD_MAX_CONTENT_SIZE" => nil) { example.run }
-        end
+        with_env "DD_AI_GUARD_MAX_CONTENT_SIZE" => nil
 
         it { expect(settings.ai_guard.max_content_size_bytes).to eq(512 * 1024) }
       end
 
       context "when DD_AI_GUARD_MAX_CONTENT_SIZE is defined" do
-        around do |example|
-          ClimateControl.modify("DD_AI_GUARD_MAX_CONTENT_SIZE" => "262144") { example.run }
-        end
+        with_env "DD_AI_GUARD_MAX_CONTENT_SIZE" => "262144"
 
         it { expect(settings.ai_guard.max_content_size_bytes).to eq(262_144) }
       end
@@ -167,17 +143,13 @@ RSpec.describe Datadog::AIGuard::Configuration::Settings do
 
     describe "#max_messages_length" do
       context "when DD_AI_GUARD_MAX_MESSAGES_LENGTH is not defined" do
-        around do |example|
-          ClimateControl.modify("DD_AI_GUARD_MAX_MESSAGES_LENGTH" => nil) { example.run }
-        end
+        with_env "DD_AI_GUARD_MAX_MESSAGES_LENGTH" => nil
 
         it { expect(settings.ai_guard.max_messages_length).to eq(16) }
       end
 
       context "when DD_AI_GUARD_MAX_MESSAGES_LENGTH is defined" do
-        around do |example|
-          ClimateControl.modify("DD_AI_GUARD_MAX_MESSAGES_LENGTH" => "32") { example.run }
-        end
+        with_env "DD_AI_GUARD_MAX_MESSAGES_LENGTH" => "32"
 
         it { expect(settings.ai_guard.max_messages_length).to eq(32) }
       end

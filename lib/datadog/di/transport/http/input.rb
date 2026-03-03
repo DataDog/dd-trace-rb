@@ -21,7 +21,7 @@ module Datadog
 
               def call(env, &block)
                 # Encode body & type
-                env.headers[HEADER_CONTENT_TYPE] = encoder.content_type
+                env.headers[HEADER_CONTENT_TYPE] = env.request.parcel.content_type
                 env.body = env.request.parcel.data
                 env.query = {
                   # DEV: In theory we could serialize the tags here

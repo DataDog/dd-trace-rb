@@ -3,6 +3,8 @@ module Datadog
     module Contrib
       module Rack
         module Ext
+          COLLECTABLE_REQUEST_HEADERS: ::Array[::String]
+
           IDENTITY_COLLECTABLE_REQUEST_HEADERS: ::Array[::String]
         end
       end

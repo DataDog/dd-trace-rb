@@ -53,6 +53,10 @@ module Datadog
           def code
             @http_response.respond_to?(:code) ? @http_response.code : nil
           end
+
+          def headers
+            @http_response.respond_to?(:headers) ? @http_response.headers : {}
+          end
         end
       end
     end

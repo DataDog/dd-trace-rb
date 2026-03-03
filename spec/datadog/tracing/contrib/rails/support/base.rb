@@ -64,10 +64,6 @@ RSpec.shared_context 'Rails base application' do
     end
   end
 
-  around do |example|
-    # Workaround for a `pg` gem bug on Mac, when the process forks: https://github.com/ged/ruby-pg/issues/538
-    ClimateControl.modify('PGGSSENCMODE' => 'disable') do
-      example.run
-    end
-  end
+  # Workaround for a `pg` gem bug on Mac, when the process forks: https://github.com/ged/ruby-pg/issues/538
+  with_env 'PGGSSENCMODE' => 'disable'
 end

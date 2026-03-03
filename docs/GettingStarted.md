@@ -884,7 +884,16 @@ end
 
 The GraphQL integration activates instrumentation for GraphQL queries.
 
-To activate your integration, use the `Datadog.configure` method:
+<div class="alert alert-warning">
+When onboarding an [auto instrumented GraphQL application](#rails-or-hanami-applications), you **MUST** set the environment variable `DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER=1`.
+
+This enables support for [Endpoint Observability](https://docs.datadoghq.com/internal_developer_portal/software_catalog/endpoints/).
+
+It is **not** possible to change the unified tracer option in a `Datadog.configure` block.
+This limitation will be removed in `datadog` 3.0.0.
+</div>
+
+When manually activating your integration, use the `Datadog.configure` method:
 
 ```ruby
 # Inside Rails initializer or equivalent
@@ -908,15 +917,14 @@ The `instrument :graphql` method accepts the following parameters. Additional op
 | ------------------------ | -------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | `enabled`                | `DD_TRACE_GRAPHQL_ENABLED` | `Bool`   | Whether the integration should create spans.                                                                                                                                                                    | `true`           |
 | `schemas`                |                            | `Array`  | Array of `GraphQL::Schema` objects (that support class-based schema only) to trace. If you do not provide any, then tracing will applied to all the schemas.                                                    | `[]`             |
-| `with_unified_tracer`    | `DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER` | `Bool`   | (Recommended) Enable to instrument with `UnifiedTrace` tracer for `graphql` >= v2.2, **enabling support for Endpoints list** in the Service Catalog. `with_deprecated_tracer` has priority over this. Default is `false`, using `GraphQL::Tracing::DataDogTrace` instead. This option is disabled by default to maintain backwards compatibility, but **will become the default in `datadog` 3.0.0**. | `false` |
+| `with_unified_tracer`    | `DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER` | `Bool`   | (Recommended) Enable to instrument with `UnifiedTrace` tracer for `graphql` >= v2.2, **enabling support for [Endpoint Observability](https://docs.datadoghq.com/internal_developer_portal/software_catalog/endpoints/)**. For auto instrumented applications, you **MUST** use the environment variable. `with_deprecated_tracer` has priority over this. Default is `false`, using `GraphQL::Tracing::DataDogTrace` instead. This option is disabled by default to maintain backwards compatibility, but **will become the default in `datadog` 3.0.0**. | `false` |
 | `with_deprecated_tracer` |                            | `Bool`   | (Not recommended) Enable to instrument with deprecated `GraphQL::Tracing::DataDogTracing`. This has priority over `with_unified_tracer`. Default is `false`, using `GraphQL::Tracing::DataDogTrace` instead | `false` |
 | `service_name`           |                            | `String` | Service name used for graphql instrumentation                                                                                                                                                                   | `'ruby-graphql'` |
 | `error_extensions` | `DD_TRACE_GRAPHQL_ERROR_EXTENSIONS` | `Array` | List of extension keys to include in the span event reported for GraphQL queries with errors. | `[]` |
 | `error_tracking` | `DD_TRACE_GRAPHQL_ERROR_TRACKING` | `Bool` | (Recommended) Surface GraphQL errors in Error Tracking. | `false` |
 
 
-Once an instrumentation strategy is selected (`with_unified_tracer: true`, `with_deprecated_tracer: true`, or *no option set* which defaults to `GraphQL::Tracing::DataDogTrace`), it is not possible to change the instrumentation strategy in the same Ruby process.
-This is especially important for [auto instrumented applications](#rails-or-hanami-applications) because an automatic initial instrumentation is always applied at startup, thus such applications will always instrument GraphQL with the default strategy (`GraphQL::Tracing::DataDogTrace`).
+Once an instrumentation strategy is selected (`with_unified_tracer: true`, `with_deprecated_tracer: true`, or *no option set* which defaults to `GraphQL::Tracing::DataDogTrace`), it is not possible to change the instrumentation strategy.
 
 **Manually configuring GraphQL schemas**
 
@@ -1185,6 +1193,32 @@ end
 | --------------------- | ---------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------- | ------- |
 | `enabled`             | `DD_TRACE_WATERDROP_ENABLED` | `Bool` | Specifies whether the integration should create spans.                                                               | `true`  |
 | `distributed_tracing` |                              | `Bool` | Enables [distributed tracing](#distributed-tracing) (the trace context will be injected onto the produced messages). | `false` |
+
+### Kicks
+
+The Kicks integration is a server-side middleware which traces job executions.
+
+<div class="alert alert-warning">
+Kicks is a continuation of Sneakers, and the two cannot be active at the same time because they share the same Ruby class namespace. Existing Sneakers configuration is automatically merged with any Kicks configuration.
+</div>
+
+You can enable it through `Datadog.configure`:
+
+```ruby
+require 'datadog'
+
+Datadog.configure do |c|
+  c.tracing.instrument :kicks, **options
+end
+```
+
+The following keyword arguments are available for `options`:
+
+| Key        | Env Var | Type   | Description                                                                                                                                                                 | Default                                                           |
+| ---------- | - | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `enabled`  | `DD_TRACE_SNEAKERS_ENABLED` | `Bool` | Whether the integration should create spans.                                                                      | `true`                                                            |
+| `tag_body` | | `Bool` | Whether to tag the job message on spans.                                                                                                                 | `false`                                                           |
+| `on_error` | | `Proc` | Custom error handler invoked when a job raises an error. Receives `span` and `error` as arguments. By default, sets the error on the span. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### MongoDB
 
@@ -1590,7 +1624,7 @@ end
 | 2.5          |                | 4.2 - 6.1      |
 | 2.6 - 2.7    | 9.2 - 9.3      | 5.0 - 6.1      |
 | 3.0 - 3.1    | 9.4            | 6.1 - 7.1      |
-| 3.2 - 3.4    |                | 6.1 - 8.0      |
+| 3.2 - 4.0    |                | 6.1 - 8.1      |
 
 Instrumentation for the [Rails Runner](https://guides.rubyonrails.org/command_line.html#bin-rails-runner) command is only supported for Rails 5.1 or higher.
 
@@ -2013,6 +2047,10 @@ end
 ### Sneakers
 
 The Sneakers integration is a server-side middleware which will trace job executions.
+
+<div class="alert alert-warning">
+Kicks is a continuation of Sneakers, and the two cannot be active at the same time because they share the same Ruby class namespace. Existing Sneakers configuration is automatically merged with any Kicks configuration.
+</div>
 
 You can enable it through `Datadog.configure`:
 

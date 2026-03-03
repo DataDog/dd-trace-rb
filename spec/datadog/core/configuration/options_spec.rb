@@ -294,9 +294,7 @@ RSpec.describe Datadog::Core::Configuration::Options do
                 let(:meta) { {default: 'anything', env: 'TEST_ENV_VAR'} }
 
                 context 'and an environmet variable is set' do
-                  around do |example|
-                    ClimateControl.modify('TEST_ENV_VAR' => 'anything') { example.run }
-                  end
+                  with_env 'TEST_ENV_VAR' => 'anything'
 
                   it { is_expected.to be(false) }
                 end
@@ -311,9 +309,7 @@ RSpec.describe Datadog::Core::Configuration::Options do
               let(:meta) { {env: 'TEST_ENV_VAR'} }
 
               context 'and an environmet variable is set' do
-                around do |example|
-                  ClimateControl.modify('TEST_ENV_VAR' => 'anything') { example.run }
-                end
+                with_env 'TEST_ENV_VAR' => 'anything'
 
                 it { is_expected.to be(false) }
               end

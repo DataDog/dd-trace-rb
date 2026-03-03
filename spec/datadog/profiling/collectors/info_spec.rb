@@ -114,11 +114,7 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
       end
 
       context "when some gc tuning env vars are set" do
-        around do |example|
-          ClimateControl.modify("RUBY_GC_HEAP_FREE_SLOTS" => "12345") do
-            example.run
-          end
-        end
+        with_env "RUBY_GC_HEAP_FREE_SLOTS" => "12345"
 
         it "reports the gc tuning env vars" do
           expect(info.fetch(:runtime).fetch(:gc_tuning)).to eq({

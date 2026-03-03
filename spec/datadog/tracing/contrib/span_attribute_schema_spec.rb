@@ -3,26 +3,26 @@ require 'datadog/tracing/contrib/span_attribute_schema'
 RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
   describe '#fetch_service_name' do
     context 'when integration service is set' do
+      with_env TEST_DD_INTEGRATION_SERVICE: 'integration-service-name'
+
       it 'returns the integration specific service name' do
-        with_modified_env TEST_DD_INTEGRATION_SERVICE: 'integration-service-name' do
-          expect(
-            described_class
-              .fetch_service_name('TEST_DD_INTEGRATION_SERVICE',
-                'default-integration-service-name')
-          ).to eq('integration-service-name')
-        end
+        expect(
+          described_class
+            .fetch_service_name('TEST_DD_INTEGRATION_SERVICE',
+              'default-integration-service-name')
+        ).to eq('integration-service-name')
       end
     end
 
     context 'when DD_SERVICE is set' do
+      with_env DD_SERVICE: 'service'
+
       it 'returns default integration service name' do
-        with_modified_env DD_SERVICE: 'service' do
-          expect(
-            described_class
-              .fetch_service_name('TEST_DD_INTEGRATION_SERVICE',
-                'default-integration-service-name')
-          ).to eq('default-integration-service-name')
-        end
+        expect(
+          described_class
+            .fetch_service_name('TEST_DD_INTEGRATION_SERVICE',
+              'default-integration-service-name')
+        ).to eq('default-integration-service-name')
       end
     end
 
@@ -37,15 +37,15 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
     end
 
     context 'when DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED is set' do
+      with_env DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: 'true',
+        DD_SERVICE: 'service'
+
       it 'returns DD_SERVICE' do
-        with_modified_env DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: 'true',
-          DD_SERVICE: 'service' do
-            expect(
-              described_class
-                .fetch_service_name('TEST_DD_INTEGRATION_SERVICE',
-                  'default-integration-service-name')
-            ).to eq('service')
-          end
+        expect(
+          described_class
+            .fetch_service_name('TEST_DD_INTEGRATION_SERVICE',
+              'default-integration-service-name')
+        ).to eq('service')
       end
     end
   end
@@ -54,11 +54,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
     let(:span) { Datadog::Tracing::Span.new('testPeerServiceLogicSpan', parent_id: 0) }
     subject(:set_peer_service!) { described_class.set_peer_service!(span, precursors) }
 
-    around do |example|
-      ClimateControl.modify('DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => 'true') do
-        example.run
-      end
-    end
+    with_env 'DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => 'true'
 
     context 'precursor tags set' do
       context 'AWS Span' do
@@ -89,11 +85,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
         end
 
         context 'peer service defaults disabled' do
-          around do |example|
-            ClimateControl.modify('DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => 'false') do
-              example.run
-            end
-          end
+          with_env 'DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => 'false'
 
           it 'does not set peer.service' do
             span.set_tag('aws_service', 'test-service')
@@ -278,12 +270,14 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
         expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
       end
 
-      it 'remaps peer.service and source with peer.service already set' do
-        span.set_tag('db.system', 'test-db')
-        span.set_tag('span.kind', 'client')
-        span.set_tag('peer.service', 'peer-service-value')
+      context 'remaps peer.service and source with peer.service already set' do
+        with_env DD_TRACE_PEER_SERVICE_MAPPING: 'peer-service-value:test-remap'
 
-        with_modified_env DD_TRACE_PEER_SERVICE_MAPPING: 'peer-service-value:test-remap' do
+        it do
+          span.set_tag('db.system', 'test-db')
+          span.set_tag('span.kind', 'client')
+          span.set_tag('peer.service', 'peer-service-value')
+
           expect(described_class.set_peer_service!(span, precursors)).to be true
           expect(span.get_tag('peer.service')).to eq('test-remap')
           expect(span.get_tag('_dd.peer.service.source')).to eq('peer.service')
@@ -292,11 +286,7 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
       end
 
       context 'peer service defaults disabled' do
-        around do |example|
-          ClimateControl.modify('DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => 'false') do
-            example.run
-          end
-        end
+        with_env 'DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => 'false'
 
         it 'keeps explicit peer.service' do
           span.set_tag('peer.service', 'peer-service-value')
@@ -312,12 +302,14 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
     context 'remapping tags' do
       let(:precursor) { ['precursor-tag'] }
 
-      it 'remaps peer.service and source' do
-        span.set_tag('db.system', 'test-db')
-        span.set_tag('span.kind', 'client')
-        span.set_tag('precursor-tag', 'test-precursor')
+      context 'remaps peer.service and source' do
+        with_env DD_TRACE_PEER_SERVICE_MAPPING: 'test-precursor:test-remap'
 
-        with_modified_env DD_TRACE_PEER_SERVICE_MAPPING: 'test-precursor:test-remap' do
+        it do
+          span.set_tag('db.system', 'test-db')
+          span.set_tag('span.kind', 'client')
+          span.set_tag('precursor-tag', 'test-precursor')
+
           expect(described_class.set_peer_service!(span, precursor)).to be true
           expect(span.get_tag('peer.service')).to eq('test-remap')
           expect(span.get_tag('_dd.peer.service.source')).to eq('precursor-tag')
@@ -325,9 +317,5 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
         end
       end
     end
-  end
-
-  def with_modified_env(options = {}, &block)
-    ClimateControl.modify(options, &block)
   end
 end

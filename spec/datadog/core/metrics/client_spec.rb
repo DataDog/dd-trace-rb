@@ -234,11 +234,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
       end
 
       context 'not set' do
-        around do |example|
-          ClimateControl.modify(Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST => nil) do
-            example.run
-          end
-        end
+        with_env Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST => nil
 
         it { is_expected.to eq(Datadog::Core::Metrics::Ext::DEFAULT_HOST) }
       end
@@ -262,11 +258,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
       end
 
       context 'not set' do
-        around do |example|
-          ClimateControl.modify(Datadog::Core::Configuration::Ext::Metrics::ENV_DEFAULT_PORT => nil) do
-            example.run
-          end
-        end
+        with_env Datadog::Core::Configuration::Ext::Metrics::ENV_DEFAULT_PORT => nil
 
         it { is_expected.to eq(Datadog::Core::Metrics::Ext::DEFAULT_PORT) }
       end

@@ -28,13 +28,13 @@ module Datadog
 
           private
 
-          def self.service_entry_trace: () -> (Tracing::TraceSegment | Tracing::TraceOperation)?
+          def self.service_entry_trace: () -> (::Datadog::Tracing::TraceSegment | ::Datadog::Tracing::TraceOperation)?
 
-          def self.service_entry_span: () -> Tracing::SpanOperation?
+          def self.service_entry_span: () -> ::Datadog::Tracing::SpanOperation?
 
           def self.build_user_attributes: (user_or_id? user_or_id, ::String login) -> attributes
 
-          def self.set_span_tags: (Tracing::SpanOperation span, ::Hash[::Symbol, untyped] tags, namespace: ::String) -> void
+          def self.set_span_tags: (::Datadog::Tracing::SpanOperation span, ::Hash[::Symbol, untyped] tags, namespace: ::String) -> void
 
           def self.record_event_telemetry_metric: (::String event) -> void
         end

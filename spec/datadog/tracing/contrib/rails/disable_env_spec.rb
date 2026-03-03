@@ -47,21 +47,13 @@ MESSAGE
   end
 
   context 'when DD_DISABLE_DATADOG_RAILS is set' do
-    around do |example|
-      ClimateControl.modify('DD_DISABLE_DATADOG_RAILS' => '1') do
-        example.run
-      end
-    end
+    with_env 'DD_DISABLE_DATADOG_RAILS' => '1'
 
     it_behaves_like 'rails patching disabled'
   end
 
   context 'when DISABLE_DATADOG_RAILS is set' do
-    around do |example|
-      ClimateControl.modify('DISABLE_DATADOG_RAILS' => '1') do
-        example.run
-      end
-    end
+    with_env 'DISABLE_DATADOG_RAILS' => '1'
 
     it_behaves_like 'rails patching disabled'
   end

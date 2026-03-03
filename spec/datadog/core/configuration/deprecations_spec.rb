@@ -21,11 +21,7 @@ RSpec.describe Datadog::Core::Configuration::Deprecations do
 
     context 'when deprecated env is set in ENV' do
       context 'env and deprecated_env found' do
-        around do |example|
-          ClimateControl.modify('TEST' => 'test', 'DEPRECATED_TEST' => 'old test') do
-            example.run
-          end
-        end
+        with_env 'TEST' => 'test', 'DEPRECATED_TEST' => 'old test'
 
         it 'log deprecation warning' do
           expect(Datadog::Core).to receive(:log_deprecation)
@@ -34,11 +30,7 @@ RSpec.describe Datadog::Core::Configuration::Deprecations do
       end
 
       context 'env not found and deprecated_env found' do
-        around do |example|
-          ClimateControl.modify('DEPRECATED_TEST' => 'old test') do
-            example.run
-          end
-        end
+        with_env 'DEPRECATED_TEST' => 'old test'
 
         it 'log deprecation warning' do
           expect(Datadog::Core).to receive(:log_deprecation)
@@ -104,11 +96,7 @@ RSpec.describe Datadog::Core::Configuration::Deprecations do
         })
       end
 
-      around do |example|
-        ClimateControl.modify('TEST' => 'test', 'DEPRECATED_TEST' => 'old test') do
-          example.run
-        end
-      end
+      with_env 'TEST' => 'test', 'DEPRECATED_TEST' => 'old test'
 
       it 'log deprecation warning three times' do
         expect(Datadog::Core).to receive(:log_deprecation).exactly(3).times

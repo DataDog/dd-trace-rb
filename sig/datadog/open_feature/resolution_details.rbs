@@ -32,14 +32,14 @@ module Datadog
         ?extra_logging: ::Hash[::String, untyped]?,
         ?log?: bool?,
         ?error?: bool?
-      ) -> instance
+      ) -> ResolutionDetails
 
       def self.build_error: (
         value: untyped,
         error_code: ::String,
         error_message: ::String,
         ?reason: ::String
-      ) -> instance
+      ) -> ResolutionDetails
     end
   end
 end

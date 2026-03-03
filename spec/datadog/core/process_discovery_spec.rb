@@ -28,36 +28,68 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
     end
 
     context 'when libdatadog API is available' do
-      context 'with all settings provided' do
-        before do
-          Datadog.configure do |c|
-            c.service = 'test-service' # Manually set so it isn't set to fallback service name that we don't control
-          end
+      before do
+        Datadog.configure do |c|
+          c.service = 'dummy-service' # Manually set so it isn't set to fallback service name that we don't control
         end
+      end
 
+      after do
+        Datadog.configuration.reset!
+      end
+
+      context 'with all settings provided' do
         let(:settings) do
           instance_double(
             'Datadog::Core::Configuration::Setting',
             service: 'test-service',
             env: 'test-env',
-            version: '1.0.0'
+            version: '1.0.0',
+            experimental_propagate_process_tags_enabled: propagate_process_tags
           )
         end
 
-        it 'stores metadata successfully' do
-          described_class.publish(settings)
+        context 'when process tags are enabled' do
+          let(:propagate_process_tags) { true }
 
-          expect(content).to include(
-            {
+          it 'stores metadata successfully' do
+            described_class.publish(settings)
+
+            expect(content).to include(
               'runtime_id' => Datadog::Core::Environment::Identity.id,
               'tracer_language' => Datadog::Core::Environment::Identity.lang,
               'tracer_version' => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
               'hostname' => Datadog::Core::Environment::Socket.hostname,
               'service_name' => 'test-service',
               'service_env' => 'test-env',
-              'service_version' => '1.0.0'
-            }
-          )
+              'service_version' => '1.0.0',
+              'process_tags' => Datadog::Core::Environment::Process.serialized
+            )
+          end
+        end
+
+        context 'when process tags are disabled' do
+          let(:propagate_process_tags) { false }
+
+          it 'does not include process_tags in metadata' do
+            described_class.publish(settings)
+
+            expect(content).to include('process_tags' => '')
+          end
+        end
+
+        context 'when running in a containerized environment' do
+          let(:propagate_process_tags) { true }
+
+          before do
+            allow(Datadog::Core::Environment::Container).to receive(:container_id).and_return('container-id-1')
+          end
+
+          it 'includes container_id in metadata' do
+            described_class.publish(settings)
+
+            expect(content).to include('container_id' => 'container-id-1')
+          end
         end
       end
 
@@ -67,7 +99,8 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
             'Datadog::Core::Configuration::Setting',
             service: nil,
             env: nil,
-            version: nil
+            version: nil,
+            experimental_propagate_process_tags_enabled: true
           )
         end
 
@@ -77,12 +110,11 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
           # If the string is empty, it should be replaced by None when converting C strings to Rust types.
           # Thus not appearing in the content.
           expect(content).to include(
-            {
-              'runtime_id' => Datadog::Core::Environment::Identity.id,
-              'tracer_language' => Datadog::Core::Environment::Identity.lang,
-              'tracer_version' => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
-              'hostname' => Datadog::Core::Environment::Socket.hostname
-            }
+            'runtime_id' => Datadog::Core::Environment::Identity.id,
+            'tracer_language' => Datadog::Core::Environment::Identity.lang,
+            'tracer_version' => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
+            'hostname' => Datadog::Core::Environment::Socket.hostname,
+            'process_tags' => Datadog::Core::Environment::Process.serialized
           )
         end
       end
@@ -90,42 +122,20 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
   end
 
   describe 'when forked', skip: !LibdatadogHelpers.supported? do
+    reset_at_fork_monkey_patch_for_components!
+
     before do
       Datadog.configure do |c|
         c.service = 'test-service' # Manually set so it isn't set to fallback service name that we don't control
+        c.experimental_propagate_process_tags_enabled = true
       end
-
-      # Unit tests for at fork monkey patch module reset its state,
-      # including the defined handlers.
-      # We need to make sure that our handler is added to the list,
-      # because normally it would be added during library initialization
-      # and if the fork monkey patch test runs before this test,
-      # the handler would get cleared out.
-      described_class.const_get(:ONLY_ONCE).send(:reset_ran_once_state_for_tests)
-
-      # We also need to clear out the handlers because we could have
-      # our own handler registered from the library initialization time,
-      # if the at fork monkey patch did not run before this test.
-      # In this case the handler would be executed twice which is
-      # 1) probably not good and 2) would fail our assertions.
-      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
     end
 
-    let(:dummy_settings) do
-      double(Datadog::Core::Configuration::Settings,
-        service: 'dummy',
-        env: 'dummy',
-        version: 'dummy',)
+    after do
+      Datadog.configuration.reset!
     end
 
     it 'updates the process discovery file descriptor' do
-      # The fork handler is installed by +publish+.
-      # If +publish+ is not called, this test is relying on the handler
-      # being installed by a different test and not cleared out by yet another
-      # test. This does not hold in general because we have multiple tests
-      # that reset after fork handlers.
-      described_class.publish(dummy_settings)
-
       allow(described_class).to receive(:publish).and_call_original
 
       parent_runtime_id = Datadog::Core::Environment::Identity.id
@@ -133,15 +143,55 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
       expect_in_fork do
         expect(described_class).to have_received(:publish)
         expect(content).to include(
-          {
-            'runtime_id' => Datadog::Core::Environment::Identity.id,
-            'tracer_language' => Datadog::Core::Environment::Identity.lang,
-            'tracer_version' => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
-            'hostname' => Datadog::Core::Environment::Socket.hostname,
-            'service_name' => 'test-service'
-          }
+          'runtime_id' => Datadog::Core::Environment::Identity.id,
+          'tracer_language' => Datadog::Core::Environment::Identity.lang,
+          'tracer_version' => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
+          'hostname' => Datadog::Core::Environment::Socket.hostname,
+          'service_name' => 'test-service',
+          'process_tags' => Datadog::Core::Environment::Process.serialized
         )
         expect(content.fetch('runtime_id')).to_not eq(parent_runtime_id)
+      end
+    end
+  end
+
+  describe 'with real configuration', skip: !LibdatadogHelpers.supported? do
+    before do
+      described_class.shutdown!
+    end
+
+    after do
+      Datadog.configuration.reset!
+      described_class.shutdown!
+    end
+
+    context 'when process tags are enabled' do
+      before do
+        Datadog.configure do |c|
+          c.service = 'test-service'
+          c.experimental_propagate_process_tags_enabled = true
+        end
+      end
+
+      let(:expected_tags) { Datadog::Core::Environment::Process.serialized }
+
+      it 'includes process tags' do
+        described_class.publish(Datadog.configuration)
+
+        expect(content).to include('process_tags' => expected_tags)
+      end
+    end
+
+    context 'when process tags are disabled' do
+      it 'excludes process tags' do
+        Datadog.configure do |c|
+          c.service = 'test-service'
+          c.experimental_propagate_process_tags_enabled = false
+        end
+
+        described_class.publish(Datadog.configuration)
+
+        expect(content).to include('process_tags' => '')
       end
     end
   end

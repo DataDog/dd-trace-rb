@@ -207,7 +207,7 @@ jobs:
       - jruby-93
       - jruby-92
     container:
-      image: datadog/ci:v3.20.0
+      image: datadog/ci:v5.7.0
       credentials:
         username: "${{ secrets.DOCKERHUB_USERNAME }}"
         password: "${{ secrets.DOCKERHUB_TOKEN }}"
@@ -226,7 +226,13 @@ jobs:
           pattern: coverage-*
           merge-multiple: true
       - name: Upload coverage reports to Datadog
-        run: datadog-ci coverage upload --verbose tmp/coverage/
+        run: |
+          for container_dir in tmp/coverage/versions/*/*/; do
+            alias_name=$(basename "$(dirname "$container_dir")")
+            container_id=$(basename "$container_dir")
+            test_type="${container_id%%-*}"
+            datadog-ci coverage upload --verbose --flags "ruby-ver:$alias_name" --flags "type:$test_type" "$container_dir"
+          done
 
   complete:
     name: Unit Tests (complete)

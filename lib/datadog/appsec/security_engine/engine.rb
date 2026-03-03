@@ -40,11 +40,15 @@ module Datadog
           @ruleset_version = diagnostics['ruleset_version']
 
           @handle_ref = ThreadSafeRef.new(@waf_builder.build_handle)
+
+          metric('init', success: true, ruleset_version: @ruleset_version, telemetry: telemetry)
         rescue WAF::Error => e
-          error_message = "AppSec security engine failed to initialize"
+          error_message = 'AppSec security engine failed to initialize'
 
           Datadog.logger.error("#{error_message}, error #{e.inspect}")
           telemetry.report(e, description: error_message)
+
+          metric('init', success: false, ruleset_version: @ruleset_version, telemetry: telemetry)
 
           raise e
         end
@@ -103,16 +107,33 @@ module Datadog
           @ruleset_version = @reconfigured_ruleset_version
 
           @handle_ref.current = new_waf_handle
+
+          metric('updates', success: true, ruleset_version: @ruleset_version, telemetry: AppSec.telemetry)
         rescue WAF::Error => e
           # WAF::Error can only be raised during new WAF handle creation or when reading known addresses.
           # This means that the current WAF handle was not yet substituted.
-          error_message = "AppSec security engine failed to reconfigure, reverting to the previous configuration"
+          error_message = 'AppSec security engine failed to reconfigure, reverting to the previous configuration'
 
           Datadog.logger.error("#{error_message}, error #{e.inspect}")
           AppSec.telemetry.report(e, description: error_message)
+
+          metric('updates', success: false, ruleset_version: @reconfigured_ruleset_version, telemetry: AppSec.telemetry)
         end
 
         private
+
+        def metric(metric_name, success:, ruleset_version:, telemetry:)
+          telemetry.inc(
+            Ext::TELEMETRY_METRICS_NAMESPACE,
+            "waf.#{metric_name}",
+            1,
+            tags: {
+              waf_version: Datadog::AppSec::WAF::VERSION::BASE_STRING,
+              event_rules_version: ruleset_version.to_s,
+              success: success.to_s
+            }
+          )
+        end
 
         def load_default_config(telemetry:)
           config = AppSec::Processor::RuleLoader.load_rules(telemetry: telemetry, ruleset: @default_ruleset)

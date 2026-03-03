@@ -2,7 +2,6 @@ stages:
   - manual-images
   - package
   - shared-pipeline
-  - vaccine
   - macrobenchmarks
   - microbenchmarks
 
@@ -15,8 +14,8 @@ variables:
   REPO_LANG: ruby # ruby is used rather that "rb"
   BUILD_JOB_NAME: save_versions
   REPO_NOTIFICATION_CHANNEL: "#guild-dd-ruby"
-  OCI_PACKAGE_MAX_SIZE_BYTES: 160000000
-  LIB_INJECTION_IMAGE_MAX_SIZE_BYTES: 200000000
+  OCI_PACKAGE_MAX_SIZE_BYTES: 40000000
+  LIB_INJECTION_IMAGE_MAX_SIZE_BYTES: 70000000
 
 default:
   tags: ["arch:amd64"]
@@ -148,8 +147,8 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: 107798bd55a6d4ca247b88d01a1316549b8bafe9 # Automated: This reference is automatically updated.
-    SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,lib-injection,docker_ssi"
+    SYSTEM_TESTS_REF: 102cb85728e3dcf4a4e27e8ddb5aba265dbeadb6 # Automated: This reference is automatically updated.
+    SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,simple_onboarding_appsec,lib-injection,docker_ssi"
     SYSTEM_TEST_BUILD_ATTEMPTS: 3
 
 save_versions:
@@ -167,37 +166,6 @@ save_versions:
 deploy_to_reliability_env:
   needs:
     - save_versions
-
-# Currently, the job is implemented with polling mechanism.
-#
-# Due to the constraints of Github workflow dispatch endpoint, it does not return the workflow run id.
-# https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#create-a-workflow-dispatch-event
-#
-# We fetch the latest workflow runs from vaccine then match against the run name, polling until we find it.
-vaccine:
-  image: registry.ddbuild.io/images/dd-octo-sts-ci-base:v68058725-73f34e7-2025.06-1
-  tags: ["arch:amd64"]
-  stage: vaccine
-  needs:
-    - create-multiarch-lib-injection-image
-    - kubernetes-injection-test-ecr-publish
-  id_tokens:
-    DDOCTOSTS_ID_TOKEN:
-      aud: dd-octo-sts
-
-  before_script:
-    # Get a token
-    - dd-octo-sts version
-    # - dd-octo-sts debug --scope DataDog/vaccine --policy dd-trace-rb.dispatch # Uncomment to debug
-    - dd-octo-sts token --scope DataDog/vaccine --policy dd-trace-rb.dispatch > token.txt
-
-  script:
-    - export GITHUB_TOKEN=$(cat token.txt)
-    - .gitlab/scripts/vaccine.sh master "${CI_COMMIT_SHA}" "glci:${CI_PIPELINE_ID}"
-
-  after_script:
-    # Revoke the token after usage
-    - dd-octo-sts revoke -t $(cat token.txt)
 
 # Config inversion CI steps
 validate_supported_configurations_v2_local_file:

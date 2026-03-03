@@ -15,11 +15,7 @@ RSpec.shared_examples_for 'configured peer service span' do |env_service_name_ke
     end
 
     context 'with default peer services enabled' do
-      around do |example|
-        ClimateControl.modify('DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => 'true') do
-          example.run
-        end
-      end
+      with_env 'DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => 'true'
 
       context 'when env_var configured' do
         it 'expects peer.service to equal env var value and source to be peer.service' do

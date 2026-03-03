@@ -9,6 +9,7 @@ RSpec.describe Datadog::AppSec::Component do
     context 'when appsec is enabled' do
       before do
         settings.appsec.enabled = true
+        allow(telemetry).to receive(:inc)
       end
 
       it 'returns a Datadog::AppSec::Component instance' do

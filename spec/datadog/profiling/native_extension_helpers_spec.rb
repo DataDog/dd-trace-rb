@@ -30,7 +30,7 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
     end
 
     context "when disabled via the DD_PROFILING_NO_EXTENSION environment variable" do
-      around { |example| ClimateControl.modify("DD_PROFILING_NO_EXTENSION" => "true") { example.run } }
+      with_env "DD_PROFILING_NO_EXTENSION" => "true"
 
       it { is_expected.to include "DD_PROFILING_NO_EXTENSION" }
     end
@@ -57,7 +57,7 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
       end
 
       context "when on macOS" do
-        around { |example| ClimateControl.modify("DD_PROFILING_MACOS_TESTING" => nil) { example.run } }
+        with_env "DD_PROFILING_MACOS_TESTING" => nil
 
         before { stub_const("RUBY_PLATFORM", "x86_64-darwin19") }
 
@@ -151,7 +151,7 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
         end
 
         context "when macOS testing override is enabled" do
-          around { |example| ClimateControl.modify("DD_PROFILING_MACOS_TESTING" => "true") { example.run } }
+          with_env "DD_PROFILING_MACOS_TESTING" => "true"
 
           context "when on amd64 (x86-64) macOS" do
             before { stub_const("RUBY_PLATFORM", "x86_64-darwin19") }
