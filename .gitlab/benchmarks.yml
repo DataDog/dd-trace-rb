@@ -182,7 +182,7 @@ microbenchmarks:
     - interruptible: true
   timeout: 1h
   variables:
-   # GitLab CI variables passed to bp-runner
+    # GitLab CI variables passed to bp-runner
     CI_COMMIT_REF_NAME: $CI_COMMIT_REF_NAME
     CI_COMMIT_SHA: $CI_COMMIT_SHA
     CI_PROJECT_NAME: $CI_PROJECT_NAME
