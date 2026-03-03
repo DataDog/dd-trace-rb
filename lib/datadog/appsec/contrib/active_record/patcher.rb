@@ -49,6 +49,8 @@ module Datadog
                 end
               end
             end
+
+            Patcher.instance_variable_set(:@patched, true)
           end
 
           def patch_sqlite3_adapter
