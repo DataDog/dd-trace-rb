@@ -13,6 +13,7 @@
 
 ## Never
 
+- Use `git commit --amend` unless the user explicitly and clearly requests it (always create new commits by default)
 - Commit secrets, tokens, or credentials
 - Edit files under `gemfiles/` (auto-generated; use `bundle exec rake dependency:generate`)
 - Change versioning (`lib/datadog/version.rb`, `CHANGELOG.md`)
