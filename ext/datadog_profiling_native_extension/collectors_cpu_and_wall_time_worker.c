@@ -1514,6 +1514,8 @@ static VALUE rescued_after_allocation(VALUE self_instance) {
 // This postponed job callback is used to finalize heap allocation recordings on Ruby 4+.
 // During on_newobj_event, calling rb_obj_id() is unsafe because it mutates the object.
 // So we defer getting the object_id until after the event completes.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function" // This is only used for some Rubies, but we want to build on all to make it easier to dev
 static void after_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   cpu_and_wall_time_worker_state *state = active_sampler_instance_state;
 
@@ -1536,6 +1538,7 @@ static void after_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused) {
 
   during_sample_exit(state);
 }
+#pragma GCC diagnostic pop
 
 static inline void during_sample_enter(cpu_and_wall_time_worker_state* state) {
   // Tell the compiler it's not allowed to reorder the `during_sample` flag with anything that happens after.
