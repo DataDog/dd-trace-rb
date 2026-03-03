@@ -114,8 +114,8 @@ module Datadog
             frames_data << ['<truncated>', "<truncated #{truncated_count} more frames>", 0]
           end
 
-          exception_message = exception.message || nil
-          exception_type = exception.class.to_s || nil
+          exception_message = exception.message
+          exception_type = exception.class.to_s
 
           success = self.class._native_report_ruby_exception(
             exception_type,
