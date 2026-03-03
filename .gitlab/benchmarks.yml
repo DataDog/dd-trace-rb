@@ -212,6 +212,10 @@ microbenchmarks-pr-comment:
   variables:
     CI_COMMIT_REF_NAME: $CI_COMMIT_REF_NAME
     CI_PROJECT_NAME: $CI_PROJECT_NAME
+
+    # In percent, how much the confidence intervals of
+    # candidate and baseline results should differ to be considered significant
+    SIGNIFICANT_IMPACT_THRESHOLD: 5
   script:
     - export ARTIFACTS_DIR="$(pwd)/artifacts" && mkdir -p "$ARTIFACTS_DIR"
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
