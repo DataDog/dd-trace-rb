@@ -157,8 +157,10 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
     end
   end
 
-  describe 'with real configuration', skip: !LibdatadogHelpers.supported? do
+  describe 'with real configuration' do
     before do
+      skip_if_libdatadog_not_supported
+
       described_class.shutdown!
     end
 
