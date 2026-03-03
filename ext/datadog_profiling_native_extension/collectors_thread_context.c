@@ -1818,7 +1818,7 @@ static void otel_without_ddtrace_trace_identifiers_for(
   VALUE otel_current_span_key = get_otel_current_span_key(state, is_safe_to_allocate_objects);
   if (otel_current_span_key == Qnil) return;
 
-  int active_context_index = RARRAY_LEN(context_storage) - 1;
+  long active_context_index = RARRAY_LEN(context_storage) - 1;
   if (active_context_index < 0) return;
 
   otel_span active_span = otel_span_from(rb_ary_entry(context_storage, active_context_index), otel_current_span_key);
