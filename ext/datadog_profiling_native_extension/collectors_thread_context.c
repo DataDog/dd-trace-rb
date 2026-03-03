@@ -290,11 +290,13 @@ static bool handle_gvl_waiting(
   sampling_buffer* sampling_buffer,
   long current_cpu_time_ns
 );
-static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread);
-static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread);
-static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread);
-static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE allow_exception);
-static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE delta_ns);
+#ifndef NO_GVL_INSTRUMENTATION
+  static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread);
+  static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread);
+  static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread);
+  static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE allow_exception);
+  static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE delta_ns);
+#endif
 static void otel_without_ddtrace_trace_identifiers_for(
   thread_context_collector_state *state,
   VALUE thread,
