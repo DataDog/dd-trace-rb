@@ -16,7 +16,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
   end
 
   let(:expected_platform_fragment) do
-    platform_fragment = RUBY_PLATFORM
+    platform_fragment = Gem::Platform.local.to_s
     platform_fragment.sub(/darwin(\d+)/, 'darwin-\1')
   end
 
