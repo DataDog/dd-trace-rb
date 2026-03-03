@@ -12,7 +12,6 @@ module Datadog
         module Gateway
           # Watcher for Rack gateway events
           module Watcher
-
             class << self
               def watch
                 gateway = Instrumentation.gateway
