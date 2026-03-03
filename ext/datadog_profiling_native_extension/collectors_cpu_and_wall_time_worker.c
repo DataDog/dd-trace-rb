@@ -239,16 +239,16 @@ static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VA
 static VALUE _native_hold_signals(DDTRACE_UNUSED VALUE self);
 static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self);
 #ifndef NO_GVL_INSTRUMENTATION
-static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused);
-static void after_gvl_running_from_postponed_job(DDTRACE_UNUSED void *_unused);
+  static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused);
+  static void after_gvl_running_from_postponed_job(DDTRACE_UNUSED void *_unused);
+  static VALUE rescued_after_gvl_running_from_postponed_job(VALUE self_instance);
+  static VALUE handle_sampling_failure_rescued_after_gvl_running_from_postponed_job(VALUE self_instance, VALUE exception);
 #endif
-static VALUE rescued_after_gvl_running_from_postponed_job(VALUE self_instance);
 static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, VALUE instance);
 static VALUE handle_sampling_failure_rescued_sample_from_postponed_job(VALUE self_instance, VALUE exception);
 static VALUE handle_sampling_failure_thread_context_collector_sample_after_gc(VALUE self_instance, VALUE exception);
 static VALUE handle_sampling_failure_rescued_sample_allocation(VALUE self_instance, VALUE exception);
 static VALUE handle_sampling_failure_rescued_after_allocation(VALUE self_instance, VALUE exception);
-static VALUE handle_sampling_failure_rescued_after_gvl_running_from_postponed_job(VALUE self_instance, VALUE exception);
 static inline void during_sample_enter(cpu_and_wall_time_worker_state* state);
 static inline void during_sample_exit(cpu_and_wall_time_worker_state* state);
 static void after_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused);
@@ -1470,6 +1470,11 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
 
     return state->gvl_profiling_hook != NULL ? Qtrue : Qfalse;
   }
+
+  static VALUE handle_sampling_failure_rescued_after_gvl_running_from_postponed_job(VALUE self_instance, VALUE exception) {
+    stop(self_instance, exception, "rescued_after_gvl_running_from_postponed_job");
+    return Qnil;
+  }
 #else
   static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, DDTRACE_UNUSED VALUE instance) {
     return Qfalse;
@@ -1493,11 +1498,6 @@ static VALUE handle_sampling_failure_rescued_sample_allocation(VALUE self_instan
 
 static VALUE handle_sampling_failure_rescued_after_allocation(VALUE self_instance, VALUE exception) {
   stop(self_instance, exception, "rescued_after_allocation");
-  return Qnil;
-}
-
-static VALUE handle_sampling_failure_rescued_after_gvl_running_from_postponed_job(VALUE self_instance, VALUE exception) {
-  stop(self_instance, exception, "rescued_after_gvl_running_from_postponed_job");
   return Qnil;
 }
 
