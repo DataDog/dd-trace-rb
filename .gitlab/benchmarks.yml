@@ -191,6 +191,7 @@ microbenchmarks:
   script:
     - export ARTIFACTS_DIR="$(pwd)/artifacts" && mkdir -p "$ARTIFACTS_DIR"
     # $GROUP is defined on benchmarks/execution.yml
+    - '[[ "$GROUP" =~ ^[a-zA-Z_]+$ ]] || (echo "Error: Invalid GROUP name: ''$GROUP''. Must contain only letters and underscores." && exit 1)'
     - eval "export BENCHMARKS=\$BENCHMARKS_$GROUP"
     - test -n "$BENCHMARKS" || (echo "Error: No benchmarks defined for group '$GROUP'" && exit 1)
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
