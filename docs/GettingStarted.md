@@ -890,7 +890,6 @@ When onboarding an [auto instrumented GraphQL application](#rails-or-hanami-appl
 This enables support for [Endpoint Observability](https://docs.datadoghq.com/internal_developer_portal/software_catalog/endpoints/).
 
 It is **not** possible to change the unified tracer option in a `Datadog.configure` block.
-This limitation will be removed in `datadog` 3.0.0.
 </div>
 
 When manually activating your integration, use the `Datadog.configure` method:
