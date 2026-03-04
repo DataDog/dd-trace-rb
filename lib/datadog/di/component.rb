@@ -114,7 +114,7 @@ module Datadog
         raise
       else
         payload = probe_notification_builder.build_received(probe)
-        probe_notifier_worker.add_status(payload)
+        probe_notifier_worker.add_status(payload, probe: probe)
         probe
       end
     end

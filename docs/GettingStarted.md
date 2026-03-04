@@ -602,7 +602,7 @@ Aws::S3::Client.new.list_buckets
 | Key            | Env Var                     | Type     | Description                                                                                                                                                                             | Default |
 | -------------- | --------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | `enabled` | `DD_TRACE_AWS_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
-| `service_name` | `DD_TRACE_AWS_SERVICE_NAME` | `String` | Name of application running the `aws` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `aws`   |
+| `service_name` | `DD_TRACE_AWS_SERVICE_NAME` | `String` | Name of application running the `aws` instrumentation. May be overridden by `global_default_service_name`. When using Rails auto-instrumentation, set via environment variable or configure explicitly in your initializer. [See _Additional Configuration_ for more details](#additional-configuration) | `aws`   |
 | `peer_service` | `DD_TRACE_AWS_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                    | `nil`   |
 
 ### Concurrent Ruby
@@ -744,7 +744,7 @@ end
 | Key                   | Env Var                       | Type     | Description                                                                                                                                                                               | Default |
 | --------------------- | ----------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | `enabled` | `DD_TRACE_ETHON_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
-| `service_name`        | `DD_TRACE_ETHON_SERVICE_NAME` | `String` | Name of application running the `ethon` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `ethon` |
+| `service_name`        | `DD_TRACE_ETHON_SERVICE_NAME` | `String` | Name of application running the `ethon` instrumentation. May be overridden by `global_default_service_name`. When using Rails auto-instrumentation, set via environment variable or configure explicitly in your initializer. [See _Additional Configuration_ for more details](#additional-configuration) | `ethon` |
 | `peer_service`        | `DD_TRACE_ETHON_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                      | `nil`   |
 | `distributed_tracing` |                               | `Bool`   | Enables [distributed tracing](#distributed-tracing)                                                                                                                                       | `true`  |
 | `split_by_domain`     |                               | `Bool`   | Uses the request domain as the service name when set to `true`.                                                                                                                           | `false` |
@@ -842,7 +842,7 @@ connection.get('/foo')
 | Key                   | Env Var                               | Type             | Description                                                                                                                                                                                                                                                                        | Default                                                           |
 | --------------------- | ------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | `enabled` | `DD_TRACE_FARADAY_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
-| `service_name`        | `DD_TRACE_FARADAY_SERVICE_NAME`       | `String`         | Name of application running the `faraday` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                        | `faraday`                                                         |
+| `service_name`        | `DD_TRACE_FARADAY_SERVICE_NAME`       | `String`         | Name of application running the `faraday` instrumentation. May be overridden by `global_default_service_name`. When using Rails auto-instrumentation, set via environment variable or configure explicitly in your initializer. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                        | `faraday`                                                         |
 | `peer_service`        | `DD_TRACE_FARADAY_PEER_SERVICE`       | `String`         | Name of external service the application connects to                                                                                                                                                                                                                               | `nil`                                                             |
 | `distributed_tracing` |                                       | `Bool`           | Enables [distributed tracing](#distributed-tracing)                                                                                                                                                                                                                                | `true`                                                            |
 | `split_by_domain`     |                                       | `Bool`           | Uses the request domain as the service name when set to `true`.                                                                                                                                                                                                                    | `false`                                                           |
@@ -1076,7 +1076,7 @@ end
 | Key                   | Env Var                              | Type             | Description                                                                                                                                                                                                                                                                            | Default     |
 | --------------------- | ------------------------------------ | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
 | `enabled` | `DD_TRACE_HTTPRB_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
-| `service_name`        | `DD_TRACE_HTTPRB_SERVICE_NAME`       | `String`         | Name of application running the `httprb` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                             | `httprb`    |
+| `service_name`        | `DD_TRACE_HTTPRB_SERVICE_NAME`       | `String`         | Name of application running the `httprb` instrumentation. May be overridden by `global_default_service_name`. When using Rails auto-instrumentation, set via environment variable or configure explicitly in your initializer. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                             | `httprb`    |
 | `peer_service`        | `DD_TRACE_HTTPRB_PEER_SERVICE`       | `String`         | Name of external service the application connects to                                                                                                                                                                                                                                   | `nil`       |
 | `distributed_tracing` |                                      | `Bool`           | Enables [distributed tracing](#distributed-tracing)                                                                                                                                                                                                                                    | `true`      |
 | `split_by_domain`     |                                      | `Bool`           | Uses the request domain as the service name when set to `true`.                                                                                                                                                                                                                        | `false`     |
@@ -1170,7 +1170,7 @@ end
 | Key                   | Env Var                    | Type   | Description                                                                                                                                                                  | Default |
 | --------------------- | -------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | `enabled`             | `DD_TRACE_KARAFKA_ENABLED` | `Bool` | Specifies whether the integration should create spans.                                                                                                                       | `true`  |
-| `distributed_tracing` |                            | `Bool` | Enables [distributed tracing](#distributed-tracing) (when iterating through the kafka messages, each of the messages' traces will be resumed for the duration of the block). | `false` |
+| `distributed_tracing` | `DD_TRACE_KARAFKA_DISTRIBUTED_TRACING` | `Bool` | Enables [distributed tracing](#distributed-tracing) (when iterating through the kafka messages, each of the messages' traces will be resumed for the duration of the block). | `false` |
 
 ### WaterDrop
 
@@ -1340,7 +1340,7 @@ content = Net::HTTP.get(URI('http://127.0.0.1/index.html'))
 | Key                   | Env Var                            | Type             | Description                                                                                                                                                                                                                                                                        | Default     |
 | --------------------- | ---------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
 | `enabled` | `DD_TRACE_HTTP_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
-| `service_name`        | `DD_TRACE_NET_HTTP_SERVICE_NAME`   | `String`         | Name of application running the `net/http` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                       | `net/http`  |
+| `service_name`        | `DD_TRACE_NET_HTTP_SERVICE_NAME`   | `String`         | Name of application running the `net/http` instrumentation. May be overridden by `global_default_service_name`. When using Rails auto-instrumentation, set via environment variable or configure explicitly in your initializer. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                       | `net/http`  |
 | `peer_service`        | `DD_TRACE_NET_HTTP_PEER_SERVICE`   | `String`         | Name of external service the application connects to                                                                                                                                                                                                                               | `nil`       |
 | `distributed_tracing` |                                    | `Bool`           | Enables [distributed tracing](#distributed-tracing)                                                                                                                                                                                                                                | `true`      |
 | `split_by_domain`     |                                    | `Bool`           | Uses the request domain as the service name when set to `true`.                                                                                                                                                                                                                    | `false`     |
@@ -1594,6 +1594,8 @@ The Rails integration will trace requests, database calls, templates rendering, 
 
 To enable the Rails instrumentation, use the [Rails auto instrumentation instructions](#rails-or-hanami-applications).
 
+**Note on auto-instrumentation timing:** When using `require 'datadog/auto_instrument'` in your Gemfile, instrumentation is applied before `config/initializers/*.rb` files load. Some configuration options (like `tracing.contrib.global_default_service_name.enabled`) must be set via environment variables rather than in your initializer. See [Configuration timing with auto-instrumentation](#configuration-timing-with-auto-instrumentation) for details.
+
 Alternatively, you can also create an initializer file in your `config/initializers` folder:
 
 ```ruby
@@ -1721,7 +1723,7 @@ redis.set 'foo', 'bar'
 | Key            | Env Var                       | Type     | Description                                                                                                                                                                               | Default |
 | -------------- | ----------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
 | `enabled` | `DD_TRACE_REDIS_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
-| `service_name` | `DD_TRACE_REDIS_SERVICE_NAME` | `String` | Name of application running the `redis` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `redis` |
+| `service_name` | `DD_TRACE_REDIS_SERVICE_NAME` | `String` | Name of application running the `redis` instrumentation. May be overridden by `global_default_service_name`. When using Rails auto-instrumentation, set via environment variable or configure explicitly in your initializer. [See _Additional Configuration_ for more details](#additional-configuration) | `redis` |
 | `peer_service` | `DD_TRACE_REDIS_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                      | `nil`   |
 | `command_args` | `DD_REDIS_COMMAND_ARGS`       | `Bool`   | Show the command arguments (for example, `key` in `GET key`) as resource name and tag. If `false`, only the command name is shown (for example, `GET`).                                   | false   |
 
@@ -1983,7 +1985,7 @@ end
 | Key                   | Env Var | Type   | Description                                                                                                                                                                                                                                                                                                                                                                                                                                           | Default                                                           |
 | --------------------- | - | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | `enabled` | `DD_TRACE_SIDEKIQ_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
-| `distributed_tracing` | | `Bool` | Enabling [distributed tracing](#distributed-tracing) creates a parent-child relationship between the `sidekiq.push` span and the `sidekiq.job` span. <br /><br />**Important**: _Enabling distributed_tracing for asynchronous processing can result in drastic changes in your trace graph. Such cases include long running jobs, retried jobs, and jobs scheduled in the far future. Make sure to inspect your traces after enabling this feature._ | `false`                                                           |
+| `distributed_tracing` | `DD_TRACE_SIDEKIQ_DISTRIBUTED_TRACING` | `Bool` | Enabling [distributed tracing](#distributed-tracing) creates a parent-child relationship between the `sidekiq.push` span and the `sidekiq.job` span. <br /><br />**Important**: _Enabling distributed_tracing for asynchronous processing can result in drastic changes in your trace graph. Such cases include long running jobs, retried jobs, and jobs scheduled in the far future. Make sure to inspect your traces after enabling this feature._ | `false`                                                           |
 | `on_error`            | | `Proc` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors.                                                                                                                                                                                                                                                                           | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 | `quantize`            | | `Hash` | Hash containing options for quantization of job arguments.                                                                                                                                                                                                                                                                                                                                                                                            | `{}`                                                              |
 
@@ -2160,7 +2162,7 @@ To change the default behavior of `datadog`, you can use, in order of priority, 
 
 For example, if `tracing.sampling.default_rate` is configured by [Remote Configuration](#remote-configuration), changing its value through the `Datadog.configure` block will have no effect.
 
-**Available configuration options:**
+### Available configuration options
 
 | Setting                                                | Env Var                                                 | Type                                  | Default                      | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ------------------------------------------------------ | ------------------------------------------------------- | ------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -2178,7 +2180,7 @@ For example, if `tracing.sampling.default_rate` is configured by [Remote Configu
 | `telemetry.enabled`                                    | `DD_INSTRUMENTATION_TELEMETRY_ENABLED`                  | `Bool`                                | `true`                       | Allows you to enable sending telemetry data to Datadog. Can be disabled, as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | **Tracing**                                            |                                                         |                                       |                              |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `tracing.contrib.peer_service_mapping`                 | `DD_TRACE_PEER_SERVICE_MAPPING`                         | `Hash`                                | `nil`                        | Defines remapping of `peer.service` tag across all instrumentation. Provide a list of `old_value1:new_value1, old_value2:new_value2, ...`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `tracing.contrib.global_default_service_name.enabled`  | `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`     | `Bool`                                | `false`                      | Changes the default value for `service_name` to the application service name across all instrumentation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `tracing.contrib.global_default_service_name.enabled`  | `DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`     | `Bool`                                | `false`                      | Changes the default value for `service_name` to the application service name across all instrumentation. **For Rails applications using auto-instrumentation (`require 'datadog/auto_instrument'`), this must be set via the environment variable, not in `config/initializers/datadog.rb`.** See [Configuration timing with auto-instrumentation](#configuration-timing-with-auto-instrumentation) for details.                                                                                                                                                                                                                                                                                                                                                |
 | `tracing.propagation_extract_first`                    | `DD_TRACE_PROPAGATION_EXTRACT_FIRST`                    | `Bool`                                | `false`                      | Stop searching after detecting the first valid propagation format. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `tracing.propagation_style_extract`                    | `DD_TRACE_PROPAGATION_STYLE_EXTRACT`                    | `Array`                               | `['Datadog','tracecontext']` | Distributed tracing propagation formats to extract. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `tracing.propagation_style_inject`                     | `DD_TRACE_PROPAGATION_STYLE_INJECT`                     | `Array`                               | `['Datadog','tracecontext']` | Distributed tracing propagation formats to inject. Overrides `DD_TRACE_PROPAGATION_STYLE`. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
@@ -2271,6 +2273,57 @@ Datadog.configure { |c| c.diagnostics.startup_logs.enabled = true }
 ```
 
 By default, this will be activated whenever `datadog` detects the application is running in a non-development environment.
+
+### Configuration timing with auto-instrumentation
+
+When using `require 'datadog/auto_instrument'` in Rails applications, instrumentation is applied **before** your `config/initializers/*.rb` files are loaded.
+
+**This timing has important implications for certain configuration options:**
+
+Some configuration options are read when integrations are patched (during auto-instrumentation). These options must be set via **environment variables** rather than in `config/initializers/datadog.rb` for Rails applications using auto-instrumentation.
+
+**Options that must be environment variables with Rails auto-instrumentation:**
+
+- `tracing.contrib.global_default_service_name.enabled` (`DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED`)
+- GraphQL `with_unified_tracer` (`DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER`)
+
+**Example:**
+
+```bash
+# Set via environment variables for Rails auto-instrumentation
+DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED=true
+DD_SERVICE=my-service
+```
+
+**Alternative approaches:**
+
+1. **Keep auto-instrumentation, override service names per-integration:**
+   ```ruby
+   # Auto-instrumentation still runs; this overrides the defaults
+   Datadog.configure do |c|
+     c.service = 'my-service'
+     # Only configure integrations where you want a custom service name
+     c.tracing.instrument :redis, service_name: 'my-service'
+     c.tracing.instrument :faraday, service_name: 'my-service'
+   end
+   ```
+2. **Use manual instrumentation**: Remove `require: 'datadog/auto_instrument'` from your Gemfile. This lets you configure all options (including `tracing.contrib.global_default_service_name.enabled`) in your initializer, but you must manually instrument each integration you use by calling `c.tracing.instrument` for every one.
+   ```ruby
+   # Gemfile - without auto-instrumentation
+   gem 'datadog'
+   ```
+   ```ruby
+   # config/initializers/datadog.rb - you must enable each integration
+   Datadog.configure do |c|
+     c.service = 'my-service'
+     c.tracing.contrib.global_default_service_name.enabled = true
+     # Must instrument every integration you use
+     c.tracing.instrument :redis
+     c.tracing.instrument :faraday
+     c.tracing.instrument :rails
+     # ... and so on for each integration
+   end
+   ```
 
 ### Sampling
 

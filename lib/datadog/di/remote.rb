@@ -80,7 +80,7 @@ module Datadog
             component.telemetry&.report(exc, description: "Line probe is targeting a loaded file that is not in code tracker")
 
             payload = component.probe_notification_builder.build_errored(probe, exc)
-            component.probe_notifier_worker.add_status(payload)
+            component.probe_notifier_worker.add_status(payload, probe: probe)
 
             # If a probe fails to install, we will mark the content
             # as errored. On subsequent remote configuration application
@@ -98,7 +98,7 @@ module Datadog
 
             # TODO test this path
             payload = component.probe_notification_builder.build_errored(probe, exc)
-            component.probe_notifier_worker.add_status(payload)
+            component.probe_notifier_worker.add_status(payload, probe: probe)
 
             # If a probe fails to install, we will mark the content
             # as errored. On subsequent remote configuration application

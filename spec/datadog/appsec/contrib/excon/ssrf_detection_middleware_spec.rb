@@ -167,6 +167,29 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
     end
   end
 
+  context 'when request targets a non-standard port' do
+    let(:client) do
+      ::Excon.new('http://example.com:8080', mock: true).tap do
+        ::Excon.stub(
+          {method: :get, path: '/admin'},
+          body: 'OK',
+          status: 200,
+          headers: {'Content-Type' => 'text/plain'}
+        )
+      end
+    end
+
+    it 'includes port in the URL sent to WAF' do
+      expect(context).to receive(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com:8080/admin'), anything, phase: 'request')
+
+      expect(context).to receive(:run_rasp)
+        .with('ssrf', {}, anything, anything, phase: 'response')
+
+      client.get(path: '/admin')
+    end
+  end
+
   context 'when request body is nil' do
     before do
       client.post(path: '/application-json', headers: {'Content-Type' => 'application/json'}, body: nil)

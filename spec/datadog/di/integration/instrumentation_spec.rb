@@ -92,9 +92,7 @@ RSpec.describe 'Instrumentation integration' do
     instance_double_agent_settings
   end
 
-  let(:logger) do
-    instance_double(Logger)
-  end
+  let(:logger) { logger_allowing_debug }
 
   let(:component) do
     # TODO should this use Component.new? We have to manually pass in
@@ -690,6 +688,93 @@ RSpec.describe 'Instrumentation integration' do
           end
         end
       end
+
+      context 'circuit breaker' do
+        before do
+          # Set very low threshold to trigger circuit breaker
+          settings.dynamic_instrumentation.internal.max_processing_time = 1e-8
+        end
+
+        let(:probe) do
+          Datadog::DI::Probe.new(
+            id: "circuit-breaker-test",
+            type: :log,
+            type_name: 'InstrumentationSpecTestClass',
+            method_name: 'mutating_method',
+            capture_snapshot: true,
+          )
+        end
+
+        let(:expected_disabled_payload) do
+          {
+            ddsource: 'dd_debugger',
+            debugger: {
+              diagnostics: {
+                parentId: nil,
+                probeId: 'circuit-breaker-test',
+                probeVersion: 0,
+                runtimeId: String,
+                status: 'ERROR',
+                exception: {
+                  type: 'Error',
+                  message: String,
+                },
+              }
+            },
+            message: /Probe circuit-breaker-test was disabled because it consumed .+ seconds of CPU time in DI processing/,
+            service: 'rspec',
+            timestamp: Integer,
+          }
+        end
+
+        it 'disables probe after first execution and sends disabled status notification' do
+          # Generate a deeply nested hash (10 keys per level, 5 levels deep)
+          deep_hash = generate_deep_hash(10, 5)
+
+          # Track all status notifications
+          status_payloads = []
+          allow(diagnostics_transport).to receive(:send_diagnostics) do |payloads|
+            status_payloads.concat(payloads)
+          end
+
+          # Add probe
+          probe_manager.add_probe(probe)
+
+          # Expect snapshot on first execution
+          expect(component.probe_notifier_worker).to receive(:add_snapshot).once.and_call_original
+
+          # Execute the instrumented method
+          InstrumentationSpecTestClass.new.mutating_method(deep_hash.dup.to_s)
+          component.probe_notifier_worker.flush
+
+          # Verify probe was disabled
+          expect(probe.enabled?).to be false
+
+          # Verify we got INSTALLED, EMITTING, and ERROR (disabled) status notifications
+          expect(status_payloads.length).to be >= 3
+
+          installed_payload = status_payloads.find { |p| p.dig(:debugger, :diagnostics, :status) == 'INSTALLED' }
+          emitting_payload = status_payloads.find { |p| p.dig(:debugger, :diagnostics, :status) == 'EMITTING' }
+          disabled_payload = status_payloads.find { |p| p.dig(:debugger, :diagnostics, :status) == 'ERROR' }
+
+          expect(installed_payload).not_to be_nil
+          expect(emitting_payload).not_to be_nil
+          expect(disabled_payload).not_to be_nil
+
+          # Verify disabled notification payload
+          expect(disabled_payload).to match(expected_disabled_payload)
+
+          # Execute again - should not generate another snapshot or disabled notification
+          expect(component.probe_notifier_worker).not_to receive(:add_snapshot)
+
+          initial_payload_count = status_payloads.length
+          InstrumentationSpecTestClass.new.mutating_method("hello")
+          component.probe_notifier_worker.flush
+
+          # No new status notifications should be sent
+          expect(status_payloads.length).to eq(initial_payload_count)
+        end
+      end
     end
 
     context 'line probe' do
@@ -1155,6 +1240,101 @@ RSpec.describe 'Instrumentation integration' do
             expect(InstrumentationIntegrationTestClass.new.test_method).to eq(42)
             component.probe_notifier_worker.flush
           end
+        end
+      end
+
+      context 'circuit breaker' do
+        with_code_tracking
+
+        before do
+          # Set very low threshold to trigger circuit breaker
+          settings.dynamic_instrumentation.internal.max_processing_time = 1e-8
+
+          Object.send(:remove_const, :InstrumentationIntegrationTestClass) rescue nil
+          load File.join(File.dirname(__FILE__), 'instrumentation_integration_test_class.rb')
+        end
+
+        let(:probe) do
+          Datadog::DI::Probe.new(
+            id: "circuit-breaker-line-test",
+            type: :log,
+            file: 'instrumentation_integration_test_class.rb',
+            line_no: 63,
+            capture_snapshot: true,
+          )
+        end
+
+        let(:expected_disabled_payload) do
+          {
+            ddsource: 'dd_debugger',
+            debugger: {
+              diagnostics: {
+                parentId: nil,
+                probeId: 'circuit-breaker-line-test',
+                probeVersion: 0,
+                runtimeId: String,
+                status: 'ERROR',
+                exception: {
+                  type: 'Error',
+                  message: String,
+                },
+              }
+            },
+            message: /Probe circuit-breaker-line-test was disabled because it consumed .+ seconds of CPU time in DI processing/,
+            service: 'rspec',
+            timestamp: Integer,
+          }
+        end
+
+        it 'disables probe after first execution and sends disabled status notification' do
+          # Generate a deeply nested hash (10 keys per level, 5 levels deep)
+          deep_hash = generate_deep_hash(10, 5)
+
+          # Track all status notifications
+          status_payloads = []
+          allow(diagnostics_transport).to receive(:send_diagnostics) do |payloads|
+            status_payloads.concat(payloads)
+          end
+
+          # Add probe
+          probe_manager.add_probe(probe)
+
+          # Expect snapshot on first execution
+          expect(component.probe_notifier_worker).to receive(:add_snapshot).once.and_call_original
+
+          # Execute the instrumented method with deep hash as param
+          # Use the param so it's captured in the snapshot
+          instance = InstrumentationIntegrationTestClass.new
+          instance.instance_variable_set(:@deep_data, deep_hash)
+          instance.test_method_with_conditional(false)
+          component.probe_notifier_worker.flush
+
+          # Verify probe was disabled
+          expect(probe.enabled?).to be false
+
+          # Verify we got INSTALLED, EMITTING, and ERROR (disabled) status notifications
+          expect(status_payloads.length).to be >= 3
+
+          installed_payload = status_payloads.find { |p| p.dig(:debugger, :diagnostics, :status) == 'INSTALLED' }
+          emitting_payload = status_payloads.find { |p| p.dig(:debugger, :diagnostics, :status) == 'EMITTING' }
+          disabled_payload = status_payloads.find { |p| p.dig(:debugger, :diagnostics, :status) == 'ERROR' }
+
+          expect(installed_payload).not_to be_nil
+          expect(emitting_payload).not_to be_nil
+          expect(disabled_payload).not_to be_nil
+
+          # Verify disabled notification payload
+          expect(disabled_payload).to match(expected_disabled_payload)
+
+          # Execute again - should not generate another snapshot or disabled notification
+          expect(component.probe_notifier_worker).not_to receive(:add_snapshot)
+
+          initial_payload_count = status_payloads.length
+          InstrumentationIntegrationTestClass.new.test_method_with_conditional(false)
+          component.probe_notifier_worker.flush
+
+          # No new status notifications should be sent
+          expect(status_payloads.length).to eq(initial_payload_count)
         end
       end
     end
