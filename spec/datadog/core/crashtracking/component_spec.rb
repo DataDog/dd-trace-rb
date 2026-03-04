@@ -98,9 +98,26 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
         expect(described_class.build(settings, agent_settings, logger: logger)).to be_a(described_class)
       end
     end
+
+    context 'when on macOS' do
+      before do
+        stub_const("RUBY_PLATFORM", "x86_64-darwin19")
+        allow(logger).to receive(:debug)
+      end
+
+      it 'returns nil' do
+        expect(described_class.build(settings, agent_settings, logger: logger)).to be_nil
+      end
+
+      it 'debug logs about not being available on macOS' do
+        expect(logger).to receive(:debug) { |&block| expect(block.call).to include("currently not supported on macOS") }
+
+        described_class.build(settings, agent_settings, logger: logger)
+      end
+    end
   end
 
-  context 'instance methods' do
+  context 'instance methods', if: !PlatformHelpers.mac? do
     shared_context 'HTTP server' do
       http_server do |http_server|
         http_server.mount_proc('/', &server_proc)
