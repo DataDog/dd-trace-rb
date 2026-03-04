@@ -204,9 +204,12 @@ microbenchmarks:
 
 microbenchmarks-pr-comment:
   stage: microbenchmarks
-  when: always
   needs: [microbenchmarks]
   tags: ["arch:amd64"]
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "master" || $CI_COMMIT_REF_NAME == "release" || $CI_COMMIT_REF_NAME =~ /^v\d+\.\d+\.\d+/
+      when: never
+    - when: always
   image: $BASE_CI_IMAGE
   timeout: 30m
   variables:
