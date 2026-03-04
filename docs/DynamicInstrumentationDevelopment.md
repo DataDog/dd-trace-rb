@@ -9,9 +9,10 @@ Add this to your Rails initializer after `Datadog.configure`:
 
 Datadog.configure do |c|
   c.dynamic_instrumentation.enabled = true
-  # In development environments also set:
-  c.remote.enabled = true
+  # This internal setting should only be used when developing the datadog gem itself and
+  # **should not** ever be used outside of that.
   c.dynamic_instrumentation.internal.development = true
+  c.remote.enabled = true
   # ... other configuration
 end
 
