@@ -143,7 +143,8 @@ ddprof-benchmark:
   when: manual
   image: $GITLAB_DDPROF_BENCHMARK_CI_IMAGE
   script:
-    - export ARTIFACTS_DIR="$(pwd)/reports" && (mkdir "${ARTIFACTS_DIR}" || :)
+    - export ARTIFACTS_DIR="$(pwd)/reports"
+    - mkdir -p "$ARTIFACTS_DIR" || (echo "Error: Failed to create artifacts directory: $ARTIFACTS_DIR" && exit 1)
     - export DD_API_KEY=$(aws ssm get-parameter --region us-east-1 --name ci.dd-trace-rb.dd_api_key --with-decryption --query "Parameter.Value" --out text)
     - test -n "$DD_API_KEY" || (echo "Error: Failed to retrieve DD_API_KEY from AWS SSM" && exit 1)
     - git clone --branch ruby/ddprof-benchmark https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform /platform && cd /platform
@@ -190,7 +191,8 @@ microbenchmarks:
     CI_JOB_ID: $CI_JOB_ID
     CI_PIPELINE_ID: $CI_PIPELINE_ID
   script:
-    - export ARTIFACTS_DIR="$(pwd)/artifacts" && mkdir -p "$ARTIFACTS_DIR"
+    - export ARTIFACTS_DIR="$(pwd)/artifacts"
+    - mkdir -p "$ARTIFACTS_DIR" || (echo "Error: Failed to create artifacts directory: $ARTIFACTS_DIR" && exit 1)
     # $GROUP is defined on benchmarks/execution.yml
     - '[[ "$GROUP" =~ ^[a-zA-Z_]+$ ]] || (echo "Error: Invalid GROUP name: ''$GROUP''. Must contain only letters and underscores." && exit 1)'
     - eval "export BENCHMARKS=\$BENCHMARKS_$GROUP"
@@ -220,7 +222,8 @@ microbenchmarks-pr-comment:
     # candidate and baseline results should differ to be considered significant
     SIGNIFICANT_IMPACT_THRESHOLD: 5
   script:
-    - export ARTIFACTS_DIR="$(pwd)/artifacts" && mkdir -p "$ARTIFACTS_DIR"
+    - export ARTIFACTS_DIR="$(pwd)/artifacts"
+    - mkdir -p "$ARTIFACTS_DIR" || (echo "Error: Failed to create artifacts directory: $ARTIFACTS_DIR" && exit 1)
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
     - git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform && cd platform
     - bp-runner bp-runner.pr-comment.yml --debug
