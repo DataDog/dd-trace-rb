@@ -19,83 +19,85 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
     let(:ld_library_path) { 'ld_library_path' }
     let(:path_to_crashtracking_receiver_binary) { 'path_to_crashtracking_receiver_binary' }
 
-    context 'when all required parameters are provided' do
-      it 'creates a new instance of Component and starts it' do
-        expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
-          .and_return(tags)
-        expect(agent_settings).to receive(:url).and_return(agent_base_url)
-        expect(::Libdatadog).to receive(:ld_library_path)
-          .and_return(ld_library_path)
-        expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
-          .and_return(path_to_crashtracking_receiver_binary)
-        expect(logger).to_not receive(:warn)
+    context 'when not on macOS', if: !PlatformHelpers.mac? do
+      context 'when all required parameters are provided' do
+        it 'creates a new instance of Component and starts it' do
+          expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
+            .and_return(tags)
+          expect(agent_settings).to receive(:url).and_return(agent_base_url)
+          expect(::Libdatadog).to receive(:ld_library_path)
+            .and_return(ld_library_path)
+          expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
+            .and_return(path_to_crashtracking_receiver_binary)
+          expect(logger).to_not receive(:warn)
 
-        component = instance_double(described_class)
-        expect(described_class).to receive(:new).with(
-          tags: tags,
-          agent_base_url: agent_base_url,
-          ld_library_path: ld_library_path,
-          path_to_crashtracking_receiver_binary: path_to_crashtracking_receiver_binary,
-          logger: logger
-        ).and_return(component)
+          component = instance_double(described_class)
+          expect(described_class).to receive(:new).with(
+            tags: tags,
+            agent_base_url: agent_base_url,
+            ld_library_path: ld_library_path,
+            path_to_crashtracking_receiver_binary: path_to_crashtracking_receiver_binary,
+            logger: logger
+          ).and_return(component)
 
-        expect(component).to receive(:start)
+          expect(component).to receive(:start)
 
-        described_class.build(settings, agent_settings, logger: logger)
+          described_class.build(settings, agent_settings, logger: logger)
+        end
       end
-    end
 
-    context 'when missing `ld_library_path`' do
-      let(:ld_library_path) { nil }
+      context 'when missing `ld_library_path`' do
+        let(:ld_library_path) { nil }
 
-      it 'returns nil' do
-        expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
-          .and_return(tags)
-        expect(agent_settings).to receive(:url).and_return(agent_base_url)
-        expect(::Libdatadog).to receive(:ld_library_path)
-          .and_return(ld_library_path)
-        expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
-          .and_return(path_to_crashtracking_receiver_binary)
-        expect(logger).to receive(:warn).with(/cannot enable crash tracking/)
+        it 'returns nil' do
+          expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
+            .and_return(tags)
+          expect(agent_settings).to receive(:url).and_return(agent_base_url)
+          expect(::Libdatadog).to receive(:ld_library_path)
+            .and_return(ld_library_path)
+          expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
+            .and_return(path_to_crashtracking_receiver_binary)
+          expect(logger).to receive(:warn).with(/cannot enable crash tracking/)
 
-        expect(described_class.build(settings, agent_settings, logger: logger)).to be_nil
+          expect(described_class.build(settings, agent_settings, logger: logger)).to be_nil
+        end
       end
-    end
 
-    context 'when missing `path_to_crashtracking_receiver_binary`' do
-      let(:path_to_crashtracking_receiver_binary) { nil }
+      context 'when missing `path_to_crashtracking_receiver_binary`' do
+        let(:path_to_crashtracking_receiver_binary) { nil }
 
-      it 'returns nil' do
-        expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
-          .and_return(tags)
-        expect(agent_settings).to receive(:url).and_return(agent_base_url)
-        expect(::Libdatadog).to receive(:ld_library_path)
-          .and_return(ld_library_path)
-        expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
-          .and_return(path_to_crashtracking_receiver_binary)
-        expect(logger).to receive(:warn).with(/cannot enable crash tracking/)
+        it 'returns nil' do
+          expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
+            .and_return(tags)
+          expect(agent_settings).to receive(:url).and_return(agent_base_url)
+          expect(::Libdatadog).to receive(:ld_library_path)
+            .and_return(ld_library_path)
+          expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
+            .and_return(path_to_crashtracking_receiver_binary)
+          expect(logger).to receive(:warn).with(/cannot enable crash tracking/)
 
-        expect(described_class.build(settings, agent_settings, logger: logger)).to be_nil
+          expect(described_class.build(settings, agent_settings, logger: logger)).to be_nil
+        end
       end
-    end
 
-    context 'when agent_base_url is invalid (e.g. hostname is an IPv6 address)' do
-      let(:agent_base_url) { 'http://1234:1234::1/' }
+      context 'when agent_base_url is invalid (e.g. hostname is an IPv6 address)' do
+        let(:agent_base_url) { 'http://1234:1234::1/' }
 
-      it 'returns an instance of Component that failed to start' do
-        expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
-          .and_return(tags)
-        expect(agent_settings).to receive(:url).and_return(agent_base_url)
-        expect(::Libdatadog).to receive(:ld_library_path)
-          .and_return(ld_library_path)
-        expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
-          .and_return(path_to_crashtracking_receiver_binary)
+        it 'returns an instance of Component that failed to start' do
+          expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
+            .and_return(tags)
+          expect(agent_settings).to receive(:url).and_return(agent_base_url)
+          expect(::Libdatadog).to receive(:ld_library_path)
+            .and_return(ld_library_path)
+          expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
+            .and_return(path_to_crashtracking_receiver_binary)
 
-        # Diagnostics is only provided via the error report to logger,
-        # there is no indication in the object state that it failed to start.
-        expect(logger).to receive(:error).with(/Failed to start crash tracking/)
+          # Diagnostics is only provided via the error report to logger,
+          # there is no indication in the object state that it failed to start.
+          expect(logger).to receive(:error).with(/Failed to start crash tracking/)
 
-        expect(described_class.build(settings, agent_settings, logger: logger)).to be_a(described_class)
+          expect(described_class.build(settings, agent_settings, logger: logger)).to be_a(described_class)
+        end
       end
     end
 
