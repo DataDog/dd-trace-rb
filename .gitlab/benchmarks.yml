@@ -25,7 +25,11 @@ variables:
   # If you have a problem with Gitlab cache, see Troubleshooting section in Benchmarking Platform docs
   image: $GITLAB_BENCHMARKS_CI_IMAGE
   script:
-    - git clone --branch ruby/gitlab https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform platform || (echo "Error: Failed to clone benchmarking-platform repository (branch ruby/gitlab)" && exit 1)
+    - |
+      if ! git clone --branch ruby/gitlab https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform platform; then
+        echo "Error: Failed to clone benchmarking-platform repository (branch ruby/gitlab)" >&2
+        exit 1
+      fi
     - cd platform
     - bp-runner bp-runner.yml --debug
   artifacts:
@@ -144,12 +148,28 @@ ddprof-benchmark:
   when: manual
   image: $GITLAB_DDPROF_BENCHMARK_CI_IMAGE
   script:
-    - test -n "$CI_COMMIT_SHA" || (echo "Error: CI_COMMIT_SHA is not set" && exit 1)
+    - |
+      if [ -z "$CI_COMMIT_SHA" ]; then
+        echo "Error: CI_COMMIT_SHA is not set" >&2
+        exit 1
+      fi
     - export ARTIFACTS_DIR="$(pwd)/reports"
-    - mkdir -p "$ARTIFACTS_DIR" || (echo "Error: Failed to create artifacts directory: $ARTIFACTS_DIR" && exit 1)
+    - |
+      if ! mkdir -p "$ARTIFACTS_DIR"; then
+        echo "Error: Failed to create artifacts directory: $ARTIFACTS_DIR" >&2
+        exit 1
+      fi
     - export DD_API_KEY=$(aws ssm get-parameter --region us-east-1 --name ci.dd-trace-rb.dd_api_key --with-decryption --query "Parameter.Value" --out text)
-    - test -n "$DD_API_KEY" || (echo "Error: Failed to retrieve DD_API_KEY from AWS SSM" && exit 1)
-    - git clone --branch ruby/ddprof-benchmark https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform /platform || (echo "Error: Failed to clone benchmarking-platform repository (branch ruby/ddprof-benchmark)" && exit 1)
+    - |
+      if [ -z "$DD_API_KEY" ]; then
+        echo "Error: Failed to retrieve DD_API_KEY from AWS SSM" >&2
+        exit 1
+      fi
+    - |
+      if ! git clone --branch ruby/ddprof-benchmark https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform /platform; then
+        echo "Error: Failed to clone benchmarking-platform repository (branch ruby/ddprof-benchmark)" >&2
+        exit 1
+      fi
     - cd /platform
     - ./steps/capture-hardware-software-info.sh
     - ./steps/run-benchmarks.sh
@@ -195,14 +215,34 @@ microbenchmarks:
     CI_PIPELINE_ID: $CI_PIPELINE_ID
   script:
     - export ARTIFACTS_DIR="$(pwd)/artifacts"
-    - mkdir -p "$ARTIFACTS_DIR" || (echo "Error: Failed to create artifacts directory: $ARTIFACTS_DIR" && exit 1)
+    - |
+      if ! mkdir -p "$ARTIFACTS_DIR"; then
+        echo "Error: Failed to create artifacts directory: $ARTIFACTS_DIR" >&2
+        exit 1
+      fi
     # $GROUP is defined on benchmarks/execution.yml
-    - '[[ "$GROUP" =~ ^[a-zA-Z_]+$ ]] || (echo "Error: Invalid GROUP name: ''$GROUP''. Must contain only letters and underscores." && exit 1)'
+    - |
+      if ! [[ "$GROUP" =~ ^[a-zA-Z_]+$ ]]; then
+        echo "Error: Invalid GROUP name: '$GROUP'. Must contain only letters and underscores." >&2
+        exit 1
+      fi
     - eval "export BENCHMARKS=\$BENCHMARKS_$GROUP"
-    - test -n "$BENCHMARKS" || (echo "Error: No benchmarks defined for group '$GROUP'" && exit 1)
-    - test -n "$CI_JOB_TOKEN" || (echo "Error: CI_JOB_TOKEN is not set" && exit 1)
+    - |
+      if [ -z "$BENCHMARKS" ]; then
+        echo "Error: No benchmarks defined for group '$GROUP'" >&2
+        exit 1
+      fi
+    - |
+      if [ -z "$CI_JOB_TOKEN" ]; then
+        echo "Error: CI_JOB_TOKEN is not set" >&2
+        exit 1
+      fi
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
-    - git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform || (echo "Error: Failed to clone benchmarking-platform repository (branch dd-trace-rb)" && exit 1)
+    - |
+      if ! git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform; then
+        echo "Error: Failed to clone benchmarking-platform repository (branch dd-trace-rb)" >&2
+        exit 1
+      fi
     - cd platform
     - bp-runner bp-runner.yml --debug
   artifacts:
@@ -228,10 +268,22 @@ microbenchmarks-pr-comment:
     SIGNIFICANT_IMPACT_THRESHOLD: 5
   script:
     - export ARTIFACTS_DIR="$(pwd)/artifacts"
-    - mkdir -p "$ARTIFACTS_DIR" || (echo "Error: Failed to create artifacts directory: $ARTIFACTS_DIR" && exit 1)
-    - test -n "$CI_JOB_TOKEN" || (echo "Error: CI_JOB_TOKEN is not set" && exit 1)
+    - |
+      if ! mkdir -p "$ARTIFACTS_DIR"; then
+        echo "Error: Failed to create artifacts directory: $ARTIFACTS_DIR" >&2
+        exit 1
+      fi
+    - |
+      if [ -z "$CI_JOB_TOKEN" ]; then
+        echo "Error: CI_JOB_TOKEN is not set" >&2
+        exit 1
+      fi
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
-    - git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform || (echo "Error: Failed to clone benchmarking-platform repository (branch dd-trace-rb)" && exit 1)
+    - |
+      if ! git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform; then
+        echo "Error: Failed to clone benchmarking-platform repository (branch dd-trace-rb)" >&2
+        exit 1
+      fi
     - cd platform
     - bp-runner bp-runner.pr-comment.yml --debug
   artifacts:
