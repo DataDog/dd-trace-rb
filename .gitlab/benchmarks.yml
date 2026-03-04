@@ -25,7 +25,8 @@ variables:
   # If you have a problem with Gitlab cache, see Troubleshooting section in Benchmarking Platform docs
   image: $GITLAB_BENCHMARKS_CI_IMAGE
   script:
-    - git clone --branch ruby/gitlab https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform platform && cd platform
+    - git clone --branch ruby/gitlab https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform platform || (echo "Error: Failed to clone benchmarking-platform repository (branch ruby/gitlab)" && exit 1)
+    - cd platform
     - bp-runner bp-runner.yml --debug
   artifacts:
     name: "artifacts"
@@ -147,7 +148,8 @@ ddprof-benchmark:
     - mkdir -p "$ARTIFACTS_DIR" || (echo "Error: Failed to create artifacts directory: $ARTIFACTS_DIR" && exit 1)
     - export DD_API_KEY=$(aws ssm get-parameter --region us-east-1 --name ci.dd-trace-rb.dd_api_key --with-decryption --query "Parameter.Value" --out text)
     - test -n "$DD_API_KEY" || (echo "Error: Failed to retrieve DD_API_KEY from AWS SSM" && exit 1)
-    - git clone --branch ruby/ddprof-benchmark https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform /platform && cd /platform
+    - git clone --branch ruby/ddprof-benchmark https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform /platform || (echo "Error: Failed to clone benchmarking-platform repository (branch ruby/ddprof-benchmark)" && exit 1)
+    - cd /platform
     - ./steps/capture-hardware-software-info.sh
     - ./steps/run-benchmarks.sh
     - "./steps/upload-results-to-s3.sh || :"
@@ -199,7 +201,8 @@ microbenchmarks:
     - test -n "$BENCHMARKS" || (echo "Error: No benchmarks defined for group '$GROUP'" && exit 1)
     - test -n "$CI_JOB_TOKEN" || (echo "Error: CI_JOB_TOKEN is not set" && exit 1)
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
-    - git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform && cd platform
+    - git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform || (echo "Error: Failed to clone benchmarking-platform repository (branch dd-trace-rb)" && exit 1)
+    - cd platform
     - bp-runner bp-runner.yml --debug
   artifacts:
     name: "artifacts"
@@ -227,7 +230,8 @@ microbenchmarks-pr-comment:
     - mkdir -p "$ARTIFACTS_DIR" || (echo "Error: Failed to create artifacts directory: $ARTIFACTS_DIR" && exit 1)
     - test -n "$CI_JOB_TOKEN" || (echo "Error: CI_JOB_TOKEN is not set" && exit 1)
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
-    - git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform && cd platform
+    - git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform || (echo "Error: Failed to clone benchmarking-platform repository (branch dd-trace-rb)" && exit 1)
+    - cd platform
     - bp-runner bp-runner.pr-comment.yml --debug
   artifacts:
     name: "artifacts"
