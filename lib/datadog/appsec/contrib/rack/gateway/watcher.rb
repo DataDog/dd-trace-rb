@@ -5,6 +5,7 @@ require_relative '../../../event'
 require_relative '../../../trace_keeper'
 require_relative '../../../security_event'
 require_relative '../../../instrumentation/gateway'
+
 module Datadog
   module AppSec
     module Contrib
