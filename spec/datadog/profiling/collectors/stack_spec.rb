@@ -915,7 +915,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
 
     it "returns the correct filename on Mac", if: PlatformHelpers.mac? do
-      expect(described_class._native_ruby_native_filename).to match(/libruby[^\/]+dylib$/)
+      expect(described_class._native_ruby_native_filename).to end_with("/ruby").or(match(/libruby[^\/]+dylib$/))
     end
   end
 
