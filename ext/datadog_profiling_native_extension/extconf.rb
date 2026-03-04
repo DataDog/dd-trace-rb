@@ -232,13 +232,6 @@ unless have_type("atomic_int", ["stdatomic.h"])
   skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::COMPILER_ATOMIC_MISSING)
 end
 
-# WIP hack to fix dylib path
-if RUBY_PLATFORM.include?('darwin')
-  libdatadog_lib_folder = "#{Libdatadog.pkgconfig_folder}/../"
-  libdatadog_dylib = Dir["#{libdatadog_lib_folder}/*.dylib"].first
-  old_install_name = `otool -D "#{libdatadog_dylib}"`.lines.last&.strip if libdatadog_dylib
-end
-
 # See comments on the helper methods being used for why we need to additionally set this.
 # The extremely excessive escaping around ORIGIN below seems to be correct and was determined after a lot of
 # experimentation. We need to get these special characters across a lot of tools untouched...
@@ -333,17 +326,6 @@ else
       end,
       EXTENSION_NAME,
     )
-end
-
-# WIP hack to fix dylib path
-if RUBY_PLATFORM.include?('darwin') && old_install_name
-  File.open('Makefile', 'a') do |f|
-    f.puts
-    f.puts '# Rewrite LC_LOAD_DYLIB to use @loader_path for libdatadog on macOS'
-    f.puts 'all: fix_macos_dylib_paths'
-    f.puts 'fix_macos_dylib_paths: $(DLLIB)'
-    f.puts "\tinstall_name_tool -change '#{old_install_name}' '@rpath/libdatadog_profiling.dylib' $<"
-  end
 end
 
 # rubocop:enable Style/GlobalVars
