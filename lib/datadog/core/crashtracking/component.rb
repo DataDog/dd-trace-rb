@@ -17,11 +17,6 @@ module Datadog
       # Methods prefixed with _native_ are implemented in `crashtracker.c`
       class Component
         def self.build(settings, agent_settings, logger:)
-          if RUBY_PLATFORM.include?("darwin")
-            logger.debug { "Skipping crashtracking, it's currently not supported on macOS" }
-            return
-          end
-
           tags = latest_tags(settings)
           agent_base_url = agent_settings.url
 

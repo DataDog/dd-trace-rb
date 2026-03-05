@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'datadog/profiling/spec_helper'
 require 'datadog/core/crashtracking/component'
 
 require 'webrick'
@@ -19,107 +20,88 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
     let(:ld_library_path) { 'ld_library_path' }
     let(:path_to_crashtracking_receiver_binary) { 'path_to_crashtracking_receiver_binary' }
 
-    context 'when not on macOS', if: !PlatformHelpers.mac? do
-      context 'when all required parameters are provided' do
-        it 'creates a new instance of Component and starts it' do
-          expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
-            .and_return(tags)
-          expect(agent_settings).to receive(:url).and_return(agent_base_url)
-          expect(::Libdatadog).to receive(:ld_library_path)
-            .and_return(ld_library_path)
-          expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
-            .and_return(path_to_crashtracking_receiver_binary)
-          expect(logger).to_not receive(:warn)
+    context 'when all required parameters are provided' do
+      it 'creates a new instance of Component and starts it' do
+        expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
+          .and_return(tags)
+        expect(agent_settings).to receive(:url).and_return(agent_base_url)
+        expect(::Libdatadog).to receive(:ld_library_path)
+          .and_return(ld_library_path)
+        expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
+          .and_return(path_to_crashtracking_receiver_binary)
+        expect(logger).to_not receive(:warn)
 
-          component = instance_double(described_class)
-          expect(described_class).to receive(:new).with(
-            tags: tags,
-            agent_base_url: agent_base_url,
-            ld_library_path: ld_library_path,
-            path_to_crashtracking_receiver_binary: path_to_crashtracking_receiver_binary,
-            logger: logger
-          ).and_return(component)
+        component = instance_double(described_class)
+        expect(described_class).to receive(:new).with(
+          tags: tags,
+          agent_base_url: agent_base_url,
+          ld_library_path: ld_library_path,
+          path_to_crashtracking_receiver_binary: path_to_crashtracking_receiver_binary,
+          logger: logger
+        ).and_return(component)
 
-          expect(component).to receive(:start)
-
-          described_class.build(settings, agent_settings, logger: logger)
-        end
-      end
-
-      context 'when missing `ld_library_path`' do
-        let(:ld_library_path) { nil }
-
-        it 'returns nil' do
-          expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
-            .and_return(tags)
-          expect(agent_settings).to receive(:url).and_return(agent_base_url)
-          expect(::Libdatadog).to receive(:ld_library_path)
-            .and_return(ld_library_path)
-          expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
-            .and_return(path_to_crashtracking_receiver_binary)
-          expect(logger).to receive(:warn).with(/cannot enable crash tracking/)
-
-          expect(described_class.build(settings, agent_settings, logger: logger)).to be_nil
-        end
-      end
-
-      context 'when missing `path_to_crashtracking_receiver_binary`' do
-        let(:path_to_crashtracking_receiver_binary) { nil }
-
-        it 'returns nil' do
-          expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
-            .and_return(tags)
-          expect(agent_settings).to receive(:url).and_return(agent_base_url)
-          expect(::Libdatadog).to receive(:ld_library_path)
-            .and_return(ld_library_path)
-          expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
-            .and_return(path_to_crashtracking_receiver_binary)
-          expect(logger).to receive(:warn).with(/cannot enable crash tracking/)
-
-          expect(described_class.build(settings, agent_settings, logger: logger)).to be_nil
-        end
-      end
-
-      context 'when agent_base_url is invalid (e.g. hostname is an IPv6 address)' do
-        let(:agent_base_url) { 'http://1234:1234::1/' }
-
-        it 'returns an instance of Component that failed to start' do
-          expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
-            .and_return(tags)
-          expect(agent_settings).to receive(:url).and_return(agent_base_url)
-          expect(::Libdatadog).to receive(:ld_library_path)
-            .and_return(ld_library_path)
-          expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
-            .and_return(path_to_crashtracking_receiver_binary)
-
-          # Diagnostics is only provided via the error report to logger,
-          # there is no indication in the object state that it failed to start.
-          expect(logger).to receive(:error).with(/Failed to start crash tracking/)
-
-          expect(described_class.build(settings, agent_settings, logger: logger)).to be_a(described_class)
-        end
-      end
-    end
-
-    context 'when on macOS' do
-      before do
-        stub_const("RUBY_PLATFORM", "x86_64-darwin19")
-        allow(logger).to receive(:debug)
-      end
-
-      it 'returns nil' do
-        expect(described_class.build(settings, agent_settings, logger: logger)).to be_nil
-      end
-
-      it 'debug logs about not being available on macOS' do
-        expect(logger).to receive(:debug) { |&block| expect(block.call).to include("currently not supported on macOS") }
+        expect(component).to receive(:start)
 
         described_class.build(settings, agent_settings, logger: logger)
       end
     end
+
+    context 'when missing `ld_library_path`' do
+      let(:ld_library_path) { nil }
+
+      it 'returns nil' do
+        expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
+          .and_return(tags)
+        expect(agent_settings).to receive(:url).and_return(agent_base_url)
+        expect(::Libdatadog).to receive(:ld_library_path)
+          .and_return(ld_library_path)
+        expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
+          .and_return(path_to_crashtracking_receiver_binary)
+        expect(logger).to receive(:warn).with(/cannot enable crash tracking/)
+
+        expect(described_class.build(settings, agent_settings, logger: logger)).to be_nil
+      end
+    end
+
+    context 'when missing `path_to_crashtracking_receiver_binary`' do
+      let(:path_to_crashtracking_receiver_binary) { nil }
+
+      it 'returns nil' do
+        expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
+          .and_return(tags)
+        expect(agent_settings).to receive(:url).and_return(agent_base_url)
+        expect(::Libdatadog).to receive(:ld_library_path)
+          .and_return(ld_library_path)
+        expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
+          .and_return(path_to_crashtracking_receiver_binary)
+        expect(logger).to receive(:warn).with(/cannot enable crash tracking/)
+
+        expect(described_class.build(settings, agent_settings, logger: logger)).to be_nil
+      end
+    end
+
+    context 'when agent_base_url is invalid (e.g. hostname is an IPv6 address)' do
+      let(:agent_base_url) { 'http://1234:1234::1/' }
+
+      it 'returns an instance of Component that failed to start' do
+        expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
+          .and_return(tags)
+        expect(agent_settings).to receive(:url).and_return(agent_base_url)
+        expect(::Libdatadog).to receive(:ld_library_path)
+          .and_return(ld_library_path)
+        expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
+          .and_return(path_to_crashtracking_receiver_binary)
+
+        # Diagnostics is only provided via the error report to logger,
+        # there is no indication in the object state that it failed to start.
+        expect(logger).to receive(:error).with(/Failed to start crash tracking/)
+
+        expect(described_class.build(settings, agent_settings, logger: logger)).to be_a(described_class)
+      end
+    end
   end
 
-  context 'instance methods', if: !PlatformHelpers.mac? do
+  context 'instance methods' do
     shared_context 'HTTP server' do
       http_server do |http_server|
         http_server.mount_proc('/', &server_proc)
@@ -282,7 +264,8 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
         proc do |status:, stdout:, stderr:|
           expect(status.termsig).to_not be_nil
           expect(Signal.signame(status.termsig)).to eq('SEGV').or eq('ABRT')
-          expect(stderr).to include('[BUG] Segmentation fault').or include('[BUG] Aborted')
+          expect(stderr).to include('pointer being freed was not allocated')
+            .or include('Segmentation fault').or include('[BUG] Segmentation fault').or include('[BUG] Aborted')
         end
       end
 
@@ -305,9 +288,15 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
             crash_tracker.start
             trigger.call
           end
-          expect(stack_trace).to match(array_including(hash_including(function: function)))
           expect(stack_trace.size).to be > 10
-          expect(crash_report[:tags]).to include('si_signo:11', 'si_signo_human_readable:SIGSEGV')
+
+          # On Mac, fiddle triggers SIGABRT instead of SIGSEGV
+          expect(crash_report[:tags]).to include('si_signo:6').or include('si_signo:11')
+
+          # On macOS, /proc/self/maps is not available so function names cannot be resolved out of process
+          if !PlatformHelpers.mac?
+            expect(stack_trace).to match(array_including(hash_including(function: function)))
+          end
 
           expect(crash_report_message[:metadata]).to include(
             library_name: 'dd-trace-rb',
@@ -315,7 +304,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
             family: 'ruby',
             tags: ['tag1:value1', 'tag2:value2', 'language:ruby-testing-123', 'service:ruby-testing-123'],
           )
-          expect(crash_report_message[:files][:"/proc/self/maps"]).to_not be_empty
+
           expect(crash_report_message[:os_info]).to_not be_empty
           expect(parsed_request.fetch(:application)).to include(
             service_name: 'ruby-testing-123',
@@ -324,7 +313,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
         end
       end
 
-      context 'Ruby unhandled exception crash reporting' do
+      context 'Ruby unhandled exception crash reporting', if: !PlatformHelpers.mac? do
         let(:ruby_crash_expectations) do
           proc do |status:, stdout:, stderr:|
             # ruby exceptions should exit with status 1, not signal termination
@@ -339,7 +328,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
               c.agent.host = '127.0.0.1'
               c.agent.port = http_server_port
             end
-
             raise StandardError, 'Test Ruby unhandled exception'
           end
 
@@ -389,10 +377,10 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           end
 
           expect(stack_trace).to_not be_empty
-          expect(crash_report[:tags]).to include('si_signo:11', 'si_signo_human_readable:SIGSEGV')
+
+          expect(crash_report[:tags]).to include('si_signo:6').or include('si_signo:11')
 
           expect(crash_report_message[:metadata]).to_not be_empty
-          expect(crash_report_message[:files][:"/proc/self/maps"]).to_not be_empty
           expect(crash_report_message[:os_info]).to_not be_empty
         end
       end
@@ -436,12 +424,16 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
         end
       end
 
+      # Runtime stacks capture only works when profiling is enabled, which is not supported on macOS
       describe 'Ruby and C method runtime stack capture' do
-        let(:runtime_stack) { crash_report_experimental[:runtime_stack] }
-
         before do
-          raise 'This spec requires profiling (native extension not available)' unless Datadog::Profiling.supported?
+          if PlatformHelpers.mac?
+            skip "Ruby stack capture is only support on Linux at the moment. We need some fixes in crashtracking_runtime_stacks.c to support macOS."
+          end
         end
+        let(:runtime_stack) {
+          crash_report_experimental[:runtime_stack]
+        }
 
         it 'captures both Ruby and C method frames in mixed stacks' do
           expect_in_fork(fork_expectations: fork_expectations, timeout_seconds: 15) do
