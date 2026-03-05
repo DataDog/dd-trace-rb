@@ -427,10 +427,13 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
       # Runtime stacks capture only works when profiling is enabled, which is not supported on macOS
       describe 'Ruby and C method runtime stack capture' do
         before do
-          skip_if_profiling_not_supported
+          if PlatformHelpers.mac?
+            skip "Ruby stack capture is only support on Linux at the moment. We need some fixes in crashtracking_runtime_stacks.c to support macOS."
+          end
         end
-
-        let(:runtime_stack) { crash_report_experimental[:runtime_stack] }
+        let(:runtime_stack) {
+          crash_report_experimental[:runtime_stack]
+        }
 
         it 'captures both Ruby and C method frames in mixed stacks' do
           expect_in_fork(fork_expectations: fork_expectations, timeout_seconds: 15) do
