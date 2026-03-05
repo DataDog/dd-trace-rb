@@ -139,7 +139,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       end
     end
 
-    describe '#report_unhandled_exception' do
+    describe '#report_unhandled_exception', :memcheck_valgrind_skip do
       include_context 'HTTP server'
 
       let(:agent_base_url) { "http://#{hostname}:#{http_server_port}" }
@@ -242,7 +242,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       end
     end
 
-    context 'integration testing' do
+    context 'integration testing', :memcheck_valgrind_skip do
       include_context 'HTTP server'
 
       let(:request) do
