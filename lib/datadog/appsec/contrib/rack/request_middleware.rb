@@ -18,6 +18,13 @@ module Datadog
   module AppSec
     module Contrib
       module Rack
+        RESPONSE_HEADERS_TAGS = %w[
+          content-length
+          content-type
+          content-encoding
+          content-language
+        ].freeze
+
         WAF_VENDOR_HEADERS_TAGS = %w[
           X-Amzn-Trace-Id
           Cloudfront-Viewer-Ja3-Fingerprint
@@ -110,8 +117,9 @@ module Datadog
               ctx.extract_schema!
             end
 
-            AppSec::Event.record(ctx, request: gateway_request, response: gateway_response)
+            AppSec::Event.record(ctx, request: gateway_request)
 
+            add_response_tags(ctx, tmp_response)
             http_response
           ensure
             if ctx
@@ -180,7 +188,6 @@ module Datadog
           # standard:disable Metrics/MethodLength
           def add_request_tags(context, env)
             span = context.span
-
             return unless span
 
             # Always add WAF vendors headers
@@ -201,6 +208,16 @@ module Datadog
             end
           end
           # standard:enable Metrics/MethodLength
+
+          def add_response_tags(context, response)
+            span = context.span
+            return unless span
+
+            RESPONSE_HEADERS_TAGS.each do |name|
+              value = response.headers[name]
+              span.set_tag("http.response.headers.#{name}", value) if value
+            end
+          end
 
           def oneshot_tags_sent?
             @oneshot_tags_sent

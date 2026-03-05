@@ -23,7 +23,7 @@ RSpec.describe Datadog::AppSec::Event do
             Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span)
           )
 
-          described_class.record(context, request: rack_request, response: rack_response)
+          described_class.record(context, request: rack_request)
         end
         trace_op.flush!
       end
@@ -35,13 +35,6 @@ RSpec.describe Datadog::AppSec::Event do
           host: 'example.com',
           user_agent: 'Ruby/0.0',
           remote_addr: '127.0.0.1'
-        )
-      end
-
-      let(:rack_response) do
-        instance_double(
-          Datadog::AppSec::Contrib::Rack::Gateway::Response,
-          headers: {'mystery-header' => '42', 'content-type' => 'text/html'}
         )
       end
 
@@ -60,14 +53,12 @@ RSpec.describe Datadog::AppSec::Event do
         )
       end
 
-      it 'keeps allowed HTTP headers and discards the rest' do
+      it 'keeps allowed HTTP request headers and discards the rest' do
         expect(top_level_span.meta).to include(
-          'http.request.headers.user-agent' => 'Ruby/0.0',
-          'http.response.headers.content-type' => 'text/html'
+          'http.request.headers.user-agent' => 'Ruby/0.0'
         )
         expect(top_level_span.meta).not_to include(
-          'http.request.headers.unknown-header',
-          'http.response.headers.mystery-header'
+          'http.request.headers.unknown-header'
         )
       end
 
@@ -124,18 +115,12 @@ RSpec.describe Datadog::AppSec::Event do
         )
       end
 
-      let(:rack_response) do
-        instance_double(
-          Datadog::AppSec::Contrib::Rack::Gateway::Response,
-          headers: {'content-type' => 'text/html'}
-        )
-      end
 
       let(:trace) do
         trace_op = Datadog::Tracing::TraceOperation.new
         trace_op.measure('request') do |span|
           context = Datadog::AppSec::Context.new(trace_op, span, waf_runner)
-          described_class.record(context, request: rack_request, response: rack_response)
+          described_class.record(context, request: rack_request)
         end
         trace_op.flush!
       end
@@ -156,18 +141,12 @@ RSpec.describe Datadog::AppSec::Event do
         )
       end
 
-      let(:rack_response) do
-        instance_double(
-          Datadog::AppSec::Contrib::Rack::Gateway::Response,
-          headers: {'content-type' => 'text/html'}
-        )
-      end
 
       let(:trace) do
         trace_op = Datadog::Tracing::TraceOperation.new
         trace_op.measure('request') do |_span|
           context = Datadog::AppSec::Context.new(trace_op, nil, waf_runner)
-          described_class.record(context, request: rack_request, response: rack_response)
+          described_class.record(context, request: rack_request)
         end
         trace_op.flush!
       end
@@ -193,12 +172,6 @@ RSpec.describe Datadog::AppSec::Event do
         )
       end
 
-      let(:rack_response) do
-        instance_double(
-          Datadog::AppSec::Contrib::Rack::Gateway::Response,
-          headers: {'content-type' => 'text/html'}
-        )
-      end
 
       context 'when there are only traces to keep' do
         let(:waf_result) do
@@ -223,7 +196,7 @@ RSpec.describe Datadog::AppSec::Event do
                 Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span)
               )
 
-              described_class.record(context, request: rack_request, response: rack_response)
+              described_class.record(context, request: rack_request)
             end
             trace_op.flush!
           end
@@ -262,7 +235,7 @@ RSpec.describe Datadog::AppSec::Event do
                 Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span)
               )
 
-              described_class.record(context, request: rack_request, response: rack_response)
+              described_class.record(context, request: rack_request)
             end
             trace_op.flush!
           end
@@ -293,7 +266,7 @@ RSpec.describe Datadog::AppSec::Event do
             Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span)
           )
 
-          described_class.record(context, request: rack_request, response: rack_response)
+          described_class.record(context, request: rack_request)
         end
         trace_op.flush!
       end
@@ -308,12 +281,6 @@ RSpec.describe Datadog::AppSec::Event do
         )
       end
 
-      let(:rack_response) do
-        instance_double(
-          Datadog::AppSec::Contrib::Rack::Gateway::Response,
-          headers: {'content-type' => 'text/html'}
-        )
-      end
 
       let(:waf_result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
@@ -333,8 +300,7 @@ RSpec.describe Datadog::AppSec::Event do
           'http.host',
           'http.useragent',
           'network.client.ip',
-          'http.request.headers.user-agent',
-          'http.response.headers.content-type'
+          'http.request.headers.user-agent'
         )
       end
 
@@ -375,7 +341,7 @@ RSpec.describe Datadog::AppSec::Event do
             Datadog::AppSec::SecurityEvent.new(waf_result, trace: trace_op, span: span)
           )
 
-          described_class.record(context, request: rack_request, response: rack_response)
+          described_class.record(context, request: rack_request)
         end
         trace_op.flush!
       end
@@ -390,12 +356,6 @@ RSpec.describe Datadog::AppSec::Event do
         )
       end
 
-      let(:rack_response) do
-        instance_double(
-          Datadog::AppSec::Contrib::Rack::Gateway::Response,
-          headers: {'content-type' => 'text/html'}
-        )
-      end
 
       let(:waf_result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
@@ -412,13 +372,12 @@ RSpec.describe Datadog::AppSec::Event do
         )
       end
 
-      it 'does not set HTTP information despite being non-attack event' do
+      it 'sets HTTP request information' do
         expect(top_level_span.meta).to include(
           'http.host' => 'example.com',
           'http.useragent' => 'Ruby/0.0',
           'network.client.ip' => '127.0.0.1',
-          'http.request.headers.user-agent' => 'Ruby/0.0',
-          'http.response.headers.content-type' => 'text/html'
+          'http.request.headers.user-agent' => 'Ruby/0.0'
         )
       end
 
