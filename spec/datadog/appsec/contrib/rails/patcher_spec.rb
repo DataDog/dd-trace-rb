@@ -18,13 +18,33 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Patcher do
 
       ActiveSupport.instance_variable_get(:@load_hooks).delete(:after_routes_loaded)
       ActiveSupport.instance_variable_get(:@loaded).delete(:action_controller)
+    end
 
-      described_class.patch
+    context 'when called twice via instrument' do
+      before do
+        Datadog.configure do |c|
+          c.appsec.enabled = true
+        end
+      end
+
+      after do
+        Datadog.configuration.reset!
+      end
+
+      it 'does not register gateway watchers twice' do
+        Datadog.configuration.appsec.instrument :rails
+        middlewares = Datadog::AppSec::Instrumentation.gateway.instance_variable_get(:@middlewares)
+
+        expect { Datadog.configuration.appsec.instrument :rails }.not_to change {
+          middlewares.transform_values(&:size)
+        }
+      end
     end
 
     context ':after_routes_loaded hook' do
       context 'when error occurs while getting application routes' do
         before do
+          described_class.patch
           allow(::Rails).to receive(:application).and_raise(StandardError)
         end
 
