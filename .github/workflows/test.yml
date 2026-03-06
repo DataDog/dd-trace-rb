@@ -172,6 +172,15 @@ jobs:
           DD_GIT_COMMIT_SHA: ${{ github.sha }}
         run: echo "DD_GIT_COMMIT_SHA=$DD_GIT_COMMIT_SHA" >> "$GITHUB_ENV"
       - run: echo "$DD_GIT_COMMIT_SHA"
+      - name: Add final_status property
+        run: |
+          which xsltproc || sudo apt-get install -y xsltproc
+          find . -name '*.xml' | while read -r xml_file; do
+              echo "Fixing $xml_file"
+              tmp_file="$(mktemp)"
+              xsltproc --output "$tmp_file" ".github/add_final_status.xsl" "$xml_file"
+              mv "$tmp_file" "$xml_file"
+          done
       - name: Upload junit reports
         continue-on-error: true
         run: datadog-ci junit upload --verbose tmp/rspec/
