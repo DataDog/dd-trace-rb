@@ -461,6 +461,13 @@
         "default": "true"
       }
     ],
+    "DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED": [
       {
         "version": "A",

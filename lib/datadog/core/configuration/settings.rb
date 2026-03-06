@@ -604,6 +604,15 @@ module Datadog
                   !(RUBY_VERSION.start_with?('3.3.') && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.3.4'))
               end
             end
+
+            # Fallback to system dns instead of using libdatadog built-in resolver.
+            #
+            # @default `DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS` environment variable as a boolean, otherwise `false`
+            option :experimental_use_system_dns do |o|
+              o.type :bool
+              o.env 'DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS'
+              o.default false
+            end
           end
 
           # @public_api
