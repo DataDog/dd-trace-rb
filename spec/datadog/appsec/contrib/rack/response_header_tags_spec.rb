@@ -25,6 +25,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
 
     allow(Datadog::AppSec::APISecurity).to receive(:sample_trace?).and_return(true)
     allow(Datadog::AppSec::APISecurity).to receive(:sample?).and_return(true)
+
     allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
     allow_any_instance_of(Datadog::Tracing::Transport::Traces::Transport)
       .to receive(:native_events_supported?).and_return(true)
@@ -51,7 +52,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
   let(:service_span) { spans.find { |s| s.metrics.fetch('_dd.top_level', -1.0) > 0.0 } }
 
   let(:routes) do
-    rack_response = response_tuple
+    rack_response = response
     proc do
       map '/success' do
         run(proc { |_env| rack_response })
@@ -59,9 +60,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
     end
   end
 
-  let(:response_tuple) { [200, response_headers, response_body] }
-  let(:response_headers) { {'content-type' => 'text/html', 'content-length' => '2'} }
-  let(:response_body) { ['OK'] }
+  let(:response) { [200, {'content-type' => 'text/html', 'content-length' => '2'}, ['OK']] }
 
   describe 'response header tags' do
     context 'when request triggers no security event' do
@@ -93,15 +92,15 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
       let(:appsec_ruleset) do
         {
           version: '2.2',
-          metadata: { rules_version: '1.4.1' },
+          metadata: {rules_version: '1.4.1'},
           rules: [
             {
               id: 'crs-942-100',
               name: 'SQL Injection Attack Detected via libinjection',
-              tags: { type: 'sql_injection', crs_id: '942100', category: 'attack_attempt' },
+              tags: {type: 'sql_injection', crs_id: '942100', category: 'attack_attempt'},
               conditions: [
                 {
-                  parameters: { inputs: [{ address: 'server.request.query' }] },
+                  parameters: {inputs: [{address: 'server.request.query'}]},
                   operator: 'is_sqli'
                 }
               ],
@@ -120,8 +119,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
     context 'when response has no content-length header' do
       before { get('/success', {}, 'REMOTE_ADDR' => '127.0.0.1') }
 
-      let(:response_headers) { {'content-type' => 'text/plain'} }
-      let(:response_body) { ['hello'] }
+      let(:response) { [200, {'content-type' => 'text/plain'}, ['hello']] }
 
       it { expect(service_span.get_tag('http.response.headers.content-length')).to eq('5') }
     end
@@ -129,8 +127,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
     context 'when response body has multiple parts' do
       before { get('/success', {}, 'REMOTE_ADDR' => '127.0.0.1') }
 
-      let(:response_headers) { {'content-type' => 'text/plain'} }
-      let(:response_body) { ['hello', ' world'] }
+      let(:response) { [200, {'content-type' => 'text/plain'}, ['hello', ' world']] }
 
       it { expect(service_span.get_tag('http.response.headers.content-length')).to eq('11') }
     end
@@ -138,7 +135,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
     context 'when response has content-encoding header' do
       before { get('/success', {}, 'REMOTE_ADDR' => '127.0.0.1') }
 
-      let(:response_headers) { {'content-type' => 'text/html', 'content-encoding' => 'gzip'} }
+      let(:response) { [200, {'content-type' => 'text/html', 'content-encoding' => 'gzip'}, ['OK']] }
 
       it { expect(service_span.get_tag('http.response.headers.content-encoding')).to eq('gzip') }
     end
@@ -146,7 +143,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
     context 'when response has content-language header' do
       before { get('/success', {}, 'REMOTE_ADDR' => '127.0.0.1') }
 
-      let(:response_headers) { {'content-type' => 'text/html', 'content-language' => 'en'} }
+      let(:response) { [200, {'content-type' => 'text/html', 'content-language' => 'en'}, ['OK']] }
 
       it { expect(service_span.get_tag('http.response.headers.content-language')).to eq('en') }
     end
@@ -154,10 +151,54 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
     context 'when response has non-allowed headers' do
       before { get('/success', {}, 'REMOTE_ADDR' => '127.0.0.1') }
 
-      let(:response_headers) { {'content-type' => 'text/html', 'x-custom' => 'secret'} }
+      let(:response) { [200, {'content-type' => 'text/html', 'x-custom' => 'secret'}, ['OK']] }
 
       it { expect(service_span.get_tag('http.response.headers.content-type')).to eq('text/html') }
       it { expect(service_span.get_tag('http.response.headers.x-custom')).to be_nil }
+    end
+
+    context 'without Rack::ContentLength middleware' do
+      let(:app) do
+        app_routes = routes
+        Rack::Builder.new do
+          use Datadog::Tracing::Contrib::Rack::TraceMiddleware
+          use Datadog::AppSec::Contrib::Rack::RequestMiddleware
+
+          instance_eval(&app_routes)
+        end.to_app
+      end
+
+      context 'when response has no content-length header and body responds to to_ary' do
+        before { get('/success', {}, 'REMOTE_ADDR' => '127.0.0.1') }
+
+        let(:response) { [200, {'content-type' => 'text/plain'}, ['hello']] }
+
+        it { expect(service_span.get_tag('http.response.headers.content-length')).to eq('5') }
+      end
+
+      context 'when response has no content-length header and body has multiple parts' do
+        before { get('/success', {}, 'REMOTE_ADDR' => '127.0.0.1') }
+
+        let(:response) { [200, {'content-type' => 'text/plain'}, ['hello', ' world']] }
+
+        it { expect(service_span.get_tag('http.response.headers.content-length')).to eq('11') }
+      end
+
+      context 'when response has content-length header already set' do
+        before { get('/success', {}, 'REMOTE_ADDR' => '127.0.0.1') }
+
+        let(:response) { [200, {'content-type' => 'text/plain', 'content-length' => '99'}, ['hello']] }
+
+        it { expect(service_span.get_tag('http.response.headers.content-length')).to eq('99') }
+      end
+
+      context 'when response body is a streaming body' do
+        before { get('/success', {}, 'REMOTE_ADDR' => '127.0.0.1') }
+
+        let(:response) { [200, {'content-type' => 'text/plain'}, ['hello'].each] }
+
+        it { expect(service_span.get_tag('http.response.headers.content-length')).to be_nil }
+      end
     end
   end
 end

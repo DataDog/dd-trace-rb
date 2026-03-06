@@ -2,6 +2,7 @@
 
 require 'json'
 
+require_relative 'response_body'
 require_relative 'gateway/request'
 require_relative 'gateway/response'
 
@@ -215,7 +216,12 @@ module Datadog
 
             RESPONSE_HEADERS_TAGS.each do |name|
               value = response.headers[name]
-              span.set_tag("http.response.headers.#{name}", value) if value
+              span.set_tag("http.response.headers.#{name}", value.to_s) if value
+            end
+
+            unless response.headers.key?('content-length')
+              length = ResponseBody.content_length(response.body)
+              span.set_tag('http.response.headers.content-length', length.to_s) if length
             end
           end
 

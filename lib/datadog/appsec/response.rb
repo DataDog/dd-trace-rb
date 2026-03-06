@@ -36,15 +36,15 @@ module Datadog
           else FORMAT_TO_CONTENT_TYPE.fetch(interrupt_params['type'], DEFAULT_CONTENT_TYPE)
           end
 
-          body = content(
-            security_response_id: interrupt_params['security_response_id'],
-            content_type: content_type
-          )
-
           Response.new(
             status: interrupt_params['status_code']&.to_i || 403,
-            headers: {'Content-Type' => content_type, 'Content-Length' => body.bytesize.to_s},
-            body: [body],
+            headers: {'Content-Type' => content_type},
+            body: [
+              content(
+                security_response_id: interrupt_params['security_response_id'],
+                content_type: content_type
+              )
+            ],
           )
         end
 

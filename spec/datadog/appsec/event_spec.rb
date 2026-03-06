@@ -115,7 +115,6 @@ RSpec.describe Datadog::AppSec::Event do
         )
       end
 
-
       let(:trace) do
         trace_op = Datadog::Tracing::TraceOperation.new
         trace_op.measure('request') do |span|
@@ -140,7 +139,6 @@ RSpec.describe Datadog::AppSec::Event do
           remote_addr: '127.0.0.1'
         )
       end
-
 
       let(:trace) do
         trace_op = Datadog::Tracing::TraceOperation.new
@@ -171,7 +169,6 @@ RSpec.describe Datadog::AppSec::Event do
           remote_addr: '127.0.0.1'
         )
       end
-
 
       context 'when there are only traces to keep' do
         let(:waf_result) do
@@ -281,7 +278,6 @@ RSpec.describe Datadog::AppSec::Event do
         )
       end
 
-
       let(:waf_result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
           events: [],
@@ -355,7 +351,6 @@ RSpec.describe Datadog::AppSec::Event do
           remote_addr: '127.0.0.1'
         )
       end
-
 
       let(:waf_result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
