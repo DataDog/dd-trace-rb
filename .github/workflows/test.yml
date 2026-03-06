@@ -174,7 +174,6 @@ jobs:
       - run: echo "$DD_GIT_COMMIT_SHA"
       - name: Add final_status property
         run: |
-          which xsltproc || apt-get install -y xsltproc
           find . -name '*.xml' | while read -r xml_file; do
               echo "Fixing $xml_file"
               tmp_file="$(mktemp)"
