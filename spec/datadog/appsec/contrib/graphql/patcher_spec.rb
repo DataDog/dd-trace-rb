@@ -9,8 +9,15 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Patcher do
   let(:middlewares) { gateway.instance_variable_get(:@middlewares) }
 
   before do
+    @original_patched = described_class.instance_variable_get(:@patched)
     described_class.instance_variable_set(:@patched, false)
     allow(Datadog::AppSec::Instrumentation).to receive(:gateway).and_return(gateway)
+
+    # Stub trace_with to prevent permanent global mutation on GraphQL::Schema
+    # that would pollute other specs in this suite
+    if GraphQL::Schema.respond_to?(:trace_with)
+      allow(GraphQL::Schema).to receive(:trace_with)
+    end
 
     Datadog.configure do |c|
       c.appsec.enabled = true
@@ -18,7 +25,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Patcher do
   end
 
   after do
-    described_class.instance_variable_set(:@patched, false)
+    described_class.instance_variable_set(:@patched, @original_patched)
     Datadog.configuration.reset!
   end
 
@@ -32,12 +39,15 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Patcher do
         }
       end
 
-      it 'does not add trace module to GraphQL::Schema twice' do
-        Datadog.configuration.appsec.instrument :graphql
+      # trace_with and trace_modules_for were introduced in graphql 2.0.19
+      if Gem.loaded_specs['graphql'].version >= Gem::Version.new('2.0.19')
+        it 'does not call trace_with on GraphQL::Schema twice' do
+          Datadog.configuration.appsec.instrument :graphql
+          expect(GraphQL::Schema).to have_received(:trace_with).once
 
-        expect { Datadog.configuration.appsec.instrument :graphql }.not_to change {
-          ::GraphQL::Schema.trace_modules_for(:default).size
-        }
+          expect(GraphQL::Schema).not_to receive(:trace_with)
+          Datadog.configuration.appsec.instrument :graphql
+        end
       end
     end
   end

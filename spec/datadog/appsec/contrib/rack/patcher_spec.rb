@@ -8,6 +8,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Patcher do
   let(:middlewares) { gateway.instance_variable_get(:@middlewares) }
 
   before do
+    @original_patched = described_class.instance_variable_get(:@patched)
     described_class.instance_variable_set(:@patched, false)
     allow(Datadog::AppSec::Instrumentation).to receive(:gateway).and_return(gateway)
 
@@ -17,7 +18,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Patcher do
   end
 
   after do
-    described_class.instance_variable_set(:@patched, false)
+    described_class.instance_variable_set(:@patched, @original_patched)
     Datadog.configuration.reset!
   end
 

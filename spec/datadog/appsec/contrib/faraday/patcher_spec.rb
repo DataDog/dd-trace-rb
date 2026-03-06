@@ -6,11 +6,11 @@ require 'datadog/appsec/contrib/faraday/patcher'
 
 RSpec.describe Datadog::AppSec::Contrib::Faraday::Patcher do
   before do
-    described_class.instance_variable_set(:@patched, false)
-
     Datadog.configure do |c|
       c.appsec.enabled = true
     end
+
+    described_class.instance_variable_set(:@patched, false)
   end
 
   after do

@@ -8,11 +8,11 @@ RSpec.describe Datadog::AppSec::Contrib::Excon::Patcher do
   describe '.patch' do
     context 'when called twice via instrument' do
       before do
-        described_class.instance_variable_set(:@patched, false)
-
         Datadog.configure do |c|
           c.appsec.enabled = true
         end
+
+        described_class.instance_variable_set(:@patched, false)
       end
 
       after do
