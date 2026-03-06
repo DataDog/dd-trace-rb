@@ -938,6 +938,21 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to(!default)
         end
       end
+
+      describe '#experimental_cpu_sampling_interval_ms' do
+        subject(:experimental_cpu_sampling_interval_ms) { settings.profiling.advanced.experimental_cpu_sampling_interval_ms }
+
+        it { is_expected.to eq 10 }
+      end
+
+      describe '#experimental_cpu_sampling_interval_ms=' do
+        it 'updates the #experimental_cpu_sampling_interval_ms setting' do
+          expect { settings.profiling.advanced.experimental_cpu_sampling_interval_ms = 5 }
+            .to change { settings.profiling.advanced.experimental_cpu_sampling_interval_ms }
+            .from(10)
+            .to(5)
+        end
+      end
     end
 
     describe '#upload' do

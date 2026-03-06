@@ -45,6 +45,8 @@ module Datadog
 
         overhead_target_percentage = valid_overhead_target(settings.profiling.advanced.overhead_target_percentage, logger)
         upload_period_seconds = [60, settings.profiling.advanced.upload_period_seconds].max
+        cpu_sampling_interval_ms =
+          valid_cpu_sampling_interval(settings.profiling.advanced.experimental_cpu_sampling_interval_ms, logger)
 
         recorder = Datadog::Profiling::StackRecorder.new(
           cpu_time_enabled: RUBY_PLATFORM.include?("linux"), # Only supported on Linux currently
@@ -65,6 +67,7 @@ module Datadog
           allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
           gvl_profiling_enabled: enable_gvl_profiling?(settings, logger),
           sighandler_sampling_enabled: settings.profiling.advanced.sighandler_sampling_enabled,
+          cpu_sampling_interval_ms: cpu_sampling_interval_ms,
         )
 
         internal_metadata = {
@@ -394,6 +397,22 @@ module Datadog
           )
 
           2.0
+        end
+      end
+
+      private_class_method def self.valid_cpu_sampling_interval(cpu_sampling_interval_ms, logger)
+        if cpu_sampling_interval_ms > 10
+          logger.warn(
+            "Profiling cpu_sampling_interval_ms is set to #{cpu_sampling_interval_ms}ms, but values above 10ms are " \
+            "not supported. Using 10ms instead. To reduce profiler overhead, consider adjusting the " \
+            "overhead_target_percentage setting."
+          )
+          10
+        elsif cpu_sampling_interval_ms < 10
+          logger.debug { "Profiling cpu_sampling_interval_ms set to #{cpu_sampling_interval_ms}ms" }
+          cpu_sampling_interval_ms
+        else
+          cpu_sampling_interval_ms
         end
       end
 

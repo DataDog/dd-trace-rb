@@ -604,6 +604,21 @@ module Datadog
                   !(RUBY_VERSION.start_with?('3.3.') && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.3.4'))
               end
             end
+
+            # Experimental: Controls the CPU sampling interval in milliseconds. This sets how often the profiler
+            # attempts to take a CPU sample. Valid values are 1 to 10.
+            #
+            # Lower values increase accuracy but also increase overhead. If you need to reduce profiler overhead,
+            # use the `overhead_target_percentage` setting instead.
+            #
+            # @warn This setting is experimental and may be removed or changed in future versions.
+            #
+            # # No config via environment variable yet
+            # @default 10
+            option :experimental_cpu_sampling_interval_ms do |o|
+              o.type :int
+              o.default 10
+            end
           end
 
           # @public_api
