@@ -316,6 +316,7 @@ module Datadog
         end
 
         payload = {
+          'Env' => @settings.env || 'none',
           'Service' => @settings.service,
           'TracerVersion' => Datadog::VERSION::STRING,
           'Lang' => 'ruby',
