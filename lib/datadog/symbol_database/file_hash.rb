@@ -21,6 +21,10 @@ module Datadog
         size = content.bytesize
         git_blob = "blob #{size}\0#{content}"
 
+        # nosemgrep: ruby.lang.security.weak-hashes-sha1.weak-hashes-sha1
+        # SHA-1 is required here to match Git's blob hash format for commit inference.
+        # This is not a security vulnerability - we're computing file content hashes
+        # to match against Git objects, not using SHA-1 for authentication/integrity.
         Digest::SHA1.hexdigest(git_blob)
       rescue => e
         Datadog.logger.debug("SymDB: File hash computation failed for #{file_path}: #{e.class}: #{e}")
