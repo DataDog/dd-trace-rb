@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require 'datadog/di/symbol_database/scope'
-require 'datadog/di/symbol_database/symbol'
+require 'datadog/symbol_database/scope'
+require 'datadog/symbol_database/symbol'
 
-RSpec.describe Datadog::DI::SymbolDatabase::Scope do
+RSpec.describe Datadog::SymbolDatabase::Scope do
   describe '#initialize' do
     it 'creates scope with required fields' do
       scope = described_class.new(scope_type: 'CLASS')
@@ -137,7 +137,7 @@ RSpec.describe Datadog::DI::SymbolDatabase::Scope do
     end
 
     it 'includes non-empty symbols array' do
-      symbol = Datadog::DI::SymbolDatabase::Symbol.new(
+      symbol = Datadog::SymbolDatabase::Symbol.new(
         symbol_type: 'FIELD',
         name: 'my_field',
         line: 5
@@ -236,7 +236,7 @@ RSpec.describe Datadog::DI::SymbolDatabase::Scope do
     end
 
     it 'produces valid JSON for complex scope' do
-      symbol = Datadog::DI::SymbolDatabase::Symbol.new(
+      symbol = Datadog::SymbolDatabase::Symbol.new(
         symbol_type: 'FIELD',
         name: '@my_var',
         line: 5

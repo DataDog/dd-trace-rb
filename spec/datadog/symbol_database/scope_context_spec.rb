@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require 'datadog/di/symbol_database/scope_context'
-require 'datadog/di/symbol_database/scope'
+require 'datadog/symbol_database/scope_context'
+require 'datadog/symbol_database/scope'
 
-RSpec.describe Datadog::DI::SymbolDatabase::ScopeContext do
+RSpec.describe Datadog::SymbolDatabase::ScopeContext do
   let(:uploader) { double('uploader') }
-  let(:test_scope) { Datadog::DI::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'TestClass') }
+  let(:test_scope) { Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'TestClass') }
 
   subject(:context) { described_class.new(uploader) }
 
@@ -31,7 +31,7 @@ RSpec.describe Datadog::DI::SymbolDatabase::ScopeContext do
 
     it 'increments file count' do
       context.add_scope(test_scope)
-      context.add_scope(Datadog::DI::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'Other'))
+      context.add_scope(Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'Other'))
 
       # File count tracked (implementation detail, testing via behavior)
       expect(context.size).to eq(2)
@@ -45,7 +45,7 @@ RSpec.describe Datadog::DI::SymbolDatabase::ScopeContext do
 
         # Add 400 scopes
         400.times do |i|
-          scope = Datadog::DI::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: "Class#{i}")
+          scope = Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: "Class#{i}")
           context.add_scope(scope)
         end
 
@@ -57,7 +57,7 @@ RSpec.describe Datadog::DI::SymbolDatabase::ScopeContext do
 
         # Add 401 scopes
         401.times do |i|
-          scope = Datadog::DI::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: "Class#{i}")
+          scope = Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: "Class#{i}")
           context.add_scope(scope)
         end
 
@@ -91,7 +91,7 @@ RSpec.describe Datadog::DI::SymbolDatabase::ScopeContext do
         context.add_scope(test_scope)
         sleep 0.6  # Wait more than half the timeout
 
-        context.add_scope(Datadog::DI::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'Class2'))
+        context.add_scope(Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'Class2'))
 
         # Timer was reset, so wait from the reset point
         sleep 0.7  # Total: 1.3s elapsed, but only 0.7s since last add
@@ -140,12 +140,12 @@ RSpec.describe Datadog::DI::SymbolDatabase::ScopeContext do
 
         # Add MAX_FILES scopes
         described_class::MAX_FILES.times do |i|
-          scope = Datadog::DI::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: "Class#{i}")
+          scope = Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: "Class#{i}")
           context.add_scope(scope)
         end
 
         # Try to add one more
-        extra_scope = Datadog::DI::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'ExtraClass')
+        extra_scope = Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'ExtraClass')
         expect(Datadog.logger).to receive(:debug).with(/File limit.*reached/)
 
         context.add_scope(extra_scope)
@@ -163,7 +163,7 @@ RSpec.describe Datadog::DI::SymbolDatabase::ScopeContext do
       end
 
       context.add_scope(test_scope)
-      context.add_scope(Datadog::DI::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'Other'))
+      context.add_scope(Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'Other'))
 
       context.flush
 
@@ -183,7 +183,7 @@ RSpec.describe Datadog::DI::SymbolDatabase::ScopeContext do
       allow(uploader).to receive(:upload_scopes) { |scopes| uploaded_scopes = scopes }
 
       context.add_scope(test_scope)
-      context.add_scope(Datadog::DI::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'Other'))
+      context.add_scope(Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'Other'))
 
       context.shutdown
 
@@ -257,7 +257,7 @@ RSpec.describe Datadog::DI::SymbolDatabase::ScopeContext do
       context.add_scope(test_scope)
       expect(context.size).to eq(1)
 
-      context.add_scope(Datadog::DI::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'Other'))
+      context.add_scope(Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'Other'))
       expect(context.size).to eq(2)
     end
   end
@@ -269,7 +269,7 @@ RSpec.describe Datadog::DI::SymbolDatabase::ScopeContext do
       threads = 10.times.map do |i|
         Thread.new do
           10.times do |j|
-            scope = Datadog::DI::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: "Thread#{i}Class#{j}")
+            scope = Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: "Thread#{i}Class#{j}")
             context.add_scope(scope)
           end
         end

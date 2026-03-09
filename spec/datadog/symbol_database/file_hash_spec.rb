@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require 'datadog/di/symbol_database/file_hash'
+require 'datadog/symbol_database/file_hash'
 require 'tempfile'
 
-RSpec.describe Datadog::DI::SymbolDatabase::FileHash do
+RSpec.describe Datadog::SymbolDatabase::FileHash do
   describe '.compute' do
     it 'returns nil for nil path' do
       expect(described_class.compute(nil)).to be_nil

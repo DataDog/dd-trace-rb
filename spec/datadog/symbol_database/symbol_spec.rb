@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'datadog/di/symbol_database/symbol'
+require 'datadog/symbol_database/symbol'
 
-RSpec.describe Datadog::DI::SymbolDatabase::Symbol do
+RSpec.describe Datadog::SymbolDatabase::Symbol do
   describe '#initialize' do
     it 'creates symbol with required fields' do
       symbol = described_class.new(

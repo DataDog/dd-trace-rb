@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require 'datadog/di/symbol_database/extractor'
+require 'datadog/symbol_database/extractor'
 require 'fileutils'
 
-RSpec.describe Datadog::DI::SymbolDatabase::Extractor do
+RSpec.describe Datadog::SymbolDatabase::Extractor do
   # Helper to create test files in user code location
   def create_user_code_file(content)
     Dir.mkdir('/tmp/user_app') unless Dir.exist?('/tmp/user_app')

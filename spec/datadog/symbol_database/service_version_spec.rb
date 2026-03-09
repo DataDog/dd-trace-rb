@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require 'datadog/di/symbol_database/service_version'
-require 'datadog/di/symbol_database/scope'
+require 'datadog/symbol_database/service_version'
+require 'datadog/symbol_database/scope'
 
-RSpec.describe Datadog::DI::SymbolDatabase::ServiceVersion do
+RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
   describe '#initialize' do
     it 'creates service version with required fields' do
       sv = described_class.new(
@@ -85,7 +85,7 @@ RSpec.describe Datadog::DI::SymbolDatabase::ServiceVersion do
     end
 
     it 'serializes scopes recursively' do
-      scope = Datadog::DI::SymbolDatabase::Scope.new(
+      scope = Datadog::SymbolDatabase::Scope.new(
         scope_type: 'CLASS',
         name: 'MyClass'
       )
@@ -142,7 +142,7 @@ RSpec.describe Datadog::DI::SymbolDatabase::ServiceVersion do
     end
 
     it 'produces valid JSON for complete payload' do
-      scope = Datadog::DI::SymbolDatabase::Scope.new(
+      scope = Datadog::SymbolDatabase::Scope.new(
         scope_type: 'MODULE',
         name: 'MyApp',
         source_file: '/app/lib/my_app.rb',
