@@ -1,7 +1,7 @@
 module Datadog
   module Profiling
     class HttpTransport
-      type exporter_configuration_array = [:agentless, Integer, String, String] | [:agent, Integer, String]
+      type exporter_configuration_array = [:agentless, Integer, bool, String, String] | [:agent, Integer, bool, String]
 
       attr_reader exporter_configuration: exporter_configuration_array
 
@@ -12,6 +12,7 @@ module Datadog
         site: ::String?,
         api_key: ::String?,
         upload_timeout_seconds: ::Integer,
+        use_system_dns: bool,
       ) -> void
 
       def export: (Datadog::Profiling::Flush flush) -> bool
