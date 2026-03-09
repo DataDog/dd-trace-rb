@@ -23,6 +23,7 @@ module Datadog
       # @param scope [Scope] The scope to add
       def add_scope(scope)
         scopes_to_upload = nil
+        timer_to_join = nil
 
         @mutex.synchronize do
           # Check file limit
@@ -46,13 +47,19 @@ module Datadog
             # Prepare for upload (clear within mutex)
             scopes_to_upload = @scopes.dup
             @scopes.clear
-            @timer&.kill
-            @timer = nil
+            if @timer
+              @timer.kill
+              timer_to_join = @timer
+              @timer = nil
+            end
           else
             # Reset inactivity timer (only if not uploading)
             reset_timer_internal
           end
         end
+
+        # Wait for timer thread to terminate (outside mutex)
+        timer_to_join&.join(0.1)
 
         # Upload outside mutex (if batch was full)
         perform_upload(scopes_to_upload) if scopes_to_upload
@@ -64,15 +71,22 @@ module Datadog
       # Force upload of current batch
       def flush
         scopes_to_upload = nil
+        timer_to_join = nil
 
         @mutex.synchronize do
           return if @scopes.empty?
 
           scopes_to_upload = @scopes.dup
           @scopes.clear
-          @timer&.kill
-          @timer = nil
+          if @timer
+            @timer.kill
+            timer_to_join = @timer
+            @timer = nil
+          end
         end
+
+        # Wait for timer thread to terminate (outside mutex)
+        timer_to_join&.join(0.1)
 
         perform_upload(scopes_to_upload)
       end
@@ -80,14 +94,21 @@ module Datadog
       # Shutdown and upload remaining scopes
       def shutdown
         scopes_to_upload = nil
+        timer_to_join = nil
 
         @mutex.synchronize do
-          @timer&.kill
-          @timer = nil
+          if @timer
+            @timer.kill
+            timer_to_join = @timer
+            @timer = nil
+          end
 
           scopes_to_upload = @scopes.dup
           @scopes.clear
         end
+
+        # Wait for timer thread to terminate (outside mutex to avoid deadlock)
+        timer_to_join&.join(0.1)
 
         # Upload outside mutex
         perform_upload(scopes_to_upload) unless scopes_to_upload.empty?
@@ -95,13 +116,21 @@ module Datadog
 
       # Reset state (for testing)
       def reset
+        timer_to_join = nil
+
         @mutex.synchronize do
           @scopes.clear
-          @timer&.kill
-          @timer = nil
+          if @timer
+            @timer.kill
+            timer_to_join = @timer
+            @timer = nil
+          end
           @file_count = 0
           @uploaded_modules.clear
         end
+
+        # Wait for timer thread to actually terminate (outside mutex to avoid deadlock)
+        timer_to_join&.join(0.1)
       end
 
       # Check if scopes are pending
