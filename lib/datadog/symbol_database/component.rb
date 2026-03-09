@@ -16,13 +16,13 @@ module Datadog
 
         # Symbol database requires DI to be enabled
         unless settings.respond_to?(:dynamic_instrumentation) && settings.dynamic_instrumentation.enabled
-          logger.warn("SymDB: Symbol Database requires Dynamic Instrumentation to be enabled")
+          logger.debug("SymDB: Symbol Database requires Dynamic Instrumentation to be enabled")
           return nil
         end
 
         # Requires remote config (unless force mode)
         unless settings.remote&.enabled || settings.symbol_database.force_upload
-          logger.warn("SymDB: Symbol Database requires Remote Configuration (or force upload mode)")
+          logger.debug("SymDB: Symbol Database requires Remote Configuration (or force upload mode)")
           return nil
         end
 
