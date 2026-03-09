@@ -235,6 +235,9 @@ module Datadog
           # Shutdown DI after remote, since remote config triggers DI operations.
           dynamic_instrumentation&.shutdown!
 
+          # Shutdown Symbol Database after DI
+          symbol_database&.shutdown!
+
           # Shutdown OpenFeature component
           open_feature&.shutdown!
 
