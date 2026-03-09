@@ -54,7 +54,7 @@ module Datadog
           change.content.errored("Unrecognized change type: #{change.type}")
         end
       rescue => e
-        Datadog.logger.debug("SymDB: Error processing remote config change: #{e.message}")
+        Datadog.logger.debug("SymDB: Error processing remote config change: #{e.class}: #{e}")
         change.content.errored(e.message)
       end
 

@@ -45,7 +45,7 @@ module Datadog
         # Upload with retry
         upload_with_retry(compressed_data, scopes.size)
       rescue => e
-        Datadog.logger.debug("SymDB: Upload failed: #{e.message}")
+        Datadog.logger.debug("SymDB: Upload failed: #{e.class}: #{e}")
         # Don't propagate
       end
 
@@ -61,14 +61,14 @@ module Datadog
 
         service_version.to_json
       rescue => e
-        Datadog.logger.debug("SymDB: Serialization failed: #{e.message}")
+        Datadog.logger.debug("SymDB: Serialization failed: #{e.class}: #{e}")
         nil
       end
 
       def compress_payload(json_data)
         Zlib.gzip(json_data)
       rescue => e
-        Datadog.logger.debug("SymDB: Compression failed: #{e.message}")
+        Datadog.logger.debug("SymDB: Compression failed: #{e.class}: #{e}")
         nil
       end
 
@@ -83,12 +83,12 @@ module Datadog
           if retries <= MAX_RETRIES
             backoff = calculate_backoff(retries)
             Datadog.logger.debug(
-              "SymDB: Upload failed (#{retries}/#{MAX_RETRIES}), retrying in #{backoff}s: #{e.message}"
+              "SymDB: Upload failed (#{retries}/#{MAX_RETRIES}), retrying in #{backoff}s: #{e.class}: #{e}"
             )
             sleep(backoff)
             retry
           else
-            Datadog.logger.debug("SymDB: Upload failed after #{MAX_RETRIES} retries: #{e.message}")
+            Datadog.logger.debug("SymDB: Upload failed after #{MAX_RETRIES} retries: #{e.class}: #{e}")
           end
         end
       end

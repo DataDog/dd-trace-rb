@@ -3,11 +3,14 @@
 require_relative 'extractor'
 require_relative 'scope_context'
 require_relative 'uploader'
+require_relative '../core/utils/time'
 
 module Datadog
   module SymbolDatabase
     # Coordinates symbol database components and manages lifecycle
     class Component
+      UPLOAD_COOLDOWN = 60  # seconds
+
       def self.build(settings, agent_settings, logger, telemetry: nil)
         return unless settings.respond_to?(:symbol_database) && settings.symbol_database.enabled
 
@@ -53,12 +56,12 @@ module Datadog
         return if recently_uploaded?
 
         @enabled = true
-        @last_upload_time = Time.now
+        @last_upload_time = Datadog::Core::Utils::Time.now
 
         # Trigger extraction and upload
         extract_and_upload
       rescue => e
-        Datadog.logger.debug("SymDB: Error starting upload: #{e.message}")
+        Datadog.logger.debug("SymDB: Error starting upload: #{e.class}: #{e}")
       end
 
       # Stop symbol upload
@@ -77,8 +80,8 @@ module Datadog
       def recently_uploaded?
         return false if @last_upload_time.nil?
 
-        # Don't upload if last upload was within 60 seconds
-        Time.now - @last_upload_time < 60
+        # Don't upload if last upload was within cooldown period
+        Datadog::Core::Utils::Time.now - @last_upload_time < UPLOAD_COOLDOWN
       end
 
       def extract_and_upload
@@ -93,7 +96,7 @@ module Datadog
         # Flush any remaining scopes
         @scope_context.flush
       rescue => e
-        Datadog.logger.debug("SymDB: Error during extraction: #{e.message}")
+        Datadog.logger.debug("SymDB: Error during extraction: #{e.class}: #{e}")
       end
     end
 
