@@ -38,7 +38,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       end
 
       it 'uploads successfully' do
-        result = uploader.upload_scopes([test_scope])
+        uploader.upload_scopes([test_scope])
 
         expect(http).to have_received(:request)
       end
