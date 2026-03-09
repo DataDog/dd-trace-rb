@@ -1,0 +1,41 @@
+module Datadog
+  module SymbolDatabase
+    class Component
+      UPLOAD_COOLDOWN: Integer
+
+      @settings: untyped
+
+      @agent_settings: untyped
+
+      @logger: untyped
+
+      @telemetry: untyped
+
+      @uploader: Uploader
+
+      @scope_context: ScopeContext
+
+      @enabled: bool
+
+      @last_upload_time: Float?
+
+      def self.build: (untyped settings, untyped agent_settings, untyped logger, ?telemetry: untyped?) -> Component?
+
+      def initialize: (untyped settings, untyped agent_settings, untyped logger, ?telemetry: untyped?) -> void
+
+      attr_reader settings: untyped
+
+      def start_upload: () -> void
+
+      def stop_upload: () -> void
+
+      def shutdown!: () -> void
+
+      private
+
+      def recently_uploaded?: () -> bool
+
+      def extract_and_upload: () -> void
+    end
+  end
+end
