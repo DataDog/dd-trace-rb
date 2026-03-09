@@ -120,6 +120,7 @@ module Datadog
           :ai_guard,
           :agent_info,
           :data_streams,
+          :symbol_database,
           :open_feature
 
         def initialize(settings)
