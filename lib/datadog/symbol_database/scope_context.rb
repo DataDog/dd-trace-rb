@@ -71,6 +71,7 @@ module Datadog
       # @return [void]
       def add_scope(scope)
         scopes_to_upload = nil
+        timer_to_join = nil
 
         @mutex.synchronize do
           # Check file limit
@@ -109,6 +110,9 @@ module Datadog
           @timer_cv.signal
         end
 
+        # Wait for timer thread to terminate (outside mutex)
+        timer_to_join&.join(0.1)
+
         # Upload outside mutex (if batch was full)
         perform_upload(scopes_to_upload) if scopes_to_upload
       rescue => e
@@ -121,6 +125,7 @@ module Datadog
       # @return [void]
       def flush
         scopes_to_upload = nil
+        timer_to_join = nil
 
         # steep:ignore:start
         @mutex.synchronize do
@@ -130,6 +135,9 @@ module Datadog
           @scopes.clear
         end
 
+        # Wait for timer thread to terminate (outside mutex)
+        timer_to_join&.join(0.1)
+
         perform_upload(scopes_to_upload)
         # steep:ignore:end
       end
@@ -138,6 +146,7 @@ module Datadog
       # @return [void]
       def shutdown
         scopes_to_upload = nil
+        timer_to_join = nil
 
         # steep:ignore:start
         @mutex.synchronize do
@@ -162,6 +171,8 @@ module Datadog
       # @return [void]
       # @api private
       def reset
+        timer_to_join = nil
+
         @mutex.synchronize do
           @scopes.clear
           @timer_stopped = true
