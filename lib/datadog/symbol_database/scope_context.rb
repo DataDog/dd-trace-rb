@@ -57,7 +57,7 @@ module Datadog
         # Upload outside mutex (if batch was full)
         perform_upload(scopes_to_upload) if scopes_to_upload
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to add scope: #{e.message}")
+        Datadog.logger.debug("SymDB: Failed to add scope: #{e.class}: #{e}")
         # Don't propagate, continue operation
       end
 
@@ -136,7 +136,7 @@ module Datadog
 
         @uploader.upload_scopes(scopes)
       rescue => e
-        Datadog.logger.debug("SymDB: Upload failed: #{e.message}")
+        Datadog.logger.debug("SymDB: Upload failed: #{e.class}: #{e}")
         # Don't propagate, uploader handles retries
       end
     end

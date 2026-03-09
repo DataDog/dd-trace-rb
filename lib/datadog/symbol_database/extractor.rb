@@ -22,7 +22,7 @@ module Datadog
           extract_module_scope(mod)
         end
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to extract #{mod.name}: #{e.message}")
+        Datadog.logger.debug("SymDB: Failed to extract #{mod.name}: #{e.class}: #{e}")
         nil
       end
 
@@ -187,12 +187,12 @@ module Datadog
           class_scope = extract_class_scope(const_value)
           scopes << class_scope if class_scope
         rescue => e
-          Datadog.logger.debug("SymDB: Failed to extract constant #{mod.name}::#{const_name}: #{e.message}")
+          Datadog.logger.debug("SymDB: Failed to extract constant #{mod.name}::#{const_name}: #{e.class}: #{e}")
         end
 
         scopes
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to extract nested classes from #{mod.name}: #{e.message}")
+        Datadog.logger.debug("SymDB: Failed to extract nested classes from #{mod.name}: #{e.class}: #{e}")
         []
       end
 
@@ -220,7 +220,7 @@ module Datadog
 
         symbols
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to extract module symbols from #{mod.name}: #{e.message}")
+        Datadog.logger.debug("SymDB: Failed to extract module symbols from #{mod.name}: #{e.class}: #{e}")
         []
       end
 
@@ -256,7 +256,7 @@ module Datadog
 
         symbols
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to extract class symbols from #{klass.name}: #{e.message}")
+        Datadog.logger.debug("SymDB: Failed to extract class symbols from #{klass.name}: #{e.class}: #{e}")
         []
       end
 
@@ -285,7 +285,7 @@ module Datadog
 
         scopes
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to extract methods from #{klass.name}: #{e.message}")
+        Datadog.logger.debug("SymDB: Failed to extract methods from #{klass.name}: #{e.class}: #{e}")
         []
       end
 
@@ -316,7 +316,7 @@ module Datadog
           symbols: extract_method_parameters(method)
         )
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to extract method #{klass.name}##{method_name}: #{e.message}")
+        Datadog.logger.debug("SymDB: Failed to extract method #{klass.name}##{method_name}: #{e.class}: #{e}")
         nil
       end
 
@@ -346,7 +346,7 @@ module Datadog
           symbols: extract_singleton_method_parameters(method)
         )
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to extract singleton method #{klass.name}.#{method_name}: #{e.message}")
+        Datadog.logger.debug("SymDB: Failed to extract singleton method #{klass.name}.#{method_name}: #{e.class}: #{e}")
         nil
       end
 
@@ -379,7 +379,7 @@ module Datadog
           )
         end
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to extract parameters: #{e.message}")
+        Datadog.logger.debug("SymDB: Failed to extract parameters: #{e.class}: #{e}")
         []
       end
 
@@ -397,7 +397,7 @@ module Datadog
           )
         end
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to extract singleton method parameters: #{e.message}")
+        Datadog.logger.debug("SymDB: Failed to extract singleton method parameters: #{e.class}: #{e}")
         []
       end
 

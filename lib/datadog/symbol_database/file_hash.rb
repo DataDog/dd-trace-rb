@@ -23,7 +23,7 @@ module Datadog
 
         Digest::SHA1.hexdigest(git_blob)
       rescue => e
-        Datadog.logger.debug("SymDB: File hash computation failed for #{file_path}: #{e.message}")
+        Datadog.logger.debug("SymDB: File hash computation failed for #{file_path}: #{e.class}: #{e}")
         nil
       end
     end
