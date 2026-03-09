@@ -3,6 +3,8 @@
 require_relative '../../utils/base64'
 require_relative '../../../appsec/remote'
 require_relative '../../../tracing/remote'
+require_relative '../../../di/remote'
+require_relative '../../../symbol_database/remote'
 require_relative '../../../open_feature/remote'
 
 module Datadog
