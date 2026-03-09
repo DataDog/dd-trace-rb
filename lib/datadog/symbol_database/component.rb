@@ -99,23 +99,5 @@ module Datadog
         Datadog.logger.debug("SymDB: Error during extraction: #{e.class}: #{e}")
       end
     end
-
-    # Global component storage for remote config receiver access
-    @mutex = Mutex.new
-    @component = nil
-
-    module_function
-
-    def component
-      @mutex.synchronize { @component }
-    end
-
-    def set_component(component)
-      @mutex.synchronize { @component = component }
-    end
-
-    def enabled?
-      !component.nil?
-    end
   end
 end
