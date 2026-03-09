@@ -138,6 +138,20 @@ module Datadog
           def max_capture_attribute_count=: (Integer) -> void
         end
 
+        interface _SymbolDatabase
+          def enabled: () -> bool
+
+          def enabled=: (bool) -> void
+
+          def force_upload: () -> bool
+
+          def force_upload=: (bool) -> void
+
+          def includes: () -> Array[String]
+
+          def includes=: (Array[String]) -> void
+        end
+
         interface _TemplatesBlock
           def html=: (::String) -> void
 
@@ -203,6 +217,8 @@ module Datadog
         def ai_guard: (?untyped? options) -> Datadog::Core::Configuration::Settings::_AIGuard
 
         def dynamic_instrumentation: (?untyped? options) -> Datadog::Core::Configuration::Settings::_DI
+
+        def symbol_database: (?untyped? options) -> Datadog::Core::Configuration::Settings::_SymbolDatabase
 
         def remote: (?untyped? options) -> Datadog::Core::Configuration::Settings::_Remote
 
