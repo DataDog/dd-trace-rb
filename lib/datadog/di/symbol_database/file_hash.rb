@@ -23,7 +23,7 @@ module Datadog
           git_blob = "blob #{size}\0#{content}"
 
           Digest::SHA1.hexdigest(git_blob)
-        rescue StandardError => e
+        rescue => e
           Datadog.logger.debug("SymDB: File hash computation failed for #{file_path}: #{e.message}")
           nil
         end
