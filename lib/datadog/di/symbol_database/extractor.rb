@@ -22,7 +22,7 @@ module Datadog
           else
             extract_module_scope(mod)
           end
-        rescue StandardError => e
+        rescue => e
           Datadog.logger.debug("SymDB: Failed to extract #{mod.name}: #{e.message}")
           nil
         end
@@ -72,7 +72,7 @@ module Datadog
           end
 
           nil
-        rescue StandardError
+        rescue
           nil
         end
 
@@ -128,7 +128,7 @@ module Datadog
           return [0, 2147483647] if lines.empty?
 
           [lines.min, lines.max]
-        rescue StandardError
+        rescue
           [0, 2147483647]
         end
 
@@ -170,7 +170,7 @@ module Datadog
           specifics[:prepended_modules] = prepended unless prepended.empty?
 
           specifics
-        rescue StandardError
+        rescue
           {}
         end
 
@@ -181,20 +181,18 @@ module Datadog
           scopes = []
 
           mod.constants(false).each do |const_name|
-            begin
-              const_value = mod.const_get(const_name)
-              next unless const_value.is_a?(Class)
+            const_value = mod.const_get(const_name)
+            next unless const_value.is_a?(Class)
 
-              # Extract nested class
-              class_scope = extract_class_scope(const_value)
-              scopes << class_scope if class_scope
-            rescue StandardError => e
-              Datadog.logger.debug("SymDB: Failed to extract constant #{mod.name}::#{const_name}: #{e.message}")
-            end
+            # Extract nested class
+            class_scope = extract_class_scope(const_value)
+            scopes << class_scope if class_scope
+          rescue => e
+            Datadog.logger.debug("SymDB: Failed to extract constant #{mod.name}::#{const_name}: #{e.message}")
           end
 
           scopes
-        rescue StandardError => e
+        rescue => e
           Datadog.logger.debug("SymDB: Failed to extract nested classes from #{mod.name}: #{e.message}")
           []
         end
@@ -207,24 +205,22 @@ module Datadog
 
           # Constants (STATIC_FIELD)
           mod.constants(false).each do |const_name|
-            begin
-              const_value = mod.const_get(const_name)
-              # Skip classes (they're scopes, not symbols)
-              next if const_value.is_a?(Module)
+            const_value = mod.const_get(const_name)
+            # Skip classes (they're scopes, not symbols)
+            next if const_value.is_a?(Module)
 
-              symbols << Symbol.new(
-                symbol_type: 'STATIC_FIELD',
-                name: const_name.to_s,
-                line: 0,  # Unknown line, available in entire module
-                type: const_value.class.name
-              )
-            rescue StandardError
-              # Skip constants that can't be accessed
-            end
+            symbols << Symbol.new(
+              symbol_type: 'STATIC_FIELD',
+              name: const_name.to_s,
+              line: 0,  # Unknown line, available in entire module
+              type: const_value.class.name
+            )
+          rescue
+            # Skip constants that can't be accessed
           end
 
           symbols
-        rescue StandardError => e
+        rescue => e
           Datadog.logger.debug("SymDB: Failed to extract module symbols from #{mod.name}: #{e.message}")
           []
         end
@@ -246,23 +242,21 @@ module Datadog
 
           # Constants (STATIC_FIELD) - excluding nested classes
           klass.constants(false).each do |const_name|
-            begin
-              const_value = klass.const_get(const_name)
-              next if const_value.is_a?(Module)  # Skip classes/modules
+            const_value = klass.const_get(const_name)
+            next if const_value.is_a?(Module)  # Skip classes/modules
 
-              symbols << Symbol.new(
-                symbol_type: 'STATIC_FIELD',
-                name: const_name.to_s,
-                line: 0,
-                type: const_value.class.name
-              )
-            rescue StandardError
-              # Skip inaccessible constants
-            end
+            symbols << Symbol.new(
+              symbol_type: 'STATIC_FIELD',
+              name: const_name.to_s,
+              line: 0,
+              type: const_value.class.name
+            )
+          rescue
+            # Skip inaccessible constants
           end
 
           symbols
-        rescue StandardError => e
+        rescue => e
           Datadog.logger.debug("SymDB: Failed to extract class symbols from #{klass.name}: #{e.message}")
           []
         end
@@ -275,8 +269,8 @@ module Datadog
 
           # Get all instance methods (public, protected, private)
           all_instance_methods = klass.instance_methods(false) +
-                                 klass.protected_instance_methods(false) +
-                                 klass.private_instance_methods(false)
+            klass.protected_instance_methods(false) +
+            klass.private_instance_methods(false)
           all_instance_methods.uniq!
 
           all_instance_methods.each do |method_name|
@@ -291,7 +285,7 @@ module Datadog
           end
 
           scopes
-        rescue StandardError => e
+        rescue => e
           Datadog.logger.debug("SymDB: Failed to extract methods from #{klass.name}: #{e.message}")
           []
         end
@@ -322,7 +316,7 @@ module Datadog
             },
             symbols: extract_method_parameters(method)
           )
-        rescue StandardError => e
+        rescue => e
           Datadog.logger.debug("SymDB: Failed to extract method #{klass.name}##{method_name}: #{e.message}")
           nil
         end
@@ -352,7 +346,7 @@ module Datadog
             },
             symbols: extract_singleton_method_parameters(method)
           )
-        rescue StandardError => e
+        rescue => e
           Datadog.logger.debug("SymDB: Failed to extract singleton method #{klass.name}.#{method_name}: #{e.message}")
           nil
         end
@@ -385,7 +379,7 @@ module Datadog
               line: 0  # Parameters available in entire method
             )
           end
-        rescue StandardError => e
+        rescue => e
           Datadog.logger.debug("SymDB: Failed to extract parameters: #{e.message}")
           []
         end
@@ -403,19 +397,19 @@ module Datadog
               line: 0
             )
           end
-        rescue StandardError => e
+        rescue => e
           Datadog.logger.debug("SymDB: Failed to extract singleton method parameters: #{e.message}")
           []
         end
 
         private_class_method :user_code_module?, :user_code_path?, :find_source_file,
-                             :extract_module_scope, :extract_class_scope,
-                             :calculate_class_line_range, :build_module_language_specifics,
-                             :build_class_language_specifics, :extract_nested_classes,
-                             :extract_module_symbols, :extract_class_symbols,
-                             :extract_method_scopes, :extract_method_scope,
-                             :extract_singleton_method_scope, :method_visibility,
-                             :extract_method_parameters, :extract_singleton_method_parameters
+          :extract_module_scope, :extract_class_scope,
+          :calculate_class_line_range, :build_module_language_specifics,
+          :build_class_language_specifics, :extract_nested_classes,
+          :extract_module_symbols, :extract_class_symbols,
+          :extract_method_scopes, :extract_method_scope,
+          :extract_singleton_method_scope, :method_visibility,
+          :extract_method_parameters, :extract_singleton_method_parameters
       end
     end
   end
