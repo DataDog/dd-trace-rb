@@ -76,12 +76,17 @@ module Datadog
         # Things get messy when `Queue` is mixed in,
         # wanting to override semantic 1 but not 2.
         # This should probably be split into two methods:
-        # `work_pending?` (semantic 1) and `keep_running?` (semantic 2).
+        # `work_pending?` (semantic 1) and `continue_loop?` (semantic 2).
+        # Today, `run_loop?` performs semantic 2, but should probably be
+        # renamed to `continue_loop?`, since that would make it clear that
+        # we're just checking if we can "keep going inside the loop",
+        # and not checking if we should run the loop right now.
         # Clean up {Workers::Queue} after this.
         def work_pending?
           run_loop?
         end
 
+        # TODO: Probably should be renamed to `continue_loop?`, see `work_pending?` TODO.
         def run_loop?
           return false unless instance_variable_defined?(:@run_loop)
 
