@@ -86,20 +86,15 @@ RSpec.describe Datadog::SymbolDatabase::FileHash do
     end
 
     it 'returns nil and logs on read error' do
-      # Create file then make it unreadable
-      Tempfile.create(['test', '.rb']) do |f|
-        f.close
-        File.chmod(0o000, f.path)
+      # Stub File.read to raise an error
+      allow(File).to receive(:exist?).and_return(true)
+      allow(File).to receive(:read).and_raise(Errno::EACCES, "Permission denied")
 
-        expect(Datadog.logger).to receive(:debug).with(/File hash computation failed/)
+      expect(Datadog.logger).to receive(:debug).with(/File hash computation failed/)
 
-        hash = described_class.compute(f.path)
+      hash = described_class.compute('/fake/unreadable/file.rb')
 
-        expect(hash).to be_nil
-
-        # Restore permissions for cleanup
-        File.chmod(0o644, f.path)
-      end
+      expect(hash).to be_nil
     end
 
     it 'handles UTF-8 content' do
