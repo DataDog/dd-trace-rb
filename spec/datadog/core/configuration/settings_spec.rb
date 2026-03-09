@@ -1402,7 +1402,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       context 'by default' do
         let(:environment) { nil }
 
-        it { is_expected.to be false }
+        it { is_expected.to be true }
       end
 
       context 'when set to true' do
@@ -1421,10 +1421,10 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
   describe '#experimental_propagate_process_tags_enabled=' do
     it 'updates the #experimental_propagate_process_tags_enabled setting' do
-      expect { settings.experimental_propagate_process_tags_enabled = true }
+      expect { settings.experimental_propagate_process_tags_enabled = false }
         .to change { settings.experimental_propagate_process_tags_enabled }
-        .from(false)
-        .to(true)
+        .from(true)
+        .to(false)
     end
   end
 

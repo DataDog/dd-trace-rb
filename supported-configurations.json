@@ -345,7 +345,7 @@
       {
         "version": "A",
         "type": "boolean",
-        "default": "false"
+        "default": "true"
       }
     ],
     "DD_GIT_COMMIT_SHA": [

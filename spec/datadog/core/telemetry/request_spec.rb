@@ -59,6 +59,8 @@ RSpec.describe Datadog::Core::Telemetry::Request do
         c.env = env
         c.service = service_name
         c.version = service_version
+        # Keep baseline payload without process_tags.
+        c.experimental_propagate_process_tags_enabled = false
       end
     end
 

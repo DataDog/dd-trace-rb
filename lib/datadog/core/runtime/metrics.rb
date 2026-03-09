@@ -27,7 +27,7 @@ module Datadog
           @runtime_id_enabled = options.fetch(:experimental_runtime_id_enabled, false)
 
           # Initialized process tags support
-          @process_tags_enabled = options.fetch(:experimental_propagate_process_tags_enabled, false)
+          @process_tags_enabled = options.fetch(:experimental_propagate_process_tags_enabled, true)
         end
 
         # Associate service with runtime metrics
