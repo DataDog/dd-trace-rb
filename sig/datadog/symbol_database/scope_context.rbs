@@ -1,0 +1,43 @@
+module Datadog
+  module SymbolDatabase
+    class ScopeContext
+      MAX_SCOPES: Integer
+
+      INACTIVITY_TIMEOUT: Float
+
+      MAX_FILES: Integer
+
+      @uploader: Uploader
+
+      @scopes: Array[Scope]
+
+      @mutex: Mutex
+
+      @timer: Thread?
+
+      @file_count: Integer
+
+      @uploaded_modules: Set[String]
+
+      def initialize: (Uploader uploader) -> void
+
+      def add_scope: (Scope scope) -> void
+
+      def flush: () -> void
+
+      def shutdown: () -> void
+
+      def reset: () -> void
+
+      def pending?: () -> bool
+
+      def size: () -> Integer
+
+      private
+
+      def reset_timer_internal: () -> void
+
+      def perform_upload: (Array[Scope]? scopes) -> void
+    end
+  end
+end

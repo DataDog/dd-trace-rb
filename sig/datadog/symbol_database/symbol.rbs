@@ -1,0 +1,37 @@
+module Datadog
+  module SymbolDatabase
+    class Symbol
+      @symbol_type: String
+
+      @name: String
+
+      @line: Integer
+
+      @type: String?
+
+      @language_specifics: Hash[Symbol, untyped]?
+
+      def initialize: (
+        symbol_type: String,
+        name: String,
+        line: Integer,
+        ?type: String?,
+        ?language_specifics: Hash[Symbol, untyped]?
+      ) -> void
+
+      attr_reader symbol_type: String
+
+      attr_reader name: String
+
+      attr_reader line: Integer
+
+      attr_reader type: String?
+
+      attr_reader language_specifics: Hash[Symbol, untyped]?
+
+      def to_h: () -> Hash[Symbol, untyped]
+
+      def to_json: (*untyped args) -> String
+    end
+  end
+end

@@ -1,0 +1,13 @@
+module Datadog
+  module SymbolDatabase
+    @mutex: Mutex
+
+    self.@component: Component?
+
+    def self.component: () -> Component?
+
+    def self.set_component: (Component? component) -> void
+
+    def self.enabled?: () -> bool
+  end
+end
