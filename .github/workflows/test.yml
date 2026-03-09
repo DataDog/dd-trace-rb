@@ -174,7 +174,8 @@ jobs:
       - run: echo "$DD_GIT_COMMIT_SHA"
       - name: Add final_status property
         run: |
-          find . -name '*.xml' | while read -r xml_file; do
+          apk add libxslt
+          find tmp/rspec -name '*.xml' | while read -r xml_file; do
               echo "Fixing $xml_file"
               tmp_file="$(mktemp)"
               xsltproc --output "$tmp_file" ".github/add_final_status.xsl" "$xml_file"
