@@ -89,7 +89,7 @@ RSpec.describe Datadog::DI::SymbolDatabase::FileHash do
       # Create file then make it unreadable
       Tempfile.create(['test', '.rb']) do |f|
         f.close
-        File.chmod(0000, f.path)
+        File.chmod(0o000, f.path)
 
         expect(Datadog.logger).to receive(:debug).with(/File hash computation failed/)
 
@@ -98,7 +98,7 @@ RSpec.describe Datadog::DI::SymbolDatabase::FileHash do
         expect(hash).to be_nil
 
         # Restore permissions for cleanup
-        File.chmod(0644, f.path)
+        File.chmod(0o644, f.path)
       end
     end
 
