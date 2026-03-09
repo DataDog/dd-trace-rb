@@ -101,7 +101,7 @@ target :datadog do
   ignore 'lib/datadog/di/configuration.rb'
   ignore 'lib/datadog/di/contrib/railtie.rb'
   # Symbol database - defer RBS signatures to post-MVP
-  ignore 'lib/datadog/di/symbol_database/**/*.rb'
+  ignore 'lib/datadog/symbol_database/**/*.rb'
   ignore 'lib/datadog/di/transport/http/api.rb'
   ignore 'lib/datadog/di/transport/http/diagnostics.rb'
   ignore 'lib/datadog/di/transport/http/input.rb'
