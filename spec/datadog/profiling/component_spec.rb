@@ -536,9 +536,26 @@ RSpec.describe Datadog::Profiling::Component do
           site: settings.site,
           api_key: settings.api_key,
           upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
+          use_system_dns: settings.profiling.advanced.experimental_use_system_dns,
         )
 
         build_profiler_component
+      end
+
+      context "when experimental_use_system_dns is set" do
+        before do
+          allow(settings.profiling.advanced)
+            .to receive(:experimental_use_system_dns)
+            .and_return(:experimental_use_system_dns_setting_value)
+        end
+
+        it "passes the setting value to HttpTransport" do
+          expect(Datadog::Profiling::HttpTransport).to receive(:new).with(
+            hash_including(use_system_dns: :experimental_use_system_dns_setting_value)
+          )
+
+          build_profiler_component
+        end
       end
 
       it "creates a scheduler with an HttpTransport" do

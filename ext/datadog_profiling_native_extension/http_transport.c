@@ -82,23 +82,26 @@ static ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration) {
   ENFORCE_TYPE(timeout_milliseconds_value, T_FIXNUM);
   uint64_t timeout_milliseconds = NUM2ULONG(timeout_milliseconds_value);
 
+  VALUE use_system_dns = rb_ary_entry(exporter_configuration, 2);
+  ENFORCE_BOOLEAN(use_system_dns);
+
   if (working_mode == rb_intern("agentless")) {
-    VALUE site = rb_ary_entry(exporter_configuration, 2);
-    VALUE api_key = rb_ary_entry(exporter_configuration, 3);
+    VALUE site = rb_ary_entry(exporter_configuration, 3);
+    VALUE api_key = rb_ary_entry(exporter_configuration, 4);
 
     return ddog_prof_Endpoint_agentless(
       char_slice_from_ruby_string(site),
       char_slice_from_ruby_string(api_key),
       timeout_milliseconds,
-      false // use_system_resolver
+      use_system_dns == Qtrue
     );
   } else if (working_mode == rb_intern("agent")) {
-    VALUE base_url = rb_ary_entry(exporter_configuration, 2);
+    VALUE base_url = rb_ary_entry(exporter_configuration, 3);
 
     return ddog_prof_Endpoint_agent(
       char_slice_from_ruby_string(base_url),
       timeout_milliseconds,
-      false // use_system_resolver
+      use_system_dns == Qtrue
     );
   } else {
     raise_error(rb_eArgError, "Failed to initialize transport: Unexpected working mode, expected :agentless or :agent");
