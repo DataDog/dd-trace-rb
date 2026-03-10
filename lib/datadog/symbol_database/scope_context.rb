@@ -10,8 +10,9 @@ module Datadog
       INACTIVITY_TIMEOUT = 1.0  # seconds
       MAX_FILES = 10_000
 
-      def initialize(uploader)
+      def initialize(uploader, telemetry: nil)
         @uploader = uploader
+        @telemetry = telemetry
         @scopes = []
         @mutex = Mutex.new
         @timer = nil
