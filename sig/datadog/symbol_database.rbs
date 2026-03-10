@@ -1,8 +1,8 @@
 module Datadog
   module SymbolDatabase
-    @mutex: Mutex
+    @mutex: untyped
 
-    self.@component: Component?
+    @component: untyped
 
     def self.component: () -> Component?
 
