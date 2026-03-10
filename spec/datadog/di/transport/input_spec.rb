@@ -20,12 +20,30 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
   let(:tags) { [] }
 
-  context 'when snapshot contains binary data' do
+  context 'when snapshot contains binary data converted to Python repr' do
     context 'with all 256 byte values' do
       # Create a string containing all possible byte values (0x00-0xFF)
       # This simulates capturing a binary buffer in dynamic instrumentation
       let(:binary_string) do
         (0..255).map { |i| i.chr(Encoding::BINARY) }.join.force_encoding(Encoding::BINARY)
+      end
+
+      # Simulate what the serializer produces after converting to Python repr
+      let(:python_repr) do
+        result = "b'".dup
+        binary_string.each_byte do |byte|
+          case byte
+          when 0x09 then result << '\\t'
+          when 0x0A then result << '\\n'
+          when 0x0D then result << '\\r'
+          when 0x27 then result << "\\'"
+          when 0x5C then result << '\\\\'
+          when 0x20..0x7E then result << byte.chr
+          else result << format('\\x%02x', byte)
+          end
+        end
+        result << "'"
+        result.force_encoding(Encoding::UTF_8)
       end
 
       let(:snapshot) do
@@ -34,22 +52,32 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           'timestamp' => Time.now.to_i,
           'captures' => {
             'locals' => {
-              'binary_data' => binary_string
+              'binary_data' => python_repr
             }
           }
         }
       end
 
-      it 'has all 256 unique bytes' do
+      it 'has all 256 unique bytes in original' do
         expect(binary_string.bytes.uniq.sort).to eq((0..255).to_a)
         expect(binary_string.encoding).to eq(Encoding::BINARY)
       end
 
-      it 'fails to serialize through transport layer' do
-        # JSON.dump cannot handle arbitrary binary data
+      it 'successfully serializes Python repr through transport layer' do
+        # Python repr format is JSON-safe
         expect {
           transport.send_input([snapshot], tags)
-        }.to raise_error(JSON::GeneratorError, /from ASCII-8BIT to UTF-8/)
+        }.not_to raise_error
+      end
+
+      it 'produces valid JSON' do
+        json_output = JSON.dump(snapshot)
+        expect(json_output).to be_a(String)
+        expect(json_output.encoding).to eq(Encoding::UTF_8)
+
+        # Can round-trip through JSON
+        parsed = JSON.parse(json_output)
+        expect(parsed['captures']['locals']['binary_data']).to eq(python_repr)
       end
     end
 
@@ -57,28 +85,35 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
       # Create a string with bytes that are invalid UTF-8 sequences
       let(:binary_string) { "\x80\x81\x82\xFF\xFE".b }
 
+      # After conversion to Python repr
+      let(:python_repr) { "b'\\x80\\x81\\x82\\xff\\xfe'" }
+
       let(:snapshot) do
         {
           'id' => 'test-snapshot',
           'captures' => {
             'locals' => {
-              'binary_data' => binary_string
+              'binary_data' => python_repr
             }
           }
         }
       end
 
       before do
-        # Assert this is indeed invalid UTF-8
-        # When forced to UTF-8, it should not be valid
+        # Assert the original is indeed invalid UTF-8
         utf8_attempt = binary_string.dup.force_encoding(Encoding::UTF_8)
         expect(utf8_attempt.valid_encoding?).to be false
       end
 
-      it 'fails to serialize binary string' do
+      it 'successfully serializes Python repr of binary string' do
         expect {
           transport.send_input([snapshot], tags)
-        }.to raise_error(JSON::GeneratorError, /from ASCII-8BIT to UTF-8/)
+        }.not_to raise_error
+      end
+
+      it 'Python repr is valid UTF-8' do
+        expect(python_repr.encoding).to eq(Encoding::UTF_8)
+        expect(python_repr.valid_encoding?).to be true
       end
     end
   end

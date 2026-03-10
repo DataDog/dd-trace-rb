@@ -184,12 +184,35 @@ module Datadog
             else
               value.to_s
             end
+
+            # For binary strings, truncate BEFORE converting to Python repr
+            # to avoid truncating in the middle of the repr format
+            is_binary = value.encoding == Encoding::BINARY
             max = settings.dynamic_instrumentation.max_capture_string_length
-            if value.length > max
-              serialized.update(truncated: true, size: value.length)
-              value = value[0...max]
-              need_dup = false
+
+            if is_binary
+              # For binary strings, we need to account for expansion during repr conversion
+              # Each byte can become up to 4 characters (\xHH), plus b'...' wrapper (4 chars)
+              # To be safe, truncate binary data to max/4 bytes
+              max_bytes = [max / 4 - 1, 1].max  # Reserve space for wrapper, minimum 1 byte
+              original_length = value.bytesize
+              if original_length > max_bytes
+                serialized.update(truncated: true, size: original_length)
+                value = value.byteslice(0, max_bytes)
+                need_dup = false
+              end
+              # Convert to Python repr after truncation
+              value = binary_to_python_repr(value)
+              need_dup = false # Already converted to new string
+            else
+              # Normal string handling
+              if value.length > max
+                serialized.update(truncated: true, size: value.length)
+                value = value[0...max]
+                need_dup = false
+              end
             end
+
             value = value.dup if need_dup
             serialized.update(value: value)
           when Array
@@ -416,6 +439,42 @@ module Datadog
         else
           value
         end
+      end
+
+      # Converts a binary string to Python-style bytes repr format.
+      #
+      # This makes binary data JSON-safe by representing it as a string
+      # similar to Python's repr(bytes) output: b'...'
+      #
+      # Examples:
+      #   b"Hello" -> "b'Hello'"
+      #   b"\x80\xFF" -> "b'\\x80\\xff'"
+      #
+      # @param binary_string [String] A string with ASCII-8BIT encoding
+      # @return [String] Python-style repr with UTF-8 encoding
+      def binary_to_python_repr(binary_string)
+        result = "b'".dup
+        binary_string.each_byte do |byte|
+          case byte
+          when 0x09 # \t
+            result << '\\t'
+          when 0x0A # \n
+            result << '\\n'
+          when 0x0D # \r
+            result << '\\r'
+          when 0x27 # '
+            result << "\\'"
+          when 0x5C # \
+            result << '\\\\'
+          when 0x20..0x7E # Printable ASCII (space through ~)
+            result << byte.chr
+          else
+            # Non-printable: use \xHH format
+            result << format('\\x%02x', byte)
+          end
+        end
+        result << "'"
+        result.force_encoding(Encoding::UTF_8)
       end
     end
   end

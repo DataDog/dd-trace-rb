@@ -586,35 +586,38 @@ RSpec.describe Datadog::DI::Serializer do
 
   describe 'binary data serialization' do
     context 'with high bytes' do
-      # Create a string with problematic high bytes at the start
-      # to ensure it's not truncated before the problematic bytes
+      # Create a shorter string with high bytes to avoid truncation
       let(:binary_string) do
-        (128..255).map { |i| i.chr(Encoding::BINARY) }.join.force_encoding(Encoding::BINARY)
+        "\x80\x90\xa0\xb0\xc0\xd0\xe0\xf0\xff".b
       end
 
-      it 'preserves binary encoding in serialized output' do
+      it 'converts to Python-style repr format' do
         # Serialize the binary string
         serialized = serializer.serialize_value(binary_string)
 
-        # The serializer produces a hash with the binary string as the value
+        # The serializer produces a hash with Python-style repr
         expect(serialized[:type]).to eq('String')
-        expect(serialized[:value].encoding).to eq(Encoding::BINARY)
-        expect(serialized[:value].bytes.any? { |b| b > 127 }).to be true
+        expect(serialized[:value]).to eq("b'\\x80\\x90\\xa0\\xb0\\xc0\\xd0\\xe0\\xf0\\xff'")
+        expect(serialized[:value].encoding).to eq(Encoding::UTF_8)
       end
     end
 
     context 'in nested structures' do
       let(:binary_string) { "\x80\x81\x82\xFF\xFE".b }
 
-      it 'preserves binary encoding in vars' do
+      it 'converts binary strings to repr in vars' do
         # Simulate a more realistic snapshot with binary data in locals
         vars = {binary_data: binary_string, normal_string: "hello"}
         serialized = serializer.serialize_vars(vars)
 
-        # Serialization succeeds and preserves binary encoding
+        # Binary data is converted to Python repr
         expect(serialized[:binary_data][:type]).to eq('String')
-        expect(serialized[:binary_data][:value].encoding).to eq(Encoding::BINARY)
+        expect(serialized[:binary_data][:value]).to eq("b'\\x80\\x81\\x82\\xff\\xfe'")
+        expect(serialized[:binary_data][:value].encoding).to eq(Encoding::UTF_8)
+
+        # Normal string is unchanged
         expect(serialized[:normal_string][:type]).to eq('String')
+        expect(serialized[:normal_string][:value]).to eq('hello')
         expect(serialized[:normal_string][:value].encoding).to eq(Encoding::UTF_8)
       end
     end
@@ -622,7 +625,7 @@ RSpec.describe Datadog::DI::Serializer do
     context 'in method arguments' do
       let(:binary_string) { "\x00\x01\x02\xFF".b }
 
-      it 'preserves binary encoding in args' do
+      it 'converts binary strings to repr in args' do
         # Simulate method arguments containing binary data
         args = [binary_string, "normal arg"]
         kwargs = {data: binary_string}
@@ -630,11 +633,48 @@ RSpec.describe Datadog::DI::Serializer do
 
         serialized = serializer.serialize_args(args, kwargs, target_self)
 
-        # Serialization succeeds and preserves binary encoding
+        # Binary data is converted to Python repr
         expect(serialized[:arg1][:type]).to eq('String')
-        expect(serialized[:arg1][:value].encoding).to eq(Encoding::BINARY)
+        expect(serialized[:arg1][:value]).to eq("b'\\x00\\x01\\x02\\xff'")
+        expect(serialized[:arg1][:value].encoding).to eq(Encoding::UTF_8)
+
+        # Normal arg is unchanged
         expect(serialized[:arg2][:type]).to eq('String')
+        expect(serialized[:arg2][:value]).to eq('normal arg')
         expect(serialized[:arg2][:value].encoding).to eq(Encoding::UTF_8)
+      end
+    end
+
+    context 'with mixed printable and binary data' do
+      let(:binary_string) { "Hello\x00World\xFF".b }
+
+      it 'escapes non-printable bytes while preserving printable ASCII' do
+        serialized = serializer.serialize_value(binary_string)
+
+        expect(serialized[:value]).to eq("b'Hello\\x00World\\xff'")
+        expect(serialized[:value].encoding).to eq(Encoding::UTF_8)
+      end
+    end
+
+    context 'with special escape sequences' do
+      let(:binary_string) { "Line1\nLine2\tTab\rReturn".b }
+
+      it 'uses standard escape sequences' do
+        serialized = serializer.serialize_value(binary_string)
+
+        expect(serialized[:value]).to eq("b'Line1\\nLine2\\tTab\\rReturn'")
+        expect(serialized[:value].encoding).to eq(Encoding::UTF_8)
+      end
+    end
+
+    context 'with quotes and backslashes' do
+      let(:binary_string) { "It's a\\test".b }
+
+      it 'escapes quotes and backslashes' do
+        serialized = serializer.serialize_value(binary_string)
+
+        expect(serialized[:value]).to eq("b'It\\'s a\\\\test'")
+        expect(serialized[:value].encoding).to eq(Encoding::UTF_8)
       end
     end
   end

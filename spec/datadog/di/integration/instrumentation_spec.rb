@@ -1365,12 +1365,12 @@ RSpec.describe 'Instrumentation integration' do
 
       let(:binary_string) { "\x80\x81\x82\xFF\xFE".b }
 
-      it 'fails to send snapshot with binary data through transport' do
+      it 'successfully sends snapshot with binary data through transport' do
         expect(diagnostics_transport).to receive(:send_diagnostics)
 
-        # Capture the snapshot and the error that happens in transport
+        # Capture the snapshot that goes through transport
         captured_snapshot = nil
-        transport_error = nil
+        json_encoded = nil
 
         allow(component.probe_notifier_worker).to receive(:add_snapshot).and_wrap_original do |m, *args|
           captured_snapshot = args[0]
@@ -1378,13 +1378,8 @@ RSpec.describe 'Instrumentation integration' do
         end
 
         allow(input_transport).to receive(:send_input) do |snapshots, tags|
-          begin
-            # This mimics what the transport does - encode to JSON
-            JSON.dump(snapshots)
-          rescue => e
-            transport_error = e
-            # Don't re-raise to avoid failing the test
-          end
+          # This mimics what the transport does - encode to JSON
+          json_encoded = JSON.dump(snapshots)
         end
 
         probe_manager.add_probe(probe)
@@ -1400,16 +1395,17 @@ RSpec.describe 'Instrumentation integration' do
         # Verify the snapshot was captured
         expect(captured_snapshot).not_to be_nil
 
-        # Verify that attempting to JSON encode the snapshot fails
+        # JSON encoding should now succeed with Python repr
         expect {
           JSON.dump(captured_snapshot)
-        }.to raise_error(JSON::GeneratorError, /from ASCII-8BIT to UTF-8/)
+        }.not_to raise_error
 
-        # The transport should have encountered the same error
-        expect(transport_error).to be_a(JSON::GeneratorError)
+        # Transport should have successfully encoded it
+        expect(json_encoded).to be_a(String)
+        expect(json_encoded.encoding).to eq(Encoding::UTF_8)
       end
 
-      it 'captures binary data in parameters before JSON encoding fails' do
+      it 'converts binary data in parameters to Python repr' do
         expect(diagnostics_transport).to receive(:send_diagnostics)
 
         # Capture the snapshot before it gets to transport
@@ -1423,23 +1419,23 @@ RSpec.describe 'Instrumentation integration' do
         # Execute the method
         InstrumentationSpecTestClass.new.binary_data_param_method(binary_string, "hello")
 
-        # Verify snapshot was captured with binary data
+        # Verify snapshot was captured with binary data converted to Python repr
         expect(captured_snapshot).not_to be_nil
         expect(captured_snapshot[:debugger][:snapshot][:captures]).to have_key(:entry)
 
         entry_capture = captured_snapshot[:debugger][:snapshot][:captures][:entry]
         expect(entry_capture[:arguments]).to have_key(:arg1)
 
-        # The binary string is in the snapshot as arg1
+        # The binary string is converted to Python repr format
         binary_param_value = entry_capture[:arguments][:arg1][:value]
         expect(binary_param_value).to be_a(String)
-        expect(binary_param_value.encoding).to eq(Encoding::BINARY)
-        expect(binary_param_value.bytes).to eq([0x80, 0x81, 0x82, 0xFF, 0xFE])
+        expect(binary_param_value).to eq("b'\\x80\\x81\\x82\\xff\\xfe'")
+        expect(binary_param_value.encoding).to eq(Encoding::UTF_8)
 
-        # But JSON encoding the snapshot will fail
+        # JSON encoding the snapshot should now succeed
         expect {
           JSON.dump(captured_snapshot)
-        }.to raise_error(JSON::GeneratorError, /from ASCII-8BIT to UTF-8/)
+        }.not_to raise_error
       end
     end
 
@@ -1454,7 +1450,7 @@ RSpec.describe 'Instrumentation integration' do
         )
       end
 
-      it 'captures binary return value that fails JSON encoding' do
+      it 'converts binary return value to Python repr' do
         expect(diagnostics_transport).to receive(:send_diagnostics)
 
         # Capture the snapshot before transport
@@ -1471,19 +1467,22 @@ RSpec.describe 'Instrumentation integration' do
         expect(result.bytes.min).to eq(128)
         expect(result.bytes.max).to eq(255)
 
-        # Verify snapshot captured the return value
+        # Verify snapshot captured the return value as Python repr
         expect(captured_snapshot).not_to be_nil
         return_capture = captured_snapshot[:debugger][:snapshot][:captures][:return]
         expect(return_capture[:arguments]).to have_key(:"@return")
 
         return_value = return_capture[:arguments][:"@return"][:value]
-        expect(return_value.encoding).to eq(Encoding::BINARY)
-        expect(return_value.bytes.any? { |b| b > 127 }).to be true
+        expect(return_value).to start_with("b'")
+        expect(return_value).to end_with("'")
+        expect(return_value.encoding).to eq(Encoding::UTF_8)
+        expect(return_value).to include('\\x80') # First high byte
+        # Note: The full 128-byte string gets truncated, so we don't check for \xff
 
-        # JSON encoding will fail
+        # JSON encoding should now succeed
         expect {
           JSON.dump(captured_snapshot)
-        }.to raise_error(JSON::GeneratorError, /from ASCII-8BIT to UTF-8/)
+        }.not_to raise_error
       end
     end
   end
