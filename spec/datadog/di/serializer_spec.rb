@@ -886,6 +886,83 @@ RSpec.describe Datadog::DI::Serializer do
       end
     end
 
+    context 'with non-UTF8, non-Binary encodings' do
+      it 'handles Latin1 (ISO-8859-1) strings with high-bit characters' do
+        # Latin1 "é" (0xE9) - valid Latin1, not valid UTF-8 byte sequence
+        latin1 = "\xE9".force_encoding(Encoding::ISO_8859_1)
+        expect(latin1.encoding).to eq(Encoding::ISO_8859_1)
+        expect(latin1.valid_encoding?).to be true # Valid Latin1
+
+        result = serializer.serialize_value(latin1)
+
+        # Should NOT escape (it's a valid encoding, not binary)
+        # JSON.dump will transcode Latin1 to UTF-8 automatically
+        expect(result[:type]).to eq('String')
+        expect(result[:value]).not_to start_with("b'") # Not escaped
+        expect(result[:value].encoding).to eq(Encoding::ISO_8859_1) # Preserved
+
+        # Should be JSON-serializable (Ruby will transcode)
+        expect {
+          JSON.dump(result)
+        }.not_to raise_error
+      end
+
+      it 'handles Latin1 strings with all high-bit bytes' do
+        # All Latin1 high-bit characters (128-255)
+        latin1 = (128..255).map { |i| i.chr(Encoding::ISO_8859_1) }.join
+        expect(latin1.encoding).to eq(Encoding::ISO_8859_1)
+        expect(latin1.valid_encoding?).to be true
+
+        result = serializer.serialize_value(latin1)
+
+        # Should NOT escape - it's a valid encoding
+        expect(result[:type]).to eq('String')
+        expect(result[:value]).not_to start_with("b'")
+        expect(result[:value].encoding).to eq(Encoding::ISO_8859_1)
+
+        # Should be JSON-serializable
+        expect {
+          json = JSON.dump(result)
+          parsed = JSON.parse(json)
+          # JSON transcodes to UTF-8
+          expect(parsed['value'].encoding).to eq(Encoding::UTF_8)
+        }.not_to raise_error
+      end
+
+      it 'handles Windows-1252 encoding' do
+        # Windows-1252 specific character: € (0x80)
+        windows1252 = "\x80".force_encoding(Encoding::Windows_1252)
+        expect(windows1252.valid_encoding?).to be true
+
+        result = serializer.serialize_value(windows1252)
+
+        # Should NOT escape - it's a valid encoding
+        expect(result[:type]).to eq('String')
+        expect(result[:value]).not_to start_with("b'")
+        expect(result[:value].encoding).to eq(Encoding::Windows_1252)
+
+        # Should be JSON-serializable
+        expect {
+          JSON.dump(result)
+        }.not_to raise_error
+      end
+
+      it 'truncates Latin1 strings based on character length' do
+        # 20 character Latin1 string with high bits
+        latin1 = "\xE9" * 20 # "é" repeated 20 times
+        latin1 = latin1.force_encoding(Encoding::ISO_8859_1)
+        allow(di_settings).to receive(:max_capture_string_length).and_return(10)
+
+        result = serializer.serialize_value(latin1)
+
+        # Should truncate at 10 characters (not bytes, not escape)
+        expect(result[:value].length).to eq(10)
+        expect(result[:value].encoding).to eq(Encoding::ISO_8859_1)
+        expect(result[:truncated]).to be true
+        expect(result[:size]).to eq(20)
+      end
+    end
+
     context 'with empty binary string' do
       let(:binary_string) { "".b }
 
