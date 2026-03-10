@@ -203,6 +203,7 @@ module Datadog
         @mutex.synchronize { @scopes.size }
       end
 
+      # @api private
       private
 
       # Start the timer thread if not already running.
