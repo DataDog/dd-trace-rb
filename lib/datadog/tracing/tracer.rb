@@ -307,6 +307,19 @@ module Datadog
         end
       end
 
+      def reconsider_trace_sampling_on_resource(trace_op)
+        return unless trace_op.late_resource_sample?
+        return unless @sampler.respond_to?(:late_sample_resource!)
+
+        @sampler.late_sample_resource!(trace_op)
+      rescue => e
+        LATE_SAMPLE_TRACE_LOG_ONLY_ONCE.run do
+          logger.warn do
+            "Failed to reconsider trace sampling: #{e.class.name} #{e} at #{Array(e.backtrace).first}"
+          end
+        end
+      end
+
       # @!visibility private
       # TODO: make this private
       def trace_completed
@@ -414,6 +427,10 @@ module Datadog
           sample_trace(trace_op) if event_trace_op.sampling_priority.nil?
           sample_span(event_trace_op, event_span)
           flush_trace(event_trace_op)
+        end
+
+        events.trace_resource_change.subscribe do |event_trace_op|
+          reconsider_trace_sampling_on_resource(event_trace_op)
         end
       end
 
@@ -533,6 +550,9 @@ module Datadog
 
       SAMPLE_TRACE_LOG_ONLY_ONCE = Core::Utils::OnlyOnce.new
       private_constant :SAMPLE_TRACE_LOG_ONLY_ONCE
+
+      LATE_SAMPLE_TRACE_LOG_ONLY_ONCE = Core::Utils::OnlyOnce.new
+      private_constant :LATE_SAMPLE_TRACE_LOG_ONLY_ONCE
 
       def sample_span(trace_op, span)
         @span_sampler.sample!(trace_op, span)
