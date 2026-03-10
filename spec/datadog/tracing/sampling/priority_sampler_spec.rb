@@ -196,6 +196,81 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
     end
   end
 
+  describe '#late_sample_resource!' do
+    subject(:late_sample_resource!) { sampler.late_sample_resource!(trace) }
+
+    let(:trace) do
+      Datadog::Tracing::TraceOperation.new(
+        id: 1,
+        resource: 'Rails::HealthController#show',
+        sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP
+      )
+    end
+
+    before do
+      trace.agent_sample_rate = 0.5
+      trace.set_tag(
+        Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+        Datadog::Tracing::Sampling::Ext::Decision::DEFAULT
+      )
+    end
+
+    context 'when a matching resource rule drops the trace' do
+      let(:post_sampler) do
+        Datadog::Tracing::Sampling::RuleSampler.new(
+          [Datadog::Tracing::Sampling::SimpleRule.new(resource: 'Rails::HealthController#show', sample_rate: 0.0)],
+          rate_limit: nil
+        )
+      end
+
+      it 'replaces the default decision with the rule result' do
+        late_sample_resource!
+
+        expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT)
+        expect(trace.sampled?).to be(true)
+        expect(trace.rule_sample_rate).to eq(0.0)
+        expect(trace.agent_sample_rate).to be_nil
+        expect(trace.get_tag('_dd.p.dm')).to be_nil
+      end
+    end
+
+    context 'when a matching resource rule keeps the trace' do
+      let(:post_sampler) do
+        Datadog::Tracing::Sampling::RuleSampler.new(
+          [Datadog::Tracing::Sampling::SimpleRule.new(resource: 'Rails::HealthController#show', sample_rate: 1.0)],
+          rate_limit: nil
+        )
+      end
+
+      it 'upgrades the decision to the matching resource rule' do
+        late_sample_resource!
+
+        expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
+        expect(trace.rule_sample_rate).to eq(1.0)
+        expect(trace.agent_sample_rate).to be_nil
+        expect(trace.get_tag('_dd.p.dm')).to eq(Datadog::Tracing::Sampling::Ext::Decision::TRACE_SAMPLING_RULE)
+      end
+    end
+
+    context 'when no matching resource rule exists' do
+      let(:post_sampler) do
+        Datadog::Tracing::Sampling::RuleSampler.new(
+          [Datadog::Tracing::Sampling::SimpleRule.new(resource: 'OtherController#show', sample_rate: 0.0)],
+          rate_limit: nil
+        )
+      end
+
+      it 'leaves the current decision untouched' do
+        late_sample_resource!
+
+        expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP)
+        expect(trace.rule_sample_rate).to be_nil
+        expect(trace.agent_sample_rate).to eq(0.5)
+        expect(trace.get_tag('_dd.p.dm')).to eq(Datadog::Tracing::Sampling::Ext::Decision::DEFAULT)
+      end
+    end
+  end
+
   describe '.sampled?' do
     subject(:sampled?) { described_class.sampled?(priority_sampling) }
 

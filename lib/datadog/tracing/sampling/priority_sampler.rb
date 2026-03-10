@@ -77,6 +77,22 @@ module Datadog
           end
         end
 
+        def late_sample_resource!(trace)
+          return unless @priority_sampler.respond_to?(:late_sample_resource!)
+
+          reconsidered = preserving_sampling(trace) do
+            @priority_sampler.late_sample_resource!(trace)
+          end
+
+          if !reconsidered.nil? &&
+              !trace.has_tag?(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER) &&
+              (!trace.sampling_priority || trace.sampling_priority <= 0)
+            trace.clear_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)
+          end
+
+          reconsidered
+        end
+
         # (see Datadog::Tracing::Sampling::RateByServiceSampler#update)
         def update(rate_by_service, decision: nil)
           @priority_sampler.update(rate_by_service, decision: decision)

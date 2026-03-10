@@ -51,7 +51,6 @@ module Datadog
 
       attr_writer \
         :name,
-        :resource,
         :sampled,
         :service
 
@@ -127,6 +126,8 @@ module Datadog
         @finished = false
         @spans = []
         @auto_finish = !!auto_finish
+        @flushed = false
+        @propagated = false
       end
 
       def full?
@@ -170,6 +171,17 @@ module Datadog
         set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, Tracing::Sampling::Ext::Decision::MANUAL)
       end
 
+      def resource=(value)
+        previous_resource = @resource
+        @resource = value
+
+        return unless previous_resource.nil? && !value.nil?
+
+        events.trace_resource_change.publish(self)
+      rescue => e
+        logger.debug { "Error updating trace resource: #{e} Backtrace: #{e.backtrace.first(3)}" }
+      end
+
       def name
         @name || root_span&.name
       end
@@ -206,6 +218,22 @@ module Datadog
       # @return [Boolean]
       def resource_override?
         !@resource.nil?
+      end
+
+      def late_resource_sample?
+        decision = get_tag(Metadata::Ext::Distributed::TAG_DECISION_MAKER)
+
+        return false if @resource.nil?
+        return false if remote_parent
+        return false if @propagated || @flushed
+        return false unless [Sampling::Ext::Priority::AUTO_KEEP, Sampling::Ext::Priority::AUTO_REJECT]
+          .include?(@sampling_priority)
+        return false if decision && ![
+          Sampling::Ext::Decision::DEFAULT,
+          Sampling::Ext::Decision::AGENT_RATE
+        ].include?(decision)
+
+        true
       end
 
       def service
@@ -319,6 +347,7 @@ module Datadog
         # Copy out completed spans
         spans = @spans.dup
         @spans = []
+        @flushed = true
 
         spans = yield(spans) if block_given?
 
@@ -359,6 +388,7 @@ module Datadog
         span_id = @active_span&.id
         span_id ||= @parent_span_id unless finished?
         # sample the trace_operation with the tracer
+        @propagated = true
         events.trace_propagated.publish(self)
 
         TraceDigest.new(
@@ -430,13 +460,15 @@ module Datadog
           :span_before_start,
           :span_finished,
           :trace_finished,
-          :trace_propagated
+          :trace_propagated,
+          :trace_resource_change
 
         def initialize
           @span_before_start = SpanBeforeStart.new
           @span_finished = SpanFinished.new
           @trace_finished = TraceFinished.new
           @trace_propagated = TracePropagated.new
+          @trace_resource_change = TraceResourceChange.new
         end
 
         # Triggered before a span starts.
@@ -474,6 +506,14 @@ module Datadog
           def subscribe_deactivate_trace(&block)
             @deactivate_trace_subscribed = true
             subscribe(&block)
+          end
+        end
+
+        # Triggered when the resource name is set
+        # This is used to reconsider trace sampling on resource name change
+        class TraceResourceChange < Tracing::Event
+          def initialize
+            super(:trace_resource_change)
           end
         end
       end
@@ -588,6 +628,8 @@ module Datadog
         @active_span_count = 0
         @finished = false
         @spans = []
+        @flushed = false
+        @propagated = false
       end
     end
   end
