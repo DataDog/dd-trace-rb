@@ -385,9 +385,38 @@ module Datadog
       # @param method [UnboundMethod] The method
       # @return [Array<Symbol>] Parameter symbols
       def self.extract_method_parameters(method)
-        method.parameters.filter_map do |param_type, param_name|
+        params = method.parameters
+
+        if params.nil?
+          Datadog.logger.debug("SymDB: method.parameters returned nil for #{begin
+            method.name
+          rescue
+            'unknown'
+          end}")
+          return []
+        end
+
+        if params.empty?
+          Datadog.logger.debug("SymDB: method.parameters returned empty for #{begin
+            method.name
+          rescue
+            'unknown'
+          end}")
+          return []
+        end
+
+        result = params.filter_map do |param_type, param_name|
           # Skip block parameters for MVP
           next if param_type == :block
+          # Skip if param_name is nil (defensive)
+          if param_name.nil?
+            Datadog.logger.debug("SymDB: param_name is nil for #{begin
+              method.name
+            rescue
+              'unknown'
+            end}, param_type: #{param_type}")
+            next
+          end
 
           Symbol.new(
             symbol_type: 'ARG',
@@ -395,8 +424,22 @@ module Datadog
             line: 0  # Parameters available in entire method
           )
         end
+
+        if result.empty? && !params.empty?
+          Datadog.logger.debug("SymDB: Extracted #{result.size} parameters from #{begin
+            method.name
+          rescue
+            'unknown'
+          end} (params: #{params.inspect})")
+        end
+
+        result
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to extract parameters: #{e.class}: #{e}")
+        Datadog.logger.debug("SymDB: Failed to extract parameters from #{begin
+          method.name
+        rescue
+          'unknown'
+        end}: #{e.class}: #{e}\n#{e.backtrace.first(5).join("\n")}")
         []
       end
 
@@ -404,8 +447,37 @@ module Datadog
       # @param method [Method] The singleton method
       # @return [Array<Symbol>] Parameter symbols
       def self.extract_singleton_method_parameters(method)
-        method.parameters.filter_map do |param_type, param_name|
+        params = method.parameters
+
+        if params.nil?
+          Datadog.logger.debug("SymDB: method.parameters returned nil for singleton #{begin
+            method.name
+          rescue
+            'unknown'
+          end}")
+          return []
+        end
+
+        if params.empty?
+          Datadog.logger.debug("SymDB: method.parameters returned empty for singleton #{begin
+            method.name
+          rescue
+            'unknown'
+          end}")
+          return []
+        end
+
+        result = params.filter_map do |param_type, param_name|
           next if param_type == :block
+          # Skip if param_name is nil (defensive)
+          if param_name.nil?
+            Datadog.logger.debug("SymDB: param_name is nil for singleton #{begin
+              method.name
+            rescue
+              'unknown'
+            end}, param_type: #{param_type}")
+            next
+          end
 
           Symbol.new(
             symbol_type: 'ARG',
@@ -413,8 +485,22 @@ module Datadog
             line: 0
           )
         end
+
+        if result.empty? && !params.empty?
+          Datadog.logger.debug("SymDB: Extracted #{result.size} parameters from singleton #{begin
+            method.name
+          rescue
+            'unknown'
+          end} (params: #{params.inspect})")
+        end
+
+        result
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to extract singleton method parameters: #{e.class}: #{e}")
+        Datadog.logger.debug("SymDB: Failed to extract singleton method parameters from #{begin
+          method.name
+        rescue
+          'unknown'
+        end}: #{e.class}: #{e}\n#{e.backtrace.first(5).join("\n")}")
         []
       end
 
