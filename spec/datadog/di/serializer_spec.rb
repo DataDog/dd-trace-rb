@@ -857,7 +857,8 @@ RSpec.describe Datadog::DI::Serializer do
       it 'escapes strings marked as UTF-8 but with invalid byte sequences' do
         # String marked as UTF-8 but containing invalid bytes
         # This commonly happens when binary data is incorrectly tagged
-        invalid_utf8 = "\x80\xFF".force_encoding(Encoding::UTF_8)
+        # Use [] to create fresh string each time (avoid frozen literal caching issues)
+        invalid_utf8 = [0x80, 0xFF].pack('C*').force_encoding(Encoding::UTF_8)
         expect(invalid_utf8.valid_encoding?).to be false
 
         result = serializer.serialize_value(invalid_utf8)
@@ -875,7 +876,10 @@ RSpec.describe Datadog::DI::Serializer do
 
       it 'escapes strings with mixed valid and invalid UTF-8 sequences' do
         # Valid UTF-8 text followed by invalid bytes
-        invalid_utf8 = "Hello\x80World\xFF".force_encoding(Encoding::UTF_8)
+        # Use String.new + bytes to create fresh string
+        invalid_utf8 = String.new("Hello").b
+        invalid_utf8 << 0x80 << "World".b << 0xFF
+        invalid_utf8.force_encoding(Encoding::UTF_8)
         expect(invalid_utf8.valid_encoding?).to be false
 
         result = serializer.serialize_value(invalid_utf8)
