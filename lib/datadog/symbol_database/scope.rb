@@ -2,7 +2,16 @@
 
 module Datadog
   module SymbolDatabase
-    # Represents a scope in the symbol hierarchy (MODULE, CLASS, METHOD, etc.)
+    # Represents a scope in the hierarchical symbol structure (MODULE → CLASS → METHOD).
+    #
+    # Scopes form a tree structure representing Ruby code organization. Each scope contains:
+    # - Metadata: name, source file, line range, scope type (MODULE/CLASS/METHOD/etc.)
+    # - Symbols: Variables, constants, parameters defined in this scope
+    # - Nested scopes: Child scopes (e.g., methods within a class)
+    #
+    # Created by: Extractor (during symbol extraction)
+    # Used by: ScopeContext (batching), ServiceVersion (wrapping for upload)
+    # Serialized to: JSON via to_h/to_json for upload to agent
     class Scope
       attr_reader :scope_type, :name, :source_file, :start_line, :end_line,
         :language_specifics, :symbols, :scopes

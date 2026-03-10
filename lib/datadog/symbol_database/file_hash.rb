@@ -4,7 +4,15 @@ require 'digest/sha1'
 
 module Datadog
   module SymbolDatabase
-    # Computes Git-style SHA-1 hashes of source files for commit inference
+    # Computes Git-style SHA-1 hashes of Ruby source files for backend commit inference.
+    #
+    # Uses Git's blob hash algorithm: SHA1("blob <size>\0<content>")
+    # Hashes enable the backend to correlate runtime code with Git repository history,
+    # identifying which commit is actually deployed.
+    #
+    # Called by: Extractor (when building MODULE scopes)
+    # Stores result in: Scope's language_specifics[:file_hash]
+    # Returns: 40-character hex string or nil if file unreadable
     module FileHash
       module_function
 

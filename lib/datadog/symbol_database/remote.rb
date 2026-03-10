@@ -2,7 +2,15 @@
 
 module Datadog
   module SymbolDatabase
-    # Remote configuration integration for symbol database
+    # Integrates symbol database with Datadog remote configuration system.
+    #
+    # Subscribes to LIVE_DEBUGGING_SYMBOL_DB product and responds to configuration changes.
+    # When backend sends upload_symbols: true, triggers Component.start_upload.
+    #
+    # Pattern: Follows DI::Remote exactly (product matcher + receiver callback)
+    # Registered in: Core::Remote::Client::Capabilities (during tracer initialization)
+    # Calls: SymbolDatabase.component.start_upload/stop_upload on config changes
+    # Handles: :insert (enable), :update (re-enable), :delete (disable)
     module Remote
       PRODUCT = 'LIVE_DEBUGGING_SYMBOL_DB'
 

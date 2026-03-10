@@ -6,7 +6,21 @@ require_relative 'file_hash'
 
 module Datadog
   module SymbolDatabase
-    # Extracts symbol information from Ruby modules and classes using introspection
+    # Extracts symbol metadata from loaded Ruby modules and classes via introspection.
+    #
+    # Uses Ruby's reflection APIs (Module#constants, Class#instance_methods, Method#parameters)
+    # to build hierarchical Scope structures representing code organization.
+    # Filters to user code only (excludes gems, stdlib, test files).
+    #
+    # Extraction flow:
+    # 1. ObjectSpace.each_object(Module) - Iterate all loaded modules/classes
+    # 2. Filter to user code (user_code_module?)
+    # 3. Build MODULE or CLASS scope with nested METHOD scopes
+    # 4. Extract symbols: constants, class variables, method parameters
+    #
+    # Called by: Component.extract_and_upload (during upload trigger)
+    # Produces: Scope objects passed to ScopeContext for batching
+    # File hashing: Calls FileHash.compute for MODULE scopes
     class Extractor
       # Extract symbols from a module or class
       # @param mod [Module, Class] The module or class to extract from

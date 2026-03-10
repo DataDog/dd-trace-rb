@@ -4,7 +4,20 @@ require 'set'
 
 module Datadog
   module SymbolDatabase
-    # Manages batching and upload timing for collected scopes
+    # Batches extracted scopes and triggers uploads at appropriate times.
+    #
+    # Implements two upload triggers:
+    # 1. Size-based: Immediate upload when 400 scopes collected (MAX_SCOPES)
+    # 2. Time-based: Upload after 1 second of inactivity (debounce timer, not periodic)
+    #
+    # Also provides:
+    # - Deduplication: Tracks uploaded module names to prevent re-uploads
+    # - File limiting: Stops after 10,000 files to prevent runaway extraction
+    # - Thread safety: Mutex-protected state for concurrent access
+    #
+    # Flow: Extractor → add_scope → (batch or timer) → Uploader
+    # Created by: Component (during initialization)
+    # Calls: Uploader.upload_scopes when batch full or timer fires
     class ScopeContext
       MAX_SCOPES = 400
       INACTIVITY_TIMEOUT = 1.0  # seconds

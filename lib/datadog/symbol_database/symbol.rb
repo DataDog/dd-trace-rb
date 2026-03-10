@@ -2,7 +2,18 @@
 
 module Datadog
   module SymbolDatabase
-    # Represents a symbol (variable, parameter, field, etc.)
+    # Represents a symbol (variable, parameter, field, constant) within a scope.
+    #
+    # Symbols are the actual identifiers extracted from Ruby code:
+    # - Instance variables (@var) - FIELD type
+    # - Class variables (@@var) - STATIC_FIELD type
+    # - Constants (CONST) - STATIC_FIELD type
+    # - Method parameters (arg) - ARG type
+    # - Local variables (var) - LOCAL type (not yet implemented)
+    #
+    # Created by: Extractor (during class/method introspection)
+    # Contained in: Scope objects (symbols array)
+    # Serialized to: JSON via to_h/to_json
     class Symbol
       attr_reader :symbol_type, :name, :line, :type, :language_specifics
 

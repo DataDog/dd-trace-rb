@@ -2,7 +2,15 @@
 
 module Datadog
   module SymbolDatabase
-    # Represents the top-level service version container for symbol upload
+    # Top-level container wrapping scopes for upload to the agent.
+    #
+    # ServiceVersion is the root object serialized to JSON for symbol database uploads.
+    # Contains service metadata (name, env, version) and all extracted scopes.
+    # The language field is always "RUBY" to identify the tracer.
+    #
+    # Created by: Uploader (wraps scopes array before serialization)
+    # Contains: Array of top-level Scope objects (MODULE scopes)
+    # Serialized to: JSON via to_json, then GZIP compressed for upload
     class ServiceVersion
       attr_reader :service, :env, :version, :language, :scopes
 
