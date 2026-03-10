@@ -590,14 +590,19 @@ module Datadog
           'unknown'
         end
         params = method.parameters
+        $stderr.puts "[SymDB] extract_method_parameters: method=#{method_name} params=#{params.inspect}"
 
         return [] if params.nil? || params.empty?
 
         Core::Utils::Array.filter_map(params) do |param_type, param_name|
           # Skip block parameters for MVP
-          next if param_type == :block
+          if param_type == :block
+            $stderr.puts "[SymDB] Skipping block param for #{method_name}"
+            next
+          end
           # Skip if param_name is nil (defensive)
           if param_name.nil?
+            $stderr.puts "[SymDB] param_name is NIL, type=#{param_type} for #{method_name}"
             Datadog.logger.debug("SymDB: param_name is nil for #{begin
               method.name
             rescue
