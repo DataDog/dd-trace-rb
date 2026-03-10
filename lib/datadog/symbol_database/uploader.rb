@@ -17,8 +17,9 @@ module Datadog
       BASE_BACKOFF = 0.1  # 100ms
       MAX_BACKOFF = 30.0  # 30 seconds
 
-      def initialize(config)
+      def initialize(config, telemetry: nil)
         @config = config
+        @telemetry = telemetry
       end
 
       # Upload a batch of scopes
@@ -66,9 +67,14 @@ module Datadog
       end
 
       def compress_payload(json_data)
-        Zlib.gzip(json_data)
+        compressed = Zlib.gzip(json_data)
+        # Track compression ratio
+        ratio = json_data.bytesize.to_f / compressed.bytesize
+        @telemetry&.distribution('symbol_database.compression_ratio', ratio)
+        compressed
       rescue => e
         Datadog.logger.debug("SymDB: Compression failed: #{e.class}: #{e}")
+        @telemetry&.count('symbol_database.compression_error', 1)
         nil
       end
 
@@ -100,6 +106,9 @@ module Datadog
       end
 
       def perform_http_upload(compressed_data, scope_count)
+        # Track payload size
+        @telemetry&.distribution('symbol_database.payload_size', compressed_data.bytesize)
+
         uri = URI.parse(agent_url)
 
         # Build multipart form
@@ -178,12 +187,17 @@ module Datadog
         case response.code.to_i
         when 200..299
           Datadog.logger.debug("SymDB: Uploaded #{scope_count} scopes successfully")
+          @telemetry&.count('symbol_database.uploaded', 1)
+          @telemetry&.count('symbol_database.scopes_uploaded', scope_count)
           true
         when 429
+          @telemetry&.count('symbol_database.upload_error', 1, tags: ['error:rate_limited'])
           raise "Rate limited"
         when 500..599
+          @telemetry&.count('symbol_database.upload_error', 1, tags: ['error:server_error'])
           raise "Server error: #{response.code}"
         else
+          @telemetry&.count('symbol_database.upload_error', 1, tags: ['error:client_error'])
           Datadog.logger.debug("SymDB: Upload rejected: #{response.code}")
           false
         end
