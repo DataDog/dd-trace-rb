@@ -24,9 +24,17 @@ module Datadog
     # Created by: Components#initialize (in Core::Configuration::Components)
     # Stored in: SymbolDatabase.component (global, for remote config receiver access)
     # Requires: DI enabled, remote config enabled (unless force mode)
+    #
+    # @api private
     class Component
       UPLOAD_COOLDOWN = 60  # seconds
 
+      # Build a new Component if feature is enabled and dependencies met.
+      # @param settings [Configuration::Settings] Tracer settings
+      # @param agent_settings [Configuration::AgentSettings] Agent configuration
+      # @param logger [Logger] Logger instance
+      # @param telemetry [Telemetry, nil] Optional telemetry for metrics
+      # @return [Component, nil] Component instance or nil if not enabled/requirements not met
       def self.build(settings, agent_settings, logger, telemetry: nil)
         return unless settings.respond_to?(:symbol_database) && settings.symbol_database.enabled
 
@@ -52,6 +60,11 @@ module Datadog
 
       attr_reader :settings
 
+      # Initialize component.
+      # @param settings [Configuration::Settings] Tracer settings
+      # @param agent_settings [Configuration::AgentSettings] Agent configuration
+      # @param logger [Logger] Logger instance
+      # @param telemetry [Telemetry, nil] Optional telemetry for metrics
       def initialize(settings, agent_settings, logger, telemetry: nil)
         @settings = settings
         @agent_settings = agent_settings
@@ -66,7 +79,9 @@ module Datadog
         @last_upload_time = nil
       end
 
-      # Start symbol upload (triggered by remote config or force mode)
+      # Start symbol upload (triggered by remote config or force mode).
+      # Extracts symbols from all loaded modules and triggers upload.
+      # @return [void]
       def start_upload
         return if @enabled
         return if recently_uploaded?
@@ -80,19 +95,24 @@ module Datadog
         Datadog.logger.debug("SymDB: Error starting upload: #{e.class}: #{e}")
       end
 
-      # Stop symbol upload
+      # Stop symbol upload (disable future uploads).
+      # @return [void]
       def stop_upload
         @enabled = false
       end
 
-      # Shutdown component
+      # Shutdown component and cleanup resources.
+      # @return [void]
       def shutdown!
         SymbolDatabase.set_component(nil)
         @scope_context.shutdown
       end
 
+      # @api private
       private
 
+      # Check if upload was recent (within cooldown period).
+      # @return [Boolean] true if uploaded within last 60 seconds
       def recently_uploaded?
         return false if @last_upload_time.nil?
 
@@ -100,6 +120,8 @@ module Datadog
         Datadog::Core::Utils::Time.now - @last_upload_time < UPLOAD_COOLDOWN
       end
 
+      # Extract symbols from all loaded modules and upload.
+      # @return [void]
       def extract_and_upload
         start_time = Datadog::Core::Utils::Time.get_time
 
