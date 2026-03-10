@@ -9,6 +9,7 @@ module Datadog
 
         def sample?: (untyped trace) -> untyped
         def sample!: (untyped trace) -> untyped
+        def late_sample_resource!: (TraceOperation trace) -> TraceOperation?
         def update: (untyped rate_by_service, ?decision: untyped?) -> untyped
         def self.sampled?: (untyped priority_sampling) -> untyped
 
