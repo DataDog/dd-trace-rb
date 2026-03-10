@@ -11,6 +11,7 @@ require 'datadog/tracing/sampling/ext'
 require 'datadog/tracing/span_operation'
 require 'datadog/tracing/trace_operation'
 require 'datadog/tracing/trace_segment'
+require 'datadog/tracing/tracer'
 require 'datadog/tracing/utils'
 
 RSpec.describe Datadog::Tracing::TraceOperation do
@@ -881,6 +882,49 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
         expect(trace_resource_change_calls).to eq(0)
       end
+    end
+  end
+
+  describe 'sampling after resource resolution' do
+    let(:tracer) do
+      Datadog::Tracing::Tracer.new(
+        sampler: Datadog::Tracing::Sampling::PrioritySampler.new(
+          base_sampler: Datadog::Tracing::Sampling::AllSampler.new,
+          post_sampler: Datadog::Tracing::Sampling::RuleSampler.new(
+            [
+              Datadog::Tracing::Sampling::SimpleRule.new(
+                resource: 'Rails::HealthController#show',
+                sample_rate: 0.0
+              )
+            ],
+            rate_limit: nil
+          )
+        ),
+        writer: nil
+      )
+    end
+
+    after { tracer.shutdown! }
+
+    it 'resamples a trace that was already sampled before the resource was resolved' do
+      trace = tracer.send(:start_trace)
+      request_span = trace.build_span('rack.request').start
+      request_span.resource = nil
+
+      db_span = trace.build_span('sqlite.query').start
+      db_span.finish
+
+      expect(trace.resource).to be_nil
+      expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP)
+      expect(trace.get_tag(Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER))
+        .to eq(Datadog::Tracing::Sampling::Ext::Decision::DEFAULT)
+
+      trace.resource = 'Rails::HealthController#show'
+
+      expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT)
+      expect(trace.get_tag(Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)).to be_nil
+    ensure
+      request_span.finish unless request_span.nil? || request_span.finished?
     end
   end
 
