@@ -175,6 +175,11 @@ jobs:
           DD_GIT_COMMIT_SHA: ${{ github.sha }}
         run: echo "DD_GIT_COMMIT_SHA=$DD_GIT_COMMIT_SHA" >> "$GITHUB_ENV"
       - run: echo "$DD_GIT_COMMIT_SHA"
+      # We're using not-that-ideal XSLT here as this change, because it must be done over 17+ repos.
+      # It's a workaround until this gets integrated into a better place, such as datadog-ci or the backend.
+      #
+      # * ticket: https://datadoghq.atlassian.net/browse/APMSP-2610
+      # * RFC: https://docs.google.com/document/d/1OaX_h09fCXWmK_1ADrwvilt8Yt5h4WjC7UUAdS3Y3uw/edit?pli=1&tab=t.0#heading=h.tfy5viz7rz2
       - name: Add final_status property
         run: |
           apk add libxslt
