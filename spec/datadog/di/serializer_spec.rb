@@ -761,5 +761,77 @@ RSpec.describe Datadog::DI::Serializer do
         expect(serialized[:size]).to eq(31)
       end
     end
+
+    context 'with invalid UTF-8 strings' do
+      it 'escapes strings marked as UTF-8 but with invalid byte sequences' do
+        # String marked as UTF-8 but containing invalid bytes
+        # This commonly happens when binary data is incorrectly tagged
+        invalid_utf8 = "\x80\xFF".force_encoding(Encoding::UTF_8)
+        expect(invalid_utf8.valid_encoding?).to be false
+
+        result = serializer.serialize_value(invalid_utf8)
+
+        # Should escape like binary data
+        expect(result[:type]).to eq('String')
+        expect(result[:value]).to eq("b'\\x80\\xff'")
+        expect(result[:value].encoding).to eq(Encoding::UTF_8)
+
+        # Should be JSON-serializable
+        expect {
+          JSON.dump(result)
+        }.not_to raise_error
+      end
+
+      it 'escapes strings with mixed valid and invalid UTF-8 sequences' do
+        # Valid UTF-8 text followed by invalid bytes
+        invalid_utf8 = "Hello\x80World\xFF".force_encoding(Encoding::UTF_8)
+        expect(invalid_utf8.valid_encoding?).to be false
+
+        result = serializer.serialize_value(invalid_utf8)
+
+        expect(result[:type]).to eq('String')
+        expect(result[:value]).to eq("b'Hello\\x80World\\xff'")
+        expect(result[:value].encoding).to eq(Encoding::UTF_8)
+      end
+    end
+
+    context 'with empty binary string' do
+      let(:binary_string) { "".b }
+
+      it 'produces empty escaped string' do
+        serialized = serializer.serialize_value(binary_string)
+
+        expect(serialized[:type]).to eq('String')
+        expect(serialized[:value]).to eq("b''")
+        expect(serialized[:value].encoding).to eq(Encoding::UTF_8)
+        expect(serialized).not_to have_key(:truncated)
+      end
+    end
+
+    context 'with very large binary string' do
+      let(:binary_string) { ("\xFF" * 100_000).b }
+
+      it 'truncates to max_capture_string_length' do
+        # Default max is 100 in the test helper
+        serialized = serializer.serialize_value(binary_string)
+
+        # Should truncate to the configured max
+        expect(serialized[:value].length).to eq(100)
+        expect(serialized[:value]).to start_with("b'\\xff")
+        expect(serialized[:truncated]).to be true
+
+        # Size field contains the full escaped string length, not original binary length
+        # 100,000 bytes * 4 chars per byte (\xff) + 2 (b') + 1 (') = 400,003 chars
+        expect(serialized[:size]).to eq(400_003)
+      end
+
+      it 'is JSON-serializable despite large size' do
+        serialized = serializer.serialize_value(binary_string)
+
+        expect {
+          JSON.dump(serialized)
+        }.not_to raise_error
+      end
+    end
   end
 end

@@ -185,9 +185,10 @@ module Datadog
               value.to_s
             end
 
-            # Handle binary strings by escaping them to a JSON-safe format.
-            # Binary data (ASCII-8BIT encoding) is converted to an escaped string
-            # representation in the format: b'...' with special handling for:
+            # Handle binary strings and invalid UTF-8 by escaping to a JSON-safe format.
+            # Binary data (ASCII-8BIT encoding) and strings with invalid encoding are
+            # converted to an escaped string representation in the format: b'...'
+            # with special handling for:
             # - Printable ASCII: preserved as-is
             # - Special characters: \n, \t, \r, \\, \'
             # - Non-printable bytes: \xHH hex escapes
@@ -206,7 +207,7 @@ module Datadog
             #
             # The max_capture_string_length limit is in characters of the output
             # string, not bytes of the input binary data.
-            if value.encoding == Encoding::BINARY
+            if value.encoding == Encoding::BINARY || !value.valid_encoding?
               value = escape_binary_string(value)
               need_dup = false # Already converted to new string
             end
@@ -216,6 +217,9 @@ module Datadog
             # after the second hex digit) or before the closing quote. This is
             # intentional and matches dd-trace-py behavior. The truncated flag
             # indicates the value is incomplete.
+            #
+            # The size field represents the length of the full escaped string,
+            # not the length of the original binary data. This matches dd-trace-py.
             max = settings.dynamic_instrumentation.max_capture_string_length
             if value.length > max
               serialized.update(truncated: true, size: value.length)
@@ -451,10 +455,11 @@ module Datadog
         end
       end
 
-      # Escapes a binary string to a JSON-safe format.
+      # Escapes a binary string or invalid UTF-8 string to a JSON-safe format.
       #
-      # Binary data (ASCII-8BIT encoding) is converted to an escaped string
-      # in the format: b'...' with hex escapes for non-printable bytes.
+      # Binary data (ASCII-8BIT encoding) or strings with invalid encoding are
+      # converted to an escaped string in the format: b'...' with hex escapes
+      # for non-printable bytes.
       #
       # This produces the same serialized contents as dd-trace-py, which uses
       # Python's repr() for bytes objects. The output is JSON-serializable.
@@ -462,8 +467,9 @@ module Datadog
       # Examples:
       #   "Hello".b -> "b'Hello'"
       #   "\x80\xFF".b -> "b'\\x80\\xff'"
+      #   "\x80".force_encoding('UTF-8') -> "b'\\x80'" (invalid UTF-8)
       #
-      # @param binary_string [String] A string with ASCII-8BIT encoding
+      # @param binary_string [String] A string with ASCII-8BIT encoding or invalid encoding
       # @return [String] Escaped string with UTF-8 encoding
       def escape_binary_string(binary_string)
         result = "b'".dup
