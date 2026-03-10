@@ -1481,8 +1481,8 @@ RSpec.describe 'Instrumentation integration' do
 
         # The 300-byte binary string exceeds max_capture_string_length (255)
         # Truncated to first 255 bytes, then escaped to 1023 chars (b' + 255*4 + ')
-        expect(return_capture[:arguments][:"@return"][:truncated]).to be true
-        expect(return_capture[:arguments][:"@return"][:size]).to eq(300) # Original byte count
+        expect(return_capture[:arguments][:@return][:truncated]).to be true
+        expect(return_capture[:arguments][:@return][:size]).to eq(300) # Original byte count
 
         # JSON encoding should now succeed
         expect {

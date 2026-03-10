@@ -30,7 +30,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
       # Simulate what the serializer produces after converting to Python repr
       let(:python_repr) do
-        result = "b'".dup
+        result = +"b'"
         binary_string.each_byte do |byte|
           case byte
           when 0x09 then result << '\\t'

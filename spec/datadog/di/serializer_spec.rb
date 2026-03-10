@@ -877,7 +877,7 @@ RSpec.describe Datadog::DI::Serializer do
       it 'escapes strings with mixed valid and invalid UTF-8 sequences' do
         # Valid UTF-8 text followed by invalid bytes
         # Use String.new + bytes to create fresh string
-        invalid_utf8 = String.new("Hello").b
+        invalid_utf8 = (+"Hello").b
         invalid_utf8 << 0x80 << "World".b << 0xFF
         invalid_utf8.force_encoding(Encoding::UTF_8)
         expect(invalid_utf8.valid_encoding?).to be false
