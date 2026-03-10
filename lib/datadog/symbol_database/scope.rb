@@ -12,6 +12,8 @@ module Datadog
     # Created by: Extractor (during symbol extraction)
     # Used by: ScopeBatcher (batching), ServiceVersion (wrapping for upload)
     # Serialized to: JSON via to_h/to_json for upload to agent
+    #
+    # @api private
     class Scope
       attr_reader :scope_type, :name, :source_file, :start_line, :end_line,
         # Ranges of executable lines [{start:, end:}]. Three states:
@@ -84,7 +86,9 @@ module Datadog
         h
       end
 
-      # Serialize scope to JSON
+      # Serialize scope to JSON.
+      # @param args [Array] Optional arguments for JSON.generate
+      # @return [String] JSON string representation
       def to_json(*args)
         require 'json'
         JSON.generate(to_h, *args)
