@@ -459,8 +459,8 @@ module Datadog
       # converted to an escaped string in the format: b'...' with hex escapes
       # for non-printable bytes.
       #
-      # This produces the same serialized contents as dd-trace-py, which uses
-      # Python's repr() for bytes objects. The output is JSON-serializable.
+      # The output format matches other Datadog tracer libraries for consistency
+      # across language implementations. The output is JSON-serializable.
       #
       # Examples:
       #   "Hello".b -> "b'Hello'"

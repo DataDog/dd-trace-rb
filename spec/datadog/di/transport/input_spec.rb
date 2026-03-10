@@ -22,7 +22,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
   let(:tags) { [] }
 
-  context 'when snapshot contains binary data converted to Python repr' do
+  context 'when snapshot contains escaped binary data' do
     context 'with all 256 byte values' do
       # Create a string containing all possible byte values (0x00-0xFF)
       # This simulates capturing a binary buffer in dynamic instrumentation
@@ -30,8 +30,8 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
         (0..255).map { |i| i.chr(Encoding::BINARY) }.join.force_encoding(Encoding::BINARY)
       end
 
-      # Simulate what the serializer produces after converting to Python repr
-      let(:python_repr) do
+      # Simulate what the serializer produces after escaping binary data
+      let(:escaped_binary) do
         result = +"b'"
         binary_string.each_byte do |byte|
           case byte
@@ -54,7 +54,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           'timestamp' => Time.now.to_i,
           'captures' => {
             'locals' => {
-              'binary_data' => python_repr
+              'binary_data' => escaped_binary
             }
           }
         }
@@ -65,8 +65,8 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
         expect(binary_string.encoding).to eq(Encoding::BINARY)
       end
 
-      it 'successfully serializes Python repr through transport layer' do
-        # Python repr format is JSON-safe
+      it 'successfully serializes escaped binary through transport layer' do
+        # Escaped binary format is JSON-safe
         expect {
           transport.send_input([snapshot], tags)
         }.not_to raise_error
@@ -79,7 +79,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
         # Can round-trip through JSON
         parsed = JSON.parse(json_output)
-        expect(parsed['captures']['locals']['binary_data']).to eq(python_repr)
+        expect(parsed['captures']['locals']['binary_data']).to eq(escaped_binary)
       end
     end
 
@@ -87,15 +87,15 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
       # Create a string with bytes that are invalid UTF-8 sequences
       let(:binary_string) { "\x80\x81\x82\xFF\xFE".b }
 
-      # After conversion to Python repr
-      let(:python_repr) { "b'\\x80\\x81\\x82\\xff\\xfe'" }
+      # After escaping binary data
+      let(:escaped_binary) { "b'\\x80\\x81\\x82\\xff\\xfe'" }
 
       let(:snapshot) do
         {
           'id' => 'test-snapshot',
           'captures' => {
             'locals' => {
-              'binary_data' => python_repr
+              'binary_data' => escaped_binary
             }
           }
         }
@@ -107,15 +107,15 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
         expect(utf8_attempt.valid_encoding?).to be false
       end
 
-      it 'successfully serializes Python repr of binary string' do
+      it 'successfully serializes escaped binary string' do
         expect {
           transport.send_input([snapshot], tags)
         }.not_to raise_error
       end
 
-      it 'Python repr is valid UTF-8' do
-        expect(python_repr.encoding).to eq(Encoding::UTF_8)
-        expect(python_repr.valid_encoding?).to be true
+      it 'escaped binary is valid UTF-8' do
+        expect(escaped_binary.encoding).to eq(Encoding::UTF_8)
+        expect(escaped_binary.valid_encoding?).to be true
       end
     end
   end

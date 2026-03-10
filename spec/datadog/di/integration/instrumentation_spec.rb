@@ -1396,7 +1396,7 @@ RSpec.describe 'Instrumentation integration' do
         # Verify the snapshot was captured
         expect(captured_snapshot).not_to be_nil
 
-        # JSON encoding should now succeed with Python repr
+        # JSON encoding should now succeed with escaped binary data
         expect {
           JSON.dump(captured_snapshot)
         }.not_to raise_error
