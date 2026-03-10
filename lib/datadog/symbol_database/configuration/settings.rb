@@ -19,6 +19,9 @@ module Datadog
           add_settings!(base)
         end
 
+        # Add symbol_database settings block to base class.
+        # @param base [Class] Base class
+        # @return [void]
         def self.add_settings!(base)
           base.class_eval do
             settings :symbol_database do
