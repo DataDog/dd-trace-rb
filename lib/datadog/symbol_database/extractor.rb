@@ -385,9 +385,18 @@ module Datadog
       # @param method [UnboundMethod] The method
       # @return [Array<Symbol>] Parameter symbols
       def self.extract_method_parameters(method)
+        # DIAGNOSTIC: Always log parameter extraction attempts to stderr
+        method_name = begin
+          method.name
+        rescue
+          'unknown'
+        end
+
         params = method.parameters
+        $stderr.puts "[SymDB] extract_method_parameters: method=#{method_name} params=#{params.inspect}"
 
         if params.nil?
+          $stderr.puts "[SymDB] params is NIL for #{method_name}"
           Datadog.logger.debug("SymDB: method.parameters returned nil for #{begin
             method.name
           rescue
@@ -397,6 +406,7 @@ module Datadog
         end
 
         if params.empty?
+          $stderr.puts "[SymDB] params is EMPTY for #{method_name}"
           Datadog.logger.debug("SymDB: method.parameters returned empty for #{begin
             method.name
           rescue
@@ -407,9 +417,13 @@ module Datadog
 
         result = params.filter_map do |param_type, param_name|
           # Skip block parameters for MVP
-          next if param_type == :block
+          if param_type == :block
+            $stderr.puts "[SymDB] Skipping block param for #{method_name}"
+            next
+          end
           # Skip if param_name is nil (defensive)
           if param_name.nil?
+            $stderr.puts "[SymDB] param_name is NIL, type=#{param_type} for #{method_name}"
             Datadog.logger.debug("SymDB: param_name is nil for #{begin
               method.name
             rescue
@@ -425,7 +439,10 @@ module Datadog
           )
         end
 
+        $stderr.puts "[SymDB] Extracted #{result.size} symbols from #{params.size} params for #{method_name}"
+
         if result.empty? && !params.empty?
+          $stderr.puts "[SymDB] WARNING: All params filtered out! params=#{params.inspect}"
           Datadog.logger.debug("SymDB: Extracted #{result.size} parameters from #{begin
             method.name
           rescue
@@ -435,6 +452,7 @@ module Datadog
 
         result
       rescue => e
+        $stderr.puts "[SymDB] EXCEPTION: #{e.class}: #{e}"
         Datadog.logger.debug("SymDB: Failed to extract parameters from #{begin
           method.name
         rescue
