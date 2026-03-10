@@ -385,7 +385,11 @@ module Datadog
       # @param method [UnboundMethod] The method
       # @return [Array<Symbol>] Parameter symbols
       def self.extract_method_parameters(method)
-        method_name = method.name.to_s rescue 'unknown'
+        method_name = begin
+          method.name.to_s
+        rescue
+          'unknown'
+        end
         params = method.parameters
 
         # DIAGNOSTIC: stderr logging for CI debugging
@@ -442,7 +446,11 @@ module Datadog
       # @param method [Method] The singleton method
       # @return [Array<Symbol>] Parameter symbols
       def self.extract_singleton_method_parameters(method)
-        method_name = method.name.to_s rescue 'unknown'
+        method_name = begin
+          method.name.to_s
+        rescue
+          'unknown'
+        end
         params = method.parameters
 
         # DIAGNOSTIC: stderr logging for CI debugging
