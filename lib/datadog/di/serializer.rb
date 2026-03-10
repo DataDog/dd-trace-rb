@@ -197,37 +197,35 @@ module Datadog
             #
             # This produces the same serialized contents as dd-trace-py.
             #
-            # The escaped string is then truncated if it exceeds the character limit.
+            # For binary data, the max_capture_string_length limit is applied to the
+            # original binary data (in bytes) before escaping. This ensures efficient
+            # processing - we only escape what we need, rather than escaping a large
+            # binary string and then truncating the result. The size field reports
+            # the original binary data length in bytes.
             #
-            # Reference tracer behavior:
-            # - dd-trace-py: Converts entire bytes value to escaped string,
-            #   then truncates the escaped string if it exceeds maxlen characters.
-            # - dd-trace-java: Treats byte[] as an array, truncates at
-            #   maxCollectionSize elements, converts each byte to string.
-            #
-            # The max_capture_string_length limit is in characters of the output
-            # string, not bytes of the input binary data.
+            # For regular strings, the limit is applied to the string length in characters.
+            max = settings.dynamic_instrumentation.max_capture_string_length
+
             if value.encoding == Encoding::BINARY || !value.valid_encoding?
+              # Truncate binary data BEFORE escaping for efficiency
+              original_size = value.length
+              if original_size > max
+                serialized.update(truncated: true, size: original_size)
+                value = value[0...max]
+              end
               value = escape_binary_string(value)
               need_dup = false # Already converted to new string
+            else
+              # Truncate regular strings
+              if value.length > max
+                serialized.update(truncated: true, size: value.length)
+                value = value[0...max]
+                need_dup = false
+              end
+
+              value = value.dup if need_dup
             end
 
-            # Truncate string if it exceeds the character limit.
-            # Truncation may occur mid-escape-sequence (e.g., "b'\\x80\\x" cutting
-            # after the second hex digit) or before the closing quote. This is
-            # intentional and matches dd-trace-py behavior. The truncated flag
-            # indicates the value is incomplete.
-            #
-            # The size field represents the length of the full escaped string,
-            # not the length of the original binary data. This matches dd-trace-py.
-            max = settings.dynamic_instrumentation.max_capture_string_length
-            if value.length > max
-              serialized.update(truncated: true, size: value.length)
-              value = value[0...max]
-              need_dup = false
-            end
-
-            value = value.dup if need_dup
             serialized.update(value: value)
           when Array
             if depth < 0

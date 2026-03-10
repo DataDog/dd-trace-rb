@@ -41,7 +41,8 @@ class InstrumentationSpecTestClass
 
   def binary_data_method
     # Return a string with high bytes that will fail JSON encoding
-    binary_string = (128..255).map { |i| i.chr(Encoding::BINARY) }.join.force_encoding(Encoding::BINARY)
+    # 300 bytes to exceed default max_capture_string_length of 255
+    binary_string = ((128..255).to_a * 3)[0...300].map { |i| i.chr(Encoding::BINARY) }.join.force_encoding(Encoding::BINARY)
     binary_string
   end
 
@@ -1464,6 +1465,7 @@ RSpec.describe 'Instrumentation integration' do
         # Execute the method that returns binary data
         result = InstrumentationSpecTestClass.new.binary_data_method
         expect(result.encoding).to eq(Encoding::BINARY)
+        expect(result.length).to eq(300)
         expect(result.bytes.min).to eq(128)
         expect(result.bytes.max).to eq(255)
 
@@ -1477,10 +1479,10 @@ RSpec.describe 'Instrumentation integration' do
         expect(return_value.encoding).to eq(Encoding::UTF_8)
         expect(return_value).to include('\\x80') # First high byte
 
-        # The 128-byte binary string converts to a 515-char escaped string (b' + 128*4 + ')
-        # which exceeds the default max_capture_string_length (255), so it's truncated
+        # The 300-byte binary string exceeds max_capture_string_length (255)
+        # Truncated to first 255 bytes, then escaped to 1023 chars (b' + 255*4 + ')
         expect(return_capture[:arguments][:"@return"][:truncated]).to be true
-        expect(return_capture[:arguments][:"@return"][:size]).to eq(515)
+        expect(return_capture[:arguments][:"@return"][:size]).to eq(300) # Original byte count
 
         # JSON encoding should now succeed
         expect {

@@ -679,86 +679,177 @@ RSpec.describe Datadog::DI::Serializer do
     end
 
     context 'truncation behavior' do
-      # Create a binary string that when escaped exceeds the limit
-      # Each non-printable byte becomes \xHH (4 chars), plus b'...' wrapper
-      let(:binary_string) do
-        # 100 bytes of \xFF -> b'\xff\xff...' = 403 chars (2 + 100*4 + 1)
-        "\xFF".b * 100
+      # Truncation is applied to the ORIGINAL binary data (in bytes) before escaping.
+      # This is efficient - we only escape what we need rather than escaping a large
+      # binary string and then throwing away most of the work.
+      #
+      # The size field reports the original binary data length in bytes.
+
+      context 'when binary data is under the limit' do
+        let(:binary_string) { "\xFF".b * 5 }
+
+        before do
+          allow(di_settings).to receive(:max_capture_string_length).and_return(10)
+        end
+
+        it 'does not truncate and escapes all bytes' do
+          serialized = serializer.serialize_value(binary_string)
+
+          # 5 bytes < 10 limit, no truncation
+          # Escaped: b'\xff\xff\xff\xff\xff' = 2 + 5*4 + 1 = 23 chars
+          expect(serialized[:value]).to eq("b'\\xff\\xff\\xff\\xff\\xff'")
+          expect(serialized[:truncated]).to be_falsey
+          expect(serialized[:size]).to be_nil
+        end
       end
 
-      before do
-        # Set a limit that will truncate the escaped string
-        allow(di_settings).to receive(:max_capture_string_length).and_return(50)
+      context 'when binary data is at the exact limit' do
+        let(:binary_string) { "\x00".b * 10 }
+
+        before do
+          allow(di_settings).to receive(:max_capture_string_length).and_return(10)
+        end
+
+        it 'does not truncate and escapes all bytes' do
+          serialized = serializer.serialize_value(binary_string)
+
+          # 10 bytes == 10 limit, no truncation
+          # Escaped: b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' = 2 + 10*4 + 1 = 43 chars
+          expect(serialized[:value]).to eq("b'\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00'")
+          expect(serialized[:truncated]).to be_falsey
+          expect(serialized[:size]).to be_nil
+        end
       end
 
-      it 'escapes full binary then truncates escaped string at character limit' do
-        serialized = serializer.serialize_value(binary_string)
+      context 'when binary data exceeds the limit' do
+        let(:binary_string) { "\xFF".b * 20 }
 
-        # Full escaped string would be b'\xff\xff...' (403 chars)
-        # Should be truncated at 50 characters
-        expect(serialized[:value].length).to eq(50)
-        expect(serialized[:value]).to start_with("b'\\xff")
-        expect(serialized[:truncated]).to be true
-        # Size should be the full escaped string length, not the original binary length
-        expect(serialized[:size]).to eq(403) # b' + 100*4 (\xff) + '
+        before do
+          allow(di_settings).to receive(:max_capture_string_length).and_return(10)
+        end
+
+        it 'truncates original binary to limit then escapes' do
+          serialized = serializer.serialize_value(binary_string)
+
+          # 20 bytes > 10 limit, truncate to first 10 bytes
+          # Escaped: b'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff' = 2 + 10*4 + 1 = 43 chars
+          expect(serialized[:value]).to eq("b'\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff'")
+          expect(serialized[:truncated]).to be true
+          expect(serialized[:size]).to eq(20) # Original size, not escaped size
+        end
       end
 
-      it 'matches dd-trace-py behavior: escape then truncate' do
-        # dd-trace-py does: repr(value) then truncate at maxlen
-        # This produces the same serialized contents
-        # NOT: truncate value then escape
-        full_escaped = "b'" + ("\xFF".b * 100).each_byte.map { |b| "\\xff" }.join + "'"
-        expect(full_escaped.length).to eq(403)
+      context 'with very large binary data' do
+        let(:binary_string) { "\x80".b * 1000 }
 
-        serialized = serializer.serialize_value(binary_string)
+        before do
+          allow(di_settings).to receive(:max_capture_string_length).and_return(10)
+        end
 
-        # Should match truncating the full escaped string
-        expect(serialized[:value]).to eq(full_escaped[0...50])
+        it 'efficiently truncates before escaping' do
+          serialized = serializer.serialize_value(binary_string)
+
+          # 1000 bytes > 10 limit, truncate to first 10 bytes then escape
+          # This is efficient: we escape 10 bytes, not 1000 bytes
+          expect(serialized[:value]).to eq("b'\\x80\\x80\\x80\\x80\\x80\\x80\\x80\\x80\\x80\\x80'")
+          expect(serialized[:truncated]).to be true
+          expect(serialized[:size]).to eq(1000)
+        end
       end
 
-    end
+      context 'with mixed printable and non-printable bytes' do
+        let(:binary_string) { "Hello\x00\x01\x02World\xFF".b }
 
-    context 'truncation mid-escape' do
-      let(:binary_string) { "\x80\x81\x82".b }
+        before do
+          # 14 bytes total: Hello(5) + \x00\x01\x02(3) + World(5) + \xFF(1)
+          allow(di_settings).to receive(:max_capture_string_length).and_return(8)
+        end
 
-      before do
-        # Full escaped is "b'\\x80\\x81\\x82'" = 15 chars
-        # Set limit to 11 to truncate mid-escape-sequence
-        allow(di_settings).to receive(:max_capture_string_length).and_return(11)
+        it 'truncates to byte limit before escaping' do
+          serialized = serializer.serialize_value(binary_string)
+
+          # 14 bytes > 8 limit, truncate to first 8 bytes: "Hello\x00\x01\x02"
+          # Escaped: b'Hello\x00\x01\x02' = 2 + 5 + 4 + 4 + 4 + 1 = 20 chars
+          expect(serialized[:value]).to eq("b'Hello\\x00\\x01\\x02'")
+          expect(serialized[:truncated]).to be true
+          expect(serialized[:size]).to eq(14)
+        end
       end
 
-      it 'may truncate mid-escape-sequence which is acceptable' do
-        # Truncation can happen at any character position, even mid-escape
-        # This is intentional and matches dd-trace-py behavior
-        serialized = serializer.serialize_value(binary_string)
+      context 'size field reporting' do
+        it 'reports original binary byte count, not escaped string length' do
+          binary_string = "\xFF".b * 50
+          allow(di_settings).to receive(:max_capture_string_length).and_return(10)
 
-        # Full escaped: "b'\\x80\\x81\\x82'" = b' + \x80 + \x81 + \x82 + ' = 2+4+4+4+1 = 15 chars
-        #  Position:    b  '  \  x  8  0  \  x  8  1  \  x  8  2  '
-        #  Index:       0  1  2  3  4  5  6  7  8  9 10 11 12 13 14
-        # Truncated at 11: "b'\\x80\\x81\\" = cuts mid-escape (after '\', before 'x82')
-        expect(serialized[:value].length).to eq(11)
-        expect(serialized[:value]).to eq("b'\\x80\\x81\\")
-        expect(serialized[:truncated]).to be true
-        expect(serialized[:size]).to eq(15)
+          serialized = serializer.serialize_value(binary_string)
+
+          # Original: 50 bytes
+          # Truncated to: 10 bytes
+          # Escaped result would be 43 characters, but size reports original bytes
+          expect(serialized[:size]).to eq(50) # Not 43
+          expect(serialized[:truncated]).to be true
+        end
       end
     end
 
     context 'with printable ASCII in binary string' do
-      # Printable ASCII doesn't expand much: "Hello" -> b'Hello' (9 chars)
+      # Printable ASCII in binary strings is preserved during escaping
       let(:binary_string) { "Hello World! This is a test.".b }
 
       before do
+        # 28 bytes total, limit to 20 bytes
         allow(di_settings).to receive(:max_capture_string_length).and_return(20)
       end
 
-      it 'captures more data when content is printable' do
+      it 'truncates to byte limit before escaping' do
         serialized = serializer.serialize_value(binary_string)
 
-        # Full repr: b'Hello World! This is a test.' = 31 chars (b' + 28 + ')
-        # Truncated at 20 chars
-        expect(serialized[:value]).to eq("b'Hello World! This ")
+        # Original: 28 bytes
+        # Truncate to first 20 bytes: "Hello World! This is"
+        # Escape: b'Hello World! This is' = 23 chars
+        expect(serialized[:value]).to eq("b'Hello World! This is'")
         expect(serialized[:truncated]).to be true
-        expect(serialized[:size]).to eq(31)
+        expect(serialized[:size]).to eq(28) # Original byte count
+      end
+    end
+
+    context 'regular UTF-8 string truncation' do
+      # Verify that regular (non-binary) strings use character-based truncation
+      it 'truncates based on character count for UTF-8 strings' do
+        # 15 character string (no escaping needed)
+        utf8_string = "Hello, World!!!"
+        allow(di_settings).to receive(:max_capture_string_length).and_return(10)
+
+        serialized = serializer.serialize_value(utf8_string)
+
+        # Should truncate at 10 characters (not bytes)
+        expect(serialized[:value]).to eq("Hello, Wor")
+        expect(serialized[:truncated]).to be true
+        expect(serialized[:size]).to eq(15)
+      end
+
+      it 'handles multi-byte UTF-8 characters correctly' do
+        # String with emoji: "Hello 👋 World" = 13 characters (emoji is 1 char)
+        utf8_string = "Hello 👋 World"
+        allow(di_settings).to receive(:max_capture_string_length).and_return(8)
+
+        serialized = serializer.serialize_value(utf8_string)
+
+        # Should truncate at 8 characters: "Hello 👋 " (includes the space)
+        expect(serialized[:value]).to eq("Hello 👋 ")
+        expect(serialized[:truncated]).to be true
+        expect(serialized[:size]).to eq(13)
+      end
+
+      it 'does not escape valid UTF-8 strings' do
+        utf8_string = "Hello"
+        allow(di_settings).to receive(:max_capture_string_length).and_return(100)
+
+        serialized = serializer.serialize_value(utf8_string)
+
+        # Should not have b'...' wrapping
+        expect(serialized[:value]).to eq("Hello")
+        expect(serialized[:truncated]).to be_falsey
       end
     end
 
@@ -815,14 +906,15 @@ RSpec.describe Datadog::DI::Serializer do
         # Default max is 100 in the test helper
         serialized = serializer.serialize_value(binary_string)
 
-        # Should truncate to the configured max
-        expect(serialized[:value].length).to eq(100)
+        # Truncate to first 100 bytes of binary, then escape
+        # Escaped result: b' + 100*\xff + ' = 2 + 400 + 1 = 403 chars
+        expect(serialized[:value].length).to eq(403)
         expect(serialized[:value]).to start_with("b'\\xff")
+        expect(serialized[:value]).to end_with("'")
         expect(serialized[:truncated]).to be true
 
-        # Size field contains the full escaped string length, not original binary length
-        # 100,000 bytes * 4 chars per byte (\xff) + 2 (b') + 1 (') = 400,003 chars
-        expect(serialized[:size]).to eq(400_003)
+        # Size field reports original binary byte count
+        expect(serialized[:size]).to eq(100_000)
       end
 
       it 'is JSON-serializable despite large size' do
