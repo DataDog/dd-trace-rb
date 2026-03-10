@@ -591,11 +591,11 @@ RSpec.describe Datadog::DI::Serializer do
         "\x80\x90\xa0\xb0\xc0\xd0\xe0\xf0\xff".b
       end
 
-      it 'converts to Python-style repr format' do
+      it 'escapes binary data to JSON-safe format' do
         # Serialize the binary string
         serialized = serializer.serialize_value(binary_string)
 
-        # The serializer produces a hash with Python-style repr
+        # The serializer produces an escaped string in b'...' format
         expect(serialized[:type]).to eq('String')
         expect(serialized[:value]).to eq("b'\\x80\\x90\\xa0\\xb0\\xc0\\xd0\\xe0\\xf0\\xff'")
         expect(serialized[:value].encoding).to eq(Encoding::UTF_8)
@@ -605,12 +605,12 @@ RSpec.describe Datadog::DI::Serializer do
     context 'in nested structures' do
       let(:binary_string) { "\x80\x81\x82\xFF\xFE".b }
 
-      it 'converts binary strings to repr in vars' do
+      it 'escapes binary strings in vars' do
         # Simulate a more realistic snapshot with binary data in locals
         vars = {binary_data: binary_string, normal_string: "hello"}
         serialized = serializer.serialize_vars(vars)
 
-        # Binary data is converted to Python repr
+        # Binary data is escaped
         expect(serialized[:binary_data][:type]).to eq('String')
         expect(serialized[:binary_data][:value]).to eq("b'\\x80\\x81\\x82\\xff\\xfe'")
         expect(serialized[:binary_data][:value].encoding).to eq(Encoding::UTF_8)
@@ -625,7 +625,7 @@ RSpec.describe Datadog::DI::Serializer do
     context 'in method arguments' do
       let(:binary_string) { "\x00\x01\x02\xFF".b }
 
-      it 'converts binary strings to repr in args' do
+      it 'escapes binary strings in args' do
         # Simulate method arguments containing binary data
         args = [binary_string, "normal arg"]
         kwargs = {data: binary_string}
@@ -633,7 +633,7 @@ RSpec.describe Datadog::DI::Serializer do
 
         serialized = serializer.serialize_args(args, kwargs, target_self)
 
-        # Binary data is converted to Python repr
+        # Binary data is escaped
         expect(serialized[:arg1][:type]).to eq('String')
         expect(serialized[:arg1][:value]).to eq("b'\\x00\\x01\\x02\\xff'")
         expect(serialized[:arg1][:value].encoding).to eq(Encoding::UTF_8)
@@ -679,7 +679,7 @@ RSpec.describe Datadog::DI::Serializer do
     end
 
     context 'truncation behavior' do
-      # Create a binary string that when converted to repr exceeds the limit
+      # Create a binary string that when escaped exceeds the limit
       # Each non-printable byte becomes \xHH (4 chars), plus b'...' wrapper
       let(:binary_string) do
         # 100 bytes of \xFF -> b'\xff\xff...' = 403 chars (2 + 100*4 + 1)
@@ -687,32 +687,59 @@ RSpec.describe Datadog::DI::Serializer do
       end
 
       before do
-        # Set a limit that will truncate the repr
+        # Set a limit that will truncate the escaped string
         allow(di_settings).to receive(:max_capture_string_length).and_return(50)
       end
 
-      it 'converts full binary to repr then truncates repr string at character limit' do
+      it 'escapes full binary then truncates escaped string at character limit' do
         serialized = serializer.serialize_value(binary_string)
 
-        # Full repr would be b'\xff\xff...' (403 chars)
+        # Full escaped string would be b'\xff\xff...' (403 chars)
         # Should be truncated at 50 characters
         expect(serialized[:value].length).to eq(50)
         expect(serialized[:value]).to start_with("b'\\xff")
         expect(serialized[:truncated]).to be true
-        # Size should be the full repr length, not the original binary length
+        # Size should be the full escaped string length, not the original binary length
         expect(serialized[:size]).to eq(403) # b' + 100*4 (\xff) + '
       end
 
-      it 'matches Python dd-trace-py behavior: convert then truncate' do
-        # Python does: repr(value) then truncate repr at maxlen
-        # NOT: truncate value then repr
-        full_repr = "b'" + ("\xFF".b * 100).each_byte.map { |b| "\\xff" }.join + "'"
-        expect(full_repr.length).to eq(403)
+      it 'matches dd-trace-py behavior: escape then truncate' do
+        # dd-trace-py does: repr(value) then truncate at maxlen
+        # This produces the same serialized contents
+        # NOT: truncate value then escape
+        full_escaped = "b'" + ("\xFF".b * 100).each_byte.map { |b| "\\xff" }.join + "'"
+        expect(full_escaped.length).to eq(403)
 
         serialized = serializer.serialize_value(binary_string)
 
-        # Should match truncating the full repr
-        expect(serialized[:value]).to eq(full_repr[0...50])
+        # Should match truncating the full escaped string
+        expect(serialized[:value]).to eq(full_escaped[0...50])
+      end
+
+    end
+
+    context 'truncation mid-escape' do
+      let(:binary_string) { "\x80\x81\x82".b }
+
+      before do
+        # Full escaped is "b'\\x80\\x81\\x82'" = 15 chars
+        # Set limit to 11 to truncate mid-escape-sequence
+        allow(di_settings).to receive(:max_capture_string_length).and_return(11)
+      end
+
+      it 'may truncate mid-escape-sequence which is acceptable' do
+        # Truncation can happen at any character position, even mid-escape
+        # This is intentional and matches dd-trace-py behavior
+        serialized = serializer.serialize_value(binary_string)
+
+        # Full escaped: "b'\\x80\\x81\\x82'" = b' + \x80 + \x81 + \x82 + ' = 2+4+4+4+1 = 15 chars
+        #  Position:    b  '  \  x  8  0  \  x  8  1  \  x  8  2  '
+        #  Index:       0  1  2  3  4  5  6  7  8  9 10 11 12 13 14
+        # Truncated at 11: "b'\\x80\\x81\\" = cuts mid-escape (after '\', before 'x82')
+        expect(serialized[:value].length).to eq(11)
+        expect(serialized[:value]).to eq("b'\\x80\\x81\\")
+        expect(serialized[:truncated]).to be true
+        expect(serialized[:size]).to eq(15)
       end
     end
 

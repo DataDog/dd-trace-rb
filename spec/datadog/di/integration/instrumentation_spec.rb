@@ -1405,7 +1405,7 @@ RSpec.describe 'Instrumentation integration' do
         expect(json_encoded.encoding).to eq(Encoding::UTF_8)
       end
 
-      it 'converts binary data in parameters to Python repr' do
+      it 'escapes binary data in parameters' do
         expect(diagnostics_transport).to receive(:send_diagnostics)
 
         # Capture the snapshot before it gets to transport
@@ -1419,14 +1419,14 @@ RSpec.describe 'Instrumentation integration' do
         # Execute the method
         InstrumentationSpecTestClass.new.binary_data_param_method(binary_string, "hello")
 
-        # Verify snapshot was captured with binary data converted to Python repr
+        # Verify snapshot was captured with binary data escaped
         expect(captured_snapshot).not_to be_nil
         expect(captured_snapshot[:debugger][:snapshot][:captures]).to have_key(:entry)
 
         entry_capture = captured_snapshot[:debugger][:snapshot][:captures][:entry]
         expect(entry_capture[:arguments]).to have_key(:arg1)
 
-        # The binary string is converted to Python repr format
+        # The binary string is escaped to b'...' format
         binary_param_value = entry_capture[:arguments][:arg1][:value]
         expect(binary_param_value).to be_a(String)
         expect(binary_param_value).to eq("b'\\x80\\x81\\x82\\xff\\xfe'")
@@ -1450,7 +1450,7 @@ RSpec.describe 'Instrumentation integration' do
         )
       end
 
-      it 'converts binary return value to Python repr' do
+      it 'escapes binary return value' do
         expect(diagnostics_transport).to receive(:send_diagnostics)
 
         # Capture the snapshot before transport
@@ -1467,7 +1467,7 @@ RSpec.describe 'Instrumentation integration' do
         expect(result.bytes.min).to eq(128)
         expect(result.bytes.max).to eq(255)
 
-        # Verify snapshot captured the return value as Python repr
+        # Verify snapshot captured the return value as escaped string
         expect(captured_snapshot).not_to be_nil
         return_capture = captured_snapshot[:debugger][:snapshot][:captures][:return]
         expect(return_capture[:arguments]).to have_key(:"@return")
@@ -1477,7 +1477,7 @@ RSpec.describe 'Instrumentation integration' do
         expect(return_value.encoding).to eq(Encoding::UTF_8)
         expect(return_value).to include('\\x80') # First high byte
 
-        # The 128-byte binary string converts to a 515-char repr (b' + 128*4 + ')
+        # The 128-byte binary string converts to a 515-char escaped string (b' + 128*4 + ')
         # which exceeds the default max_capture_string_length (255), so it's truncated
         expect(return_capture[:arguments][:"@return"][:truncated]).to be true
         expect(return_capture[:arguments][:"@return"][:size]).to eq(515)

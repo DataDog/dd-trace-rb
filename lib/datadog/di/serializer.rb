@@ -185,26 +185,37 @@ module Datadog
               value.to_s
             end
 
-            # Handle binary strings by converting to Python-style repr format.
-            # This matches dd-trace-py behavior where bytes are converted to repr
-            # strings and then truncated if the repr exceeds the character limit.
+            # Handle binary strings by escaping them to a JSON-safe format.
+            # Binary data (ASCII-8BIT encoding) is converted to an escaped string
+            # representation in the format: b'...' with special handling for:
+            # - Printable ASCII: preserved as-is
+            # - Special characters: \n, \t, \r, \\, \'
+            # - Non-printable bytes: \xHH hex escapes
+            #
+            # Example: "\x80\xFF".b -> "b'\\x80\\xff'"
+            #
+            # This produces the same serialized contents as dd-trace-py.
+            #
+            # The escaped string is then truncated if it exceeds the character limit.
             #
             # Reference tracer behavior:
-            # - Python (dd-trace-py): Converts entire bytes value to repr string
-            #   (e.g., b'\x80\xff' -> "b'\\x80\\xff'"), then truncates the repr
-            #   string if it exceeds maxlen characters.
-            # - Java (dd-trace-java): Treats byte[] as an array, truncates at
+            # - dd-trace-py: Converts entire bytes value to escaped string,
+            #   then truncates the escaped string if it exceeds maxlen characters.
+            # - dd-trace-java: Treats byte[] as an array, truncates at
             #   maxCollectionSize elements, converts each byte to string.
             #
-            # We follow Python's approach since we output a single string value.
             # The max_capture_string_length limit is in characters of the output
             # string, not bytes of the input binary data.
             if value.encoding == Encoding::BINARY
-              value = binary_to_python_repr(value)
+              value = escape_binary_string(value)
               need_dup = false # Already converted to new string
             end
 
-            # Truncate string if it exceeds the character limit
+            # Truncate string if it exceeds the character limit.
+            # Truncation may occur mid-escape-sequence (e.g., "b'\\x80\\x" cutting
+            # after the second hex digit) or before the closing quote. This is
+            # intentional and matches dd-trace-py behavior. The truncated flag
+            # indicates the value is incomplete.
             max = settings.dynamic_instrumentation.max_capture_string_length
             if value.length > max
               serialized.update(truncated: true, size: value.length)
@@ -440,18 +451,21 @@ module Datadog
         end
       end
 
-      # Converts a binary string to Python-style bytes repr format.
+      # Escapes a binary string to a JSON-safe format.
       #
-      # This makes binary data JSON-safe by representing it as a string
-      # similar to Python's repr(bytes) output: b'...'
+      # Binary data (ASCII-8BIT encoding) is converted to an escaped string
+      # in the format: b'...' with hex escapes for non-printable bytes.
+      #
+      # This produces the same serialized contents as dd-trace-py, which uses
+      # Python's repr() for bytes objects. The output is JSON-serializable.
       #
       # Examples:
-      #   b"Hello" -> "b'Hello'"
-      #   b"\x80\xFF" -> "b'\\x80\\xff'"
+      #   "Hello".b -> "b'Hello'"
+      #   "\x80\xFF".b -> "b'\\x80\\xff'"
       #
       # @param binary_string [String] A string with ASCII-8BIT encoding
-      # @return [String] Python-style repr with UTF-8 encoding
-      def binary_to_python_repr(binary_string)
+      # @return [String] Escaped string with UTF-8 encoding
+      def escape_binary_string(binary_string)
         result = "b'".dup
         binary_string.each_byte do |byte|
           case byte
