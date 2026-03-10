@@ -1562,4 +1562,91 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
   end
+
+  describe 'telemetry reporting' do
+    let(:propagate_all_exceptions) { false }
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+    let(:instrumenter) do
+      described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry)
+    end
+
+    describe 'method probe condition evaluation failed callback exceptions' do
+      before do
+        Object.const_set(:DITestClass, Class.new do
+          def test_method(arg)
+            arg + 1
+          end
+        end)
+      end
+
+      after do
+        Object.send(:remove_const, :DITestClass)
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: 1, type: :log, type_name: 'DITestClass', method_name: 'test_method',
+          condition: Datadog::DI::EL::Expression.new('(expression)', 'undefined_function()')
+        )
+      end
+
+      let(:responder) do
+        double('responder').tap do |r|
+          # Allow the callback to be called, but have it raise an error
+          allow(r).to receive(:probe_condition_evaluation_failed_callback).and_raise(StandardError, "callback error")
+        end
+      end
+
+      it 'reports exception to telemetry when callback fails' do
+        allow(logger).to receive(:debug)
+
+        expect(telemetry).to receive(:report) do |exc, description:|
+          expect(exc).to be_a(StandardError)
+          expect(exc.message).to eq("callback error")
+          expect(description).to eq("Error in probe condition evaluation failed callback")
+        end
+
+        begin
+          instrumenter.hook_method(probe, responder)
+
+          # Trigger condition evaluation with an invalid expression that will cause evaluation to fail
+          expect do
+            DITestClass.new.test_method(42)
+          end.not_to raise_error
+        ensure
+          instrumenter.unhook_method(probe)
+        end
+      end
+    end
+
+    describe 'line probe condition evaluation failed callback exceptions' do
+      before do
+        skip "disabled - requires code tracking & trace point setup"
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: 1, type: :log, file: __FILE__, line_no: __LINE__ + 5,
+          condition: Datadog::DI::EL::Expression.new('(expression)', 'invalid_expression')
+        )
+      end
+
+      let(:responder) do
+        double('responder').tap do |r|
+          allow(r).to receive(:probe_condition_evaluation_failed_callback).and_raise(StandardError, "callback error")
+        end
+      end
+
+      it 'reports exception to telemetry when callback fails' do
+        expect(telemetry).to receive(:report) do |exc, description:|
+          expect(exc).to be_a(StandardError)
+          expect(exc.message).to eq("callback error")
+          expect(description).to eq("Error in probe condition evaluation failed callback")
+        end
+
+        instrumenter.hook_line(probe, responder)
+        # Code execution that triggers the line probe would go here
+      end
+    end
+  end
 end

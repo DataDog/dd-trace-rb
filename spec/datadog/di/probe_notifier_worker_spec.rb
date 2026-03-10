@@ -32,7 +32,9 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
   di_logger_double
 
-  let(:worker) { described_class.new(settings, logger, agent_settings: agent_settings) }
+  let(:telemetry) { nil }
+
+  let(:worker) { described_class.new(settings, logger, agent_settings: agent_settings, telemetry: telemetry) }
 
   let(:diagnostics_transport) do
     double(Datadog::DI::Transport::Diagnostics::Transport)
@@ -167,6 +169,54 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
           worker.flush
           expect(worker.send(:snapshot_queue)).to eq([])
+        end
+      end
+
+      context 'when sending snapshot fails' do
+        let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
+        it 'reports exception to telemetry' do
+          allow(logger).to receive(:debug)
+          expect(input_transport).to receive(:send_input).and_raise(StandardError, "network error")
+
+          expect(telemetry).to receive(:report) do |exc, description:|
+            expect(exc).to be_a(StandardError)
+            expect(exc.message).to eq("network error")
+            expect(description).to eq("Error sending snapshot")
+          end
+
+          worker.add_snapshot(snapshot)
+          worker.flush
+
+          # Queue should be cleared even after error
+          expect(worker.send(:snapshot_queue)).to eq([])
+        end
+      end
+    end
+
+    describe '#add_status' do
+      let(:status) do
+        {status: 'received'}.freeze
+      end
+
+      context 'when sending status fails' do
+        let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
+        it 'reports exception to telemetry' do
+          allow(logger).to receive(:debug)
+          expect(diagnostics_transport).to receive(:send_diagnostics).and_raise(StandardError, "network error")
+
+          expect(telemetry).to receive(:report) do |exc, description:|
+            expect(exc).to be_a(StandardError)
+            expect(exc.message).to eq("network error")
+            expect(description).to eq("Error sending status")
+          end
+
+          worker.add_status(status)
+          worker.flush
+
+          # Queue should be cleared even after error
+          expect(worker.send(:status_queue)).to eq([])
         end
       end
     end
