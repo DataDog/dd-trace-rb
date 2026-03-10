@@ -497,7 +497,7 @@ module Datadog
           end
         end
         result << "'"
-        result.force_encoding(Encoding::UTF_8) # ASCII-compatible, force to UTF-8
+        result
       end
     end
   end
