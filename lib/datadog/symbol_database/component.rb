@@ -7,7 +7,23 @@ require_relative '../core/utils/time'
 
 module Datadog
   module SymbolDatabase
-    # Coordinates symbol database components and manages lifecycle
+    # Main coordinator for symbol database upload functionality.
+    #
+    # Responsibilities:
+    # - Lifecycle management: Initialization, shutdown, upload triggering
+    # - Coordination: Connects Extractor → ScopeContext → Uploader
+    # - Remote config handling: start_upload called by Remote module on config changes
+    # - Deduplication: 60-second cooldown prevents rapid re-uploads
+    #
+    # Upload flow:
+    # 1. Remote config sends upload_symbols: true (or force_upload mode)
+    # 2. start_upload called
+    # 3. extract_and_upload: ObjectSpace iteration → Extractor → ScopeContext
+    # 4. ScopeContext batches and triggers Uploader
+    #
+    # Created by: Components#initialize (in Core::Configuration::Components)
+    # Stored in: SymbolDatabase.component (global, for remote config receiver access)
+    # Requires: DI enabled, remote config enabled (unless force mode)
     class Component
       UPLOAD_COOLDOWN = 60  # seconds
 

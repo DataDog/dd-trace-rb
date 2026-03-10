@@ -3,7 +3,16 @@
 module Datadog
   module SymbolDatabase
     module Configuration
-      # Symbol Database configuration settings
+      # Configuration settings for symbol database upload feature.
+      #
+      # Provides 3 environment variables:
+      # - DD_SYMBOL_DATABASE_UPLOAD_ENABLED (default: true) - Feature gate
+      # - DD_SYMBOL_DATABASE_FORCE_UPLOAD (default: false) - Bypass remote config
+      # - DD_SYMBOL_DATABASE_INCLUDES (default: []) - Filter modules to upload
+      #
+      # Extended into: Core::Configuration::Settings (via extend)
+      # Accessed as: Datadog.configuration.symbol_database.enabled
+      # Used by: Component.build (checks if feature enabled)
       module Settings
         def self.extended(base)
           base = base.singleton_class unless base.is_a?(Class)
