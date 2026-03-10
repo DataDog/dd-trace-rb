@@ -38,6 +38,17 @@ class InstrumentationSpecTestClass
   def exception_method
     raise TestException, 'Test exception'
   end
+
+  def binary_data_method
+    # Return a string with high bytes that will fail JSON encoding
+    binary_string = (128..255).map { |i| i.chr(Encoding::BINARY) }.join.force_encoding(Encoding::BINARY)
+    binary_string
+  end
+
+  def binary_data_param_method(binary_param, normal_param)
+    # Method with binary data in parameters
+    binary_param.length + normal_param.length
+  end
 end
 
 RSpec.describe 'Instrumentation integration' do
@@ -1336,6 +1347,143 @@ RSpec.describe 'Instrumentation integration' do
           # No new status notifications should be sent
           expect(status_payloads.length).to eq(initial_payload_count)
         end
+      end
+    end
+  end
+
+  context 'binary data in snapshots' do
+    context 'with binary data in parameters' do
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "binary-test",
+          type: :log,
+          type_name: 'InstrumentationSpecTestClass',
+          method_name: 'binary_data_param_method',
+          capture_snapshot: true
+        )
+      end
+
+      let(:binary_string) { "\x80\x81\x82\xFF\xFE".b }
+
+      it 'fails to send snapshot with binary data through transport' do
+        expect(diagnostics_transport).to receive(:send_diagnostics)
+
+        # Capture the snapshot and the error that happens in transport
+        captured_snapshot = nil
+        transport_error = nil
+
+        allow(component.probe_notifier_worker).to receive(:add_snapshot).and_wrap_original do |m, *args|
+          captured_snapshot = args[0]
+          m.call(*args)
+        end
+
+        allow(input_transport).to receive(:send_input) do |snapshots, tags|
+          begin
+            # This mimics what the transport does - encode to JSON
+            JSON.dump(snapshots)
+          rescue => e
+            transport_error = e
+            # Don't re-raise to avoid failing the test
+          end
+        end
+
+        probe_manager.add_probe(probe)
+
+        # Execute the method with binary data
+        result = InstrumentationSpecTestClass.new.binary_data_param_method(binary_string, "hello")
+        expect(result).to eq(10) # 5 + 5
+
+        # Wait for flush to complete
+        component.probe_notifier_worker.flush
+        sleep 0.1 # Give worker thread time to process
+
+        # Verify the snapshot was captured
+        expect(captured_snapshot).not_to be_nil
+
+        # Verify that attempting to JSON encode the snapshot fails
+        expect {
+          JSON.dump(captured_snapshot)
+        }.to raise_error(JSON::GeneratorError, /from ASCII-8BIT to UTF-8/)
+
+        # The transport should have encountered the same error
+        expect(transport_error).to be_a(JSON::GeneratorError)
+      end
+
+      it 'captures binary data in parameters before JSON encoding fails' do
+        expect(diagnostics_transport).to receive(:send_diagnostics)
+
+        # Capture the snapshot before it gets to transport
+        captured_snapshot = nil
+        allow(component.probe_notifier_worker).to receive(:add_snapshot) do |snapshot|
+          captured_snapshot = snapshot
+        end
+
+        probe_manager.add_probe(probe)
+
+        # Execute the method
+        InstrumentationSpecTestClass.new.binary_data_param_method(binary_string, "hello")
+
+        # Verify snapshot was captured with binary data
+        expect(captured_snapshot).not_to be_nil
+        expect(captured_snapshot[:debugger][:snapshot][:captures]).to have_key(:entry)
+
+        entry_capture = captured_snapshot[:debugger][:snapshot][:captures][:entry]
+        expect(entry_capture[:arguments]).to have_key(:arg1)
+
+        # The binary string is in the snapshot as arg1
+        binary_param_value = entry_capture[:arguments][:arg1][:value]
+        expect(binary_param_value).to be_a(String)
+        expect(binary_param_value.encoding).to eq(Encoding::BINARY)
+        expect(binary_param_value.bytes).to eq([0x80, 0x81, 0x82, 0xFF, 0xFE])
+
+        # But JSON encoding the snapshot will fail
+        expect {
+          JSON.dump(captured_snapshot)
+        }.to raise_error(JSON::GeneratorError, /from ASCII-8BIT to UTF-8/)
+      end
+    end
+
+    context 'with binary return value' do
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "binary-return-test",
+          type: :log,
+          type_name: 'InstrumentationSpecTestClass',
+          method_name: 'binary_data_method',
+          capture_snapshot: true
+        )
+      end
+
+      it 'captures binary return value that fails JSON encoding' do
+        expect(diagnostics_transport).to receive(:send_diagnostics)
+
+        # Capture the snapshot before transport
+        captured_snapshot = nil
+        allow(component.probe_notifier_worker).to receive(:add_snapshot) do |snapshot|
+          captured_snapshot = snapshot
+        end
+
+        probe_manager.add_probe(probe)
+
+        # Execute the method that returns binary data
+        result = InstrumentationSpecTestClass.new.binary_data_method
+        expect(result.encoding).to eq(Encoding::BINARY)
+        expect(result.bytes.min).to eq(128)
+        expect(result.bytes.max).to eq(255)
+
+        # Verify snapshot captured the return value
+        expect(captured_snapshot).not_to be_nil
+        return_capture = captured_snapshot[:debugger][:snapshot][:captures][:return]
+        expect(return_capture[:arguments]).to have_key(:"@return")
+
+        return_value = return_capture[:arguments][:"@return"][:value]
+        expect(return_value.encoding).to eq(Encoding::BINARY)
+        expect(return_value.bytes.any? { |b| b > 127 }).to be true
+
+        # JSON encoding will fail
+        expect {
+          JSON.dump(captured_snapshot)
+        }.to raise_error(JSON::GeneratorError, /from ASCII-8BIT to UTF-8/)
       end
     end
   end

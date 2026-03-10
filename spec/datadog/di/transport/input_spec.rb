@@ -20,6 +20,69 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
   let(:tags) { [] }
 
+  context 'when snapshot contains binary data' do
+    context 'with all 256 byte values' do
+      # Create a string containing all possible byte values (0x00-0xFF)
+      # This simulates capturing a binary buffer in dynamic instrumentation
+      let(:binary_string) do
+        (0..255).map { |i| i.chr(Encoding::BINARY) }.join.force_encoding(Encoding::BINARY)
+      end
+
+      let(:snapshot) do
+        {
+          'id' => 'test-snapshot',
+          'timestamp' => Time.now.to_i,
+          'captures' => {
+            'locals' => {
+              'binary_data' => binary_string
+            }
+          }
+        }
+      end
+
+      it 'has all 256 unique bytes' do
+        expect(binary_string.bytes.uniq.sort).to eq((0..255).to_a)
+        expect(binary_string.encoding).to eq(Encoding::BINARY)
+      end
+
+      it 'fails to serialize through transport layer' do
+        # JSON.dump cannot handle arbitrary binary data
+        expect {
+          transport.send_input([snapshot], tags)
+        }.to raise_error(JSON::GeneratorError, /from ASCII-8BIT to UTF-8/)
+      end
+    end
+
+    context 'with binary string that is invalid UTF-8' do
+      # Create a string with bytes that are invalid UTF-8 sequences
+      let(:binary_string) { "\x80\x81\x82\xFF\xFE".b }
+
+      let(:snapshot) do
+        {
+          'id' => 'test-snapshot',
+          'captures' => {
+            'locals' => {
+              'binary_data' => binary_string
+            }
+          }
+        }
+      end
+
+      before do
+        # Assert this is indeed invalid UTF-8
+        # When forced to UTF-8, it should not be valid
+        utf8_attempt = binary_string.dup.force_encoding(Encoding::UTF_8)
+        expect(utf8_attempt.valid_encoding?).to be false
+      end
+
+      it 'fails to serialize binary string' do
+        expect {
+          transport.send_input([snapshot], tags)
+        }.to raise_error(JSON::GeneratorError, /from ASCII-8BIT to UTF-8/)
+      end
+    end
+  end
+
   context 'when the combined size of snapshots serialized exceeds intake max' do
     before do
       # Reduce limits to make the test run faster and not require a lot of memory
