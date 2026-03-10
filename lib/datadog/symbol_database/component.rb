@@ -43,8 +43,8 @@ module Datadog
         @telemetry = telemetry
 
         # Build uploader and scope context
-        @uploader = Uploader.new(settings)
-        @scope_context = ScopeContext.new(@uploader)
+        @uploader = Uploader.new(settings, telemetry: telemetry)
+        @scope_context = ScopeContext.new(@uploader, telemetry: telemetry)
 
         @enabled = false
         @last_upload_time = nil
@@ -85,18 +85,28 @@ module Datadog
       end
 
       def extract_and_upload
+        start_time = Datadog::Core::Utils::Time.get_time
+
         # Iterate all loaded modules and extract symbols
+        extracted_count = 0
         ObjectSpace.each_object(Module) do |mod|
           scope = Extractor.extract(mod)
           next unless scope
 
           @scope_context.add_scope(scope)
+          extracted_count += 1
         end
 
         # Flush any remaining scopes
         @scope_context.flush
+
+        # Track extraction metrics
+        duration = Datadog::Core::Utils::Time.get_time - start_time
+        @telemetry&.distribution('symbol_database.extraction_time', duration)
+        @telemetry&.count('symbol_database.scopes_extracted', extracted_count)
       rescue => e
         Datadog.logger.debug("SymDB: Error during extraction: #{e.class}: #{e}")
+        @telemetry&.count('symbol_database.extraction_error', 1)
       end
     end
   end
