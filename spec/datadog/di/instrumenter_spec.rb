@@ -1620,24 +1620,33 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
 
     describe 'line probe condition evaluation failed callback exceptions' do
+      include_context 'with code tracking'
+
       before do
-        skip "disabled - requires code tracking & trace point setup"
+        load File.join(File.dirname(__FILE__), 'hook_line_load.rb')
+      end
+
+      after do
+        instrumenter.unhook(probe)
       end
 
       let(:probe) do
         Datadog::DI::Probe.new(
-          id: 1, type: :log, file: __FILE__, line_no: __LINE__ + 5,
-          condition: Datadog::DI::EL::Expression.new('(expression)', 'invalid_expression')
+          id: 1, type: :log, file: 'hook_line_load.rb', line_no: 30,
+          condition: Datadog::DI::EL::Expression.new('(expression)', 'undefined_function()')
         )
       end
 
       let(:responder) do
         double('responder').tap do |r|
+          # Allow the callback to be called, but have it raise an error
           allow(r).to receive(:probe_condition_evaluation_failed_callback).and_raise(StandardError, "callback error")
         end
       end
 
       it 'reports exception to telemetry when callback fails' do
+        allow(logger).to receive(:debug)
+
         expect(telemetry).to receive(:report) do |exc, description:|
           expect(exc).to be_a(StandardError)
           expect(exc.message).to eq("callback error")
@@ -1645,7 +1654,12 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         instrumenter.hook_line(probe, responder)
-        # Code execution that triggers the line probe would go here
+
+        # Trigger the line probe - condition evaluation will fail due to undefined_function()
+        # which will call probe_condition_evaluation_failed_callback, which will raise
+        expect do
+          HookLineLoadTestClass.new.test_method_with_local
+        end.not_to raise_error
       end
     end
   end
