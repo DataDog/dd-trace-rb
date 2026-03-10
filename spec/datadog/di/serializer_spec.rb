@@ -677,5 +677,62 @@ RSpec.describe Datadog::DI::Serializer do
         expect(serialized[:value].encoding).to eq(Encoding::UTF_8)
       end
     end
+
+    context 'truncation behavior' do
+      # Create a binary string that when converted to repr exceeds the limit
+      # Each non-printable byte becomes \xHH (4 chars), plus b'...' wrapper
+      let(:binary_string) do
+        # 100 bytes of \xFF -> b'\xff\xff...' = 403 chars (2 + 100*4 + 1)
+        "\xFF".b * 100
+      end
+
+      before do
+        # Set a limit that will truncate the repr
+        allow(di_settings).to receive(:max_capture_string_length).and_return(50)
+      end
+
+      it 'converts full binary to repr then truncates repr string at character limit' do
+        serialized = serializer.serialize_value(binary_string)
+
+        # Full repr would be b'\xff\xff...' (403 chars)
+        # Should be truncated at 50 characters
+        expect(serialized[:value].length).to eq(50)
+        expect(serialized[:value]).to start_with("b'\\xff")
+        expect(serialized[:truncated]).to be true
+        # Size should be the full repr length, not the original binary length
+        expect(serialized[:size]).to eq(403) # b' + 100*4 (\xff) + '
+      end
+
+      it 'matches Python dd-trace-py behavior: convert then truncate' do
+        # Python does: repr(value) then truncate repr at maxlen
+        # NOT: truncate value then repr
+        full_repr = "b'" + ("\xFF".b * 100).each_byte.map { |b| "\\xff" }.join + "'"
+        expect(full_repr.length).to eq(403)
+
+        serialized = serializer.serialize_value(binary_string)
+
+        # Should match truncating the full repr
+        expect(serialized[:value]).to eq(full_repr[0...50])
+      end
+    end
+
+    context 'with printable ASCII in binary string' do
+      # Printable ASCII doesn't expand much: "Hello" -> b'Hello' (9 chars)
+      let(:binary_string) { "Hello World! This is a test.".b }
+
+      before do
+        allow(di_settings).to receive(:max_capture_string_length).and_return(20)
+      end
+
+      it 'captures more data when content is printable' do
+        serialized = serializer.serialize_value(binary_string)
+
+        # Full repr: b'Hello World! This is a test.' = 31 chars (b' + 28 + ')
+        # Truncated at 20 chars
+        expect(serialized[:value]).to eq("b'Hello World! This ")
+        expect(serialized[:truncated]).to be true
+        expect(serialized[:size]).to eq(31)
+      end
+    end
   end
 end

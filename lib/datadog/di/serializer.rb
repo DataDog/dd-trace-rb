@@ -185,32 +185,31 @@ module Datadog
               value.to_s
             end
 
-            # For binary strings, truncate BEFORE converting to Python repr
-            # to avoid truncating in the middle of the repr format
-            is_binary = value.encoding == Encoding::BINARY
-            max = settings.dynamic_instrumentation.max_capture_string_length
-
-            if is_binary
-              # For binary strings, we need to account for expansion during repr conversion
-              # Each byte can become up to 4 characters (\xHH), plus b'...' wrapper (4 chars)
-              # To be safe, truncate binary data to max/4 bytes
-              max_bytes = [max / 4 - 1, 1].max  # Reserve space for wrapper, minimum 1 byte
-              original_length = value.bytesize
-              if original_length > max_bytes
-                serialized.update(truncated: true, size: original_length)
-                value = value.byteslice(0, max_bytes)
-                need_dup = false
-              end
-              # Convert to Python repr after truncation
+            # Handle binary strings by converting to Python-style repr format.
+            # This matches dd-trace-py behavior where bytes are converted to repr
+            # strings and then truncated if the repr exceeds the character limit.
+            #
+            # Reference tracer behavior:
+            # - Python (dd-trace-py): Converts entire bytes value to repr string
+            #   (e.g., b'\x80\xff' -> "b'\\x80\\xff'"), then truncates the repr
+            #   string if it exceeds maxlen characters.
+            # - Java (dd-trace-java): Treats byte[] as an array, truncates at
+            #   maxCollectionSize elements, converts each byte to string.
+            #
+            # We follow Python's approach since we output a single string value.
+            # The max_capture_string_length limit is in characters of the output
+            # string, not bytes of the input binary data.
+            if value.encoding == Encoding::BINARY
               value = binary_to_python_repr(value)
               need_dup = false # Already converted to new string
-            else
-              # Normal string handling
-              if value.length > max
-                serialized.update(truncated: true, size: value.length)
-                value = value[0...max]
-                need_dup = false
-              end
+            end
+
+            # Truncate string if it exceeds the character limit
+            max = settings.dynamic_instrumentation.max_capture_string_length
+            if value.length > max
+              serialized.update(truncated: true, size: value.length)
+              value = value[0...max]
+              need_dup = false
             end
 
             value = value.dup if need_dup

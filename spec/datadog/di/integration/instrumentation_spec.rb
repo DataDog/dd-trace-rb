@@ -1474,10 +1474,13 @@ RSpec.describe 'Instrumentation integration' do
 
         return_value = return_capture[:arguments][:"@return"][:value]
         expect(return_value).to start_with("b'")
-        expect(return_value).to end_with("'")
         expect(return_value.encoding).to eq(Encoding::UTF_8)
         expect(return_value).to include('\\x80') # First high byte
-        # Note: The full 128-byte string gets truncated, so we don't check for \xff
+
+        # The 128-byte binary string converts to a 515-char repr (b' + 128*4 + ')
+        # which exceeds the default max_capture_string_length (255), so it's truncated
+        expect(return_capture[:arguments][:"@return"][:truncated]).to be true
+        expect(return_capture[:arguments][:"@return"][:size]).to eq(515)
 
         # JSON encoding should now succeed
         expect {
