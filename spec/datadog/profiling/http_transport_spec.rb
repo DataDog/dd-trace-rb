@@ -25,6 +25,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       site: site,
       api_key: api_key,
       upload_timeout_seconds: upload_timeout_seconds,
+      use_system_dns: use_system_dns,
     )
   end
 
@@ -46,6 +47,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   let(:site) { nil }
   let(:api_key) { nil }
   let(:upload_timeout_seconds) { 10 }
+  let(:use_system_dns) { false }
 
   let(:flush) do
     Datadog::Profiling::Flush.new(
@@ -102,10 +104,23 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       it "picks the :agent working mode for the exporter" do
         expect(described_class)
           .to receive(:_native_validate_exporter)
-          .with([:agent, upload_timeout_milliseconds, "http://192.168.0.1:12345/"])
+          .with([:agent, upload_timeout_milliseconds, false, "http://192.168.0.1:12345/"])
           .and_return([:ok, nil])
 
         http_transport
+      end
+
+      context "when use_system_dns is true" do
+        let(:use_system_dns) { true }
+
+        it "passes use_system_dns as true to the exporter" do
+          expect(described_class)
+            .to receive(:_native_validate_exporter)
+            .with([:agent, upload_timeout_milliseconds, true, "http://192.168.0.1:12345/"])
+            .and_return([:ok, nil])
+
+          http_transport
+        end
       end
 
       context "when ssl is enabled" do
@@ -114,7 +129,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         it "picks the :agent working mode with https reporting" do
           expect(described_class)
             .to receive(:_native_validate_exporter)
-            .with([:agent, upload_timeout_milliseconds, "https://192.168.0.1:12345/"])
+            .with([:agent, upload_timeout_milliseconds, false, "https://192.168.0.1:12345/"])
             .and_return([:ok, nil])
 
           http_transport
@@ -128,7 +143,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         it "picks the :agent working mode with unix domain stocket reporting" do
           expect(described_class)
             .to receive(:_native_validate_exporter)
-            .with([:agent, upload_timeout_milliseconds, "unix:///var/run/datadog/apm.socket"])
+            .with([:agent, upload_timeout_milliseconds, false, "unix:///var/run/datadog/apm.socket"])
             .and_return([:ok, nil])
 
           http_transport
@@ -141,7 +156,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         it "provides the correct ipv6 address-safe url to the exporter" do
           expect(described_class)
             .to receive(:_native_validate_exporter)
-            .with([:agent, upload_timeout_milliseconds, "http://[1234:1234::1]:12345/"])
+            .with([:agent, upload_timeout_milliseconds, false, "http://[1234:1234::1]:12345/"])
             .and_return([:ok, nil])
 
           http_transport
@@ -156,7 +171,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       it "ignores them and picks the :agent working mode using the agent_settings" do
         expect(described_class)
           .to receive(:_native_validate_exporter)
-          .with([:agent, upload_timeout_milliseconds, "http://192.168.0.1:12345/"])
+          .with([:agent, upload_timeout_milliseconds, false, "http://192.168.0.1:12345/"])
           .and_return([:ok, nil])
 
         http_transport
@@ -168,10 +183,23 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         it "picks the :agentless working mode with the given site and api key" do
           expect(described_class)
             .to receive(:_native_validate_exporter)
-            .with([:agentless, upload_timeout_milliseconds, site, api_key])
+            .with([:agentless, upload_timeout_milliseconds, false, site, api_key])
             .and_return([:ok, nil])
 
           http_transport
+        end
+
+        context "when use_system_dns is true" do
+          let(:use_system_dns) { true }
+
+          it "passes use_system_dns as true to the exporter" do
+            expect(described_class)
+              .to receive(:_native_validate_exporter)
+              .with([:agentless, upload_timeout_milliseconds, true, site, api_key])
+              .and_return([:ok, nil])
+
+            http_transport
+          end
         end
       end
     end
@@ -272,8 +300,15 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       expect(http_transport.exporter_configuration).to eq [
         :agent,
         upload_timeout_seconds * 1_000,
+        false,
         "http://192.168.0.1:12345/"
       ]
+    end
+  end
+
+  describe "#config_without_api_key" do
+    it "returns the exporter mode and url/site" do
+      expect(http_transport.send(:config_without_api_key)).to eq "agent: http://192.168.0.1:12345/"
     end
   end
 

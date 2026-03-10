@@ -44,6 +44,7 @@ class ProfilerHttpTransportBenchmark
       site: nil,
       api_key: nil,
       upload_timeout_seconds: 10,
+      use_system_dns: false,
     )
     @flush_finish = Time.now.utc
     @stack_recorder = Datadog::Profiling::StackRecorder.for_testing

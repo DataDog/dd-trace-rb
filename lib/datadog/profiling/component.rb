@@ -126,6 +126,7 @@ module Datadog
             site: settings.site,
             api_key: settings.api_key,
             upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
+            use_system_dns: settings.profiling.advanced.experimental_use_system_dns,
           )
       end
 

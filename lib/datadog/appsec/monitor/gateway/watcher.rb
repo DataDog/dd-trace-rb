@@ -24,7 +24,7 @@ module Datadog
             end
 
             def watch_user_id(gateway = Instrumentation.gateway)
-              gateway.watch('identity.set_user', :appsec) do |stack, user|
+              gateway.watch('identity.set_user') do |stack, user|
                 context = AppSec.active_context
 
                 if user.id.nil? && user.login.nil? && user.session_id.nil?
@@ -55,7 +55,7 @@ module Datadog
             end
 
             def watch_user_login(gateway = Instrumentation.gateway)
-              gateway.watch('appsec.events.user_lifecycle', :appsec) do |stack, kind|
+              gateway.watch('appsec.events.user_lifecycle') do |stack, kind|
                 context = AppSec.active_context
 
                 next stack.call(kind) unless WATCHED_LOGIN_EVENTS.include?(kind)
