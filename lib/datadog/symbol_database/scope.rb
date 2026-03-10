@@ -12,10 +12,21 @@ module Datadog
     # Created by: Extractor (during symbol extraction)
     # Used by: ScopeContext (batching), ServiceVersion (wrapping for upload)
     # Serialized to: JSON via to_h/to_json for upload to agent
+    #
+    # @api private
     class Scope
       attr_reader :scope_type, :name, :source_file, :start_line, :end_line,
         :language_specifics, :symbols, :scopes
 
+      # Initialize a new Scope
+      # @param scope_type [String] Type of scope (MODULE, CLASS, METHOD, LOCAL, CLOSURE)
+      # @param name [String, nil] Name of the scope (class name, method name, etc.)
+      # @param source_file [String, nil] Path to source file
+      # @param start_line [Integer, nil] Starting line number (0 for unknown)
+      # @param end_line [Integer, nil] Ending line number (2147483647 for entire file)
+      # @param language_specifics [Hash, nil] Ruby-specific metadata
+      # @param symbols [Array<Symbol>, nil] Symbols defined in this scope
+      # @param scopes [Array<Scope>, nil] Nested child scopes
       def initialize(
         scope_type:,
         name: nil,
@@ -36,8 +47,9 @@ module Datadog
         @scopes = scopes || []
       end
 
-      # Convert scope to Hash for JSON serialization
-      # Removes nil values to reduce payload size
+      # Convert scope to Hash for JSON serialization.
+      # Removes nil values to reduce payload size.
+      # @return [Hash] Scope as hash with symbol keys
       def to_h
         {
           scope_type: scope_type,
@@ -51,7 +63,9 @@ module Datadog
         }.compact
       end
 
-      # Serialize scope to JSON
+      # Serialize scope to JSON.
+      # @param args [Array] Optional arguments for JSON.generate
+      # @return [String] JSON string representation
       def to_json(*args)
         require 'json'
         JSON.generate(to_h, *args)

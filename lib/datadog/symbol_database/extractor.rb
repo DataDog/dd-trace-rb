@@ -21,10 +21,13 @@ module Datadog
     # Called by: Component.extract_and_upload (during upload trigger)
     # Produces: Scope objects passed to ScopeContext for batching
     # File hashing: Calls FileHash.compute for MODULE scopes
+    #
+    # @api private
     class Extractor
-      # Extract symbols from a module or class
+      # Extract symbols from a module or class.
+      # Returns nil if module should be skipped (anonymous, gem code, stdlib).
       # @param mod [Module, Class] The module or class to extract from
-      # @return [Scope, nil] The extracted scope, or nil if should be skipped
+      # @return [Scope, nil] Extracted scope with nested scopes/symbols, or nil if filtered out
       def self.extract(mod)
         return nil unless mod.is_a?(Module)
         return nil unless mod.name  # Skip anonymous modules/classes
@@ -415,6 +418,7 @@ module Datadog
         []
       end
 
+      # @api private
       private_class_method :user_code_module?, :user_code_path?, :find_source_file,
         :extract_module_scope, :extract_class_scope,
         :calculate_class_line_range, :build_module_language_specifics,

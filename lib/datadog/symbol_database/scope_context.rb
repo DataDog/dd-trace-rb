@@ -18,11 +18,16 @@ module Datadog
     # Flow: Extractor → add_scope → (batch or timer) → Uploader
     # Created by: Component (during initialization)
     # Calls: Uploader.upload_scopes when batch full or timer fires
+    #
+    # @api private
     class ScopeContext
       MAX_SCOPES = 400
       INACTIVITY_TIMEOUT = 1.0  # seconds
       MAX_FILES = 10_000
 
+      # Initialize batching context.
+      # @param uploader [Uploader] Uploader instance for triggering uploads
+      # @param telemetry [Telemetry, nil] Optional telemetry for metrics
       def initialize(uploader, telemetry: nil)
         @uploader = uploader
         @telemetry = telemetry
@@ -33,8 +38,11 @@ module Datadog
         @uploaded_modules = Set.new
       end
 
-      # Add a scope to the batch
+      # Add a scope to the batch.
+      # Triggers immediate upload if batch reaches 400 scopes.
+      # Resets inactivity timer if batch not full.
       # @param scope [Scope] The scope to add
+      # @return [void]
       def add_scope(scope)
         scopes_to_upload = nil
         timer_to_join = nil
@@ -82,7 +90,8 @@ module Datadog
         # Don't propagate, continue operation
       end
 
-      # Force upload of current batch
+      # Force upload of current batch immediately.
+      # @return [void]
       def flush
         scopes_to_upload = nil
         timer_to_join = nil
@@ -105,7 +114,8 @@ module Datadog
         perform_upload(scopes_to_upload)
       end
 
-      # Shutdown and upload remaining scopes
+      # Shutdown and upload remaining scopes.
+      # @return [void]
       def shutdown
         scopes_to_upload = nil
         timer_to_join = nil
@@ -128,7 +138,9 @@ module Datadog
         perform_upload(scopes_to_upload) unless scopes_to_upload.empty?
       end
 
-      # Reset state (for testing)
+      # Reset state (for testing).
+      # @return [void]
+      # @api private
       def reset
         timer_to_join = nil
 
@@ -147,21 +159,23 @@ module Datadog
         timer_to_join&.join(0.1)
       end
 
-      # Check if scopes are pending
-      # @return [Boolean]
+      # Check if scopes are pending upload.
+      # @return [Boolean] true if scopes waiting in batch
       def pending?
         @mutex.synchronize { @scopes.any? }
       end
 
-      # Get current batch size
-      # @return [Integer]
+      # Get current batch size.
+      # @return [Integer] Number of scopes in current batch
       def size
         @mutex.synchronize { @scopes.size }
       end
 
+      # @api private
       private
 
       # Reset timer (must be called from within mutex)
+      # @return [void]
       def reset_timer_internal
         # Cancel existing timer
         @timer&.kill
@@ -174,6 +188,9 @@ module Datadog
         end
       end
 
+      # Perform upload via uploader.
+      # @param scopes [Array<Scope>] Scopes to upload
+      # @return [void]
       def perform_upload(scopes)
         return if scopes.nil? || scopes.empty?
 

@@ -13,14 +13,17 @@ module Datadog
     # Called by: Extractor (when building MODULE scopes)
     # Stores result in: Scope's language_specifics[:file_hash]
     # Returns: 40-character hex string or nil if file unreadable
+    #
+    # @api private
     module FileHash
       module_function
 
-      # Compute Git-style SHA-1 hash of a file
+      # Compute Git-style SHA-1 hash of a file.
       # Uses Git's blob hash algorithm: SHA1("blob <size>\0<content>")
+      # Returns nil on any error (file not found, permission denied, etc.)
       #
       # @param file_path [String] Path to the file
-      # @return [String, nil] Hex-encoded SHA-1 hash, or nil if error
+      # @return [String, nil] 40-character hex-encoded SHA-1 hash, or nil if error
       def compute(file_path)
         return nil unless file_path
         return nil unless File.exist?(file_path)
