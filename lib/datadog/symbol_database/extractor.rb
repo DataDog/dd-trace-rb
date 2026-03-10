@@ -596,6 +596,15 @@ module Datadog
         Core::Utils::Array.filter_map(params) do |param_type, param_name|
           # Skip block parameters for MVP
           next if param_type == :block
+          # Skip if param_name is nil (defensive)
+          if param_name.nil?
+            Datadog.logger.debug("SymDB: param_name is nil for #{begin
+              method.name
+            rescue
+              'unknown'
+            end}, param_type: #{param_type}")
+            next
+          end
 
           # Skip if param_name is nil — normal for generated methods (attr_writer, attr_accessor).
           # See pitfall 37 and specs/json-schema.md "Discovered During Implementation".
@@ -607,6 +616,16 @@ module Datadog
             line: UNKNOWN_MIN_LINE,  # Parameters available in entire method
           )
         end
+
+        if result.empty? && !params.empty?
+          Datadog.logger.debug("SymDB: Extracted #{result.size} parameters from singleton #{begin
+            method.name
+          rescue
+            'unknown'
+          end} (params: #{params.inspect})")
+        end
+
+        result
       rescue => e
         @logger.debug { "symdb: failed to extract parameters from #{method_name}: #{e.class}: #{e}" }
         []
