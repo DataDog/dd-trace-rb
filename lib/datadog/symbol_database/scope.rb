@@ -1,10 +1,8 @@
 # frozen_string_literal: true
 
-require 'json'
-
 module Datadog
   module SymbolDatabase
-    # Represents a scope in the hierarchical symbol structure (FILE → MODULE/CLASS → METHOD).
+    # Represents a scope in the hierarchical symbol structure (MODULE → CLASS → METHOD).
     #
     # Scopes form a tree structure representing Ruby code organization. Each scope contains:
     # - Metadata: name, source file, line range, scope type (MODULE/CLASS/METHOD/etc.)
@@ -14,8 +12,6 @@ module Datadog
     # Created by: Extractor (during symbol extraction)
     # Used by: ScopeBatcher (batching), ServiceVersion (wrapping for upload)
     # Serialized to: JSON via to_h/to_json for upload to agent
-    #
-    # @api private
     class Scope
       attr_reader :scope_type, :name, :source_file, :start_line, :end_line,
         # Ranges of executable lines [{start:, end:}]. Three states:
@@ -68,7 +64,7 @@ module Datadog
       # Removes nil values to reduce payload size.
       # @return [Hash] Scope as hash with symbol keys
       def to_h
-        h = {
+        {
           scope_type: scope_type,
           name: name,
           source_file: source_file,
@@ -88,10 +84,10 @@ module Datadog
         h
       end
 
-      # Serialize scope to JSON.
-      # @return [String] JSON string representation
-      def to_json(_state = nil)
-        JSON.generate(to_h)
+      # Serialize scope to JSON
+      def to_json(*args)
+        require 'json'
+        JSON.generate(to_h, *args)
       end
     end
   end
