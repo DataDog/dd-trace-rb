@@ -10,7 +10,22 @@ require_relative 'service_version'
 
 module Datadog
   module SymbolDatabase
-    # Uploads symbol database payloads to the Datadog agent
+    # Uploads symbol database payloads to the Datadog agent via HTTP multipart.
+    #
+    # Handles the complete upload process:
+    # 1. Wraps scopes in ServiceVersion (adds service/env/version metadata)
+    # 2. Serializes to JSON
+    # 3. Compresses with GZIP (always, ~40:1 ratio expected)
+    # 4. Builds multipart form: event.json (metadata) + symbols_{pid}.json.gz (data)
+    # 5. POSTs to agent at /symdb/v1/input
+    # 6. Retries up to 10 times with exponential backoff on failures
+    #
+    # Uses vendored multipart-post library for form-data construction.
+    # Headers: DD-API-KEY, Datadog-Container-ID, Datadog-Entity-ID (from Core::Environment::Container)
+    #
+    # Called by: ScopeContext.perform_upload (when batch ready)
+    # Calls: Net::HTTP for transport, Zlib for compression
+    # Tracks: Telemetry metrics for uploads, errors, payload sizes
     class Uploader
       MAX_PAYLOAD_SIZE = 50 * 1024 * 1024  # 50MB
       MAX_RETRIES = 10

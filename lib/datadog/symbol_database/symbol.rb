@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'json'
-
 module Datadog
   module SymbolDatabase
     # Represents a symbol (variable, parameter, field, constant) within a scope.
@@ -16,17 +14,9 @@ module Datadog
     # Created by: Extractor (during class/method introspection)
     # Contained in: Scope objects (symbols array)
     # Serialized to: JSON via to_h/to_json
-    #
-    # @api private
     class Symbol
       attr_reader :symbol_type, :name, :line, :type, :language_specifics
 
-      # Initialize a new Symbol
-      # @param symbol_type [String] Type: FIELD, STATIC_FIELD, ARG, LOCAL
-      # @param name [String] Symbol name (variable name, parameter name)
-      # @param line [Integer] Line number (UNKNOWN_MIN_LINE for entire scope, UNKNOWN_MAX_LINE for method-level only)
-      # @param type [String, nil] Type annotation (optional, Ruby is dynamic)
-      # @param language_specifics [Hash, nil] Symbol-specific metadata
       def initialize(
         symbol_type:,
         name:,
@@ -41,25 +31,22 @@ module Datadog
         @language_specifics = language_specifics
       end
 
-      # Convert symbol to Hash for JSON serialization.
-      # Removes nil values to reduce payload size.
-      # @return [Hash] Symbol as hash with symbol keys
+      # Convert symbol to Hash for JSON serialization
+      # Removes nil values to reduce payload size
       def to_h
-        h = {
+        {
           symbol_type: symbol_type,
           name: name,
           line: line,
           type: type,
-          language_specifics: language_specifics,
-        }
-        h.compact!
-        h
+          language_specifics: language_specifics
+        }.compact
       end
 
-      # Serialize symbol to JSON.
-      # @return [String] JSON string representation
-      def to_json(_state = nil)
-        JSON.generate(to_h)
+      # Serialize symbol to JSON
+      def to_json(*args)
+        require 'json'
+        JSON.generate(to_h, *args)
       end
     end
   end
