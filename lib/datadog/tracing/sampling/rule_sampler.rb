@@ -103,7 +103,7 @@ module Datadog
           trace.sampled = sampled
         end
 
-        def late_sample_resource!(trace)
+        def reconsider_sample_resource!(trace)
           rule = @rules.find { |r| resource_rule?(r) && r.match?(trace) }
           return if rule.nil?
 

@@ -196,8 +196,8 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
     end
   end
 
-  describe '#late_sample_resource!' do
-    subject(:late_sample_resource!) { sampler.late_sample_resource!(trace) }
+  describe '#reconsider_sample_resource!' do
+    subject(:reconsider_sample_resource!) { sampler.reconsider_sample_resource!(trace) }
 
     let(:trace) do
       Datadog::Tracing::TraceOperation.new(
@@ -224,7 +224,7 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
       end
 
       it 'replaces the default decision with the rule result' do
-        late_sample_resource!
+        reconsider_sample_resource!
 
         expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT)
         expect(trace.sampled?).to be(true)
@@ -243,7 +243,7 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
       end
 
       it 'upgrades the decision to the matching resource rule' do
-        late_sample_resource!
+        reconsider_sample_resource!
 
         expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
         expect(trace.rule_sample_rate).to eq(1.0)
@@ -261,7 +261,7 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
       end
 
       it 'leaves the current decision untouched' do
-        late_sample_resource!
+        reconsider_sample_resource!
 
         expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP)
         expect(trace.rule_sample_rate).to be_nil

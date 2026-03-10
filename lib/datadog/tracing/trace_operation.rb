@@ -220,7 +220,7 @@ module Datadog
         !@resource.nil?
       end
 
-      def late_resource_sample?
+      def reconsider_resource_sample?
         decision = get_tag(Metadata::Ext::Distributed::TAG_DECISION_MAKER)
 
         return false if @resource.nil?
