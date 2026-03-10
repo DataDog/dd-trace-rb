@@ -198,25 +198,25 @@ module Datadog
             # This produces the same serialized contents as dd-trace-py.
             #
             # For binary data, the max_capture_string_length limit is applied to the
-            # original binary data (in bytes) before escaping. This ensures efficient
-            # processing - we only escape what we need, rather than escaping a large
-            # binary string and then truncating the result. The size field reports
+            # original binary data (in bytes) before escaping. This ensures correct
+            # truncation behavior - truncating after escaping would produce incorrect
+            # results (e.g., cutting mid-escape-sequence). The size field reports
             # the original binary data length in bytes.
             #
             # For regular strings, the limit is applied to the string length in characters.
             max = settings.dynamic_instrumentation.max_capture_string_length
 
             if value.encoding == Encoding::BINARY || !value.valid_encoding?
-              # Truncate binary data BEFORE escaping for efficiency
+              # Truncate binary data BEFORE escaping to avoid cutting mid-escape-sequence
               original_size = value.length
               if original_size > max
                 serialized.update(truncated: true, size: original_size)
                 value = value[0...max]
               end
               value = escape_binary_string(value)
-              need_dup = false # Already converted to new string
+              need_dup = false # Already converted to a new string
             else
-              # Truncate regular strings
+              # Truncate non-binary strings
               if value.length > max
                 serialized.update(truncated: true, size: value.length)
                 value = value[0...max]
@@ -455,6 +455,12 @@ module Datadog
 
       # Escapes a binary string or invalid UTF-8 string to a JSON-safe format.
       #
+      # IMPORTANT: This method should ONLY be called with either:
+      # 1. True binary strings (encoding == Encoding::BINARY / ASCII-8BIT)
+      # 2. Strings with invalid encoding (!value.valid_encoding?)
+      #
+      # Calling this method with valid UTF-8 strings will produce incorrect output.
+      #
       # Binary data (ASCII-8BIT encoding) or strings with invalid encoding are
       # converted to an escaped string in the format: b'...' with hex escapes
       # for non-printable bytes.
@@ -491,7 +497,7 @@ module Datadog
           end
         end
         result << "'"
-        result.force_encoding(Encoding::UTF_8)
+        result.force_encoding(Encoding::UTF_8) # ASCII-compatible, force to UTF-8
       end
     end
   end
