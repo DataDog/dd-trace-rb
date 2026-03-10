@@ -161,10 +161,10 @@ module Datadog
           @sampler.sample!(trace)
         end
 
-        def late_sample_resource!(trace)
-          return unless @sampler.respond_to?(:late_sample_resource!)
+        def reconsider_sample_resource!(trace)
+          return unless @sampler.respond_to?(:reconsider_sample_resource!)
 
-          @sampler.late_sample_resource!(trace)
+          @sampler.reconsider_sample_resource!(trace)
         end
 
         def update(*args, **kwargs)

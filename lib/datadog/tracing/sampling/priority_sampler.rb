@@ -77,11 +77,11 @@ module Datadog
           end
         end
 
-        def late_sample_resource!(trace)
-          return unless @priority_sampler.respond_to?(:late_sample_resource!)
+        def reconsider_sample_resource!(trace)
+          return unless @priority_sampler.respond_to?(:reconsider_sample_resource!)
 
           preserving_sampling(trace) do
-            @priority_sampler.late_sample_resource!(trace)
+            @priority_sampler.reconsider_sample_resource!(trace)
           end
         end
 

@@ -928,8 +928,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
-  describe '#late_resource_sample?' do
-    subject(:late_resource_sample?) { trace_op.late_resource_sample? }
+  describe '#reconsider_resource_sample?' do
+    subject(:reconsider_resource_sample?) { trace_op.reconsider_resource_sample? }
 
     let(:options) do
       {
