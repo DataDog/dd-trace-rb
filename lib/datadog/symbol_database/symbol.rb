@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'json'
+
 module Datadog
   module SymbolDatabase
     # Represents a symbol (variable, parameter, field, constant) within a scope.
@@ -56,7 +58,6 @@ module Datadog
       # @param args [Array] Optional arguments for JSON.generate
       # @return [String] JSON string representation
       def to_json(*args)
-        require 'json'
         JSON.generate(to_h, *args)
       end
     end
