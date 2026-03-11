@@ -20,6 +20,7 @@
 - Change versioning (`lib/datadog/version.rb`, `CHANGELOG.md`)
 - Leave resources open (terminate threads, close files)
 - Make breaking public API changes
+- Use `sleep` in tests for synchronization (use deterministic waits: Queue, ConditionVariable, flush methods that block, or mock time)
 
 ## Ask First
 
@@ -69,6 +70,13 @@ actionlint .github/workflows/your-workflow.yml
 - If a requested change contradicts code evidence, alert user before proceeding
 - If unable to access a requested web page, explicitly state this and explain basis for any suggestions
 
+## Documentation
+
+- **Dynamic Instrumentation docs**: Never mention telemetry in customer-facing documentation (e.g., `docs/DynamicInstrumentation.md`)
+  - Telemetry is internal and not accessible to customers
+  - Only mention observable behavior (logging, metrics visible to customers)
+  - Internal code comments may mention telemetry when describing implementation
+
 ## Environment Variables
 
 - Use `DATADOG_ENV`, never `ENV` directly (see `docs/AccessEnvironmentVariables.md`)
@@ -102,6 +110,7 @@ bundle exec rspec spec/path/file_spec.rb:123  # Run specific test
 - Pipe rspec output: `2>&1 | tee /tmp/rspec.log | grep -E 'Pending:|Failures:|Finished' -A 99`
 - Transport noise (`Internal error during Datadog::Tracing::Transport::HTTP::Client request`) is expected
 - Profiling specs fail on macOS without additional setup
+- `ProbeNotifierWorker#flush` blocks until queues are empty - never add `sleep` after it
 
 # Style
 
