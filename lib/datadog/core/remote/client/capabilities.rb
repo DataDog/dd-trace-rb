@@ -40,7 +40,7 @@ module Datadog
               register_products(Datadog::DI::Remote.products)
               register_receivers(Datadog::DI::Remote.receivers(@telemetry))
 
-              # Symbol Database (requires DI)
+              # Symbol Database
               if settings.respond_to?(:symbol_database) && settings.symbol_database.enabled
                 register_capabilities(Datadog::SymbolDatabase::Remote.capabilities)
                 register_products(Datadog::SymbolDatabase::Remote.products)
