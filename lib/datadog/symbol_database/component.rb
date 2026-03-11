@@ -22,7 +22,7 @@ module Datadog
     # 4. ScopeContext batches and triggers Uploader
     #
     # Created by: Components#initialize (in Core::Configuration::Components)
-    # Stored in: SymbolDatabase.component (global, for remote config receiver access)
+    # Accessed by: Remote config receiver via Datadog.send(:components).symbol_database
     # Requires: Remote config enabled (unless force mode)
     #
     # @api private
@@ -45,8 +45,6 @@ module Datadog
         end
 
         new(settings, agent_settings, logger, telemetry: telemetry).tap do |component|
-          SymbolDatabase.set_component(component)
-
           # Start immediately if force upload mode
           component.start_upload if settings.symbol_database.force_upload
         end
@@ -98,7 +96,6 @@ module Datadog
       # Shutdown component and cleanup resources.
       # @return [void]
       def shutdown!
-        SymbolDatabase.set_component(nil)
         @scope_context.shutdown
       end
 
