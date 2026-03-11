@@ -86,7 +86,7 @@ module Datadog
           when :delete
             disable_upload(component)
             # Delete change has 'previous' not 'content'
-            change.previous.applied if change.previous
+            change.previous&.applied
           else
             Datadog.logger.debug("SymDB: Unrecognized change type: #{change.type}")
             # Only call errored() if change has content
@@ -96,7 +96,7 @@ module Datadog
           Datadog.logger.debug("SymDB: Error processing remote config change: #{e.class}: #{e}")
           # Handle both content and previous
           content_obj = change.respond_to?(:content) ? change.content : change.previous
-          content_obj.errored(e.message) if content_obj
+          content_obj&.errored(e.message)
         end
 
         # Enable upload if config has upload_symbols: true.
