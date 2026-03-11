@@ -454,8 +454,7 @@ module Datadog
 
         result
       rescue => e
-        warn "[SymDB] EXCEPTION in extract_method_parameters: #{e.class}: #{e}"
-        Datadog.logger.debug("SymDB: Failed to extract parameters from #{method_name}: #{e.class}: #{e}\n#{e.backtrace.first(5).join("\n")}")
+        Datadog.logger.debug("SymDB: Failed to extract parameters from #{method_name}: #{e.class}: #{e}")
         []
       end
 
