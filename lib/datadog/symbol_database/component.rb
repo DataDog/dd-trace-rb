@@ -13,7 +13,7 @@ module Datadog
     # - Lifecycle management: Initialization, shutdown, upload triggering
     # - Coordination: Connects Extractor → ScopeContext → Uploader
     # - Remote config handling: start_upload called by Remote module on config changes
-    # - Deduplication: 60-second cooldown prevents rapid re-uploads
+    # - Deduplication: cooldown prevents rapid re-uploads (see UPLOAD_COOLDOWN_INTERVAL)
     #
     # Upload flow:
     # 1. Remote config sends upload_symbols: true (or force_upload mode)
@@ -104,7 +104,7 @@ module Datadog
       private
 
       # Check if upload was recent (within cooldown period).
-      # @return [Boolean] true if uploaded within last 60 seconds
+      # @return [Boolean] true if uploaded within last UPLOAD_COOLDOWN_INTERVAL seconds
       def recently_uploaded?
         return false if @last_upload_time.nil?
 
