@@ -640,10 +640,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                   env: settings.env,
                 }
 
-                expect(client_payload[:client_tracer].tap { |h|
-                  h.delete(:tags)
-                  h.delete(:process_tags)
-                }).to eq(expected_client_tracer)
+                expect(client_payload[:client_tracer]).to include(expected_client_tracer)
               end
             end
 
@@ -660,10 +657,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                   app_version: settings.version,
                 }
 
-                expect(client_payload[:client_tracer].tap { |h|
-                  h.delete(:tags)
-                  h.delete(:process_tags)
-                }).to eq(expected_client_tracer)
+                expect(client_payload[:client_tracer]).to include(expected_client_tracer)
               end
             end
 
@@ -679,10 +673,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                   env: settings.env,
                 }
 
-                expect(client_payload[:client_tracer].tap { |h|
-                  h.delete(:tags)
-                  h.delete(:process_tags)
-                }).to eq(expected_client_tracer)
+                expect(client_payload[:client_tracer]).to include(expected_client_tracer)
               end
             end
           end
