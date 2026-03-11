@@ -70,7 +70,8 @@ module Datadog
       #
       # Exception handling: If a custom serializer's condition lambda raises
       # an exception (e.g., regex match against invalid UTF-8 strings), the
-      # serializer will be silently skipped and the next serializer will be
+      # exception will be logged (at WARN level) and reported via telemetry,
+      # then the serializer will be skipped and the next serializer will be
       # tried. This prevents custom serializers from breaking the entire
       # serialization process.
       @@flat_registry = []
