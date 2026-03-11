@@ -21,10 +21,14 @@ module Datadog
     #
     # @api private
     class ScopeContext
-      # Maximum scopes per batch before triggering immediate upload (matches Java/Python)
+      # Maximum scopes per batch before triggering immediate upload.
+      # This matches the batch size used in Java and Python tracers to ensure
+      # consistent upload behavior across languages.
       MAX_SCOPES = 400
       INACTIVITY_TIMEOUT = 1.0  # seconds
-      # Maximum unique files to track before stopping extraction (prevents runaway memory usage)
+      # Maximum unique files to track before stopping extraction.
+      # This prevents runaway memory usage in applications with very large
+      # numbers of loaded classes (e.g., heavily modularized Rails apps).
       MAX_FILES = 10_000
 
       # Initialize batching context.
