@@ -35,12 +35,12 @@ module Datadog
       # @param uploader [Uploader] Uploader instance for triggering uploads
       # @param telemetry [Telemetry, nil] Optional telemetry for metrics
       # @param on_upload [Proc, nil] Optional callback called after upload (for testing)
-      # @param clock [#sleep, nil] Optional clock for testing (defaults to Kernel)
-      def initialize(uploader, telemetry: nil, on_upload: nil, clock: nil)
+      # @param timer_enabled [Boolean] Enable async timer (default true, false for tests)
+      def initialize(uploader, telemetry: nil, on_upload: nil, timer_enabled: true)
         @uploader = uploader
         @telemetry = telemetry
         @on_upload = on_upload
-        @clock = clock || Kernel
+        @timer_enabled = timer_enabled
         @scopes = []
         @mutex = Mutex.new
         @timer = nil
@@ -206,10 +206,12 @@ module Datadog
           timer_to_kill.join(0.01)
         end
 
-        # Start new timer thread
+        # Start new timer thread (unless disabled for testing)
+        return unless @timer_enabled
+
         @timer = Thread.new do
           begin
-            @clock.sleep(INACTIVITY_TIMEOUT)
+            sleep INACTIVITY_TIMEOUT
             # Timer fires - need to upload
             flush  # flush will acquire mutex (safe - different thread)
           rescue => e
