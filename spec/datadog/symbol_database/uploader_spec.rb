@@ -9,8 +9,15 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       service: 'test-service',
       env: 'test',
       version: '1.0.0',
-      api_key: 'test_api_key',
-      agent: double('agent', host: 'localhost', port: 8126, timeout_seconds: 30))
+      api_key: 'test_api_key')
+  end
+
+  let(:agent_settings) do
+    double('agent_settings',
+      hostname: 'localhost',
+      port: 8126,
+      timeout_seconds: 30,
+      ssl: false)
   end
 
   let(:test_scope) { Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'TestClass') }
@@ -24,7 +31,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
     allow(Datadog::SymbolDatabase::Transport::HTTP).to receive(:build).and_return(mock_transport)
   end
 
-  subject(:uploader) { described_class.new(config) }
+  subject(:uploader) { described_class.new(config, agent_settings) }
 
   describe '#upload_scopes' do
     it 'returns early if scopes is nil' do
