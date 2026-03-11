@@ -67,6 +67,7 @@ module Datadog
         @enabled = false
         @last_upload_time = nil
         @mutex = Mutex.new
+        @upload_in_progress = false
       end
 
       # Start symbol upload (triggered by remote config or force mode).
@@ -100,8 +101,15 @@ module Datadog
       end
 
       # Shutdown component and cleanup resources.
+      # Waits for any in-flight upload to complete before shutting down.
       # @return [void]
       def shutdown!
+        # Wait for in-flight upload to complete (max 5 seconds)
+        deadline = Datadog::Core::Utils::Time.now + 5
+        while @upload_in_progress && Datadog::Core::Utils::Time.now < deadline
+          sleep 0.1
+        end
+
         @scope_context.shutdown
       end
 
@@ -121,29 +129,35 @@ module Datadog
       # Extract symbols from all loaded modules and upload.
       # @return [void]
       def extract_and_upload
-        start_time = Datadog::Core::Utils::Time.get_time
+        @mutex.synchronize { @upload_in_progress = true }
 
-        # Iterate all loaded modules and extract symbols
-        # Extractor.extract filters to user code only (excludes Datadog::*, gems, stdlib)
-        extracted_count = 0
-        ObjectSpace.each_object(Module) do |mod|
-          scope = Extractor.extract(mod)
-          next unless scope
+        begin
+          start_time = Datadog::Core::Utils::Time.get_time
 
-          @scope_context.add_scope(scope)
-          extracted_count += 1
+          # Iterate all loaded modules and extract symbols
+          # Extractor.extract filters to user code only (excludes Datadog::*, gems, stdlib)
+          extracted_count = 0
+          ObjectSpace.each_object(Module) do |mod|
+            scope = Extractor.extract(mod)
+            next unless scope
+
+            @scope_context.add_scope(scope)
+            extracted_count += 1
+          end
+
+          # Flush any remaining scopes
+          @scope_context.flush
+
+          # Track extraction metrics
+          duration = Datadog::Core::Utils::Time.get_time - start_time
+          @telemetry&.distribution('symbol_database.extraction_time', duration)
+          @telemetry&.count('symbol_database.scopes_extracted', extracted_count)
+        rescue => e
+          Datadog.logger.debug("SymDB: Error during extraction: #{e.class}: #{e}")
+          @telemetry&.count('symbol_database.extraction_error', 1)
+        ensure
+          @mutex.synchronize { @upload_in_progress = false }
         end
-
-        # Flush any remaining scopes
-        @scope_context.flush
-
-        # Track extraction metrics
-        duration = Datadog::Core::Utils::Time.get_time - start_time
-        @telemetry&.distribution('symbol_database.extraction_time', duration)
-        @telemetry&.count('symbol_database.scopes_extracted', extracted_count)
-      rescue => e
-        Datadog.logger.debug("SymDB: Error during extraction: #{e.class}: #{e}")
-        @telemetry&.count('symbol_database.extraction_error', 1)
       end
     end
   end
