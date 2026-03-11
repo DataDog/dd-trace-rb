@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'json'
+
 module Datadog
   module SymbolDatabase
     # Integrates symbol database with Datadog remote configuration system.
@@ -124,7 +126,8 @@ module Datadog
       # @return [Hash, nil] Parsed config or nil if invalid
       # @api private
       def parse_config(content)
-        data = content.data
+        # content.data is a JSON string, parse it first
+        data = JSON.parse(content.data)
 
         unless data.is_a?(Hash)
           Datadog.logger.debug("SymDB: Invalid config format, expected Hash, got #{data.class}")
@@ -137,6 +140,9 @@ module Datadog
         end
 
         data
+      rescue JSON::ParserError => e
+        Datadog.logger.debug("SymDB: Failed to parse config JSON: #{e.class}: #{e}")
+        nil
       end
     end
   end
