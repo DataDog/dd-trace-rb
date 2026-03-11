@@ -275,6 +275,19 @@ per-probe in the probe definition.
 - **Workaround:** Increase the capture depth for probes targeting code
   that works with complex objects
 
+#### Custom Serializers
+
+Custom serializers allow you to define how specific objects are serialized
+in Dynamic Instrumentation snapshots. The API is currently internal and
+subject to change.
+
+**Exception Handling:** If a custom serializer's condition lambda raises
+an exception (for example, a regex match against a string with invalid
+UTF-8 encoding), the serializer will be silently skipped and the next
+serializer will be tried. This prevents custom serializers from breaking
+the entire serialization process. The value will fall back to default
+serialization.
+
 ## Application Data Sent to Datadog
 
 Dynamic instrumentation sends some of the application data to Datadog.
