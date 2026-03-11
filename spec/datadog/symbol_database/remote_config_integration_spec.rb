@@ -6,20 +6,28 @@ require 'datadog/symbol_database/remote'
 require 'datadog/core/remote/configuration/repository'
 require 'digest'
 require 'zlib'
+require 'fileutils'
 
-# Test class to verify symbol extraction
-class RemoteConfigIntegrationTestClass
-  CONSTANT = 42
-  @@class_var = 'test'
+# Create test class in /tmp (not /spec) so it passes user_code_path? filter
+FileUtils.mkdir_p('/tmp/symdb_test')
+File.write('/tmp/symdb_test/test_class.rb', <<~RUBY)
+  module RemoteConfigIntegrationTest
+    class TestClass
+      CONSTANT = 42
+      @@class_var = 'test'
 
-  def instance_method(arg1, arg2)
-    arg1 + arg2
+      def instance_method(arg1, arg2)
+        arg1 + arg2
+      end
+
+      def self.class_method
+        'result'
+      end
+    end
   end
+RUBY
 
-  def self.class_method
-    'result'
-  end
-end
+require '/tmp/symdb_test/test_class'
 
 RSpec.describe 'Symbol Database Remote Config Integration' do
   let(:logger) { instance_double(Logger) }
@@ -205,7 +213,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
         expect(payload['scopes'].length).to be > 0
 
         # Find our test class in the uploaded scopes
-        test_class_scope = find_scope_by_name(payload['scopes'], 'RemoteConfigIntegrationTestClass')
+        test_class_scope = find_scope_by_name(payload['scopes'], 'RemoteConfigIntegrationTest::TestClass')
 
         if test_class_scope
           # Verify class structure
