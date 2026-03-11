@@ -162,7 +162,7 @@ module Datadog
             if condition
               begin
                 condition_result = condition.call(value)
-              rescue StandardError => e
+              rescue => e
                 # If a custom serializer condition raises an exception (e.g., regex match
                 # against invalid UTF-8), skip it and continue with the next serializer.
                 # We don't want custom serializer conditions to break the entire serialization.
