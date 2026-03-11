@@ -3,6 +3,7 @@
 require_relative 'scope'
 require_relative 'symbol'
 require_relative 'file_hash'
+require_relative '../core/utils/array'
 
 module Datadog
   module SymbolDatabase
@@ -135,7 +136,7 @@ module Datadog
       # @param methods [Array<Symbol>] Method names
       # @return [Array<Integer, Integer>] [start_line, end_line]
       def self.calculate_class_line_range(klass, methods)
-        lines = methods.filter_map do |method_name|
+        lines = Core::Utils::Array.filter_map(methods) do |method_name|
           method = klass.instance_method(method_name)
           location = method.source_location
           location[1] if location && location[0]
@@ -407,7 +408,7 @@ module Datadog
           return []
         end
 
-        result = params.filter_map do |param_type, param_name|
+        result = Core::Utils::Array.filter_map(params) do |param_type, param_name|
           # Skip block parameters for MVP
           if param_type == :block
             warn "[SymDB] INFO: Skipping block param for #{method_name}"
@@ -468,7 +469,7 @@ module Datadog
           return []
         end
 
-        result = params.filter_map do |param_type, param_name|
+        result = Core::Utils::Array.filter_map(params) do |param_type, param_name|
           if param_type == :block
             warn "[SymDB] INFO: Skipping block param for singleton #{method_name}"
             next
