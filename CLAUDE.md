@@ -68,6 +68,7 @@ actionlint .github/workflows/your-workflow.yml
 - When user says "fix", "change", "update": make the changes
 - If a requested change contradicts code evidence, alert user before proceeding
 - If unable to access a requested web page, explicitly state this and explain basis for any suggestions
+- Use `Core::Utils::Array.filter_map` instead of `filter_map` for compatibility with Ruby 2.5 and 2.6 (native `filter_map` requires Ruby 2.7+)
 
 ## Environment Variables
 
