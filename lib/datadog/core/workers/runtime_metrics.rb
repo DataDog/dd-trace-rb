@@ -21,7 +21,16 @@ module Datadog
           :metrics
 
         def initialize(telemetry:, **options)
-          @metrics = options.fetch(:metrics) { Core::Runtime::Metrics.new(logger: options[:logger], telemetry: telemetry) }
+          @metrics = options.fetch(:metrics) do
+            Core::Runtime::Metrics.new(
+              logger: options[:logger],
+              telemetry: telemetry,
+              experimental_propagate_process_tags_enabled: options.fetch(
+                :experimental_propagate_process_tags_enabled,
+                Datadog.configuration.experimental_propagate_process_tags_enabled
+              )
+            )
+          end
 
           # Workers::Async::Thread settings
           self.fork_policy = options.fetch(:fork_policy, Workers::Async::Thread::FORK_POLICY_STOP)
