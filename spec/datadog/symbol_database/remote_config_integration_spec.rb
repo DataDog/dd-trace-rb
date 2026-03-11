@@ -130,7 +130,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
     # Format: Content-Disposition: form-data; name="file"; filename="symbols_PID.json.gz"
     # Try different boundary patterns
     if body_str =~ /Content-Disposition: form-data; name="file".*?\r\n\r\n(.+?)\r\n----/m ||
-       body_str =~ /Content-Disposition: form-data; name="file".*?\n\n(.+?)\n----/m
+        body_str =~ /Content-Disposition: form-data; name="file".*?\n\n(.+?)\n----/m
       gzipped_data = $1
       json_string = Zlib::GzipReader.new(StringIO.new(gzipped_data)).read
       JSON.parse(json_string)

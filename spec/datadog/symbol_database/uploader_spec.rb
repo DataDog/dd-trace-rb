@@ -9,13 +9,29 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       service: 'test-service',
       env: 'test',
       version: '1.0.0',
-      api_key: 'test_api_key',
-      agent: double('agent', host: 'localhost', port: 8126, timeout_seconds: 30))
+      api_key: 'test_api_key')
+  end
+
+  let(:agent_settings) do
+    double('agent_settings',
+      hostname: 'localhost',
+      port: 8126,
+      timeout_seconds: 30,
+      ssl: false)
   end
 
   let(:test_scope) { Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'TestClass') }
 
-  subject(:uploader) { described_class.new(config) }
+  # Mock transport infrastructure
+  let(:mock_transport) { double('transport') }
+  let(:mock_response) { double('response', code: 200) }
+
+  before do
+    # Mock Transport::HTTP.build to return our mock transport
+    allow(Datadog::SymbolDatabase::Transport::HTTP).to receive(:build).and_return(mock_transport)
+  end
+
+  subject(:uploader) { described_class.new(config, agent_settings) }
 
   describe '#upload_scopes' do
     it 'returns early if scopes is nil' do
@@ -27,20 +43,26 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
     end
 
     context 'with valid scopes' do
-      let(:http) { double('http') }
-      let(:response) { double('response', code: '200') }
-
       before do
-        allow(Net::HTTP).to receive(:new).and_return(http)
-        allow(http).to receive(:read_timeout=)
-        allow(http).to receive(:open_timeout=)
-        allow(http).to receive(:request).and_return(response)
+        allow(mock_transport).to receive(:send_symdb_payload).and_return(mock_response)
       end
 
       it 'uploads successfully' do
         uploader.upload_scopes([test_scope])
 
-        expect(http).to have_received(:request)
+        expect(mock_transport).to have_received(:send_symdb_payload)
+      end
+
+      it 'sends multipart form with event and file parts' do
+        uploader.upload_scopes([test_scope])
+
+        expect(mock_transport).to have_received(:send_symdb_payload) do |form|
+          expect(form).to be_a(Hash)
+          expect(form).to have_key('event')
+          expect(form).to have_key('file')
+          expect(form['event']).to be_a(Datadog::Core::Vendor::Multipart::Post::UploadIO)
+          expect(form['file']).to be_a(Datadog::Core::Vendor::Multipart::Post::UploadIO)
+        end
       end
 
       it 'logs success' do
@@ -65,7 +87,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
 
       it 'does not attempt HTTP request' do
         allow(Datadog.logger).to receive(:debug)
-        expect(Net::HTTP).not_to receive(:new)
+        expect(mock_transport).not_to receive(:send_symdb_payload)
 
         uploader.upload_scopes([test_scope])
       end
@@ -91,7 +113,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
         allow(Zlib).to receive(:gzip).and_return('x' * (described_class::MAX_PAYLOAD_SIZE + 1))
 
         expect(Datadog.logger).to receive(:debug).with(/Payload too large/)
-        expect(Net::HTTP).not_to receive(:new)
+        expect(mock_transport).not_to receive(:send_symdb_payload)
 
         uploader.upload_scopes([test_scope])
       end
@@ -110,22 +132,14 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
     end
 
     context 'with HTTP errors' do
-      let(:http) { double('http') }
-
-      before do
-        allow(Net::HTTP).to receive(:new).and_return(http)
-        allow(http).to receive(:read_timeout=)
-        allow(http).to receive(:open_timeout=)
-      end
-
       it 'retries on 500 errors' do
         attempt = 0
-        allow(http).to receive(:request) do
+        allow(mock_transport).to receive(:send_symdb_payload) do
           attempt += 1
           if attempt < 3
-            double('response', code: '500')
+            double('response', code: 500)
           else
-            double('response', code: '200')
+            double('response', code: 200)
           end
         end
 
@@ -136,12 +150,12 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
 
       it 'retries on 429 rate limit' do
         attempt = 0
-        allow(http).to receive(:request) do
+        allow(mock_transport).to receive(:send_symdb_payload) do
           attempt += 1
           if attempt < 2
-            double('response', code: '429')
+            double('response', code: 429)
           else
-            double('response', code: '200')
+            double('response', code: 200)
           end
         end
 
@@ -151,7 +165,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       end
 
       it 'does not retry on 400 errors' do
-        allow(http).to receive(:request).and_return(double('response', code: '400'))
+        allow(mock_transport).to receive(:send_symdb_payload).and_return(double('response', code: 400))
 
         expect(Datadog.logger).to receive(:debug).with(/rejected/)
 
@@ -160,31 +174,49 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
     end
   end
 
-  describe 'multipart structure' do
-    let(:http) { double('http') }
-    let(:captured_request) { nil }
-
+  describe 'event metadata structure' do
     before do
-      allow(Net::HTTP).to receive(:new).and_return(http)
-      allow(http).to receive(:read_timeout=)
-      allow(http).to receive(:open_timeout=)
-      allow(http).to receive(:request) do |request|
-        @captured_request = request
-        double('response', code: '200')
+      allow(mock_transport).to receive(:send_symdb_payload).and_return(mock_response)
+    end
+
+    it 'includes correct metadata fields' do
+      # Capture the form passed to transport
+      captured_form = nil
+      allow(mock_transport).to receive(:send_symdb_payload) do |form|
+        captured_form = form
+        mock_response
       end
-    end
 
-    it 'creates multipart request with event and file parts' do
       uploader.upload_scopes([test_scope])
 
-      expect(@captured_request).to be_a(Datadog::Core::Vendor::Net::HTTP::Post::Multipart)
-      expect(@captured_request.path).to eq('/symdb/v1/input')
+      # Read the event part
+      event_io = captured_form['event'].instance_variable_get(:@io)
+      event_json = JSON.parse(event_io.read)
+
+      expect(event_json['ddsource']).to eq('ruby')
+      expect(event_json['service']).to eq('test-service')
+      expect(event_json['type']).to eq('symdb')
+      expect(event_json).to have_key('runtimeId')
+    end
+  end
+
+  describe 'file part structure' do
+    before do
+      allow(mock_transport).to receive(:send_symdb_payload).and_return(mock_response)
     end
 
-    it 'includes API key in headers' do
+    it 'creates compressed file with correct naming' do
+      captured_form = nil
+      allow(mock_transport).to receive(:send_symdb_payload) do |form|
+        captured_form = form
+        mock_response
+      end
+
       uploader.upload_scopes([test_scope])
 
-      expect(@captured_request['DD-API-KEY']).to eq('test_api_key')
+      file_upload = captured_form['file']
+      expect(file_upload.original_filename).to match(/symbols_\d+\.json\.gz/)
+      expect(file_upload.content_type).to eq('application/gzip')
     end
   end
 

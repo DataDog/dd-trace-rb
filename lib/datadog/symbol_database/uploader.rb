@@ -2,11 +2,10 @@
 
 require 'json'
 require 'zlib'
-require 'net/http'
 require 'stringio'
-require_relative '../core/vendor/multipart-post/net/http/post/multipart'
 require_relative '../core/vendor/multipart-post/multipart/post/composite_read_io'
 require_relative 'service_version'
+require_relative 'transport/http'
 
 module Datadog
   module SymbolDatabase
@@ -17,14 +16,14 @@ module Datadog
     # 2. Serializes to JSON
     # 3. Compresses with GZIP (always, ~40:1 ratio expected)
     # 4. Builds multipart form: event.json (metadata) + symbols_{pid}.json.gz (data)
-    # 5. POSTs to agent at /symdb/v1/input
-    # 6. Retries up to 10 times with exponential backoff on failures
+    # 5. POSTs to agent at /symdb/v1/input via Core::Transport::HTTP
+    # 6. Retries handled by transport layer
     #
-    # Uses vendored multipart-post library for form-data construction.
-    # Headers: DD-API-KEY, Datadog-Container-ID, Datadog-Entity-ID (from Core::Environment::Container)
+    # Uses Core::Transport::HTTP infrastructure (consistent with DI, Profiling, DataStreams).
+    # Headers: DD-API-KEY, Datadog-Container-ID, Datadog-Entity-ID (automatic from transport)
     #
     # Called by: ScopeContext.perform_upload (when batch ready)
-    # Calls: Net::HTTP for transport, Zlib for compression
+    # Calls: Transport::HTTP for network, Zlib for compression
     # Tracks: Telemetry metrics for uploads, errors, payload sizes
     #
     # @api private
@@ -35,17 +34,25 @@ module Datadog
       MAX_BACKOFF = 30.0  # 30 seconds
 
       # Initialize uploader.
-      # @param config [Configuration] Tracer configuration (for service, env, agent URL, etc.)
+      # @param config [Configuration] Tracer configuration (for service, env, version metadata)
+      # @param agent_settings [Configuration::AgentSettings] Agent connection settings
       # @param telemetry [Telemetry, nil] Optional telemetry for metrics
-      def initialize(config, telemetry: nil)
+      def initialize(config, agent_settings, telemetry: nil)
         @config = config
+        @agent_settings = agent_settings
         @telemetry = telemetry
+
+        # Initialize transport using symbol database transport infrastructure
+        @transport = Transport::HTTP.build(
+          agent_settings: agent_settings,
+          logger: Datadog.logger
+        )
       end
 
       # Upload a batch of scopes to the agent.
       # Wraps in ServiceVersion, serializes to JSON, compresses with GZIP,
-      # builds multipart form, and POSTs to /symdb/v1/input.
-      # Retries up to 10 times on failures.
+      # builds multipart form, and POSTs to /symdb/v1/input via transport.
+      # Retries handled by this layer (transport doesn't retry by default).
       # @param scopes [Array<Scope>] Scopes to upload
       # @return [void]
       def upload_scopes(scopes)
@@ -143,7 +150,7 @@ module Datadog
         backoff * (0.5 + rand * 0.5)  # Add jitter
       end
 
-      # Perform HTTP POST with multipart form-data.
+      # Perform HTTP POST with multipart form-data via transport layer.
       # @param compressed_data [String] GZIP compressed JSON payload
       # @param scope_count [Integer] Number of scopes (for logging)
       # @return [void]
@@ -151,9 +158,19 @@ module Datadog
         # Track payload size
         @telemetry&.distribution('symbol_database.payload_size', compressed_data.bytesize)
 
-        uri = URI.parse(agent_url)
-
         # Build multipart form
+        form = build_multipart_form(compressed_data)
+
+        # Send via transport (uses Core::Transport::HTTP infrastructure)
+        response = @transport.send_symdb_payload(form)
+
+        handle_response(response, scope_count)
+      end
+
+      # Build multipart form-data with event metadata and compressed symbols.
+      # @param compressed_data [String] GZIP compressed JSON payload
+      # @return [Hash] Form data hash with UploadIO objects
+      def build_multipart_form(compressed_data)
         event_io = StringIO.new(build_event_metadata)
         file_io = StringIO.new(compressed_data)
 
@@ -169,26 +186,10 @@ module Datadog
           "symbols_#{Process.pid}.json.gz"
         )
 
-        form_data = {
+        {
           'event' => event_upload,
           'file' => file_upload
         }
-
-        # Create multipart request
-        request = Datadog::Core::Vendor::Net::HTTP::Post::Multipart.new(
-          '/symdb/v1/input',
-          form_data,
-          build_headers
-        )
-
-        # Send request
-        http = Net::HTTP.new(uri.host, uri.port)
-        http.read_timeout = upload_timeout
-        http.open_timeout = upload_timeout
-
-        response = http.request(request)
-
-        handle_response(response, scope_count)
       end
 
       # Build event.json metadata part.
@@ -203,42 +204,12 @@ module Datadog
         )
       end
 
-      # Build HTTP headers (API key, container ID, entity ID).
-      # @return [Hash] Headers hash
-      def build_headers
-        headers = {}
-
-        # API key
-        headers['DD-API-KEY'] = @config.api_key if @config.api_key
-
-        # Container headers
-        headers.merge!(Datadog::Core::Environment::Container.to_headers)
-
-        headers
-      end
-
-      # Construct agent URL from configuration.
-      # @return [String] Agent URL (e.g., "http://localhost:8126")
-      def agent_url
-        # Get agent URL from configuration
-        # For now, construct from agent host/port
-        host = @config.agent&.host || '127.0.0.1'
-        port = @config.agent&.port || 8126
-        "http://#{host}:#{port}"
-      end
-
-      # Get upload timeout from configuration.
-      # @return [Integer] Timeout in seconds
-      def upload_timeout
-        @config.agent&.timeout_seconds || 30
-      end
-
       # Handle HTTP response and track metrics.
-      # @param response [Net::HTTPResponse] HTTP response from agent
+      # @param response [Core::Transport::Response] HTTP response from agent
       # @param scope_count [Integer] Number of scopes uploaded
       # @return [Boolean] true if successful, false otherwise
       def handle_response(response, scope_count)
-        case response.code.to_i
+        case response.code
         when 200..299
           Datadog.logger.debug("SymDB: Uploaded #{scope_count} scopes successfully")
           @telemetry&.count('symbol_database.uploaded', 1)
