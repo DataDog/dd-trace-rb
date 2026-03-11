@@ -97,24 +97,8 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
     config_path = 'datadog/2/LIVE_DEBUGGING_SYMBOL_DB/test/config'
 
     changes = repository.transaction do |_repository, transaction|
-      content_json = {}.to_json
-
-      target = Datadog::Core::Remote::Configuration::Target.parse(
-        {
-          'custom' => {'v' => 1},
-          'hashes' => {'sha256' => Digest::SHA256.hexdigest(content_json)},
-          'length' => content_json.length,
-        }
-      )
-
-      rc_content = Datadog::Core::Remote::Configuration::Content.parse(
-        {
-          path: config_path,
-          content: content_json,
-        }
-      )
-
-      transaction.delete(rc_content.path, target, rc_content)
+      # Delete only requires the path
+      transaction.delete(config_path)
     end
 
     receiver.call(repository, changes)
@@ -181,6 +165,9 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       components = double('components')
       allow(components).to receive(:symbol_database).and_return(component)
       allow(Datadog).to receive(:send).with(:components).and_return(components)
+
+      # Mock Datadog.logger to use test logger (for error handling tests)
+      allow(Datadog).to receive(:logger).and_return(logger)
     end
 
     after do
@@ -435,6 +422,9 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       components = double('components')
       allow(components).to receive(:symbol_database).and_return(component)
       allow(Datadog).to receive(:send).with(:components).and_return(components)
+
+      # Mock Datadog.logger to use test logger (for error logging tests)
+      allow(Datadog).to receive(:logger).and_return(logger)
     end
 
     after do
@@ -442,7 +432,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
     end
 
     it 'handles upload failures gracefully' do
-      expect(logger).to receive(:debug).with(/Error uploading symbols/)
+      expect(logger).to receive(:debug).with(/Upload failed after.*retries/)
 
       simulate_rc_insert({upload_symbols: true})
       sleep 1
