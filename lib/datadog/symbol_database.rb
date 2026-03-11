@@ -8,21 +8,5 @@ module Datadog
   #
   # @api private
   module SymbolDatabase
-    @mutex = Mutex.new
-    @component = nil
-
-    class << self
-      def component
-        @mutex.synchronize { @component }
-      end
-
-      def set_component(component)
-        @mutex.synchronize { @component = component }
-      end
-
-      def enabled?
-        !component.nil?
-      end
-    end
   end
 end
