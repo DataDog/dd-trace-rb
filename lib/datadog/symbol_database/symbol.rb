@@ -24,7 +24,7 @@ module Datadog
       # Initialize a new Symbol
       # @param symbol_type [String] Type: FIELD, STATIC_FIELD, ARG, LOCAL
       # @param name [String] Symbol name (variable name, parameter name)
-      # @param line [Integer] Line number (0 for entire scope, 2147483647 for method-level only)
+      # @param line [Integer] Line number (UNKNOWN_MIN_LINE for entire scope, UNKNOWN_MAX_LINE for method-level only)
       # @param type [String, nil] Type annotation (optional, Ruby is dynamic)
       # @param language_specifics [Hash, nil] Symbol-specific metadata
       def initialize(

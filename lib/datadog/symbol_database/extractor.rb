@@ -119,8 +119,8 @@ module Datadog
           scope_type: 'MODULE',
           name: mod.name,
           source_file: source_file,
-          start_line: 0,
-          end_line: 2147483647,  # INT_MAX (entire file)
+          start_line: SymbolDatabase::UNKNOWN_MIN_LINE,
+          end_line: SymbolDatabase::UNKNOWN_MAX_LINE,
           language_specifics: build_module_language_specifics(mod, source_file),
           scopes: extract_nested_classes(mod),
           symbols: extract_module_symbols(mod)
@@ -158,11 +158,11 @@ module Datadog
           location[1] if location && location[0]
         end
 
-        return [0, 2147483647] if lines.empty?
+        return [SymbolDatabase::UNKNOWN_MIN_LINE, SymbolDatabase::UNKNOWN_MAX_LINE] if lines.empty?
 
         [lines.min, lines.max]
       rescue
-        [0, 2147483647]
+        [SymbolDatabase::UNKNOWN_MIN_LINE, SymbolDatabase::UNKNOWN_MAX_LINE]
       end
 
       # Build language specifics for MODULE
@@ -245,7 +245,7 @@ module Datadog
           symbols << Symbol.new(
             symbol_type: 'STATIC_FIELD',
             name: const_name.to_s,
-            line: 0,  # Unknown line, available in entire module
+            line: SymbolDatabase::UNKNOWN_MIN_LINE,  # Available in entire module
             type: const_value.class.name
           )
         rescue
@@ -269,7 +269,7 @@ module Datadog
           symbols << Symbol.new(
             symbol_type: 'STATIC_FIELD',
             name: var_name.to_s,
-            line: 0
+            line: SymbolDatabase::UNKNOWN_MIN_LINE
           )
         end
 
@@ -281,7 +281,7 @@ module Datadog
           symbols << Symbol.new(
             symbol_type: 'STATIC_FIELD',
             name: const_name.to_s,
-            line: 0,
+            line: SymbolDatabase::UNKNOWN_MIN_LINE,
             type: const_value.class.name
           )
         rescue
@@ -441,7 +441,7 @@ module Datadog
           Symbol.new(
             symbol_type: 'ARG',
             name: param_name.to_s,
-            line: 0  # Parameters available in entire method
+            line: SymbolDatabase::UNKNOWN_MIN_LINE  # Parameters available in entire method
           )
         end
 
@@ -500,7 +500,7 @@ module Datadog
           Symbol.new(
             symbol_type: 'ARG',
             name: param_name.to_s,
-            line: 0
+            line: SymbolDatabase::UNKNOWN_MIN_LINE
           )
         end
 

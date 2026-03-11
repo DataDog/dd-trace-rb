@@ -22,14 +22,14 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
       symbol = described_class.new(
         symbol_type: 'ARG',
         name: 'param1',
-        line: 0,
+        line: Datadog::SymbolDatabase::UNKNOWN_MIN_LINE,
         type: 'String',
         language_specifics: {optional: false}
       )
 
       expect(symbol.symbol_type).to eq('ARG')
       expect(symbol.name).to eq('param1')
-      expect(symbol.line).to eq(0)
+      expect(symbol.line).to eq(Datadog::SymbolDatabase::UNKNOWN_MIN_LINE)
       expect(symbol.type).to eq('String')
       expect(symbol.language_specifics).to eq({optional: false})
     end
@@ -74,7 +74,7 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
       symbol = described_class.new(
         symbol_type: 'FIELD',
         name: '@var',
-        line: 0,
+        line: Datadog::SymbolDatabase::UNKNOWN_MIN_LINE,
         type: nil,
         language_specifics: nil
       )
@@ -84,34 +84,34 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
       expect(hash).to eq({
         symbol_type: 'FIELD',
         name: '@var',
-        line: 0
+        line: Datadog::SymbolDatabase::UNKNOWN_MIN_LINE
       })
       expect(hash).not_to have_key(:type)
       expect(hash).not_to have_key(:language_specifics)
     end
 
-    it 'handles line number 0 (available in entire scope)' do
+    it 'handles UNKNOWN_MIN_LINE (available in entire scope)' do
       symbol = described_class.new(
         symbol_type: 'ARG',
         name: 'param',
-        line: 0
+        line: Datadog::SymbolDatabase::UNKNOWN_MIN_LINE
       )
 
       hash = symbol.to_h
 
-      expect(hash[:line]).to eq(0)
+      expect(hash[:line]).to eq(Datadog::SymbolDatabase::UNKNOWN_MIN_LINE)
     end
 
-    it 'handles line number 2147483647 (INT_MAX)' do
+    it 'handles UNKNOWN_MAX_LINE (method-level only)' do
       symbol = described_class.new(
         symbol_type: 'LOCAL',
         name: 'var',
-        line: 2147483647
+        line: Datadog::SymbolDatabase::UNKNOWN_MAX_LINE
       )
 
       hash = symbol.to_h
 
-      expect(hash[:line]).to eq(2147483647)
+      expect(hash[:line]).to eq(Datadog::SymbolDatabase::UNKNOWN_MAX_LINE)
     end
   end
 
@@ -136,7 +136,7 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
       symbol = described_class.new(
         symbol_type: 'ARG',
         name: 'param',
-        line: 0,
+        line: Datadog::SymbolDatabase::UNKNOWN_MIN_LINE,
         type: 'Hash',
         language_specifics: {required: true}
       )
@@ -147,7 +147,7 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
       expect(parsed).to include(
         'symbol_type' => 'ARG',
         'name' => 'param',
-        'line' => 0,
+        'line' => Datadog::SymbolDatabase::UNKNOWN_MIN_LINE,
         'type' => 'Hash',
         'language_specifics' => {'required' => true}
       )

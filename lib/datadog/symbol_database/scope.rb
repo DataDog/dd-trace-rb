@@ -24,8 +24,8 @@ module Datadog
       # @param scope_type [String] Type of scope (MODULE, CLASS, METHOD, LOCAL, CLOSURE)
       # @param name [String, nil] Name of the scope (class name, method name, etc.)
       # @param source_file [String, nil] Path to source file
-      # @param start_line [Integer, nil] Starting line number (0 for unknown)
-      # @param end_line [Integer, nil] Ending line number (2147483647 for entire file)
+      # @param start_line [Integer, nil] Starting line number (UNKNOWN_MIN_LINE for unknown)
+      # @param end_line [Integer, nil] Ending line number (UNKNOWN_MAX_LINE for entire file)
       # @param language_specifics [Hash, nil] Ruby-specific metadata
       # @param symbols [Array<Symbol>, nil] Symbols defined in this scope
       # @param scopes [Array<Scope>, nil] Nested child scopes
