@@ -21,8 +21,10 @@ module Datadog
     #
     # @api private
     class ScopeContext
+      # Maximum scopes per batch before triggering immediate upload (matches Java/Python)
       MAX_SCOPES = 400
       INACTIVITY_TIMEOUT = 1.0  # seconds
+      # Maximum unique files to track before stopping extraction (prevents runaway memory usage)
       MAX_FILES = 10_000
 
       # Initialize batching context.
