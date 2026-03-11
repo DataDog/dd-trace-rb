@@ -64,7 +64,7 @@ module Datadog
         @telemetry = telemetry
 
         # Build uploader and scope context
-        @uploader = Uploader.new(settings, telemetry: telemetry)
+        @uploader = Uploader.new(settings, agent_settings, telemetry: telemetry)
         @scope_context = ScopeContext.new(@uploader, telemetry: telemetry)
 
         @enabled = false

@@ -36,7 +36,7 @@ module Datadog
 
             # Call block to apply any customization, if provided
             yield(transport) if block_given?
-          end.to_transport(SymbolDatabase::Transport::Client)
+          end.to_transport(SymbolDatabase::Transport::Transport)
         end
       end
     end
