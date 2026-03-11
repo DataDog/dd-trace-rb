@@ -207,14 +207,14 @@ RSpec.describe Datadog::Kit::AppSec::Events do
         )
       end
 
-      it 'pushes UserLifecycleEvent with has_user_login true when user login defaults to user id' do
+      it 'pushes UserLifecycleEvent with has_user_login false when user login defaults to user id' do
         trace_op.measure('root') do
           described_class.track_login_success(trace_op, user: {id: '42'})
         end
 
         expect(gateway).to have_received(:push).with(
           'appsec.events.user_lifecycle',
-          an_object_having_attributes(has_user_login: true)
+          an_object_having_attributes(has_user_login: false)
         )
       end
     end
@@ -341,6 +341,17 @@ RSpec.describe Datadog::Kit::AppSec::Events do
         expect(gateway).to have_received(:push).with(
           'appsec.events.user_lifecycle',
           an_object_having_attributes(has_user_id: false, has_user_login: false)
+        )
+      end
+
+      it 'pushes UserLifecycleEvent with has_user_login false when login is derived from user_id' do
+        trace_op.measure('root') do
+          described_class.track_login_failure(trace_op, user_id: '42', user_exists: true)
+        end
+
+        expect(gateway).to have_received(:push).with(
+          'appsec.events.user_lifecycle',
+          an_object_having_attributes(has_user_id: true, has_user_login: false)
         )
       end
 
@@ -482,14 +493,14 @@ RSpec.describe Datadog::Kit::AppSec::Events do
         )
       end
 
-      it 'pushes UserLifecycleEvent with has_user_login true when user login defaults to user id' do
+      it 'pushes UserLifecycleEvent with has_user_login false when user login defaults to user id' do
         trace_op.measure('root') do
           described_class.track_signup(trace_op, user: {id: '42'})
         end
 
         expect(gateway).to have_received(:push).with(
           'appsec.events.user_lifecycle',
-          an_object_having_attributes(has_user_login: true)
+          an_object_having_attributes(has_user_login: false)
         )
       end
     end
