@@ -541,6 +541,13 @@ RSpec.describe Datadog::DI::Serializer do
   end
 
   describe '.register' do
+    # Save and restore the custom serializer registry to prevent test pollution
+    around do |example|
+      original_registry = described_class.class_variable_get(:@@flat_registry).dup
+      example.run
+      described_class.class_variable_set(:@@flat_registry, original_registry)
+    end
+
     context 'with condition' do
       before do
         described_class.register(condition: lambda { |value| String === value && value =~ /serializer spec hello/ }) do |serializer, value, name:, depth:|
@@ -559,14 +566,6 @@ RSpec.describe Datadog::DI::Serializer do
     end
 
     context 'when condition raises an exception' do
-      # Save the original registry and restore it after each test to prevent
-      # test pollution from custom serializers leaking to other tests
-      around do |example|
-        original_registry = described_class.class_variable_get(:@@flat_registry).dup
-        example.run
-        described_class.class_variable_set(:@@flat_registry, original_registry)
-      end
-
       let(:telemetry) { double('telemetry') }
       let(:serializer) do
         described_class.new(settings, redactor, telemetry: telemetry)
