@@ -17,7 +17,7 @@ RSpec.describe Datadog::SymbolDatabase::ScopeContext do
   describe '#initialize' do
     it 'creates context with empty scopes' do
       expect(context.size).to eq(0)
-      expect(context.pending?).to be false
+      expect(context.scopes_pending?).to be false
     end
   end
 
@@ -26,7 +26,7 @@ RSpec.describe Datadog::SymbolDatabase::ScopeContext do
       context.add_scope(test_scope)
 
       expect(context.size).to eq(1)
-      expect(context.pending?).to be true
+      expect(context.scopes_pending?).to be true
     end
 
     it 'increments file count' do
@@ -224,7 +224,7 @@ RSpec.describe Datadog::SymbolDatabase::ScopeContext do
       context.reset
 
       expect(context.size).to eq(0)
-      expect(context.pending?).to be false
+      expect(context.scopes_pending?).to be false
     end
 
     it 'kills timer' do
@@ -239,12 +239,12 @@ RSpec.describe Datadog::SymbolDatabase::ScopeContext do
 
   describe '#pending?' do
     it 'returns false when no scopes' do
-      expect(context.pending?).to be false
+      expect(context.scopes_pending?).to be false
     end
 
     it 'returns true when scopes exist' do
       context.add_scope(test_scope)
-      expect(context.pending?).to be true
+      expect(context.scopes_pending?).to be true
     end
   end
 

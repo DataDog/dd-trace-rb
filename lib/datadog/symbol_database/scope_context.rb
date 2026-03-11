@@ -165,7 +165,7 @@ module Datadog
 
       # Check if scopes are pending upload.
       # @return [Boolean] true if scopes waiting in batch
-      def pending?
+      def scopes_pending?
         @mutex.synchronize { @scopes.any? }
       end
 
