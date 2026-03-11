@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../core/transport/request'
-require_relative '../../core/transport/parcel'
+require_relative '../core/transport/request'
+require_relative '../core/transport/parcel'
 
 module Datadog
   module SymbolDatabase
