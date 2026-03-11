@@ -118,14 +118,23 @@ module Datadog
 
         # Iterate all loaded modules and extract symbols
         # Extractor.extract filters to user code only (excludes Datadog::*, gems, stdlib)
+        total_modules = 0
         extracted_count = 0
+        filtered_modules = []
+
         ObjectSpace.each_object(Module) do |mod|
+          total_modules += 1
+
           scope = Extractor.extract(mod)
           next unless scope
 
-          @scope_context.add_scope(scope)
           extracted_count += 1
+          filtered_modules << mod.name if extracted_count <= 10  # Track first 10
+          @scope_context.add_scope(scope)
         end
+
+        $stderr.puts "[DEBUG] SymDB: Extraction stats - total modules: #{total_modules}, extracted: #{extracted_count}, first 10: #{filtered_modules.join(', ')}"
+        Datadog.logger.debug("SymDB: Extraction stats - total modules: #{total_modules}, extracted: #{extracted_count}, first 10: #{filtered_modules.join(', ')}")
 
         # Flush any remaining scopes
         @scope_context.flush
