@@ -133,7 +133,7 @@ module Datadog
           @scope_context.add_scope(scope)
         end
 
-        $stderr.puts "[DEBUG] SymDB: Extraction stats - total modules: #{total_modules}, extracted: #{extracted_count}, first 10: #{filtered_modules.join(', ')}"
+        warn "[DEBUG] SymDB: Extraction stats - total modules: #{total_modules}, extracted: #{extracted_count}, first 10: #{filtered_modules.join(', ')}"
         Datadog.logger.debug("SymDB: Extraction stats - total modules: #{total_modules}, extracted: #{extracted_count}, first 10: #{filtered_modules.join(', ')}")
 
         # Flush any remaining scopes

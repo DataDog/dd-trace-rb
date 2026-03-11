@@ -41,7 +41,11 @@ module Datadog
         end
       rescue => e
         # Use Module#name safely in rescue block (mod.name might be overridden)
-        mod_name = (Module.instance_method(:name).bind(mod).call rescue '<unknown>')
+        mod_name = begin
+          Module.instance_method(:name).bind(mod).call
+        rescue
+          '<unknown>'
+        end
         Datadog.logger.debug("SymDB: Failed to extract #{mod_name}: #{e.class}: #{e}")
         nil
       end
