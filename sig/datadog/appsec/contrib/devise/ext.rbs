@@ -9,6 +9,8 @@ module Datadog
 
           EVENT_SIGNUP: ::String
 
+          EVENT_AUTHENTICATED_REQUEST: ::String
+
           TAG_USR_ID: ::String
 
           TAG_SESSION_ID: ::String

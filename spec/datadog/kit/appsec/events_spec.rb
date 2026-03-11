@@ -51,6 +51,15 @@ RSpec.describe Datadog::Kit::AppSec::Events do
     end
   end
 
+  shared_context 'stubs appsec gateway' do
+    let(:gateway) { instance_double(Datadog::AppSec::Instrumentation::Gateway) }
+
+    before do
+      allow(Datadog::AppSec::Instrumentation).to receive(:gateway).and_return(gateway)
+      allow(gateway).to receive(:push)
+    end
+  end
+
   shared_examples 'when tracing disabled' do
     it 'does mark trace for keeping' do
       expect(Datadog::Tracing.active_trace).to_not receive(:keep!)
@@ -179,6 +188,37 @@ RSpec.describe Datadog::Kit::AppSec::Events do
       expect(user_argument).to eql(user_argument_dup)
     end
 
+    context 'user lifecycle telemetry' do
+      include_context 'stubs appsec gateway'
+
+      it 'pushes UserLifecycleEvent with has_user_login true when usr.login is present' do
+        trace_op.measure('root') do
+          described_class.track_login_success(trace_op, user: {id: '42', login: 'test'})
+        end
+
+        expect(gateway).to have_received(:push).with(
+          'appsec.events.user_lifecycle',
+          an_object_having_attributes(
+            event: 'users.login.success',
+            has_user_id: true,
+            has_user_login: true,
+            framework: 'sdk',
+          )
+        )
+      end
+
+      it 'pushes UserLifecycleEvent with has_user_login true when user login defaults to user id' do
+        trace_op.measure('root') do
+          described_class.track_login_success(trace_op, user: {id: '42'})
+        end
+
+        expect(gateway).to have_received(:push).with(
+          'appsec.events.user_lifecycle',
+          an_object_having_attributes(has_user_login: true)
+        )
+      end
+    end
+
     it_behaves_like 'uses AppSec context' do
       let(:event_tag) { 'appsec.events.users.login.success.track' }
       subject(:event) { described_class.track_login_success(trace_op, user: {id: '42'}) }
@@ -271,6 +311,48 @@ RSpec.describe Datadog::Kit::AppSec::Events do
 
           expect(span.tags).to include('appsec.events.users.login.failure.usr.login' => 'test-42')
         end
+      end
+    end
+
+    context 'user lifecycle telemetry' do
+      include_context 'stubs appsec gateway'
+
+      it 'pushes UserLifecycleEvent with user_id and user_login present' do
+        trace_op.measure('root') do
+          described_class.track_login_failure(trace_op, user_id: '42', user_exists: true, "usr.login": 'test')
+        end
+
+        expect(gateway).to have_received(:push).with(
+          'appsec.events.user_lifecycle',
+          an_object_having_attributes(
+            event: 'users.login.failure',
+            has_user_id: true,
+            has_user_login: true,
+            framework: 'sdk',
+          )
+        )
+      end
+
+      it 'pushes UserLifecycleEvent with has_user_id false when user_id is nil' do
+        trace_op.measure('root') do
+          described_class.track_login_failure(trace_op, user_exists: false)
+        end
+
+        expect(gateway).to have_received(:push).with(
+          'appsec.events.user_lifecycle',
+          an_object_having_attributes(has_user_id: false, has_user_login: false)
+        )
+      end
+
+      it 'pushes UserLifecycleEvent with has_user_login true via string key' do
+        trace_op.measure('root') do
+          described_class.track_login_failure(trace_op, :user_id => '42', :user_exists => true, 'usr.login' => 'test')
+        end
+
+        expect(gateway).to have_received(:push).with(
+          'appsec.events.user_lifecycle',
+          an_object_having_attributes(has_user_login: true)
+        )
       end
     end
 
@@ -379,6 +461,37 @@ RSpec.describe Datadog::Kit::AppSec::Events do
         described_class.track_signup(trace_op, user: user_argument, foo: 'bar')
       end
       expect(user_argument).to eql(user_argument_dup)
+    end
+
+    context 'user lifecycle telemetry' do
+      include_context 'stubs appsec gateway'
+
+      it 'pushes UserLifecycleEvent with has_user_login true when usr.login is present' do
+        trace_op.measure('root') do
+          described_class.track_signup(trace_op, user: {id: '42', login: 'test'})
+        end
+
+        expect(gateway).to have_received(:push).with(
+          'appsec.events.user_lifecycle',
+          an_object_having_attributes(
+            event: 'users.signup',
+            has_user_id: true,
+            has_user_login: true,
+            framework: 'sdk',
+          )
+        )
+      end
+
+      it 'pushes UserLifecycleEvent with has_user_login true when user login defaults to user id' do
+        trace_op.measure('root') do
+          described_class.track_signup(trace_op, user: {id: '42'})
+        end
+
+        expect(gateway).to have_received(:push).with(
+          'appsec.events.user_lifecycle',
+          an_object_having_attributes(has_user_login: true)
+        )
+      end
     end
 
     it_behaves_like 'uses AppSec context' do

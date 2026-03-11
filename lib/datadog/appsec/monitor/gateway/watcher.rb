@@ -13,6 +13,8 @@ module Datadog
           ARBITRARY_VALUE = 'invalid'
           EVENT_LOGIN_SUCCESS = 'users.login.success'
           EVENT_LOGIN_FAILURE = 'users.login.failure'
+          EVENT_SIGNUP = 'users.signup'
+          EVENT_AUTHENTICATED_REQUEST = 'users.authenticated_request'
           WATCHED_LOGIN_EVENTS = [EVENT_LOGIN_SUCCESS, EVENT_LOGIN_FAILURE].freeze
 
           class << self
@@ -55,12 +57,12 @@ module Datadog
             end
 
             def watch_user_login(gateway = Instrumentation.gateway)
-              gateway.watch('appsec.events.user_lifecycle') do |stack, kind|
+              gateway.watch('appsec.events.user_lifecycle') do |stack, lifecycle_event|
                 context = AppSec.active_context
 
-                next stack.call(kind) unless WATCHED_LOGIN_EVENTS.include?(kind)
+                next stack.call(lifecycle_event) unless WATCHED_LOGIN_EVENTS.include?(lifecycle_event.event)
 
-                persistent_data = {"server.business_logic.#{kind}" => ARBITRARY_VALUE}
+                persistent_data = {"server.business_logic.#{lifecycle_event.event}" => ARBITRARY_VALUE}
                 result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
                 if result.match? || result.attributes.any?
@@ -74,7 +76,7 @@ module Datadog
                   AppSec::ActionsHandler.handle(result.actions)
                 end
 
-                stack.call(kind)
+                stack.call(lifecycle_event)
               end
             end
           end

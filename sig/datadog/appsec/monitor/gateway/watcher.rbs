@@ -9,6 +9,10 @@ module Datadog
 
           EVENT_LOGIN_FAILURE: ::String
 
+          EVENT_SIGNUP: ::String
+
+          EVENT_AUTHENTICATED_REQUEST: ::String
+
           WATCHED_LOGIN_EVENTS: ::Array[::String]
 
           def self.watch: () -> untyped

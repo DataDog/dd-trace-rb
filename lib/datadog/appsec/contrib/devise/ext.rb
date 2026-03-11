@@ -9,6 +9,7 @@ module Datadog
           EVENT_LOGIN_SUCCESS = 'users.login.success'
           EVENT_LOGIN_FAILURE = 'users.login.failure'
           EVENT_SIGNUP = 'users.signup'
+          EVENT_AUTHENTICATED_REQUEST = 'users.authenticated_request'
 
           TAG_DD_USR_ID = '_dd.appsec.usr.id'
           TAG_DD_USR_LOGIN = '_dd.appsec.usr.login'

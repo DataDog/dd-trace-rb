@@ -22,6 +22,21 @@ module Datadog
           end
         end
 
+        # Gateway UserLifecycleEvent argument carrying non-PII metadata
+        # for telemetry and WAF processing.
+        class UserLifecycleEvent < Argument
+          attr_reader :event, :has_user_id, :has_user_login, :framework
+
+          def initialize(event, has_user_id:, has_user_login:, framework:)
+            super()
+
+            @event = event
+            @has_user_id = has_user_id
+            @has_user_login = has_user_login
+            @framework = framework
+          end
+        end
+
         # This class is used to pass arbitrary data to the event system with an
         # option to tie it to a context.
         #
