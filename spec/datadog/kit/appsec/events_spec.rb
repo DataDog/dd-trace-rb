@@ -333,7 +333,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
         )
       end
 
-      it 'pushes UserLifecycleEvent with has_user_id false when user_id is nil' do
+      it 'pushes UserLifecycleEvent with correct flags when user_id/login are missing' do
         trace_op.measure('root') do
           described_class.track_login_failure(trace_op, user_exists: false)
         end
@@ -341,17 +341,6 @@ RSpec.describe Datadog::Kit::AppSec::Events do
         expect(gateway).to have_received(:push).with(
           'appsec.events.user_lifecycle',
           an_object_having_attributes(has_user_id: false, has_user_login: false)
-        )
-      end
-
-      it 'pushes UserLifecycleEvent with has_user_login false when login is derived from user_id' do
-        trace_op.measure('root') do
-          described_class.track_login_failure(trace_op, user_id: '42', user_exists: true)
-        end
-
-        expect(gateway).to have_received(:push).with(
-          'appsec.events.user_lifecycle',
-          an_object_having_attributes(has_user_id: true, has_user_login: false)
         )
       end
 

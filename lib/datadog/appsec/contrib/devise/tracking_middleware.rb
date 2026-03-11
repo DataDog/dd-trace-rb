@@ -39,6 +39,8 @@ module Datadog
             session_id = env[WARDEN_KEY].raw_session[SESSION_ID_KEY] if id
 
             if id
+              # NOTE: Devise session only stores the user ID, not the login,
+              #       so has_user_login is always false for authenticated requests.
               Instrumentation.gateway.push(
                 'appsec.events.user_lifecycle',
                 AppSec::Instrumentation::Gateway::UserLifecycleEvent.new(

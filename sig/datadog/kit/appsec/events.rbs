@@ -20,9 +20,9 @@ module Datadog
 
         private
 
-        def self.set_trace_and_span_context: (String method, ?::Datadog::Tracing::TraceOperation? trace, ?::Datadog::Tracing::SpanOperation? span) { (::Datadog::Tracing::TraceOperation, ::Datadog::Tracing::SpanOperation) -> void } -> void
-
         def self.push_user_lifecycle_event: (::String event, has_user_id: bool, has_user_login: bool, framework: ::String) -> void
+
+        def self.set_trace_and_span_context: (String method, ?::Datadog::Tracing::TraceOperation? trace, ?::Datadog::Tracing::SpanOperation? span) { (::Datadog::Tracing::TraceOperation, ::Datadog::Tracing::SpanOperation) -> void } -> void
 
         def self.check_trace_span_integrity: (::Datadog::Tracing::TraceOperation trace, ::Datadog::Tracing::SpanOperation span) -> void
       end

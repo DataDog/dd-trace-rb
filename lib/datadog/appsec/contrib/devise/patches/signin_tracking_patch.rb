@@ -45,6 +45,7 @@ module Datadog
 
               id = extractor.extract_id(resource)
               login = extractor.extract_login(authentication_hash) || extractor.extract_login(resource)
+              has_explicit_login = !login.nil? && login != id
 
               if id
                 context.span[Ext::TAG_USR_ID] ||= id
@@ -59,7 +60,7 @@ module Datadog
               Instrumentation.gateway.push(
                 'appsec.events.user_lifecycle',
                 AppSec::Instrumentation::Gateway::UserLifecycleEvent.new(
-                  Ext::EVENT_LOGIN_SUCCESS, has_user_id: !id.nil?, has_user_login: !login.nil?, framework: 'devise'
+                  Ext::EVENT_LOGIN_SUCCESS, has_user_id: !id.nil?, has_user_login: has_explicit_login, framework: 'devise'
                 )
               )
 
@@ -96,6 +97,7 @@ module Datadog
 
               id = extractor.extract_id(resource)
               login = extractor.extract_login(authentication_hash) || extractor.extract_login(resource)
+              has_explicit_login = !login.nil? && login != id
 
               if id
                 context.span[Ext::TAG_DD_USR_ID] = id
@@ -109,7 +111,7 @@ module Datadog
               Instrumentation.gateway.push(
                 'appsec.events.user_lifecycle',
                 AppSec::Instrumentation::Gateway::UserLifecycleEvent.new(
-                  Ext::EVENT_LOGIN_FAILURE, has_user_id: !id.nil?, has_user_login: !login.nil?, framework: 'devise'
+                  Ext::EVENT_LOGIN_FAILURE, has_user_id: !id.nil?, has_user_login: has_explicit_login, framework: 'devise'
                 )
               )
             end
