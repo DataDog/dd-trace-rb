@@ -181,8 +181,15 @@ module Datadog
       # Reset timer (must be called from within mutex)
       # @return [void]
       def reset_timer_internal
-        # Cancel existing timer
-        @timer&.kill
+        # Cancel existing timer and wait for it to terminate
+        if @timer
+          timer_to_kill = @timer
+          @timer = nil
+          timer_to_kill.kill
+          # Wait briefly for thread to terminate to avoid thread accumulation
+          # Use a very short timeout to avoid blocking the mutex for too long
+          timer_to_kill.join(0.01)
+        end
 
         # Start new timer thread
         @timer = Thread.new do
