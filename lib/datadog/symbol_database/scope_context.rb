@@ -139,7 +139,10 @@ module Datadog
         end
 
         # Wait for timer thread to terminate (outside mutex to avoid deadlock)
-        # 0.1s timeout: Short enough to not block shutdown, acceptable to abandon timer thread if slow
+        # 0.1s timeout chosen because:
+        # - Short enough to not significantly delay shutdown (user experience)
+        # - Long enough to give timer thread time to terminate cleanly (typical thread cleanup < 10ms)
+        # - Acceptable to abandon thread if it doesn't terminate (timer just triggers upload, no critical cleanup)
         timer_to_join&.join(0.1)
 
         # Upload outside mutex
@@ -164,7 +167,10 @@ module Datadog
         end
 
         # Wait for timer thread to actually terminate (outside mutex to avoid deadlock)
-        # 0.1s timeout: Short enough to not block shutdown, acceptable to abandon timer thread if slow
+        # 0.1s timeout chosen because:
+        # - Short enough to not significantly delay reset operation (test cleanup)
+        # - Long enough to give timer thread time to terminate cleanly (typical thread cleanup < 10ms)
+        # - Acceptable to abandon thread if it doesn't terminate (timer just triggers upload, no critical cleanup)
         timer_to_join&.join(0.1)
       end
 
