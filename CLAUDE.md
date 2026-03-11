@@ -9,6 +9,10 @@
 - Use one sentence per relevant point in summary/motivation sections
 - Changelog entries are written for customers only; consider changes from user/customer POV
 - Internal changes (telemetry, CI, tooling) = "None" for changelog
+- Changelog entry format: MUST start with "Yes." or "None."
+  - If changes need CHANGELOG: `Yes. Brief customer-facing summary.`
+  - If no CHANGELOG needed: `None.`
+  - Never write just the summary without "Yes." prefix
 - Add `--label "AI Generated"` when creating PRs (do not mention AI in description; label is sufficient)
 
 ## Never
