@@ -1390,7 +1390,6 @@ RSpec.describe 'Instrumentation integration' do
 
         # Wait for flush to complete
         component.probe_notifier_worker.flush
-        sleep 0.1 # Give worker thread time to process
 
         # Verify the snapshot was captured
         expect(captured_snapshot).not_to be_nil

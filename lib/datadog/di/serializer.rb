@@ -162,10 +162,17 @@ module Datadog
             if condition
               begin
                 condition_result = condition.call(value)
-              rescue
+              rescue StandardError => e
                 # If a custom serializer condition raises an exception (e.g., regex match
                 # against invalid UTF-8), skip it and continue with the next serializer.
                 # We don't want custom serializer conditions to break the entire serialization.
+                #
+                # Custom serializers may be defined by customers (in which case we should
+                # surface errors so they can fix their serializers) or they may be defined
+                # internally by dd-trace-rb (in which case we need to fix them). We use
+                # WARN level to surface these errors in either case.
+                Datadog.logger.warn("DI: Custom serializer condition failed: #{e.class}: #{e.message}")
+                telemetry&.report(e, description: "Custom serializer condition failed")
                 next
               end
 

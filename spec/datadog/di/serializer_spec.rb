@@ -567,6 +567,11 @@ RSpec.describe Datadog::DI::Serializer do
         described_class.class_variable_set(:@@flat_registry, original_registry)
       end
 
+      let(:telemetry) { double('telemetry') }
+      let(:serializer) do
+        described_class.new(settings, redactor, telemetry: telemetry)
+      end
+
       it 'skips the custom serializer and uses default serialization' do
         # Register a custom serializer with a condition that raises an exception
         # This simulates a regex match against invalid UTF-8 strings
@@ -577,6 +582,13 @@ RSpec.describe Datadog::DI::Serializer do
         # Invalid UTF-8 string that will cause regex match to raise
         invalid_utf8 = "\x80\xFF".force_encoding(Encoding::UTF_8)
         expect(invalid_utf8.valid_encoding?).to be false
+
+        # Expect logging and telemetry
+        expect(Datadog.logger).to receive(:warn).with(/Custom serializer condition failed: ArgumentError/)
+        expect(telemetry).to receive(:report).with(
+          an_instance_of(ArgumentError),
+          description: "Custom serializer condition failed"
+        )
 
         serialized = serializer.serialize_value(invalid_utf8)
 
@@ -597,6 +609,13 @@ RSpec.describe Datadog::DI::Serializer do
         end
 
         invalid_utf8 = "\x80\xFF".force_encoding(Encoding::UTF_8)
+
+        # Expect logging and telemetry for the first (failing) serializer
+        expect(Datadog.logger).to receive(:warn).with(/Custom serializer condition failed: ArgumentError/)
+        expect(telemetry).to receive(:report).with(
+          an_instance_of(ArgumentError),
+          description: "Custom serializer condition failed"
+        )
 
         serialized = serializer.serialize_value(invalid_utf8)
 
