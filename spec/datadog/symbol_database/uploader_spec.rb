@@ -120,14 +120,34 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
     end
 
     context 'with network errors' do
-      # TODO: Fix retry tests - causing timeouts in test environment
-      # Retry logic works but tests need better mocking strategy
-      xit 'retries on connection errors' do
-        # Deferred - retry logic implemented but test is flaky
+      it 'retries on connection errors' do
+        attempt = 0
+        allow(mock_transport).to receive(:send_symdb_payload) do
+          attempt += 1
+          if attempt < 3
+            raise Errno::ECONNREFUSED, 'Connection refused'
+          else
+            double('response', code: '200')
+          end
+        end
+
+        # Should not raise, should retry and eventually succeed
+        expect { uploader.upload_scopes([test_scope]) }.not_to raise_error
+        expect(attempt).to eq(3)
       end
 
-      xit 'gives up after MAX_RETRIES' do
-        # Deferred - retry logic implemented but test is flaky
+      it 'gives up after MAX_RETRIES' do
+        attempt = 0
+        allow(mock_transport).to receive(:send_symdb_payload) do
+          attempt += 1
+          raise Errno::ECONNREFUSED, 'Connection refused'
+        end
+
+        # Should not raise, should log and give up
+        expect { uploader.upload_scopes([test_scope]) }.not_to raise_error
+
+        # Should have tried MAX_RETRIES + 1 times (initial + retries)
+        expect(attempt).to eq(11)  # MAX_RETRIES = 10, so 1 + 10 = 11
       end
     end
 

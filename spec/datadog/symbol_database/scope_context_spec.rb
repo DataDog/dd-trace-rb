@@ -66,44 +66,37 @@ RSpec.describe Datadog::SymbolDatabase::ScopeContext do
     end
 
     context 'with inactivity timer' do
-      # TODO: Fix timer tests - threading/timing issues in test environment
-      # Timer functionality works but tests are flaky due to thread scheduling
-      xit 'triggers upload after 1 second of inactivity' do
-        uploaded_scopes = nil
-        allow(uploader).to receive(:upload_scopes) { |scopes| uploaded_scopes = scopes }
+      it 'triggers upload after 1 second of inactivity' do
+        upload_queue = Queue.new
+        allow(uploader).to receive(:upload_scopes) { |scopes| upload_queue.push(scopes) }
 
         context.add_scope(test_scope)
         expect(context.size).to eq(1)
 
-        # Wait for timer to fire (add extra time for thread scheduling)
-        sleep 1.5
+        # Wait for timer to fire (deterministic wait with timeout)
+        uploaded_scopes = Timeout.timeout(2) { upload_queue.pop }
 
         # Verify upload was called and batch cleared
-        expect(uploaded_scopes).not_to be_nil, "Timer should have fired and uploaded scopes"
+        expect(uploaded_scopes).not_to be_nil
         expect(uploaded_scopes.size).to eq(1)
         expect(context.size).to eq(0)
       end
 
-      xit 'resets timer on each scope addition' do
-        uploaded_scopes = nil
-        allow(uploader).to receive(:upload_scopes) { |scopes| uploaded_scopes = scopes }
+      it 'resets timer on each scope addition' do
+        upload_queue = Queue.new
+        allow(uploader).to receive(:upload_scopes) { |scopes| upload_queue.push(scopes) }
 
         context.add_scope(test_scope)
-        sleep 0.6  # Wait more than half the timeout
 
+        # Add another scope before timer fires (within 1s)
+        sleep 0.6
         context.add_scope(Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'Class2'))
 
-        # Timer was reset, so wait from the reset point
-        sleep 0.7  # Total: 1.3s elapsed, but only 0.7s since last add
+        # Timer should have been reset, so we need to wait ~1s more from last add
+        # Use queue with timeout to wait for upload
+        uploaded_scopes = Timeout.timeout(2) { upload_queue.pop }
 
-        # Should not have uploaded yet (timer reset at 0.6s mark)
-        expect(uploaded_scopes).to be_nil
-        expect(context.size).to eq(2)
-
-        # Now wait for timer to actually fire (0.4s more from previous add)
-        sleep 0.5
-
-        # Now should have uploaded
+        # Should have uploaded both scopes (timer fired after ~1s from second add)
         expect(uploaded_scopes).not_to be_nil
         expect(uploaded_scopes.size).to eq(2)
         expect(context.size).to eq(0)
