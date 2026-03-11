@@ -161,6 +161,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_SAMPLE_RATE => nil,
             Datadog::Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY => nil,
             Datadog::Tracing::Metadata::Ext::TAG_PROFILING_ENABLED => nil,
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => nil,
           )
         end
       end
@@ -180,6 +181,15 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_SAMPLE_RATE => sample_rate,
             Datadog::Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY => sampling_priority,
             Datadog::Tracing::Metadata::Ext::TAG_PROFILING_ENABLED => 1.0,
+          )
+        end
+
+        it 'sets _dd.p.ksr as a string tag on the root span' do
+          format!
+          # rule_sample_rate takes priority over agent_sample_rate
+          expected_ksr = format('%.6g', rule_sample_rate)
+          expect(root_span.meta).to include(
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => expected_ksr
           )
         end
       end
@@ -448,6 +458,99 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         context 'without process tags enabled' do
           # default is false
           it_behaves_like 'spans without process tags'
+        end
+      end
+    end
+
+    context 'knuth sampling rate (_dd.p.ksr)' do
+      include_context 'available root span'
+
+      context 'when only agent_sample_rate is set' do
+        let(:trace_options) { {id: trace_id, agent_sample_rate: 0.5} }
+
+        it 'sets _dd.p.ksr from agent_sample_rate' do
+          format!
+          expect(root_span.meta).to include(
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => '0.5'
+          )
+        end
+      end
+
+      context 'when only rule_sample_rate is set' do
+        let(:trace_options) { {id: trace_id, rule_sample_rate: 0.75} }
+
+        it 'sets _dd.p.ksr from rule_sample_rate' do
+          format!
+          expect(root_span.meta).to include(
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => '0.75'
+          )
+        end
+      end
+
+      context 'when both agent_sample_rate and rule_sample_rate are set' do
+        let(:trace_options) { {id: trace_id, agent_sample_rate: 0.3, rule_sample_rate: 0.8} }
+
+        it 'sets _dd.p.ksr from rule_sample_rate (rule takes priority)' do
+          format!
+          expect(root_span.meta).to include(
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => '0.8'
+          )
+        end
+      end
+
+      context 'when neither agent_sample_rate nor rule_sample_rate is set' do
+        let(:trace_options) { {id: trace_id} }
+
+        it 'does not set _dd.p.ksr' do
+          format!
+          expect(root_span.meta).to_not include(
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE
+          )
+        end
+      end
+
+      context 'value formatting with 6 significant digits' do
+        [
+          [1.0, '1'],
+          [0.5, '0.5'],
+          [0.1, '0.1'],
+          [0.7654321, '0.765432'],
+          [0.100000, '0.1'],
+          [0.000001, '1e-06'],
+          [0.123456789, '0.123457'],
+        ].each do |rate, expected|
+          context "when rate is #{rate}" do
+            let(:trace_options) { {id: trace_id, agent_sample_rate: rate} }
+
+            it "formats as #{expected.inspect}" do
+              format!
+              expect(root_span.meta[Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE]).to eq(expected)
+            end
+          end
+        end
+      end
+
+      context 'tag type' do
+        let(:trace_options) { {id: trace_id, agent_sample_rate: 0.5} }
+
+        it 'is stored as a string in meta (not metrics)' do
+          format!
+          expect(root_span.meta).to include(
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => '0.5'
+          )
+          expect(root_span.metrics).to_not include(
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE
+          )
+        end
+      end
+
+      context 'propagation' do
+        let(:trace_options) { {id: trace_id, agent_sample_rate: 0.5} }
+
+        it 'has the _dd.p. prefix for distributed propagation' do
+          expect(Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE).to start_with(
+            Datadog::Tracing::Metadata::Ext::Distributed::TAGS_PREFIX
+          )
         end
       end
     end
