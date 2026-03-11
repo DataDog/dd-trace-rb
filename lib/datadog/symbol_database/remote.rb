@@ -54,7 +54,8 @@ module Datadog
       # @return [void]
       # @api private
       def process_changes(changes)
-        component = SymbolDatabase.component
+        # Access component via components tree instead of global variable
+        component = Datadog.send(:components)&.symbol_database
         return unless component
 
         changes.each do |change|
