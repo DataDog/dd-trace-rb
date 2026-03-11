@@ -557,6 +557,54 @@ RSpec.describe Datadog::DI::Serializer do
         expect(serialized).to eq(expected)
       end
     end
+
+    context 'when condition raises an exception' do
+      # Save the original registry and restore it after each test to prevent
+      # test pollution from custom serializers leaking to other tests
+      around do |example|
+        original_registry = described_class.class_variable_get(:@@flat_registry).dup
+        example.run
+        described_class.class_variable_set(:@@flat_registry, original_registry)
+      end
+
+      it 'skips the custom serializer and uses default serialization' do
+        # Register a custom serializer with a condition that raises an exception
+        # This simulates a regex match against invalid UTF-8 strings
+        described_class.register(condition: lambda { |value| value =~ /test/ }) do |serializer, value, name:, depth:|
+          serializer.serialize_value('should not be called')
+        end
+
+        # Invalid UTF-8 string that will cause regex match to raise
+        invalid_utf8 = "\x80\xFF".force_encoding(Encoding::UTF_8)
+        expect(invalid_utf8.valid_encoding?).to be false
+
+        serialized = serializer.serialize_value(invalid_utf8)
+
+        # Should fall back to default serialization (binary escaping)
+        expect(serialized[:type]).to eq('String')
+        expect(serialized[:value]).to eq("b'\\x80\\xff'")
+      end
+
+      it 'continues checking other custom serializers after exception' do
+        # Register a custom serializer with a condition that raises an exception
+        described_class.register(condition: lambda { |value| value =~ /first/ }) do |serializer, value, name:, depth:|
+          serializer.serialize_value('first serializer')
+        end
+
+        # Register another custom serializer that should work
+        described_class.register(condition: lambda { |value| String === value && value.encoding == Encoding::UTF_8 && !value.valid_encoding? }) do |serializer, value, name:, depth:|
+          {type: 'String', value: 'second serializer'}
+        end
+
+        invalid_utf8 = "\x80\xFF".force_encoding(Encoding::UTF_8)
+
+        serialized = serializer.serialize_value(invalid_utf8)
+
+        # Should skip the first (failing) serializer and use the second one
+        expect(serialized[:type]).to eq('String')
+        expect(serialized[:value]).to eq('second serializer')
+      end
+    end
   end
 
   context 'when serialization raises an exception' do

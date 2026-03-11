@@ -67,6 +67,12 @@ module Datadog
       #
       # Important: these serializers are NOT used in log messages.
       # They are only used for variables that are captured in the snapshots.
+      #
+      # Exception handling: If a custom serializer's condition lambda raises
+      # an exception (e.g., regex match against invalid UTF-8 strings), the
+      # serializer will be silently skipped and the next serializer will be
+      # tried. This prevents custom serializers from breaking the entire
+      # serialization process.
       @@flat_registry = []
       def self.register(condition: nil, &block)
         @@flat_registry << {condition: condition, proc: block}
@@ -152,9 +158,21 @@ module Datadog
           end
 
           @@flat_registry.each do |entry|
-            if (condition = entry[:condition]) && condition.call(value)
-              serializer_proc = entry.fetch(:proc)
-              return serializer_proc.call(self, value, name: nil, depth: depth)
+            condition = entry[:condition]
+            if condition
+              begin
+                condition_result = condition.call(value)
+              rescue
+                # If a custom serializer condition raises an exception (e.g., regex match
+                # against invalid UTF-8), skip it and continue with the next serializer.
+                # We don't want custom serializer conditions to break the entire serialization.
+                next
+              end
+
+              if condition_result
+                serializer_proc = entry.fetch(:proc)
+                return serializer_proc.call(self, value, name: nil, depth: depth)
+              end
             end
           end
 
@@ -208,10 +226,11 @@ module Datadog
 
             if value.encoding == Encoding::BINARY || !value.valid_encoding?
               # Truncate binary data BEFORE escaping to avoid cutting mid-escape-sequence
-              original_size = value.length
+              # For invalid encodings, use bytesize instead of length to avoid encoding errors
+              original_size = value.bytesize
               if original_size > max
                 serialized.update(truncated: true, size: original_size)
-                value = value[0...max]
+                value = value.byteslice(0...max)
               end
               value = escape_binary_string(value)
               need_dup = false # Already converted to a new string
