@@ -66,29 +66,37 @@ module Datadog
 
         @enabled = false
         @last_upload_time = nil
+        @mutex = Mutex.new
       end
 
       # Start symbol upload (triggered by remote config or force mode).
       # Extracts symbols from all loaded modules and triggers upload.
+      # Thread-safe: can be called concurrently from multiple remote config updates.
       # @return [void]
       def start_upload
-        return if @enabled
-        return if recently_uploaded?
+        should_upload = false
 
-        @enabled = true
-        @last_upload_time = Datadog::Core::Utils::Time.now
+        @mutex.synchronize do
+          return if @enabled
+          return if recently_uploaded?
 
-        # Trigger extraction and upload
-        extract_and_upload
+          @enabled = true
+          @last_upload_time = Datadog::Core::Utils::Time.now
+          should_upload = true
+        end
+
+        # Trigger extraction and upload outside mutex (long-running operation)
+        extract_and_upload if should_upload
       rescue => e
         Datadog.logger.debug("SymDB: Error starting upload: #{e.class}: #{e}")
         @telemetry&.count('symbol_database.start_upload_error', 1)
       end
 
       # Stop symbol upload (disable future uploads).
+      # Thread-safe: can be called concurrently from multiple remote config updates.
       # @return [void]
       def stop_upload
-        @enabled = false
+        @mutex.synchronize { @enabled = false }
       end
 
       # Shutdown component and cleanup resources.
@@ -101,6 +109,7 @@ module Datadog
       private
 
       # Check if upload was recent (within cooldown period).
+      # Must be called from within @mutex.synchronize.
       # @return [Boolean] true if uploaded within last UPLOAD_COOLDOWN_INTERVAL seconds
       def recently_uploaded?
         return false if @last_upload_time.nil?
