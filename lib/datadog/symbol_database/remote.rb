@@ -85,14 +85,18 @@ module Datadog
             change.content.applied
           when :delete
             disable_upload(component)
-            change.content.applied
+            # Delete change has 'previous' not 'content'
+            change.previous.applied if change.previous
           else
             Datadog.logger.debug("SymDB: Unrecognized change type: #{change.type}")
-            change.content.errored("Unrecognized change type: #{change.type}")
+            # Only call errored() if change has content
+            change.content.errored("Unrecognized change type: #{change.type}") if change.respond_to?(:content)
           end
         rescue => e
           Datadog.logger.debug("SymDB: Error processing remote config change: #{e.class}: #{e}")
-          change.content.errored(e.message)
+          # Handle both content and previous
+          content_obj = change.respond_to?(:content) ? change.content : change.previous
+          content_obj.errored(e.message) if content_obj
         end
 
         # Enable upload if config has upload_symbols: true.
@@ -132,6 +136,12 @@ module Datadog
           # Parse JSON string to Hash
           # content.data is a JSON string, not a Hash (matches DI pattern: lib/datadog/di/remote.rb:144)
           config = JSON.parse(content.data)
+
+          # Validate it's actually a Hash
+          unless config.is_a?(Hash)
+            Datadog.logger.debug("SymDB: Invalid config format: expected Hash, got #{config.class}")
+            return nil
+          end
 
           unless config.key?('upload_symbols')
             Datadog.logger.debug("SymDB: Missing 'upload_symbols' key in config")
