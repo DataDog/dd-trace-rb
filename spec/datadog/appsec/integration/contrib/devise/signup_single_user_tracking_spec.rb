@@ -194,7 +194,6 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
 
       expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
     end
-
   end
 
   context 'when user successfully signed up and immediately login, but ID is unavailable' do

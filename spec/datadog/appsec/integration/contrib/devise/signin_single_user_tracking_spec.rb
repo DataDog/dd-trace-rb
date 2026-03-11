@@ -208,7 +208,6 @@ RSpec.describe 'Devise auto login and signup events tracking' do
 
       expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
     end
-
   end
 
   context 'when user successfully logging in and ID is unavailable' do
@@ -383,7 +382,6 @@ RSpec.describe 'Devise auto login and signup events tracking' do
 
       expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
     end
-
   end
 
   context 'when user unsuccessfully logging because it is not permitted by custom logic' do
