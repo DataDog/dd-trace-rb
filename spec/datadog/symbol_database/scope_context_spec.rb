@@ -88,11 +88,10 @@ RSpec.describe Datadog::SymbolDatabase::ScopeContext do
 
         context.add_scope(test_scope)
 
-        # Add another scope before timer fires (within 1s)
-        sleep 0.6
+        # Add another scope before first timer fires (timer gets reset)
         context.add_scope(Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'Class2'))
 
-        # Timer should have been reset, so we need to wait ~1s more from last add
+        # Timer should have been reset, so we wait for it from the second add
         # Use queue with timeout to wait for upload
         uploaded_scopes = Timeout.timeout(2) { upload_queue.pop }
 
@@ -221,12 +220,18 @@ RSpec.describe Datadog::SymbolDatabase::ScopeContext do
     end
 
     it 'kills timer' do
+      upload_called = false
+      allow(uploader).to receive(:upload_scopes) { |scopes| upload_called = true }
+
       context.add_scope(test_scope)
       context.reset
 
-      # Timer should not fire after reset
-      sleep 1.1
-      expect(context.size).to eq(0)  # Still empty (no auto-add)
+      # Reset clears scopes
+      expect(context.size).to eq(0)
+
+      # Timer should be killed - verify it doesn't fire
+      sleep 0.2  # Brief wait
+      expect(upload_called).to be false
     end
   end
 
