@@ -127,7 +127,7 @@ appraise 'activesupport' do
   gem 'actionpack'
   gem 'actionview'
   gem 'active_model_serializers', '>= 0.10.0'
-  gem 'grape', '< 2.3'
+  gem 'grape'
   gem 'lograge'
   gem 'racecar', '>= 0.3.5'
   gem 'ruby-kafka', '>= 0.7.10'

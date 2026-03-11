@@ -4,8 +4,10 @@ require 'datadog/di/transport/http'
 RSpec.describe Datadog::DI::Transport::Input::Transport do
   di_test
 
+  let(:telemetry) { nil }
+
   let(:transport) do
-    Datadog::DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger)
+    Datadog::DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger, telemetry: telemetry)
   end
 
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
@@ -173,6 +175,28 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
         expect_lazy_log(logger, :debug, 'di: dropping too big snapshot')
         transport.send_input(snapshots, tags)
       end
+    end
+  end
+
+  context 'when sending snapshot chunk fails' do
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+    let(:snapshot) { {hello: 'world'} }
+    let(:snapshots) { [snapshot] }
+
+    it 'reports exception to telemetry and continues' do
+      allow(logger).to receive(:debug)
+      expect(transport).to receive(:send_input_chunk).and_raise(StandardError, "network error")
+
+      expect(telemetry).to receive(:report) do |exc, description:|
+        expect(exc).to be_a(StandardError)
+        expect(exc.message).to eq("network error")
+        expect(description).to eq("Error sending snapshot chunk")
+      end
+
+      # Should not raise despite the error
+      expect do
+        transport.send_input(snapshots, tags)
+      end.not_to raise_error
     end
   end
 end
