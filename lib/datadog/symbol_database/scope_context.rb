@@ -34,9 +34,13 @@ module Datadog
       # Initialize batching context.
       # @param uploader [Uploader] Uploader instance for triggering uploads
       # @param telemetry [Telemetry, nil] Optional telemetry for metrics
-      def initialize(uploader, telemetry: nil)
+      # @param on_upload [Proc, nil] Optional callback called after upload (for testing)
+      # @param clock [#sleep, nil] Optional clock for testing (defaults to Kernel)
+      def initialize(uploader, telemetry: nil, on_upload: nil, clock: nil)
         @uploader = uploader
         @telemetry = telemetry
+        @on_upload = on_upload
+        @clock = clock || Kernel
         @scopes = []
         @mutex = Mutex.new
         @timer = nil
@@ -204,9 +208,13 @@ module Datadog
 
         # Start new timer thread
         @timer = Thread.new do
-          sleep INACTIVITY_TIMEOUT
-          # Timer fires - need to upload
-          flush  # flush will acquire mutex (safe - different thread)
+          begin
+            @clock.sleep(INACTIVITY_TIMEOUT)
+            # Timer fires - need to upload
+            flush  # flush will acquire mutex (safe - different thread)
+          rescue => e
+            # Timer interrupted or error - ignore
+          end
         end
       end
 
@@ -217,6 +225,7 @@ module Datadog
         return if scopes.nil? || scopes.empty?
 
         @uploader.upload_scopes(scopes)
+        @on_upload&.call(scopes)  # Notify tests after upload
       rescue => e
         Datadog.logger.debug("SymDB: Upload failed: #{e.class}: #{e}")
         @telemetry&.count('symbol_database.perform_upload_error', 1)

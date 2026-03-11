@@ -68,37 +68,59 @@ RSpec.describe Datadog::SymbolDatabase::ScopeContext do
     context 'with inactivity timer' do
       it 'triggers upload after 1 second of inactivity' do
         upload_queue = Queue.new
-        allow(uploader).to receive(:upload_scopes) { |scopes| upload_queue.push(scopes) }
 
-        context.add_scope(test_scope)
-        expect(context.size).to eq(1)
+        # Use mock clock that completes immediately
+        mock_clock = Class.new do
+          def self.sleep(_duration)
+            # Return immediately - timer fires instantly in test
+          end
+        end
 
-        # Wait for timer to fire (deterministic wait with timeout)
-        uploaded_scopes = Timeout.timeout(2) { upload_queue.pop }
+        test_context = described_class.new(
+          uploader,
+          on_upload: ->(scopes) { upload_queue.push(scopes) },
+          clock: mock_clock,
+        )
 
-        # Verify upload was called and batch cleared
-        expect(uploaded_scopes).not_to be_nil
+        test_context.add_scope(test_scope)
+
+        # Wait for upload callback (timer fires immediately with mock clock)
+        uploaded_scopes = Timeout.timeout(1) { upload_queue.pop }
+
         expect(uploaded_scopes.size).to eq(1)
-        expect(context.size).to eq(0)
+        expect(test_context.size).to eq(0)
       end
 
       it 'resets timer on each scope addition' do
         upload_queue = Queue.new
-        allow(uploader).to receive(:upload_scopes) { |scopes| upload_queue.push(scopes) }
 
-        context.add_scope(test_scope)
+        mock_clock = Class.new do
+          @@call_count = 0
 
-        # Add another scope before first timer fires (timer gets reset)
-        context.add_scope(Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'Class2'))
+          def self.sleep(_duration)
+            @@call_count += 1
+            # Return immediately
+          end
 
-        # Timer should have been reset, so we wait for it from the second add
-        # Use queue with timeout to wait for upload
-        uploaded_scopes = Timeout.timeout(2) { upload_queue.pop }
+          def self.call_count
+            @@call_count
+          end
+        end
 
-        # Should have uploaded both scopes (timer fired after ~1s from second add)
-        expect(uploaded_scopes).not_to be_nil
+        test_context = described_class.new(
+          uploader,
+          on_upload: ->(scopes) { upload_queue.push(scopes) },
+          clock: mock_clock,
+        )
+
+        test_context.add_scope(test_scope)
+        test_context.add_scope(Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'Class2'))
+
+        # Wait for upload callback (second timer fires immediately)
+        uploaded_scopes = Timeout.timeout(1) { upload_queue.pop }
+
         expect(uploaded_scopes.size).to eq(2)
-        expect(context.size).to eq(0)
+        expect(mock_clock.call_count).to eq(2)  # Timer reset once
       end
     end
 
