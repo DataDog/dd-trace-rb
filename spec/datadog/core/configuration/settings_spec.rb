@@ -1392,31 +1392,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
   describe '#experimental_propagate_process_tags_enabled' do
     subject(:experimental_propagate_process_tags_enabled) { settings.experimental_propagate_process_tags_enabled }
 
-    context "when #{Datadog::Core::Environment::Ext::ENV_VERSION}" do
-      around do |example|
-        ClimateControl.modify('DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED' => environment) do
-          example.run
-        end
-      end
-
-      context 'by default' do
-        let(:environment) { nil }
-
-        it { is_expected.to be true }
-      end
-
-      context 'when set to true' do
-        let(:environment) { 'true' }
-
-        it { is_expected.to be true }
-      end
-
-      context 'when set to false' do
-        let(:environment) { 'false' }
-
-        it { is_expected.to be false }
-      end
-    end
+    it_behaves_like 'a binary setting with',
+      env_variable: 'DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED',
+      default: true
   end
 
   describe '#experimental_propagate_process_tags_enabled=' do
