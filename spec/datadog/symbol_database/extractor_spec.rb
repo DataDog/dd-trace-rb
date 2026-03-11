@@ -4,10 +4,17 @@ require 'datadog/symbol_database/extractor'
 require 'fileutils'
 
 RSpec.describe Datadog::SymbolDatabase::Extractor do
+  # Temporary directory for user code test files
+  around do |example|
+    Dir.mktmpdir('symbol_db_extractor_test') do |dir|
+      @test_dir = dir
+      example.run
+    end
+  end
+
   # Helper to create test files in user code location
   def create_user_code_file(content)
-    Dir.mkdir('/tmp/user_app') unless Dir.exist?('/tmp/user_app')
-    filename = "/tmp/user_app/test_#{Time.now.to_i}_#{rand(10000)}.rb"
+    filename = File.join(@test_dir, "test_#{Time.now.to_i}_#{rand(10000)}.rb")
     File.write(filename, content)
     filename
   end
