@@ -24,6 +24,13 @@ module Datadog
         end
 
         class Transport < Core::Transport::Transport
+          attr_reader :telemetry
+
+          def initialize(apis, default_api, logger:, telemetry: nil)
+            super(apis, default_api, logger: logger)
+            @telemetry = telemetry
+          end
+
           # The limit on an individual snapshot payload, aka "log line",
           # is 1 MB.
           #
@@ -74,6 +81,7 @@ module Datadog
                 send_input_chunk(chunked_payload, serialized_tags)
               rescue => exc
                 logger.debug { "di: failed to send snapshot chunk: #{exc.class}: #{exc} (at #{exc.backtrace.first})" }
+                telemetry&.report(exc, description: "Error sending snapshot chunk")
               end
             end
 

@@ -11,9 +11,20 @@ module Datadog
         end
 
         class Transport < Core::Transport::Transport
+          @telemetry: Datadog::Core::Telemetry::Component?
+
           MAX_SERIALIZED_SNAPSHOT_SIZE: ::Integer
           MAX_CHUNK_SIZE: ::Integer
           DEFAULT_CHUNK_SIZE: ::Integer
+
+          attr_reader telemetry: Datadog::Core::Telemetry::Component?
+
+          def initialize: (
+            Datadog::Core::Transport::HTTP::API::Map apis,
+            ::String default_api,
+            logger: Datadog::Core::Logger,
+            ?telemetry: Datadog::Core::Telemetry::Component?
+          ) -> void
 
           def send_input: (untyped payload, untyped tags) -> untyped
 
