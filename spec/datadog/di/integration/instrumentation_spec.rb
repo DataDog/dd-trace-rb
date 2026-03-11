@@ -1418,6 +1418,9 @@ RSpec.describe 'Instrumentation integration' do
         # Execute the method
         InstrumentationSpecTestClass.new.binary_data_param_method(binary_string, "hello")
 
+        # Wait for flush to complete
+        component.probe_notifier_worker.flush
+
         # Verify snapshot was captured with binary data escaped
         expect(captured_snapshot).not_to be_nil
         expect(captured_snapshot[:debugger][:snapshot][:captures]).to have_key(:entry)
@@ -1466,6 +1469,9 @@ RSpec.describe 'Instrumentation integration' do
         expect(result.length).to eq(300)
         expect(result.bytes.min).to eq(128)
         expect(result.bytes.max).to eq(255)
+
+        # Wait for flush to complete
+        component.probe_notifier_worker.flush
 
         # Verify snapshot captured the return value as escaped string
         expect(captured_snapshot).not_to be_nil
