@@ -40,7 +40,9 @@ module Datadog
           extract_module_scope(mod)
         end
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to extract #{mod.name}: #{e.class}: #{e}")
+        # Use Module#name safely in rescue block (mod.name might be overridden)
+        mod_name = (Module.instance_method(:name).bind(mod).call rescue '<unknown>')
+        Datadog.logger.debug("SymDB: Failed to extract #{mod_name}: #{e.class}: #{e}")
         nil
       end
 
@@ -48,6 +50,20 @@ module Datadog
       # @param mod [Module] The module to check
       # @return [Boolean] true if user code
       def self.user_code_module?(mod)
+        # Get module name safely (some modules override .name method like REXML::Functions)
+        begin
+          mod_name = Module.instance_method(:name).bind(mod).call
+        rescue
+          return false  # Can't get name safely, skip it
+        end
+
+        return false unless mod_name
+
+        # CRITICAL: Exclude entire Datadog namespace (prevents circular extraction)
+        # Matches Java: className.startsWith("com/datadog/")
+        # Matches Python: packages.is_user_code() excludes ddtrace.*
+        return false if mod_name.start_with?('Datadog::')
+
         source_file = find_source_file(mod)
         return false unless source_file
 

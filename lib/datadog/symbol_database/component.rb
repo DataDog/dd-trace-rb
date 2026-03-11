@@ -117,6 +117,7 @@ module Datadog
         start_time = Datadog::Core::Utils::Time.get_time
 
         # Iterate all loaded modules and extract symbols
+        # Extractor.extract filters to user code only (excludes Datadog::*, gems, stdlib)
         extracted_count = 0
         ObjectSpace.each_object(Module) do |mod|
           scope = Extractor.extract(mod)
