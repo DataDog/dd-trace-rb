@@ -89,6 +89,7 @@ module Datadog
         perform_upload(scopes_to_upload) if scopes_to_upload
       rescue => e
         Datadog.logger.debug("SymDB: Failed to add scope: #{e.class}: #{e}")
+        @telemetry&.count('symbol_database.add_scope_error', 1)
         # Don't propagate, continue operation
       end
 
@@ -208,6 +209,7 @@ module Datadog
         @uploader.upload_scopes(scopes)
       rescue => e
         Datadog.logger.debug("SymDB: Upload failed: #{e.class}: #{e}")
+        @telemetry&.count('symbol_database.perform_upload_error', 1)
         # Don't propagate, uploader handles retries
       end
     end

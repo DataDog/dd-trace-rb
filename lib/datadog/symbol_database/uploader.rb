@@ -78,6 +78,7 @@ module Datadog
         upload_with_retry(compressed_data, scopes.size)
       rescue => e
         Datadog.logger.debug("SymDB: Upload failed: #{e.class}: #{e}")
+        @telemetry&.count('symbol_database.upload_scopes_error', 1)
         # Don't propagate
       end
 
@@ -98,6 +99,7 @@ module Datadog
         service_version.to_json
       rescue => e
         Datadog.logger.debug("SymDB: Serialization failed: #{e.class}: #{e}")
+        @telemetry&.count('symbol_database.serialization_error', 1)
         nil
       end
 
@@ -137,6 +139,7 @@ module Datadog
             retry
           else
             Datadog.logger.debug("SymDB: Upload failed after #{MAX_RETRIES} retries: #{e.class}: #{e}")
+            @telemetry&.count('symbol_database.upload_retry_exhausted', 1)
           end
         end
       end
