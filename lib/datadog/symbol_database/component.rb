@@ -85,6 +85,7 @@ module Datadog
         extract_and_upload
       rescue => e
         Datadog.logger.debug("SymDB: Error starting upload: #{e.class}: #{e}")
+        @telemetry&.count('symbol_database.start_upload_error', 1)
       end
 
       # Stop symbol upload (disable future uploads).
