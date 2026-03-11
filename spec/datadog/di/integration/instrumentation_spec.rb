@@ -42,8 +42,7 @@ class InstrumentationSpecTestClass
   def binary_data_method
     # Return a string with high bytes that will fail JSON encoding
     # 300 bytes to exceed default max_capture_string_length of 255
-    binary_string = ((128..255).to_a * 3)[0...300].map { |i| i.chr(Encoding::BINARY) }.join.force_encoding(Encoding::BINARY)
-    binary_string
+    ((128..255).to_a * 3)[0...300].map { |i| i.chr(Encoding::BINARY) }.join.force_encoding(Encoding::BINARY)
   end
 
   def binary_data_param_method(binary_param, normal_param)
@@ -1472,9 +1471,9 @@ RSpec.describe 'Instrumentation integration' do
         # Verify snapshot captured the return value as escaped string
         expect(captured_snapshot).not_to be_nil
         return_capture = captured_snapshot[:debugger][:snapshot][:captures][:return]
-        expect(return_capture[:arguments]).to have_key(:"@return")
+        expect(return_capture[:arguments]).to have_key(:@return)
 
-        return_value = return_capture[:arguments][:"@return"][:value]
+        return_value = return_capture[:arguments][:@return][:value]
         expect(return_value).to start_with("b'")
         expect(return_value.encoding).to eq(Encoding::UTF_8)
         expect(return_value).to include('\\x80') # First high byte

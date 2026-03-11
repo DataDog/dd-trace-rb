@@ -232,8 +232,8 @@ module Datadog
                 serialized.update(truncated: true, size: original_size)
                 value = value.byteslice(0...max)
               end
-              value = escape_binary_string(value)
-              need_dup = false # Already converted to a new string
+              value = escape_binary_string(value) # steep:ignore ArgumentTypeMismatch
+              false # Already converted to a new string
             else
               # Truncate non-binary strings
               if value.length > max
@@ -495,24 +495,24 @@ module Datadog
       # @param binary_string [String] A string with ASCII-8BIT encoding or invalid encoding
       # @return [String] Escaped string with UTF-8 encoding
       def escape_binary_string(binary_string)
-        result = "b'".dup
+        result = +"b'"
         binary_string.each_byte do |byte|
-          case byte
+          result << case byte
           when 0x09 # \t
-            result << '\\t'
+            '\\t'
           when 0x0A # \n
-            result << '\\n'
+            '\\n'
           when 0x0D # \r
-            result << '\\r'
+            '\\r'
           when 0x27 # '
-            result << "\\'"
+            "\\'"
           when 0x5C # \
-            result << '\\\\'
+            '\\\\'
           when 0x20..0x7E # Printable ASCII (space through ~)
-            result << byte.chr
+            byte.chr
           else
             # Non-printable: use \xHH format
-            result << format('\\x%02x', byte)
+            format('\\x%02x', byte)
           end
         end
         result << "'"

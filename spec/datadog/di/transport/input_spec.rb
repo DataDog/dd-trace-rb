@@ -34,14 +34,14 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
       let(:escaped_binary) do
         result = +"b'"
         binary_string.each_byte do |byte|
-          case byte
-          when 0x09 then result << '\\t'
-          when 0x0A then result << '\\n'
-          when 0x0D then result << '\\r'
-          when 0x27 then result << "\\'"
-          when 0x5C then result << '\\\\'
-          when 0x20..0x7E then result << byte.chr
-          else result << format('\\x%02x', byte)
+          result << case byte
+          when 0x09 then '\\t'
+          when 0x0A then '\\n'
+          when 0x0D then '\\r'
+          when 0x27 then "\\'"
+          when 0x5C then '\\\\'
+          when 0x20..0x7E then byte.chr
+          else format('\\x%02x', byte)
           end
         end
         result << "'"
