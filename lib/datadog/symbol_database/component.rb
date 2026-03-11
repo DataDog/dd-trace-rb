@@ -23,7 +23,7 @@ module Datadog
     #
     # Created by: Components#initialize (in Core::Configuration::Components)
     # Stored in: SymbolDatabase.component (global, for remote config receiver access)
-    # Requires: DI enabled, remote config enabled (unless force mode)
+    # Requires: Remote config enabled (unless force mode)
     #
     # @api private
     class Component
@@ -37,12 +37,6 @@ module Datadog
       # @return [Component, nil] Component instance or nil if not enabled/requirements not met
       def self.build(settings, agent_settings, logger, telemetry: nil)
         return unless settings.respond_to?(:symbol_database) && settings.symbol_database.enabled
-
-        # Symbol database requires DI to be enabled
-        unless settings.respond_to?(:dynamic_instrumentation) && settings.dynamic_instrumentation.enabled
-          logger.debug("SymDB: Symbol Database requires Dynamic Instrumentation to be enabled")
-          return nil
-        end
 
         # Requires remote config (unless force mode)
         unless settings.remote&.enabled || settings.symbol_database.force_upload
