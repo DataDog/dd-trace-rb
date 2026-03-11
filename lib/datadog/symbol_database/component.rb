@@ -39,10 +39,7 @@ module Datadog
         return unless settings.respond_to?(:symbol_database) && settings.symbol_database.enabled
 
         # Requires remote config (unless force mode)
-        unless settings.remote&.enabled || settings.symbol_database.force_upload
-          logger.debug("SymDB: Symbol Database requires Remote Configuration (or force upload mode)")
-          return nil
-        end
+        return nil unless settings.remote&.enabled || settings.symbol_database.force_upload
 
         new(settings, agent_settings, logger, telemetry: telemetry).tap do |component|
           # Start immediately if force upload mode
