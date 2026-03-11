@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../core/transport/http'
+require_relative '../../core/transport/http'
 require_relative 'http/endpoint'
 require_relative '../transport'
 

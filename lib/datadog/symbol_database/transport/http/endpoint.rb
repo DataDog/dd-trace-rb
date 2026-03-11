@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../../core/transport/http/api/endpoint'
+require_relative '../../../core/transport/http/api/endpoint'
 
 module Datadog
   module SymbolDatabase
