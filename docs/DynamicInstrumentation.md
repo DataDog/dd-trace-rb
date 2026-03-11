@@ -283,10 +283,10 @@ subject to change.
 
 **Exception Handling:** If a custom serializer's condition lambda raises
 an exception (for example, a regex match against a string with invalid
-UTF-8 encoding), the exception will be logged (at WARN level) and reported
-via telemetry, then the serializer will be skipped and the next serializer
-will be tried. This prevents custom serializers from breaking the entire
-serialization process. The value will fall back to default serialization.
+UTF-8 encoding), the exception will be logged at WARN level, then the
+serializer will be skipped and the next serializer will be tried. This
+prevents custom serializers from breaking the entire serialization process.
+The value will fall back to default serialization.
 
 ## Application Data Sent to Datadog
 
