@@ -135,10 +135,8 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       json_string = Zlib::GzipReader.new(StringIO.new(gzipped_data)).read
       JSON.parse(json_string)
     end
-  rescue => e
-    puts "DEBUG: Failed to parse multipart: #{e.class}: #{e.message}"
-    puts "DEBUG: Body length: #{body_str&.length}"
-    puts "DEBUG: Body preview: #{body_str[0..200]}" if body_str
+  rescue
+    # Multipart parsing failed, return nil
     nil
   end
 
