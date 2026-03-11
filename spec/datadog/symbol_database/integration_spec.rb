@@ -9,10 +9,11 @@ require 'fileutils'
 RSpec.describe 'Symbol Database Integration' do
   # End-to-end integration test
   it 'extracts, batches, and uploads symbols from user code' do
-    # Setup: Create test class in user code location
-    Dir.mkdir('/tmp/user_app') unless Dir.exist?('/tmp/user_app')
-    test_file = "/tmp/user_app/integration_test_#{Time.now.to_i}.rb"
-    File.write(test_file, <<~RUBY)
+    # Setup: Create test class in isolated temp directory
+    test_file = nil
+    Dir.mktmpdir('symbol_db_integration') do |dir|
+      test_file = File.join(dir, "integration_test_#{Time.now.to_i}.rb")
+      File.write(test_file, <<~RUBY)
       module IntegrationTestModule
         CONSTANT = 42
 
@@ -77,16 +78,16 @@ RSpec.describe 'Symbol Database Integration' do
       expect(uploaded_scopes.size).to eq(1)
       expect(uploaded_scopes.first.name).to eq('IntegrationTestModule::IntegrationTestClass')
 
-      # Verify JSON serialization works
-      json = uploaded_scopes.first.to_json
-      parsed = JSON.parse(json)
-      expect(parsed['scope_type']).to eq('CLASS')
-      expect(parsed['scopes']).to be_an(Array)
-      expect(parsed['symbols']).to be_an(Array)
-    ensure
-      # Cleanup
-      Object.send(:remove_const, :IntegrationTestModule) if defined?(IntegrationTestModule)
-      File.unlink(test_file) if File.exist?(test_file)
+        # Verify JSON serialization works
+        json = uploaded_scopes.first.to_json
+        parsed = JSON.parse(json)
+        expect(parsed['scope_type']).to eq('CLASS')
+        expect(parsed['scopes']).to be_an(Array)
+        expect(parsed['symbols']).to be_an(Array)
+      ensure
+        # Cleanup
+        Object.send(:remove_const, :IntegrationTestModule) if defined?(IntegrationTestModule)
+      end
     end
   end
 end
