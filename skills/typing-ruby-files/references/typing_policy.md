@@ -2,11 +2,48 @@
 
 ## Contents
 
-1. Scope gates
-2. Mandatory checks
-3. Transient-gap comment rules
-4. Compromise reporting schema
-5. Report completeness checklist
+1. Target prioritization
+2. Scope gates
+3. Mandatory checks
+4. Pull request conventions
+5. Transient-gap comment rules
+6. Compromise reporting schema
+7. Report completeness checklist
+
+## Target prioritization
+
+Work through files in order of typing difficulty — low-hanging fruit first.
+
+### Tier 1: easy wins (do first)
+
+Pick files where every type is unambiguous from the source alone:
+
+- Return types are literals, frozen strings, simple primitives (`Integer`, `String`, `bool`).
+- No branching between different return types.
+- No metaprogramming, dynamic dispatch, or DSL-generated methods.
+- Small surface area (few public methods, short file).
+
+Examples: constant readers, simple formatters, environment wrappers.
+
+### Tier 2: moderate (do next)
+
+Files where types are precise but require reading callers or related files:
+
+- Nullable returns (`String?`) with clear guard patterns.
+- Union types across a small, closed set (`String | Symbol`).
+- Methods that delegate to well-typed dependencies.
+
+### Tier 3: complex (do last)
+
+Files where full precision requires design decisions or is blocked:
+
+- Heavy metaprogramming or `define_method`/`method_missing`.
+- Open-ended hashes, generic containers, callback registries.
+- Types that depend on untyped upstream gems or Steep/RBS limitations.
+
+### Selection rule
+
+When choosing the next file to type, scan the existing `sig/` files for `untyped` occurrences and pick the lowest-tier candidate. Within the same tier, prefer files with fewer `untyped` occurrences (faster to complete) and files that are dependencies of other untyped code (unblocks future work).
 
 ## Scope gates
 
@@ -28,6 +65,15 @@
    `2>&1 | tee /tmp/full_rspec.log | grep -E 'Pending:|Failures:|Finished' -A 99`
 5. Do not mark the work complete without report artifacts that include:
    `scope.json`, `untyped.before.json`, `untyped.after.json`, `steep.json`, and final report files.
+
+## Pull request conventions
+
+Use a simple title in one of these formats:
+
+- `Add typing for <Name>` — when typing a file for the first time or adding new type precision.
+- `Fix typing for <Name>` — when correcting an existing signature.
+
+`<Name>` is either the class/module name (e.g. `Core::Chunker`) or the Ruby file name (e.g. `core/chunker.rb`). Keep the title short — use the class name or basename when the full path is long.
 
 ## Transient-gap comment rules
 
