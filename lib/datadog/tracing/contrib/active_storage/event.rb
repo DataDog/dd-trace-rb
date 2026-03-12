@@ -29,6 +29,15 @@ module Datadog
               Datadog.configuration.tracing[:active_storage]
             end
 
+            def trace?(_event, _payload)
+              Tracing.enabled? && configuration[:enabled] == true
+            end
+
+            def on_finish(span, event, id, payload)
+              super
+              process(span, event, id, payload)
+            end
+
             # Set analytics sample rate on span if enabled
             def set_analytics(span)
               return unless Contrib::Analytics.enabled?(configuration[:analytics_enabled])
