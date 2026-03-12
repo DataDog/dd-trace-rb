@@ -5,9 +5,9 @@ module Datadog
 
       MAX_RETRIES: Integer
 
-      BASE_BACKOFF: Float
+      BASE_BACKOFF_INTERVAL: Float
 
-      MAX_BACKOFF: Float
+      MAX_BACKOFF_INTERVAL: Float
 
       @config: untyped
 
@@ -41,7 +41,7 @@ module Datadog
 
       def upload_timeout: () -> Integer
 
-      def build_multipart_form: (String compressed_data) -> String
+      def build_multipart_form: (String compressed_data) -> Hash[String, Core::Vendor::Multipart::Post::UploadIO]
 
       def handle_response: (Net::HTTPResponse response, Integer scope_count) -> bool
     end
