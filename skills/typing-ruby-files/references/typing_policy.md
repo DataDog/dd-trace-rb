@@ -67,6 +67,7 @@ When introducing a shared alias:
 1. Check if the type already exists in `vendor/rbs/` or `sig/`.
 2. If a local duplicate exists (e.g. module-scoped `rack_response`), replace it with the shared version.
 3. Do not reorder or reformat unrelated lines in files like Steepfile — keep diffs minimal.
+4. Preserve the existing order of methods and declarations in RBS files. New declarations (e.g. `@app:`) may be added in the conventional place (instance variables before methods) but existing methods must not be reordered.
 
 ## Scope gates
 
