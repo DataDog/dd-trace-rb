@@ -284,7 +284,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
     it 'returns true for user code paths' do
       expect(described_class.send(:user_code_path?, '/app/lib/my_class.rb')).to be true
       expect(described_class.send(:user_code_path?, '/home/user/project/file.rb')).to be true
-      expect(described_class.send(:user_code_path?, '/tmp/user_app/test.rb')).to be true
+      expect(described_class.send(:user_code_path?, File.join(@test_dir, 'test.rb'))).to be true
     end
   end
 
