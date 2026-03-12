@@ -97,7 +97,7 @@ module Datadog
         end
 
         # Wait for timer thread to terminate (outside mutex)
-        timer_to_join&.join(0.1)
+        timer_to_join&.join
 
         # Upload outside mutex (if batch was full)
         perform_upload(scopes_to_upload) if scopes_to_upload
@@ -126,7 +126,7 @@ module Datadog
         end
 
         # Wait for timer thread to terminate (outside mutex)
-        timer_to_join&.join(0.1)
+        timer_to_join&.join
 
         perform_upload(scopes_to_upload)
       end
@@ -149,11 +149,7 @@ module Datadog
         end
 
         # Wait for timer thread to terminate (outside mutex to avoid deadlock)
-        # 0.1s timeout chosen because:
-        # - Short enough to not significantly delay shutdown (user experience)
-        # - Long enough to give timer thread time to terminate cleanly (typical thread cleanup < 10ms)
-        # - Acceptable to abandon thread if it doesn't terminate (timer just triggers upload, no critical cleanup)
-        timer_to_join&.join(0.1)
+        timer_to_join&.join
 
         # Upload outside mutex
         perform_upload(scopes_to_upload) unless scopes_to_upload.empty?
@@ -177,11 +173,7 @@ module Datadog
         end
 
         # Wait for timer thread to actually terminate (outside mutex to avoid deadlock)
-        # 0.1s timeout chosen because:
-        # - Short enough to not significantly delay reset operation (test cleanup)
-        # - Long enough to give timer thread time to terminate cleanly (typical thread cleanup < 10ms)
-        # - Acceptable to abandon thread if it doesn't terminate (timer just triggers upload, no critical cleanup)
-        timer_to_join&.join(0.1)
+        timer_to_join&.join
       end
 
       # Check if scopes are pending upload.
@@ -207,9 +199,8 @@ module Datadog
           timer_to_kill = @timer
           @timer = nil
           timer_to_kill.kill
-          # Wait briefly for thread to terminate to avoid thread accumulation
-          # Use a very short timeout to avoid blocking the mutex for too long
-          timer_to_kill.join(0.01)
+          # Wait for thread to terminate to avoid thread accumulation
+          timer_to_kill.join
         end
 
         # Start new timer thread (unless disabled for testing)
