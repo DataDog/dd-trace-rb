@@ -2,7 +2,7 @@ module Datadog
   module Core
     module Environment
       module Socket
-        def self?.hostname: () -> untyped
+        def self?.hostname: () -> String
       end
     end
   end
