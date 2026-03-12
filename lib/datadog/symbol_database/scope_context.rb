@@ -112,7 +112,7 @@ module Datadog
         end
 
         # Wait for timer thread to terminate (outside mutex)
-        timer_to_join&.join(0.1)
+        timer_to_join&.join
 
         # Upload outside mutex (if batch was full)
         perform_upload(scopes_to_upload) if scopes_to_upload
@@ -137,7 +137,7 @@ module Datadog
         end
 
         # Wait for timer thread to terminate (outside mutex)
-        timer_to_join&.join(0.1)
+        timer_to_join&.join
 
         perform_upload(scopes_to_upload)
         # steep:ignore:end
