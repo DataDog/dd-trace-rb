@@ -7,9 +7,7 @@ module Datadog
 
           def initialize: (::Rack::app app, ?::Hash[::Symbol, untyped] opt) -> void
 
-          # Returns Rack::response in practice, but Steep cannot prove it
-          # through the catch/block control flow (http_response may appear nil).
-          def call: (::Rack::env env) -> ::Rack::response?
+          def call: (::Rack::env env) -> ::Rack::response
         end
       end
     end
