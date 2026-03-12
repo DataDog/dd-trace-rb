@@ -34,6 +34,8 @@ module Datadog
 
             return AppSec::Response.from_interrupt_params(interrupt_params, env['HTTP_ACCEPT']).to_rack if interrupt_params
 
+            # Steep can't see that the catch block always populates http_response
+            # when no interrupt is thrown.
             http_response #: Rack::response
           end
         end
