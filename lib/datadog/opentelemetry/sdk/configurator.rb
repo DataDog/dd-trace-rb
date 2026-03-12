@@ -45,14 +45,48 @@ module Datadog
           super unless success
         end
 
+        # OpenTelemetry base SDK configure() does not call logs_configuration_hook;
+        # only metrics_configuration_hook is invoked. Invoke the logs hook after super.
+        def configure
+          super
+          logs_configuration_hook if respond_to?(:logs_configuration_hook, true)
+        end
+
+        def logs_configuration_hook
+          components = Datadog.send(:components)
+          unless components.settings.opentelemetry.logs.enabled
+            # Reset to default so a previous test/run does not leave our LoggerProvider set
+            ::OpenTelemetry.logger_provider = ::OpenTelemetry::Internal::ProxyLoggerProvider.new
+            return
+          end
+
+          begin
+            require 'opentelemetry-logs-sdk'
+          rescue LoadError => exc
+            components.logger.warn("Failed to load OpenTelemetry logs gems: #{exc.class}: #{exc}")
+            return super
+          end
+
+          success = Datadog::OpenTelemetry::Logs.initialize!(components)
+          super unless success
+        end
+
         # Prepend to ConfiguratorPatch (not Configurator) so our hook runs first.
         begin
           require 'opentelemetry-metrics-sdk' if defined?(OpenTelemetry::SDK) && !defined?(OpenTelemetry::SDK::Metrics::ConfiguratorPatch)
         rescue LoadError
         end
 
+        begin
+          require 'opentelemetry-logs-sdk' if defined?(OpenTelemetry::SDK) && !defined?(OpenTelemetry::SDK::Logs::ConfiguratorPatch)
+        rescue LoadError
+        end
+
         if defined?(::OpenTelemetry::SDK::Metrics::ConfiguratorPatch)
           ::OpenTelemetry::SDK::Metrics::ConfiguratorPatch.prepend(self) unless ::OpenTelemetry::SDK::Metrics::ConfiguratorPatch.ancestors.include?(self)
+        end
+        if defined?(::OpenTelemetry::SDK::Logs::ConfiguratorPatch)
+          ::OpenTelemetry::SDK::Logs::ConfiguratorPatch.prepend(self) unless ::OpenTelemetry::SDK::Logs::ConfiguratorPatch.ancestors.include?(self)
         end
         ::OpenTelemetry::SDK::Configurator.prepend(self) unless ::OpenTelemetry::SDK::Configurator.ancestors.include?(self)
       end

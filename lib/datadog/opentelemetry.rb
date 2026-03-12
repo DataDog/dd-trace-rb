@@ -23,6 +23,7 @@ require_relative 'opentelemetry/sdk/configurator' if defined?(OpenTelemetry::SDK
 require_relative 'opentelemetry/sdk/trace/span' if defined?(OpenTelemetry::SDK)
 
 require_relative 'opentelemetry/metrics' if defined?(OpenTelemetry::SDK::Metrics)
+require_relative 'opentelemetry/logs' if defined?(OpenTelemetry::SDK::Logs)
 
 module Datadog
   # Datadog OpenTelemetry integration.
