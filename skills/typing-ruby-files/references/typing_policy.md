@@ -3,12 +3,13 @@
 ## Contents
 
 1. Target prioritization
-2. Scope gates
-3. Mandatory checks
-4. Pull request conventions
-5. Transient-gap comment rules
-6. Compromise reporting schema
-7. Report completeness checklist
+2. Shared type aliases
+3. Scope gates
+4. Mandatory checks
+5. Pull request conventions
+6. Transient-gap comment rules
+7. Compromise reporting schema
+8. Report completeness checklist
 
 ## Target prioritization
 
@@ -44,6 +45,28 @@ Files where full precision requires design decisions or is blocked:
 ### Selection rule
 
 When choosing the next file to type, scan the existing `sig/` files for `untyped` occurrences and pick the lowest-tier candidate. Within the same tier, prefer files with fewer `untyped` occurrences (faster to complete) and files that are dependencies of other untyped code (unblocks future work).
+
+## Shared type aliases
+
+When a type pattern repeats across many signatures, define it once in a shared location and reference it everywhere. This avoids drift and makes the type vocabulary consistent.
+
+Shared aliases live in `vendor/rbs/` stubs. For example, Rack types are defined in `vendor/rbs/rack/0/rack.rbs`:
+
+```rbs
+module Rack
+  type env = ::Hash[::String, untyped]
+  type response = [::Integer, ::Hash[::String, ::String], ::Array[::String]]
+  type app = ^(env) -> response
+end
+```
+
+All Rack middleware signatures should use `Rack::env`, `Rack::response`, and `Rack::app` instead of inline types or local aliases.
+
+When introducing a shared alias:
+
+1. Check if the type already exists in `vendor/rbs/` or `sig/`.
+2. If a local duplicate exists (e.g. module-scoped `rack_response`), replace it with the shared version.
+3. Do not reorder or reformat unrelated lines in files like Steepfile — keep diffs minimal.
 
 ## Scope gates
 
