@@ -9,7 +9,6 @@ require_relative 'transport/http'
 module Datadog
   module Tracing
     # SyncWriter flushes both services and traces synchronously
-    # DEV: To be replaced by Datadog::Tracing::Workers::TraceWriter.
     #
     # Note: If you're wondering if this class is used at all, since there are no other references to it on the codebase,
     # the separate `datadog-lambda` uses it as of February 2021:

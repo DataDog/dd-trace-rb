@@ -24,6 +24,7 @@ module Datadog
           allocation_counting_enabled:,
           gvl_profiling_enabled:,
           sighandler_sampling_enabled:,
+          cpu_sampling_interval_ms:,
           # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
           # profiler overhead!
           dynamic_sampling_rate_enabled: true,
@@ -39,6 +40,10 @@ module Datadog
             )
           end
 
+          if cpu_sampling_interval_ms < 1
+            raise ArgumentError, "cpu_sampling_interval_ms must be a positive integer, got #{cpu_sampling_interval_ms}"
+          end
+
           self.class._native_initialize(
             self_instance: self,
             thread_context_collector: thread_context_collector,
@@ -52,6 +57,7 @@ module Datadog
             gvl_profiling_enabled: gvl_profiling_enabled,
             sighandler_sampling_enabled: sighandler_sampling_enabled,
             skip_idle_samples_for_testing: skip_idle_samples_for_testing,
+            cpu_sampling_interval_ms: cpu_sampling_interval_ms,
           )
           @worker_thread = nil
           @failure_exception = nil
