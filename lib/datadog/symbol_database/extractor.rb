@@ -193,7 +193,9 @@ module Datadog
 
         # Superclass (exclude Object and BasicObject)
         if klass.superclass && klass.superclass != Object && klass.superclass != BasicObject
+          # steep:ignore:start NoMethod
           specifics[:superclass] = klass.superclass.name
+          # steep:ignore:end
         end
 
         # Included modules (exclude common ones)

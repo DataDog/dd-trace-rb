@@ -11,9 +11,9 @@ module Datadog
 
       @end_line: Integer?
 
-      @language_specifics: Hash[Symbol, untyped]
+      @language_specifics: Hash[::Symbol, untyped]
 
-      @symbols: Array[Symbol]
+      @symbols: Array[Datadog::SymbolDatabase::Symbol]
 
       @scopes: Array[Scope]
 
@@ -23,8 +23,8 @@ module Datadog
         ?source_file: String?,
         ?start_line: Integer?,
         ?end_line: Integer?,
-        ?language_specifics: Hash[Symbol, untyped]?,
-        ?symbols: Array[Symbol]?,
+        ?language_specifics: Hash[::Symbol, untyped]?,
+        ?symbols: Array[Datadog::SymbolDatabase::Symbol]?,
         ?scopes: Array[Scope]?
       ) -> void
 
@@ -38,13 +38,13 @@ module Datadog
 
       attr_reader end_line: Integer?
 
-      attr_reader language_specifics: Hash[Symbol, untyped]
+      attr_reader language_specifics: Hash[::Symbol, untyped]
 
-      attr_reader symbols: Array[Symbol]
+      attr_reader symbols: Array[Datadog::SymbolDatabase::Symbol]
 
       attr_reader scopes: Array[Scope]
 
-      def to_h: () -> Hash[Symbol, untyped]
+      def to_h: () -> Hash[::Symbol, untyped]
 
       def to_json: (*untyped args) -> String
     end
