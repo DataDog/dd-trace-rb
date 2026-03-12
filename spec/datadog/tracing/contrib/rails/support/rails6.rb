@@ -180,7 +180,13 @@ RSpec.shared_context 'Rails 6 test application' do
   # We need to reset these so they don't carry over between example runs
   def reset_rails_configuration!
     # Reset autoloaded constants
-    ActiveSupport::Dependencies.clear if Rails.application
+    if Rails.application
+      begin
+        ActiveSupport::Dependencies.clear
+      rescue RuntimeError => e
+        raise unless e.message.include?('reloading is disabled because config.cache_classes is true')
+      end
+    end
 
     # TODO: Remove this side-effect on missing log entries
     Lograge.remove_existing_log_subscriptions if defined?(::Lograge)
