@@ -3,10 +3,33 @@
 require 'spec_helper'
 require 'datadog/symbol_database/component'
 
-# Load user code from non-spec path
-require '/tmp/user_test_app'
-
 RSpec.describe 'Symbol Database Minimal' do
+  # Create test class in temp directory (not /spec to pass user_code_path? filter)
+  before(:all) do
+    @test_app_dir = Dir.mktmpdir('symbol_db_test_app')
+    @test_app_file = File.join(@test_app_dir, 'user_test_app.rb')
+    File.write(@test_app_file, <<~RUBY)
+      module UserTestApp
+        class UserClass
+          CONSTANT = 42
+
+          def user_method(arg1, arg2)
+            arg1 + arg2
+          end
+
+          def self.class_method
+            'result'
+          end
+        end
+      end
+    RUBY
+    require @test_app_file
+  end
+
+  after(:all) do
+    FileUtils.remove_entry(@test_app_dir) if @test_app_dir && File.exist?(@test_app_dir)
+  end
+
   it 'manually tests upload flow' do
     uploaded_scopes = []
 
