@@ -25,6 +25,15 @@ module Datadog
     #
     # @api private
     class Extractor
+      # Common Ruby core modules to exclude from included_modules extraction.
+      # These are ubiquitous mix-ins that don't provide meaningful context about the class structure.
+      # Kernel: Mixed into Object, appears in nearly all classes
+      # PP: Pretty-printing module, loaded by many tools
+      # JSON: JSON serialization module, loaded by many tools
+      # Enumerable: Core iteration protocol, extremely common
+      # Comparable: Core comparison protocol, extremely common
+      EXCLUDED_COMMON_MODULES = ['Kernel', 'PP::', 'JSON::', 'Enumerable', 'Comparable'].freeze
+
       # Extract symbols from a module or class.
       # Returns nil if module should be skipped (anonymous, gem code, stdlib).
       # @param mod [Module, Class] The module or class to extract from
@@ -110,6 +119,9 @@ module Datadog
 
         nil
       rescue
+        # Rescue handles: NameError (anonymous module/class), NoMethodError (missing methods),
+        # SecurityError (restricted access), or other runtime errors during introspection.
+        # Returning nil causes source_file to be nil, which is acceptable - backend handles scopes without file info.
         nil
       end
 
@@ -200,11 +212,14 @@ module Datadog
 
         # Included modules (exclude common ones)
         included = klass.included_modules.map(&:name).reject do |name|
-          name.nil? || name.start_with?('Kernel', 'PP::', 'JSON::', 'Enumerable', 'Comparable')
+          name.nil? || EXCLUDED_COMMON_MODULES.any? { |prefix| name.start_with?(prefix) }
         end
         specifics[:included_modules] = included unless included.empty?
 
         # Prepended modules
+        # Take all ancestors before the class itself (prepending inserts modules before the class in ancestor chain).
+        # This code path is taken when a class has prepended modules (e.g., class Foo; prepend Bar; end).
+        # Test coverage: spec/datadog/symbol_database/extractor_spec.rb tests prepend behavior.
         prepended = klass.ancestors.take_while { |a| a != klass }.map(&:name).compact
         specifics[:prepended_modules] = prepended unless prepended.empty?
 
@@ -255,7 +270,12 @@ module Datadog
             type: const_value.class.name
           )
         rescue
-          # Skip constants that can't be accessed
+          # Skip constants that can't be accessed due to:
+          # - NameError: constant removed or not yet defined (race condition during loading)
+          # - LoadError: constant triggers autoload that fails
+          # - NoMethodError: constant value doesn't respond to expected methods
+          # - SecurityError: restricted access in safe mode
+          # - Circular dependency errors during const_get
         end
 
         symbols
@@ -408,6 +428,10 @@ module Datadog
       # @param method [UnboundMethod] The method
       # @return [Array<Symbol>] Parameter symbols
       def self.extract_method_parameters(method)
+        # Method name extraction can fail for exotic methods (e.g., dynamically defined via define_method
+        # with unusual names, or methods on singleton classes with overridden #name).
+        # Even without a name, we still extract parameter information - it's valuable for analysis.
+        # The 'unknown' fallback is only used for debug logging, not in the Symbol payload.
         method_name = begin
           method.name.to_s
         rescue
