@@ -9,14 +9,14 @@ module Datadog
 
       @type: String?
 
-      @language_specifics: Hash[Symbol, untyped]?
+      @language_specifics: Hash[::Symbol, untyped]?
 
       def initialize: (
         symbol_type: String,
         name: String,
         line: Integer,
         ?type: String?,
-        ?language_specifics: Hash[Symbol, untyped]?
+        ?language_specifics: Hash[::Symbol, untyped]?
       ) -> void
 
       attr_reader symbol_type: String
@@ -27,9 +27,9 @@ module Datadog
 
       attr_reader type: String?
 
-      attr_reader language_specifics: Hash[Symbol, untyped]?
+      attr_reader language_specifics: Hash[::Symbol, untyped]?
 
-      def to_h: () -> Hash[Symbol, untyped]
+      def to_h: () -> Hash[::Symbol, untyped]
 
       def to_json: (*untyped args) -> String
     end
