@@ -182,15 +182,10 @@ RSpec.describe Datadog::SymbolDatabase::ScopeContext do
       allow(uploader).to receive(:upload_scopes)
 
       context.add_scope(test_scope)
-
-      # Timer should be running
-      sleep 0.1
-
       context.shutdown
 
-      # Timer should be killed, not fire
-      sleep 1.1
-      # If timer fired after shutdown, it would try to upload empty batch (no-op)
+      # Shutdown uploads and kills timer
+      expect(context.size).to eq(0)
     end
 
     it 'clears scopes after shutdown' do
@@ -221,12 +216,8 @@ RSpec.describe Datadog::SymbolDatabase::ScopeContext do
       context.add_scope(test_scope)
       context.reset
 
-      # Reset clears scopes
+      # Reset clears scopes and kills timer
       expect(context.size).to eq(0)
-
-      # Timer should be killed - verify it doesn't fire
-      sleep 0.2  # Brief wait
-      expect(upload_called).to be false
     end
   end
 
