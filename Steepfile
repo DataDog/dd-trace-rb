@@ -321,7 +321,6 @@ target :datadog do
   ignore 'lib/datadog/tracing/contrib/hanami/patcher.rb'
   ignore 'lib/datadog/tracing/contrib/hanami/plugin.rb'
   ignore 'lib/datadog/tracing/contrib/hanami/renderer_policy_tracing.rb'
-  ignore 'lib/datadog/tracing/contrib/hanami/router_tracing.rb'
   ignore 'lib/datadog/tracing/contrib/http.rb'
   ignore 'lib/datadog/tracing/contrib/http/circuit_breaker.rb'
   ignore 'lib/datadog/tracing/contrib/http/configuration/settings.rb'
