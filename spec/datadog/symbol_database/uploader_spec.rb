@@ -251,10 +251,10 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       expect(backoff3).to be > backoff2
     end
 
-    it 'caps at MAX_BACKOFF' do
+    it 'caps at MAX_BACKOFF_INTERVAL' do
       backoff = uploader.send(:calculate_backoff, 20)
 
-      expect(backoff).to be <= described_class::MAX_BACKOFF
+      expect(backoff).to be <= described_class::MAX_BACKOFF_INTERVAL
     end
 
     it 'adds jitter' do
