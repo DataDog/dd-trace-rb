@@ -17,9 +17,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
   end
 
   let(:logger) do
-    instance_double(Logger).tap do |l|
-      allow(l).to receive(:debug)
-    end
+    instance_double(Logger, debug: nil)
   end
 
   let(:tags) { [] }
