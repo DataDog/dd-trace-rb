@@ -30,8 +30,8 @@ module Datadog
     class Uploader
       MAX_PAYLOAD_SIZE = 50 * 1024 * 1024  # 50MB
       MAX_RETRIES = 10
-      BASE_BACKOFF = 0.1  # 100ms
-      MAX_BACKOFF = 30.0  # 30 seconds
+      BASE_BACKOFF_INTERVAL = 0.1  # 100ms
+      MAX_BACKOFF_INTERVAL = 30.0  # 30 seconds
 
       # Initialize uploader.
       # @param config [Configuration] Tracer configuration (for service, env, version metadata)
@@ -148,8 +148,8 @@ module Datadog
       # @param retry_count [Integer] Current retry attempt number
       # @return [Float] Backoff duration in seconds
       def calculate_backoff(retry_count)
-        backoff = BASE_BACKOFF * (2**(retry_count - 1))
-        backoff = [backoff, MAX_BACKOFF].min
+        backoff = BASE_BACKOFF_INTERVAL * (2**(retry_count - 1))
+        backoff = [backoff, MAX_BACKOFF_INTERVAL].min
         backoff * (0.5 + rand * 0.5)  # Add jitter
       end
 
@@ -220,9 +220,14 @@ module Datadog
           true
         when 429
           @telemetry&.count('symbol_database.upload_error', 1, tags: ['error:rate_limited'])
+          # Raise to trigger retry logic in upload_with_retry (line 130-144).
+          # This follows the same pattern as Core::Transport - retryable errors raise,
+          # non-retryable errors return false. Agent rate limiting is transient and retryable.
           raise "Rate limited"
         when 500..599
           @telemetry&.count('symbol_database.upload_error', 1, tags: ['error:server_error'])
+          # Raise to trigger retry logic in upload_with_retry (line 130-144).
+          # Server errors (500-599) are transient and retryable with exponential backoff.
           raise "Server error: #{response.code}"
         else
           @telemetry&.count('symbol_database.upload_error', 1, tags: ['error:client_error'])
