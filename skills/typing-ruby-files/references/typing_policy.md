@@ -6,10 +6,11 @@
 2. Shared type aliases
 3. Scope gates
 4. Mandatory checks
-5. Pull request conventions
-6. Transient-gap comment rules
-7. Compromise reporting schema
-8. Report completeness checklist
+5. Steepfile un-ignoring
+6. Pull request conventions
+7. Transient-gap comment rules
+8. Compromise reporting schema
+9. Report completeness checklist
 
 ## Target prioritization
 
@@ -89,6 +90,33 @@ When introducing a shared alias:
    `2>&1 | tee /tmp/full_rspec.log | grep -E 'Pending:|Failures:|Finished' -A 99`
 5. Do not mark the work complete without report artifacts that include:
    `scope.json`, `untyped.before.json`, `untyped.after.json`, `steep.json`, and final report files.
+
+## Steepfile un-ignoring
+
+After completing typing work, check whether any files ignored in the Steepfile can now pass `steep check` and be un-ignored. Reducing the ignore list is a high-value outcome of typing work — it means more code is covered by continuous type checking.
+
+### Workflow
+
+1. Identify ignored files related to the current work:
+   `grep 'ignore.*<pattern>' Steepfile`
+2. Temporarily remove their ignore directives.
+3. Run `steep check` on each file individually to get per-file error counts.
+4. For files with 0 errors: remove the ignore directive permanently.
+5. For files with a small number of fixable errors (1-3): fix them if the fixes are trivial (e.g. local variable for type narrowing, adding an ivar declaration). Include the fixes in the same PR.
+6. For files with many errors or errors requiring significant work: leave them ignored. Optionally note the error count in a comment for future reference.
+7. After removing any ignore directives, run the full `steep check` to confirm no regressions.
+
+### What counts as a trivial fix
+
+- Assigning a repeated method call to a local variable so Steep can narrow the type through a guard (e.g. `&&`, `if`).
+- Adding a missing instance variable declaration (`@foo: Type`) to the RBS file.
+- Adding an inline Steep type assertion (`#:`) to help Steep through control flow it cannot prove.
+
+### What does not count
+
+- Adding new RBS stubs for external gems.
+- Rewriting Ruby code to satisfy the type checker.
+- Suppressing errors with `untyped` just to pass.
 
 ## Pull request conventions
 
