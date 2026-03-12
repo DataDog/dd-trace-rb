@@ -550,6 +550,11 @@ target :datadog do
   # References `RubyVM::YJIT`, which does not have type information.
   ignore 'lib/datadog/core/environment/yjit.rb'
 
+  # Symbol database - type signatures need refinement
+  ignore 'lib/datadog/symbol_database/transport.rb'
+  ignore 'lib/datadog/symbol_database/transport/http.rb'
+  ignore 'lib/datadog/symbol_database/transport/http/endpoint.rb'
+
   library 'bundler'
   library 'pathname'
   library 'cgi'
