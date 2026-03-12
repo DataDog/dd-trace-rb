@@ -413,31 +413,22 @@ module Datadog
         end
         params = method.parameters
 
-        # DIAGNOSTIC: stderr logging for CI debugging
-        warn "[SymDB] extract_method_parameters: method=#{method_name} params=#{params.inspect}"
-
         if params.nil?
-          warn "[SymDB] ERROR: params is NIL for #{method_name}"
           Datadog.logger.debug("SymDB: method.parameters returned nil for #{method_name}")
           return []
         end
 
         if params.empty?
-          warn "[SymDB] INFO: params is EMPTY for #{method_name}"
           Datadog.logger.debug("SymDB: method.parameters returned empty for #{method_name}")
           return []
         end
 
         result = Core::Utils::Array.filter_map(params) do |param_type, param_name|
           # Skip block parameters for MVP
-          if param_type == :block
-            warn "[SymDB] INFO: Skipping block param for #{method_name}"
-            next
-          end
+          next if param_type == :block
 
           # Skip if param_name is nil (defensive)
           if param_name.nil?
-            warn "[SymDB] ERROR: param_name is NIL (type=#{param_type}) for #{method_name}"
             Datadog.logger.debug("SymDB: param_name is nil for #{method_name}, param_type: #{param_type}")
             next
           end
@@ -445,14 +436,11 @@ module Datadog
           Symbol.new(
             symbol_type: 'ARG',
             name: param_name.to_s,
-            line: SymbolDatabase::UNKNOWN_MIN_LINE  # Parameters available in entire method
+            line: SymbolDatabase::UNKNOWN_MIN_LINE,  # Parameters available in entire method
           )
         end
 
-        warn "[SymDB] RESULT: Extracted #{result.size} symbols from #{params.size} params for #{method_name}"
-
         if result.empty? && !params.empty?
-          warn "[SymDB] WARNING: All params filtered! params=#{params.inspect} for #{method_name}"
           Datadog.logger.debug("SymDB: Extracted 0 parameters from #{method_name} (params: #{params.inspect})")
         end
 
@@ -473,30 +461,22 @@ module Datadog
         end
         params = method.parameters
 
-        # DIAGNOSTIC: stderr logging for CI debugging
-        warn "[SymDB] extract_singleton_method_parameters: method=#{method_name} params=#{params.inspect}"
-
         if params.nil?
-          warn "[SymDB] ERROR: params is NIL for singleton #{method_name}"
           Datadog.logger.debug("SymDB: method.parameters returned nil for singleton #{method_name}")
           return []
         end
 
         if params.empty?
-          warn "[SymDB] INFO: params is EMPTY for singleton #{method_name}"
           Datadog.logger.debug("SymDB: method.parameters returned empty for singleton #{method_name}")
           return []
         end
 
         result = Core::Utils::Array.filter_map(params) do |param_type, param_name|
-          if param_type == :block
-            warn "[SymDB] INFO: Skipping block param for singleton #{method_name}"
-            next
-          end
+          # Skip block parameters for MVP
+          next if param_type == :block
 
           # Skip if param_name is nil (defensive)
           if param_name.nil?
-            warn "[SymDB] ERROR: param_name is NIL (type=#{param_type}) for singleton #{method_name}"
             Datadog.logger.debug("SymDB: param_name is nil for singleton #{method_name}, param_type: #{param_type}")
             next
           end
@@ -504,20 +484,16 @@ module Datadog
           Symbol.new(
             symbol_type: 'ARG',
             name: param_name.to_s,
-            line: SymbolDatabase::UNKNOWN_MIN_LINE
+            line: SymbolDatabase::UNKNOWN_MIN_LINE,
           )
         end
 
-        warn "[SymDB] RESULT: Extracted #{result.size} symbols from #{params.size} params for singleton #{method_name}"
-
         if result.empty? && !params.empty?
-          warn "[SymDB] WARNING: All params filtered! params=#{params.inspect} for singleton #{method_name}"
           Datadog.logger.debug("SymDB: Extracted 0 parameters from singleton #{method_name} (params: #{params.inspect})")
         end
 
         result
       rescue => e
-        warn "[SymDB] EXCEPTION in extract_singleton_method_parameters: #{e.class}: #{e}"
         Datadog.logger.debug("SymDB: Failed to extract singleton method parameters from #{method_name}: #{e.class}: #{e}\n#{e.backtrace.first(5).join("\n")}")
         []
       end
