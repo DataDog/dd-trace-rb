@@ -123,7 +123,7 @@ module Datadog
         return false if @last_upload_time.nil?
 
         # Don't upload if last upload was within cooldown period
-        Datadog::Core::Utils::Time.now - @last_upload_time < UPLOAD_COOLDOWN_INTERVAL
+        (Datadog::Core::Utils::Time.now - @last_upload_time) < UPLOAD_COOLDOWN_INTERVAL
       end
 
       # Extract symbols from all loaded modules and upload.

@@ -66,10 +66,9 @@ module Datadog
       end
 
       # Serialize scope to JSON.
-      # @param args [Array] Optional arguments for JSON.generate
       # @return [String] JSON string representation
-      def to_json(*args)
-        JSON.generate(to_h, *args)
+      def to_json(*)
+        JSON.generate(to_h)
       end
     end
   end

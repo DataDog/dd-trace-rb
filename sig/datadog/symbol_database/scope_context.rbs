@@ -23,7 +23,7 @@ module Datadog
 
       @file_count: Integer
 
-      @uploaded_modules: Set[String]
+      @uploaded_modules: Set[String?]
 
       def initialize: (Uploader uploader, ?telemetry: untyped, ?on_upload: Proc?, ?timer_enabled: bool) -> void
 
