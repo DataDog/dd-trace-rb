@@ -641,14 +641,10 @@ module Datadog
 
         Core::Utils::Array.filter_map(params) do |param_type, param_name|
           # Skip block parameters for MVP
-          if param_type == :block
-            warn "[SymDB] INFO: Skipping block param for #{method_name}"
-            next
-          end
+          next if param_type == :block
 
           # Skip if param_name is nil (defensive)
           if param_name.nil?
-            warn "[SymDB] ERROR: param_name is NIL (type=#{param_type}) for #{method_name}"
             Datadog.logger.debug("SymDB: param_name is nil for #{method_name}, param_type: #{param_type}")
             next
           end
@@ -664,10 +660,7 @@ module Datadog
           )
         end
 
-        warn "[SymDB] RESULT: Extracted #{result.size} symbols from #{params.size} params for singleton #{method_name}"
-
         if result.empty? && !params.empty?
-          warn "[SymDB] WARNING: All params filtered! params=#{params.inspect} for singleton #{method_name}"
           Datadog.logger.debug("SymDB: Extracted 0 parameters from singleton #{method_name} (params: #{params.inspect})")
         end
 
