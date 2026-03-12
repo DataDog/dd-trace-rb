@@ -1,5 +1,7 @@
 module Datadog
   module SymbolDatabase
+    EXCLUDED_COMMON_MODULES: Array[String]
+
     class Extractor
       def self.extract: (Module mod) -> Scope?
 

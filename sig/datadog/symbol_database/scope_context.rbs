@@ -35,6 +35,8 @@ module Datadog
 
       def reset: () -> void
 
+      def perform_upload: (Array[Scope] scopes) -> void
+
       def scopes_pending?: () -> bool
 
       def size: () -> Integer
