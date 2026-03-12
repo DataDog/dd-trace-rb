@@ -50,7 +50,7 @@ module Datadog
               nil
             end
 
-            return unless component
+            return unless component # steep:ignore ReturnTypeMismatch
 
             changes.each do |change|
               process_change(component, change)
