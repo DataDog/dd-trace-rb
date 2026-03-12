@@ -210,13 +210,11 @@ module Datadog
         return unless @timer_enabled
 
         @timer = Thread.new do
-          begin
-            sleep INACTIVITY_TIMEOUT
-            # Timer fires - need to upload
-            flush  # flush will acquire mutex (safe - different thread)
-          rescue => e
-            # Timer interrupted or error - ignore
-          end
+          sleep INACTIVITY_TIMEOUT
+          # Timer fires - need to upload
+          flush  # flush will acquire mutex (safe - different thread)
+        rescue
+          # Timer interrupted or error - ignore
         end
       end
 
