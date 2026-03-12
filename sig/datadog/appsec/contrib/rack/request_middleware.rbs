@@ -3,11 +3,13 @@ module Datadog
     module Contrib
       module Rack
         class RequestMiddleware
-          def initialize: (untyped app, ?::Hash[untyped, untyped] opt) -> untyped
+          @app: ::Rack::app
+
+          def initialize: (::Rack::app app, ?::Hash[::Symbol, untyped] opt) -> void
 
           attr_reader logger: untyped
 
-          def call: (untyped env) -> untyped
+          def call: (::Rack::env env) -> ::Rack::response
         end
       end
     end

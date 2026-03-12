@@ -3,8 +3,10 @@ module Datadog
     module Contrib
       module Sinatra
         class TracerMiddleware
-          def initialize: (untyped app, ?::Hash[untyped, untyped] opt) -> void
-          def call: (untyped env) -> untyped
+          @app: ::Rack::app
+
+          def initialize: (::Rack::app app, ?::Hash[::Symbol, untyped] opt) -> void
+          def call: (::Rack::env env) -> ::Rack::response
 
           private
 

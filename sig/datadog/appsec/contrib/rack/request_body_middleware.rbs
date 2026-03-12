@@ -3,11 +3,13 @@ module Datadog
     module Contrib
       module Rack
         class RequestBodyMiddleware
-          @app: untyped
+          @app: ::Rack::app
 
-          def initialize: (untyped app, ?::Hash[untyped, untyped] opt) -> void
+          def initialize: (::Rack::app app, ?::Hash[::Symbol, untyped] opt) -> void
 
-          def call: (untyped env) -> untyped
+          # Returns Rack::response in practice, but Steep cannot prove it
+          # through the catch/block control flow (http_response may appear nil).
+          def call: (::Rack::env env) -> ::Rack::response?
         end
       end
     end

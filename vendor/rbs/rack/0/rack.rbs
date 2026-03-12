@@ -12,9 +12,9 @@ module Rack
   end
 
   class Request
-    def initialize: (Hash[String, untyped] env) -> void
+    def initialize: (Rack::env env) -> void
 
-    def env: () -> Hash[String, untyped]
+    def env: () -> Rack::env
 
     def query_string: () -> String
 
