@@ -4,6 +4,7 @@ module Datadog
       module Hanami
         class ActionTracer
           @app: ::Rack::app
+          @action: untyped
 
           def initialize: (::Rack::app app, untyped action) -> void
 
