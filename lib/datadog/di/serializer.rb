@@ -210,25 +210,11 @@ module Datadog
               value.to_s
             end
 
-            # Handle binary strings and invalid UTF-8 by escaping to a JSON-safe format.
-            # Binary data (ASCII-8BIT encoding) and strings with invalid encoding are
-            # converted to an escaped string representation in the format: b'...'
-            # with special handling for:
-            # - Printable ASCII: preserved as-is
-            # - Special characters: \n, \t, \r, \\, \'
-            # - Non-printable bytes: \xHH hex escapes
+            # Handle binary strings and invalid UTF-8 by escaping to JSON-safe format.
+            # See escape_binary_string for details on the escaping format.
             #
-            # Example: "\x80\xFF".b -> "b'\\x80\\xff'"
-            #
-            # This produces the same serialized contents as dd-trace-py.
-            #
-            # For binary data, the max_capture_string_length limit is applied to the
-            # original binary data (in bytes) before escaping. This ensures correct
-            # truncation behavior - truncating after escaping would produce incorrect
-            # results (e.g., cutting mid-escape-sequence). The size field reports
-            # the original binary data length in bytes.
-            #
-            # For regular strings, the limit is applied to the string length in characters.
+            # Truncate binary data BEFORE escaping to avoid cutting mid-escape-sequence.
+            # For regular strings, the limit is applied to string length in characters.
             max = settings.dynamic_instrumentation.max_capture_string_length
 
             if value.encoding == Encoding::BINARY || !value.valid_encoding?
