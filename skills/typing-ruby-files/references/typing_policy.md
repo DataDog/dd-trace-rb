@@ -8,10 +8,11 @@
 4. Mandatory checks
 5. Steepfile un-ignoring
 6. Progress tracking
-7. Pull request conventions
-8. Transient-gap comment rules
-9. Compromise reporting schema
-10. Report completeness checklist
+7. Upstream improvements
+8. Pull request conventions
+9. Transient-gap comment rules
+10. Compromise reporting schema
+11. Report completeness checklist
 
 ## Target prioritization
 
@@ -192,6 +193,12 @@ The tracking file should list:
 - Known blockers or files deferred with reasons.
 
 Update the tracking file at the end of each typing session or PR.
+
+## Upstream improvements
+
+When a typing gap could be resolved by contributing to an upstream RBS definition (Ruby stdlib via `ruby/rbs`, or a gem's RBS repo), record it in `skills/typing-ruby-files/references/upstream_improvements.md` instead of accepting a local workaround indefinitely.
+
+Each entry should include: the upstream file and repo, the problem, the suggested RBS change, and a reference to our local workaround.
 
 ## Report completeness checklist
 
