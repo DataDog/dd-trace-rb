@@ -3,9 +3,11 @@ module Datadog
     module Contrib
       module Hanami
         class ActionTracer
-          def initialize: (untyped app, untyped action) -> void
+          @app: ::Rack::app
 
-          def call: (untyped env) -> untyped
+          def initialize: (::Rack::app app, untyped action) -> void
+
+          def call: (::Rack::env env) -> ::Rack::response
 
           private
 

@@ -3,9 +3,11 @@ module Datadog
     module Contrib
       module Rails
         class ExceptionMiddleware
-          def initialize: (untyped app) -> void
+          @app: ::Rack::app
 
-          def call: (untyped env) -> untyped
+          def initialize: (::Rack::app app) -> void
+
+          def call: (::Rack::env env) -> ::Rack::response
         end
       end
     end
