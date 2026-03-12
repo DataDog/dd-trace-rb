@@ -20,17 +20,23 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
     it { expect(worker).to be_a_kind_of(Datadog::Core::Workers::Polling) }
 
     context 'by default' do
-      subject(:worker) { described_class.new(logger: logger, telemetry: telemetry) }
+      subject(:worker) do
+        described_class.new(
+          logger: logger,
+          telemetry: telemetry,
+          propagate_process_tags_enabled: true
+        )
+      end
 
       it { expect(worker.enabled?).to be false }
       it { expect(worker.loop_base_interval).to eq 10 }
       it { expect(worker.loop_back_off_ratio).to eq 1.2 }
       it { expect(worker.loop_back_off_max).to eq 30 }
-      it 'builds runtime metrics from configuration for process tags propagation' do
+      it 'builds runtime metrics with process tags propagation setting' do
         expect(Datadog::Core::Runtime::Metrics).to receive(:new).with(
           logger: logger,
           telemetry: telemetry,
-          experimental_propagate_process_tags_enabled: true,
+          propagate_process_tags_enabled: true,
         ).and_call_original
 
         worker

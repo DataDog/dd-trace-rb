@@ -25,10 +25,9 @@ module Datadog
             Core::Runtime::Metrics.new(
               logger: options[:logger],
               telemetry: telemetry,
-              experimental_propagate_process_tags_enabled: options.fetch(
-                :experimental_propagate_process_tags_enabled,
-                Datadog.configuration.experimental_propagate_process_tags_enabled
-              )
+              propagate_process_tags_enabled: options.fetch(:propagate_process_tags_enabled) do
+                options.fetch(:experimental_propagate_process_tags_enabled)
+              end
             )
           end
 

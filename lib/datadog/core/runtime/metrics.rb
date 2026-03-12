@@ -26,7 +26,9 @@ module Datadog
           # Initialize the collection of runtime-id
           @runtime_id_enabled = options.fetch(:experimental_runtime_id_enabled, false)
 
-          @process_tags_enabled = options.fetch(:experimental_propagate_process_tags_enabled)
+          @process_tags_enabled = options.fetch(:propagate_process_tags_enabled) do
+            options.fetch(:experimental_propagate_process_tags_enabled)
+          end
         end
 
         # Associate service with runtime metrics
