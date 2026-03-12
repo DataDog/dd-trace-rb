@@ -4,6 +4,7 @@ module Datadog
       module Hanami
         class ActionTracer
           @app: ::Rack::app
+          # TODO: Replace with Hanami::Action once we add a Hanami RBS stub.
           @action: untyped
 
           def initialize: (::Rack::app app, untyped action) -> void
