@@ -90,7 +90,7 @@ module Datadog
 
       # Serialize scope to JSON.
       # @return [String] JSON string representation
-      def to_json(*)
+      def to_json(_state = nil)
         JSON.generate(to_h)
       end
     end
