@@ -87,7 +87,7 @@ end
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
 build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
-build_coverage_matrix('faraday')
+build_coverage_matrix('faraday', meta: { 'faraday-follow_redirects' => nil })
 build_coverage_matrix('excon')
 build_coverage_matrix('rest-client')
 build_coverage_matrix('mongo', min: '2.20.0')
@@ -127,7 +127,7 @@ appraise 'activesupport' do
   gem 'actionpack'
   gem 'actionview'
   gem 'active_model_serializers', '>= 0.10.0'
-  gem 'grape', '< 2.3'
+  gem 'grape'
   gem 'lograge'
   gem 'racecar', '>= 0.3.5'
   gem 'ruby-kafka', '>= 0.7.10'

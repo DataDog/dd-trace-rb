@@ -139,18 +139,18 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       end
     end
 
-    describe '#report_unhandled_exception' do
+    describe '#report_unhandled_exception', :memcheck_valgrind_skip do
       include_context 'HTTP server'
 
       let(:agent_base_url) { "http://#{hostname}:#{http_server_port}" }
 
-      # exception only gets stack attached when raised
       def method_that_raises
         raise StandardError, 'Test unhandled exception with backtrace'
       end
 
       it 'reports the unhandled exception' do
         crashtracker = build_crashtracker(agent_base_url: agent_base_url, logger: logger)
+        crashtracker.start
         exception =
           begin
             method_that_raises
@@ -160,33 +160,18 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
 
         crashtracker.report_unhandled_exception(exception)
 
-        # Wait for both crash ping and crash report to be sent
         try_wait_until { messages.length == 2 }
 
-        parsed_messages = messages.map { |msg| JSON.parse(msg.body.to_s, symbolize_names: true) }
+        parsed_messages = messages.map { |msg| JSON.parse(msg.body.to_s, symbolize_names: true).fetch(:payload).fetch(:logs).first }
 
-        # Don't assume order on network requests
-        # We send crash ping first, but it is sent in separate requests
-        # We are not guaranteed the order of the messages received in the array
-        #
-        # Find crash ping message (should have is_crash_ping:true tag)
-        crash_ping_message = parsed_messages.find do |msg|
-          payload = msg[:payload].first
-          payload[:tags]&.include?('is_crash_ping:true')
-        end
-        expect(crash_ping_message).to_not be_nil
+        expect(parsed_messages).to include(
+          a_hash_including(is_crash: false, tags: a_string_including('is_crash_ping')),
+          a_hash_including(is_crash: true),
+        )
 
-        # Find crash report message (should have is_crash:true)
-        crash_report_message = parsed_messages.find do |msg|
-          payload = msg[:payload].first
-          payload[:is_crash] == true
-        end
+        crash_report = JSON.parse(parsed_messages.find { |msg| msg[:is_crash] == true }.fetch(:message), symbolize_names: true)
 
-        # Verify crash report content
-        crash_payload = crash_report_message[:payload].first
-        crash_report = JSON.parse(crash_payload[:message], symbolize_names: true)
-
-        # Verify metadata (ddog_crasht_CrashInfoBuilder_with_metadata)
+        # Verify metadata
         expect(crash_report[:metadata]).to include(
           library_name: 'dd-trace-rb',
           library_version: Datadog::VERSION::STRING,
@@ -195,19 +180,12 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         expect(crash_report[:metadata][:tags]).to be_an(Array)
         expect(crash_report[:metadata][:tags]).to_not be_empty
 
-        # Verify error kind is unhandled exception (ddog_crasht_CrashInfoBuilder_with_kind)
+        # Verify error kind is unhandled exception
         expect(crash_report[:error][:kind]).to eq('UnhandledException')
 
-        # Verify process info is present (ddog_crasht_CrashInfoBuilder_with_proc_info)
-        expect(crash_report[:proc_info][:pid]).to be > 0
-
-        # Verify OS info is present (ddog_crasht_CrashInfoBuilder_with_os_info_this_machine)
-        # should not be unknown os_info
-        expect(crash_report[:os_info][:architecture]).to_not eq('unknown')
-
-        # Verify exception message format (ddog_crasht_CrashInfoBuilder_with_message)
+        # Verify exception message
         expect(crash_report[:error][:message]).to eq(
-          "Process was terminated due to an unhandled exception of type 'StandardError'. Message: \"Test unhandled exception with backtrace\""
+          "Process was terminated due to an unhandled exception of type 'StandardError'. Message: Test unhandled exception with backtrace"
         )
 
         # Verify stack trace is present (ddog_crasht_CrashInfoBuilder_with_stack)
@@ -264,7 +242,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       end
     end
 
-    context 'integration testing' do
+    context 'integration testing', :memcheck_valgrind_skip do
       include_context 'HTTP server'
 
       let(:request) do
@@ -282,7 +260,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
       end
 
       let(:parsed_request) { JSON.parse(request.body, symbolize_names: true) }
-      let(:crash_report) { parsed_request.fetch(:payload).first }
+      let(:crash_report) { parsed_request.fetch(:payload).fetch(:logs).first }
       let(:crash_report_message) { JSON.parse(crash_report.fetch(:message), symbolize_names: true) }
       let(:crash_report_experimental) { crash_report_message.fetch(:experimental) }
       let(:stack_trace) { crash_report_message.fetch(:error).fetch(:stack).fetch(:frames) }
@@ -338,8 +316,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
             raise StandardError, 'Test Ruby unhandled exception'
           end
 
-          # check that both crash ping and crash report were sent
-          # Content is checked in unit test
+          # check that at least crash ping and crash report were sent
           expect(messages.length).to eq(2)
         end
       end

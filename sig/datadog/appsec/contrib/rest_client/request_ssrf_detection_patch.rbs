@@ -3,9 +3,13 @@ module Datadog
     module Contrib
       module RestClient
         module RequestSSRFDetectionPatch : ::RestClient::Request
+          REDIRECT_STATUS_CODES: ::Range[::Integer]
+
           type headers = ::Hash[::String, ::String]
 
           def execute: () ?{ (*untyped) -> untyped } -> ::RestClient::Response
+
+          def process_response: (::RestClient::Response response, sample_body: bool) -> void
 
           private
 

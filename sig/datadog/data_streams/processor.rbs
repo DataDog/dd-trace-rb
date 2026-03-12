@@ -27,6 +27,8 @@ module Datadog
 
         @agent_settings: Core::Configuration::AgentSettings
 
+        @agent_info: Core::Environment::AgentInfo
+
         @latest_consumer_offsets: ::Hash[::String, ::Integer]
 
         @consumer_lag_events: ::Array[consumer_lag_event]
@@ -34,7 +36,7 @@ module Datadog
         include Core::Workers::Polling
         include Core::Workers::IntervalLoop
 
-        def initialize: (interval: ::Float, logger: Core::Logger, settings: Core::Configuration::Settings, agent_settings: Core::Configuration::AgentSettings, ?buffer_size: ::Integer) -> void
+        def initialize: (interval: ::Float, logger: Core::Logger, settings: Core::Configuration::Settings, agent_settings: Core::Configuration::AgentSettings, agent_info: Core::Environment::AgentInfo, ?buffer_size: ::Integer) -> void
         def track_kafka_produce: (::String topic, ::Integer partition, ::Integer offset, ::Time now) -> true
         def track_kafka_consume: (::String topic, ::Integer partition, ::Integer offset, ::Time now) -> true
         def set_produce_checkpoint: (type: ::String, destination: ::String, ?manual_checkpoint: bool, ?tags: ::Hash[::String, ::String]) ?{ (::String, ::String) -> void } -> ::String?
@@ -68,7 +70,7 @@ module Datadog
         def record_checkpoint_stats: (hash: ::Integer, parent_hash: ::Integer, edge_latency_sec: ::Float, full_pathway_latency_sec: ::Float, payload_size: ::Integer, tags: ::Array[::String], timestamp_sec: ::Float) -> void
         def record_consumer_stats: (topic: ::String, partition: ::Integer, offset: ::Integer, timestamp: ::Time) -> void
         def aggregate_consumer_stats_by_partition: (::String topic, ::Integer partition, ::Integer offset, ::Time timestamp) -> void
-        def send_stats_to_agent: (::Hash[::String, untyped] payload) -> void
+        def send_stats_to_agent: (::Hash[::String, (::String | ::Array[::String])] payload) -> void
         def send_dsm_payload: (::String data, ::Hash[::String, ::String] headers) -> untyped
         def compress_payload?: (::String payload) -> bool
         def gzip_compress: (::String data) -> ::String

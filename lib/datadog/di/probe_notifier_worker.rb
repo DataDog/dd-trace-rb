@@ -179,7 +179,7 @@ module Datadog
       end
 
       def snapshot_transport
-        @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger)
+        @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger, telemetry: telemetry)
       end
 
       def do_send_snapshot(batch)
@@ -208,13 +208,23 @@ module Datadog
         # Signals the background thread to wake up (and do the sending)
         # if it has been more than 1 second since the last send of the same
         # event type.
-        define_method("add_#{event_type}") do |event|
+        define_method("add_#{event_type}") do |event, probe: nil|
           @lock.synchronize do
             queue = send("#{event_type}_queue")
             if queue.length > settings.dynamic_instrumentation.internal.snapshot_queue_capacity
-              logger.debug { "di: #{self.class.name}: dropping #{event_type} event because queue is full" }
+              if event_type == :status && probe
+                status = event.dig(:debugger, :diagnostics, :status)
+                logger.debug { "di: dropping status for #{probe.type} probe at #{probe.location} (#{probe.id}): #{status} because queue is full" }
+              else
+                logger.debug { "di: #{self.class.name}: dropping #{event_type} event because queue is full" }
+              end
             else
-              logger.trace { "di: #{self.class.name}: queueing #{event_type} event" }
+              if event_type == :status && probe
+                status = event.dig(:debugger, :diagnostics, :status)
+                logger.trace { "di: queueing status for #{probe.type} probe at #{probe.location} (#{probe.id}): #{status}" }
+              else
+                logger.trace { "di: #{self.class.name}: queueing #{event_type} event" }
+              end
               queue << event
             end
           end
@@ -263,9 +273,7 @@ module Datadog
             rescue => exc
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
               logger.debug { "di: failed to send #{event_name}: #{exc.class}: #{exc} (at #{exc.backtrace.first})" }
-              # Should we report this error to telemetry? Most likely failure
-              # to send is due to a network issue, and trying to send a
-              # telemetry message would also fail.
+              telemetry&.report(exc, description: "Error sending #{event_type}")
             end
           end
           batch.any?

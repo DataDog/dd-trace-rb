@@ -6,11 +6,9 @@ require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
 require 'datadog'
-require 'mongo' unless PlatformHelpers.jruby_100?
+require 'mongo'
 
-# TODO: JRuby 10.0 - Remove this skip after MongoDB adds support for JRuby 10.0: https://github.com/mongodb/mongo-ruby-driver#mongodb-ruby-driver
-# The tests fail on an error related to the bson_ruby gem's NativeService.
-RSpec.describe 'Mongo::Client instrumentation', skip: PlatformHelpers.jruby_100? do
+RSpec.describe 'Mongo::Client instrumentation' do
   let(:configuration_options) { {} }
   # Clear data between tests
   let(:drop_database?) { true }

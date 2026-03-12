@@ -61,6 +61,7 @@ module Datadog
             end
 
             ::ActiveRecord::ConnectionAdapters::SQLite3Adapter.prepend(instrumentation_module)
+            Patcher.instance_variable_set(:@patched, true)
           end
 
           def patch_mysql2_adapter
@@ -73,6 +74,7 @@ module Datadog
             end
 
             ::ActiveRecord::ConnectionAdapters::Mysql2Adapter.prepend(instrumentation_module)
+            Patcher.instance_variable_set(:@patched, true)
           end
 
           def patch_postgresql_adapter
@@ -93,6 +95,7 @@ module Datadog
             end
 
             ::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.prepend(instrumentation_module)
+            Patcher.instance_variable_set(:@patched, true)
           end
         end
       end
