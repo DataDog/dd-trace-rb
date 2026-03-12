@@ -17,10 +17,108 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
   end
 
   let(:logger) do
-    instance_double(Logger)
+    instance_double(Logger, debug: nil)
   end
 
   let(:tags) { [] }
+
+  context 'when snapshot contains escaped binary data' do
+    context 'with all 256 byte values' do
+      # Create a string containing all possible byte values (0x00-0xFF)
+      # This simulates capturing a binary buffer in dynamic instrumentation
+      let(:binary_string) do
+        (0..255).map { |i| i.chr(Encoding::BINARY) }.join.force_encoding(Encoding::BINARY)
+      end
+
+      # Simulate what the serializer produces after escaping binary data
+      let(:escaped_binary) do
+        result = +"b'"
+        binary_string.each_byte do |byte|
+          result << case byte
+          when 0x09 then '\\t'
+          when 0x0A then '\\n'
+          when 0x0D then '\\r'
+          when 0x27 then "\\'"
+          when 0x5C then '\\\\'
+          when 0x20..0x7E then byte.chr
+          else format('\\x%02x', byte)
+          end
+        end
+        result << "'"
+        result.force_encoding(Encoding::UTF_8)
+      end
+
+      let(:snapshot) do
+        {
+          'id' => 'test-snapshot',
+          'timestamp' => Time.now.to_i,
+          'captures' => {
+            'locals' => {
+              'binary_data' => escaped_binary
+            }
+          }
+        }
+      end
+
+      it 'has all 256 unique bytes in original' do
+        expect(binary_string.bytes.uniq.sort).to eq((0..255).to_a)
+        expect(binary_string.encoding).to eq(Encoding::BINARY)
+      end
+
+      it 'successfully serializes escaped binary through transport layer' do
+        # Escaped binary format is JSON-safe
+        expect {
+          transport.send_input([snapshot], tags)
+        }.not_to raise_error
+      end
+
+      it 'produces valid JSON' do
+        json_output = JSON.dump(snapshot)
+        expect(json_output).to be_a(String)
+        expect(json_output.encoding).to eq(Encoding::UTF_8)
+
+        # Can round-trip through JSON
+        parsed = JSON.parse(json_output)
+        expect(parsed['captures']['locals']['binary_data']).to eq(escaped_binary)
+      end
+    end
+
+    context 'with binary string that is invalid UTF-8' do
+      # Create a string with bytes that are invalid UTF-8 sequences
+      let(:binary_string) { "\x80\x81\x82\xFF\xFE".b }
+
+      # After escaping binary data
+      let(:escaped_binary) { "b'\\x80\\x81\\x82\\xff\\xfe'" }
+
+      let(:snapshot) do
+        {
+          'id' => 'test-snapshot',
+          'captures' => {
+            'locals' => {
+              'binary_data' => escaped_binary
+            }
+          }
+        }
+      end
+
+      before do
+        # Assert the original is indeed invalid UTF-8
+        utf8_attempt = binary_string.dup.force_encoding(Encoding::UTF_8)
+        expect(utf8_attempt.valid_encoding?).to be false
+      end
+
+      it 'successfully serializes escaped binary string' do
+        expect {
+          transport.send_input([snapshot], tags)
+        }.not_to raise_error
+      end
+
+      it 'escaped binary is valid UTF-8' do
+        expect(escaped_binary.encoding).to eq(Encoding::UTF_8)
+        expect(escaped_binary.valid_encoding?).to be true
+      end
+    end
+  end
 
   context 'when the combined size of snapshots serialized exceeds intake max' do
     before do
