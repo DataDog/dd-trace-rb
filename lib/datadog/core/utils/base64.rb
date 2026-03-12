@@ -14,10 +14,7 @@ module Datadog
         end
 
         def self.strict_decode64(str)
-          # The 'm0' format always returns a String, but String#unpack1's RBS
-          # signature is too broad (Integer | Float | String | nil) for Steep
-          # to verify this statically.
-          str.unpack1('m0') #: String
+          str.unpack1('m0') #: String # 'm0' format always returns a String
         end
       end
     end
