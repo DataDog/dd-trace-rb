@@ -11,7 +11,13 @@ module Datadog
 
       @config: untyped
 
-      def initialize: (untyped config) -> void
+      @agent_settings: untyped
+
+      @telemetry: untyped
+
+      @transport: untyped
+
+      def initialize: (untyped config, untyped agent_settings, ?telemetry: untyped) -> void
 
       def upload_scopes: (Array[Scope]? scopes) -> void
 
@@ -34,6 +40,8 @@ module Datadog
       def agent_url: () -> String
 
       def upload_timeout: () -> Integer
+
+      def build_multipart_form: (String compressed_data) -> String
 
       def handle_response: (Net::HTTPResponse response, Integer scope_count) -> bool
     end
