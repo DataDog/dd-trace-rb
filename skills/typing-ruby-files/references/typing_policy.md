@@ -7,10 +7,11 @@
 3. Scope gates
 4. Mandatory checks
 5. Steepfile un-ignoring
-6. Pull request conventions
-7. Transient-gap comment rules
-8. Compromise reporting schema
-9. Report completeness checklist
+6. Progress tracking
+7. Pull request conventions
+8. Transient-gap comment rules
+9. Compromise reporting schema
+10. Report completeness checklist
 
 ## Target prioritization
 
@@ -179,6 +180,18 @@ If no direct steep diagnostic exists, set:
 ```
 
 Also include complete post-edit file:line inventory of all remaining `untyped` in scope.
+
+## Progress tracking
+
+Maintain a tracking file at `skills/typing-ruby-files/references/typing_progress.md` that records every file typed and every Steepfile un-ignore. This provides continuity across sessions and prevents duplicate work.
+
+The tracking file should list:
+- Each PR merged or open, with its branch name and number.
+- The files typed in each PR and what changed (e.g. "replaced untyped with Rack types").
+- Steepfile ignores removed.
+- Known blockers or files deferred with reasons.
+
+Update the tracking file at the end of each typing session or PR.
 
 ## Report completeness checklist
 
