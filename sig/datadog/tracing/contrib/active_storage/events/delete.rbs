@@ -1,0 +1,24 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveStorage
+        module Events
+          module Delete
+            include ActiveStorage::Event
+            extend ActiveSupport::Notifications::Event
+
+            EVENT_NAME: "service_delete.active_storage"
+
+            def self?.event_name: () -> ::String
+
+            def self?.span_name: () -> ::String
+
+            def self?.span_type: () -> ::String
+
+            def self?.process: (Event::span span, any _event, any _id, Event::payload payload) -> void
+          end
+        end
+      end
+    end
+  end
+end

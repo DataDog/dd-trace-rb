@@ -16,12 +16,12 @@ module Datadog
           module DeletePrefixed
             include ActiveStorage::Event
 
-            EVENT_NAME = 'service_delete_prefixed.active_storage'.freeze
+            EVENT_NAME = 'service_delete_prefixed.active_storage'
 
             module_function
 
             def event_name
-              self::EVENT_NAME
+              EVENT_NAME
             end
 
             def span_name

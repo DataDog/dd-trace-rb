@@ -1,0 +1,15 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveStorage
+        module Patcher
+          include Contrib::Patcher
+
+          def self?.target_version: () -> ::Gem::Version?
+
+          def self?.patch: () -> void
+        end
+      end
+    end
+  end
+end
