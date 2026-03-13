@@ -16,12 +16,12 @@ module Datadog
           module DownloadChunk
             include ActiveStorage::Event
 
-            EVENT_NAME = 'service_download_chunk.active_storage'.freeze
+            EVENT_NAME = 'service_download_chunk.active_storage'
 
             module_function
 
             def event_name
-              self::EVENT_NAME
+              EVENT_NAME
             end
 
             def span_name

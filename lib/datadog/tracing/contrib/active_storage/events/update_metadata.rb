@@ -16,12 +16,12 @@ module Datadog
           module UpdateMetadata
             include ActiveStorage::Event
 
-            EVENT_NAME = 'service_update_metadata.active_storage'.freeze
+            EVENT_NAME = 'service_update_metadata.active_storage'
 
             module_function
 
             def event_name
-              self::EVENT_NAME
+              EVENT_NAME
             end
 
             def span_name
@@ -37,7 +37,7 @@ module Datadog
               as_key = payload[:key]
               as_service = payload[:service]
               as_content_type = payload[:content_type]
-              as_disposition   = payload[:disposition]
+              as_disposition = payload[:disposition]
 
               span.service = configuration[:service_name] if configuration[:service_name]
               span.resource = "#{as_service}: #{as_key}"

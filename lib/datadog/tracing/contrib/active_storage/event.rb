@@ -19,7 +19,7 @@ module Datadog
           module ClassMethods
             def span_options
               if configuration[:service_name]
-                { service: configuration[:service_name] }
+                {service: configuration[:service_name]}
               else
                 {}
               end
@@ -31,6 +31,10 @@ module Datadog
 
             def trace?(_event, _payload)
               Tracing.enabled? && configuration[:enabled] == true
+            end
+
+            def process(_span, _event, _id, _payload)
+              raise NotImplementedError, 'Subclasses must implement #process'
             end
 
             def on_finish(span, event, id, payload)

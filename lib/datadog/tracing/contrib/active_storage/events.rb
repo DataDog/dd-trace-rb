@@ -35,7 +35,7 @@ module Datadog
           module_function
 
           def all
-            self::ALL
+            ALL
           end
 
           def subscriptions
