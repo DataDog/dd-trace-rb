@@ -146,17 +146,22 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         it 'sends two batches' do
           expect(worker.send(:snapshot_queue)).to be_empty
 
+          # Use Queue to wait for first send to complete (deterministic synchronization)
+          first_send_done = Queue.new
+
           expect(input_transport).to receive(:send_input).once do |snapshots, tags|
             expect(snapshots).to eq([snapshot])
             expect(tags).to match(expected_tags)
+            first_send_done.push(:done)
           end
 
           worker.add_snapshot(snapshot)
-          sleep 0.1
+
+          # Wait for the first send to complete (deterministic)
+          Timeout.timeout(2) { first_send_done.pop }
+
           worker.add_snapshot(snapshot)
-          sleep 0.1
           worker.add_snapshot(snapshot)
-          sleep(0.1)
 
           # At this point the first snapshot should have been sent,
           # with the remaining two in the queue
