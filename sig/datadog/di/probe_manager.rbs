@@ -58,6 +58,8 @@ module Datadog
 
       def probe_disabled_callback: (Probe probe, Float duration) -> void
 
+      def snapshot_serialization_failed_callback: (String probe_id, Exception exception) -> void
+
       attr_reader definition_trace_point: untyped
     end
   end

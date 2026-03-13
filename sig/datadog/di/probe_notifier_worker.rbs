@@ -26,7 +26,11 @@ module Datadog
       
       @telemetry: Core::Telemetry::Component?
 
+      @snapshot_serialization_failed_callback: (^(String, Exception) -> void)?
+
       def initialize: (untyped settings, DI::Logger logger, agent_settings: untyped, ?telemetry: Core::Telemetry::Component) -> void
+
+      attr_accessor snapshot_serialization_failed_callback: (^(String, Exception) -> void)?
 
       attr_reader settings: untyped
       
