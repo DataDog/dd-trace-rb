@@ -4,15 +4,16 @@
 
 1. Target prioritization
 2. Shared type aliases
-3. Scope gates
-4. Mandatory checks
-5. Steepfile un-ignoring
-6. Progress tracking
-7. Upstream improvements
-8. Pull request conventions
-9. Transient-gap comment rules
-10. Compromise reporting schema
-11. Report completeness checklist
+3. Boolean types: `bool`, `bool?`, and `boolish`
+4. Scope gates
+5. Mandatory checks
+6. Steepfile un-ignoring
+7. Progress tracking
+8. Upstream improvements
+9. Pull request conventions
+10. Transient-gap comment rules
+11. Compromise reporting schema
+12. Report completeness checklist
 
 ## Target prioritization
 
@@ -71,6 +72,38 @@ When introducing a shared alias:
 2. If a local duplicate exists (e.g. module-scoped `rack_response`), replace it with the shared version.
 3. Do not reorder or reformat unrelated lines in files like Steepfile — keep diffs minimal.
 4. Preserve the existing order of methods and declarations in RBS files. New declarations (e.g. `@app:`) may be added in the conventional place (instance variables before methods) but existing methods must not be reordered.
+
+## Boolean types: `bool`, `bool?`, and `boolish`
+
+RBS provides three ways to express truthiness. Choose based on semantic intent, not convenience.
+
+### `bool` (`true | false` only)
+
+Use when the method always returns `true` or `false`. This is the right choice for most predicate methods.
+
+```rbs
+def empty?: () -> bool
+def available?: () -> bool
+```
+
+### `boolish` (`= top` — any Ruby value used for its truthiness)
+
+Use **only** for block return types in iterator methods where the only thing that matters is whether the block's return is truthy or falsy:
+
+```rbs
+def select: () { (Elem) -> boolish } -> Array[Elem]
+def filter_map: () { (Elem) -> boolish } -> Array[untyped]
+```
+
+`boolish` is defined as `type boolish = top` in RBS (any Ruby value). It signals that only the truthy/falsy nature is used, not the value itself. **Do not use `boolish` as a standalone method return type** — use `bool` or `bool?` for method return types.
+
+### `bool?` (`nil | true | false`) — use sparingly
+
+Use only when `nil` has **distinct semantic meaning from `false`** to callers — i.e., callers write `result.nil?` or distinguish nil from false explicitly.
+
+**`?` methods and `bool?` are usually a mismatch.** Methods ending in `?` are predicate methods. Callers use their return value as a condition (`if obj.available?`), treating both `nil` and `false` identically. Adding `nil` to the type only widens it without adding information. The common case where a `?` method appears to return `bool?` is because its body has an expression like `defined?(x) && x.responds_to?(y)` — which Steep types as `nil | bool`. This is a Steep inference artifact, not a semantic choice. When you see this, prefer `bool` if callers never get `nil` in practice, or leave it as `bool?` only if you cannot narrow it without an inline assertion.
+
+**Rule of thumb:** before writing `bool?` for a `?` method, ask "would a caller ever write `result.nil?`?" If no, use `bool`.
 
 ## Scope gates
 

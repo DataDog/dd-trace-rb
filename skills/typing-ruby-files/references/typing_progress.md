@@ -35,6 +35,41 @@
   - `lib/datadog/tracing/contrib/hanami/action_tracer.rb`
   - `lib/datadog/tracing/contrib/hanami/router_tracing.rb`
 
+### PR #5441 — Add typing for Core::Environment stats modules
+- Branch: `marcotc/type-core-environment-stats`
+- Files typed:
+  - `sig/datadog/core/environment/class_count.rbs` — `value -> Integer`, `available? -> bool`
+  - `sig/datadog/core/environment/gc.rbs` — `stat -> Hash[Symbol, Integer]`, `available? -> bool?`
+  - `sig/datadog/core/environment/thread_count.rbs` — `value -> Integer`, `available? -> bool`
+
+### PR #5442 — Add typing for AppSec::Extensions and Gateway::Watcher
+- Branch: `marcotc/type-appsec-simple`
+- Files typed:
+  - `sig/datadog/appsec/extensions.rbs` — `activate! -> void`
+  - `sig/datadog/appsec/monitor/gateway/watcher.rbs` — `watch -> void`
+
+### PR #5443 — Add typing for Core::VariableHelpers and Core::Chunker
+- Branch: `marcotc/type-core-env-utils`
+- Files typed:
+  - `sig/datadog/core/environment/variable_helpers.rbs` — `env_to_bool` takes `String | Array[String]`, returns `bool?`; `decode_array` returns `String?`
+  - `sig/datadog/core/chunker.rbs` — `chunk_by_size` takes `Array[untyped]` + `Numeric`, returns `Enumerator[Array[untyped], untyped]`
+
+### PR #5444 — Add typing for Buffer::CRuby, HeaderCollection, and SafeDup
+- Branch: `marcotc/type-core-buffer-utils`
+- Files typed:
+  - `sig/datadog/core/buffer/cruby.rbs` — `FIXNUM_MAX: Integer`
+  - `sig/datadog/core/header_collection.rbs` — `from_hash` and `initialize` typed as `Hash[String, String]`
+  - `sig/datadog/core/utils/safe_dup.rbs` — `frozen_dup` typed as `[T < Object?] (T v) -> T`
+- Runtime code changed:
+  - `lib/datadog/core/utils/safe_dup.rb` — added `# steep:ignore MethodBodyTypeMismatch` (same Steep issue as `frozen_or_dup`)
+
+### PR #5451 — Add typing for Remote::Dispatcher and Telemetry Worker/Events
+- Branch: `marcotc/type-core-remote-telemetry`
+- Files typed:
+  - `sig/datadog/core/remote/dispatcher.rbs` — `dispatch -> void`
+  - `sig/datadog/core/telemetry/event/app_dependencies_loaded.rbs` — `payload: { dependencies: Array[Hash[Symbol, String]] }`
+  - `sig/datadog/core/telemetry/worker.rbs` — `buffer_klass -> singleton(Core::Buffer::Random)`
+
 ## Deferred / Known blockers
 
 | File | Errors | Reason deferred |
