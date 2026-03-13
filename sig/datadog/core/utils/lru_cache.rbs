@@ -4,15 +4,15 @@ module Datadog
       class LRUCache
         extend Forwardable
 
-        @store: ::Hash[untyped, untyped]
+        @store: ::Hash[any, any]
 
         @max_size: ::Integer
 
         def initialize: (::Integer max_size) -> void
 
-        def []: (untyped key) -> untyped?
+        def []: (any key) -> any
 
-        def []=: (untyped key, untyped value) -> untyped
+        def []=: (any key, any value) -> any
 
         def clear: () -> void
 
