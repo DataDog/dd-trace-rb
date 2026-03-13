@@ -1,8 +1,8 @@
 module Datadog
   module SymbolDatabase
-    EXCLUDED_COMMON_MODULES: Array[String]
-
     class Extractor
+      EXCLUDED_COMMON_MODULES: Array[String]
+
       def self.extract: (Module mod) -> Scope?
 
       private

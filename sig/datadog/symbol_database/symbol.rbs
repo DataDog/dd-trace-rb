@@ -31,7 +31,7 @@ module Datadog
 
       def to_h: () -> Hash[::Symbol, untyped]
 
-      def to_json: (*untyped args) -> String
+      def to_json: (?untyped _state) -> String
     end
   end
 end

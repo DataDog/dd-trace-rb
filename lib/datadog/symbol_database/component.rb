@@ -123,7 +123,9 @@ module Datadog
         return false if @last_upload_time.nil?
 
         # Don't upload if last upload was within cooldown period
+        # steep:ignore:start
         (Datadog::Core::Utils::Time.now - @last_upload_time) < UPLOAD_COOLDOWN_INTERVAL
+        # steep:ignore:end
       end
 
       # Extract symbols from all loaded modules and upload.

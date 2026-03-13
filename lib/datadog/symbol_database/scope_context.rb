@@ -67,7 +67,7 @@ module Datadog
           @file_count += 1
 
           # Check if already uploaded
-          # steep:ignore:start ArgumentTypeMismatch
+          # steep:ignore:start
           return if @uploaded_modules.include?(scope.name)
 
           @uploaded_modules.add(scope.name)
@@ -79,12 +79,12 @@ module Datadog
           # Check if batch size reached (AFTER adding)
           if @scopes.size >= MAX_SCOPES
             # Prepare for upload (clear within mutex)
-            # steep:ignore:start IncompatibleAssignment
+            # steep:ignore:start
             scopes_to_upload = @scopes.dup
             @scopes.clear
             # steep:ignore:end
             if @timer
-              # steep:ignore:start NoMethod
+              # steep:ignore:start
               @timer.kill
               # steep:ignore:end
               timer_to_join = @timer

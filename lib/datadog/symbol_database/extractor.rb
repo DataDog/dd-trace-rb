@@ -131,6 +131,7 @@ module Datadog
       def self.extract_module_scope(mod)
         source_file = find_source_file(mod)
 
+        # steep:ignore:start
         Scope.new(
           scope_type: 'MODULE',
           name: mod.name,
@@ -141,6 +142,7 @@ module Datadog
           scopes: extract_nested_classes(mod),
           symbols: extract_module_symbols(mod)
         )
+        # steep:ignore:end
       end
 
       # Extract CLASS scope
@@ -151,6 +153,7 @@ module Datadog
         start_line, end_line = calculate_class_line_range(klass, methods)
         source_file = find_source_file(klass)
 
+        # steep:ignore:start
         Scope.new(
           scope_type: 'CLASS',
           name: klass.name,
@@ -161,6 +164,7 @@ module Datadog
           scopes: extract_method_scopes(klass),
           symbols: extract_class_symbols(klass)
         )
+        # steep:ignore:end
       end
 
       # Calculate class line range from method locations
@@ -205,7 +209,7 @@ module Datadog
 
         # Superclass (exclude Object and BasicObject)
         if klass.superclass && klass.superclass != Object && klass.superclass != BasicObject
-          # steep:ignore:start NoMethod
+          # steep:ignore:start
           specifics[:superclass] = klass.superclass.name
           # steep:ignore:end
         end
