@@ -272,7 +272,7 @@ RSpec.describe 'DI integration from remote config' do
       received_payload = payloads.first
       expect(order_hash_keys(received_payload)).to match(order_hash_keys(expected_received_payload))
 
-      expect(probe_manager.pending_probes.length).to eq 1
+      expect(probe_manager.probe_repository.pending_probes.length).to eq 1
     end
   end
 
@@ -309,7 +309,7 @@ RSpec.describe 'DI integration from remote config' do
       do_rc
       assert_received_and_installed
 
-      expect(probe_manager.installed_probes.length).to eq 1
+      expect(probe_manager.probe_repository.installed_probes.length).to eq 1
     end
 
     context 'and target method is invoked' do
@@ -319,7 +319,7 @@ RSpec.describe 'DI integration from remote config' do
         do_rc
         assert_received_and_installed
 
-        expect(probe_manager.installed_probes.length).to eq 1
+        expect(probe_manager.probe_repository.installed_probes.length).to eq 1
 
         # Payloads array should have been cleared out in do_rc
         expect(payloads.length).to eq 0
@@ -371,7 +371,7 @@ RSpec.describe 'DI integration from remote config' do
 
         assert_received_and_installed
 
-        expect(probe_manager.installed_probes.length).to eq 1
+        expect(probe_manager.probe_repository.installed_probes.length).to eq 1
       end
     end
 
@@ -392,7 +392,7 @@ RSpec.describe 'DI integration from remote config' do
         expect_lazy_log(logger, :debug, /di: unhandled exception handling a probe in DI remote receiver: Datadog::DI::Error::InvalidExpression: Unknown operation: foo/)
 
         do_rc(expect_add_probe: false)
-        expect(probe_manager.installed_probes.length).to eq 0
+        expect(probe_manager.probe_repository.installed_probes.length).to eq 0
 
         payload = payloads.first
         expect(payload).to be_a(Hash)
@@ -565,7 +565,7 @@ RSpec.describe 'DI integration from remote config' do
         do_rc(expect_hook: :hook_line)
         assert_received_and_installed
 
-        expect(probe_manager.installed_probes.length).to eq 1
+        expect(probe_manager.probe_repository.installed_probes.length).to eq 1
       end
     end
 
@@ -590,7 +590,7 @@ RSpec.describe 'DI integration from remote config' do
         do_rc(expect_hook: false)
         assert_received_and_errored
 
-        expect(probe_manager.installed_probes.length).to eq 0
+        expect(probe_manager.probe_repository.installed_probes.length).to eq 0
       end
     end
 
@@ -666,8 +666,8 @@ RSpec.describe 'DI integration from remote config' do
         do_rc(expect_hook: :hook_line)
         assert_received_and_installed
 
-        expect(probe_manager.installed_probes.length).to eq 1
-        probe = probe_manager.installed_probes.values.first
+        expect(probe_manager.probe_repository.installed_probes.length).to eq 1
+        probe = probe_manager.probe_repository.installed_probes.values.first
         expect(probe.condition).to be_a(Datadog::DI::EL::Expression)
 
         rv = InstrumentationIntegrationTestClass.new.test_method
@@ -750,8 +750,8 @@ RSpec.describe 'DI integration from remote config' do
           do_rc(expect_hook: :hook_line)
           assert_received_and_installed
 
-          expect(probe_manager.installed_probes.length).to eq 1
-          probe = probe_manager.installed_probes.values.first
+          expect(probe_manager.probe_repository.installed_probes.length).to eq 1
+          probe = probe_manager.probe_repository.installed_probes.values.first
           expect(probe.condition).to be_a(Datadog::DI::EL::Expression)
 
           rv = InstrumentationIntegrationTestClass.new.test_method_with_conditional
@@ -821,8 +821,8 @@ RSpec.describe 'DI integration from remote config' do
             do_rc(expect_hook: :hook_line)
             assert_received_and_installed
 
-            expect(probe_manager.installed_probes.length).to eq 1
-            probe = probe_manager.installed_probes.values.first
+            expect(probe_manager.probe_repository.installed_probes.length).to eq 1
+            probe = probe_manager.probe_repository.installed_probes.values.first
             expect(probe.condition).to be_a(Datadog::DI::EL::Expression)
 
             rv = InstrumentationIntegrationTestClass.new.test_method_with_conditional
