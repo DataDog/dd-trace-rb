@@ -71,6 +71,10 @@ class DISerializerSpecFields
   end
 end
 
+class DISerializerStackOverflowTestClass; end
+
+class DISerializerOutOfMemoryTestClass; end
+
 RSpec.describe Datadog::DI::Serializer do
   di_test
 
@@ -1082,8 +1086,6 @@ RSpec.describe Datadog::DI::Serializer do
     # This prevents the exception from propagating to the transport layer and
     # ensures the rest of the snapshot can still be serialized and sent.
 
-    class DISerializerStackOverflowTestClass; end
-
     before do
       # Register a custom serializer that raises SystemStackError
       # This simulates what happens when a serializer creates infinite recursion
@@ -1197,8 +1199,6 @@ RSpec.describe Datadog::DI::Serializer do
     # - A captured variable is extremely large (e.g., multi-GB string or array)
     # - The serializer attempts to duplicate or expand large objects
     # - String escaping operations on huge binary blobs exhaust memory
-
-    class DISerializerOutOfMemoryTestClass; end
 
     before do
       # Register a custom serializer that raises NoMemoryError
