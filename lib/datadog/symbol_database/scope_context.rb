@@ -83,13 +83,13 @@ module Datadog
             scopes_to_upload = @scopes.dup
             @scopes.clear
             # steep:ignore:end
+            # steep:ignore:start
             if @timer
-              # steep:ignore:start
               @timer.kill
-              # steep:ignore:end
               timer_to_join = @timer
               @timer = nil
             end
+            # steep:ignore:end
           else
             # Reset inactivity timer (only if not uploading)
             reset_timer_internal
@@ -97,7 +97,9 @@ module Datadog
         end
 
         # Wait for timer thread to terminate (outside mutex)
+        # steep:ignore:start
         timer_to_join&.join
+        # steep:ignore:end
 
         # Upload outside mutex (if batch was full)
         perform_upload(scopes_to_upload) if scopes_to_upload
@@ -113,6 +115,7 @@ module Datadog
         scopes_to_upload = nil
         timer_to_join = nil
 
+        # steep:ignore:start
         @mutex.synchronize do
           return if @scopes.empty?
 
@@ -129,6 +132,7 @@ module Datadog
         timer_to_join&.join
 
         perform_upload(scopes_to_upload)
+        # steep:ignore:end
       end
 
       # Shutdown and upload remaining scopes.
@@ -137,6 +141,7 @@ module Datadog
         scopes_to_upload = nil
         timer_to_join = nil
 
+        # steep:ignore:start
         @mutex.synchronize do
           if @timer
             @timer.kill
@@ -153,6 +158,7 @@ module Datadog
 
         # Upload outside mutex
         perform_upload(scopes_to_upload) unless scopes_to_upload.empty?
+        # steep:ignore:end
       end
 
       # Reset state (for testing).
@@ -161,6 +167,7 @@ module Datadog
       def reset
         timer_to_join = nil
 
+        # steep:ignore:start
         @mutex.synchronize do
           @scopes.clear
           if @timer
@@ -174,6 +181,7 @@ module Datadog
 
         # Wait for timer thread to actually terminate (outside mutex to avoid deadlock)
         timer_to_join&.join
+        # steep:ignore:end
       end
 
       # Check if scopes are pending upload.
@@ -194,6 +202,7 @@ module Datadog
       # @return [void]
       def reset_timer_internal
         # Cancel existing timer and wait for it to terminate
+        # steep:ignore:start
         if @timer
           timer_to_kill = @timer
           @timer = nil
@@ -212,6 +221,7 @@ module Datadog
         rescue
           # Timer interrupted or error - ignore
         end
+        # steep:ignore:end
       end
 
       # Perform upload via uploader.

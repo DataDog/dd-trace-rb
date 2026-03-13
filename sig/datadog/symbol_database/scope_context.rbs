@@ -35,7 +35,7 @@ module Datadog
 
       def reset: () -> void
 
-      def perform_upload: (Array[Scope] scopes) -> void
+      def perform_upload: (Array[Scope]? scopes) -> void
 
       def scopes_pending?: () -> bool
 
@@ -44,8 +44,6 @@ module Datadog
       private
 
       def reset_timer_internal: () -> void
-
-      def perform_upload: (Array[Scope]? scopes) -> void
     end
   end
 end
