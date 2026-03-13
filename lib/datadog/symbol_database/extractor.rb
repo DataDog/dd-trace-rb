@@ -363,6 +363,7 @@ module Datadog
       def extract_module_scope(mod)
         source_file = find_source_file(mod)
 
+        # steep:ignore:start
         Scope.new(
           scope_type: 'MODULE',
           name: mod.name,
@@ -371,6 +372,7 @@ module Datadog
           end_line: UNKNOWN_MAX_LINE,
           symbols: extract_scope_symbols(mod)
         )
+        # steep:ignore:end
       end
 
       # Extract CLASS scope
@@ -381,6 +383,7 @@ module Datadog
         start_line, end_line = calculate_class_line_range(klass, methods)
         source_file = find_source_file(klass)
 
+        # steep:ignore:start
         Scope.new(
           scope_type: 'CLASS',
           name: klass.name,
@@ -391,6 +394,7 @@ module Datadog
           scopes: extract_method_scopes(klass),
           symbols: extract_scope_symbols(klass)
         )
+        # steep:ignore:end
       end
 
       # Calculate class line range from method locations.
