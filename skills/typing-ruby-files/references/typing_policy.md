@@ -5,15 +5,16 @@
 1. Target prioritization
 2. Shared type aliases
 3. Boolean types: `bool`, `bool?`, and `boolish`
-4. Scope gates
-5. Mandatory checks
-6. Steepfile un-ignoring
-7. Progress tracking
-8. Upstream improvements
-9. Pull request conventions
-10. Transient-gap comment rules
-11. Compromise reporting schema
-12. Report completeness checklist
+4. Primitive types: `::` prefixes and `any` vs `untyped`
+5. Scope gates
+6. Mandatory checks
+7. Steepfile un-ignoring
+8. Progress tracking
+9. Upstream improvements
+10. Pull request conventions
+11. Transient-gap comment rules
+12. Compromise reporting schema
+13. Report completeness checklist
 
 ## Target prioritization
 
@@ -104,6 +105,52 @@ Use only when `nil` has **distinct semantic meaning from `false`** to callers �
 **`?` methods and `bool?` are usually a mismatch.** Methods ending in `?` are predicate methods. Callers use their return value as a condition (`if obj.available?`), treating both `nil` and `false` identically. Adding `nil` to the type only widens it without adding information. The common case where a `?` method appears to return `bool?` is because its body has an expression like `defined?(x) && x.responds_to?(y)` — which Steep types as `nil | bool`. This is a Steep inference artifact, not a semantic choice. When you see this, prefer `bool` if callers never get `nil` in practice, or leave it as `bool?` only if you cannot narrow it without an inline assertion.
 
 **Rule of thumb:** before writing `bool?` for a `?` method, ask "would a caller ever write `result.nil?`?" If no, use `bool`.
+
+## Primitive types: `::` prefixes and `any` vs `untyped`
+
+### Always prefix Ruby built-in types with `::`
+
+When referencing native Ruby types in RBS signatures, prefix them with `::` to make clear they resolve from the root namespace, not a local constant:
+
+```rbs
+# Good
+def process: (::String name, ::Integer count) -> ::Array[::Symbol]
+
+# Avoid
+def process: (String name, Integer count) -> Array[Symbol]
+```
+
+This applies to: `::String`, `::Integer`, `::Float`, `::Symbol`, `::Array`, `::Hash`, `::Proc`, `::IO`, `::Mutex`, `::Thread`, `::Logger`, and all other stdlib types.
+
+Exception: type aliases defined within this project (e.g. `any`, `Rack::env`, `WAF::Result`) do not need `::` prefixes — they already live in the correct namespace.
+
+### `any` vs `untyped`: intentional vs undecided
+
+This project defines a type alias in `sig/datadog.rbs`:
+
+```rbs
+type any = untyped
+```
+
+Use these two differently:
+
+| Type | Meaning | When to use |
+|------|---------|-------------|
+| `any` | **Intentionally open** — the value is genuinely polymorphic and accepting anything is correct | Buffers, caches, generic containers, public APIs that accept arbitrary user objects |
+| `untyped` | **Undecided** — we haven't determined the right type yet; this is a placeholder | Every other case; it marks work still to be done |
+
+```rbs
+# Good: buffer stores any object by design
+def push: (any item) -> void
+
+# Good: type not yet determined, mark as todo
+def obscure_transform: (untyped input) -> untyped
+
+# Bad: using untyped to mean "accepts anything" obscures intent
+def push: (untyped item) -> void
+```
+
+When you are improving a signature and the current `untyped` is genuinely intentional (e.g. a hash of arbitrary user data), replace it with `any`. When you are leaving something untyped because you don't know the right type, leave `untyped` as-is — it signals future work.
 
 ## Scope gates
 
