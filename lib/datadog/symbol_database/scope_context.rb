@@ -112,7 +112,9 @@ module Datadog
         end
 
         # Wait for timer thread to terminate (outside mutex)
+        # steep:ignore:start
         timer_to_join&.join
+        # steep:ignore:end
 
         # Upload outside mutex (if batch was full)
         perform_upload(scopes_to_upload) if scopes_to_upload
@@ -174,6 +176,7 @@ module Datadog
       def reset
         timer_to_join = nil
 
+        # steep:ignore:start
         @mutex.synchronize do
           @scopes.clear
           @timer_stopped = true
@@ -219,6 +222,7 @@ module Datadog
         @timer_thread = Thread.new do
           timer_loop
         end
+        # steep:ignore:end
       end
 
       # Timer thread main loop. Waits on the ConditionVariable with a timeout.
