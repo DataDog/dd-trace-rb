@@ -5,7 +5,7 @@ module Datadog
         SYMDB_ENDPOINT: API::Endpoint
 
         def self.build: (
-          agent_settings: Core::Configuration::AgentSettingsResolver::AgentSettings,
+          agent_settings: ::Datadog::Core::Configuration::AgentSettings,
           ?logger: Core::Logger,
           ?headers: Hash[String, String]?
         ) ?{ (untyped) -> void } -> SymbolDatabase::Transport::Transport
