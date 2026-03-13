@@ -58,21 +58,6 @@ module Datadog
       attr_reader :probe_notification_builder
       attr_reader :probe_notifier_worker
 
-      def installed_probes
-        probe_repository.installed_probes
-      end
-
-      def pending_probes
-        probe_repository.pending_probes
-      end
-
-      # Probes that failed to instrument for reasons other than the target is
-      # not yet loaded are added to this collection, so that we do not try
-      # to instrument them every time remote configuration is processed.
-      def failed_probes
-        probe_repository.failed_probes
-      end
-
       # Requests to install the specified probe.
       #
       # If the target of the probe does not exist, assume the relevant

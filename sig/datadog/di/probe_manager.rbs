@@ -37,12 +37,6 @@ module Datadog
 
       attr_reader probe_notifier_worker: untyped
 
-      def installed_probes: () -> Hash[String, Probe]
-
-      def pending_probes: () -> Hash[String, Probe]
-
-      def failed_probes: () -> Hash[String, String]
-
       def add_probe: (untyped probe) -> untyped
 
       def remove_probe: (untyped probe_id) -> untyped
