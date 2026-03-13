@@ -1,6 +1,6 @@
 module Rack
   type env = ::Hash[::String, any]
-  type response = [::Integer, ::Hash[::String, ::String], ::Array[::String]]
+  type response = [::Integer, ::Hash[::String, ::String], Response::_Body]
   type app = ^(env) -> response
 
   class Request
@@ -8,7 +8,7 @@ module Rack
 
     def env: () -> Rack::env
 
-    def params: () -> ::Hash[::String, untyped]
+    def params: () -> ::Hash[::String, any]
 
     def body: () -> untyped
 
@@ -20,6 +20,14 @@ module Rack
   end
 
   class Response
+    interface _Body
+      def each: () { (::String) -> void } -> void
+
+      def respond_to?: (::Symbol method, ?boolish include_all) -> bool
+
+      def to_ary: () -> ::Array[::String]?
+    end
+
     def initialize: (?untyped body, ?untyped status, ?untyped headers) -> void
   end
 end
