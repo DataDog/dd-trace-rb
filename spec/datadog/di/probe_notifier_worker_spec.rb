@@ -264,7 +264,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         builder
       end
 
-      let(:worker_with_di) do
+      let(:worker_with_dependencies) do
         described_class.new(
           settings, logger,
           agent_settings: agent_settings,
@@ -286,19 +286,19 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         # Allow the status to be sent
         allow(diagnostics_transport).to receive(:send_diagnostics)
 
-        worker_with_di.start
+        worker_with_dependencies.start
       end
 
       after do
-        worker_with_di.stop
+        worker_with_dependencies.stop
       end
 
       it 'looks up the probe and disables it' do
         expect(probe_repository).to receive(:find_installed).with('test-probe-id').and_return(probe)
         expect(probe).to receive(:disable!).with(no_args)
 
-        worker_with_di.add_snapshot(snapshot)
-        worker_with_di.flush
+        worker_with_dependencies.add_snapshot(snapshot)
+        worker_with_dependencies.flush
       end
 
       it 'builds and sends ERROR status' do
@@ -307,15 +307,15 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           status: 'ERROR',
         )).and_return({status: 'ERROR'})
 
-        worker_with_di.add_snapshot(snapshot)
-        worker_with_di.flush
+        worker_with_dependencies.add_snapshot(snapshot)
+        worker_with_dependencies.flush
       end
 
       it 'logs the error' do
         expect(logger).to receive(:debug).at_least(:once)
 
-        worker_with_di.add_snapshot(snapshot)
-        worker_with_di.flush
+        worker_with_dependencies.add_snapshot(snapshot)
+        worker_with_dependencies.flush
       end
     end
   end
