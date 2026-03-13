@@ -125,10 +125,10 @@ module Datadog
 
         logger.debug { "di: error processing probe configuration: #{exc.class}: #{exc}" }
         telemetry&.report(exc, description: "Error processing probe configuration")
-        # TODO report probe as failed to agent since we won't attempt to
-        # install it again.
 
-        # TODO add top stack frame to message
+        payload = probe_notification_builder.build_errored(probe, exc)
+        probe_notifier_worker.add_status(payload, probe: probe)
+
         probe_repository.add_failed(probe.id, "#{exc.class}: #{exc}")
 
         raise

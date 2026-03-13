@@ -94,7 +94,7 @@ RSpec.describe Datadog::DI::ProbeManager do
       end
 
       context 'when there is an exception during instrumentation' do
-        it 'logs warning, drops probe and reraises the exception' do
+        it 'logs warning, reports ERROR status, drops probe and reraises the exception' do
           expect_lazy_log(logger, :debug, /error processing probe configuration.*Instrumentation error/)
 
           expect(instrumenter).to receive(:hook) do |probe_|
@@ -103,7 +103,8 @@ RSpec.describe Datadog::DI::ProbeManager do
           end
 
           expect(probe_notification_builder).not_to receive(:build_installed)
-          expect(probe_notifier_worker).not_to receive(:add_status)
+          expect(probe_notification_builder).to receive(:build_errored).with(probe, instance_of(RuntimeError)).and_return({status: 'ERROR'})
+          expect(probe_notifier_worker).to receive(:add_status).with({status: 'ERROR'}, probe: probe)
 
           expect do
             manager.add_probe(probe)
@@ -119,7 +120,7 @@ RSpec.describe Datadog::DI::ProbeManager do
       end
 
       context 'when the probe is requested to be added the second time' do
-        it 'does not instrument the second time' do
+        it 'does not instrument the second time and reports ERROR status' do
           expect(manager.installed_probes).to be_empty
 
           # First call
@@ -128,10 +129,11 @@ RSpec.describe Datadog::DI::ProbeManager do
           expect(probe_notifier_worker).to receive(:add_status)
           manager.add_probe(probe)
 
-          # Second call
+          # Second call - reports ERROR status
           expect(instrumenter).not_to receive(:hook)
           expect(probe_notification_builder).not_to receive(:build_installed)
-          expect(probe_notifier_worker).not_to receive(:add_status)
+          expect(probe_notification_builder).to receive(:build_errored).with(probe, instance_of(Datadog::DI::Error::AlreadyInstrumented)).and_return({status: 'ERROR'})
+          expect(probe_notifier_worker).to receive(:add_status).with({status: 'ERROR'}, probe: probe)
           expect_lazy_log(logger, :debug, /AlreadyInstrumented: Probe with id .* is already in installed probes/)
           expect do
             manager.add_probe(probe)
