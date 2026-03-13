@@ -65,13 +65,23 @@ Shared aliases live in `vendor/rbs/` stubs. For example, Rack types are defined 
 
 ```rbs
 module Rack
-  type env = ::Hash[::String, untyped]
-  type response = [::Integer, ::Hash[::String, ::String], ::Array[::String]]
+  type env = ::Hash[::String, any]
+  type response = [::Integer, ::Hash[::String, ::String], Response::_Body]
   type app = ^(env) -> response
 end
 ```
 
 All Rack middleware signatures should use `Rack::env`, `Rack::response`, and `Rack::app` instead of inline types or local aliases.
+
+### Grounding vendor RBS in gem definitions
+
+Before adding or changing types in `vendor/rbs/`, verify them against the gem itself — do not type by assumption:
+
+1. Check the gem's source (`bundle open <gem>` or its GitHub repo) to confirm the actual behavior.
+2. Check whether the gem ships official RBS definitions (in its own `sig/` directory or a community `rbs-<gem>` package).
+3. For protocol types (interfaces, structural types), check the spec or README — e.g. the Rack spec defines what a valid response body must respond to, which is not just `Array`.
+
+Encoding an assumption as a type is worse than leaving it `untyped`: it misleads callers and creates false confidence.
 
 When introducing a shared alias:
 
