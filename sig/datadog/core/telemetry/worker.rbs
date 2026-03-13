@@ -58,7 +58,7 @@ module Datadog
 
         def disable_on_not_found!: ((Core::Transport::HTTP::Adapters::Net::Response | Core::Transport::InternalErrorResponse) response) -> void
 
-        def buffer_klass: () -> untyped
+        def buffer_klass: () -> singleton(Core::Buffer::Random)
 	
 	def idle?: () -> bool
 	
