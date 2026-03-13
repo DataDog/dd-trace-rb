@@ -149,23 +149,26 @@ module Datadog
 
       # Clears all probes from all collections.
       #
-      # Yields each installed probe before clearing to allow cleanup
-      # (e.g., unhooking instrumentation).
+      # If a block is given, yields each installed probe after clearing
+      # to allow cleanup (e.g., unhooking instrumentation).
       #
-      # Note: The block is called while holding the lock. This is safe because
-      # the unhook operation in Instrumenter does not call back into ProbeRepository.
+      # The yield happens outside the lock to avoid blocking other operations
+      # if the cleanup callback is slow.
       #
-      # @yield [probe] Yields each installed probe before clearing (for cleanup)
+      # @yield [probe] Yields each installed probe after clearing (for cleanup)
       def clear_all
-        @lock.synchronize do
-          if block_given?
-            @installed_probes.each_value do |probe|
-              yield probe
-            end
-          end
+        probes_to_cleanup = @lock.synchronize do
+          probes = @installed_probes.values
           @installed_probes.clear
           @pending_probes.clear
           @failed_probes.clear
+          probes
+        end
+
+        if block_given?
+          probes_to_cleanup.each do |probe|
+            yield probe
+          end
         end
       end
     end
