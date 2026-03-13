@@ -5,7 +5,7 @@ module Datadog
         class RequestMiddleware
           @app: ::Rack::app
 
-          def initialize: (::Rack::app app, ?::Hash[::Symbol, untyped] opt) -> void
+          def initialize: (::Rack::app app, ?::Hash[::Symbol, any] opt) -> void
 
           def call: (::Rack::env env) -> ::Rack::response
         end
