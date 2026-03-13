@@ -21,7 +21,6 @@ module Datadog
 
           def patch
             Monitor::Gateway::Watcher.watch
-            Monitor::Gateway::TelemetryWatcher.watch
             Gateway::Watcher.watch
             Patcher.instance_variable_set(:@patched, true)
           end

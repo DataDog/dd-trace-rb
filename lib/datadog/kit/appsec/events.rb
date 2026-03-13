@@ -32,7 +32,6 @@ module Datadog
             set_trace_and_span_context('track_login_success', trace, span) do |active_trace, active_span|
               user_options = user.dup
               user_id = user_options.delete(:id)
-              has_explicit_login = !!(user_options[:login] || others[:"usr.login"] || others['usr.login'])
               user_login = user_options[:login] || others[:"usr.login"] || others['usr.login'] || user_id
 
               raise ArgumentError, 'missing required key: :user => { :id }' if user_id.nil?
@@ -43,13 +42,6 @@ module Datadog
 
               user_options[:login] = user_login
               Kit::Identity.set_user(active_trace, active_span, id: user_id, **user_options)
-
-              push_user_lifecycle_event(
-                LOGIN_SUCCESS_EVENT,
-                has_user_id: !!user_id,
-                has_user_login: has_explicit_login,
-                framework: 'sdk',
-              )
             end
           end
 
@@ -69,19 +61,11 @@ module Datadog
           #   event information to attach to the trace.
           def track_login_failure(trace = nil, span = nil, user_exists:, user_id: nil, **others)
             set_trace_and_span_context('track_login_failure', trace, span) do |active_trace, active_span|
-              has_explicit_login = others.key?(:"usr.login") || others.key?('usr.login')
-              others[:"usr.login"] = user_id if user_id && !has_explicit_login
+              others[:"usr.login"] = user_id if user_id && !others.key?(:"usr.login") && !others.key?('usr.login')
               track(LOGIN_FAILURE_EVENT, active_trace, active_span, **others)
 
               active_span.set_tag('appsec.events.users.login.failure.usr.id', user_id) if user_id
               active_span.set_tag('appsec.events.users.login.failure.usr.exists', user_exists)
-
-              push_user_lifecycle_event(
-                LOGIN_FAILURE_EVENT,
-                has_user_id: !!user_id,
-                has_user_login: has_explicit_login,
-                framework: 'sdk',
-              )
             end
           end
 
@@ -103,7 +87,6 @@ module Datadog
             set_trace_and_span_context('track_signup', trace, span) do |active_trace, active_span|
               user_options = user.dup
               user_id = user_options.delete(:id)
-              has_explicit_login = !!(user_options[:login] || others[:"usr.login"] || others['usr.login'])
               user_login = user_options[:login] || others[:"usr.login"] || others['usr.login'] || user_id
 
               raise ArgumentError, 'missing required key: :user => { :id }' if user_id.nil?
@@ -114,13 +97,6 @@ module Datadog
 
               user_options[:login] = user_login
               Kit::Identity.set_user(trace, id: user_id, **user_options)
-
-              push_user_lifecycle_event(
-                SIGNUP_EVENT,
-                has_user_id: !!user_id,
-                has_user_login: has_explicit_login,
-                framework: 'sdk',
-              )
             end
           end
 
@@ -166,18 +142,11 @@ module Datadog
                 ::Datadog::AppSec::TraceKeeper.keep!(active_trace)
               end
             end
+
+            ::Datadog::AppSec::Instrumentation.gateway.push('appsec.events.user_lifecycle', event)
           end
 
           private
-
-          def push_user_lifecycle_event(event, has_user_id:, has_user_login:, framework:)
-            ::Datadog::AppSec::Instrumentation.gateway.push(
-              'appsec.events.user_lifecycle',
-              ::Datadog::AppSec::Instrumentation::Gateway::UserLifecycleEvent.new(
-                event, has_user_id: has_user_id, has_user_login: has_user_login, framework: framework
-              )
-            )
-          end
 
           def set_trace_and_span_context(method, trace = nil, span = nil)
             if (appsec_context = Datadog::AppSec.active_context)

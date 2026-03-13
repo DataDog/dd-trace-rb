@@ -105,6 +105,7 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
 
     allow(Rails).to receive(:application).and_return(app)
     allow(Datadog::AppSec::Instrumentation).to receive(:gateway).and_return(gateway)
+
     # NOTE: Don't reach the agent in any way
     allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
     allow_any_instance_of(Datadog::Tracing::Transport::Traces::Transport).to receive(:native_events_supported?)

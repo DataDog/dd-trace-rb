@@ -23,26 +23,6 @@ module Datadog
           def initialize: (?::String? id, ?::String? login, ?::String? session_id) -> void
         end
 
-        class UserLifecycleEvent < Argument
-          @event: ::String
-
-          @has_user_id: bool
-
-          @has_user_login: bool
-
-          @framework: ::String
-
-          attr_reader event: ::String
-
-          attr_reader has_user_id: bool
-
-          attr_reader has_user_login: bool
-
-          attr_reader framework: ::String
-
-          def initialize: (::String event, has_user_id: bool, has_user_login: bool, framework: ::String) -> void
-        end
-
         class DataContainer < Argument
           @data: untyped
 

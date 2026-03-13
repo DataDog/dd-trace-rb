@@ -30,10 +30,13 @@ module Datadog
 
               if result
                 record_successful_signin(context, resource)
+                Instrumentation.gateway.push('appsec.events.user_lifecycle', Ext::EVENT_LOGIN_SUCCESS)
+
                 return result
               end
 
               record_failed_signin(context, resource)
+              Instrumentation.gateway.push('appsec.events.user_lifecycle', Ext::EVENT_LOGIN_FAILURE)
 
               result
             end
@@ -45,7 +48,6 @@ module Datadog
 
               id = extractor.extract_id(resource)
               login = extractor.extract_login(authentication_hash) || extractor.extract_login(resource)
-              has_explicit_login = !login.nil? && login != id
 
               if id
                 context.span[Ext::TAG_USR_ID] ||= id
@@ -56,13 +58,6 @@ module Datadog
               context.span[Ext::TAG_LOGIN_SUCCESS_TRACK] = 'true'
               context.span[Ext::TAG_DD_USR_LOGIN] = login
               context.span[Ext::TAG_DD_LOGIN_SUCCESS_MODE] = Configuration.auto_user_instrumentation_mode
-
-              Instrumentation.gateway.push(
-                'appsec.events.user_lifecycle',
-                AppSec::Instrumentation::Gateway::UserLifecycleEvent.new(
-                  Ext::EVENT_LOGIN_SUCCESS, has_user_id: !id.nil?, has_user_login: has_explicit_login, framework: 'devise'
-                )
-              )
 
               # NOTE: We don't have a way to make one-shot receivers for events,
               #       and because of that we will trigger an additional event even
@@ -85,19 +80,11 @@ module Datadog
                 context.span[Ext::TAG_LOGIN_FAILURE_USR_LOGIN] ||= login
                 context.span[Ext::TAG_LOGIN_FAILURE_USR_EXISTS] ||= 'false'
 
-                Instrumentation.gateway.push(
-                  'appsec.events.user_lifecycle',
-                  AppSec::Instrumentation::Gateway::UserLifecycleEvent.new(
-                    Ext::EVENT_LOGIN_FAILURE, has_user_id: false, has_user_login: !login.nil?, framework: 'devise'
-                  )
-                )
-
                 return
               end
 
               id = extractor.extract_id(resource)
               login = extractor.extract_login(authentication_hash) || extractor.extract_login(resource)
-              has_explicit_login = !login.nil? && login != id
 
               if id
                 context.span[Ext::TAG_DD_USR_ID] = id
@@ -107,13 +94,6 @@ module Datadog
               context.span[Ext::TAG_DD_USR_LOGIN] = login
               context.span[Ext::TAG_LOGIN_FAILURE_USR_LOGIN] ||= login
               context.span[Ext::TAG_LOGIN_FAILURE_USR_EXISTS] ||= 'true'
-
-              Instrumentation.gateway.push(
-                'appsec.events.user_lifecycle',
-                AppSec::Instrumentation::Gateway::UserLifecycleEvent.new(
-                  Ext::EVENT_LOGIN_FAILURE, has_user_id: !id.nil?, has_user_login: has_explicit_login, framework: 'devise'
-                )
-              )
             end
           end
         end

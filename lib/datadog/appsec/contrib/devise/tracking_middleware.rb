@@ -39,15 +39,6 @@ module Datadog
             session_id = env[WARDEN_KEY].raw_session[SESSION_ID_KEY] if id
 
             if id
-              # NOTE: Devise session only stores the user ID, not the login,
-              #       so has_user_login is always false for authenticated requests.
-              Instrumentation.gateway.push(
-                'appsec.events.user_lifecycle',
-                AppSec::Instrumentation::Gateway::UserLifecycleEvent.new(
-                  Ext::EVENT_AUTHENTICATED_REQUEST, has_user_id: true, has_user_login: false, framework: 'devise'
-                )
-              )
-
               # NOTE: There is no option to set session id without setting user id via SDK.
               unless context.span.has_tag?(Ext::TAG_USR_ID) && context.span.has_tag?(Ext::TAG_SESSION_ID)
                 user_id = context.span[Ext::TAG_USR_ID] || id
