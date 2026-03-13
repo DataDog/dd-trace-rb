@@ -16,6 +16,14 @@ module Rack
   end
 
   class Response
+    interface _Body
+      def each: () { (::String) -> void } -> void
+
+      def respond_to?: (::Symbol method, ?boolish include_all) -> bool
+
+      def to_ary: () -> ::Array[::String]?
+    end
+
     def initialize: (?untyped body, ?untyped status, ?untyped headers) -> void
   end
 end
