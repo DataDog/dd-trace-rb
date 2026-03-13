@@ -294,9 +294,6 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
         worker_with_di.add_snapshot(snapshot)
         worker_with_di.flush
-
-        # Wait for error handling to complete
-        sleep 0.2
       end
 
       it 'builds and sends ERROR status' do
@@ -307,9 +304,6 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
         worker_with_di.add_snapshot(snapshot)
         worker_with_di.flush
-
-        # Wait for error handling to complete
-        sleep 0.2
       end
 
       it 'logs the error' do
@@ -317,8 +311,6 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
         worker_with_di.add_snapshot(snapshot)
         worker_with_di.flush
-
-        sleep 0.2
       end
     end
   end
