@@ -69,11 +69,11 @@ RSpec.describe Datadog::DI::ProbeManager do
 
           expect(manager.add_probe(probe)).to be true
 
-          expect(manager.probe_repository.pending_probes.length).to eq 0
-          expect(manager.probe_repository.failed_probes.length).to eq 0
+          expect(probe_repository.pending_probes.length).to eq 0
+          expect(probe_repository.failed_probes.length).to eq 0
 
-          expect(manager.probe_repository.installed_probes.length).to eq 1
-          expect(manager.probe_repository.installed_probes["3ecfd456-2d7c-4359-a51f-d4cc44141ffe"]).to be(probe)
+          expect(probe_repository.installed_probes.length).to eq 1
+          expect(probe_repository.installed_probes["3ecfd456-2d7c-4359-a51f-d4cc44141ffe"]).to be(probe)
         end
       end
 
@@ -89,11 +89,11 @@ RSpec.describe Datadog::DI::ProbeManager do
 
           expect(manager.add_probe(probe)).to be false
 
-          expect(manager.probe_repository.pending_probes.length).to eq 1
-          expect(manager.probe_repository.pending_probes["3ecfd456-2d7c-4359-a51f-d4cc44141ffe"]).to be(probe)
+          expect(probe_repository.pending_probes.length).to eq 1
+          expect(probe_repository.pending_probes["3ecfd456-2d7c-4359-a51f-d4cc44141ffe"]).to be(probe)
 
-          expect(manager.probe_repository.installed_probes.length).to eq 0
-          expect(manager.probe_repository.failed_probes.length).to eq 0
+          expect(probe_repository.installed_probes.length).to eq 0
+          expect(probe_repository.failed_probes.length).to eq 0
         end
       end
 
@@ -114,18 +114,18 @@ RSpec.describe Datadog::DI::ProbeManager do
             manager.add_probe(probe)
           end.to raise_error(RuntimeError, 'Instrumentation error')
 
-          expect(manager.probe_repository.pending_probes.length).to eq 0
+          expect(probe_repository.pending_probes.length).to eq 0
 
-          expect(manager.probe_repository.installed_probes.length).to eq 0
+          expect(probe_repository.installed_probes.length).to eq 0
 
-          expect(manager.probe_repository.failed_probes.length).to eq 1
-          expect(manager.probe_repository.failed_probes[probe.id]).to match(/Instrumentation error/)
+          expect(probe_repository.failed_probes.length).to eq 1
+          expect(probe_repository.failed_probes[probe.id]).to match(/Instrumentation error/)
         end
       end
 
       context 'when the probe is requested to be added the second time' do
         it 'does not instrument the second time and reports ERROR status' do
-          expect(manager.probe_repository.installed_probes).to be_empty
+          expect(probe_repository.installed_probes).to be_empty
 
           # First call
           expect(instrumenter).to receive(:hook)
@@ -156,14 +156,14 @@ RSpec.describe Datadog::DI::ProbeManager do
 
     context 'when there are pending probes' do
       before do
-        manager.probe_repository.pending_probes[probe.id] = probe
+        probe_repository.pending_probes[probe.id] = probe
       end
 
       context 'when id matches a pending probe' do
         it 'removes pending probe' do
           manager.remove_probe('123')
 
-          expect(manager.probe_repository.pending_probes).to eq({})
+          expect(probe_repository.pending_probes).to eq({})
         end
       end
 
@@ -171,14 +171,14 @@ RSpec.describe Datadog::DI::ProbeManager do
         it 'does not remove the pending probe' do
           manager.remove_probe('555')
 
-          expect(manager.probe_repository.pending_probes).to eq(probe.id => probe)
+          expect(probe_repository.pending_probes).to eq(probe.id => probe)
         end
       end
     end
 
     context 'when there are installed probes' do
       before do
-        manager.probe_repository.installed_probes[probe.id] = probe
+        probe_repository.installed_probes[probe.id] = probe
       end
 
       context 'when id matches an installed probe' do
@@ -187,7 +187,7 @@ RSpec.describe Datadog::DI::ProbeManager do
 
           manager.remove_probe('123')
 
-          expect(manager.probe_repository.installed_probes).to eq({})
+          expect(probe_repository.installed_probes).to eq({})
         end
       end
 
@@ -197,7 +197,7 @@ RSpec.describe Datadog::DI::ProbeManager do
 
           manager.remove_probe('555')
 
-          expect(manager.probe_repository.installed_probes).to eq(probe.id => probe)
+          expect(probe_repository.installed_probes).to eq(probe.id => probe)
         end
       end
 
@@ -209,9 +209,9 @@ RSpec.describe Datadog::DI::ProbeManager do
 
           manager.remove_probe('123')
 
-          expect(manager.probe_repository.pending_probes.length).to eq 0
+          expect(probe_repository.pending_probes.length).to eq 0
 
-          expect(manager.probe_repository.installed_probes.length).to eq 1
+          expect(probe_repository.installed_probes.length).to eq 1
         end
       end
 
@@ -223,8 +223,8 @@ RSpec.describe Datadog::DI::ProbeManager do
         end
 
         before do
-          manager.probe_repository.installed_probes[probe2.id] = probe2
-          expect(manager.probe_repository.installed_probes.length).to eq 2
+          probe_repository.installed_probes[probe2.id] = probe2
+          expect(probe_repository.installed_probes.length).to eq 2
         end
 
         it 'leaves the second probe installed' do
@@ -232,9 +232,9 @@ RSpec.describe Datadog::DI::ProbeManager do
 
           manager.remove_probe('123')
 
-          expect(manager.probe_repository.pending_probes.length).to eq 0
+          expect(probe_repository.pending_probes.length).to eq 0
 
-          expect(manager.probe_repository.installed_probes).to eq('456' => probe2)
+          expect(probe_repository.installed_probes).to eq('456' => probe2)
         end
       end
     end
@@ -268,7 +268,7 @@ RSpec.describe Datadog::DI::ProbeManager do
       end
 
       before do
-        manager.probe_repository.pending_probes[probe.id] = probe
+        probe_repository.pending_probes[probe.id] = probe
       end
 
       it 'does not unhook' do
@@ -282,7 +282,7 @@ RSpec.describe Datadog::DI::ProbeManager do
 
         manager.clear_hooks
 
-        expect(manager.probe_repository.pending_probes).to be_empty
+        expect(probe_repository.pending_probes).to be_empty
       end
     end
 
@@ -293,7 +293,7 @@ RSpec.describe Datadog::DI::ProbeManager do
       end
 
       before do
-        manager.probe_repository.installed_probes[probe.id] = probe
+        probe_repository.installed_probes[probe.id] = probe
       end
 
       it 'unhooks' do
@@ -307,7 +307,7 @@ RSpec.describe Datadog::DI::ProbeManager do
 
         manager.clear_hooks
 
-        expect(manager.probe_repository.installed_probes).to be_empty
+        expect(probe_repository.installed_probes).to be_empty
       end
     end
   end
