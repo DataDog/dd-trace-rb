@@ -630,6 +630,13 @@ RSpec.describe Datadog::DI::Serializer do
   end
 
   context 'when serialization raises an exception' do
+    # Save and restore the custom serializer registry to prevent test pollution
+    around do |example|
+      original_registry = described_class.class_variable_get(:@@flat_registry).dup
+      example.run
+      described_class.class_variable_set(:@@flat_registry, original_registry)
+    end
+
     before do
       # Register a custom serializer that will raise an exception
       Datadog::DI::Serializer.register(condition: lambda { |value| DISerializerCustomExceptionTestClass === value }) do |*args|
@@ -1086,6 +1093,13 @@ RSpec.describe Datadog::DI::Serializer do
     # This prevents the exception from propagating to the transport layer and
     # ensures the rest of the snapshot can still be serialized and sent.
 
+    # Save and restore the custom serializer registry to prevent test pollution
+    around do |example|
+      original_registry = described_class.class_variable_get(:@@flat_registry).dup
+      example.run
+      described_class.class_variable_set(:@@flat_registry, original_registry)
+    end
+
     before do
       # Register a custom serializer that raises SystemStackError
       # This simulates what happens when a serializer creates infinite recursion
@@ -1199,6 +1213,13 @@ RSpec.describe Datadog::DI::Serializer do
     # - A captured variable is extremely large (e.g., multi-GB string or array)
     # - The serializer attempts to duplicate or expand large objects
     # - String escaping operations on huge binary blobs exhaust memory
+
+    # Save and restore the custom serializer registry to prevent test pollution
+    around do |example|
+      original_registry = described_class.class_variable_get(:@@flat_registry).dup
+      example.run
+      described_class.class_variable_set(:@@flat_registry, original_registry)
+    end
 
     before do
       # Register a custom serializer that raises NoMemoryError
