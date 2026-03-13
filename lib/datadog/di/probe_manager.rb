@@ -184,6 +184,11 @@ module Datadog
 
                 logger.debug { "di: error installing #{probe.type} probe at #{probe.location} (#{probe.id}) after class is defined: #{exc.class}: #{exc}" }
                 telemetry&.report(exc, description: "Error installing probe after class is defined")
+
+                payload = probe_notification_builder.build_errored(probe, exc)
+                probe_notifier_worker.add_status(payload, probe: probe)
+
+                probe_repository.add_failed(probe.id, "#{exc.class}: #{exc}")
               end
             end
           end
