@@ -1,5 +1,11 @@
 # Typing Policy
 
+## General philosophy
+
+> "It's better to type less, than type it false — the consequences are a false feeling of being safe." — @Strech
+
+An incorrect type is worse than no type. It misleads callers, suppresses useful warnings, and creates confidence that isn't warranted. Every type you add should be *correct*, not merely *present*. When in doubt, leave `untyped`.
+
 ## Contents
 
 1. Target prioritization
