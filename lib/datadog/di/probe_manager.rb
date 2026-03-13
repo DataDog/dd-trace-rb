@@ -129,7 +129,7 @@ module Datadog
         # install it again.
 
         # TODO add top stack frame to message
-        probe_repository.add_failed(probe)
+        probe_repository.add_failed(probe.id, "#{exc.class}: #{exc}")
 
         raise
       end

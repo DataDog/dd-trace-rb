@@ -236,10 +236,13 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       end
 
       let(:probe) do
-        instance_double(Datadog::DI::Probe,
+        probe = instance_double(Datadog::DI::Probe,
           id: 'test-probe-id',
           type: 'log',
           location: 'test.rb:42',)
+        # Allow disable! to be called with any argument
+        allow(probe).to receive(:disable!)
+        probe
       end
 
       let(:probe_repository) do
@@ -248,9 +251,11 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         repo
       end
 
+      let(:status_received) { [] }
+
       let(:probe_notification_builder) do
         builder = instance_double(Datadog::DI::ProbeNotificationBuilder)
-        allow(builder).to receive(:build_status).and_return({status: 'ERROR'})
+        allow(builder).to receive(:send).with(:build_status, anything, hash_including(:message, :status, :exception)).and_return({status: 'ERROR'})
         builder
       end
 
@@ -285,7 +290,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
       it 'looks up the probe and disables it' do
         expect(probe_repository).to receive(:find_installed).with('test-probe-id').and_return(probe)
-        expect(probe).to receive(:disable!).with(/Snapshot JSON encoding failed/)
+        expect(probe).to receive(:disable!).with(no_args)
 
         worker_with_di.add_snapshot(snapshot)
         worker_with_di.flush
@@ -295,14 +300,10 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       end
 
       it 'builds and sends ERROR status' do
-        allow(probe).to receive(:disable!)
-        expect(probe_notification_builder).to receive(:build_status) do |p, message:, status:, exception:|
-          expect(p).to eq(probe)
-          expect(status).to eq('ERROR')
-          expect(message).to match(/JSON encoding failed/)
-          expect(exception).to be_a(JSON::GeneratorError)
-          {status: 'ERROR'}
-        end
+        expect(probe_notification_builder).to receive(:send).with(:build_status, probe, hash_including(
+          message: /JSON encoding failed/,
+          status: 'ERROR',
+        )).and_return({status: 'ERROR'})
 
         worker_with_di.add_snapshot(snapshot)
         worker_with_di.flush
@@ -312,7 +313,6 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       end
 
       it 'logs the error' do
-        allow(probe).to receive(:disable!)
         expect(logger).to receive(:debug).at_least(:once)
 
         worker_with_di.add_snapshot(snapshot)

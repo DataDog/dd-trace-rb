@@ -5,7 +5,7 @@ module Datadog
 
       @pending_probes: Hash[String, Probe]
 
-      @failed_probes: Hash[String, Probe]
+      @failed_probes: Hash[String, String]
 
       @lock: Monitor
 
@@ -29,13 +29,13 @@ module Datadog
 
       def clear_pending: () -> void
 
-      def failed_probes: () -> Hash[String, Probe]
+      def failed_probes: () -> Hash[String, String]
 
-      def find_failed: (String probe_id) -> Probe?
+      def find_failed: (String probe_id) -> String?
 
-      def add_failed: (Probe probe) -> void
+      def add_failed: (String probe_id, String message) -> void
 
-      def remove_failed: (String probe_id) -> Probe?
+      def remove_failed: (String probe_id) -> String?
 
       def clear_all: () { (Probe) -> void } -> void
     end

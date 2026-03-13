@@ -19,11 +19,11 @@ module Datadog
         @lock = Monitor.new
       end
 
-      # Returns a copy of the installed probes hash.
-      # The copy prevents callers from modifying the internal state directly.
+      # Returns the installed probes hash.
+      # Note: Returns the actual hash for backward compatibility with existing code.
       def installed_probes
         @lock.synchronize do
-          @installed_probes.dup
+          @installed_probes
         end
       end
 
@@ -56,10 +56,10 @@ module Datadog
         end
       end
 
-      # Returns a copy of the pending probes hash.
+      # Returns the pending probes hash.
       def pending_probes
         @lock.synchronize do
-          @pending_probes.dup
+          @pending_probes
         end
       end
 
@@ -99,36 +99,38 @@ module Datadog
         end
       end
 
-      # Returns a copy of the failed probes hash.
+      # Returns the failed probes hash.
+      # Values are error message strings, not Probe objects.
       def failed_probes
         @lock.synchronize do
-          @failed_probes.dup
+          @failed_probes
         end
       end
 
-      # Finds a failed probe by ID.
+      # Finds a failed probe error message by ID.
       #
       # @param probe_id [String] The probe ID to look up
-      # @return [Probe, nil] The probe if found, nil otherwise
+      # @return [String, nil] The error message if found, nil otherwise
       def find_failed(probe_id)
         @lock.synchronize do
           @failed_probes[probe_id]
         end
       end
 
-      # Adds a probe to the failed probes collection.
+      # Adds a probe failure to the failed probes collection.
       #
-      # @param probe [Probe] The probe to add
-      def add_failed(probe)
+      # @param probe_id [String] The probe ID
+      # @param message [String] The error message describing why the probe failed
+      def add_failed(probe_id, message)
         @lock.synchronize do
-          @failed_probes[probe.id] = probe
+          @failed_probes[probe_id] = message
         end
       end
 
       # Removes a probe from the failed probes collection.
       #
       # @param probe_id [String] The ID of the probe to remove
-      # @return [Probe, nil] The removed probe if found, nil otherwise
+      # @return [String, nil] The removed error message if found, nil otherwise
       def remove_failed(probe_id)
         @lock.synchronize do
           @failed_probes.delete(probe_id)

@@ -221,7 +221,7 @@ module Datadog
           logger.debug { "di: snapshot serialization failed for #{probe.type} probe at #{probe.location} (#{probe.id}): #{exception.class}: #{exception.message}" }
 
           # Disable the probe to prevent further failures
-          probe.disable!("Snapshot JSON encoding failed: #{exception.message}")
+          probe.disable!
 
           # Report ERROR status with specific message about JSON encoding failure
           payload = probe_notification_builder.send(:build_status,
