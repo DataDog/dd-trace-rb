@@ -465,7 +465,7 @@
       {
         "version": "A",
         "type": "boolean",
-        "default": "false"
+        "default": "true"
       }
     ],
     "DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED": [
