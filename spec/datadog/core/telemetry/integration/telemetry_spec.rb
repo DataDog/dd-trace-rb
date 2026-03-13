@@ -57,6 +57,7 @@ RSpec.describe 'Telemetry integration tests' do
         'env' => nil,
         'language_name' => 'ruby',
         'language_version' => String,
+        'process_tags' => String,
         'runtime_name' => /\Aj?ruby\z/i,
         'runtime_version' => String,
         'service_name' => String,
