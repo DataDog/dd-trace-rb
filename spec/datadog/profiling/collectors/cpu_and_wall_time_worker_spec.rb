@@ -24,6 +24,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:allocation_counting_enabled) { false }
   let(:gvl_profiling_enabled) { false }
   let(:sighandler_sampling_enabled) { false }
+  let(:cpu_sampling_interval_ms) { 10 }
   let(:worker_settings) do
     {
       gc_profiling_enabled: gc_profiling_enabled,
@@ -34,6 +35,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       allocation_counting_enabled: allocation_counting_enabled,
       gvl_profiling_enabled: gvl_profiling_enabled,
       sighandler_sampling_enabled: sighandler_sampling_enabled,
+      cpu_sampling_interval_ms: cpu_sampling_interval_ms,
       **options
     }
   end
@@ -66,6 +68,17 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
           cpu_and_wall_time_worker
         end
+      end
+    end
+
+    context "when cpu_sampling_interval_ms is less than 1" do
+      let(:cpu_sampling_interval_ms) { 0 }
+
+      it "raises an ArgumentError" do
+        expect { cpu_and_wall_time_worker }.to raise_error(
+          ArgumentError,
+          /cpu_sampling_interval_ms must be a positive integer/
+        )
       end
     end
   end

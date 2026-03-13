@@ -36,6 +36,8 @@ module Datadog
       def class_name: (untyped cls) -> String
 
       def serialize_string_or_symbol_for_message: (untyped value) -> untyped
+
+      def escape_binary_string: (String binary_string) -> String
     end
   end
 end
