@@ -17,14 +17,14 @@ module Datadog
     # @api private
     class ProbeManager
       def initialize(settings, instrumenter, probe_notification_builder,
-        probe_notifier_worker, logger, telemetry: nil, probe_repository: nil)
+        probe_notifier_worker, logger, probe_repository, telemetry: nil)
         @settings = settings
         @instrumenter = instrumenter
         @probe_notification_builder = probe_notification_builder
         @probe_notifier_worker = probe_notifier_worker
         @logger = logger
         @telemetry = telemetry
-        @probe_repository = probe_repository || ProbeRepository.new
+        @probe_repository = probe_repository
 
         @definition_trace_point = TracePoint.trace(:end) do |tp|
           install_pending_method_probes(tp.self)

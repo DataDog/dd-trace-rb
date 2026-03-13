@@ -17,7 +17,7 @@ module Datadog
 
       @definition_trace_point: untyped
 
-      def initialize: (untyped settings, untyped instrumenter, untyped probe_notification_builder, untyped probe_notifier_worker, untyped logger, ?telemetry: untyped?, ?probe_repository: ProbeRepository?) -> void
+      def initialize: (untyped settings, untyped instrumenter, untyped probe_notification_builder, untyped probe_notifier_worker, untyped logger, ProbeRepository probe_repository, ?telemetry: untyped?) -> void
 
       attr_reader logger: untyped
 

@@ -73,9 +73,8 @@ module Datadog
           probe_notification_builder: probe_notification_builder,
         )
         @probe_manager = ProbeManager.new(
-          settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger,
+          settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, probe_repository,
           telemetry: telemetry,
-          probe_repository: probe_repository,
         )
         probe_notifier_worker.start
       end
