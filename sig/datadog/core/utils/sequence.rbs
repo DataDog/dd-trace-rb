@@ -6,9 +6,9 @@ module Datadog
         @current: ::Integer
         @next_item: (^(::Integer) -> ::Integer)?
 
-        def initialize: (?::Integer seed) ?{ (::Integer) -> ::Integer } -> untyped
+        def initialize: (?::Integer seed) ?{ (::Integer) -> ::Integer } -> void
 
-        def next: () -> untyped
+        def next: () -> ::Integer
 
         def reset!: () -> void
       end
