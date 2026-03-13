@@ -622,11 +622,11 @@ module Datadog
 
             # Fallback to system dns instead of using libdatadog built-in resolver.
             #
-            # @default `DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS` environment variable as a boolean, otherwise `false`
+            # @default `DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS` environment variable as a boolean, otherwise `true`
             option :experimental_use_system_dns do |o|
               o.type :bool
               o.env 'DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS'
-              o.default false
+              o.default true
             end
           end
 
