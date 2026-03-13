@@ -7,11 +7,11 @@ module Datadog
 
           SESSION_ID_KEY: ::String
 
-          @app: untyped
+          @app: ::Rack::app
 
-          def initialize: (untyped app) -> void
+          def initialize: (::Rack::app app) -> void
 
-          def call: (untyped env) -> untyped
+          def call: (::Rack::env env) -> ::Rack::response
 
           private
 

@@ -1,10 +1,14 @@
 module Rack
+  type env = ::Hash[::String, any]
+  type response = [::Integer, ::Hash[::String, ::String], Response::_Body]
+  type app = ^(env) -> response
+
   class Request
-    def initialize: (::Hash[::String, untyped] env) -> void
+    def initialize: (Rack::env env) -> void
 
-    def env: () -> ::Hash[::String, untyped]
+    def env: () -> Rack::env
 
-    def params: () -> ::Hash[::String, untyped]
+    def params: () -> ::Hash[::String, any]
 
     def body: () -> untyped
 
