@@ -127,7 +127,7 @@ module Datadog
 
             assert_valid_option!(name)
             definition = self.class.options[name]
-            # @type self: Configuration::Options::GenericSettingsClass
+            # @type self: Configuration::Options::_Settings
             options[name] = definition.build(self)
           end
 

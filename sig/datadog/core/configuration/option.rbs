@@ -4,9 +4,9 @@ module Datadog
       class Option
         type env_value = Hash[String, String] | Array[String] | String | Integer | Float | bool | nil
         type env_vars = Hash[String, String] | ::RBS::Unnamed::ENVClass
-        type option_value = Object? | OptionDefinition::generic_proc
+        type option_value = OptionDefinition::option_type | OptionDefinition::generic_proc
 
-        @context: Options::GenericSettingsClass
+        @context: OptionDefinition::settings_context
 
         @is_set: bool
         @value: Object?
@@ -41,7 +41,7 @@ module Datadog
           end
         end
 
-        def initialize: (OptionDefinition definition, Options::GenericSettingsClass context) -> void
+        def initialize: (OptionDefinition definition, OptionDefinition::settings_context context) -> void
 
         def set: (option_value value, ?precedence: Precedence::Value) -> Object?
 
@@ -49,7 +49,7 @@ module Datadog
 
         def reset: () -> void
 
-        def default_value: () -> (OptionDefinition::generic_proc | OptionDefinition::option_type | Options::GenericSettingsClass)
+        def default_value: () -> (OptionDefinition::generic_proc | OptionDefinition::option_type)
 
         def default_precedence?: () -> bool
 
@@ -68,9 +68,9 @@ module Datadog
 
         def internal_set: (option_value value, Precedence::Value precedence) -> Object?
 
-        def context_exec: [U] (*option_value args) { (?) [self: Options::GenericSettingsClass] -> U } -> U
+        def context_exec: [U] (*option_value args) { (?) [self: OptionDefinition::settings_execution_context] -> U } -> U
 
-        def context_eval: [U] () { (Options::GenericSettingsClass settings) [self: Options::GenericSettingsClass] -> U } -> U
+        def context_eval: [U] () { (OptionDefinition::settings_execution_context settings) [self: OptionDefinition::settings_execution_context] -> U } -> U
 
         def set_default_value: () -> void
 
