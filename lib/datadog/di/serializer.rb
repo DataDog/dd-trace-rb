@@ -67,6 +67,16 @@ module Datadog
       #
       # Important: these serializers are NOT used in log messages.
       # They are only used for variables that are captured in the snapshots.
+      #
+      # IMPORTANT: Custom serializers MUST produce data that can be JSON-encoded.
+      # Specifically, custom serializers MUST NOT produce strings with binary
+      # encoding (ASCII-8BIT) containing non-ASCII code points (bytes >= 0x80)
+      # that cannot be automatically transcoded to UTF-8. Such strings will
+      # cause JSON encoding to fail, which will result in the probe being
+      # disabled and an ERROR status being reported. If your data contains
+      # binary content, encode it to a text representation (e.g., Base64,
+      # hex string, or UTF-8 with replacement characters) before returning
+      # it from the custom serializer.
       @@flat_registry = []
       def self.register(condition: nil, &block)
         @@flat_registry << {condition: condition, proc: block}

@@ -261,6 +261,36 @@ module Datadog
         probe_notifier_worker.add_status(payload, probe: probe)
       end
 
+      def snapshot_serialization_failed_callback(probe_id, exception)
+        # Called when JSON encoding of a snapshot fails (e.g., due to binary
+        # data in custom serializers). Find the probe, disable it, and report
+        # ERROR status.
+        probe = @lock.synchronize do
+          @installed_probes[probe_id]
+        end
+
+        unless probe
+          logger.debug { "di: snapshot serialization failed for unknown probe #{probe_id}" }
+          return
+        end
+
+        logger.debug { "di: snapshot serialization failed for #{probe.type} probe at #{probe.location} (#{probe.id}): #{exception.class}: #{exception.message}" }
+
+        # Disable the probe to prevent further failures
+        probe.disable!("Snapshot JSON encoding failed: #{exception.message}")
+
+        # Report ERROR status with specific message about JSON encoding failure
+        payload = probe_notification_builder.send(:build_status,
+          probe,
+          message: "Probe #{probe.id} disabled: snapshot JSON encoding failed (#{exception.class}: #{exception.message})",
+          status: 'ERROR',
+          exception: exception)
+        probe_notifier_worker.add_status(payload, probe: probe)
+
+        # Report to telemetry
+        telemetry&.report(exception, description: "DI snapshot JSON encoding failed for probe #{probe_id}")
+      end
+
       # Class/module definition trace point (:end type).
       # Used to install hooks when the target classes/modules aren't yet
       # defined when the hook request is received.

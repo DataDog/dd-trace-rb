@@ -71,6 +71,14 @@ class DISerializerSpecFields
   end
 end
 
+class DISerializerBinaryTestClass
+  attr_reader :data
+
+  def initialize(data)
+    @data = data
+  end
+end
+
 RSpec.describe Datadog::DI::Serializer do
   di_test
 
@@ -581,6 +589,84 @@ RSpec.describe Datadog::DI::Serializer do
       ]
 
       define_serialize_value_cases(cases)
+    end
+  end
+
+  context 'custom serializer returning binary string with all byte values' do
+    before do
+      # Register a custom serializer that returns a binary string containing all byte values
+      Datadog::DI::Serializer.register(condition: lambda { |value| DISerializerBinaryTestClass === value }) do |serializer, value, name:, depth:|
+        # Create binary string with all byte values from 0 to 255
+        # Force ASCII-8BIT encoding to ensure it's treated as binary data
+        binary_string = (0..255).map { |b| b.chr(Encoding::ASCII_8BIT) }.join
+        {type: 'BinaryTestClass', value: binary_string}
+      end
+    end
+
+    describe "#serialize_value" do
+      let(:test_object) { DISerializerBinaryTestClass.new("test") }
+      let(:serialized) do
+        serializer.serialize_value(test_object)
+      end
+
+      it 'produces serialized output with binary string' do
+        expect(serialized).to be_a(Hash)
+        expect(serialized[:type]).to eq('BinaryTestClass')
+        expect(serialized[:value]).to be_a(String)
+        expect(serialized[:value].bytes).to eq((0..255).to_a)
+      end
+
+      it 'binary string has ASCII-8BIT encoding' do
+        expect(serialized[:value].encoding).to eq(Encoding::ASCII_8BIT)
+      end
+
+      it 'binary string is not valid UTF-8' do
+        expect(serialized[:value].force_encoding(Encoding::UTF_8).valid_encoding?).to be false
+      end
+    end
+
+    describe "JSON encoding of serialized output" do
+      require 'json'
+
+      let(:test_object) { DISerializerBinaryTestClass.new("test") }
+      let(:serialized) do
+        serializer.serialize_value(test_object)
+      end
+
+      it 'fails when attempting to encode as JSON' do
+        # JSON.generate raises JSON::GeneratorError when it tries to convert
+        # ASCII-8BIT binary data to UTF-8 for JSON encoding
+        expect { JSON.generate(serialized) }.to raise_error(JSON::GeneratorError, /from ASCII-8BIT to UTF-8/)
+      end
+    end
+
+    describe "full snapshot payload with binary data" do
+      require 'json'
+
+      let(:test_object) { DISerializerBinaryTestClass.new("test") }
+      let(:snapshot_payload) do
+        {
+          service: 'test-service',
+          debugger: {
+            snapshot: {
+              captures: {
+                entry: {
+                  arguments: {
+                    arg1: serializer.serialize_value(test_object)
+                  }
+                }
+              }
+            }
+          }
+        }
+      end
+
+      it 'fails when full snapshot is encoded as JSON' do
+        # This demonstrates that custom serializers returning binary data
+        # will cause JSON encoding to fail downstream when the snapshot
+        # is sent to the agent
+        expect { JSON.generate(snapshot_payload) }.to raise_error(JSON::GeneratorError, /from ASCII-8BIT to UTF-8/)
+      end
     end
   end
 end

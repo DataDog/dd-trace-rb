@@ -66,6 +66,10 @@ module Datadog
         @probe_notifier_worker = ProbeNotifierWorker.new(settings, logger, agent_settings: agent_settings, telemetry: telemetry)
         @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer)
         @probe_manager = ProbeManager.new(settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, telemetry: telemetry)
+        # Wire up the callback for handling JSON encoding failures
+        probe_notifier_worker.snapshot_serialization_failed_callback = lambda do |probe_id, exception|
+          probe_manager.snapshot_serialization_failed_callback(probe_id, exception)
+        end
         probe_notifier_worker.start
       end
 

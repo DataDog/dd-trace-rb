@@ -23,7 +23,8 @@ module Datadog
     #
     # @api private
     class ProbeNotifierWorker
-      def initialize(settings, logger, agent_settings:, telemetry: nil)
+      def initialize(settings, logger, agent_settings:, telemetry: nil,
+        snapshot_serialization_failed_callback: nil)
         @settings = settings
         @telemetry = telemetry
         @status_queue = []
@@ -38,12 +39,19 @@ module Datadog
         @thread = nil
         @pid = nil
         @flush = 0
+        @snapshot_serialization_failed_callback = snapshot_serialization_failed_callback
       end
 
       attr_reader :settings
       attr_reader :logger
       attr_reader :telemetry
       attr_reader :agent_settings
+      attr_reader :snapshot_serialization_failed_callback
+
+      # Sets the callback to be invoked when snapshot JSON encoding fails.
+      # This is called after initialization because ProbeManager (which provides
+      # the callback) is created after ProbeNotifierWorker.
+      attr_writer :snapshot_serialization_failed_callback
 
       def start
         return if @thread && @pid == Process.pid
@@ -184,6 +192,25 @@ module Datadog
 
       def do_send_snapshot(batch)
         snapshot_transport.send_input(batch, tags)
+      rescue JSON::GeneratorError => exc
+        # JSON encoding failed - this can happen if custom serializers
+        # return binary data or other non-UTF-8 strings that cannot be
+        # JSON-encoded. Extract probe IDs and notify via callback.
+        logger.debug { "di: JSON encoding failed for snapshot batch: #{exc.class}: #{exc}" }
+        telemetry&.report(exc, description: "JSON encoding failed for snapshot")
+
+        # Extract probe IDs from snapshots and notify callback
+        if snapshot_serialization_failed_callback
+          probe_ids = batch.map do |snapshot|
+            snapshot.dig(:debugger, :snapshot, :probe, :id)
+          end.compact.uniq
+
+          probe_ids.each do |probe_id|
+            snapshot_serialization_failed_callback.call(probe_id, exc)
+          end
+        end
+
+        raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
       end
 
       def tags

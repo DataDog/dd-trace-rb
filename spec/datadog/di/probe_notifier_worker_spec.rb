@@ -170,5 +170,62 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         end
       end
     end
+
+    context 'when JSON encoding fails' do
+      let(:snapshot) do
+        {
+          debugger: {
+            snapshot: {
+              probe: {
+                id: 'test-probe-id',
+              },
+              captures: {}
+            }
+          }
+        }
+      end
+
+      let(:callback_invocations) { [] }
+      let(:callback) do
+        lambda do |probe_id, exception|
+          callback_invocations << {probe_id: probe_id, exception: exception}
+        end
+      end
+
+      before do
+        # Allow debug logging
+        allow(logger).to receive(:debug)
+
+        # Stub transport to raise JSON::GeneratorError
+        allow(input_transport).to receive(:send_input) do
+          raise JSON::GeneratorError.new('"\x80" from ASCII-8BIT to UTF-8')
+        end
+
+        worker.snapshot_serialization_failed_callback = callback
+        worker.start
+      end
+
+      it 'invokes the callback with probe ID and exception' do
+        worker.add_snapshot(snapshot)
+        worker.flush
+
+        # Wait for callback to be invoked
+        sleep 0.2
+
+        expect(callback_invocations.length).to eq(1)
+        expect(callback_invocations.first[:probe_id]).to eq('test-probe-id')
+        expect(callback_invocations.first[:exception]).to be_a(JSON::GeneratorError)
+        expect(callback_invocations.first[:exception].message).to match(/ASCII-8BIT to UTF-8/)
+      end
+
+      it 'logs the error' do
+        expect(logger).to receive(:debug).at_least(:once)
+
+        worker.add_snapshot(snapshot)
+        worker.flush
+
+        sleep 0.2
+      end
+    end
   end
 end
