@@ -17,9 +17,12 @@ module Datadog
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :active_storage, auto_patch: false
+          def self.gem_name
+            'activestorage'
+          end
 
           def self.version
-            Gem.loaded_specs['activestorage'] && Gem.loaded_specs['activestorage'].version
+            Gem.loaded_specs['activestorage']&.version
           end
 
           def self.loaded?
@@ -41,7 +44,7 @@ module Datadog
           end
 
           def patcher
-            Patcher
+            ActiveStorage::Patcher
           end
         end
       end
