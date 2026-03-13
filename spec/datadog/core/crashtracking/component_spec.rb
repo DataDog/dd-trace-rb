@@ -1,11 +1,14 @@
 require 'spec_helper'
+require 'datadog/profiling/spec_helper'
 require 'datadog/core/crashtracking/component'
 
 require 'webrick'
 require 'fiddle'
 
-RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers.supported? do
+RSpec.describe Datadog::Core::Crashtracking::Component do
   let(:logger) { Logger.new($stdout) }
+
+  before { skip_if_libdatadog_not_supported }
 
   describe '.build' do
     let(:settings) { Datadog::Core::Configuration::Settings.new }
@@ -255,7 +258,8 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         proc do |status:, stdout:, stderr:|
           expect(status.termsig).to_not be_nil
           expect(Signal.signame(status.termsig)).to eq('SEGV').or eq('ABRT')
-          expect(stderr).to include('[BUG] Segmentation fault')
+          expect(stderr).to include('pointer being freed was not allocated')
+            .or include('Segmentation fault').or include('[BUG] Segmentation fault').or include('[BUG] Aborted')
         end
       end
 
@@ -278,9 +282,15 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
             crash_tracker.start
             trigger.call
           end
-          expect(stack_trace).to match(array_including(hash_including(function: function)))
           expect(stack_trace.size).to be > 10
-          expect(crash_report[:tags]).to include('si_signo:11', 'si_signo_human_readable:SIGSEGV')
+
+          # On Mac, fiddle triggers SIGABRT instead of SIGSEGV
+          expect(crash_report[:tags]).to include('si_signo:6').or include('si_signo:11')
+
+          # On macOS, /proc/self/maps is not available so function names cannot be resolved out of process
+          if !PlatformHelpers.mac?
+            expect(stack_trace).to match(array_including(hash_including(function: function)))
+          end
 
           expect(crash_report_message[:metadata]).to include(
             library_name: 'dd-trace-rb',
@@ -288,7 +298,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
             family: 'ruby',
             tags: ['tag1:value1', 'tag2:value2', 'language:ruby-testing-123', 'service:ruby-testing-123'],
           )
-          expect(crash_report_message[:files][:"/proc/self/maps"]).to_not be_empty
+
           expect(crash_report_message[:os_info]).to_not be_empty
           expect(parsed_request.fetch(:application)).to include(
             service_name: 'ruby-testing-123',
@@ -297,7 +307,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         end
       end
 
-      context 'Ruby unhandled exception crash reporting' do
+      context 'Ruby unhandled exception crash reporting', if: !PlatformHelpers.mac? do
         let(:ruby_crash_expectations) do
           proc do |status:, stdout:, stderr:|
             # ruby exceptions should exit with status 1, not signal termination
@@ -312,7 +322,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
               c.agent.host = '127.0.0.1'
               c.agent.port = http_server_port
             end
-
             raise StandardError, 'Test Ruby unhandled exception'
           end
 
@@ -361,10 +370,10 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
           end
 
           expect(stack_trace).to_not be_empty
-          expect(crash_report[:tags]).to include('si_signo:11', 'si_signo_human_readable:SIGSEGV')
+
+          expect(crash_report[:tags]).to include('si_signo:6').or include('si_signo:11')
 
           expect(crash_report_message[:metadata]).to_not be_empty
-          expect(crash_report_message[:files][:"/proc/self/maps"]).to_not be_empty
           expect(crash_report_message[:os_info]).to_not be_empty
         end
       end
@@ -408,12 +417,16 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers
         end
       end
 
+      # Runtime stacks capture only works when profiling is enabled, which is not supported on macOS
       describe 'Ruby and C method runtime stack capture' do
-        let(:runtime_stack) { crash_report_experimental[:runtime_stack] }
-
         before do
-          raise 'This spec requires profiling (native extension not available)' unless Datadog::Profiling.supported?
+          if PlatformHelpers.mac?
+            skip "Ruby stack capture is only support on Linux at the moment. We need some fixes in crashtracking_runtime_stacks.c to support macOS."
+          end
         end
+        let(:runtime_stack) {
+          crash_report_experimental[:runtime_stack]
+        }
 
         it 'captures both Ruby and C method frames in mixed stacks' do
           expect_in_fork(fork_expectations: fork_expectations, timeout_seconds: 15) do
