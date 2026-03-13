@@ -313,7 +313,16 @@ module Datadog
             end
           end
           serialized
-        rescue => exc
+        rescue Exception => exc # standard:disable Lint/RescueException
+          # Re-raise fatal exceptions that should not be caught
+          # (signals, interrupts, system exit)
+          raise if [SignalException, Interrupt, SystemExit].any? { |klass| exc.is_a?(klass) }
+
+          # Catch all other exceptions including SystemStackError and NoMemoryError.
+          # These inherit from Exception (not StandardError) but can occur during
+          # serialization (e.g., infinite recursion in custom serializers, memory
+          # exhaustion from large objects) and should return a safe structure
+          # rather than propagating to the transport layer.
           telemetry&.report(exc, description: "Error serializing")
           {type: class_name(cls), notSerializedReason: exc.to_s}
         end
