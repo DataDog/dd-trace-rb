@@ -41,7 +41,7 @@ module Datadog
 
       def pending_probes: () -> Hash[String, Probe]
 
-      def failed_probes: () -> Hash[String, Probe]
+      def failed_probes: () -> Hash[String, String]
 
       def add_probe: (untyped probe) -> untyped
 
