@@ -111,39 +111,79 @@ module Datadog
           # standard:disable Metrics/AbcSize
           # standard:disable Metrics/MethodLength
           def configuration(settings, agent_settings)
+            # Special values that are not tied to a configuration option
             list = [
-              # Only set using env var as of June 2025
-              conf_value('DD_GIT_REPOSITORY_URL', Core::Environment::Git.git_repository_url, 3, 'env_var'),
-              conf_value('DD_GIT_COMMIT_SHA', Core::Environment::Git.git_commit_sha, 3, 'env_var'),
-
-              # Set by the customer application (eg. `require 'datadog/auto_instrument'`)
               conf_value(
-                'tracing.auto_instrument.enabled',
-                !defined?(Datadog::AutoInstrument::LOADED).nil?,
-                5,
-                'code'
+                'DD_GIT_REPOSITORY_URL',
+                Core::Environment::Git.git_repository_url,
+                (Core::Environment::Git.git_repository_url ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
               ),
               conf_value(
-                'tracing.opentelemetry.enabled',
-                !defined?(Datadog::OpenTelemetry::LOADED).nil?,
-                5,
-                'code'
+                'DD_GIT_COMMIT_SHA',
+                Core::Environment::Git.git_commit_sha,
+                (Core::Environment::Git.git_commit_sha ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
               ),
 
               # Mix of env var, programmatic and default config, so we use unknown
-              conf_value('DD_AGENT_TRANSPORT', agent_transport(agent_settings), 7, 'unknown'), # rubocop:disable CustomCops/EnvStringValidationCop
+              conf_value('DD_AGENT_TRANSPORT', agent_transport(agent_settings), Configuration::Option::Precedence::UNKNOWN), # rubocop:disable CustomCops/EnvStringValidationCop
             ]
 
-            # tracing.writer_options.buffer_size and tracing.writer_options.flush_interval have the same origin.
-            writer_option_sources = get_telemetry_payload(settings, 'tracing.writer_options', stringify_value: false)
-            writer_option_sources.each do |source|
-              buffer_size_source = source.dup
-              flush_interval_source = source
-              buffer_size_source[:name] = 'tracing.writer_options.buffer_size'
-              buffer_size_source[:value] = to_value(source[:value][:buffer_size])
-              flush_interval_source[:name] = 'tracing.writer_options.flush_interval'
-              flush_interval_source[:value] = to_value(source[:value][:flush_interval])
-              list.push(buffer_size_source, flush_interval_source)
+            # Set by the customer application (eg. `require 'datadog/auto_instrument'`)
+            auto_instrument_enabled = !defined?(Datadog::AutoInstrument::LOADED).nil?
+            list << conf_value(
+              'tracing.auto_instrument.enabled',
+              auto_instrument_enabled,
+              auto_instrument_enabled ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT
+            )
+            opentelemetry_enabled = !defined?(Datadog::OpenTelemetry::LOADED).nil?
+            list << conf_value(
+              'tracing.opentelemetry.enabled',
+              opentelemetry_enabled,
+              opentelemetry_enabled ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT
+            )
+
+            # Track ssi configurations
+            instrumentation_source = if Datadog.const_defined?(:SingleStepInstrument, false) &&
+                Datadog::SingleStepInstrument.const_defined?(:LOADED, false) &&
+                Datadog::SingleStepInstrument::LOADED
+              'ssi'
+            else
+              'manual'
+            end
+
+            list.push(
+              conf_value(
+                'instrumentation_source',
+                instrumentation_source,
+                (instrumentation_source == 'ssi') ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT
+              ),
+              conf_value(
+                'DD_INJECT_FORCE',
+                Core::Environment::VariableHelpers.env_to_bool('DD_INJECT_FORCE', false),
+                (DATADOG_ENV.key?('DD_INJECT_FORCE') ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
+              ),
+              conf_value(
+                'DD_INJECTION_ENABLED',
+                DATADOG_ENV['DD_INJECTION_ENABLED'] || '',
+                (DATADOG_ENV.key?('DD_INJECTION_ENABLED') ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
+              ),
+            )
+
+            # Extract writer options as separate configuration payloads.
+            get_telemetry_payload(settings, 'tracing.writer_options', stringify_value: false).each do |source|
+              # Steep: **source causes the ::Datadog::Core::Telemetry::Event::telemetry_configuration Record
+              # to become a Hash. We can assign it to a value and add an annotation to type it to the correct record.
+              # However, overwriting `name` and `value` will cause a FalseAssertion diagnostic.
+              list << {
+                **source,
+                name: 'tracing.writer_options.buffer_size',
+                value: to_value(source[:value][:buffer_size])
+              } # steep:ignore ArgumentTypeMismatch
+              list << {
+                **source,
+                name: 'tracing.writer_options.flush_interval',
+                value: to_value(source[:value][:flush_interval])
+              } # steep:ignore ArgumentTypeMismatch
             end
 
             # OpenTelemetry configuration options (using environment variable names)
@@ -154,25 +194,6 @@ module Datadog
             otel_exporter_metrics_headers_sources = get_telemetry_payload(settings, 'opentelemetry.metrics.headers', stringify_value: false)
             otel_exporter_metrics_headers_sources.each { |source| source[:value] = source[:value]&.map { |key, value| "#{key}=#{value}" }&.join(',') }
             list.push(*otel_exporter_metrics_headers_sources)
-
-            # Whitelist of configuration options to send in additional payload object
-            TARGET_OPTIONS.each do |option_path|
-              list.push(*get_telemetry_payload(settings, option_path))
-            end
-
-            instrumentation_source = if Datadog.const_defined?(:SingleStepInstrument, false) &&
-                Datadog::SingleStepInstrument.const_defined?(:LOADED, false) &&
-                Datadog::SingleStepInstrument::LOADED
-              'ssi'
-            else
-              'manual'
-            end
-            # Track ssi configurations
-            list.push(
-              conf_value('instrumentation_source', instrumentation_source, 5, 'code'),
-              conf_value('DD_INJECT_FORCE', Core::Environment::VariableHelpers.env_to_bool('DD_INJECT_FORCE', false), 3, 'env_var'),
-              conf_value('DD_INJECTION_ENABLED', DATADOG_ENV['DD_INJECTION_ENABLED'] || '', 3, 'env_var'),
-            )
 
             # Add some more custom additional payload values here
             if settings.logger.instance
@@ -188,7 +209,13 @@ module Datadog
               list.push(*get_telemetry_payload(settings, 'ci.enabled'))
             end
 
-            list.reject! { |entry| entry[:value].nil? }
+            # Whitelist of configuration options to send in additional payload object
+            TARGET_OPTIONS.each do |option_path|
+              list.push(*get_telemetry_payload(settings, option_path))
+            end
+
+            # We still want to report nil default and programmatic values as they are valid values
+            list.reject! { |entry| entry[:origin] != 'default' && entry[:origin] != 'code' && entry[:value].nil? }
             list
           end
           # standard:enable Metrics/AbcSize
@@ -211,13 +238,13 @@ module Datadog
           # - 5:`code`: configurations that are set through the customer application
           # - 6:`remote_config`: values that are set using remote config
           # - 7:`unknown`: set for cases where it is difficult/not possible to determine the source of a config.
-          def conf_value(name, value, seq_id, origin)
+          def conf_value(name, value, precedence)
             # @type var result: telemetry_configuration
-            result = {name: name, value: value, origin: origin, seq_id: seq_id}
-            if origin == 'fleet_stable_config'
+            result = {name: name, value: value, origin: precedence.origin, seq_id: precedence.numeric + 1}
+            if precedence.origin == 'fleet_stable_config'
               fleet_id = Core::Configuration::StableConfig.configuration.dig(:fleet, :id)
               result[:config_id] = fleet_id if fleet_id
-            elsif origin == 'local_stable_config'
+            elsif precedence.origin == 'local_stable_config'
               local_id = Core::Configuration::StableConfig.configuration.dig(:local, :id)
               result[:config_id] = local_id if local_id
             end

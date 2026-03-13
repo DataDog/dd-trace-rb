@@ -151,6 +151,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
 
       it 'reports OpenTelemetry configurations with environment variable names' do
         expect(event.payload[:configuration]).to include(
+          # Environment variables values
           {name: 'otel_exporter_otlp_endpoint', origin: 'env_var', seq_id: 3, value: 'http://otel:4317'},
           {name: 'otel_exporter_otlp_headers', origin: 'env_var', seq_id: 3, value: 'key1=value1,key2=value2'},
           {name: 'otel_exporter_otlp_protocol', origin: 'env_var', seq_id: 3, value: 'http/protobuf'},
@@ -165,21 +166,29 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
           {name: 'otel_metric_export_interval', origin: 'env_var', seq_id: 3, value: 4000},
           {name: 'otel_metric_export_timeout', origin: 'env_var', seq_id: 3, value: 2000},
         )
+        expect(event.payload[:configuration]).to include(
+          # Default values
+          {name: 'otel_exporter_otlp_endpoint', origin: 'default', seq_id: 1, value: nil},
+          {name: 'otel_exporter_otlp_headers', origin: 'default', seq_id: 1, value: ''},
+          {name: 'otel_exporter_otlp_protocol', origin: 'default', seq_id: 1, value: 'http/protobuf'},
+          {name: 'otel_exporter_otlp_timeout', origin: 'default', seq_id: 1, value: 10000},
+          {name: 'metrics_otel_enabled', origin: 'default', seq_id: 1, value: false},
+          {name: 'otel_metrics_exporter', origin: 'default', seq_id: 1, value: 'otlp'},
+          {name: 'otel_exporter_otlp_metrics_endpoint', origin: 'default', seq_id: 1, value: nil},
+          {name: 'otel_exporter_otlp_metrics_headers', origin: 'default', seq_id: 1, value: nil},
+          {name: 'otel_exporter_otlp_metrics_protocol', origin: 'default', seq_id: 1, value: 'http/protobuf'},
+          {name: 'otel_exporter_otlp_metrics_timeout', origin: 'default', seq_id: 1, value: 10000},
+          {name: 'otel_exporter_otlp_metrics_temporality_preference', origin: 'default', seq_id: 1, value: 'delta'},
+          {name: 'otel_metric_export_interval', origin: 'default', seq_id: 1, value: 10000},
+          {name: 'otel_metric_export_timeout', origin: 'default', seq_id: 1, value: 7500}
+        )
       end
     end
 
     context 'with default configuration' do
       it 'reports default configuration' do
         expect(event.payload[:configuration]).to include(*default_configuration.map { |name, value| {name: name, origin: 'default', seq_id: 1, value: value} })
-        expect(event.payload[:configuration]).to_not include(
-          hash_including(name: 'agent.host'),
-          hash_including(name: 'trace_sample_rate'),
-          hash_including(name: 'trace_analytics_enabled'),
-          hash_including(name: 'tracing.writer_options.buffer_size'),
-          hash_including(name: 'tracing.writer_options.flush_interval'),
-          hash_including(name: 'logger.instance'),
-          hash_including(name: 'appsec_sca_enabled'),
-        )
+        expect(event.payload[:configuration]).to_not include(*default_configuration.map { |name, value| {name: name, origin: /^((?!default).)*$/, seq_id: anything, value: anything} })
       end
     end
 
@@ -213,9 +222,9 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
           {name: 'logger.instance', origin: 'code', seq_id: 5, value: 'MyLogger'},
           {name: 'logger.level', origin: 'code', seq_id: 5, value: 0},
           {name: 'appsec_sca_enabled', origin: 'code', seq_id: 5, value: false},
-          {name: 'instrumentation_source', origin: 'code', seq_id: 5, value: 'manual'},
-          {name: 'DD_INJECT_FORCE', origin: 'env_var', seq_id: 3, value: false},
-          {name: 'DD_INJECTION_ENABLED', origin: 'env_var', seq_id: 3, value: ''},
+          {name: 'instrumentation_source', origin: 'default', seq_id: 1, value: 'manual'},
+          {name: 'DD_INJECT_FORCE', origin: 'default', seq_id: 1, value: false},
+          {name: 'DD_INJECTION_ENABLED', origin: 'default', seq_id: 1, value: ''},
         )
       end
     end

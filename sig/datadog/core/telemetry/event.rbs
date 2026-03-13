@@ -11,6 +11,14 @@ module Datadog
           ?config_id: ::String?
         }
 
+        type telemetry_configuration_value_not_stringified = {
+          name: ::String,
+          value: any,
+          origin: ::String,
+          seq_id: ::Integer,
+          ?config_id: ::String?
+        }
+
         extend Core::Utils::Forking
 
         self.@sequence: Datadog::Core::Utils::Sequence

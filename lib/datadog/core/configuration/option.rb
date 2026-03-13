@@ -41,6 +41,9 @@ module Datadog
             end
           end
 
+          # Used only by telemetry when it is not possible to determine the source of a config.
+          UNKNOWN = Value.new(6, :unknown, 'unknown').freeze
+
           # Remote configuration provided through the Datadog app.
           REMOTE_CONFIGURATION = Value.new(5, :remote_configuration, 'remote_config').freeze
 
@@ -182,6 +185,7 @@ module Datadog
         end
 
         def telemetry_payload(stringify_value: true)
+          # For now. let's send an already normalized name, but later we should be able to simply send the env var.
           name = if @definition.env
             # Steep: https://github.com/soutaro/steep/issues/477
             @definition.env.downcase.sub(/^dd_/, '') # steep:ignore NoMethod
@@ -191,7 +195,7 @@ module Datadog
           # value_per_precedence is only filled after we call `get` once.
           get
           @value_per_precedence.each_with_object([]) do |(precedence, value), arr|
-            # For now. let's send an already normalized name, but later we should be able to simply send the env var.
+            # @type var result: Telemetry::Event::telemetry_configuration | Telemetry::Event::telemetry_configuration_value_not_stringified
             result = {name: name, value: stringify_value ? to_telemetry_value(value) : value, origin: precedence.origin, seq_id: precedence.numeric + 1}
             if precedence.origin == 'fleet_stable_config'
               fleet_id = Core::Configuration::StableConfig.configuration.dig(:fleet, :id)

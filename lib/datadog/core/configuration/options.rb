@@ -21,7 +21,7 @@ module Datadog
             :parent
 
           def settings_path
-            @settings_path ||= (@parent.nil? || @parent.settings_path.nil?) ? @settings_name : "#{@parent.settings_path}.#{@settings_name}"
+            @settings_path ||= (parent.nil? || parent.settings_path.nil?) ? @settings_name : "#{parent.settings_path}.#{@settings_name}"
           end
 
           def options
