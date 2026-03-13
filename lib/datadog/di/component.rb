@@ -63,11 +63,8 @@ module Datadog
         @redactor = Redactor.new(settings)
         @serializer = Serializer.new(settings, redactor, telemetry: telemetry)
         @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry)
-        # Create shared probe repository first - no dependencies
         @probe_repository = ProbeRepository.new
-        # Create notification builder - depends on settings and serializer
         @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer)
-        # Create worker with all dependencies injected - no post-creation wiring needed
         @probe_notifier_worker = ProbeNotifierWorker.new(
           settings, logger,
           agent_settings: agent_settings,
@@ -75,7 +72,6 @@ module Datadog
           probe_repository: probe_repository,
           probe_notification_builder: probe_notification_builder,
         )
-        # Create manager with shared repository
         @probe_manager = ProbeManager.new(
           settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger,
           telemetry: telemetry,
