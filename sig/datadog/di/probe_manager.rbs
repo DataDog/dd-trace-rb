@@ -13,21 +13,18 @@ module Datadog
 
       @telemetry: untyped
 
-      @installed_probes: untyped
-
-      @pending_probes: untyped
-
-      @failed_probes: untyped
-
-      @lock: untyped
+      @probe_repository: ProbeRepository
 
       @definition_trace_point: untyped
 
-      def initialize: (untyped settings, untyped instrumenter, untyped probe_notification_builder, untyped probe_notifier_worker, untyped logger, ?telemetry: untyped?) -> void
+      def initialize: (untyped settings, untyped instrumenter, untyped probe_notification_builder, untyped probe_notifier_worker, untyped logger, ?telemetry: untyped?, ?probe_repository: ProbeRepository?) -> void
 
       attr_reader logger: untyped
 
       attr_reader telemetry: untyped
+
+      attr_reader probe_repository: ProbeRepository
+
       def close: () -> untyped
 
       def clear_hooks: () -> untyped
@@ -40,11 +37,14 @@ module Datadog
 
       attr_reader probe_notifier_worker: untyped
 
-      def installed_probes: () -> untyped
+      def installed_probes: () -> Hash[String, Probe]
 
-      def pending_probes: () -> untyped
-      def failed_probes: () -> untyped
+      def pending_probes: () -> Hash[String, Probe]
+
+      def failed_probes: () -> Hash[String, Probe]
+
       def add_probe: (untyped probe) -> untyped
+
       def remove_probe: (untyped probe_id) -> untyped
 
       private
@@ -52,13 +52,12 @@ module Datadog
 
       public
       def install_pending_line_probes: (untyped path) -> untyped
+
       def probe_executed_callback: (untyped context) -> untyped
 
       def probe_condition_evaluation_failed_callback: (untyped context, untyped expr, untyped exc) -> untyped
 
       def probe_disabled_callback: (Probe probe, Float duration) -> void
-
-      def snapshot_serialization_failed_callback: (String probe_id, Exception exception) -> void
 
       attr_reader definition_trace_point: untyped
     end

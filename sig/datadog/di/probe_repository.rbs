@@ -1,0 +1,43 @@
+module Datadog
+  module DI
+    class ProbeRepository
+      @installed_probes: Hash[String, Probe]
+
+      @pending_probes: Hash[String, Probe]
+
+      @failed_probes: Hash[String, Probe]
+
+      @lock: Monitor
+
+      def initialize: () -> void
+
+      def installed_probes: () -> Hash[String, Probe]
+
+      def find_installed: (String probe_id) -> Probe?
+
+      def add_installed: (Probe probe) -> void
+
+      def remove_installed: (String probe_id) -> Probe?
+
+      def pending_probes: () -> Hash[String, Probe]
+
+      def find_pending: (String probe_id) -> Probe?
+
+      def add_pending: (Probe probe) -> void
+
+      def remove_pending: (String probe_id) -> Probe?
+
+      def clear_pending: () -> void
+
+      def failed_probes: () -> Hash[String, Probe]
+
+      def find_failed: (String probe_id) -> Probe?
+
+      def add_failed: (Probe probe) -> void
+
+      def remove_failed: (String probe_id) -> Probe?
+
+      def clear_all: () { (Probe) -> void } -> void
+    end
+  end
+end

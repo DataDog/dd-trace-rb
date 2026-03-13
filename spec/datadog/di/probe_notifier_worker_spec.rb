@@ -229,17 +229,39 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
               probe: {
                 id: 'test-probe-id',
               },
-              captures: {}
-            }
-          }
+              captures: {},
+            },
+          },
         }
       end
 
-      let(:callback_invocations) { [] }
-      let(:callback) do
-        lambda do |probe_id, exception|
-          callback_invocations << {probe_id: probe_id, exception: exception}
-        end
+      let(:probe) do
+        instance_double(Datadog::DI::Probe,
+          id: 'test-probe-id',
+          type: 'log',
+          location: 'test.rb:42',)
+      end
+
+      let(:probe_repository) do
+        repo = instance_double(Datadog::DI::ProbeRepository)
+        allow(repo).to receive(:find_installed).with('test-probe-id').and_return(probe)
+        repo
+      end
+
+      let(:probe_notification_builder) do
+        builder = instance_double(Datadog::DI::ProbeNotificationBuilder)
+        allow(builder).to receive(:build_status).and_return({status: 'ERROR'})
+        builder
+      end
+
+      let(:worker_with_di) do
+        described_class.new(
+          settings, logger,
+          agent_settings: agent_settings,
+          telemetry: telemetry,
+          probe_repository: probe_repository,
+          probe_notification_builder: probe_notification_builder,
+        )
       end
 
       before do
@@ -251,28 +273,50 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           raise JSON::GeneratorError.new('"\x80" from ASCII-8BIT to UTF-8')
         end
 
-        worker.snapshot_serialization_failed_callback = callback
-        worker.start
+        # Allow the status to be sent
+        allow(diagnostics_transport).to receive(:send_diagnostics)
+
+        worker_with_di.start
       end
 
-      it 'invokes the callback with probe ID and exception' do
-        worker.add_snapshot(snapshot)
-        worker.flush
+      after do
+        worker_with_di.stop
+      end
 
-        # Wait for callback to be invoked
+      it 'looks up the probe and disables it' do
+        expect(probe_repository).to receive(:find_installed).with('test-probe-id').and_return(probe)
+        expect(probe).to receive(:disable!).with(/Snapshot JSON encoding failed/)
+
+        worker_with_di.add_snapshot(snapshot)
+        worker_with_di.flush
+
+        # Wait for error handling to complete
         sleep 0.2
+      end
 
-        expect(callback_invocations.length).to eq(1)
-        expect(callback_invocations.first[:probe_id]).to eq('test-probe-id')
-        expect(callback_invocations.first[:exception]).to be_a(JSON::GeneratorError)
-        expect(callback_invocations.first[:exception].message).to match(/ASCII-8BIT to UTF-8/)
+      it 'builds and sends ERROR status' do
+        allow(probe).to receive(:disable!)
+        expect(probe_notification_builder).to receive(:build_status) do |p, message:, status:, exception:|
+          expect(p).to eq(probe)
+          expect(status).to eq('ERROR')
+          expect(message).to match(/JSON encoding failed/)
+          expect(exception).to be_a(JSON::GeneratorError)
+          {status: 'ERROR'}
+        end
+
+        worker_with_di.add_snapshot(snapshot)
+        worker_with_di.flush
+
+        # Wait for error handling to complete
+        sleep 0.2
       end
 
       it 'logs the error' do
+        allow(probe).to receive(:disable!)
         expect(logger).to receive(:debug).at_least(:once)
 
-        worker.add_snapshot(snapshot)
-        worker.flush
+        worker_with_di.add_snapshot(snapshot)
+        worker_with_di.flush
 
         sleep 0.2
       end

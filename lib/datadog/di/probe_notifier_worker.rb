@@ -24,7 +24,7 @@ module Datadog
     # @api private
     class ProbeNotifierWorker
       def initialize(settings, logger, agent_settings:, telemetry: nil,
-        snapshot_serialization_failed_callback: nil)
+        probe_repository: nil, probe_notification_builder: nil)
         @settings = settings
         @telemetry = telemetry
         @status_queue = []
@@ -39,19 +39,16 @@ module Datadog
         @thread = nil
         @pid = nil
         @flush = 0
-        @snapshot_serialization_failed_callback = snapshot_serialization_failed_callback
+        @probe_repository = probe_repository
+        @probe_notification_builder = probe_notification_builder
       end
 
       attr_reader :settings
       attr_reader :logger
       attr_reader :telemetry
       attr_reader :agent_settings
-      attr_reader :snapshot_serialization_failed_callback
-
-      # Sets the callback to be invoked when snapshot JSON encoding fails.
-      # This is called after initialization because ProbeManager (which provides
-      # the callback) is created after ProbeNotifierWorker.
-      attr_writer :snapshot_serialization_failed_callback
+      attr_reader :probe_repository
+      attr_reader :probe_notification_builder
 
       def start
         return if @thread && @pid == Process.pid
@@ -199,18 +196,44 @@ module Datadog
         logger.debug { "di: JSON encoding failed for snapshot batch: #{exc.class}: #{exc}" }
         telemetry&.report(exc, description: "JSON encoding failed for snapshot")
 
-        # Extract probe IDs from snapshots and notify callback
-        if snapshot_serialization_failed_callback
-          probe_ids = batch.map do |snapshot|
-            snapshot.dig(:debugger, :snapshot, :probe, :id)
-          end.compact.uniq
-
-          probe_ids.each do |probe_id|
-            snapshot_serialization_failed_callback.call(probe_id, exc)
-          end
+        # Handle error using injected dependencies if available
+        if probe_repository && probe_notification_builder
+          handle_snapshot_serialization_failure(batch, exc)
         end
 
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+      end
+
+      # Handles snapshot serialization failures by disabling affected probes
+      # and reporting ERROR status.
+      #
+      # This method uses the injected probe_repository and probe_notification_builder
+      # to handle the error directly, avoiding circular dependencies.
+      def handle_snapshot_serialization_failure(batch, exception)
+        probe_ids = batch.map do |snapshot|
+          snapshot.dig(:debugger, :snapshot, :probe, :id)
+        end.compact.uniq
+
+        probe_ids.each do |probe_id|
+          probe = probe_repository.find_installed(probe_id)
+          next unless probe
+
+          logger.debug { "di: snapshot serialization failed for #{probe.type} probe at #{probe.location} (#{probe.id}): #{exception.class}: #{exception.message}" }
+
+          # Disable the probe to prevent further failures
+          probe.disable!("Snapshot JSON encoding failed: #{exception.message}")
+
+          # Report ERROR status with specific message about JSON encoding failure
+          payload = probe_notification_builder.send(:build_status,
+            probe,
+            message: "Probe #{probe.id} disabled: snapshot JSON encoding failed (#{exception.class}: #{exception.message})",
+            status: 'ERROR',
+            exception: exception,)
+          add_status(payload, probe: probe)
+
+          # Report to telemetry
+          telemetry&.report(exception, description: "DI snapshot JSON encoding failed for probe #{probe_id}")
+        end
       end
 
       def tags
