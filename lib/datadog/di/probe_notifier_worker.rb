@@ -207,8 +207,10 @@ module Datadog
       # Handles snapshot serialization failures by disabling affected probes
       # and reporting ERROR status.
       #
-      # This method uses the injected probe_repository and probe_notification_builder
-      # to handle the error directly, avoiding circular dependencies.
+      # @param batch [Array<Hash>] Array of snapshot payloads that failed to serialize.
+      #   Each snapshot is a Hash with the structure:
+      #   { debugger: { snapshot: { probe: { id: String } } } }
+      # @param exception [Exception] The JSON encoding exception that was raised
       def handle_snapshot_serialization_failure(batch, exception)
         probe_ids = batch.map do |snapshot|
           snapshot.dig(:debugger, :snapshot, :probe, :id)

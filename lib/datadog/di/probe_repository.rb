@@ -6,9 +6,13 @@ module Datadog
   module DI
     # Thread-safe repository for storing probes in various states.
     #
-    # This class is extracted from ProbeManager to allow ProbeNotifierWorker
-    # to look up probes directly (for error handling) without creating a
-    # circular dependency between ProbeNotifierWorker and ProbeManager.
+    # Probes are stored in three collections based on their state:
+    # - installed_probes: Successfully instrumented probes
+    # - pending_probes: Probes waiting for their target to be defined
+    # - failed_probes: Probes that failed to instrument (stores error messages, not probes)
+    #
+    # This class is shared between ProbeManager and ProbeNotifierWorker,
+    # allowing ProbeNotifierWorker to look up probes for error handling.
     #
     # @api private
     class ProbeRepository
@@ -107,7 +111,7 @@ module Datadog
         end
       end
 
-      # Finds a failed probe error message by ID.
+      # Finds a failed probe error message by probe ID.
       #
       # @param probe_id [String] The probe ID to look up
       # @return [String, nil] The error message if found, nil otherwise
@@ -117,7 +121,10 @@ module Datadog
         end
       end
 
-      # Adds a probe failure to the failed probes collection.
+      # Records a probe installation failure.
+      #
+      # Failed probes are tracked by ID with their error message to prevent
+      # repeated installation attempts that would fail again.
       #
       # @param probe_id [String] The probe ID
       # @param message [String] The error message describing why the probe failed
@@ -127,7 +134,10 @@ module Datadog
         end
       end
 
-      # Removes a probe from the failed probes collection.
+      # Removes a probe failure record from the collection.
+      #
+      # Called when remote configuration removes a probe that previously
+      # failed to install, cleaning up the failure tracking.
       #
       # @param probe_id [String] The ID of the probe to remove
       # @return [String, nil] The removed error message if found, nil otherwise
@@ -138,6 +148,12 @@ module Datadog
       end
 
       # Clears all probes from all collections.
+      #
+      # Yields each installed probe before clearing to allow cleanup
+      # (e.g., unhooking instrumentation).
+      #
+      # Note: The block is called while holding the lock. This is safe because
+      # the unhook operation in Instrumenter does not call back into ProbeRepository.
       #
       # @yield [probe] Yields each installed probe before clearing (for cleanup)
       def clear_all
