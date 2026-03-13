@@ -187,7 +187,7 @@ module Datadog
       end
 
       def snapshot_transport
-        @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger)
+        @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger, telemetry: telemetry)
       end
 
       def do_send_snapshot(batch)
@@ -300,9 +300,7 @@ module Datadog
             rescue => exc
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
               logger.debug { "di: failed to send #{event_name}: #{exc.class}: #{exc} (at #{exc.backtrace.first})" }
-              # Should we report this error to telemetry? Most likely failure
-              # to send is due to a network issue, and trying to send a
-              # telemetry message would also fail.
+              telemetry&.report(exc, description: "Error sending #{event_type}")
             end
           end
           batch.any?
