@@ -17,9 +17,9 @@ RSpec.describe Datadog::AppSec::Monitor::Gateway::TelemetryWatcher do
 
   describe '.watch_user_lifecycle_telemetry' do
     it 'does not send telemetry when both user_id and user_login are present' do
-      lifecycle_event = Datadog::AppSec::Instrumentation::Gateway::UserLifecycleEvent.new(
-        'users.login.success', has_user_id: true, has_user_login: true, framework: 'devise'
-      )
+      lifecycle_event = {
+        event: 'users.login.success', has_user_id: true, has_user_login: true, framework: 'devise'
+      }
 
       gateway.push('appsec.events.user_lifecycle', lifecycle_event)
 
@@ -27,9 +27,9 @@ RSpec.describe Datadog::AppSec::Monitor::Gateway::TelemetryWatcher do
     end
 
     it 'does not send telemetry when user_login is present and user_id is missing' do
-      lifecycle_event = Datadog::AppSec::Instrumentation::Gateway::UserLifecycleEvent.new(
-        'users.login.failure', has_user_id: false, has_user_login: true, framework: 'devise'
-      )
+      lifecycle_event = {
+        event: 'users.login.failure', has_user_id: false, has_user_login: true, framework: 'devise'
+      }
 
       gateway.push('appsec.events.user_lifecycle', lifecycle_event)
 
@@ -37,9 +37,9 @@ RSpec.describe Datadog::AppSec::Monitor::Gateway::TelemetryWatcher do
     end
 
     it 'sends missing_user_login telemetry when user_login is missing' do
-      lifecycle_event = Datadog::AppSec::Instrumentation::Gateway::UserLifecycleEvent.new(
-        'users.authenticated_request', has_user_id: true, has_user_login: false, framework: 'devise'
-      )
+      lifecycle_event = {
+        event: 'users.authenticated_request', has_user_id: true, has_user_login: false, framework: 'devise'
+      }
 
       gateway.push('appsec.events.user_lifecycle', lifecycle_event)
 
@@ -54,9 +54,9 @@ RSpec.describe Datadog::AppSec::Monitor::Gateway::TelemetryWatcher do
     end
 
     it 'sends both missing_user_login and missing_user_id telemetry when both are missing' do
-      lifecycle_event = Datadog::AppSec::Instrumentation::Gateway::UserLifecycleEvent.new(
-        'users.login.failure', has_user_id: false, has_user_login: false, framework: 'devise'
-      )
+      lifecycle_event = {
+        event: 'users.login.failure', has_user_id: false, has_user_login: false, framework: 'devise'
+      }
 
       gateway.push('appsec.events.user_lifecycle', lifecycle_event)
 
@@ -71,9 +71,9 @@ RSpec.describe Datadog::AppSec::Monitor::Gateway::TelemetryWatcher do
     end
 
     it 'does not send telemetry for unknown event types' do
-      lifecycle_event = Datadog::AppSec::Instrumentation::Gateway::UserLifecycleEvent.new(
-        'users.unknown_event', has_user_id: false, has_user_login: false, framework: 'devise'
-      )
+      lifecycle_event = {
+        event: 'users.unknown_event', has_user_id: false, has_user_login: false, framework: 'devise'
+      }
 
       gateway.push('appsec.events.user_lifecycle', lifecycle_event)
 
