@@ -1,5 +1,7 @@
 require 'spec_helper'
 
+require 'stringio'
+require 'json'
 require 'datadog/tracing/transport/io/client'
 require 'datadog/tracing/transport/io/traces'
 
@@ -25,18 +27,13 @@ RSpec.describe Datadog::Tracing::Transport::IO::Client do
       subject(:send_request) { client.send_request(request) }
 
       let(:request) { instance_double(Datadog::Core::Transport::Request, parcel: parcel) }
-      let(:parcel) { instance_double(Datadog::Tracing::Transport::IO::Traces::Parcel, data: data) }
+      let(:parcel) { instance_double(Datadog::Core::Transport::Parcel, data: data) }
       let(:data) { 'Hello, world!' }
-      let(:encoded_data) { double('encoded data') }
       let(:result) { double('IO result') }
 
       before do
-        expect(parcel).to receive(:encode_with)
-          .with(encoder)
-          .and_return(encoded_data)
-
         expect(client.out).to receive(:puts)
-          .with(encoded_data)
+          .with(data)
           .and_return(result)
 
         expect(client).to receive(:update_stats_from_response!)
@@ -76,23 +73,6 @@ RSpec.describe Datadog::Tracing::Transport::IO::Client do
     end
   end
 
-  describe '#encode_data' do
-    subject(:encode_data) { client.encode_data(encoder, request) }
-
-    let(:request) { instance_double(Datadog::Core::Transport::Request, parcel: parcel) }
-    let(:parcel) { instance_double(Datadog::Core::Transport::Parcel) }
-    let(:data) { double('data') }
-
-    before do
-      expect(parcel)
-        .to receive(:encode_with)
-        .with(encoder)
-        .and_return(data)
-    end
-
-    it { is_expected.to be data }
-  end
-
   describe '#write_data' do
     subject(:write_data) { client.write_data(out, data) }
 
@@ -125,5 +105,63 @@ RSpec.describe Datadog::Tracing::Transport::IO::Client do
     end
 
     it { is_expected.to be response }
+  end
+
+  describe '#send_traces' do
+    context 'integration test with real IO' do
+      subject(:send_traces) { client.send_traces(traces) }
+
+      let(:out) { StringIO.new }
+      let(:encoder) { Datadog::Core::Encoding::JSONEncoder }
+      let(:traces) { get_test_traces(2) }
+
+      it 'writes valid JSON with correct trace structure' do
+        # Send traces and capture output
+        responses = send_traces
+        output = out.string
+
+        # Verify response
+        expect(responses).to all(be_a(Datadog::Tracing::Transport::IO::Traces::Response))
+
+        # Parse and verify it's valid JSON
+        parsed = JSON.parse(output)
+        expect(parsed).to be_a(Hash)
+        expect(parsed).to have_key('traces')
+        expect(parsed['traces']).to be_an(Array)
+        expect(parsed['traces'].length).to eq(traces.length)
+
+        # Verify all traces have correct structure
+        traces.zip(parsed['traces']).each do |trace, encoded_trace|
+          expect(encoded_trace).to be_an(Array)
+          expect(encoded_trace.length).to eq(trace.spans.length)
+
+          # Verify all spans in the trace are correctly encoded
+          trace.spans.zip(encoded_trace).each do |span, encoded_span|
+            # Match complete encoded span structure
+            expect(encoded_span).to match(
+              'error' => 0,
+              'meta' => {},
+              'metrics' => be_a(Hash),
+              'meta_struct' => {},
+              'name' => 'client.testing',
+              'parent_id' => match(/^[0-9a-f]+$/),
+              'resource' => '/traces',
+              'service' => 'test-app',
+              'span_id' => match(/^[0-9a-f]+$/),
+              'trace_id' => match(/^[0-9a-f]+$/),
+              'type' => 'web',
+              'span_links' => [],
+              'start' => be_an(Integer),
+              'duration' => be_an(Integer),
+            )
+
+            # Verify hex-encoded IDs match actual span values
+            expect(encoded_span['trace_id']).to eq(span.trace_id.to_s(16))
+            expect(encoded_span['span_id']).to eq(span.id.to_s(16))
+            expect(encoded_span['parent_id']).to eq(span.parent_id.to_s(16))
+          end
+        end
+      end
+    end
   end
 end

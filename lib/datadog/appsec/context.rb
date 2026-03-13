@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
+require_relative 'counter_sampler'
 require_relative 'metrics'
+require_relative 'security_event'
 
 module Datadog
   module AppSec
@@ -27,6 +29,9 @@ module Datadog
       #       it's a `Hash`-like structure.
       attr_reader :state
 
+      # Sampler for downstream HTTP request/response body analysis.
+      attr_reader :downstream_body_sampler
+
       class << self
         def activate(context)
           raise ArgumentError, 'not a Datadog::AppSec::Context' unless context.instance_of?(Context)
@@ -51,9 +56,13 @@ module Datadog
         @span = span
         @waf_runner = waf_runner
         @metrics = Metrics::Collector.new
+        @downstream_body_sampler = CounterSampler.new(
+          Datadog.configuration.appsec.api_security.downstream_body_analysis.sample_rate
+        )
         @state = {
           events: [],
-          interrupted: false
+          interrupted: false,
+          downstream_body_analyzed_count: 0
         }
       end
 
@@ -93,8 +102,13 @@ module Datadog
         @waf_runner.waf_addresses
       end
 
-      def extract_schema
-        @waf_runner.run({'waf.context.processor' => {'extract-schema' => true}}, {})
+      def extract_schema!
+        waf_result = @waf_runner.run({'waf.context.processor' => {'extract-schema' => true}}, {})
+        security_event = AppSec::SecurityEvent.new(waf_result, trace: trace, span: span)
+
+        @state[:schema_extracted] = security_event.schema?
+
+        events.push(security_event)
       end
 
       def export_metrics
@@ -108,6 +122,7 @@ module Datadog
         return if @trace.nil?
 
         Metrics::TelemetryExporter.export_waf_request_metrics(@metrics.waf, self)
+        Metrics::TelemetryExporter.export_api_security_metrics(self)
       end
 
       def finalize!

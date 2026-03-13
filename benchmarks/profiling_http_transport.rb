@@ -44,6 +44,7 @@ class ProfilerHttpTransportBenchmark
       site: nil,
       api_key: nil,
       upload_timeout_seconds: 10,
+      use_system_dns: false,
     )
     @flush_finish = Time.now.utc
     @stack_recorder = Datadog::Profiling::StackRecorder.for_testing
@@ -102,7 +103,7 @@ class ProfilerHttpTransportBenchmark
         run_once
       end
 
-      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end

@@ -938,6 +938,38 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to(!default)
         end
       end
+
+      describe '#experimental_cpu_sampling_interval_ms' do
+        subject(:experimental_cpu_sampling_interval_ms) { settings.profiling.advanced.experimental_cpu_sampling_interval_ms }
+
+        it { is_expected.to eq 10 }
+      end
+
+      describe '#experimental_cpu_sampling_interval_ms=' do
+        it 'updates the #experimental_cpu_sampling_interval_ms setting' do
+          expect { settings.profiling.advanced.experimental_cpu_sampling_interval_ms = 5 }
+            .to change { settings.profiling.advanced.experimental_cpu_sampling_interval_ms }
+            .from(10)
+            .to(5)
+        end
+      end
+
+      describe '#experimental_use_system_dns' do
+        subject(:experimental_use_system_dns) { settings.profiling.advanced.experimental_use_system_dns }
+
+        it_behaves_like 'a binary setting with',
+          env_variable: 'DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS',
+          default: false
+      end
+
+      describe '#experimental_use_system_dns=' do
+        it 'updates the #experimental_use_system_dns setting' do
+          expect { settings.profiling.advanced.experimental_use_system_dns = true }
+            .to change { settings.profiling.advanced.experimental_use_system_dns }
+            .from(false)
+            .to(true)
+        end
+      end
     end
 
     describe '#upload' do

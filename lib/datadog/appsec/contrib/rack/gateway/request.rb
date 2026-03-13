@@ -23,16 +23,12 @@ module Datadog
             end
 
             def query
-              # Downstream libddwaf expects keys and values to be extractable
-              # separately so we can't use [[k, v], ...]. We also want to allow
-              # duplicate keys, so we use {k => [v, ...], ...} instead, taking into
-              # account that {k => [v1, v2, ...], ...} is possible for duplicate keys.
-              request.query_string.split('&').each.with_object({}) do |e, hash|
-                k, v = e.split('=').map { |s| CGI.unescape(s) }
-                hash[k] ||= []
+              ::Rack::Utils.parse_query(request.query_string)
+            rescue => e
+              Datadog.logger.debug { "AppSec: Failed to parse request query string: #{e.class}: #{e.message}" }
+              AppSec.telemetry.report(e, description: 'AppSec: Failed to parse request query string')
 
-                hash[k] << v
-              end
+              {}
             end
 
             def method

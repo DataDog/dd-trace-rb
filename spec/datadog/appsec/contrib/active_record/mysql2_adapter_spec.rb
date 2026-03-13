@@ -72,8 +72,8 @@ RSpec.describe 'AppSec ActiveRecord integration for Mysql2 adapter' do
 
   after do
     Datadog.configuration.reset!
-
     Datadog::AppSec::Context.deactivate
+    Datadog::AppSec::Contrib::ActiveRecord::Patcher.instance_variable_set(:@patched, false)
   end
 
   context 'when RASP is disabled' do

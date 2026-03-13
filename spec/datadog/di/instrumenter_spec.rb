@@ -26,6 +26,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     allow(settings.dynamic_instrumentation).to receive(:redacted_identifiers).and_return([])
     allow(settings.dynamic_instrumentation).to receive(:redaction_excluded_identifiers).and_return([])
     allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(propagate_all_exceptions)
+    allow(settings.dynamic_instrumentation.internal).to receive(:max_processing_time).and_return(1)
   end
 
   let(:redactor) do
@@ -1557,6 +1558,107 @@ RSpec.describe Datadog::DI::Instrumenter do
       it 'does nothing and does not raise an exception' do
         expect do
           instrumenter.unhook_method(probe)
+        end.not_to raise_error
+      end
+    end
+  end
+
+  describe 'telemetry reporting' do
+    let(:propagate_all_exceptions) { false }
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+    let(:instrumenter) do
+      described_class.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry)
+    end
+
+    describe 'method probe condition evaluation failed callback exceptions' do
+      before do
+        Object.const_set(:DITestClass, Class.new do
+          def test_method(arg)
+            arg + 1
+          end
+        end)
+      end
+
+      after do
+        Object.send(:remove_const, :DITestClass)
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: 1, type: :log, type_name: 'DITestClass', method_name: 'test_method',
+          condition: Datadog::DI::EL::Expression.new('(expression)', 'undefined_function()')
+        )
+      end
+
+      let(:responder) do
+        double('responder').tap do |r|
+          # Allow the callback to be called, but have it raise an error
+          allow(r).to receive(:probe_condition_evaluation_failed_callback).and_raise(StandardError, "callback error")
+        end
+      end
+
+      it 'reports exception to telemetry when callback fails' do
+        allow(logger).to receive(:debug)
+
+        expect(telemetry).to receive(:report) do |exc, description:|
+          expect(exc).to be_a(StandardError)
+          expect(exc.message).to eq("callback error")
+          expect(description).to eq("Error in probe condition evaluation failed callback")
+        end
+
+        begin
+          instrumenter.hook_method(probe, responder)
+
+          # Trigger condition evaluation with an invalid expression that will cause evaluation to fail
+          expect do
+            DITestClass.new.test_method(42)
+          end.not_to raise_error
+        ensure
+          instrumenter.unhook_method(probe)
+        end
+      end
+    end
+
+    describe 'line probe condition evaluation failed callback exceptions' do
+      include_context 'with code tracking'
+
+      before do
+        load File.join(File.dirname(__FILE__), 'hook_line_load.rb')
+      end
+
+      after do
+        instrumenter.unhook(probe)
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: 1, type: :log, file: 'hook_line_load.rb', line_no: 30,
+          condition: Datadog::DI::EL::Expression.new('(expression)', 'undefined_function()')
+        )
+      end
+
+      let(:responder) do
+        double('responder').tap do |r|
+          # Allow the callback to be called, but have it raise an error
+          allow(r).to receive(:probe_condition_evaluation_failed_callback).and_raise(StandardError, "callback error")
+        end
+      end
+
+      it 'reports exception to telemetry when callback fails' do
+        allow(logger).to receive(:debug)
+
+        expect(telemetry).to receive(:report) do |exc, description:|
+          expect(exc).to be_a(StandardError)
+          expect(exc.message).to eq("callback error")
+          expect(description).to eq("Error in probe condition evaluation failed callback")
+        end
+
+        instrumenter.hook_line(probe, responder)
+
+        # Trigger the line probe - condition evaluation will fail due to undefined_function()
+        # which will call probe_condition_evaluation_failed_callback, which will raise
+        expect do
+          HookLineLoadTestClass.new.test_method_with_local
         end.not_to raise_error
       end
     end

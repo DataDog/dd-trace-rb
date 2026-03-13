@@ -30,7 +30,7 @@ module Datadog
 
           @client = Client.new(@transport, @capabilities, settings: settings, logger: logger)
           @healthy = false
-          logger.debug { "new remote configuration client: #{@client.id}" }
+          logger.debug { "new remote configuration client: #{@client.id} products: #{@capabilities.products.sort.join(', ')}" }
 
           @worker = Worker.new(interval: settings.remote.poll_interval_seconds, logger: logger) do
             unless @healthy || negotiation.endpoint?('/v0.7/config')
@@ -62,7 +62,7 @@ module Datadog
               # client state is unknown, state might be corrupted
               @client = Client.new(@transport, @capabilities, settings: settings, logger: logger)
               @healthy = false
-              logger.debug { "new remote configuration client: #{@client.id}" }
+              logger.debug { "new remote configuration client: #{@client.id} products: #{@capabilities.products.sort.join(', ')}" }
 
               # TODO: bail out if too many errors?
             end
@@ -98,7 +98,7 @@ module Datadog
         def after_fork
           @client = Client.new(@transport, @capabilities, settings: @settings, logger: @logger)
           @healthy = false
-          logger.debug { "remote configuration client recreated after fork: #{@client.id}" }
+          logger.debug { "remote configuration client recreated after fork: #{@client.id} products: #{@capabilities.products.sort.join(', ')}" }
         end
 
         # Barrier provides a mechanism to fence execution until a condition happens

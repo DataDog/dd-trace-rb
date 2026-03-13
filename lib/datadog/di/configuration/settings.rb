@@ -224,6 +224,15 @@ module Datadog
                   # debugging (since DI uses RC for configuration).
                   o.env 'DD_TRACE_DEBUG'
                 end
+
+                # If the CPU time consumed by the thread performing instrumentation
+                # exceeds this amount, the offending probe will be automatically disabled.
+                # Set to nil to disable the circuit breaker.
+                # Set to zero to disable every probe after it executes once.
+                option :max_processing_time do |o|
+                  o.type :float
+                  o.default 0.5
+                end
               end
             end
           end

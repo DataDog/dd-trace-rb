@@ -13,10 +13,6 @@ module Datadog
   module DI
     module Transport
       module Input
-        class EncodedParcel
-          include Datadog::Core::Transport::Parcel
-        end
-
         class Request < Datadog::Core::Transport::Request
           attr_reader :serialized_tags
 
@@ -28,6 +24,13 @@ module Datadog
         end
 
         class Transport < Core::Transport::Transport
+          attr_reader :telemetry
+
+          def initialize(apis, default_api, logger:, telemetry: nil)
+            super(apis, default_api, logger: logger)
+            @telemetry = telemetry
+          end
+
           # The limit on an individual snapshot payload, aka "log line",
           # is 1 MB.
           #
@@ -51,7 +54,6 @@ module Datadog
             # Tags are the same for all chunks, serialize them one time.
             serialized_tags = Core::TagBuilder.serialize_tags(tags)
 
-            encoder = Core::Encoding::JSONEncoder
             encoded_snapshots = Core::Utils::Array.filter_map(payload) do |snapshot|
               encoded = encoder.encode(snapshot)
               if encoded.length > MAX_SERIALIZED_SNAPSHOT_SIZE
@@ -79,6 +81,7 @@ module Datadog
                 send_input_chunk(chunked_payload, serialized_tags)
               rescue => exc
                 logger.debug { "di: failed to send snapshot chunk: #{exc.class}: #{exc} (at #{exc.backtrace.first})" }
+                telemetry&.report(exc, description: "Error sending snapshot chunk")
               end
             end
 
@@ -86,7 +89,7 @@ module Datadog
           end
 
           def send_input_chunk(chunked_payload, serialized_tags)
-            parcel = EncodedParcel.new(chunked_payload)
+            parcel = Core::Transport::Parcel.new(chunked_payload, content_type: encoder.content_type)
             request = Request.new(parcel, serialized_tags)
 
             client.send_request(:input, request).tap do |response|
@@ -95,6 +98,10 @@ module Datadog
                 return send_input_chunk(chunked_payload, serialized_tags)
               end
             end
+          end
+
+          def encoder
+            Core::Encoding::JSONEncoder
           end
         end
       end

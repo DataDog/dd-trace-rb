@@ -58,33 +58,33 @@ jobs:
     container:
       image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc
     steps:
-    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      with:
-        persist-credentials: false
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
-    - name: Prepare bundle cache
-      id: bundle-cache
-      uses: ./.github/actions/bundle-cache
+      - name: Prepare bundle cache
+        id: bundle-cache
+        uses: ./.github/actions/bundle-cache
 
-    - id: set-batches
-      name: Distribute tasks into batches
-      env:
-        CI_TEST_SEED: "${{ inputs.seed || '' }}"
-      run: |
-        data=$(bundle exec rake github:generate_batches)
-        echo "$data" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
+      - id: set-batches
+        name: Distribute tasks into batches
+        env:
+          CI_TEST_SEED: "${{ inputs.seed || '' }}"
+        run: |
+          data=$(bundle exec rake github:generate_batches)
+          echo "$data" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
 
-        # Extract each key and set it as a separate output
-        seed_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["seed"]')
-        batches_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["batches"].to_json')
-        misc_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["misc"].to_json')
+          # Extract each key and set it as a separate output
+          seed_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["seed"]')
+          batches_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["batches"].to_json')
+          misc_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["misc"].to_json')
 
-        { echo "seed=$seed_data"; echo "batches=$batches_data"; echo "misc=$misc_data"; } >> "$GITHUB_OUTPUT"
-    - name: Generate batch summary
-      env:
-        batches_json: "${{ steps.set-batches.outputs.batches }}"
-        CI_TEST_SEED: "${{ steps.set-batches.outputs.seed }}"
-      run: bundle exec rake github:generate_batch_summary
+          { echo "seed=$seed_data"; echo "batches=$batches_data"; echo "misc=$misc_data"; } >> "$GITHUB_OUTPUT"
+      - name: Generate batch summary
+        env:
+          batches_json: "${{ steps.set-batches.outputs.batches }}"
+          CI_TEST_SEED: "${{ steps.set-batches.outputs.seed }}"
+        run: bundle exec rake github:generate_batch_summary
 
   # `Initialize containers` step becomes quite heavily when many services are used.
   #
@@ -110,7 +110,7 @@ jobs:
   # In the future, we could consider to extract jobs to run database dependent tasks to optimize the workflow.
   build-test-standard:
     needs:
-    - batch
+      - batch
     runs-on: ubuntu-24.04
     name: build & test (standard) [${{ matrix.batch }}]
     timeout-minutes: 30
@@ -124,17 +124,17 @@ jobs:
     container:
       image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc
       env:
-        DD_INSTRUMENTATION_TELEMETRY_ENABLED: 'false'
-        DD_REMOTE_CONFIGURATION_ENABLED: 'false'
+        DD_INSTRUMENTATION_TELEMETRY_ENABLED: "false"
+        DD_REMOTE_CONFIGURATION_ENABLED: "false"
         TEST_POSTGRES_HOST: postgres
         TEST_REDIS_HOST: redis
         TEST_MYSQL_HOST: mysql
         DD_AGENT_HOST: agent
-        DD_TRACE_AGENT_PORT: '9126'
-        OTLP_GRPC_PORT: '4317'
-        OTLP_HTTP_PORT: '4318'
-        DATADOG_GEM_CI: 'true'
-        TEST_DATADOG_INTEGRATION: '1'
+        DD_TRACE_AGENT_PORT: "9126"
+        OTLP_GRPC_PORT: "4317"
+        OTLP_HTTP_PORT: "4318"
+        DATADOG_GEM_CI: "true"
+        TEST_DATADOG_INTEGRATION: "1"
         JRUBY_OPTS: "--dev" # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
     services:
       agent:
@@ -142,11 +142,11 @@ jobs:
         env:
           LOG_LEVEL: DEBUG
           TRACE_LANGUAGE: ruby
-          PORT: '9126'
-          OTLP_GRPC_PORT: '4317'
-          OTLP_HTTP_PORT: '4318'
-          DD_POOL_TRACE_CHECK_FAILURES: 'true'
-          DD_DISABLE_ERROR_RESPONSES: 'true'
+          PORT: "9126"
+          OTLP_GRPC_PORT: "4317"
+          OTLP_HTTP_PORT: "4318"
+          DD_POOL_TRACE_CHECK_FAILURES: "true"
+          DD_DISABLE_ERROR_RESPONSES: "true"
           ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
       mysql:
         image: ghcr.io/datadog/images-rb/services/mysql:8.0
@@ -163,23 +163,23 @@ jobs:
       redis:
         image: ghcr.io/datadog/images-rb/services/redis:6.2
     steps:
-    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      with:
-        persist-credentials: false
-    - name: Restore bundle cache
-      uses: ./.github/actions/bundle-restore
-      with:
-        lockfile: ${{ needs.batch.outputs.lockfile }}
-        cache-key: ${{ needs.batch.outputs.cache-key }}
-    - name: Build & Test
-      uses: ./.github/actions/build-test
-      with:
-        alias: ${{ inputs.alias }}
-        container-id: "standard-${{ matrix.batch }}"
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Restore bundle cache
+        uses: ./.github/actions/bundle-restore
+        with:
+          lockfile: ${{ needs.batch.outputs.lockfile }}
+          cache-key: ${{ needs.batch.outputs.cache-key }}
+      - name: Build & Test
+        uses: ./.github/actions/build-test
+        with:
+          alias: ${{ inputs.alias }}
+          container-id: "standard-${{ matrix.batch }}"
 
   build-test-misc:
     needs:
-    - batch
+      - batch
     runs-on: ubuntu-24.04
     name: build & test (misc) [${{ matrix.batch }}]
     timeout-minutes: 30
@@ -193,19 +193,19 @@ jobs:
     container:
       image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}-gnu-gcc
       env:
-        DD_INSTRUMENTATION_TELEMETRY_ENABLED: 'false'
-        DD_REMOTE_CONFIGURATION_ENABLED: 'false'
+        DD_INSTRUMENTATION_TELEMETRY_ENABLED: "false"
+        DD_REMOTE_CONFIGURATION_ENABLED: "false"
         TEST_ELASTICSEARCH_HOST: elasticsearch
         TEST_MEMCACHED_HOST: memcached
         TEST_MONGODB_HOST: mongodb
         TEST_MONGODB_SECONDARY_HOST: mongodb_secondary
         TEST_OPENSEARCH_HOST: opensearch
-        TEST_OPENSEARCH_PORT: '9200'
+        TEST_OPENSEARCH_PORT: "9200"
         TEST_PRESTO_HOST: presto
         DD_AGENT_HOST: agent
-        DD_TRACE_AGENT_PORT: '9126'
-        DATADOG_GEM_CI: 'true'
-        TEST_DATADOG_INTEGRATION: '1'
+        DD_TRACE_AGENT_PORT: "9126"
+        DATADOG_GEM_CI: "true"
+        TEST_DATADOG_INTEGRATION: "1"
         JRUBY_OPTS: "--dev" # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
       options: --link mongodb:mongodb_secondary
     services:
@@ -214,18 +214,23 @@ jobs:
         env:
           LOG_LEVEL: DEBUG
           TRACE_LANGUAGE: ruby
-          PORT: '9126'
-          OTLP_GRPC_PORT: '4317'
-          OTLP_HTTP_PORT: '4318'
-          DD_POOL_TRACE_CHECK_FAILURES: 'true'
-          DD_DISABLE_ERROR_RESPONSES: 'true'
+          PORT: "9126"
+          OTLP_GRPC_PORT: "4317"
+          OTLP_HTTP_PORT: "4318"
+          DD_POOL_TRACE_CHECK_FAILURES: "true"
+          DD_DISABLE_ERROR_RESPONSES: "true"
           ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
       elasticsearch:
-        image: ghcr.io/datadog/images-rb/services/elasticsearch:8.1.3
+        image: elasticsearch:8.19.11
         env:
           discovery.type: single-node
-          xpack.security.enabled: 'false'
+          xpack.security.enabled: "false"
           ES_JAVA_OPTS: "-Xms750m -Xmx750m"
+        options: >-
+          --health-cmd "curl -sf http://localhost:9200/_cluster/health | grep -qE '\"status\":\"(green|yellow)\"' || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
       memcached:
         image: ghcr.io/datadog/images-rb/services/memcached:1.5-alpine
       mongodb:
@@ -234,25 +239,25 @@ jobs:
         image: ghcr.io/datadog/images-rb/services/opensearchproject/opensearch:2.8.0
         env:
           discovery.type: single-node
-          DISABLE_SECURITY_PLUGIN: 'true'
-          DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI: 'true'
+          DISABLE_SECURITY_PLUGIN: "true"
+          DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI: "true"
           cluster.routing.allocation.disk.watermark.low: 3gb
           cluster.routing.allocation.disk.watermark.high: 2gb
           cluster.routing.allocation.disk.watermark.flood_stage: 1gb
-          cluster.routing.allocation.disk.threshold_enabled: 'false'
+          cluster.routing.allocation.disk.threshold_enabled: "false"
       presto:
         image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
     steps:
-    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      with:
-        persist-credentials: false
-    - name: Restore bundle cache
-      uses: ./.github/actions/bundle-restore
-      with:
-        lockfile: ${{ needs.batch.outputs.lockfile }}
-        cache-key: ${{ needs.batch.outputs.cache-key }}
-    - name: Build & Test
-      uses: ./.github/actions/build-test
-      with:
-        alias: ${{ inputs.alias }}
-        container-id: "misc-${{ matrix.batch }}"
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Restore bundle cache
+        uses: ./.github/actions/bundle-restore
+        with:
+          lockfile: ${{ needs.batch.outputs.lockfile }}
+          cache-key: ${{ needs.batch.outputs.cache-key }}
+      - name: Build & Test
+        uses: ./.github/actions/build-test
+        with:
+          alias: ${{ inputs.alias }}
+          container-id: "misc-${{ matrix.batch }}"

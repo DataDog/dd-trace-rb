@@ -139,7 +139,7 @@ end
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
 build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
-build_coverage_matrix('faraday')
+build_coverage_matrix('faraday', meta: { 'faraday-follow_redirects' => nil })
 build_coverage_matrix('excon')
 build_coverage_matrix('rest-client')
 build_coverage_matrix('mongo', min: '2.1.0')

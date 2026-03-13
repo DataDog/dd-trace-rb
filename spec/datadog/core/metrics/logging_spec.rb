@@ -30,7 +30,7 @@ RSpec.describe Datadog::Core::Metrics::Logging::Adapter do
         subject(:logger) { adapter.logger }
 
         it { expect(logger.level).to be(Logger::INFO) }
-        it { expect(logger.instance_variable_get(:@logdev).dev).to eq($stdout) }
+        it { expect(logger.instance_variable_get(:@logdev).dev).to eq($stderr) }
       end
     end
 

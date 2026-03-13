@@ -186,6 +186,17 @@ module DIHelpers
   end
 
   module InstanceMethods
+    # Helper method to generate a deeply nested hash for circuit breaker tests
+    def generate_deep_hash(keys_per_level, depth)
+      return "leaf_value" if depth == 0
+
+      hash = {}
+      keys_per_level.times do |i|
+        hash[:"key_#{i}"] = generate_deep_hash(keys_per_level, depth - 1)
+      end
+      hash
+    end
+
     def order_hash_keys(hash)
       hash.keys.map do |key|
         [key.to_s, hash[key]]

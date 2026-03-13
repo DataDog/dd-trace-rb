@@ -51,6 +51,13 @@
         "default": null
       }
     ],
+    "DD_API_SECURITY_DOWNSTREAM_BODY_ANALYSIS_SAMPLE_RATE": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "0.5"
+      }
+    ],
     "DD_API_SECURITY_ENABLED": [
       {
         "version": "A",
@@ -63,6 +70,13 @@
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_API_SECURITY_MAX_DOWNSTREAM_REQUEST_BODY_ANALYSIS": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "1"
       }
     ],
     "DD_API_SECURITY_REQUEST_SAMPLE_RATE": [
@@ -445,6 +459,13 @@
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
       }
     ],
     "DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED": [
@@ -1122,6 +1143,13 @@
         "default": "1.0"
       }
     ],
+    "DD_TRACE_ETHON_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_TRACE_ETHON_ENABLED": [
       {
         "version": "A",
@@ -1155,6 +1183,13 @@
         "version": "A",
         "type": "decimal",
         "default": "1.0"
+      }
+    ],
+    "DD_TRACE_EXCON_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
       }
     ],
     "DD_TRACE_EXCON_ENABLED": [
@@ -1204,6 +1239,13 @@
         "version": "A",
         "type": "decimal",
         "default": "1.0"
+      }
+    ],
+    "DD_TRACE_FARADAY_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
       }
     ],
     "DD_TRACE_FARADAY_ENABLED": [
@@ -1318,6 +1360,13 @@
         "default": "1.0"
       }
     ],
+    "DD_TRACE_GRPC_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_TRACE_GRPC_ENABLED": [
       {
         "version": "A",
@@ -1367,6 +1416,13 @@
         "default": "1.0"
       }
     ],
+    "DD_TRACE_HTTPCLIENT_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_TRACE_HTTPCLIENT_ENABLED": [
       {
         "version": "A",
@@ -1407,6 +1463,13 @@
         "version": "A",
         "type": "decimal",
         "default": "1.0"
+      }
+    ],
+    "DD_TRACE_HTTPRB_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
       }
     ],
     "DD_TRACE_HTTPRB_ENABLED": [
@@ -1458,6 +1521,13 @@
         "default": "400-499"
       }
     ],
+    "DD_TRACE_HTTP_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_TRACE_HTTP_ENABLED": [
       {
         "version": "A",
@@ -1498,6 +1568,13 @@
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_TRACE_KARAFKA_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
       }
     ],
     "DD_TRACE_KARAFKA_ENABLED": [
@@ -1788,6 +1865,13 @@
         "default": "1.0"
       }
     ],
+    "DD_TRACE_QUE_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_TRACE_QUE_ENABLED": [
       {
         "version": "A",
@@ -1844,6 +1928,13 @@
         "default": "1.0"
       }
     ],
+    "DD_TRACE_RACK_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_TRACE_RACK_ENABLED": [
       {
         "version": "A",
@@ -1863,6 +1954,13 @@
         "version": "A",
         "type": "decimal",
         "default": "1.0"
+      }
+    ],
+    "DD_TRACE_RAILS_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
       }
     ],
     "DD_TRACE_RAILS_ENABLED": [
@@ -1998,6 +2096,13 @@
         "default": "1.0"
       }
     ],
+    "DD_TRACE_REST_CLIENT_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_TRACE_REST_CLIENT_ENABLED": [
       {
         "version": "A",
@@ -2104,6 +2209,13 @@
         "default": "1.0"
       }
     ],
+    "DD_TRACE_SIDEKIQ_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_TRACE_SIDEKIQ_ENABLED": [
       {
         "version": "A",
@@ -2123,6 +2235,13 @@
         "version": "A",
         "type": "decimal",
         "default": "1.0"
+      }
+    ],
+    "DD_TRACE_SINATRA_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
       }
     ],
     "DD_TRACE_SINATRA_ENABLED": [
@@ -2242,6 +2361,13 @@
         "version": "A",
         "type": "string",
         "default": "trilogy"
+      }
+    ],
+    "DD_TRACE_WATERDROP_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
       }
     ],
     "DD_TRACE_WATERDROP_ENABLED": [

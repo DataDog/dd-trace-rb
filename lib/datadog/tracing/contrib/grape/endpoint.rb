@@ -253,10 +253,10 @@ module Datadog
             end
 
             def api_view(api)
-              # If the API inherits from Grape::API in version >= 1.2.0
+              # If the API inherits from Grape::API in version >= 1.2.0 and version <= 2.3.0
               # then the API will be an instance and the name must be derived from the base.
               # See https://github.com/ruby-grape/grape/issues/1825
-              if defined?(::Grape::API::Instance) && api <= ::Grape::API::Instance
+              if defined?(::Grape::API::Instance) && api <= ::Grape::API::Instance && api.respond_to?(:base)
                 api.base.to_s
               else
                 api.to_s

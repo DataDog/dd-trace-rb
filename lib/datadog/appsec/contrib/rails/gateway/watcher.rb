@@ -21,7 +21,7 @@ module Datadog
               end
 
               def watch_request_action(gateway = Instrumentation.gateway)
-                gateway.watch('rails.request.action', :appsec) do |stack, gateway_request|
+                gateway.watch('rails.request.action') do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
 
                   persistent_data = {
@@ -47,7 +47,7 @@ module Datadog
               end
 
               def watch_response_body_json(gateway = Instrumentation.gateway)
-                gateway.watch('rails.response.body.json', :appsec) do |stack, container|
+                gateway.watch('rails.response.body.json') do |stack, container|
                   context = container.context
 
                   persistent_data = {
