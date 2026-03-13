@@ -70,6 +70,42 @@
   - `sig/datadog/core/telemetry/event/app_dependencies_loaded.rbs` — `payload: { dependencies: Array[Hash[Symbol, String]] }`
   - `sig/datadog/core/telemetry/worker.rbs` — `buffer_klass -> singleton(Core::Buffer::Random)`
 
+### PR #5452 — Add typing for AppSec::SecurityEngine::Runner#try_run
+- Branch: `marcotc/type-appsec-engine-patches`
+- Files typed:
+  - `sig/datadog/appsec/security_engine/runner.rbs` — `try_run` timeout: `untyped` → `::Integer`
+
+### PR #5453 — Add typing for core utils, encoding, and AppSec::CompressedJson
+- Branch: `marcotc/type-core-utils-misc`
+- Files typed:
+  - `sig/datadog/core/utils/only_once.rbs` — `initialize` → `void`, `ran?` → `bool`, `reset_ran_once_state_for_tests` → `void`
+  - `sig/datadog/core/utils/sequence.rbs` — `initialize` → `void`, `next` → `::Integer`
+  - `sig/datadog/core/tag_normalizer.rbs` — `normalize`/`normalize_process_value` accept `any` (calls `.to_s`)
+  - `sig/datadog/core/encoding.rbs` — `encode`/`decode` use `any` (intentionally open), `join` uses `::Array[::String]`, `::` prefixes
+  - `sig/datadog/appsec/compressed_json.rbs` — `dump` accepts `any` payload
+
+### PR #5454 — Add typing for environment stats and LRUCache
+- Branch: `marcotc/type-core-env-misc`
+- Files typed:
+  - `sig/datadog/core/environment/socket.rbs` — `hostname` → `::String`
+  - `sig/datadog/core/environment/vm_cache.rbs` — `available?` → `bool?`
+  - `sig/datadog/core/environment/yjit.rbs` — `available?` → `bool?`
+  - `sig/datadog/core/utils/lru_cache.rbs` — `@store`/`[]`/`[]=` use `any`
+
+### PR #5455 — Add typing for Base64, TagBuilder, and Workers::Polling#stop
+- Branch: `marcotc/type-core-misc-utils`
+- Files typed:
+  - `sig/datadog/core/utils/base64.rbs` — `::` prefixes; `strict_decode64` arg typed as `::String`
+  - `sig/datadog/core/tag_builder.rbs` — `::` prefixes; `tags` accepts `any` settings
+  - `sig/datadog/core/workers/polling.rbs` — `stop` → `bool`
+
+### PR #5456 — Add typing for AppSec::Response#to_rack, HashCoercion, and Forking
+- Branch: `marcotc/type-appsec-core-small`
+- Files typed:
+  - `sig/datadog/appsec/response.rbs` — `to_rack` → `[::Integer, ::Hash[::String, ::String], ::Array[::String]]`
+  - `sig/datadog/appsec/utils/hash_coercion.rbs` — parameter/hash types use `any`
+  - `sig/datadog/core/utils/forking.rbs` — `included`/`extended` use `::Module` + `void`
+
 ## Deferred / Known blockers
 
 | File | Errors | Reason deferred |
