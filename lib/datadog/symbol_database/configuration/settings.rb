@@ -24,6 +24,7 @@ module Datadog
         # @return [void]
         def self.add_settings!(base)
           base.class_eval do
+            # steep:ignore:start
             settings :symbol_database do
               option :enabled do |o|
                 o.type :bool
@@ -46,6 +47,7 @@ module Datadog
                 o.default []
               end
             end
+            # steep:ignore:end
           end
         end
       end

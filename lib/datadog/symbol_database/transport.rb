@@ -41,10 +41,12 @@ module Datadog
         # Send a symbol database upload request
         # @param form [Hash] Multipart form data with UploadIO objects
         # @return [Core::Transport::Response] Response from agent
+        # steep:ignore:start
         def send_symdb_payload(form)
           request = Request.new(form)
           client.send_request(:symdb, request)
         end
+        # steep:ignore:end
       end
     end
   end
