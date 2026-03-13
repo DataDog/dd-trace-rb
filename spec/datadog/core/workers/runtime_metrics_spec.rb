@@ -24,7 +24,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
         described_class.new(
           logger: logger,
           telemetry: telemetry,
-          propagate_process_tags_enabled: true
+          experimental_propagate_process_tags_enabled: true
         )
       end
 
@@ -36,7 +36,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
         expect(Datadog::Core::Runtime::Metrics).to receive(:new).with(
           logger: logger,
           telemetry: telemetry,
-          propagate_process_tags_enabled: true,
+          experimental_propagate_process_tags_enabled: true,
         ).and_call_original
 
         worker

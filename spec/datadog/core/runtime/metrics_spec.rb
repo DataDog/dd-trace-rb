@@ -6,7 +6,7 @@ require 'datadog/core/runtime/metrics'
 RSpec.describe Datadog::Core::Runtime::Metrics do
   let(:logger) { logger_allowing_debug }
   let(:telemetry) { double(Datadog::Core::Telemetry::Component) }
-  let(:options) { {propagate_process_tags_enabled: true} }
+  let(:options) { {experimental_propagate_process_tags_enabled: true} }
   subject(:runtime_metrics) { described_class.new(logger: logger, telemetry: telemetry, **options) }
 
   describe '::new' do
@@ -271,7 +271,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
     it_behaves_like 'a flush of all runtime metrics'
 
     context 'with process tags enabled' do
-      let(:options) { super().merge(propagate_process_tags_enabled: true) }
+      let(:options) { super().merge(experimental_propagate_process_tags_enabled: true) }
       let(:statsd) { spy('statsd') }
 
       before do
@@ -325,7 +325,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
     describe ':tags' do
       subject(:default_tags) { default_metric_options[:tags] }
 
-      context 'when :propagate_process_tags_enabled is true' do
+      context 'when :experimental_propagate_process_tags_enabled is true' do
         before do
           allow(Datadog::Core::Environment::Process).to receive(:tags)
             .and_return(['entrypoint.workdir:test', 'entrypoint.name:test_script'])
@@ -369,8 +369,8 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
         end
       end
 
-      context 'when :propagate_process_tags_enabled is true' do
-        let(:options) { super().merge(propagate_process_tags_enabled: true) }
+      context 'when :experimental_propagate_process_tags_enabled is true' do
+        let(:options) { super().merge(experimental_propagate_process_tags_enabled: true) }
 
         before do
           expect(Datadog::Core::Environment::Process).to receive(:tags).and_return(['entrypoint.workdir:test', 'entrypoint.name:test_script', 'entrypoint.basedir:test', 'entrypoint.type:script'])
@@ -384,8 +384,8 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
         end
       end
 
-      context 'when :propagate_process_tags_enabled is false' do
-        let(:options) { super().merge(propagate_process_tags_enabled: false) }
+      context 'when :experimental_propagate_process_tags_enabled is false' do
+        let(:options) { super().merge(experimental_propagate_process_tags_enabled: false) }
 
         it 'does not include process tags when disabled' do
           is_expected.to_not include('entrypoint.workdir:test')
