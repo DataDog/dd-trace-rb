@@ -44,6 +44,8 @@
           pkgs.libyaml.dev  # for gem psych
           pkgs.libffi.dev   # for gem fiddle
 
+          pkgs.pkg-config   # for gem libdatadog
+
           # TODO: some gems insist on using `gcc` on Linux, satisfy them for now:
           # - json
           # - protobuf
