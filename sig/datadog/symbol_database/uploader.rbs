@@ -1,0 +1,49 @@
+module Datadog
+  module SymbolDatabase
+    class Uploader
+      MAX_PAYLOAD_SIZE: Integer
+
+      MAX_RETRIES: Integer
+
+      BASE_BACKOFF_INTERVAL: Float
+
+      MAX_BACKOFF_INTERVAL: Float
+
+      @config: untyped
+
+      @agent_settings: untyped
+
+      @telemetry: untyped
+
+      @transport: untyped
+
+      def initialize: (untyped config, untyped agent_settings, ?telemetry: untyped) -> void
+
+      def upload_scopes: (Array[Scope]? scopes) -> void
+
+      private
+
+      def build_symbol_payload: (Array[Scope] scopes) -> String?
+
+      def compress_payload: (String json_data) -> String?
+
+      def upload_with_retry: (String compressed_data, Integer scope_count) -> void
+
+      def calculate_backoff: (Integer retry_count) -> Float
+
+      def perform_http_upload: (String compressed_data, Integer scope_count) -> void
+
+      def build_event_metadata: () -> String
+
+      def build_headers: () -> Hash[String, String]
+
+      def agent_url: () -> String
+
+      def upload_timeout: () -> Integer
+
+      def build_multipart_form: (String compressed_data) -> Hash[String, Core::Vendor::Multipart::Post::UploadIO]
+
+      def handle_response: (Net::HTTPResponse response, Integer scope_count) -> bool
+    end
+  end
+end

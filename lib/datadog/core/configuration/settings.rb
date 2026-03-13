@@ -13,6 +13,7 @@ require_relative '../../profiling/ext'
 
 require_relative '../../tracing/configuration/settings'
 require_relative '../../opentelemetry/configuration/settings'
+require_relative '../../symbol_database/configuration/settings'
 
 module Datadog
   module Core
@@ -1096,6 +1097,8 @@ module Datadog
         extend Datadog::Tracing::Configuration::Settings
 
         extend Datadog::OpenTelemetry::Configuration::Settings
+
+        extend Datadog::SymbolDatabase::Configuration::Settings
       end
       # standard:enable Metrics/BlockLength
     end
