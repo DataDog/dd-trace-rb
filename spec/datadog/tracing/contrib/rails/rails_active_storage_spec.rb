@@ -11,6 +11,7 @@ RSpec.describe 'ActiveStorage instrumentation', execute_in_fork: Rails.version.t
   after do
     remove_patch!(:active_storage)
     Datadog.configuration.tracing[:active_storage].reset_options!
+    reset_active_storage_test_state!
   end
 
   include_context 'Rails test application'
@@ -33,14 +34,21 @@ RSpec.describe 'ActiveStorage instrumentation', execute_in_fork: Rails.version.t
 
       proc do
         instance_exec(&super_block)
-        config.active_storage.service = :test
         config.root = app_root
-        # The Rails test harness re-initializes the app for each example.
-        # On Rails 6.0 and 6.1, keeping classes cached and disabling change-based
-        # reloads avoids the boot-time Active Storage autoload/reload conflict.
-        if Rails.version.to_i == 6
-          config.cache_classes = true
-          config.reload_classes_only_on_change = false if config.respond_to?(:reload_classes_only_on_change=)
+        # Rails 5 and Rails 8 are fine with the normal boot-time Active Storage
+        # configuration path in this harness.
+        #
+        # Rails 6.0 and 6.1 are different: this suite recreates Rails
+        # applications per example, and this spec touches `ActiveStorage::Blob`.
+        # After that, later Rails 6.x app boots eagerly rerun Active Storage's
+        # boot-time lazy-load hook unless we clear that shared hook state in the
+        # example teardown below.
+        #
+        # For Rails 6.x we keep the boot-time app rooted in a tmpdir, but defer
+        # binding `ActiveStorage::Blob.service` until after initialization in
+        # `ensure_active_storage_service!`.
+        unless Rails.version.to_i == 6
+          config.active_storage.service = :test
         end
       end
     end
@@ -54,6 +62,7 @@ RSpec.describe 'ActiveStorage instrumentation', execute_in_fork: Rails.version.t
 
       app
       ensure_active_storage_service!
+      ensure_active_storage_tables!
     end
 
     after do
@@ -82,6 +91,84 @@ RSpec.describe 'ActiveStorage instrumentation', execute_in_fork: Rails.version.t
       end
 
       ActiveStorage::Blob.service = service
+    end
+
+    def reset_active_storage_test_state!
+      loaded_hooks = ActiveSupport.instance_variable_get(:@loaded)
+
+      if loaded_hooks
+        %i[active_storage_blob active_storage_attachment active_storage_record].each do |hook_name|
+          loaded_hooks[hook_name].clear
+        end
+      end
+    end
+
+    def reset_active_storage_column_information
+      models = [ActiveStorage::Blob]
+      models << ActiveStorage::Attachment if defined?(ActiveStorage::Attachment)
+      models << ActiveStorage::VariantRecord if defined?(ActiveStorage::VariantRecord)
+
+      models.each(&:reset_column_information)
+    end
+
+    # These Rails integration specs boot a tiny application directly instead of
+    # running the Active Storage migrations, so blob examples need the schema
+    # created on demand before they can persist records.
+    def ensure_active_storage_tables!
+      connection = application_record.connection
+
+      unless connection.table_exists?(:active_storage_blobs)
+        connection.create_table :active_storage_blobs do |t|
+          t.string :key, null: false
+          t.string :filename, null: false
+          t.string :content_type
+          t.text :metadata
+          t.string :service_name, default: 'test'
+          t.bigint :byte_size, null: false
+          t.string :checksum
+          t.datetime :created_at, null: false
+        end
+        connection.add_index :active_storage_blobs, :key, unique: true
+      end
+
+      if connection.column_exists?(:active_storage_blobs, :service_name)
+        service_name_column = connection.columns(:active_storage_blobs).find { |column| column.name == 'service_name' }
+        if service_name_column&.default.nil?
+          connection.change_column_default :active_storage_blobs, :service_name, 'test'
+        end
+      else
+        connection.add_column :active_storage_blobs, :service_name, :string, default: 'test'
+      end
+
+      unless connection.table_exists?(:active_storage_attachments)
+        connection.create_table :active_storage_attachments do |t|
+          t.string :name, null: false
+          t.references :record, null: false, polymorphic: true, index: false
+          t.references :blob, null: false
+          t.datetime :created_at, null: false
+        end
+        connection.add_index(
+          :active_storage_attachments,
+          %i[record_type record_id name blob_id],
+          name: 'index_active_storage_attachments_uniqueness',
+          unique: true
+        )
+      end
+
+      unless connection.table_exists?(:active_storage_variant_records)
+        connection.create_table :active_storage_variant_records do |t|
+          t.references :blob, null: false, index: false
+          t.string :variation_digest, null: false
+        end
+        connection.add_index(
+          :active_storage_variant_records,
+          %i[blob_id variation_digest],
+          name: 'index_active_storage_variant_records_uniqueness',
+          unique: true
+        )
+      end
+
+      reset_active_storage_column_information
     end
 
     describe 'service operations' do
