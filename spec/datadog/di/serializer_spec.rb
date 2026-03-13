@@ -545,12 +545,7 @@ RSpec.describe Datadog::DI::Serializer do
   end
 
   describe '.register' do
-    # Save and restore the custom serializer registry to prevent test pollution
-    around do |example|
-      original_registry = described_class.class_variable_get(:@@flat_registry).dup
-      example.run
-      described_class.class_variable_set(:@@flat_registry, original_registry)
-    end
+    with_registry_cleanup
 
     context 'with condition' do
       before do
@@ -630,12 +625,7 @@ RSpec.describe Datadog::DI::Serializer do
   end
 
   context 'when serialization raises an exception' do
-    # Save and restore the custom serializer registry to prevent test pollution
-    around do |example|
-      original_registry = described_class.class_variable_get(:@@flat_registry).dup
-      example.run
-      described_class.class_variable_set(:@@flat_registry, original_registry)
-    end
+    with_registry_cleanup
 
     before do
       # Register a custom serializer that will raise an exception
@@ -1093,12 +1083,7 @@ RSpec.describe Datadog::DI::Serializer do
     # This prevents the exception from propagating to the transport layer and
     # ensures the rest of the snapshot can still be serialized and sent.
 
-    # Save and restore the custom serializer registry to prevent test pollution
-    around do |example|
-      original_registry = described_class.class_variable_get(:@@flat_registry).dup
-      example.run
-      described_class.class_variable_set(:@@flat_registry, original_registry)
-    end
+    with_registry_cleanup
 
     before do
       # Register a custom serializer that raises SystemStackError
@@ -1214,12 +1199,7 @@ RSpec.describe Datadog::DI::Serializer do
     # - The serializer attempts to duplicate or expand large objects
     # - String escaping operations on huge binary blobs exhaust memory
 
-    # Save and restore the custom serializer registry to prevent test pollution
-    around do |example|
-      original_registry = described_class.class_variable_get(:@@flat_registry).dup
-      example.run
-      described_class.class_variable_set(:@@flat_registry, original_registry)
-    end
+    with_registry_cleanup
 
     before do
       # Register a custom serializer that raises NoMemoryError

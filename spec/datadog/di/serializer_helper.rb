@@ -56,6 +56,25 @@ module SerializerHelper
       end
     end
   end
+
+  # Helper to save and restore the custom serializer registry to prevent test pollution.
+  # Use this in contexts that register custom serializers with Datadog::DI::Serializer.register.
+  #
+  # Example:
+  #   context 'when custom serializer is registered' do
+  #     with_registry_cleanup
+  #
+  #     before do
+  #       Datadog::DI::Serializer.register(...) { ... }
+  #     end
+  #   end
+  def with_registry_cleanup
+    around do |example|
+      original_registry = Datadog::DI::Serializer.class_variable_get(:@@flat_registry).dup
+      example.run
+      Datadog::DI::Serializer.class_variable_set(:@@flat_registry, original_registry)
+    end
+  end
 end
 
 # rubocop:enable Lint/AssignmentInCondition
