@@ -57,18 +57,18 @@ module SerializerHelper
     end
   end
 
-  # Helper to save and restore the custom serializer registry to prevent test pollution.
+  # Helper to save and restore the DI custom serializer registry to prevent test pollution.
   # Use this in contexts that register custom serializers with Datadog::DI::Serializer.register.
   #
   # Example:
   #   context 'when custom serializer is registered' do
-  #     with_registry_cleanup
+  #     with_di_registry_change
   #
   #     before do
   #       Datadog::DI::Serializer.register(...) { ... }
   #     end
   #   end
-  def with_registry_cleanup
+  def with_di_registry_change
     around do |example|
       original_registry = Datadog::DI::Serializer.class_variable_get(:@@flat_registry).dup
       example.run

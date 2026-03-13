@@ -545,7 +545,7 @@ RSpec.describe Datadog::DI::Serializer do
   end
 
   describe '.register' do
-    with_registry_cleanup
+    with_di_registry_change
 
     context 'with condition' do
       before do
@@ -625,7 +625,7 @@ RSpec.describe Datadog::DI::Serializer do
   end
 
   context 'when serialization raises an exception' do
-    with_registry_cleanup
+    with_di_registry_change
 
     before do
       # Register a custom serializer that will raise an exception
@@ -1083,7 +1083,7 @@ RSpec.describe Datadog::DI::Serializer do
     # This prevents the exception from propagating to the transport layer and
     # ensures the rest of the snapshot can still be serialized and sent.
 
-    with_registry_cleanup
+    with_di_registry_change
 
     before do
       # Register a custom serializer that raises SystemStackError
@@ -1199,7 +1199,7 @@ RSpec.describe Datadog::DI::Serializer do
     # - The serializer attempts to duplicate or expand large objects
     # - String escaping operations on huge binary blobs exhaust memory
 
-    with_registry_cleanup
+    with_di_registry_change
 
     before do
       # Register a custom serializer that raises NoMemoryError
