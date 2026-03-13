@@ -1,7 +1,5 @@
 module Datadog
   module SymbolDatabase
-    EXCLUDED_COMMON_MODULES: Array[String]
-
     class Extractor
       UNKNOWN_MIN_LINE: Integer
       UNKNOWN_MAX_LINE: Integer
