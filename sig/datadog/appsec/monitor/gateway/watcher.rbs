@@ -11,7 +11,7 @@ module Datadog
 
           WATCHED_LOGIN_EVENTS: ::Array[::String]
 
-          def self.watch: () -> untyped
+          def self.watch: () -> void
 
           def self.watch_user_id: (?Instrumentation::Gateway gateway) -> void
 

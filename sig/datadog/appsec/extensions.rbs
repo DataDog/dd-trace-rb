@@ -1,7 +1,7 @@
 module Datadog
   module AppSec
     module Extensions
-      def self.activate!: () -> untyped
+      def self.activate!: () -> void
     end
   end
 end
