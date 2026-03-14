@@ -154,6 +154,42 @@ RSpec.describe Datadog::Tracing::Contrib::Redis::Quantize do
             it { is_expected.to eq('AUTH ?') }
           end
         end
+
+        context 'in HELLO' do
+          let(:args) { %w[HELLO 3 AUTH data dog SETNAME foo] }
+
+          it { is_expected.to eq('HELLO 3 AUTH ? SETNAME foo') }
+        end
+
+        context 'in MIGRATE' do
+          context 'without username' do
+            context 'without keys' do
+              let(:args) { %w[MIGRATE 127.0.0.1 6379 "" 0 5000 AUTH dog] }
+
+              it { is_expected.to eq('MIGRATE 127.0.0.1 6379 "" 0 5000 AUTH ?') }
+            end
+
+            context 'with keys' do
+              let(:args) { %w[MIGRATE 127.0.0.1 6379 "" 0 5000 AUTH dog KEYS foo] }
+
+              it { is_expected.to eq('MIGRATE 127.0.0.1 6379 "" 0 5000 AUTH ? KEYS foo') }
+            end
+          end
+
+          context 'with username' do
+            context 'without keys' do
+              let(:args) { %w[MIGRATE 127.0.0.1 6379 "" 0 5000 AUTH data dog] }
+
+              it { is_expected.to eq('MIGRATE 127.0.0.1 6379 "" 0 5000 AUTH ?') }
+            end
+
+            context 'with keys' do
+              let(:args) { %w[MIGRATE 127.0.0.1 6379 "" 0 5000 AUTH data dog KEYS foo] }
+
+              it { is_expected.to eq('MIGRATE 127.0.0.1 6379 "" 0 5000 AUTH ? KEYS foo') }
+            end
+          end
+        end
       end
     end
   end
