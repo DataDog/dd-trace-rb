@@ -419,6 +419,13 @@
         "default": "true"
       }
     ],
+    "DD_LOGS_OTEL_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_METRIC_AGENT_PORT": [
       {
         "version": "A",
@@ -2370,6 +2377,34 @@
         "default": null
       }
     ],
+    "OTEL_BLRP_EXPORT_TIMEOUT": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "30000"
+      }
+    ],
+    "OTEL_BLRP_MAX_QUEUE_SIZE": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "2048"
+      }
+    ],
+    "OTEL_BLRP_MAX_EXPORT_BATCH_SIZE": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "512"
+      }
+    ],
+    "OTEL_BLRP_SCHEDULE_DELAY": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "1000"
+      }
+    ],
     "OTEL_EXPORTER_OTLP_ENDPOINT": [
       {
         "version": "A",
@@ -2419,6 +2454,34 @@
         "default": "10000"
       }
     ],
+    "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_LOGS_HEADERS": [
+      {
+        "version": "A",
+        "type": "map",
+        "default": null
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "http/protobuf"
+      }
+    ],
+    "OTEL_EXPORTER_OTLP_LOGS_TIMEOUT": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": null
+      }
+    ],
     "OTEL_EXPORTER_OTLP_PROTOCOL": [
       {
         "version": "A",
@@ -2455,6 +2518,13 @@
       }
     ],
     "OTEL_METRICS_EXPORTER": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "otlp"
+      }
+    ],
+    "OTEL_LOGS_EXPORTER": [
       {
         "version": "A",
         "type": "string",
