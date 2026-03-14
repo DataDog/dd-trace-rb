@@ -1,7 +1,7 @@
 module Datadog
   module Core
     module Chunker
-      def self?.chunk_by_size: (untyped list, untyped max_chunk_size) -> untyped
+      def self?.chunk_by_size: (::Array[untyped] list, ::Numeric max_chunk_size) -> ::Enumerator[::Array[untyped], untyped]
     end
   end
 end
