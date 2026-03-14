@@ -2,9 +2,9 @@ module Datadog
   module Core
     module Environment
       module GC
-        def self?.stat: () -> untyped
+        def self?.stat: () -> ::Hash[::Symbol, ::Integer]
 
-        def self?.available?: () -> untyped
+        def self?.available?: () -> bool?
       end
     end
   end
