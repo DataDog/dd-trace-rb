@@ -1,0 +1,15 @@
+module Datadog
+  module AppSec
+    module Monitor
+      module Gateway
+        module TelemetryWatcher
+          EVENT_TYPE_MAP: ::Hash[::String, ::String]
+
+          def self.watch: () -> void
+
+          def self.watch_user_lifecycle_telemetry: (?Instrumentation::Gateway gateway) -> void
+        end
+      end
+    end
+  end
+end

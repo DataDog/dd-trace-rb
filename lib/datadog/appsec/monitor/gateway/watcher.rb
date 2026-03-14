@@ -13,6 +13,8 @@ module Datadog
           ARBITRARY_VALUE = 'invalid'
           EVENT_LOGIN_SUCCESS = 'users.login.success'
           EVENT_LOGIN_FAILURE = 'users.login.failure'
+          EVENT_SIGNUP = 'users.signup'
+          EVENT_AUTHENTICATED_REQUEST = 'users.authenticated_request'
           WATCHED_LOGIN_EVENTS = [EVENT_LOGIN_SUCCESS, EVENT_LOGIN_FAILURE].freeze
 
           class << self
