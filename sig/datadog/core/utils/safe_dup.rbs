@@ -7,7 +7,7 @@ module Datadog
 
         def self.frozen_or_dup: [T < Object?] (T v) -> T
 
-        def self.frozen_dup: (untyped v) -> (untyped | nil)
+        def self.frozen_dup: [T < Object?] (T v) -> T # steep:ignore MethodBodyTypeMismatch
       end
     end
   end
