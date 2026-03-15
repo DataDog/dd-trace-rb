@@ -204,34 +204,75 @@ module Datadog
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
       end
 
-      # Handles snapshot serialization failures by disabling affected probes
-      # and reporting ERROR status.
+      # Handles snapshot serialization failures by isolating the failing snapshot(s).
+      #
+      # Problem: When a batch contains multiple snapshots and JSON encoding fails,
+      # we cannot determine which specific snapshot caused the failure from the
+      # exception alone. If we disabled all probes in the batch, we would
+      # incorrectly disable probes that are working fine but happened to be
+      # batched with a failing snapshot.
+      #
+      # Solution: Serialize each snapshot individually to identify exactly which
+      # ones fail. Disable only the failing probes and send the successful snapshots
+      # by manually constructing the JSON array from the successful fragments.
       #
       # @param batch [Array<Hash>] Array of snapshot payloads that failed to serialize.
       #   Each snapshot is a Hash with the structure:
       #   { debugger: { snapshot: { probe: { id: String } } } }
-      # @param exception [Exception] The JSON encoding exception that was raised
+      # @param exception [Exception] The original JSON encoding exception that was raised
       def handle_snapshot_serialization_failure(batch, exception)
-        probe_ids = batch.map do |snapshot|
-          snapshot.dig(:debugger, :snapshot, :probe, :id)
-        end.compact.uniq
+        successful_json_fragments = []
+        failed_snapshots = []
 
-        probe_ids.each do |probe_id|
+        # Serialize each snapshot individually to isolate failures
+        batch.each do |snapshot|
+          begin
+            # Encode this snapshot to JSON
+            json_fragment = JSON.generate(snapshot)
+            successful_json_fragments << json_fragment
+          rescue JSON::GeneratorError => exc
+            failed_snapshots << { snapshot: snapshot, exception: exc }
+          end
+        end
+
+        # Disable probes that produced un-serializable snapshots
+        failed_snapshots.each do |failure|
+          snapshot = failure[:snapshot]
+          exc = failure[:exception]
+          probe_id = snapshot.dig(:debugger, :snapshot, :probe, :id)
+          next unless probe_id
+
           probe = probe_repository.find_installed(probe_id)
           next unless probe
 
-          logger.debug { "di: snapshot serialization failed for #{probe.type} probe at #{probe.location} (#{probe.id}): #{exception.class}: #{exception.message}" }
+          logger.debug { "di: snapshot serialization failed for #{probe.type} probe at #{probe.location} (#{probe.id}): #{exc.class}: #{exc.message}" }
 
           probe.disable!
 
           payload = probe_notification_builder.send(:build_status,
             probe,
-            message: "Probe #{probe.id} disabled: snapshot JSON encoding failed (#{exception.class}: #{exception.message})",
+            message: "Probe #{probe.id} disabled: snapshot JSON encoding failed (#{exc.class}: #{exc.message})",
             status: 'ERROR',
-            exception: exception,)
+            exception: exc,)
           add_status(payload, probe: probe)
 
-          telemetry&.report(exception, description: "DI snapshot JSON encoding failed for probe #{probe_id}")
+          telemetry&.report(exc, description: "DI snapshot JSON encoding failed for probe #{probe_id}")
+        end
+
+        # Send successful snapshots by manually constructing the JSON array from fragments
+        if successful_json_fragments.any?
+          begin
+            # Manually build JSON array: [fragment1, fragment2, ...]
+            complete_json = "[#{successful_json_fragments.join(',')}]"
+            serialized_tags = Core::TagBuilder.serialize_tags(tags)
+            snapshot_transport.send_input_chunk(complete_json, serialized_tags)
+            logger.debug { "di: successfully sent #{successful_json_fragments.length} snapshot(s) after isolating #{failed_snapshots.length} failed snapshot(s)" }
+          rescue => exc
+            # If sending the recovered snapshots fails, log but don't propagate
+            # (we've already handled the primary error)
+            logger.debug { "di: failed to send recovered snapshots: #{exc.class}: #{exc}" }
+            telemetry&.report(exc, description: "Failed to send recovered snapshots after isolation")
+          end
         end
       end
 

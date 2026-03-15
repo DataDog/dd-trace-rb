@@ -227,6 +227,9 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
     end
 
     context 'when JSON encoding fails' do
+      # Create a snapshot with binary data that cannot be JSON-encoded
+      let(:binary_string) { "\x80".force_encoding('ASCII-8BIT') }
+
       let(:snapshot) do
         {
           debugger: {
@@ -234,7 +237,16 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
               probe: {
                 id: 'test-probe-id',
               },
-              captures: {},
+              captures: {
+                # This binary string will cause JSON encoding to fail
+                lines: {
+                  '42': {
+                    arguments: {
+                      data: binary_string,
+                    },
+                  },
+                },
+              },
             },
           },
         }
@@ -278,7 +290,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         # Allow debug logging
         allow(logger).to receive(:debug)
 
-        # Stub transport to raise JSON::GeneratorError
+        # Stub transport to raise JSON::GeneratorError when send_input is called
         allow(input_transport).to receive(:send_input) do
           raise JSON::GeneratorError.new('"\x80" from ASCII-8BIT to UTF-8')
         end
