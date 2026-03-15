@@ -73,6 +73,16 @@ module Datadog
       # exception will be logged at WARN level, then the serializer will be
       # skipped and the next serializer will be tried. This prevents custom
       # serializers from breaking the entire serialization process.
+      #
+      # IMPORTANT: Custom serializers MUST produce data that can be JSON-encoded.
+      # Specifically, custom serializers MUST NOT produce strings with binary
+      # encoding (ASCII-8BIT) containing non-ASCII code points (bytes >= 0x80)
+      # that cannot be automatically transcoded to UTF-8. Such strings will
+      # cause JSON encoding to fail, which will result in the probe being
+      # disabled and an ERROR status being reported. If your data contains
+      # binary content, encode it to a text representation (e.g., Base64,
+      # hex string, or UTF-8 with replacement characters) before returning
+      # it from the custom serializer.
       @@flat_registry = []
       def self.register(condition: nil, &block)
         @@flat_registry << {condition: condition, proc: block}

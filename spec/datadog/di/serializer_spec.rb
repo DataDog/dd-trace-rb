@@ -71,6 +71,14 @@ class DISerializerSpecFields
   end
 end
 
+class DISerializerBinaryTestClass
+  attr_reader :data
+
+  def initialize(data)
+    @data = data
+  end
+end
+
 RSpec.describe Datadog::DI::Serializer do
   di_test
 
