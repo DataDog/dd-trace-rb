@@ -238,12 +238,15 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
       expect(errors.size).to eq(1)
       expect(errors.first[0]).to eq('bad-probe')
-      expect(errors.first[1]).to be_a(JSON::GeneratorError)
+      # Binary data can raise either JSON::GeneratorError or Encoding::UndefinedConversionError
+      # depending on Ruby version and how JSON.dump handles the encoding
+      expect(errors.first[1]).to be_a(JSON::GeneratorError).or be_a(Encoding::UndefinedConversionError)
     end
 
     it 'reports to telemetry' do
       expect(telemetry).to receive(:report) do |exc, description:|
-        expect(exc).to be_a(JSON::GeneratorError)
+        # Binary data can raise either JSON::GeneratorError or Encoding::UndefinedConversionError
+        expect(exc).to be_a(JSON::GeneratorError).or be_a(Encoding::UndefinedConversionError)
         expect(description).to eq('JSON encoding failed for snapshot')
       end
 
