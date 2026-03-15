@@ -182,6 +182,14 @@ module Datadog
         @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger, telemetry: telemetry)
       end
 
+      # Maximum size for a single serialized snapshot (1 MB).
+      # Snapshots larger than this are dropped.
+      MAX_SNAPSHOT_SIZE = 1024 * 1024
+
+      # Target chunk size for batching (2 MB).
+      # Batches are split into chunks of approximately this size.
+      DEFAULT_CHUNK_SIZE = 2 * 1024 * 1024
+
       # Sends a batch of pre-serialized snapshot JSON strings to the agent.
       #
       # Snapshots are serialized to JSON in ProbeManager when they are created,
@@ -190,12 +198,36 @@ module Datadog
       # is created, preventing healthy probes from being affected by failures in
       # other probes that happen to be batched together.
       #
+      # Large snapshots (> 1MB) are dropped. Batches are split into chunks
+      # of ~2MB each to avoid large network requests.
+      #
       # @param batch [Array<String>] Array of pre-serialized JSON snapshot strings
       def do_send_snapshot(batch)
-        # Manually construct JSON array from pre-serialized fragments
-        complete_json = "[#{batch.join(',')}]"
         serialized_tags = Core::TagBuilder.serialize_tags(tags)
-        snapshot_transport.send_input_chunk(complete_json, serialized_tags)
+
+        # Filter out oversized snapshots
+        valid_snapshots = batch.select do |json|
+          if json.bytesize > MAX_SNAPSHOT_SIZE
+            logger.debug { "di: dropping too big snapshot (#{json.bytesize} bytes)" }
+            false
+          else
+            true
+          end
+        end
+
+        return if valid_snapshots.empty?
+
+        # Split into chunks to avoid large network requests
+        Datadog::Core::Chunker.chunk_by_size(valid_snapshots, DEFAULT_CHUNK_SIZE).each do |chunk|
+          complete_json = "[#{chunk.join(',')}]"
+          begin
+            snapshot_transport.send_input_chunk(complete_json, serialized_tags)
+          rescue => exc
+            # Log and continue with next chunk
+            logger.debug { "di: failed to send snapshot chunk: #{exc.class}: #{exc}" }
+            telemetry&.report(exc, description: "Error sending snapshot chunk")
+          end
+        end
       end
 
       def tags

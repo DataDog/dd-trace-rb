@@ -173,7 +173,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           expect(telemetry).to receive(:report) do |exc, description:|
             expect(exc).to be_a(StandardError)
             expect(exc.message).to eq("network error")
-            expect(description).to eq("Error sending snapshot")
+            expect(description).to eq("Error sending snapshot chunk")
           end
 
           worker.add_snapshot(snapshot)
