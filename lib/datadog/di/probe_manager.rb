@@ -252,13 +252,8 @@ module Datadog
       #
       # This can happen when the expression references undefined variables,
       # has type mismatches, or encounters runtime errors during evaluation.
-      # The callback sends a snapshot with the error details to help users
-      # debug their probe conditions.
-      #
-      # Rate-limited using a token bucket algorithm to avoid flooding the backend
-      # when conditions fail repeatedly. The rate limiter allows an initial burst
-      # of notifications, then refills tokens over time. If no tokens are available,
-      # the notification is dropped.
+      # Rate-limited to 1 notification per second per probe to avoid
+      # flooding the backend when conditions fail repeatedly.
       #
       # @param context [Context] The execution context containing probe and captured data
       # @param expr [String] The condition expression that failed
