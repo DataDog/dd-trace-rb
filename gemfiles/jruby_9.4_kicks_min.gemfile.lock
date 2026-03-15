@@ -45,7 +45,7 @@ GEM
       serverengine (~> 2.1)
       thor
     libdatadog (28.0.2.1.0)
-    libddwaf (1.30.0.0.0)
+    libddwaf (1.30.0.0.2)
       ffi (~> 1.0)
     logger (1.7.0)
     memory_profiler (0.9.14)
