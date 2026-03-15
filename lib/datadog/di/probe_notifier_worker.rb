@@ -45,6 +45,10 @@ module Datadog
       attr_reader :telemetry
       attr_reader :agent_settings
 
+      # Starts the background worker thread.
+      #
+      # The thread batches and sends probe statuses and snapshots to the agent.
+      # If the process forks, the thread is automatically restarted in the child.
       def start
         return if @thread && @pid == Process.pid
         logger.trace { "di: starting probe notifier: pid #{$$}" }

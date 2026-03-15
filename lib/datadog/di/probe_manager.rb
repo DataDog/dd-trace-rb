@@ -40,6 +40,11 @@ module Datadog
       attr_reader :telemetry
       attr_reader :probe_repository
 
+      # Shuts down the probe manager and releases all resources.
+      #
+      # Disables the class definition trace point and removes all installed
+      # probe instrumentation. Called during component teardown.
+      #
       # TODO test that close is called during component teardown and
       # the trace point is cleared
       def close
@@ -47,6 +52,11 @@ module Datadog
         clear_hooks
       end
 
+      # Removes all installed probe instrumentation and clears the probe repository.
+      #
+      # Iterates through all installed probes, unhooks their instrumentation,
+      # and clears all probe collections (installed, pending, failed).
+      # Called during component shutdown to clean up resources.
       def clear_hooks
         probe_repository.clear_all do |probe|
           instrumenter.unhook(probe)
@@ -276,6 +286,13 @@ module Datadog
         end
       end
 
+      # Callback invoked when a probe is temporarily disabled due to rate limiting.
+      #
+      # Sends a status notification to inform the backend that the probe
+      # has been disabled and for how long.
+      #
+      # @param probe [Probe] The probe that was disabled
+      # @param duration [Numeric] How long the probe is disabled for, in seconds
       def probe_disabled_callback(probe, duration)
         payload = probe_notification_builder.build_disabled(probe, duration)
         probe_notifier_worker.add_status(payload, probe: probe)
