@@ -4,10 +4,6 @@ module Datadog
 
       MIN_SEND_INTERVAL: 1
 
-      MAX_SNAPSHOT_SIZE: Integer
-
-      DEFAULT_CHUNK_SIZE: Integer
-
       @settings: untyped
 
       @status_queue: Array[Hash[String, untyped]]

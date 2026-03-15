@@ -186,14 +186,6 @@ module Datadog
         @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger, telemetry: telemetry)
       end
 
-      # Maximum size for a single serialized snapshot (1 MB).
-      # Snapshots larger than this are dropped.
-      MAX_SNAPSHOT_SIZE = 1024 * 1024
-
-      # Target chunk size for batching (2 MB).
-      # Batches are split into chunks of approximately this size.
-      DEFAULT_CHUNK_SIZE = 2 * 1024 * 1024
-
       # Sends a batch of pre-serialized snapshot JSON strings to the agent.
       #
       # Snapshots are serialized to JSON in ProbeManager when they are created,
@@ -209,9 +201,10 @@ module Datadog
       def do_send_snapshot(batch)
         serialized_tags = Core::TagBuilder.serialize_tags(tags)
 
-        # Filter out oversized snapshots
+        # Filter out oversized snapshots (use transport's size limit)
+        max_size = Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE
         valid_snapshots = batch.select do |json|
-          if json.bytesize > MAX_SNAPSHOT_SIZE
+          if json.bytesize > max_size
             logger.debug { "di: dropping too big snapshot (#{json.bytesize} bytes)" }
             false
           else
@@ -221,8 +214,9 @@ module Datadog
 
         return if valid_snapshots.empty?
 
-        # Split into chunks to avoid large network requests
-        Datadog::Core::Chunker.chunk_by_size(valid_snapshots, DEFAULT_CHUNK_SIZE).each do |chunk|
+        # Split into chunks to avoid large network requests (use transport's chunk size)
+        chunk_size = Transport::Input::Transport::DEFAULT_CHUNK_SIZE
+        Datadog::Core::Chunker.chunk_by_size(valid_snapshots, chunk_size).each do |chunk|
           complete_json = "[#{chunk.join(',')}]"
           begin
             snapshot_transport.send_input_chunk(complete_json, serialized_tags)
