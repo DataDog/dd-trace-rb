@@ -26,7 +26,7 @@ module Datadog
             ?telemetry: Datadog::Core::Telemetry::Component?
           ) -> void
 
-          def send_input: (untyped payload, untyped tags, ?on_serialization_error: (^(String, Exception) -> void)?) -> untyped
+          def send_input: (untyped payload, untyped tags, on_serialization_error: ^(String, Exception) -> void) -> untyped
 
           def send_input_chunk: (untyped chunked_payload, untyped serialized_tags) -> untyped
 

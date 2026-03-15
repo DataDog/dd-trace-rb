@@ -22,6 +22,8 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
   let(:tags) { [] }
 
+  let(:noop_serialization_error_handler) { ->(_probe_id, _exc) {} }
+
   context 'when snapshot contains escaped binary data' do
     context 'with all 256 byte values' do
       # Create a string containing all possible byte values (0x00-0xFF)
@@ -68,7 +70,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
       it 'successfully serializes escaped binary through transport layer' do
         # Escaped binary format is JSON-safe
         expect {
-          transport.send_input([snapshot], tags)
+          transport.send_input([snapshot], tags, on_serialization_error: noop_serialization_error_handler)
         }.not_to raise_error
       end
 
@@ -109,7 +111,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
       it 'successfully serializes escaped binary string' do
         expect {
-          transport.send_input([snapshot], tags)
+          transport.send_input([snapshot], tags, on_serialization_error: noop_serialization_error_handler)
         }.not_to raise_error
       end
 
@@ -146,7 +148,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
         expect(chunked_payload.length).to be < 100_000
         expect(chunked_payload.length).to be > 90_000
       end
-      transport.send_input(snapshots, tags)
+      transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
     end
 
     context 'when individual snapshot exceeds intake max' do
@@ -171,7 +173,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
           expect(chunked_payload.length).to be > 100
         end
         expect_lazy_log(logger, :debug, 'di: dropping too big snapshot')
-        transport.send_input(snapshots, tags)
+        transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
       end
     end
   end
@@ -193,7 +195,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
 
       # Should not raise despite the error
       expect do
-        transport.send_input(snapshots, tags)
+        transport.send_input(snapshots, tags, on_serialization_error: noop_serialization_error_handler)
       end.not_to raise_error
     end
   end
@@ -249,7 +251,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
         expect(description).to eq('JSON encoding failed for snapshot')
       end
 
-      transport.send_input([bad_snapshot], tags)
+      transport.send_input([bad_snapshot], tags, on_serialization_error: noop_serialization_error_handler)
     end
 
     it 'continues processing other snapshots after failure' do

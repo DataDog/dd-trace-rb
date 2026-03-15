@@ -63,10 +63,9 @@ module Datadog
           #
           # @param payload [Array<Hash>] Array of snapshot payloads
           # @param tags [Hash] Tags to send with the snapshots
-          # @param on_serialization_error [Proc, nil] Called with (probe_id, exception)
-          #   when a snapshot fails to serialize. If nil, errors are logged but
-          #   no callback is invoked.
-          def send_input(payload, tags, on_serialization_error: nil)
+          # @param on_serialization_error [Proc] Called with (probe_id, exception)
+          #   when a snapshot fails to serialize.
+          def send_input(payload, tags, on_serialization_error:)
             serialized_tags = Core::TagBuilder.serialize_tags(tags)
 
             # Serialize each snapshot individually to isolate failures
@@ -85,7 +84,7 @@ module Datadog
               logger.debug { "di: JSON encoding failed for snapshot (probe #{probe_id}): #{exc.class}: #{exc}" }
               telemetry&.report(exc, description: "JSON encoding failed for snapshot")
 
-              if on_serialization_error && probe_id
+              if probe_id
                 begin
                   on_serialization_error.call(probe_id, exc)
                 rescue => callback_exc
