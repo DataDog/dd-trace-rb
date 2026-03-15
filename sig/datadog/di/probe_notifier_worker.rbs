@@ -26,11 +26,11 @@ module Datadog
 
       @telemetry: Core::Telemetry::Component?
 
-      @probe_repository: ProbeRepository?
+      @probe_repository: ProbeRepository
 
-      @probe_notification_builder: ProbeNotificationBuilder?
+      @probe_notification_builder: ProbeNotificationBuilder
 
-      def initialize: (untyped settings, DI::Logger logger, agent_settings: untyped, ?telemetry: Core::Telemetry::Component?, ?probe_repository: ProbeRepository?, ?probe_notification_builder: ProbeNotificationBuilder?) -> void
+      def initialize: (untyped settings, DI::Logger logger, agent_settings: untyped, probe_repository: ProbeRepository, probe_notification_builder: ProbeNotificationBuilder, ?telemetry: Core::Telemetry::Component?) -> void
 
       attr_reader settings: untyped
 
@@ -38,9 +38,9 @@ module Datadog
 
       attr_reader telemetry: Core::Telemetry::Component?
 
-      attr_reader probe_repository: ProbeRepository?
+      attr_reader probe_repository: ProbeRepository
 
-      attr_reader probe_notification_builder: ProbeNotificationBuilder?
+      attr_reader probe_notification_builder: ProbeNotificationBuilder
 
       def start: () -> void
       def stop: (?::Integer timeout) -> void

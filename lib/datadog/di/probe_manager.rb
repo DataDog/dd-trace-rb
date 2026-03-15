@@ -45,6 +45,8 @@ module Datadog
       # Disables the class definition trace point and removes all installed
       # probe instrumentation. Called during component teardown.
       #
+      # @return [void]
+      #
       # TODO test that close is called during component teardown and
       # the trace point is cleared
       def close
@@ -57,6 +59,8 @@ module Datadog
       # Iterates through all installed probes, unhooks their instrumentation,
       # and clears all probe collections (installed, pending, failed).
       # Called during component shutdown to clean up resources.
+      #
+      # @return [void]
       def clear_hooks
         probe_repository.clear_all do |probe|
           instrumenter.unhook(probe)
@@ -79,6 +83,12 @@ module Datadog
       #
       # On successful installation, sends INSTALLED status to the backend.
       # On failure, sends ERROR status to the backend before re-raising.
+      #
+      # @param probe [Probe] the probe to install
+      # @return [Boolean] true if installed, false if pending
+      # @raise [Error::AlreadyInstrumented] if a probe with the same ID is already installed
+      # @raise [Error::ProbePreviouslyFailed] if a probe with the same ID previously failed
+      # @raise [StandardError] re-raises any other instrumentation error after recording failure
       def add_probe(probe)
         if probe_repository.find_installed(probe.id)
           # Either this probe was already installed, or another probe was

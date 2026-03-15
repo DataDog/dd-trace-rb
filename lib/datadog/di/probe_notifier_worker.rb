@@ -23,12 +23,12 @@ module Datadog
     #
     # @api private
     class ProbeNotifierWorker
-      # @param probe_repository [ProbeRepository, nil] Repository for looking up probes.
-      #   Required for handling serialization errors (disabling affected probes).
-      # @param probe_notification_builder [ProbeNotificationBuilder, nil] Builder for
-      #   creating status notifications. Required for reporting ERROR status.
-      def initialize(settings, logger, agent_settings:, telemetry: nil,
-        probe_repository: nil, probe_notification_builder: nil)
+      # @param probe_repository [ProbeRepository] Repository for looking up probes.
+      #   Used for handling serialization errors (disabling affected probes).
+      # @param probe_notification_builder [ProbeNotificationBuilder] Builder for
+      #   creating status notifications. Used for reporting ERROR status.
+      def initialize(settings, logger, agent_settings:,
+        probe_repository:, probe_notification_builder:, telemetry: nil)
         @settings = settings
         @telemetry = telemetry
         @status_queue = []
@@ -58,6 +58,8 @@ module Datadog
       #
       # The thread batches and sends probe statuses and snapshots to the agent.
       # If the process forks, the thread is automatically restarted in the child.
+      #
+      # @return [void]
       def start
         return if @thread && @pid == Process.pid
         logger.trace { "di: starting probe notifier: pid #{$$}" }
@@ -214,8 +216,6 @@ module Datadog
       # @param probe_id [String] ID of the probe that produced bad data
       # @param exception [Exception] The serialization exception
       def handle_serialization_error(probe_id, exception)
-        return unless probe_repository && probe_notification_builder
-
         probe = probe_repository.find_installed(probe_id)
         return unless probe
 

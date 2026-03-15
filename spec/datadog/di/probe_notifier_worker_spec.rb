@@ -34,7 +34,23 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
   let(:telemetry) { nil }
 
-  let(:worker) { described_class.new(settings, logger, agent_settings: agent_settings, telemetry: telemetry) }
+  let(:default_probe_repository) do
+    instance_double(Datadog::DI::ProbeRepository)
+  end
+
+  let(:default_probe_notification_builder) do
+    instance_double(Datadog::DI::ProbeNotificationBuilder)
+  end
+
+  let(:worker) do
+    described_class.new(
+      settings, logger,
+      agent_settings: agent_settings,
+      telemetry: telemetry,
+      probe_repository: default_probe_repository,
+      probe_notification_builder: default_probe_notification_builder,
+    )
+  end
 
   let(:diagnostics_transport) do
     double(Datadog::DI::Transport::Diagnostics::Transport)
@@ -181,7 +197,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
         it 'reports exception to telemetry' do
-          allow(logger).to receive(:debug)
+          expect_lazy_log(logger, :debug, /failed to send snapshot.*network error/)
           expect(input_transport).to receive(:send_input).and_raise(StandardError, "network error")
 
           expect(telemetry).to receive(:report) do |exc, description:|
@@ -208,7 +224,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
         it 'reports exception to telemetry' do
-          allow(logger).to receive(:debug)
+          expect_lazy_log(logger, :debug, /failed to send probe status.*network error/)
           expect(diagnostics_transport).to receive(:send_diagnostics).and_raise(StandardError, "network error")
 
           expect(telemetry).to receive(:report) do |exc, description:|
@@ -257,17 +273,18 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         before do
           allow(probe_repository).to receive(:find_installed).with('test-probe').and_return(probe)
           allow(probe).to receive(:disable!)
-          allow(logger).to receive(:debug)
           allow(diagnostics_transport).to receive(:send_diagnostics)
         end
 
         it 'disables the probe' do
+          expect_lazy_log(logger, :debug, /disabling probe test-probe due to serialization error/)
           expect(probe).to receive(:disable!)
 
           worker.send(:handle_serialization_error, 'test-probe', exception)
         end
 
         it 'sends ERROR status' do
+          expect_lazy_log(logger, :debug, /disabling probe test-probe/)
           allow(probe).to receive(:disable!)
 
           expect(probe_notification_builder).to receive(:send).with(:build_status, probe, hash_including(
@@ -279,11 +296,18 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         end
 
         it 'queues the status for sending' do
+          expect_lazy_log(logger, :debug, /disabling probe test-probe/)
           allow(probe).to receive(:disable!)
 
           worker.send(:handle_serialization_error, 'test-probe', exception)
 
           expect(worker.send(:status_queue)).not_to be_empty
+        end
+
+        it 'logs the serialization error with probe ID and exception details' do
+          expect_lazy_log(logger, :debug, /disabling probe test-probe due to serialization error: JSON::GeneratorError: binary data not allowed/)
+
+          worker.send(:handle_serialization_error, 'test-probe', exception)
         end
       end
 
@@ -296,17 +320,6 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           expect(probe_notification_builder).not_to receive(:send)
 
           worker.send(:handle_serialization_error, 'unknown-probe', exception)
-        end
-      end
-
-      context 'when probe_repository is not provided' do
-        let(:worker) do
-          described_class.new(settings, logger, agent_settings: agent_settings, telemetry: telemetry)
-        end
-
-        it 'does nothing' do
-          # Should not raise, just return early
-          expect { worker.send(:handle_serialization_error, 'test-probe', exception) }.not_to raise_error
         end
       end
     end

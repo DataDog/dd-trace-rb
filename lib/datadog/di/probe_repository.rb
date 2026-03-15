@@ -25,6 +25,8 @@ module Datadog
 
       # Returns the installed probes hash.
       # Note: Returns the actual hash for backward compatibility with existing code.
+      #
+      # @return [Hash<String, Probe>] map of probe ID to installed probe
       def installed_probes
         @lock.synchronize do
           @installed_probes
@@ -61,6 +63,8 @@ module Datadog
       end
 
       # Returns the pending probes hash.
+      #
+      # @return [Hash<String, Probe>] map of probe ID to pending probe
       def pending_probes
         @lock.synchronize do
           @pending_probes
@@ -97,6 +101,8 @@ module Datadog
       end
 
       # Clears all pending probes.
+      #
+      # @return [void]
       def clear_pending
         @lock.synchronize do
           @pending_probes.clear
@@ -105,6 +111,8 @@ module Datadog
 
       # Returns the failed probes hash.
       # Values are error message strings, not Probe objects.
+      #
+      # @return [Hash<String, String>] map of probe ID to error message
       def failed_probes
         @lock.synchronize do
           @failed_probes
