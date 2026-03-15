@@ -23,6 +23,20 @@ module Datadog
         @lock = Monitor.new
       end
 
+      # Executes the block while holding the repository lock.
+      #
+      # Use this for compound operations that need to atomically check
+      # and modify multiple collections (e.g., check-then-install).
+      # Individual methods already acquire the lock internally; since
+      # the lock is a Monitor (reentrant), calling them from within
+      # this block is safe.
+      #
+      # @yield Block to execute while holding the lock
+      # @return The return value of the block
+      def synchronize(&block)
+        @lock.synchronize(&block)
+      end
+
       # Returns the installed probes hash.
       # Note: Returns the actual hash for backward compatibility with existing code.
       #

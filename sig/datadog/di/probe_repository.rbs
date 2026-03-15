@@ -11,6 +11,8 @@ module Datadog
 
       def initialize: () -> void
 
+      def synchronize: [T] () { () -> T } -> T
+
       def installed_probes: () -> Hash[String, Probe]
 
       def find_installed: (String probe_id) -> Probe?

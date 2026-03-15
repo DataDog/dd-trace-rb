@@ -90,42 +90,44 @@ module Datadog
       # @raise [Error::ProbePreviouslyFailed] if a probe with the same ID previously failed
       # @raise [StandardError] re-raises any other instrumentation error after recording failure
       def add_probe(probe)
-        if probe_repository.find_installed(probe.id)
-          # Either this probe was already installed, or another probe was
-          # installed with the same id (previous version perhaps?).
-          # Since our state tracking is keyed by probe id, we cannot
-          # install this probe since we won't have a way of removing the
-          # instrumentation for the probe with the same id which is already
-          # installed.
-          #
-          # The exception raised here will be caught below and logged and
-          # reported to telemetry.
-          raise Error::AlreadyInstrumented, "Probe with id #{probe.id} is already in installed probes"
-        end
+        probe_repository.synchronize do
+          if probe_repository.find_installed(probe.id)
+            # Either this probe was already installed, or another probe was
+            # installed with the same id (previous version perhaps?).
+            # Since our state tracking is keyed by probe id, we cannot
+            # install this probe since we won't have a way of removing the
+            # instrumentation for the probe with the same id which is already
+            # installed.
+            #
+            # The exception raised here will be caught below and logged and
+            # reported to telemetry.
+            raise Error::AlreadyInstrumented, "Probe with id #{probe.id} is already in installed probes"
+          end
 
-        # Probe failed to install previously, do not try to install it again.
-        if msg = probe_repository.find_failed(probe.id)
-          # TODO test this path
-          raise Error::ProbePreviouslyFailed, msg
-        end
+          # Probe failed to install previously, do not try to install it again.
+          if msg = probe_repository.find_failed(probe.id)
+            # TODO test this path
+            raise Error::ProbePreviouslyFailed, msg
+          end
 
-        begin
-          instrumenter.hook(probe, self)
+          begin
+            instrumenter.hook(probe, self)
 
-          probe_repository.add_installed(probe)
-          payload = probe_notification_builder.build_installed(probe)
-          probe_notifier_worker.add_status(payload, probe: probe)
-          # The probe would only be in the pending probes list if it was
-          # previously attempted to be installed and the target was not loaded.
-          # Always remove from pending list here because it makes the
-          # API smaller and shouldn't cause any actual problems.
-          probe_repository.remove_pending(probe.id)
-          logger.trace { "di: installed #{probe.type} probe at #{probe.location} (#{probe.id})" }
-          true
-        rescue Error::DITargetNotDefined
-          probe_repository.add_pending(probe)
-          logger.trace { "di: could not install #{probe.type} probe at #{probe.location} (#{probe.id}) because its target is not defined, adding it to pending list" }
-          false
+            probe_repository.add_installed(probe)
+            payload = probe_notification_builder.build_installed(probe)
+            probe_notifier_worker.add_status(payload, probe: probe)
+            # The probe would only be in the pending probes list if it was
+            # previously attempted to be installed and the target was not loaded.
+            # Always remove from pending list here because it makes the
+            # API smaller and shouldn't cause any actual problems.
+            probe_repository.remove_pending(probe.id)
+            logger.trace { "di: installed #{probe.type} probe at #{probe.location} (#{probe.id})" }
+            true
+          rescue Error::DITargetNotDefined
+            probe_repository.add_pending(probe)
+            logger.trace { "di: could not install #{probe.type} probe at #{probe.location} (#{probe.id}) because its target is not defined, adding it to pending list" }
+            false
+          end
         end
       rescue => exc
         # In "propagate all exceptions" mode we will try to instrument again.
@@ -173,30 +175,32 @@ module Datadog
       # This method is meant to be called from the "end" trace point,
       # which is invoked for each class definition.
       private def install_pending_method_probes(cls)
-        # TODO search more efficiently than linearly
-        probe_repository.pending_probes.each do |probe_id, probe|
-          if probe.method?
-            # TODO move this stringification elsewhere
-            if probe.type_name == cls.name
-              begin
-                # TODO is it OK to hook from trace point handler?
-                # TODO the class is now defined, but can hooking still fail?
-                instrumenter.hook(probe, self)
-                probe_repository.add_installed(probe)
-                probe_repository.remove_pending(probe.id)
-                break
-              rescue Error::DITargetNotDefined
-                # This should not happen... try installing again later?
-              rescue => exc
-                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+        probe_repository.synchronize do
+          # TODO search more efficiently than linearly
+          probe_repository.pending_probes.each do |probe_id, probe|
+            if probe.method?
+              # TODO move this stringification elsewhere
+              if probe.type_name == cls.name
+                begin
+                  # TODO is it OK to hook from trace point handler?
+                  # TODO the class is now defined, but can hooking still fail?
+                  instrumenter.hook(probe, self)
+                  probe_repository.add_installed(probe)
+                  probe_repository.remove_pending(probe.id)
+                  break
+                rescue Error::DITargetNotDefined
+                  # This should not happen... try installing again later?
+                rescue => exc
+                  raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                logger.debug { "di: error installing #{probe.type} probe at #{probe.location} (#{probe.id}) after class is defined: #{exc.class}: #{exc}" }
-                telemetry&.report(exc, description: "Error installing probe after class is defined")
+                  logger.debug { "di: error installing #{probe.type} probe at #{probe.location} (#{probe.id}) after class is defined: #{exc.class}: #{exc}" }
+                  telemetry&.report(exc, description: "Error installing probe after class is defined")
 
-                payload = probe_notification_builder.build_errored(probe, exc)
-                probe_notifier_worker.add_status(payload, probe: probe)
+                  payload = probe_notification_builder.build_errored(probe, exc)
+                  probe_notifier_worker.add_status(payload, probe: probe)
 
-                probe_repository.add_failed(probe.id, "#{exc.class}: #{exc}")
+                  probe_repository.add_failed(probe.id, "#{exc.class}: #{exc}")
+                end
               end
             end
           end
@@ -213,10 +217,12 @@ module Datadog
         if path.nil?
           raise ArgumentError, "path must not be nil"
         end
-        probe_repository.pending_probes.values.each do |probe|
-          if probe.line?
-            if probe.file_matches?(path)
-              add_probe(probe)
+        probe_repository.synchronize do
+          probe_repository.pending_probes.values.each do |probe|
+            if probe.line?
+              if probe.file_matches?(path)
+                add_probe(probe)
+              end
             end
           end
         end
