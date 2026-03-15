@@ -239,7 +239,10 @@ module Datadog
       # The callback sends a snapshot with the error details to help users
       # debug their probe conditions.
       #
-      # Rate-limited to avoid flooding the backend when conditions fail repeatedly.
+      # Rate-limited using a token bucket algorithm to avoid flooding the backend
+      # when conditions fail repeatedly. The rate limiter allows an initial burst
+      # of notifications, then refills tokens over time. If no tokens are available,
+      # the notification is dropped.
       #
       # @param context [Context] The execution context containing probe and captured data
       # @param expr [String] The condition expression that failed
@@ -252,13 +255,17 @@ module Datadog
         end
       end
 
-      # Callback invoked when a probe is temporarily disabled due to rate limiting.
+      # Callback invoked when a probe is disabled due to excessive CPU consumption.
+      #
+      # The instrumenter tracks CPU time spent processing each probe. When
+      # the accumulated time exceeds the configured threshold, the probe is
+      # disabled to prevent performance degradation of the instrumented application.
       #
       # Sends a status notification to inform the backend that the probe
-      # has been disabled and for how long.
+      # has been disabled and the CPU time that was consumed.
       #
       # @param probe [Probe] The probe that was disabled
-      # @param duration [Numeric] How long the probe is disabled for, in seconds
+      # @param duration [Numeric] The CPU time consumed by probe processing, in seconds
       def probe_disabled_callback(probe, duration)
         payload = probe_notification_builder.build_disabled(probe, duration)
         probe_notifier_worker.add_status(payload, probe: probe)
