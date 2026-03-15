@@ -66,6 +66,9 @@ module Datadog
       # defined, or files loaded, the probe will be checked against the
       # newly defined classes/loaded files, and will be installed if it
       # matches.
+      #
+      # On successful installation, sends INSTALLED status to the backend.
+      # On failure, sends ERROR status to the backend before re-raising.
       def add_probe(probe)
         if probe_repository.find_installed(probe.id)
           # Either this probe was already installed, or another probe was
