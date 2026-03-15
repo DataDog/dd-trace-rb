@@ -249,7 +249,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
       let(:probe_notification_builder) do
         instance_double(Datadog::DI::ProbeNotificationBuilder).tap do |builder|
-          allow(builder).to receive(:send).with(:build_status, anything, hash_including(:message, :status, :exception)).and_return({status: 'ERROR'})
+          allow(builder).to receive(:build_status).with(anything, hash_including(:message, :status, :exception)).and_return({status: 'ERROR'})
         end
       end
 
@@ -287,7 +287,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           expect_lazy_log(logger, :debug, /disabling probe test-probe/)
           allow(probe).to receive(:disable!)
 
-          expect(probe_notification_builder).to receive(:send).with(:build_status, probe, hash_including(
+          expect(probe_notification_builder).to receive(:build_status).with(probe, hash_including(
             message: /JSON encoding failed/,
             status: 'ERROR',
           ))
@@ -317,7 +317,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         end
 
         it 'does nothing' do
-          expect(probe_notification_builder).not_to receive(:send)
+          expect(probe_notification_builder).not_to receive(:build_status)
 
           worker.send(:handle_serialization_error, 'unknown-probe', exception)
         end

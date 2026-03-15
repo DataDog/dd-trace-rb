@@ -223,8 +223,7 @@ module Datadog
 
         probe.disable!
 
-        payload = probe_notification_builder.send(
-          :build_status,
+        payload = probe_notification_builder.build_status(
           probe,
           message: "Probe #{probe.id} disabled: snapshot JSON encoding failed (#{exception.class}: #{exception.message})",
           status: 'ERROR',
