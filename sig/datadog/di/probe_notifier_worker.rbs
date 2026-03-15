@@ -4,11 +4,15 @@ module Datadog
 
       MIN_SEND_INTERVAL: 1
 
+      MAX_SNAPSHOT_SIZE: Integer
+
+      DEFAULT_CHUNK_SIZE: Integer
+
       @settings: untyped
 
       @status_queue: Array[Hash[String, untyped]]
 
-      @snapshot_queue: Array[Hash[String, untyped]]
+      @snapshot_queue: Array[String]
 
       @agent_settings: untyped
 
@@ -26,11 +30,7 @@ module Datadog
 
       @telemetry: Core::Telemetry::Component?
 
-      @probe_repository: ProbeRepository?
-
-      @probe_notification_builder: ProbeNotificationBuilder?
-
-      def initialize: (untyped settings, DI::Logger logger, agent_settings: untyped, ?telemetry: Core::Telemetry::Component?, ?probe_repository: ProbeRepository?, ?probe_notification_builder: ProbeNotificationBuilder?) -> void
+      def initialize: (untyped settings, DI::Logger logger, agent_settings: untyped, ?telemetry: Core::Telemetry::Component?) -> void
 
       attr_reader settings: untyped
 
@@ -38,16 +38,12 @@ module Datadog
 
       attr_reader telemetry: Core::Telemetry::Component?
 
-      attr_reader probe_repository: ProbeRepository?
-
-      attr_reader probe_notification_builder: ProbeNotificationBuilder?
-
       def start: () -> void
       def stop: (?::Integer timeout) -> void
       def flush: () -> void
 
       def add_status: (Hash[Symbol, untyped], ?probe: DI::Probe?) -> void
-      def add_snapshot: (Hash[Symbol, untyped]) -> void
+      def add_snapshot: (String) -> void
 
       def status_transport: () -> DI::Transport::Diagnostics::Transport
       def snapshot_transport: () -> DI::Transport::Input::Transport
@@ -60,7 +56,7 @@ module Datadog
 
       def status_queue: () -> Array[Hash[String, untyped]]
 
-      def snapshot_queue: () -> Array[Hash[String, untyped]]
+      def snapshot_queue: () -> Array[String]
 
       attr_reader agent_settings: untyped
 
@@ -78,7 +74,7 @@ module Datadog
 
       def min_send_interval: () -> Float
 
-      def handle_snapshot_serialization_failure: (Array[Hash[Symbol, untyped]] batch, Exception exception) -> void
+      def do_send_snapshot: (Array[String] batch) -> void
     end
   end
 end
