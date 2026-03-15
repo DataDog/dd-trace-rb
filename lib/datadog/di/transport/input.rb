@@ -86,7 +86,12 @@ module Datadog
               telemetry&.report(exc, description: "JSON encoding failed for snapshot")
 
               if on_serialization_error && probe_id
-                on_serialization_error.call(probe_id, exc)
+                begin
+                  on_serialization_error.call(probe_id, exc)
+                rescue => callback_exc
+                  logger.debug { "di: error in serialization error callback for probe #{probe_id}: #{callback_exc.class}: #{callback_exc}" }
+                  telemetry&.report(callback_exc, description: "Error in serialization error callback")
+                end
               end
             end
 

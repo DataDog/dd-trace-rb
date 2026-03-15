@@ -273,5 +273,30 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
       # Only the bad probe should be reported
       expect(errors).to eq(['bad-probe'])
     end
+
+    context 'when on_serialization_error callback raises' do
+      it 'catches the callback exception and continues processing' do
+        on_error = ->(_probe_id, _exc) { raise "callback error" }
+
+        expect(transport).to receive(:send_input_chunk).once
+
+        transport.send_input([bad_snapshot, good_snapshot], tags, on_serialization_error: on_error)
+      end
+
+      it 'reports the callback exception to telemetry' do
+        on_error = ->(_probe_id, _exc) { raise "callback error" }
+
+        reports = []
+        allow(telemetry).to receive(:report) do |exc, description:|
+          reports << {exc_class: exc.class, exc_message: exc.message, description: description}
+        end
+
+        transport.send_input([bad_snapshot], tags, on_serialization_error: on_error)
+
+        expect(reports).to include(
+          hash_including(exc_class: RuntimeError, exc_message: 'callback error', description: 'Error in serialization error callback'),
+        )
+      end
+    end
   end
 end
