@@ -197,4 +197,79 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
       end.not_to raise_error
     end
   end
+
+  context 'when snapshot JSON encoding fails' do
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
+    # Create a payload with binary data that cannot be JSON-encoded
+    let(:binary_string) { "\x80".force_encoding('ASCII-8BIT') }
+    let(:bad_snapshot) do
+      {
+        debugger: {
+          snapshot: {
+            probe: {id: 'bad-probe'},
+            data: binary_string,
+          },
+        },
+      }
+    end
+
+    let(:good_snapshot) do
+      {
+        debugger: {
+          snapshot: {
+            probe: {id: 'good-probe'},
+            data: 'valid string',
+          },
+        },
+      }
+    end
+
+    before do
+      allow(logger).to receive(:debug)
+      allow(telemetry).to receive(:report)
+    end
+
+    it 'calls on_serialization_error callback with probe ID and exception' do
+      errors = []
+      on_error = ->(probe_id, exc) { errors << [probe_id, exc] }
+
+      transport.send_input([bad_snapshot], tags, on_serialization_error: on_error)
+
+      expect(errors.size).to eq(1)
+      expect(errors.first[0]).to eq('bad-probe')
+      expect(errors.first[1]).to be_a(JSON::GeneratorError)
+    end
+
+    it 'reports to telemetry' do
+      expect(telemetry).to receive(:report) do |exc, description:|
+        expect(exc).to be_a(JSON::GeneratorError)
+        expect(description).to eq('JSON encoding failed for snapshot')
+      end
+
+      transport.send_input([bad_snapshot], tags)
+    end
+
+    it 'continues processing other snapshots after failure' do
+      errors = []
+      on_error = ->(probe_id, exc) { errors << probe_id }
+
+      # Expect one chunk with only the good snapshot
+      expect(transport).to receive(:send_input_chunk).once
+
+      transport.send_input([bad_snapshot, good_snapshot], tags, on_serialization_error: on_error)
+
+      expect(errors).to eq(['bad-probe'])
+    end
+
+    it 'isolates failures - only bad probe is reported' do
+      errors = []
+      on_error = ->(probe_id, exc) { errors << probe_id }
+
+      transport.send_input([good_snapshot, bad_snapshot, good_snapshot], tags, on_serialization_error: on_error)
+
+      # Only the bad probe should be reported
+      expect(errors).to eq(['bad-probe'])
+    end
+  end
 end

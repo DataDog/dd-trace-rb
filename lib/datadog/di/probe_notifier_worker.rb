@@ -23,7 +23,12 @@ module Datadog
     #
     # @api private
     class ProbeNotifierWorker
-      def initialize(settings, logger, agent_settings:, telemetry: nil)
+      # @param probe_repository [ProbeRepository, nil] Repository for looking up probes.
+      #   Required for handling serialization errors (disabling affected probes).
+      # @param probe_notification_builder [ProbeNotificationBuilder, nil] Builder for
+      #   creating status notifications. Required for reporting ERROR status.
+      def initialize(settings, logger, agent_settings:, telemetry: nil,
+        probe_repository: nil, probe_notification_builder: nil)
         @settings = settings
         @telemetry = telemetry
         @status_queue = []
@@ -38,12 +43,16 @@ module Datadog
         @thread = nil
         @pid = nil
         @flush = 0
+        @probe_repository = probe_repository
+        @probe_notification_builder = probe_notification_builder
       end
 
       attr_reader :settings
       attr_reader :logger
       attr_reader :telemetry
       attr_reader :agent_settings
+      attr_reader :probe_repository
+      attr_reader :probe_notification_builder
 
       # Starts the background worker thread.
       #
@@ -186,46 +195,42 @@ module Datadog
         @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger, telemetry: telemetry)
       end
 
-      # Sends a batch of pre-serialized snapshot JSON strings to the agent.
+      # Sends a batch of snapshot payloads to the agent.
       #
-      # Snapshots are serialized to JSON in ProbeManager when they are created,
-      # so this method receives an array of JSON strings rather than Ruby objects.
-      # This allows JSON encoding errors to be caught immediately when the snapshot
-      # is created, preventing healthy probes from being affected by failures in
-      # other probes that happen to be batched together.
+      # The transport serializes each snapshot individually and reports
+      # serialization failures via callback. This allows healthy probes
+      # to continue working even when one probe produces un-serializable data.
       #
-      # Large snapshots (> 1MB) are dropped. Batches are split into chunks
-      # of ~2MB each to avoid large network requests.
-      #
-      # @param batch [Array<String>] Array of pre-serialized JSON snapshot strings
+      # @param batch [Array<Hash>] Array of snapshot payload hashes
       def do_send_snapshot(batch)
-        serialized_tags = Core::TagBuilder.serialize_tags(tags)
+        snapshot_transport.send_input(batch, tags, on_serialization_error: method(:handle_serialization_error))
+      end
 
-        # Filter out oversized snapshots (use transport's size limit)
-        max_size = Transport::Input::Transport::MAX_SERIALIZED_SNAPSHOT_SIZE
-        valid_snapshots = batch.select do |json|
-          if json.bytesize > max_size
-            logger.debug { "di: dropping too big snapshot (#{json.bytesize} bytes)" }
-            false
-          else
-            true
-          end
-        end
+      # Handles serialization errors reported by the transport.
+      #
+      # Disables the affected probe and sends ERROR status to the backend.
+      # Called by transport when a snapshot fails to serialize.
+      #
+      # @param probe_id [String] ID of the probe that produced bad data
+      # @param exception [Exception] The serialization exception
+      def handle_serialization_error(probe_id, exception)
+        return unless probe_repository && probe_notification_builder
 
-        return if valid_snapshots.empty?
+        probe = probe_repository.find_installed(probe_id)
+        return unless probe
 
-        # Split into chunks to avoid large network requests (use transport's chunk size)
-        chunk_size = Transport::Input::Transport::DEFAULT_CHUNK_SIZE
-        Datadog::Core::Chunker.chunk_by_size(valid_snapshots, chunk_size).each do |chunk|
-          complete_json = "[#{chunk.join(',')}]"
-          begin
-            snapshot_transport.send_input_chunk(complete_json, serialized_tags)
-          rescue => exc
-            # Log and continue with next chunk
-            logger.debug { "di: failed to send snapshot chunk: #{exc.class}: #{exc}" }
-            telemetry&.report(exc, description: "Error sending snapshot chunk")
-          end
-        end
+        logger.debug { "di: disabling probe #{probe_id} due to serialization error: #{exception.class}: #{exception.message}" }
+
+        probe.disable!
+
+        payload = probe_notification_builder.send(
+          :build_status,
+          probe,
+          message: "Probe #{probe.id} disabled: snapshot JSON encoding failed (#{exception.class}: #{exception.message})",
+          status: 'ERROR',
+          exception: exception,
+        )
+        add_status(payload, probe: probe)
       end
 
       def tags
