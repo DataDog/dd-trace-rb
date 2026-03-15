@@ -216,16 +216,18 @@ module Datadog
       # @param probe_id [String] ID of the probe that produced bad data
       # @param exception [Exception] The serialization exception
       def handle_serialization_error(probe_id, exception)
+        # Only installed probes produce snapshots, so a serialization
+        # error can only come from an installed probe.
         probe = probe_repository.find_installed(probe_id)
         return unless probe
 
-        logger.debug { "di: disabling probe #{probe_id} due to serialization error: #{exception.class}: #{exception.message}" }
+        logger.debug { "di: disabling probe #{probe_id} due to serialization error: #{exception.class}: #{exception}" }
 
         probe.disable!
 
         payload = probe_notification_builder.build_status(
           probe,
-          message: "Probe #{probe.id} disabled: snapshot JSON encoding failed (#{exception.class}: #{exception.message})",
+          message: "Probe #{probe.id} disabled: snapshot JSON encoding failed (#{exception.class}: #{exception})",
           status: 'ERROR',
           exception: exception,
         )

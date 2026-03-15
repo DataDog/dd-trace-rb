@@ -266,14 +266,10 @@ module Datadog
         end
       end
 
-      # Callback invoked when a probe is disabled due to excessive CPU consumption.
+      # Callback invoked when a probe is disabled, for example due to
+      # exceeding the CPU consumption limit in DI processing.
       #
-      # The instrumenter tracks CPU time spent processing each probe. When
-      # the accumulated time exceeds the configured threshold, the probe is
-      # disabled to prevent performance degradation of the instrumented application.
-      #
-      # Sends a status notification to inform the backend that the probe
-      # has been disabled and the CPU time that was consumed.
+      # Sends ERROR status notification to the backend.
       #
       # @param probe [Probe] The probe that was disabled
       # @param duration [Numeric] The CPU time consumed by probe processing, in seconds
