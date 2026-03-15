@@ -7,7 +7,7 @@ module Datadog
 
         def self.strict_encode64: (String bin) -> String
 
-        def self.strict_decode64: (String str) -> untyped
+        def self.strict_decode64: (::String str) -> ::String
       end
     end
   end
