@@ -206,6 +206,10 @@ module Datadog
       # This method is responsible for queueing probe status to be sent to the
       # backend (once per the probe's lifetime) and a snapshot corresponding
       # to the current invocation.
+      #
+      # Snapshots are serialized to JSON immediately. If serialization fails
+      # (e.g., custom serializers produce binary data), the probe is disabled
+      # and an ERROR status is reported.
       def probe_executed_callback(context)
         probe = context.probe
         logger.trace { "di: executed #{probe.type} probe at #{probe.location} (#{probe.id})" }
@@ -216,14 +220,44 @@ module Datadog
         end
 
         payload = probe_notification_builder.build_executed(context)
-        probe_notifier_worker.add_snapshot(payload)
+
+        # Serialize snapshot immediately to catch JSON encoding errors early
+        begin
+          serialized_snapshot = JSON.generate(payload)
+          probe_notifier_worker.add_snapshot(serialized_snapshot)
+        rescue JSON::GeneratorError => exc
+          # Custom serializer produced data that cannot be JSON-encoded.
+          # Disable the probe and report ERROR status.
+          logger.debug { "di: snapshot serialization failed for #{probe.type} probe at #{probe.location} (#{probe.id}): #{exc.class}: #{exc.message}" }
+
+          probe.disable!
+
+          error_payload = probe_notification_builder.send(:build_status,
+            probe,
+            message: "Probe #{probe.id} disabled: snapshot JSON encoding failed (#{exc.class}: #{exc.message})",
+            status: 'ERROR',
+            exception: exc,)
+          probe_notifier_worker.add_status(error_payload, probe: probe)
+
+          telemetry&.report(exc, description: "DI snapshot JSON encoding failed for probe #{probe.id}")
+        end
       end
 
       def probe_condition_evaluation_failed_callback(context, expr, exc)
         probe = context.probe
         if probe.condition_evaluation_failed_rate_limiter&.allow?
           payload = probe_notification_builder.build_condition_evaluation_failed(context, expr, exc)
-          probe_notifier_worker.add_snapshot(payload)
+
+          # Serialize snapshot immediately to catch JSON encoding errors early
+          begin
+            serialized_snapshot = JSON.generate(payload)
+            probe_notifier_worker.add_snapshot(serialized_snapshot)
+          rescue JSON::GeneratorError => json_exc
+            # Custom serializer produced data that cannot be JSON-encoded.
+            # Just log the error here (probe is already in a failed state)
+            logger.debug { "di: snapshot serialization failed for condition evaluation error: #{json_exc.class}: #{json_exc.message}" }
+            telemetry&.report(json_exc, description: "DI snapshot JSON encoding failed for condition evaluation error")
+          end
         end
       end
 

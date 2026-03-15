@@ -328,4 +328,98 @@ RSpec.describe Datadog::DI::ProbeManager do
       end
     end
   end
+
+  describe '#probe_executed_callback' do
+    let(:probe) do
+      instance_double(Datadog::DI::Probe,
+        id: 'test-probe',
+        type: 'log',
+        location: 'test.rb:42',
+        emitting_notified?: false,
+        :emitting_notified= => nil)
+    end
+
+    let(:context) do
+      instance_double(Datadog::DI::Context, probe: probe)
+    end
+
+    context 'when snapshot JSON encoding succeeds' do
+      it 'serializes and queues the snapshot as JSON string' do
+        allow(probe_notification_builder).to receive(:build_emitting).and_return({status: 'EMITTING'})
+        allow(probe_notification_builder).to receive(:build_executed).and_return({snapshot: 'data'})
+        allow(probe_notifier_worker).to receive(:add_status)
+
+        expect(probe_notifier_worker).to receive(:add_snapshot) do |json|
+          expect(json).to be_a(String)
+          expect(JSON.parse(json)).to eq('snapshot' => 'data')
+        end
+
+        manager.probe_executed_callback(context)
+      end
+    end
+
+    context 'when snapshot JSON encoding fails' do
+      let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+      let(:manager) do
+        described_class.new(settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, probe_repository, telemetry: telemetry)
+      end
+
+      # Create a payload with binary data that cannot be JSON-encoded
+      let(:binary_string) { "\x80".force_encoding('ASCII-8BIT') }
+      let(:bad_payload) do
+        {
+          snapshot: {
+            data: binary_string,
+          },
+        }
+      end
+
+      before do
+        allow(probe_notification_builder).to receive(:build_emitting).and_return({status: 'EMITTING'})
+        allow(probe_notification_builder).to receive(:build_executed).and_return(bad_payload)
+        allow(probe_notification_builder).to receive(:send).and_return({status: 'ERROR'})
+        allow(probe_notifier_worker).to receive(:add_status)
+        allow(logger).to receive(:debug)
+        allow(probe).to receive(:disable!)
+        allow(telemetry).to receive(:report)
+      end
+
+      it 'disables the probe' do
+        expect(probe).to receive(:disable!)
+
+        manager.probe_executed_callback(context)
+      end
+
+      it 'sends ERROR status' do
+        allow(probe_notification_builder).to receive(:send).with(:build_status, probe, hash_including(:message, :status, :exception)).and_return({status: 'ERROR'})
+
+        expect(probe_notification_builder).to receive(:send).with(:build_status, probe, hash_including(
+          message: /JSON encoding failed/,
+          status: 'ERROR',
+        ))
+
+        manager.probe_executed_callback(context)
+      end
+
+      it 'reports to telemetry' do
+        allow(probe_notification_builder).to receive(:send).with(:build_status, probe, anything).and_return({status: 'ERROR'})
+
+        expect(telemetry).to receive(:report) do |exc, description:|
+          expect(exc).to be_a(JSON::GeneratorError)
+          expect(description).to include('probe test-probe')
+        end
+
+        manager.probe_executed_callback(context)
+      end
+
+      it 'does not queue the snapshot' do
+        allow(probe_notification_builder).to receive(:send).with(:build_status, probe, anything).and_return({status: 'ERROR'})
+        allow(telemetry).to receive(:report)
+
+        expect(probe_notifier_worker).not_to receive(:add_snapshot)
+
+        manager.probe_executed_callback(context)
+      end
+    end
+  end
 end

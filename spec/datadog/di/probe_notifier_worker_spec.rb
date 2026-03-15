@@ -56,13 +56,13 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
   context 'not started' do
     describe '#add_snapshot' do
       let(:snapshot) do
-        {hello: 'world'}
+        '{"hello":"world"}'
       end
 
       it 'adds snapshot to queue' do
         # Depending on scheduling, the worker thread may attempt to
         # invoke the transport to send the snapshot.
-        allow(input_transport).to receive(:send_input)
+        allow(input_transport).to receive(:send_input_chunk)
 
         expect(worker.send(:snapshot_queue)).to be_empty
 
@@ -109,30 +109,16 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
     describe '#add_snapshot' do
       let(:snapshot) do
-        {hello: 'world'}.freeze
-      end
-
-      let(:expected_tags) do
-        {
-          'debugger_version' => String,
-          'host' => String,
-          'language' => 'ruby',
-          'library_version' => String,
-          'process_id' => String,
-          'runtime' => 'ruby',
-          'runtime-id' => String,
-          'runtime_engine' => String,
-          'runtime_platform' => String,
-          'runtime_version' => String,
-        }
+        '{"hello":"world"}'
       end
 
       it 'sends the snapshot' do
         expect(worker.send(:snapshot_queue)).to be_empty
 
-        expect(input_transport).to receive(:send_input).once do |snapshots, tags|
-          expect(snapshots).to eq([snapshot])
-          expect(tags).to match(expected_tags)
+        expect(input_transport).to receive(:send_input_chunk).once do |json, serialized_tags|
+          expect(json).to eq("[#{snapshot}]")
+          expect(serialized_tags).to be_a(String)
+          expect(serialized_tags).to include('language:ruby')
         end
 
         worker.add_snapshot(snapshot)
@@ -149,9 +135,9 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           # Use Queue to wait for first send to complete (deterministic synchronization)
           first_send_done = Queue.new
 
-          expect(input_transport).to receive(:send_input).once do |snapshots, tags|
-            expect(snapshots).to eq([snapshot])
-            expect(tags).to match(expected_tags)
+          expect(input_transport).to receive(:send_input_chunk).once do |json, serialized_tags|
+            expect(json).to eq("[#{snapshot}]")
+            expect(serialized_tags).to be_a(String)
             first_send_done.push(:done)
           end
 
@@ -167,9 +153,9 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           # with the remaining two in the queue
           expect(worker.send(:snapshot_queue)).to eq([snapshot, snapshot])
 
-          expect(input_transport).to receive(:send_input).once do |snapshots, tags|
-            expect(snapshots).to eq([snapshot, snapshot])
-            expect(tags).to match(expected_tags)
+          expect(input_transport).to receive(:send_input_chunk).once do |json, serialized_tags|
+            expect(json).to eq("[#{snapshot},#{snapshot}]")
+            expect(serialized_tags).to be_a(String)
           end
 
           worker.flush
@@ -182,7 +168,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
         it 'reports exception to telemetry' do
           allow(logger).to receive(:debug)
-          expect(input_transport).to receive(:send_input).and_raise(StandardError, "network error")
+          expect(input_transport).to receive(:send_input_chunk).and_raise(StandardError, "network error")
 
           expect(telemetry).to receive(:report) do |exc, description:|
             expect(exc).to be_a(StandardError)
@@ -226,109 +212,5 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       end
     end
 
-    context 'when JSON encoding fails' do
-      # Create a snapshot with binary data that cannot be JSON-encoded
-      let(:binary_string) { "\x80".force_encoding('ASCII-8BIT') }
-
-      let(:snapshot) do
-        {
-          debugger: {
-            snapshot: {
-              probe: {
-                id: 'test-probe-id',
-              },
-              captures: {
-                # This binary string will cause JSON encoding to fail
-                lines: {
-                  '42': {
-                    arguments: {
-                      data: binary_string,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        }
-      end
-
-      let(:probe) do
-        probe = instance_double(Datadog::DI::Probe,
-          id: 'test-probe-id',
-          type: 'log',
-          location: 'test.rb:42',)
-        # Allow disable! to be called with any argument
-        allow(probe).to receive(:disable!)
-        probe
-      end
-
-      let(:probe_repository) do
-        repo = instance_double(Datadog::DI::ProbeRepository)
-        allow(repo).to receive(:find_installed).with('test-probe-id').and_return(probe)
-        repo
-      end
-
-      let(:status_received) { [] }
-
-      let(:probe_notification_builder) do
-        builder = instance_double(Datadog::DI::ProbeNotificationBuilder)
-        allow(builder).to receive(:send).with(:build_status, anything, hash_including(:message, :status, :exception)).and_return({status: 'ERROR'})
-        builder
-      end
-
-      let(:worker_with_dependencies) do
-        described_class.new(
-          settings, logger,
-          agent_settings: agent_settings,
-          telemetry: telemetry,
-          probe_repository: probe_repository,
-          probe_notification_builder: probe_notification_builder,
-        )
-      end
-
-      before do
-        # Allow debug logging
-        allow(logger).to receive(:debug)
-
-        # Stub transport to raise JSON::GeneratorError when send_input is called
-        allow(input_transport).to receive(:send_input) do
-          raise JSON::GeneratorError.new('"\x80" from ASCII-8BIT to UTF-8')
-        end
-
-        # Allow the status to be sent
-        allow(diagnostics_transport).to receive(:send_diagnostics)
-
-        worker_with_dependencies.start
-      end
-
-      after do
-        worker_with_dependencies.stop
-      end
-
-      it 'looks up the probe and disables it' do
-        expect(probe_repository).to receive(:find_installed).with('test-probe-id').and_return(probe)
-        expect(probe).to receive(:disable!).with(no_args)
-
-        worker_with_dependencies.add_snapshot(snapshot)
-        worker_with_dependencies.flush
-      end
-
-      it 'builds and sends ERROR status' do
-        expect(probe_notification_builder).to receive(:send).with(:build_status, probe, hash_including(
-          message: /JSON encoding failed/,
-          status: 'ERROR',
-        )).and_return({status: 'ERROR'})
-
-        worker_with_dependencies.add_snapshot(snapshot)
-        worker_with_dependencies.flush
-      end
-
-      it 'logs the error' do
-        expect(logger).to receive(:debug).at_least(:once)
-
-        worker_with_dependencies.add_snapshot(snapshot)
-        worker_with_dependencies.flush
-      end
-    end
   end
 end
