@@ -78,8 +78,9 @@ module Datadog
                 next
               end
               encoded_snapshots << encoded
-            rescue JSON::GeneratorError, Encoding::UndefinedConversionError => exc
+            rescue => exc
               # Serialization failed for this snapshot - report via callback
+              # This catches JSON::GeneratorError, Encoding errors, TypeError, etc.
               probe_id = snapshot.dig(:debugger, :snapshot, :probe, :id)
               logger.debug { "di: JSON encoding failed for snapshot (probe #{probe_id}): #{exc.class}: #{exc}" }
               telemetry&.report(exc, description: "JSON encoding failed for snapshot")
