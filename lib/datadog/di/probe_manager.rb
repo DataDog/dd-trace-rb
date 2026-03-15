@@ -246,6 +246,18 @@ module Datadog
         end
       end
 
+      # Callback invoked when a probe's condition expression fails to evaluate.
+      #
+      # This can happen when the expression references undefined variables,
+      # has type mismatches, or encounters runtime errors during evaluation.
+      # The callback sends a snapshot with the error details to help users
+      # debug their probe conditions.
+      #
+      # Rate-limited to avoid flooding the backend when conditions fail repeatedly.
+      #
+      # @param context [Context] The execution context containing probe and captured data
+      # @param expr [String] The condition expression that failed
+      # @param exc [Exception] The exception raised during condition evaluation
       def probe_condition_evaluation_failed_callback(context, expr, exc)
         probe = context.probe
         if probe.condition_evaluation_failed_rate_limiter&.allow?
