@@ -23,8 +23,7 @@ module Datadog
     #
     # @api private
     class ProbeNotifierWorker
-      def initialize(settings, logger, agent_settings:, telemetry: nil,
-        probe_repository: nil, probe_notification_builder: nil)
+      def initialize(settings, logger, agent_settings:, telemetry: nil)
         @settings = settings
         @telemetry = telemetry
         @status_queue = []
@@ -39,16 +38,12 @@ module Datadog
         @thread = nil
         @pid = nil
         @flush = 0
-        @probe_repository = probe_repository
-        @probe_notification_builder = probe_notification_builder
       end
 
       attr_reader :settings
       attr_reader :logger
       attr_reader :telemetry
       attr_reader :agent_settings
-      attr_reader :probe_repository
-      attr_reader :probe_notification_builder
 
       def start
         return if @thread && @pid == Process.pid
