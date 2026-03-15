@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# OpenFeature component for feature flag evaluation and exposure tracking
 require_relative 'transport'
 require_relative 'evaluation_engine'
 require_relative 'exposures/buffer'
