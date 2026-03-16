@@ -30,6 +30,7 @@ CORE_WITH_LIBDATADOG_API = [
   'spec/datadog/core/ddsketch_spec.rb',
   'spec/datadog/data_streams/**/*_spec.rb',
   'spec/datadog/open_feature_spec.rb',
+  'spec/datadog/core/libdatadog_extconf_helpers_spec.rb',
 ].freeze
 
 # Data Streams Monitoring (DSM) requires libdatadog_api for DDSketch
@@ -92,10 +93,11 @@ namespace :spec do
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
-    t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,open_feature,profiling,crashtracking,error_tracking,rubocop,data_streams,ai_guard}/**/*_spec.rb,' \
-                        ' spec/**/{auto_instrument,opentelemetry,process_discovery,stable_config,ddsketch,open_feature,feature_flags,process,ai_guard}_spec.rb,' \
+    t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,open_feature,profiling,error_tracking,rubocop,ai_guard}/**/*_spec.rb,' \
+                        ' spec/**/{auto_instrument,opentelemetry,process,ai_guard}_spec.rb,' \
                         ' spec/datadog/core/environment/execution_spec.rb,' \
-                        ' spec/datadog/gem_packaging_spec.rb'
+                        ' spec/datadog/gem_packaging_spec.rb,' \
+                        + CORE_WITH_LIBDATADOG_API.join(', ')
     t.rspec_opts = args.to_a.join(' ')
   end
 
