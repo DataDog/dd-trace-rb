@@ -44,11 +44,16 @@ module Datadog
                     'DD-Telemetry-Request-Type' => request_type,
                     'DD-Client-Library-Language' => Core::Environment::Ext::LANG,
                     'DD-Client-Library-Version' => Core::Environment::Identity.gem_datadog_version_semver2,
+                    'DD-Session-ID' => Core::Environment::Identity.id,
 
                     # Enable debug mode for telemetry
                     # 'DD-Telemetry-Debug-Enabled' => 'true',
                   }.tap do |result|
                     result['DD-API-KEY'] = api_key unless api_key.nil?
+                    ancestor = Core::Environment::Identity.ancestor_runtime_id
+                    result['DD-Root-Session-ID'] = ancestor if ancestor
+                    parent = Core::Environment::Identity.parent_runtime_id
+                    result['DD-Parent-Session-ID'] = parent if parent
                   end
                 end
               end
