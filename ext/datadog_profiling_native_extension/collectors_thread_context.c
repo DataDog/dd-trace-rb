@@ -290,11 +290,13 @@ static bool handle_gvl_waiting(
   sampling_buffer* sampling_buffer,
   long current_cpu_time_ns
 );
-static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread);
-static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread);
-static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread);
-static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE allow_exception);
-static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE delta_ns);
+#ifndef NO_GVL_INSTRUMENTATION
+  static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread);
+  static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread);
+  static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread);
+  static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE allow_exception);
+  static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE delta_ns);
+#endif
 static void otel_without_ddtrace_trace_identifiers_for(
   thread_context_collector_state *state,
   VALUE thread,
@@ -1818,7 +1820,7 @@ static void otel_without_ddtrace_trace_identifiers_for(
   VALUE otel_current_span_key = get_otel_current_span_key(state, is_safe_to_allocate_objects);
   if (otel_current_span_key == Qnil) return;
 
-  int active_context_index = RARRAY_LEN(context_storage) - 1;
+  long active_context_index = RARRAY_LEN(context_storage) - 1;
   if (active_context_index < 0) return;
 
   otel_span active_span = otel_span_from(rb_ary_entry(context_storage, active_context_index), otel_current_span_key);
@@ -1827,7 +1829,7 @@ static void otel_without_ddtrace_trace_identifiers_for(
   otel_span local_root_span = active_span;
 
   // Now find the oldest span starting from the active span that still has the same trace id as the active span
-  for (int i = active_context_index - 1; i >= 0; i--) {
+  for (long i = active_context_index - 1; i >= 0; i--) {
     otel_span checking_span = otel_span_from(rb_ary_entry(context_storage, i), otel_current_span_key);
     if (checking_span.span == Qnil) return;
 
