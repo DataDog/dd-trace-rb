@@ -277,8 +277,14 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
       # after the forked process dies, so it may not have arrived when expect_in_fork returns.
       def wait_for_crash_report
         try_wait_until(seconds: 10) do
-          messages.length >= 2 &&
-            messages.any? { |msg| JSON.parse(msg.body.to_s, symbolize_names: true).dig(:payload, :logs, 0, :is_crash) == true rescue false }
+          next false if messages.length < 2
+
+          messages.any? do |msg|
+            parsed = JSON.parse(msg.body.to_s, symbolize_names: true)
+            parsed.dig(:payload, :logs, 0, :is_crash) == true
+          rescue
+            false
+          end
         end
       end
 
