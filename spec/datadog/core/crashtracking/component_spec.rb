@@ -273,11 +273,12 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
       # we need to tweak libdatadog to not need such high timeouts).
 
       [
-        # Trying free twice as macOS doesn't seem to always crash the first time...
-        [:fiddle, 'rb_fiddle_free', proc { 2.times { Fiddle.free(42) } }],
+        [:fiddle, 'rb_fiddle_free', proc { Fiddle.free(42) }],
         [:signal, 'rb_f_kill', proc { Process.kill('SEGV', Process.pid) }],
       ].each do |trigger_name, function, trigger|
         it "reports crashes via http when app crashes with #{trigger_name}" do
+          skip("Fiddle.free(42) doesn't always crash Ruby on macOS") if trigger_name == :fiddle && PlatformHelpers.mac?
+
           expect_in_fork(fork_expectations: fork_expectations, timeout_seconds: 15) do
             crash_tracker = build_crashtracker(agent_base_url: agent_base_url)
             crash_tracker.start
