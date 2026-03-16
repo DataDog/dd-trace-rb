@@ -102,6 +102,7 @@ typedef struct {
   bool gvl_profiling_enabled;
   bool skip_idle_samples_for_testing;
   bool sighandler_sampling_enabled;
+  uint32_t cpu_sampling_interval_ms;
   VALUE self_instance;
   VALUE thread_context_collector_instance;
   VALUE idle_sampling_helper_instance;
@@ -383,6 +384,7 @@ static VALUE _native_new(VALUE klass) {
   state->gvl_profiling_enabled = false;
   state->skip_idle_samples_for_testing = false;
   state->sighandler_sampling_enabled = false;
+  state->cpu_sampling_interval_ms = 10;
   state->thread_context_collector_instance = Qnil;
   state->idle_sampling_helper_instance = Qnil;
   state->owner_thread = Qnil;
@@ -427,6 +429,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   VALUE gvl_profiling_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("gvl_profiling_enabled")));
   VALUE skip_idle_samples_for_testing = rb_hash_fetch(options, ID2SYM(rb_intern("skip_idle_samples_for_testing")));
   VALUE sighandler_sampling_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("sighandler_sampling_enabled")));
+  VALUE cpu_sampling_interval_ms = rb_hash_fetch(options, ID2SYM(rb_intern("cpu_sampling_interval_ms")));
 
   ENFORCE_BOOLEAN(gc_profiling_enabled);
   ENFORCE_BOOLEAN(no_signals_workaround_enabled);
@@ -437,6 +440,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   ENFORCE_BOOLEAN(gvl_profiling_enabled);
   ENFORCE_BOOLEAN(skip_idle_samples_for_testing)
   ENFORCE_BOOLEAN(sighandler_sampling_enabled)
+  ENFORCE_TYPE(cpu_sampling_interval_ms, T_FIXNUM);
 
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
@@ -449,6 +453,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   state->gvl_profiling_enabled = (gvl_profiling_enabled == Qtrue);
   state->skip_idle_samples_for_testing = (skip_idle_samples_for_testing == Qtrue);
   state->sighandler_sampling_enabled = (sighandler_sampling_enabled == Qtrue);
+  state->cpu_sampling_interval_ms = NUM2INT(cpu_sampling_interval_ms);
 
   double total_overhead_target_percentage = NUM2DBL(dynamic_sampling_rate_overhead_target_percentage);
   if (!state->allocation_profiling_enabled) {
@@ -669,7 +674,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 static void *run_sampling_trigger_loop(void *state_ptr) {
   cpu_and_wall_time_worker_state *state = (cpu_and_wall_time_worker_state *) state_ptr;
 
-  uint64_t minimum_time_between_signals = MILLIS_AS_NS(10);
+  uint64_t minimum_time_between_signals = MILLIS_AS_NS(state->cpu_sampling_interval_ms);
 
   while (atomic_load(&state->should_run)) {
     state->stats.trigger_sample_attempts++;

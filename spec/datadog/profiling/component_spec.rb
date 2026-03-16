@@ -130,6 +130,10 @@ RSpec.describe Datadog::Profiling::Component do
           expect(described_class).to receive(:enable_gvl_profiling?).and_return(:gvl_profiling_result)
           expect(settings.profiling.advanced)
             .to receive(:sighandler_sampling_enabled).and_return(:sighandler_sampling_enabled_config)
+          expect(settings.profiling.advanced)
+            .to receive(:experimental_cpu_sampling_interval_ms).and_return(:cpu_sampling_interval_ms_config)
+          expect(described_class).to receive(:valid_cpu_sampling_interval)
+            .with(:cpu_sampling_interval_ms_config, logger).and_return(:cpu_sampling_interval_ms_config)
 
           expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with(
             gc_profiling_enabled: anything,
@@ -140,6 +144,7 @@ RSpec.describe Datadog::Profiling::Component do
             allocation_counting_enabled: :allocation_counting_enabled_config,
             gvl_profiling_enabled: :gvl_profiling_result,
             sighandler_sampling_enabled: :sighandler_sampling_enabled_config,
+            cpu_sampling_interval_ms: :cpu_sampling_interval_ms_config,
           )
 
           build_profiler_component
@@ -536,9 +541,26 @@ RSpec.describe Datadog::Profiling::Component do
           site: settings.site,
           api_key: settings.api_key,
           upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
+          use_system_dns: settings.profiling.advanced.experimental_use_system_dns,
         )
 
         build_profiler_component
+      end
+
+      context "when experimental_use_system_dns is set" do
+        before do
+          allow(settings.profiling.advanced)
+            .to receive(:experimental_use_system_dns)
+            .and_return(:experimental_use_system_dns_setting_value)
+        end
+
+        it "passes the setting value to HttpTransport" do
+          expect(Datadog::Profiling::HttpTransport).to receive(:new).with(
+            hash_including(use_system_dns: :experimental_use_system_dns_setting_value)
+          )
+
+          build_profiler_component
+        end
       end
 
       it "creates a scheduler with an HttpTransport" do
@@ -788,6 +810,56 @@ RSpec.describe Datadog::Profiling::Component do
 
       it "returns the value" do
         expect(valid_overhead_target).to eq 1.5
+      end
+    end
+  end
+
+  describe ".valid_cpu_sampling_interval" do
+    subject(:valid_cpu_sampling_interval) do
+      described_class.send(:valid_cpu_sampling_interval, cpu_sampling_interval_ms, logger)
+    end
+
+    context "when cpu_sampling_interval_ms is above 10" do
+      let(:cpu_sampling_interval_ms) { 11 }
+
+      it "logs a warning" do
+        expect(logger).to receive(:warn).with(
+          /cpu_sampling_interval_ms is set to 11ms, but values above 10ms are not supported.*overhead_target_percentage/
+        )
+
+        valid_cpu_sampling_interval
+      end
+
+      it "returns 10" do
+        allow(logger).to receive(:warn)
+
+        expect(valid_cpu_sampling_interval).to eq 10
+      end
+    end
+
+    context "when cpu_sampling_interval_ms is below 10" do
+      let(:cpu_sampling_interval_ms) { 5 }
+
+      it "logs a debug message" do
+        expect(logger).to receive(:debug) do |&block|
+          expect(block.call).to match(/cpu_sampling_interval_ms set to 5ms/)
+        end
+
+        valid_cpu_sampling_interval
+      end
+
+      it "returns the value" do
+        allow(logger).to receive(:debug)
+
+        expect(valid_cpu_sampling_interval).to eq 5
+      end
+    end
+
+    context "when cpu_sampling_interval_ms is exactly 10" do
+      let(:cpu_sampling_interval_ms) { 10 }
+
+      it "returns 10" do
+        expect(valid_cpu_sampling_interval).to eq 10
       end
     end
   end

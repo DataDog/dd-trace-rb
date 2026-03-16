@@ -228,21 +228,28 @@ namespace :spec do
     t.rspec_opts = args.to_a.join(' ')
   end
 
-  # rubocop:disable Style/MultilineBlockChain
   RSpec::Core::RakeTask.new(:core_with_libdatadog_api) do |t, args|
     t.pattern = CORE_WITH_LIBDATADOG_API.join(', ')
     t.rspec_opts = args.to_a.join(' ')
-  end.tap do |t|
-    # Core with libdatadog is dependent on profiling because crashtracking runtime stacks logic
-    # lives in the profiling extension (they share same logic accessing Ruby internals)
-    Rake::Task[t.name].enhance(
-      [
-        "compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}",
-        "compile:datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}"
-      ]
-    )
   end
-  # rubocop:enable Style/MultilineBlockChain
+
+  desc 'Run spec:core_with_libdatadog_api tests with memory leak checking'
+  if Gem.loaded_specs.key?('ruby_memcheck')
+    RubyMemcheck::RSpec::RakeTask.new(:core_with_libdatadog_api_memcheck) do |t, args|
+      t.pattern = CORE_WITH_LIBDATADOG_API.join(', ')
+      t.rspec_opts = [*args.to_a, '-t ~memcheck_valgrind_skip'].join(' ')
+    end
+  else
+    task :core_with_libdatadog_api_memcheck do
+      raise 'Memcheck requires the ruby_memcheck gem to be installed'
+    end
+  end
+
+  # These specs require both libdatadog_api and profiling native extensions:
+  # - libdatadog_api provides crashtracking, DDSketch, and other core features
+  # - profiling extension is needed for crashtracking runtime stack capture
+  Rake::Task['spec:core_with_libdatadog_api'].enhance([:compile])
+  Rake::Task['spec:core_with_libdatadog_api_memcheck'].enhance([:compile]) if Gem.loaded_specs.key?('ruby_memcheck')
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:core_with_rails) do |t, args|

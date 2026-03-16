@@ -529,7 +529,6 @@ target :datadog do
   ignore 'lib/datadog/tracing/transport/statistics.rb'
   ignore 'lib/datadog/tracing/transport/trace_formatter.rb'
   ignore 'lib/datadog/tracing/workers.rb'
-  ignore 'lib/datadog/tracing/workers/trace_writer.rb'
   ignore 'lib/datadog/tracing/writer.rb'
 
   # References `RubyVM::YJIT`, which does not have type information.

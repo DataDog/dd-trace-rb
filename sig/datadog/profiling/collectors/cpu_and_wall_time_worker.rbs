@@ -14,6 +14,7 @@ module Datadog
           no_signals_workaround_enabled: bool,
           thread_context_collector: Datadog::Profiling::Collectors::ThreadContext,
           dynamic_sampling_rate_overhead_target_percentage: Float,
+          cpu_sampling_interval_ms: ::Integer,
           ?idle_sampling_helper: Datadog::Profiling::Collectors::IdleSamplingHelper,
           ?dynamic_sampling_rate_enabled: bool,
           allocation_profiling_enabled: bool,
@@ -36,6 +37,7 @@ module Datadog
           gvl_profiling_enabled: bool,
           sighandler_sampling_enabled: bool,
           skip_idle_samples_for_testing: bool,
+          cpu_sampling_interval_ms: ::Integer,
         ) -> true
 
         def start: (?on_failure_proc: (^(?log_failure: bool) -> void)?) -> bool?

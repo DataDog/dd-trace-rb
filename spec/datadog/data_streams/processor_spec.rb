@@ -334,6 +334,44 @@ RSpec.describe Datadog::DataStreams::Processor do
     end
   end
 
+  describe '#flush_stats' do
+    let(:env_value) { 'staging' }
+    let(:flush_settings) { double('Settings', service: 'test-service', env: env_value, experimental_propagate_process_tags_enabled: false) }
+    let(:flush_processor) { described_class.new(interval: 10.0, logger: logger, settings: flush_settings, agent_settings: agent_settings, agent_info: agent_info) }
+    let(:sent_payload) { @sent_payload }
+
+    before do
+      flush_processor.set_produce_checkpoint(type: 'kafka', destination: 'orders')
+      flush_processor.send(:process_events)
+
+      @sent_payload = nil
+      allow(flush_processor).to receive(:send_stats_to_agent) { |payload| @sent_payload = payload }
+
+      flush_processor.send(:flush_stats)
+    end
+
+    after { flush_processor.stop(true) }
+
+    context 'when env is configured' do
+      let(:env_value) { 'staging' }
+
+      it 'includes Env from settings in the payload' do
+        expect(sent_payload).not_to be_nil
+        expect(sent_payload['Env']).to eq('staging')
+        expect(sent_payload['Service']).to eq('test-service')
+      end
+    end
+
+    context 'when env is not configured' do
+      let(:env_value) { nil }
+
+      it 'defaults Env to none' do
+        expect(sent_payload).not_to be_nil
+        expect(sent_payload['Env']).to eq('none')
+      end
+    end
+  end
+
   describe '#compute_pathway_hash' do
     subject(:pathway_hash) { processor.send(:compute_pathway_hash, 0, ['type:kafka']) }
 
