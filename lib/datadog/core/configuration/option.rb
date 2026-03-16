@@ -184,13 +184,21 @@ module Datadog
           precedence_set == Precedence::DEFAULT
         end
 
-        def telemetry_payload(stringify_value: true)
+        def telemetry_payload(format_value: true)
           name = @definition.env || @definition.name.to_s
+
           # value_per_precedence is only filled after we call `get` once.
           get unless @is_set
+
           @value_per_precedence.each_with_object([]) do |(precedence, value), arr|
-            # @type var result: Telemetry::Event::telemetry_configuration | Telemetry::Event::telemetry_configuration_value_not_stringified
-            result = {name: name, value: stringify_value ? to_telemetry_value(value) : value, origin: precedence.origin, seq_id: precedence.numeric + 1}
+            # @type var result: telemetry_configuration | telemetry_configuration_value_not_stringified
+            result = {
+              name: name,
+              value: format_value ? to_telemetry_value(value) : value,
+              origin: precedence.origin,
+              seq_id: precedence.numeric + 1,
+            }
+
             if precedence.origin == 'fleet_stable_config'
               fleet_id = Core::Configuration::StableConfig.configuration.dig(:fleet, :id)
               result[:config_id] = fleet_id if fleet_id
@@ -198,6 +206,7 @@ module Datadog
               local_id = Core::Configuration::StableConfig.configuration.dig(:local, :id)
               result[:config_id] = local_id if local_id
             end
+
             arr << result
           end
         end

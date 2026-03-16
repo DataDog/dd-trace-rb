@@ -3,22 +3,6 @@ module Datadog
     module Telemetry
       module Event
         # common to app-started and app-client-configuration-change
-        type telemetry_configuration = {
-          name: ::String,
-          value: ::Object & _ToJson,
-          origin: ::String,
-          seq_id: ::Integer,
-          ?config_id: ::String?
-        }
-
-        type telemetry_configuration_value_not_stringified = {
-          name: ::String,
-          value: any,
-          origin: ::String,
-          seq_id: ::Integer,
-          ?config_id: ::String?
-        }
-
         extend Core::Utils::Forking
 
         self.@sequence: Datadog::Core::Utils::Sequence

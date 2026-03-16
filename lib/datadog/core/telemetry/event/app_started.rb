@@ -170,7 +170,7 @@ module Datadog
             )
 
             # Extract writer options as separate configuration payloads.
-            get_telemetry_payload(settings, 'tracing.writer_options', stringify_value: false).each do |source|
+            get_telemetry_payload(settings, 'tracing.writer_options', format_value: false).each do |source|
               # Steep: **source causes the ::Datadog::Core::Telemetry::Event::telemetry_configuration Record
               # to become a Hash. We can assign it to a value and add an annotation to type it to the correct record.
               # However, overwriting `name` and `value` will cause a FalseAssertion diagnostic.
@@ -187,17 +187,17 @@ module Datadog
             end
 
             # OpenTelemetry configuration options (using environment variable names)
-            otel_exporter_headers_sources = get_telemetry_payload(settings, 'opentelemetry.exporter.headers', stringify_value: false)
+            otel_exporter_headers_sources = get_telemetry_payload(settings, 'opentelemetry.exporter.headers', format_value: false)
             otel_exporter_headers_sources.each { |source| source[:value] = source[:value]&.map { |key, value| "#{key}=#{value}" }&.join(',') }
             list.push(*otel_exporter_headers_sources)
 
-            otel_exporter_metrics_headers_sources = get_telemetry_payload(settings, 'opentelemetry.metrics.headers', stringify_value: false)
+            otel_exporter_metrics_headers_sources = get_telemetry_payload(settings, 'opentelemetry.metrics.headers', format_value: false)
             otel_exporter_metrics_headers_sources.each { |source| source[:value] = source[:value]&.map { |key, value| "#{key}=#{value}" }&.join(',') }
             list.push(*otel_exporter_metrics_headers_sources)
 
             # Add some more custom additional payload values here
             if settings.logger.instance
-              logger_instance_sources = get_telemetry_payload(settings, 'logger.instance', stringify_value: false)
+              logger_instance_sources = get_telemetry_payload(settings, 'logger.instance', format_value: false)
               logger_instance_sources.each { |source| source[:value] = source[:value].class.to_s }
               list.push(*logger_instance_sources)
             end
@@ -281,7 +281,7 @@ module Datadog
             option.precedence_set&.origin || 'unknown'
           end
 
-          def get_telemetry_payload(settings, config_path, stringify_value: true)
+          def get_telemetry_payload(settings, config_path, format_value: true)
             split_option = config_path.split('.')
             option_name = split_option.pop
             return [] if option_name.nil?
@@ -290,7 +290,7 @@ module Datadog
             # @type var option: Core::Configuration::Option
             parent_setting = settings.dig(*split_option)
             option = parent_setting.send(:resolve_option, option_name.to_sym)
-            option.telemetry_payload(stringify_value: stringify_value)
+            option.telemetry_payload(format_value: format_value)
           end
         end
       end

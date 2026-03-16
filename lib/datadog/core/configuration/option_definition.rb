@@ -51,7 +51,7 @@ module Datadog
           attr_reader \
             :helpers
 
-          def initialize(name, options = {}, parent = nil)
+          def initialize(name, parent = nil, options = {})
             @parent = parent
 
             @env = nil

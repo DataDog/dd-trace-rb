@@ -21,19 +21,27 @@ module Datadog
             :parent
 
           def settings_path
-            @settings_path ||= (parent.nil? || parent.settings_path.nil?) ? @settings_name : "#{parent.settings_path}.#{@settings_name}"
+            @settings_path ||= if parent.nil? || parent.settings_path.nil?
+              @settings_name
+            else
+              "#{parent.settings_path}.#{@settings_name}"
+            end
           end
 
           def options
             # Allows for class inheritance of option definitions
-            @options ||= (superclass <= Options) ? superclass.options.dup : {}
+            @options ||= if superclass <= Options
+              superclass.options.dup
+            else
+              {}
+            end
           end
 
           protected
 
           def option(name, meta = {}, &block)
             option_name = settings_path ? "#{settings_path}.#{name}" : name
-            builder = OptionDefinition::Builder.new(option_name, meta, self, &block)
+            builder = OptionDefinition::Builder.new(option_name, self, meta, &block)
             options[name] = builder.to_definition.tap do
               # Resolve and define helper functions
               helpers = default_helpers(name)

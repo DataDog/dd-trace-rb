@@ -87,7 +87,7 @@ module Datadog
           @type: Symbol?
           @type_options: Hash[Symbol, untyped]
 
-          def initialize: (String | Symbol name, ?meta options, ?parent_type? parent) ?{ (Builder) -> void } -> void
+          def initialize: (String | Symbol name, ?parent_type? parent, ?meta options) ?{ (Builder) -> void } -> void
 
           def env: (String? value) -> void
 
