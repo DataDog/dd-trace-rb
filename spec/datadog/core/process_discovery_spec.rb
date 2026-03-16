@@ -217,8 +217,10 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
     end
   end
 
-  describe 'OTel process context support', skip: !LibdatadogHelpers.supported? do
+  describe 'OTel process context support', if: !PlatformHelpers.mac? do
     before do
+      skip_if_libdatadog_not_supported
+
       allow(Datadog::Core::Environment::Container).to receive(:container_id).and_return('test-container-id')
 
       Datadog.configure do |c|
