@@ -6,13 +6,12 @@ require 'datadog/core/workers/runtime_metrics'
 RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
   subject(:worker) { described_class.new(telemetry: telemetry, **options) }
 
-  let(:metrics) { instance_double(Datadog::Core::Runtime::Metrics, close: nil) }
-  let(:options) { {metrics: metrics, enabled: true} }
-
+  let(:runtime_metrics) { instance_double(Datadog::Core::Runtime::Metrics, close: nil) }
+  let(:options) { {metrics: runtime_metrics, enabled: true} }
   let(:logger) { logger_allowing_debug }
   let(:telemetry) { double(Datadog::Core::Telemetry::Component) }
 
-  before { allow(metrics).to receive(:flush) }
+  before { allow(runtime_metrics).to receive(:flush) }
 
   after { worker.stop(true, 1) }
 
@@ -24,7 +23,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
         described_class.new(
           logger: logger,
           telemetry: telemetry,
-          experimental_propagate_process_tags_enabled: true
+          metrics: runtime_metrics,
         )
       end
 
@@ -32,15 +31,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
       it { expect(worker.loop_base_interval).to eq 10 }
       it { expect(worker.loop_back_off_ratio).to eq 1.2 }
       it { expect(worker.loop_back_off_max).to eq 30 }
-      it 'builds runtime metrics with process tags propagation setting' do
-        expect(Datadog::Core::Runtime::Metrics).to receive(:new).with(
-          logger: logger,
-          telemetry: telemetry,
-          experimental_propagate_process_tags_enabled: true,
-        ).and_call_original
-
-        worker
-      end
+      it { expect(worker.metrics).to be(runtime_metrics) }
     end
 
     context 'when :enabled is given' do
@@ -88,7 +79,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
       it 'starts a worker thread' do
         perform
         expect(worker).to have_attributes(
-          metrics: metrics,
+          metrics: runtime_metrics,
           run_async?: true,
           running?: true,
           started?: true,
@@ -300,7 +291,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
 
         # Metrics are produced once right away
         # and again after an interval.
-        wait_for(metrics).to have_received(:flush).at_least(2).times
+        wait_for(runtime_metrics).to have_received(:flush).at_least(2).times
       end
     end
 
@@ -309,14 +300,14 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
 
       let(:options) do
         {
-          metrics: metrics,
+          metrics: runtime_metrics,
           fork_policy: fork_policy,
           enabled: true
         }
       end
 
       context 'when the process forks' do
-        before { allow(metrics).to receive(:flush) }
+        before { allow(runtime_metrics).to receive(:flush) }
 
         after { worker.stop }
 
@@ -330,7 +321,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
             expect_in_fork do
               # Capture the flush
               @flushed = false
-              allow(metrics).to receive(:flush) do
+              allow(runtime_metrics).to receive(:flush) do
                 @flushed = true
               end
 
@@ -352,7 +343,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
             expect_in_fork do
               # Capture the flush
               @flushed = false
-              allow(metrics).to receive(:flush) do
+              allow(runtime_metrics).to receive(:flush) do
                 @flushed = true
               end
 
@@ -362,7 +353,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
 
               # Verify state of the worker
               expect(worker.error?).to be false
-              expect(metrics).to have_received(:flush).at_least(:once)
+              expect(runtime_metrics).to have_received(:flush).at_least(:once)
             end
           end
         end
