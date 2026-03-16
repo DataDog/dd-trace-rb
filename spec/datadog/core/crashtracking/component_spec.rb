@@ -273,7 +273,8 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
       # we need to tweak libdatadog to not need such high timeouts).
 
       [
-        [:fiddle, 'rb_fiddle_free', proc { Fiddle.free(42) }],
+        # Trying free twice as macOS doesn't seem to always crash the first time...
+        [:fiddle, 'rb_fiddle_free', proc { 2.times { Fiddle.free(42) } }],
         [:signal, 'rb_f_kill', proc { Process.kill('SEGV', Process.pid) }],
       ].each do |trigger_name, function, trigger|
         it "reports crashes via http when app crashes with #{trigger_name}" do
@@ -345,7 +346,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           )
           crash_tracker.start
 
-          Fiddle.free(42)
+          Process.kill('SEGV', Process.pid)
         end
 
         expect(crash_report_message[:metadata]).to include(
@@ -366,7 +367,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
             crash_tracker = build_crashtracker(agent_base_url: uds_agent_base_url)
             crash_tracker.start
 
-            Fiddle.free(42)
+            Process.kill('SEGV', Process.pid)
           end
 
           expect(stack_trace).to_not be_empty
