@@ -248,11 +248,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
     context 'integration testing', :memcheck_valgrind_skip do
       include_context 'HTTP server'
 
-      let(:request) do
-        # first message is a ping
-        messages[1]
-      end
-
       let(:agent_base_url) { "http://#{hostname}:#{http_server_port}" }
       let(:fork_expectations) do
         proc do |status:, stdout:, stderr:|
@@ -263,11 +258,29 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
         end
       end
 
-      let(:parsed_request) { JSON.parse(request.body, symbolize_names: true) }
-      let(:crash_report) { parsed_request.fetch(:payload).fetch(:logs).first }
+      # Find crash report by content (is_crash: true), not by position in messages array.
+      # The receiver binary sends the crash report asynchronously after the forked process
+      # dies, so message ordering is not guaranteed.
+      let(:parsed_messages) do
+        messages.map { |msg| JSON.parse(msg.body.to_s, symbolize_names: true) }
+      end
+      let(:crash_report_request) do
+        parsed_messages.find { |msg| msg.dig(:payload, :logs, 0, :is_crash) == true }
+      end
+      let(:crash_report) { crash_report_request.fetch(:payload).fetch(:logs).first }
       let(:crash_report_message) { JSON.parse(crash_report.fetch(:message), symbolize_names: true) }
       let(:crash_report_experimental) { crash_report_message.fetch(:experimental) }
       let(:stack_trace) { crash_report_message.fetch(:error).fetch(:stack).fetch(:frames) }
+
+      # Wait for a crash report (is_crash: true) to arrive from the receiver binary.
+      # The receiver binary is a separate process that sends the report asynchronously
+      # after the forked process dies, so it may not have arrived when expect_in_fork returns.
+      def wait_for_crash_report
+        try_wait_until(seconds: 10) do
+          messages.length >= 2 &&
+            messages.any? { |msg| JSON.parse(msg.body.to_s, symbolize_names: true).dig(:payload, :logs, 0, :is_crash) == true rescue false }
+        end
+      end
 
       # NOTE: If any of these tests seem flaky, the `upload_timeout_seconds` may need to be raised (or otherwise
       # we need to tweak libdatadog to not need such high timeouts).
@@ -284,6 +297,10 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
             crash_tracker.start
             trigger.call
           end
+          wait_for_crash_report
+          expect(crash_report_request).to_not be_nil,
+            "No crash report (is_crash: true) found in #{messages.length} messages. " \
+            "Message summaries: #{parsed_messages.map { |m| m.dig(:payload, :logs, 0, :is_crash) }}"
           expect(stack_trace.size).to be > 10
 
           # On Mac, fiddle triggers SIGABRT instead of SIGSEGV
@@ -302,7 +319,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           )
 
           expect(crash_report_message[:os_info]).to_not be_empty
-          expect(parsed_request.fetch(:application)).to include(
+          expect(crash_report_request.fetch(:application)).to include(
             service_name: 'ruby-testing-123',
             language_name: 'ruby-testing-123',
           )
@@ -350,6 +367,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           Process.kill('SEGV', Process.pid)
         end
 
+        wait_for_crash_report
         expect(crash_report_message[:metadata]).to include(
           library_name: 'dd-trace-rb',
           library_version: Datadog::VERSION::STRING,
@@ -371,6 +389,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
             Process.kill('SEGV', Process.pid)
           end
 
+          wait_for_crash_report
           expect(stack_trace).to_not be_empty
 
           expect(crash_report[:tags]).to include('si_signo:6').or include('si_signo:11')
@@ -452,6 +471,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
             crash_stack_helper_class.new.top_level_ruby_method
           end
 
+          wait_for_crash_report
           expect(runtime_stack).to be_a(Hash)
           frames = runtime_stack[:frames]
 
