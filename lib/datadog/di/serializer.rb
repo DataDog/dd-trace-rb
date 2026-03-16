@@ -42,6 +42,11 @@ module Datadog
     #
     # @api private
     class Serializer
+      # Exception classes that should never be caught during serialization.
+      # These represent fatal conditions (signals, interrupts, system exit)
+      # that must propagate to the caller.
+      FATAL_EXCEPTION_CLASSES = [SignalException, Interrupt, SystemExit].freeze
+
       # Third-party library integration / custom serializers.
       #
       # Dynamic instrumentation has limited payload sizes, and for efficiency
@@ -323,7 +328,16 @@ module Datadog
             end
           end
           serialized
-        rescue => exc
+        rescue Exception => exc # standard:disable Lint/RescueException
+          # Re-raise fatal exceptions that should not be caught
+          # (signals, interrupts, system exit)
+          raise if FATAL_EXCEPTION_CLASSES.any? { |klass| exc.is_a?(klass) }
+
+          # Catch all other exceptions including SystemStackError and NoMemoryError.
+          # These inherit from Exception (not StandardError) but can occur during
+          # serialization (e.g., infinite recursion in custom serializers, memory
+          # exhaustion from large objects) and should return a safe structure
+          # rather than propagating to the transport layer.
           telemetry&.report(exc, description: "Error serializing")
           {type: class_name(cls), notSerializedReason: exc.to_s}
         end

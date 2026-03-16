@@ -3,7 +3,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/core'
 require 'datadog/core/ddsketch'
-require 'datadog/data_streams/spec_helper'
 require 'ostruct'
 require 'datadog/tracing/contrib/kafka/integration'
 require 'datadog/tracing/contrib/kafka/instrumentation/producer'
@@ -28,7 +27,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
 
   describe 'pathway context' do
     before do
-      skip_if_data_streams_not_supported(self)
+      skip_if_libdatadog_not_supported
     end
 
     let(:test_producer_class) do
@@ -76,7 +75,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
 
   describe 'checkpointing' do
     before do
-      skip_if_data_streams_not_supported(self)
+      skip_if_libdatadog_not_supported
     end
 
     let(:test_producer_class) do

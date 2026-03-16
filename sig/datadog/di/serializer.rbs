@@ -3,6 +3,7 @@ module Datadog
     class Serializer
       MAX_MESSAGE_COLLECTION_SIZE: Integer
       MAX_MESSAGE_ATTRIBUTE_COUNT: Integer
+      FATAL_EXCEPTION_CLASSES: ::Array[singleton(::Exception)]
 
       @@flat_registry: ::Array[{condition: ::Proc?, proc: ^(Serializer serializer, untyped value, name: ::Symbol?, depth: ::Integer, ?attribute_count: ::Integer?) -> untyped}]
 

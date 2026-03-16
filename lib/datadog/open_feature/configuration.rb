@@ -12,6 +12,8 @@ module Datadog
 
         def self.add_settings!(base)
           base.class_eval do
+            # Steep does not update `self` for this `class_eval` block.
+            # @type self: Datadog::Core::Configuration::Base::_DslContext
             settings :open_feature do
               option :enabled do |o|
                 o.type :bool

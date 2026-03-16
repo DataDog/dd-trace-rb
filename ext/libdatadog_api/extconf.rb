@@ -40,7 +40,8 @@ append_cflags '-Werror' if ENV['DATADOG_GEM_CI'] == 'true'
 # * by upstream Ruby -- search for gnu99 in the codebase
 # * by msgpack, another datadog gem dependency
 #   (https://github.com/msgpack/msgpack-ruby/blob/18ce08f6d612fe973843c366ac9a0b74c4e50599/ext/msgpack/extconf.rb#L8)
-append_cflags '-std=gnu99'
+# @ivoanjo: We could probably start using C11/gnu11 for non macOS-too but it's somewhat hard to validate so I chickened out for now
+append_cflags RUBY_PLATFORM.include?('darwin') ? '-std=gnu11' : '-std=gnu99'
 
 # Allow defining variables at any point in a function
 append_cflags '-Wno-declaration-after-statement'

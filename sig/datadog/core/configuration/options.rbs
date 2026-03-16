@@ -33,6 +33,22 @@ module Datadog
           def reset_options!: () -> void
         end
 
+        interface _SettingsClass
+          include _ClassMethods
+        end
+
+        interface _Settings
+          include _InstanceMethods
+
+          def assert_valid_option!: (Symbol name) -> void
+
+          def class: () -> _SettingsClass
+
+          def instance_exec: [U] (*untyped args) { (?) [self: OptionDefinition::settings_execution_context] -> U } -> U
+
+          def instance_eval: [U] () { (OptionDefinition::settings_execution_context settings) [self: OptionDefinition::settings_execution_context] -> U } -> U
+        end
+
         module ClassMethods
           include _ClassMethods
 
@@ -46,8 +62,8 @@ module Datadog
           def define_helpers: (Hash[Symbol, OptionDefinition::generic_proc] helpers) -> void
 
           # Fake methods to make it work with RBS. RBS cannot understand that this module is only used in a class context.
-          def superclass: () -> singleton(Options)
-          def define_method: (Symbol name) { (?) [self: GenericSettingsClass] -> untyped } -> void
+          def superclass: () -> untyped
+          def define_method: (Symbol name) { (?) [self: OptionDefinition::settings_execution_context] -> untyped } -> untyped
         end
 
         module InstanceMethods
@@ -64,12 +80,6 @@ module Datadog
         end
 
         class InvalidOptionError < StandardError
-        end
-
-        # Needs to be a class, not an interface, to use methods like instance_of?
-        class GenericSettingsClass
-          extend ClassMethods
-          include InstanceMethods
         end
       end
     end
