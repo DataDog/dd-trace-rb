@@ -213,8 +213,8 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
     end
 
     let(:process_context) { read_otel_ctx }
-    let(:resource_attributes) { process_context.resource.attributes.to_h { |kv| [kv.key, kv.value.string_value] } }
-    let(:extra_attributes) { process_context.extra_attributes.to_h { |kv| [kv.key, kv.value.string_value] } }
+    let(:resource_attributes) { process_context.resource.attributes.map { |kv| [kv.key, kv.value.string_value] }.to_h }
+    let(:extra_attributes) { process_context.extra_attributes.map { |kv| [kv.key, kv.value.string_value] }.to_h }
 
     it 'publishes process context in OTel format with correct attributes' do
       described_class.publish(Datadog.configuration)
