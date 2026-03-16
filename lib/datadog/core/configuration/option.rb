@@ -185,15 +185,9 @@ module Datadog
         end
 
         def telemetry_payload(stringify_value: true)
-          # For now. let's send an already normalized name, but later we should be able to simply send the env var.
-          name = if @definition.env
-            # Steep: https://github.com/soutaro/steep/issues/477
-            @definition.env.downcase.sub(/^dd_/, '') # steep:ignore NoMethod
-          else
-            @definition.name.to_s
-          end
+          name = @definition.env || @definition.name.to_s
           # value_per_precedence is only filled after we call `get` once.
-          get
+          get unless @is_set
           @value_per_precedence.each_with_object([]) do |(precedence, value), arr|
             # @type var result: Telemetry::Event::telemetry_configuration | Telemetry::Event::telemetry_configuration_value_not_stringified
             result = {name: name, value: stringify_value ? to_telemetry_value(value) : value, origin: precedence.origin, seq_id: precedence.numeric + 1}
