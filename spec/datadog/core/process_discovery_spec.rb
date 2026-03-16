@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'msgpack'
-
+require "google/protobuf"
 require 'spec_helper'
 require 'datadog/core/process_discovery'
 
@@ -194,5 +194,137 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
         expect(content).to include('process_tags' => '')
       end
     end
+  end
+
+  describe 'OTel process context support', skip: !LibdatadogHelpers.supported? do
+    before do
+      allow(Datadog::Core::Environment::Container).to receive(:container_id).and_return('test-container-id')
+
+      Datadog.configure do |c|
+        c.service = 'otel-test-service'
+        c.env = 'otel-test-env'
+        c.version = '1.2.3'
+        c.experimental_propagate_process_tags_enabled = true
+      end
+    end
+
+    after do
+      Datadog.configuration.reset!
+    end
+
+    let(:process_context) { read_otel_ctx }
+    let(:resource_attributes) { process_context.resource.attributes.map { |kv| [kv.key, kv.value.string_value] }.to_h }
+    let(:extra_attributes) { process_context.extra_attributes.map { |kv| [kv.key, kv.value.string_value] }.to_h }
+
+    it 'publishes process context in OTel format with correct attributes' do
+      described_class.publish(Datadog.configuration)
+
+      expect(resource_attributes).to eq(
+        'service.name' => 'otel-test-service',
+        'deployment.environment.name' => 'otel-test-env',
+        'service.version' => '1.2.3',
+        'service.instance.id' => Datadog::Core::Environment::Identity.id,
+        'telemetry.sdk.language' => 'ruby',
+        'telemetry.sdk.version' => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
+        'telemetry.sdk.name' => 'libdatadog',
+        'host.name' => Datadog::Core::Environment::Socket.hostname,
+        'container.id' => 'test-container-id'
+      )
+
+      expect(extra_attributes).to eq('datadog.process_tags' => Datadog::Core::Environment::Process.serialized)
+    end
+
+    context 'when app uses fork' do
+      it 'updates the process context with the new runtime_id' do
+        described_class.publish(Datadog.configuration)
+
+        parent_runtime_id = Datadog::Core::Environment::Identity.id
+
+        expect_in_fork do
+          described_class.after_fork # Simulate what Components.after_fork does
+
+          child_runtime_id = Datadog::Core::Environment::Identity.id
+          expect(child_runtime_id).not_to eq(parent_runtime_id)
+
+          expect(resource_attributes).to include(
+            'service.instance.id' => child_runtime_id,
+            'service.name' => 'otel-test-service',
+          )
+        end
+      end
+    end
+
+    def read_otel_ctx
+      mapping_address = find_otel_ctx_mapping
+      raise "No OTel_CTX mapping found" unless mapping_address
+
+      header = read_header(mapping_address)
+      raise "Invalid OTEL_CTX" unless header[:signature] == "OTEL_CTX" && header[:version] == 2
+
+      payload_bytes = read_memory(header[:payload_ptr], header[:payload_size])
+      Otel::ProcessCtx::ProcessContext.decode(payload_bytes)
+    end
+
+    def find_otel_ctx_mapping
+      File.foreach("/proc/self/maps") do |line|
+        if line.include?("[anon_shmem:OTEL_CTX]") ||
+            line.include?("[anon:OTEL_CTX]") ||
+            line.include?("/memfd:OTEL_CTX")
+          return line.split("-").first.to_i(16)
+        end
+      end
+    end
+
+    def read_header(address)
+      header_bytes = read_memory(address, 32)
+      {
+        signature: header_bytes[0, 8],
+        version: header_bytes[8, 4].unpack1("V"),
+        payload_size: header_bytes[12, 4].unpack1("V"),
+        payload_ptr: header_bytes[24, 8].unpack1("Q<"),
+      }
+    end
+
+    def read_memory(address, size)
+      File.open("/proc/self/mem", "rb") do |f|
+        f.seek(address)
+        f.read(size)
+      end
+    end
+  end
+end
+
+Google::Protobuf::DescriptorPool.generated_pool.build do
+  add_message "otel.processctx.AnyValue" do
+    optional :string_value, :string, 1
+    optional :array_value, :message, 5, "otel.processctx.ArrayValue"
+  end
+
+  add_message "otel.processctx.ArrayValue" do
+    repeated :values, :message, 1, "otel.processctx.AnyValue"
+  end
+
+  add_message "otel.processctx.KeyValue" do
+    optional :key, :string, 1
+    optional :value, :message, 2, "otel.processctx.AnyValue"
+  end
+
+  add_message "otel.processctx.Resource" do
+    repeated :attributes, :message, 1, "otel.processctx.KeyValue"
+  end
+
+  add_message "otel.processctx.ProcessContext" do
+    optional :resource, :message, 1, "otel.processctx.Resource"
+    repeated :extra_attributes, :message, 2, "otel.processctx.KeyValue"
+  end
+end
+
+module Otel
+  module ProcessCtx
+    AnyValue = Google::Protobuf::DescriptorPool.generated_pool.lookup("otel.processctx.AnyValue").msgclass
+    ArrayValue = Google::Protobuf::DescriptorPool.generated_pool.lookup("otel.processctx.ArrayValue").msgclass
+    KeyValue = Google::Protobuf::DescriptorPool.generated_pool.lookup("otel.processctx.KeyValue").msgclass
+    Resource = Google::Protobuf::DescriptorPool.generated_pool.lookup("otel.processctx.Resource").msgclass
+    ProcessContext = Google::Protobuf::DescriptorPool.generated_pool.lookup("otel.processctx.ProcessContext").msgclass
   end
 end
