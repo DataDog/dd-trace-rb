@@ -959,15 +959,15 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
         it_behaves_like 'a binary setting with',
           env_variable: 'DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS',
-          default: false
+          default: true
       end
 
       describe '#experimental_use_system_dns=' do
         it 'updates the #experimental_use_system_dns setting' do
-          expect { settings.profiling.advanced.experimental_use_system_dns = true }
+          expect { settings.profiling.advanced.experimental_use_system_dns = false }
             .to change { settings.profiling.advanced.experimental_use_system_dns }
-            .from(false)
-            .to(true)
+            .from(true)
+            .to(false)
         end
       end
     end
