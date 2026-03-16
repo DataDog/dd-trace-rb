@@ -323,5 +323,80 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         end
       end
     end
+
+    context 'serialization error — end-to-end through real transport' do
+      let(:probe) do
+        Datadog::DI::Probe.new(id: 'bad-probe', type: :log, file: 'test.rb', line_no: 1)
+      end
+
+      let(:real_probe_repository) do
+        Datadog::DI::ProbeRepository.new
+      end
+
+      let(:error_probe_notification_builder) do
+        instance_double(Datadog::DI::ProbeNotificationBuilder).tap do |builder|
+          allow(builder).to receive(:build_status)
+            .with(anything, hash_including(:message, :status, :exception))
+            .and_return({status: 'ERROR'})
+        end
+      end
+
+      # Override input_transport so the outer before block (which does
+      # allow(Transport::HTTP.input).and_return(input_transport)) picks up the
+      # real transport. This ensures the full send_input serialization path runs.
+      let(:input_transport) do
+        Datadog::DI::Transport::HTTP.input(
+          agent_settings: agent_settings,
+          logger: logger,
+          telemetry: nil,
+        ).tap do |transport|
+          allow(transport).to receive(:send_input_chunk)
+        end
+      end
+
+      let(:worker) do
+        described_class.new(
+          settings, logger,
+          agent_settings: agent_settings,
+          telemetry: nil,
+          probe_repository: real_probe_repository,
+          probe_notification_builder: error_probe_notification_builder,
+        )
+      end
+
+      let(:bad_snapshot) do
+        {
+          debugger: {
+            snapshot: {
+              probe: {id: 'bad-probe'},
+              captures: {locals: {data: "\x80".force_encoding('ASCII-8BIT')}},
+            },
+          },
+        }
+      end
+
+      before do
+        real_probe_repository.add_installed(probe)
+        allow(diagnostics_transport).to receive(:send_diagnostics)
+        allow(logger).to receive(:debug)
+      end
+
+      it 'disables the probe when its snapshot cannot be JSON-encoded' do
+        worker.add_snapshot(bad_snapshot)
+        worker.flush
+
+        expect(probe.enabled?).to be false
+      end
+
+      it 'sends ERROR status for the affected probe' do
+        expect(error_probe_notification_builder).to receive(:build_status).with(
+          probe,
+          hash_including(status: 'ERROR', message: /JSON encoding failed/),
+        ).and_return({status: 'ERROR'})
+
+        worker.add_snapshot(bad_snapshot)
+        worker.flush
+      end
+    end
   end
 end

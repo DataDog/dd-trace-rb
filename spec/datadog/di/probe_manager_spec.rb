@@ -144,6 +144,31 @@ RSpec.describe Datadog::DI::ProbeManager do
           end.to raise_error(Datadog::DI::Error::AlreadyInstrumented, /Probe with id .* is already in installed probes/)
         end
       end
+
+      context 'when probe previously failed to install' do
+        before do
+          probe_repository.add_failed(probe.id, 'RuntimeError: original installation error')
+        end
+
+        it 'does not attempt instrumentation again and reports ERROR status' do
+          expect_lazy_log(logger, :debug, /error processing probe configuration.*ProbePreviouslyFailed.*original installation error/)
+
+          expect(instrumenter).not_to receive(:hook)
+          expect(probe_notification_builder).not_to receive(:build_installed)
+          expect(probe_notification_builder).to receive(:build_errored)
+            .with(probe, instance_of(Datadog::DI::Error::ProbePreviouslyFailed))
+            .and_return({status: 'ERROR'})
+          expect(probe_notifier_worker).to receive(:add_status).with({status: 'ERROR'}, probe: probe)
+
+          expect do
+            manager.add_probe(probe)
+          end.to raise_error(Datadog::DI::Error::ProbePreviouslyFailed, /original installation error/)
+
+          expect(probe_repository.failed_probes.length).to eq 1
+          expect(probe_repository.installed_probes).to be_empty
+          expect(probe_repository.pending_probes).to be_empty
+        end
+      end
     end
   end
 
