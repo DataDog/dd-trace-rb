@@ -108,8 +108,6 @@ module Datadog
             opentelemetry.metrics.export_timeout_millis
           ].freeze
 
-          # standard:disable Metrics/AbcSize
-          # standard:disable Metrics/MethodLength
           def configuration(settings, agent_settings)
             # Special values that are not tied to a configuration option
             list = [
@@ -218,8 +216,6 @@ module Datadog
             list.reject! { |entry| entry[:origin] != 'default' && entry[:origin] != 'code' && entry[:value].nil? }
             list
           end
-          # standard:enable Metrics/AbcSize
-          # standard:enable Metrics/MethodLength
 
           def agent_transport(agent_settings)
             adapter = agent_settings.adapter
@@ -239,8 +235,13 @@ module Datadog
           # - 6:`remote_config`: values that are set using remote config
           # - 7:`unknown`: set for cases where it is difficult/not possible to determine the source of a config.
           def conf_value(name, value, precedence)
-            # @type var result: telemetry_configuration
-            result = {name: name, value: value, origin: precedence.origin, seq_id: precedence.numeric + 1}
+            # @type var result: Configuration::Option::telemetry_configuration
+            result = {
+              name: name,
+              value: value,
+              origin: precedence.origin,
+              seq_id: precedence.numeric + 1,
+            }
             if precedence.origin == 'fleet_stable_config'
               fleet_id = Core::Configuration::StableConfig.configuration.dig(:fleet, :id)
               result[:config_id] = fleet_id if fleet_id
