@@ -99,25 +99,41 @@ module Datadog
         true
       end
 
-      # Find source file for a module
+      # Find source file for a module.
+      # Prefers user code paths over gem/stdlib paths. ActiveRecord models have
+      # generated methods (autosave callbacks) whose source is in the gem, but
+      # user-defined methods point to app/models/. Without this preference,
+      # AR models get filtered out as gem code.
       # @param mod [Module] The module
       # @return [String, nil] Source file path or nil
       def self.find_source_file(mod)
+        fallback = nil
+
         # Try instance methods first
         mod.instance_methods(false).each do |method_name|
           method = mod.instance_method(method_name)
           location = method.source_location
-          return location[0] if location
+          next unless location
+
+          path = location[0]
+          return path if user_code_path?(path)
+
+          fallback ||= path
         end
 
         # Try singleton methods
         mod.singleton_methods(false).each do |method_name|
           method = mod.method(method_name)
           location = method.source_location
-          return location[0] if location
+          next unless location
+
+          path = location[0]
+          return path if user_code_path?(path)
+
+          fallback ||= path
         end
 
-        nil
+        fallback
       rescue
         # Rescue handles: NameError (anonymous module/class), NoMethodError (missing methods),
         # SecurityError (restricted access), or other runtime errors during introspection.

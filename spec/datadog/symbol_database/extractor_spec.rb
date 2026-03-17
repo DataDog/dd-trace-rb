@@ -260,6 +260,65 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
     end
   end
 
+  describe '.user_code_module?' do
+    it 'returns false for Datadog namespace' do
+      expect(described_class.send(:user_code_module?, Datadog::SymbolDatabase::Extractor)).to be false
+    end
+
+    it 'returns false for anonymous modules' do
+      expect(described_class.send(:user_code_module?, Module.new)).to be false
+    end
+
+    it 'returns true for user code class' do
+      user_file = create_user_code_file(<<~RUBY)
+        class TestUserCodeModuleCheck
+          def a_method; end
+        end
+      RUBY
+      load user_file
+
+      expect(described_class.send(:user_code_module?, TestUserCodeModuleCheck)).to be true
+
+      Object.send(:remove_const, :TestUserCodeModuleCheck)
+      cleanup_user_code_file(user_file)
+    end
+
+    it 'returns true for class with mixed gem and user methods' do
+      user_file = create_user_code_file(<<~RUBY)
+        class TestMixedSourceModule
+          def user_method; end
+        end
+      RUBY
+      load user_file
+
+      gem_path = '/fake/gems/activerecord-7.0/lib/autosave.rb'
+      gem_method = instance_double(Method, source_location: [gem_path, 1])
+      user_method = TestMixedSourceModule.instance_method(:user_method)
+
+      allow(TestMixedSourceModule).to receive(:instance_methods).with(false).and_return([:gem_method, :user_method])
+      allow(TestMixedSourceModule).to receive(:instance_method).with(:gem_method).and_return(gem_method)
+      allow(TestMixedSourceModule).to receive(:instance_method).with(:user_method).and_return(user_method)
+
+      expect(described_class.send(:user_code_module?, TestMixedSourceModule)).to be true
+
+      Object.send(:remove_const, :TestMixedSourceModule)
+      cleanup_user_code_file(user_file)
+    end
+
+    it 'returns false for class with only gem methods' do
+      gem_path = '/fake/gems/activerecord-7.0/lib/autosave.rb'
+      mod = Class.new
+      allow(mod).to receive(:name).and_return('SomeGemClass')
+
+      gem_method = instance_double(Method, source_location: [gem_path, 1])
+      allow(mod).to receive(:instance_methods).with(false).and_return([:gem_method])
+      allow(mod).to receive(:instance_method).with(:gem_method).and_return(gem_method)
+      allow(mod).to receive(:singleton_methods).with(false).and_return([])
+
+      expect(described_class.send(:user_code_module?, mod)).to be false
+    end
+  end
+
   describe '.user_code_path?' do
     it 'returns false for gem paths' do
       expect(described_class.send(:user_code_path?, '/path/to/gems/rspec/lib/rspec.rb')).to be false
@@ -314,6 +373,45 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
 
       source_file = described_class.send(:find_source_file, empty_mod)
       expect(source_file).to be_nil
+    end
+
+    it 'prefers user code path over gem path' do
+      # Simulate ActiveRecord model: first method points to gem, second to user code
+      user_file = create_user_code_file(<<~RUBY)
+        class TestClassWithMixedSources
+          def user_method; end
+        end
+      RUBY
+      load user_file
+
+      gem_path = '/fake/gems/activerecord-7.0/lib/active_record/autosave.rb'
+
+      # Stub instance_methods to return gem method first, user method second
+      allow(TestClassWithMixedSources).to receive(:instance_methods).with(false).and_return([:gem_method, :user_method])
+
+      gem_method = instance_double(Method, source_location: [gem_path, 10])
+      user_method = TestClassWithMixedSources.instance_method(:user_method)
+
+      allow(TestClassWithMixedSources).to receive(:instance_method).with(:gem_method).and_return(gem_method)
+      allow(TestClassWithMixedSources).to receive(:instance_method).with(:user_method).and_return(user_method)
+
+      source_file = described_class.send(:find_source_file, TestClassWithMixedSources)
+      expect(source_file).to eq(user_file)
+
+      Object.send(:remove_const, :TestClassWithMixedSources)
+      cleanup_user_code_file(user_file)
+    end
+
+    it 'falls back to gem path when no user code path exists' do
+      gem_path = '/fake/gems/activerecord-7.0/lib/active_record/autosave.rb'
+      mod = Module.new
+
+      gem_method = instance_double(Method, source_location: [gem_path, 10])
+      allow(mod).to receive(:instance_methods).with(false).and_return([:gem_method])
+      allow(mod).to receive(:instance_method).with(:gem_method).and_return(gem_method)
+
+      source_file = described_class.send(:find_source_file, mod)
+      expect(source_file).to eq(gem_path)
     end
   end
 end
