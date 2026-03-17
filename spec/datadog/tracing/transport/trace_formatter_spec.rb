@@ -184,13 +184,16 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
           )
         end
 
-        it 'sets _dd.p.ksr as a string tag on the root span' do
-          format!
-          # rule_sample_rate takes priority over agent_sample_rate
-          expected_ksr = format('%.6g', rule_sample_rate)
-          expect(root_span.meta).to include(
-            Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => expected_ksr
-          )
+        context 'knuth sampling rate on root span' do
+          let(:rule_sample_rate) { 0.75 }
+
+          it 'sets _dd.p.ksr as a string tag' do
+            format!
+            # rule_sample_rate takes priority over agent_sample_rate
+            expect(root_span.meta).to include(
+              Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE => '0.75'
+            )
+          end
         end
       end
 
