@@ -14,7 +14,7 @@ module Datadog
         end
 
         def self.strict_decode64(str)
-          str.unpack1('m0')
+          str.unpack1('m0') #: String # 'm0' format always returns a String
         end
       end
     end

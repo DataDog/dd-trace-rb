@@ -170,10 +170,7 @@ module Datadog
 
         def default_value
           if definition.default.instance_of?(Proc)
-            # Steep: the condition narrows definition.default to a Proc, while context_eval expects a block.
-            # But `type default_value` in option_definition.rbs is (after narrowing):
-            # `(Options::_Settings settings) [self: Options::_Settings] -> Object?`
-            # Which is compatible with the block expected by context_eval.
+            # Steep: https://github.com/soutaro/steep/issues/335
             context_eval(&definition.default) # steep:ignore BlockTypeMismatch
           else
             definition.default_proc || Core::Utils::SafeDup.frozen_or_dup(definition.default)

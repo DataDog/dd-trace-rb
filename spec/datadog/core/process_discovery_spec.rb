@@ -27,7 +27,24 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
       end
     end
 
-    context 'when libdatadog API is available' do
+    context 'on macOS' do
+      before do
+        stub_const("RUBY_PLATFORM", "x86_64-darwin19")
+        allow(Datadog.logger).to receive(:debug)
+      end
+
+      it 'returns nil' do
+        expect(described_class.publish(nil)).to be_nil
+      end
+
+      it 'debug logs about not being available on macOS' do
+        expect(Datadog.logger).to receive(:debug) { |&block| expect(block.call).to include("not yet supported on macOS") }
+
+        described_class.publish(nil)
+      end
+    end
+
+    context 'when libdatadog API is available', if: !PlatformHelpers.mac? do
       before do
         Datadog.configure do |c|
           c.service = 'dummy-service' # Manually set so it isn't set to fallback service name that we don't control
@@ -121,10 +138,12 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
     end
   end
 
-  describe 'when forked', skip: !LibdatadogHelpers.supported? do
+  describe 'when forked', if: !PlatformHelpers.mac? do
     reset_at_fork_monkey_patch_for_components!
 
     before do
+      skip_if_libdatadog_not_supported
+
       Datadog.configure do |c|
         c.service = 'test-service' # Manually set so it isn't set to fallback service name that we don't control
         c.experimental_propagate_process_tags_enabled = true
@@ -155,8 +174,10 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
     end
   end
 
-  describe 'with real configuration', skip: !LibdatadogHelpers.supported? do
+  describe 'with real configuration', if: !PlatformHelpers.mac? do
     before do
+      skip_if_libdatadog_not_supported
+
       described_class.shutdown!
     end
 

@@ -1,19 +1,12 @@
 require "ext/libdatadog_extconf_helpers"
 require "libdatadog"
-require "datadog/profiling/spec_helper"
 
-# TODO: This should be extracted out once the test suite setup is updated to build libdatadog_api separate from profiling
 RSpec.describe Datadog::LibdatadogExtconfHelpers do
   describe ".libdatadog_folder_relative_to_native_lib_folder" do
-    let(:extension_folder) { "#{__dir__}/../../../ext/datadog_profiling_native_extension/." }
+    let(:extension_folder) { "#{__dir__}/../../../ext/libdatadog_api/." }
 
     context "when libdatadog is available" do
-      before do
-        skip_if_profiling_not_supported(self)
-        if PlatformHelpers.mac? && Libdatadog.pkgconfig_folder.nil? && ENV["LIBDATADOG_VENDOR_OVERRIDE"].nil?
-          skip "Needs LIBDATADOG_VENDOR_OVERRIDE pointing at a valid libdatadog build on macOS"
-        end
-      end
+      before { skip_if_libdatadog_not_supported }
 
       it "returns a relative path to libdatadog folder from the gem lib folder" do
         relative_path = described_class.libdatadog_folder_relative_to_native_lib_folder(current_folder: extension_folder)
@@ -43,12 +36,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
 
   describe ".libdatadog_folder_relative_to_ruby_extensions_folders" do
     context "when libdatadog is available" do
-      before do
-        skip_if_profiling_not_supported(self)
-        if PlatformHelpers.mac? && Libdatadog.pkgconfig_folder.nil? && ENV["LIBDATADOG_VENDOR_OVERRIDE"].nil?
-          skip "Needs LIBDATADOG_VENDOR_OVERRIDE pointing at a valid libdatadog build on macOS"
-        end
-      end
+      before { skip_if_libdatadog_not_supported }
 
       it "returns a relative path to libdatadog folder from the ruby extensions folders" do
         extensions_relative, bundler_extensions_relative =
@@ -96,7 +84,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
     subject(:pkg_config_missing) { described_class.pkg_config_missing?(command: command) }
 
     before do
-      skip_if_profiling_not_supported(self)
+      skip_if_libdatadog_not_supported
     end
 
     context "when command is not available" do
@@ -107,8 +95,8 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
 
     # This spec is semi-realistic, because it actually calls into the pkg-config external process.
     #
-    # We know pkg-config must be available on the machine running the tests because otherwise profiling would not be
-    # supported (and thus `skip_if_profiling_not_supported` would've been triggered).
+    # We know pkg-config must be available on the machine running the tests because otherwise libdatadog would not be
+    # supported (and thus `skip_if_libdatadog_not_supported` would've been triggered).
     #
     # We could also mock the entire interaction, but this seemed like a simple enough way to go.
     context "when command is available" do
@@ -137,9 +125,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
   describe ".load_libdatadog_or_get_issue" do
     subject(:load_libdatadog_or_get_issue) { described_class.load_libdatadog_or_get_issue }
 
-    before do
-      skip_if_profiling_not_supported(self)
-    end
+    before { skip_if_libdatadog_not_supported }
 
     context "when libdatadog gem fails to load" do
       before do
