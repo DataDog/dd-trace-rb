@@ -4,6 +4,7 @@ require_relative 'extractor'
 require_relative 'scope_context'
 require_relative 'uploader'
 require_relative '../core/utils/time'
+require_relative '../core/utils/only_once'
 
 module Datadog
   module SymbolDatabase
@@ -29,6 +30,10 @@ module Datadog
     class Component
       UPLOAD_COOLDOWN_INTERVAL = 60  # seconds
 
+      # Class-level guard: force_upload extraction should only happen once per process,
+      # even if Components is rebuilt multiple times during startup (reconfigurations).
+      FORCE_UPLOAD_ONCE = Core::Utils::OnlyOnce.new
+
       # Build a new Component if feature is enabled and dependencies met.
       # @param settings [Configuration::Settings] Tracer settings
       # @param agent_settings [Configuration::AgentSettings] Agent configuration
@@ -42,8 +47,8 @@ module Datadog
         return nil unless settings.remote&.enabled || settings.symbol_database.force_upload
 
         new(settings, agent_settings, logger, telemetry: telemetry).tap do |component|
-          # Start immediately if force upload mode
-          component.start_upload if settings.symbol_database.force_upload
+          # Defer extraction if force upload mode — wait for app boot to complete
+          component.schedule_deferred_upload if settings.symbol_database.force_upload
         end
       end
 
@@ -68,6 +73,48 @@ module Datadog
         @last_upload_time = nil
         @mutex = Mutex.new
         @upload_in_progress = false
+        @shutdown = false
+      end
+
+      # Schedule a deferred upload that waits for app boot to complete.
+      #
+      # In Rails: uses ActiveSupport.on_load(:after_initialize) to wait for
+      # Zeitwerk eager loading to finish before extracting symbols.
+      #
+      # In non-Rails: runs extraction immediately since there is no deferred
+      # class loading to wait for.
+      #
+      # Uses FORCE_UPLOAD_ONCE to ensure only one extraction happens per process,
+      # even when Components is rebuilt multiple times during startup.
+      #
+      # @return [void]
+      def schedule_deferred_upload
+        if defined?(::ActiveSupport) && defined?(::Rails::Railtie)
+          # Rails detected: defer until after_initialize when Zeitwerk has
+          # eager-loaded all application classes.
+          #
+          # Look up the current component at callback-fire time (not build time),
+          # because reconfigurations during startup may shut down and replace the
+          # component that originally registered this callback.
+          FORCE_UPLOAD_ONCE.run do
+            ::ActiveSupport.on_load(:after_initialize) do
+              current = Datadog.send(:components).symbol_database rescue nil
+              current&.start_upload
+            end
+          end
+        else
+          # Non-Rails: no deferred loading, extract immediately.
+          # Still guarded by OnlyOnce to handle reconfigurations.
+          FORCE_UPLOAD_ONCE.run do
+            start_upload
+          end
+        end
+      end
+
+      # Whether this component has been shut down.
+      # @return [Boolean]
+      def shutdown?
+        @mutex.synchronize { @shutdown }
       end
 
       # Start symbol upload (triggered by remote config or force mode).
@@ -78,6 +125,7 @@ module Datadog
         should_upload = false
 
         @mutex.synchronize do
+          return if @shutdown
           return if @enabled
           return if recently_uploaded?
 
@@ -101,9 +149,12 @@ module Datadog
       end
 
       # Shutdown component and cleanup resources.
+      # Marks component as shut down so deferred uploads are cancelled.
       # Waits for any in-flight upload to complete before shutting down.
       # @return [void]
       def shutdown!
+        @mutex.synchronize { @shutdown = true }
+
         # Wait for in-flight upload to complete (max 5 seconds)
         deadline = Datadog::Core::Utils::Time.now + 5
         while @upload_in_progress && Datadog::Core::Utils::Time.now < deadline
