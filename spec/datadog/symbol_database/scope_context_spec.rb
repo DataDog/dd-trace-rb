@@ -4,7 +4,7 @@ require 'datadog/symbol_database/scope_context'
 require 'datadog/symbol_database/scope'
 
 RSpec.describe Datadog::SymbolDatabase::ScopeContext do
-  let(:uploader) { double('uploader') }
+  let(:uploader) { instance_double(Datadog::SymbolDatabase::Uploader) }
   let(:test_scope) { Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'TestClass') }
 
   subject(:context) { described_class.new(uploader) }

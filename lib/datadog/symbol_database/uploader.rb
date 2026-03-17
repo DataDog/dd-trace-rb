@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# TODO: Revert ddsource to 'ruby' after DataDog/debugger-backend#1974 merges.
+# See service_version.rb for full revert instructions.
+
 require 'json'
 require 'zlib'
 require 'stringio'
@@ -78,7 +81,7 @@ module Datadog
         upload_with_retry(compressed_data, scopes.size)
       rescue => e
         Datadog.logger.debug("SymDB: Upload failed: #{e.class}: #{e}")
-        @telemetry&.count('symbol_database.upload_scopes_error', 1)
+        @telemetry&.inc('tracers', 'symbol_database.upload_scopes_error', 1)
         # Don't propagate
       end
 
@@ -99,7 +102,7 @@ module Datadog
         service_version.to_json
       rescue => e
         Datadog.logger.debug("SymDB: Serialization failed: #{e.class}: #{e}")
-        @telemetry&.count('symbol_database.serialization_error', 1)
+        @telemetry&.inc('tracers', 'symbol_database.serialization_error', 1)
         nil
       end
 
@@ -110,11 +113,11 @@ module Datadog
         compressed = Zlib.gzip(json_data)
         # Track compression ratio
         ratio = json_data.bytesize.to_f / compressed.bytesize
-        @telemetry&.distribution('symbol_database.compression_ratio', ratio)
+        @telemetry&.distribution('tracers', 'symbol_database.compression_ratio', ratio)
         compressed
       rescue => e
         Datadog.logger.debug("SymDB: Compression failed: #{e.class}: #{e}")
-        @telemetry&.count('symbol_database.compression_error', 1)
+        @telemetry&.inc('tracers', 'symbol_database.compression_error', 1)
         nil
       end
 
@@ -139,7 +142,7 @@ module Datadog
             retry
           else
             Datadog.logger.debug("SymDB: Upload failed after #{MAX_RETRIES} retries: #{e.class}: #{e}")
-            @telemetry&.count('symbol_database.upload_retry_exhausted', 1)
+            @telemetry&.inc('tracers', 'symbol_database.upload_retry_exhausted', 1)
           end
         end
       end
@@ -159,7 +162,7 @@ module Datadog
       # @return [void]
       def perform_http_upload(compressed_data, scope_count)
         # Track payload size
-        @telemetry&.distribution('symbol_database.payload_size', compressed_data.bytesize)
+        @telemetry&.distribution('tracers', 'symbol_database.payload_size', compressed_data.bytesize)
 
         # Build multipart form
         form = build_multipart_form(compressed_data)
@@ -199,7 +202,7 @@ module Datadog
       # @return [String] JSON string for event metadata
       def build_event_metadata
         JSON.generate(
-          ddsource: 'ruby',
+          ddsource: 'dd_debugger', # TEMPORARY: revert to 'ruby' after debugger-backend#1974
           service: @config.service,
           runtimeId: Datadog::Core::Environment::Identity.id,
           parentId: nil,  # Fork tracking deferred for MVP
@@ -215,22 +218,22 @@ module Datadog
         case response.code
         when 200..299
           Datadog.logger.debug("SymDB: Uploaded #{scope_count} scopes successfully")
-          @telemetry&.count('symbol_database.uploaded', 1)
-          @telemetry&.count('symbol_database.scopes_uploaded', scope_count)
+          @telemetry&.inc('tracers', 'symbol_database.uploaded', 1)
+          @telemetry&.inc('tracers', 'symbol_database.scopes_uploaded', scope_count)
           true
         when 429
-          @telemetry&.count('symbol_database.upload_error', 1, tags: ['error:rate_limited'])
+          @telemetry&.inc('tracers', 'symbol_database.upload_error', 1, tags: ['error:rate_limited'])
           # Raise to trigger retry logic in upload_with_retry (line 130-144).
           # This follows the same pattern as Core::Transport - retryable errors raise,
           # non-retryable errors return false. Agent rate limiting is transient and retryable.
           raise "Rate limited"
         when 500..599
-          @telemetry&.count('symbol_database.upload_error', 1, tags: ['error:server_error'])
+          @telemetry&.inc('tracers', 'symbol_database.upload_error', 1, tags: ['error:server_error'])
           # Raise to trigger retry logic in upload_with_retry (line 130-144).
           # Server errors (500-599) are transient and retryable with exponential backoff.
           raise "Server error: #{response.code}"
         else
-          @telemetry&.count('symbol_database.upload_error', 1, tags: ['error:client_error'])
+          @telemetry&.inc('tracers', 'symbol_database.upload_error', 1, tags: ['error:client_error'])
           Datadog.logger.debug("SymDB: Upload rejected: #{response.code}")
           false
         end
