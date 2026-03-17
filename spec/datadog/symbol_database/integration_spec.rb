@@ -17,6 +17,11 @@ RSpec.describe 'Symbol Database Integration' do
         module IntegrationTestModule
           CONSTANT = 42
 
+          # Module method ensures find_source_file can locate this module's source file
+          def self.module_info
+            "integration test module"
+          end
+
           class IntegrationTestClass
             @@class_var = "test"
 
@@ -43,25 +48,32 @@ RSpec.describe 'Symbol Database Integration' do
         # Create scope context
         context = Datadog::SymbolDatabase::ScopeContext.new(uploader)
 
-        # Extract symbols
-        scope = Datadog::SymbolDatabase::Extractor.extract(IntegrationTestModule::IntegrationTestClass)
+        # Namespaced classes (IntegrationTestModule::IntegrationTestClass) are skipped at
+        # root level — they are already nested inside their parent MODULE scope.
+        expect(Datadog::SymbolDatabase::Extractor.extract(IntegrationTestModule::IntegrationTestClass)).to be_nil
 
-        # Should have extracted the class
+        # Extract the parent MODULE — it wraps nested CLASS scopes
+        scope = Datadog::SymbolDatabase::Extractor.extract(IntegrationTestModule)
         expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('CLASS')
-        expect(scope.name).to eq('IntegrationTestModule::IntegrationTestClass')
+        expect(scope.scope_type).to eq('MODULE')
+        expect(scope.name).to eq('IntegrationTestModule')
 
-        # Should have method scopes
-        method_names = scope.scopes.map(&:name)
+        # The nested CLASS is inside the MODULE's scopes
+        class_scope = scope.scopes.find { |s| s.scope_type == 'CLASS' }
+        expect(class_scope).not_to be_nil
+        expect(class_scope.name).to eq('IntegrationTestModule::IntegrationTestClass')
+
+        # Should have method scopes inside the CLASS
+        method_names = class_scope.scopes.map(&:name)
         expect(method_names).to include('test_method')
         expect(method_names).to include('self.class_method')
 
-        # Should have symbols (class variable)
-        symbol_names = scope.symbols.map(&:name)
+        # Should have symbols (class variable) inside the CLASS
+        symbol_names = class_scope.symbols.map(&:name)
         expect(symbol_names).to include('@@class_var')
 
         # Should have method parameters
-        test_method_scope = scope.scopes.find { |s| s.name == 'test_method' }
+        test_method_scope = class_scope.scopes.find { |s| s.name == 'test_method' }
         param_names = test_method_scope.symbols.map(&:name)
         expect(param_names).to include('arg1')
         expect(param_names).to include('arg2')
@@ -73,17 +85,19 @@ RSpec.describe 'Symbol Database Integration' do
         # Flush (should upload)
         context.flush
 
-        # Verify upload was called
+        # Verify upload was called with the MODULE scope
         expect(uploaded_scopes).not_to be_nil
         expect(uploaded_scopes.size).to eq(1)
-        expect(uploaded_scopes.first.name).to eq('IntegrationTestModule::IntegrationTestClass')
+        expect(uploaded_scopes.first.name).to eq('IntegrationTestModule')
+        expect(uploaded_scopes.first.scope_type).to eq('MODULE')
 
-        # Verify JSON serialization works
+        # Verify JSON serialization produces valid root-level MODULE scope
         json = uploaded_scopes.first.to_json
         parsed = JSON.parse(json)
-        expect(parsed['scope_type']).to eq('CLASS')
+        expect(parsed['scope_type']).to eq('MODULE')
         expect(parsed['scopes']).to be_an(Array)
-        expect(parsed['symbols']).to be_an(Array)
+        # MODULE's symbols are module-level constants (not class variables)
+        expect(parsed['symbols']).to be_an(Array).or be_nil
       ensure
         # Cleanup
         Object.send(:remove_const, :IntegrationTestModule) if defined?(IntegrationTestModule)
