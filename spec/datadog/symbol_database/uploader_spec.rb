@@ -5,26 +5,29 @@ require 'datadog/symbol_database/scope'
 
 RSpec.describe Datadog::SymbolDatabase::Uploader do
   let(:config) do
-    double('config',
+    instance_double(
+      Datadog::Core::Configuration::Settings,
       service: 'test-service',
       env: 'test',
       version: '1.0.0',
-      api_key: 'test_api_key')
+    )
   end
 
   let(:agent_settings) do
-    double('agent_settings',
+    instance_double(
+      Datadog::Core::Configuration::AgentSettings,
       hostname: 'localhost',
       port: 8126,
       timeout_seconds: 30,
-      ssl: false)
+      ssl: false,
+    )
   end
 
   let(:test_scope) { Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'TestClass') }
 
   # Mock transport infrastructure
-  let(:mock_transport) { double('transport') }
-  let(:mock_response) { double('response', code: 200) }
+  let(:mock_transport) { instance_double(Datadog::SymbolDatabase::Transport::Transport) }
+  let(:mock_response) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200) }
 
   before do
     # Mock Transport::HTTP.build to return our mock transport
@@ -127,7 +130,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
           if attempt < 3
             raise Errno::ECONNREFUSED, 'Connection refused'
           else
-            double('response', code: '200')
+            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200)
           end
         end
 
@@ -157,9 +160,9 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
         allow(mock_transport).to receive(:send_symdb_payload) do
           attempt += 1
           if attempt < 3
-            double('response', code: 500)
+            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 500)
           else
-            double('response', code: 200)
+            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200)
           end
         end
 
@@ -173,9 +176,9 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
         allow(mock_transport).to receive(:send_symdb_payload) do
           attempt += 1
           if attempt < 2
-            double('response', code: 429)
+            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 429)
           else
-            double('response', code: 200)
+            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200)
           end
         end
 
@@ -185,7 +188,8 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       end
 
       it 'does not retry on 400 errors' do
-        allow(mock_transport).to receive(:send_symdb_payload).and_return(double('response', code: 400))
+        allow(mock_transport).to receive(:send_symdb_payload)
+          .and_return(instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 400))
 
         expect(Datadog.logger).to receive(:debug).with(/rejected/)
 
@@ -213,7 +217,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       event_io = captured_form['event'].instance_variable_get(:@io)
       event_json = JSON.parse(event_io.read)
 
-      expect(event_json['ddsource']).to eq('ruby')
+      expect(event_json['ddsource']).to eq('dd_debugger') # TEMPORARY: revert to 'ruby' after debugger-backend#1974
       expect(event_json['service']).to eq('test-service')
       expect(event_json['type']).to eq('symdb')
       expect(event_json).to have_key('runtimeId')
