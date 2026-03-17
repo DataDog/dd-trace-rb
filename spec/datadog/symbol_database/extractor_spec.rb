@@ -59,6 +59,14 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       expect(extractor.extract(mod)).to be_nil
     end
 
+    it 'returns nil for class with overridden singleton name method requiring keyword args' do
+      # Reproduces Faker::Travel::Airport: defines `def name(size:, region:)` in class << self,
+      # shadowing Module#name. Bare `mod.name` raises ArgumentError; safe bind avoids it.
+      mod = Class.new
+      mod.define_singleton_method(:name) { |size:, region:| "#{size}-#{region}" }
+      expect(described_class.extract(mod)).to be_nil
+    end
+
     context 'with gem code' do
       it 'returns nil for RSpec module (gem code)' do
         expect(extractor.extract(RSpec)).to be_nil
@@ -1388,6 +1396,26 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
 
       expect(described_class.send(:user_code_module?, mod)).to be false
     end
+
+    it 'returns false for stdlib class monkey-patched by Datadog instrumentation' do
+      # Simulates Net::HTTP when dd-trace-rb instruments it:
+      # - Most methods point to /usr/lib/ruby/3.2.0/net/http.rb (stdlib)
+      # - The patched `request` method points to lib/datadog/tracing/contrib/http/instrumentation.rb
+      # Without the /lib/datadog/ exclusion, find_source_file would return the Datadog path
+      # as "user code", causing Net::HTTP to be extracted.
+      mod = Class.new
+      allow(mod).to receive(:name).and_return('Net::HTTP')
+
+      stdlib_method = instance_double(Method, source_location: ['/usr/lib/ruby/3.2.0/net/http.rb', 100])
+      datadog_method = instance_double(Method, source_location: ['/app/lib/datadog/tracing/contrib/http/instrumentation.rb', 26])
+
+      allow(mod).to receive(:instance_methods).with(false).and_return([:request, :get])
+      allow(mod).to receive(:instance_method).with(:request).and_return(datadog_method)
+      allow(mod).to receive(:instance_method).with(:get).and_return(stdlib_method)
+      allow(mod).to receive(:singleton_methods).with(false).and_return([])
+
+      expect(described_class.send(:user_code_module?, mod)).to be false
+    end
   end
 
   describe '.user_code_path?' do
@@ -1428,6 +1456,18 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       expect(extractor.send(:user_code_path?,
         '/real.home/user/dtr/lib/datadog/tracing/contrib/http/instrumentation.rb')).to be false
       expect(extractor.send(:user_code_path?,
+        '/app/vendor/bundle/lib/datadog/core/pin.rb')).to be false
+    end
+
+    it 'returns false for Datadog library paths (monkey-patched methods)' do
+      # When dd-trace-rb instruments stdlib classes like Net::HTTP, the patched method
+      # source points to lib/datadog/tracing/contrib/. Without this exclusion,
+      # Net::HTTP would be incorrectly classified as user code.
+      expect(described_class.send(:user_code_path?,
+        '/home/user/.gem/ruby/3.2.0/gems/datadog-2.0.0/lib/datadog/tracing/contrib/http/instrumentation.rb')).to be false
+      expect(described_class.send(:user_code_path?,
+        '/real.home/user/dtr/lib/datadog/tracing/contrib/http/instrumentation.rb')).to be false
+      expect(described_class.send(:user_code_path?,
         '/app/vendor/bundle/lib/datadog/core/pin.rb')).to be false
     end
 
