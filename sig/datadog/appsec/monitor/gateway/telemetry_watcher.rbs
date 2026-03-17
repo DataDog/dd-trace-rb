@@ -1,0 +1,19 @@
+module Datadog
+  module AppSec
+    module Monitor
+      module Gateway
+        module TelemetryWatcher
+          def self.watch: () -> void
+
+          def self.watch_set_user: (?Instrumentation::Gateway gateway) -> void
+
+          def self.watch_login_failure: (?Instrumentation::Gateway gateway) -> void
+
+          private
+
+          def self.report_missing_user_telemetry: (Hash[Symbol, any] user_info, String event_type) -> void
+        end
+      end
+    end
+  end
+end
