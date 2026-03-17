@@ -611,7 +611,7 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
 
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
-    VALUE thread = RARRAY_AREF(threads, i);
+    VALUE thread = rb_ary_entry(threads, i);
     per_thread_context *thread_context = get_or_create_context_for(thread, state);
 
     // We account for cpu-time for the current thread in a different way -- we use the cpu-time at sampling start, to avoid
