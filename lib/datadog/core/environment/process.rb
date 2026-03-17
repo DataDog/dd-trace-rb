@@ -2,6 +2,7 @@
 
 require_relative 'ext'
 require_relative '../tag_normalizer'
+require_relative '../contrib/rails/utils'
 
 module Datadog
   module Core
@@ -34,6 +35,9 @@ module Datadog
           tags << "#{Environment::Ext::TAG_ENTRYPOINT_BASEDIR}:#{basedir}" unless basedir.empty?
 
           tags << "#{Environment::Ext::TAG_ENTRYPOINT_TYPE}:#{TagNormalizer.normalize(entrypoint_type, remove_digit_start_char: false)}"
+
+          rails_application_name = TagNormalizer.normalize_process_value(rails_application.to_s)
+          tags << "#{Environment::Ext::TAG_RAILS_APPLICATION}:#{rails_application_name}" unless rails_application_name.empty?
 
           @tags = tags.freeze
         end
@@ -80,7 +84,13 @@ module Datadog
           File.basename(File.expand_path(File.dirname($0)))
         end
 
-        private_class_method :entrypoint_workdir, :entrypoint_type, :entrypoint_name, :entrypoint_basedir
+        def self.rails_application
+          return unless Core::Contrib::Rails::Utils.railtie_supported?
+
+          Core::Contrib::Rails::Utils.app_name
+        end
+
+        private_class_method :entrypoint_workdir, :entrypoint_type, :entrypoint_name, :entrypoint_basedir, :rails_application
       end
     end
   end

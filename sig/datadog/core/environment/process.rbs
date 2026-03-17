@@ -18,6 +18,8 @@ module Datadog
         def self.entrypoint_name: () -> ::String
 
         def self.entrypoint_basedir: () -> ::String
+
+        def self.rails_application: () -> ::String?
       end
     end
   end

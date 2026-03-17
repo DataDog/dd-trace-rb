@@ -6,6 +6,10 @@ RSpec.describe Datadog::Core::Environment::Process do
   describe '::serialized' do
     subject(:serialized) { described_class.serialized }
 
+    before do
+      allow(Datadog::Core::Contrib::Rails::Utils).to receive(:railtie_supported?).and_return(false)
+    end
+
     it { is_expected.to be_a_kind_of(String) }
 
     it 'returns the same object when called multiple times' do
@@ -74,6 +78,20 @@ RSpec.describe Datadog::Core::Environment::Process do
         expect(described_class.serialized).to include('entrypoint.type:script')
       end
     end
+
+    context 'when Rails application name is available' do
+      include_context 'with mocked process environment'
+      let(:program_name) { 'bin/rails' }
+
+      before do
+        allow(Datadog::Core::Contrib::Rails::Utils).to receive(:railtie_supported?).and_return(true)
+        allow(Datadog::Core::Contrib::Rails::Utils).to receive(:app_name).and_return('Test::App')
+      end
+
+      it 'includes rails.application in serialized tags' do
+        expect(serialized).to include('rails.application:test_app')
+      end
+    end
   end
 
   describe 'Scenario: Real applications' do
@@ -114,6 +132,7 @@ RSpec.describe Datadog::Core::Environment::Process do
                 expect(err).to include('entrypoint.type:script')
                 expect(err).to include('entrypoint.name:rails')
                 expect(err).to include('entrypoint.basedir:bin')
+                expect(err).to include('rails.application:test_app')
               end
             end
           end
@@ -123,6 +142,10 @@ RSpec.describe Datadog::Core::Environment::Process do
   end
   describe '::tags' do
     subject(:tags) { described_class.tags }
+
+    before do
+      allow(Datadog::Core::Contrib::Rails::Utils).to receive(:railtie_supported?).and_return(false)
+    end
 
     it { is_expected.to be_a_kind_of(Array) }
 
@@ -199,6 +222,21 @@ RSpec.describe Datadog::Core::Environment::Process do
         expect(described_class.tags).to include('entrypoint.name:rails')
         expect(described_class.tags).to include('entrypoint.basedir:bin')
         expect(described_class.tags).to include('entrypoint.type:script')
+      end
+    end
+
+    context 'when Rails application name is available' do
+      include_context 'with mocked process environment'
+      let(:program_name) { 'bin/rails' }
+
+      before do
+        allow(Datadog::Core::Contrib::Rails::Utils).to receive(:railtie_supported?).and_return(true)
+        allow(Datadog::Core::Contrib::Rails::Utils).to receive(:app_name).and_return('Test::App')
+      end
+
+      it 'includes rails.application in tag array' do
+        expect(tags.length).to eq(5)
+        expect(tags).to include('rails.application:test_app')
       end
     end
   end
