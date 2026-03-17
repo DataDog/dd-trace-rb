@@ -135,14 +135,14 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         cleanup_user_code_file(@filename)
       end
 
-      # Top-level classes are wrapped in a MODULE scope because the backend requires
-      # root-level scopes to be MODULE/JAR/ASSEMBLY/PACKAGE type. The CLASS scope is
-      # nested inside. This matches Python's file-module → class → method hierarchy.
-      it 'wraps top-level CLASS in a MODULE scope' do
+      # INTERIM: top-level classes wrapped in PACKAGE (not MODULE) until
+      # debugger-backend#1976 adds CLASS to ROOT_SCOPES. PACKAGE avoids
+      # conflicting with Ruby's actual `module` keyword.
+      it 'wraps top-level CLASS in a PACKAGE scope (interim until backend#1976)' do
         module_scope = described_class.extract(TestUserClass)
 
         expect(module_scope).not_to be_nil
-        expect(module_scope.scope_type).to eq('MODULE')
+        expect(module_scope.scope_type).to eq('PACKAGE')
         expect(module_scope.name).to eq('TestUserClass')
         expect(module_scope.source_file).to eq(@filename)
         expect(module_scope.scopes.size).to eq(1)
@@ -231,11 +231,11 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       it 'extracts namespaced class as its own root MODULE scope' do
         # TestNamespace::TestInnerClass is a user class and must be searchable.
         # Even though the parent TestNamespace has no methods (so it can't be extracted
-        # itself), the class is extracted as a standalone MODULE-wrapped scope.
+        # itself), the class is extracted as a standalone PACKAGE-wrapped scope.
         scope = described_class.extract(TestNamespace::TestInnerClass)
 
         expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('MODULE')
+        expect(scope.scope_type).to eq('PACKAGE')
         expect(scope.name).to eq('TestNamespace::TestInnerClass')
         class_scope = scope.scopes.first
         expect(class_scope.scope_type).to eq('CLASS')
@@ -294,7 +294,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         scope = described_class.extract(TestNsModule::TestNsClass)
 
         expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('MODULE')
+        expect(scope.scope_type).to eq('PACKAGE')
         expect(scope.name).to eq('TestNsModule::TestNsClass')
       end
     end

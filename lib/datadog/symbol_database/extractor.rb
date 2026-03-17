@@ -189,18 +189,30 @@ module Datadog
         nil
       end
 
-      # Wrap a CLASS scope in a MODULE scope for root-level upload.
-      # The backend requires root-level scopes to be MODULE/JAR/ASSEMBLY/PACKAGE type.
-      # The MODULE scope has the same name and source file as the class, with the CLASS
-      # nested inside — matching Python's file-module → class → method hierarchy.
+      # Wrap a CLASS scope in a PACKAGE scope for root-level upload.
+      #
+      # INTERIM: The backend ROOT_SCOPES constraint ({JAR, ASSEMBLY, MODULE, PACKAGE})
+      # does not yet include CLASS. A bare CLASS at root throws IllegalArgumentException
+      # in mergeRootScopesWithSameName. Until debugger-backend#1976 merges (adding CLASS
+      # to ROOT_SCOPES), we wrap each class in a PACKAGE scope.
+      #
+      # PACKAGE is used rather than MODULE because Ruby has an actual `module` keyword —
+      # uploading `class User` as MODULE: User misrepresents the type and creates confusing
+      # duplicate results in DI search ("Module: User" and "Class: User" for the same class).
+      # PACKAGE has no conflicting meaning in Ruby.
+      #
+      # TODO: After debugger-backend#1976 merges, remove this wrapper. Upload CLASS directly
+      # at root by changing the `extract` method to call `extract_class_scope` without
+      # wrapping, and delete this method.
+      #
       # @param klass [Class] The class being wrapped
       # @param class_scope [Scope] The already-extracted CLASS scope
-      # @return [Scope] MODULE scope wrapping the CLASS scope
+      # @return [Scope] PACKAGE scope wrapping the CLASS scope
       def self.wrap_class_in_module_scope(klass, class_scope)
         source_file = class_scope.source_file
         # steep:ignore:start
         Scope.new(
-          scope_type: 'MODULE',
+          scope_type: 'PACKAGE',
           name: klass.name,
           source_file: source_file,
           start_line: SymbolDatabase::UNKNOWN_MIN_LINE,
