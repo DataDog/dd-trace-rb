@@ -3,13 +3,10 @@ module Datadog
     module Contrib
       module Rack
         class TraceMiddleware
-          @app: ::Rack::app
-
-          def initialize: (::Rack::app app) -> void
+          include ::Rack::Middleware
 
           def compute_queue_time: (::Rack::env env) -> (nil | untyped)
 
-          def call: (::Rack::env env) -> ::Rack::response
           def set_request_tags!: (Datadog::Tracing::TraceOperation trace, Datadog::Tracing::SpanOperation request_span, ::Rack::env env, ::Integer status, untyped headers, untyped response, ::Rack::env original_env) -> untyped
 
           private
