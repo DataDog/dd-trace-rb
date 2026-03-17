@@ -1,5 +1,5 @@
 module Rack
-  type env = Hash[String, any]
+  type env = Hash[String, untyped] # should be `any`
   type headers = Hash[String, String | Array[String]]
   type query = Hash[String, String? | Array[String?]]
   type response = [Integer, headers, Response::_Body]
@@ -34,7 +34,7 @@ module Rack
 
     def user_agent: () -> String
 
-    def params: () -> Hash[String, any]
+    def params: () -> Hash[String, untyped] # should be `any`
 
     def POST: () -> Hash[String, untyped]
 
