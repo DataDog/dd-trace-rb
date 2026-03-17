@@ -310,6 +310,23 @@ module Datadog
           end
         end
 
+        # For namespace-only modules (no methods), try const_source_location (Ruby 2.7+).
+        # This handles `module Foo; class Bar...; end; end` where Foo has no methods.
+        # Guarded by respond_to? for Ruby 2.5/2.6 compatibility.
+        if fallback.nil? && mod.respond_to?(:const_source_location)
+          mod.constants(false).each do |const_name|
+            location = mod.const_source_location(const_name) rescue nil
+            next unless location && !location.empty?
+
+            path = location[0]
+            next unless path && !path.empty?
+
+            return path if user_code_path?(path)
+
+            fallback ||= path
+          end
+        end
+
         fallback
       rescue => e
         @logger.debug { "symdb: error finding source file for #{safe_mod_name(mod) || '<unknown>'}: #{e.class}: #{e}" }
