@@ -1,5 +1,5 @@
 module Rack
-  type env = ::Hash[::String, any]
+  type env = ::Hash[::String, untyped] # should be `any`
   type response = [::Integer, ::Hash[::String, ::String], Response::_Body]
   type app = ^(env) -> response
 
@@ -8,7 +8,7 @@ module Rack
 
     def env: () -> Rack::env
 
-    def params: () -> ::Hash[::String, any]
+    def params: () -> ::Hash[::String, untyped] # should be `any`
 
     def body: () -> untyped
 
