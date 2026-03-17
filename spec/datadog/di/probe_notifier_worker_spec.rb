@@ -389,10 +389,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       end
 
       it 'sends ERROR status for the affected probe' do
-        expect(error_probe_notification_builder).to receive(:build_status).with(
-          probe,
-          hash_including(status: 'ERROR', message: /JSON encoding failed/),
-        ).and_return({status: 'ERROR'})
+        expect(diagnostics_transport).to receive(:send_diagnostics).with([{status: 'ERROR'}])
 
         worker.add_snapshot(bad_snapshot)
         worker.flush
