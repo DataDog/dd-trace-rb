@@ -12,7 +12,8 @@ module Datadog
         # This should be inserted just below Rack::JSONBodyParser or
         # legacy Rack::PostBodyContentTypeParser from rack-contrib
         class RequestBodyMiddleware
-          def initialize(app, opt = {})
+          # TODO: opt is never used, it can probably be safely removed
+          def initialize(app, opt = {}) # steep:ignore DifferentMethodParameterKind
             @app = app
           end
 

@@ -3,11 +3,7 @@ module Datadog
     module Contrib
       module Rack
         class RequestBodyMiddleware
-          @app: ::Rack::app
-
-          def initialize: (::Rack::app app, ?::Hash[::Symbol, any] opt) -> void
-
-          def call: (::Rack::env env) -> ::Rack::response
+          include ::Rack::Middleware
         end
       end
     end
