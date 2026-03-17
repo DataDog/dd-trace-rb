@@ -90,7 +90,7 @@ module Datadog
         extract_and_upload if should_upload
       rescue => e
         Datadog.logger.debug("SymDB: Error starting upload: #{e.class}: #{e}")
-        @telemetry&.count('symbol_database.start_upload_error', 1)
+        @telemetry&.inc('tracers', 'symbol_database.start_upload_error', 1)
       end
 
       # Stop symbol upload (disable future uploads).
@@ -152,11 +152,11 @@ module Datadog
 
           # Track extraction metrics
           duration = Datadog::Core::Utils::Time.get_time - start_time
-          @telemetry&.distribution('symbol_database.extraction_time', duration)
-          @telemetry&.count('symbol_database.scopes_extracted', extracted_count)
+          @telemetry&.distribution('tracers', 'symbol_database.extraction_time', duration)
+          @telemetry&.inc('tracers', 'symbol_database.scopes_extracted', extracted_count)
         rescue => e
           Datadog.logger.debug("SymDB: Error during extraction: #{e.class}: #{e}")
-          @telemetry&.count('symbol_database.extraction_error', 1)
+          @telemetry&.inc('tracers', 'symbol_database.extraction_error', 1)
         ensure
           @mutex.synchronize { @upload_in_progress = false }
         end

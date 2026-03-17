@@ -37,7 +37,7 @@ RSpec.describe 'Symbol Database Integration' do
 
         # Mock uploader to capture upload
         uploaded_scopes = nil
-        uploader = double('uploader')
+        uploader = instance_double(Datadog::SymbolDatabase::Uploader)
         allow(uploader).to receive(:upload_scopes) { |scopes| uploaded_scopes = scopes }
 
         # Create scope context
