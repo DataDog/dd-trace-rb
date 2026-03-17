@@ -333,6 +333,72 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
     end
 
+    context 'with namespaced class' do
+      before do
+        @filename = create_user_code_file(<<~RUBY)
+          module TestNamespace
+            class TestInnerClass
+              def inner_method; end
+            end
+          end
+        RUBY
+        load @filename
+      end
+
+      after do
+        Object.send(:remove_const, :TestNamespace) if defined?(TestNamespace)
+        cleanup_user_code_file(@filename)
+      end
+
+      it 'returns nil for namespaced class (already nested in parent module scope)' do
+        # TestNamespace::TestInnerClass has '::' in name — it is already extracted as a
+        # nested CLASS scope inside the TestNamespace MODULE scope. Extracting it again
+        # at root level would violate the backend root scope type constraint.
+        expect(described_class.extract(TestNamespace::TestInnerClass)).to be_nil
+      end
+
+      it 'returns nil for namespace-only module without methods' do
+        # TestNamespace has no instance methods — find_source_file returns nil,
+        # so user_code_module? returns false and the module is not extracted.
+        # This is acceptable: pure namespace modules contain no DI-useful symbols.
+        expect(described_class.extract(TestNamespace)).to be_nil
+      end
+    end
+
+    context 'with namespaced module with methods' do
+      before do
+        @filename = create_user_code_file(<<~RUBY)
+          module TestNsModule
+            def self.module_func; end
+            class TestNsClass
+              def ns_method; end
+            end
+          end
+        RUBY
+        load @filename
+      end
+
+      after do
+        Object.send(:remove_const, :TestNsModule) if defined?(TestNsModule)
+        cleanup_user_code_file(@filename)
+      end
+
+      it 'extracts the parent MODULE with the class nested inside' do
+        module_scope = described_class.extract(TestNsModule)
+
+        expect(module_scope).not_to be_nil
+        expect(module_scope.scope_type).to eq('MODULE')
+        expect(module_scope.name).to eq('TestNsModule')
+        inner_class = module_scope.scopes.find { |s| s.scope_type == 'CLASS' }
+        expect(inner_class).not_to be_nil
+        expect(inner_class.name).to eq('TestNsModule::TestNsClass')
+      end
+
+      it 'returns nil for the nested class (already in parent MODULE scope)' do
+        expect(described_class.extract(TestNsModule::TestNsClass)).to be_nil
+      end
+    end
+
     context 'with class inheritance' do
       before do
         @filename = create_user_code_file(<<~RUBY)
