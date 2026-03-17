@@ -148,6 +148,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             probeVersion: 0,
             runtimeId: String,
             status: 'ERROR',
+            exception: {
+              type: 'Exception',
+              message: 'Test message',
+            },
           },
         },
         message: "Instrumentation for probe 123 failed: Test message",
@@ -157,6 +161,75 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     end
 
     it 'returns a hash with expected contents' do
+      expect(payload).to be_a(Hash)
+      expect(payload).to match(expected)
+    end
+  end
+
+  describe '#build_disabled' do
+    let(:payload) do
+      builder.build_disabled(probe, 0.75)
+    end
+
+    let(:expected) do
+      {
+        ddsource: 'dd_debugger',
+        debugger: {
+          diagnostics: {
+            parentId: nil,
+            probeId: '123',
+            probeVersion: 0,
+            runtimeId: String,
+            status: 'ERROR',
+            exception: {
+              type: 'Error',
+              message: "Probe 123 was disabled because it consumed 0.75 seconds of CPU time in DI processing",
+            },
+          },
+        },
+        message: "Probe 123 was disabled because it consumed 0.75 seconds of CPU time in DI processing",
+        service: 'test service',
+        timestamp: Integer,
+      }
+    end
+
+    it 'returns a hash with expected contents' do
+      expect(payload).to be_a(Hash)
+      expect(payload).to match(expected)
+    end
+  end
+
+  describe '#build_status with ERROR status and no exception' do
+    let(:payload) do
+      builder.send(:build_status, probe,
+        message: "Custom error message",
+        status: 'ERROR',
+        exception: nil)
+    end
+
+    let(:expected) do
+      {
+        ddsource: 'dd_debugger',
+        debugger: {
+          diagnostics: {
+            parentId: nil,
+            probeId: '123',
+            probeVersion: 0,
+            runtimeId: String,
+            status: 'ERROR',
+            exception: {
+              type: 'Error',
+              message: 'Custom error message',
+            },
+          },
+        },
+        message: "Custom error message",
+        service: 'test service',
+        timestamp: Integer,
+      }
+    end
+
+    it 'returns a hash with exception field using fallback values' do
       expect(payload).to be_a(Hash)
       expect(payload).to match(expected)
     end
@@ -415,6 +488,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     end
 
     context 'when process tags propagation is not enabled' do
+      before do
+        allow(settings).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
+      end
+
       it 'excludes process tags in the payload' do
         payload = builder.build_executed(context)
         expect(payload).not_to include(:process_tags)

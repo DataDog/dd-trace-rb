@@ -106,15 +106,16 @@ module Datadog
           )
           payload = probe_notification_builder.build_errored(probe, exc)
           probe_notifier_worker.add_status(payload)
-        rescue # standard:disable Lint/UselessRescue
-          # TODO report via instrumentation telemetry?
+        rescue => nested_exc
+          logger.debug { "di: failed to build error notification: #{nested_exc.class}: #{nested_exc}" }
+          telemetry&.report(nested_exc, description: 'Error building probe error notification')
           raise
         end
 
         raise
       else
         payload = probe_notification_builder.build_received(probe)
-        probe_notifier_worker.add_status(payload)
+        probe_notifier_worker.add_status(payload, probe: probe)
         probe
       end
     end

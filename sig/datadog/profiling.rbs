@@ -1,5 +1,9 @@
 module Datadog
   module Profiling
+    # Exception raised by native code when SIGPROF already has a handler (ext/datadog_profiling_native_extension/setup_signal_handler.c).
+    class ExistingSignalHandler < ::RuntimeError
+    end
+
     def self.supported?: () -> bool
     def self.unsupported_reason: () -> ::String?
     def self.start_if_enabled: () -> bool

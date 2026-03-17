@@ -32,13 +32,6 @@ module Datadog
         accept-language
       ].freeze
 
-      ALLOWED_RESPONSE_HEADERS = %w[
-        content-length
-        content-type
-        content-encoding
-        content-language
-      ].freeze
-
       class << self
         def tag(context, waf_result)
           return if context.span.nil?
@@ -50,7 +43,7 @@ module Datadog
           context.span.set_tag('appsec.event', 'true')
         end
 
-        def record(context, request: nil, response: nil)
+        def record(context, request: nil)
           return if context.events.empty? || context.span.nil?
 
           Datadog::AppSec::RateLimiter.thread_local.limit do
@@ -66,7 +59,6 @@ module Datadog
 
                 context.span['_dd.origin'] = 'appsec'
                 context.span.set_tags(request_tags(request)) if request
-                context.span.set_tags(response_tags(response)) if response
               end
 
               context.span.set_tags(waf_tags(event_group))
@@ -87,14 +79,6 @@ module Datadog
             next unless ALLOWED_REQUEST_HEADERS.include?(name)
 
             memo["http.request.headers.#{name}"] = value
-          end
-        end
-
-        def response_tags(response)
-          response.headers.each_with_object({}) do |(name, value), memo|
-            next unless ALLOWED_RESPONSE_HEADERS.include?(name)
-
-            memo["http.response.headers.#{name}"] = value
           end
         end
 

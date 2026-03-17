@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
-require 'datadog/core/process_discovery/tracer_memfd'
+require_relative 'process_discovery/tracer_memfd'
+require_relative 'environment/process'
+require_relative 'environment/container'
 
 module Datadog
   module Core
@@ -8,6 +10,11 @@ module Datadog
     module ProcessDiscovery
       class << self
         def publish(settings)
+          if RUBY_PLATFORM.include?("darwin")
+            Datadog.logger.debug { "Skipping process discovery, not yet supported on macOS" }
+            return
+          end
+
           if (libdatadog_api_failure = Datadog::Core::LIBDATADOG_API_FAILURE)
             Datadog.logger.debug { "Cannot enable process discovery: #{libdatadog_api_failure}" }
             return
@@ -20,8 +27,10 @@ module Datadog
         end
 
         def shutdown!
-          @file_descriptor&.shutdown!(Datadog.logger)
-          @file_descriptor = nil
+          if defined?(@file_descriptor)
+            @file_descriptor&.shutdown!(Datadog.logger)
+            @file_descriptor = nil
+          end
         end
 
         def after_fork
@@ -42,9 +51,9 @@ module Datadog
             service_name: settings.service || '',
             service_env: settings.env || '',
             service_version: settings.version || '',
-            # TODO: Implement process tags and container id
-            process_tags: '',
-            container_id: ''
+            # Follows Java: https://github.com/DataDog/dd-trace-java/blob/2ebc964340ac530342cc389ba68ff0f5070d5f9f/dd-trace-core/src/main/java/datadog/trace/core/servicediscovery/ServiceDiscovery.java#L37-L38
+            process_tags: settings.experimental_propagate_process_tags_enabled ? Core::Environment::Process.serialized : '',
+            container_id: Core::Environment::Container.container_id || ''
           }
         end
       end

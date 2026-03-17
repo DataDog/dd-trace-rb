@@ -28,7 +28,7 @@ module Datadog
           end
 
           def configure_default_faraday_connection
-            if target_version >= Gem::Version.new('1.0.0')
+            if target_version&.>= Gem::Version.new('1.0.0')
               # Patch the default connection (e.g. +Faraday.get+)
               ::Faraday.default_connection.use(:datadog_appsec)
 

@@ -335,7 +335,9 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         end
 
         context 'without process tags enabled' do
-          # default is false
+          before do
+            allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
+          end
           it_behaves_like 'spans without process tags'
         end
       end
@@ -396,7 +398,9 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         end
 
         context 'without process tags enabled' do
-          # default is false
+          before do
+            allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
+          end
           it_behaves_like 'spans without process tags'
         end
       end
@@ -459,7 +463,9 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         end
 
         context 'without process tags enabled' do
-          # default is false
+          before do
+            allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
+          end
           it_behaves_like 'spans without process tags'
         end
       end

@@ -16,7 +16,7 @@ module Datadog
 
         def push: (::String name, any env) ?{ () -> final_call_result } -> stack_result
 
-        def watch: (::String name, ::Symbol key) { (stack next, any env) -> stack_result } -> void
+        def watch: (::String name) { (stack next, any env) -> stack_result } -> void
 
         def pushed?: (::String name) -> bool
       end

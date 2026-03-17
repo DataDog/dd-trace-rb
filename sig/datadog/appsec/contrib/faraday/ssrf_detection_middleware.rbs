@@ -7,7 +7,7 @@ module Datadog
 
           SAMPLE_BODY_KEY: ::Symbol
 
-          def call: (::Faraday::Env env) -> untyped
+          def call: (::Faraday::Env env) -> ::Faraday::Response
 
           private
 

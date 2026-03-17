@@ -9,20 +9,58 @@ alwaysApply: false
 
 - Tests are written using [RSpec](mdc:https:/rspec.info)
 - Test files should mirror the structure of `lib`
-- All changes should be covered by corresponding tests
+- All changes MUST be covered by corresponding tests, with all flow paths.
 - If new files in the repository are created, run `git add -A` before running tests (otherwise `release_gem_spec.rb` will fail)
 - Do not use `instance_variable_set` and `instance_variable_get` in tests, use mocking when needed
 - Do not make changes to `release_gem_spec.rb` if not asked
+
+### RSpec Style
+- Rule of thumb is trying to have a 1:1 filename mapping between `lib/**/*.rb` and `spec/**/*_spec.rb`; sometimes this is not possible but should be justified (e.g integration tests), ask for guidance and explain rationale when deviating form the rule.
 - Do not use focused tests feature (fit, fdescribe)
+- Always name the `subject`, and name it after the closest concept (e.g. the method if testing a method, the return object if testing an object), and keep the name short.
+- Keep `subject` close to its `describe`.
+- Share `subject` when possible, making it parametric using `let`.
+- Use `is_expected` instead of `expect(subject)`.
+- Prefer `expect { }.to change` when asserting side-effects.
+- Run `rake spec:custom_matchers` to list all useful custom RSpec::Matchers in this repo.
+
+### Test types
+- Integration tests (`spec/datadog/*/contrib/`): avoid mocking, realistic apps, real dependencies.
+- System tests (runs in CI: `.github/workflows/system-tests.yml`): Full-stack, high-level feature scenarios. (`docs/ForcingSystemTests.md`)
+- Unit tests (all other tests): fast, isolated, mock dependencies.
 
 ## Running Tests
 
 - Run core library tests: `bundle exec rake test:main`
 - Run a specific test/file from core library tests: `bundle exec rspec <relative path to the file>`
+  - You can't run `shared_examples` directly, run the tests that use it instead.
+- Re-run impacted tests after modifying `lib/` or `ext/`
 
 ## Appraisal Groups
 
-- Dependency configurations are managed with [Appraisal](mdc:https:/github.com/thoughtbot/appraisal)
-- Group definitions are in `Appraisals`
-- Generate gemfiles with `bundle exec appraisal generate`
-- Install dependencies with `bundle exec appraisal install`
+- Dependency configurations are managed with [Appraisal](mdc:https:/github.com/thoughtbot/appraisal), under `appraisal/`.
+- When editting `appraisal/`, run `bundle exec rake dependency:generate` to regenerate `gemfiles/`.
+- Install dependencies with `bundle exec rake dependency:lock`.
+- More info `docs/DevelopmentGuide.md#working-with-different-dependencies`.
+
+## Example
+
+- `expect { }.to change` examples:
+  - From:
+```ruby
+expect(context.events).to receive(:<<).and_call_original
+load_records
+```
+  - To:
+```ruby
+expect { load_records }.to change(context.events, :size).by(1)
+```
+  - From:
+```ruby
+audit(span)
+expect(span.tags).to include('audited' => 1)
+```
+  - To:
+```ruby
+expect { audit(span) }.to change { span.tags }.from({}).to include('audited' => 1)
+```
