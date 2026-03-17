@@ -248,11 +248,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
     context 'integration testing', :memcheck_valgrind_skip do
       include_context 'HTTP server'
 
-      let(:request) do
-        # first message is a ping
-        messages[1]
-      end
-
       let(:agent_base_url) { "http://#{hostname}:#{http_server_port}" }
       let(:fork_expectations) do
         proc do |status:, stdout:, stderr:|
@@ -263,8 +258,16 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
         end
       end
 
-      let(:parsed_request) { JSON.parse(request.body, symbolize_names: true) }
-      let(:crash_report) { parsed_request.fetch(:payload).fetch(:logs).first }
+      # Find crash report by content (is_crash: true), not by position in messages array.
+      # The receiver binary sends the crash report asynchronously after the forked process
+      # dies, so message ordering is not guaranteed.
+      let(:parsed_messages) do
+        messages.map { |msg| JSON.parse(msg.body.to_s, symbolize_names: true) }
+      end
+      let(:crash_report_request) do
+        parsed_messages.find { |msg| msg.dig(:payload, :logs, 0, :is_crash) == true }
+      end
+      let(:crash_report) { crash_report_request.fetch(:payload).fetch(:logs).first }
       let(:crash_report_message) { JSON.parse(crash_report.fetch(:message), symbolize_names: true) }
       let(:crash_report_experimental) { crash_report_message.fetch(:experimental) }
       let(:stack_trace) { crash_report_message.fetch(:error).fetch(:stack).fetch(:frames) }
@@ -302,7 +305,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           )
 
           expect(crash_report_message[:os_info]).to_not be_empty
-          expect(parsed_request.fetch(:application)).to include(
+          expect(crash_report_request.fetch(:application)).to include(
             service_name: 'ruby-testing-123',
             language_name: 'ruby-testing-123',
           )
