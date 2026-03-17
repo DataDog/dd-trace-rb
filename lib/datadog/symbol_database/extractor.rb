@@ -37,16 +37,17 @@ module Datadog
       # Extract symbols from a module or class.
       # Returns nil if module should be skipped (anonymous, gem code, stdlib).
       #
-      # Top-level CLASS scopes are wrapped in a MODULE scope because the backend
-      # (debugger-symdb-extractor) requires all root-level scopes to be of type
-      # MODULE/JAR/ASSEMBLY/PACKAGE — CLASS at root level throws IllegalArgumentException
-      # in mergeRootScopesWithSameName, causing the attachment to be marked failed.
-      # This matches the Python tracer's structure (file MODULE wraps CLASS wraps METHOD).
+      # ALL user classes (including namespaced ones like ApplicationCable::Channel) are
+      # extracted as root-level MODULE scopes wrapping a CLASS scope. The backend requires
+      # root-level scopes to be MODULE/JAR/ASSEMBLY/PACKAGE — a bare CLASS at root throws
+      # IllegalArgumentException in mergeRootScopesWithSameName, silently dropping the batch.
       #
-      # Classes with '::' in their name (e.g. ApplicationCable::Channel) are skipped at
-      # root level — they are already extracted as nested CLASS scopes inside their parent
-      # MODULE scope via extract_nested_classes. Extracting them again would create
-      # duplicates and violate the root scope type constraint.
+      # Namespaced classes (e.g. ApplicationCable::Channel) also appear as nested CLASS scopes
+      # inside their parent MODULE scope via extract_nested_classes — that is intentional.
+      # The standalone root MODULE(ApplicationCable::Channel) ensures the class is findable
+      # by name in search even when the parent namespace module is not extractable (e.g. it
+      # has no methods of its own). The duplication is harmless: mergeRootScopesWithSameName
+      # merges root scopes with identical names, and DI only needs the class to be findable.
       #
       # @param mod [Module, Class] The module or class to extract from
       # @return [Scope, nil] Extracted scope with nested scopes/symbols, or nil if filtered out
@@ -57,11 +58,6 @@ module Datadog
         # which shadows Module#name and raises ArgumentError when called without args).
         mod_name = Module.instance_method(:name).bind(mod).call rescue nil
         return nil unless mod_name  # Skip anonymous modules/classes
-
-        # Skip namespaced classes — they are already captured as nested CLASS scopes inside
-        # their parent module's scope (via extract_nested_classes). Only top-level classes
-        # (no '::' in name) are extracted at root level.
-        return nil if mod.is_a?(Class) && mod_name.include?('::')
 
         return nil unless user_code_module?(mod)
 
@@ -134,6 +130,12 @@ module Datadog
       # generated methods (autosave callbacks) whose source is in the gem, but
       # user-defined methods point to app/models/. Without this preference,
       # AR models get filtered out as gem code.
+      #
+      # For namespace-only modules (no instance or singleton methods), falls back to
+      # Module#const_source_location (Ruby 2.7+) to locate the module via its constants.
+      # This handles patterns like `module ApplicationCable; class Channel...; end; end`
+      # where the namespace module itself has no methods but defines user-code classes.
+      #
       # @param mod [Module] The module
       # @return [String, nil] Source file path or nil
       def self.find_source_file(mod)
@@ -163,11 +165,27 @@ module Datadog
           fallback ||= path
         end
 
+        # For namespace-only modules (no methods), try const_source_location (Ruby 2.7+).
+        # This handles `module Foo; class Bar...; end; end` where Foo has no methods.
+        # Guarded by respond_to? for Ruby 2.5/2.6 compatibility.
+        if fallback.nil? && mod.respond_to?(:const_source_location)
+          mod.constants(false).each do |const_name|
+            location = mod.const_source_location(const_name) rescue nil
+            next unless location && !location.empty?
+
+            path = location[0]
+            next unless path && !path.empty?
+
+            return path if user_code_path?(path)
+
+            fallback ||= path
+          end
+        end
+
         fallback
       rescue
         # Rescue handles: NameError (anonymous module/class), NoMethodError (missing methods),
         # SecurityError (restricted access), or other runtime errors during introspection.
-        # Returning nil causes source_file to be nil, which is acceptable - backend handles scopes without file info.
         nil
       end
 

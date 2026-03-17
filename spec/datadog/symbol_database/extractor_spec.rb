@@ -211,7 +211,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
     end
 
-    context 'with namespaced class' do
+    context 'with namespaced class (namespace module has no methods)' do
       before do
         @filename = create_user_code_file(<<~RUBY)
           module TestNamespace
@@ -228,18 +228,33 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         cleanup_user_code_file(@filename)
       end
 
-      it 'returns nil for namespaced class (already nested in parent module scope)' do
-        # TestNamespace::TestInnerClass has '::' in name — it is already extracted as a
-        # nested CLASS scope inside the TestNamespace MODULE scope. Extracting it again
-        # at root level would violate the backend root scope type constraint.
-        expect(described_class.extract(TestNamespace::TestInnerClass)).to be_nil
+      it 'extracts namespaced class as its own root MODULE scope' do
+        # TestNamespace::TestInnerClass is a user class and must be searchable.
+        # Even though the parent TestNamespace has no methods (so it can't be extracted
+        # itself), the class is extracted as a standalone MODULE-wrapped scope.
+        scope = described_class.extract(TestNamespace::TestInnerClass)
+
+        expect(scope).not_to be_nil
+        expect(scope.scope_type).to eq('MODULE')
+        expect(scope.name).to eq('TestNamespace::TestInnerClass')
+        class_scope = scope.scopes.first
+        expect(class_scope.scope_type).to eq('CLASS')
+        expect(class_scope.name).to eq('TestNamespace::TestInnerClass')
       end
 
-      it 'returns nil for namespace-only module without methods' do
-        # TestNamespace has no instance methods — find_source_file returns nil,
-        # so user_code_module? returns false and the module is not extracted.
-        # This is acceptable: pure namespace modules contain no DI-useful symbols.
-        expect(described_class.extract(TestNamespace)).to be_nil
+      it 'extracts namespace-only module via const_source_location fallback (Ruby 2.7+)' do
+        # TestNamespace has no methods but has a constant (TestInnerClass).
+        # On Ruby 2.7+, const_source_location finds the module's source via its constants.
+        scope = described_class.extract(TestNamespace)
+
+        if Module.method_defined?(:const_source_location) || TestNamespace.respond_to?(:const_source_location)
+          expect(scope).not_to be_nil
+          expect(scope.scope_type).to eq('MODULE')
+          expect(scope.name).to eq('TestNamespace')
+        else
+          # Ruby < 2.7: const_source_location unavailable, module not extractable
+          expect(scope).to be_nil
+        end
       end
     end
 
@@ -272,8 +287,15 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         expect(inner_class.name).to eq('TestNsModule::TestNsClass')
       end
 
-      it 'returns nil for the nested class (already in parent MODULE scope)' do
-        expect(described_class.extract(TestNsModule::TestNsClass)).to be_nil
+      it 'also extracts the nested class as its own root MODULE scope' do
+        # The nested class is extractable independently — it has a user code source file.
+        # It also appears nested inside the parent MODULE, which is intentional:
+        # mergeRootScopesWithSameName on the backend merges duplicates by name.
+        scope = described_class.extract(TestNsModule::TestNsClass)
+
+        expect(scope).not_to be_nil
+        expect(scope.scope_type).to eq('MODULE')
+        expect(scope.name).to eq('TestNsModule::TestNsClass')
       end
     end
 
