@@ -36,6 +36,18 @@ module Datadog
 
       # Extract symbols from a module or class.
       # Returns nil if module should be skipped (anonymous, gem code, stdlib).
+      #
+      # Top-level CLASS scopes are wrapped in a MODULE scope because the backend
+      # (debugger-symdb-extractor) requires all root-level scopes to be of type
+      # MODULE/JAR/ASSEMBLY/PACKAGE — CLASS at root level throws IllegalArgumentException
+      # in mergeRootScopesWithSameName, causing the attachment to be marked failed.
+      # This matches the Python tracer's structure (file MODULE wraps CLASS wraps METHOD).
+      #
+      # Classes with '::' in their name (e.g. ApplicationCable::Channel) are skipped at
+      # root level — they are already extracted as nested CLASS scopes inside their parent
+      # MODULE scope via extract_nested_classes. Extracting them again would create
+      # duplicates and violate the root scope type constraint.
+      #
       # @param mod [Module, Class] The module or class to extract from
       # @return [Scope, nil] Extracted scope with nested scopes/symbols, or nil if filtered out
       def self.extract(mod)
@@ -45,10 +57,20 @@ module Datadog
         # which shadows Module#name and raises ArgumentError when called without args).
         mod_name = Module.instance_method(:name).bind(mod).call rescue nil
         return nil unless mod_name  # Skip anonymous modules/classes
+
+        # Skip namespaced classes — they are already captured as nested CLASS scopes inside
+        # their parent module's scope (via extract_nested_classes). Only top-level classes
+        # (no '::' in name) are extracted at root level.
+        return nil if mod.is_a?(Class) && mod_name.include?('::')
+
         return nil unless user_code_module?(mod)
 
         if mod.is_a?(Class)
-          extract_class_scope(mod)
+          # Wrap in MODULE scope — backend requires root-level scopes to be MODULE/JAR/ASSEMBLY/PACKAGE.
+          # A bare CLASS at the top level causes IllegalArgumentException in the backend's
+          # mergeRootScopesWithSameName, silently dropping the entire batch.
+          class_scope = extract_class_scope(mod)
+          wrap_class_in_module_scope(mod, class_scope)
         else
           extract_module_scope(mod)
         end
@@ -147,6 +169,28 @@ module Datadog
         # SecurityError (restricted access), or other runtime errors during introspection.
         # Returning nil causes source_file to be nil, which is acceptable - backend handles scopes without file info.
         nil
+      end
+
+      # Wrap a CLASS scope in a MODULE scope for root-level upload.
+      # The backend requires root-level scopes to be MODULE/JAR/ASSEMBLY/PACKAGE type.
+      # The MODULE scope has the same name and source file as the class, with the CLASS
+      # nested inside — matching Python's file-module → class → method hierarchy.
+      # @param klass [Class] The class being wrapped
+      # @param class_scope [Scope] The already-extracted CLASS scope
+      # @return [Scope] MODULE scope wrapping the CLASS scope
+      def self.wrap_class_in_module_scope(klass, class_scope)
+        source_file = class_scope.source_file
+        # steep:ignore:start
+        Scope.new(
+          scope_type: 'MODULE',
+          name: klass.name,
+          source_file: source_file,
+          start_line: SymbolDatabase::UNKNOWN_MIN_LINE,
+          end_line: SymbolDatabase::UNKNOWN_MAX_LINE,
+          language_specifics: build_module_language_specifics(klass, source_file),
+          scopes: [class_scope]
+        )
+        # steep:ignore:end
       end
 
       # Extract MODULE scope
@@ -554,7 +598,7 @@ module Datadog
 
       # @api private
       private_class_method :user_code_module?, :user_code_path?, :find_source_file,
-        :extract_module_scope, :extract_class_scope,
+        :wrap_class_in_module_scope, :extract_module_scope, :extract_class_scope,
         :calculate_class_line_range, :build_module_language_specifics,
         :build_class_language_specifics, :extract_nested_classes,
         :extract_module_symbols, :extract_class_symbols,

@@ -135,35 +135,44 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         cleanup_user_code_file(@filename)
       end
 
-      it 'extracts CLASS scope for user code class' do
-        scope = described_class.extract(TestUserClass)
+      # Top-level classes are wrapped in a MODULE scope because the backend requires
+      # root-level scopes to be MODULE/JAR/ASSEMBLY/PACKAGE type. The CLASS scope is
+      # nested inside. This matches Python's file-module → class → method hierarchy.
+      it 'wraps top-level CLASS in a MODULE scope' do
+        module_scope = described_class.extract(TestUserClass)
 
-        expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('CLASS')
-        expect(scope.name).to eq('TestUserClass')
-        expect(scope.source_file).to eq(@filename)
+        expect(module_scope).not_to be_nil
+        expect(module_scope.scope_type).to eq('MODULE')
+        expect(module_scope.name).to eq('TestUserClass')
+        expect(module_scope.source_file).to eq(@filename)
+        expect(module_scope.scopes.size).to eq(1)
+
+        class_scope = module_scope.scopes.first
+        expect(class_scope.scope_type).to eq('CLASS')
+        expect(class_scope.name).to eq('TestUserClass')
+        expect(class_scope.source_file).to eq(@filename)
       end
 
       it 'extracts class variables' do
-        scope = described_class.extract(TestUserClass)
+        class_scope = described_class.extract(TestUserClass).scopes.first
 
-        class_var = scope.symbols.find { |s| s.name == '@@class_var' }
+        class_var = class_scope.symbols.find { |s| s.name == '@@class_var' }
         expect(class_var).not_to be_nil
         expect(class_var.symbol_type).to eq('STATIC_FIELD')
       end
 
       it 'extracts constants' do
-        scope = described_class.extract(TestUserClass)
+        class_scope = described_class.extract(TestUserClass).scopes.first
 
-        constant = scope.symbols.find { |s| s.name == 'CONSTANT' }
+        constant = class_scope.symbols.find { |s| s.name == 'CONSTANT' }
         expect(constant).not_to be_nil
         expect(constant.symbol_type).to eq('STATIC_FIELD')
       end
 
       it 'extracts instance methods as METHOD scopes' do
-        scope = described_class.extract(TestUserClass)
+        class_scope = described_class.extract(TestUserClass).scopes.first
 
-        method_scopes = scope.scopes.select { |s| s.scope_type == 'METHOD' }
+        method_scopes = class_scope.scopes.select { |s| s.scope_type == 'METHOD' }
         method_names = method_scopes.map(&:name)
 
         expect(method_names).to include('public_method')
@@ -171,27 +180,26 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts class methods as METHOD scopes' do
-        scope = described_class.extract(TestUserClass)
+        class_scope = described_class.extract(TestUserClass).scopes.first
 
-        class_method = scope.scopes.find { |s| s.name == 'self.class_method' }
+        class_method = class_scope.scopes.find { |s| s.name == 'self.class_method' }
         expect(class_method).not_to be_nil
         expect(class_method.scope_type).to eq('METHOD')
       end
 
       it 'captures method visibility' do
-        scope = described_class.extract(TestUserClass)
+        class_scope = described_class.extract(TestUserClass).scopes.first
 
-        public_method = scope.scopes.find { |s| s.name == 'public_method' }
+        public_method = class_scope.scopes.find { |s| s.name == 'public_method' }
         expect(public_method.language_specifics[:visibility]).to eq('public')
 
-        private_method = scope.scopes.find { |s| s.name == 'private_method' }
+        private_method = class_scope.scopes.find { |s| s.name == 'private_method' }
         expect(private_method.language_specifics[:visibility]).to eq('private')
       end
 
       it 'extracts method parameters' do
-        scope = described_class.extract(TestUserClass)
-
-        method_scope = scope.scopes.find { |s| s.name == 'public_method' }
+        class_scope = described_class.extract(TestUserClass).scopes.first
+        method_scope = class_scope.scopes.find { |s| s.name == 'public_method' }
 
         arg1 = method_scope.symbols.find { |s| s.name == 'arg1' }
         expect(arg1).not_to be_nil
@@ -200,6 +208,72 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         arg2 = method_scope.symbols.find { |s| s.name == 'arg2' }
         expect(arg2).not_to be_nil
         expect(arg2.symbol_type).to eq('ARG')
+      end
+    end
+
+    context 'with namespaced class' do
+      before do
+        @filename = create_user_code_file(<<~RUBY)
+          module TestNamespace
+            class TestInnerClass
+              def inner_method; end
+            end
+          end
+        RUBY
+        load @filename
+      end
+
+      after do
+        Object.send(:remove_const, :TestNamespace) if defined?(TestNamespace)
+        cleanup_user_code_file(@filename)
+      end
+
+      it 'returns nil for namespaced class (already nested in parent module scope)' do
+        # TestNamespace::TestInnerClass has '::' in name — it is already extracted as a
+        # nested CLASS scope inside the TestNamespace MODULE scope. Extracting it again
+        # at root level would violate the backend root scope type constraint.
+        expect(described_class.extract(TestNamespace::TestInnerClass)).to be_nil
+      end
+
+      it 'returns nil for namespace-only module without methods' do
+        # TestNamespace has no instance methods — find_source_file returns nil,
+        # so user_code_module? returns false and the module is not extracted.
+        # This is acceptable: pure namespace modules contain no DI-useful symbols.
+        expect(described_class.extract(TestNamespace)).to be_nil
+      end
+    end
+
+    context 'with namespaced module with methods' do
+      before do
+        @filename = create_user_code_file(<<~RUBY)
+          module TestNsModule
+            def self.module_func; end
+            class TestNsClass
+              def ns_method; end
+            end
+          end
+        RUBY
+        load @filename
+      end
+
+      after do
+        Object.send(:remove_const, :TestNsModule) if defined?(TestNsModule)
+        cleanup_user_code_file(@filename)
+      end
+
+      it 'extracts the parent MODULE with the class nested inside' do
+        module_scope = described_class.extract(TestNsModule)
+
+        expect(module_scope).not_to be_nil
+        expect(module_scope.scope_type).to eq('MODULE')
+        expect(module_scope.name).to eq('TestNsModule')
+        inner_class = module_scope.scopes.find { |s| s.scope_type == 'CLASS' }
+        expect(inner_class).not_to be_nil
+        expect(inner_class.name).to eq('TestNsModule::TestNsClass')
+      end
+
+      it 'returns nil for the nested class (already in parent MODULE scope)' do
+        expect(described_class.extract(TestNsModule::TestNsClass)).to be_nil
       end
     end
 
@@ -226,15 +300,15 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'captures superclass in language_specifics' do
-        scope = described_class.extract(TestDerivedClass)
+        class_scope = described_class.extract(TestDerivedClass).scopes.first
 
-        expect(scope.language_specifics[:superclass]).to eq('TestBaseClass')
+        expect(class_scope.language_specifics[:superclass]).to eq('TestBaseClass')
       end
 
       it 'excludes Object from superclass' do
-        scope = described_class.extract(TestBaseClass)
+        class_scope = described_class.extract(TestBaseClass).scopes.first
 
-        expect(scope.language_specifics).not_to have_key(:superclass)
+        expect(class_scope.language_specifics).not_to have_key(:superclass)
       end
     end
 
@@ -261,9 +335,9 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'captures included modules in language_specifics' do
-        scope = described_class.extract(TestClassWithMixin)
+        class_scope = described_class.extract(TestClassWithMixin).scopes.first
 
-        expect(scope.language_specifics[:included_modules]).to include('TestMixin')
+        expect(class_scope.language_specifics[:included_modules]).to include('TestMixin')
       end
     end
   end
