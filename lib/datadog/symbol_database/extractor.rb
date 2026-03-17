@@ -40,7 +40,11 @@ module Datadog
       # @return [Scope, nil] Extracted scope with nested scopes/symbols, or nil if filtered out
       def self.extract(mod)
         return nil unless mod.is_a?(Module)
-        return nil unless mod.name  # Skip anonymous modules/classes
+        # Use safe name lookup — some classes override the singleton `name` method
+        # (e.g. Faker::Travel::Airport defines `def name(size:, region:)` in class << self,
+        # which shadows Module#name and raises ArgumentError when called without args).
+        mod_name = Module.instance_method(:name).bind(mod).call rescue nil
+        return nil unless mod_name  # Skip anonymous modules/classes
         return nil unless user_code_module?(mod)
 
         if mod.is_a?(Class)
@@ -95,6 +99,10 @@ module Datadog
         return false if path.include?('(eval)')
         # Exclude spec files (test code, not application code)
         return false if path.include?('/spec/')
+        # Exclude Datadog's own library code (e.g., monkey-patched methods from tracing contrib).
+        # Without this, stdlib classes like Net::HTTP appear as user code when dd-trace-rb
+        # instruments them, because the patched method source points to lib/datadog/tracing/contrib/.
+        return false if path.include?('/lib/datadog/')
 
         true
       end
