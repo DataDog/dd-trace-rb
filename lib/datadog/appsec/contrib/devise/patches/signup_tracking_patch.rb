@@ -59,7 +59,7 @@ module Datadog
               #       and because of that we will trigger an additional event even
               #       if it was already done via the SDK
               AppSec::Instrumentation.gateway.push(
-                'identity.set_user', AppSec::Instrumentation::Gateway::User.new(id, login)
+                'identity.set_user', {id: id, login: login, framework: 'devise', event_type: 'signup'}
               )
             end
           end

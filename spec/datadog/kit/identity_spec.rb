@@ -249,7 +249,7 @@ RSpec.describe Datadog::Kit::Identity do
         it 'instruments the user information to appsec' do
           expect_any_instance_of(Datadog::AppSec::Instrumentation::Gateway).to receive(:push).with(
             'identity.set_user',
-            instance_of(Datadog::AppSec::Instrumentation::Gateway::User)
+            a_hash_including(id: '42', framework: 'sdk')
           )
 
           described_class.set_user(trace_op, id: '42')

@@ -24,18 +24,18 @@ module Datadog
             end
 
             def watch_user_id(gateway = Instrumentation.gateway)
-              gateway.watch('identity.set_user') do |stack, user|
+              gateway.watch('identity.set_user') do |stack, user_info|
                 context = AppSec.active_context
 
-                if user.id.nil? && user.login.nil? && user.session_id.nil?
+                if user_info[:id].nil? && user_info[:login].nil? && user_info[:session_id].nil?
                   Datadog.logger.debug { 'AppSec: skipping WAF check because no user information was provided' }
-                  next stack.call(user)
+                  next stack.call(user_info)
                 end
 
                 persistent_data = {}
-                persistent_data['usr.id'] = user.id if user.id
-                persistent_data['usr.login'] = user.login if user.login
-                persistent_data['usr.session_id'] = user.session_id if user.session_id
+                persistent_data['usr.id'] = user_info[:id] if user_info[:id]
+                persistent_data['usr.login'] = user_info[:login] if user_info[:login]
+                persistent_data['usr.session_id'] = user_info[:session_id] if user_info[:session_id]
 
                 result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
@@ -50,7 +50,7 @@ module Datadog
                   AppSec::ActionsHandler.handle(result.actions)
                 end
 
-                stack.call(user)
+                stack.call(user_info)
               end
             end
 

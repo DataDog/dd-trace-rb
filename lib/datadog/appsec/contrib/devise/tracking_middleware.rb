@@ -44,12 +44,9 @@ module Datadog
                 user_id = context.span[Ext::TAG_USR_ID] || id
                 user_session_id = context.span[Ext::TAG_SESSION_ID] || session_id
 
-                # FIXME: The current implementation of event arguments is forsing us
-                #        to bloat User class, and pass nil-value instead of skip
-                #        passing them at first place.
-                #        This is a temporary situation until we refactor events model.
                 AppSec::Instrumentation.gateway.push(
-                  'identity.set_user', AppSec::Instrumentation::Gateway::User.new(user_id, nil, user_session_id)
+                  'identity.set_user',
+                  {id: user_id, session_id: user_session_id, framework: 'devise', event_type: 'authenticated_request'}
                 )
               end
 
