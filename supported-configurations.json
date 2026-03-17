@@ -343,9 +343,9 @@
     ],
     "DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED": [
       {
-        "version": "A",
+        "version": "B",
         "type": "boolean",
-        "default": "false"
+        "default": "true"
       }
     ],
     "DD_GIT_COMMIT_SHA": [

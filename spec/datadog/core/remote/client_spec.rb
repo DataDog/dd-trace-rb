@@ -640,7 +640,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                   env: settings.env,
                 }
 
-                expect(client_payload[:client_tracer].tap { |h| h.delete(:tags) }).to eq(expected_client_tracer)
+                expect(client_payload[:client_tracer]).to include(expected_client_tracer)
               end
             end
 
@@ -657,7 +657,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                   app_version: settings.version,
                 }
 
-                expect(client_payload[:client_tracer].tap { |h| h.delete(:tags) }).to eq(expected_client_tracer)
+                expect(client_payload[:client_tracer]).to include(expected_client_tracer)
               end
             end
 
@@ -673,7 +673,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                   env: settings.env,
                 }
 
-                expect(client_payload[:client_tracer].tap { |h| h.delete(:tags) }).to eq(expected_client_tracer)
+                expect(client_payload[:client_tracer]).to include(expected_client_tracer)
               end
             end
           end
@@ -699,7 +699,11 @@ RSpec.describe Datadog::Core::Remote::Client do
           end
 
           context 'when process tags propagation is not enabled' do
-            # Currently false by default
+            before do
+              # Explicitly disable because the global default is now true.
+              allow(settings).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
+            end
+
             it 'does not have process tags in the payload' do
               expect(client_payload[:client_tracer]).not_to have_key(:process_tags)
             end
