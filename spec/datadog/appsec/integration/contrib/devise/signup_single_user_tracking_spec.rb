@@ -105,6 +105,9 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
 
     allow(Rails).to receive(:application).and_return(app)
     allow(Datadog::AppSec::Instrumentation).to receive(:gateway).and_return(gateway)
+    Datadog::AppSec::Monitor::Gateway::TelemetryWatcher.watch
+
+    allow(Datadog::AppSec.telemetry).to receive(:inc).and_call_original
 
     # NOTE: Don't reach the agent in any way
     allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
@@ -362,6 +365,28 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
       )
 
       expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
+    end
+  end
+
+  context 'when login extraction fails during signup' do
+    before do
+      allow_any_instance_of(Datadog::AppSec::Contrib::Devise::DataExtractor)
+        .to receive(:extract_login).and_return(nil)
+
+      form_data = {
+        user: {username: 'JohnDoe', email: 'john.doe@example.com', password: '123456', password_confirmation: '123456'}
+      }
+
+      post('/users', form_data)
+    end
+
+    it 'reports missing_user_login telemetry' do
+      expect(response).to be_redirect
+
+      expect(Datadog::AppSec.telemetry).to have_received(:inc).with(
+        'appsec', 'instrum.user_auth.missing_user_login', 1,
+        tags: {framework: 'devise', event_type: 'signup'},
+      )
     end
   end
 end
