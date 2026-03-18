@@ -7,11 +7,10 @@ module Datadog
         # common utilities for Rails
         module Utils
           def self.app_name
-            if ::Rails::VERSION::MAJOR >= 6
-              ::Rails.application.class.module_parent_name.underscore
-            else
-              ::Rails.application.class.parent_name.underscore
-            end
+            namespace_method = (::Rails::VERSION::MAJOR >= 6) ? :module_parent_name : :parent_name
+            application_name = ::Rails.application.class.public_send(namespace_method)
+            return nil if application_name.nil?
+            application_name.underscore
           end
 
           def self.railtie_supported?
