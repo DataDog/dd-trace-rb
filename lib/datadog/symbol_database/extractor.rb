@@ -111,8 +111,13 @@ module Datadog
       def self.user_code_path?(path)
         # Exclude gem paths
         return false if path.include?('/gems/')
-        # Exclude Ruby stdlib
+        # Exclude Ruby/JRuby stdlib paths.
+        # CRuby uses paths like /usr/lib/ruby/... or /usr/local/lib/ruby/...
+        # JRuby uses /opt/jruby/lib/ruby/... as well as /opt/jruby/lib/jruby/...
         return false if path.include?('/ruby/')
+        return false if path.include?('/jruby/')
+        # JRuby classpath URIs (uri:classloader:/META-INF/jruby.home/...)
+        return false if path.start_with?('uri:classloader:')
         return false if path.start_with?('<internal:')
         return false if path.include?('(eval)')
         # Exclude spec files (test code, not application code)

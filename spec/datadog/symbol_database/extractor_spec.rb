@@ -647,6 +647,13 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
             attr_writer :write_only
             attr_accessor :read_write
 
+            # Plain def method gives JRuby a source_location anchor.
+            # On JRuby, attr_* methods return nil source_location, so
+            # find_source_file needs at least one regular def to locate the file.
+            def to_h
+              { read_only: @read_only, read_write: @read_write }
+            end
+
             def initialize
               @read_only = 1
               @write_only = 2
