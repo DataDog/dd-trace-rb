@@ -305,10 +305,12 @@ module Datadog
       def self.build_class_language_specifics(klass)
         specifics = {}
 
-        # Superclass (exclude Object and BasicObject)
+        # Superclass chain (exclude Object and BasicObject).
+        # Emitted as an array named super_classes — consistent with Java, .NET, and Python.
+        # Array allows for multiple entries if future Ruby versions or mixins expand the chain.
         if klass.superclass && klass.superclass != Object && klass.superclass != BasicObject
           # steep:ignore:start
-          specifics[:superclass] = klass.superclass.name
+          specifics[:super_classes] = [klass.superclass.name]
           # steep:ignore:end
         end
 

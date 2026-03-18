@@ -321,16 +321,16 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         cleanup_user_code_file(@filename)
       end
 
-      it 'captures superclass in language_specifics' do
+      it 'captures superclass in language_specifics as super_classes array' do
         class_scope = described_class.extract(TestDerivedClass).scopes.first
 
-        expect(class_scope.language_specifics[:superclass]).to eq('TestBaseClass')
+        expect(class_scope.language_specifics[:super_classes]).to eq(['TestBaseClass'])
       end
 
-      it 'excludes Object from superclass' do
+      it 'excludes Object from super_classes' do
         class_scope = described_class.extract(TestBaseClass).scopes.first
 
-        expect(class_scope.language_specifics).not_to have_key(:superclass)
+        expect(class_scope.language_specifics).not_to have_key(:super_classes)
       end
     end
 

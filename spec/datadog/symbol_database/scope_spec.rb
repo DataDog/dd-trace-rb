@@ -117,12 +117,12 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     it 'includes non-empty language_specifics' do
       scope = described_class.new(
         scope_type: 'CLASS',
-        language_specifics: {superclass: 'BaseClass'}
+        language_specifics: {super_classes: ['BaseClass']}
       )
 
       hash = scope.to_h
 
-      expect(hash).to include(language_specifics: {superclass: 'BaseClass'})
+      expect(hash).to include(language_specifics: {super_classes: ['BaseClass']})
     end
 
     it 'excludes empty symbols array' do
@@ -248,7 +248,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
         source_file: '/path/file.rb',
         start_line: 1,
         end_line: 50,
-        language_specifics: {superclass: 'BaseClass'},
+        language_specifics: {super_classes: ['BaseClass']},
         symbols: [symbol]
       )
 
