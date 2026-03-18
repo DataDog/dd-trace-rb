@@ -391,7 +391,7 @@ module Datadog
           start_line: start_line,
           end_line: end_line,
           language_specifics: build_class_language_specifics(klass),
-          scopes: extract_method_scopes(klass),
+          scopes: extract_method_scopes(klass, upload_class_methods: upload_class_methods),
           symbols: extract_class_symbols(klass)
         )
         # steep:ignore:end
