@@ -1511,16 +1511,20 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       it 'extracts all scopes in the namespace chain (Ruby 2.7+)' do
         # TestA, TestA::TestB, TestA::TestB::TestC all get extracted on Ruby 2.7+
         # because const_source_location propagates source file through the chain.
+        # extract() returns MODULE wrapper scopes — check root scope names (unique).
         extracted = ObjectSpace.each_object(Module).filter_map do |mod|
           name = Module.instance_method(:name).bind(mod).call rescue nil
           next unless name&.start_with?('TestA')
           described_class.extract(mod)
         end.compact
 
+        # Each extract() call returns a MODULE wrapper — deduplicate by root scope name.
+        root_names = extracted.map(&:name).uniq.sort
+
         if TestA.respond_to?(:const_source_location)
-          expect(extracted.map(&:name)).to contain_exactly('TestA', 'TestA::TestB', 'TestA::TestB::TestC')
+          expect(root_names).to eq(['TestA', 'TestA::TestB', 'TestA::TestB::TestC'])
         else
-          expect(extracted.map(&:name)).to eq(['TestA::TestB::TestC'])
+          expect(root_names).to eq(['TestA::TestB::TestC'])
         end
       end
     end
