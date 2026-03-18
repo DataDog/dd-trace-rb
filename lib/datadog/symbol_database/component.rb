@@ -189,9 +189,10 @@ module Datadog
 
           # Iterate all loaded modules and extract symbols
           # Extractor.extract filters to user code only (excludes Datadog::*, gems, stdlib)
+          upload_class_methods = @settings.symbol_database.internal.upload_class_methods
           extracted_count = 0
           ObjectSpace.each_object(Module) do |mod|
-            scope = Extractor.extract(mod)
+            scope = Extractor.extract(mod, upload_class_methods: upload_class_methods)
             next unless scope
 
             @scope_context.add_scope(scope)
