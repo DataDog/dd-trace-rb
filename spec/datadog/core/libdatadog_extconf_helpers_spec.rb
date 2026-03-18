@@ -80,45 +80,45 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
     end
   end
 
-  describe ".pkg_config_missing?" do
-    subject(:pkg_config_missing) { described_class.pkg_config_missing?(command: command) }
+  describe ".configure_libdatadog" do
+    let(:logger) { double("logger", message: nil) }
 
-    before do
-      skip_if_libdatadog_not_supported
+    context "when libdatadog pkgconfig_folder is nil" do
+      it "returns nil" do
+        result = described_class.configure_libdatadog(
+          libdatadog_pkgconfig_folder: nil,
+          logger: logger,
+        )
+
+        expect(result).to be_nil
+      end
     end
 
-    context "when command is not available" do
-      let(:command) { nil }
+    context "when libdatadog pkgconfig_folder is available" do
+      let(:pkgconfig_folder) { "/path/to/gems/libdatadog/vendor/libdatadog/lib/pkgconfig" }
 
-      it { is_expected.to be true }
-    end
+      # rubocop:disable Style/GlobalVars
+      it "returns true and sets mkmf global variables" do
+        expect_in_fork do
+          # Initialize mkmf globals as extconf.rb would
+          $INCFLAGS = +""
+          $LDFLAGS = +""
+          $libs = +""
 
-    # This spec is semi-realistic, because it actually calls into the pkg-config external process.
-    #
-    # We know pkg-config must be available on the machine running the tests because otherwise libdatadog would not be
-    # supported (and thus `skip_if_libdatadog_not_supported` would've been triggered).
-    #
-    # We could also mock the entire interaction, but this seemed like a simple enough way to go.
-    context "when command is available" do
-      before do
-        # This helper is designed to be called from extconf.rb, which requires mkmf, which defines xsystem.
-        # When executed in RSpec, mkmf is not required, so we replace it with the regular system call.
-        without_partial_double_verification do
-          expect(described_class).to receive(:xsystem) { |*args| system(*args) }
+          result = described_class.configure_libdatadog(
+            libdatadog_pkgconfig_folder: pkgconfig_folder,
+            logger: logger,
+          )
+
+          expect(result).to be true
+          expect($INCFLAGS).to eq(" -I#{pkgconfig_folder}/../../include")
+
+          libdir = "#{pkgconfig_folder}/../../lib"
+          expect($LDFLAGS).to eq(" -L#{libdir} -Wl,-rpath,#{libdir}")
+          expect($libs).to eq(" -ldatadog_profiling")
         end
       end
-
-      context "and pkg-config can successfully be called" do
-        let(:command) { "pkg-config" }
-
-        it { is_expected.to be false }
-      end
-
-      context "and pkg-config cannot be called" do
-        let(:command) { "does-not-exist" }
-
-        it { is_expected.to be true }
-      end
+      # rubocop:enable Style/GlobalVars
     end
   end
 

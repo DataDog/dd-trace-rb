@@ -23,9 +23,9 @@ module Datadog
     # Linux: e.g. `readelf -d datadog_profiling_native_extension.2.7.3_x86_64-linux.so`.
     #
     # In older versions of the datadog gem, we only set as runpath an absolute path to libdatadog.
-    # (This gets set automatically by the call
-    # to `pkg_config('datadog_profiling_with_rpath')` in `extconf.rb`). This worked fine as long as libdatadog was **NOT**
-    # moved from the folder it was present at datadog gem installation/linking time.
+    # (This gets set automatically by the call to `configure_libdatadog` in `extconf.rb`).
+    # This worked fine as long as libdatadog was **NOT** moved from the folder it was present at
+    # datadog gem installation/linking time.
     #
     # Unfortunately, environments such as Heroku and AWS Elastic Beanstalk move gems around in the filesystem after
     # installation. Thus, the profiling native extension could not be loaded in these environments
@@ -104,13 +104,33 @@ module Datadog
       end
     end
 
-    # mkmf sets $PKGCONFIG after the `pkg_config` gets used in extconf.rb. When `pkg_config` is unsuccessful, we use
-    # this helper to decide if we can show more specific error message vs a generic "something went wrong".
-    def self.pkg_config_missing?(command: $PKGCONFIG) # standard:disable Style/GlobalVars
-      pkg_config_available = command && xsystem("#{command} --version")
+    # Directly configures mkmf to link against libdatadog by setting $INCFLAGS, $LDFLAGS, and $libs.
+    #
+    # This replaces the previous use of mkmf's `pkg_config("datadog_profiling_with_rpath")`, removing the need for
+    # the pkg-config system tool to be installed.
+    #
+    # The logger argument is the mkmf Logging module, dependency-injected to make testing easier.
+    # rubocop:disable Style/GlobalVars
+    def self.configure_libdatadog(
+      libdatadog_pkgconfig_folder: Libdatadog.pkgconfig_folder,
+      logger: Logging
+    )
+      return unless libdatadog_pkgconfig_folder
 
-      pkg_config_available != true
+      # The lib and include folders are at a fixed relative path from pkgconfig_folder
+      libdir = "#{libdatadog_pkgconfig_folder}/../../lib"
+      includedir = "#{libdatadog_pkgconfig_folder}/../../include"
+
+      # Set mkmf global variables
+      $INCFLAGS << " -I#{includedir}"
+      $LDFLAGS << " -L#{libdir} -Wl,-rpath,#{libdir}"
+      $libs << " -ldatadog_profiling"
+
+      logger.message("linking with libdatadog (include=#{includedir}, lib=#{libdir})\n")
+
+      true
     end
+    # rubocop:enable Style/GlobalVars
 
     def self.try_loading_libdatadog
       gem 'libdatadog', LIBDATADOG_VERSION

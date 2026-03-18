@@ -211,21 +211,10 @@ $defs << "-DNO_GVL_OWNER" if RUBY_VERSION < "2.6"
 $defs << "-DNO_THREAD_INVOKE_ARG" if RUBY_VERSION < "2.6"
 
 # If we got here, libdatadog is available and loaded
-ENV["PKG_CONFIG_PATH"] = "#{ENV["PKG_CONFIG_PATH"]}:#{Libdatadog.pkgconfig_folder}"
-Logging.message("[datadog] PKG_CONFIG_PATH set to #{ENV["PKG_CONFIG_PATH"].inspect}\n")
 $stderr.puts("Using libdatadog #{Libdatadog::VERSION} from #{Libdatadog.pkgconfig_folder}")
 
-unless pkg_config("datadog_profiling_with_rpath")
-  Logging.message("[datadog] Ruby detected the pkg-config command is #{$PKGCONFIG.inspect}\n")
-
-  skip_building_extension!(
-    if Datadog::LibdatadogExtconfHelpers.pkg_config_missing?
-      Datadog::Profiling::NativeExtensionHelpers::Supported::PKG_CONFIG_IS_MISSING
-    else
-      # Less specific error message
-      Datadog::Profiling::NativeExtensionHelpers::Supported::FAILED_TO_CONFIGURE_LIBDATADOG
-    end
-  )
+unless Datadog::LibdatadogExtconfHelpers.configure_libdatadog
+  skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::FAILED_TO_CONFIGURE_LIBDATADOG)
 end
 
 unless have_type("atomic_int", ["stdatomic.h"])
@@ -240,7 +229,7 @@ extra_relative_rpaths = [
   *Datadog::LibdatadogExtconfHelpers.libdatadog_folder_relative_to_ruby_extensions_folders,
 ]
 extra_relative_rpaths.each { |folder| $LDFLAGS += " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{folder.to_str}" }
-Logging.message("[datadog] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
+Logging.message("[datadog] After libdatadog configuration, $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
 
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
