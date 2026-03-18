@@ -1245,4 +1245,138 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       expect(source_file).to eq(gem_path)
     end
   end
+
+  describe 'class/module defined across multiple files (reopening)' do
+    # Case 12 & 13 from SYMBOL_EXTRACTION_CASES.md
+    # Ruby allows reopening a class or module in multiple files. All methods from all
+    # files should appear in the extracted scope, not just those from one file.
+
+    context 'class reopened across two files' do
+      before do
+        @file1 = create_user_code_file(<<~RUBY)
+          class TestReopenedClass
+            def method_from_file1
+              'file1'
+            end
+          end
+        RUBY
+
+        @file2 = create_user_code_file(<<~RUBY)
+          class TestReopenedClass
+            def method_from_file2
+              'file2'
+            end
+          end
+        RUBY
+
+        load @file1
+        load @file2
+      end
+
+      after do
+        Object.send(:remove_const, :TestReopenedClass) if defined?(TestReopenedClass)
+        cleanup_user_code_file(@file1)
+        cleanup_user_code_file(@file2)
+      end
+
+      it 'includes methods from both files in the extracted scope' do
+        scope = described_class.extract(TestReopenedClass)
+
+        expect(scope).not_to be_nil
+        class_scope = scope.scopes.first
+        method_names = class_scope.scopes.map(&:name)
+
+        expect(method_names).to include('method_from_file1')
+        expect(method_names).to include('method_from_file2')
+      end
+    end
+
+    context 'module reopened across two files' do
+      before do
+        @file1 = create_user_code_file(<<~RUBY)
+          module TestReopenedModule
+            def self.method_from_file1
+              'file1'
+            end
+          end
+        RUBY
+
+        @file2 = create_user_code_file(<<~RUBY)
+          module TestReopenedModule
+            def self.method_from_file2
+              'file2'
+            end
+          end
+        RUBY
+
+        load @file1
+        load @file2
+      end
+
+      after do
+        Object.send(:remove_const, :TestReopenedModule) if defined?(TestReopenedModule)
+        cleanup_user_code_file(@file1)
+        cleanup_user_code_file(@file2)
+      end
+
+      it 'extracts the MODULE scope (methods from either file satisfy source discovery)' do
+        # Module methods are not extracted as child METHOD scopes — they are used only
+        # for source location discovery. The test verifies the module is found at all,
+        # meaning find_source_file can locate user code from at least one of the files.
+        scope = described_class.extract(TestReopenedModule)
+
+        expect(scope).not_to be_nil
+        expect(scope.scope_type).to eq('MODULE')
+        expect(scope.name).to eq('TestReopenedModule')
+        expect(scope.source_file).to eq(@file1).or(eq(@file2))
+      end
+    end
+  end
+
+  describe 'module inside class' do
+    # Case 7 from SYMBOL_EXTRACTION_CASES.md
+    # A module defined as a constant of a class (e.g. class Foo; module Bar; end; end)
+    # should be extractable as a standalone root scope via its fully-qualified name.
+
+    before do
+      @filename = create_user_code_file(<<~RUBY)
+        class TestOuterClass
+          def outer_method
+            'outer'
+          end
+
+          module TestInnerModule
+            def self.inner_method
+              'inner'
+            end
+          end
+        end
+      RUBY
+      load @filename
+    end
+
+    after do
+      TestOuterClass.send(:remove_const, :TestInnerModule) if defined?(TestOuterClass::TestInnerModule)
+      Object.send(:remove_const, :TestOuterClass) if defined?(TestOuterClass)
+      cleanup_user_code_file(@filename)
+    end
+
+    it 'extracts the inner module as a standalone root MODULE scope' do
+      scope = described_class.extract(TestOuterClass::TestInnerModule)
+
+      expect(scope).not_to be_nil
+      expect(scope.scope_type).to eq('MODULE')
+      expect(scope.name).to eq('TestOuterClass::TestInnerModule')
+    end
+
+    it 'extracts the outer class independently' do
+      scope = described_class.extract(TestOuterClass)
+
+      expect(scope).not_to be_nil
+      class_scope = scope.scopes.first
+      expect(class_scope.scope_type).to eq('CLASS')
+      method_names = class_scope.scopes.map(&:name)
+      expect(method_names).to include('outer_method')
+    end
+  end
 end
