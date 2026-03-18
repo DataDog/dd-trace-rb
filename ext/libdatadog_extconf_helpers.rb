@@ -47,12 +47,12 @@ module Datadog
     # we could setup when doing a `require`.
     #
     def self.libdatadog_folder_relative_to_native_lib_folder(
-      current_folder:,
+      extconf_folder:,
       libdatadog_pkgconfig_folder: Libdatadog.pkgconfig_folder
     )
       return unless libdatadog_pkgconfig_folder
 
-      native_lib_folder = "#{current_folder}/../../lib/"
+      native_lib_folder = "#{extconf_folder}/../../lib/"
       libdatadog_lib_folder = "#{libdatadog_pkgconfig_folder}/../"
 
       Pathname.new(libdatadog_lib_folder).relative_path_from(Pathname.new(native_lib_folder)).to_s
@@ -109,10 +109,13 @@ module Datadog
     # This replaces the previous use of mkmf's `pkg_config("datadog_profiling_with_rpath")`, removing the need for
     # the pkg-config system tool to be installed.
     #
+    # The extconf_folder argument should be the __dir__ of the calling extconf.rb, used to compute relative rpaths.
     # The logger argument is the mkmf Logging module, dependency-injected to make testing easier.
     # rubocop:disable Style/GlobalVars
     def self.configure_libdatadog(
+      extconf_folder:,
       libdatadog_pkgconfig_folder: Libdatadog.pkgconfig_folder,
+      gem_dir: Gem.dir,
       logger: Logging
     )
       return unless libdatadog_pkgconfig_folder
@@ -126,7 +129,22 @@ module Datadog
       $LDFLAGS << " -L#{libdir} -Wl,-rpath,#{libdir}"
       $libs << " -ldatadog_profiling"
 
+      # Add extra relative rpaths using $ORIGIN to handle environments where gems are moved after installation.
+      # The excessive escaping is needed to get these special characters through Make and the shell untouched.
+      extra_relative_rpaths = [
+        libdatadog_folder_relative_to_native_lib_folder(
+          extconf_folder: extconf_folder,
+          libdatadog_pkgconfig_folder: libdatadog_pkgconfig_folder,
+        ),
+        *libdatadog_folder_relative_to_ruby_extensions_folders(
+          gem_dir: gem_dir,
+          libdatadog_pkgconfig_folder: libdatadog_pkgconfig_folder,
+        ),
+      ]
+      extra_relative_rpaths.each { |folder| $LDFLAGS << " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{folder}" }
+
       logger.message("linking with libdatadog (include=#{includedir}, lib=#{libdir})\n")
+      logger.message("[datadog] $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
 
       true
     end

@@ -213,23 +213,13 @@ $defs << "-DNO_THREAD_INVOKE_ARG" if RUBY_VERSION < "2.6"
 # If we got here, libdatadog is available and loaded
 $stderr.puts("Using libdatadog #{Libdatadog::VERSION} from #{Libdatadog.pkgconfig_folder}")
 
-unless Datadog::LibdatadogExtconfHelpers.configure_libdatadog
+unless Datadog::LibdatadogExtconfHelpers.configure_libdatadog(extconf_folder: __dir__)
   skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::FAILED_TO_CONFIGURE_LIBDATADOG)
 end
 
 unless have_type("atomic_int", ["stdatomic.h"])
   skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::COMPILER_ATOMIC_MISSING)
 end
-
-# See comments on the helper methods being used for why we need to additionally set this.
-# The extremely excessive escaping around ORIGIN below seems to be correct and was determined after a lot of
-# experimentation. We need to get these special characters across a lot of tools untouched...
-extra_relative_rpaths = [
-  Datadog::LibdatadogExtconfHelpers.libdatadog_folder_relative_to_native_lib_folder(current_folder: __dir__),
-  *Datadog::LibdatadogExtconfHelpers.libdatadog_folder_relative_to_ruby_extensions_folders,
-]
-extra_relative_rpaths.each { |folder| $LDFLAGS += " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{folder.to_str}" }
-Logging.message("[datadog] After libdatadog configuration, $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
 
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
