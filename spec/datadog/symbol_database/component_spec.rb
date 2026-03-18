@@ -263,4 +263,71 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(extraction_count).to eq(1)
     end
   end
+
+  # === Tests ported from Java SymDBEnablementTest ===
+
+  describe 'enable/disable upload (ported from Java SymDBEnablementTest.enableDisableSymDBThroughRC)' do
+    let(:component) do
+      described_class.new(settings, agent_settings, logger, telemetry: telemetry)
+    end
+
+    it 'starts upload and then stops it' do
+      expect(component).to receive(:extract_and_upload).once
+
+      component.start_upload
+      expect(component.send(:instance_variable_get, :@enabled)).to be true
+
+      component.stop_upload
+      expect(component.send(:instance_variable_get, :@enabled)).to be false
+    end
+
+    it 'does not extract again after stop and re-start (already enabled guard)' do
+      expect(component).to receive(:extract_and_upload).once
+
+      component.start_upload
+      component.stop_upload
+      # Second start_upload should be blocked by recently_uploaded? cooldown
+      component.start_upload
+
+      # Only one extraction expected
+    end
+  end
+
+  describe 'config removal (ported from Java SymDBEnablementTest.removeSymDBConfig)' do
+    let(:component) do
+      described_class.new(settings, agent_settings, logger, telemetry: telemetry)
+    end
+
+    it 'shutdown prevents any future uploads' do
+      allow(component).to receive(:extract_and_upload)
+
+      component.start_upload
+      component.shutdown!
+
+      # After shutdown, start_upload should be a no-op
+      expect(component).not_to receive(:extract_and_upload)
+      component.start_upload
+    end
+  end
+
+  describe 'filtering behavior (ported from Java SymDBEnablementTest.noIncludesFilterOutDatadogClass)' do
+    let(:component) do
+      described_class.new(settings, agent_settings, logger, telemetry: telemetry)
+    end
+
+    it 'extract_and_upload filters out Datadog internal classes' do
+      uploaded_scopes = []
+      mock_scope_context = instance_double(Datadog::SymbolDatabase::ScopeContext)
+      allow(mock_scope_context).to receive(:add_scope) { |scope| uploaded_scopes << scope }
+      allow(mock_scope_context).to receive(:flush)
+      allow(mock_scope_context).to receive(:shutdown)
+      component.instance_variable_set(:@scope_context, mock_scope_context)
+
+      component.send(:extract_and_upload)
+
+      # No Datadog:: scopes should have been added
+      datadog_scopes = uploaded_scopes.select { |s| s.name&.start_with?('Datadog::') }
+      expect(datadog_scopes).to be_empty
+    end
+  end
 end

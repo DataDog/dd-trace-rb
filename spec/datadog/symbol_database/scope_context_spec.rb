@@ -265,4 +265,87 @@ RSpec.describe Datadog::SymbolDatabase::ScopeContext do
       expect(context.size).to be <= 100
     end
   end
+
+  # === Tests ported from Java SymbolSinkTest ===
+
+  describe 'multi-scope batching (ported from Java SymbolSinkTest.testMultiScopeFlush)' do
+    it 'batches multiple scopes into a single upload call' do
+      uploaded_scopes = nil
+      allow(uploader).to receive(:upload_scopes) { |scopes| uploaded_scopes = scopes }
+
+      5.times do |i|
+        context.add_scope(Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: "Class#{i}"))
+      end
+
+      context.flush
+
+      expect(uploaded_scopes).not_to be_nil
+      expect(uploaded_scopes.size).to eq(5)
+      names = uploaded_scopes.map(&:name)
+      expect(names).to include('Class0', 'Class1', 'Class2', 'Class3', 'Class4')
+    end
+  end
+
+  describe 'implicit flush at capacity (ported from Java SymbolSinkTest.testQueueFull)' do
+    it 'uploads automatically at MAX_SCOPES and continues batching remaining' do
+      upload_calls = []
+      allow(uploader).to receive(:upload_scopes) { |scopes| upload_calls << scopes.dup }
+
+      # Add exactly MAX_SCOPES scopes to trigger implicit flush
+      described_class::MAX_SCOPES.times do |i|
+        context.add_scope(Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: "Batch1Class#{i}"))
+      end
+
+      # Should have flushed the first batch
+      expect(upload_calls.size).to eq(1)
+      expect(upload_calls[0].size).to eq(described_class::MAX_SCOPES)
+
+      # Add one more scope (should be in new batch)
+      context.add_scope(Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'ExtraClass'))
+      expect(context.size).to eq(1)
+
+      # Flush the remaining
+      context.flush
+      expect(upload_calls.size).to eq(2)
+      expect(upload_calls[1].size).to eq(1)
+      expect(upload_calls[1][0].name).to eq('ExtraClass')
+    end
+  end
+
+  describe 'upload on shutdown with pending scopes (ported from Java SymbolSinkTest)' do
+    it 'flushes all pending scopes on shutdown' do
+      uploaded_scopes = nil
+      allow(uploader).to receive(:upload_scopes) { |scopes| uploaded_scopes = scopes }
+
+      3.times do |i|
+        context.add_scope(Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: "ShutdownClass#{i}"))
+      end
+
+      context.shutdown
+
+      expect(uploaded_scopes).not_to be_nil
+      expect(uploaded_scopes.size).to eq(3)
+    end
+  end
+
+  describe 'deduplication across multiple flushes (ported from Java SymDBEnablementTest.noDuplicateSymbolExtraction)' do
+    it 'does not re-upload the same scope after flush and re-add' do
+      upload_calls = []
+      allow(uploader).to receive(:upload_scopes) { |scopes| upload_calls << scopes.dup }
+
+      scope = Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'UniqueClass')
+
+      context.add_scope(scope)
+      context.flush
+      expect(upload_calls.size).to eq(1)
+      expect(upload_calls[0].size).to eq(1)
+
+      # Try to add the same scope again
+      context.add_scope(scope)
+      context.flush
+
+      # Should not have triggered a second upload (empty batch)
+      expect(upload_calls.size).to eq(1)
+    end
+  end
 end
