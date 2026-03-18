@@ -477,7 +477,7 @@ module Datadog
             method_type: method_type.to_s,
             arity: method.arity
           },
-          symbols: extract_method_parameters(method)
+          symbols: extract_method_parameters(method, method_type)
         )
       rescue => e
         Datadog.logger.debug("SymDB: Failed to extract method #{klass.name}##{method_name}: #{e.class}: #{e}")
@@ -528,10 +528,14 @@ module Datadog
         end
       end
 
-      # Extract method parameters as symbols
+      # Extract method parameters as symbols.
+      # For instance methods, prepends a synthetic `self` ARG — consistent with Java and .NET
+      # which always emit the implicit receiver (`this`) as the first ARG. This allows DI
+      # expression evaluation to reference `self.field` at a probe point.
       # @param method [UnboundMethod] The method
+      # @param method_type [Symbol] :instance or :class
       # @return [Array<Symbol>] Parameter symbols
-      def self.extract_method_parameters(method)
+      def self.extract_method_parameters(method, method_type = :instance)
         # Method name extraction can fail for exotic methods (e.g., dynamically defined via define_method
         # with unusual names, or methods on singleton classes with overridden #name).
         # Even without a name, we still extract parameter information - it's valuable for analysis.
@@ -543,14 +547,23 @@ module Datadog
         end
         params = method.parameters
 
+        # Prepend synthetic `self` ARG for instance methods.
+        # `self` is implicit in Ruby (not in Method#parameters) but must be registered as
+        # an available symbol so DI can evaluate expressions like `self.name` at a probe point.
+        self_arg = if method_type == :instance
+          [Symbol.new(symbol_type: 'ARG', name: 'self', line: SymbolDatabase::UNKNOWN_MIN_LINE)]
+        else
+          []
+        end
+
         if params.nil?
           Datadog.logger.debug("SymDB: method.parameters returned nil for #{method_name}")
-          return []
+          return self_arg
         end
 
         if params.empty?
           Datadog.logger.debug("SymDB: method.parameters returned empty for #{method_name}")
-          return []
+          return self_arg
         end
 
         result = Core::Utils::Array.filter_map(params) do |param_type, param_name|
@@ -574,10 +587,10 @@ module Datadog
           Datadog.logger.debug("SymDB: Extracted 0 parameters from #{method_name} (params: #{params.inspect})")
         end
 
-        result
+        self_arg + result
       rescue => e
         Datadog.logger.debug("SymDB: Failed to extract parameters from #{method_name}: #{e.class}: #{e}")
-        []
+        self_arg
       end
 
       # Extract singleton method parameters

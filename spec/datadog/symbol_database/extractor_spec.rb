@@ -197,6 +197,21 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         expect(private_method.language_specifics[:visibility]).to eq('private')
       end
 
+      it 'emits self as first ARG for instance methods' do
+        class_scope = described_class.extract(TestUserClass).scopes.first
+        method_scope = class_scope.scopes.find { |s| s.name == 'public_method' }
+
+        expect(method_scope.symbols.first.name).to eq('self')
+        expect(method_scope.symbols.first.symbol_type).to eq('ARG')
+      end
+
+      it 'does not emit self for class methods' do
+        class_scope = described_class.extract(TestUserClass).scopes.first
+        class_method = class_scope.scopes.find { |s| s.name == 'self.class_method' }
+
+        expect(class_method.symbols.map(&:name)).not_to include('self')
+      end
+
       it 'extracts method parameters' do
         class_scope = described_class.extract(TestUserClass).scopes.first
         method_scope = class_scope.scopes.find { |s| s.name == 'public_method' }
