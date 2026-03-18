@@ -466,12 +466,9 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       it 'extracts all scopes in the namespace chain (Ruby 2.7+)' do
         # TestA, TestA::TestB, TestA::TestB::TestC all get extracted on Ruby 2.7+
         # because const_source_location propagates source file through the chain.
-        # extract() returns MODULE wrapper scopes — check root scope names (unique).
-        extracted = ObjectSpace.each_object(Module).filter_map do |mod|
-          name = Module.instance_method(:name).bind(mod).call rescue nil
-          next unless name&.start_with?('TestA')
-          described_class.extract(mod)
-        end.compact
+        # Use explicit module list rather than ObjectSpace to avoid cross-test pollution.
+        mods = [TestA, TestA::TestB, TestA::TestB::TestC]
+        extracted = mods.filter_map { |mod| described_class.extract(mod) }
 
         # Each extract() call returns a MODULE wrapper — deduplicate by root scope name.
         root_names = extracted.map(&:name).uniq.sort
@@ -502,6 +499,100 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         expect(described_class.extract(TestARStyleModel)).to be_nil
 
         Object.send(:remove_const, :TestARStyleModel)
+        cleanup_user_code_file(filename)
+      end
+    end
+
+    context 'class with only class variables (no methods)' do
+      it 'returns nil — class variables are not findable via source_location or const_source_location' do
+        # @@class_var is not a constant, so it does not appear in constants(false)
+        # and const_source_location cannot find it. No methods → source file is nil.
+        filename = create_user_code_file(<<~RUBY)
+          class TestClassVarOnly
+            @@count = 0
+          end
+        RUBY
+        load filename
+        expect(described_class.extract(TestClassVarOnly)).to be_nil
+        Object.send(:remove_const, :TestClassVarOnly)
+        cleanup_user_code_file(filename)
+      end
+    end
+
+    context 'module with only non-class-value constants' do
+      it 'is extracted on Ruby 2.7+ via const_source_location (non-class constants count)' do
+        # const_source_location works for any constant including VALUE constants (FOO = 42),
+        # not just class/module constants. So a module with only value constants IS found.
+        filename = create_user_code_file(<<~RUBY)
+          module TestValueConstModule
+            MAX_SIZE = 100
+            DEFAULT_NAME = "test"
+          end
+        RUBY
+        load filename
+        scope = described_class.extract(TestValueConstModule)
+        if TestValueConstModule.respond_to?(:const_source_location)
+          expect(scope).not_to be_nil
+          expect(scope.scope_type).to eq('MODULE')
+          expect(scope.name).to eq('TestValueConstModule')
+        else
+          expect(scope).to be_nil
+        end
+        Object.send(:remove_const, :TestValueConstModule)
+        cleanup_user_code_file(filename)
+      end
+    end
+
+    context 'namespace module found via const_source_location has file_hash' do
+      it 'computes file_hash from the const_source_location-derived source file' do
+        skip 'requires Ruby 2.7+' unless Module.method_defined?(:const_source_location)
+
+        filename = create_user_code_file(<<~RUBY)
+          module TestNsFileHash
+            class TestNsChild
+              def child_method; end
+            end
+          end
+        RUBY
+        load filename
+
+        # TestNsFileHash has no methods but has a class constant — extracted via const_source_location
+        scope = described_class.extract(TestNsFileHash)
+        expect(scope).not_to be_nil
+        expect(scope.language_specifics[:file_hash]).not_to be_nil
+        expect(scope.language_specifics[:file_hash]).to match(/\A[0-9a-f]{40}\z/)
+
+        Object.send(:remove_const, :TestNsFileHash)
+        cleanup_user_code_file(filename)
+      end
+    end
+
+    context 'concern-style modules' do
+      it 'extracts a module with only an included block (no direct def methods)' do
+        # A concern using `included do ... end` — the `included` call is a singleton method
+        # on ActiveSupport::Concern (or a no-op here). Without direct `def` methods,
+        # find_source_file falls through to const_source_location or returns nil.
+        filename = create_user_code_file(<<~RUBY)
+          module TestConcernNoMethods
+            def self.included(base)
+              base.extend(ClassMethods)
+            end
+
+            module ClassMethods
+              def searchable?; true; end
+            end
+          end
+        RUBY
+        load filename
+
+        # TestConcernNoMethods has a singleton method (self.included) → source_location
+        # points to the file → extracted
+        scope = described_class.extract(TestConcernNoMethods)
+        expect(scope).not_to be_nil
+        expect(scope.scope_type).to eq('MODULE')
+        expect(scope.name).to eq('TestConcernNoMethods')
+
+        Object.send(:remove_const, :TestConcernNoMethods)
         cleanup_user_code_file(filename)
       end
     end
