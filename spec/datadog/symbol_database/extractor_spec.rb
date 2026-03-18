@@ -4,12 +4,6 @@ require 'datadog/symbol_database/extractor'
 require 'fileutils'
 
 RSpec.describe Datadog::SymbolDatabase::Extractor do
-  # Symbol database extraction relies on MRI-specific behavior (Method#source_location,
-  # ObjectSpace, attr_* source locations). Skip the entire spec on JRuby.
-  before do
-    skip 'Symbol database not supported on JRuby' if PlatformHelpers.jruby?
-  end
-
   # Temporary directory for user code test files
   around do |example|
     Dir.mktmpdir('symbol_db_extractor_test') do |dir|
