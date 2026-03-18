@@ -24,6 +24,31 @@ module Datadog
           TAG_OPERATION_HTTP_SERVER_QUEUE = 'queue'
           WEBSERVER_APP = 'webserver'
           DEFAULT_PEER_WEBSERVER_SERVICE_NAME = 'web-server'
+
+          HEADER_X_DD_PROXY = 'HTTP_X_DD_PROXY'
+          HEADER_X_DD_PROXY_REQUEST_TIME_MS = 'HTTP_X_DD_PROXY_REQUEST_TIME_MS'
+          HEADER_X_DD_PROXY_PATH = 'HTTP_X_DD_PROXY_PATH'
+          HEADER_X_DD_PROXY_RESOURCE_PATH = 'HTTP_X_DD_PROXY_RESOURCE_PATH'
+          HEADER_X_DD_PROXY_HTTPMETHOD = 'HTTP_X_DD_PROXY_HTTPMETHOD'
+          HEADER_X_DD_PROXY_DOMAIN_NAME = 'HTTP_X_DD_PROXY_DOMAIN_NAME'
+          HEADER_X_DD_PROXY_STAGE = 'HTTP_X_DD_PROXY_STAGE'
+          HEADER_X_DD_PROXY_ACCOUNT_ID = 'HTTP_X_DD_PROXY_ACCOUNT_ID'
+          HEADER_X_DD_PROXY_API_ID = 'HTTP_X_DD_PROXY_API_ID'
+          HEADER_X_DD_PROXY_REGION = 'HTTP_X_DD_PROXY_REGION'
+          HEADER_X_DD_PROXY_USER = 'HTTP_X_DD_PROXY_USER'
+
+          PROXY_AWS_APIGATEWAY = 'aws-apigateway'
+          PROXY_AWS_HTTPAPI = 'aws-httpapi'
+
+          SPAN_AWS_APIGATEWAY = 'aws.apigateway'
+          SPAN_AWS_HTTPAPI = 'aws.httpapi'
+
+          PROXY_SPAN_NAMES = {
+            PROXY_AWS_APIGATEWAY => SPAN_AWS_APIGATEWAY,
+            PROXY_AWS_HTTPAPI => SPAN_AWS_HTTPAPI,
+          }.freeze
+
+          TAG_INFERRED_SPAN = '_dd.inferred_span'
         end
       end
     end
