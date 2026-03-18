@@ -1440,6 +1440,127 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
     end
   end
 
+  describe '.extract edge cases' do
+    context 'empty and minimal classes' do
+      it 'returns nil for empty top-level class (no methods, no constants, no vars)' do
+        filename = create_user_code_file("class TestEmptyClass; end")
+        load filename
+        expect(described_class.extract(TestEmptyClass)).to be_nil
+        Object.send(:remove_const, :TestEmptyClass)
+        cleanup_user_code_file(filename)
+      end
+
+      it 'returns nil for empty top-level module' do
+        filename = create_user_code_file("module TestEmptyModule; end")
+        load filename
+        expect(described_class.extract(TestEmptyModule)).to be_nil
+        Object.send(:remove_const, :TestEmptyModule)
+        cleanup_user_code_file(filename)
+      end
+
+      it 'handles top-level class with only constants on Ruby 2.7+' do
+        filename = create_user_code_file(<<~RUBY)
+          class TestConstOnlyClass
+            SOME_CONST = 42
+          end
+        RUBY
+        load filename
+
+        scope = described_class.extract(TestConstOnlyClass)
+        if TestConstOnlyClass.respond_to?(:const_source_location)
+          # Ruby 2.7+: const_source_location finds source via constants
+          expect(scope).not_to be_nil
+          expect(scope.scope_type).to eq('PACKAGE')
+        else
+          # Ruby 2.5/2.6: no const_source_location, cannot find source
+          expect(scope).to be_nil
+        end
+
+        Object.send(:remove_const, :TestConstOnlyClass)
+        cleanup_user_code_file(filename)
+      end
+    end
+
+    context 'deeply nested namespaces' do
+      before do
+        @filename = create_user_code_file(<<~RUBY)
+          module TestA
+            module TestB
+              class TestC
+                def deep_method; end
+              end
+            end
+          end
+        RUBY
+        load @filename
+      end
+
+      after do
+        Object.send(:remove_const, :TestA) if defined?(TestA)
+        cleanup_user_code_file(@filename)
+      end
+
+      it 'extracts deeply nested class (A::B::C) as standalone root scope' do
+        scope = described_class.extract(TestA::TestB::TestC)
+        expect(scope).not_to be_nil
+        expect(scope.scope_type).to eq('PACKAGE')
+        expect(scope.name).to eq('TestA::TestB::TestC')
+        expect(scope.scopes.first.scope_type).to eq('CLASS')
+      end
+
+      it 'extracts namespace modules via const_source_location when they have nested constants' do
+        # On Ruby 2.7+: TestA has const TestB (a module), TestA::TestB has const TestC (a class).
+        # const_source_location finds the source file via these constants, so both modules ARE extracted.
+        if TestA.respond_to?(:const_source_location)
+          expect(described_class.extract(TestA)).not_to be_nil
+          expect(described_class.extract(TestA::TestB)).not_to be_nil
+        else
+          # Ruby < 2.7: no const_source_location, namespace modules without methods return nil
+          expect(described_class.extract(TestA)).to be_nil
+          expect(described_class.extract(TestA::TestB)).to be_nil
+        end
+      end
+
+      it 'extracts all scopes in the namespace chain (Ruby 2.7+)' do
+        # TestA, TestA::TestB, TestA::TestB::TestC all get extracted on Ruby 2.7+
+        # because const_source_location propagates source file through the chain.
+        extracted = ObjectSpace.each_object(Module).filter_map do |mod|
+          name = Module.instance_method(:name).bind(mod).call rescue nil
+          next unless name&.start_with?('TestA')
+          described_class.extract(mod)
+        end.compact
+
+        if TestA.respond_to?(:const_source_location)
+          expect(extracted.map(&:name)).to contain_exactly('TestA', 'TestA::TestB', 'TestA::TestB::TestC')
+        else
+          expect(extracted.map(&:name)).to eq(['TestA::TestB::TestC'])
+        end
+      end
+    end
+
+    context 'AR-style model with no user-defined methods' do
+      it 'returns nil for class whose only methods come from gem paths' do
+        filename = create_user_code_file(<<~RUBY)
+          class TestARStyleModel
+          end
+        RUBY
+        load filename
+
+        gem_path = '/fake/gems/activerecord-7.0/lib/active_record/autosave.rb'
+        gem_method = instance_double(Method, source_location: [gem_path, 1])
+
+        allow(TestARStyleModel).to receive(:instance_methods).with(false).and_return([:gem_generated_method])
+        allow(TestARStyleModel).to receive(:instance_method).with(:gem_generated_method).and_return(gem_method)
+        allow(TestARStyleModel).to receive(:singleton_methods).with(false).and_return([])
+
+        expect(described_class.extract(TestARStyleModel)).to be_nil
+
+        Object.send(:remove_const, :TestARStyleModel)
+        cleanup_user_code_file(filename)
+      end
+    end
+  end
+
   describe '.user_code_module?' do
     it 'returns false for Datadog namespace' do
       expect(described_class.send(:user_code_module?, Datadog::SymbolDatabase::Extractor)).to be false

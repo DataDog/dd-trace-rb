@@ -66,10 +66,12 @@ RSpec.describe 'Symbol Database Integration' do
         expect(class_scope).not_to be_nil
         expect(class_scope.name).to eq('IntegrationTestModule::IntegrationTestClass')
 
-        # Should have method scopes inside the CLASS
+        # Should have instance method scopes inside the CLASS
+        # Class methods (self.foo) are not extracted by default — Ruby DI instruments
+        # via prepend on the instance method chain, not the singleton class.
         method_names = class_scope.scopes.map(&:name)
         expect(method_names).to include('test_method')
-        expect(method_names).to include('self.class_method')
+        expect(method_names).not_to include('self.class_method')
 
         # Should have symbols (class variable) inside the CLASS
         symbol_names = class_scope.symbols.map(&:name)
