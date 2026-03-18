@@ -111,13 +111,8 @@ module Datadog
       def self.user_code_path?(path)
         # Exclude gem paths
         return false if path.include?('/gems/')
-        # Exclude Ruby/JRuby stdlib paths.
-        # CRuby uses paths like /usr/lib/ruby/... or /usr/local/lib/ruby/...
-        # JRuby uses /opt/jruby/lib/ruby/... as well as /opt/jruby/lib/jruby/...
+        # Exclude Ruby stdlib
         return false if path.include?('/ruby/')
-        return false if path.include?('/jruby/')
-        # JRuby classpath URIs (uri:classloader:/META-INF/jruby.home/...)
-        return false if path.start_with?('uri:classloader:')
         return false if path.start_with?('<internal:')
         return false if path.include?('(eval)')
         # Exclude spec files (test code, not application code)
@@ -474,26 +469,16 @@ module Datadog
         method = klass.instance_method(method_name)
         location = method.source_location
 
-        # On JRuby, attr_reader/writer/accessor methods return nil source_location.
-        # Fall back to the class's source file with unknown line numbers so these
-        # methods are still included in the upload.
-        if location
-          source_file, line = location
-          start_line = line
-          end_line = line
-        else
-          source_file = find_source_file(klass)
-          return nil unless source_file
-          start_line = SymbolDatabase::UNKNOWN_MIN_LINE
-          end_line = SymbolDatabase::UNKNOWN_MAX_LINE
-        end
+        return nil unless location  # Skip methods without source location
+
+        source_file, line = location
 
         Scope.new(
           scope_type: 'METHOD',
           name: method_name.to_s,
           source_file: source_file,
-          start_line: start_line,
-          end_line: end_line,
+          start_line: line,
+          end_line: line,  # Ruby doesn't provide end line
           language_specifics: {
             visibility: method_visibility(klass, method_name),
             method_type: method_type.to_s,
