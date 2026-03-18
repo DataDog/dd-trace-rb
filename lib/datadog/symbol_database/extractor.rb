@@ -51,7 +51,7 @@ module Datadog
       #
       # @param mod [Module, Class] The module or class to extract from
       # @return [Scope, nil] Extracted scope with nested scopes/symbols, or nil if filtered out
-      def self.extract(mod)
+      def self.extract(mod, upload_class_methods: false)
         return nil unless mod.is_a?(Module)
         # Use safe name lookup — some classes override the singleton `name` method
         # (e.g. Faker::Travel::Airport defines `def name(size:, region:)` in class << self,
@@ -65,7 +65,7 @@ module Datadog
           # Wrap in MODULE scope — backend requires root-level scopes to be MODULE/JAR/ASSEMBLY/PACKAGE.
           # A bare CLASS at the top level causes IllegalArgumentException in the backend's
           # mergeRootScopesWithSameName, silently dropping the entire batch.
-          class_scope = extract_class_scope(mod)
+          class_scope = extract_class_scope(mod, upload_class_methods: upload_class_methods)
           wrap_class_in_module_scope(mod, class_scope)
         else
           extract_module_scope(mod)
@@ -246,7 +246,7 @@ module Datadog
       # Extract CLASS scope
       # @param klass [Class] The class
       # @return [Scope] The class scope
-      def self.extract_class_scope(klass)
+      def self.extract_class_scope(klass, upload_class_methods: false)
         methods = klass.instance_methods(false)
         start_line, end_line = calculate_class_line_range(klass, methods)
         source_file = find_source_file(klass)
@@ -259,7 +259,7 @@ module Datadog
           start_line: start_line,
           end_line: end_line,
           language_specifics: build_class_language_specifics(klass),
-          scopes: extract_method_scopes(klass),
+          scopes: extract_method_scopes(klass, upload_class_methods: upload_class_methods),
           symbols: extract_class_symbols(klass)
         )
         # steep:ignore:end
@@ -427,7 +427,7 @@ module Datadog
       # Extract method scopes from a class
       # @param klass [Class] The class
       # @return [Array<Scope>] Method scopes
-      def self.extract_method_scopes(klass)
+      def self.extract_method_scopes(klass, upload_class_methods: false)
         scopes = []
 
         # Get all instance methods (public, protected, private)
@@ -441,10 +441,18 @@ module Datadog
           scopes << method_scope if method_scope
         end
 
-        # Class methods (singleton methods on the class object)
-        klass.singleton_methods(false).each do |method_name|
-          method_scope = extract_singleton_method_scope(klass, method_name)
-          scopes << method_scope if method_scope
+        # Class methods (singleton methods defined with `def self.foo`).
+        # Not uploaded by default — Ruby DI cannot instrument class methods
+        # because it only prepends to a class's instance method lookup chain,
+        # not to the singleton class. Enable with:
+        #   DD_INTERNAL_SYMBOL_DATABASE_UPLOAD_CLASS_METHODS=true
+        # or settings.symbol_database.internal.upload_class_methods = true
+        # See: docs/class_methods_di_design.md
+        if upload_class_methods
+          klass.singleton_methods(false).each do |method_name|
+            method_scope = extract_singleton_method_scope(klass, method_name)
+            scopes << method_scope if method_scope
+          end
         end
 
         scopes
@@ -496,9 +504,13 @@ module Datadog
 
         source_file, line = location
 
+        # Name is bare method_name (no `self.` prefix) — method_type: 'class'
+        # in language_specifics is the standard way to distinguish from instance
+        # methods, matching Java/C#/.NET behavior. The `self.` prefix was
+        # non-standard and not used by any other tracer.
         Scope.new(
           scope_type: 'METHOD',
-          name: "self.#{method_name}",
+          name: method_name.to_s,
           source_file: source_file,
           start_line: line,
           end_line: line,
