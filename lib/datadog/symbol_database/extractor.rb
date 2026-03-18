@@ -332,7 +332,11 @@ module Datadog
         # Guarded by respond_to? for Ruby 2.5/2.6 compatibility.
         if fallback.nil? && mod.respond_to?(:const_source_location)
           mod.constants(false).each do |const_name|
-            location = mod.const_source_location(const_name) rescue nil
+            location = begin
+              mod.const_source_location(const_name)
+            rescue
+              nil
+            end
             next unless location && !location.empty?
 
             path = location[0]
