@@ -140,7 +140,8 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
       before do
         active_support_mod = Module.new do
-          def self.on_load(_name, &block); end
+          def self.on_load(_name, &block)
+          end
         end
         stub_const('ActiveSupport', active_support_mod)
         stub_const('Rails::Railtie', Class.new)

@@ -116,7 +116,7 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
     it 'parses valid upload_symbols config' do
       content = instance_double('Content', data: '{"upload_symbols": true}')
       result = described_class.send(:parse_config, content)
-      expect(result).to eq({ 'upload_symbols' => true })
+      expect(result).to eq({'upload_symbols' => true})
     end
 
     it 'returns nil for missing upload_symbols key' do
