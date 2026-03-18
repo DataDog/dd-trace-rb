@@ -46,6 +46,29 @@ module Datadog
                 end
                 o.default []
               end
+
+              # Settings in the 'internal' group are for internal Datadog
+              # use only, and are needed to test symbol database or
+              # experiment with features not released to customers.
+              settings :internal do
+                # Controls whether class methods (def self.foo) are included
+                # in symbol database uploads.
+                #
+                # Class methods are NOT uploaded by default because Ruby DI
+                # currently does not support instrumenting class methods —
+                # only instance methods can be probed. Including class methods
+                # would present completions in the UI that cannot be acted on.
+                #
+                # When DI gains singleton class instrumentation support, this
+                # should be switched to default true and moved to a public setting.
+                #
+                # See: docs/class_methods_di_design.md for full analysis.
+                option :upload_class_methods do |o|
+                  o.type :bool
+                  o.env 'DD_INTERNAL_SYMBOL_DATABASE_UPLOAD_CLASS_METHODS'
+                  o.default false
+                end
+              end
             end
             # steep:ignore:end
           end
