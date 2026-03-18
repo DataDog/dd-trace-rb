@@ -43,6 +43,13 @@ module Datadog
       def self.build(settings, agent_settings, logger, telemetry: nil)
         return unless settings.respond_to?(:symbol_database) && settings.symbol_database.enabled
 
+        # Symbol database requires MRI Ruby 2.6+.
+        # Configuration accessors (settings.symbol_database.*) remain available on all
+        # platforms — only the component (upload) is disabled on unsupported engines/versions.
+        unless environment_supported?(logger)
+          return nil
+        end
+
         # Requires remote config (unless force mode)
         return nil unless settings.remote&.enabled || settings.symbol_database.force_upload
 
@@ -170,6 +177,25 @@ module Datadog
 
       # @api private
       private
+
+      # Check whether the runtime environment supports symbol database upload.
+      # Only MRI Ruby 2.6+ is supported. JRuby and TruffleRuby are not supported
+      # because ObjectSpace iteration and Method#source_location behave differently.
+      # Configuration accessors remain available on all platforms — this only gates
+      # the component (upload) itself.
+      # @param logger [Logger]
+      # @return [Boolean]
+      def self.environment_supported?(logger)
+        if RUBY_ENGINE != 'ruby'
+          logger.debug("symdb: symbol database upload is not supported on #{RUBY_ENGINE}, skipping")
+          return false
+        end
+        if RUBY_VERSION < '2.6'
+          logger.debug("symdb: symbol database upload requires Ruby 2.6+, running #{RUBY_VERSION}, skipping")
+          return false
+        end
+        true
+      end
 
       # Check if upload was recent (within cooldown period).
       # Must be called from within @mutex.synchronize.

@@ -1699,7 +1699,6 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
 
     context 'with attr_accessor methods' do
       before do
-        skip 'Symbol database not supported on JRuby' if PlatformHelpers.jruby?
         @filename = create_user_code_file(<<~RUBY)
           class TestAttrClass
             attr_reader :read_only
@@ -2013,7 +2012,6 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'returns nil for Ruby stdlib classes' do
-        skip 'JRuby stdlib classes have Ruby source locations that bypass path filters' if PlatformHelpers.jruby?
         expect(described_class.extract(File)).to be_nil
         expect(described_class.extract(Dir)).to be_nil
         expect(described_class.extract(IO)).to be_nil
