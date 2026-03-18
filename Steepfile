@@ -103,6 +103,8 @@ target :datadog do
   ignore 'lib/datadog/di/transport/http/api.rb'
   ignore 'lib/datadog/di/transport/http/diagnostics.rb'
   ignore 'lib/datadog/di/transport/http/input.rb'
+  ignore 'lib/datadog/symbol_database/component.rb'
+  ignore 'lib/datadog/symbol_database/extractor.rb'
   # steep thinks the type of the class is 'self', whatever that is,
   # and then complains that this type doesn't have any methods including
   # language basics like 'send' and 'raise'.
