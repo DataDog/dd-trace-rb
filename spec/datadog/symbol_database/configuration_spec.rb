@@ -129,4 +129,35 @@ RSpec.describe 'Symbol Database Configuration' do
   # NOTE: symbol_database.internal.upload_class_methods is a code-only internal setting
   # (no env var). It is exercised indirectly by extractor_spec.rb tests that pass
   # upload_class_methods: true.
+
+  # Configuration accessors must be safe on all platforms — the platform guard lives in
+  # Component.build, not in the settings layer. Reading these settings must never raise
+  # regardless of Ruby engine or version.
+  describe 'config accessibility on any platform' do
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+
+    it 'enabled is readable' do
+      expect { settings.symbol_database.enabled }.not_to raise_error
+    end
+
+    it 'force_upload is readable' do
+      expect { settings.symbol_database.force_upload }.not_to raise_error
+    end
+
+    it 'includes is readable' do
+      expect { settings.symbol_database.includes }.not_to raise_error
+    end
+
+    it 'internal.upload_class_methods is readable' do
+      expect { settings.symbol_database.internal.upload_class_methods }.not_to raise_error
+    end
+
+    it 'enabled is writable' do
+      expect { settings.symbol_database.enabled = false }.not_to raise_error
+    end
+
+    it 'includes is writable' do
+      expect { settings.symbol_database.includes = ['App::Models'] }.not_to raise_error
+    end
+  end
 end

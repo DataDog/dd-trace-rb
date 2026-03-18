@@ -48,9 +48,45 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     )
   end
 
+  describe '.environment_supported?' do
+    it 'returns true on MRI Ruby 2.6+' do
+      expect(described_class.send(:environment_supported?, logger)).to be true
+    end
+
+    it 'returns false and logs on JRuby' do
+      stub_const('RUBY_ENGINE', 'jruby')
+      expect(logger).to receive(:debug).with(/not supported on jruby/)
+
+      expect(described_class.send(:environment_supported?, logger)).to be false
+    end
+
+    it 'returns false and logs on Ruby < 2.6' do
+      stub_const('RUBY_VERSION', '2.5.9')
+      expect(logger).to receive(:debug).with(/requires Ruby 2\.6\+/)
+
+      expect(described_class.send(:environment_supported?, logger)).to be false
+    end
+  end
+
   describe '.build' do
     it 'returns nil when symbol_database is not enabled' do
       allow(settings.symbol_database).to receive(:enabled).and_return(false)
+
+      result = described_class.build(settings, agent_settings, logger, telemetry: telemetry)
+      expect(result).to be_nil
+    end
+
+    it 'returns nil on unsupported Ruby engine (JRuby)' do
+      stub_const('RUBY_ENGINE', 'jruby')
+      allow(logger).to receive(:debug)
+
+      result = described_class.build(settings, agent_settings, logger, telemetry: telemetry)
+      expect(result).to be_nil
+    end
+
+    it 'returns nil on Ruby < 2.6' do
+      stub_const('RUBY_VERSION', '2.5.9')
+      allow(logger).to receive(:debug)
 
       result = described_class.build(settings, agent_settings, logger, telemetry: telemetry)
       expect(result).to be_nil
