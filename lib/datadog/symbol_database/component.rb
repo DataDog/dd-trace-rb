@@ -98,7 +98,11 @@ module Datadog
           # component that originally registered this callback.
           FORCE_UPLOAD_ONCE.run do
             ::ActiveSupport.on_load(:after_initialize) do
-              current = Datadog.send(:components).symbol_database rescue nil
+              current = begin
+                Datadog.send(:components).symbol_database
+              rescue
+                nil
+              end
               current&.start_upload
             end
           end
