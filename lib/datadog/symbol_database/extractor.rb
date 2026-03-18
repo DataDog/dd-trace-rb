@@ -474,16 +474,26 @@ module Datadog
         method = klass.instance_method(method_name)
         location = method.source_location
 
-        return nil unless location  # Skip methods without source location
-
-        source_file, line = location
+        # On JRuby, attr_reader/writer/accessor methods return nil source_location.
+        # Fall back to the class's source file with unknown line numbers so these
+        # methods are still included in the upload.
+        if location
+          source_file, line = location
+          start_line = line
+          end_line = line
+        else
+          source_file = find_source_file(klass)
+          return nil unless source_file
+          start_line = SymbolDatabase::UNKNOWN_MIN_LINE
+          end_line = SymbolDatabase::UNKNOWN_MAX_LINE
+        end
 
         Scope.new(
           scope_type: 'METHOD',
           name: method_name.to_s,
           source_file: source_file,
-          start_line: line,
-          end_line: line,  # Ruby doesn't provide end line
+          start_line: start_line,
+          end_line: end_line,
           language_specifics: {
             visibility: method_visibility(klass, method_name),
             method_type: method_type.to_s,
