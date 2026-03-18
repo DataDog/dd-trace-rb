@@ -48,8 +48,10 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     )
   end
 
-  describe '.environment_supported?' do
+  describe '.environment_supported?', :symdb_supported_platforms do
     it 'returns true on MRI Ruby 2.6+' do
+      stub_const('RUBY_ENGINE', 'ruby')
+      stub_const('RUBY_VERSION', '3.2.0')
       expect(described_class.send(:environment_supported?, logger)).to be true
     end
 
@@ -76,7 +78,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(result).to be_nil
     end
 
-    it 'returns nil on unsupported Ruby engine (JRuby)' do
+    it 'returns nil on unsupported Ruby engine (JRuby)', :symdb_supported_platforms do
       stub_const('RUBY_ENGINE', 'jruby')
       allow(logger).to receive(:debug)
 
@@ -84,7 +86,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(result).to be_nil
     end
 
-    it 'returns nil on Ruby < 2.6' do
+    it 'returns nil on Ruby < 2.6', :symdb_supported_platforms do
       stub_const('RUBY_VERSION', '2.5.9')
       allow(logger).to receive(:debug)
 
