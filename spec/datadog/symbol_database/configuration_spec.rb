@@ -133,7 +133,7 @@ RSpec.describe 'Symbol Database Configuration' do
   # Configuration accessors must be safe on all platforms — the platform guard lives in
   # Component.build, not in the settings layer. Reading these settings must never raise
   # regardless of Ruby engine or version.
-  describe 'config accessibility on any platform' do
+  describe 'config accessibility on any platform', :symdb_supported_platforms do
     let(:settings) { Datadog::Core::Configuration::Settings.new }
 
     it 'enabled is readable' do
