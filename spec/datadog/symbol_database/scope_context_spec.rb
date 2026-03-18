@@ -210,8 +210,7 @@ RSpec.describe Datadog::SymbolDatabase::ScopeContext do
     end
 
     it 'kills timer' do
-      upload_called = false
-      allow(uploader).to receive(:upload_scopes) { |scopes| upload_called = true }
+      allow(uploader).to receive(:upload_scopes)
 
       context.add_scope(test_scope)
       context.reset

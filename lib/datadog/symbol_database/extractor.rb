@@ -445,8 +445,7 @@ module Datadog
         # Not uploaded by default — Ruby DI cannot instrument class methods
         # because it only prepends to a class's instance method lookup chain,
         # not to the singleton class. Enable with:
-        #   DD_INTERNAL_SYMBOL_DATABASE_UPLOAD_CLASS_METHODS=true
-        # or settings.symbol_database.internal.upload_class_methods = true
+        #   settings.symbol_database.internal.upload_class_methods = true
         # See: docs/class_methods_di_design.md
         if upload_class_methods
           klass.singleton_methods(false).each do |method_name|
