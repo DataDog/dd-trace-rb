@@ -1641,6 +1641,442 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         cleanup_user_code_file(filename)
       end
     end
+
+    # === Tests ported from Java SymbolExtractionTransformerTest ===
+    # Java tests bytecode-level variable scoping (if/for/while blocks).
+    # Ruby uses reflection, not bytecode — we test the Ruby equivalents.
+
+    context 'with protected methods' do
+      before do
+        @filename = create_user_code_file(<<~RUBY)
+          class TestProtectedClass
+            def public_method; end
+
+            protected
+
+            def protected_method; end
+
+            private
+
+            def private_method; end
+          end
+        RUBY
+        load @filename
+      end
+
+      after do
+        Object.send(:remove_const, :TestProtectedClass) if defined?(TestProtectedClass)
+        cleanup_user_code_file(@filename)
+      end
+
+      it 'captures protected visibility' do
+        class_scope = described_class.extract(TestProtectedClass).scopes.first
+
+        protected_method = class_scope.scopes.find { |s| s.name == 'protected_method' }
+        expect(protected_method.language_specifics[:visibility]).to eq('protected')
+      end
+
+      it 'extracts all three visibility levels' do
+        class_scope = described_class.extract(TestProtectedClass).scopes.first
+
+        visibilities = class_scope.scopes.map { |s| s.language_specifics[:visibility] }
+        expect(visibilities).to include('public', 'protected', 'private')
+      end
+    end
+
+    context 'with attr_accessor methods' do
+      before do
+        @filename = create_user_code_file(<<~RUBY)
+          class TestAttrClass
+            attr_reader :read_only
+            attr_writer :write_only
+            attr_accessor :read_write
+
+            def initialize
+              @read_only = 1
+              @write_only = 2
+              @read_write = 3
+            end
+          end
+        RUBY
+        load @filename
+      end
+
+      after do
+        Object.send(:remove_const, :TestAttrClass) if defined?(TestAttrClass)
+        cleanup_user_code_file(@filename)
+      end
+
+      it 'extracts attr_reader as METHOD scope' do
+        class_scope = described_class.extract(TestAttrClass).scopes.first
+        method_names = class_scope.scopes.map(&:name)
+
+        expect(method_names).to include('read_only')
+      end
+
+      it 'extracts attr_writer as METHOD scope' do
+        class_scope = described_class.extract(TestAttrClass).scopes.first
+        method_names = class_scope.scopes.map(&:name)
+
+        expect(method_names).to include('write_only=')
+      end
+
+      it 'extracts attr_accessor as both reader and writer METHOD scopes' do
+        class_scope = described_class.extract(TestAttrClass).scopes.first
+        method_names = class_scope.scopes.map(&:name)
+
+        expect(method_names).to include('read_write')
+        expect(method_names).to include('read_write=')
+      end
+    end
+
+    context 'with prepended modules' do
+      before do
+        @filename = create_user_code_file(<<~RUBY)
+          module TestPrependModule
+            def prepended_method; end
+          end
+
+          class TestPrependedClass
+            prepend TestPrependModule
+
+            def original_method; end
+          end
+        RUBY
+        load @filename
+      end
+
+      after do
+        Object.send(:remove_const, :TestPrependedClass) if defined?(TestPrependedClass)
+        Object.send(:remove_const, :TestPrependModule) if defined?(TestPrependModule)
+        cleanup_user_code_file(@filename)
+      end
+
+      it 'captures prepended modules in language_specifics' do
+        class_scope = described_class.extract(TestPrependedClass).scopes.first
+
+        expect(class_scope.language_specifics[:prepended_modules]).to include('TestPrependModule')
+      end
+    end
+
+    context 'with all parameter types' do
+      before do
+        @filename = create_user_code_file(<<~RUBY)
+          class TestAllParamsClass
+            def method_with_all_params(required, optional = nil, *rest, keyword:, optional_kw: 'default', **keyrest, &blk)
+              # Method with every Ruby parameter type
+            end
+          end
+        RUBY
+        load @filename
+      end
+
+      after do
+        Object.send(:remove_const, :TestAllParamsClass) if defined?(TestAllParamsClass)
+        cleanup_user_code_file(@filename)
+      end
+
+      it 'extracts required, optional, rest, keyword, and keyrest parameters' do
+        class_scope = described_class.extract(TestAllParamsClass).scopes.first
+        method_scope = class_scope.scopes.find { |s| s.name == 'method_with_all_params' }
+
+        param_names = method_scope.symbols.map(&:name)
+
+        expect(param_names).to include('self')
+        expect(param_names).to include('required')
+        expect(param_names).to include('optional')
+        expect(param_names).to include('rest')
+        expect(param_names).to include('keyword')
+        expect(param_names).to include('optional_kw')
+        expect(param_names).to include('keyrest')
+      end
+
+      it 'skips block parameters' do
+        class_scope = described_class.extract(TestAllParamsClass).scopes.first
+        method_scope = class_scope.scopes.find { |s| s.name == 'method_with_all_params' }
+
+        param_names = method_scope.symbols.map(&:name)
+
+        expect(param_names).not_to include('blk')
+      end
+
+      it 'all extracted parameters are ARG symbol type' do
+        class_scope = described_class.extract(TestAllParamsClass).scopes.first
+        method_scope = class_scope.scopes.find { |s| s.name == 'method_with_all_params' }
+
+        method_scope.symbols.each do |sym|
+          expect(sym.symbol_type).to eq('ARG')
+        end
+      end
+    end
+
+    context 'with exception handling (begin/rescue/ensure equivalent)' do
+      # Ported from Java SymbolExtractionTransformerTest: symbolExtraction03 (try-catch-finally)
+      # Ruby doesn't expose local variable scoping from bytecode, but we verify
+      # that methods containing exception handling constructs are still extracted.
+      before do
+        @filename = create_user_code_file(<<~RUBY)
+          class TestExceptionClass
+            def method_with_rescue(input)
+              result = nil
+              begin
+                result = Integer(input)
+              rescue ArgumentError => e
+                result = -1
+              rescue TypeError
+                result = -2
+              ensure
+                @last_input = input
+              end
+              result
+            end
+          end
+        RUBY
+        load @filename
+      end
+
+      after do
+        Object.send(:remove_const, :TestExceptionClass) if defined?(TestExceptionClass)
+        cleanup_user_code_file(@filename)
+      end
+
+      it 'extracts method containing begin/rescue/ensure' do
+        class_scope = described_class.extract(TestExceptionClass).scopes.first
+        method_scope = class_scope.scopes.find { |s| s.name == 'method_with_rescue' }
+
+        expect(method_scope).not_to be_nil
+        expect(method_scope.scope_type).to eq('METHOD')
+      end
+
+      it 'extracts parameters from method with exception handling' do
+        class_scope = described_class.extract(TestExceptionClass).scopes.first
+        method_scope = class_scope.scopes.find { |s| s.name == 'method_with_rescue' }
+
+        param_names = method_scope.symbols.map(&:name)
+        expect(param_names).to include('input')
+      end
+    end
+
+    context 'with define_method (metaprogramming)' do
+      # Ported from Java: tests dynamically defined methods. Java tests bytecode
+      # for dynamic proxies; Ruby equivalent is define_method.
+      before do
+        @filename = create_user_code_file(<<~RUBY)
+          class TestDefineMethodClass
+            define_method(:dynamic_method) do |arg1, arg2|
+              arg1 + arg2
+            end
+
+            def regular_method; end
+          end
+        RUBY
+        load @filename
+      end
+
+      after do
+        Object.send(:remove_const, :TestDefineMethodClass) if defined?(TestDefineMethodClass)
+        cleanup_user_code_file(@filename)
+      end
+
+      it 'extracts dynamically defined methods' do
+        class_scope = described_class.extract(TestDefineMethodClass).scopes.first
+        method_names = class_scope.scopes.map(&:name)
+
+        expect(method_names).to include('dynamic_method')
+        expect(method_names).to include('regular_method')
+      end
+
+      it 'extracts parameters from define_method' do
+        class_scope = described_class.extract(TestDefineMethodClass).scopes.first
+        method_scope = class_scope.scopes.find { |s| s.name == 'dynamic_method' }
+
+        param_names = method_scope.symbols.map(&:name)
+        expect(param_names).to include('arg1')
+        expect(param_names).to include('arg2')
+      end
+    end
+
+    context 'with Struct class' do
+      before do
+        @filename = create_user_code_file(<<~RUBY)
+          TestStructClass = Struct.new(:name, :age) do
+            def greeting
+              "Hello, \#{name}"
+            end
+          end
+        RUBY
+        load @filename
+      end
+
+      after do
+        Object.send(:remove_const, :TestStructClass) if defined?(TestStructClass)
+        cleanup_user_code_file(@filename)
+      end
+
+      it 'extracts Struct-based class' do
+        scope = described_class.extract(TestStructClass)
+
+        expect(scope).not_to be_nil
+        expect(scope.scope_type).to eq('PACKAGE')
+        expect(scope.name).to eq('TestStructClass')
+      end
+
+      it 'extracts user-defined methods on Struct' do
+        class_scope = described_class.extract(TestStructClass).scopes.first
+        method_names = class_scope.scopes.map(&:name)
+
+        expect(method_names).to include('greeting')
+      end
+    end
+
+    context 'with singleton/eigenclass methods (upload_class_methods: true)' do
+      # Ported from Java: tests static methods. Ruby equivalent is singleton methods.
+      before do
+        @filename = create_user_code_file(<<~RUBY)
+          class TestSingletonMethodsClass
+            def self.class_method_one(param)
+              param * 2
+            end
+
+            def self.class_method_two
+              "hello"
+            end
+
+            def instance_method
+              "instance"
+            end
+          end
+        RUBY
+        load @filename
+      end
+
+      after do
+        Object.send(:remove_const, :TestSingletonMethodsClass) if defined?(TestSingletonMethodsClass)
+        cleanup_user_code_file(@filename)
+      end
+
+      it 'extracts singleton methods when upload_class_methods is true' do
+        scope = described_class.extract(TestSingletonMethodsClass, upload_class_methods: true)
+        class_scope = scope.scopes.first
+        method_names = class_scope.scopes.map(&:name)
+
+        expect(method_names).to include('class_method_one')
+        expect(method_names).to include('class_method_two')
+        expect(method_names).to include('instance_method')
+      end
+
+      it 'marks singleton methods with method_type: class' do
+        scope = described_class.extract(TestSingletonMethodsClass, upload_class_methods: true)
+        class_scope = scope.scopes.first
+
+        cm = class_scope.scopes.find { |s| s.name == 'class_method_one' }
+        expect(cm.language_specifics[:method_type]).to eq('class')
+
+        im = class_scope.scopes.find { |s| s.name == 'instance_method' }
+        expect(im.language_specifics[:method_type]).to eq('instance')
+      end
+
+      it 'extracts parameters from singleton methods' do
+        scope = described_class.extract(TestSingletonMethodsClass, upload_class_methods: true)
+        class_scope = scope.scopes.first
+
+        cm = class_scope.scopes.find { |s| s.name == 'class_method_one' }
+        param_names = cm.symbols.map(&:name)
+        expect(param_names).to include('param')
+        # Singleton methods should NOT have self ARG
+        expect(param_names).not_to include('self')
+      end
+    end
+
+    context 'with filtering excluded packages/code' do
+      # Ported from Java SymbolExtractionTransformerTest: symbolExtraction15 (filtering)
+      # and SymDBEnablementTest: noIncludesFilterOutDatadogClass
+
+      it 'returns nil for Datadog internal classes' do
+        expect(described_class.extract(Datadog::SymbolDatabase::Extractor)).to be_nil
+        expect(described_class.extract(Datadog::SymbolDatabase::Scope)).to be_nil
+        expect(described_class.extract(Datadog::SymbolDatabase::Component)).to be_nil
+      end
+
+      it 'returns nil for Ruby stdlib classes' do
+        expect(described_class.extract(File)).to be_nil
+        expect(described_class.extract(Dir)).to be_nil
+        expect(described_class.extract(IO)).to be_nil
+      end
+
+      it 'returns nil for gem classes' do
+        expect(described_class.extract(RSpec)).to be_nil
+        expect(described_class.extract(RSpec::Core::Example)).to be_nil
+      end
+    end
+
+    context 'with class containing blocks and lambdas' do
+      # Ported from Java SymbolExtractionTransformerTest: symbolExtraction06 (lambdas)
+      # Ruby doesn't extract block/lambda scopes, but the enclosing methods should still work.
+      before do
+        @filename = create_user_code_file(<<~RUBY)
+          class TestBlockClass
+            MY_LAMBDA = ->(x) { x * 2 }
+            MY_PROC = Proc.new { |y| y + 1 }
+
+            def method_with_block
+              [1, 2, 3].each do |item|
+                puts item
+              end
+            end
+
+            def method_with_lambda
+              doubler = ->(n) { n * 2 }
+              doubler.call(5)
+            end
+          end
+        RUBY
+        load @filename
+      end
+
+      after do
+        Object.send(:remove_const, :TestBlockClass) if defined?(TestBlockClass)
+        cleanup_user_code_file(@filename)
+      end
+
+      it 'extracts methods that contain blocks' do
+        class_scope = described_class.extract(TestBlockClass).scopes.first
+        method_names = class_scope.scopes.map(&:name)
+
+        expect(method_names).to include('method_with_block')
+        expect(method_names).to include('method_with_lambda')
+      end
+
+      it 'extracts lambda constants as STATIC_FIELD symbols' do
+        class_scope = described_class.extract(TestBlockClass).scopes.first
+        constant_names = class_scope.symbols.map(&:name)
+
+        expect(constant_names).to include('MY_LAMBDA')
+        expect(constant_names).to include('MY_PROC')
+      end
+    end
+
+    context 'with duplicate class through re-load' do
+      # Ported from Java SymDBEnablementTest: noDuplicateSymbolExtraction
+      # Tests that the same class is not extracted twice when loaded from different paths.
+      it 'produces consistent extraction for the same class' do
+        filename = create_user_code_file(<<~RUBY)
+          class TestDuplicateClass
+            def some_method; end
+          end
+        RUBY
+        load filename
+
+        scope1 = described_class.extract(TestDuplicateClass)
+        scope2 = described_class.extract(TestDuplicateClass)
+
+        # Same class should produce identical extractions
+        expect(scope1.to_json).to eq(scope2.to_json)
+
+        Object.send(:remove_const, :TestDuplicateClass)
+        cleanup_user_code_file(filename)
+      end
+    end
   end
 
   describe '.user_code_module?' do

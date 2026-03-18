@@ -117,9 +117,74 @@ Datadog tracers.
 3. The backend already stores `method_type` and can use it for DI UI completions
    once the tracer can deliver on the probe.
 
+## Probe Spec Disambiguation (UI → Tracer via RC)
+
+The probe specification sent from the backend to the tracer via Remote Config uses
+`MethodProbeLocation` (TypeScript type in web-ui):
+
+```typescript
+// packages/api/endpoints/live-debugger/types/probe/probe-location.types.ts
+type MethodProbeLocation = {
+    typeName: string;    // e.g. "User"
+    methodName: string;  // e.g. "digest"
+    signature?: string;  // e.g. "String(Number, Object)" — optional
+};
+```
+
+There is **no `isClassMethod` or `isStatic` boolean** in the probe spec. For Java,
+disambiguation relies on the `signature` field: since static and instance methods have
+different JVM descriptors (static omits the implicit `this` parameter), the tracer can
+match the signature to the bytecode `MethodNode.access & Opcodes.ACC_STATIC`.
+
+**For Ruby, this approach doesn't work** because Ruby methods are untyped — a class
+method `def self.digest(string)` and instance method `def digest(string)` have
+identical `Method#parameters` output: `[[:req, :string]]`. There is no signature
+to distinguish them.
+
+**When Ruby DI adds class method support**, either:
+1. A new boolean field must be added to `MethodProbeLocation` (e.g. `isClassMethod`)
+2. Or the `signature` field is repurposed with a Ruby-specific convention
+
+This requires coordination between the web-ui, backend probe spec, and Ruby tracer.
+
+## `self` as an Implicit Argument
+
+Ruby DI emits `self` as the first `ARG` symbol for **instance methods** only.
+`self` is not in `Method#parameters` (it's implicit), but it must be registered so
+DI expression language can evaluate `self.name`, `self.class`, etc. at a probe point.
+
+For **class methods**, `self` is the class object itself — still accessible but less
+useful for DI expression evaluation, and not emitted to keep parity with other tracers.
+
+```ruby
+# In extract_method_parameters (extractor.rb):
+self_arg = if method_type == :instance
+  [Symbol.new(symbol_type: 'ARG', name: 'self', line: UNKNOWN_MIN_LINE)]
+else
+  []  # class methods: self not emitted
+end
+```
+
+## UI: How the Frontend Surfaces Methods
+
+The frontend uses these symdb API endpoints (web-ui/packages/api/endpoints/live-debugger/):
+- `/api/unstable/symdb-api/scopes/search` — search by class/method name
+- `/api/unstable/symdb-api/completions/scope/method` — get completions for a method probe
+
+The `DebuggerSymbolApi` type returned from search does NOT include `method_type` — the
+`LanguageSpecifics` type exposed to the frontend has `accessModifiers`, `annotations`,
+`interfaces`, `superClasses`, `returnType`, but no `method_type` or `isStatic`.
+
+**Implication:** Even if we upload class methods, the UI currently cannot distinguish
+them from instance methods in the search results. The `method_type: "class"` field
+is stored in the backend database but not surfaced to the frontend. Surfacing it would
+require a frontend change to `LanguageSpecifics` and UI rendering logic.
+
 ## References
 
 - `lib/datadog/di/instrumenter.rb:104` — current instance-method-only lookup
-- `lib/datadog/symbol_database/extractor.rb` — `extract_singleton_method_scope`
+- `lib/datadog/symbol_database/extractor.rb` — `extract_singleton_method_scope`, `extract_method_parameters`
 - `lib/datadog/symbol_database/configuration/settings.rb` — `upload_class_methods` setting
 - `debugger-backend/debugger-common/.../TracerVersionChecker.kt` — language min versions
+- `web-ui/packages/api/endpoints/live-debugger/types/probe/probe-location.types.ts` — probe spec
+- `web-ui/packages/api/endpoints/live-debugger/types/symdb-scopes.types.ts` — LanguageSpecifics type
