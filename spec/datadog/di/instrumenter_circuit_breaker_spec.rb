@@ -370,13 +370,18 @@ RSpec.describe 'Datadog::DI::Instrumenter circuit breaker' do
       end.new(status_payloads)
     end
 
+    let(:probe_repository) do
+      Datadog::DI::ProbeRepository.new
+    end
+
     let(:probe_manager) do
       Datadog::DI::ProbeManager.new(
         settings,
         instrumenter,
         probe_notification_builder,
         probe_notifier_worker,
-        logger
+        logger,
+        probe_repository,
       )
     end
 
