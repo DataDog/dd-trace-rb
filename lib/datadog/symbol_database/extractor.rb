@@ -568,13 +568,7 @@ module Datadog
           []
         end
 
-        if params.nil?
-          Datadog.logger.debug("SymDB: method.parameters returned nil for #{method_name}")
-          return self_arg
-        end
-
-        if params.empty?
-          Datadog.logger.debug("SymDB: method.parameters returned empty for #{method_name}")
+        if params.nil? || params.empty?
           return self_arg
         end
 
@@ -596,7 +590,6 @@ module Datadog
         end
 
         if result.empty? && !params.empty?
-          Datadog.logger.debug("SymDB: Extracted 0 parameters from #{method_name} (params: #{params.inspect})")
         end
 
         self_arg + result
@@ -616,13 +609,7 @@ module Datadog
         end
         params = method.parameters
 
-        if params.nil?
-          Datadog.logger.debug("SymDB: method.parameters returned nil for singleton #{method_name}")
-          return []
-        end
-
-        if params.empty?
-          Datadog.logger.debug("SymDB: method.parameters returned empty for singleton #{method_name}")
+        if params.nil? || params.empty?
           return []
         end
 
@@ -644,7 +631,6 @@ module Datadog
         end
 
         if result.empty? && !params.empty?
-          Datadog.logger.debug("SymDB: Extracted 0 parameters from singleton #{method_name} (params: #{params.inspect})")
         end
 
         result
