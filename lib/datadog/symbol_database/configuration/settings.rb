@@ -65,7 +65,6 @@ module Datadog
                 # See: docs/class_methods_di_design.md for full analysis.
                 option :upload_class_methods do |o|
                   o.type :bool
-                  o.env 'DD_INTERNAL_SYMBOL_DATABASE_UPLOAD_CLASS_METHODS'
                   o.default false
                 end
               end

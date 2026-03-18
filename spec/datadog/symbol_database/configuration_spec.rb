@@ -126,8 +126,7 @@ RSpec.describe 'Symbol Database Configuration' do
     end
   end
 
-  # NOTE: DD_INTERNAL_SYMBOL_DATABASE_UPLOAD_CLASS_METHODS is an internal setting
-  # that requires registration in supported-configurations.json. Testing it here
-  # would fail due to the env var allowlist check. It is exercised indirectly by
-  # extractor_spec.rb tests that pass upload_class_methods: true.
+  # NOTE: symbol_database.internal.upload_class_methods is a code-only internal setting
+  # (no env var). It is exercised indirectly by extractor_spec.rb tests that pass
+  # upload_class_methods: true.
 end
