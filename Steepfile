@@ -537,6 +537,7 @@ target :datadog do
   library 'logger', 'monitor'
   library 'json'
   library 'ipaddr'
+  library 'uri'
   library 'net-http'
   library 'securerandom'
   library 'digest'
