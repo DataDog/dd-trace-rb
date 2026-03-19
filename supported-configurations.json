@@ -2258,6 +2258,13 @@
         "default": null
       }
     ],
+    "DD_TRACE_STATS_COMPUTATION_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_TRACE_STRIPE_ANALYTICS_ENABLED": [
       {
         "version": "A",

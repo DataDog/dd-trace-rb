@@ -7,6 +7,9 @@ require_relative 'sampling/span/rule_parser'
 require_relative 'sampling/span/sampler'
 require_relative 'diagnostics/environment_logger'
 require_relative 'contrib/component'
+require_relative 'stats/writer'
+require_relative '../core/environment/identity'
+require_relative '../core/environment/container'
 
 module Datadog
   module Tracing
@@ -210,6 +213,42 @@ module Datadog
 
         # Flush traces synchronously, to guarantee they are written.
         Tracing::SyncWriter.new(agent_settings: agent_settings, **writer_options)
+      end
+
+      # Build the client-side stats writer if enabled.
+      #
+      # @param settings [Datadog::Core::Configuration::Settings]
+      # @param agent_settings [Object] agent connection settings
+      # @param logger [Logger]
+      # @param agent_info [Datadog::Core::Environment::AgentInfo, nil]
+      # @return [Tracing::Stats::Writer, nil]
+      def build_stats_writer(settings, agent_settings, logger:, agent_info: nil)
+        return unless settings.tracing.stats_computation.enabled
+
+        # Fetch agent peer_tags if available
+        agent_peer_tags = nil
+        if agent_info
+          begin
+            response = agent_info.fetch
+            agent_peer_tags = response.respond_to?(:peer_tags) ? response.peer_tags : nil
+          rescue => e
+            logger.debug("Could not fetch agent info for stats: #{e}")
+          end
+        end
+
+        Tracing::Stats::Writer.new(
+          agent_settings: agent_settings,
+          logger: logger,
+          env: settings.env,
+          service: settings.service,
+          version: settings.version,
+          runtime_id: Core::Environment::Identity.id,
+          container_id: Core::Environment::Container.container_id || '',
+          agent_peer_tags: agent_peer_tags,
+        )
+      rescue => e
+        logger.warn("Failed to initialize client-side stats writer: #{e.class}: #{e}")
+        nil
       end
     end
   end

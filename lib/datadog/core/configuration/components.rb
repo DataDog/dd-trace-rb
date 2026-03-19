@@ -118,7 +118,8 @@ module Datadog
           :ai_guard,
           :agent_info,
           :data_streams,
-          :open_feature
+          :open_feature,
+          :stats_writer
 
         def initialize(settings)
           @settings = settings
@@ -168,6 +169,9 @@ module Datadog
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
           @data_streams = self.class.build_data_streams(settings, agent_settings, @logger, @agent_info)
+          @stats_writer = Datadog::Tracing::Component.build_stats_writer(
+            settings, agent_settings, logger: @logger, agent_info: @agent_info
+          )
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
 
           # Configure non-privileged components.
@@ -253,6 +257,9 @@ module Datadog
 
           # Shutdown Data Streams Monitoring processor
           data_streams&.stop(true)
+
+          # Shutdown client-side stats writer
+          stats_writer&.stop(true)
 
           # Shutdown the old metrics, unless they are still being used.
           # (e.g. custom Statsd instances.)

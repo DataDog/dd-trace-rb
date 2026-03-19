@@ -65,7 +65,8 @@ module Datadog
             headers.merge!(Core::Environment::Container.to_headers)
 
             # TODO: inject configuration rather than reading from global here
-            unless Datadog.configuration.apm.tracing.enabled
+            if !Datadog.configuration.apm.tracing.enabled ||
+                Datadog.configuration.tracing.stats_computation.enabled
               # Sending this header to the agent will disable metrics computation (and billing) on the agent side
               # by pretending it has already been done on the library side.
               headers[Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_STATS] = 'yes'

@@ -26,6 +26,8 @@ module Datadog
                 @endpoints = options[:endpoints]
                 @config = options[:config]
                 @span_events = options[:span_events]
+                @client_drop_p0s = options[:client_drop_p0s]
+                @peer_tags = options[:peer_tags]
               end
 
               # @!attribute [r] version
@@ -40,7 +42,13 @@ module Datadog
               # @!attribute [r] span_events
               #   Whether the agent supports the top-level span events field in flushed spans.
               #   @return [Boolean,nil]
-              attr_reader :version, :endpoints, :config, :span_events
+              # @!attribute [r] client_drop_p0s
+              #   Whether the agent supports client-side dropping of P0 traces.
+              #   @return [Boolean,nil]
+              # @!attribute [r] peer_tags
+              #   The list of peer tag keys the agent supports for stats aggregation.
+              #   @return [Array<String>,nil]
+              attr_reader :version, :endpoints, :config, :span_events, :client_drop_p0s, :peer_tags
             end
 
             module API

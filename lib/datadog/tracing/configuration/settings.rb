@@ -4,6 +4,7 @@ require_relative '../../tracing/configuration/ext'
 require_relative '../../core/environment/variable_helpers'
 require_relative '../contrib/status_range_matcher'
 require_relative '../contrib/status_range_env_parser'
+require_relative '../stats/ext'
 require_relative 'http'
 
 module Datadog
@@ -562,6 +563,24 @@ module Datadog
                   o.env_parser do |values|
                     Tracing::Contrib::StatusRangeEnvParser.call(values)
                   end
+                end
+              end
+
+              # Client-side stats computation configuration.
+              #
+              # When enabled, the tracer computes trace stats locally and sends them
+              # to the agent's /v0.6/stats endpoint. This reduces agent resource
+              # consumption and enables support for peer tags aggregation.
+              # @!visibility private
+              settings :stats_computation do
+                # Whether client-side stats computation is enabled.
+                #
+                # @default `DD_TRACE_STATS_COMPUTATION_ENABLED` environment variable, otherwise `false`.
+                # @return [Boolean]
+                option :enabled do |o|
+                  o.type :bool
+                  o.env Tracing::Stats::Ext::ENV_ENABLED
+                  o.default false
                 end
               end
             end
