@@ -240,4 +240,38 @@ RSpec.describe Datadog::Core::Environment::Process do
       end
     end
   end
+
+  describe '::recompute_tags!' do
+    include_context 'with mocked process environment'
+    let(:program_name) { 'bin/rails' }
+    let(:default_process_tags) { ["entrypoint.workdir:app", "entrypoint.name:rails", "entrypoint.basedir:bin", "entrypoint.type:script"] }
+
+    before do
+      allow(Datadog::Core::Contrib::Rails::Utils).to receive(:railtie_supported?).and_return(true)
+    end
+
+    it 'recomputes the process tags when called' do
+      # First the Rails app doesn't have the app name yet
+      allow(Datadog::Core::Contrib::Rails::Utils).to receive(:app_name).and_return(nil)
+      expect(described_class.tags).to_not include('rails.application:test_app')
+
+      # Now the Rails app has the app name
+      allow(Datadog::Core::Contrib::Rails::Utils).to receive(:app_name).and_return('MyNewApp::App')
+      new_process_tags = described_class.recompute_tags!
+      expect(new_process_tags).to include('rails.application:mynewapp_app')
+      expect(described_class.serialized).to include('rails.application:mynewapp_app')
+    end
+
+    it 'is safe to call even if we have no tags yet' do
+      described_class.remove_instance_variable(:@tags) if described_class.instance_variable_defined?(:@tags)
+      described_class.remove_instance_variable(:@serialized) if described_class.instance_variable_defined?(:@serialized)
+
+      # We check that the logic doesn't throw errors when we can't get the rails app name yet
+      allow(Datadog::Core::Contrib::Rails::Utils).to receive(:app_name).and_return(nil)
+
+      new_process_tags = described_class.recompute_tags!
+      expect(new_process_tags).to include(*default_process_tags)
+      expect(new_process_tags).to_not include('rails.application:mynewapp_app')
+    end
+  end
 end

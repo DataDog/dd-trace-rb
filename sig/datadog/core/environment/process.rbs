@@ -9,6 +9,8 @@ module Datadog
 
         def self.tags: () -> ::Array[::String]
 
+        def self.recompute_tags!: () -> ::Array[::String]
+
         private
 
         def self.entrypoint_workdir: () -> ::String

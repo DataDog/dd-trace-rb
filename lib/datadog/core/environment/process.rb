@@ -90,6 +90,15 @@ module Datadog
           Core::Contrib::Rails::Utils.app_name
         end
 
+        # Sometimes we may want to force a recompute of the process tags when certain conditions have been met
+        # Example: Rails application names are not obtainable until after initialization
+        # @return [Array<String>] the new tags array
+        def self.recompute_tags!
+          remove_instance_variable(:@tags) if instance_variable_defined?(:@tags)
+          remove_instance_variable(:@serialized) if instance_variable_defined?(:@serialized)
+          tags
+        end
+
         private_class_method :entrypoint_workdir, :entrypoint_type, :entrypoint_name, :entrypoint_basedir, :rails_application
       end
     end
