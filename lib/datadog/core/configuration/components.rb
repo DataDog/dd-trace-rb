@@ -172,6 +172,16 @@ module Datadog
           @stats_writer = Datadog::Tracing::Component.build_stats_writer(
             settings, agent_settings, logger: @logger, agent_info: @agent_info
           )
+
+          # Feed completed spans to the stats writer when it is enabled.
+          # trace_completed fires after each trace is written, with finished Span objects.
+          if @stats_writer
+            sw = @stats_writer
+            @tracer.trace_completed.subscribe do |trace|
+              trace.spans.each { |span| sw.add_span(span) }
+            end
+          end
+
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
 
           # Configure non-privileged components.
