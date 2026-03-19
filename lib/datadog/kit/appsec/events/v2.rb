@@ -121,7 +121,8 @@ module Datadog
               record_event_telemetry_metric(LOGIN_FAILURE_EVENT)
               ::Datadog::AppSec::Instrumentation.gateway.push('appsec.events.user_lifecycle', LOGIN_FAILURE_EVENT)
 
-              user_info = {login: login, framework: 'sdk'}
+              user_info = {login: login, framework: 'sdk', event_type: 'login_failure'}
+              ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', user_info)
               ::Datadog::AppSec::Instrumentation.gateway.push('identity.login_failure', user_info)
             end
 
