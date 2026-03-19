@@ -45,8 +45,8 @@ module Datadog
                 user_session_id = context.span[Ext::TAG_SESSION_ID] || session_id
 
                 AppSec::Instrumentation.gateway.push(
-                  'identity.set_user',
-                  {id: user_id, session_id: user_session_id, framework: 'devise', event_type: 'authenticated_request'}
+                  'identity.devise.authenticated_request',
+                  {id: user_id, session_id: user_session_id}
                 )
               end
 

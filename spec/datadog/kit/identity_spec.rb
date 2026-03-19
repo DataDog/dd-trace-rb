@@ -248,8 +248,8 @@ RSpec.describe Datadog::Kit::Identity do
 
         it 'instruments the user information to appsec' do
           expect_any_instance_of(Datadog::AppSec::Instrumentation::Gateway).to receive(:push).with(
-            'identity.set_user',
-            a_hash_including(id: '42', framework: 'sdk')
+            'identity.sdk.set_user',
+            a_hash_including(id: '42')
           )
 
           described_class.set_user(trace_op, id: '42')
@@ -258,7 +258,7 @@ RSpec.describe Datadog::Kit::Identity do
 
       context 'when is disabled' do
         it 'does not instrument the user information to appsec' do
-          expect_any_instance_of(Datadog::AppSec::Instrumentation::Gateway).to_not receive(:push).with('identity.set_user')
+          expect_any_instance_of(Datadog::AppSec::Instrumentation::Gateway).to_not receive(:push).with('identity.sdk.set_user')
 
           trace_op.measure('root') do
             described_class.set_user(trace_op, id: '42')

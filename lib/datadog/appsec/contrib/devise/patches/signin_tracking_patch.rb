@@ -63,7 +63,7 @@ module Datadog
               #       and because of that we will trigger an additional event even
               #       if it was already done via the SDK
               AppSec::Instrumentation.gateway.push(
-                'identity.set_user', {id: id, login: login, framework: 'devise', event_type: 'login_success'}
+                'identity.devise.login_success', {id: id, login: login}
               )
             end
 
@@ -81,7 +81,7 @@ module Datadog
                 context.span[Ext::TAG_LOGIN_FAILURE_USR_EXISTS] ||= 'false'
 
                 AppSec::Instrumentation.gateway.push(
-                  'identity.login_failure', {login: login, framework: 'devise'}
+                  'identity.devise.login_failure', {login: login}
                 )
 
                 return
@@ -100,7 +100,7 @@ module Datadog
               context.span[Ext::TAG_LOGIN_FAILURE_USR_EXISTS] ||= 'true'
 
               AppSec::Instrumentation.gateway.push(
-                'identity.login_failure', {id: id, login: login, framework: 'devise'}
+                'identity.devise.login_failure', {id: id, login: login}
               )
             end
           end

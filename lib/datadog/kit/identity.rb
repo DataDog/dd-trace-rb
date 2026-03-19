@@ -70,8 +70,9 @@ module Datadog
             if Datadog::AppSec.active_context
               active_span.set_tag('_dd.appsec.user.collection_mode', 'sdk')
 
-              user_info = {id: id, login: others[:login], session_id: session_id, framework: 'sdk'}
-              ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', user_info)
+              ::Datadog::AppSec::Instrumentation.gateway.push(
+                'identity.sdk.set_user', {id: id, login: others[:login], session_id: session_id}
+              )
             end
           end
         end

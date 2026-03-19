@@ -70,8 +70,7 @@ module Datadog
 
               # NOTE: This is a fallback for the case when we don't have an ID,
               #       but need to trigger WAF.
-              user_info = {login: login, framework: 'sdk', event_type: 'login_success'}
-              ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', user_info)
+              ::Datadog::AppSec::Instrumentation.gateway.push('identity.sdk.set_user', {login: login})
             end
 
             # Attach user login failure information to the service entry span
@@ -121,9 +120,7 @@ module Datadog
               record_event_telemetry_metric(LOGIN_FAILURE_EVENT)
               ::Datadog::AppSec::Instrumentation.gateway.push('appsec.events.user_lifecycle', LOGIN_FAILURE_EVENT)
 
-              user_info = {login: login, framework: 'sdk', event_type: 'login_failure'}
-              ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', user_info)
-              ::Datadog::AppSec::Instrumentation.gateway.push('identity.login_failure', user_info)
+              ::Datadog::AppSec::Instrumentation.gateway.push('identity.sdk.login_failure', {login: login})
             end
 
             private

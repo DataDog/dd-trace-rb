@@ -13,51 +13,48 @@ module Datadog
             def watch
               gateway = Instrumentation.gateway
 
-              watch_set_user(gateway)
-              watch_login_failure(gateway)
+              watch_user_lifecycle(gateway)
+              watch_authenticated_request(gateway)
             end
 
-            def watch_set_user(gateway = Instrumentation.gateway)
-              gateway.watch('identity.set_user') do |stack, user_info|
-                event_type = user_info[:event_type]
-                report_missing_user_telemetry(user_info, event_type) if event_type
+            def watch_user_lifecycle(gateway = Instrumentation.gateway)
+              %w[
+                identity.devise.login_success
+                identity.devise.login_failure
+                identity.devise.signup
+              ].each do |event_name|
+                gateway.watch(event_name) do |stack, user_info|
+                  _, framework, event_type = event_name.split('.')
+                  tags = {framework: framework, event_type: event_type}
+
+                  if user_info[:login].nil?
+                    AppSec.telemetry.inc(
+                      Ext::TELEMETRY_METRICS_NAMESPACE, 'instrum.user_auth.missing_user_login', 1, tags: tags
+                    )
+                  end
+
+                  if user_info[:id].nil? && user_info[:login].nil?
+                    AppSec.telemetry.inc(
+                      Ext::TELEMETRY_METRICS_NAMESPACE, 'instrum.user_auth.missing_user_id', 1, tags: tags
+                    )
+                  end
+
+                  stack.call(user_info)
+                end
+              end
+            end
+
+            def watch_authenticated_request(gateway = Instrumentation.gateway)
+              gateway.watch('identity.devise.authenticated_request') do |stack, user_info|
+                tags = {framework: 'devise', event_type: 'authenticated_request'}
+
+                if user_info[:id].nil?
+                  AppSec.telemetry.inc(
+                    Ext::TELEMETRY_METRICS_NAMESPACE, 'instrum.user_auth.missing_user_id', 1, tags: tags
+                  )
+                end
 
                 stack.call(user_info)
-              end
-            end
-
-            def watch_login_failure(gateway = Instrumentation.gateway)
-              gateway.watch('identity.login_failure') do |stack, user_info|
-                report_missing_user_telemetry(user_info, 'login_failure')
-
-                stack.call(user_info)
-              end
-            end
-
-            private
-
-            def report_missing_user_telemetry(user_info, event_type)
-              tags = {framework: user_info[:framework], event_type: event_type}
-
-              missing_login = user_info[:login].nil?
-              missing_id = user_info[:id].nil?
-
-              if missing_login && event_type != 'authenticated_request'
-                AppSec.telemetry.inc(
-                  Ext::TELEMETRY_METRICS_NAMESPACE,
-                  'instrum.user_auth.missing_user_login',
-                  1,
-                  tags: tags,
-                )
-              end
-
-              if missing_id && (event_type == 'authenticated_request' || missing_login)
-                AppSec.telemetry.inc(
-                  Ext::TELEMETRY_METRICS_NAMESPACE,
-                  'instrum.user_auth.missing_user_id',
-                  1,
-                  tags: tags,
-                )
               end
             end
           end

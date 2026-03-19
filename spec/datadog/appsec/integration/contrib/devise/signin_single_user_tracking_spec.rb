@@ -119,7 +119,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     allow(Datadog::AppSec::Instrumentation).to receive(:gateway).and_return(gateway)
     Datadog::AppSec::Monitor::Gateway::TelemetryWatcher.watch
 
-    allow(Datadog::AppSec.telemetry).to receive(:inc).and_call_original
+    allow(Datadog::AppSec.telemetry).to receive(:inc)
 
     # NOTE: Don't reach the agent in any way
     allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
