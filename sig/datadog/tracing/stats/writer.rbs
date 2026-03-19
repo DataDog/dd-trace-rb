@@ -37,6 +37,8 @@ module Datadog
 
         private
 
+        def loop_base_interval=: (::Float) -> ::Float
+
         def flush_stats: (?force: bool) -> untyped
 
         def send_stats_to_agent: (untyped payload) -> untyped

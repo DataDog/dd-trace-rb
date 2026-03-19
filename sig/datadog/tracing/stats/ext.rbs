@@ -12,10 +12,10 @@ module Datadog
         TRILEAN_TRUE: 1
 
         TRILEAN_FALSE: 2
-        GRPC_STATUS_CODE_TAGS: ::Array["rpc.grpc.status_code" | "grpc.code" | "rpc.grpc.status.code" | "grpc.status.code"]
-        ELIGIBLE_SPAN_KINDS: ::Array["server" | "client" | "producer" | "consumer"]
-        PEER_TAG_SPAN_KINDS: ::Array["client" | "producer" | "consumer"]
-        PEER_TAG_KEYS: ::Array["_dd.base_service" | "peer.service" | "peer.hostname" | "out.host" | "db.instance" | "db.system" | "messaging.destination" | "network.destination.name"]
+        GRPC_STATUS_CODE_TAGS: ::Array[::String]
+        ELIGIBLE_SPAN_KINDS: ::Array[::String]
+        PEER_TAG_SPAN_KINDS: ::Array[::String]
+        PEER_TAG_KEYS: ::Array[::String]
       end
     end
   end

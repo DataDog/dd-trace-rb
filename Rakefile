@@ -31,6 +31,9 @@ CORE_WITH_LIBDATADOG_API = [
   'spec/datadog/data_streams/**/*_spec.rb',
   'spec/datadog/open_feature_spec.rb',
   'spec/datadog/core/libdatadog_extconf_helpers_spec.rb',
+  'spec/datadog/tracing/stats/concentrator_spec.rb',
+  'spec/datadog/tracing/stats/serializer_spec.rb',
+  'spec/datadog/tracing/stats/writer_spec.rb',
 ].freeze
 
 # Data Streams Monitoring (DSM) requires libdatadog_api for DDSketch
