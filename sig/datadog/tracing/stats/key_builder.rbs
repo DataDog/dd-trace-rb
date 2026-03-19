@@ -1,0 +1,16 @@
+module Datadog
+  module Tracing
+    module Stats
+      module KeyBuilder
+        def self?.build: (untyped span, ?synthetics: bool, ?agent_peer_tags: untyped?) -> untyped
+        def self?.extract_http_status_code: (untyped span) -> (0 | untyped)
+        def self?.extract_grpc_status_code: (untyped span) -> (untyped | 0)
+        def self?.extract_span_kind: (untyped span) -> untyped
+        def self?.extract_is_trace_root: (untyped span) -> untyped
+        def self?.extract_peer_tags: (untyped span, untyped agent_peer_tags) -> (::Array[untyped] | untyped)
+        def self?.extract_http_method: (untyped span) -> untyped
+        def self?.extract_http_endpoint: (untyped span) -> untyped
+      end
+    end
+  end
+end

@@ -1,0 +1,63 @@
+module Datadog
+  module Tracing
+    module Stats
+      class AggregationKey
+        @service: untyped
+
+        @name: untyped
+
+        @resource: untyped
+
+        @type: untyped
+
+        @http_status_code: untyped
+
+        @grpc_status_code: untyped
+
+        @span_kind: untyped
+
+        @synthetics: untyped
+
+        @is_trace_root: untyped
+
+        @peer_tags: untyped
+
+        @http_method: untyped
+
+        @http_endpoint: untyped
+
+        attr_reader service: untyped
+
+        attr_reader name: untyped
+
+        attr_reader resource: untyped
+
+        attr_reader type: untyped
+
+        attr_reader http_status_code: untyped
+
+        attr_reader grpc_status_code: untyped
+
+        attr_reader span_kind: untyped
+
+        attr_reader synthetics: untyped
+
+        attr_reader is_trace_root: untyped
+
+        attr_reader peer_tags: untyped
+
+        attr_reader http_method: untyped
+
+        attr_reader http_endpoint: untyped
+
+        def initialize: (service: untyped, name: untyped, resource: untyped, ?type: ::String, ?http_status_code: ::Integer, ?grpc_status_code: ::Integer, ?span_kind: ::String, ?synthetics: bool, ?is_trace_root: untyped, ?peer_tags: untyped?, ?http_method: ::String, ?http_endpoint: ::String) -> void
+
+        def ==: (untyped other) -> untyped
+
+        alias eql? ==
+
+        def hash: () -> untyped
+      end
+    end
+  end
+end

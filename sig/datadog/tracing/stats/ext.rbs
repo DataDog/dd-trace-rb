@@ -1,0 +1,22 @@
+module Datadog
+  module Tracing
+    module Stats
+      module Ext
+        ENV_ENABLED: "DD_TRACE_STATS_COMPUTATION_ENABLED"
+        BUCKET_DURATION_NS: 10000000000
+        DDSKETCH_RELATIVE_ACCURACY: ::Float
+
+        DDSKETCH_MAX_BINS: 2048
+        TRILEAN_NOT_SET: 0
+
+        TRILEAN_TRUE: 1
+
+        TRILEAN_FALSE: 2
+        GRPC_STATUS_CODE_TAGS: ::Array["rpc.grpc.status_code" | "grpc.code" | "rpc.grpc.status.code" | "grpc.status.code"]
+        ELIGIBLE_SPAN_KINDS: ::Array["server" | "client" | "producer" | "consumer"]
+        PEER_TAG_SPAN_KINDS: ::Array["client" | "producer" | "consumer"]
+        PEER_TAG_KEYS: ::Array["_dd.base_service" | "peer.service" | "peer.hostname" | "out.host" | "db.instance" | "db.system" | "messaging.destination" | "network.destination.name"]
+      end
+    end
+  end
+end

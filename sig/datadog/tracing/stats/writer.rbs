@@ -1,0 +1,50 @@
+module Datadog
+  module Tracing
+    module Stats
+      class Writer < Core::Worker
+        @agent_settings: untyped
+
+        @logger: untyped
+
+        @env: untyped
+
+        @service: untyped
+
+        @version: untyped
+
+        @runtime_id: untyped
+
+        @container_id: untyped
+
+        @sequence: untyped
+
+        @sequence_mutex: untyped
+
+        @concentrator: untyped
+
+        @transport: untyped
+
+        include Core::Workers::Polling
+
+        DEFAULT_FLUSH_INTERVAL: ::Float
+
+        attr_reader concentrator: untyped
+        def initialize: (agent_settings: untyped, logger: untyped, ?env: untyped?, ?service: untyped?, ?version: untyped?, ?runtime_id: ::String, ?container_id: ::String, ?agent_peer_tags: untyped?, ?interval: untyped) -> void
+        def add_span: (untyped span, ?synthetics: bool, ?partial: bool) -> untyped
+        def perform: () -> true
+        def stop: (?bool force_stop, ?untyped timeout) -> untyped
+        def agent_peer_tags=: (untyped tags) -> untyped
+
+        private
+
+        def flush_stats: (?force: bool) -> untyped
+
+        def send_stats_to_agent: (untyped payload) -> untyped
+
+        def transport: () -> untyped
+
+        def next_sequence: () -> untyped
+      end
+    end
+  end
+end

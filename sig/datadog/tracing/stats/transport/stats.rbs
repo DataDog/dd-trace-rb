@@ -1,0 +1,15 @@
+module Datadog
+  module Tracing
+    module Stats
+      module Transport
+        module StatsTransport
+          class Request < Datadog::Core::Transport::Request
+          end
+          class Transport < Core::Transport::Transport
+            def send_stats: (untyped payload) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

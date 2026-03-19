@@ -1,0 +1,14 @@
+module Datadog
+  module Tracing
+    module Stats
+      module Serializer
+        def self?.serialize: (untyped flushed_buckets, env: untyped, service: untyped, ?version: untyped?, ?runtime_id: ::String, ?sequence: ::Integer, ?container_id: ::String) -> { "Hostname" => untyped, "Env" => untyped, "Version" => untyped, "Stats" => untyped, "Lang" => "ruby", "TracerVersion" => untyped, "RuntimeID" => untyped, "Sequence" => untyped, "AgentAggregation" => "", "Service" => untyped, "ContainerID" => untyped, "Tags" => ::Array[untyped] }
+        def self?.encode: (untyped payload) -> untyped
+        def self?.serialize_buckets: (untyped flushed_buckets) -> untyped
+        def self?.serialize_groups: (untyped groups) -> untyped
+        def self?.encode_sketch: (untyped sketch) -> untyped
+        def self?.hostname: () -> untyped
+      end
+    end
+  end
+end

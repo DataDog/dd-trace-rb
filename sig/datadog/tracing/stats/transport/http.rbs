@@ -1,0 +1,12 @@
+module Datadog
+  module Tracing
+    module Stats
+      module Transport
+        module HTTP
+          V06: untyped
+          def self?.default: (agent_settings: untyped, logger: untyped) ?{ (untyped) -> untyped } -> untyped
+        end
+      end
+    end
+  end
+end

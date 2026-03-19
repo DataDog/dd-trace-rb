@@ -1,0 +1,25 @@
+module Datadog
+  module Tracing
+    module Stats
+      class Concentrator
+        @buckets: untyped
+
+        @mutex: untyped
+
+        @agent_peer_tags: untyped
+
+        attr_reader buckets: untyped
+        def initialize: (?agent_peer_tags: untyped?) -> void
+        def agent_peer_tags=: (untyped tags) -> untyped
+        def add_span: (untyped span, ?synthetics: bool, ?partial: bool) -> (nil | untyped)
+        def flush: (now_ns: untyped, ?force: bool) -> untyped
+
+        private
+        def compute_bucket_time: (untyped span) -> untyped
+        def span_end_time_ns: (untyped span) -> (0 | untyped)
+        def span_duration_ns: (untyped span) -> (0 | untyped)
+        def new_group: () -> { hits: 0, errors: 0, duration: 0, top_level_hits: 0, ok_distribution: untyped, error_distribution: untyped }
+      end
+    end
+  end
+end

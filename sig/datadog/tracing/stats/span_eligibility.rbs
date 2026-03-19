@@ -1,0 +1,12 @@
+module Datadog
+  module Tracing
+    module Stats
+      module SpanEligibility
+        def self?.eligible?: (untyped span, ?partial: bool) -> (false | untyped)
+        def self?.top_level?: (untyped span) -> untyped
+        def self?.measured?: (untyped span) -> untyped
+        def self?.eligible_span_kind?: (untyped span) -> (false | untyped)
+      end
+    end
+  end
+end

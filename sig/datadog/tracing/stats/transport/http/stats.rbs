@@ -1,0 +1,27 @@
+module Datadog
+  module Tracing
+    module Stats
+      module Transport
+        module HTTP
+          module StatsEndpoint
+            class Response
+              include Datadog::Core::Transport::HTTP::Response
+
+              def initialize: (untyped http_response) -> void
+            end
+
+            module API
+              class Endpoint < Core::Transport::HTTP::API::Endpoint
+                def initialize: (untyped path) -> void
+
+                def call: (untyped env) { (untyped) -> untyped } -> untyped
+
+                def encoder: () -> nil
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+end
