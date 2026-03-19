@@ -67,5 +67,6 @@ require_relative 'appsec/contrib/graphql/integration'
 require_relative 'appsec/contrib/faraday/integration'
 require_relative 'appsec/contrib/excon/integration'
 require_relative 'appsec/contrib/rest_client/integration'
+require_relative 'appsec/contrib/aws_lambda/integration'
 
 require_relative 'appsec/autoload'
