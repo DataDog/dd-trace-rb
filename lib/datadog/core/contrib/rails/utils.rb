@@ -11,6 +11,9 @@ module Datadog
             application_name = ::Rails.application.class.public_send(namespace_method)
             return nil if application_name.nil?
             application_name.underscore
+          rescue
+            # Adds a failsafe during app boot, teardown, or test stubs where the application is not initialized and this check gets performed
+            nil
           end
 
           def self.railtie_supported?
