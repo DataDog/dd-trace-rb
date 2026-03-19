@@ -4,10 +4,17 @@ stages:
   - shared-pipeline
   - macrobenchmarks
   - microbenchmarks
+  - infrastructure
+  - ruby-acme-benchmarks
+  - generate-slos
+  - upload-to-bp-api
 
 include:
   - local: ".gitlab/one-pipeline.locked.yml"
   - local: ".gitlab/benchmarks.yml"
+  - project: "DataDog/apm-reliability/apm-sdks-benchmarks"
+    ref: 9ff11543339e7e3dceac47bc5c897d23350faa57
+    file: '.gitlab/ci-ruby-acme.yml'
 
 variables:
   RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby
