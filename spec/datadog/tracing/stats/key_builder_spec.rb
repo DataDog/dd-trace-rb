@@ -106,10 +106,10 @@ RSpec.describe Datadog::Tracing::Stats::KeyBuilder do
 
       it 'collects peer tags from the span' do
         span.set_tag('peer.service', 'postgres')
-        span.set_tag('db.name', 'users_db')
+        span.set_tag('db.instance', 'users_db')
 
         tags = described_class.extract_peer_tags(span, nil)
-        expect(tags).to include('db.name:users_db', 'peer.service:postgres')
+        expect(tags).to include('db.instance:users_db', 'peer.service:postgres')
       end
 
       it 'returns sorted tags' do

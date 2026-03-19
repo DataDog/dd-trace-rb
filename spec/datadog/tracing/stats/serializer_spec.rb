@@ -123,7 +123,7 @@ RSpec.describe Datadog::Tracing::Stats::Serializer do
       expect(group['Resource']).to eq('GET /users')
       expect(group['Type']).to eq('web')
       expect(group['HTTPStatusCode']).to eq(200)
-      expect(group['GRPCStatusCode']).to eq(0)
+      expect(group['GRPCStatusCode']).to eq('0')
       expect(group['SpanKind']).to eq('server')
       expect(group['Synthetics']).to eq(false)
       expect(group['IsTraceRoot']).to eq(Datadog::Tracing::Stats::Ext::TRILEAN_TRUE)

@@ -47,7 +47,7 @@ module Datadog
       #   SpanKind    string
       #   PeerTags    []string
       #   IsTraceRoot int32  (Trilean)
-      #   GRPCStatusCode uint32
+      #   GRPCStatusCode string
       #   HTTPMethod  string
       #   HTTPEndpoint string
       module Serializer
@@ -129,7 +129,7 @@ module Datadog
               'SpanKind' => key.span_kind,
               'PeerTags' => key.peer_tags,
               'IsTraceRoot' => key.is_trace_root,
-              'GRPCStatusCode' => key.grpc_status_code,
+              'GRPCStatusCode' => key.grpc_status_code.to_s,
               'HTTPMethod' => key.http_method,
               'HTTPEndpoint' => key.http_endpoint,
             }

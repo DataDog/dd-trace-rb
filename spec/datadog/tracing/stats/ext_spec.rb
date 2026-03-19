@@ -35,6 +35,15 @@ RSpec.describe Datadog::Tracing::Stats::Ext do
   end
 
   it 'defines default peer tag keys' do
-    expect(described_class::PEER_TAG_KEYS).to include('peer.service', '_dd.base_service')
+    expect(described_class::PEER_TAG_KEYS).to eq(%w[
+      _dd.base_service
+      peer.service
+      peer.hostname
+      out.host
+      db.instance
+      db.system
+      messaging.destination
+      network.destination.name
+    ])
   end
 end

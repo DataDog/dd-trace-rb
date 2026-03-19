@@ -36,13 +36,13 @@ module Datadog
         # Tags used for peer_tags aggregation
         PEER_TAG_KEYS = %w[
           _dd.base_service
-          peer.hostname
           peer.service
-          db.name
+          peer.hostname
+          out.host
           db.instance
           db.system
+          messaging.destination
           network.destination.name
-          server.address
         ].freeze
       end
     end
