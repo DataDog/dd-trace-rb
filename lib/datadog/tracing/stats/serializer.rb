@@ -73,17 +73,17 @@ module Datadog
           container_id: ''
         )
           {
-            'Hostname' => hostname,
-            'Env' => env || '',
-            'Version' => version || '',
+            'Hostname' => to_utf8(hostname),
+            'Env' => to_utf8(env || ''),
+            'Version' => to_utf8(version || ''),
             'Stats' => serialize_buckets(flushed_buckets),
             'Lang' => 'ruby',
             'TracerVersion' => Datadog::VERSION::STRING,
-            'RuntimeID' => runtime_id,
+            'RuntimeID' => to_utf8(runtime_id),
             'Sequence' => sequence,
             'AgentAggregation' => '',
-            'Service' => service || '',
-            'ContainerID' => container_id || '',
+            'Service' => to_utf8(service || ''),
+            'ContainerID' => to_utf8(container_id || ''),
             'Tags' => [],
           }
         end
@@ -113,11 +113,11 @@ module Datadog
         def serialize_groups(groups)
           groups.map do |key, stats|
             {
-              'Service' => key.service,
-              'Name' => key.name,
-              'Resource' => key.resource,
+              'Service' => to_utf8(key.service),
+              'Name' => to_utf8(key.name),
+              'Resource' => to_utf8(key.resource),
               'HTTPStatusCode' => key.http_status_code,
-              'Type' => key.type,
+              'Type' => to_utf8(key.type),
               'DBType' => '',
               'Hits' => stats[:hits],
               'Errors' => stats[:errors],
@@ -126,12 +126,12 @@ module Datadog
               'ErrorSummary' => encode_sketch(stats[:error_distribution]),
               'Synthetics' => key.synthetics,
               'TopLevelHits' => stats[:top_level_hits],
-              'SpanKind' => key.span_kind,
-              'PeerTags' => key.peer_tags,
+              'SpanKind' => to_utf8(key.span_kind),
+              'PeerTags' => key.peer_tags.map { |t| to_utf8(t) },
               'IsTraceRoot' => key.is_trace_root,
               'GRPCStatusCode' => key.grpc_status_code.to_s,
-              'HTTPMethod' => key.http_method,
-              'HTTPEndpoint' => key.http_endpoint,
+              'HTTPMethod' => to_utf8(key.http_method),
+              'HTTPEndpoint' => to_utf8(key.http_endpoint),
             }
           end
         end
@@ -153,6 +153,20 @@ module Datadog
           Core::Environment::Socket.hostname
         rescue => _e
           ''
+        end
+
+        # Ensure a string value is encoded as UTF-8 for msgpack serialization.
+        #
+        # msgpack-ruby encodes ASCII-8BIT strings as msgpack bin (binary) type,
+        # but the agent expects string fields as msgpack str type. This helper
+        # re-encodes the string as UTF-8 so msgpack emits the correct str type.
+        #
+        # @param str [String] input string (any encoding)
+        # @return [String] UTF-8 encoded string
+        def to_utf8(str)
+          return str if str.encoding == Encoding::UTF_8
+
+          str.encode('UTF-8', invalid: :replace, undef: :replace)
         end
       end
     end

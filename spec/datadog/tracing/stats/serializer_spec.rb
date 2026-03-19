@@ -152,6 +152,34 @@ RSpec.describe Datadog::Tracing::Stats::Serializer do
     end
   end
 
+  describe '.to_utf8' do
+    it 'returns UTF-8 strings unchanged' do
+      utf8_str = 'hello'
+      expect(described_class.to_utf8(utf8_str)).to be(utf8_str)
+    end
+
+    it 'converts ASCII-8BIT strings to UTF-8' do
+      binary_str = 'weblog'.b
+      result = described_class.to_utf8(binary_str)
+      expect(result.encoding).to eq(Encoding::UTF_8)
+      expect(result).to eq('weblog')
+    end
+  end
+
+  describe 'msgpack string encoding' do
+    it 'encodes Hostname as msgpack str type even when hostname is ASCII-8BIT' do
+      allow(described_class).to receive(:hostname).and_return('weblog'.b)
+      payload = described_class.serialize({}, env: 'test', service: 'test')
+      encoded = described_class.encode(payload)
+
+      # Parse raw bytes: the value for Hostname key should be a str type (0xA0-0xBF for fixstr,
+      # or 0xD9/0xDA/0xDB for str8/16/32), not a bin type (0xC4/0xC5/0xC6).
+      decoded = MessagePack.unpack(encoded)
+      hostname_value = decoded['Hostname']
+      expect(hostname_value.encoding).to eq(Encoding::UTF_8)
+    end
+  end
+
   describe '.encode_sketch' do
     it 'returns encoded bytes for a DDSketch' do
       sketch = Datadog::Core::DDSketch.new

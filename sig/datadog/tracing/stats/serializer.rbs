@@ -8,6 +8,7 @@ module Datadog
         def self?.serialize_groups: (untyped groups) -> untyped
         def self?.encode_sketch: (untyped sketch) -> untyped
         def self?.hostname: () -> untyped
+        def self?.to_utf8: (::String str) -> ::String
       end
     end
   end
