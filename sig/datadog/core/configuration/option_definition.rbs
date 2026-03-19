@@ -21,6 +21,7 @@ module Datadog
           ?env: String?,
           ?env_parser: env_parser_proc?,
           ?after_set: after_set_proc?,
+          ?skip_telemetry: bool,
           ?resetter: resetter_proc?,
           ?setter: setter_proc?,
           ?type: Symbol?,
@@ -33,6 +34,7 @@ module Datadog
           ?env: String?,
           ?env_parser: env_parser_proc?,
           ?after_set: after_set_proc?,
+          ?skip_telemetry: bool,
           ?resetter: resetter_proc?,
           ?setter: setter_proc?,
           ?type: Symbol?,
@@ -52,6 +54,8 @@ module Datadog
         attr_reader name: Symbol
 
         attr_reader after_set: after_set_proc?
+
+        attr_reader skip_telemetry: bool
 
         attr_reader resetter: resetter_proc?
 
@@ -82,6 +86,7 @@ module Datadog
           @helpers: Hash[Symbol, generic_proc]
           @name: Symbol
           @after_set: after_set_proc?
+          @skip_telemetry: bool
           @resetter: resetter_proc?
           @setter: setter_proc
           @type: Symbol?
@@ -103,6 +108,8 @@ module Datadog
           def helper: (Symbol name, *untyped _args) { (?) [self: settings_execution_context] -> untyped } -> void
 
           def after_set: () ?{ (option_type value, option_type old_value, Option::Precedence::Value precedence) [self: settings_execution_context] -> void } -> void
+
+          def skip_telemetry: (bool value) -> bool
 
           def resetter: () ?{ (option_type value) [self: settings_execution_context] -> option_type } -> void
 

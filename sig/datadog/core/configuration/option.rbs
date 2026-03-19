@@ -22,6 +22,7 @@ module Datadog
           ?config_id: ::String?
         }
 
+        @name: ::String
         @context: OptionDefinition::settings_context
 
         @is_set: bool
@@ -60,6 +61,8 @@ module Datadog
 
         def initialize: (OptionDefinition definition, OptionDefinition::settings_context context) -> void
 
+        def name: () -> ::String
+
         def set: (option_value value, ?precedence: Precedence::Value) -> Object?
 
         def get: () -> Object?
@@ -79,6 +82,8 @@ module Datadog
         def coerce_env_variable: (String value) -> env_value
 
         def to_telemetry_value: (option_value value) -> telemetry_value
+
+        def implements_to_s?: (any value) -> bool
 
         class InvalidDefinitionError < StandardError
         end

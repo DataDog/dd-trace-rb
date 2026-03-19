@@ -93,7 +93,8 @@ namespace :spec do
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
     t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,open_feature,profiling,crashtracking,error_tracking,rubocop,data_streams,ai_guard}/**/*_spec.rb,' \
-                        ' spec/**/{auto_instrument,opentelemetry,process_discovery,stable_config,ddsketch,open_feature,feature_flags,process,ai_guard}_spec.rb,' \
+                        ' spec/**/{auto_instrument,opentelemetry,process_discovery,stable_config,ddsketch,open_feature,feature_flags,process,ai_guard,rails}_spec.rb,' \
+                        ' spec/**/*_rails_spec.rb,' \
                         ' spec/datadog/core/environment/execution_spec.rb,' \
                         ' spec/datadog/gem_packaging_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
@@ -251,7 +252,9 @@ namespace :spec do
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:core_with_rails) do |t, args|
-    t.pattern = 'spec/datadog/core/environment/process_spec.rb'
+    t.pattern = 'spec/datadog/core/environment/process_spec.rb,' \
+                'spec/**/*_rails_spec.rb,' \
+                'spec/datadog/core/telemetry/event/app_started_rails_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 

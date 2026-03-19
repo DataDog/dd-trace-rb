@@ -6,8 +6,6 @@ module Datadog
         extend Core::Utils::Forking
 
         self.@sequence: Datadog::Core::Utils::Sequence
-
-        def self.configuration_sequence: () -> Datadog::Core::Utils::Sequence
       end
     end
   end

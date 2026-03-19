@@ -72,42 +72,6 @@ module Datadog
             products
           end
 
-          TARGET_OPTIONS = %w[
-            dynamic_instrumentation.enabled
-            logger.level
-            profiling.advanced.code_provenance_enabled
-            profiling.advanced.endpoint.collection.enabled
-            profiling.enabled
-            runtime_metrics.enabled
-            tracing.analytics.enabled
-            tracing.propagation_style_extract
-            tracing.propagation_style_inject
-            tracing.enabled
-            tracing.log_injection
-            tracing.partial_flush.enabled
-            tracing.partial_flush.min_spans_threshold
-            tracing.report_hostname
-            tracing.sampling.rate_limit
-            apm.tracing.enabled
-            agent.host
-            tracing.sampling.default_rate
-            tracing.contrib.global_default_service_name.enabled
-            tracing.contrib.peer_service_defaults
-            tracing.contrib.peer_service_mapping
-            diagnostics.debug
-            opentelemetry.exporter.endpoint
-            opentelemetry.exporter.protocol
-            opentelemetry.exporter.timeout_millis
-            opentelemetry.metrics.enabled
-            opentelemetry.metrics.exporter
-            opentelemetry.metrics.endpoint
-            opentelemetry.metrics.protocol
-            opentelemetry.metrics.timeout_millis
-            opentelemetry.metrics.temporality_preference
-            opentelemetry.metrics.export_interval_millis
-            opentelemetry.metrics.export_timeout_millis
-          ].freeze
-
           def configuration(settings, agent_settings)
             # Special values that are not tied to a configuration option
             list = [
@@ -169,18 +133,20 @@ module Datadog
 
             # Extract writer options as separate configuration payloads.
             get_telemetry_payload(settings, 'tracing.writer_options', format_value: false).each do |source|
+              writer_options = source[:value] || {}
+
               # Steep: **source causes the ::Datadog::Core::Telemetry::Event::telemetry_configuration Record
               # to become a Hash. We can assign it to a value and add an annotation to type it to the correct record.
               # However, overwriting `name` and `value` will cause a FalseAssertion diagnostic.
               list << {
                 **source,
                 name: 'tracing.writer_options.buffer_size',
-                value: to_value(source[:value][:buffer_size])
+                value: writer_options[:buffer_size]
               } # steep:ignore ArgumentTypeMismatch
               list << {
                 **source,
                 name: 'tracing.writer_options.flush_interval',
-                value: to_value(source[:value][:flush_interval])
+                value: writer_options[:flush_interval]
               } # steep:ignore ArgumentTypeMismatch
             end
 
@@ -196,20 +162,13 @@ module Datadog
             # Add some more custom additional payload values here
             if settings.logger.instance
               logger_instance_sources = get_telemetry_payload(settings, 'logger.instance', format_value: false)
-              logger_instance_sources.each { |source| source[:value] = source[:value].class.to_s }
+              logger_instance_sources.each { |source| source[:value] = source[:value].nil? ? nil : source[:value].class.to_s }
               list.push(*logger_instance_sources)
             end
-            if settings.respond_to?('appsec')
-              list.push(*get_telemetry_payload(settings, 'appsec.enabled'))
-              list.push(*get_telemetry_payload(settings, 'appsec.sca_enabled'))
-            end
-            if settings.respond_to?('ci')
-              list.push(*get_telemetry_payload(settings, 'ci.enabled'))
-            end
 
-            # Whitelist of configuration options to send in additional payload object
-            TARGET_OPTIONS.each do |option_path|
-              list.push(*get_telemetry_payload(settings, option_path))
+            # Configuration options (regular + integration specific)
+            get_all_configuration_options(settings).each do |option|
+              list.push(*option.telemetry_payload)
             end
 
             # We still want to report nil default and programmatic values as they are valid values
@@ -252,16 +211,6 @@ module Datadog
             result
           end
 
-          def to_value(value)
-            # TODO: Add float if telemetry starts accepting it
-            case value
-            when Integer, String, true, false, nil
-              value
-            else
-              value.to_s
-            end
-          end
-
           def install_signature(settings)
             {
               install_id: settings.dig('telemetry', 'install_id'),
@@ -270,16 +219,33 @@ module Datadog
             }
           end
 
-          def get_telemetry_origin(settings, config_path)
-            split_option = config_path.split('.')
-            option_name = split_option.pop
-            return 'unknown' if option_name.nil?
+          def get_all_configuration_options(settings)
+            fetch_configuration_options(settings).concat(get_integration_configuration_options(settings.tracing))
+          end
 
-            # @type var parent_setting: Core::Configuration::Options
-            # @type var option: Core::Configuration::Option
-            parent_setting = settings.dig(*split_option)
-            option = parent_setting.send(:resolve_option, option_name.to_sym)
-            option.precedence_set&.origin || 'unknown'
+          def get_integration_configuration_options(tracing_settings)
+            return [] unless tracing_settings.respond_to?(:instrumented_integrations)
+
+            tracing_settings.instrumented_integrations.each_value.with_object([]) do |integration, entries|
+              integration.configurations.each_value do |configuration|
+                entries.concat(fetch_configuration_options(configuration))
+              end
+            end
+          end
+
+          def fetch_configuration_options(settings)
+            settings.class.options.each_key.with_object([]) do |name, options|
+              option = settings.send(:resolve_option, name)
+              next if option.definition.skip_telemetry
+
+              value = option.get
+
+              if settings_object?(value)
+                options.concat(fetch_configuration_options(value))
+              else
+                options << option
+              end
+            end
           end
 
           def get_telemetry_payload(settings, config_path, format_value: true)
@@ -287,11 +253,15 @@ module Datadog
             option_name = split_option.pop
             return [] if option_name.nil?
 
-            # @type var parent_setting: Core::Configuration::Options
-            # @type var option: Core::Configuration::Option
             parent_setting = settings.dig(*split_option)
             option = parent_setting.send(:resolve_option, option_name.to_sym)
             option.telemetry_payload(format_value: format_value)
+          end
+
+          def settings_object?(value)
+            value.class.respond_to?(:options) &&
+              value.respond_to?(:get_option) &&
+              value.respond_to?(:option_defined?)
           end
         end
       end

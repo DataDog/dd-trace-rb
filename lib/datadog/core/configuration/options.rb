@@ -40,8 +40,7 @@ module Datadog
           protected
 
           def option(name, meta = {}, &block)
-            option_name = settings_path ? "#{settings_path}.#{name}" : name
-            builder = OptionDefinition::Builder.new(option_name, self, meta, &block)
+            builder = OptionDefinition::Builder.new(name, self, meta, &block)
             options[name] = builder.to_definition.tap do
               # Resolve and define helper functions
               helpers = default_helpers(name)
@@ -90,7 +89,11 @@ module Datadog
           end
 
           def set_option(name, value, precedence: Configuration::Option::Precedence::PROGRAMMATIC)
-            resolve_option(name).set(value, precedence: precedence)
+            option = resolve_option(name)
+            # Populate lower-precedence values so telemetry and `unset` can
+            # still observe the fallback chain after a first programmatic set.
+            option.get
+            option.set(value, precedence: precedence)
           end
 
           def unset_option(name, precedence: Configuration::Option::Precedence::PROGRAMMATIC)

@@ -47,4 +47,31 @@ RSpec.describe Datadog::Tracing::Contrib::Configuration::Settings do
       end
     end
   end
+
+  describe '.configure_settings_path!' do
+    subject(:settings_class) do
+      Class.new(described_class) do
+        option :custom_option, default: false
+
+        settings :nested do
+          option :enabled, default: true
+        end
+      end
+    end
+
+    before do
+      settings_class.configure_settings_path!('tracing.fake_integration')
+    end
+
+    it 'computes inherited option names from the settings path' do
+      settings = settings_class.new
+
+      expect(settings.send(:resolve_option, :analytics_enabled).name).to eq('tracing.fake_integration.analytics_enabled')
+      expect(settings.send(:resolve_option, :custom_option).name).to eq('tracing.fake_integration.custom_option')
+    end
+
+    it 'computes nested option names from the settings path' do
+      expect(settings_class.new.nested.send(:resolve_option, :enabled).name).to eq('tracing.fake_integration.nested.enabled')
+    end
+  end
 end

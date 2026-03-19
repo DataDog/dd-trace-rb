@@ -80,6 +80,13 @@ module Datadog
           @precedence_set = Precedence::DEFAULT
         end
 
+        def name
+          @name ||= begin
+            settings_path = @context.class.settings_path
+            settings_path.nil? ? definition.name.to_s : "#{settings_path}.#{definition.name}"
+          end
+        end
+
         # Overrides the current value for this option if the `precedence` is equal or higher than
         # the previously set value.
         # The first call to `#set` will always store the value regardless of precedence.
@@ -92,7 +99,7 @@ module Datadog
             # This should be uncommon, as higher precedence values tend to
             # happen later in the application lifecycle.
             Datadog.logger.info do
-              "Option '#{definition.name}' not changed to '#{value}' (precedence: #{precedence.name}) because the higher " \
+              "Option '#{name}' not changed to '#{value}' (precedence: #{precedence.name}) because the higher " \
                 "precedence value '#{@value}' (precedence: #{@precedence_set.name}) was already set."
             end
 
@@ -185,7 +192,7 @@ module Datadog
         end
 
         def telemetry_payload(format_value: true)
-          name = @definition.env || @definition.name.to_s
+          payload_name = definition.env || name
 
           # value_per_precedence is only filled after we call `get` once.
           get unless @is_set
@@ -193,7 +200,7 @@ module Datadog
           @value_per_precedence.each_with_object([]) do |(precedence, value), arr|
             # @type var result: telemetry_configuration | telemetry_configuration_value_not_stringified
             result = {
-              name: name,
+              name: payload_name,
               value: format_value ? to_telemetry_value(value) : value,
               origin: precedence.origin,
               seq_id: precedence.numeric + 1,
@@ -214,6 +221,7 @@ module Datadog
         private
 
         def to_telemetry_value(value)
+          # TODO: Add float if telemetry starts accepting it
           case value
           when Integer, String, true, false, nil
             value
@@ -221,9 +229,21 @@ module Datadog
             value.map { |key, value| "#{key}:#{value}" }.join(',')
           when Array
             value.join(',')
+          when Module
+            value.name.to_s
           else
-            value.to_s
+            if implements_to_s?(value)
+              value.to_s
+            else
+              value.class.to_s
+            end
           end
+        end
+
+        def implements_to_s?(value)
+          value.class.instance_method(:to_s).owner != Kernel
+        rescue NameError
+          false
         end
 
         def coerce_env_variable(value)
@@ -262,7 +282,7 @@ module Datadog
             value
           else
             raise InvalidDefinitionError,
-              "The option #{@definition.name} is using an unsupported type option for env coercion `#{@definition.type}`"
+              "The option #{name} is using an unsupported type option for env coercion `#{@definition.type}`"
           end
         end
 
@@ -285,10 +305,10 @@ module Datadog
 
           if raise_error
             error_msg = if @definition.type_options[:nilable]
-              "The setting `#{@definition.name}` inside your app's `Datadog.configure` block expects a " \
+              "The setting `#{name}` inside your app's `Datadog.configure` block expects a " \
               "#{@definition.type} or `nil`, but a `#{value.class}` was provided (#{value.inspect})." \
             else
-              "The setting `#{@definition.name}` inside your app's `Datadog.configure` block expects a " \
+              "The setting `#{name}` inside your app's `Datadog.configure` block expects a " \
               "#{@definition.type}, but a `#{value.class}` was provided (#{value.inspect})." \
             end
 
@@ -322,7 +342,7 @@ module Datadog
             true # No validation is performed when option is typeless
           else
             raise InvalidDefinitionError,
-              "The option #{@definition.name} is using an unsupported type option `#{@definition.type}`"
+              "The option #{name} is using an unsupported type option `#{@definition.type}`"
           end
         end
 

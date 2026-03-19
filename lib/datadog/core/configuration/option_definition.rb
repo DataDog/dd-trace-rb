@@ -17,6 +17,7 @@ module Datadog
           :env_parser,
           :name,
           :after_set,
+          :skip_telemetry,
           :resetter,
           :setter,
           :type,
@@ -31,6 +32,7 @@ module Datadog
           @env_parser = meta[:env_parser]
           @name = name.to_sym
           @after_set = meta[:after_set]
+          @skip_telemetry = meta[:skip_telemetry] || false
           @resetter = meta[:resetter]
           @setter = meta[:setter] || block || IDENTITY
           @type = meta[:type]
@@ -61,6 +63,7 @@ module Datadog
             @helpers = {}
             @name = name.to_sym
             @after_set = nil
+            @skip_telemetry = false
             @resetter = nil
             @setter = OptionDefinition::IDENTITY
             @type = nil
@@ -100,6 +103,10 @@ module Datadog
             @after_set = block
           end
 
+          def skip_telemetry(value)
+            @skip_telemetry = value == true
+          end
+
           def resetter(&block)
             @resetter = block
           end
@@ -124,6 +131,7 @@ module Datadog
             env(options[:env]) if options.key?(:env)
             env_parser(&options[:env_parser]) if options.key?(:env_parser)
             after_set(&options[:after_set]) if options.key?(:after_set)
+            skip_telemetry(options[:skip_telemetry] == true) if options.key?(:skip_telemetry)
             resetter(&options[:resetter]) if options.key?(:resetter)
             # Steep: https://github.com/soutaro/steep/issues/1979
             setter(&options[:setter]) if options.key?(:setter) # steep:ignore BlockTypeMismatch
@@ -141,6 +149,7 @@ module Datadog
               env: @env,
               env_parser: @env_parser,
               after_set: @after_set,
+              skip_telemetry: @skip_telemetry,
               resetter: @resetter,
               setter: @setter,
               type: @type,

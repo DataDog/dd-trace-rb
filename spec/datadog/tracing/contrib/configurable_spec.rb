@@ -21,6 +21,31 @@ RSpec.describe Datadog::Tracing::Contrib::Configurable do
         it 'defaults to being enabled' do
           expect(default_configuration[:enabled]).to be true
         end
+
+        context 'when the integration has a settings class' do
+          subject(:configurable_object) do
+            stub_const('TestContribConfigurable', Module.new).tap do |mod|
+              mod.const_set(:Configuration, Module.new)
+              mod.const_get(:Configuration).const_set(
+                :Settings,
+                Class.new(Datadog::Tracing::Contrib::Configuration::Settings)
+              )
+              mod.const_set(
+                :Integration,
+                Class.new.tap do |klass|
+                  klass.include(described_class)
+                  klass.send(:attr_reader, :name)
+                  klass.send(:define_method, :initialize) { @name = :foo }
+                  klass.send(:define_method, :new_configuration) { TestContribConfigurable::Configuration::Settings.new }
+                end
+              )
+            end.const_get(:Integration).new
+          end
+
+          it 'configures the settings path when building the default configuration' do
+            expect(default_configuration.send(:resolve_option, :analytics_enabled).name).to eq('tracing.foo.analytics_enabled')
+          end
+        end
       end
 
       describe '#reset_configuration!' do

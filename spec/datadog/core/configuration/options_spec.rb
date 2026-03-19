@@ -140,6 +140,25 @@ RSpec.describe Datadog::Core::Configuration::Options do
               expect(options_object.options[name].send(:precedence_set)).to eq(precedence)
             end
           end
+
+          context 'when the option has a default value' do
+            let(:value) { :programmatic_value }
+
+            before do
+              options_class.send(:option, :bar, default: :default_value)
+            end
+
+            subject(:set_option) { options_object.set_option(:bar, value) }
+
+            it 'preserves the default value in telemetry payload' do
+              set_option
+
+              expect(options_object.options[:bar].telemetry_payload).to include(
+                {name: 'bar', origin: 'default', seq_id: 1, value: 'default_value'},
+                {name: 'bar', origin: 'code', seq_id: 5, value: 'programmatic_value'},
+              )
+            end
+          end
         end
 
         context 'when the option is not defined' do

@@ -7,12 +7,14 @@ module Datadog
           @default_configuration: Contrib::Configuration::Settings?
           @resolver: Contrib::Configuration::Resolver?
 
+          def name: () -> ::Symbol
           def configuration: (?::Symbol matcher) -> untyped
           def resolve: (untyped value) -> untyped
           def configurations: () -> untyped
           def configure: (?::Symbol matcher, ?::Hash[untyped, untyped] options) ?{ () -> untyped } -> untyped
           def reset_configuration!: () -> untyped
           def default_configuration: () -> untyped
+          def prepare_configuration: (untyped configuration) -> untyped
           def new_configuration: () -> untyped
           def resolver: () -> untyped
         end
