@@ -38,7 +38,7 @@ basis without SLA guarantees.
 
 ### Which JRuby versions are affected?
 
-All JRuby versions (9.2, 9.3, 9.4, 10.x). After deprecation, no JRuby version will be
+All previously-supported JRuby versions (9.2, 9.3, 9.4). After deprecation, no JRuby version will be
 included in the CI test matrix.
 
 ### What happens if I don't pin?
