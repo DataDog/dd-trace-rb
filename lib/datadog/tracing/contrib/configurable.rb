@@ -72,9 +72,11 @@ module Datadog
           #
           # @return [Datadog::Tracing::Contrib::Configuration::Settings] the memoized integration-specific settings object
           def default_configuration
-            configuration = new_configuration
-            set_integration_settings_path!(configuration)
-            @default_configuration ||= configuration
+            @default_configuration ||= begin
+              configuration = new_configuration
+              set_integration_settings_path!(configuration)
+              configuration
+            end
           end
 
           protected
