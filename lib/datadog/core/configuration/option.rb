@@ -215,7 +215,7 @@ module Datadog
           when Integer, String, true, false, nil
             value
           when Hash
-            value.map { |key, value| "#{key}:#{value}" }.join(',')
+            value.map { |key, entry_value| "#{key}:#{entry_value}" }.join(',')
           when Array
             value.join(',')
           else
