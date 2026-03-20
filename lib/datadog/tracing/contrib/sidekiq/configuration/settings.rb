@@ -38,7 +38,11 @@ module Datadog
             end
 
             option :quantize, default: {}, type: :hash
-            option :distributed_tracing, default: false, type: :bool
+            option :distributed_tracing do |o|
+              o.type :bool
+              o.env Ext::ENV_DISTRIBUTED_TRACING
+              o.default false
+            end
           end
         end
       end

@@ -25,7 +25,7 @@ jobs:
           bundler: latest
           cache-version: v2 # bump this to invalidate cache
       - run: sudo apt-get update && (sudo apt-get install -y valgrind || sleep 5 && sudo apt-get install -y valgrind) && valgrind --version
-      - run: bundle exec rake compile spec:profiling:memcheck
+      - run: bundle exec rake compile spec:profiling:memcheck spec:core_with_libdatadog_api_memcheck
   test-asan:
     runs-on: ubuntu-24.04
     steps:

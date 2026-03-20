@@ -112,6 +112,45 @@ module Datadog
         build_snapshot_base(context, evaluation_errors: [error])
       end
 
+      # Builds a probe status notification payload.
+      #
+      # @param probe [Probe] the probe to build status for
+      # @param message [String] human-readable status message
+      # @param status [String] status value (RECEIVED, INSTALLED, EMITTING, ERROR)
+      # @param exception [Exception, nil] exception to include for ERROR status
+      # @return [Hash] the status payload
+      def build_status(probe, message:, status:, exception: nil)
+        diagnostics = {
+          probeId: probe.id,
+          probeVersion: 0,
+          runtimeId: Core::Environment::Identity.id,
+          parentId: nil,
+          status: status,
+        }
+
+        # Exception field is required by the backend for ERROR status.
+        # If the ERROR status is sent without the exception field, the status
+        # appears to be completely ignored by the backend.
+        # Note: The Go DI implementation does not send the top-level message
+        # field at all when sending error statuses.
+        if status == 'ERROR'
+          diagnostics[:exception] = { # steep:ignore
+            type: exception ? exception.class.name : 'Error',
+            message: exception ? exception.message : message
+          }
+        end
+
+        {
+          service: settings.service,
+          timestamp: timestamp_now,
+          message: message,
+          ddsource: 'dd_debugger',
+          debugger: {
+            diagnostics: diagnostics,
+          },
+        }
+      end
+
       private
 
       def build_snapshot_base(context, evaluation_errors: [], captures: nil, message: nil)
@@ -200,38 +239,6 @@ module Datadog
         tag_process_tags!(payload, settings)
 
         payload
-      end
-
-      def build_status(probe, message:, status:, exception: nil)
-        diagnostics = {
-          probeId: probe.id,
-          probeVersion: 0,
-          runtimeId: Core::Environment::Identity.id,
-          parentId: nil,
-          status: status,
-        }
-
-        # Exception field is required by the backend for ERROR status.
-        # If the ERROR status is sent without the exception field, the status
-        # appears to be completely ignored by the backend.
-        # Note: The Go DI implementation does not send the top-level message
-        # field at all when sending error statuses.
-        if status == 'ERROR'
-          diagnostics[:exception] = { # steep:ignore
-            type: exception ? exception.class.name : 'Error',
-            message: exception ? exception.message : message
-          }
-        end
-
-        {
-          service: settings.service,
-          timestamp: timestamp_now,
-          message: message,
-          ddsource: 'dd_debugger',
-          debugger: {
-            diagnostics: diagnostics,
-          },
-        }
       end
 
       def format_caller_locations(caller_locations)

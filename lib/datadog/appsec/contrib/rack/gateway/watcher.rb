@@ -24,7 +24,7 @@ module Datadog
               end
 
               def watch_request(gateway = Instrumentation.gateway)
-                gateway.watch('rack.request', :appsec) do |stack, gateway_request|
+                gateway.watch('rack.request') do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
 
                   persistent_data = {
@@ -57,7 +57,7 @@ module Datadog
               end
 
               def watch_response(gateway = Instrumentation.gateway)
-                gateway.watch('rack.response', :appsec) do |stack, gateway_response|
+                gateway.watch('rack.response') do |stack, gateway_response|
                   context = gateway_response.context
 
                   persistent_data = {
@@ -84,7 +84,7 @@ module Datadog
               end
 
               def watch_request_body(gateway = Instrumentation.gateway)
-                gateway.watch('rack.request.body', :appsec) do |stack, gateway_request|
+                gateway.watch('rack.request.body') do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
 
                   persistent_data = {
@@ -113,7 +113,7 @@ module Datadog
               #       somewhere closer to identity related monitor.
               # WARNING: The Gateway is a subject of refactoring
               def watch_request_finish(gateway = Instrumentation.gateway)
-                gateway.watch('rack.request.finish', :appsec) do |stack, gateway_request|
+                gateway.watch('rack.request.finish') do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
 
                   if context.span.nil? || !gateway.pushed?('appsec.events.user_lifecycle')
