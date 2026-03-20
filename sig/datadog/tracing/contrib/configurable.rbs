@@ -14,7 +14,7 @@ module Datadog
           def configure: (?::Symbol matcher, ?::Hash[untyped, untyped] options) ?{ () -> untyped } -> untyped
           def reset_configuration!: () -> untyped
           def default_configuration: () -> untyped
-          def prepare_configuration: (untyped configuration) -> untyped
+          def set_integration_settings_path!: (untyped configuration) -> untyped
           def new_configuration: () -> untyped
           def resolver: () -> untyped
         end

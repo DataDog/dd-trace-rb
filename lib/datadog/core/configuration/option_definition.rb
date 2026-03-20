@@ -11,6 +11,7 @@ module Datadog
 
         attr_reader \
           :parent,
+          :is_settings,
           :default,
           :default_proc,
           :env,
@@ -23,8 +24,9 @@ module Datadog
           :type,
           :type_options
 
-        def initialize(name, meta, parent = nil, &block)
+        def initialize(name, meta, parent = nil, is_settings:, &block)
           @parent = parent
+          @is_settings = is_settings
 
           @default = meta[:default]
           @default_proc = meta[:default_proc]
@@ -53,8 +55,9 @@ module Datadog
           attr_reader \
             :helpers
 
-          def initialize(name, parent = nil, options = {})
+          def initialize(name, parent = nil, options = {}, is_settings:)
             @parent = parent
+            @is_settings = is_settings
 
             @env = nil
             @env_parser = nil
@@ -104,7 +107,7 @@ module Datadog
           end
 
           def skip_telemetry(value)
-            @skip_telemetry = value == true
+            @skip_telemetry = value
           end
 
           def resetter(&block)
@@ -131,7 +134,8 @@ module Datadog
             env(options[:env]) if options.key?(:env)
             env_parser(&options[:env_parser]) if options.key?(:env_parser)
             after_set(&options[:after_set]) if options.key?(:after_set)
-            skip_telemetry(options[:skip_telemetry] == true) if options.key?(:skip_telemetry)
+            # Steep: https://github.com/soutaro/steep/issues/1979
+            skip_telemetry(options[:skip_telemetry]) if options.key?(:skip_telemetry) # steep:ignore ArgumentTypeMismatch
             resetter(&options[:resetter]) if options.key?(:resetter)
             # Steep: https://github.com/soutaro/steep/issues/1979
             setter(&options[:setter]) if options.key?(:setter) # steep:ignore BlockTypeMismatch
@@ -139,7 +143,7 @@ module Datadog
           end
 
           def to_definition
-            OptionDefinition.new(@name, meta, @parent)
+            OptionDefinition.new(@name, meta, @parent, is_settings: @is_settings)
           end
 
           def meta

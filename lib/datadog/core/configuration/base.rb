@@ -26,7 +26,7 @@ module Datadog
           def settings(name, &block)
             settings_class = new_settings_class(name, self, &block)
 
-            option(name) do |o|
+            option(name, is_settings: true) do |o|
               o.default { settings_class.new }
 
               o.resetter do |value|

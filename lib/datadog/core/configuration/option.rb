@@ -188,19 +188,21 @@ module Datadog
           precedence_set == Precedence::DEFAULT
         end
 
-        def telemetry_payload(format_value: true)
-          payload_name = definition.env || name
+        def is_settings?
+          @definition.is_settings
+        end
 
+        def telemetry_payload(format_value: true)
           # value_per_precedence is only filled after we call `get` once.
           get unless @is_set
 
           @value_per_precedence.each_with_object([]) do |(precedence, value), arr|
             # @type var result: telemetry_configuration | telemetry_configuration_value_not_stringified
             result = {
-              name: payload_name,
+              name: @definition.env || name,
               value: format_value ? to_telemetry_value(value) : value,
               origin: precedence.origin,
-              seq_id: precedence.numeric + 1,
+              seq_id: precedence.numeric.next,
             }
 
             if precedence.origin == 'fleet_stable_config'
@@ -226,10 +228,10 @@ module Datadog
             value.map { |key, entry_value| "#{key}:#{entry_value}" }.join(',')
           when Array
             value.join(',')
-          when Module
-            value.name.to_s
           else
-            if implements_to_s?(value)
+            if value.is_a?(Module)
+              value.name.to_s
+            elsif implements_to_s?(value)
               value.to_s
             else
               value.class.to_s

@@ -73,6 +73,8 @@ module Datadog
 
         def default_precedence?: () -> bool
 
+        def is_settings?: () -> bool
+
         def telemetry_payload: (?format_value: bool) -> (::Array[telemetry_configuration | telemetry_configuration_value_not_stringified])
 
         def unset: (Precedence::Value precedence) -> void

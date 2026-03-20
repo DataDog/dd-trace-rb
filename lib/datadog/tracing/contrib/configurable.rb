@@ -46,7 +46,12 @@ module Datadog
               default_configuration
             else
               # Get or add the configuration
-              resolver.get(matcher) || resolver.add(matcher, prepare_configuration(new_configuration))
+              existing_config = resolver.get(matcher)
+              return existing_config if existing_config
+
+              new_config = new_configuration
+              set_integration_settings_path!(new_config)
+              resolver.add(matcher, new_config)
             end
 
             # Apply the settings
@@ -67,19 +72,19 @@ module Datadog
           #
           # @return [Datadog::Tracing::Contrib::Configuration::Settings] the memoized integration-specific settings object
           def default_configuration
-            @default_configuration ||= prepare_configuration(new_configuration)
+            configuration = new_configuration
+            set_integration_settings_path!(configuration)
+            @default_configuration ||= configuration
           end
 
           protected
 
-          def prepare_configuration(configuration)
-            return configuration unless respond_to?(:name)
+          def set_integration_settings_path!(configuration)
+            # name is called from Registerable::InstanceMethods#name
+            # which is set by register_as
+            return unless respond_to?(:name)
 
-            if configuration.class.respond_to?(:settings_path=)
-              configuration.class.settings_path = "tracing.#{name}"
-            end
-
-            configuration
+            configuration.class.settings_path = "tracing.#{name}" if configuration.class.respond_to?(:settings_path=)
           end
 
           # Returns a new configuration object for this integration.

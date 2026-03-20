@@ -12,8 +12,8 @@ module Datadog
         class Settings
           include Core::Configuration::Base
 
-          def self.settings_path=(settings_path)
-            @settings_path = settings_path
+          def self.settings_path=(path)
+            @settings_path = path
           end
 
           option :analytics_enabled, default: false

@@ -48,15 +48,13 @@ module Datadog
 
           def install_signature: (untyped settings) -> install_signature
 
-          def get_all_configuration_options: (untyped settings) -> ::Array[Configuration::Option]
+          def collect_all_configuration_options: (untyped settings) -> ::Array[Configuration::Option]
 
-          def fetch_configuration_options: (untyped settings) -> ::Array[Configuration::Option]
+          def collect_integration_configuration_options: (untyped tracing_settings) -> ::Array[Configuration::Option]
 
-          def get_integration_configuration_options: (untyped tracing_settings) -> ::Array[Configuration::Option]
+          def collect_configuration_options_from: (untyped settings) -> ::Array[Configuration::Option]
 
           def get_telemetry_payload: (untyped settings, ::String config_path, ?format_value: bool) -> (::Array[Configuration::Option::telemetry_configuration] | ::Array[Configuration::Option::telemetry_configuration_value_not_stringified])
-
-          def settings_object?: (Object? value) -> bool
         end
       end
     end

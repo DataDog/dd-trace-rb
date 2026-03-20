@@ -44,7 +44,8 @@ module Datadog
           protected
 
           def option(name, meta = {}, &block)
-            builder = OptionDefinition::Builder.new(name, self, meta, &block)
+            is_settings = meta.fetch(:is_settings, false)
+            builder = OptionDefinition::Builder.new(name, self, meta, is_settings: is_settings, &block)
             options[name] = builder.to_definition.tap do
               # Resolve and define helper functions
               helpers = default_helpers(name)

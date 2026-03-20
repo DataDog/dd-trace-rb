@@ -32,7 +32,7 @@ module Datadog
                 name: name,
                 value: value,
                 origin: @origin,
-                seq_id: Configuration::Option::Precedence::REMOTE_CONFIGURATION.numeric + 1,
+                seq_id: Configuration::Option::Precedence::REMOTE_CONFIGURATION.numeric.next,
               }
             end
 
@@ -42,7 +42,7 @@ module Datadog
                 name: 'appsec.sca_enabled',
                 value: config.appsec.sca_enabled,
                 origin: 'code',
-                seq_id: Configuration::Option::Precedence::PROGRAMMATIC.numeric + 1,
+                seq_id: Configuration::Option::Precedence::PROGRAMMATIC.numeric.next,
               }
             end
 

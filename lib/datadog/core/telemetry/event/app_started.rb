@@ -133,7 +133,7 @@ module Datadog
 
             # Extract writer options as separate configuration payloads.
             get_telemetry_payload(settings, 'tracing.writer_options', format_value: false).each do |source|
-              writer_options = source[:value] || {}
+              writer_options = source.fetch(:value, {})
 
               # Steep: **source causes the ::Datadog::Core::Telemetry::Event::telemetry_configuration Record
               # to become a Hash. We can assign it to a value and add an annotation to type it to the correct record.
@@ -162,12 +162,12 @@ module Datadog
             # Add some more custom additional payload values here
             if settings.logger.instance
               logger_instance_sources = get_telemetry_payload(settings, 'logger.instance', format_value: false)
-              logger_instance_sources.each { |source| source[:value] = source[:value].nil? ? nil : source[:value].class.to_s }
+              logger_instance_sources.each { |source| source[:value] = source[:value].class.to_s unless source[:value].nil? }
               list.push(*logger_instance_sources)
             end
 
             # Configuration options (regular + integration specific)
-            get_all_configuration_options(settings).each do |option|
+            collect_all_configuration_options(settings).each do |option|
               list.push(*option.telemetry_payload)
             end
 
@@ -199,7 +199,7 @@ module Datadog
               name: name,
               value: value,
               origin: precedence.origin,
-              seq_id: precedence.numeric + 1,
+              seq_id: precedence.numeric.next,
             }
             if precedence.origin == 'fleet_stable_config'
               fleet_id = Core::Configuration::StableConfig.configuration.dig(:fleet, :id)
@@ -219,29 +219,27 @@ module Datadog
             }
           end
 
-          def get_all_configuration_options(settings)
-            fetch_configuration_options(settings).concat(get_integration_configuration_options(settings.tracing))
+          def collect_all_configuration_options(settings)
+            collect_configuration_options_from(settings).concat(collect_integration_configuration_options(settings.tracing))
           end
 
-          def get_integration_configuration_options(tracing_settings)
+          def collect_integration_configuration_options(tracing_settings)
             return [] unless tracing_settings.respond_to?(:instrumented_integrations)
 
             tracing_settings.instrumented_integrations.each_value.with_object([]) do |integration, entries|
               integration.configurations.each_value do |configuration|
-                entries.concat(fetch_configuration_options(configuration))
+                entries.concat(collect_configuration_options_from(configuration))
               end
             end
           end
 
-          def fetch_configuration_options(settings)
+          def collect_configuration_options_from(settings)
             settings.class.options.each_key.with_object([]) do |name, options|
               option = settings.send(:resolve_option, name)
               next if option.definition.skip_telemetry
 
-              value = option.get
-
-              if settings_object?(value)
-                options.concat(fetch_configuration_options(value))
+              if option.is_settings?
+                options.concat(collect_configuration_options_from(option.get))
               else
                 options << option
               end
@@ -256,12 +254,6 @@ module Datadog
             parent_setting = settings.dig(*split_option)
             option = parent_setting.send(:resolve_option, option_name.to_sym)
             option.telemetry_payload(format_value: format_value)
-          end
-
-          def settings_object?(value)
-            value.class.respond_to?(:options) &&
-              value.respond_to?(:get_option) &&
-              value.respond_to?(:option_defined?)
           end
         end
       end
