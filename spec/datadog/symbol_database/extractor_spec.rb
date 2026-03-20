@@ -353,11 +353,11 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       it 'extracts namespaced class as its own root MODULE scope' do
         # TestNamespace::TestInnerClass is a user class and must be searchable.
         # Even though the parent TestNamespace has no methods (so it can't be extracted
-        # itself), the class is extracted as a standalone PACKAGE-wrapped scope.
+        # itself), the class is extracted as a standalone MODULE-wrapped scope.
         scope = described_class.extract(TestNamespace::TestInnerClass)
 
         expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('PACKAGE')
+        expect(scope.scope_type).to eq('MODULE')
         expect(scope.name).to eq('TestNamespace::TestInnerClass')
         class_scope = scope.scopes.first
         expect(class_scope.scope_type).to eq('CLASS')
@@ -416,7 +416,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         scope = described_class.extract(TestNsModule::TestNsClass)
 
         expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('PACKAGE')
+        expect(scope.scope_type).to eq('MODULE')
         expect(scope.name).to eq('TestNsModule::TestNsClass')
       end
     end
@@ -1470,7 +1470,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         if TestConstOnlyClass.respond_to?(:const_source_location)
           # Ruby 2.7+: const_source_location finds source via constants
           expect(scope).not_to be_nil
-          expect(scope.scope_type).to eq('PACKAGE')
+          expect(scope.scope_type).to eq('MODULE')
         else
           # Ruby 2.5/2.6: no const_source_location, cannot find source
           expect(scope).to be_nil
@@ -1503,7 +1503,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       it 'extracts deeply nested class (A::B::C) as standalone root scope' do
         scope = described_class.extract(TestA::TestB::TestC)
         expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('PACKAGE')
+        expect(scope.scope_type).to eq('MODULE')
         expect(scope.name).to eq('TestA::TestB::TestC')
         expect(scope.scopes.first.scope_type).to eq('CLASS')
       end
@@ -1930,7 +1930,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         scope = described_class.extract(TestStructClass)
 
         expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('PACKAGE')
+        expect(scope.scope_type).to eq('MODULE')
         expect(scope.name).to eq('TestStructClass')
       end
 
