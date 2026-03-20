@@ -142,7 +142,6 @@ module Datadog
                 ::Datadog::AppSec::TraceKeeper.keep!(active_trace)
               end
             end
-
           end
 
           private
