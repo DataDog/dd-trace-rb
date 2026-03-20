@@ -12,6 +12,7 @@ module Datadog
             application_name&.underscore
           rescue
             # Adds a failsafe during app boot, teardown, or test stubs where the application is not initialized and this check gets performed
+            Datadog.logger.debug('Failed to extract Rails application name.')
             nil
           end
 
