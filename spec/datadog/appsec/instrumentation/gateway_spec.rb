@@ -67,5 +67,4 @@ RSpec.describe Datadog::AppSec::Instrumentation::Gateway do
       expect(env_2).to eq({a: :b, c: :d})
     end
   end
-
 end
