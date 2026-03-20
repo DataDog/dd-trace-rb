@@ -7,14 +7,12 @@ RSpec.describe Datadog::Core::Contrib::Rails::Utils do
     subject(:app_name) { described_class.app_name }
 
     let(:namespace_name) { 'custom_app' }
-    let(:rails_version_major) { 7 }
-
     let(:application_class) { double('custom rails class', module_parent_name: namespace_name) }
 
     let(:application) { double('custom rails', class: application_class) }
 
     let(:rails_module) do
-      version_major = rails_version_major
+      version_major = 7
       application_instance = application
       Module.new do
         version_module = Module.new do
