@@ -143,7 +143,6 @@ module Datadog
               end
             end
 
-            ::Datadog::AppSec::Instrumentation.gateway.push('appsec.events.user_lifecycle', event)
           end
 
           private

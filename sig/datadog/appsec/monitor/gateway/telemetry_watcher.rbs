@@ -5,13 +5,9 @@ module Datadog
         module TelemetryWatcher
           def self.watch: () -> void
 
-          def self.watch_set_user: (?Instrumentation::Gateway gateway) -> void
+          def self.watch_user_lifecycle: (?Instrumentation::Gateway gateway) -> void
 
-          def self.watch_login_failure: (?Instrumentation::Gateway gateway) -> void
-
-          private
-
-          def self.report_missing_user_telemetry: (Hash[Symbol, any] user_info, String event_type) -> void
+          def self.watch_authenticated_request: (?Instrumentation::Gateway gateway) -> void
         end
       end
     end

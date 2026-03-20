@@ -11,12 +11,10 @@ module Datadog
         # Watcher for Apssec internal events
         module Watcher
           ARBITRARY_VALUE = 'invalid'
-          EVENT_LOGIN_SUCCESS = 'users.login.success'
-          EVENT_LOGIN_FAILURE = 'users.login.failure'
-          WATCHED_LOGIN_EVENTS = [EVENT_LOGIN_SUCCESS, EVENT_LOGIN_FAILURE].freeze
 
           IDENTITY_EVENTS = %w[
             identity.sdk.set_user
+            identity.sdk.login_success
             identity.sdk.login_failure
             identity.devise.login_success
             identity.devise.login_failure
@@ -24,12 +22,19 @@ module Datadog
             identity.devise.authenticated_request
           ].freeze
 
+          LOGIN_EVENTS = {
+            'identity.sdk.login_success' => 'server.business_logic.users.login.success',
+            'identity.sdk.login_failure' => 'server.business_logic.users.login.failure',
+            'identity.devise.login_success' => 'server.business_logic.users.login.success',
+            'identity.devise.login_failure' => 'server.business_logic.users.login.failure',
+          }.freeze
+
           class << self
             def watch
               gateway = Instrumentation.gateway
 
               watch_user_id(gateway)
-              watch_user_login(gateway)
+              watch_user_login_event(gateway)
             end
 
             def watch_user_id(gateway = Instrumentation.gateway)
@@ -65,27 +70,27 @@ module Datadog
               end
             end
 
-            def watch_user_login(gateway = Instrumentation.gateway)
-              gateway.watch('appsec.events.user_lifecycle') do |stack, kind|
-                context = AppSec.active_context
+            def watch_user_login_event(gateway = Instrumentation.gateway)
+              LOGIN_EVENTS.each do |event_name, business_logic_key|
+                gateway.watch(event_name) do |stack, user_info|
+                  context = AppSec.active_context
 
-                next stack.call(kind) unless WATCHED_LOGIN_EVENTS.include?(kind)
+                  persistent_data = {business_logic_key => ARBITRARY_VALUE}
+                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
-                persistent_data = {"server.business_logic.#{kind}" => ARBITRARY_VALUE}
-                result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+                  if result.match? || result.attributes.any?
+                    context.events.push(
+                      AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
+                    )
+                  end
 
-                if result.match? || result.attributes.any?
-                  context.events.push(
-                    AppSec::SecurityEvent.new(result, trace: context.trace, span: context.span)
-                  )
+                  if result.match?
+                    AppSec::Event.tag(context, result)
+                    AppSec::ActionsHandler.handle(result.actions)
+                  end
+
+                  stack.call(user_info)
                 end
-
-                if result.match?
-                  AppSec::Event.tag(context, result)
-                  AppSec::ActionsHandler.handle(result.actions)
-                end
-
-                stack.call(kind)
               end
             end
           end

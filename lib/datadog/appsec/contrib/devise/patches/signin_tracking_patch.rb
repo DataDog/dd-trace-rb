@@ -30,13 +30,11 @@ module Datadog
 
               if result
                 record_successful_signin(context, resource)
-                Instrumentation.gateway.push('appsec.events.user_lifecycle', Ext::EVENT_LOGIN_SUCCESS)
 
                 return result
               end
 
               record_failed_signin(context, resource)
-              Instrumentation.gateway.push('appsec.events.user_lifecycle', Ext::EVENT_LOGIN_FAILURE)
 
               result
             end

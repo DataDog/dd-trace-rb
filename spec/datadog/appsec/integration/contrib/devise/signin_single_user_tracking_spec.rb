@@ -210,7 +210,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         '_dd.appsec.usr.id' => '1'
       )
 
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
+      expect(gateway.pushed?('identity.devise.login_success')).to be true
     end
   end
 
@@ -240,7 +240,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       expect(http_service_entry_span.tags).not_to have_key('usr.id')
       expect(http_service_entry_span.tags).not_to have_key('_dd.appsec.usr.id')
 
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
+      expect(gateway.pushed?('identity.devise.login_success')).to be true
     end
   end
 
@@ -267,7 +267,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         '_dd.appsec.usr.id' => '1'
       )
 
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
+      expect(gateway.pushed?('identity.devise.login_success')).to be true
     end
   end
 
@@ -317,7 +317,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.success.track')
       expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.failure.track')
 
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be false
+      expect(gateway.pushed?('identity.devise.login_success')).to be false
     end
   end
 
@@ -363,7 +363,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         '_dd.appsec.usr.id' => '1'
       )
 
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
+      expect(gateway.pushed?('identity.devise.login_success')).to be true
     end
   end
 
@@ -384,7 +384,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         '_dd.appsec.events.users.login.failure.auto.mode' => 'identification'
       )
 
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
+      expect(gateway.pushed?('identity.devise.login_failure')).to be true
     end
   end
 
@@ -434,7 +434,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         '_dd.appsec.events.users.login.failure.auto.mode' => 'identification'
       )
 
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
+      expect(gateway.pushed?('identity.devise.login_failure')).to be true
     end
   end
 
@@ -505,7 +505,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         '_dd.appsec.events.users.login.failure.auto.mode' => 'identification'
       )
 
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
+      expect(gateway.pushed?('identity.devise.login_failure')).to be true
     end
   end
 

@@ -24,7 +24,7 @@ module Datadog
                 identity.devise.signup
               ].each do |event_name|
                 gateway.watch(event_name) do |stack, user_info|
-                  _, framework, event_type = event_name.split('.')
+                  _, framework, event_type = event_name.split('.') #: [String, String, String]
                   tags = {framework: framework, event_type: event_type}
 
                   if user_info[:login].nil?

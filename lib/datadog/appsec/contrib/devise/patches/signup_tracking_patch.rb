@@ -29,7 +29,6 @@ module Datadog
 
                 TraceKeeper.keep!(context.trace)
                 record_successful_signup(context, resource)
-                Instrumentation.gateway.push('appsec.events.user_lifecycle', Ext::EVENT_SIGNUP)
 
                 yield(resource) if block_given?
               end
