@@ -1,7 +1,7 @@
 # JRuby Support Deprecation
 
-Starting in **March 2026**, Datadog is deprecating JRuby support in the
-[Ruby APM Tracing Library](https://github.com/DataDog/dd-trace-rb) (`datadog` gem).
+As of  **March 2026**, JRuby support in the
+[Ruby APM Tracing Library](https://github.com/DataDog/dd-trace-rb) (`datadog` gem) is deprecated.
 
 This affects only [JRuby](https://www.jruby.org/) (Ruby on top of the Java VM).
 Ruby releases from [ruby-lang.org](https://www.ruby-lang.org/) (MRI/CRuby) remain fully supported.
