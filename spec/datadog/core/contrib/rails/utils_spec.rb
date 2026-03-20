@@ -8,18 +8,25 @@ RSpec.describe Datadog::Core::Contrib::Rails::Utils do
 
     let(:namespace_name) { 'custom_app' }
     let(:rails_version_major) { 7 }
-    let(:rails_module) { Module.new }
 
     let(:application_class) { double('custom rails class', module_parent_name: namespace_name) }
 
     let(:application) { double('custom rails', class: application_class) }
 
+    let(:rails_module) do
+      version_major = rails_version_major
+      application_instance = application
+      Module.new do
+        version_module = Module.new do
+          const_set(:MAJOR, version_major)
+        end
+
+        const_set(:VERSION, version_module)
+        define_singleton_method(:application) { application_instance }
+      end
+    end
+
     before do
-      rails_version = Module.new
-      rails_version.const_set(:MAJOR, rails_version_major)
-      rails_module.const_set(:VERSION, rails_version)
-      rails_module.define_singleton_method(:application) { application }
-      allow(rails_module).to receive(:application).and_return(application)
       stub_const('::Rails', rails_module)
     end
 
