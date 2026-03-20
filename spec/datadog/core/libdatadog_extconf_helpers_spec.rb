@@ -9,7 +9,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
       before { skip_if_libdatadog_not_supported }
 
       it "returns a relative path to libdatadog folder from the gem lib folder" do
-        relative_path = described_class.libdatadog_folder_relative_to_native_lib_folder(current_folder: extension_folder)
+        relative_path = described_class.libdatadog_folder_relative_to_native_lib_folder(extconf_folder: extension_folder)
 
         libdatadog_extension = RbConfig::CONFIG["SOEXT"] || raise("Missing SOEXT for current platform")
 
@@ -26,7 +26,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
       it do
         expect(
           described_class.libdatadog_folder_relative_to_native_lib_folder(
-            current_folder: extension_folder,
+            extconf_folder: extension_folder,
             libdatadog_pkgconfig_folder: nil
           )
         ).to be nil
@@ -80,45 +80,65 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
     end
   end
 
-  describe ".pkg_config_missing?" do
-    subject(:pkg_config_missing) { described_class.pkg_config_missing?(command: command) }
+  describe ".configure_libdatadog" do
+    let(:logger) { double("logger", message: nil) }
 
-    before do
-      skip_if_libdatadog_not_supported
+    # Use realistic paths that mirror actual gem installation structure
+    let(:gem_home) { "/home/user/.gem/ruby/3.2.0" }
+    let(:extconf_folder) { "#{gem_home}/gems/datadog-2.0.0/ext/datadog_profiling_native_extension" }
+    let(:pkgconfig_folder) do
+      "#{gem_home}/gems/libdatadog-14.0.0.1.0-x86_64-linux/vendor/libdatadog-14.0.0/x86_64-linux/" \
+        "libdatadog-x86_64-unknown-linux-gnu/lib/pkgconfig"
     end
 
-    context "when command is not available" do
-      let(:command) { nil }
+    context "when libdatadog pkgconfig_folder is nil" do
+      it "returns nil" do
+        result = described_class.configure_libdatadog(
+          extconf_folder: extconf_folder,
+          libdatadog_pkgconfig_folder: nil,
+          logger: logger,
+        )
 
-      it { is_expected.to be true }
+        expect(result).to be_nil
+      end
     end
 
-    # This spec is semi-realistic, because it actually calls into the pkg-config external process.
-    #
-    # We know pkg-config must be available on the machine running the tests because otherwise libdatadog would not be
-    # supported (and thus `skip_if_libdatadog_not_supported` would've been triggered).
-    #
-    # We could also mock the entire interaction, but this seemed like a simple enough way to go.
-    context "when command is available" do
-      before do
-        # This helper is designed to be called from extconf.rb, which requires mkmf, which defines xsystem.
-        # When executed in RSpec, mkmf is not required, so we replace it with the regular system call.
-        without_partial_double_verification do
-          expect(described_class).to receive(:xsystem) { |*args| system(*args) }
+    context "when libdatadog pkgconfig_folder is available" do
+      # rubocop:disable Style/GlobalVars
+      it "returns true and sets mkmf global variables including relative rpaths" do
+        expect_in_fork do
+          # Initialize mkmf globals as extconf.rb would
+          $INCFLAGS = +""
+          $LDFLAGS = +""
+          $libs = +""
+
+          result = described_class.configure_libdatadog(
+            extconf_folder: extconf_folder,
+            libdatadog_pkgconfig_folder: pkgconfig_folder,
+            gem_dir: gem_home,
+            logger: logger,
+          )
+
+          expect(result).to be true
+          expect($INCFLAGS).to eq(" -I#{pkgconfig_folder}/../../include")
+
+          libdir = "#{pkgconfig_folder}/../../lib"
+          # The relative rpaths are computed from three locations:
+          # 1. From native lib folder (gems/datadog-X/lib/) - needs ../../ to reach gems/
+          # 2. From extensions folder (extensions/platform/api/gem/) - needs ../../../../ to reach gems/
+          # 3. From bundler extensions folder (bundler/gems/extensions/platform/api/gem/) - needs ../../../../../../ to reach gems/
+          libdatadog_path = "libdatadog-14.0.0.1.0-x86_64-linux/vendor/libdatadog-14.0.0/x86_64-linux/" \
+            "libdatadog-x86_64-unknown-linux-gnu/lib"
+          expected_ldflags =
+            " -L#{libdir} -Wl,-rpath,#{libdir}" \
+            " -Wl,-rpath,$$$\\\\{ORIGIN\\}/../../#{libdatadog_path}" \
+            " -Wl,-rpath,$$$\\\\{ORIGIN\\}/../../../../gems/#{libdatadog_path}" \
+            " -Wl,-rpath,$$$\\\\{ORIGIN\\}/../../../../../../gems/#{libdatadog_path}"
+          expect($LDFLAGS).to eq(expected_ldflags)
+          expect($libs).to eq(" -ldatadog_profiling")
         end
       end
-
-      context "and pkg-config can successfully be called" do
-        let(:command) { "pkg-config" }
-
-        it { is_expected.to be false }
-      end
-
-      context "and pkg-config cannot be called" do
-        let(:command) { "does-not-exist" }
-
-        it { is_expected.to be true }
-      end
+      # rubocop:enable Style/GlobalVars
     end
   end
 

@@ -6,7 +6,7 @@ require 'datadog/core/runtime/metrics'
 RSpec.describe Datadog::Core::Runtime::Metrics do
   let(:logger) { logger_allowing_debug }
   let(:telemetry) { double(Datadog::Core::Telemetry::Component) }
-  let(:options) { {} }
+  let(:options) { {experimental_propagate_process_tags_enabled: true} }
   subject(:runtime_metrics) { described_class.new(logger: logger, telemetry: telemetry, **options) }
 
   describe '::new' do
@@ -324,6 +324,18 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
 
     describe ':tags' do
       subject(:default_tags) { default_metric_options[:tags] }
+
+      context 'when :experimental_propagate_process_tags_enabled is true' do
+        before do
+          allow(Datadog::Core::Environment::Process).to receive(:tags)
+            .and_return(['entrypoint.workdir:test', 'entrypoint.name:test_script'])
+        end
+
+        it 'includes process tags by default' do
+          is_expected.to include('entrypoint.workdir:test')
+          is_expected.to include('entrypoint.name:test_script')
+        end
+      end
 
       context 'given :experimental_runtime_id_enabled' do
         let(:options) { super().merge(experimental_runtime_id_enabled: runtime_id_enabled) }
