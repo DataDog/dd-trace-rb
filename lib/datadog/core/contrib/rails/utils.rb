@@ -9,8 +9,7 @@ module Datadog
           def self.app_name
             namespace_method = (::Rails::VERSION::MAJOR >= 6) ? :module_parent_name : :parent_name
             application_name = ::Rails.application.class.public_send(namespace_method)
-            return nil if application_name.nil?
-            application_name.underscore
+            application_name&.underscore
           rescue
             # Adds a failsafe during app boot, teardown, or test stubs where the application is not initialized and this check gets performed
             nil
