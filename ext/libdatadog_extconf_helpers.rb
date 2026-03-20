@@ -166,7 +166,7 @@ module Datadog
     # This allows runtime verification that the loaded libdatadog matches what was compiled against.
     # rubocop:disable Style/GlobalVars
     def self.add_libdatadog_version_define
-      $defs << %Q(-DEXPECTED_LIBDATADOG_VERSION=\"#{Libdatadog::VERSION}\")
+      $defs << %(-DEXPECTED_LIBDATADOG_VERSION="#{Libdatadog::VERSION}")
     end
     # rubocop:enable Style/GlobalVars
 
