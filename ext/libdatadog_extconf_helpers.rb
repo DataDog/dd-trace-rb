@@ -162,6 +162,14 @@ module Datadog
       end
     end
 
+    # Adds a C preprocessor define with the libdatadog version used at compile time.
+    # This allows runtime verification that the loaded libdatadog matches what was compiled against.
+    # rubocop:disable Style/GlobalVars
+    def self.add_libdatadog_version_define
+      $defs << "-DEXPECTED_LIBDATADOG_VERSION=\\\"#{Libdatadog::VERSION}\\\""
+    end
+    # rubocop:enable Style/GlobalVars
+
     # Note: This helper is currently only used in the `libdatadog_api/extconf.rb` BUT still lives here to enable testing.
     def self.load_libdatadog_or_get_issue
       try_loading_libdatadog do |exception|

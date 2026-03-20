@@ -122,6 +122,21 @@ size_t read_ddogerr_string_and_drop(ddog_Error *error, char *string, size_t capa
   return error_msg_size;
 }
 
+static void verify_libdatadog_version(void) {
+  rb_eval_string(
+    "require 'libdatadog';"
+    "expected = '" EXPECTED_LIBDATADOG_VERSION "';"
+    "if expected != Libdatadog::VERSION;"
+      "raise 'The `datadog` gem needs to be reinstalled whenever the `libdatadog` gem version is changed. ' +"
+        "'The currently-installed version of `datadog` was built to work with `libdatadog` gem version ' + expected + ' ' +"
+        "'but the currently-loaded version of `libdatadog` is ' + Libdatadog::VERSION + '. ' +"
+        "'To fix this, reinstall the `datadog` gem (e.g. `bundle exec gem pristine datadog`) ' +"
+        "'or contact Datadog support for help at <https://docs.datadoghq.com/help/>.';"
+    "end"
+  );
+}
+
 void datadog_ruby_common_init(void) {
   telemetry_message_id = rb_intern("@telemetry_message");
+  verify_libdatadog_version();
 }
