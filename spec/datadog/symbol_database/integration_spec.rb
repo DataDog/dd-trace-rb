@@ -48,12 +48,12 @@ RSpec.describe 'Symbol Database Integration' do
         # Create scope context
         context = Datadog::SymbolDatabase::ScopeContext.new(uploader)
 
-        # Namespaced classes are also extractable as standalone root MODULE scopes,
+        # Namespaced classes are also extractable as standalone root PACKAGE scopes,
         # ensuring they appear in search even if the parent namespace can't be extracted.
         nested_scope = Datadog::SymbolDatabase::Extractor.extract(IntegrationTestModule::IntegrationTestClass)
         expect(nested_scope).not_to be_nil
-        expect(nested_scope.scope_type).to eq('MODULE')
-        expect(nested_scope.name).to eq('IntegrationTestModule::IntegrationTestClass')
+        expect(nested_scope.scope_type).to eq('PACKAGE')
+        expect(nested_scope.name).to eq(nested_scope.source_file)
 
         # Extract the parent MODULE — it wraps nested CLASS scopes
         scope = Datadog::SymbolDatabase::Extractor.extract(IntegrationTestModule)

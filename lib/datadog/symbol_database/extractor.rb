@@ -66,7 +66,8 @@ module Datadog
         return nil unless user_code_module?(mod)
 
         if mod.is_a?(Class)
-          # Wrap in MODULE scope — backend requires root-level scopes to be MODULE/JAR/ASSEMBLY/PACKAGE.
+          # TODO: Remove PACKAGE wrapper after debugger-backend#1976 (CLASS added to ROOT_SCOPES).
+          # Wrap in PACKAGE scope — backend requires root-level scopes to be MODULE/JAR/ASSEMBLY/PACKAGE.
           # A bare CLASS at the top level causes IllegalArgumentException in the backend's
           # mergeRootScopesWithSameName, silently dropping the entire batch.
           class_scope = extract_class_scope(mod, upload_class_methods: upload_class_methods)
@@ -197,38 +198,35 @@ module Datadog
         nil
       end
 
-      # Wrap a CLASS scope in a MODULE scope for root-level upload.
+      # Wrap a CLASS scope in a PACKAGE scope for root-level upload.
       #
       # INTERIM: The backend ROOT_SCOPES constraint ({JAR, ASSEMBLY, MODULE, PACKAGE})
       # does not yet include CLASS. A bare CLASS at root throws IllegalArgumentException
       # in mergeRootScopesWithSameName. Until debugger-backend#1976 merges (adding CLASS
-      # to ROOT_SCOPES), we wrap each class in a root-level scope.
+      # to ROOT_SCOPES), we wrap each class in a PACKAGE scope named after the source file.
       #
-      # PACKAGE would be the better choice for Ruby: Ruby has an actual `module` keyword,
-      # so uploading `class User` as MODULE: User misrepresents the type and creates
-      # confusing duplicate results in DI search ("Module: User" and "Class: User" for
-      # the same class). PACKAGE has no conflicting meaning in Ruby.
-      #
-      # However, we use MODULE instead of PACKAGE for system-test compatibility.
-      # The shared test_debugger_symdb.py assertion `_assert_debugger_controller_exists`
-      # only accepts scope_type in [CLASS, class, MODULE, struct]. When the name matches,
-      # it returns immediately without recursing into children — so a PACKAGE wrapper
-      # hides the nested CLASS from the assertion. Using MODULE satisfies the test while
-      # the wrapper is still needed.
+      # Using PACKAGE with the source file path (not the class name) because:
+      # 1. PACKAGE is already in ROOT_SCOPES — no backend change needed.
+      # 2. File-based naming avoids colliding with class names in system-test assertions
+      #    (test_debugger_symdb.py recurses past non-matching root names to find CLASS).
+      # 3. Groups classes by file, similar to Python's MODULE-per-file approach.
+      # 4. PACKAGE has no conflicting meaning in Ruby (unlike MODULE which maps to `module`).
       #
       # TODO: After debugger-backend#1976 merges, remove this wrapper. Upload CLASS directly
       # at root by changing the `extract` method to call `extract_class_scope` without
-      # wrapping, and delete this method. At that point the scope_type question is moot.
+      # wrapping, and delete this method. See CLASS_ROOT_SCOPE_PROPOSAL.md.
       #
       # @param klass [Class] The class being wrapped
       # @param class_scope [Scope] The already-extracted CLASS scope
-      # @return [Scope] MODULE scope wrapping the CLASS scope
+      # @return [Scope] PACKAGE scope wrapping the CLASS scope
       def self.wrap_class_in_module_scope(klass, class_scope)
         source_file = class_scope.source_file
         # steep:ignore:start
         Scope.new(
-          scope_type: 'MODULE',
-          name: klass.name,
+          # TODO: Remove PACKAGE wrapper after debugger-backend#1976 (CLASS added to ROOT_SCOPES)
+          scope_type: 'PACKAGE',
+          # TODO: Remove file-based naming after debugger-backend#1976 — CLASS at root uses class name
+          name: source_file || klass.name,
           source_file: source_file,
           start_line: SymbolDatabase::UNKNOWN_MIN_LINE,
           end_line: SymbolDatabase::UNKNOWN_MAX_LINE,
