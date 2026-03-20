@@ -135,15 +135,15 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         cleanup_user_code_file(@filename)
       end
 
-      # INTERIM: top-level classes wrapped in PACKAGE scope (named after source file) until
-      # debugger-backend#1976 adds CLASS to ROOT_SCOPES. PACKAGE with file-based naming
+      # INTERIM: top-level classes wrapped in MODULE scope (named after source file) until
+      # debugger-backend#1976 adds CLASS to ROOT_SCOPES. MODULE with file-based naming
       # avoids colliding with class names in system-test assertions and avoids the
       # MODULE/module keyword confusion. See CLASS_ROOT_SCOPE_PROPOSAL.md for target state.
-      it 'wraps top-level CLASS in a PACKAGE scope named after source file (interim until backend#1976)' do
+      it 'wraps top-level CLASS in a MODULE scope named after source file (interim until backend#1976)' do
         module_scope = described_class.extract(TestUserClass)
 
         expect(module_scope).not_to be_nil
-        expect(module_scope.scope_type).to eq('PACKAGE')
+        expect(module_scope.scope_type).to eq('MODULE')
         expect(module_scope.name).to eq(@filename)
         expect(module_scope.source_file).to eq(@filename)
         expect(module_scope.scopes.size).to eq(1)
@@ -247,14 +247,14 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         cleanup_user_code_file(@filename)
       end
 
-      it 'extracts namespaced class as its own root PACKAGE scope' do
+      it 'extracts namespaced class as its own root MODULE scope' do
         # TestNamespace::TestInnerClass is a user class and must be searchable.
         # Even though the parent TestNamespace has no methods (so it can't be extracted
-        # itself), the class is extracted as a standalone PACKAGE-wrapped scope.
+        # itself), the class is extracted as a standalone MODULE-wrapped scope.
         scope = described_class.extract(TestNamespace::TestInnerClass)
 
         expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('PACKAGE')
+        expect(scope.scope_type).to eq('MODULE')
         expect(scope.name).to eq(scope.source_file)
         class_scope = scope.scopes.first
         expect(class_scope.scope_type).to eq('CLASS')
@@ -306,14 +306,14 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         expect(inner_class.name).to eq('TestNsModule::TestNsClass')
       end
 
-      it 'also extracts the nested class as its own root PACKAGE scope' do
+      it 'also extracts the nested class as its own root MODULE scope' do
         # The nested class is extractable independently — it has a user code source file.
         # It also appears nested inside the parent MODULE, which is intentional:
         # mergeRootScopesWithSameName on the backend merges duplicates by name.
         scope = described_class.extract(TestNsModule::TestNsClass)
 
         expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('PACKAGE')
+        expect(scope.scope_type).to eq('MODULE')
         expect(scope.name).to eq(scope.source_file)
       end
     end
@@ -413,7 +413,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         if TestConstOnlyClass.respond_to?(:const_source_location)
           # Ruby 2.7+: const_source_location finds source via constants
           expect(scope).not_to be_nil
-          expect(scope.scope_type).to eq('PACKAGE')
+          expect(scope.scope_type).to eq('MODULE')
         else
           # Ruby 2.5/2.6: no const_source_location, cannot find source
           expect(scope).to be_nil
@@ -446,7 +446,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       it 'extracts deeply nested class (A::B::C) as standalone root scope' do
         scope = described_class.extract(TestA::TestB::TestC)
         expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('PACKAGE')
+        expect(scope.scope_type).to eq('MODULE')
         expect(scope.name).to eq(scope.source_file)
         expect(scope.scopes.first.scope_type).to eq('CLASS')
       end
@@ -471,20 +471,20 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         mods = [TestA, TestA::TestB, TestA::TestB::TestC]
         extracted = Datadog::Core::Utils::Array.filter_map(mods) { |mod| described_class.extract(mod) }
 
-        # Modules keep their module name; classes get file-based PACKAGE name.
+        # Modules keep their module name; classes get file-based MODULE name.
         # Check scope types: TestA and TestA::TestB are modules, TestA::TestB::TestC is a class.
         scope_types = extracted.map { |s| [s.scope_type, s.name] }
 
         if TestA.respond_to?(:const_source_location)
           expect(extracted.size).to eq(3)
           expect(scope_types).to include(['MODULE', 'TestA'], ['MODULE', 'TestA::TestB'])
-          # TestA::TestB::TestC is a class → PACKAGE wrapper with file-based name
-          tc_scope = extracted.find { |s| s.scope_type == 'PACKAGE' }
+          # TestA::TestB::TestC is a class → MODULE wrapper with file-based name
+          tc_scope = extracted.find { |s| s.name != 'TestA' && s.name != 'TestA::TestB' }
           expect(tc_scope).not_to be_nil
           expect(tc_scope.scopes.first.name).to eq('TestA::TestB::TestC')
         else
           expect(extracted.size).to eq(1)
-          expect(extracted.first.scope_type).to eq('PACKAGE')
+          expect(extracted.first.scope_type).to eq('MODULE')
         end
       end
     end
@@ -880,7 +880,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         scope = described_class.extract(TestStructClass)
 
         expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('PACKAGE')
+        expect(scope.scope_type).to eq('MODULE')
         expect(scope.name).to eq(scope.source_file)
       end
 
