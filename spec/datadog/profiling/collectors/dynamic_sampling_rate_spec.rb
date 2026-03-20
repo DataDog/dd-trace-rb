@@ -2,7 +2,7 @@ require "datadog/profiling/spec_helper"
 require "datadog/profiling/collectors/dynamic_sampling_rate"
 
 RSpec.describe Datadog::Profiling::Collectors::DynamicSamplingRate do
-  before { skip_if_profiling_not_supported(self) }
+  before { skip_if_profiling_not_supported }
 
   let(:max_overhead_target) { 2.0 }
 

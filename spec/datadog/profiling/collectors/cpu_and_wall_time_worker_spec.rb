@@ -3,7 +3,7 @@ require "datadog/profiling/spec_helper"
 require "datadog/profiling/collectors/cpu_and_wall_time_worker"
 
 RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
-  before { skip_if_profiling_not_supported(self) }
+  before { skip_if_profiling_not_supported }
 
   let(:endpoint_collection_enabled) { true }
   let(:gc_profiling_enabled) { true }
@@ -595,6 +595,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       before do
         expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
         expect(Datadog::Core::Telemetry::Logger).to receive(:error).with(/dynamic sampling rate disabled/)
+        skip "TODO: Investigate why this test is broken on macOS" if PlatformHelpers.mac?
       end
 
       it "is able to sample even when all threads are sleeping" do

@@ -10,7 +10,7 @@ module Datadog
   module LibdatadogExtconfHelpers
     # Used to make sure the correct gem version gets loaded, as extconf.rb does not get run with "bundle exec" and thus
     # may see multiple libdatadog versions. See https://github.com/DataDog/dd-trace-rb/pull/2531 for the horror story.
-    LIBDATADOG_VERSION = '~> 28.0.2.1.0'
+    LIBDATADOG_VERSION = '~> 29.0.0.1.0'
 
     # Used as an workaround for a limitation with how dynamic linking works in environments where the datadog gem and
     # libdatadog are moved after the extension gets compiled.
@@ -23,9 +23,9 @@ module Datadog
     # Linux: e.g. `readelf -d datadog_profiling_native_extension.2.7.3_x86_64-linux.so`.
     #
     # In older versions of the datadog gem, we only set as runpath an absolute path to libdatadog.
-    # (This gets set automatically by the call
-    # to `pkg_config('datadog_profiling_with_rpath')` in `extconf.rb`). This worked fine as long as libdatadog was **NOT**
-    # moved from the folder it was present at datadog gem installation/linking time.
+    # (This gets set automatically by the call to `configure_libdatadog` in `extconf.rb`).
+    # This worked fine as long as libdatadog was **NOT** moved from the folder it was present at
+    # datadog gem installation/linking time.
     #
     # Unfortunately, environments such as Heroku and AWS Elastic Beanstalk move gems around in the filesystem after
     # installation. Thus, the profiling native extension could not be loaded in these environments
@@ -47,12 +47,12 @@ module Datadog
     # we could setup when doing a `require`.
     #
     def self.libdatadog_folder_relative_to_native_lib_folder(
-      current_folder:,
+      extconf_folder:,
       libdatadog_pkgconfig_folder: Libdatadog.pkgconfig_folder
     )
       return unless libdatadog_pkgconfig_folder
 
-      native_lib_folder = "#{current_folder}/../../lib/"
+      native_lib_folder = "#{extconf_folder}/../../lib/"
       libdatadog_lib_folder = "#{libdatadog_pkgconfig_folder}/../"
 
       Pathname.new(libdatadog_lib_folder).relative_path_from(Pathname.new(native_lib_folder)).to_s
@@ -104,13 +104,51 @@ module Datadog
       end
     end
 
-    # mkmf sets $PKGCONFIG after the `pkg_config` gets used in extconf.rb. When `pkg_config` is unsuccessful, we use
-    # this helper to decide if we can show more specific error message vs a generic "something went wrong".
-    def self.pkg_config_missing?(command: $PKGCONFIG) # standard:disable Style/GlobalVars
-      pkg_config_available = command && xsystem("#{command} --version")
+    # Directly configures mkmf to link against libdatadog by setting $INCFLAGS, $LDFLAGS, and $libs.
+    #
+    # This replaces the previous use of mkmf's `pkg_config("datadog_profiling_with_rpath")`, removing the need for
+    # the pkg-config system tool to be installed.
+    #
+    # The extconf_folder argument should be the __dir__ of the calling extconf.rb, used to compute relative rpaths.
+    # The logger argument is the mkmf Logging module, dependency-injected to make testing easier.
+    # rubocop:disable Style/GlobalVars
+    def self.configure_libdatadog(
+      extconf_folder:,
+      libdatadog_pkgconfig_folder: Libdatadog.pkgconfig_folder,
+      gem_dir: Gem.dir,
+      logger: Logging
+    )
+      return unless libdatadog_pkgconfig_folder
 
-      pkg_config_available != true
+      # The lib and include folders are at a fixed relative path from pkgconfig_folder
+      libdir = "#{libdatadog_pkgconfig_folder}/../../lib"
+      includedir = "#{libdatadog_pkgconfig_folder}/../../include"
+
+      # Set mkmf global variables
+      $INCFLAGS << " -I#{includedir}"
+      $LDFLAGS << " -L#{libdir} -Wl,-rpath,#{libdir}"
+      $libs << " -ldatadog_profiling"
+
+      # Add extra relative rpaths using $ORIGIN to handle environments where gems are moved after installation.
+      # The excessive escaping is needed to get these special characters through Make and the shell untouched.
+      extra_relative_rpaths = [
+        libdatadog_folder_relative_to_native_lib_folder(
+          extconf_folder: extconf_folder,
+          libdatadog_pkgconfig_folder: libdatadog_pkgconfig_folder,
+        ),
+        *libdatadog_folder_relative_to_ruby_extensions_folders(
+          gem_dir: gem_dir,
+          libdatadog_pkgconfig_folder: libdatadog_pkgconfig_folder,
+        ),
+      ]
+      extra_relative_rpaths.each { |folder| $LDFLAGS << " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{folder}" }
+
+      logger.message("linking with libdatadog (include=#{includedir}, lib=#{libdir})\n")
+      logger.message("[datadog] $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
+
+      true
     end
+    # rubocop:enable Style/GlobalVars
 
     def self.try_loading_libdatadog
       gem 'libdatadog', LIBDATADOG_VERSION

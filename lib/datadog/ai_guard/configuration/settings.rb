@@ -15,10 +15,11 @@ module Datadog
 
         def self.add_settings!(base)
           base.class_eval do
-            # Steep does not update `self` for this `class_eval` block.
-            # @type self: Datadog::Core::Configuration::Base::_DslContext
             # AI Guard specific configurations.
             # @public_api
+            #
+            # Steep does not update `self` for this `class_eval` block.
+            # @type self: Datadog::Core::Configuration::Base::_DslContext
             settings :ai_guard do
               # Enable AI Guard.
               #

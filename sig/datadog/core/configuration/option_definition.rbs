@@ -7,9 +7,8 @@ module Datadog
         type settings_context = Options::_Settings
         type settings_execution_context = settings_context & ::Object
         type option_type = Object?
-        type option_proc = (^(settings_execution_context settings) [self: settings_execution_context] -> option_type)
         type generic_proc = (^(?) [self: settings_execution_context] -> any)
-        type default_value = option_proc | any
+        type default_value = any
         type env_parser_proc = (^(String env_value) [self: settings_execution_context] -> Option::env_value)
         type after_set_proc = (^(option_type value, option_type old_value, Option::Precedence::Value precedence) [self: settings_execution_context] -> void)
         type resetter_proc = (^(option_type value) [self: settings_execution_context] -> option_type)

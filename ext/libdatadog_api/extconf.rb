@@ -40,7 +40,8 @@ append_cflags '-Werror' if ENV['DATADOG_GEM_CI'] == 'true'
 # * by upstream Ruby -- search for gnu99 in the codebase
 # * by msgpack, another datadog gem dependency
 #   (https://github.com/msgpack/msgpack-ruby/blob/18ce08f6d612fe973843c366ac9a0b74c4e50599/ext/msgpack/extconf.rb#L8)
-append_cflags '-std=gnu99'
+# @ivoanjo: We could probably start using C11/gnu11 for non macOS-too but it's somewhat hard to validate so I chickened out for now
+append_cflags RUBY_PLATFORM.include?('darwin') ? '-std=gnu11' : '-std=gnu99'
 
 # Allow defining variables at any point in a function
 append_cflags '-Wno-declaration-after-statement'
@@ -74,29 +75,11 @@ if ENV['DDTRACE_DEBUG'] == 'true'
 end
 
 # If we got here, libdatadog is available and loaded
-ENV['PKG_CONFIG_PATH'] = "#{ENV["PKG_CONFIG_PATH"]}:#{Libdatadog.pkgconfig_folder}"
-Logging.message("[datadog] PKG_CONFIG_PATH set to #{ENV["PKG_CONFIG_PATH"].inspect}\n")
 $stderr.puts("Using libdatadog #{Libdatadog::VERSION} from #{Libdatadog.pkgconfig_folder}")
 
-unless pkg_config('datadog_profiling_with_rpath')
-  Logging.message("[datadog] Ruby detected the pkg-config command is #{$PKGCONFIG.inspect}\n")
-
-  if Datadog::LibdatadogExtconfHelpers.pkg_config_missing?
-    skip_building_extension!('the `pkg-config` system tool is missing')
-  else
-    skip_building_extension!('there was a problem in setting up the `libdatadog` dependency')
-  end
+unless Datadog::LibdatadogExtconfHelpers.configure_libdatadog(extconf_folder: __dir__)
+  skip_building_extension!('there was a problem in setting up the `libdatadog` dependency')
 end
-
-# See comments on the helper methods being used for why we need to additionally set this.
-# The extremely excessive escaping around ORIGIN below seems to be correct and was determined after a lot of
-# experimentation. We need to get these special characters across a lot of tools untouched...
-extra_relative_rpaths = [
-  Datadog::LibdatadogExtconfHelpers.libdatadog_folder_relative_to_native_lib_folder(current_folder: __dir__),
-  *Datadog::LibdatadogExtconfHelpers.libdatadog_folder_relative_to_ruby_extensions_folders,
-]
-extra_relative_rpaths.each { |folder| $LDFLAGS += " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{folder.to_str}" }
-Logging.message("[datadog] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
 
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that

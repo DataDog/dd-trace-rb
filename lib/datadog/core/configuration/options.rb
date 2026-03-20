@@ -21,10 +21,14 @@ module Datadog
             :parent
 
           def settings_path
-            @settings_path ||= if parent.nil? || parent.settings_path.nil?
-              @settings_name
-            else
-              "#{parent.settings_path}.#{@settings_name}"
+            @settings_path ||= begin
+              return nil unless defined?(@settings_name)
+
+              if parent.nil? || parent.settings_path.nil?
+                @settings_name
+              else
+                "#{parent.settings_path}.#{@settings_name}"
+              end
             end
           end
 
