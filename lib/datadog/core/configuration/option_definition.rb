@@ -22,19 +22,19 @@ module Datadog
           :type,
           :type_options
 
-        def initialize(name, meta, parent = nil, &block)
-          @parent = parent
+        def initialize(name, option_attributes, &block)
+          @parent = option_attributes[:parent]
 
-          @default = meta[:default]
-          @default_proc = meta[:default_proc]
-          @env = meta[:env]
-          @env_parser = meta[:env_parser]
+          @default = option_attributes[:default]
+          @default_proc = option_attributes[:default_proc]
+          @env = option_attributes[:env]
+          @env_parser = option_attributes[:env_parser]
           @name = name.to_sym
-          @after_set = meta[:after_set]
-          @resetter = meta[:resetter]
-          @setter = meta[:setter] || block || IDENTITY
-          @type = meta[:type]
-          @type_options = meta[:type_options]
+          @after_set = option_attributes[:after_set]
+          @resetter = option_attributes[:resetter]
+          @setter = option_attributes[:setter] || block || IDENTITY
+          @type = option_attributes[:type]
+          @type_options = option_attributes[:type_options]
         end
 
         # Creates a new Option, bound to the context provided.
@@ -51,8 +51,8 @@ module Datadog
           attr_reader \
             :helpers
 
-          def initialize(name, parent = nil, options = {})
-            @parent = parent
+          def initialize(name, options = {})
+            @parent = options[:parent]
 
             @env = nil
             @env_parser = nil
@@ -131,10 +131,11 @@ module Datadog
           end
 
           def to_definition
-            OptionDefinition.new(@name, meta, @parent)
+            # Steep: https://github.com/soutaro/steep/issues/2122
+            OptionDefinition.new(@name, parent: @parent, **option_attributes) # steep:ignore ArgumentTypeMismatch
           end
 
-          def meta
+          def option_attributes
             {
               default: @default,
               default_proc: @default_proc,

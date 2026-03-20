@@ -43,9 +43,10 @@ module Datadog
 
           protected
 
-          def option(name, meta = {}, &block)
+          def option(name, option_attributes = {}, &block)
             option_name = settings_path ? "#{settings_path}.#{name}" : name
-            builder = OptionDefinition::Builder.new(option_name, self, meta, &block)
+            # Steep: https://github.com/soutaro/steep/issues/2122
+            builder = OptionDefinition::Builder.new(option_name, parent: self, **option_attributes, &block) # steep:ignore ArgumentTypeMismatch
             options[name] = builder.to_definition.tap do
               # Resolve and define helper functions
               helpers = default_helpers(name)
