@@ -9,6 +9,7 @@ require_relative 'datadog/profiling'
 require_relative 'datadog/ai_guard'
 require_relative 'datadog/appsec'
 require_relative 'datadog/di'
+require_relative 'datadog/symbol_database'
 require_relative 'datadog/data_streams'
 require_relative 'datadog/open_feature'
 
