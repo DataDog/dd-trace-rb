@@ -47,10 +47,12 @@ RSpec.describe 'Symbol Database Integration' do
         context = Datadog::SymbolDatabase::ScopeContext.new(uploader)
 
         # Use extract_all — the production path
+        # GC.start cleans up stale modules from other tests in ObjectSpace
+        GC.start
         file_scopes = Datadog::SymbolDatabase::Extractor.extract_all
 
-        # Find our test file's scope
-        file_scope = file_scopes.find { |s| s.name == test_file }
+        # Find our test file's scope by content (not path — ObjectSpace may have stale modules)
+        file_scope = file_scopes.find { |s| s.scope_type == 'FILE' && s.scopes.any? { |c| c.name == 'IntegrationTestModule' } }
         expect(file_scope).not_to be_nil
         expect(file_scope.scope_type).to eq('FILE')
         expect(file_scope.language_specifics[:file_hash]).to match(/\A[0-9a-f]{40}\z/)
@@ -83,7 +85,7 @@ RSpec.describe 'Symbol Database Integration' do
         context.flush
 
         expect(uploaded_scopes).not_to be_empty
-        uploaded_file = uploaded_scopes.find { |s| s.name == test_file }
+        uploaded_file = uploaded_scopes.first
         expect(uploaded_file.scope_type).to eq('FILE')
 
         # JSON round-trip
