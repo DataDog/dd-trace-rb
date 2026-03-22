@@ -12,7 +12,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
   let(:settings) do
     Datadog::Core::Configuration::Settings.new.tap do |s|
       s.symbol_database.enabled = true
-      s.symbol_database.force_upload = false
+      s.symbol_database.internal.force_upload = false
       s.remote.enabled = true
       s.service = 'test-service'
       s.env = 'test'
@@ -96,7 +96,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
     it 'returns nil when remote is not enabled and force_upload is false' do
       allow(settings.remote).to receive(:enabled).and_return(false)
-      allow(settings.symbol_database).to receive(:force_upload).and_return(false)
+      allow(settings.symbol_database.internal).to receive(:force_upload).and_return(false)
 
       result = described_class.build(settings, agent_settings, logger, telemetry: telemetry)
       expect(result).to be_nil
@@ -109,7 +109,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
     it 'returns a Component when force_upload is true even without remote' do
       allow(settings.remote).to receive(:enabled).and_return(false)
-      allow(settings.symbol_database).to receive(:force_upload).and_return(true)
+      allow(settings.symbol_database.internal).to receive(:force_upload).and_return(true)
 
       result = described_class.build(settings, agent_settings, logger, telemetry: telemetry)
       expect(result).to be_a(described_class)
@@ -117,7 +117,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
     context 'with force_upload enabled' do
       before do
-        allow(settings.symbol_database).to receive(:force_upload).and_return(true)
+        allow(settings.symbol_database.internal).to receive(:force_upload).and_return(true)
       end
 
       it 'calls schedule_deferred_upload instead of start_upload directly' do
@@ -286,7 +286,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
   describe 'reconfiguration scenario' do
     before do
-      allow(settings.symbol_database).to receive(:force_upload).and_return(true)
+      allow(settings.symbol_database.internal).to receive(:force_upload).and_return(true)
       hide_const('ActiveSupport')
       hide_const('Rails::Railtie')
     end
