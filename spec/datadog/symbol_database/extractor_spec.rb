@@ -2095,6 +2095,16 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       expect(described_class.send(:user_code_module?, Module.new)).to be false
     end
 
+    it 'returns false for C-implemented Ruby internals (ThreadGroup, Thread::Backtrace, RubyVM)' do
+      # These classes have no Ruby-defined methods (source_location is nil for all),
+      # so find_source_file falls back to const_source_location, which returns ["<main>", 0]
+      # for their nested constants — a pseudo-path that is not an absolute path.
+      # See: Pitfall 25, tmp/reproduce_threadgroup_leak.rb
+      expect(described_class.send(:user_code_module?, ThreadGroup)).to be false
+      expect(described_class.send(:user_code_module?, Thread::Backtrace)).to be false
+      expect(described_class.send(:user_code_module?, RubyVM)).to be false
+    end
+
     it 'returns true for user code class' do
       user_file = create_user_code_file(<<~RUBY)
         class TestUserCodeModuleCheck
@@ -2184,6 +2194,14 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       # RubyVM::InstructionSequence, etc. See: Pitfall 25, tmp/reproduce_threadgroup_leak.rb
       expect(extractor.send(:user_code_path?, '<main>')).to be false
       expect(extractor.send(:user_code_path?, 'ruby')).to be false
+    end
+
+    it 'returns false for pseudo-paths from C-level interpreter init' do
+      # "<main>" line 0 is Ruby's sentinel for constants assigned during C startup
+      # (before any .rb file runs). Affects ThreadGroup::Default, Thread::Backtrace::Location,
+      # RubyVM::InstructionSequence, etc. See: Pitfall 25, tmp/reproduce_threadgroup_leak.rb
+      expect(described_class.send(:user_code_path?, '<main>')).to be false
+      expect(described_class.send(:user_code_path?, 'ruby')).to be false
     end
 
     it 'returns false for eval paths' do
