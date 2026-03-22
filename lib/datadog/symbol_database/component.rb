@@ -51,11 +51,11 @@ module Datadog
         end
 
         # Requires remote config (unless force mode)
-        return nil unless settings.remote&.enabled || settings.symbol_database.force_upload
+        return nil unless settings.remote&.enabled || settings.symbol_database.internal.force_upload
 
         new(settings, agent_settings, logger, telemetry: telemetry).tap do |component|
           # Defer extraction if force upload mode — wait for app boot to complete
-          component.schedule_deferred_upload if settings.symbol_database.force_upload
+          component.schedule_deferred_upload if settings.symbol_database.internal.force_upload
         end
       end
 
