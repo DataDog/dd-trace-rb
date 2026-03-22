@@ -91,6 +91,17 @@ module Datadog
         []
       end
 
+      # Resolve symlinks in a file path. On macOS, /var is a symlink to /private/var
+      # and source_location may return either form. Normalizing ensures consistent
+      # FILE scope names for the same physical file.
+      # @param path [String] File path
+      # @return [String] Resolved path (or original if resolution fails)
+      def self.resolve_path(path)
+        File.realpath(path)
+      rescue
+        path
+      end
+
       # Safe Module#name lookup — some classes override the singleton `name` method
       # (e.g. Faker::Travel::Airport defines `def name(size:, region:)` in class << self,
       # which shadows Module#name and raises ArgumentError when called without args).
@@ -629,7 +640,7 @@ module Datadog
           # This handles namespace modules and classes with only constants.
           if methods_by_file.empty?
             source_file = find_source_file(mod)
-            methods_by_file[source_file] = [] if source_file
+            methods_by_file[resolve_path(source_file)] = [] if source_file
           end
 
           next if methods_by_file.empty?
@@ -661,7 +672,7 @@ module Datadog
           next unless loc
           next unless user_code_path?(loc[0])
 
-          result[loc[0]] << {name: method_name, method: method, type: :instance}
+          result[resolve_path(loc[0])] << {name: method_name, method: method, type: :instance}
         rescue => e
           Datadog.logger.debug("SymDB: Error grouping method #{method_name}: #{e.class}: #{e}")
         end
@@ -674,7 +685,7 @@ module Datadog
             next unless loc
             next unless user_code_path?(loc[0])
 
-            result[loc[0]] << {name: method_name, method: method, type: :singleton}
+            result[resolve_path(loc[0])] << {name: method_name, method: method, type: :singleton}
           rescue => e
             Datadog.logger.debug("SymDB: Error grouping singleton method #{method_name}: #{e.class}: #{e}")
           end
@@ -933,7 +944,7 @@ module Datadog
       end
 
       # @api private
-      private_class_method :safe_mod_name, :user_code_module?, :user_code_path?,
+      private_class_method :resolve_path, :safe_mod_name, :user_code_module?, :user_code_path?,
         :find_source_file, :wrap_in_file_scope,
         :extract_module_scope, :extract_class_scope,
         :calculate_class_line_range,
