@@ -76,7 +76,7 @@ actionlint .github/workflows/your-workflow.yml
 - Use `Core::Utils::Array.filter_map` instead of `filter_map` for compatibility with Ruby 2.5 and 2.6 (native `filter_map` requires Ruby 2.7+)
 - Use `Datadog::Core::Utils::Time.now` instead of `Time.now` everywhere — the time provider is configurable (e.g. for Timecop support) and tests can override it via `Core::Utils::Time.now_provider=`
   - Exception: constants initialized at load time (before user configuration) may use `::Time.now` directly; add a comment explaining why (see `lib/datadog/profiling/collectors/info.rb` for an example)
-  - Exception: Dynamic Instrumentation (DI) probe instrumentation code that runs inside customer application methods must use `::Time.now` directly — the time provider is customer-overridable (e.g. via Timecop), and DI must not invoke customer code during instrumentation
+  - Exception: Dynamic Instrumentation (DI) probe instrumentation code that runs inside customer application methods must use `::Time.now` directly — the time provider supports runtime overrides (the API exists even if rarely used in production), and DI must never invoke customer-provided code during instrumentation
 
 ## Documentation
 
