@@ -1776,6 +1776,12 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       it 'places child class under parent module in the same FILE scope' do
         scopes = described_class.extract_all
         file_scope = scopes.find { |s| s.name == @file }
+        unless file_scope
+          $stderr.puts "[DIAG] @file = #{@file.inspect}"
+          $stderr.puts "[DIAG] FILE scope names: #{scopes.select { |s| s.scope_type == 'FILE' }.map(&:name).inspect}"
+          $stderr.puts "[DIAG] ExtractAllMixed source_location: #{ExtractAllMixed.instance_method(:instance_helper).source_location.inspect}"
+          $stderr.puts "[DIAG] File.realpath(@file): #{File.realpath(@file).inspect rescue 'FAILED'}"
+        end
         expect(file_scope).not_to be_nil
 
         mod = file_scope.scopes.find { |s| s.name == 'ExtractAllMixed' }
@@ -1792,6 +1798,11 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       it 'extracts symbols (constants) on the module scope' do
         scopes = described_class.extract_all
         file_scope = scopes.find { |s| s.name == @file }
+        unless file_scope
+          $stderr.puts "[DIAG-SYM] @file = #{@file.inspect}"
+          $stderr.puts "[DIAG-SYM] FILE scope names: #{scopes.select { |s| s.scope_type == 'FILE' }.map(&:name).inspect}"
+        end
+        expect(file_scope).not_to be_nil
         mod = file_scope.scopes.find { |s| s.name == 'ExtractAllMixed' }
 
         const = mod.symbols.find { |s| s.name == 'SOME_CONST' }
