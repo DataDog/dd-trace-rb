@@ -5,13 +5,14 @@ require 'datadog/symbol_database/symbol_entry'
 
 RSpec.describe Datadog::SymbolDatabase::Scope do
   describe '#to_h' do
-    it 'includes scope_type and omits nil fields' do
+    it 'includes scope_type and defaults start_line/end_line to 0' do
       scope = described_class.new(scope_type: 'MODULE', name: 'test')
       h = scope.to_h
       expect(h[:scope_type]).to eq('MODULE')
       expect(h[:name]).to eq('test')
+      expect(h[:start_line]).to eq(0)
+      expect(h[:end_line]).to eq(0)
       expect(h).not_to have_key(:source_file)
-      expect(h).not_to have_key(:start_line)
       expect(h).not_to have_key(:symbols)
       expect(h).not_to have_key(:scopes)
     end
