@@ -306,20 +306,6 @@
         "default": "[]"
       }
     ],
-    "DD_SYMBOL_DATABASE_FORCE_UPLOAD": [
-      {
-        "version": "A",
-        "type": "boolean",
-        "default": "false"
-      }
-    ],
-    "DD_SYMBOL_DATABASE_INCLUDES": [
-      {
-        "version": "A",
-        "type": "array",
-        "default": "[]"
-      }
-    ],
     "DD_SYMBOL_DATABASE_UPLOAD_ENABLED": [
       {
         "version": "A",

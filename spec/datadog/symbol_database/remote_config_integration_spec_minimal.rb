@@ -41,7 +41,7 @@ RSpec.describe 'Symbol Database Minimal' do
 
     settings = Datadog::Core::Configuration::Settings.new.tap do |s|
       s.symbol_database.enabled = true
-      s.symbol_database.force_upload = true
+      s.symbol_database.internal.force_upload = true
       s.remote.enabled = false
       s.service = 'rspec'
       s.env = 'test'
@@ -55,7 +55,7 @@ RSpec.describe 'Symbol Database Minimal' do
 
     # Build component with remote config enabled (don't use force upload to control timing)
     settings.remote.enabled = true
-    settings.symbol_database.force_upload = false
+    settings.symbol_database.internal.force_upload = false
     component = Datadog::SymbolDatabase::Component.build(settings, agent_settings, logger)
 
     # Manually call start_upload (runs synchronously)
