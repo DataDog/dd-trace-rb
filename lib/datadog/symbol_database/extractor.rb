@@ -234,6 +234,7 @@ module Datadog
       end
 
       # Extract MODULE scope (without file_hash — that belongs on the FILE root scope).
+      # Does not include nested classes — nesting is handled by extract_all via FQN splitting.
       # @param mod [Module] The module
       # @return [Scope] The module scope
       def self.extract_module_scope(mod)
@@ -246,7 +247,6 @@ module Datadog
           source_file: source_file,
           start_line: SymbolDatabase::UNKNOWN_MIN_LINE,
           end_line: SymbolDatabase::UNKNOWN_MAX_LINE,
-          scopes: extract_nested_classes(mod),
           symbols: extract_module_symbols(mod)
         )
         # steep:ignore:end
@@ -323,29 +323,6 @@ module Datadog
         specifics
       rescue
         {}
-      end
-
-      # Extract nested classes within a module
-      # @param mod [Module] The module
-      # @return [Array<Scope>] Nested class scopes
-      def self.extract_nested_classes(mod)
-        scopes = []
-
-        mod.constants(false).each do |const_name|
-          const_value = mod.const_get(const_name)
-          next unless const_value.is_a?(Class)
-
-          # Extract nested class
-          class_scope = extract_class_scope(const_value)
-          scopes << class_scope if class_scope
-        rescue => e
-          Datadog.logger.debug("SymDB: Failed to extract constant #{mod.name}::#{const_name}: #{e.class}: #{e}")
-        end
-
-        scopes
-      rescue => e
-        Datadog.logger.debug("SymDB: Failed to extract nested classes from #{mod.name}: #{e.class}: #{e}")
-        []
       end
 
       # Extract MODULE-level symbols (constants, module functions)
@@ -957,7 +934,7 @@ module Datadog
         :find_source_file, :wrap_in_file_scope,
         :extract_module_scope, :extract_class_scope,
         :calculate_class_line_range,
-        :build_class_language_specifics, :extract_nested_classes,
+        :build_class_language_specifics,
         :extract_module_symbols, :extract_class_symbols,
         :extract_method_scopes, :extract_method_scope,
         :extract_singleton_method_scope, :method_visibility,

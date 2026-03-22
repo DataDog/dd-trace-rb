@@ -298,7 +298,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         cleanup_user_code_file(@filename)
       end
 
-      it 'extracts the parent MODULE with the class nested inside' do
+      it 'extracts the parent MODULE without nested classes (nesting is via extract_all)' do
         file_scope = described_class.extract(TestNsModule)
 
         expect(file_scope).not_to be_nil
@@ -306,9 +306,9 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         module_scope = file_scope.scopes.first
         expect(module_scope.scope_type).to eq('MODULE')
         expect(module_scope.name).to eq('TestNsModule')
+        # extract does not nest classes — extract_all handles nesting via FQN splitting
         inner_class = module_scope.scopes.find { |s| s.scope_type == 'CLASS' }
-        expect(inner_class).not_to be_nil
-        expect(inner_class.name).to eq('TestNsModule::TestNsClass')
+        expect(inner_class).to be_nil
       end
 
       it 'also extracts the nested class as its own root FILE scope' do
