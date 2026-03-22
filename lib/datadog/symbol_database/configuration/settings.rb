@@ -5,10 +5,8 @@ module Datadog
     module Configuration
       # Configuration settings for symbol database upload feature.
       #
-      # Provides 3 environment variables:
+      # Public environment variable:
       # - DD_SYMBOL_DATABASE_UPLOAD_ENABLED (default: true) - Feature gate
-      # - DD_SYMBOL_DATABASE_FORCE_UPLOAD (default: false) - Bypass remote config
-      # - DD_SYMBOL_DATABASE_INCLUDES (default: []) - Filter modules to upload
       #
       # Extended into: Core::Configuration::Settings (via extend)
       # Accessed as: Datadog.configuration.symbol_database.enabled
@@ -32,25 +30,19 @@ module Datadog
                 o.default true
               end
 
-              option :force_upload do |o|
-                o.type :bool
-                o.env 'DD_SYMBOL_DATABASE_FORCE_UPLOAD'
-                o.default false
-              end
-
-              option :includes do |o|
-                o.type :array
-                o.env 'DD_SYMBOL_DATABASE_INCLUDES'
-                o.env_parser do |value|
-                  value.to_s.split(',').map(&:strip).reject(&:empty?)
-                end
-                o.default []
-              end
-
               # Settings in the 'internal' group are for internal Datadog
               # use only, and are needed to test symbol database or
               # experiment with features not released to customers.
               settings :internal do
+                # Bypass remote config — start extraction immediately.
+                # Matches Java's internal.force.symbol.database.upload
+                # and Python's private force_upload setting.
+                # No DD_* env var — internal settings are code-only.
+                option :force_upload do |o|
+                  o.type :bool
+                  o.default false
+                end
+
                 # Controls whether class methods (def self.foo) are included
                 # in symbol database uploads.
                 #
