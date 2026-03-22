@@ -124,6 +124,9 @@ module Datadog
       # @param path [String] File path
       # @return [Boolean] true if user code
       def self.user_code_path?(path)
+        # Only absolute paths are real source files. Pseudo-paths like '<main>',
+        # '<internal:...>', '(eval)' are not user code.
+        return false unless path.start_with?('/')
         # Exclude gem paths
         return false if path.include?('/gems/')
         # Exclude Ruby stdlib
