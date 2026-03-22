@@ -634,7 +634,7 @@ module Datadog
 
           next if methods_by_file.empty?
 
-          entries[mod_name] = { mod: mod, methods_by_file: methods_by_file }
+          entries[mod_name] = {mod: mod, methods_by_file: methods_by_file}
         rescue => e
           Datadog.logger.debug("SymDB: Error collecting #{mod_name || '<unknown>'}: #{e.class}: #{e}")
         end
@@ -661,7 +661,7 @@ module Datadog
           next unless loc
           next unless user_code_path?(loc[0])
 
-          result[loc[0]] << { name: method_name, method: method, type: :instance }
+          result[loc[0]] << {name: method_name, method: method, type: :instance}
         rescue => e
           Datadog.logger.debug("SymDB: Error grouping method #{method_name}: #{e.class}: #{e}")
         end
@@ -674,7 +674,7 @@ module Datadog
             next unless loc
             next unless user_code_path?(loc[0])
 
-            result[loc[0]] << { name: method_name, method: method, type: :singleton }
+            result[loc[0]] << {name: method_name, method: method, type: :singleton}
           rescue => e
             Datadog.logger.debug("SymDB: Error grouping singleton method #{method_name}: #{e.class}: #{e}")
           end

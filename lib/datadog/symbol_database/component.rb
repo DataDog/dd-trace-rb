@@ -196,6 +196,7 @@ module Datadog
         end
         true
       end
+      private_class_method :environment_supported?
 
       # Check if upload was recent (within cooldown period).
       # Must be called from within @mutex.synchronize.
