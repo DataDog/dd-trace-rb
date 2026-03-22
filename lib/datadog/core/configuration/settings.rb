@@ -622,11 +622,11 @@ module Datadog
 
             # Fallback to system dns instead of using libdatadog built-in resolver.
             #
-            # @default `DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS` environment variable as a boolean, otherwise `false`
+            # @default `DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS` environment variable as a boolean, otherwise `true`
             option :experimental_use_system_dns do |o|
               o.type :bool
               o.env 'DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS'
-              o.default false
+              o.default true
             end
           end
 
@@ -1057,13 +1057,13 @@ module Datadog
           end
         end
 
-        # Enable experimental process tags propagation such that payloads like spans contain the process tag.
+        # Enable process tags propagation such that payloads like spans contain the process tag.
         #
-        # @default `DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED` environment variable, otherwise `false`
+        # @default `DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED` environment variable, otherwise `true`
         # @return [Boolean]
         option :experimental_propagate_process_tags_enabled do |o|
           o.env 'DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED'
-          o.default false
+          o.default true
           o.type :bool
         end
 

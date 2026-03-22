@@ -488,6 +488,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     end
 
     context 'when process tags propagation is not enabled' do
+      before do
+        allow(settings).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
+      end
+
       it 'excludes process tags in the payload' do
         payload = builder.build_executed(context)
         expect(payload).not_to include(:process_tags)
