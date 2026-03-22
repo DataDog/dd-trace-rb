@@ -1942,6 +1942,169 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
     end
 
+    # === Ruby-specific metaprogramming edge cases ===
+    # Tests for patterns unique to Ruby: class_eval, eval, define_method variants,
+    # OpenStruct, and refinements. These complement the Java-ported tests above.
+
+    context 'with class_eval adding methods' do
+      before do
+        @filename = create_user_code_file(<<~RUBY)
+          class TestClassEvalTarget
+            def original_method; end
+          end
+
+          TestClassEvalTarget.class_eval do
+            def eval_added_method(x, y); x + y; end
+          end
+        RUBY
+        load @filename
+      end
+
+      after do
+        Object.send(:remove_const, :TestClassEvalTarget) if defined?(TestClassEvalTarget)
+        cleanup_user_code_file(@filename)
+      end
+
+      it 'extracts methods added via class_eval' do
+        class_scope = described_class.extract(TestClassEvalTarget).scopes.first
+        method_names = class_scope.scopes.map(&:name)
+
+        expect(method_names).to include('original_method')
+        expect(method_names).to include('eval_added_method')
+      end
+
+      it 'extracts parameters from class_eval methods' do
+        class_scope = described_class.extract(TestClassEvalTarget).scopes.first
+        method_scope = class_scope.scopes.find { |s| s.name == 'eval_added_method' }
+
+        param_names = method_scope.symbols.map(&:name)
+        expect(param_names).to include('x', 'y')
+      end
+    end
+
+    context 'with eval-defined class' do
+      before do
+        @filename = create_user_code_file(<<~RUBY)
+          eval("class TestEvalDefinedClass; def eval_method; end; end")
+        RUBY
+        load @filename
+      end
+
+      after do
+        Object.send(:remove_const, :TestEvalDefinedClass) if defined?(TestEvalDefinedClass)
+        cleanup_user_code_file(@filename)
+      end
+
+      it 'returns nil for class defined via eval (source_location is "(eval)")' do
+        # eval-defined methods have source_location ["(eval)", N] which is
+        # correctly filtered by user_code_path? (includes '(eval)' check)
+        scope = described_class.extract(TestEvalDefinedClass)
+        expect(scope).to be_nil
+      end
+    end
+
+    context 'with define_method using a lambda' do
+      before do
+        @filename = create_user_code_file(<<~RUBY)
+          class TestDefineMethodLambda
+            handler = ->(a, b) { a * b }
+            define_method(:from_lambda, handler)
+
+            def regular; end
+          end
+        RUBY
+        load @filename
+      end
+
+      after do
+        Object.send(:remove_const, :TestDefineMethodLambda) if defined?(TestDefineMethodLambda)
+        cleanup_user_code_file(@filename)
+      end
+
+      it 'extracts method defined from lambda' do
+        class_scope = described_class.extract(TestDefineMethodLambda).scopes.first
+        method_names = class_scope.scopes.map(&:name)
+
+        expect(method_names).to include('from_lambda')
+        expect(method_names).to include('regular')
+      end
+
+      it 'extracts lambda parameters' do
+        class_scope = described_class.extract(TestDefineMethodLambda).scopes.first
+        method_scope = class_scope.scopes.find { |s| s.name == 'from_lambda' }
+
+        param_names = method_scope.symbols.map(&:name)
+        expect(param_names).to include('a', 'b')
+      end
+    end
+
+    context 'with OpenStruct subclass' do
+      before do
+        @filename = create_user_code_file(<<~RUBY)
+          require 'ostruct'
+          class TestOpenStructChild < OpenStruct
+            def custom_method; "custom"; end
+          end
+        RUBY
+        load @filename
+      end
+
+      after do
+        Object.send(:remove_const, :TestOpenStructChild) if defined?(TestOpenStructChild)
+        cleanup_user_code_file(@filename)
+      end
+
+      it 'extracts user-defined methods on OpenStruct subclass' do
+        scope = described_class.extract(TestOpenStructChild)
+
+        expect(scope).not_to be_nil
+        class_scope = scope.scopes.first
+        method_names = class_scope.scopes.map(&:name)
+        expect(method_names).to include('custom_method')
+      end
+
+      it 'includes OpenStruct as superclass in language_specifics' do
+        class_scope = described_class.extract(TestOpenStructChild).scopes.first
+        expect(class_scope.language_specifics[:super_classes]).to include('OpenStruct')
+      end
+    end
+
+    context 'with refinements' do
+      before do
+        @filename = create_user_code_file(<<~RUBY)
+          module TestRefinementModule
+            refine String do
+              def shout; upcase + "!"; end
+            end
+
+            def self.helper_method; "helper"; end
+          end
+        RUBY
+        load @filename
+      end
+
+      after do
+        Object.send(:remove_const, :TestRefinementModule) if defined?(TestRefinementModule)
+        cleanup_user_code_file(@filename)
+      end
+
+      it 'extracts the refinement module itself (has a singleton method)' do
+        file_scope = described_class.extract(TestRefinementModule)
+        expect(file_scope).not_to be_nil
+        module_scope = file_scope.scopes.first
+        expect(module_scope.scope_type).to eq('MODULE')
+        expect(module_scope.name).to eq('TestRefinementModule')
+      end
+
+      it 'does not add refined methods to the target class' do
+        # String.instance_methods(false) never includes refinement methods —
+        # they are only visible within `using` scope. So String extraction
+        # (which is filtered as stdlib anyway) would not show `shout`.
+        # This test documents the behavior for awareness.
+        expect(String.instance_methods(false)).not_to include(:shout)
+      end
+    end
+
     context 'with singleton/eigenclass methods (upload_class_methods: true)' do
       # Ported from Java: tests static methods. Ruby equivalent is singleton methods.
       before do
