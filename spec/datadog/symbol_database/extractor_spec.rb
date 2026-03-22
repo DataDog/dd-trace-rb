@@ -31,6 +31,25 @@ module SymbolDatabaseTestApp
       'test'
     end
   end
+
+  class ServiceConfig
+    VERSION = '1.0'
+    MAX_RETRIES = 3
+    @@instance_count = 0
+
+    def self.create(name)
+      @@instance_count += 1
+      new
+    end
+
+    def self.instance_count
+      @@instance_count
+    end
+
+    def configure(key, value:)
+      [key, value]
+    end
+  end
 end
 
 RSpec.describe Datadog::SymbolDatabase::Extractor do
@@ -105,6 +124,51 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       user_file = SymbolDatabaseTestApp::User.instance_method(:name).source_location[0]
       scope = extractor.send(:extract_class, SymbolDatabaseTestApp::User, user_file)
       expect(scope.language_specifics[:super_classes]).to eq(['SymbolDatabaseTestApp::BaseModel'])
+    end
+
+    it 'extracts class methods with self. prefix' do
+      source_file = SymbolDatabaseTestApp::ServiceConfig.instance_method(:configure).source_location[0]
+      scope = extractor.send(:extract_class, SymbolDatabaseTestApp::ServiceConfig, source_file)
+      method_names = scope.scopes.map(&:name)
+      expect(method_names).to include('self.create')
+      expect(method_names).to include('self.instance_count')
+    end
+
+    it 'extracts class method parameters as ARG symbols' do
+      source_file = SymbolDatabaseTestApp::ServiceConfig.instance_method(:configure).source_location[0]
+      scope = extractor.send(:extract_class, SymbolDatabaseTestApp::ServiceConfig, source_file)
+      create_method = scope.scopes.find { |m| m.name == 'self.create' }
+      expect(create_method).not_to be_nil
+      arg_names = create_method.symbols.map(&:name)
+      expect(arg_names).to include('name')
+    end
+
+    it 'extracts constants as STATIC_FIELD symbols' do
+      source_file = SymbolDatabaseTestApp::ServiceConfig.instance_method(:configure).source_location[0]
+      scope = extractor.send(:extract_class, SymbolDatabaseTestApp::ServiceConfig, source_file)
+      static_fields = scope.symbols.select { |s| s.symbol_type == 'STATIC_FIELD' }
+      static_field_names = static_fields.map(&:name)
+      expect(static_field_names).to include('VERSION')
+      expect(static_field_names).to include('MAX_RETRIES')
+    end
+
+    it 'extracts class variables as STATIC_FIELD symbols' do
+      source_file = SymbolDatabaseTestApp::ServiceConfig.instance_method(:configure).source_location[0]
+      scope = extractor.send(:extract_class, SymbolDatabaseTestApp::ServiceConfig, source_file)
+      static_fields = scope.symbols.select { |s| s.symbol_type == 'STATIC_FIELD' }
+      static_field_names = static_fields.map(&:name)
+      expect(static_field_names).to include('@@instance_count')
+    end
+
+    it 'does not extract nested modules as STATIC_FIELD constants' do
+      source_file = SymbolDatabaseTestApp::TestController.instance_method(:index).source_location[0]
+      scope = extractor.send(:extract_class, SymbolDatabaseTestApp, source_file)
+      next unless scope
+
+      static_fields = (scope.symbols || []).select { |s| s.symbol_type == 'STATIC_FIELD' }
+      static_field_names = static_fields.map(&:name)
+      expect(static_field_names).not_to include('TestController')
+      expect(static_field_names).not_to include('ServiceConfig')
     end
   end
 

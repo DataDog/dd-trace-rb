@@ -84,6 +84,25 @@ module Datadog
           end
         end
 
+        # Also check class methods (singleton class)
+        begin
+          singleton = mod.singleton_class
+          singleton_methods = singleton.instance_methods(false) + singleton.private_instance_methods(false) +
+            singleton.protected_instance_methods(false)
+          singleton_methods.each do |method_name|
+            begin
+              location = singleton.instance_method(method_name).source_location
+              if location && location[0]
+                file_counts[location[0]] += 1
+              end
+            rescue
+              next
+            end
+          end
+        rescue TypeError
+          # Some objects don't support singleton_class
+        end
+
         # Prefer user code paths over gem/stdlib paths
         user_files = file_counts.select { |f, _| user_code_path?(f) }
         best = user_files.max_by { |_, count| count }
@@ -103,10 +122,13 @@ module Datadog
 
       def extract_class(mod, source_file)
         method_scopes = extract_methods(mod, source_file)
-        return nil if method_scopes.empty?
+        class_method_scopes = extract_class_methods(mod, source_file)
+        all_method_scopes = method_scopes + class_method_scopes
 
-        start_line = method_scopes.map(&:start_line).compact.min || 0
-        end_line = method_scopes.map(&:end_line).compact.max || 0
+        return nil if all_method_scopes.empty?
+
+        start_line = all_method_scopes.map(&:start_line).compact.min || 0
+        end_line = all_method_scopes.map(&:end_line).compact.max || 0
 
         superclass_name = if mod.is_a?(Class) && mod.superclass && mod.superclass != Object
           mod.superclass.name
@@ -122,6 +144,8 @@ module Datadog
         language_specifics[:super_classes] = [superclass_name] if superclass_name
         language_specifics[:interfaces] = included unless included.empty?
 
+        class_symbols = extract_class_symbols(mod)
+
         Scope.new(
           scope_type: 'CLASS',
           name: mod.name,
@@ -129,7 +153,8 @@ module Datadog
           start_line: start_line,
           end_line: end_line,
           language_specifics: language_specifics,
-          scopes: method_scopes,
+          symbols: class_symbols.empty? ? nil : class_symbols,
+          scopes: all_method_scopes,
         )
       end
 
@@ -163,6 +188,108 @@ module Datadog
         end
 
         result
+      end
+
+      def extract_class_methods(mod, source_file)
+        result = []
+
+        begin
+          singleton = mod.singleton_class
+        rescue TypeError
+          return result
+        end
+
+        # Get methods defined directly on the singleton class (class methods)
+        methods = begin
+          singleton.instance_methods(false) + singleton.private_instance_methods(false) +
+            singleton.protected_instance_methods(false)
+        rescue
+          return result
+        end
+
+        # Determine visibility from the singleton class perspective
+        public_methods = begin
+          singleton.public_instance_methods(false)
+        rescue
+          []
+        end
+        protected_methods = begin
+          singleton.protected_instance_methods(false)
+        rescue
+          []
+        end
+
+        methods.each do |method_name|
+          begin
+            um = singleton.instance_method(method_name)
+            location = um.source_location
+            next unless location && location[0] == source_file
+
+            visibility = if public_methods.include?(method_name)
+              :public
+            elsif protected_methods.include?(method_name)
+              :protected
+            else
+              :private
+            end
+
+            params = extract_parameters(um)
+
+            result << Scope.new(
+              scope_type: 'METHOD',
+              name: "self.#{method_name}",
+              source_file: source_file,
+              start_line: location[1],
+              end_line: location[1],
+              language_specifics: { access_modifiers: [visibility.to_s] },
+              symbols: params.empty? ? nil : params,
+            )
+          rescue => e
+            @logger.debug { "symbol_database: failed to extract class method #{method_name}: #{e.class}: #{e}" }
+          end
+        end
+
+        result
+      end
+
+      def extract_class_symbols(mod)
+        symbols = []
+
+        # Extract class variables as STATIC_FIELD
+        begin
+          mod.class_variables(false).each do |cv|
+            symbols << SymbolEntry.new(
+              symbol_type: 'STATIC_FIELD',
+              name: cv.to_s,
+              line: 0,
+            )
+          end
+        rescue => e
+          @logger.debug { "symbol_database: failed to extract class variables: #{e.class}: #{e}" }
+        end
+
+        # Extract constants as STATIC_FIELD
+        begin
+          mod.constants(false).each do |const_name|
+            # Skip nested class/module constants — they are extracted as CLASS scopes
+            value = begin
+              mod.const_get(const_name, false)
+            rescue
+              nil
+            end
+            next if value.is_a?(Module)
+
+            symbols << SymbolEntry.new(
+              symbol_type: 'STATIC_FIELD',
+              name: const_name.to_s,
+              line: 0,
+            )
+          end
+        rescue => e
+          @logger.debug { "symbol_database: failed to extract constants: #{e.class}: #{e}" }
+        end
+
+        symbols
       end
 
       def extract_parameters(method_obj)
