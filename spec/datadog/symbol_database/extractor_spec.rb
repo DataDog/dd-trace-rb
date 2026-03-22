@@ -1594,7 +1594,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
     def create_test_file(filename, content)
       path = File.join(@test_dir, filename)
       File.write(path, content)
-      path
+      File.realpath(path)
     end
 
     context 'simple class in one file' do
