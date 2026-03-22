@@ -35,11 +35,11 @@ module Datadog
               # experiment with features not released to customers.
               settings :internal do
                 # Bypass remote config — start extraction immediately.
-                # Matches Java's internal.force.symbol.database.upload
+                # Matches Java's DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD
                 # and Python's private force_upload setting.
-                # No DD_* env var — internal settings are code-only.
                 option :force_upload do |o|
                   o.type :bool
+                  o.env 'DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD'
                   o.default false
                 end
 
