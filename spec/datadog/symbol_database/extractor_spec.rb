@@ -350,16 +350,16 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         cleanup_user_code_file(@filename)
       end
 
-      it 'extracts namespaced class as its own root MODULE scope' do
+      it 'extracts namespaced class as its own root FILE scope' do
         # TestNamespace::TestInnerClass is a user class and must be searchable.
         # Even though the parent TestNamespace has no methods (so it can't be extracted
-        # itself), the class is extracted as a standalone MODULE-wrapped scope.
-        scope = described_class.extract(TestNamespace::TestInnerClass)
+        # itself), the class is extracted as a standalone FILE-wrapped scope.
+        file_scope = described_class.extract(TestNamespace::TestInnerClass)
 
-        expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('MODULE')
-        expect(scope.name).to eq(scope.source_file)
-        class_scope = scope.scopes.first
+        expect(file_scope).not_to be_nil
+        expect(file_scope.scope_type).to eq('FILE')
+        expect(file_scope.name).to eq(file_scope.source_file)
+        class_scope = file_scope.scopes.first
         expect(class_scope.scope_type).to eq('CLASS')
         expect(class_scope.name).to eq('TestNamespace::TestInnerClass')
       end
@@ -367,15 +367,17 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       it 'extracts namespace-only module via const_source_location fallback (Ruby 2.7+)' do
         # TestNamespace has no methods but has a constant (TestInnerClass).
         # On Ruby 2.7+, const_source_location finds the module's source via its constants.
-        scope = described_class.extract(TestNamespace)
+        file_scope = described_class.extract(TestNamespace)
 
         if Module.method_defined?(:const_source_location) || TestNamespace.respond_to?(:const_source_location)
-          expect(scope).not_to be_nil
-          expect(scope.scope_type).to eq('MODULE')
-          expect(scope.name).to eq('TestNamespace')
+          expect(file_scope).not_to be_nil
+          expect(file_scope.scope_type).to eq('FILE')
+          module_scope = file_scope.scopes.first
+          expect(module_scope.scope_type).to eq('MODULE')
+          expect(module_scope.name).to eq('TestNamespace')
         else
           # Ruby < 2.7: const_source_location unavailable, module not extractable
-          expect(scope).to be_nil
+          expect(file_scope).to be_nil
         end
       end
     end
@@ -399,9 +401,11 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts the parent MODULE with the class nested inside' do
-        module_scope = described_class.extract(TestNsModule)
+        file_scope = described_class.extract(TestNsModule)
 
-        expect(module_scope).not_to be_nil
+        expect(file_scope).not_to be_nil
+        expect(file_scope.scope_type).to eq('FILE')
+        module_scope = file_scope.scopes.first
         expect(module_scope.scope_type).to eq('MODULE')
         expect(module_scope.name).to eq('TestNsModule')
         inner_class = module_scope.scopes.find { |s| s.scope_type == 'CLASS' }
@@ -409,15 +413,13 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         expect(inner_class.name).to eq('TestNsModule::TestNsClass')
       end
 
-      it 'also extracts the nested class as its own root MODULE scope' do
+      it 'also extracts the nested class as its own root FILE scope' do
         # The nested class is extractable independently — it has a user code source file.
-        # It also appears nested inside the parent MODULE, which is intentional:
-        # mergeRootScopesWithSameName on the backend merges duplicates by name.
-        scope = described_class.extract(TestNsModule::TestNsClass)
+        file_scope = described_class.extract(TestNsModule::TestNsClass)
 
-        expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('MODULE')
-        expect(scope.name).to eq(scope.source_file)
+        expect(file_scope).not_to be_nil
+        expect(file_scope.scope_type).to eq('FILE')
+        expect(file_scope.name).to eq(file_scope.source_file)
       end
     end
 
@@ -1457,7 +1459,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         if TestConstOnlyClass.respond_to?(:const_source_location)
           # Ruby 2.7+: const_source_location finds source via constants
           expect(scope).not_to be_nil
-          expect(scope.scope_type).to eq('MODULE')
+          expect(scope.scope_type).to eq('FILE')
         else
           # Ruby 2.5/2.6: no const_source_location, cannot find source
           expect(scope).to be_nil
@@ -1490,7 +1492,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       it 'extracts deeply nested class (A::B::C) as standalone root scope' do
         scope = described_class.extract(TestA::TestB::TestC)
         expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('MODULE')
+        expect(scope.scope_type).to eq('FILE')
         expect(scope.name).to eq(scope.source_file)
         expect(scope.scopes.first.scope_type).to eq('CLASS')
       end
@@ -1515,20 +1517,20 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         mods = [TestA, TestA::TestB, TestA::TestB::TestC]
         extracted = Datadog::Core::Utils::Array.filter_map(mods) { |mod| described_class.extract(mod) }
 
-        # Modules keep their module name; classes get file-based MODULE name.
-        # Check scope types: TestA and TestA::TestB are modules, TestA::TestB::TestC is a class.
-        scope_types = extracted.map { |s| [s.scope_type, s.name] }
-
+        # All scopes are FILE-wrapped. Inner scope names distinguish modules from classes.
         if TestA.respond_to?(:const_source_location)
           expect(extracted.size).to eq(3)
-          expect(scope_types).to include(['MODULE', 'TestA'], ['MODULE', 'TestA::TestB'])
-          # TestA::TestB::TestC is a class → MODULE wrapper with file-based name
-          tc_scope = extracted.find { |s| s.name != 'TestA' && s.name != 'TestA::TestB' }
-          expect(tc_scope).not_to be_nil
-          expect(tc_scope.scopes.first.name).to eq('TestA::TestB::TestC')
+          # All root scopes are FILE
+          expect(extracted.map(&:scope_type).uniq).to eq(['FILE'])
+          # Inner scopes: TestA and TestA::TestB are modules, TestA::TestB::TestC is a class
+          inner_names = extracted.map { |s| s.scopes.first&.name }
+          expect(inner_names).to include('TestA', 'TestA::TestB')
+          tc_file = extracted.find { |s| s.scopes.first&.name == 'TestA::TestB::TestC' }
+          expect(tc_file).not_to be_nil
+          expect(tc_file.scopes.first.scope_type).to eq('CLASS')
         else
           expect(extracted.size).to eq(1)
-          expect(extracted.first.scope_type).to eq('MODULE')
+          expect(extracted.first.scope_type).to eq('FILE')
         end
       end
     end
@@ -1582,13 +1584,15 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
           end
         RUBY
         load filename
-        scope = described_class.extract(TestValueConstModule)
+        file_scope = described_class.extract(TestValueConstModule)
         if TestValueConstModule.respond_to?(:const_source_location)
-          expect(scope).not_to be_nil
-          expect(scope.scope_type).to eq('MODULE')
-          expect(scope.name).to eq('TestValueConstModule')
+          expect(file_scope).not_to be_nil
+          expect(file_scope.scope_type).to eq('FILE')
+          module_scope = file_scope.scopes.first
+          expect(module_scope.scope_type).to eq('MODULE')
+          expect(module_scope.name).to eq('TestValueConstModule')
         else
-          expect(scope).to be_nil
+          expect(file_scope).to be_nil
         end
         Object.send(:remove_const, :TestValueConstModule)
         cleanup_user_code_file(filename)
@@ -1639,10 +1643,12 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
 
         # TestConcernNoMethods has a singleton method (self.included) → source_location
         # points to the file → extracted
-        scope = described_class.extract(TestConcernNoMethods)
-        expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('MODULE')
-        expect(scope.name).to eq('TestConcernNoMethods')
+        file_scope = described_class.extract(TestConcernNoMethods)
+        expect(file_scope).not_to be_nil
+        expect(file_scope.scope_type).to eq('FILE')
+        module_scope = file_scope.scopes.first
+        expect(module_scope.scope_type).to eq('MODULE')
+        expect(module_scope.name).to eq('TestConcernNoMethods')
 
         Object.send(:remove_const, :TestConcernNoMethods)
         cleanup_user_code_file(filename)
@@ -1924,7 +1930,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         scope = described_class.extract(TestStructClass)
 
         expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('MODULE')
+        expect(scope.scope_type).to eq('FILE')
         expect(scope.name).to eq(scope.source_file)
       end
 
