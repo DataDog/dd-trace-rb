@@ -1759,6 +1759,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
             SOME_CONST = 42
 
             def self.module_func; end
+            def instance_helper; end
 
             class ExtractAllMixedChild
               def child_method; end
