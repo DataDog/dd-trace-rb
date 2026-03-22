@@ -48,21 +48,25 @@ RSpec.describe 'Symbol Database Integration' do
         # Create scope context
         context = Datadog::SymbolDatabase::ScopeContext.new(uploader)
 
-        # Namespaced classes are also extractable as standalone root MODULE scopes,
+        # Namespaced classes are also extractable as standalone root FILE scopes,
         # ensuring they appear in search even if the parent namespace can't be extracted.
-        nested_scope = Datadog::SymbolDatabase::Extractor.extract(IntegrationTestModule::IntegrationTestClass)
-        expect(nested_scope).not_to be_nil
-        expect(nested_scope.scope_type).to eq('MODULE')
-        expect(nested_scope.name).to eq(nested_scope.source_file)
+        nested_file_scope = Datadog::SymbolDatabase::Extractor.extract(IntegrationTestModule::IntegrationTestClass)
+        expect(nested_file_scope).not_to be_nil
+        expect(nested_file_scope.scope_type).to eq('FILE')
+        expect(nested_file_scope.name).to eq(nested_file_scope.source_file)
 
-        # Extract the parent MODULE — it wraps nested CLASS scopes
-        scope = Datadog::SymbolDatabase::Extractor.extract(IntegrationTestModule)
-        expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('MODULE')
-        expect(scope.name).to eq('IntegrationTestModule')
+        # Extract the parent MODULE — wrapped in a FILE scope
+        file_scope = Datadog::SymbolDatabase::Extractor.extract(IntegrationTestModule)
+        expect(file_scope).not_to be_nil
+        expect(file_scope.scope_type).to eq('FILE')
+        expect(file_scope.language_specifics[:file_hash]).not_to be_nil
+
+        module_scope = file_scope.scopes.first
+        expect(module_scope.scope_type).to eq('MODULE')
+        expect(module_scope.name).to eq('IntegrationTestModule')
 
         # The nested CLASS is inside the MODULE's scopes
-        class_scope = scope.scopes.find { |s| s.scope_type == 'CLASS' }
+        class_scope = module_scope.scopes.find { |s| s.scope_type == 'CLASS' }
         expect(class_scope).not_to be_nil
         expect(class_scope.name).to eq('IntegrationTestModule::IntegrationTestClass')
 
@@ -84,25 +88,23 @@ RSpec.describe 'Symbol Database Integration' do
         expect(param_names).to include('arg2')
 
         # Add to context (should batch)
-        context.add_scope(scope)
+        context.add_scope(file_scope)
         expect(context.size).to eq(1)
 
         # Flush (should upload)
         context.flush
 
-        # Verify upload was called with the MODULE scope
+        # Verify upload was called with the FILE scope
         expect(uploaded_scopes).not_to be_nil
         expect(uploaded_scopes.size).to eq(1)
-        expect(uploaded_scopes.first.name).to eq('IntegrationTestModule')
-        expect(uploaded_scopes.first.scope_type).to eq('MODULE')
+        expect(uploaded_scopes.first.name).to eq(test_file)
+        expect(uploaded_scopes.first.scope_type).to eq('FILE')
 
-        # Verify JSON serialization produces valid root-level MODULE scope
+        # Verify JSON serialization produces valid root-level FILE scope
         json = uploaded_scopes.first.to_json
         parsed = JSON.parse(json)
-        expect(parsed['scope_type']).to eq('MODULE')
+        expect(parsed['scope_type']).to eq('FILE')
         expect(parsed['scopes']).to be_an(Array)
-        # MODULE's symbols are module-level constants (not class variables)
-        expect(parsed['symbols']).to be_an(Array).or be_nil
       ensure
         # Cleanup
         Object.send(:remove_const, :IntegrationTestModule) if defined?(IntegrationTestModule)
