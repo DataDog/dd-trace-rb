@@ -33,6 +33,9 @@ RSpec.describe 'Symbol Database Integration' do
         end
       RUBY
 
+      # Resolve symlinks (macOS /var → /private/var) so path matches source_location
+      test_file = File.realpath(test_file)
+
       begin
         load test_file
 
