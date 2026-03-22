@@ -32,8 +32,10 @@ module Datadog
         h = { scope_type: @scope_type }
         h[:name] = @name if @name
         h[:source_file] = @source_file if @source_file
-        h[:start_line] = @start_line if @start_line
-        h[:end_line] = @end_line if @end_line
+        # start_line and end_line are required by the system test schema —
+        # always include them, defaulting to 0 if unknown
+        h[:start_line] = @start_line || 0
+        h[:end_line] = @end_line || 0
         h[:language_specifics] = @language_specifics if @language_specifics && !@language_specifics.empty?
         h[:symbols] = @symbols.map(&:to_h) if @symbols && !@symbols.empty?
         h[:scopes] = @scopes.map(&:to_h) if @scopes && !@scopes.empty?
