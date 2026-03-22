@@ -1597,6 +1597,23 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       File.realpath(path)
     end
 
+    # Find the FILE scope containing a child with the given name.
+    # ObjectSpace may contain stale modules from previous examples (not yet GC'd),
+    # so matching by file path is unreliable. Match by content instead.
+    def find_file_scope(scopes, child_name)
+      scopes.find do |s|
+        s.scope_type == 'FILE' && s.scopes.any? { |c| c.name == child_name }
+      end
+    end
+
+    # Force GC before extract_all to clean up stale modules from previous examples.
+    # Without this, ObjectSpace may contain modules that were remove_const'd but
+    # not yet garbage collected, causing extract_all to see phantom entries.
+    def extract_all_clean(**opts)
+      GC.start
+      described_class.extract_all(**opts)
+    end
+
     context 'simple class in one file' do
       before do
         @file = create_test_file('user.rb', <<~RUBY)
@@ -1612,8 +1629,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'produces FILE → CLASS → METHOD hierarchy' do
-        scopes = described_class.extract_all
-        file_scope = scopes.find { |s| s.name == @file }
+        scopes = extract_all_clean
+        file_scope = find_file_scope(scopes, 'ExtractAllSimpleClass')
 
         expect(file_scope).not_to be_nil
         expect(file_scope.scope_type).to eq('FILE')
@@ -1648,8 +1665,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'nests via FQN split: FILE → MODULE(Outer) → CLASS(Inner)' do
-        scopes = described_class.extract_all
-        file_scope = scopes.find { |s| s.name == @file }
+        scopes = extract_all_clean
+        file_scope = find_file_scope(scopes, 'ExtractAllOuter')
         expect(file_scope).not_to be_nil
 
         # Outer module at top level under FILE, using short name
@@ -1687,8 +1704,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'builds full nesting chain: FILE → MODULE(A) → MODULE(B) → CLASS(C)' do
-        scopes = described_class.extract_all
-        file_scope = scopes.find { |s| s.name == @file }
+        scopes = extract_all_clean
+        file_scope = find_file_scope(scopes, 'ExtractAllDeepA')
         expect(file_scope).not_to be_nil
 
         mod_a = file_scope.scopes.find { |s| s.name == 'ExtractAllDeepA' }
@@ -1728,10 +1745,16 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'produces two FILE scopes, each with only methods from that file' do
-        scopes = described_class.extract_all
+        scopes = extract_all_clean
 
-        file1_scope = scopes.find { |s| s.name == @file1 }
-        file2_scope = scopes.find { |s| s.name == @file2 }
+        # Both FILE scopes contain ExtractAllReopened — distinguish by method content
+        reopened_files = scopes.select do |s|
+          s.scope_type == 'FILE' && s.scopes.any? { |c| c.name == 'ExtractAllReopened' }
+        end
+        expect(reopened_files.size).to eq(2)
+
+        file1_scope = reopened_files.find { |s| s.name.end_with?('reopen1.rb') }
+        file2_scope = reopened_files.find { |s| s.name.end_with?('reopen2.rb') }
 
         expect(file1_scope).not_to be_nil
         expect(file2_scope).not_to be_nil
@@ -1774,14 +1797,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'places child class under parent module in the same FILE scope' do
-        scopes = described_class.extract_all
-        file_scope = scopes.find { |s| s.name == @file }
-        unless file_scope
-          $stderr.puts "[DIAG] @file = #{@file.inspect}"
-          $stderr.puts "[DIAG] FILE scope names: #{scopes.select { |s| s.scope_type == 'FILE' }.map(&:name).inspect}"
-          $stderr.puts "[DIAG] ExtractAllMixed source_location: #{ExtractAllMixed.instance_method(:instance_helper).source_location.inspect}"
-          $stderr.puts "[DIAG] File.realpath(@file): #{File.realpath(@file).inspect rescue 'FAILED'}"
-        end
+        scopes = extract_all_clean
+        file_scope = scopes.find { |s| s.source_file == @file }
         expect(file_scope).not_to be_nil
 
         mod = file_scope.scopes.find { |s| s.name == 'ExtractAllMixed' }
@@ -1796,12 +1813,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts symbols (constants) on the module scope' do
-        scopes = described_class.extract_all
-        file_scope = scopes.find { |s| s.name == @file }
-        unless file_scope
-          $stderr.puts "[DIAG-SYM] @file = #{@file.inspect}"
-          $stderr.puts "[DIAG-SYM] FILE scope names: #{scopes.select { |s| s.scope_type == 'FILE' }.map(&:name).inspect}"
-        end
+        scopes = extract_all_clean
+        file_scope = find_file_scope(scopes, 'ExtractAllMixed')
         expect(file_scope).not_to be_nil
         mod = file_scope.scopes.find { |s| s.name == 'ExtractAllMixed' }
 
@@ -1831,8 +1844,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'reconstructs nesting from FQN even for compact notation' do
-        scopes = described_class.extract_all
-        file_scope = scopes.find { |s| s.name == @file }
+        scopes = extract_all_clean
+        file_scope = find_file_scope(scopes, 'ExtractAllCompactNs')
         expect(file_scope).not_to be_nil
 
         ns = file_scope.scopes.find { |s| s.name == 'ExtractAllCompactNs' }
@@ -1867,8 +1880,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'nests CLASS inside CLASS: FILE → CLASS(Outer) → CLASS(Inner)' do
-        scopes = described_class.extract_all
-        file_scope = scopes.find { |s| s.name == @file }
+        scopes = extract_all_clean
+        file_scope = find_file_scope(scopes, 'ExtractAllOuterClass')
         expect(file_scope).not_to be_nil
 
         outer = file_scope.scopes.find { |s| s.name == 'ExtractAllOuterClass' }
@@ -1900,8 +1913,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'nests MODULE inside CLASS: FILE → CLASS(Host) → MODULE(Inner)' do
-        scopes = described_class.extract_all
-        file_scope = scopes.find { |s| s.name == @file }
+        scopes = extract_all_clean
+        file_scope = find_file_scope(scopes, 'ExtractAllHostClass')
         expect(file_scope).not_to be_nil
 
         host = file_scope.scopes.find { |s| s.name == 'ExtractAllHostClass' }
@@ -1929,8 +1942,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'puts file_hash on FILE scope, not on inner scopes' do
-        scopes = described_class.extract_all
-        file_scope = scopes.find { |s| s.name == @file }
+        scopes = extract_all_clean
+        file_scope = find_file_scope(scopes, 'ExtractAllFileHashTest')
         expect(file_scope).not_to be_nil
 
         # file_hash on FILE
@@ -1961,8 +1974,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts method parameters and visibility' do
-        scopes = described_class.extract_all
-        file_scope = scopes.find { |s| s.name == @file }
+        scopes = extract_all_clean
+        file_scope = find_file_scope(scopes, 'ExtractAllParamsClass')
         cls = file_scope.scopes.find { |s| s.name == 'ExtractAllParamsClass' }
 
         pub = cls.scopes.find { |s| s.name == 'public_method' }
@@ -2001,8 +2014,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'includes super_classes and included_modules on CLASS scope' do
-        scopes = described_class.extract_all
-        file_scope = scopes.find { |s| s.name == @file }
+        scopes = extract_all_clean
+        file_scope = find_file_scope(scopes, 'ExtractAllDerivedLS')
         derived = file_scope.scopes.find { |s| s.name == 'ExtractAllDerivedLS' }
 
         expect(derived).not_to be_nil
