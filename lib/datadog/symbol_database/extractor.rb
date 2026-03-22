@@ -34,55 +34,71 @@ module Datadog
       # Comparable: Core comparison protocol, extremely common
       EXCLUDED_COMMON_MODULES = ['Kernel', 'PP::', 'JSON::', 'Enumerable', 'Comparable'].freeze
 
-      # Extract symbols from a module or class.
+      # Extract symbols from a single module or class.
       # Returns nil if module should be skipped (anonymous, gem code, stdlib).
       #
-      # ALL user classes (including namespaced ones like ApplicationCable::Channel) are
-      # extracted as root-level MODULE scopes wrapping a CLASS scope. The backend requires
-      # root-level scopes to be MODULE/JAR/ASSEMBLY/PACKAGE — a bare CLASS at root throws
-      # IllegalArgumentException in mergeRootScopesWithSameName, silently dropping the batch.
+      # Returns a FILE scope wrapping the extracted CLASS or MODULE scope.
+      # The backend requires root-level scopes to be in ROOT_SCOPES (MODULE, JAR,
+      # ASSEMBLY, PACKAGE, FILE). FILE is the natural root for Ruby — one per source file.
       #
-      # Namespaced classes (e.g. ApplicationCable::Channel) also appear as nested CLASS scopes
-      # inside their parent MODULE scope via extract_nested_classes — that is intentional.
-      # The standalone root MODULE(ApplicationCable::Channel) ensures the class is findable
-      # by name in search even when the parent namespace module is not extractable (e.g. it
-      # has no methods of its own). The duplication is harmless: mergeRootScopesWithSameName
-      # merges root scopes with identical names, and DI only needs the class to be findable.
+      # For full extraction with proper FQN-based nesting and per-file method grouping,
+      # use extract_all instead. This method is kept for single-module extraction in tests.
       #
       # @param mod [Module, Class] The module or class to extract from
-      # @return [Scope, nil] Extracted scope with nested scopes/symbols, or nil if filtered out
+      # @return [Scope, nil] FILE scope wrapping extracted scope, or nil if filtered out
       def self.extract(mod, upload_class_methods: false)
         return nil unless mod.is_a?(Module)
-        # Use safe name lookup — some classes override the singleton `name` method
-        # (e.g. Faker::Travel::Airport defines `def name(size:, region:)` in class << self,
-        # which shadows Module#name and raises ArgumentError when called without args).
-        mod_name = begin
-          Module.instance_method(:name).bind(mod).call
-        rescue
-          nil
-        end
-        return nil unless mod_name  # Skip anonymous modules/classes
+        mod_name = safe_mod_name(mod)
+        return nil unless mod_name
 
         return nil unless user_code_module?(mod)
 
-        if mod.is_a?(Class)
-          # TODO: Remove MODULE wrapper after debugger-backend#1976 (CLASS added to ROOT_SCOPES).
-          # Wrap in MODULE scope — backend requires root-level scopes to be MODULE/JAR/ASSEMBLY/PACKAGE.
-          # A bare CLASS at the top level causes IllegalArgumentException in the backend's
-          # mergeRootScopesWithSameName, silently dropping the entire batch.
-          class_scope = extract_class_scope(mod, upload_class_methods: upload_class_methods)
-          wrap_class_in_module_scope(mod, class_scope)
+        source_file = find_source_file(mod)
+        return nil unless source_file
+
+        inner_scope = if mod.is_a?(Class)
+          extract_class_scope(mod, upload_class_methods: upload_class_methods)
         else
           extract_module_scope(mod)
         end
+
+        wrap_in_file_scope(source_file, [inner_scope])
       rescue => e
-        # Use Module#name safely in rescue block (mod.name might be overridden)
-        mod_name = begin
-          Module.instance_method(:name).bind(mod).call
-        rescue
-          '<unknown>'
-        end
+        mod_name = safe_mod_name(mod) || '<unknown>'
         Datadog.logger.debug("SymDB: Failed to extract #{mod_name}: #{e.class}: #{e}")
+        nil
+      end
+
+      # Extract symbols from all loaded modules and classes.
+      # Returns an array of FILE scopes with proper FQN-based nesting.
+      #
+      # Two-pass algorithm:
+      # Pass 1: Iterate ObjectSpace, collect all extractable modules with methods grouped by file
+      # Pass 2: Build FILE scope trees with nested MODULE/CLASS hierarchy from FQN splitting
+      #
+      # This is the production path used by Component. Methods are split by source file,
+      # so a class reopened across two files produces two FILE scopes, each with only
+      # the methods defined in that file.
+      #
+      # @param upload_class_methods [Boolean] Whether to include singleton methods
+      # @return [Array<Scope>] Array of FILE scopes
+      def self.extract_all(upload_class_methods: false)
+        entries = collect_extractable_modules(upload_class_methods: upload_class_methods)
+        file_trees = build_file_trees(entries)
+        convert_trees_to_scopes(file_trees)
+      rescue => e
+        Datadog.logger.debug("SymDB: Error in extract_all: #{e.class}: #{e}")
+        []
+      end
+
+      # Safe Module#name lookup — some classes override the singleton `name` method
+      # (e.g. Faker::Travel::Airport defines `def name(size:, region:)` in class << self,
+      # which shadows Module#name and raises ArgumentError when called without args).
+      # @param mod [Module] The module
+      # @return [String, nil] Module name or nil
+      def self.safe_mod_name(mod)
+        Module.instance_method(:name).bind(mod).call
+      rescue
         nil
       end
 
@@ -90,13 +106,7 @@ module Datadog
       # @param mod [Module] The module to check
       # @return [Boolean] true if user code
       def self.user_code_module?(mod)
-        # Get module name safely (some modules override .name method like REXML::Functions)
-        begin
-          mod_name = Module.instance_method(:name).bind(mod).call
-        rescue
-          return false  # Can't get name safely, skip it
-        end
-
+        mod_name = safe_mod_name(mod)
         return false unless mod_name
 
         # CRITICAL: Exclude entire Datadog namespace (prevents circular extraction)
@@ -198,49 +208,32 @@ module Datadog
         nil
       end
 
-      # Wrap a CLASS scope in a MODULE scope for root-level upload.
+      # Wrap inner scopes in a FILE root scope.
+      # FILE is the per-source-file root scope for Ruby uploads, analogous to
+      # Python's MODULE-per-file or Java's JAR.
       #
-      # INTERIM: The backend ROOT_SCOPES constraint ({JAR, ASSEMBLY, MODULE, PACKAGE})
-      # does not yet include CLASS. A bare CLASS at root throws IllegalArgumentException
-      # in mergeRootScopesWithSameName. Until debugger-backend#1976 merges (adding CLASS
-      # to ROOT_SCOPES), we wrap each class in a MODULE scope named after the source file.
-      #
-      # Using MODULE with the source file path (not the class name) because:
-      # 1. MODULE is already in ROOT_SCOPES — no backend change needed.
-      # 2. File-based naming makes the root scope a container (like Python's MODULE-per-file).
-      # 3. MODULE scope_type is accepted by system-test assertions even if the file path
-      #    happens to match a class name pattern (Ruby files are named after classes).
-      #    PACKAGE would fail because the test short-circuits on name match and PACKAGE
-      #    is not in the accepted scope_type list [CLASS, class, MODULE, struct].
-      #
-      # TODO: After debugger-backend#1976 merges, remove this wrapper. Upload CLASS directly
-      # at root by changing the `extract` method to call `extract_class_scope` without
-      # wrapping, and delete this method. See CLASS_ROOT_SCOPE_PROPOSAL.md.
-      #
-      # @param klass [Class] The class being wrapped
-      # @param class_scope [Scope] The already-extracted CLASS scope
-      # @return [Scope] MODULE scope wrapping the CLASS scope
-      def self.wrap_class_in_module_scope(klass, class_scope)
-        source_file = class_scope.source_file
+      # @param file_path [String] Source file path
+      # @param inner_scopes [Array<Scope>] Child scopes to nest under FILE
+      # @return [Scope] FILE scope wrapping the inner scopes
+      def self.wrap_in_file_scope(file_path, inner_scopes)
+        file_hash = FileHash.compute(file_path)
+        lang = {}
+        lang[:file_hash] = file_hash if file_hash
+
         # steep:ignore:start
         Scope.new(
-          # TODO: Remove MODULE wrapper after debugger-backend#1976 (CLASS added to ROOT_SCOPES)
-          scope_type: 'MODULE',
-          # TODO: Remove file-based naming after debugger-backend#1976 — CLASS at root uses class name.
-          # Use source file path instead of class name so the root scope acts as a container
-          # (like Python's MODULE-per-file). MODULE scope_type is accepted by system-test
-          # assertions even if the file path happens to match a class name pattern.
-          name: source_file || klass.name,
-          source_file: source_file,
+          scope_type: 'FILE',
+          name: file_path,
+          source_file: file_path,
           start_line: SymbolDatabase::UNKNOWN_MIN_LINE,
           end_line: SymbolDatabase::UNKNOWN_MAX_LINE,
-          language_specifics: build_module_language_specifics(klass, source_file),
-          scopes: [class_scope]
+          language_specifics: lang,
+          scopes: inner_scopes
         )
         # steep:ignore:end
       end
 
-      # Extract MODULE scope
+      # Extract MODULE scope (without file_hash — that belongs on the FILE root scope).
       # @param mod [Module] The module
       # @return [Scope] The module scope
       def self.extract_module_scope(mod)
@@ -253,7 +246,6 @@ module Datadog
           source_file: source_file,
           start_line: SymbolDatabase::UNKNOWN_MIN_LINE,
           end_line: SymbolDatabase::UNKNOWN_MAX_LINE,
-          language_specifics: build_module_language_specifics(mod, source_file),
           scopes: extract_nested_classes(mod),
           symbols: extract_module_symbols(mod)
         )
@@ -298,22 +290,6 @@ module Datadog
         [lines.min, lines.max]
       rescue
         [SymbolDatabase::UNKNOWN_MIN_LINE, SymbolDatabase::UNKNOWN_MAX_LINE]
-      end
-
-      # Build language specifics for MODULE
-      # @param mod [Module] The module
-      # @param source_file [String, nil] Source file path
-      # @return [Hash] Language-specific metadata
-      def self.build_module_language_specifics(mod, source_file)
-        specifics = {}
-
-        # Compute file hash if source file available
-        if source_file
-          file_hash = FileHash.compute(source_file)
-          specifics[:file_hash] = file_hash if file_hash
-        end
-
-        specifics
       end
 
       # Build language specifics for CLASS
@@ -655,15 +631,342 @@ module Datadog
         []
       end
 
+      # ── extract_all helpers ──────────────────────────────────────────────
+
+      # Pass 1: Collect all extractable modules with methods grouped by source file.
+      # @return [Hash] { mod_name => { mod:, methods_by_file: { path => [{name:, method:, type:}] } } }
+      def self.collect_extractable_modules(upload_class_methods:)
+        entries = {}
+
+        ObjectSpace.each_object(Module) do |mod|
+          mod_name = safe_mod_name(mod)
+          next unless mod_name
+          next unless user_code_module?(mod)
+
+          methods_by_file = group_methods_by_file(mod, upload_class_methods: upload_class_methods)
+
+          # For modules/classes with no methods but valid source, use find_source_file as fallback.
+          # This handles namespace modules and classes with only constants.
+          if methods_by_file.empty?
+            source_file = find_source_file(mod)
+            methods_by_file[source_file] = [] if source_file
+          end
+
+          next if methods_by_file.empty?
+
+          entries[mod_name] = { mod: mod, methods_by_file: methods_by_file }
+        rescue => e
+          Datadog.logger.debug("SymDB: Error collecting #{mod_name || '<unknown>'}: #{e.class}: #{e}")
+        end
+
+        entries
+      end
+
+      # Group a module's methods by their source file path.
+      # @param mod [Module] The module
+      # @param upload_class_methods [Boolean] Whether to include singleton methods
+      # @return [Hash] { file_path => [{name:, method:, type:}] }
+      def self.group_methods_by_file(mod, upload_class_methods:)
+        result = Hash.new { |h, k| h[k] = [] }
+
+        # Instance methods (public, protected, private)
+        all_methods = mod.instance_methods(false) +
+          mod.protected_instance_methods(false) +
+          mod.private_instance_methods(false)
+        all_methods.uniq!
+
+        all_methods.each do |method_name|
+          method = mod.instance_method(method_name)
+          loc = method.source_location
+          next unless loc
+          next unless user_code_path?(loc[0])
+
+          result[loc[0]] << { name: method_name, method: method, type: :instance }
+        rescue => e
+          Datadog.logger.debug("SymDB: Error grouping method #{method_name}: #{e.class}: #{e}")
+        end
+
+        # Singleton methods (if enabled)
+        if upload_class_methods
+          mod.singleton_methods(false).each do |method_name|
+            method = mod.method(method_name)
+            loc = method.source_location
+            next unless loc
+            next unless user_code_path?(loc[0])
+
+            result[loc[0]] << { name: method_name, method: method, type: :singleton }
+          rescue => e
+            Datadog.logger.debug("SymDB: Error grouping singleton method #{method_name}: #{e.class}: #{e}")
+          end
+        end
+
+        result
+      rescue => e
+        Datadog.logger.debug("SymDB: Error grouping methods: #{e.class}: #{e}")
+        {}
+      end
+
+      # Pass 2: Build per-file trees from collected entries.
+      # Uses hash nodes during construction, converted to Scope objects at the end.
+      #
+      # Node structure: { name:, type:, children: {name => node}, methods: [], mod:, source_file:, fqn: }
+      #
+      # @param entries [Hash] Output from collect_extractable_modules
+      # @return [Hash] { file_path => root_node }
+      def self.build_file_trees(entries)
+        file_trees = {}
+
+        # Sort by FQN depth so parents are placed before children.
+        # This ensures intermediate nodes created for parents have correct scope_type.
+        sorted = entries.sort_by { |name, _| name.count(':') }
+
+        sorted.each do |mod_name, entry|
+          entry[:methods_by_file].each do |file_path, methods|
+            root = file_trees[file_path] ||= {
+              name: file_path, type: 'FILE', children: {},
+              methods: [], mod: nil, source_file: file_path, fqn: nil
+            }
+            parts = mod_name.split('::')
+            place_in_tree(root, parts, entry[:mod], methods, file_path)
+          end
+        rescue => e
+          Datadog.logger.debug("SymDB: Error building tree for #{mod_name}: #{e.class}: #{e}")
+        end
+
+        file_trees
+      end
+
+      # Place a module/class in the file tree at the correct nesting depth.
+      # Creates intermediate namespace nodes as needed.
+      def self.place_in_tree(root, name_parts, mod, methods, file_path)
+        current = root
+
+        # Create/find intermediate nodes for each namespace segment except the last
+        name_parts[0..-2].each_with_index do |part, idx|
+          fqn = name_parts[0..idx].join('::')
+          current[:children][part] ||= {
+            name: part, type: resolve_scope_type(fqn),
+            children: {}, methods: [], mod: nil,
+            source_file: file_path, fqn: fqn
+          }
+          current = current[:children][part]
+        end
+
+        # Create or find the leaf node
+        leaf_name = name_parts.last
+        leaf = current[:children][leaf_name]
+        if leaf
+          # Node exists (was created as intermediate or from another entry).
+          # Update type and mod — the actual module object is authoritative.
+          leaf[:type] = mod.is_a?(Class) ? 'CLASS' : 'MODULE'
+          leaf[:mod] = mod
+        else
+          leaf = {
+            name: leaf_name,
+            type: mod.is_a?(Class) ? 'CLASS' : 'MODULE',
+            children: {}, methods: [],
+            mod: mod, source_file: file_path,
+            fqn: mod.name
+          }
+          current[:children][leaf_name] = leaf
+        end
+
+        # Add methods for this file
+        leaf[:methods].concat(methods)
+      end
+
+      # Determine scope type (CLASS or MODULE) for a fully-qualified name.
+      # Looks up the actual Ruby constant to check if it's a Class.
+      # @param fqn [String] Fully-qualified name (e.g. "Authentication::Strategies")
+      # @return [String] 'CLASS' or 'MODULE'
+      def self.resolve_scope_type(fqn)
+        const = Object.const_get(fqn)
+        const.is_a?(Class) ? 'CLASS' : 'MODULE'
+      rescue
+        'MODULE'
+      end
+
+      # Convert hash-based file trees to Scope objects.
+      # @param file_trees [Hash] { file_path => root_node }
+      # @return [Array<Scope>] Array of FILE scopes
+      def self.convert_trees_to_scopes(file_trees)
+        file_trees.map do |file_path, root|
+          file_hash = FileHash.compute(file_path)
+          lang = {}
+          lang[:file_hash] = file_hash if file_hash
+
+          # steep:ignore:start
+          Scope.new(
+            scope_type: 'FILE',
+            name: file_path,
+            source_file: file_path,
+            start_line: SymbolDatabase::UNKNOWN_MIN_LINE,
+            end_line: SymbolDatabase::UNKNOWN_MAX_LINE,
+            language_specifics: lang,
+            scopes: root[:children].values.map { |child| convert_node_to_scope(child) }
+          )
+          # steep:ignore:end
+        end
+      end
+
+      # Convert a single hash node to a Scope object (recursive).
+      # @param node [Hash] Tree node
+      # @return [Scope] Scope object
+      def self.convert_node_to_scope(node)
+        # Build method scopes from collected method entries
+        method_scopes = node[:methods].filter_map do |method_info|
+          if method_info[:type] == :singleton
+            build_singleton_method_scope(method_info[:method])
+          else
+            build_instance_method_scope(node[:mod], method_info[:name], method_info[:method])
+          end
+        end
+
+        # Recurse into child scopes (nested modules/classes)
+        child_scopes = node[:children].values.map { |child| convert_node_to_scope(child) }
+
+        # Compute line range from method start lines
+        lines = method_scopes.map(&:start_line).reject { |l| l == SymbolDatabase::UNKNOWN_MIN_LINE }
+        start_line = lines.empty? ? SymbolDatabase::UNKNOWN_MIN_LINE : lines.min
+        end_line = lines.empty? ? SymbolDatabase::UNKNOWN_MAX_LINE : lines.max
+
+        # Extract symbols (constants, class variables) if we have the actual module object
+        symbols = node[:mod] ? extract_scope_symbols(node[:mod]) : []
+
+        # Build language specifics
+        lang = if node[:type] == 'CLASS' && node[:mod]
+          build_class_language_specifics(node[:mod])
+        else
+          {}
+        end
+
+        # steep:ignore:start
+        Scope.new(
+          scope_type: node[:type],
+          name: node[:name],
+          source_file: node[:source_file],
+          start_line: start_line,
+          end_line: end_line,
+          language_specifics: lang,
+          scopes: method_scopes + child_scopes,
+          symbols: symbols
+        )
+        # steep:ignore:end
+      end
+
+      # Build a METHOD scope from a pre-resolved instance method.
+      # Used by extract_all path where methods are collected in Pass 1.
+      # @param klass [Module] The class/module (for visibility lookup)
+      # @param method_name [Symbol] Method name
+      # @param method [UnboundMethod] The method object
+      # @return [Scope, nil] Method scope or nil
+      def self.build_instance_method_scope(klass, method_name, method)
+        location = method.source_location
+        return nil unless location
+
+        source_file, line = location
+
+        Scope.new(
+          scope_type: 'METHOD',
+          name: method_name.to_s,
+          source_file: source_file,
+          start_line: line,
+          end_line: line,
+          language_specifics: {
+            visibility: klass ? method_visibility(klass, method_name) : 'public',
+            method_type: 'instance',
+            arity: method.arity
+          },
+          symbols: extract_method_parameters(method, :instance)
+        )
+      rescue => e
+        klass_name = klass ? (safe_mod_name(klass) || '<unknown>') : '<unknown>'
+        Datadog.logger.debug("SymDB: Failed to build method scope #{klass_name}##{method_name}: #{e.class}: #{e}")
+        nil
+      end
+
+      # Build a METHOD scope from a pre-resolved singleton method.
+      # @param method [Method] The singleton method object
+      # @return [Scope, nil] Method scope or nil
+      def self.build_singleton_method_scope(method)
+        location = method.source_location
+        return nil unless location
+
+        source_file, line = location
+
+        Scope.new(
+          scope_type: 'METHOD',
+          name: method.name.to_s,
+          source_file: source_file,
+          start_line: line,
+          end_line: line,
+          language_specifics: {
+            visibility: 'public',
+            method_type: 'class',
+            arity: method.arity
+          },
+          symbols: extract_singleton_method_parameters(method)
+        )
+      rescue => e
+        Datadog.logger.debug("SymDB: Failed to build singleton method scope: #{e.class}: #{e}")
+        nil
+      end
+
+      # Extract symbols (constants, class variables) from a module or class.
+      # Unified version of extract_module_symbols and extract_class_symbols.
+      # @param mod [Module] The module or class
+      # @return [Array<Symbol>] Symbols
+      def self.extract_scope_symbols(mod)
+        symbols = []
+
+        # Class variables (only for classes)
+        if mod.is_a?(Class)
+          mod.class_variables(false).each do |var_name|
+            symbols << Symbol.new(
+              symbol_type: 'STATIC_FIELD',
+              name: var_name.to_s,
+              line: SymbolDatabase::UNKNOWN_MIN_LINE
+            )
+          end
+        end
+
+        # Constants (excluding nested modules/classes)
+        mod.constants(false).each do |const_name|
+          const_value = mod.const_get(const_name)
+          next if const_value.is_a?(Module)
+
+          symbols << Symbol.new(
+            symbol_type: 'STATIC_FIELD',
+            name: const_name.to_s,
+            line: SymbolDatabase::UNKNOWN_MIN_LINE,
+            type: const_value.class.name
+          )
+        rescue
+          # Skip inaccessible constants
+        end
+
+        symbols
+      rescue => e
+        mod_name = safe_mod_name(mod) || '<unknown>'
+        Datadog.logger.debug("SymDB: Failed to extract symbols from #{mod_name}: #{e.class}: #{e}")
+        []
+      end
+
       # @api private
-      private_class_method :user_code_module?, :user_code_path?, :find_source_file,
-        :wrap_class_in_module_scope, :extract_module_scope, :extract_class_scope,
-        :calculate_class_line_range, :build_module_language_specifics,
+      private_class_method :safe_mod_name, :user_code_module?, :user_code_path?,
+        :find_source_file, :wrap_in_file_scope,
+        :extract_module_scope, :extract_class_scope,
+        :calculate_class_line_range,
         :build_class_language_specifics, :extract_nested_classes,
         :extract_module_symbols, :extract_class_symbols,
         :extract_method_scopes, :extract_method_scope,
         :extract_singleton_method_scope, :method_visibility,
-        :extract_method_parameters, :extract_singleton_method_parameters
+        :extract_method_parameters, :extract_singleton_method_parameters,
+        :collect_extractable_modules, :group_methods_by_file,
+        :build_file_trees, :place_in_tree, :resolve_scope_type,
+        :convert_trees_to_scopes, :convert_node_to_scope,
+        :build_instance_method_scope, :build_singleton_method_scope,
+        :extract_scope_symbols
     end
   end
 end

@@ -79,27 +79,32 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         cleanup_user_code_file(@filename)
       end
 
-      it 'extracts MODULE scope for user code module' do
-        scope = described_class.extract(TestUserModule)
+      it 'wraps MODULE in a FILE scope' do
+        file_scope = described_class.extract(TestUserModule)
 
-        expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('MODULE')
-        expect(scope.name).to eq('TestUserModule')
-        expect(scope.source_file).to eq(@filename)
+        expect(file_scope).not_to be_nil
+        expect(file_scope.scope_type).to eq('FILE')
+        expect(file_scope.name).to eq(@filename)
+        expect(file_scope.source_file).to eq(@filename)
+
+        module_scope = file_scope.scopes.first
+        expect(module_scope.scope_type).to eq('MODULE')
+        expect(module_scope.name).to eq('TestUserModule')
       end
 
-      it 'includes file hash in language_specifics' do
-        scope = described_class.extract(TestUserModule)
+      it 'includes file hash on FILE scope language_specifics' do
+        file_scope = described_class.extract(TestUserModule)
 
-        expect(scope.language_specifics).to have_key(:file_hash)
-        expect(scope.language_specifics[:file_hash]).to be_a(String)
-        expect(scope.language_specifics[:file_hash].length).to eq(40)
+        expect(file_scope.language_specifics).to have_key(:file_hash)
+        expect(file_scope.language_specifics[:file_hash]).to be_a(String)
+        expect(file_scope.language_specifics[:file_hash].length).to eq(40)
       end
 
       it 'extracts module-level constants' do
-        scope = described_class.extract(TestUserModule)
+        file_scope = described_class.extract(TestUserModule)
+        module_scope = file_scope.scopes.first
 
-        constant_symbol = scope.symbols.find { |s| s.name == 'SOME_CONSTANT' }
+        constant_symbol = module_scope.symbols.find { |s| s.name == 'SOME_CONSTANT' }
         expect(constant_symbol).not_to be_nil
         expect(constant_symbol.symbol_type).to eq('STATIC_FIELD')
       end
@@ -135,20 +140,16 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         cleanup_user_code_file(@filename)
       end
 
-      # INTERIM: top-level classes wrapped in MODULE scope (named after source file) until
-      # debugger-backend#1976 adds CLASS to ROOT_SCOPES. MODULE with file-based naming
-      # avoids colliding with class names in system-test assertions and avoids the
-      # MODULE/module keyword confusion. See CLASS_ROOT_SCOPE_PROPOSAL.md for target state.
-      it 'wraps top-level CLASS in a MODULE scope named after source file (interim until backend#1976)' do
-        module_scope = described_class.extract(TestUserClass)
+      it 'wraps top-level CLASS in a FILE scope named after source file' do
+        file_scope = described_class.extract(TestUserClass)
 
-        expect(module_scope).not_to be_nil
-        expect(module_scope.scope_type).to eq('MODULE')
-        expect(module_scope.name).to eq(@filename)
-        expect(module_scope.source_file).to eq(@filename)
-        expect(module_scope.scopes.size).to eq(1)
+        expect(file_scope).not_to be_nil
+        expect(file_scope.scope_type).to eq('FILE')
+        expect(file_scope.name).to eq(@filename)
+        expect(file_scope.source_file).to eq(@filename)
+        expect(file_scope.scopes.size).to eq(1)
 
-        class_scope = module_scope.scopes.first
+        class_scope = file_scope.scopes.first
         expect(class_scope.scope_type).to eq('CLASS')
         expect(class_scope.name).to eq('TestUserClass')
         expect(class_scope.source_file).to eq(@filename)
@@ -247,16 +248,16 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         cleanup_user_code_file(@filename)
       end
 
-      it 'extracts namespaced class as its own root MODULE scope' do
+      it 'extracts namespaced class as its own root FILE scope' do
         # TestNamespace::TestInnerClass is a user class and must be searchable.
         # Even though the parent TestNamespace has no methods (so it can't be extracted
-        # itself), the class is extracted as a standalone MODULE-wrapped scope.
-        scope = described_class.extract(TestNamespace::TestInnerClass)
+        # itself), the class is extracted as a standalone FILE-wrapped scope.
+        file_scope = described_class.extract(TestNamespace::TestInnerClass)
 
-        expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('MODULE')
-        expect(scope.name).to eq(scope.source_file)
-        class_scope = scope.scopes.first
+        expect(file_scope).not_to be_nil
+        expect(file_scope.scope_type).to eq('FILE')
+        expect(file_scope.name).to eq(file_scope.source_file)
+        class_scope = file_scope.scopes.first
         expect(class_scope.scope_type).to eq('CLASS')
         expect(class_scope.name).to eq('TestNamespace::TestInnerClass')
       end
@@ -264,15 +265,17 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       it 'extracts namespace-only module via const_source_location fallback (Ruby 2.7+)' do
         # TestNamespace has no methods but has a constant (TestInnerClass).
         # On Ruby 2.7+, const_source_location finds the module's source via its constants.
-        scope = described_class.extract(TestNamespace)
+        file_scope = described_class.extract(TestNamespace)
 
         if Module.method_defined?(:const_source_location) || TestNamespace.respond_to?(:const_source_location)
-          expect(scope).not_to be_nil
-          expect(scope.scope_type).to eq('MODULE')
-          expect(scope.name).to eq('TestNamespace')
+          expect(file_scope).not_to be_nil
+          expect(file_scope.scope_type).to eq('FILE')
+          module_scope = file_scope.scopes.first
+          expect(module_scope.scope_type).to eq('MODULE')
+          expect(module_scope.name).to eq('TestNamespace')
         else
           # Ruby < 2.7: const_source_location unavailable, module not extractable
-          expect(scope).to be_nil
+          expect(file_scope).to be_nil
         end
       end
     end
@@ -296,9 +299,11 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts the parent MODULE with the class nested inside' do
-        module_scope = described_class.extract(TestNsModule)
+        file_scope = described_class.extract(TestNsModule)
 
-        expect(module_scope).not_to be_nil
+        expect(file_scope).not_to be_nil
+        expect(file_scope.scope_type).to eq('FILE')
+        module_scope = file_scope.scopes.first
         expect(module_scope.scope_type).to eq('MODULE')
         expect(module_scope.name).to eq('TestNsModule')
         inner_class = module_scope.scopes.find { |s| s.scope_type == 'CLASS' }
@@ -306,15 +311,13 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         expect(inner_class.name).to eq('TestNsModule::TestNsClass')
       end
 
-      it 'also extracts the nested class as its own root MODULE scope' do
+      it 'also extracts the nested class as its own root FILE scope' do
         # The nested class is extractable independently — it has a user code source file.
-        # It also appears nested inside the parent MODULE, which is intentional:
-        # mergeRootScopesWithSameName on the backend merges duplicates by name.
-        scope = described_class.extract(TestNsModule::TestNsClass)
+        file_scope = described_class.extract(TestNsModule::TestNsClass)
 
-        expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('MODULE')
-        expect(scope.name).to eq(scope.source_file)
+        expect(file_scope).not_to be_nil
+        expect(file_scope.scope_type).to eq('FILE')
+        expect(file_scope.name).to eq(file_scope.source_file)
       end
     end
 
@@ -419,7 +422,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         if TestConstOnlyClass.respond_to?(:const_source_location)
           # Ruby 2.7+: const_source_location finds source via constants
           expect(scope).not_to be_nil
-          expect(scope.scope_type).to eq('MODULE')
+          expect(scope.scope_type).to eq('FILE')
         else
           # Ruby 2.5/2.6: no const_source_location, cannot find source
           expect(scope).to be_nil
@@ -452,7 +455,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       it 'extracts deeply nested class (A::B::C) as standalone root scope' do
         scope = described_class.extract(TestA::TestB::TestC)
         expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('MODULE')
+        expect(scope.scope_type).to eq('FILE')
         expect(scope.name).to eq(scope.source_file)
         expect(scope.scopes.first.scope_type).to eq('CLASS')
       end
@@ -477,20 +480,20 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         mods = [TestA, TestA::TestB, TestA::TestB::TestC]
         extracted = Datadog::Core::Utils::Array.filter_map(mods) { |mod| described_class.extract(mod) }
 
-        # Modules keep their module name; classes get file-based MODULE name.
-        # Check scope types: TestA and TestA::TestB are modules, TestA::TestB::TestC is a class.
-        scope_types = extracted.map { |s| [s.scope_type, s.name] }
-
+        # All scopes are FILE-wrapped. Inner scope names distinguish modules from classes.
         if TestA.respond_to?(:const_source_location)
           expect(extracted.size).to eq(3)
-          expect(scope_types).to include(['MODULE', 'TestA'], ['MODULE', 'TestA::TestB'])
-          # TestA::TestB::TestC is a class → MODULE wrapper with file-based name
-          tc_scope = extracted.find { |s| s.name != 'TestA' && s.name != 'TestA::TestB' }
-          expect(tc_scope).not_to be_nil
-          expect(tc_scope.scopes.first.name).to eq('TestA::TestB::TestC')
+          # All root scopes are FILE
+          expect(extracted.map(&:scope_type).uniq).to eq(['FILE'])
+          # Inner scopes: TestA and TestA::TestB are modules, TestA::TestB::TestC is a class
+          inner_names = extracted.map { |s| s.scopes.first&.name }
+          expect(inner_names).to include('TestA', 'TestA::TestB')
+          tc_file = extracted.find { |s| s.scopes.first&.name == 'TestA::TestB::TestC' }
+          expect(tc_file).not_to be_nil
+          expect(tc_file.scopes.first.scope_type).to eq('CLASS')
         else
           expect(extracted.size).to eq(1)
-          expect(extracted.first.scope_type).to eq('MODULE')
+          expect(extracted.first.scope_type).to eq('FILE')
         end
       end
     end
@@ -544,13 +547,15 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
           end
         RUBY
         load filename
-        scope = described_class.extract(TestValueConstModule)
+        file_scope = described_class.extract(TestValueConstModule)
         if TestValueConstModule.respond_to?(:const_source_location)
-          expect(scope).not_to be_nil
-          expect(scope.scope_type).to eq('MODULE')
-          expect(scope.name).to eq('TestValueConstModule')
+          expect(file_scope).not_to be_nil
+          expect(file_scope.scope_type).to eq('FILE')
+          module_scope = file_scope.scopes.first
+          expect(module_scope.scope_type).to eq('MODULE')
+          expect(module_scope.name).to eq('TestValueConstModule')
         else
-          expect(scope).to be_nil
+          expect(file_scope).to be_nil
         end
         Object.send(:remove_const, :TestValueConstModule)
         cleanup_user_code_file(filename)
@@ -601,10 +606,12 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
 
         # TestConcernNoMethods has a singleton method (self.included) → source_location
         # points to the file → extracted
-        scope = described_class.extract(TestConcernNoMethods)
-        expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('MODULE')
-        expect(scope.name).to eq('TestConcernNoMethods')
+        file_scope = described_class.extract(TestConcernNoMethods)
+        expect(file_scope).not_to be_nil
+        expect(file_scope.scope_type).to eq('FILE')
+        module_scope = file_scope.scopes.first
+        expect(module_scope.scope_type).to eq('MODULE')
+        expect(module_scope.name).to eq('TestConcernNoMethods')
 
         Object.send(:remove_const, :TestConcernNoMethods)
         cleanup_user_code_file(filename)
@@ -886,7 +893,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         scope = described_class.extract(TestStructClass)
 
         expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('MODULE')
+        expect(scope.scope_type).to eq('FILE')
         expect(scope.name).to eq(scope.source_file)
       end
 
@@ -1348,12 +1355,14 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         # Module methods are not extracted as child METHOD scopes — they are used only
         # for source location discovery. The test verifies the module is found at all,
         # meaning find_source_file can locate user code from at least one of the files.
-        scope = described_class.extract(TestReopenedModule)
+        file_scope = described_class.extract(TestReopenedModule)
 
-        expect(scope).not_to be_nil
-        expect(scope.scope_type).to eq('MODULE')
-        expect(scope.name).to eq('TestReopenedModule')
-        expect(scope.source_file).to eq(@file1).or(eq(@file2))
+        expect(file_scope).not_to be_nil
+        expect(file_scope.scope_type).to eq('FILE')
+        module_scope = file_scope.scopes.first
+        expect(module_scope.scope_type).to eq('MODULE')
+        expect(module_scope.name).to eq('TestReopenedModule')
+        expect(file_scope.source_file).to eq(@file1).or(eq(@file2))
       end
     end
   end
@@ -1386,12 +1395,14 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       cleanup_user_code_file(@filename)
     end
 
-    it 'extracts the inner module as a standalone root MODULE scope' do
-      scope = described_class.extract(TestOuterClass::TestInnerModule)
+    it 'extracts the inner module as a standalone root FILE scope' do
+      file_scope = described_class.extract(TestOuterClass::TestInnerModule)
 
-      expect(scope).not_to be_nil
-      expect(scope.scope_type).to eq('MODULE')
-      expect(scope.name).to eq('TestOuterClass::TestInnerModule')
+      expect(file_scope).not_to be_nil
+      expect(file_scope.scope_type).to eq('FILE')
+      module_scope = file_scope.scopes.first
+      expect(module_scope.scope_type).to eq('MODULE')
+      expect(module_scope.name).to eq('TestOuterClass::TestInnerModule')
     end
 
     it 'extracts the outer class independently' do
@@ -1402,6 +1413,427 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       expect(class_scope.scope_type).to eq('CLASS')
       method_names = class_scope.scopes.map(&:name)
       expect(method_names).to include('outer_method')
+    end
+  end
+
+  # ── extract_all tests ──────────────────────────────────────────────
+  # These test the production path: two-pass extraction with FQN-based nesting
+  # and per-file method grouping.
+
+  describe '.extract_all' do
+    around do |example|
+      Dir.mktmpdir('symbol_db_extract_all_test') do |dir|
+        @test_dir = dir
+        example.run
+      end
+    end
+
+    def create_test_file(filename, content)
+      path = File.join(@test_dir, filename)
+      File.write(path, content)
+      path
+    end
+
+    context 'simple class in one file' do
+      before do
+        @file = create_test_file('user.rb', <<~RUBY)
+          class ExtractAllSimpleClass
+            def remember; end
+          end
+        RUBY
+        load @file
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllSimpleClass) if defined?(ExtractAllSimpleClass)
+      end
+
+      it 'produces FILE → CLASS → METHOD hierarchy' do
+        scopes = described_class.extract_all
+        file_scope = scopes.find { |s| s.name == @file }
+
+        expect(file_scope).not_to be_nil
+        expect(file_scope.scope_type).to eq('FILE')
+        expect(file_scope.language_specifics[:file_hash]).to match(/\A[0-9a-f]{40}\z/)
+
+        class_scope = file_scope.scopes.find { |s| s.name == 'ExtractAllSimpleClass' }
+        expect(class_scope).not_to be_nil
+        expect(class_scope.scope_type).to eq('CLASS')
+
+        method_scope = class_scope.scopes.find { |s| s.name == 'remember' }
+        expect(method_scope).not_to be_nil
+        expect(method_scope.scope_type).to eq('METHOD')
+      end
+    end
+
+    context 'nested module and class' do
+      before do
+        @file = create_test_file('nested.rb', <<~RUBY)
+          module ExtractAllOuter
+            def self.outer_func; end
+
+            class ExtractAllInner
+              def inner_method; end
+            end
+          end
+        RUBY
+        load @file
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllOuter) if defined?(ExtractAllOuter)
+      end
+
+      it 'nests via FQN split: FILE → MODULE(Outer) → CLASS(Inner)' do
+        scopes = described_class.extract_all
+        file_scope = scopes.find { |s| s.name == @file }
+        expect(file_scope).not_to be_nil
+
+        # Outer module at top level under FILE, using short name
+        outer = file_scope.scopes.find { |s| s.name == 'ExtractAllOuter' }
+        expect(outer).not_to be_nil
+        expect(outer.scope_type).to eq('MODULE')
+
+        # Inner class nested under outer, using short name (not FQN)
+        inner = outer.scopes.find { |s| s.name == 'ExtractAllInner' }
+        expect(inner).not_to be_nil
+        expect(inner.scope_type).to eq('CLASS')
+
+        # Inner class has its method
+        method_scope = inner.scopes.find { |s| s.name == 'inner_method' }
+        expect(method_scope).not_to be_nil
+      end
+    end
+
+    context 'deeply nested namespace (A::B::C)' do
+      before do
+        @file = create_test_file('deep.rb', <<~RUBY)
+          module ExtractAllDeepA
+            module ExtractAllDeepB
+              class ExtractAllDeepC
+                def deep_method; end
+              end
+            end
+          end
+        RUBY
+        load @file
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllDeepA) if defined?(ExtractAllDeepA)
+      end
+
+      it 'builds full nesting chain: FILE → MODULE(A) → MODULE(B) → CLASS(C)' do
+        scopes = described_class.extract_all
+        file_scope = scopes.find { |s| s.name == @file }
+        expect(file_scope).not_to be_nil
+
+        mod_a = file_scope.scopes.find { |s| s.name == 'ExtractAllDeepA' }
+        expect(mod_a).not_to be_nil
+        expect(mod_a.scope_type).to eq('MODULE')
+
+        mod_b = mod_a.scopes.find { |s| s.name == 'ExtractAllDeepB' }
+        expect(mod_b).not_to be_nil
+        expect(mod_b.scope_type).to eq('MODULE')
+
+        cls_c = mod_b.scopes.find { |s| s.name == 'ExtractAllDeepC' }
+        expect(cls_c).not_to be_nil
+        expect(cls_c.scope_type).to eq('CLASS')
+
+        expect(cls_c.scopes.find { |s| s.name == 'deep_method' }).not_to be_nil
+      end
+    end
+
+    context 'class reopened across two files' do
+      before do
+        @file1 = create_test_file('reopen1.rb', <<~RUBY)
+          class ExtractAllReopened
+            def method_from_file1; end
+          end
+        RUBY
+        @file2 = create_test_file('reopen2.rb', <<~RUBY)
+          class ExtractAllReopened
+            def method_from_file2; end
+          end
+        RUBY
+        load @file1
+        load @file2
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllReopened) if defined?(ExtractAllReopened)
+      end
+
+      it 'produces two FILE scopes, each with only methods from that file' do
+        scopes = described_class.extract_all
+
+        file1_scope = scopes.find { |s| s.name == @file1 }
+        file2_scope = scopes.find { |s| s.name == @file2 }
+
+        expect(file1_scope).not_to be_nil
+        expect(file2_scope).not_to be_nil
+
+        cls1 = file1_scope.scopes.find { |s| s.name == 'ExtractAllReopened' }
+        cls2 = file2_scope.scopes.find { |s| s.name == 'ExtractAllReopened' }
+
+        expect(cls1).not_to be_nil
+        expect(cls2).not_to be_nil
+
+        methods1 = cls1.scopes.select { |s| s.scope_type == 'METHOD' }.map(&:name)
+        methods2 = cls2.scopes.select { |s| s.scope_type == 'METHOD' }.map(&:name)
+
+        expect(methods1).to include('method_from_file1')
+        expect(methods1).not_to include('method_from_file2')
+        expect(methods2).to include('method_from_file2')
+        expect(methods2).not_to include('method_from_file1')
+      end
+    end
+
+    context 'module with methods AND nested class in same file' do
+      before do
+        @file = create_test_file('mixed.rb', <<~RUBY)
+          module ExtractAllMixed
+            SOME_CONST = 42
+
+            def self.module_func; end
+
+            class ExtractAllMixedChild
+              def child_method; end
+            end
+          end
+        RUBY
+        load @file
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllMixed) if defined?(ExtractAllMixed)
+      end
+
+      it 'places child class under parent module in the same FILE scope' do
+        scopes = described_class.extract_all
+        file_scope = scopes.find { |s| s.name == @file }
+        expect(file_scope).not_to be_nil
+
+        mod = file_scope.scopes.find { |s| s.name == 'ExtractAllMixed' }
+        expect(mod).not_to be_nil
+        expect(mod.scope_type).to eq('MODULE')
+
+        child = mod.scopes.find { |s| s.name == 'ExtractAllMixedChild' }
+        expect(child).not_to be_nil
+        expect(child.scope_type).to eq('CLASS')
+
+        expect(child.scopes.find { |s| s.name == 'child_method' }).not_to be_nil
+      end
+
+      it 'extracts symbols (constants) on the module scope' do
+        scopes = described_class.extract_all
+        file_scope = scopes.find { |s| s.name == @file }
+        mod = file_scope.scopes.find { |s| s.name == 'ExtractAllMixed' }
+
+        const = mod.symbols.find { |s| s.name == 'SOME_CONST' }
+        expect(const).not_to be_nil
+        expect(const.symbol_type).to eq('STATIC_FIELD')
+      end
+    end
+
+    context 'compact notation (class Foo::Bar::Baz)' do
+      before do
+        # Pre-create namespace so const_get works
+        @file = create_test_file('compact.rb', <<~RUBY)
+          module ExtractAllCompactNs
+            module ExtractAllCompactInner
+              class ExtractAllCompactLeaf
+                def compact_method; end
+              end
+            end
+          end
+        RUBY
+        load @file
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllCompactNs) if defined?(ExtractAllCompactNs)
+      end
+
+      it 'reconstructs nesting from FQN even for compact notation' do
+        scopes = described_class.extract_all
+        file_scope = scopes.find { |s| s.name == @file }
+        expect(file_scope).not_to be_nil
+
+        ns = file_scope.scopes.find { |s| s.name == 'ExtractAllCompactNs' }
+        expect(ns).not_to be_nil
+        expect(ns.scope_type).to eq('MODULE')
+
+        inner = ns.scopes.find { |s| s.name == 'ExtractAllCompactInner' }
+        expect(inner).not_to be_nil
+
+        leaf = inner.scopes.find { |s| s.name == 'ExtractAllCompactLeaf' }
+        expect(leaf).not_to be_nil
+        expect(leaf.scope_type).to eq('CLASS')
+      end
+    end
+
+    context 'class inside class' do
+      before do
+        @file = create_test_file('class_in_class.rb', <<~RUBY)
+          class ExtractAllOuterClass
+            def outer_method; end
+
+            class ExtractAllInnerClass
+              def inner_method; end
+            end
+          end
+        RUBY
+        load @file
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllOuterClass) if defined?(ExtractAllOuterClass)
+      end
+
+      it 'nests CLASS inside CLASS: FILE → CLASS(Outer) → CLASS(Inner)' do
+        scopes = described_class.extract_all
+        file_scope = scopes.find { |s| s.name == @file }
+        expect(file_scope).not_to be_nil
+
+        outer = file_scope.scopes.find { |s| s.name == 'ExtractAllOuterClass' }
+        expect(outer).not_to be_nil
+        expect(outer.scope_type).to eq('CLASS')
+
+        inner = outer.scopes.find { |s| s.name == 'ExtractAllInnerClass' }
+        expect(inner).not_to be_nil
+        expect(inner.scope_type).to eq('CLASS')
+      end
+    end
+
+    context 'module inside class' do
+      before do
+        @file = create_test_file('mod_in_class.rb', <<~RUBY)
+          class ExtractAllHostClass
+            def host_method; end
+
+            module ExtractAllInnerMod
+              def self.inner_func; end
+            end
+          end
+        RUBY
+        load @file
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllHostClass) if defined?(ExtractAllHostClass)
+      end
+
+      it 'nests MODULE inside CLASS: FILE → CLASS(Host) → MODULE(Inner)' do
+        scopes = described_class.extract_all
+        file_scope = scopes.find { |s| s.name == @file }
+        expect(file_scope).not_to be_nil
+
+        host = file_scope.scopes.find { |s| s.name == 'ExtractAllHostClass' }
+        expect(host).not_to be_nil
+        expect(host.scope_type).to eq('CLASS')
+
+        inner = host.scopes.find { |s| s.name == 'ExtractAllInnerMod' }
+        expect(inner).not_to be_nil
+        expect(inner.scope_type).to eq('MODULE')
+      end
+    end
+
+    context 'file_hash on FILE scope' do
+      before do
+        @file = create_test_file('filehash.rb', <<~RUBY)
+          class ExtractAllFileHashTest
+            def some_method; end
+          end
+        RUBY
+        load @file
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllFileHashTest) if defined?(ExtractAllFileHashTest)
+      end
+
+      it 'puts file_hash on FILE scope, not on inner scopes' do
+        scopes = described_class.extract_all
+        file_scope = scopes.find { |s| s.name == @file }
+        expect(file_scope).not_to be_nil
+
+        # file_hash on FILE
+        expect(file_scope.language_specifics[:file_hash]).to match(/\A[0-9a-f]{40}\z/)
+
+        # NOT on inner CLASS
+        class_scope = file_scope.scopes.first
+        expect(class_scope.language_specifics).not_to have_key(:file_hash)
+      end
+    end
+
+    context 'method parameters and visibility' do
+      before do
+        @file = create_test_file('params.rb', <<~RUBY)
+          class ExtractAllParamsClass
+            def public_method(arg1, arg2); end
+
+            private
+
+            def private_method(secret); end
+          end
+        RUBY
+        load @file
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllParamsClass) if defined?(ExtractAllParamsClass)
+      end
+
+      it 'extracts method parameters and visibility' do
+        scopes = described_class.extract_all
+        file_scope = scopes.find { |s| s.name == @file }
+        cls = file_scope.scopes.find { |s| s.name == 'ExtractAllParamsClass' }
+
+        pub = cls.scopes.find { |s| s.name == 'public_method' }
+        expect(pub.language_specifics[:visibility]).to eq('public')
+        param_names = pub.symbols.map(&:name)
+        expect(param_names).to include('self', 'arg1', 'arg2')
+
+        priv = cls.scopes.find { |s| s.name == 'private_method' }
+        expect(priv.language_specifics[:visibility]).to eq('private')
+      end
+    end
+
+    context 'class language_specifics (superclass, included modules)' do
+      before do
+        @file = create_test_file('lang_specifics.rb', <<~RUBY)
+          module ExtractAllMixin
+            def mixin_method; end
+          end
+
+          class ExtractAllBaseLS
+            def base_method; end
+          end
+
+          class ExtractAllDerivedLS < ExtractAllBaseLS
+            include ExtractAllMixin
+            def derived_method; end
+          end
+        RUBY
+        load @file
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllDerivedLS) if defined?(ExtractAllDerivedLS)
+        Object.send(:remove_const, :ExtractAllBaseLS) if defined?(ExtractAllBaseLS)
+        Object.send(:remove_const, :ExtractAllMixin) if defined?(ExtractAllMixin)
+      end
+
+      it 'includes super_classes and included_modules on CLASS scope' do
+        scopes = described_class.extract_all
+        file_scope = scopes.find { |s| s.name == @file }
+        derived = file_scope.scopes.find { |s| s.name == 'ExtractAllDerivedLS' }
+
+        expect(derived).not_to be_nil
+        expect(derived.language_specifics[:super_classes]).to include('ExtractAllBaseLS')
+        expect(derived.language_specifics[:included_modules]).to include('ExtractAllMixin')
+      end
     end
   end
 end

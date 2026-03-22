@@ -217,14 +217,12 @@ module Datadog
         begin
           start_time = Datadog::Core::Utils::Time.get_time
 
-          # Iterate all loaded modules and extract symbols
-          # Extractor.extract filters to user code only (excludes Datadog::*, gems, stdlib)
+          # Extract symbols from all loaded modules grouped by source file.
+          # extract_all handles ObjectSpace iteration, filtering, and FQN-based nesting.
           upload_class_methods = @settings.symbol_database.internal.upload_class_methods
+          file_scopes = Extractor.extract_all(upload_class_methods: upload_class_methods)
           extracted_count = 0
-          ObjectSpace.each_object(Module) do |mod|
-            scope = Extractor.extract(mod, upload_class_methods: upload_class_methods)
-            next unless scope
-
+          file_scopes.each do |scope|
             @scope_context.add_scope(scope)
             extracted_count += 1
           end
