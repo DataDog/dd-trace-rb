@@ -155,7 +155,7 @@ module Datadog
 
       # Serializes an exception for the throwable field in snapshot captures.
       #
-      # Uses the C extension's exception_message to get the raw message
+      # Uses the C extension's exception_message to get the original message
       # without invoking any Ruby-level message method override, which
       # could be customer code. Falls back to exception.message if the
       # C extension is not available.
@@ -178,13 +178,13 @@ module Datadog
       #    is better than invoking customer code or reporting nothing.
       def serialize_throwable(exception)
         message = if DI.respond_to?(:exception_message)
-          raw = DI.exception_message(exception)
-          if String === raw
-            raw
+          msg = DI.exception_message(exception)
+          if String === msg
+            msg
           else
             # Non-string constructor argument — report its class name
             # rather than calling .to_s which could be customer code.
-            raw.class.name
+            msg.class.name
           end
         else
           # C extension not available; fall back to Ruby's message method.
