@@ -34,6 +34,8 @@ module Datadog
       # Note: the same line of code can appear in multiple iseqs (e.g. when
       # +define_method+ is used inside a method). DI treats this as an error
       # since a probe must resolve to exactly one code location.
+      #
+      # @return [Array<RubyVM::InstructionSequence>] iseqs with non-nil +absolute_path+
       def file_iseqs
         all_iseqs.select do |iseq|
           iseq.absolute_path

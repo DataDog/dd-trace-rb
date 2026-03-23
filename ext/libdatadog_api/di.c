@@ -72,7 +72,7 @@ static VALUE exception_message(DDTRACE_UNUSED VALUE _self, VALUE exception) {
 
 void di_init(VALUE datadog_module) {
   id_mesg = rb_intern("mesg");
-  
+
   VALUE di_module = rb_define_module_under(datadog_module, "DI");
   rb_define_singleton_method(di_module, "all_iseqs", all_iseqs, 0);
   rb_define_singleton_method(di_module, "exception_message", exception_message, 1);
