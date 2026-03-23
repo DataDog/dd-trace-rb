@@ -1,9 +1,5 @@
 # frozen_string_literal: true
 
-# Products that require core/configuration directly (e.g. datadog/open_feature) bypass core.rb.
-# Ensure DATADOG_ENV exists so Identity and other modules that use it at load time work.
-require_relative '../core' unless defined?(::Datadog::DATADOG_ENV)
-
 require_relative 'configuration/components'
 require_relative 'configuration/settings'
 require_relative 'telemetry/emitter'
