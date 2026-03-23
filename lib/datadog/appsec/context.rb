@@ -62,8 +62,7 @@ module Datadog
         @state = {
           events: [],
           interrupted: false,
-          downstream_body_analyzed_count: 0,
-          identity_event_collected: false
+          downstream_body_analyzed_count: 0
         }
       end
 

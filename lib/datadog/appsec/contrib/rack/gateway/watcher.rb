@@ -116,7 +116,7 @@ module Datadog
                 gateway.watch('rack.request.finish') do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
 
-                  if context.span.nil? || !context.state[:identity_event_collected]
+                  if context.span.nil? || !context.state[:has_identity_event]
                     next stack.call(gateway_request.request)
                   end
 

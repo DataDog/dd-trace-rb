@@ -26,7 +26,7 @@ module Datadog
             def watch_user_id(gateway = Instrumentation.gateway)
               gateway.watch('identity.set_user') do |stack, user|
                 context = AppSec.active_context
-                context.state[:identity_event_collected] = true
+                context.state[:has_identity_event] = true
 
                 if user.id.nil? && user.login.nil? && user.session_id.nil?
                   Datadog.logger.debug { 'AppSec: skipping WAF check because no user information was provided' }
@@ -58,7 +58,7 @@ module Datadog
             def watch_user_login(gateway = Instrumentation.gateway)
               gateway.watch('appsec.events.user_lifecycle') do |stack, kind|
                 context = AppSec.active_context
-                context.state[:identity_event_collected] = true
+                context.state[:has_identity_event] = true
 
                 next stack.call(kind) unless WATCHED_LOGIN_EVENTS.include?(kind)
 
