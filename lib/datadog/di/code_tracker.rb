@@ -27,6 +27,48 @@ module Datadog
         @compiled_trace_point = nil
       end
 
+      # Populates the registry with iseqs for files that were loaded
+      # before code tracking started.
+      #
+      # Uses the all_iseqs C extension to walk the Ruby object space and
+      # find instruction sequences for already-loaded code. Only whole-file
+      # iseqs (first_lineno == 0) are stored — per-method iseqs require
+      # instrumenter changes to select the correct iseq for a target line
+      # and will be supported in a follow-up.
+      #
+      # Does not overwrite iseqs already in the registry (from
+      # :script_compiled), since those are guaranteed to be whole-file
+      # iseqs and are authoritative.
+      #
+      # This method is safe to call even if the C extension is not
+      # available — it silently returns without modifying the registry.
+      def backfill_registry
+        # Check for the C extension method (all_iseqs), not the Ruby
+        # wrapper (file_iseqs), since file_iseqs is always defined but
+        # calls all_iseqs which is only available from the C extension.
+        return unless DI.respond_to?(:all_iseqs)
+
+        iseqs = DI.file_iseqs
+        registry_lock.synchronize do
+          iseqs.each do |iseq|
+            path = iseq.absolute_path
+            next unless path
+
+            # Only store whole-file iseqs (first_lineno == 0).
+            # Per-method iseqs (first_lineno > 0) cover only a subset of
+            # lines in the file and would require the instrumenter to try
+            # multiple iseqs when targeting a line trace point.
+            next unless iseq.first_lineno == 0
+
+            # Do not overwrite entries from :script_compiled — those are
+            # captured at load time and are authoritative.
+            next if registry.key?(path)
+
+            registry[path] = iseq
+          end
+        end
+      end
+
       # Starts tracking loaded code.
       #
       # This method should generally be called early in application boot
@@ -104,6 +146,12 @@ module Datadog
               # TODO test this path
             end
           end
+
+          # Backfill the registry with iseqs for files that were loaded
+          # before tracking started. This must happen after the trace
+          # point is enabled so that any files loaded concurrently are
+          # captured by the trace point (backfill won't overwrite them).
+          backfill_registry
         end
       end
 
