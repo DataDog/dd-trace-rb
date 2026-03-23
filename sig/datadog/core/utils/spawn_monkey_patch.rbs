@@ -1,0 +1,16 @@
+module Datadog
+    module Core
+      module Utils
+        module SpawnMonkeyPatch
+          def self.apply!: () -> (false | true)
+  
+          module ProcessSpawnPatch
+            def spawn: (*untyped args, **untyped opts) -> untyped
+          end
+  
+          def self.inject_lineage_envs: (untyped args) -> untyped
+        end
+      end
+    end
+  end
+end

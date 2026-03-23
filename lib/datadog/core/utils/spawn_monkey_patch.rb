@@ -5,9 +5,6 @@ require_relative '../environment/identity'
 module Datadog
   module Core
     module Utils
-      # Monkey patches Process.spawn to inject session lineage env vars
-      # (_DD_ROOT_RB_SESSION_ID, _DD_PARENT_RB_SESSION_ID) into the child's
-      # environment so exec-based child processes can reconstruct process lineage.
       module SpawnMonkeyPatch
         def self.apply!
           return false unless ::Process.respond_to?(:spawn)
@@ -19,24 +16,23 @@ module Datadog
 
         module ProcessSpawnPatch
           def spawn(*args, **opts)
-            args = SpawnMonkeyPatch.inject_lineage_envs(args)
-            super(*args, **opts)
+            args.replace(SpawnMonkeyPatch.inject_lineage_envs(args))
+            super
           end
         end
 
         class << self
+          # Process.spawn(env?, cmd, ...): env is optional first arg (Hash). When present, merge
+          # runtime_ids into it; when absent, prepend full ENV + runtime_ids so the child inherits both.
           def inject_lineage_envs(args)
-            lineage = Core::Environment::Identity.runtime_propagation_envs
+            runtime_ids = Core::Environment::Identity.runtime_propagation_envs
+            env_provided = Hash === args.first
 
-            if args.first.is_a?(Hash)
-              # env hash provided: merge lineage into it
-              env = args.first.merge(lineage)
-              [env, *args.drop(1)]
-            else
-              # no env hash: prepend ENV merged with lineage
-              env = ENV.to_h.merge(lineage)
-              [env, *args]
-            end
+            base_env = env_provided ? args.first : DATADOG_ENV.to_h
+            env = base_env.merge(runtime_ids)
+            rest = env_provided ? args.drop(1) : args
+
+            [env, *rest]
           end
         end
       end

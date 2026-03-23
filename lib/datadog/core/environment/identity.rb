@@ -20,8 +20,8 @@ module Datadog
 
         # Seed from env when this process was spawned (Process.spawn, exec).
         # For fork-based processes these are set by after_fork!.
-        @root_runtime_id = ENV[ENV_ROOT_SESSION_ID]&.freeze
-        @parent_runtime_id = ENV[ENV_PARENT_SESSION_ID]&.freeze
+        @root_runtime_id = DATADOG_ENV[ENV_ROOT_SESSION_ID]&.freeze
+        @parent_runtime_id = DATADOG_ENV[ENV_PARENT_SESSION_ID]&.freeze
 
         # Retrieves number of classes from runtime
         def id
@@ -52,7 +52,7 @@ module Datadog
         def runtime_propagation_envs
           root = root_runtime_id || id
           current = id
-          { ENV_ROOT_SESSION_ID => root, ENV_PARENT_SESSION_ID => current }.freeze
+          {ENV_ROOT_SESSION_ID => root, ENV_PARENT_SESSION_ID => current}.freeze
         end
 
         def pid
