@@ -31,7 +31,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Changes
-        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
         id: changes
         with:
           filters: |
@@ -65,7 +65,7 @@ jobs:
           persist-credentials: false
           path: packaged/dd-trace-rb
       - name: Upload artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: dd-trace-rb  # The name must match the folder name so it extracts to binaries/dd-trace-rb on download
           path: packaged
@@ -77,7 +77,7 @@ jobs:
   test:
     needs:
       - build
-    uses: DataDog/system-tests/.github/workflows/system-tests.yml@71b7b0d4df30f7330af20c0e773c94f2a789c90c  # Automated: This reference is automatically updated.
+    uses: DataDog/system-tests/.github/workflows/system-tests.yml@b5df157a67a0bd5ce78a7d775ddea7b621fcbb61  # Automated: This reference is automatically updated.
     secrets:
       TEST_OPTIMIZATION_API_KEY: ${{ secrets.DD_API_KEY }}  # key used to pushed test results to test optim
       DD_API_KEY: ${{ secrets.DD_API_KEY }}  # key used in tests runs
