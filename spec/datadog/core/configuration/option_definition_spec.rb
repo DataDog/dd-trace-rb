@@ -3,7 +3,7 @@ require 'spec_helper'
 require 'datadog'
 
 RSpec.describe Datadog::Core::Configuration::OptionDefinition do
-  subject(:definition) { described_class.new(name, meta, parent, &block) }
+  subject(:definition) { described_class.new(name, parent: parent, **meta, &block) }
 
   let(:name) { :enabled }
   let(:parent) { nil }
@@ -138,7 +138,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition do
 end
 
 RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
-  subject(:builder) { described_class.new(name, parent, initialize_options, &initialize_block) }
+  subject(:builder) { described_class.new(name, parent: parent, **initialize_options, &initialize_block) }
 
   let(:name) { :enabled }
   let(:parent) { nil }
@@ -311,7 +311,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       let(:value) { :string }
 
       it { is_expected.to be value }
-      it { expect { type }.to change { builder.meta[:type] }.from(nil).to(value) }
+      it { expect { type }.to change { builder.option_attributes[:type] }.from(nil).to(value) }
     end
 
     context 'given options' do
@@ -319,8 +319,8 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       let(:opts) { {nilable: true} }
 
       it { is_expected.to be value }
-      it { expect { type }.to change { builder.meta[:type] }.from(nil).to(value) }
-      it { expect { type }.to change { builder.meta[:type_options] }.from({}).to(opts) }
+      it { expect { type }.to change { builder.option_attributes[:type] }.from(nil).to(value) }
+      it { expect { type }.to change { builder.option_attributes[:type_options] }.from({}).to(opts) }
     end
   end
 
@@ -406,20 +406,20 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
 
     before do
       expect(Datadog::Core::Configuration::OptionDefinition).to receive(:new)
-        .with(name, builder.meta, parent)
+        .with(name, parent: parent, **builder.option_attributes)
         .and_return(option_definition)
     end
 
     it { is_expected.to be option_definition }
   end
 
-  describe '#meta' do
-    subject(:meta) { builder.meta }
+  describe '#option_attributes' do
+    subject(:option_attributes) { builder.option_attributes }
 
     it { is_expected.to be_a_kind_of(Hash) }
 
     it 'contains the arguments for OptionDefinition' do
-      expect(meta.keys).to include(
+      expect(option_attributes.keys).to include(
         :default,
         :default_proc,
         :after_set,
