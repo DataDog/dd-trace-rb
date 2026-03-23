@@ -6,6 +6,7 @@ require 'rack/test'
 
 require 'datadog/tracing'
 require 'datadog/appsec'
+require 'datadog/kit/appsec/events'
 
 RSpec.describe 'Rack-request headers collection for identity.set_user' do
   include Rack::Test::Methods
@@ -109,6 +110,25 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
       expect(response).to be_ok
 
       expect(http_service_entry_span.tags).not_to have_key('http.request.headers.unknownheader')
+      expect(http_service_entry_span.tags).not_to have_key('http.request.headers.cf-connecting-ipv6')
+    end
+  end
+
+  context 'when identity event was pushed in a previous request but not in the current one' do
+    before do
+      headers = {
+        'HTTP_CF_CONNECTING_IPV6' => '2001:db8:3333:4444:5555:6666:1.2.3.4'
+      }
+
+      get('/with-identity-set-user', {}, headers)
+      clear_traces!
+
+      get('/without-identity-set-user', {}, headers)
+    end
+
+    it 'does not collect identity related request headers for the second request' do
+      expect(response).to be_ok
+
       expect(http_service_entry_span.tags).not_to have_key('http.request.headers.cf-connecting-ipv6')
     end
   end
