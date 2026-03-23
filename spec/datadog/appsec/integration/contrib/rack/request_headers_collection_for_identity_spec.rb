@@ -131,14 +131,19 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
       }
 
       get('/with-identity-set-user', {}, headers)
-      clear_traces!
-
-      get('/without-identity-set-user', {}, headers)
     end
 
-    it 'does not collect identity related request headers for the second request' do
-      expect(response).to be_ok
+    it 'collects identity related request headers for the first request' do
+      expect(http_service_entry_span.tags).to include(
+        'http.request.headers.cf-connecting-ipv6' => '2001:db8:3333:4444:5555:6666:1.2.3.4'
+      )
+    end
 
+    it 'does not leak identity headers into the second request' do
+      clear_traces!
+      get('/without-identity-set-user', {}, {'HTTP_CF_CONNECTING_IPV6' => '2001:db8:3333:4444:5555:6666:1.2.3.4'})
+
+      expect(last_response).to be_ok
       expect(http_service_entry_span.tags).not_to have_key('http.request.headers.cf-connecting-ipv6')
     end
   end
