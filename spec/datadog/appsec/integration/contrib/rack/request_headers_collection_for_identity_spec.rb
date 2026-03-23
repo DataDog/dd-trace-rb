@@ -102,6 +102,7 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
     before do
       headers = {
         'HTTP_UNKNOWNHEADER' => 'something',
+        'HTTP_CONTENT_TYPE' => 'text/html',
         'HTTP_CF_CONNECTING_IPV6' => '2001:db8:3333:4444:5555:6666:1.2.3.4'
       }
       get('/without-identity-set-user', {}, headers)
@@ -112,6 +113,14 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
 
       expect(http_service_entry_span.tags).not_to have_key('http.request.headers.unknownheader')
       expect(http_service_entry_span.tags).not_to have_key('http.request.headers.cf-connecting-ipv6')
+    end
+
+    it 'still collects standard collectable request headers' do
+      expect(response).to be_ok
+
+      expect(http_service_entry_span.tags).to include(
+        'http.request.headers.content-type' => 'text/html'
+      )
     end
   end
 
