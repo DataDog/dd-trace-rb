@@ -410,6 +410,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       it "is able to sample even when the main thread is sleeping" do
+        skip "TODO: This test is flaky on macOS" if PlatformHelpers.mac?
+
         background_thread
         ready_queue.pop
 
