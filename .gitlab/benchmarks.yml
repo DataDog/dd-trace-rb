@@ -215,9 +215,7 @@ microbenchmarks:
         - ext/**/*
         - benchmarks/**/*
         - datadog.gemspec
-        - Gemfile
-        - Gemfile.lock
-        - .gitlab/benchmarks.yml
+        - .gitlab/**/*
       interruptible: true
     # Terminating rule: if no rule above matched, skip the job.
     # Without this, GitLab falls through to its default (run the job), making the changes: rule above pointless.
