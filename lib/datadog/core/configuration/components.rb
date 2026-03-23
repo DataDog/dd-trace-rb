@@ -12,6 +12,7 @@ require_relative '../telemetry/component'
 require_relative '../workers/runtime_metrics'
 require_relative '../remote/component'
 require_relative '../utils/at_fork_monkey_patch'
+require_relative '../utils/spawn_monkey_patch'
 require_relative '../utils/only_once'
 require_relative '../../tracing/component'
 require_relative '../../profiling/component'
@@ -31,7 +32,7 @@ module Datadog
       # Global components for the trace library.
       class Components
         # Class-level constant to ensure fork patch is applied only once
-        AT_FORK_ONLY_ONCE = Utils::OnlyOnce.new
+        PATCH_ONLY_ONCE = Utils::OnlyOnce.new
 
         class << self
           def build_health_metrics(settings, logger, telemetry)
@@ -128,8 +129,9 @@ module Datadog
           Deprecations.log_deprecations_from_all_sources(@logger)
 
           # Register fork handling once globally
-          self.class::AT_FORK_ONLY_ONCE.run do
+          self.class::PATCH_ONLY_ONCE.run do
             Utils::AtForkMonkeyPatch.apply!
+            Utils::SpawnMonkeyPatch.apply!
 
             # Register callback that calls Components.after_fork
             Utils::AtForkMonkeyPatch.at_fork(:child) do
