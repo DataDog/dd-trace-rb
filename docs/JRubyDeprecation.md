@@ -8,14 +8,12 @@ Ruby releases from [ruby-lang.org](https://www.ruby-lang.org/) (MRI/CRuby) remai
 
 ## Recommended action
 
-Pin the `datadog` gem to **`~> 2.30.0`**, the last version fully tested with JRuby:
+Pin the `datadog` gem to `~> 2.30.0`, the last version fully tested with JRuby:
 
 ```ruby
 # Gemfile
 gem 'datadog', '~> 2.30.0'
 ```
-
-This keeps your JRuby services on a known-good release while allowing patch-level updates within `2.30.x`.
 
 If you need to lock to an exact version instead:
 
