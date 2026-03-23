@@ -16,6 +16,24 @@ module Datadog
         Datadog.configuration.dynamic_instrumentation.enabled
       end
 
+      # Returns iseqs that correspond to loaded files (filtering out eval'd code).
+      #
+      # There are several types of iseqs returned by +all_iseqs+:
+      #
+      # 1. Eval'd code — these have a nil +absolute_path+ and are filtered out here.
+      # 2. Whole-file iseqs — have +absolute_path+ set and +first_lineno+ of 0.
+      #    Only available for a subset of loaded files (the full-file iseq may be
+      #    garbage collected after loading completes). Easiest to work with since
+      #    we just match the file path to the probe specification.
+      # 3. Per-method iseqs — have +absolute_path+ set and +first_lineno+ > 0.
+      #    Often the only iseqs available for third-party code. Require identifying
+      #    the correct iseq containing the target line, which may involve examining
+      #    the iseq's +trace_points+ since +define_method+ can create nested,
+      #    non-contiguous line ranges.
+      #
+      # Note: the same line of code can appear in multiple iseqs (e.g. when
+      # +define_method+ is used inside a method). DI treats this as an error
+      # since a probe must resolve to exactly one code location.
       def file_iseqs
         all_iseqs.select do |iseq|
           iseq.absolute_path
