@@ -424,6 +424,130 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     end
   end
 
+  describe '#build_executed for method probe with exception' do
+    let(:probe) do
+      Datadog::DI::Probe.new(id: '123', type: :log,
+        type_name: 'TestClass', method_name: 'test_method',
+        capture_snapshot: true,)
+    end
+
+    let(:target_self) { Object.new }
+
+    context 'when exception is present' do
+      let(:exception) { NameError.new('test error') }
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings, serializer: serializer,
+          target_self: target_self,
+          serialized_entry_args: {},
+          return_value: nil, duration: 0.1,
+          exception: exception,
+        )
+      end
+
+      let(:payload) { builder.build_executed(context) }
+
+      it 'populates throwable in captures' do
+        throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+        expect(throwable).to eq({
+          type: 'NameError',
+          message: 'test error',
+        })
+      end
+    end
+
+    context 'when exception is not present' do
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings, serializer: serializer,
+          target_self: target_self,
+          serialized_entry_args: {},
+          return_value: 42, duration: 0.1,
+        )
+      end
+
+      let(:payload) { builder.build_executed(context) }
+
+      it 'has nil throwable in captures' do
+        throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+        expect(throwable).to be_nil
+      end
+    end
+
+    context 'when exception has overridden message method' do
+      let(:exception_class) do
+        Class.new(StandardError) do
+          define_method(:message) do
+            'overridden message'
+          end
+        end
+      end
+
+      let(:exception) { exception_class.new('constructor message') }
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings, serializer: serializer,
+          target_self: target_self,
+          serialized_entry_args: {},
+          return_value: nil, duration: 0.1,
+          exception: exception,
+        )
+      end
+
+      let(:payload) { builder.build_executed(context) }
+
+      if Datadog::DI.respond_to?(:exception_message)
+        it 'uses raw constructor message, not overridden message method' do
+          throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+          expect(throwable[:message]).to eq('constructor message')
+          # Verify the override exists
+          expect(exception.message).to eq('overridden message')
+        end
+      else
+        it 'falls back to exception.message when C extension is not available' do
+          throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+          expect(throwable[:message]).to eq('overridden message')
+        end
+      end
+    end
+
+    context 'when exception constructor argument is not a string' do
+      let(:exception) { NameError.new(42) }
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings, serializer: serializer,
+          target_self: target_self,
+          serialized_entry_args: {},
+          return_value: nil, duration: 0.1,
+          exception: exception,
+        )
+      end
+
+      let(:payload) { builder.build_executed(context) }
+
+      if Datadog::DI.respond_to?(:exception_message)
+        it 'reports class name for non-string constructor argument' do
+          throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+          expect(throwable[:message]).to eq('Integer')
+          expect(throwable[:type]).to eq('NameError')
+        end
+      else
+        it 'falls back to exception.message for non-string constructor argument' do
+          throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+          expect(throwable[:message]).to be_a(String)
+          expect(throwable[:type]).to eq('NameError')
+        end
+      end
+    end
+  end
+
   describe '#evaluate_template' do
     context 'when there are variables to be substituted' do
       let(:compiler) { Datadog::DI::EL::Compiler.new }

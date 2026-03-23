@@ -9,6 +9,7 @@ module Datadog
 
     def self.all_iseqs: () -> Array[RubyVM::InstructionSequence]
     def self.file_iseqs: () -> Array[RubyVM::InstructionSequence]
+    def self.exception_message: (Exception exception) -> untyped
 
     def self.component: () -> Component
 

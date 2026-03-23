@@ -79,7 +79,7 @@ module Datadog
               },
               return: {
                 arguments: return_arguments,
-                throwable: nil,
+                throwable: context.exception ? serialize_throwable(context.exception) : nil,
               },
             }
           elsif probe.line?
@@ -152,6 +152,50 @@ module Datadog
       end
 
       private
+
+      # Serializes an exception for the throwable field in snapshot captures.
+      #
+      # Uses the C extension's exception_message to get the raw message
+      # without invoking any Ruby-level message method override, which
+      # could be customer code. Falls back to exception.message if the
+      # C extension is not available.
+      #
+      # Caveats (from the C extension):
+      #
+      # 1. The value returned by exception_message is not guaranteed to be
+      #    a string — it is whatever was passed to the Exception constructor.
+      #    Calling .to_s on an arbitrary object would invoke customer code,
+      #    violating DI's constraint of never executing customer methods
+      #    during instrumentation. We only use the value directly when it
+      #    is a String; for non-string values we report the class name
+      #    (which is safe — Class#name is a core Ruby method).
+      #
+      # 2. Custom exception classes may not store a meaningful message via
+      #    the constructor (e.g. they may compute it in an overridden
+      #    +message+ method). In such cases exception_message may return
+      #    nil or an unrelated constructor argument. This is acceptable:
+      #    we still report the exception type, and a missing/wrong message
+      #    is better than invoking customer code or reporting nothing.
+      def serialize_throwable(exception)
+        message = if DI.respond_to?(:exception_message)
+          raw = DI.exception_message(exception)
+          if String === raw
+            raw
+          else
+            # Non-string constructor argument — report its class name
+            # rather than calling .to_s which could be customer code.
+            raw.class.name
+          end
+        else
+          # C extension not available; fall back to Ruby's message method.
+          # This may invoke customer code if message is overridden.
+          exception.message
+        end
+        {
+          type: exception.class.name,
+          message: message,
+        }
+      end
 
       def build_snapshot_base(context, evaluation_errors: [], captures: nil, message: nil)
         probe = context.probe
