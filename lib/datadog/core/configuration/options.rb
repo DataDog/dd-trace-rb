@@ -16,23 +16,8 @@ module Datadog
         # Class behavior for a configuration object with options
         # @public_api
         module ClassMethods
-          attr_reader \
-            :settings_name,
-            :parent
-
           def settings_path
-            return @settings_path if defined?(@settings_path)
-
-            unless defined?(@settings_name)
-              @settings_path = nil
-              return
-            end
-
-            @settings_path = if parent.nil? || parent.settings_path.nil?
-              @settings_name
-            else
-              "#{parent.settings_path}.#{@settings_name}"
-            end
+            defined?(@settings_path) ? @settings_path : nil
           end
 
           def options
@@ -48,8 +33,7 @@ module Datadog
 
           def option(name, option_attributes = {}, &block)
             option_name = settings_path ? "#{settings_path}.#{name}" : name
-            # Steep: https://github.com/soutaro/steep/issues/2122
-            builder = OptionDefinition::Builder.new(option_name, parent: self, **option_attributes, &block) # steep:ignore ArgumentTypeMismatch
+            builder = OptionDefinition::Builder.new(option_name, option_attributes, &block)
             options[name] = builder.to_definition.tap do
               # Resolve and define helper functions
               helpers = default_helpers(name)

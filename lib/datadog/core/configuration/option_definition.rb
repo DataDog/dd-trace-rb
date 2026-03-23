@@ -10,7 +10,6 @@ module Datadog
         IDENTITY = ->(new_value, _old_value) { new_value }
 
         attr_reader \
-          :parent,
           :default,
           :default_proc,
           :env,
@@ -23,8 +22,6 @@ module Datadog
           :type_options
 
         def initialize(name, option_attributes, &block)
-          @parent = option_attributes[:parent]
-
           @default = option_attributes[:default]
           @default_proc = option_attributes[:default_proc]
           @env = option_attributes[:env]
@@ -52,8 +49,6 @@ module Datadog
             :helpers
 
           def initialize(name, options = {})
-            @parent = options[:parent]
-
             @env = nil
             @env_parser = nil
             @default = nil
@@ -131,8 +126,7 @@ module Datadog
           end
 
           def to_definition
-            # Steep: https://github.com/soutaro/steep/issues/2122
-            OptionDefinition.new(@name, parent: @parent, **option_attributes) # steep:ignore ArgumentTypeMismatch
+            OptionDefinition.new(@name, option_attributes)
           end
 
           def option_attributes

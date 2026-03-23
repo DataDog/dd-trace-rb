@@ -8,8 +8,6 @@ module Datadog
         def self.included: (Class | Module base) -> void
 
         interface _ClassMethods
-          def parent: () -> (_ClassMethods & ::Object)
-
           def options: () -> Hash[Symbol, OptionDefinition]
 
           def settings_path: () -> ::String?
@@ -57,7 +55,6 @@ module Datadog
           include _ClassMethods
 
           @options: Hash[Symbol, OptionDefinition]
-          @settings_name: String?
           @settings_path: ::String?
 
           private

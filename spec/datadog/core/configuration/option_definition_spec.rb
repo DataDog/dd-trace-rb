@@ -3,26 +3,11 @@ require 'spec_helper'
 require 'datadog'
 
 RSpec.describe Datadog::Core::Configuration::OptionDefinition do
-  subject(:definition) { described_class.new(name, parent: parent, **meta, &block) }
+  subject(:definition) { described_class.new(name, meta, &block) }
 
   let(:name) { :enabled }
-  let(:parent) { nil }
   let(:meta) { {} }
   let(:block) { nil }
-
-  describe '#parent' do
-    subject(:parent_value) { definition.parent }
-
-    context 'when parent is not provided' do
-      it { is_expected.to be_nil }
-    end
-
-    context 'when parent is provided' do
-      let(:parent) { double('parent') }
-
-      it { is_expected.to be parent }
-    end
-  end
 
   describe '#default' do
     subject(:default) { definition.default }
@@ -138,10 +123,9 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition do
 end
 
 RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
-  subject(:builder) { described_class.new(name, parent: parent, **initialize_options, &initialize_block) }
+  subject(:builder) { described_class.new(name, initialize_options, &initialize_block) }
 
   let(:name) { :enabled }
-  let(:parent) { nil }
   let(:initialize_options) { {} }
   let(:initialize_block) { nil }
 
@@ -406,7 +390,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
 
     before do
       expect(Datadog::Core::Configuration::OptionDefinition).to receive(:new)
-        .with(name, parent: parent, **builder.option_attributes)
+        .with(name, builder.option_attributes)
         .and_return(option_definition)
     end
 
