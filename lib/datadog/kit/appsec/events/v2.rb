@@ -64,14 +64,12 @@ module Datadog
               ::Datadog::AppSec::TraceKeeper.keep!(trace)
 
               record_event_telemetry_metric(LOGIN_SUCCESS_EVENT)
-              ::Datadog::AppSec::Instrumentation.gateway.push('appsec.events.user_lifecycle', LOGIN_SUCCESS_EVENT)
 
-              return Kit::Identity.set_user(trace, span, **user_attributes) if user_attributes.key?(:id)
+              Kit::Identity.set_user(trace, span, **user_attributes) if user_attributes.key?(:id)
 
-              # NOTE: This is a fallback for the case when we don't have an ID,
-              #       but need to trigger WAF.
-              user = ::Datadog::AppSec::Instrumentation::Gateway::User.new(nil, login)
-              ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', user)
+              # NOTE: Triggers business logic WAF check and user WAF check
+              #       (when there is no ID, this is the only event that triggers user WAF)
+              ::Datadog::AppSec::Instrumentation.gateway.push('identity.sdk.login_success', {login: login})
             end
 
             # Attach user login failure information to the service entry span
@@ -119,10 +117,8 @@ module Datadog
               ::Datadog::AppSec::TraceKeeper.keep!(trace)
 
               record_event_telemetry_metric(LOGIN_FAILURE_EVENT)
-              ::Datadog::AppSec::Instrumentation.gateway.push('appsec.events.user_lifecycle', LOGIN_FAILURE_EVENT)
 
-              user = ::Datadog::AppSec::Instrumentation::Gateway::User.new(nil, login)
-              ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', user)
+              ::Datadog::AppSec::Instrumentation.gateway.push('identity.sdk.login_failure', {login: login})
             end
 
             private

@@ -142,8 +142,6 @@ module Datadog
                 ::Datadog::AppSec::TraceKeeper.keep!(active_trace)
               end
             end
-
-            ::Datadog::AppSec::Instrumentation.gateway.push('appsec.events.user_lifecycle', event)
           end
 
           private

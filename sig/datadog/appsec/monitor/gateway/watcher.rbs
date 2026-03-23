@@ -5,17 +5,15 @@ module Datadog
         module Watcher
           ARBITRARY_VALUE: ::String
 
-          EVENT_LOGIN_SUCCESS: ::String
+          IDENTITY_EVENTS: ::Array[::String]
 
-          EVENT_LOGIN_FAILURE: ::String
-
-          WATCHED_LOGIN_EVENTS: ::Array[::String]
+          LOGIN_EVENTS: ::Hash[::String, ::String]
 
           def self.watch: () -> untyped
 
           def self.watch_user_id: (?Instrumentation::Gateway gateway) -> void
 
-          def self.watch_user_login: (?Instrumentation::Gateway gateway) -> void
+          def self.watch_user_login_event: (?Instrumentation::Gateway gateway) -> void
         end
       end
     end

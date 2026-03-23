@@ -117,6 +117,9 @@ RSpec.describe 'Devise auto login and signup events tracking' do
 
     allow(Rails).to receive(:application).and_return(app)
     allow(Datadog::AppSec::Instrumentation).to receive(:gateway).and_return(gateway)
+    Datadog::AppSec::Monitor::Gateway::TelemetryWatcher.watch
+
+    allow(Datadog::AppSec.telemetry).to receive(:inc)
 
     # NOTE: Don't reach the agent in any way
     allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
@@ -207,7 +210,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         '_dd.appsec.usr.id' => '1'
       )
 
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
+      expect(gateway.pushed?('identity.devise.login_success')).to be true
     end
   end
 
@@ -237,7 +240,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       expect(http_service_entry_span.tags).not_to have_key('usr.id')
       expect(http_service_entry_span.tags).not_to have_key('_dd.appsec.usr.id')
 
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
+      expect(gateway.pushed?('identity.devise.login_success')).to be true
     end
   end
 
@@ -264,7 +267,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         '_dd.appsec.usr.id' => '1'
       )
 
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
+      expect(gateway.pushed?('identity.devise.login_success')).to be true
     end
   end
 
@@ -314,7 +317,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.success.track')
       expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.failure.track')
 
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be false
+      expect(gateway.pushed?('identity.devise.login_success')).to be false
     end
   end
 
@@ -360,7 +363,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         '_dd.appsec.usr.id' => '1'
       )
 
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
+      expect(gateway.pushed?('identity.devise.login_success')).to be true
     end
   end
 
@@ -381,7 +384,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         '_dd.appsec.events.users.login.failure.auto.mode' => 'identification'
       )
 
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
+      expect(gateway.pushed?('identity.devise.login_failure')).to be true
     end
   end
 
@@ -431,7 +434,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         '_dd.appsec.events.users.login.failure.auto.mode' => 'identification'
       )
 
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
+      expect(gateway.pushed?('identity.devise.login_failure')).to be true
     end
   end
 
@@ -502,7 +505,44 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         '_dd.appsec.events.users.login.failure.auto.mode' => 'identification'
       )
 
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
+      expect(gateway.pushed?('identity.devise.login_failure')).to be true
+    end
+  end
+
+  context 'when login extraction fails during successful login' do
+    before do
+      allow_any_instance_of(Datadog::AppSec::Contrib::Devise::DataExtractor)
+        .to receive(:extract_login).and_return(nil)
+
+      User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456')
+      post('/users/sign_in', {user: {email: 'john.doe@example.com', password: '123456'}})
+    end
+
+    it 'reports missing_user_login telemetry' do
+      expect(response).to be_redirect
+
+      expect(Datadog::AppSec.telemetry).to have_received(:inc).with(
+        'appsec', 'instrum.user_auth.missing_user_login', 1,
+        tags: {framework: 'devise', event_type: 'login_success'},
+      )
+    end
+  end
+
+  context 'when login extraction fails during failed login' do
+    before do
+      allow_any_instance_of(Datadog::AppSec::Contrib::Devise::DataExtractor)
+        .to receive(:extract_login).and_return(nil)
+
+      post('/users/sign_in', {user: {email: 'john.doe@example.com', password: '123456'}})
+    end
+
+    it 'reports missing_user_login telemetry' do
+      expect(response).to be_unprocessable
+
+      expect(Datadog::AppSec.telemetry).to have_received(:inc).with(
+        'appsec', 'instrum.user_auth.missing_user_login', 1,
+        tags: {framework: 'devise', event_type: 'login_failure'},
+      )
     end
   end
 end
