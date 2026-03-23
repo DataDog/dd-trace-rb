@@ -1,31 +1,35 @@
-#include <ruby.h>
 #include <stdbool.h>
-#include "ruby_internal.h"
-#include "ruby_helpers.h"
 
-#ifndef DDTRACE_UNUSED
-#define DDTRACE_UNUSED  __attribute__((unused))
-#endif
+#include "datadog_ruby_common.h"
+
+// Prototypes for Ruby functions declared in internal Ruby headers.
+VALUE rb_iseqw_new(const void *iseq);
+int rb_objspace_internal_object_p(VALUE obj);
+void rb_objspace_each_objects(
+    int (*callback)(void *start, void *end, size_t stride, void *data),
+    void *data);
+
+#define IMEMO_TYPE_ISEQ 7
 
 // The ID value of the string "mesg" which is used in Ruby source as
 // id_mesg or idMesg, and is used to set and retrieve the exception message
 // from standard library exception classes like NameError.
 static ID id_mesg;
 
-struct ddtrace_di_os_each_struct {
-  VALUE array;
-};
+// Returns whether the argument is an IMEMO of type ISEQ.
+static bool ddtrace_imemo_iseq_p(VALUE v) {
+  return rb_objspace_internal_object_p(v) && RB_TYPE_P(v, T_IMEMO) && ddtrace_imemo_type(v) == IMEMO_TYPE_ISEQ;
+}
 
 static int ddtrace_di_os_obj_of_i(void *vstart, void *vend, size_t stride, void *data)
 {
-  struct ddtrace_di_os_each_struct *oes = (struct ddtrace_di_os_each_struct *)data;
-  VALUE array = oes->array;
+  VALUE *array = (VALUE *)data;
 
   VALUE v = (VALUE)vstart;
   for (; v != (VALUE)vend; v += stride) {
     if (ddtrace_imemo_iseq_p(v)) {
       VALUE iseq = rb_iseqw_new((void *) v);
-      rb_ary_push(array, iseq);
+      rb_ary_push(*array, iseq);
     }
   }
 
