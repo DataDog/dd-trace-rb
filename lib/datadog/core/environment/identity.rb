@@ -20,7 +20,7 @@ module Datadog
 
         # Seed from env when this process was spawned (Process.spawn, exec).
         # For fork-based processes these are set by after_fork!.
-        @ancestor_runtime_id = ENV[ENV_ROOT_SESSION_ID]&.freeze
+        @root_runtime_id = ENV[ENV_ROOT_SESSION_ID]&.freeze
         @parent_runtime_id = ENV[ENV_PARENT_SESSION_ID]&.freeze
 
         # Retrieves number of classes from runtime
@@ -30,7 +30,7 @@ module Datadog
           # Check if runtime has changed, e.g. forked.
           after_fork! do
             @parent_runtime_id = @id
-            @ancestor_runtime_id ||= @id
+            @root_runtime_id ||= @id
             @id = ::SecureRandom.uuid.freeze
           end
 
@@ -38,8 +38,8 @@ module Datadog
         end
 
         # Root of the fork tree (Stable Service Instance Identifier). Nil in root process.
-        def ancestor_runtime_id
-          @ancestor_runtime_id
+        def root_runtime_id
+          @root_runtime_id
         end
 
         # Direct parent's runtime_id. Nil in root process.
@@ -50,9 +50,8 @@ module Datadog
         # Returns session lineage env vars to inject into child process environments.
         # Allows exec-based child processes (Process.spawn) to reconstruct process lineage.
         def runtime_propagation_envs
-          ancestor = ancestor_runtime_id
+          root = root_runtime_id || id
           current = id
-          root = ancestor || current
           { ENV_ROOT_SESSION_ID => root, ENV_PARENT_SESSION_ID => current }.freeze
         end
 

@@ -50,8 +50,8 @@ module Datadog
                     # 'DD-Telemetry-Debug-Enabled' => 'true',
                   }.tap do |result|
                     result['DD-API-KEY'] = api_key unless api_key.nil?
-                    ancestor = Core::Environment::Identity.ancestor_runtime_id
-                    result['DD-Root-Session-ID'] = ancestor if ancestor
+                    root = Core::Environment::Identity.root_runtime_id
+                    result['DD-Root-Session-ID'] = root if root
                     parent = Core::Environment::Identity.parent_runtime_id
                     result['DD-Parent-Session-ID'] = parent if parent
                   end
