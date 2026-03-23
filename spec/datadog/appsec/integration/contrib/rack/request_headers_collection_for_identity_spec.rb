@@ -125,26 +125,27 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
   end
 
   context 'when identity event was pushed in a previous request but not in the current one' do
-    before do
-      headers = {
-        'HTTP_CF_CONNECTING_IPV6' => '2001:db8:3333:4444:5555:6666:1.2.3.4'
-      }
-
-      get('/with-identity-set-user', {}, headers)
-    end
-
-    it 'collects identity related request headers for the first request' do
-      expect(http_service_entry_span.tags).to include(
-        'http.request.headers.cf-connecting-ipv6' => '2001:db8:3333:4444:5555:6666:1.2.3.4'
-      )
+    let(:headers) do
+      {'HTTP_CF_CONNECTING_IPV6' => '2001:db8:3333:4444:5555:6666:1.2.3.4'}
     end
 
     it 'does not leak identity headers into the second request' do
-      clear_traces!
-      get('/without-identity-set-user', {}, {'HTTP_CF_CONNECTING_IPV6' => '2001:db8:3333:4444:5555:6666:1.2.3.4'})
+      get('/with-identity-set-user', {}, headers)
 
       expect(last_response).to be_ok
-      expect(http_service_entry_span.tags).not_to have_key('http.request.headers.cf-connecting-ipv6')
+      expect(http_service_entry_span.tags).to include(
+        'http.request.headers.cf-connecting-ipv6' => '2001:db8:3333:4444:5555:6666:1.2.3.4'
+      )
+
+      clear_traces!
+      get('/without-identity-set-user', {}, headers)
+      expect(last_response).to be_ok
+
+      # NOTE: Cannot reuse `http_service_entry_span` let here because RSpec
+      #       memoizes it and would return the first request's span.
+      Datadog::Tracing::Transport::TraceFormatter.format!(trace)
+      second_request_span = spans.find { |s| s.name == 'rack.request' }
+      expect(second_request_span.tags).not_to have_key('http.request.headers.cf-connecting-ipv6')
     end
   end
 end
