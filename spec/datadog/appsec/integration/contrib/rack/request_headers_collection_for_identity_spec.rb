@@ -36,6 +36,7 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
     allow_any_instance_of(Datadog::Tracing::Transport::Traces::Transport).to receive(:native_events_supported?)
       .and_return(true)
 
+    Datadog::AppSec::Monitor::Gateway::Watcher.watch_user_id
     Datadog::AppSec::Contrib::Rack::Gateway::Watcher.watch_request_finish
   end
 
