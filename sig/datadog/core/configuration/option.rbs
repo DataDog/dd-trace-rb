@@ -5,7 +5,6 @@ module Datadog
         type env_value = Hash[String, String] | Array[String] | String | Integer | Float | bool | nil
         type env_vars = Hash[String, String] | ::RBS::Unnamed::ENVClass
         type option_value = OptionDefinition::option_type | OptionDefinition::generic_proc
-        type resolved_values_per_precedence = ::Hash[Precedence::Value, option_value]
 
         @context: OptionDefinition::settings_context
 
@@ -54,7 +53,7 @@ module Datadog
 
         def default_precedence?: () -> bool
 
-        def values_per_precedence: () -> resolved_values_per_precedence
+        def values_per_precedence: () -> ::Hash[Precedence::Value, option_value]
 
         def unset: (Precedence::Value precedence) -> void
 

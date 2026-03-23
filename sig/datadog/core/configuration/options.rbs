@@ -12,7 +12,7 @@ module Datadog
 
           def settings_path: () -> ::String?
 
-          def option: (Symbol name, ?OptionDefinition::option_attributes option_attributes) ?{ (OptionDefinition::Builder) -> void } -> OptionDefinition
+          def option: (Symbol name, ?OptionDefinition::attributes attributes) ?{ (OptionDefinition::Builder) -> void } -> OptionDefinition
         end
 
         interface _InstanceMethods

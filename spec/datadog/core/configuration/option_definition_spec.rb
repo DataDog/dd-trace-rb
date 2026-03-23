@@ -295,7 +295,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       let(:value) { :string }
 
       it { is_expected.to be value }
-      it { expect { type }.to change { builder.option_attributes[:type] }.from(nil).to(value) }
+      it { expect { type }.to change { builder.attributes[:type] }.from(nil).to(value) }
     end
 
     context 'given options' do
@@ -303,8 +303,8 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       let(:opts) { {nilable: true} }
 
       it { is_expected.to be value }
-      it { expect { type }.to change { builder.option_attributes[:type] }.from(nil).to(value) }
-      it { expect { type }.to change { builder.option_attributes[:type_options] }.from({}).to(opts) }
+      it { expect { type }.to change { builder.attributes[:type] }.from(nil).to(value) }
+      it { expect { type }.to change { builder.attributes[:type_options] }.from({}).to(opts) }
     end
   end
 
@@ -390,20 +390,20 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
 
     before do
       expect(Datadog::Core::Configuration::OptionDefinition).to receive(:new)
-        .with(name, builder.option_attributes)
+        .with(name, builder.attributes)
         .and_return(option_definition)
     end
 
     it { is_expected.to be option_definition }
   end
 
-  describe '#option_attributes' do
-    subject(:option_attributes) { builder.option_attributes }
+  describe '#attributes' do
+    subject(:attributes) { builder.attributes }
 
     it { is_expected.to be_a_kind_of(Hash) }
 
     it 'contains the arguments for OptionDefinition' do
-      expect(option_attributes.keys).to include(
+      expect(attributes.keys).to include(
         :default,
         :default_proc,
         :after_set,
