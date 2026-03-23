@@ -10,8 +10,8 @@ module Datadog
         IDENTITY = ->(new_value, _old_value) { new_value }
 
         attr_reader \
-          :parent,
           :is_settings,
+
           :default,
           :default_proc,
           :env,
@@ -24,21 +24,20 @@ module Datadog
           :type,
           :type_options
 
-        def initialize(name, meta, parent = nil, is_settings:, &block)
-          @parent = parent
-          @is_settings = is_settings
+        def initialize(name, attributes, &block)
+          @is_settings = attributes[:is_settings]
 
-          @default = meta[:default]
-          @default_proc = meta[:default_proc]
-          @env = meta[:env]
-          @env_parser = meta[:env_parser]
+          @default = attributes[:default]
+          @default_proc = attributes[:default_proc]
+          @env = attributes[:env]
+          @env_parser = attributes[:env_parser]
           @name = name.to_sym
-          @after_set = meta[:after_set]
-          @skip_telemetry = meta[:skip_telemetry] || false
-          @resetter = meta[:resetter]
-          @setter = meta[:setter] || block || IDENTITY
-          @type = meta[:type]
-          @type_options = meta[:type_options]
+          @after_set = attributes[:after_set]
+          @skip_telemetry = attributes[:skip_telemetry]
+          @resetter = attributes[:resetter]
+          @setter = attributes[:setter] || block || IDENTITY
+          @type = attributes[:type]
+          @type_options = attributes[:type_options]
         end
 
         # Creates a new Option, bound to the context provided.
@@ -55,9 +54,8 @@ module Datadog
           attr_reader \
             :helpers
 
-          def initialize(name, parent = nil, options = {}, is_settings:)
-            @parent = parent
-            @is_settings = is_settings
+          def initialize(name, options = {})
+            @is_settings = options.fetch(:is_settings, false)
 
             @env = nil
             @env_parser = nil
@@ -143,11 +141,13 @@ module Datadog
           end
 
           def to_definition
-            OptionDefinition.new(@name, meta, @parent, is_settings: @is_settings)
+            OptionDefinition.new(@name, attributes)
           end
 
-          def meta
+          def attributes
             {
+              is_settings: @is_settings,
+
               default: @default,
               default_proc: @default_proc,
               env: @env,

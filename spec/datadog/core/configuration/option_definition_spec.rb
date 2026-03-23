@@ -3,26 +3,11 @@ require 'spec_helper'
 require 'datadog'
 
 RSpec.describe Datadog::Core::Configuration::OptionDefinition do
-  subject(:definition) { described_class.new(name, meta, parent, &block) }
+  subject(:definition) { described_class.new(name, meta, &block) }
 
   let(:name) { :enabled }
-  let(:parent) { nil }
   let(:meta) { {} }
   let(:block) { nil }
-
-  describe '#parent' do
-    subject(:parent_value) { definition.parent }
-
-    context 'when parent is not provided' do
-      it { is_expected.to be_nil }
-    end
-
-    context 'when parent is provided' do
-      let(:parent) { double('parent') }
-
-      it { is_expected.to be parent }
-    end
-  end
 
   describe '#default' do
     subject(:default) { definition.default }
@@ -152,10 +137,9 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition do
 end
 
 RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
-  subject(:builder) { described_class.new(name, parent, initialize_options, &initialize_block) }
+  subject(:builder) { described_class.new(name, initialize_options, &initialize_block) }
 
   let(:name) { :enabled }
-  let(:parent) { nil }
   let(:initialize_options) { {} }
   let(:initialize_block) { nil }
 
@@ -307,7 +291,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     let(:value) { true }
 
     it { is_expected.to be value }
-    it { expect { skip_telemetry }.to change { builder.meta[:skip_telemetry] }.from(false).to(value) }
+    it { expect { skip_telemetry }.to change { builder.attributes[:skip_telemetry] }.from(false).to(value) }
   end
 
   describe '#resetter' do
@@ -335,7 +319,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       let(:value) { :string }
 
       it { is_expected.to be value }
-      it { expect { type }.to change { builder.meta[:type] }.from(nil).to(value) }
+      it { expect { type }.to change { builder.attributes[:type] }.from(nil).to(value) }
     end
 
     context 'given options' do
@@ -343,8 +327,8 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       let(:opts) { {nilable: true} }
 
       it { is_expected.to be value }
-      it { expect { type }.to change { builder.meta[:type] }.from(nil).to(value) }
-      it { expect { type }.to change { builder.meta[:type_options] }.from({}).to(opts) }
+      it { expect { type }.to change { builder.attributes[:type] }.from(nil).to(value) }
+      it { expect { type }.to change { builder.attributes[:type_options] }.from({}).to(opts) }
     end
   end
 
@@ -440,20 +424,20 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
 
     before do
       expect(Datadog::Core::Configuration::OptionDefinition).to receive(:new)
-        .with(name, builder.meta, parent)
+        .with(name, builder.attributes)
         .and_return(option_definition)
     end
 
     it { is_expected.to be option_definition }
   end
 
-  describe '#meta' do
-    subject(:meta) { builder.meta }
+  describe '#attributes' do
+    subject(:attributes) { builder.attributes }
 
     it { is_expected.to be_a_kind_of(Hash) }
 
     it 'contains the arguments for OptionDefinition' do
-      expect(meta.keys).to include(
+      expect(attributes.keys).to include(
         :default,
         :default_proc,
         :after_set,

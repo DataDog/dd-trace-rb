@@ -2,8 +2,6 @@ module Datadog
   module Core
     module Configuration
       class OptionDefinition
-        type parent_type = Options::_ClassMethods
-
         type settings_context = Options::_Settings
         type settings_execution_context = settings_context & ::Object
         type option_type = Object?
@@ -14,37 +12,35 @@ module Datadog
         type resetter_proc = (^(option_type value) [self: settings_execution_context] -> option_type)
         type setter_proc = (^(option_type new_value, option_type old_value) [self: settings_execution_context] -> option_type)
 
-        type meta = {
+        type attributes = {
           ?default: default_value?,
           ?default_proc: generic_proc?,
           ?env: String?,
           ?env_parser: env_parser_proc?,
           ?after_set: after_set_proc?,
           ?skip_telemetry: bool,
+          ?is_settings: bool,
           ?resetter: resetter_proc?,
           ?setter: setter_proc?,
           ?type: Symbol?,
-          ?type_options: Hash[Symbol, untyped],
-          ?is_settings: bool
+          ?type_options: Hash[Symbol, untyped]
         }
 
-        type meta_with_type_options = {
+        type attributes_with_required_options = {
+          is_settings: bool,
           ?default: default_value?,
           ?default_proc: generic_proc?,
           ?env: String?,
           ?env_parser: env_parser_proc?,
           ?after_set: after_set_proc?,
-          ?skip_telemetry: bool,
+          skip_telemetry: bool,
           ?resetter: resetter_proc?,
           ?setter: setter_proc?,
           ?type: Symbol?,
-          type_options: Hash[Symbol, untyped],
-          ?is_settings: bool
+          type_options: Hash[Symbol, untyped]
         }
 
         IDENTITY: setter_proc
-
-        attr_reader parent: parent_type?
 
         attr_reader is_settings: bool
 
@@ -70,7 +66,7 @@ module Datadog
 
         attr_reader type_options: Hash[Symbol, untyped]
 
-        def initialize: (String | Symbol name, meta_with_type_options meta, ?parent_type? parent, is_settings: bool) ?{ (option_type new_value, option_type old_value) [self: settings_execution_context] -> option_type } -> void
+        def initialize: (String | Symbol name, attributes_with_required_options attributes) ?{ (option_type new_value, option_type old_value) [self: settings_execution_context] -> option_type } -> void
 
         def build: (settings_context context) -> Option
 
@@ -80,9 +76,6 @@ module Datadog
 
           attr_reader helpers: Hash[Symbol, generic_proc]
 
-          @parent: parent_type?
-          @is_settings: bool
-
           @env: String?
           @env_parser: env_parser_proc?
           @default: default_value?
@@ -91,12 +84,13 @@ module Datadog
           @name: Symbol
           @after_set: after_set_proc?
           @skip_telemetry: bool
+          @is_settings: bool
           @resetter: resetter_proc?
           @setter: setter_proc
           @type: Symbol?
           @type_options: Hash[Symbol, untyped]
 
-          def initialize: (String | Symbol name, ?parent_type? parent, ?meta options, is_settings: bool) ?{ (Builder) -> void } -> void
+          def initialize: (String | Symbol name, ?attributes options) ?{ (Builder) -> void } -> void
 
           def env: (String? value) -> void
 
@@ -119,11 +113,11 @@ module Datadog
 
           def setter: () { (option_type new_value, option_type old_value) [self: settings_execution_context] -> option_type } -> void
 
-          def apply_options!: (?meta options) -> void
+          def apply_options!: (?attributes options) -> void
 
           def to_definition: () -> OptionDefinition
 
-          def meta: () -> meta
+          def attributes: () -> attributes
 
           private
 

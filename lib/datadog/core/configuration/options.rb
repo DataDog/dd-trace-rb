@@ -16,20 +16,8 @@ module Datadog
         # Class behavior for a configuration object with options
         # @public_api
         module ClassMethods
-          attr_reader \
-            :settings_name,
-            :parent
-
           def settings_path
-            @settings_path ||= begin
-              return nil unless defined?(@settings_name)
-
-              if parent.nil? || parent.settings_path.nil?
-                @settings_name
-              else
-                "#{parent.settings_path}.#{@settings_name}"
-              end
-            end
+            defined?(@settings_path) ? @settings_path : nil
           end
 
           def options
@@ -43,9 +31,8 @@ module Datadog
 
           protected
 
-          def option(name, meta = {}, &block)
-            is_settings = meta.fetch(:is_settings, false)
-            builder = OptionDefinition::Builder.new(name, self, meta, is_settings: is_settings, &block)
+          def option(name, attributes = {}, &block)
+            builder = OptionDefinition::Builder.new(name, attributes, &block)
             options[name] = builder.to_definition.tap do
               # Resolve and define helper functions
               helpers = default_helpers(name)

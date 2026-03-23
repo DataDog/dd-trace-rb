@@ -28,7 +28,8 @@ RSpec.describe Datadog::Core::Configuration::Option do
   let(:type_options) { {} }
   let(:setter) { proc { setter_value } }
   let(:setter_value) { double('setter_value') }
-  let(:context) { double('configuration object') }
+  let(:context_class) { Class.new { include Datadog::Core::Configuration::Base } }
+  let(:context) { context_class.new }
 
   # When setting the setting value, we make sure to duplicate it to avoid unwanted modifications
   # to make sure specs pass when comparing result ex. expect(result).to be value
@@ -1052,6 +1053,60 @@ RSpec.describe Datadog::Core::Configuration::Option do
       let(:default_proc) { proc { 'default_proc' } }
 
       it { is_expected.to be default_proc }
+    end
+  end
+
+  describe '#values_per_precedence' do
+    subject(:values_per_precedence) { option.values_per_precedence }
+
+    let(:default) { :default_value }
+    let(:setter) { proc { |value| value } }
+
+    before do
+      allow(context).to receive(:instance_exec) do |*args, &block|
+        if block == setter
+          args.first
+        elsif block == env_parser
+          env_parser.call(*args)
+        else
+          args.first
+        end
+      end
+    end
+
+    it 'returns the resolved values keyed by precedence' do
+      option.set(:programmatic_value, precedence: described_class::Precedence::PROGRAMMATIC)
+
+      expect(values_per_precedence).to eq(
+        described_class::Precedence::PROGRAMMATIC => :programmatic_value
+      )
+    end
+
+    it 'filters out unset precedence values' do
+      option.set(:programmatic_value, precedence: described_class::Precedence::PROGRAMMATIC)
+      option.unset(described_class::Precedence::PROGRAMMATIC)
+
+      expect(values_per_precedence).to eq(
+        described_class::Precedence::DEFAULT => :default_value
+      )
+    end
+
+    context 'when environment values are available but the option was never read' do
+      let(:env) { 'TEST' }
+      let(:env_value) { 'env-value' }
+
+      around do |example|
+        ClimateControl.modify(env => env_value) do
+          example.run
+        end
+      end
+
+      it 'materializes default and environment values before returning them' do
+        expect(values_per_precedence).to eq(
+          described_class::Precedence::DEFAULT => :default_value,
+          described_class::Precedence::ENVIRONMENT => 'env-value'
+        )
+      end
     end
   end
 end
