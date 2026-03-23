@@ -7,10 +7,7 @@ module Datadog
     module Utils
       module SpawnMonkeyPatch
         def self.apply!
-          return false unless ::Process.respond_to?(:spawn)
-
           ::Process.singleton_class.prepend(ProcessSpawnPatch)
-
           true
         end
 

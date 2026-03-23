@@ -736,4 +736,26 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
     end
   end
+
+  describe 'PATCH_ONLY_ONCE monkey patches' do
+    reset_at_fork_monkey_patch_for_components!
+
+    before do
+      skip 'Fork not supported' unless Process.respond_to?(:fork)
+      skip 'Process.spawn not supported' unless Process.respond_to?(:spawn)
+    end
+
+    it 'applies AtForkMonkeyPatch and SpawnMonkeyPatch when Components is initialized' do
+      expect_in_fork do
+        described_class.new(Datadog::Core::Configuration::Settings.new)
+
+        expect(Process.singleton_class.ancestors).to include(
+          Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch,
+        )
+        expect(Process.singleton_class.ancestors).to include(
+          Datadog::Core::Utils::SpawnMonkeyPatch::ProcessSpawnPatch,
+        )
+      end
+    end
+  end
 end

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative '../core'
 require_relative '../core/environment/ext'
 require_relative '../core/environment/socket'
 

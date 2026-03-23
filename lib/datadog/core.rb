@@ -2,6 +2,14 @@
 
 require_relative 'core/deprecations'
 require_relative 'core/configuration/config_helper'
+
+# DATADOG_ENV must be defined before requiring extensions, because extensions loads
+# components (via configuration), which loads spawn_monkey_patch, which loads identity;
+# identity uses DATADOG_ENV at load time.
+module Datadog
+  DATADOG_ENV = Core::Configuration::ConfigHelper.new
+end
+
 require_relative 'core/extensions'
 
 # We must load core extensions to make certain global APIs
@@ -22,7 +30,6 @@ module Datadog
       end
   end
 
-  DATADOG_ENV = Core::Configuration::ConfigHelper.new
   extend Core::Extensions
 
   # Add shutdown hook:
