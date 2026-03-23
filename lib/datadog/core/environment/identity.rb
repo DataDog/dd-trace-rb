@@ -18,8 +18,9 @@ module Datadog
 
         module_function
 
-        @root_runtime_id = DATADOG_ENV[ENV_ROOT_SESSION_ID]&.freeze
-        @parent_runtime_id = DATADOG_ENV[ENV_PARENT_SESSION_ID]&.freeze
+        env = defined?(::Datadog::DATADOG_ENV) ? ::Datadog::DATADOG_ENV : ENV # rubocop:disable CustomCops/EnvUsageCop
+        @root_runtime_id = env[ENV_ROOT_SESSION_ID]&.freeze
+        @parent_runtime_id = env[ENV_PARENT_SESSION_ID]&.freeze
 
         def id
           @id ||= ::SecureRandom.uuid.freeze
