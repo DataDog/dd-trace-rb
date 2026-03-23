@@ -123,7 +123,7 @@ module Datadog
               ),
 
               # Mix of env var, programmatic and default config, so we use unknown
-              conf_value('DD_AGENT_TRANSPORT', agent_transport(agent_settings), Configuration::Option::Precedence::UNKNOWN), # rubocop:disable CustomCops/EnvStringValidationCop
+              unknown_conf_value('DD_AGENT_TRANSPORT', agent_transport(agent_settings)), # rubocop:disable CustomCops/EnvStringValidationCop
             ]
 
             # Set by the customer application (eg. `require 'datadog/auto_instrument'`)
@@ -168,36 +168,48 @@ module Datadog
             )
 
             # Extract writer options as separate configuration payloads.
-            get_telemetry_payload(settings, 'tracing.writer_options', format_value: false).each do |source|
-              # Steep: **source causes the ::Datadog::Core::Telemetry::Event::telemetry_configuration Record
-              # to become a Hash. We can assign it to a value and add an annotation to type it to the correct record.
-              # However, overwriting `name` and `value` will cause a FalseAssertion diagnostic.
-              list << {
-                **source,
-                name: 'tracing.writer_options.buffer_size',
-                value: to_value(source[:value][:buffer_size])
-              } # steep:ignore ArgumentTypeMismatch
-              list << {
-                **source,
-                name: 'tracing.writer_options.flush_interval',
-                value: to_value(source[:value][:flush_interval])
-              } # steep:ignore ArgumentTypeMismatch
+            resolve_option(settings, 'tracing.writer_options').values_per_precedence.each do |precedence, value|
+              list << conf_value(
+                'tracing.writer_options.buffer_size',
+                # Steep: Value is always a hash for writer_options (ensured by o.type :hash)
+                to_telemetry_value(value[:buffer_size]), # steep:ignore NoMethod
+                precedence
+              )
+              list << conf_value(
+                'tracing.writer_options.flush_interval',
+                # Steep: Value is always a hash for writer_options (ensured by o.type :hash)
+                to_telemetry_value(value[:flush_interval]), # steep:ignore NoMethod
+                precedence
+              )
             end
 
             # OpenTelemetry configuration options (using environment variable names)
-            otel_exporter_headers_sources = get_telemetry_payload(settings, 'opentelemetry.exporter.headers', format_value: false)
-            otel_exporter_headers_sources.each { |source| source[:value] = source[:value]&.map { |key, value| "#{key}=#{value}" }&.join(',') }
-            list.push(*otel_exporter_headers_sources)
+            otel_exporter_headers_option = resolve_option(settings, 'opentelemetry.exporter.headers')
+            otel_exporter_headers_option.values_per_precedence.each do |precedence, value|
+              list << conf_value(
+                option_telemetry_name(otel_exporter_headers_option),
+                # Steep: Value is always a hash for opentelemetry.exporter.headers (ensured by o.type :hash)
+                value&.map { |key, header_value| "#{key}=#{header_value}" }&.join(','), # steep:ignore NoMethod
+                precedence
+              )
+            end
 
-            otel_exporter_metrics_headers_sources = get_telemetry_payload(settings, 'opentelemetry.metrics.headers', format_value: false)
-            otel_exporter_metrics_headers_sources.each { |source| source[:value] = source[:value]&.map { |key, value| "#{key}=#{value}" }&.join(',') }
-            list.push(*otel_exporter_metrics_headers_sources)
+            otel_metrics_headers_option = resolve_option(settings, 'opentelemetry.metrics.headers')
+            otel_metrics_headers_option.values_per_precedence.each do |precedence, value|
+              list << conf_value(
+                option_telemetry_name(otel_metrics_headers_option),
+                # Steep: Value is always a hash for opentelemetry.metrics.headers (ensured by o.type :hash)
+                value&.map { |key, header_value| "#{key}=#{header_value}" }&.join(','), # steep:ignore NoMethod
+                precedence
+              )
+            end
 
             # Add some more custom additional payload values here
             if settings.logger.instance
-              logger_instance_sources = get_telemetry_payload(settings, 'logger.instance', format_value: false)
-              logger_instance_sources.each { |source| source[:value] = source[:value].class.to_s }
-              list.push(*logger_instance_sources)
+              logger_instance_option = resolve_option(settings, 'logger.instance')
+              logger_instance_option.values_per_precedence.each do |precedence, value|
+                list << conf_value(option_telemetry_name(logger_instance_option), value.class.to_s, precedence)
+              end
             end
             if settings.respond_to?('appsec')
               list.push(*get_telemetry_payload(settings, 'appsec.enabled'))
@@ -235,28 +247,37 @@ module Datadog
           # - 6:`remote_config`: values that are set using remote config
           # - 7:`unknown`: set for cases where it is difficult/not possible to determine the source of a config.
           def conf_value(name, value, precedence)
-            # @type var result: Configuration::Option::telemetry_configuration
-            result = {
-              name: name,
-              value: value,
-              origin: precedence.origin,
-              seq_id: precedence.numeric + 1,
-            }
-            if precedence.origin == 'fleet_stable_config'
+            build_conf_value(name, value, precedence.origin, precedence.numeric + 1)
+          end
+
+          def unknown_conf_value(name, value)
+            build_conf_value(name, value, 'unknown', Configuration::Option::Precedence::LIST.size + 1)
+          end
+
+          def build_conf_value(name, value, origin, seq_id)
+            # @type var result: Event::telemetry_configuration
+            result = {name: name, value: value, origin: origin, seq_id: seq_id}
+
+            if origin == 'fleet_stable_config'
               fleet_id = Core::Configuration::StableConfig.configuration.dig(:fleet, :id)
               result[:config_id] = fleet_id if fleet_id
-            elsif precedence.origin == 'local_stable_config'
+            elsif origin == 'local_stable_config'
               local_id = Core::Configuration::StableConfig.configuration.dig(:local, :id)
               result[:config_id] = local_id if local_id
             end
+
             result
           end
 
-          def to_value(value)
+          def to_telemetry_value(value)
             # TODO: Add float if telemetry starts accepting it
             case value
             when Integer, String, true, false, nil
               value
+            when Hash
+              value.map { |key, entry_value| "#{key}:#{entry_value}" }.join(',')
+            when Array
+              value.join(',')
             else
               value.to_s
             end
@@ -270,28 +291,27 @@ module Datadog
             }
           end
 
-          def get_telemetry_origin(settings, config_path)
-            split_option = config_path.split('.')
-            option_name = split_option.pop
-            return 'unknown' if option_name.nil?
+          def get_telemetry_payload(settings, config_path)
+            option = resolve_option(settings, config_path)
+            name = option_telemetry_name(option)
 
-            # @type var parent_setting: Core::Configuration::Options
-            # @type var option: Core::Configuration::Option
-            parent_setting = settings.dig(*split_option)
-            option = parent_setting.send(:resolve_option, option_name.to_sym)
-            option.precedence_set&.origin || 'unknown'
+            option.values_per_precedence.map do |precedence, value|
+              conf_value(name, to_telemetry_value(value), precedence)
+            end
           end
 
-          def get_telemetry_payload(settings, config_path, format_value: true)
+          def option_telemetry_name(option)
+            option.definition.env || option.definition.name.to_s
+          end
+
+          def resolve_option(settings, config_path)
             split_option = config_path.split('.')
             option_name = split_option.pop
-            return [] if option_name.nil?
+            raise ArgumentError, "Invalid config path: #{config_path}" if option_name.nil?
 
             # @type var parent_setting: Core::Configuration::Options
-            # @type var option: Core::Configuration::Option
             parent_setting = settings.dig(*split_option)
-            option = parent_setting.send(:resolve_option, option_name.to_sym)
-            option.telemetry_payload(format_value: format_value)
+            parent_setting.send(:resolve_option, option_name.to_sym)
           end
         end
       end

@@ -5,22 +5,7 @@ module Datadog
         type env_value = Hash[String, String] | Array[String] | String | Integer | Float | bool | nil
         type env_vars = Hash[String, String] | ::RBS::Unnamed::ENVClass
         type option_value = OptionDefinition::option_type | OptionDefinition::generic_proc
-
-        type telemetry_value = ::Integer | ::String | bool | nil
-        type telemetry_configuration = {
-          name: ::String,
-          value: telemetry_value,
-          origin: ::String,
-          seq_id: ::Integer,
-          ?config_id: ::String?
-        }
-        type telemetry_configuration_value_not_stringified = {
-          name: ::String,
-          value: any,
-          origin: ::String,
-          seq_id: ::Integer,
-          ?config_id: ::String?
-        }
+        type resolved_values_per_precedence = ::Hash[Precedence::Value, option_value]
 
         @context: OptionDefinition::settings_context
 
@@ -33,7 +18,6 @@ module Datadog
         attr_reader precedence_set: Precedence::Value
 
         module Precedence
-          UNKNOWN: Value
           REMOTE_CONFIGURATION: Value
           PROGRAMMATIC: Value
           FLEET_STABLE: Value
@@ -70,15 +54,13 @@ module Datadog
 
         def default_precedence?: () -> bool
 
-        def telemetry_payload: (?format_value: bool) -> (::Array[telemetry_configuration | telemetry_configuration_value_not_stringified])
+        def values_per_precedence: () -> resolved_values_per_precedence
 
         def unset: (Precedence::Value precedence) -> void
 
         private
 
         def coerce_env_variable: (String value) -> env_value
-
-        def to_telemetry_value: (option_value value) -> telemetry_value
 
         class InvalidDefinitionError < StandardError
         end

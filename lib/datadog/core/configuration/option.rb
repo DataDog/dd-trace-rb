@@ -41,9 +41,6 @@ module Datadog
             end
           end
 
-          # Used only by telemetry when it is not possible to determine the source of a config.
-          UNKNOWN = Value.new(6, :unknown, 'unknown').freeze
-
           # Remote configuration provided through the Datadog app.
           REMOTE_CONFIGURATION = Value.new(5, :remote_configuration, 'remote_config').freeze
 
@@ -181,47 +178,18 @@ module Datadog
           precedence_set == Precedence::DEFAULT
         end
 
-        def telemetry_payload(format_value: true)
-          name = @definition.env || @definition.name.to_s
-
+        def values_per_precedence
           # value_per_precedence is only filled after we call `get` once.
           get unless @is_set
 
-          @value_per_precedence.each_with_object([]) do |(precedence, value), arr|
-            # @type var result: telemetry_configuration | telemetry_configuration_value_not_stringified
-            result = {
-              name: name,
-              value: format_value ? to_telemetry_value(value) : value,
-              origin: precedence.origin,
-              seq_id: precedence.numeric + 1,
-            }
+          @value_per_precedence.each_with_object({}) do |(precedence, value), result|
+            next if value.equal?(UNSET)
 
-            if precedence.origin == 'fleet_stable_config'
-              fleet_id = Core::Configuration::StableConfig.configuration.dig(:fleet, :id)
-              result[:config_id] = fleet_id if fleet_id
-            elsif precedence.origin == 'local_stable_config'
-              local_id = Core::Configuration::StableConfig.configuration.dig(:local, :id)
-              result[:config_id] = local_id if local_id
-            end
-
-            arr << result
+            result[precedence] = value
           end
         end
 
         private
-
-        def to_telemetry_value(value)
-          case value
-          when Integer, String, true, false, nil
-            value
-          when Hash
-            value.map { |key, entry_value| "#{key}:#{entry_value}" }.join(',')
-          when Array
-            value.join(',')
-          else
-            value.to_s
-          end
-        end
 
         def coerce_env_variable(value)
           env_parser = @definition.env_parser
