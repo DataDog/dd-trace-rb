@@ -217,6 +217,8 @@ unless Datadog::LibdatadogExtconfHelpers.configure_libdatadog(extconf_folder: __
   skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::FAILED_TO_CONFIGURE_LIBDATADOG)
 end
 
+Datadog::LibdatadogExtconfHelpers.add_libdatadog_version_define
+
 unless have_type("atomic_int", ["stdatomic.h"])
   skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::COMPILER_ATOMIC_MISSING)
 end
