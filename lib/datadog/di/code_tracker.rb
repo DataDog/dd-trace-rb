@@ -22,6 +22,7 @@ module Datadog
     class CodeTracker
       def initialize
         @registry = {}
+        @per_method_registry = {}
         @trace_point_lock = Mutex.new
         @registry_lock = Mutex.new
         @compiled_trace_point = nil
@@ -59,22 +60,25 @@ module Datadog
             path = iseq.absolute_path
             next unless path
 
-            # Only store whole-file iseqs (:top from require/load,
-            # :main from entry point). Per-method/block/class iseqs
-            # cover only a subset of lines in the file.
-            # Fall back to first_lineno == 0 if iseq_type is unavailable.
-            if have_iseq_type
+            whole_file = if have_iseq_type
               type = DI.iseq_type(iseq)
-              next unless type == :top || type == :main
+              type == :top || type == :main
             else
-              next unless iseq.first_lineno == 0
+              iseq.first_lineno == 0
             end
 
-            # Do not overwrite entries from :script_compiled — those are
-            # captured at load time and are authoritative.
-            next if registry.key?(path)
+            if whole_file
+              # Do not overwrite entries from :script_compiled — those are
+              # captured at load time and are authoritative.
+              next if registry.key?(path)
 
-            registry[path] = iseq
+              registry[path] = iseq
+            else
+              # Store per-method/block/class iseqs as fallback for files
+              # whose whole-file iseq was GC'd. These can be used to
+              # target line probes on lines within their range.
+              (per_method_registry[path] ||= []) << iseq
+            end
           end
         end
       rescue => exc
@@ -226,6 +230,36 @@ module Datadog
         end
       end
 
+      # Returns a [path, iseq] pair for a line probe target, or nil.
+      #
+      # First checks the whole-file iseq registry (via iseqs_for_path_suffix).
+      # If no whole-file iseq exists, searches the per-method iseq registry
+      # for an iseq whose trace_points include the target line.
+      #
+      # @param suffix [String] file path or suffix to match
+      # @param line [Integer] target line number
+      # @return [Array(String, RubyVM::InstructionSequence), nil]
+      def iseq_for_line(suffix, line)
+        # Try whole-file iseq first — it always covers all lines.
+        result = iseqs_for_path_suffix(suffix)
+        return result if result
+
+        # Fall back to per-method iseqs.
+        registry_lock.synchronize do
+          # Resolve the path using the per-method registry keys.
+          path = resolve_path_suffix(suffix, per_method_registry.keys)
+          return nil unless path
+
+          iseqs = per_method_registry[path]
+          return nil unless iseqs
+
+          matching = iseqs.find do |iseq|
+            iseq.trace_points.any? { |tp_line, _event| tp_line == line }
+          end
+          matching ? [path, matching] : nil
+        end
+      end
+
       # Stops tracking code that is being loaded.
       #
       # This method should ordinarily never be called - if a file is loaded
@@ -252,6 +286,7 @@ module Datadog
       def clear
         registry_lock.synchronize do
           registry.clear
+          per_method_registry.clear
         end
       end
 
@@ -261,8 +296,31 @@ module Datadog
       # objects representing compiled code of those files.
       attr_reader :registry
 
+      # Mapping from paths to arrays of per-method/block/class iseqs.
+      # Used as fallback when the whole-file iseq has been GC'd.
+      attr_reader :per_method_registry
+
       attr_reader :trace_point_lock
       attr_reader :registry_lock
+
+      # Resolves a path suffix against a set of known paths.
+      # Returns the matching path or nil.
+      #
+      # Must be called within registry_lock.
+      def resolve_path_suffix(suffix, paths)
+        # Exact match.
+        return suffix if paths.include?(suffix)
+
+        # Suffix match.
+        suffix = suffix.dup
+        loop do
+          matches = paths.select { |p| Utils.path_matches_suffix?(p, suffix) }
+          return nil if matches.length > 1
+          return matches.first if matches.any?
+          return nil unless suffix.include?('/')
+          suffix.sub!(%r{.*/+}, '')
+        end
+      end
     end
   end
 end
