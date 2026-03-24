@@ -176,6 +176,9 @@ module Datadog
       #    nil or an unrelated constructor argument. This is acceptable:
       #    we still report the exception type, and a missing/wrong message
       #    is better than invoking customer code or reporting nothing.
+      #
+      # @param exception [Exception] the exception to serialize
+      # @return [Hash{Symbol => String?}] hash with :type and :message keys
       def serialize_throwable(exception)
         message = if DI.respond_to?(:exception_message)
           msg = DI.exception_message(exception)

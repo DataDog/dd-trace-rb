@@ -1646,7 +1646,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       it 'does not propagate exception to customer code' do
-        allow(logger).to receive(:debug)
+        expect_lazy_log(logger, :debug, /unhandled exception in method probe.*StandardError.*callback error/)
 
         expect(telemetry).to receive(:report) do |exc, description:|
           expect(exc).to be_a(StandardError)
@@ -1667,7 +1667,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       it 'preserves customer exception when callback also raises' do
-        allow(logger).to receive(:debug)
+        expect_lazy_log(logger, :debug, /unhandled exception in method probe.*StandardError.*callback error/)
         allow(telemetry).to receive(:report)
 
         error_class = Class.new(StandardError)
