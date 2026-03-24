@@ -338,7 +338,11 @@ module Datadog
           # Steep: Complex type narrowing (before calling hook_line,
           # we check that probe.line? is true which itself checks that probe.file is not nil)
           # Annotation do not work here as `file` is a method on probe, not a local variable.
-          ret = code_tracker.iseqs_for_path_suffix(probe.file) # steep:ignore ArgumentTypeMismatch
+          ret = if code_tracker.respond_to?(:iseq_for_line)
+            code_tracker.iseq_for_line(probe.file, line_no) # steep:ignore ArgumentTypeMismatch
+          else
+            code_tracker.iseqs_for_path_suffix(probe.file) # steep:ignore ArgumentTypeMismatch
+          end
           unless ret
             if permit_untargeted_trace_points
               # Continue withoout targeting the trace point.

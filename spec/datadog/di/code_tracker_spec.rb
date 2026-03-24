@@ -580,4 +580,158 @@ RSpec.describe Datadog::DI::CodeTracker do
       end
     end
   end
+
+  describe '#iseq_for_line' do
+    before do
+      allow(Datadog::DI).to receive(:respond_to?).and_call_original
+      allow(Datadog::DI).to receive(:respond_to?).with(:all_iseqs).and_return(true)
+      allow(Datadog::DI).to receive(:respond_to?).with(:iseq_type).and_return(true)
+      allow(Datadog::DI).to receive(:iseq_type) do |iseq|
+        (iseq.first_lineno == 0) ? :top : :method
+      end
+    end
+
+    after do
+      tracker.stop
+    end
+
+    context 'when whole-file iseq exists' do
+      it 'returns the whole-file iseq' do
+        iseq = double('whole-file iseq',
+          absolute_path: '/app/lib/foo.rb',
+          first_lineno: 0,)
+        allow(Datadog::DI).to receive(:file_iseqs).and_return([iseq])
+
+        tracker.backfill_registry
+
+        result = tracker.iseq_for_line('foo.rb', 10)
+        expect(result).to eq(['/app/lib/foo.rb', iseq])
+      end
+    end
+
+    context 'when only per-method iseqs exist' do
+      let(:method_iseq) do
+        double('method iseq',
+          absolute_path: '/app/lib/bar.rb',
+          first_lineno: 5,
+          trace_points: [[5, :line], [6, :line], [7, :line], [8, :return]],)
+      end
+
+      let(:other_method_iseq) do
+        double('other method iseq',
+          absolute_path: '/app/lib/bar.rb',
+          first_lineno: 20,
+          trace_points: [[20, :line], [21, :line], [22, :return]],)
+      end
+
+      before do
+        allow(Datadog::DI).to receive(:file_iseqs).and_return(
+          [method_iseq, other_method_iseq],
+        )
+        tracker.backfill_registry
+      end
+
+      it 'returns per-method iseq covering the target line' do
+        result = tracker.iseq_for_line('bar.rb', 6)
+        expect(result).to eq(['/app/lib/bar.rb', method_iseq])
+      end
+
+      it 'returns different iseq for line in a different method' do
+        result = tracker.iseq_for_line('bar.rb', 21)
+        expect(result).to eq(['/app/lib/bar.rb', other_method_iseq])
+      end
+
+      it 'returns nil when no iseq covers the target line' do
+        result = tracker.iseq_for_line('bar.rb', 15)
+        expect(result).to be_nil
+      end
+    end
+
+    context 'when no iseqs exist at all' do
+      before do
+        allow(Datadog::DI).to receive(:file_iseqs).and_return([])
+        tracker.backfill_registry
+      end
+
+      it 'returns nil' do
+        result = tracker.iseq_for_line('missing.rb', 10)
+        expect(result).to be_nil
+      end
+    end
+
+    context 'with path suffix matching for per-method iseqs' do
+      let(:method_iseq) do
+        double('method iseq',
+          absolute_path: '/app/lib/datadog/di/baz.rb',
+          first_lineno: 10,
+          trace_points: [[10, :line], [11, :line]],)
+      end
+
+      before do
+        allow(Datadog::DI).to receive(:file_iseqs).and_return([method_iseq])
+        tracker.backfill_registry
+      end
+
+      it 'resolves suffix to per-method iseq' do
+        result = tracker.iseq_for_line('di/baz.rb', 10)
+        expect(result).to eq(['/app/lib/datadog/di/baz.rb', method_iseq])
+      end
+
+      it 'resolves exact path to per-method iseq' do
+        result = tracker.iseq_for_line('/app/lib/datadog/di/baz.rb', 11)
+        expect(result).to eq(['/app/lib/datadog/di/baz.rb', method_iseq])
+      end
+    end
+  end
+
+  describe '#backfill_registry stores per-method iseqs' do
+    before do
+      allow(Datadog::DI).to receive(:respond_to?).and_call_original
+      allow(Datadog::DI).to receive(:respond_to?).with(:all_iseqs).and_return(true)
+      allow(Datadog::DI).to receive(:respond_to?).with(:iseq_type).and_return(true)
+      allow(Datadog::DI).to receive(:iseq_type) do |iseq|
+        (iseq.first_lineno == 0) ? :top : :method
+      end
+    end
+
+    after do
+      tracker.stop
+    end
+
+    it 'stores per-method iseqs in per_method_registry' do
+      method_iseq = double('method iseq',
+        absolute_path: '/app/lib/foo.rb',
+        first_lineno: 10,
+        trace_points: [[10, :line]],)
+      allow(Datadog::DI).to receive(:file_iseqs).and_return([method_iseq])
+
+      tracker.backfill_registry
+
+      per_method = tracker.send(:per_method_registry)
+      expect(per_method['/app/lib/foo.rb']).to eq([method_iseq])
+    end
+
+    it 'groups multiple per-method iseqs by path' do
+      iseq_a = double('iseq_a', absolute_path: '/app/lib/foo.rb', first_lineno: 5)
+      iseq_b = double('iseq_b', absolute_path: '/app/lib/foo.rb', first_lineno: 20)
+      allow(Datadog::DI).to receive(:file_iseqs).and_return([iseq_a, iseq_b])
+
+      tracker.backfill_registry
+
+      per_method = tracker.send(:per_method_registry)
+      expect(per_method['/app/lib/foo.rb']).to eq([iseq_a, iseq_b])
+    end
+
+    it 'clear removes per-method iseqs' do
+      method_iseq = double('method iseq',
+        absolute_path: '/app/lib/foo.rb',
+        first_lineno: 10,)
+      allow(Datadog::DI).to receive(:file_iseqs).and_return([method_iseq])
+
+      tracker.backfill_registry
+      tracker.clear
+
+      expect(tracker.send(:per_method_registry)).to be_empty
+    end
+  end
 end
