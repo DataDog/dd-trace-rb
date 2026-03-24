@@ -45,4 +45,20 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Request do
       it { expect(form_hash).to eq({'foo' => ['bar', 'baz']}) }
     end
   end
+
+  describe '#fullpath' do
+    subject(:fullpath) { described_class.new(event).fullpath }
+
+    context 'when v1 queryStringParameters contain special characters' do
+      let(:event) do
+        {
+          'headers' => {},
+          'path' => '/search',
+          'queryStringParameters' => {'tag' => 'a&b', 'q' => 'hello world'},
+        }
+      end
+
+      it { expect(fullpath).to eq('/search?tag=a%26b&q=hello+world') }
+    end
+  end
 end

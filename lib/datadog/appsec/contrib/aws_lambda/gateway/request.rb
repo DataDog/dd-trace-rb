@@ -106,10 +106,10 @@ module Datadog
               raw = event['rawQueryString']
               return raw if raw && !raw.empty?
 
-              params = event['queryStringParameters']
-              return '' unless params
-
-              params.map { |key, value| "#{key}=#{value}" }.join('&')
+              # NOTE: API Gateway v1 provides pre-decoded queryStringParameters
+              # but no raw query string. Re-encode to produce a valid URI for
+              # the WAF (server.request.uri.raw).
+              URI.encode_www_form(event.fetch('queryStringParameters', {}))
             end
 
             def source_ip
