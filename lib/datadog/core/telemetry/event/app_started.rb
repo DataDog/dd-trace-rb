@@ -297,7 +297,7 @@ module Datadog
           end
 
           def implements_to_s?(value)
-            value.class.instance_method(:to_s).owner != Kernel
+            value.method(:to_s).owner != Kernel
           rescue NameError
             false
           end
