@@ -107,6 +107,10 @@ module Datadog
             @after_set = block
           end
 
+          # This should only be set to true for options that are manually modified
+          # before being added to the telemetry payload in app_started.rb.
+          # E.g. telemetry is skipped for `tracing.writer_options`, but in app_started.rb,
+          # we send two separate entries for the buffer_size and flush_interval values.
           def skip_telemetry(value)
             @skip_telemetry = value
           end
