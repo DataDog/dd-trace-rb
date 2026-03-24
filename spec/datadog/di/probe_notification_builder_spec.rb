@@ -571,9 +571,9 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
       let(:payload) { builder.build_executed(context) }
 
-      it 'reports class name for non-string constructor argument' do
+      it 'reports redacted placeholder for non-string constructor argument' do
         throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
-        expect(throwable[:message]).to eq('Integer')
+        expect(throwable[:message]).to eq('<REDACTED: not a string value>')
         expect(throwable[:type]).to eq('NameError')
       end
     end

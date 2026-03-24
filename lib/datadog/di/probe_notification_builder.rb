@@ -166,8 +166,9 @@ module Datadog
       #    Calling .to_s on an arbitrary object would invoke customer code,
       #    violating DI's constraint of never executing customer methods
       #    during instrumentation. We only use the value directly when it
-      #    is a String; for non-string values we report the class name
-      #    (which is safe — Class#name is a core Ruby method).
+      #    is a String; for non-string values we return a redacted
+      #    placeholder (reporting the class name would duplicate the
+      #    exception type already present in the :type field).
       #
       # 2. Custom exception classes may not store a meaningful message via
       #    the constructor (e.g. they may compute it in an overridden
@@ -183,9 +184,10 @@ module Datadog
         message = if msg.nil? || String === msg
           msg
         else
-          # Non-string constructor argument — report its class name
+          # Non-string constructor argument — return a redacted placeholder
           # rather than calling .to_s which could be customer code.
-          msg.class.name
+          # The exception class is already reported via the :type field.
+          '<REDACTED: not a string value>'
         end
         {
           type: exception.class.name,
