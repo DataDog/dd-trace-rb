@@ -2,43 +2,68 @@
 
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/contrib/aws_lambda/gateway/watcher'
-require 'datadog/appsec/contrib/aws_lambda/gateway/request'
-require 'datadog/appsec/contrib/aws_lambda/gateway/response'
 
 RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
   let(:gateway) { Datadog::AppSec::Instrumentation::Gateway.new }
 
-  describe '.watch_request' do
-    context 'when AppSec context is not active' do
-      before do
-        allow(Datadog::AppSec::Context).to receive(:active).and_return(nil)
-        described_class.watch_request(gateway)
+  describe '.activate_context' do
+    before do
+      allow(Datadog::AppSec).to receive(:security_engine).and_return(security_engine)
+      allow(Datadog::Tracing).to receive(:active_trace).and_return(trace)
+      allow(Datadog::Tracing).to receive(:active_span).and_return(span)
+      described_class.activate_context(gateway)
+    end
+
+    let(:event) { {'headers' => {}, 'httpMethod' => 'GET', 'path' => '/'} }
+
+    context 'when security engine is available' do
+      let(:security_engine) { instance_double(Datadog::AppSec::SecurityEngine::Engine, new_runner: runner) }
+      let(:runner) { double('runner', finalize!: nil) }
+      let(:trace) { double('trace') }
+      let(:span) { double('span', set_metric: nil) }
+
+      after { Datadog::AppSec::Context.deactivate }
+
+      it 'activates AppSec context' do
+        gateway.push('aws_lambda.request.start', event)
+        expect(Datadog::AppSec::Context.active).to be_a(Datadog::AppSec::Context)
       end
 
-      let(:gateway_request) do
-        Datadog::AppSec::Contrib::AwsLambda::Gateway::Request.new(
-          'headers' => {},
-          'httpMethod' => 'GET',
-          'path' => '/',
-        )
+      it 'sets appsec enabled metric on span' do
+        gateway.push('aws_lambda.request.start', event)
+        expect(span).to have_received(:set_metric).with('_dd.appsec.enabled', 1)
       end
+    end
 
-      it { expect { gateway.push('aws_lambda.request.start', gateway_request) }.to_not raise_error }
+    context 'when security engine is not available' do
+      let(:security_engine) { nil }
+      let(:trace) { nil }
+      let(:span) { nil }
+
+      it 'does not activate context' do
+        gateway.push('aws_lambda.request.start', event)
+        expect(Datadog::AppSec::Context.active).to be_nil
+      end
     end
   end
 
-  describe '.watch_response' do
-    context 'when context is nil' do
-      before { described_class.watch_response(gateway) }
+  describe '.handle_request' do
+    before { described_class.handle_request(gateway) }
 
-      let(:gateway_response) do
-        Datadog::AppSec::Contrib::AwsLambda::Gateway::Response.new(
-          {'statusCode' => 200, 'headers' => {}},
-          context: nil,
-        )
-      end
+    context 'when AppSec context is not active' do
+      before { allow(Datadog::AppSec::Context).to receive(:active).and_return(nil) }
 
-      it { expect { gateway.push('aws_lambda.response.start', gateway_response) }.to_not raise_error }
+      it { expect { gateway.push('aws_lambda.request.start', {}) }.to_not raise_error }
+    end
+  end
+
+  describe '.handle_response' do
+    before { described_class.handle_response(gateway) }
+
+    context 'when AppSec context is not active' do
+      before { allow(Datadog::AppSec::Context).to receive(:active).and_return(nil) }
+
+      it { expect { gateway.push('aws_lambda.response.start', {}) }.to_not raise_error }
     end
   end
 end
