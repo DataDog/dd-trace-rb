@@ -75,6 +75,10 @@ RSpec.describe Datadog::DI::Instrumenter do
   shared_context 'with code tracking' do
     let!(:code_tracker) do
       Datadog::DI::CodeTracker.new.tap do |tracker|
+        # Stub backfill so only files loaded after start (via
+        # :script_compiled) are in the registry, matching the
+        # pre-backfill behavior these tests were written for.
+        allow(tracker).to receive(:backfill_registry)
         tracker.start
       end
     end
