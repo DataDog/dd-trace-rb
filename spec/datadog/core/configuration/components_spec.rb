@@ -135,9 +135,10 @@ RSpec.describe Datadog::Core::Configuration::Components do
           components.dynamic_instrumentation&.shutdown!
         end
 
-        context 'MRI' do
+        context 'MRI with C extension' do
           before(:all) do
             skip 'Test requires MRI' if PlatformHelpers.jruby?
+            skip 'Test requires DI C extension' unless Datadog::DI.respond_to?(:exception_message)
           end
 
           it 'reports DI as enabled' do
