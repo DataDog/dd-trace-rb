@@ -434,7 +434,11 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     let(:target_self) { Object.new }
 
     context 'when exception is present' do
-      let(:exception) { NameError.new('test error') }
+      let(:exception) do
+        raise NameError, 'test error'
+      rescue => e
+        e
+      end
 
       let(:context) do
         Datadog::DI::Context.new(
@@ -451,10 +455,37 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
       it 'populates throwable in captures' do
         throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
-        expect(throwable).to eq({
-          type: 'NameError',
-          message: 'test error',
-        })
+        expect(throwable[:type]).to eq('NameError')
+        expect(throwable[:message]).to eq('test error')
+        expect(throwable[:stacktrace]).to be_an(Array)
+        expect(throwable[:stacktrace]).not_to be_empty
+        frame = throwable[:stacktrace].first
+        expect(frame).to include(:fileName, :function, :lineNumber)
+        expect(frame[:lineNumber]).to be_a(Integer)
+      end
+    end
+
+    context 'when exception has no backtrace' do
+      let(:exception) { NameError.new('test error') }
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings, serializer: serializer,
+          target_self: target_self,
+          serialized_entry_args: {},
+          return_value: nil, duration: 0.1,
+          exception: exception,
+        )
+      end
+
+      let(:payload) { builder.build_executed(context) }
+
+      it 'populates throwable with nil stacktrace' do
+        throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+        expect(throwable[:type]).to eq('NameError')
+        expect(throwable[:message]).to eq('test error')
+        expect(throwable[:stacktrace]).to be_nil
       end
     end
 
@@ -504,6 +535,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       it 'uses raw constructor message, not overridden message method' do
         throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
         expect(throwable[:message]).to eq('constructor message')
+        expect(throwable[:stacktrace]).to be_nil
         # Verify the override exists
         expect(exception.message).to eq('overridden message')
       end
@@ -529,6 +561,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
         expect(throwable[:message]).to be_nil
         expect(throwable[:type]).to eq('StandardError')
+        expect(throwable[:stacktrace]).to be_nil
       end
     end
 
@@ -552,6 +585,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
         expect(throwable[:message]).to be_nil
         expect(throwable[:type]).to eq('StandardError')
+        expect(throwable[:stacktrace]).to be_nil
       end
     end
 
@@ -575,6 +609,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
         expect(throwable[:message]).to eq('<REDACTED: not a string value>')
         expect(throwable[:type]).to eq('NameError')
+        expect(throwable[:stacktrace]).to be_nil
       end
     end
   end

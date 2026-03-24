@@ -192,7 +192,27 @@ module Datadog
         {
           type: exception.class.name,
           message: message,
+          stacktrace: format_backtrace(exception.backtrace),
         }
+      end
+
+      # Parses Ruby backtrace strings into the stack frame format
+      # expected by the Datadog UI.
+      #
+      # Ruby backtrace format: "/path/file.rb:42:in `method_name'"
+      #
+      # @param backtrace [Array<String>, nil] from Exception#backtrace
+      # @return [Array<Hash>, nil]
+      def format_backtrace(backtrace)
+        return nil if backtrace.nil?
+
+        backtrace.map do |frame|
+          if frame =~ /\A(.+):(\d+):in\s+[`'](.+)'\z/
+            {fileName: $1, function: $3, lineNumber: $2.to_i}
+          else
+            {fileName: frame, function: '', lineNumber: 0}
+          end
+        end
       end
 
       def build_snapshot_base(context, evaluation_errors: [], captures: nil, message: nil)
