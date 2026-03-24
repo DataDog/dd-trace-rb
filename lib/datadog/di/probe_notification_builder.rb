@@ -204,7 +204,7 @@ module Datadog
       # @param backtrace [Array<String>, nil] from Exception#backtrace
       # @return [Array<Hash>, nil]
       def format_backtrace(backtrace)
-        return nil if backtrace.nil?
+        return [] if backtrace.nil?
 
         backtrace.map do |frame|
           if frame =~ /\A(.+):(\d+):in\s+[`'](.+)'\z/
