@@ -12,30 +12,17 @@ RSpec.describe Datadog::Tracing::Contrib::Rails::Patcher do
       allow(described_class).to receive(:setup_tracer)
     end
 
-    context 'when process tags are enabled' do
-      before do
-        allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
-        allow(Datadog::Core::Environment::Process).to receive(:recompute_tags!)
-      end
+    it 'sets up the tracer' do
+      described_class.after_initialize(app)
 
-      it 'recomputes the process tags' do
-        described_class.after_initialize(app)
-
-        expect(Datadog::Core::Environment::Process).to have_received(:recompute_tags!)
-      end
+      expect(described_class).to have_received(:setup_tracer)
     end
 
-    context 'when process tags are not enabled' do
-      before do
-        allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
-        allow(Datadog::Core::Environment::Process).to receive(:recompute_tags!)
-      end
+    it 'only sets up the tracer once per app' do
+      described_class.after_initialize(app)
+      described_class.after_initialize(app)
 
-      it 'does not recompute the process tags' do
-        described_class.after_initialize(app)
-
-        expect(Datadog::Core::Environment::Process).to_not have_received(:recompute_tags!)
-      end
+      expect(described_class).to have_received(:setup_tracer).once
     end
   end
 end

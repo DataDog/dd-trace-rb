@@ -24,6 +24,7 @@ require_relative '../crashtracking/component'
 require_relative '../environment/agent_info'
 require_relative '../process_discovery'
 require_relative '../../data_streams/processor'
+require_relative '../contrib/rails/utils'
 
 module Datadog
   module Core
@@ -172,6 +173,11 @@ module Datadog
 
           # Configure non-privileged components.
           Datadog::Tracing::Contrib::Component.configure(settings)
+
+          # Configure Rails railtie if supported to load features that all products benefit from
+          if Core::Contrib::Rails::Utils.railtie_supported?
+            require_relative '../contrib/rails/railtie'
+          end
         end
 
         # Called when a fork is detected

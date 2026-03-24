@@ -6,9 +6,7 @@ require_relative 'framework'
 require_relative 'log_injection'
 require_relative 'middlewares'
 require_relative 'runner'
-require_relative '../../../core/contrib/rails/utils'
 require_relative '../semantic_logger/patcher'
-require_relative '../../../core/environment/process'
 
 module Datadog
   module Tracing
@@ -77,9 +75,6 @@ module Datadog
               # Finish configuring the tracer after the application is initialized.
               # We need to wait for some things, like application name, middleware stack, etc.
               setup_tracer
-
-              # Recompute process tags since the app name will be available now
-              Datadog::Core::Environment::Process.recompute_tags! if Datadog.configuration.experimental_propagate_process_tags_enabled
             end
           end
 

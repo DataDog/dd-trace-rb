@@ -2,7 +2,6 @@
 
 require_relative 'ext'
 require_relative '../tag_normalizer'
-require_relative '../contrib/rails/utils'
 
 module Datadog
   module Core
@@ -36,7 +35,7 @@ module Datadog
 
           tags << "#{Environment::Ext::TAG_ENTRYPOINT_TYPE}:#{TagNormalizer.normalize(entrypoint_type, remove_digit_start_char: false)}"
 
-          rails_application_name = TagNormalizer.normalize_process_value(rails_application.to_s)
+          rails_application_name = TagNormalizer.normalize_process_value(@rails_application_name.to_s)
           tags << "#{Environment::Ext::TAG_RAILS_APPLICATION}:#{rails_application_name}" unless rails_application_name.empty?
 
           @tags = tags.freeze
@@ -84,22 +83,16 @@ module Datadog
           File.basename(File.expand_path(File.dirname($0)))
         end
 
-        def self.rails_application
-          return unless Core::Contrib::Rails::Utils.railtie_supported?
-
-          Core::Contrib::Rails::Utils.app_name
-        end
-
-        # Sometimes we may want to force a recompute of the process tags when certain conditions have been met
-        # Example: Rails application names are not obtainable until after initialization
-        # @return [Array<String>] the new tags array
-        def self.recompute_tags!
+        # Sets the rails application name from other places in code
+        # @param name [String] the rails application name
+        # @return [void]
+        def self.rails_application_name=(name)
+          @rails_application_name = name
           remove_instance_variable(:@tags) if instance_variable_defined?(:@tags)
           remove_instance_variable(:@serialized) if instance_variable_defined?(:@serialized)
-          tags
         end
 
-        private_class_method :entrypoint_workdir, :entrypoint_type, :entrypoint_name, :entrypoint_basedir, :rails_application
+        private_class_method :entrypoint_workdir, :entrypoint_type, :entrypoint_name, :entrypoint_basedir
       end
     end
   end
