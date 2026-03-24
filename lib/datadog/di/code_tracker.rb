@@ -67,6 +67,13 @@ module Datadog
             registry[path] = iseq
           end
         end
+      rescue => exc
+        # Backfill is best-effort — if it fails, line probes on
+        # pre-loaded code won't work but everything else is unaffected.
+        if component = DI.current_component
+          component.logger.debug { "di: backfill_registry failed: #{exc.class}: #{exc}" }
+          component.telemetry&.report(exc, description: "backfill_registry failed")
+        end
       end
 
       # Starts tracking loaded code.
