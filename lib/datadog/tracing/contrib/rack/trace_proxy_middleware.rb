@@ -105,7 +105,7 @@ module Datadog
             span.set_tag('aws_user', user) if user
 
             if api_id && region
-              restapi_prefix = proxy_type == Ext::PROXY_AWS_APIGATEWAY ? 'restapis' : 'apis'
+              restapi_prefix = (proxy_type == Ext::PROXY_AWS_APIGATEWAY) ? 'restapis' : 'apis'
               span.set_tag('dd_resource_key', "arn:aws:apigateway:#{region}::/#{restapi_prefix}/#{api_id}")
             end
           end
