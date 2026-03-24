@@ -1460,13 +1460,8 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     // Guard against wall-time going backwards, see https://github.com/DataDog/dd-trace-rb/pull/2336 for discussion.
     uint64_t sampling_time_ns = delta_ns < 0 ? 0 : delta_ns;
 
-    // Only update min/max for non-zero durations. A delta of 0 means two consecutive monotonic clock calls
-    // returned identical timestamps (below clock resolution), which is a measurement artifact rather than a
-    // real sample duration. Excluding these keeps min/max meaningful for actual profiler overhead analysis.
-    if (sampling_time_ns > 0) {
-      state->stats.gvl_sampling_time_ns_min = uint64_min_of(sampling_time_ns, state->stats.gvl_sampling_time_ns_min);
-      state->stats.gvl_sampling_time_ns_max = uint64_max_of(sampling_time_ns, state->stats.gvl_sampling_time_ns_max);
-    }
+    state->stats.gvl_sampling_time_ns_min = uint64_min_of(sampling_time_ns, state->stats.gvl_sampling_time_ns_min);
+    state->stats.gvl_sampling_time_ns_max = uint64_max_of(sampling_time_ns, state->stats.gvl_sampling_time_ns_max);
     state->stats.gvl_sampling_time_ns_total += sampling_time_ns;
 
     state->stats.after_gvl_running++;
