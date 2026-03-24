@@ -22,6 +22,7 @@ module Datadog
               def watch_request(gateway = Instrumentation.gateway)
                 gateway.watch('aws_lambda.request.start') do |stack, gateway_request|
                   context = AppSec::Context.active
+                  next stack.call(gateway_request) unless context
 
                   persistent_data = {
                     'server.request.cookies' => gateway_request.cookies,
@@ -59,6 +60,7 @@ module Datadog
               def watch_response(gateway = Instrumentation.gateway)
                 gateway.watch('aws_lambda.response.start') do |stack, gateway_response|
                   context = gateway_response.context
+                  next stack.call(gateway_response.response) unless context
 
                   persistent_data = {
                     'server.response.status' => gateway_response.status.to_s,
