@@ -7,8 +7,11 @@ module Datadog
         # common utilities for Rails
         module Utils
           def self.app_name
-            namespace_method = (::Rails::VERSION::MAJOR >= 6) ? :module_parent_name : :parent_name
-            application_name = ::Rails.application.class.public_send(namespace_method)
+            application_name = if ::Rails::VERSION::MAJOR >= 6
+              ::Rails.application.class.module_parent_name
+            else
+              ::Rails.application.class.parent_name
+            end
             application_name&.underscore
           rescue
             # Adds a failsafe during app boot, teardown, or test stubs where the application is not initialized and this check gets performed
