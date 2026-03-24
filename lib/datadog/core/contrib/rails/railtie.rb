@@ -7,7 +7,7 @@ module Datadog
   module Core
     module Contrib
       module Rails
-        # Railtie that registers the Rails application name on the process tag module.
+        # Railtie for core Rails setup that benefits all Datadog products.
         class Railtie < ::Rails::Railtie
           def self.after_initialize
             return unless Datadog.configuration.experimental_propagate_process_tags_enabled
