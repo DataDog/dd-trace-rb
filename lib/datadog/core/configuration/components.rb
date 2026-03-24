@@ -24,7 +24,6 @@ require_relative '../crashtracking/component'
 require_relative '../environment/agent_info'
 require_relative '../process_discovery'
 require_relative '../../data_streams/processor'
-require_relative '../contrib/rails/utils'
 
 module Datadog
   module Core
