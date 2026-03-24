@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
+require 'base64'
+
 require_relative '../../../instrumentation/gateway/argument'
+require_relative '../../../utils/http/media_type'
+require_relative '../../../utils/http/body'
 require_relative '../../../../core/header_collection'
 require_relative '../../../../tracing/client_ip'
 
@@ -86,13 +90,10 @@ module Datadog
               content_type = headers['content-type']
               return nil unless content_type
 
-              if content_type.include?('application/x-www-form-urlencoded')
-                URI.decode_www_form(body).to_h
-              elsif content_type.include?('application/json')
-                JSON.parse(body)
-              end
-            rescue => _e
-              nil
+              media_type = AppSec::Utils::HTTP::MediaType.parse(content_type)
+              return nil unless media_type
+
+              AppSec::Utils::HTTP::Body.parse(body, media_type: media_type)
             end
 
             private
