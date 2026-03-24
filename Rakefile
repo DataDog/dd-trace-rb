@@ -35,8 +35,8 @@ CORE_WITH_LIBDATADOG_API = [
 ].freeze
 
 DI_WITH_EXT = %w[
-  spec/datadog/di/ext/*_spec.rb
-  spec/datadog/di/ext/**/*_spec.rb
+  spec/datadog/di/*_spec.rb
+  spec/datadog/di/**/*_spec.rb
 ].freeze
 
 # Data Streams Monitoring (DSM) requires libdatadog_api for DDSketch
@@ -102,8 +102,8 @@ namespace :spec do
     t.exclude_pattern = 'spec/**/{appsec/integration,contrib,benchmark,redis,auto_instrument,opentelemetry,open_feature,profiling,error_tracking,rubocop,ai_guard}/**/*_spec.rb,' \
                         ' spec/**/{auto_instrument,opentelemetry,process,ai_guard}_spec.rb,' \
                         ' spec/datadog/core/environment/execution_spec.rb,' \
-                        ' spec/datadog/di/ext/*_spec.rb,' \
-                        ' spec/datadog/di/ext/**/*_spec.rb,' \
+                        ' spec/datadog/di/*_spec.rb,' \
+                        ' spec/datadog/di/**/*_spec.rb,' \
                         ' spec/datadog/gem_packaging_spec.rb,' \
                         + CORE_WITH_LIBDATADOG_API.join(', ')
     t.rspec_opts = args.to_a.join(' ')
