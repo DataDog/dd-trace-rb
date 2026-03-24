@@ -12,6 +12,9 @@ RSpec.describe Datadog::DI::CodeTracker do
 
   shared_context 'when code tracker is running' do
     before do
+      # Stub backfill so tests that use this context only exercise
+      # :script_compiled behavior, not backfill.
+      allow(tracker).to receive(:backfill_registry)
       tracker.start
     end
 
@@ -21,6 +24,12 @@ RSpec.describe Datadog::DI::CodeTracker do
   end
 
   describe "#start" do
+    before do
+      # Stub backfill so :script_compiled tests aren't affected by
+      # backfill populating the registry with pre-loaded files.
+      allow(tracker).to receive(:backfill_registry)
+    end
+
     after do
       tracker.stop
     end
@@ -409,6 +418,10 @@ RSpec.describe Datadog::DI::CodeTracker do
 
   describe "#iseqs_for_path_suffix" do
     around do |example|
+      # Stub backfill so we only have the 4 explicitly loaded files.
+      # Use define_method to avoid rspec allow/receive scoping issues
+      # inside around blocks.
+      tracker.define_singleton_method(:backfill_registry) {}
       tracker.start
 
       load File.join(File.dirname(__FILE__), "code_tracker_test_class_1.rb")
