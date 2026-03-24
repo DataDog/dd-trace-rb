@@ -5,7 +5,6 @@
 // Prototypes for Ruby functions declared in internal Ruby headers.
 VALUE rb_iseqw_new(const void *iseq);
 const void *rb_iseqw_to_iseq(VALUE iseqw);
-VALUE rb_iseq_type(const void *iseq);
 int rb_objspace_internal_object_p(VALUE obj);
 void rb_objspace_each_objects(
     int (*callback)(void *start, void *end, size_t stride, void *data),
@@ -72,6 +71,9 @@ static VALUE exception_message(DDTRACE_UNUSED VALUE _self, VALUE exception) {
   return rb_ivar_get(exception, id_mesg);
 }
 
+#ifdef HAVE_RB_ISEQ_TYPE
+VALUE rb_iseq_type(const void *iseq);
+
 /*
  * call-seq:
  *   DI.iseq_type(iseq) -> Symbol
@@ -93,6 +95,7 @@ static VALUE iseq_type(DDTRACE_UNUSED VALUE _self, VALUE iseq_val) {
   if (!iseq) return Qnil;
   return rb_iseq_type(iseq);
 }
+#endif
 
 void di_init(VALUE datadog_module) {
   id_mesg = rb_intern("mesg");
@@ -100,5 +103,7 @@ void di_init(VALUE datadog_module) {
   VALUE di_module = rb_define_module_under(datadog_module, "DI");
   rb_define_singleton_method(di_module, "all_iseqs", all_iseqs, 0);
   rb_define_singleton_method(di_module, "exception_message", exception_message, 1);
+#ifdef HAVE_RB_ISEQ_TYPE
   rb_define_singleton_method(di_module, "iseq_type", iseq_type, 1);
+#endif
 }
