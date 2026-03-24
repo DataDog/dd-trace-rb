@@ -501,18 +501,11 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
       let(:payload) { builder.build_executed(context) }
 
-      if Datadog::DI.respond_to?(:exception_message)
-        it 'uses raw constructor message, not overridden message method' do
-          throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
-          expect(throwable[:message]).to eq('constructor message')
-          # Verify the override exists
-          expect(exception.message).to eq('overridden message')
-        end
-      else
-        it 'falls back to exception.message when C extension is not available' do
-          throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
-          expect(throwable[:message]).to eq('overridden message')
-        end
+      it 'uses raw constructor message, not overridden message method' do
+        throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+        expect(throwable[:message]).to eq('constructor message')
+        # Verify the override exists
+        expect(exception.message).to eq('overridden message')
       end
     end
 
@@ -532,18 +525,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
       let(:payload) { builder.build_executed(context) }
 
-      if Datadog::DI.respond_to?(:exception_message)
-        it 'reports nil message instead of NilClass' do
-          throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
-          expect(throwable[:message]).to be_nil
-          expect(throwable[:type]).to eq('StandardError')
-        end
-      else
-        it 'falls back to exception.message' do
-          throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
-          expect(throwable[:message]).to eq('StandardError')
-          expect(throwable[:type]).to eq('StandardError')
-        end
+      it 'reports nil message instead of NilClass' do
+        throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+        expect(throwable[:message]).to be_nil
+        expect(throwable[:type]).to eq('StandardError')
       end
     end
 
@@ -563,18 +548,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
       let(:payload) { builder.build_executed(context) }
 
-      if Datadog::DI.respond_to?(:exception_message)
-        it 'reports nil message for no-argument exception' do
-          throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
-          expect(throwable[:message]).to be_nil
-          expect(throwable[:type]).to eq('StandardError')
-        end
-      else
-        it 'falls back to exception.message' do
-          throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
-          expect(throwable[:message]).to eq('StandardError')
-          expect(throwable[:type]).to eq('StandardError')
-        end
+      it 'reports nil message for no-argument exception' do
+        throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+        expect(throwable[:message]).to be_nil
+        expect(throwable[:type]).to eq('StandardError')
       end
     end
 
@@ -594,18 +571,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
       let(:payload) { builder.build_executed(context) }
 
-      if Datadog::DI.respond_to?(:exception_message)
-        it 'reports class name for non-string constructor argument' do
-          throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
-          expect(throwable[:message]).to eq('Integer')
-          expect(throwable[:type]).to eq('NameError')
-        end
-      else
-        it 'falls back to exception.message for non-string constructor argument' do
-          throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
-          expect(throwable[:message]).to be_a(String)
-          expect(throwable[:type]).to eq('NameError')
-        end
+      it 'reports class name for non-string constructor argument' do
+        throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+        expect(throwable[:message]).to eq('Integer')
+        expect(throwable[:type]).to eq('NameError')
       end
     end
   end

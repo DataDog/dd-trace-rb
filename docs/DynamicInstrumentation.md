@@ -21,6 +21,8 @@ practices for using Dynamic Instrumentation.
 - Datadog Agent 7.49.0 or higher
 - Ruby 2.6 or higher
   - Only MRI (CRuby) is supported; JRuby and other Ruby implementations are not currently supported
+  - The `libdatadog_api` C extension must be compiled; DI will not
+    activate without it
 - Rack-based applications only
   - Includes Rails, Sinatra, and other Rack-compatible frameworks
   - Non-Rack applications are not currently supported

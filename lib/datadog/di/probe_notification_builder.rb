@@ -157,10 +157,9 @@ module Datadog
       #
       # Uses the C extension's exception_message to get the original message
       # without invoking any Ruby-level message method override, which
-      # could be customer code. Falls back to exception.message if the
-      # C extension is not available.
+      # could be customer code.
       #
-      # Caveats (from the C extension):
+      # Caveats:
       #
       # 1. The value returned by exception_message is not guaranteed to be
       #    a string — it is whatever was passed to the Exception constructor.
@@ -180,19 +179,13 @@ module Datadog
       # @param exception [Exception] the exception to serialize
       # @return [Hash{Symbol => String?}] hash with :type and :message keys
       def serialize_throwable(exception)
-        message = if DI.respond_to?(:exception_message)
-          msg = DI.exception_message(exception)
-          if msg.nil? || String === msg
-            msg
-          else
-            # Non-string constructor argument — report its class name
-            # rather than calling .to_s which could be customer code.
-            msg.class.name
-          end
+        msg = DI.exception_message(exception)
+        message = if msg.nil? || String === msg
+          msg
         else
-          # C extension not available; fall back to Ruby's message method.
-          # This may invoke customer code if message is overridden.
-          exception.message
+          # Non-string constructor argument — report its class name
+          # rather than calling .to_s which could be customer code.
+          msg.class.name
         end
         {
           type: exception.class.name,
