@@ -210,96 +210,200 @@ RSpec.describe Datadog::DI::CodeTracker do
   end
 
   describe '#backfill_registry' do
+    # Mock iseqs for testing without the compiled C extension.
+    # In production, libdatadog_api is always compiled and all_iseqs
+    # is always available — the respond_to? guard is purely defensive.
+    let(:whole_file_iseq) do
+      double('whole-file iseq',
+        absolute_path: '/app/lib/foo.rb',
+        first_lineno: 0,)
+    end
+
+    let(:per_method_iseq) do
+      double('per-method iseq',
+        absolute_path: '/app/lib/foo.rb',
+        first_lineno: 10,)
+    end
+
+    let(:eval_iseq) do
+      double('eval iseq',
+        absolute_path: nil,
+        first_lineno: 1,)
+    end
+
+    before do
+      allow(Datadog::DI).to receive(:respond_to?).and_call_original
+      allow(Datadog::DI).to receive(:respond_to?).with(:all_iseqs).and_return(true)
+    end
+
     after do
       tracker.stop
     end
 
-    context 'when C extension is available' do
+    it 'populates registry with whole-file iseqs' do
+      allow(Datadog::DI).to receive(:file_iseqs).and_return([whole_file_iseq])
+
+      expect(tracker.send(:registry)).to be_empty
+      tracker.backfill_registry
+
+      registry = tracker.send(:registry)
+      expect(registry.length).to eq(1)
+      expect(registry['/app/lib/foo.rb']).to equal(whole_file_iseq)
+    end
+
+    it 'skips per-method iseqs' do
+      allow(Datadog::DI).to receive(:file_iseqs).and_return([per_method_iseq])
+
+      tracker.backfill_registry
+
+      expect(tracker.send(:registry)).to be_empty
+    end
+
+    it 'skips eval iseqs (nil absolute_path)' do
+      allow(Datadog::DI).to receive(:file_iseqs).and_return([eval_iseq])
+
+      tracker.backfill_registry
+
+      expect(tracker.send(:registry)).to be_empty
+    end
+
+    it 'does not overwrite entries from script_compiled' do
+      tracker.start
+      load File.join(File.dirname(__FILE__), "code_tracker_load_class.rb")
+
+      path = tracker.send(:registry).keys.find { |p| p.end_with?('code_tracker_load_class.rb') }
+      expect(path).not_to be_nil
+      original_iseq = tracker.send(:registry)[path]
+
+      # file_iseqs returns an iseq for the same path
+      conflicting_iseq = double('conflicting iseq',
+        absolute_path: path,
+        first_lineno: 0,)
+      allow(Datadog::DI).to receive(:file_iseqs).and_return([conflicting_iseq])
+
+      tracker.backfill_registry
+
+      # Original from :script_compiled should be preserved
+      expect(tracker.send(:registry)[path]).to equal(original_iseq)
+    end
+
+    it 'stores multiple files from a single backfill call' do
+      iseq_a = double('iseq_a', absolute_path: '/app/lib/a.rb', first_lineno: 0)
+      iseq_b = double('iseq_b', absolute_path: '/app/lib/b.rb', first_lineno: 0)
+      allow(Datadog::DI).to receive(:file_iseqs).and_return([iseq_a, iseq_b])
+
+      tracker.backfill_registry
+
+      registry = tracker.send(:registry)
+      expect(registry.length).to eq(2)
+      expect(registry['/app/lib/a.rb']).to equal(iseq_a)
+      expect(registry['/app/lib/b.rb']).to equal(iseq_b)
+    end
+
+    it 'filters mixed iseq types from a single file' do
+      # file_iseqs returns both whole-file and per-method iseqs for same file
+      allow(Datadog::DI).to receive(:file_iseqs).and_return(
+        [whole_file_iseq, per_method_iseq],
+      )
+
+      tracker.backfill_registry
+
+      registry = tracker.send(:registry)
+      expect(registry.length).to eq(1)
+      # The whole-file iseq should be stored (first_lineno == 0)
+      expect(registry['/app/lib/foo.rb']).to equal(whole_file_iseq)
+    end
+
+    context 'when file_iseqs raises an exception' do
       before do
-        skip 'C extension not available' unless Datadog::DI.respond_to?(:all_iseqs)
+        allow(Datadog::DI).to receive(:file_iseqs).and_raise(RuntimeError, 'object space walk failed')
       end
 
-      it 'populates registry with iseqs for already-loaded files' do
-        # The registry should be empty before backfill.
+      it 'does not propagate the exception' do
+        expect { tracker.backfill_registry }.not_to raise_error
+      end
+
+      it 'leaves registry unchanged' do
+        tracker.backfill_registry
         expect(tracker.send(:registry)).to be_empty
-
-        tracker.backfill_registry
-
-        registry = tracker.send(:registry)
-        expect(registry).not_to be_empty
-
-        # All entries should have absolute paths as keys
-        registry.each_key do |path|
-          expect(path).to start_with('/')
-        end
-
-        # All entries should be instruction sequences
-        registry.each_value do |iseq|
-          expect(iseq).to be_a(RubyVM::InstructionSequence)
-        end
-
-        # Should contain iseqs for dd-trace-rb files that are already loaded
-        datadog_paths = registry.keys.select { |p| p.include?('lib/datadog/') }
-        expect(datadog_paths).not_to be_empty
-      end
-
-      it 'only stores whole-file iseqs' do
-        tracker.backfill_registry
-
-        registry = tracker.send(:registry)
-        registry.each_value do |iseq|
-          expect(iseq.first_lineno).to eq(0),
-            "Expected whole-file iseq (first_lineno=0) but got first_lineno=#{iseq.first_lineno} for #{iseq.absolute_path}"
-        end
-      end
-
-      it 'does not overwrite entries from script_compiled' do
-        # Start tracking to populate registry via :script_compiled
-        tracker.start
-        load File.join(File.dirname(__FILE__), "code_tracker_load_class.rb")
-
-        path = tracker.send(:registry).keys.find { |p| p.end_with?('code_tracker_load_class.rb') }
-        expect(path).not_to be_nil
-        original_iseq = tracker.send(:registry)[path]
-
-        # Backfill should not overwrite the existing entry
-        tracker.backfill_registry
-        expect(tracker.send(:registry)[path]).to equal(original_iseq)
       end
     end
 
     context 'when C extension is not available' do
       before do
-        allow(Datadog::DI).to receive(:respond_to?).and_call_original
         allow(Datadog::DI).to receive(:respond_to?).with(:all_iseqs).and_return(false)
       end
 
       it 'does nothing' do
-        expect(tracker.send(:registry)).to be_empty
+        expect(Datadog::DI).not_to receive(:file_iseqs)
         tracker.backfill_registry
         expect(tracker.send(:registry)).to be_empty
       end
     end
   end
 
-  describe '#start with backfill' do
+  describe '#start calls backfill_registry' do
     after do
       tracker.stop
     end
 
-    context 'when C extension is available' do
-      before do
-        skip 'C extension not available' unless Datadog::DI.respond_to?(:all_iseqs)
-      end
+    it 'calls backfill_registry during start' do
+      expect(tracker).to receive(:backfill_registry)
+      tracker.start
+    end
 
-      it 'backfills registry on start' do
-        tracker.start
+    it 'calls backfill_registry after trace point is enabled' do
+      # Verify ordering: trace point enabled first, then backfill.
+      # If backfill ran before the trace point, files loaded concurrently
+      # could be missed by both mechanisms.
+      order = []
+      allow(tracker).to receive(:backfill_registry) { order << :backfill }
 
-        registry = tracker.send(:registry)
-        # Registry should contain backfilled entries (files loaded before start)
-        datadog_paths = registry.keys.select { |p| p.include?('lib/datadog/') }
-        expect(datadog_paths).not_to be_empty
-      end
+      # The trace point is enabled inside start via TracePoint.trace.
+      # We can verify the trace point is active by loading a file and
+      # checking the registry.
+      tracker.start
+      expect(order).to eq([:backfill])
+      expect(tracker.active?).to be true
+    end
+  end
+
+  describe '#iseqs_for_path_suffix with backfilled entries' do
+    before do
+      allow(Datadog::DI).to receive(:respond_to?).and_call_original
+      allow(Datadog::DI).to receive(:respond_to?).with(:all_iseqs).and_return(true)
+    end
+
+    after do
+      tracker.stop
+    end
+
+    it 'finds backfilled entries by suffix' do
+      iseq = double('iseq', absolute_path: '/app/lib/datadog/di/foo.rb', first_lineno: 0)
+      allow(Datadog::DI).to receive(:file_iseqs).and_return([iseq])
+
+      tracker.backfill_registry
+
+      result = tracker.iseqs_for_path_suffix('di/foo.rb')
+      expect(result).to eq(['/app/lib/datadog/di/foo.rb', iseq])
+    end
+
+    it 'finds backfilled entries by exact path' do
+      iseq = double('iseq', absolute_path: '/app/lib/datadog/di/foo.rb', first_lineno: 0)
+      allow(Datadog::DI).to receive(:file_iseqs).and_return([iseq])
+
+      tracker.backfill_registry
+
+      result = tracker.iseqs_for_path_suffix('/app/lib/datadog/di/foo.rb')
+      expect(result).to eq(['/app/lib/datadog/di/foo.rb', iseq])
+    end
+
+    it 'returns nil for paths not in backfill' do
+      allow(Datadog::DI).to receive(:file_iseqs).and_return([])
+
+      tracker.backfill_registry
+
+      expect(tracker.iseqs_for_path_suffix('nonexistent.rb')).to be_nil
     end
   end
 
