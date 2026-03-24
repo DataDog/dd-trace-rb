@@ -6,7 +6,7 @@ module Datadog
         type env_vars = Hash[String, String] | ::RBS::Unnamed::ENVClass
         type option_value = OptionDefinition::option_type | OptionDefinition::generic_proc
 
-        @name: ::String
+        @name_with_settings_path: ::String
         @context: OptionDefinition::settings_context
 
         @is_set: bool
@@ -44,7 +44,7 @@ module Datadog
 
         def initialize: (OptionDefinition definition, OptionDefinition::settings_context context) -> void
 
-        def name: () -> ::String
+        def name_with_settings_path: () -> ::String
 
         def set: (option_value value, ?precedence: Precedence::Value) -> Object?
 

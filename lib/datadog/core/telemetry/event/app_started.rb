@@ -284,7 +284,7 @@ module Datadog
           end
 
           def option_telemetry_name(option)
-            option.definition.env || option.name
+            option.definition.env || option.name_with_settings_path
           end
 
           def resolve_option(settings, config_path)

@@ -18,9 +18,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
       c.tracing.instrument :rails, middleware_names: true
     end
 
-    expect(Datadog.configuration.tracing[:rails].send(:resolve_option, :middleware_names).name)
+    expect(Datadog.configuration.tracing[:rails].send(:resolve_option, :middleware_names).name_with_settings_path)
       .to eq('tracing.rails.middleware_names')
-    expect(Datadog.configuration.tracing[:rails].send(:resolve_option, :enabled).name)
+    expect(Datadog.configuration.tracing[:rails].send(:resolve_option, :enabled).name_with_settings_path)
       .to eq('tracing.rails.enabled')
   end
 end
