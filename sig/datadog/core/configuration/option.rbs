@@ -56,7 +56,7 @@ module Datadog
 
         def default_precedence?: () -> bool
 
-        def is_settings?: () -> bool
+        def settings?: () -> bool
 
         def values_per_precedence: () -> ::Hash[Precedence::Value, option_value]
 

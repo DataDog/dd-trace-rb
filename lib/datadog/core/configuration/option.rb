@@ -185,7 +185,7 @@ module Datadog
           precedence_set == Precedence::DEFAULT
         end
 
-        def is_settings?
+        def settings?
           @definition.is_settings
         end
 

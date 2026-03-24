@@ -25,6 +25,9 @@ module Datadog
           :type_options
 
         def initialize(name, attributes, &block)
+          # When a settings is defined using the config DSL, an option is also created.
+          # See Datadog::Core::Configuration::Base::ClassMethods#settings for more details.
+          # This flag is used to indicate that the option is a settings option.
           @is_settings = attributes[:is_settings]
 
           @default = attributes[:default]

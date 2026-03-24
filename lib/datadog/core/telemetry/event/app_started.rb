@@ -275,7 +275,7 @@ module Datadog
               option = settings.send(:resolve_option, name)
               next if option.definition.skip_telemetry
 
-              if option.is_settings?
+              if option.settings?
                 options.concat(collect_configuration_options_from(option.get))
               else
                 options << option
