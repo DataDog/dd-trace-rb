@@ -300,6 +300,13 @@ The following data is generally sent:
   object values should always be redacted, and a list of additional
   identifiers to be redacted.
 - Exception class names and messages
+  - The exception message reported is the value passed to the exception's
+    constructor, not the return value of the `message` method. If a custom
+    exception class overrides `message`, the reported value may differ from
+    what `exception.message` returns.
+  - If the constructor argument is not a string (or is nil), the exception
+    type is still reported but the message may be nil or show the
+    argument's class name.
 - Exception stack traces
 
 ## Rate Limiting and Performance
