@@ -179,7 +179,7 @@ module Datadog
       def serialize_throwable(exception)
         message = if DI.respond_to?(:exception_message)
           msg = DI.exception_message(exception)
-          if String === msg
+          if msg.nil? || String === msg
             msg
           else
             # Non-string constructor argument — report its class name

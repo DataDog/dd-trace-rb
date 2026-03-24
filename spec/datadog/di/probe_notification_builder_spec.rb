@@ -516,6 +516,68 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       end
     end
 
+    context 'when exception has nil constructor argument' do
+      let(:exception) { StandardError.new(nil) }
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings, serializer: serializer,
+          target_self: target_self,
+          serialized_entry_args: {},
+          return_value: nil, duration: 0.1,
+          exception: exception,
+        )
+      end
+
+      let(:payload) { builder.build_executed(context) }
+
+      if Datadog::DI.respond_to?(:exception_message)
+        it 'reports nil message instead of NilClass' do
+          throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+          expect(throwable[:message]).to be_nil
+          expect(throwable[:type]).to eq('StandardError')
+        end
+      else
+        it 'falls back to exception.message' do
+          throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+          expect(throwable[:message]).to eq('StandardError')
+          expect(throwable[:type]).to eq('StandardError')
+        end
+      end
+    end
+
+    context 'when exception has no constructor argument' do
+      let(:exception) { StandardError.new }
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings, serializer: serializer,
+          target_self: target_self,
+          serialized_entry_args: {},
+          return_value: nil, duration: 0.1,
+          exception: exception,
+        )
+      end
+
+      let(:payload) { builder.build_executed(context) }
+
+      if Datadog::DI.respond_to?(:exception_message)
+        it 'reports nil message for no-argument exception' do
+          throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+          expect(throwable[:message]).to be_nil
+          expect(throwable[:type]).to eq('StandardError')
+        end
+      else
+        it 'falls back to exception.message' do
+          throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+          expect(throwable[:message]).to eq('StandardError')
+          expect(throwable[:type]).to eq('StandardError')
+        end
+      end
+    end
+
     context 'when exception constructor argument is not a string' do
       let(:exception) { NameError.new(42) }
 
