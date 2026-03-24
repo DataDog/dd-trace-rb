@@ -147,6 +147,19 @@ RSpec.describe Datadog::Core::Configuration::Components do
           end
         end
 
+        context 'MRI without C extension' do
+          before(:all) do
+            skip 'Test requires MRI' if PlatformHelpers.jruby?
+            skip 'Test requires C extension to be absent' if Datadog::DI.respond_to?(:exception_message)
+          end
+
+          it 'reports DI as disabled' do
+            expect(logger).to receive(:warn).with(/C extension is not available/)
+            expect(components.dynamic_instrumentation).to be nil
+            expect(extra).to eq(dynamic_instrumentation_enabled: false)
+          end
+        end
+
         context 'JRuby' do
           before(:all) do
             skip 'Test requires JRuby' unless PlatformHelpers.jruby?
