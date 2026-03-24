@@ -65,7 +65,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition do
     end
 
     context 'when not initialized' do
-      it { is_expected.to be false }
+      it { is_expected.to be nil }
     end
   end
 
