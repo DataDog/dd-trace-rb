@@ -174,8 +174,8 @@ module Datadog
           # Configure non-privileged components.
           Datadog::Tracing::Contrib::Component.configure(settings)
 
-          # Configure Rails railtie if supported to load features that all products benefit from
-          if Core::Contrib::Rails::Utils.railtie_supported?
+          # Load the core Rails Railtie when Rails is present so all products benefit from Rails-specific setup.
+          if defined?(::Rails::Railtie)
             require_relative '../contrib/rails/railtie'
           end
         end
