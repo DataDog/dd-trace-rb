@@ -32,7 +32,7 @@ class ProfilerGcBenchmark
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gc(@collector, false)
       end
 
-      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -58,7 +58,7 @@ class ProfilerGcBenchmark
         @recorder.serialize
       end
 
-      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -70,7 +70,7 @@ class ProfilerGcBenchmark
 
       x.report('Major GC runs (profiling disabled)', 'GC.start')
 
-      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -89,7 +89,7 @@ class ProfilerGcBenchmark
 
       x.report('Major GC runs (profiling enabled)', 'GC.start')
 
-      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -103,7 +103,7 @@ class ProfilerGcBenchmark
 
       x.report('Allocations (profiling disabled)', 'Object.new')
 
-      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -122,7 +122,7 @@ class ProfilerGcBenchmark
 
       x.report('Allocations (profiling enabled)', 'Object.new')
 
-      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 

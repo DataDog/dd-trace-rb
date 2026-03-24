@@ -2,10 +2,27 @@ module Datadog
   module AppSec
     module Contrib
       module Integration
-        # NOTE: This is a workaround to allow a class metaclass to be used.
-        #       In current RBS we can't point to the metaclass (self) directly and
-        #       especially when usage comes from included/extended methods.
-        type klass = ::Object
+        interface _Patcher
+          def patch: () -> void
+
+          def patched?: () -> bool
+        end
+
+        interface _IntegrationInstance
+          def patcher: () -> _Patcher
+        end
+
+        interface _IntegrationClass
+          def loaded?: () -> bool
+
+          def compatible?: () -> bool
+
+          def auto_instrument?: () -> bool
+
+          def new: () -> _IntegrationInstance
+        end
+
+        type klass = _IntegrationClass
 
         class RegisteredIntegration < ::Struct[[::Symbol, klass, ::Hash[::Symbol, untyped]]]
           def self.new: (::Symbol name, klass klass, ::Hash[::Symbol, untyped] options) -> instance
@@ -27,7 +44,7 @@ module Datadog
 
         def self.included: (::Module base) -> void
 
-        def self.register: (klass integration, ::Symbol name, ::Hash[::Symbol, untyped] options) -> RegisteredIntegration
+        def self.register: (untyped integration, ::Symbol name, ::Hash[::Symbol, untyped] options) -> RegisteredIntegration
 
         def self.registry: () -> ::Hash[::Symbol, RegisteredIntegration]
       end

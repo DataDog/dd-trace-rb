@@ -167,7 +167,8 @@ module Datadog
 
         def default_value
           if definition.default.instance_of?(Proc)
-            context_eval(&definition.default)
+            # Steep: https://github.com/soutaro/steep/issues/335
+            context_eval(&definition.default) # steep:ignore BlockTypeMismatch
           else
             definition.default_proc || Core::Utils::SafeDup.frozen_or_dup(definition.default)
           end
@@ -175,6 +176,17 @@ module Datadog
 
         def default_precedence?
           precedence_set == Precedence::DEFAULT
+        end
+
+        def values_per_precedence
+          # value_per_precedence is only filled after we call `get` once.
+          get unless @is_set
+
+          @value_per_precedence.each_with_object({}) do |(precedence, value), result|
+            next if value.equal?(UNSET)
+
+            result[precedence] = value
+          end
         end
 
         private

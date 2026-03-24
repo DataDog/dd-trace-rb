@@ -2,61 +2,65 @@ module Datadog
   module Core
     module Configuration
       class OptionDefinition
-        type option_type = String | Numeric | Rational | Symbol | bool | Array[untyped] | Hash[untyped, untyped] | nil
+        type settings_context = Options::_Settings
+        type settings_execution_context = settings_context & ::Object
+        type option_type = Object?
+        type generic_proc = (^(?) [self: settings_execution_context] -> any)
+        type default_value = any
+        type env_parser_proc = (^(String env_value) [self: settings_execution_context] -> Option::env_value)
+        type after_set_proc = (^(option_type value, option_type old_value, Option::Precedence::Value precedence) [self: settings_execution_context] -> void)
+        type resetter_proc = (^(option_type value) [self: settings_execution_context] -> option_type)
+        type setter_proc = (^(option_type new_value, option_type old_value) [self: settings_execution_context] -> option_type)
 
-        type option_proc = (^(Options::GenericSettingsClass settings) [self: Options::GenericSettingsClass] -> option_type)
-
-        type generic_proc = (^(?) [self: Options::GenericSettingsClass] -> untyped)
-
-        type meta = {
-          ?default: (option_type | option_proc | Options::GenericSettingsClass)?,
+        type attributes = {
+          ?default: default_value?,
           ?default_proc: generic_proc?,
           ?env: String?,
-          ?env_parser: (^(String env_value) [self: Options::GenericSettingsClass] -> Option::env_value)?,
-          ?after_set: (^(option_type value, option_type old_value, Option::Precedence::Value precedence) [self: Options::GenericSettingsClass] -> void)?,
-          ?resetter: (^(option_type value) [self: Options::GenericSettingsClass] -> option_type)?,
-          ?setter: (^(option_type new_value, option_type old_value) [self: Options::GenericSettingsClass] -> option_type)?,
+          ?env_parser: env_parser_proc?,
+          ?after_set: after_set_proc?,
+          ?resetter: resetter_proc?,
+          ?setter: setter_proc?,
           ?type: Symbol?,
           ?type_options: Hash[Symbol, untyped]
         }
 
-        type meta_with_type_options = {
-          ?default: (option_type | option_proc | Options::GenericSettingsClass)?,
+        type attributes_with_type_options = {
+          ?default: default_value?,
           ?default_proc: generic_proc?,
           ?env: String?,
-          ?env_parser: (^(String env_value) [self: Options::GenericSettingsClass] -> Option::env_value)?,
-          ?after_set: (^(option_type value, option_type old_value, Option::Precedence::Value precedence) [self: Options::GenericSettingsClass] -> void)?,
-          ?resetter: (^(option_type value) [self: Options::GenericSettingsClass] -> option_type)?,
-          ?setter: (^(option_type new_value, option_type old_value) [self: Options::GenericSettingsClass] -> option_type)?,
+          ?env_parser: env_parser_proc?,
+          ?after_set: after_set_proc?,
+          ?resetter: resetter_proc?,
+          ?setter: setter_proc?,
           ?type: Symbol?,
           type_options: Hash[Symbol, untyped]
         }
 
-        IDENTITY: ^(option_type new_value, option_type _old_value) [self: Options::GenericSettingsClass] -> option_type
+        IDENTITY: setter_proc
 
-        attr_reader default: option_type | option_proc | Options::GenericSettingsClass
+        attr_reader default: default_value?
 
         attr_reader default_proc: generic_proc?
 
         attr_reader env: String?
 
-        attr_reader env_parser: (^(String env_value) [self: Options::GenericSettingsClass] -> Option::env_value)?
+        attr_reader env_parser: env_parser_proc?
 
         attr_reader name: Symbol
 
-        attr_reader after_set: (^(option_type value, option_type old_value, Option::Precedence::Value precedence) [self: Options::GenericSettingsClass] -> void)?
+        attr_reader after_set: after_set_proc?
 
-        attr_reader resetter: (^(option_type value) [self: Options::GenericSettingsClass] -> option_type)?
+        attr_reader resetter: resetter_proc?
 
-        attr_reader setter: (^(option_type new_value, option_type old_value) [self: Options::GenericSettingsClass] -> option_type)
+        attr_reader setter: setter_proc
 
         attr_reader type: Symbol?
 
         attr_reader type_options: Hash[Symbol, untyped]
 
-        def initialize: (String | Symbol name, meta_with_type_options meta) ?{ (option_type new_value, option_type old_value) [self: Options::GenericSettingsClass] -> option_type } -> void
+        def initialize: (String | Symbol name, attributes_with_type_options attributes) ?{ (option_type new_value, option_type old_value) [self: settings_execution_context] -> option_type } -> void
 
-        def build: (Options::GenericSettingsClass context) -> Option
+        def build: (settings_context context) -> Option
 
         class Builder
           class InvalidOptionError < StandardError
@@ -65,43 +69,43 @@ module Datadog
           attr_reader helpers: Hash[Symbol, generic_proc]
 
           @env: String?
-          @env_parser: (^(String env_value) [self: Options::GenericSettingsClass] -> Option::env_value)?
-          @default: option_type | option_proc | Options::GenericSettingsClass
+          @env_parser: env_parser_proc?
+          @default: default_value?
           @default_proc: generic_proc?
           @helpers: Hash[Symbol, generic_proc]
           @name: Symbol
-          @after_set: (^(option_type value, option_type old_value, Option::Precedence::Value precedence) [self: Options::GenericSettingsClass] -> void)?
-          @resetter: (^(option_type value) [self: Options::GenericSettingsClass] -> option_type)?
-          @setter: (^(option_type new_value, option_type old_value) [self: Options::GenericSettingsClass] -> option_type)
+          @after_set: after_set_proc?
+          @resetter: resetter_proc?
+          @setter: setter_proc
           @type: Symbol?
           @type_options: Hash[Symbol, untyped]
 
-          def initialize: (String | Symbol name, ?meta options) ?{ (Builder) -> void } -> void
+          def initialize: (String | Symbol name, ?attributes options) ?{ (Builder) -> void } -> void
 
           def env: (String? value) -> void
 
-          def env_parser: () ?{ (String env_value) [self: Options::GenericSettingsClass] -> Option::env_value } -> void
+          def env_parser: () ?{ (String env_value) [self: settings_execution_context] -> Option::env_value } -> void
 
           # can also be a class that includes Configuration::Base for new settings
-          def default: (?(option_type | option_proc | Options::GenericSettingsClass) value) ?{ (Options::GenericSettingsClass settings) [self: Options::GenericSettingsClass] -> option_type } -> void
+          def default: (?(default_value) value) ?{ (settings_execution_context settings) [self: settings_execution_context] -> option_type } -> void
 
-          def default_proc: () ?{ (?) [self: Options::GenericSettingsClass] -> untyped } -> void
+          def default_proc: () ?{ (?) [self: settings_execution_context] -> untyped } -> void
 
-          def type: (Symbol? value, ?nilable: bool) -> void
+          def type: (Symbol? value, ?nilable: bool) -> Symbol?
 
-          def helper: (Symbol name, *untyped _args) { (?) [self: Options::GenericSettingsClass] -> untyped } -> void
+          def helper: (Symbol name, *untyped _args) { (?) [self: settings_execution_context] -> untyped } -> void
 
-          def after_set: () ?{ (option_type value, option_type old_value, Option::Precedence::Value precedence) [self: Options::GenericSettingsClass] -> void } -> void
+          def after_set: () ?{ (option_type value, option_type old_value, Option::Precedence::Value precedence) [self: settings_execution_context] -> void } -> void
 
-          def resetter: () ?{ (option_type value) [self: Options::GenericSettingsClass] -> option_type } -> void
+          def resetter: () ?{ (option_type value) [self: settings_execution_context] -> option_type } -> void
 
-          def setter: () { (option_type new_value, option_type old_value) [self: Options::GenericSettingsClass] -> option_type } -> void
+          def setter: () { (option_type new_value, option_type old_value) [self: settings_execution_context] -> option_type } -> void
 
-          def apply_options!: (?meta options) -> void
+          def apply_options!: (?attributes options) -> void
 
           def to_definition: () -> OptionDefinition
 
-          def meta: () -> meta
+          def attributes: () -> attributes
 
           private
 

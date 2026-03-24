@@ -24,10 +24,16 @@ jobs:
           # How long to wait before we start checking the job status
           # GitHub's API has a limit, so this helps avoid making too many calls
           # Note: If the job is retried, we'll check it once right away before waiting
-          initial-delay-seconds: 900
+          # Why 3 minutes: If a job fails, the all-green job also fails. If the original
+          # job is retried and the all-green job is retried, the all-green job will not
+          # see that all jobs are successful on the first invocation (since the failed
+          # job is still running). But because we are not running the full test suite,
+          # we do not want to wait 15 minutes to check if everything passed.
+          initial-delay-seconds: 180
 
           # How long to wait between each check
-          max-retries: 60
+          # Total wait time: 180s + (87 retries × 60s) = 5400s = 1.5 hours
+          max-retries: 87
 
           # Sleep time between each check (default: 60 seconds)
           # polling-interval-seconds: "60"

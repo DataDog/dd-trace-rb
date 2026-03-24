@@ -8,6 +8,7 @@ module Datadog
         # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
         module Ext
           ENV_ENABLED = 'DD_TRACE_FARADAY_ENABLED'
+          ENV_DISTRIBUTED_TRACING = 'DD_TRACE_FARADAY_DISTRIBUTED_TRACING'
           ENV_SERVICE_NAME = 'DD_TRACE_FARADAY_SERVICE_NAME'
           ENV_PEER_SERVICE = 'DD_TRACE_FARADAY_PEER_SERVICE'
           ENV_ERROR_STATUS_CODES = 'DD_TRACE_FARADAY_ERROR_STATUS_CODES'

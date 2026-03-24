@@ -5,7 +5,11 @@
 variables:
   GITLAB_BENCHMARKS_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:ruby-gitlab
   GITLAB_DDPROF_BENCHMARK_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:ruby-ddprof-benchmark
-  BASE_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:dd-trace-rb
+  BASE_CI_IMAGE: registry.ddbuild.io/ci/benchmarking-platform:dd-trace-rb
+
+# -----------------------------------------------------
+# Macrobenchmarks
+# -----------------------------------------------------
 
 .macrobenchmarks:
   stage: macrobenchmarks
@@ -21,7 +25,12 @@ variables:
   # If you have a problem with Gitlab cache, see Troubleshooting section in Benchmarking Platform docs
   image: $GITLAB_BENCHMARKS_CI_IMAGE
   script:
-    - git clone --branch ruby/gitlab https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform platform && cd platform
+    - |
+      if ! git clone --branch ruby/gitlab https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform platform; then
+        echo "Error: Failed to clone benchmarking-platform repository (branch ruby/gitlab)" >&2
+        exit 1
+      fi
+    - cd platform
     - bp-runner bp-runner.yml --debug
   artifacts:
     name: "artifacts"
@@ -139,9 +148,29 @@ ddprof-benchmark:
   when: manual
   image: $GITLAB_DDPROF_BENCHMARK_CI_IMAGE
   script:
-    - export ARTIFACTS_DIR="$(pwd)/reports" && (mkdir "${ARTIFACTS_DIR}" || :)
+    - |
+      if [ -z "$CI_COMMIT_SHA" ]; then
+        echo "Error: CI_COMMIT_SHA is not set" >&2
+        exit 1
+      fi
+    - export ARTIFACTS_DIR="$(pwd)/reports"
+    - |
+      if ! mkdir -p "$ARTIFACTS_DIR"; then
+        echo "Error: Failed to create artifacts directory: $ARTIFACTS_DIR" >&2
+        exit 1
+      fi
     - export DD_API_KEY=$(aws ssm get-parameter --region us-east-1 --name ci.dd-trace-rb.dd_api_key --with-decryption --query "Parameter.Value" --out text)
-    - git clone --branch ruby/ddprof-benchmark https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform /platform && cd /platform
+    - |
+      if [ -z "$DD_API_KEY" ]; then
+        echo "Error: Failed to retrieve DD_API_KEY from AWS SSM" >&2
+        exit 1
+      fi
+    - |
+      if ! git clone --branch ruby/ddprof-benchmark https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform /platform; then
+        echo "Error: Failed to clone benchmarking-platform repository (branch ruby/ddprof-benchmark)" >&2
+        exit 1
+      fi
+    - cd /platform
     - ./steps/capture-hardware-software-info.sh
     - ./steps/run-benchmarks.sh
     - "./steps/upload-results-to-s3.sh || :"
@@ -155,40 +184,127 @@ ddprof-benchmark:
     LATEST_COMMIT_ID: $CI_COMMIT_SHA
     KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: dd-trace-rb
 
+
+# -----------------------------------------------------
+# Microbenchmarks
+# -----------------------------------------------------
+
+# Configuration for executing microbenchmarks in parallel
+# Choose which benchmarks to execute, with how many CPUs, on what CI job
+include:
+  - local: benchmarks/execution.yml
+
 microbenchmarks:
+  extends: .execution  # From benchmarks/execution.yml
   stage: microbenchmarks
   when: always
   needs: []
   tags: ["runner:apm-k8s-tweaked-metal"]
   image: $BASE_CI_IMAGE
   rules:
+    # On master: always run, never auto-cancel (interruptible: false is the default on master anyway,
+    # but stated explicitly here for clarity)
     - if: $CI_COMMIT_REF_NAME == "master"
       interruptible: false
-    - interruptible: true
+    # On PR branches: only run when files that affect benchmark results are changed.
+    # Without this, benchmarks run on every PR regardless of what changed (e.g. docs, specs, CI config).
+    # Note: on the first push of a new branch (no diff base), GitLab evaluates changes: as true,
+    # so benchmarks run once — conservative/safe behavior.
+    - changes:
+        - lib/**/*
+        - ext/**/*
+        - benchmarks/**/*
+        - datadog.gemspec
+        - .gitlab/**/*
+      interruptible: true
+    # Terminating rule: if no rule above matched, skip the job.
+    # Without this, GitLab falls through to its default (run the job), making the changes: rule above pointless.
+    - when: never
   timeout: 1h
+  variables:
+    # GitLab CI variables passed to bp-runner
+    CI_COMMIT_REF_NAME: $CI_COMMIT_REF_NAME
+    CI_COMMIT_SHA: $CI_COMMIT_SHA
+    CI_PROJECT_NAME: $CI_PROJECT_NAME
+    CI_JOB_ID: $CI_JOB_ID
+    CI_PIPELINE_ID: $CI_PIPELINE_ID
   script:
-    - export ARTIFACTS_DIR="$(pwd)/artifacts" && (mkdir "${ARTIFACTS_DIR}" || :)
+    - export ARTIFACTS_DIR="$(pwd)/artifacts"
+    - |
+      if ! mkdir -p "$ARTIFACTS_DIR"; then
+        echo "Error: Failed to create artifacts directory: $ARTIFACTS_DIR" >&2
+        exit 1
+      fi
+    # $GROUP is defined on benchmarks/execution.yml
+    - |
+      if ! [[ "$GROUP" =~ ^[a-zA-Z_]+$ ]]; then
+        echo "Error: Invalid GROUP name: '$GROUP'. Must contain only letters and underscores." >&2
+        exit 1
+      fi
+    - eval "export BENCHMARKS=\$BENCHMARKS_$GROUP"
+    - |
+      if [ -z "$BENCHMARKS" ]; then
+        echo "Error: No benchmarks defined for group '$GROUP'" >&2
+        exit 1
+      fi
+    - |
+      if [ -z "$CI_JOB_TOKEN" ]; then
+        echo "Error: CI_JOB_TOKEN is not set" >&2
+        exit 1
+      fi
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
-    - git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform benchmarking-platform && cd benchmarking-platform
-    - gem -v
-    - bundle -v
-    - gem list bundler
-    - ./steps/capture-hardware-software-info.sh
-    - ./steps/run-benchmarks.sh
-    - ./steps/analyze-results.sh
-    - "./steps/upload-results-to-s3.sh || :"
-    - "./steps/upload-results-to-benchmarking-api.sh || :"
-    - "./steps/post-pr-comment.sh || :"
+    - |
+      if ! git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform; then
+        echo "Error: Failed to clone benchmarking-platform repository (branch dd-trace-rb)" >&2
+        exit 1
+      fi
+    - cd platform
+    - bp-runner bp-runner.yml --debug
   artifacts:
     name: "artifacts"
     when: always
     paths:
       - artifacts/
     expire_in: 3 months
+
+microbenchmarks-pr-comment:
+  stage: microbenchmarks
+  when: on_success
+  allow_failure: true
+  needs: [microbenchmarks]
+  tags: ["arch:amd64"]
+  image: $BASE_CI_IMAGE
+  timeout: 30m
   variables:
-    KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: dd-trace-rb
-    FF_USE_LEGACY_KUBERNETES_EXECUTION_STRATEGY: "true"
-    UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
-    UPSTREAM_PROJECT_ID: $CI_PROJECT_ID
-    UPSTREAM_PROJECT_NAME: $CI_PROJECT_NAME
-    UPSTREAM_COMMIT_SHA: $CI_COMMIT_SHA
+    CI_COMMIT_REF_NAME: $CI_COMMIT_REF_NAME
+    CI_PROJECT_NAME: $CI_PROJECT_NAME
+
+    # In percent, how much the confidence intervals of
+    # candidate and baseline results should differ to be considered significant
+    SIGNIFICANT_IMPACT_THRESHOLD: 5
+  script:
+    - export ARTIFACTS_DIR="$(pwd)/artifacts"
+    - |
+      if ! mkdir -p "$ARTIFACTS_DIR"; then
+        echo "Error: Failed to create artifacts directory: $ARTIFACTS_DIR" >&2
+        exit 1
+      fi
+    - |
+      if [ -z "$CI_JOB_TOKEN" ]; then
+        echo "Error: CI_JOB_TOKEN is not set" >&2
+        exit 1
+      fi
+    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
+    - |
+      if ! git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform; then
+        echo "Error: Failed to clone benchmarking-platform repository (branch dd-trace-rb)" >&2
+        exit 1
+      fi
+    - cd platform
+    - bp-runner bp-runner.pr-comment.yml --debug
+  artifacts:
+    name: "artifacts"
+    when: always
+    paths:
+      - artifacts/
+    expire_in: 3 months

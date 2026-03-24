@@ -21,17 +21,17 @@ module Datadog
           :type,
           :type_options
 
-        def initialize(name, meta, &block)
-          @default = meta[:default]
-          @default_proc = meta[:default_proc]
-          @env = meta[:env]
-          @env_parser = meta[:env_parser]
+        def initialize(name, attributes, &block)
+          @default = attributes[:default]
+          @default_proc = attributes[:default_proc]
+          @env = attributes[:env]
+          @env_parser = attributes[:env_parser]
           @name = name.to_sym
-          @after_set = meta[:after_set]
-          @resetter = meta[:resetter]
-          @setter = meta[:setter] || block || IDENTITY
-          @type = meta[:type]
-          @type_options = meta[:type_options]
+          @after_set = attributes[:after_set]
+          @resetter = attributes[:resetter]
+          @setter = attributes[:setter] || block || IDENTITY
+          @type = attributes[:type]
+          @type_options = attributes[:type_options]
         end
 
         # Creates a new Option, bound to the context provided.
@@ -126,10 +126,10 @@ module Datadog
           end
 
           def to_definition
-            OptionDefinition.new(@name, meta)
+            OptionDefinition.new(@name, attributes)
           end
 
-          def meta
+          def attributes
             {
               default: @default,
               default_proc: @default_proc,

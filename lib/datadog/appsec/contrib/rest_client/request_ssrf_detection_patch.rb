@@ -50,12 +50,12 @@ module Datadog
               response = super
             rescue ::RestClient::Exception => e
               response = e.response
-              process_response(response, sample_body: sample_body) if response
+              process_response(response, sample_body: sample_body) if response.is_a?(::RestClient::AbstractResponse)
 
               raise
             end
 
-            process_response(response, sample_body: sample_body)
+            process_response(response, sample_body: sample_body) if response.is_a?(::RestClient::AbstractResponse)
             response
           end
 

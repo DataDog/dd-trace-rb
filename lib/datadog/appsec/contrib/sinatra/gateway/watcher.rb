@@ -22,7 +22,7 @@ module Datadog
               end
 
               def watch_request_dispatch(gateway = Instrumentation.gateway)
-                gateway.watch('sinatra.request.dispatch', :appsec) do |stack, gateway_request|
+                gateway.watch('sinatra.request.dispatch') do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY] # : Context
 
                   context.state[:web_framework] = 'sinatra'
@@ -51,7 +51,7 @@ module Datadog
               end
 
               def watch_request_routed(gateway = Instrumentation.gateway)
-                gateway.watch('sinatra.request.routed', :appsec) do |stack, args|
+                gateway.watch('sinatra.request.routed') do |stack, args|
                   gateway_request, gateway_route_params = args # : [Gateway::Request, Gateway::RouteParams]
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY] # : Context
 
@@ -77,7 +77,7 @@ module Datadog
               end
 
               def watch_response_body_json(gateway = Instrumentation.gateway)
-                gateway.watch('sinatra.response.body.json', :appsec) do |stack, container|
+                gateway.watch('sinatra.response.body.json') do |stack, container|
                   context = container.context # : Context
 
                   persistent_data = {
