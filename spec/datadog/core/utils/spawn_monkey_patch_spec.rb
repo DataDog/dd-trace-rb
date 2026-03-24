@@ -6,7 +6,7 @@ require 'datadog/core/configuration/settings'
 
 RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
   describe '::apply!' do
-    subject(:apply!) { described_class.apply! }
+    subject(:apply!) { described_class.apply!(lineage_envs_provider: -> { {} }) }
 
     context 'when Process.spawn is supported' do
       before do

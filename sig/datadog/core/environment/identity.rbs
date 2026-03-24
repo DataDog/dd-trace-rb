@@ -10,7 +10,7 @@ module Datadog
 
         def self?.parent_runtime_id: () -> ::String?
 
-        def self?.runtime_propagation_envs: () -> Hash[::String, ::String]
+        def self?.runtime_propagation_envs: () -> ::Hash[::String, ::String]
 
         def self?.lang: () -> ::String
 

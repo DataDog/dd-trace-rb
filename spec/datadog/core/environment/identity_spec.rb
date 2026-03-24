@@ -34,7 +34,7 @@ RSpec.describe Datadog::Core::Environment::Identity do
     end
   end
 
-  describe '::root_runtime_id' do
+  describe '.root_runtime_id' do
     subject(:root_runtime_id) { described_class.root_runtime_id }
 
     context 'in root process' do
@@ -48,14 +48,16 @@ RSpec.describe Datadog::Core::Environment::Identity do
         parent_id = described_class.id
 
         expect_in_fork do
-          described_class.id # Triggers after_fork! update
+          expect(described_class.id).to_not be_nil
+          expect(described_class.root_runtime_id).to_not be_nil
+          expect(described_class.id).to_not eq(root_runtime_id)
           expect(described_class.root_runtime_id).to eq(parent_id)
         end
       end
     end
   end
 
-  describe '::parent_runtime_id' do
+  describe '.parent_runtime_id' do
     subject(:parent_runtime_id) { described_class.parent_runtime_id }
 
     context 'in root process' do
@@ -69,7 +71,7 @@ RSpec.describe Datadog::Core::Environment::Identity do
         parent_id = described_class.id
 
         expect_in_fork do
-          described_class.id # Triggers after_fork! update
+          expect(described_class.id).to_not eq(parent_id)
           expect(described_class.parent_runtime_id).to eq(parent_id)
         end
       end
