@@ -518,15 +518,17 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         end
       end
 
-      context 'value formatting with 6 significant digits' do
+      context 'value formatting with up to 6 decimal digits' do
         [
           [1.0, '1'],
           [0.5, '0.5'],
           [0.1, '0.1'],
           [0.7654321, '0.765432'],
           [0.100000, '0.1'],
-          [0.000001, '1e-06'],
+          [0.000001, '0.000001'],
           [0.123456789, '0.123457'],
+          [0.0000001, '0'],
+          [0.0000005, '0.000001'],
         ].each do |rate, expected|
           context "when rate is #{rate}" do
             let(:trace_options) { {id: trace_id, agent_sample_rate: rate} }

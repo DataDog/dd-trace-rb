@@ -117,7 +117,7 @@ module Datadog
 
           root_span.set_tag(
             Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE,
-            format('%.6g', rate)
+            format('%.6f', (rate * 1e6).round / 1e6.to_f).sub(/\.?0+\z/, '')
           )
         end
 
