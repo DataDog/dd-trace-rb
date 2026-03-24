@@ -243,6 +243,10 @@ RSpec.describe Datadog::DI::CodeTracker do
     before do
       allow(Datadog::DI).to receive(:respond_to?).and_call_original
       allow(Datadog::DI).to receive(:respond_to?).with(:all_iseqs).and_return(true)
+      allow(Datadog::DI).to receive(:respond_to?).with(:iseq_type).and_return(true)
+      allow(Datadog::DI).to receive(:iseq_type) do |iseq|
+        (iseq.first_lineno == 0) ? :top : :method
+      end
     end
 
     after do
@@ -381,6 +385,10 @@ RSpec.describe Datadog::DI::CodeTracker do
     before do
       allow(Datadog::DI).to receive(:respond_to?).and_call_original
       allow(Datadog::DI).to receive(:respond_to?).with(:all_iseqs).and_return(true)
+      allow(Datadog::DI).to receive(:respond_to?).with(:iseq_type).and_return(true)
+      allow(Datadog::DI).to receive(:iseq_type) do |iseq|
+        (iseq.first_lineno == 0) ? :top : :method
+      end
     end
 
     after do

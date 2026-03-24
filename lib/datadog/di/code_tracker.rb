@@ -49,16 +49,22 @@ module Datadog
         return unless DI.respond_to?(:all_iseqs)
 
         iseqs = DI.file_iseqs
+        have_iseq_type = DI.respond_to?(:iseq_type)
         registry_lock.synchronize do
           iseqs.each do |iseq|
             path = iseq.absolute_path
             next unless path
 
-            # Only store whole-file iseqs (first_lineno == 0).
-            # Per-method iseqs (first_lineno > 0) cover only a subset of
-            # lines in the file and would require the instrumenter to try
-            # multiple iseqs when targeting a line trace point.
-            next unless iseq.first_lineno == 0
+            # Only store whole-file iseqs (:top from require/load,
+            # :main from entry point). Per-method/block/class iseqs
+            # cover only a subset of lines in the file.
+            # Fall back to first_lineno == 0 if iseq_type is unavailable.
+            if have_iseq_type
+              type = DI.iseq_type(iseq)
+              next unless type == :top || type == :main
+            else
+              next unless iseq.first_lineno == 0
+            end
 
             # Do not overwrite entries from :script_compiled — those are
             # captured at load time and are authoritative.
