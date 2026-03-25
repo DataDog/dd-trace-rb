@@ -94,7 +94,7 @@ namespace :spec do
     :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
     :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
     :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
-    :profiling, :core_with_libdatadog_api, :'di:di_with_ext', :error_tracking, :open_feature, :core_with_rails, :environment, :ai_guard]
+    :profiling, :core_with_libdatadog_api, :"di:di_with_ext", :error_tracking, :open_feature, :core_with_rails, :environment, :ai_guard]
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
