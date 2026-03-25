@@ -1,4 +1,6 @@
 #include <ruby.h>
+#include <ruby/thread.h>
+#include <stdbool.h>
 #include <datadog/data-pipeline.h>
 
 #include "datadog_ruby_common.h"
@@ -14,18 +16,6 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span);
 
 /* TracerSpan methods */
 static VALUE _native_from_span(VALUE klass, VALUE span);
-static VALUE tracer_span_name(VALUE self);
-static VALUE tracer_span_service(VALUE self);
-static VALUE tracer_span_resource(VALUE self);
-static VALUE tracer_span_type(VALUE self);
-static VALUE tracer_span_span_id(VALUE self);
-static VALUE tracer_span_parent_id(VALUE self);
-static VALUE tracer_span_trace_id(VALUE self);
-static VALUE tracer_span_start(VALUE self);
-static VALUE tracer_span_duration(VALUE self);
-static VALUE tracer_span_error(VALUE self);
-static VALUE tracer_span_get_meta(VALUE self, VALUE key);
-static VALUE tracer_span_get_metric(VALUE self, VALUE key);
 
 /* TraceExporter methods */
 static VALUE _native_exporter_new(VALUE klass, VALUE rb_url,
@@ -38,9 +28,11 @@ static VALUE _native_send_traces(VALUE self, VALUE traces);
 static VALUE response_ok_p(VALUE self);
 static VALUE response_internal_error_p(VALUE self);
 static VALUE response_server_error_p(VALUE self);
+static VALUE response_client_error_p(VALUE self);
+static VALUE response_not_found_p(VALUE self);
+static VALUE response_unsupported_p(VALUE self);
 static VALUE response_trace_count_m(VALUE self);
-static VALUE response_false(DDTRACE_UNUSED VALUE self);
-static VALUE response_nil(DDTRACE_UNUSED VALUE self);
+static VALUE response_payload(VALUE self);
 
 /* GC / TypedData */
 static void tracer_span_dfree(void *ptr);
@@ -70,14 +62,16 @@ static ID id_nsec;
 static ID id_duration_method;
 static ID id_bitand;
 static ID id_rshift;
-static ID id_bitor;
-static ID id_lshift;
 
 /* Response ivar IDs */
 static ID at_ok_id;
 static ID at_int_error_id;
 static ID at_srv_error_id;
+static ID at_cli_error_id;
+static ID at_not_found_id;
+static ID at_unsupported_id;
 static ID at_trace_count_id;
+static ID at_payload_id;
 
 /* ========================================================================
  * Ruby class references (marked as GC roots)
@@ -173,51 +167,66 @@ static inline void split_trace_id(VALUE trace_id,
   *high = NUM2ULL(rb_funcall(trace_id, id_rshift, 1, INT2FIX(64)));
 }
 
-/* (low, high) 64-bit halves → Ruby Integer */
-static inline VALUE combine_trace_id(uint64_t low, uint64_t high) {
-  if (high == 0) return ULL2NUM(low);
-  VALUE hi_val = ULL2NUM(high);
-  VALUE shifted = rb_funcall(hi_val, id_lshift, 1, INT2FIX(64));
-  return rb_funcall(shifted, id_bitor, 1, ULL2NUM(low));
-}
-
-/* CharSlice → Ruby String */
-static inline VALUE ruby_string_from_charslice(ddog_CharSlice slice) {
-  return rb_str_new((const char *)slice.ptr, (long)slice.len);
-}
 
 /* ========================================================================
  * Hash iteration callbacks for meta / metrics
+ *
+ * We cannot raise Ruby exceptions from inside rb_hash_foreach callbacks
+ * (longjmp would corrupt the hash iteration state).  Instead, the first
+ * error is stashed in a context struct and iteration is stopped with
+ * ST_STOP.  The caller checks for the error after rb_hash_foreach
+ * returns.
  * ======================================================================== */
 
-static int meta_iter_cb(VALUE key, VALUE value, VALUE arg) {
-  ddog_TracerSpan *span = (ddog_TracerSpan *)arg;
+typedef struct {
+  ddog_TracerSpan        *span;
+  ddog_TraceExporterError *error;  /* first error, if any */
+} hash_iter_ctx;
 
+static int meta_iter_cb(VALUE key, VALUE value, VALUE arg) {
+  hash_iter_ctx *ctx = (hash_iter_ctx *)arg;
+
+  /*
+   * We intentionally use direct struct initialization instead of
+   * char_slice_from_ruby_string() here: that helper contains
+   * ENFORCE_TYPE which can raise, and raising inside an
+   * rb_hash_foreach callback would longjmp out of the hash
+   * iteration and corrupt internal VM state.  The type guard
+   * right above keeps the two in sync and makes the safety
+   * constraint visible at the call site.
+   */
   if (!RB_TYPE_P(key, T_STRING) || !RB_TYPE_P(value, T_STRING))
     return ST_CONTINUE;
 
   ddog_CharSlice ks = {.ptr = RSTRING_PTR(key),   .len = RSTRING_LEN(key)};
   ddog_CharSlice vs = {.ptr = RSTRING_PTR(value), .len = RSTRING_LEN(value)};
 
-  ddog_TraceExporterError *err = ddog_tracer_span_set_meta(span, ks, vs);
-  if (err != NULL) ddog_trace_exporter_error_free(err);
+  ddog_TraceExporterError *err = ddog_tracer_span_set_meta(ctx->span, ks, vs);
+  if (err != NULL) {
+    ctx->error = err;
+    return ST_STOP;
+  }
 
   return ST_CONTINUE;
 }
 
 static int metrics_iter_cb(VALUE key, VALUE value, VALUE arg) {
-  ddog_TracerSpan *span = (ddog_TracerSpan *)arg;
+  hash_iter_ctx *ctx = (hash_iter_ctx *)arg;
 
   if (!RB_TYPE_P(key, T_STRING)) return ST_CONTINUE;
   if (!RB_TYPE_P(value, T_FLOAT) && !RB_TYPE_P(value, T_FIXNUM) &&
       !RB_TYPE_P(value, T_BIGNUM))
     return ST_CONTINUE;
 
+  /* See meta_iter_cb for why we avoid char_slice_from_ruby_string() here. */
   ddog_CharSlice ks = {.ptr = RSTRING_PTR(key), .len = RSTRING_LEN(key)};
 
   ddog_TraceExporterError *err =
-      ddog_tracer_span_set_metric(span, ks, NUM2DBL(value));
-  if (err != NULL) ddog_trace_exporter_error_free(err);
+      ddog_tracer_span_set_metric(ctx->span, ks, NUM2DBL(value));
+  if (err != NULL) {
+    ctx->error = err;
+    return ST_STOP;
+  }
 
   return ST_CONTINUE;
 }
@@ -283,14 +292,24 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
   check_exporter_error("Failed to create TracerSpan", err);
 
   /* 4. Populate meta and metrics */
+  hash_iter_ctx ctx = {.span = rust_span, .error = NULL};
+
   VALUE rb_meta = rb_ivar_get(span, at_meta_id);
   if (RB_TYPE_P(rb_meta, T_HASH) && RHASH_SIZE(rb_meta) > 0) {
-    rb_hash_foreach(rb_meta, meta_iter_cb, (VALUE)rust_span);
+    rb_hash_foreach(rb_meta, meta_iter_cb, (VALUE)&ctx);
+    if (ctx.error != NULL) {
+      ddog_tracer_span_free(rust_span);
+      check_exporter_error("Failed to set span meta", ctx.error);
+    }
   }
 
   VALUE rb_metrics = rb_ivar_get(span, at_metrics_id);
   if (RB_TYPE_P(rb_metrics, T_HASH) && RHASH_SIZE(rb_metrics) > 0) {
-    rb_hash_foreach(rb_metrics, metrics_iter_cb, (VALUE)rust_span);
+    rb_hash_foreach(rb_metrics, metrics_iter_cb, (VALUE)&ctx);
+    if (ctx.error != NULL) {
+      ddog_tracer_span_free(rust_span);
+      check_exporter_error("Failed to set span metric", ctx.error);
+    }
   }
 
   return rust_span;
@@ -306,106 +325,60 @@ static VALUE _native_from_span(DDTRACE_UNUSED VALUE klass, VALUE span) {
                                rust_span);
 }
 
-/* ========================================================================
- * TracerSpan reader methods
- * ======================================================================== */
-
-#define GET_SPAN(self, var)                                                \
-  ddog_TracerSpan *var;                                                    \
-  TypedData_Get_Struct(self, ddog_TracerSpan, &tracer_span_typed_data, var)
-
-static VALUE tracer_span_name(VALUE self) {
-  GET_SPAN(self, span);
-  return ruby_string_from_charslice(ddog_tracer_span_get_name(span));
-}
-
-static VALUE tracer_span_service(VALUE self) {
-  GET_SPAN(self, span);
-  return ruby_string_from_charslice(ddog_tracer_span_get_service(span));
-}
-
-static VALUE tracer_span_resource(VALUE self) {
-  GET_SPAN(self, span);
-  return ruby_string_from_charslice(ddog_tracer_span_get_resource(span));
-}
-
-static VALUE tracer_span_type(VALUE self) {
-  GET_SPAN(self, span);
-  return ruby_string_from_charslice(ddog_tracer_span_get_type(span));
-}
-
-static VALUE tracer_span_span_id(VALUE self) {
-  GET_SPAN(self, span);
-  return ULL2NUM(ddog_tracer_span_get_span_id(span));
-}
-
-static VALUE tracer_span_parent_id(VALUE self) {
-  GET_SPAN(self, span);
-  return ULL2NUM(ddog_tracer_span_get_parent_id(span));
-}
-
-static VALUE tracer_span_trace_id(VALUE self) {
-  GET_SPAN(self, span);
-  uint64_t low, high;
-  ddog_tracer_span_get_trace_id(span, &low, &high);
-  return combine_trace_id(low, high);
-}
-
-static VALUE tracer_span_start(VALUE self) {
-  GET_SPAN(self, span);
-  return LL2NUM(ddog_tracer_span_get_start(span));
-}
-
-static VALUE tracer_span_duration(VALUE self) {
-  GET_SPAN(self, span);
-  return LL2NUM(ddog_tracer_span_get_duration(span));
-}
-
-static VALUE tracer_span_error(VALUE self) {
-  GET_SPAN(self, span);
-  return INT2NUM(ddog_tracer_span_get_error(span));
-}
-
-static VALUE tracer_span_get_meta(VALUE self, VALUE key) {
-  GET_SPAN(self, span);
-  ENFORCE_TYPE(key, T_STRING);
-
-  ddog_CharSlice key_s = char_slice_from_ruby_string(key);
-  const uint8_t *out_ptr = NULL;
-  size_t out_len = 0;
-
-  if (ddog_tracer_span_get_meta(span, key_s, &out_ptr, &out_len)) {
-    return rb_str_new((const char *)out_ptr, (long)out_len);
-  }
-  return Qnil;
-}
-
-static VALUE tracer_span_get_metric(VALUE self, VALUE key) {
-  GET_SPAN(self, span);
-  ENFORCE_TYPE(key, T_STRING);
-
-  ddog_CharSlice key_s = char_slice_from_ruby_string(key);
-  double out_val = 0.0;
-
-  if (ddog_tracer_span_get_metric(span, key_s, &out_val)) {
-    return DBL2NUM(out_val);
-  }
-  return Qnil;
-}
-
-#undef GET_SPAN
 
 /* ========================================================================
  * Response class helpers
  * ======================================================================== */
 
-static VALUE create_response(bool ok, bool internal_error,
-                              bool server_error, long trace_count) {
+/*
+ * Classify a libdatadog error code into the Transport::Response categories.
+ *
+ *   HTTP_CLIENT  → client_error? (4xx family)
+ *   HTTP_SERVER  → server_error? (5xx family)
+ *   everything else (network, timeout, serde, …) → internal_error?
+ *
+ * not_found? and unsupported? are not distinguishable from the error codes
+ * alone (libdatadog does not expose the HTTP status code directly), so they
+ * remain false on error responses.  On success they are also false.
+ */
+static VALUE create_error_response(ddog_TraceExporterErrorCode code,
+                                    long trace_count) {
+  bool client_err = (code == DDOG_TRACE_EXPORTER_ERROR_CODE_HTTP_CLIENT);
+  bool server_err = (code == DDOG_TRACE_EXPORTER_ERROR_CODE_HTTP_SERVER);
+  bool internal   = !client_err && !server_err;
+
   VALUE resp = rb_obj_alloc(response_class);
-  rb_ivar_set(resp, at_ok_id,         ok ? Qtrue : Qfalse);
-  rb_ivar_set(resp, at_int_error_id,  internal_error ? Qtrue : Qfalse);
-  rb_ivar_set(resp, at_srv_error_id,  server_error ? Qtrue : Qfalse);
-  rb_ivar_set(resp, at_trace_count_id, LONG2NUM(trace_count));
+  rb_ivar_set(resp, at_ok_id,           Qfalse);
+  rb_ivar_set(resp, at_int_error_id,    internal   ? Qtrue : Qfalse);
+  rb_ivar_set(resp, at_srv_error_id,    server_err ? Qtrue : Qfalse);
+  rb_ivar_set(resp, at_cli_error_id,    client_err ? Qtrue : Qfalse);
+  rb_ivar_set(resp, at_not_found_id,    Qfalse);
+  rb_ivar_set(resp, at_unsupported_id,  Qfalse);
+  rb_ivar_set(resp, at_trace_count_id,  LONG2NUM(trace_count));
+  rb_ivar_set(resp, at_payload_id,      Qnil);
+  return resp;
+}
+
+/*
+ * Build a success response, optionally carrying the agent's response body
+ * as +payload+.
+ *
+ * +payload+ is the raw HTTP response body returned by the Datadog Agent
+ * (typically JSON containing +rate_by_service+).  It is surfaced here so
+ * that callers matching the +Datadog::Core::Transport::Response+ interface
+ * (e.g. the HTTP traces endpoint) can parse service sampling rates out of
+ * it, just as they do with the Net::HTTP-based transport.
+ */
+static VALUE create_ok_response(long trace_count, VALUE payload) {
+  VALUE resp = rb_obj_alloc(response_class);
+  rb_ivar_set(resp, at_ok_id,           Qtrue);
+  rb_ivar_set(resp, at_int_error_id,    Qfalse);
+  rb_ivar_set(resp, at_srv_error_id,    Qfalse);
+  rb_ivar_set(resp, at_cli_error_id,    Qfalse);
+  rb_ivar_set(resp, at_not_found_id,    Qfalse);
+  rb_ivar_set(resp, at_unsupported_id,  Qfalse);
+  rb_ivar_set(resp, at_trace_count_id,  LONG2NUM(trace_count));
+  rb_ivar_set(resp, at_payload_id,      payload);
   return resp;
 }
 
@@ -421,12 +394,35 @@ static VALUE response_server_error_p(VALUE self) {
   return rb_ivar_get(self, at_srv_error_id);
 }
 
+static VALUE response_client_error_p(VALUE self) {
+  return rb_ivar_get(self, at_cli_error_id);
+}
+
+static VALUE response_not_found_p(VALUE self) {
+  return rb_ivar_get(self, at_not_found_id);
+}
+
+static VALUE response_unsupported_p(VALUE self) {
+  return rb_ivar_get(self, at_unsupported_id);
+}
+
 static VALUE response_trace_count_m(VALUE self) {
   return rb_ivar_get(self, at_trace_count_id);
 }
 
-static VALUE response_false(DDTRACE_UNUSED VALUE self) { return Qfalse; }
-static VALUE response_nil(DDTRACE_UNUSED VALUE self)   { return Qnil; }
+/*
+ * The raw HTTP response body from the Datadog Agent (typically JSON).
+ *
+ * The HTTP-based trace transport uses this to parse the
+ * +rate_by_service+ map that the agent returns after accepting
+ * traces, which feeds back into the client-side sampling rate
+ * decisions.  For the libdatadog transport this body is extracted
+ * from +ddog_trace_exporter_response_get_body+ on success, and is
+ * +nil+ on error or when the agent returned an empty body.
+ */
+static VALUE response_payload(VALUE self) {
+  return rb_ivar_get(self, at_payload_id);
+}
 
 /* ========================================================================
  * TraceExporter._native_new
@@ -466,8 +462,9 @@ static VALUE _native_exporter_new(
 
   /* Phase 2: create config (cleanup on error) */
   ddog_TraceExporterConfig *config = NULL;
-  ddog_trace_exporter_config_new(&config);
-  if (config == NULL) {
+  ddog_TraceExporterError *config_err = ddog_trace_exporter_config_new(&config);
+  if (config_err != NULL) {
+    ddog_trace_exporter_error_free(config_err);
     raise_error(rb_eRuntimeError, "Failed to allocate TraceExporter config");
   }
 
@@ -512,6 +509,37 @@ static VALUE _native_exporter_new(
 }
 
 /* ========================================================================
+ * GVL-release helper for ddog_trace_exporter_send_trace_chunks
+ *
+ * The send call performs blocking network I/O.  Releasing the GVL lets
+ * other Ruby threads (application code, test mock servers, etc.) run
+ * while we wait for the agent's response.
+ * ======================================================================== */
+
+typedef struct {
+  const ddog_TraceExporter     *exporter;
+  ddog_TracerTraceChunks       *chunks;
+  ddog_TraceExporterResponse  **response_out;
+  ddog_TraceExporterError      *error;
+  bool                          send_ran;
+} send_chunks_args_t;
+
+static void *send_chunks_without_gvl(void *data) {
+  send_chunks_args_t *a = (send_chunks_args_t *)data;
+  a->error = ddog_trace_exporter_send_trace_chunks(
+      a->exporter, a->chunks, a->response_out);
+  a->send_ran = true;
+  return NULL;
+}
+
+/* Helper: check for a pending Ruby exception without raising it.
+ * Returns non-zero if an exception is pending. */
+static VALUE call_thread_check_ints(DDTRACE_UNUSED VALUE ignored) {
+  rb_thread_check_ints();
+  return Qnil;
+}
+
+/* ========================================================================
  * TraceExporter#_native_send_traces
  *
  * Ruby signature:
@@ -524,7 +552,142 @@ static VALUE _native_exporter_new(
  *
  * On success returns [Response(ok: true, trace_count: N)].
  * On error returns [Response(ok: false, ...)].
+ *
+ * The chunk-building loop calls into Ruby (ENFORCE_TYPE,
+ * convert_ruby_span_to_rust) which may raise.  We use rb_ensure so
+ * that the Rust-allocated chunks are freed if an exception fires
+ * before the send consumes them.
  * ======================================================================== */
+
+/* Context shared between the body and ensure callbacks. */
+typedef struct {
+  const ddog_TraceExporter *exporter;
+  VALUE                     traces;
+  long                      trace_count;
+  ddog_TracerTraceChunks   *chunks;  /* NULL after send consumes it */
+} send_traces_ctx;
+
+/*
+ * Body: build trace chunks from Ruby spans, then send them.
+ * Passed to rb_ensure as the "try" block.
+ */
+static VALUE build_and_send_traces(VALUE arg) {
+  send_traces_ctx *ctx = (send_traces_ctx *)arg;
+
+  for (long i = 0; i < ctx->trace_count; i++) {
+    VALUE chunk_spans = rb_ary_entry(ctx->traces, i);
+    ENFORCE_TYPE(chunk_spans, T_ARRAY);
+
+    ddog_tracer_trace_chunks_begin_chunk(ctx->chunks);
+
+    long span_count = RARRAY_LEN(chunk_spans);
+    for (long j = 0; j < span_count; j++) {
+      VALUE rb_span = rb_ary_entry(chunk_spans, j);
+
+      /* convert_ruby_span_to_rust may raise (type errors, etc.).
+       * rb_ensure guarantees chunks is freed in that case. */
+      ddog_TracerSpan *rust_span = convert_ruby_span_to_rust(rb_span);
+
+      /*
+       * push_span consumes rust_span (ownership transferred to chunks).
+       * On error the span is still consumed.
+       */
+      ddog_TraceExporterError *push_err =
+          ddog_tracer_trace_chunks_push_span(ctx->chunks, rust_span);
+      if (push_err != NULL) {
+        ddog_trace_exporter_error_free(push_err);
+        /* span already consumed; continue with next */
+      }
+    }
+  }
+
+  /*
+   * Send — consumes chunks regardless of outcome.
+   *
+   * Release the GVL so that other Ruby threads (e.g. a mock agent in
+   * tests, or any application thread) can run while we block on the
+   * network I/O inside libdatadog.
+   *
+   * We use rb_thread_call_without_gvl2 instead of the plain
+   * rb_thread_call_without_gvl because the "2" variant does NOT
+   * automatically raise pending interrupts after the call returns.
+   * That matters here because chunks has already been consumed by the
+   * Rust side, and we must still inspect send_err / response before
+   * any Ruby exception is allowed to propagate — otherwise we would
+   * leak those Rust-allocated objects.
+   *
+   * An interrupt (e.g. Thread#kill) may cause rb_thread_call_without_gvl2
+   * to return *before* our function actually runs, so we loop until it
+   * does, checking for pending exceptions on each iteration.
+   */
+  ddog_TraceExporterResponse *response = NULL;
+  send_chunks_args_t args = {
+    .exporter     = ctx->exporter,
+    .chunks       = ctx->chunks,
+    .response_out = &response,
+    .error        = NULL,
+    .send_ran     = false,
+  };
+
+  int pending_exception = 0;
+  while (!args.send_ran && !pending_exception) {
+    rb_thread_call_without_gvl2(
+        send_chunks_without_gvl, &args,
+        RUBY_UBF_IO, NULL);
+
+    if (!args.send_ran) {
+      /* Check if the interrupt was caused by a pending exception */
+      rb_protect(call_thread_check_ints, Qnil, &pending_exception);
+    }
+  }
+  /* chunks is now consumed by the send; prevent the ensure from freeing it */
+  ctx->chunks = NULL;
+
+  ddog_TraceExporterError *send_err = args.error;
+
+  /* Extract the response body as a Ruby string before freeing. */
+  VALUE payload = Qnil;
+  if (response != NULL) {
+    uintptr_t body_len = 0;
+    const uint8_t *body_ptr =
+        ddog_trace_exporter_response_get_body(response, &body_len);
+    if (body_ptr != NULL && body_len > 0) {
+      payload = rb_str_new((const char *)body_ptr, (long)body_len);
+    }
+    ddog_trace_exporter_response_free(response);
+    response = NULL;
+  }
+
+  if (pending_exception) {
+    /* Clean up any Rust error before letting Ruby propagate */
+    if (send_err != NULL) ddog_trace_exporter_error_free(send_err);
+    rb_jump_tag(pending_exception);
+  }
+
+  if (send_err != NULL) {
+    ddog_TraceExporterErrorCode code = send_err->code;
+    ddog_trace_exporter_error_free(send_err);
+
+    VALUE err_resp = create_error_response(code, ctx->trace_count);
+    return rb_ary_new_from_args(1, err_resp);
+  }
+
+  VALUE ok_resp = create_ok_response(ctx->trace_count, payload);
+  return rb_ary_new_from_args(1, ok_resp);
+}
+
+/*
+ * Ensure: free chunks if they haven't been consumed by the send yet.
+ * This runs whether build_and_send_traces returned normally or raised.
+ */
+static VALUE free_chunks_if_needed(VALUE arg) {
+  send_traces_ctx *ctx = (send_traces_ctx *)arg;
+  if (ctx->chunks != NULL) {
+    ddog_tracer_trace_chunks_free(ctx->chunks);
+    ctx->chunks = NULL;
+  }
+  return Qnil;
+}
 
 static VALUE _native_send_traces(VALUE self, VALUE traces) {
   ENFORCE_TYPE(traces, T_ARRAY);
@@ -546,64 +709,23 @@ static VALUE _native_send_traces(VALUE self, VALUE traces) {
 
   /* Build trace chunks */
   ddog_TracerTraceChunks *chunks = NULL;
-  ddog_tracer_trace_chunks_new(&chunks);
-  if (chunks == NULL) {
+  ddog_TraceExporterError *chunks_err =
+      ddog_tracer_trace_chunks_new((size_t)trace_count, &chunks);
+  if (chunks_err != NULL) {
+    ddog_trace_exporter_error_free(chunks_err);
     raise_error(rb_eRuntimeError, "Failed to allocate trace chunks");
   }
 
-  for (long i = 0; i < trace_count; i++) {
-    VALUE chunk_spans = rb_ary_entry(traces, i);
-    ENFORCE_TYPE(chunk_spans, T_ARRAY);
+  send_traces_ctx ctx = {
+    .exporter    = exporter,
+    .traces      = traces,
+    .trace_count = trace_count,
+    .chunks      = chunks,
+  };
 
-    ddog_tracer_trace_chunks_begin_chunk(chunks);
-
-    long span_count = RARRAY_LEN(chunk_spans);
-    for (long j = 0; j < span_count; j++) {
-      VALUE rb_span = rb_ary_entry(chunk_spans, j);
-
-      /*
-       * convert_ruby_span_to_rust may raise (type errors, etc.).
-       * If it does, we need to free chunks.  We use rb_protect so we
-       * can clean up before re-raising.
-       */
-      ddog_TracerSpan *rust_span = convert_ruby_span_to_rust(rb_span);
-
-      /*
-       * push_span consumes rust_span (ownership transferred to chunks).
-       * On error the span is still consumed.
-       */
-      ddog_TraceExporterError *push_err =
-          ddog_tracer_trace_chunks_push_span(chunks, rust_span);
-      if (push_err != NULL) {
-        ddog_trace_exporter_error_free(push_err);
-        /* span already consumed; continue with next */
-      }
-    }
-  }
-
-  /* Send — consumes chunks regardless of outcome */
-  ddog_TraceExporterResponse *response = NULL;
-  ddog_TraceExporterError *send_err =
-      ddog_trace_exporter_send_trace_chunks(exporter, chunks, &response);
-  /* chunks is now consumed; do NOT free it */
-
-  if (response != NULL) {
-    ddog_trace_exporter_response_free(response);
-    response = NULL;
-  }
-
-  if (send_err != NULL) {
-    bool is_server_err =
-        (send_err->code == DDOG_TRACE_EXPORTER_ERROR_CODE_HTTP_SERVER);
-    ddog_trace_exporter_error_free(send_err);
-
-    VALUE err_resp = create_response(false, !is_server_err, is_server_err,
-                                      trace_count);
-    return rb_ary_new_from_args(1, err_resp);
-  }
-
-  VALUE ok_resp = create_response(true, false, false, trace_count);
-  return rb_ary_new_from_args(1, ok_resp);
+  return rb_ensure(
+      build_and_send_traces, (VALUE)&ctx,
+      free_chunks_if_needed, (VALUE)&ctx);
 }
 
 /* ========================================================================
@@ -628,19 +750,6 @@ void trace_exporter_init(VALUE tracing_module) {
   rb_define_singleton_method(tracer_span_class, "_native_from_span",
                              _native_from_span, 1);
 
-  /* Readers */
-  rb_define_method(tracer_span_class, "name",      tracer_span_name,      0);
-  rb_define_method(tracer_span_class, "service",   tracer_span_service,   0);
-  rb_define_method(tracer_span_class, "resource",  tracer_span_resource,  0);
-  rb_define_method(tracer_span_class, "type",      tracer_span_type,      0);
-  rb_define_method(tracer_span_class, "span_id",   tracer_span_span_id,   0);
-  rb_define_method(tracer_span_class, "parent_id", tracer_span_parent_id, 0);
-  rb_define_method(tracer_span_class, "trace_id",  tracer_span_trace_id,  0);
-  rb_define_method(tracer_span_class, "start",     tracer_span_start,     0);
-  rb_define_method(tracer_span_class, "duration",  tracer_span_duration,  0);
-  rb_define_method(tracer_span_class, "error",     tracer_span_error,     0);
-  rb_define_method(tracer_span_class, "get_meta",  tracer_span_get_meta,  1);
-  rb_define_method(tracer_span_class, "get_metric", tracer_span_get_metric, 1);
 
   /* ----------------------------------------------------------------
    * TraceExporter class
@@ -671,11 +780,10 @@ void trace_exporter_init(VALUE tracing_module) {
   rb_define_method(response_class, "internal_error?",  response_internal_error_p,  0);
   rb_define_method(response_class, "server_error?",    response_server_error_p,    0);
   rb_define_method(response_class, "trace_count",      response_trace_count_m,     0);
-  /* Stubs expected by Transport::Response */
-  rb_define_method(response_class, "unsupported?",     response_false,             0);
-  rb_define_method(response_class, "not_found?",       response_false,             0);
-  rb_define_method(response_class, "client_error?",    response_false,             0);
-  rb_define_method(response_class, "payload",          response_nil,               0);
+  rb_define_method(response_class, "client_error?",    response_client_error_p,    0);
+  rb_define_method(response_class, "not_found?",       response_not_found_p,       0);
+  rb_define_method(response_class, "unsupported?",     response_unsupported_p,     0);
+  rb_define_method(response_class, "payload",          response_payload,           0);
 
   /* ----------------------------------------------------------------
    * Cache Ruby intern IDs
@@ -701,12 +809,14 @@ void trace_exporter_init(VALUE tracing_module) {
   id_duration_method = rb_intern("duration");
   id_bitand          = rb_intern("&");
   id_rshift          = rb_intern(">>");
-  id_bitor           = rb_intern("|");
-  id_lshift          = rb_intern("<<");
 
   /* Response ivars */
   at_ok_id          = rb_intern("@ok");
   at_int_error_id   = rb_intern("@internal_error");
   at_srv_error_id   = rb_intern("@server_error");
+  at_cli_error_id   = rb_intern("@client_error");
+  at_not_found_id   = rb_intern("@not_found");
+  at_unsupported_id = rb_intern("@unsupported");
   at_trace_count_id = rb_intern("@trace_count");
+  at_payload_id     = rb_intern("@payload");
 }

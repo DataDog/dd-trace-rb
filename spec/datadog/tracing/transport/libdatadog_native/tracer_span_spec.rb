@@ -105,191 +105,6 @@ RSpec.describe 'Datadog::Tracing::Transport::LibdatadogNative' do
   end
 
   # ===========================================================================
-  # TracerSpan — reader methods (roundtrip: Ruby → Rust → Ruby)
-  # ===========================================================================
-
-  describe 'TracerSpan reader methods' do
-    subject(:rust_span) { tracer_span_class._native_from_span(ruby_span) }
-
-    let(:ruby_span) { make_ruby_span }
-
-    describe '#name' do
-      it 'returns the span name' do
-        expect(rust_span.name).to eq('web.request')
-      end
-    end
-
-    describe '#service' do
-      it 'returns the service name' do
-        expect(rust_span.service).to eq('test-service')
-      end
-
-      context 'when service is nil' do
-        let(:ruby_span) { make_ruby_span(service: nil) }
-
-        it 'returns an empty string' do
-          expect(rust_span.service).to eq('')
-        end
-      end
-    end
-
-    describe '#resource' do
-      it 'returns the resource' do
-        expect(rust_span.resource).to eq('GET /test')
-      end
-    end
-
-    describe '#type' do
-      it 'returns the span type' do
-        expect(rust_span.type).to eq('web')
-      end
-
-      context 'when type is nil' do
-        let(:ruby_span) { make_ruby_span(type: nil) }
-
-        it 'returns an empty string' do
-          expect(rust_span.type).to eq('')
-        end
-      end
-    end
-
-    describe '#span_id' do
-      it 'returns the span ID' do
-        expect(rust_span.span_id).to eq(12345)
-      end
-    end
-
-    describe '#parent_id' do
-      it 'returns the parent ID' do
-        expect(rust_span.parent_id).to eq(67890)
-      end
-    end
-
-    describe '#trace_id' do
-      context 'with a 128-bit trace ID' do
-        it 'preserves the full 128-bit value' do
-          expect(rust_span.trace_id).to eq(trace_id_128bit)
-        end
-      end
-
-      context 'with a 64-bit trace ID' do
-        let(:ruby_span) { make_ruby_span(trace_id: 0xDEADBEEF) }
-
-        it 'preserves the value' do
-          expect(rust_span.trace_id).to eq(0xDEADBEEF)
-        end
-      end
-
-      context 'with trace_id = 0' do
-        let(:ruby_span) { make_ruby_span(trace_id: 0) }
-
-        it 'returns 0' do
-          expect(rust_span.trace_id).to eq(0)
-        end
-      end
-
-      context 'with max 128-bit trace ID' do
-        let(:ruby_span) { make_ruby_span(trace_id: (1 << 128) - 1) }
-
-        it 'preserves the value' do
-          expect(rust_span.trace_id).to eq((1 << 128) - 1)
-        end
-      end
-    end
-
-    describe '#start' do
-      it 'returns start time in nanoseconds matching the Ruby Time' do
-        expected_ns = now.to_i * 1_000_000_000 + now.nsec
-        expect(rust_span.start).to eq(expected_ns)
-      end
-
-      context 'when start_time is nil' do
-        let(:ruby_span) { make_ruby_span(start_time: nil, duration: nil) }
-
-        it 'returns 0' do
-          expect(rust_span.start).to eq(0)
-        end
-      end
-    end
-
-    describe '#duration' do
-      it 'returns duration in nanoseconds' do
-        # 0.025 seconds = 25_000_000 nanoseconds (with floating-point tolerance)
-        expect(rust_span.duration).to be_within(1).of(25_000_000)
-      end
-
-      context 'when duration is computed from end_time - start_time' do
-        let(:ruby_span) do
-          s = make_ruby_span(duration: nil)
-          s.end_time = s.start_time + 0.1 # 100ms
-          s
-        end
-
-        it 'returns the computed duration in nanoseconds' do
-          expect(rust_span.duration).to be_within(100).of(100_000_000)
-        end
-      end
-    end
-
-    describe '#error' do
-      it 'returns the error status' do
-        expect(rust_span.error).to eq(0)
-      end
-
-      context 'when status indicates an error' do
-        let(:ruby_span) { make_ruby_span(status: 1) }
-
-        it 'returns the error value' do
-          expect(rust_span.error).to eq(1)
-        end
-      end
-    end
-
-    describe '#get_meta' do
-      it 'returns the value for an existing key' do
-        expect(rust_span.get_meta('http.method')).to eq('GET')
-        expect(rust_span.get_meta('http.url')).to eq('/test')
-      end
-
-      it 'returns nil for a missing key' do
-        expect(rust_span.get_meta('nonexistent')).to be_nil
-      end
-
-      context 'with many meta tags' do
-        let(:big_meta) do
-          50.times.each_with_object({}) { |i, h| h["tag_#{i}"] = "value_#{i}" }
-        end
-        let(:ruby_span) { make_ruby_span(meta: big_meta) }
-
-        it 'preserves all entries' do
-          big_meta.each do |key, value|
-            expect(rust_span.get_meta(key)).to eq(value), "Expected meta['#{key}'] = '#{value}'"
-          end
-        end
-      end
-    end
-
-    describe '#get_metric' do
-      it 'returns the value for an existing key' do
-        expect(rust_span.get_metric('_dd.measured')).to eq(1.0)
-        expect(rust_span.get_metric('_sampling_priority_v1')).to eq(2.0)
-      end
-
-      it 'returns nil for a missing key' do
-        expect(rust_span.get_metric('nonexistent')).to be_nil
-      end
-
-      context 'with integer metric values' do
-        let(:ruby_span) { make_ruby_span(metrics: { '_dd.top_level' => 1 }) }
-
-        it 'converts to float' do
-          expect(rust_span.get_metric('_dd.top_level')).to eq(1.0)
-        end
-      end
-    end
-  end
-
-  # ===========================================================================
   # TraceExporter — creation
   # ===========================================================================
 
@@ -551,14 +366,18 @@ RSpec.describe 'Datadog::Tracing::Transport::LibdatadogNative' do
       @mutex = Mutex.new
       @running = true
       @client_threads = []
+      @client_sockets = []
       @accept_thread = Thread.new { accept_loop }
     end
 
     def stop
       @running = false
       @server.close rescue nil
+      # Close every client socket so that handle_client threads blocked
+      # on `client.gets` will receive nil and exit their loop.
+      @mutex.synchronize { @client_sockets.each { |s| s.close rescue nil } }
       @accept_thread.join(3)
-      @client_threads.each { |t| t.join(1) rescue nil }
+      @client_threads.each { |t| t.join(3) }
     end
 
     # Returns all recorded trace requests, waiting up to +timeout+ seconds
@@ -580,6 +399,7 @@ RSpec.describe 'Datadog::Tracing::Transport::LibdatadogNative' do
       while @running
         begin
           client = @server.accept
+          @mutex.synchronize { @client_sockets << client }
           t = Thread.new(client) { |c| handle_client(c) }
           @client_threads << t
         rescue IOError, Errno::EBADF
@@ -646,6 +466,7 @@ RSpec.describe 'Datadog::Tracing::Transport::LibdatadogNative' do
       # client disconnected — that's fine
     ensure
       client.close rescue nil
+      @mutex.synchronize { @client_sockets.delete(client) }
     end
   end
 end
