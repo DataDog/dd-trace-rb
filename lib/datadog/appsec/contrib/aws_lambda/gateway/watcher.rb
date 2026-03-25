@@ -17,30 +17,8 @@ module Datadog
               def watch
                 gateway = Instrumentation.gateway
 
-                activate_context(gateway)
                 handle_request(gateway)
                 handle_response(gateway)
-              end
-
-              def activate_context(gateway = Instrumentation.gateway)
-                gateway.watch('aws_lambda.request.start') do |stack, payload|
-                  security_engine = Datadog::AppSec.security_engine
-
-                  if security_engine
-                    trace = Datadog::Tracing.active_trace
-                    span = Datadog::Tracing.active_span
-
-                    next stack.call(payload) if trace.nil? || span.nil?
-
-                    Datadog::AppSec::Context.activate(
-                      Datadog::AppSec::Context.new(trace, span, security_engine.new_runner)
-                    )
-
-                    span&.set_metric(Datadog::AppSec::Ext::TAG_APPSEC_ENABLED, 1)
-                  end
-
-                  stack.call(payload)
-                end
               end
 
               def handle_request(gateway = Instrumentation.gateway)
@@ -52,7 +30,6 @@ module Datadog
                   source_ip = payload.dig('requestContext', 'identity', 'sourceIp') ||
                     payload.dig('requestContext', 'http', 'sourceIp')
 
-                  # NOTE: Stashed on state because AppSec::Context doesn't have a request accessor yet
                   context.state[:request] = Request.new(
                     host: headers['host'],
                     user_agent: headers['user-agent'],
@@ -98,21 +75,8 @@ module Datadog
                     AppSec::ActionsHandler.handle(result.actions)
                   end
 
-                  finalize(context)
-
                   stack.call(payload)
                 end
-              end
-
-              private
-
-              def finalize(context)
-                AppSec::Event.record(context, request: context.state[:request])
-
-                context.export_metrics
-                context.export_request_telemetry
-              ensure
-                Datadog::AppSec::Context.deactivate
               end
             end
           end
