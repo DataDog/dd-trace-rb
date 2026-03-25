@@ -124,10 +124,35 @@ namespace :github do
     rng = Random.new(ENV['CI_TEST_SEED'].to_i)
 
     tasks.each do |task|
+      task_name = task["task"]
       env = {'BUNDLE_GEMFILE' => task['gemfile']}
-      cmd = "bundle exec rake spec:#{task["task"]}'[--seed #{rng.rand(0xFFFF)}]'"
+      cmd = "bundle exec rake spec:#{task_name}'[--seed #{rng.rand(0xFFFF)}]'"
 
-      Bundler.with_unbundled_env { sh(env, cmd) }
+      begin
+        Bundler.with_unbundled_env { sh(env, cmd) }
+      rescue RuntimeError => e
+        # When a rake task fails before RSpec runs (wrong task name, missing gem,
+        # syntax error), no JUnit XML is produced for that task. CI artifacts then
+        # contain only results from other tasks in the batch, hiding the failure.
+        #
+        # Write a synthetic JUnit XML so the failure is visible through the normal
+        # artifact pipeline — no log parsing needed.
+        junit_dir = 'tmp/rspec'
+        FileUtils.mkdir_p(junit_dir)
+        safe_name = task_name.tr(':', '-')
+        File.write(
+          "#{junit_dir}/#{safe_name}-rake-failure.xml",
+          <<~XML,
+            <?xml version="1.0" encoding="UTF-8"?>
+            <testsuite name="spec:#{task_name}" tests="1" failures="1" errors="0" time="0">
+              <testcase classname="rake" name="spec:#{task_name}" time="0">
+                <failure message="#{e.message.encode(xml: :text)}">Rake task failed before any tests ran.</failure>
+              </testcase>
+            </testsuite>
+          XML
+        )
+        raise
+      end
     end
   end
 
