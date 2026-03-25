@@ -453,6 +453,7 @@ namespace :spec do
     # rubocop:disable Style/MultilineBlockChain
     RSpec::Core::RakeTask.new(:di_with_ext) do |t, args|
       t.pattern = DI_WITH_EXT.join(', ')
+      t.exclude_pattern = 'spec/datadog/di/contrib/**/*_spec.rb'
       t.rspec_opts = args.to_a.join(' ')
     end.tap do |t|
       Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
