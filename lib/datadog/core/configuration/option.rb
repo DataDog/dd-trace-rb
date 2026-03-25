@@ -178,6 +178,17 @@ module Datadog
           precedence_set == Precedence::DEFAULT
         end
 
+        def values_per_precedence
+          # value_per_precedence is only filled after we call `get` once.
+          get unless @is_set
+
+          @value_per_precedence.each_with_object({}) do |(precedence, value), result|
+            next if value.equal?(UNSET)
+
+            result[precedence] = value
+          end
+        end
+
         private
 
         def coerce_env_variable(value)

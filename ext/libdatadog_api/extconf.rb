@@ -81,6 +81,8 @@ unless Datadog::LibdatadogExtconfHelpers.configure_libdatadog(extconf_folder: __
   skip_building_extension!('there was a problem in setting up the `libdatadog` dependency')
 end
 
+Datadog::LibdatadogExtconfHelpers.add_libdatadog_version_define
+
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
 # the wrong library is never loaded.
