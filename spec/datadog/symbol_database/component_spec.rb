@@ -63,6 +63,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
 
     it 'returns false and logs on Ruby < 2.6' do
+      stub_const('RUBY_ENGINE', 'ruby')
       stub_const('RUBY_VERSION', '2.5.9')
       expect(logger).to receive(:debug).with(/requires Ruby 2\.6\+/)
 
