@@ -794,7 +794,7 @@ module Datadog
       # @return [Scope] Scope object
       def self.convert_node_to_scope(node)
         # Build method scopes from collected method entries
-        method_scopes = node[:methods].filter_map do |method_info|
+        method_scopes = Core::Utils::Array.filter_map(node[:methods]) do |method_info|
           if method_info[:type] == :singleton
             build_singleton_method_scope(method_info[:method])
           else
