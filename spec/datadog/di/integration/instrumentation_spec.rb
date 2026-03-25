@@ -511,10 +511,10 @@ RSpec.describe 'Instrumentation integration' do
             expect(payload).to be_a(Hash)
             captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
             throwable = captures.fetch(:return).fetch(:throwable)
-            expect(throwable).to eq({
-              type: 'InstrumentationSpecTestClass::TestException',
-              message: 'Test exception',
-            })
+            expect(throwable[:type]).to eq('InstrumentationSpecTestClass::TestException')
+            expect(throwable[:message]).to eq('Test exception')
+            expect(throwable[:stacktrace]).to be_an(Array)
+            expect(throwable[:stacktrace]).not_to be_empty
           end
         end
 
@@ -1033,10 +1033,10 @@ RSpec.describe 'Instrumentation integration' do
           end
 
           it 'does not install the probe' do
-            expect_lazy_log(probe_manager.logger, :debug, /File matching probe path.*was loaded and is not in code tracker registry/)
+            expect_lazy_log(probe_manager.logger, :debug, /no surviving iseqs|no per-method iseqs/)
             expect do
               probe_manager.add_probe(probe)
-            end.to raise_error(Datadog::DI::Error::DITargetNotInRegistry, /File matching probe path.*was loaded and is not in code tracker registry/)
+            end.to raise_error(Datadog::DI::Error::DITargetNotInRegistry, /no surviving iseqs|no per-method iseqs/)
             expect(probe_manager.probe_repository.installed_probes.length).to eq 0
           end
         end
