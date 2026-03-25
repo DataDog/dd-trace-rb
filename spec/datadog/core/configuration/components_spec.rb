@@ -578,11 +578,25 @@ RSpec.describe Datadog::Core::Configuration::Components do
     # This should stay here, not in initialize. During reconfiguration, the order of the calls is:
     # initialize new components, shutdown old components, startup new components.
     # Because this is a singleton, if we call it in initialize, it will be shutdown right away.
-    it 'calls ProcessDiscovery' do
-      expect(Datadog::Core::ProcessDiscovery).to receive(:publish)
-        .with(settings)
+    context 'when Rails::Railtie is not defined' do
+      before { hide_const('::Rails::Railtie') }
 
-      startup!
+      it 'calls ProcessDiscovery' do
+        expect(Datadog::Core::ProcessDiscovery).to receive(:publish)
+          .with(settings)
+
+        startup!
+      end
+    end
+
+    context 'when Rails::Railtie is defined' do
+      before { stub_const('::Rails::Railtie', Class.new) }
+
+      it 'does not call ProcessDiscovery' do
+        expect(Datadog::Core::ProcessDiscovery).not_to receive(:publish)
+
+        startup!
+      end
     end
   end
 

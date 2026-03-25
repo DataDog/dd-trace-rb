@@ -51,9 +51,9 @@ RSpec.describe Datadog::Core::Contrib::Rails::Railtie do
         expect(Datadog::Core::Environment::Process.tags).not_to include(a_string_starting_with('rails.application:'))
       end
 
-      it 'does not publish to process discovery' do
+      it 'publishes to process discovery' do
         after_initialize
-        expect(Datadog::Core::ProcessDiscovery).not_to have_received(:publish)
+        expect(Datadog::Core::ProcessDiscovery).to have_received(:publish).with(Datadog.configuration)
       end
     end
   end

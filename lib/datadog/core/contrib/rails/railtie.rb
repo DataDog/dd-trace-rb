@@ -11,11 +11,12 @@ module Datadog
         # Railtie for core Rails setup that benefits all Datadog products.
         class Railtie < ::Rails::Railtie
           def self.after_initialize
-            return unless Datadog.configuration.experimental_propagate_process_tags_enabled
+            if Datadog.configuration.experimental_propagate_process_tags_enabled
+              Datadog::Core::Environment::Process.rails_application_name =
+                Datadog::Core::Contrib::Rails::Utils.app_name
+            end
 
-            Datadog::Core::Environment::Process.rails_application_name =
-              Datadog::Core::Contrib::Rails::Utils.app_name
-
+            # Process Discovery should always publish after_initialize since it has access to more information
             Datadog::Core::ProcessDiscovery.publish(Datadog.configuration)
           end
 

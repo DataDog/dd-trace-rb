@@ -222,7 +222,8 @@ module Datadog
           # This should stay here, not in initialize. During reconfiguration, the order of the calls is:
           # initialize new components, shutdown old components, startup new components.
           # Because this is a singleton, if we call it in initialize, it will be shutdown right away.
-          Core::ProcessDiscovery.publish(settings)
+          # However we need to back off if it is Rails because Rails gets more information later on from the Railtie.
+          Core::ProcessDiscovery.publish(settings) unless defined?(::Rails::Railtie)
 
           Core::Diagnostics::EnvironmentLogger.collect_and_log!(@environment_logger_extra)
         end
