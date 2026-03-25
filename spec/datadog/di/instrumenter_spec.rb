@@ -1322,11 +1322,11 @@ RSpec.describe Datadog::DI::Instrumenter do
             id: 1, type: :log)
         end
 
-        it 'raises DITargetNotInRegistry' do
+        it 'raises DITargetNotInRegistry with no surviving iseqs message' do
           expect do
             hook_line(probe) do |payload|
             end
-          end.to raise_error(Datadog::DI::Error::DITargetNotInRegistry, /File matching probe path.*was loaded and is not in code tracker registry/)
+          end.to raise_error(Datadog::DI::Error::DITargetNotInRegistry, /no surviving iseqs/)
         end
       end
 
