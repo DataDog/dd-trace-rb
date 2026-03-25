@@ -1033,10 +1033,10 @@ RSpec.describe 'Instrumentation integration' do
           end
 
           it 'does not install the probe' do
-            expect_lazy_log(probe_manager.logger, :debug, /no surviving iseqs|no per-method iseqs/)
+            expect_lazy_log(probe_manager.logger, :debug, /File matching probe path.*was loaded and is not in code tracker registry/)
             expect do
               probe_manager.add_probe(probe)
-            end.to raise_error(Datadog::DI::Error::DITargetNotInRegistry, /no surviving iseqs|no per-method iseqs/)
+            end.to raise_error(Datadog::DI::Error::DITargetNotInRegistry, /File matching probe path.*was loaded and is not in code tracker registry/)
             expect(probe_manager.probe_repository.installed_probes.length).to eq 0
           end
         end
