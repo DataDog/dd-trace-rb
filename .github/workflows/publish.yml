@@ -156,7 +156,9 @@ jobs:
     environment: "rubygems.org" # see: https://github.com/DataDog/dd-trace-rb/settings/environments
     needs: verify-checks # Make sure to release from a healthy commit
     permissions:
-      contents: write
+      # This controls whether the job can request an OIDC token from
+      # GitHub's identity provider (token.actions.githubusercontent.com).
+      id-token: write
     env:
       SKIP_SIMPLECOV: 1
     steps:
