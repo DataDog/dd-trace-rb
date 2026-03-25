@@ -11,6 +11,7 @@ RSpec.describe Datadog::Core::Contrib::Rails::Utils do
 
     let(:application) { double('custom rails', class: application_class) }
 
+    # TODO: This can be refactored in the future to use a real Rails application class instead of stubs.
     let(:rails_module) do
       version_major = 7
       application_instance = application
