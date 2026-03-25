@@ -2,6 +2,7 @@
 
 require_relative 'utils'
 require_relative '../../environment/process'
+require_relative '../../process_discovery'
 
 module Datadog
   module Core
@@ -14,6 +15,8 @@ module Datadog
 
             Datadog::Core::Environment::Process.rails_application_name =
               Datadog::Core::Contrib::Rails::Utils.app_name
+
+            Datadog::Core::ProcessDiscovery.publish(Datadog.configuration)
           end
 
           # Registered after the method definition so the method exists if on_load fires immediately

@@ -26,22 +26,34 @@ RSpec.describe Datadog::Core::Contrib::Rails::Railtie do
     context 'when experimental_propagate_process_tags_enabled is true' do
       before do
         allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
+        allow(Datadog::Core::ProcessDiscovery).to receive(:publish)
       end
 
       it 'includes the rails application name in process tags' do
         after_initialize
         expect(Datadog::Core::Environment::Process.tags).to include('rails.application:test_app')
       end
+
+      it 're-publishes to process discovery' do
+        after_initialize
+        expect(Datadog::Core::ProcessDiscovery).to have_received(:publish).with(Datadog.configuration)
+      end
     end
 
     context 'when experimental_propagate_process_tags_enabled is false' do
       before do
         allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
+        allow(Datadog::Core::ProcessDiscovery).to receive(:publish)
       end
 
       it 'does not include the rails application name in process tags' do
         after_initialize
         expect(Datadog::Core::Environment::Process.tags).not_to include(a_string_starting_with('rails.application:'))
+      end
+
+      it 'does not publish to process discovery' do
+        after_initialize
+        expect(Datadog::Core::ProcessDiscovery).not_to have_received(:publish)
       end
     end
   end
