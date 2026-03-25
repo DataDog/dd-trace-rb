@@ -13,7 +13,6 @@ module Datadog
       module AwsLambda
         module Gateway
           module Watcher
-
             class << self
               def watch
                 gateway = Instrumentation.gateway
@@ -30,6 +29,8 @@ module Datadog
                   if security_engine
                     trace = Datadog::Tracing.active_trace
                     span = Datadog::Tracing.active_span
+
+                    next stack.call(payload) if trace.nil? || span.nil?
 
                     Datadog::AppSec::Context.activate(
                       Datadog::AppSec::Context.new(trace, span, security_engine.new_runner)
