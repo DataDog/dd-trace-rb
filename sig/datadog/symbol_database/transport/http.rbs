@@ -6,7 +6,7 @@ module Datadog
 
         def self.build: (
           agent_settings: ::Datadog::Core::Configuration::AgentSettings,
-          ?logger: Core::Logger,
+          logger: untyped,
           ?headers: Hash[String, String]?
         ) ?{ (untyped) -> void } -> SymbolDatabase::Transport::Transport
       end
