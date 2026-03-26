@@ -40,6 +40,12 @@ module Datadog
           !get_environment_variable(name).nil?
         end
 
+        # Returns the source environment as a Hash. Used when the full environment
+        # must be passed through (e.g. Process.spawn child env).
+        def to_h
+          @source_env.to_h
+        end
+
         alias_method :has_key?, :key?
         alias_method :include?, :key?
         alias_method :member?, :key?

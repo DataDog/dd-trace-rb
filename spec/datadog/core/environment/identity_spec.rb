@@ -34,6 +34,50 @@ RSpec.describe Datadog::Core::Environment::Identity do
     end
   end
 
+  describe '.root_runtime_id' do
+    subject(:root_runtime_id) { described_class.root_runtime_id }
+
+    context 'in root process' do
+      it { is_expected.to be_nil }
+    end
+
+    context 'when invoked in a fork' do
+      before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
+
+      it 'equals the parent id' do
+        parent_id = described_class.id
+
+        expect_in_fork do
+          expect(described_class.id).to_not be_nil
+          expect(described_class.root_runtime_id).to_not be_nil
+          expect(described_class.id).to_not eq(root_runtime_id)
+          expect(described_class.root_runtime_id).to eq(parent_id)
+        end
+      end
+    end
+  end
+
+  describe '.parent_runtime_id' do
+    subject(:parent_runtime_id) { described_class.parent_runtime_id }
+
+    context 'in root process' do
+      it { is_expected.to be_nil }
+    end
+
+    context 'when invoked in a fork' do
+      before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
+
+      it 'equals the parent id' do
+        parent_id = described_class.id
+
+        expect_in_fork do
+          expect(described_class.id).to_not eq(parent_id)
+          expect(described_class.parent_runtime_id).to eq(parent_id)
+        end
+      end
+    end
+  end
+
   describe '::lang' do
     subject(:lang) { described_class.lang }
 
