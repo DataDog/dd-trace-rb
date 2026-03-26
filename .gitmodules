@@ -1,0 +1,4 @@
+[submodule "spec/datadog/open_feature/ffe-system-test-data"]
+	path = spec/datadog/open_feature/ffe-system-test-data
+	url = git@github.com:DataDog/ffe-system-test-data.git
+	branch = main
