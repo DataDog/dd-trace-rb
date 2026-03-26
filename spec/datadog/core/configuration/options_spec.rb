@@ -14,8 +14,9 @@ RSpec.describe Datadog::Core::Configuration::Options do
     # to make sure specs pass when comparing result ex. expect(result).to be value
     # we ensure that frozen_or_dup returns the same instance
     before do
-      allow(Datadog::Core::Utils::SafeDup).to receive(:frozen_or_dup) do |args, _block|
-        args
+      # |args, _block| is not working with arrays
+      allow(Datadog::Core::Utils::SafeDup).to receive(:frozen_or_dup) do |*args, &_block|
+        args.first
       end
     end
 
@@ -100,6 +101,41 @@ RSpec.describe Datadog::Core::Configuration::Options do
               end
             end
           end
+        end
+      end
+
+      describe '#settings_path=' do
+        subject(:set_settings_path) { options_class.settings_path = settings_path }
+
+        let(:settings_path) { 'tracing.fake_integration' }
+        let(:options_class) do
+          Class.new do
+            include Datadog::Core::Configuration::Base
+
+            option :custom_option, default: false
+
+            settings :nested do
+              option :enabled, default: true
+            end
+          end
+        end
+
+        before do
+          set_settings_path
+        end
+
+        it 'computes inherited option names from the settings path' do
+          settings = options_class.new
+
+          expect(settings.send(:resolve_option, :custom_option).name_with_settings_path)
+            .to eq('tracing.fake_integration.custom_option')
+        end
+
+        it 'computes nested option names from the settings path' do
+          settings = options_class.new
+
+          expect(settings.nested.send(:resolve_option, :enabled).name_with_settings_path)
+            .to eq('tracing.fake_integration.nested.enabled')
         end
       end
     end

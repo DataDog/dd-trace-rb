@@ -12,10 +12,6 @@ module Datadog
         class Settings
           include Core::Configuration::Base
 
-          def self.settings_path=(path)
-            @settings_path = path
-          end
-
           option :analytics_enabled, default: false
           option :analytics_sample_rate, default: 1.0
           option :enabled, default: true
