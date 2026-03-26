@@ -53,6 +53,8 @@ module Datadog
 
         def default_precedence?: () -> bool
 
+        def values_per_precedence: () -> ::Hash[Precedence::Value, option_value]
+
         def unset: (Precedence::Value precedence) -> void
 
         private

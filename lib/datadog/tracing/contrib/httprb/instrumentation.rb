@@ -35,7 +35,7 @@ module Datadog
                     global_config: Datadog.configuration.tracing[:httprb],
                     trace: trace
                   )
-                    Contrib::HTTP.inject(trace, req)
+                    Contrib::HTTP.inject(trace, req.headers)
                   end
 
                   # Add additional request specific tags to the span.

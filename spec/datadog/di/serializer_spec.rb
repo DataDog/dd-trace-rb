@@ -71,6 +71,14 @@ class DISerializerSpecFields
   end
 end
 
+class DISerializerBinaryTestClass
+  attr_reader :data
+
+  def initialize(data)
+    @data = data
+  end
+end
+
 class DISerializerStackOverflowTestClass; end
 
 class DISerializerOutOfMemoryTestClass; end

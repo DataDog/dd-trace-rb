@@ -84,6 +84,13 @@ appraise 'http' do
   gem 'typhoeus'
 end
 
+appraise 'http6' do
+  gem 'ethon'
+  gem 'http', '~> 6'
+  gem 'httpclient'
+  gem 'typhoeus'
+end
+
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
 build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
