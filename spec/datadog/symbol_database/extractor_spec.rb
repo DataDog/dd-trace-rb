@@ -64,7 +64,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       # shadowing Module#name. Bare `mod.name` raises ArgumentError; safe bind avoids it.
       mod = Class.new
       mod.define_singleton_method(:name) { |size:, region:| "#{size}-#{region}" }
-      expect(described_class.extract(mod)).to be_nil
+      expect(extractor.extract(mod)).to be_nil
     end
 
     context 'with gem code' do
@@ -354,7 +354,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         # TestNamespace::TestInnerClass is a user class and must be searchable.
         # Even though the parent TestNamespace has no methods (so it can't be extracted
         # itself), the class is extracted as a standalone FILE-wrapped scope.
-        file_scope = described_class.extract(TestNamespace::TestInnerClass)
+        file_scope = extractor.extract(TestNamespace::TestInnerClass)
 
         expect(file_scope).not_to be_nil
         expect(file_scope.scope_type).to eq('FILE')
@@ -367,7 +367,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       it 'extracts namespace-only module via const_source_location fallback (Ruby 2.7+)' do
         # TestNamespace has no methods but has a constant (TestInnerClass).
         # On Ruby 2.7+, const_source_location finds the module's source via its constants.
-        file_scope = described_class.extract(TestNamespace)
+        file_scope = extractor.extract(TestNamespace)
 
         if Module.method_defined?(:const_source_location) || TestNamespace.respond_to?(:const_source_location)
           expect(file_scope).not_to be_nil
@@ -401,7 +401,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts the parent MODULE without nested classes (nesting is via extract_all)' do
-        file_scope = described_class.extract(TestNsModule)
+        file_scope = extractor.extract(TestNsModule)
 
         expect(file_scope).not_to be_nil
         expect(file_scope.scope_type).to eq('FILE')
@@ -415,7 +415,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
 
       it 'also extracts the nested class as its own root FILE scope' do
         # The nested class is extractable independently — it has a user code source file.
-        file_scope = described_class.extract(TestNsModule::TestNsClass)
+        file_scope = extractor.extract(TestNsModule::TestNsClass)
 
         expect(file_scope).not_to be_nil
         expect(file_scope.scope_type).to eq('FILE')
@@ -1447,7 +1447,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       it 'returns nil for empty top-level class (no methods, no constants, no vars)' do
         filename = create_user_code_file("class TestEmptyClass; end")
         load filename
-        expect(described_class.extract(TestEmptyClass)).to be_nil
+        expect(extractor.extract(TestEmptyClass)).to be_nil
         Object.send(:remove_const, :TestEmptyClass)
         cleanup_user_code_file(filename)
       end
@@ -1455,7 +1455,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       it 'returns nil for empty top-level module' do
         filename = create_user_code_file("module TestEmptyModule; end")
         load filename
-        expect(described_class.extract(TestEmptyModule)).to be_nil
+        expect(extractor.extract(TestEmptyModule)).to be_nil
         Object.send(:remove_const, :TestEmptyModule)
         cleanup_user_code_file(filename)
       end
@@ -1468,7 +1468,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         RUBY
         load filename
 
-        scope = described_class.extract(TestConstOnlyClass)
+        scope = extractor.extract(TestConstOnlyClass)
         if TestConstOnlyClass.respond_to?(:const_source_location)
           # Ruby 2.7+: const_source_location finds source via constants
           expect(scope).not_to be_nil
@@ -1503,7 +1503,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts deeply nested class (A::B::C) as standalone root scope' do
-        scope = described_class.extract(TestA::TestB::TestC)
+        scope = extractor.extract(TestA::TestB::TestC)
         expect(scope).not_to be_nil
         expect(scope.scope_type).to eq('FILE')
         expect(scope.name).to eq(scope.source_file)
@@ -1514,12 +1514,12 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         # On Ruby 2.7+: TestA has const TestB (a module), TestA::TestB has const TestC (a class).
         # const_source_location finds the source file via these constants, so both modules ARE extracted.
         if TestA.respond_to?(:const_source_location)
-          expect(described_class.extract(TestA)).not_to be_nil
-          expect(described_class.extract(TestA::TestB)).not_to be_nil
+          expect(extractor.extract(TestA)).not_to be_nil
+          expect(extractor.extract(TestA::TestB)).not_to be_nil
         else
           # Ruby < 2.7: no const_source_location, namespace modules without methods return nil
-          expect(described_class.extract(TestA)).to be_nil
-          expect(described_class.extract(TestA::TestB)).to be_nil
+          expect(extractor.extract(TestA)).to be_nil
+          expect(extractor.extract(TestA::TestB)).to be_nil
         end
       end
 
@@ -1528,7 +1528,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         # because const_source_location propagates source file through the chain.
         # Use explicit module list rather than ObjectSpace to avoid cross-test pollution.
         mods = [TestA, TestA::TestB, TestA::TestB::TestC]
-        extracted = Datadog::Core::Utils::Array.filter_map(mods) { |mod| described_class.extract(mod) }
+        extracted = Datadog::Core::Utils::Array.filter_map(mods) { |mod| extractor.extract(mod) }
 
         # All scopes are FILE-wrapped. Inner scope names distinguish modules from classes.
         if TestA.respond_to?(:const_source_location)
@@ -1563,7 +1563,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         allow(TestARStyleModel).to receive(:instance_method).with(:gem_generated_method).and_return(gem_method)
         allow(TestARStyleModel).to receive(:singleton_methods).with(false).and_return([])
 
-        expect(described_class.extract(TestARStyleModel)).to be_nil
+        expect(extractor.extract(TestARStyleModel)).to be_nil
 
         Object.send(:remove_const, :TestARStyleModel)
         cleanup_user_code_file(filename)
@@ -1580,7 +1580,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
           end
         RUBY
         load filename
-        expect(described_class.extract(TestClassVarOnly)).to be_nil
+        expect(extractor.extract(TestClassVarOnly)).to be_nil
         Object.send(:remove_const, :TestClassVarOnly)
         cleanup_user_code_file(filename)
       end
@@ -1597,7 +1597,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
           end
         RUBY
         load filename
-        file_scope = described_class.extract(TestValueConstModule)
+        file_scope = extractor.extract(TestValueConstModule)
         if TestValueConstModule.respond_to?(:const_source_location)
           expect(file_scope).not_to be_nil
           expect(file_scope.scope_type).to eq('FILE')
@@ -1626,7 +1626,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         load filename
 
         # TestNsFileHash has no methods but has a class constant — extracted via const_source_location
-        scope = described_class.extract(TestNsFileHash)
+        scope = extractor.extract(TestNsFileHash)
         expect(scope).not_to be_nil
         expect(scope.language_specifics[:file_hash]).not_to be_nil
         expect(scope.language_specifics[:file_hash]).to match(/\A[0-9a-f]{40}\z/)
@@ -1656,7 +1656,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
 
         # TestConcernNoMethods has a singleton method (self.included) → source_location
         # points to the file → extracted
-        file_scope = described_class.extract(TestConcernNoMethods)
+        file_scope = extractor.extract(TestConcernNoMethods)
         expect(file_scope).not_to be_nil
         expect(file_scope.scope_type).to eq('FILE')
         module_scope = file_scope.scopes.first
@@ -1696,14 +1696,14 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'captures protected visibility' do
-        class_scope = described_class.extract(TestProtectedClass).scopes.first
+        class_scope = extractor.extract(TestProtectedClass).scopes.first
 
         protected_method = class_scope.scopes.find { |s| s.name == 'protected_method' }
         expect(protected_method.language_specifics[:visibility]).to eq('protected')
       end
 
       it 'extracts all three visibility levels' do
-        class_scope = described_class.extract(TestProtectedClass).scopes.first
+        class_scope = extractor.extract(TestProtectedClass).scopes.first
 
         visibilities = class_scope.scopes.map { |s| s.language_specifics[:visibility] }
         expect(visibilities).to include('public', 'protected', 'private')
@@ -1734,21 +1734,21 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts attr_reader as METHOD scope' do
-        class_scope = described_class.extract(TestAttrClass).scopes.first
+        class_scope = extractor.extract(TestAttrClass).scopes.first
         method_names = class_scope.scopes.map(&:name)
 
         expect(method_names).to include('read_only')
       end
 
       it 'extracts attr_writer as METHOD scope' do
-        class_scope = described_class.extract(TestAttrClass).scopes.first
+        class_scope = extractor.extract(TestAttrClass).scopes.first
         method_names = class_scope.scopes.map(&:name)
 
         expect(method_names).to include('write_only=')
       end
 
       it 'extracts attr_accessor as both reader and writer METHOD scopes' do
-        class_scope = described_class.extract(TestAttrClass).scopes.first
+        class_scope = extractor.extract(TestAttrClass).scopes.first
         method_names = class_scope.scopes.map(&:name)
 
         expect(method_names).to include('read_write')
@@ -1779,7 +1779,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'captures prepended modules in language_specifics' do
-        class_scope = described_class.extract(TestPrependedClass).scopes.first
+        class_scope = extractor.extract(TestPrependedClass).scopes.first
 
         expect(class_scope.language_specifics[:prepended_modules]).to include('TestPrependModule')
       end
@@ -1803,7 +1803,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts required, optional, rest, keyword, and keyrest parameters' do
-        class_scope = described_class.extract(TestAllParamsClass).scopes.first
+        class_scope = extractor.extract(TestAllParamsClass).scopes.first
         method_scope = class_scope.scopes.find { |s| s.name == 'method_with_all_params' }
 
         param_names = method_scope.symbols.map(&:name)
@@ -1818,7 +1818,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'skips block parameters' do
-        class_scope = described_class.extract(TestAllParamsClass).scopes.first
+        class_scope = extractor.extract(TestAllParamsClass).scopes.first
         method_scope = class_scope.scopes.find { |s| s.name == 'method_with_all_params' }
 
         param_names = method_scope.symbols.map(&:name)
@@ -1827,7 +1827,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'all extracted parameters are ARG symbol type' do
-        class_scope = described_class.extract(TestAllParamsClass).scopes.first
+        class_scope = extractor.extract(TestAllParamsClass).scopes.first
         method_scope = class_scope.scopes.find { |s| s.name == 'method_with_all_params' }
 
         method_scope.symbols.each do |sym|
@@ -1867,7 +1867,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts method containing begin/rescue/ensure' do
-        class_scope = described_class.extract(TestExceptionClass).scopes.first
+        class_scope = extractor.extract(TestExceptionClass).scopes.first
         method_scope = class_scope.scopes.find { |s| s.name == 'method_with_rescue' }
 
         expect(method_scope).not_to be_nil
@@ -1875,7 +1875,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts parameters from method with exception handling' do
-        class_scope = described_class.extract(TestExceptionClass).scopes.first
+        class_scope = extractor.extract(TestExceptionClass).scopes.first
         method_scope = class_scope.scopes.find { |s| s.name == 'method_with_rescue' }
 
         param_names = method_scope.symbols.map(&:name)
@@ -1905,7 +1905,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts dynamically defined methods' do
-        class_scope = described_class.extract(TestDefineMethodClass).scopes.first
+        class_scope = extractor.extract(TestDefineMethodClass).scopes.first
         method_names = class_scope.scopes.map(&:name)
 
         expect(method_names).to include('dynamic_method')
@@ -1913,7 +1913,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts parameters from define_method' do
-        class_scope = described_class.extract(TestDefineMethodClass).scopes.first
+        class_scope = extractor.extract(TestDefineMethodClass).scopes.first
         method_scope = class_scope.scopes.find { |s| s.name == 'dynamic_method' }
 
         param_names = method_scope.symbols.map(&:name)
@@ -1940,7 +1940,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts Struct-based class' do
-        scope = described_class.extract(TestStructClass)
+        scope = extractor.extract(TestStructClass)
 
         expect(scope).not_to be_nil
         expect(scope.scope_type).to eq('FILE')
@@ -1948,7 +1948,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts user-defined methods on Struct' do
-        class_scope = described_class.extract(TestStructClass).scopes.first
+        class_scope = extractor.extract(TestStructClass).scopes.first
         method_names = class_scope.scopes.map(&:name)
 
         expect(method_names).to include('greeting')
@@ -1979,7 +1979,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts methods added via class_eval' do
-        class_scope = described_class.extract(TestClassEvalTarget).scopes.first
+        class_scope = extractor.extract(TestClassEvalTarget).scopes.first
         method_names = class_scope.scopes.map(&:name)
 
         expect(method_names).to include('original_method')
@@ -1987,7 +1987,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts parameters from class_eval methods' do
-        class_scope = described_class.extract(TestClassEvalTarget).scopes.first
+        class_scope = extractor.extract(TestClassEvalTarget).scopes.first
         method_scope = class_scope.scopes.find { |s| s.name == 'eval_added_method' }
 
         param_names = method_scope.symbols.map(&:name)
@@ -2011,7 +2011,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       it 'returns nil for class defined via eval (source_location is "(eval)")' do
         # eval-defined methods have source_location ["(eval)", N] which is
         # correctly filtered by user_code_path? (includes '(eval)' check)
-        scope = described_class.extract(TestEvalDefinedClass)
+        scope = extractor.extract(TestEvalDefinedClass)
         expect(scope).to be_nil
       end
     end
@@ -2035,7 +2035,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts method defined from lambda' do
-        class_scope = described_class.extract(TestDefineMethodLambda).scopes.first
+        class_scope = extractor.extract(TestDefineMethodLambda).scopes.first
         method_names = class_scope.scopes.map(&:name)
 
         expect(method_names).to include('from_lambda')
@@ -2043,7 +2043,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts lambda parameters' do
-        class_scope = described_class.extract(TestDefineMethodLambda).scopes.first
+        class_scope = extractor.extract(TestDefineMethodLambda).scopes.first
         method_scope = class_scope.scopes.find { |s| s.name == 'from_lambda' }
 
         param_names = method_scope.symbols.map(&:name)
@@ -2068,7 +2068,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts user-defined methods on OpenStruct subclass' do
-        scope = described_class.extract(TestOpenStructChild)
+        scope = extractor.extract(TestOpenStructChild)
 
         expect(scope).not_to be_nil
         class_scope = scope.scopes.first
@@ -2077,7 +2077,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'includes OpenStruct as superclass in language_specifics' do
-        class_scope = described_class.extract(TestOpenStructChild).scopes.first
+        class_scope = extractor.extract(TestOpenStructChild).scopes.first
         expect(class_scope.language_specifics[:super_classes]).to include('OpenStruct')
       end
     end
@@ -2102,7 +2102,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts the refinement module itself (has a singleton method)' do
-        file_scope = described_class.extract(TestRefinementModule)
+        file_scope = extractor.extract(TestRefinementModule)
         expect(file_scope).not_to be_nil
         module_scope = file_scope.scopes.first
         expect(module_scope.scope_type).to eq('MODULE')
@@ -2121,6 +2121,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
     context 'with singleton/eigenclass methods (upload_class_methods: true)' do
       # Ported from Java: tests static methods. Ruby equivalent is singleton methods.
       before do
+        allow(settings.symbol_database.internal).to receive(:upload_class_methods).and_return(true)
         @filename = create_user_code_file(<<~RUBY)
           class TestSingletonMethodsClass
             def self.class_method_one(param)
@@ -2145,7 +2146,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts singleton methods when upload_class_methods is true' do
-        scope = described_class.extract(TestSingletonMethodsClass, upload_class_methods: true)
+        scope = extractor.extract(TestSingletonMethodsClass)
         class_scope = scope.scopes.first
         method_names = class_scope.scopes.map(&:name)
 
@@ -2155,7 +2156,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'marks singleton methods with method_type: class' do
-        scope = described_class.extract(TestSingletonMethodsClass, upload_class_methods: true)
+        scope = extractor.extract(TestSingletonMethodsClass)
         class_scope = scope.scopes.first
 
         cm = class_scope.scopes.find { |s| s.name == 'class_method_one' }
@@ -2166,7 +2167,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts parameters from singleton methods' do
-        scope = described_class.extract(TestSingletonMethodsClass, upload_class_methods: true)
+        scope = extractor.extract(TestSingletonMethodsClass)
         class_scope = scope.scopes.first
 
         cm = class_scope.scopes.find { |s| s.name == 'class_method_one' }
@@ -2182,20 +2183,20 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       # and SymDBEnablementTest: noIncludesFilterOutDatadogClass
 
       it 'returns nil for Datadog internal classes' do
-        expect(described_class.extract(Datadog::SymbolDatabase::Extractor)).to be_nil
-        expect(described_class.extract(Datadog::SymbolDatabase::Scope)).to be_nil
-        expect(described_class.extract(Datadog::SymbolDatabase::Component)).to be_nil
+        expect(extractor.extract(Datadog::SymbolDatabase::Extractor)).to be_nil
+        expect(extractor.extract(Datadog::SymbolDatabase::Scope)).to be_nil
+        expect(extractor.extract(Datadog::SymbolDatabase::Component)).to be_nil
       end
 
       it 'returns nil for Ruby stdlib classes' do
-        expect(described_class.extract(File)).to be_nil
-        expect(described_class.extract(Dir)).to be_nil
-        expect(described_class.extract(IO)).to be_nil
+        expect(extractor.extract(File)).to be_nil
+        expect(extractor.extract(Dir)).to be_nil
+        expect(extractor.extract(IO)).to be_nil
       end
 
       it 'returns nil for gem classes' do
-        expect(described_class.extract(RSpec)).to be_nil
-        expect(described_class.extract(RSpec::Core::Example)).to be_nil
+        expect(extractor.extract(RSpec)).to be_nil
+        expect(extractor.extract(RSpec::Core::Example)).to be_nil
       end
     end
 
@@ -2229,7 +2230,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts methods that contain blocks' do
-        class_scope = described_class.extract(TestBlockClass).scopes.first
+        class_scope = extractor.extract(TestBlockClass).scopes.first
         method_names = class_scope.scopes.map(&:name)
 
         expect(method_names).to include('method_with_block')
@@ -2237,7 +2238,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts lambda constants as STATIC_FIELD symbols' do
-        class_scope = described_class.extract(TestBlockClass).scopes.first
+        class_scope = extractor.extract(TestBlockClass).scopes.first
         constant_names = class_scope.symbols.map(&:name)
 
         expect(constant_names).to include('MY_LAMBDA')
@@ -2256,8 +2257,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         RUBY
         load filename
 
-        scope1 = described_class.extract(TestDuplicateClass)
-        scope2 = described_class.extract(TestDuplicateClass)
+        scope1 = extractor.extract(TestDuplicateClass)
+        scope2 = extractor.extract(TestDuplicateClass)
 
         # Same class should produce identical extractions
         expect(scope1.to_json).to eq(scope2.to_json)
@@ -2270,11 +2271,11 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
 
   describe '.user_code_module?' do
     it 'returns false for Datadog namespace' do
-      expect(described_class.send(:user_code_module?, Datadog::SymbolDatabase::Extractor)).to be false
+      expect(extractor.send(:user_code_module?, Datadog::SymbolDatabase::Extractor)).to be false
     end
 
     it 'returns false for anonymous modules' do
-      expect(described_class.send(:user_code_module?, Module.new)).to be false
+      expect(extractor.send(:user_code_module?, Module.new)).to be false
     end
 
     it 'returns false for C-implemented Ruby internals (ThreadGroup, Thread::Backtrace, RubyVM)' do
@@ -2282,9 +2283,9 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       # so find_source_file falls back to const_source_location, which returns ["<main>", 0]
       # for their nested constants — a pseudo-path that is not an absolute path.
       # See: Pitfall 25, tmp/reproduce_threadgroup_leak.rb
-      expect(described_class.send(:user_code_module?, ThreadGroup)).to be false
-      expect(described_class.send(:user_code_module?, Thread::Backtrace)).to be false
-      expect(described_class.send(:user_code_module?, RubyVM)).to be false
+      expect(extractor.send(:user_code_module?, ThreadGroup)).to be false
+      expect(extractor.send(:user_code_module?, Thread::Backtrace)).to be false
+      expect(extractor.send(:user_code_module?, RubyVM)).to be false
     end
 
     it 'returns true for user code class' do
@@ -2295,7 +2296,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       RUBY
       load user_file
 
-      expect(described_class.send(:user_code_module?, TestUserCodeModuleCheck)).to be true
+      expect(extractor.send(:user_code_module?, TestUserCodeModuleCheck)).to be true
 
       Object.send(:remove_const, :TestUserCodeModuleCheck)
       cleanup_user_code_file(user_file)
@@ -2317,7 +2318,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       allow(TestMixedSourceModule).to receive(:instance_method).with(:gem_method).and_return(gem_method)
       allow(TestMixedSourceModule).to receive(:instance_method).with(:user_method).and_return(user_method)
 
-      expect(described_class.send(:user_code_module?, TestMixedSourceModule)).to be true
+      expect(extractor.send(:user_code_module?, TestMixedSourceModule)).to be true
 
       Object.send(:remove_const, :TestMixedSourceModule)
       cleanup_user_code_file(user_file)
@@ -2333,7 +2334,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       allow(mod).to receive(:instance_method).with(:gem_method).and_return(gem_method)
       allow(mod).to receive(:singleton_methods).with(false).and_return([])
 
-      expect(described_class.send(:user_code_module?, mod)).to be false
+      expect(extractor.send(:user_code_module?, mod)).to be false
     end
 
     it 'returns false for stdlib class monkey-patched by Datadog instrumentation' do
@@ -2353,7 +2354,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       allow(mod).to receive(:instance_method).with(:get).and_return(stdlib_method)
       allow(mod).to receive(:singleton_methods).with(false).and_return([])
 
-      expect(described_class.send(:user_code_module?, mod)).to be false
+      expect(extractor.send(:user_code_module?, mod)).to be false
     end
   end
 
@@ -2382,8 +2383,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       # "<main>" line 0 is Ruby's sentinel for constants assigned during C startup
       # (before any .rb file runs). Affects ThreadGroup::Default, Thread::Backtrace::Location,
       # RubyVM::InstructionSequence, etc. See: Pitfall 25, tmp/reproduce_threadgroup_leak.rb
-      expect(described_class.send(:user_code_path?, '<main>')).to be false
-      expect(described_class.send(:user_code_path?, 'ruby')).to be false
+      expect(extractor.send(:user_code_path?, '<main>')).to be false
+      expect(extractor.send(:user_code_path?, 'ruby')).to be false
     end
 
     it 'returns false for eval paths' do
@@ -2410,11 +2411,11 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       # When dd-trace-rb instruments stdlib classes like Net::HTTP, the patched method
       # source points to lib/datadog/tracing/contrib/. Without this exclusion,
       # Net::HTTP would be incorrectly classified as user code.
-      expect(described_class.send(:user_code_path?,
+      expect(extractor.send(:user_code_path?,
         '/home/user/.gem/ruby/3.2.0/gems/datadog-2.0.0/lib/datadog/tracing/contrib/http/instrumentation.rb')).to be false
-      expect(described_class.send(:user_code_path?,
+      expect(extractor.send(:user_code_path?,
         '/real.home/user/dtr/lib/datadog/tracing/contrib/http/instrumentation.rb')).to be false
-      expect(described_class.send(:user_code_path?,
+      expect(extractor.send(:user_code_path?,
         '/app/vendor/bundle/lib/datadog/core/pin.rb')).to be false
     end
 

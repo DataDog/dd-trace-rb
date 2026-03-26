@@ -81,7 +81,8 @@ module Datadog
         @logger = logger
         @telemetry = telemetry
 
-        # Build uploader and scope context
+        # Build components
+        @extractor = Extractor.new(logger: logger, settings: settings, telemetry: telemetry)
         @uploader = Uploader.new(settings, agent_settings, logger: logger, telemetry: telemetry)
         @scope_context = ScopeContext.new(@uploader, logger: logger, telemetry: telemetry)
 
@@ -233,8 +234,7 @@ module Datadog
 
           # Extract symbols from all loaded modules grouped by source file.
           # extract_all handles ObjectSpace iteration, filtering, and FQN-based nesting.
-          upload_class_methods = @settings.symbol_database.internal.upload_class_methods
-          file_scopes = Extractor.extract_all(logger: @logger, upload_class_methods: upload_class_methods)
+          file_scopes = @extractor.extract_all
           extracted_count = 0
           file_scopes.each do |scope|
             @scope_context.add_scope(scope)
