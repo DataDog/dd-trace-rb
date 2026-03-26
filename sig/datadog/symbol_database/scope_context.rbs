@@ -9,6 +9,8 @@ module Datadog
 
       @uploader: Uploader
 
+      @logger: Logger
+
       @telemetry: untyped
 
       @on_upload: Proc?
@@ -25,7 +27,7 @@ module Datadog
 
       @uploaded_modules: Set[String?]
 
-      def initialize: (Uploader uploader, ?telemetry: untyped, ?on_upload: Proc?, ?timer_enabled: bool) -> void
+      def initialize: (Uploader uploader, logger: Logger, ?telemetry: untyped, ?on_upload: Proc?, ?timer_enabled: bool) -> void
 
       def add_scope: (Scope scope) -> void
 

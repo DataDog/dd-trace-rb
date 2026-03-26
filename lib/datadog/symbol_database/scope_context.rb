@@ -36,7 +36,7 @@ module Datadog
       # @param telemetry [Telemetry, nil] Optional telemetry for metrics
       # @param on_upload [Proc, nil] Optional callback called after upload (for testing)
       # @param timer_enabled [Boolean] Enable async timer (default true, false for tests)
-      def initialize(uploader, logger: Datadog.logger, telemetry: nil, on_upload: nil, timer_enabled: true)
+      def initialize(uploader, logger:, telemetry: nil, on_upload: nil, timer_enabled: true)
         @uploader = uploader
         @logger = logger
         @telemetry = telemetry
@@ -70,7 +70,7 @@ module Datadog
           # Check if already uploaded
           # steep:ignore:start
           if @uploaded_modules.include?(scope.name)
-            @logger.trace { "symdb: skipping #{scope.name}: already uploaded" } if @logger.respond_to?(:trace)
+            @logger.trace { "symdb: skipping #{scope.name}: already uploaded" }
             return
           end
 

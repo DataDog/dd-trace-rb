@@ -1,11 +1,19 @@
 # frozen_string_literal: true
 
+require 'datadog/symbol_database/logger'
 require 'datadog/symbol_database/scope_context'
 require 'datadog/symbol_database/scope'
 
 RSpec.describe Datadog::SymbolDatabase::ScopeContext do
   let(:uploader) { instance_double(Datadog::SymbolDatabase::Uploader) }
-  let(:logger) { instance_double(Logger, debug: nil) }
+  let(:raw_logger) { instance_double(Logger, debug: nil) }
+  let(:settings) do
+    s = double('settings')
+    symdb = double('symbol_database', internal: double('internal', trace_logging: false))
+    allow(s).to receive(:symbol_database).and_return(symdb)
+    s
+  end
+  let(:logger) { Datadog::SymbolDatabase::Logger.new(settings, raw_logger) }
   let(:test_scope) { Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'TestClass') }
 
   subject(:context) { described_class.new(uploader, logger: logger) }
@@ -134,7 +142,7 @@ RSpec.describe Datadog::SymbolDatabase::ScopeContext do
 
         # Try to add one more
         extra_scope = Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'ExtraClass')
-        expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/file limit.*reached/i) }
+        expect(raw_logger).to receive(:debug) { |&block| expect(block.call).to match(/file limit.*reached/i) }
 
         context.add_scope(extra_scope)
 

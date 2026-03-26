@@ -4,6 +4,7 @@ require 'spec_helper'
 require 'datadog/symbol_database/component'
 require 'datadog/symbol_database/uploader'
 require 'datadog/symbol_database/scope_context'
+require 'datadog/symbol_database/logger'
 require 'datadog/symbol_database/scope'
 
 # Integration test: validates that telemetry calls use the correct API
@@ -44,7 +45,7 @@ RSpec.describe 'Symbol Database Telemetry Integration' do
   end
 
   describe 'Uploader telemetry calls' do
-    subject(:uploader) { Datadog::SymbolDatabase::Uploader.new(config, agent_settings, telemetry: telemetry) }
+    subject(:uploader) { Datadog::SymbolDatabase::Uploader.new(config, agent_settings, logger: instance_double(Logger, debug: nil), telemetry: telemetry) }
 
     it 'calls inc and distribution with correct signatures on successful upload' do
       allow(mock_transport).to receive(:send_symdb_payload)
@@ -72,7 +73,15 @@ RSpec.describe 'Symbol Database Telemetry Integration' do
   describe 'ScopeContext telemetry calls' do
     let(:mock_uploader) { instance_double(Datadog::SymbolDatabase::Uploader) }
 
-    subject(:scope_context) { Datadog::SymbolDatabase::ScopeContext.new(mock_uploader, telemetry: telemetry, timer_enabled: false) }
+    let(:sc_settings) do
+      s = double('settings')
+      symdb = double('symbol_database', internal: double('internal', trace_logging: false))
+      allow(s).to receive(:symbol_database).and_return(symdb)
+      s
+    end
+    let(:sc_logger) { Datadog::SymbolDatabase::Logger.new(sc_settings, instance_double(Logger, debug: nil)) }
+
+    subject(:scope_context) { Datadog::SymbolDatabase::ScopeContext.new(mock_uploader, logger: sc_logger, telemetry: telemetry, timer_enabled: false) }
 
     after { scope_context.reset }
 
