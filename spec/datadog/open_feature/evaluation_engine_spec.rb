@@ -144,11 +144,70 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         )
       end
 
-      it 'returns resolved value and reports exposure' do
+      it 'returns resolved value with MATCH reason and reports exposure' do
         expect(reporter).to receive(:report)
           .with(kind_of(Datadog::OpenFeature::ResolutionDetails), flag_key: 'test', context: evaluation_context)
 
         expect(result.value).to eq('hello')
+        expect(result.reason).to eq('MATCH')
+      end
+    end
+
+    context 'when binding evaluator returns static resolution details' do
+      before do
+        allow(evaluator).to receive(:get_assignment).and_return(details)
+        engine.reconfigure!(configuration)
+      end
+
+      let(:details) do
+        Datadog::OpenFeature::ResolutionDetails.new(
+          value: 'hello',
+          variant: 'control',
+          error_code: nil,
+          error_message: nil,
+          reason: 'STATIC',
+          flag_metadata: {},
+          extra_logging: {},
+          error?: false,
+          log?: true
+        )
+      end
+
+      it 'returns resolved value with STATIC reason and reports exposure' do
+        expect(reporter).to receive(:report)
+          .with(kind_of(Datadog::OpenFeature::ResolutionDetails), flag_key: 'test', context: nil)
+
+        expect(result.value).to eq('hello')
+        expect(result.reason).to eq('STATIC')
+      end
+    end
+
+    context 'when binding evaluator returns split resolution details' do
+      before do
+        allow(evaluator).to receive(:get_assignment).and_return(details)
+        engine.reconfigure!(configuration)
+      end
+
+      let(:details) do
+        Datadog::OpenFeature::ResolutionDetails.new(
+          value: 'hello',
+          variant: 'blue',
+          error_code: nil,
+          error_message: nil,
+          reason: 'SPLIT',
+          flag_metadata: {},
+          extra_logging: {},
+          error?: false,
+          log?: true
+        )
+      end
+
+      it 'returns resolved value with SPLIT reason and reports exposure' do
+        expect(reporter).to receive(:report)
+          .with(kind_of(Datadog::OpenFeature::ResolutionDetails), flag_key: 'test', context: nil)
+
+        expect(result.value).to eq('hello')
+        expect(result.reason).to eq('SPLIT')
       end
     end
   end
