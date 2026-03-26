@@ -46,8 +46,8 @@ module Datadog
 
           security_engine = SecurityEngine::Engine.new(appsec_settings: settings.appsec, telemetry: telemetry)
           new(security_engine: security_engine, telemetry: telemetry)
-        rescue
-          Datadog.logger.warn('AppSec is disabled, see logged errors above')
+        rescue => e
+          Datadog.logger.warn("AppSec is disabled: #{e.class}: #{e.message}. See logged errors above")
 
           nil
         end
