@@ -169,15 +169,22 @@ module Datadog
       # so a class reopened across two files produces two FILE scopes, each with only
       # the methods defined in that file.
       #
-      # @param upload_class_methods [Boolean] Whether to include singleton methods
       # @return [Array<Scope>] Array of FILE scopes
-      def self.extract_all(logger: Datadog.logger, upload_class_methods: false)
-        entries = collect_extractable_modules(logger: logger, upload_class_methods: upload_class_methods)
-        file_trees = build_file_trees(entries, logger: logger)
+      def extract_all
+        entries = collect_extractable_modules
+        file_trees = build_file_trees(entries)
         convert_trees_to_scopes(file_trees)
       rescue => e
-        logger.debug { "symdb: error in extract_all: #{e.class}: #{e}" }
+        @logger.debug { "symdb: error in extract_all: #{e.class}: #{e}" }
         []
+      end
+
+      private
+
+      # Whether to include class methods (def self.foo) in extraction.
+      # Read from settings on each call so it tracks config changes.
+      def upload_class_methods?
+        @settings.symbol_database.internal.upload_class_methods
       end
 
       # Safe Module#name lookup — some classes override the singleton `name` method
@@ -185,7 +192,7 @@ module Datadog
       # which shadows Module#name and raises ArgumentError when called without args).
       # @param mod [Module] The module
       # @return [String, nil] Module name or nil
-      def self.safe_mod_name(mod)
+      def safe_mod_name(mod)
         Module.instance_method(:name).bind(mod).call
       rescue
         nil
@@ -428,7 +435,7 @@ module Datadog
           start_line: start_line,
           end_line: end_line,
           language_specifics: build_class_language_specifics(klass),
-          scopes: extract_method_scopes(klass, upload_class_methods: upload_class_methods),
+          scopes: extract_method_scopes(klass),
           symbols: extract_class_symbols(klass)
         )
         # steep:ignore:end
@@ -701,11 +708,9 @@ module Datadog
           # Skip block parameters for MVP
           next if param_type == :block
 
-          # Skip if param_name is nil (defensive)
-          if param_name.nil?
-            Datadog.logger.trace { "symdb: param_name is nil for #{method_name}, param_type: #{param_type}" } if Datadog.logger.respond_to?(:trace)
-            next
-          end
+          # Skip if param_name is nil — normal for generated methods (attr_writer, attr_accessor).
+          # See pitfall 37 and specs/json-schema.md "Discovered During Implementation".
+          next if param_name.nil?
 
           # Skip if param_name is nil — normal for generated methods (attr_writer, attr_accessor).
           # See pitfall 37 and specs/json-schema.md "Discovered During Implementation".
