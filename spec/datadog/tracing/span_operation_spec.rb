@@ -824,6 +824,62 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         expect(span_op.finish).to be(original_span)
       end
     end
+
+    describe '_dd.base_service tag' do
+      let(:global_service) { 'global-app' }
+
+      before do
+        allow(Datadog.configuration).to receive(:service).and_return(global_service)
+      end
+
+      context 'when span service differs from the global service' do
+        let(:options) { {service: 'other-service'} }
+
+        it 'sets _dd.base_service to the global service' do
+          span = finish
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE)).to eq(global_service)
+        end
+      end
+
+      context 'when span service equals the global service' do
+        let(:options) { {service: global_service} }
+
+        it 'does not set _dd.base_service' do
+          span = finish
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE)).to be_nil
+        end
+      end
+
+      context 'when span service is nil' do
+        let(:options) { {service: nil} }
+
+        it 'does not set _dd.base_service' do
+          span = finish
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE)).to be_nil
+        end
+      end
+
+      context 'when the global service is nil' do
+        let(:global_service) { nil }
+        let(:options) { {service: 'some-service'} }
+
+        it 'does not set _dd.base_service' do
+          span = finish
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE)).to be_nil
+        end
+      end
+
+      context 'when _dd.base_service is already set' do
+        let(:options) { {service: 'other-service'} }
+
+        before { span_op.set_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE, 'pre-existing') }
+
+        it 'does not overwrite the existing value' do
+          span = finish
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE)).to eq('pre-existing')
+        end
+      end
+    end
   end
 
   describe '#finished?' do

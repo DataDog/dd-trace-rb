@@ -270,6 +270,9 @@ module Datadog
         # Stop timing
         stop(end_time)
 
+        # Set _dd.base_service when service overrides the global service
+        set_base_service_tag
+
         # Build span
         # Memoize for performance reasons
         @span = build_span
@@ -524,6 +527,16 @@ module Datadog
           events: @span_events,
           service_entry: parent.nil? || (service && parent.service != service)
         )
+      end
+
+      def set_base_service_tag
+        global_service = Datadog.configuration.service
+        return unless global_service
+        return unless service
+        return if service == global_service
+        return if get_tag(Tracing::Metadata::Ext::TAG_BASE_SERVICE)
+
+        set_tag(Tracing::Metadata::Ext::TAG_BASE_SERVICE, global_service)
       end
 
       # Set this span's parent, setting this span's trace_id to the parent's trace_id.
