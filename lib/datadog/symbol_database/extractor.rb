@@ -615,7 +615,7 @@ module Datadog
 
       # Pass 1: Collect all extractable modules with methods grouped by source file.
       # @return [Hash] { mod_name => { mod:, methods_by_file: { path => [{name:, method:, type:}] } } }
-      def self.collect_extractable_modules(logger: Datadog.logger, upload_class_methods:)
+      def self.collect_extractable_modules(upload_class_methods:, logger: Datadog.logger)
         entries = {}
 
         ObjectSpace.each_object(Module) do |mod|
