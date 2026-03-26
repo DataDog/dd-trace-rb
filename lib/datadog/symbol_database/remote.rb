@@ -88,12 +88,12 @@ module Datadog
             # Delete change has 'previous' not 'content'
             change.previous&.applied
           else
-            Datadog.logger.debug("SymDB: Unrecognized change type: #{change.type}")
+            Datadog.logger.debug { "symdb: unrecognized change type: #{change.type}" }
             # Only call errored() if change has content
             change.content.errored("Unrecognized change type: #{change.type}") if change.respond_to?(:content)
           end
         rescue => e
-          Datadog.logger.debug("SymDB: Error processing remote config change: #{e.class}: #{e}")
+          Datadog.logger.debug { "symdb: error processing remote config change: #{e.class}: #{e}" }
           # Handle both content and previous
           content_obj = change.respond_to?(:content) ? change.content : change.previous
           content_obj&.errored(e.message)
@@ -112,10 +112,10 @@ module Datadog
           end
 
           if config['upload_symbols']
-            Datadog.logger.debug("SymDB: Upload enabled via remote config")
+            Datadog.logger.debug { "symdb: upload enabled via remote config" }
             component.start_upload
           else
-            Datadog.logger.debug("SymDB: Upload disabled in config")
+            Datadog.logger.debug { "symdb: upload disabled in config" }
           end
         end
 
@@ -124,7 +124,7 @@ module Datadog
         # @return [void]
         # @api private
         def disable_upload(component)
-          Datadog.logger.debug("SymDB: Upload disabled via remote config")
+          Datadog.logger.debug { "symdb: upload disabled via remote config" }
           component.stop_upload
         end
 
@@ -139,18 +139,18 @@ module Datadog
 
           # Validate it's actually a Hash
           unless config.is_a?(Hash)
-            Datadog.logger.debug("SymDB: Invalid config format: expected Hash, got #{config.class}")
+            Datadog.logger.debug { "symdb: invalid config format: expected Hash, got #{config.class}" }
             return nil
           end
 
           unless config.key?('upload_symbols')
-            Datadog.logger.debug("SymDB: Missing 'upload_symbols' key in config")
+            Datadog.logger.debug { "symdb: missing 'upload_symbols' key in config" }
             return nil
           end
 
           config
         rescue JSON::ParserError => e
-          Datadog.logger.debug("SymDB: Invalid config format: #{e.message}")
+          Datadog.logger.debug { "symdb: invalid config format: #{e.message}" }
           nil
         end
       end

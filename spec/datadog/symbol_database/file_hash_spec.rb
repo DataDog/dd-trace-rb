@@ -90,7 +90,7 @@ RSpec.describe Datadog::SymbolDatabase::FileHash do
       allow(File).to receive(:exist?).and_return(true)
       allow(File).to receive(:read).and_raise(Errno::EACCES, "Permission denied")
 
-      expect(Datadog.logger).to receive(:debug).with(/File hash computation failed/)
+      expect(Datadog.logger).to receive(:debug) { |&block| expect(block.call).to match(/file hash failed/i) }
 
       hash = described_class.compute('/fake/unreadable/file.rb')
 

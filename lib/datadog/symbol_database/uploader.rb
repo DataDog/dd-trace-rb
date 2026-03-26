@@ -40,9 +40,10 @@ module Datadog
       # @param config [Configuration] Tracer configuration (for service, env, version metadata)
       # @param agent_settings [Configuration::AgentSettings] Agent connection settings
       # @param telemetry [Telemetry, nil] Optional telemetry for metrics
-      def initialize(config, agent_settings, telemetry: nil)
+      def initialize(config, agent_settings, logger: Datadog.logger, telemetry: nil)
         @config = config
         @agent_settings = agent_settings
+        @logger = logger
         @telemetry = telemetry
 
         # Initialize transport using symbol database transport infrastructure
@@ -71,16 +72,14 @@ module Datadog
 
         # Check size
         if compressed_data.bytesize > MAX_PAYLOAD_SIZE
-          Datadog.logger.debug(
-            "SymDB: Payload too large: #{compressed_data.bytesize}/#{MAX_PAYLOAD_SIZE} bytes, skipping"
-          )
+          @logger.debug { "symdb: payload too large: #{compressed_data.bytesize}/#{MAX_PAYLOAD_SIZE} bytes, skipping" }
           return
         end
 
         # Upload with retry
         upload_with_retry(compressed_data, scopes.size)
       rescue => e
-        Datadog.logger.debug("SymDB: Upload failed: #{e.class}: #{e}")
+        @logger.debug { "symdb: upload failed: #{e.class}: #{e}" }
         @telemetry&.inc('tracers', 'symbol_database.upload_scopes_error', 1)
         # Don't propagate
       end
@@ -101,7 +100,7 @@ module Datadog
 
         service_version.to_json
       rescue => e
-        Datadog.logger.debug("SymDB: Serialization failed: #{e.class}: #{e}")
+        @logger.debug { "symdb: serialization failed: #{e.class}: #{e}" }
         @telemetry&.inc('tracers', 'symbol_database.serialization_error', 1)
         nil
       end
@@ -116,7 +115,7 @@ module Datadog
         @telemetry&.distribution('tracers', 'symbol_database.compression_ratio', ratio)
         compressed
       rescue => e
-        Datadog.logger.debug("SymDB: Compression failed: #{e.class}: #{e}")
+        @logger.debug { "symdb: compression failed: #{e.class}: #{e}" }
         @telemetry&.inc('tracers', 'symbol_database.compression_error', 1)
         nil
       end
@@ -135,13 +134,11 @@ module Datadog
 
           if retries <= MAX_RETRIES
             backoff = calculate_backoff(retries)
-            Datadog.logger.debug(
-              "SymDB: Upload failed (#{retries}/#{MAX_RETRIES}), retrying in #{backoff}s: #{e.class}: #{e}"
-            )
+            @logger.debug { "symdb: upload failed (#{retries}/#{MAX_RETRIES}), retrying in #{backoff}s: #{e.class}: #{e}" }
             sleep(backoff)
             retry
           else
-            Datadog.logger.debug("SymDB: Upload failed after #{MAX_RETRIES} retries: #{e.class}: #{e}")
+            @logger.debug { "symdb: upload failed after #{MAX_RETRIES} retries: #{e.class}: #{e}" }
             @telemetry&.inc('tracers', 'symbol_database.upload_retry_exhausted', 1)
           end
         end
@@ -217,7 +214,7 @@ module Datadog
       def handle_response(response, scope_count)
         case response.code
         when 200..299
-          Datadog.logger.debug("SymDB: Uploaded #{scope_count} scopes successfully")
+          @logger.debug { "symdb: uploaded #{scope_count} scopes successfully" }
           @telemetry&.inc('tracers', 'symbol_database.uploaded', 1)
           @telemetry&.inc('tracers', 'symbol_database.scopes_uploaded', scope_count)
           true
@@ -234,7 +231,7 @@ module Datadog
           raise "Server error: #{response.code}"
         else
           @telemetry&.inc('tracers', 'symbol_database.upload_error', 1, tags: ['error:client_error'])
-          Datadog.logger.debug("SymDB: Upload rejected: #{response.code}")
+          @logger.debug { "symdb: upload rejected: #{response.code}" }
           false
         end
       end

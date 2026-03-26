@@ -5,9 +5,10 @@ require 'datadog/symbol_database/scope'
 
 RSpec.describe Datadog::SymbolDatabase::ScopeContext do
   let(:uploader) { instance_double(Datadog::SymbolDatabase::Uploader) }
+  let(:logger) { instance_double(Logger, debug: nil) }
   let(:test_scope) { Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'TestClass') }
 
-  subject(:context) { described_class.new(uploader) }
+  subject(:context) { described_class.new(uploader, logger: logger) }
 
   after do
     # Cleanup any running timers
@@ -69,7 +70,7 @@ RSpec.describe Datadog::SymbolDatabase::ScopeContext do
       it 'would trigger upload after inactivity (timer disabled in tests)' do
         allow(uploader).to receive(:upload_scopes)
 
-        test_context = described_class.new(uploader, timer_enabled: false)
+        test_context = described_class.new(uploader, logger: logger, timer_enabled: false)
 
         test_context.add_scope(test_scope)
         expect(test_context.size).to eq(1)
@@ -83,7 +84,7 @@ RSpec.describe Datadog::SymbolDatabase::ScopeContext do
       it 'timer gets reset on scope additions (verified by integration tests)' do
         allow(uploader).to receive(:upload_scopes)
 
-        test_context = described_class.new(uploader, timer_enabled: false)
+        test_context = described_class.new(uploader, logger: logger, timer_enabled: false)
 
         test_context.add_scope(test_scope)
         test_context.add_scope(Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'Class2'))
@@ -133,7 +134,7 @@ RSpec.describe Datadog::SymbolDatabase::ScopeContext do
 
         # Try to add one more
         extra_scope = Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'ExtraClass')
-        expect(Datadog.logger).to receive(:debug).with(/File limit.*reached/)
+        expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/file limit.*reached/i) }
 
         context.add_scope(extra_scope)
 

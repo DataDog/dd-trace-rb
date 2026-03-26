@@ -65,7 +65,7 @@ module Datadog
         wrap_in_file_scope(source_file, [inner_scope])
       rescue => e
         mod_name = safe_mod_name(mod) || '<unknown>'
-        Datadog.logger.debug("SymDB: Failed to extract #{mod_name}: #{e.class}: #{e}")
+        Datadog.logger.debug { "symdb: failed to extract #{mod_name}: #{e.class}: #{e}" }
         nil
       end
 
@@ -82,12 +82,12 @@ module Datadog
       #
       # @param upload_class_methods [Boolean] Whether to include singleton methods
       # @return [Array<Scope>] Array of FILE scopes
-      def self.extract_all(upload_class_methods: false)
-        entries = collect_extractable_modules(upload_class_methods: upload_class_methods)
-        file_trees = build_file_trees(entries)
+      def self.extract_all(logger: Datadog.logger, upload_class_methods: false)
+        entries = collect_extractable_modules(logger: logger, upload_class_methods: upload_class_methods)
+        file_trees = build_file_trees(entries, logger: logger)
         convert_trees_to_scopes(file_trees)
       rescue => e
-        Datadog.logger.debug("SymDB: Error in extract_all: #{e.class}: #{e}")
+        logger.debug { "symdb: error in extract_all: #{e.class}: #{e}" }
         []
       end
 
@@ -357,7 +357,7 @@ module Datadog
 
         symbols
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to extract module symbols from #{mod.name}: #{e.class}: #{e}")
+        Datadog.logger.debug { "symdb: failed to extract module symbols from #{mod.name}: #{e.class}: #{e}" }
         []
       end
 
@@ -393,7 +393,7 @@ module Datadog
 
         symbols
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to extract class symbols from #{klass.name}: #{e.class}: #{e}")
+        Datadog.logger.debug { "symdb: failed to extract class symbols from #{klass.name}: #{e.class}: #{e}" }
         []
       end
 
@@ -429,7 +429,7 @@ module Datadog
 
         scopes
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to extract methods from #{klass.name}: #{e.class}: #{e}")
+        Datadog.logger.debug { "symdb: failed to extract methods from #{klass.name}: #{e.class}: #{e}" }
         []
       end
 
@@ -460,7 +460,7 @@ module Datadog
           symbols: extract_method_parameters(method, method_type)
         )
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to extract method #{klass.name}##{method_name}: #{e.class}: #{e}")
+        Datadog.logger.debug { "symdb: failed to extract method #{klass.name}##{method_name}: #{e.class}: #{e}" }
         nil
       end
 
@@ -494,7 +494,7 @@ module Datadog
           symbols: extract_singleton_method_parameters(method)
         )
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to extract singleton method #{klass.name}.#{method_name}: #{e.class}: #{e}")
+        Datadog.logger.debug { "symdb: failed to extract singleton method #{klass.name}.#{method_name}: #{e.class}: #{e}" }
         nil
       end
 
@@ -550,7 +550,7 @@ module Datadog
 
           # Skip if param_name is nil (defensive)
           if param_name.nil?
-            Datadog.logger.debug("SymDB: param_name is nil for #{method_name}, param_type: #{param_type}")
+            Datadog.logger.debug { "symdb: param_name is nil for #{method_name}, param_type: #{param_type}" }
             next
           end
 
@@ -566,7 +566,7 @@ module Datadog
 
         self_arg + result
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to extract parameters from #{method_name}: #{e.class}: #{e}")
+        Datadog.logger.debug { "symdb: failed to extract parameters from #{method_name}: #{e.class}: #{e}" }
         self_arg
       end
 
@@ -591,7 +591,7 @@ module Datadog
 
           # Skip if param_name is nil (defensive)
           if param_name.nil?
-            Datadog.logger.debug("SymDB: param_name is nil for singleton #{method_name}, param_type: #{param_type}")
+            Datadog.logger.debug { "symdb: param_name is nil for singleton #{method_name}, param_type: #{param_type}" }
             next
           end
 
@@ -607,7 +607,7 @@ module Datadog
 
         result
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to extract singleton method parameters from #{method_name}: #{e.class}: #{e}\n#{e.backtrace.first(5).join("\n")}")
+        Datadog.logger.debug { "symdb: failed to extract singleton method parameters from #{method_name}: #{e.class}: #{e}\n#{e.backtrace.first(5).join("\n")}" }
         []
       end
 
@@ -615,7 +615,7 @@ module Datadog
 
       # Pass 1: Collect all extractable modules with methods grouped by source file.
       # @return [Hash] { mod_name => { mod:, methods_by_file: { path => [{name:, method:, type:}] } } }
-      def self.collect_extractable_modules(upload_class_methods:)
+      def self.collect_extractable_modules(logger: Datadog.logger, upload_class_methods:)
         entries = {}
 
         ObjectSpace.each_object(Module) do |mod|
@@ -636,7 +636,7 @@ module Datadog
 
           entries[mod_name] = {mod: mod, methods_by_file: methods_by_file}
         rescue => e
-          Datadog.logger.debug("SymDB: Error collecting #{mod_name || '<unknown>'}: #{e.class}: #{e}")
+          Datadog.logger.debug { "symdb: error collecting #{mod_name || '<unknown>'}: #{e.class}: #{e}" }
         end
 
         entries
@@ -663,7 +663,7 @@ module Datadog
 
           result[loc[0]] << {name: method_name, method: method, type: :instance}
         rescue => e
-          Datadog.logger.debug("SymDB: Error grouping method #{method_name}: #{e.class}: #{e}")
+          Datadog.logger.debug { "symdb: error grouping method #{method_name}: #{e.class}: #{e}" }
         end
 
         # Singleton methods (if enabled)
@@ -676,13 +676,13 @@ module Datadog
 
             result[loc[0]] << {name: method_name, method: method, type: :singleton}
           rescue => e
-            Datadog.logger.debug("SymDB: Error grouping singleton method #{method_name}: #{e.class}: #{e}")
+            Datadog.logger.debug { "symdb: error grouping singleton method #{method_name}: #{e.class}: #{e}" }
           end
         end
 
         result
       rescue => e
-        Datadog.logger.debug("SymDB: Error grouping methods: #{e.class}: #{e}")
+        Datadog.logger.debug { "symdb: error grouping methods: #{e.class}: #{e}" }
         {}
       end
 
@@ -693,7 +693,7 @@ module Datadog
       #
       # @param entries [Hash] Output from collect_extractable_modules
       # @return [Hash] { file_path => root_node }
-      def self.build_file_trees(entries)
+      def self.build_file_trees(entries, logger: Datadog.logger)
         file_trees = {}
 
         # Sort by FQN depth so parents are placed before children.
@@ -710,7 +710,7 @@ module Datadog
             place_in_tree(root, parts, entry[:mod], methods, file_path)
           end
         rescue => e
-          Datadog.logger.debug("SymDB: Error building tree for #{mod_name}: #{e.class}: #{e}")
+          Datadog.logger.debug { "symdb: error building tree for #{mod_name}: #{e.class}: #{e}" }
         end
 
         file_trees
@@ -861,7 +861,7 @@ module Datadog
         )
       rescue => e
         klass_name = klass ? (safe_mod_name(klass) || '<unknown>') : '<unknown>'
-        Datadog.logger.debug("SymDB: Failed to build method scope #{klass_name}##{method_name}: #{e.class}: #{e}")
+        Datadog.logger.debug { "symdb: failed to build method scope #{klass_name}##{method_name}: #{e.class}: #{e}" }
         nil
       end
 
@@ -888,7 +888,7 @@ module Datadog
           symbols: extract_singleton_method_parameters(method)
         )
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to build singleton method scope: #{e.class}: #{e}")
+        Datadog.logger.debug { "symdb: failed to build singleton method scope: #{e.class}: #{e}" }
         nil
       end
 
@@ -928,7 +928,7 @@ module Datadog
         symbols
       rescue => e
         mod_name = safe_mod_name(mod) || '<unknown>'
-        Datadog.logger.debug("SymDB: Failed to extract symbols from #{mod_name}: #{e.class}: #{e}")
+        Datadog.logger.debug { "symdb: failed to extract symbols from #{mod_name}: #{e.class}: #{e}" }
         []
       end
 

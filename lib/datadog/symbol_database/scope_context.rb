@@ -36,8 +36,9 @@ module Datadog
       # @param telemetry [Telemetry, nil] Optional telemetry for metrics
       # @param on_upload [Proc, nil] Optional callback called after upload (for testing)
       # @param timer_enabled [Boolean] Enable async timer (default true, false for tests)
-      def initialize(uploader, telemetry: nil, on_upload: nil, timer_enabled: true)
+      def initialize(uploader, logger: Datadog.logger, telemetry: nil, on_upload: nil, timer_enabled: true)
         @uploader = uploader
+        @logger = logger
         @telemetry = telemetry
         @on_upload = on_upload
         @timer_enabled = timer_enabled
@@ -60,7 +61,7 @@ module Datadog
         @mutex.synchronize do
           # Check file limit
           if @file_count >= MAX_FILES
-            Datadog.logger.debug("SymDB: File limit (#{MAX_FILES}) reached, ignoring scope: #{scope.name}")
+            @logger.debug { "symdb: file limit (#{MAX_FILES}) reached, ignoring scope: #{scope.name}" }
             return
           end
 
@@ -68,7 +69,10 @@ module Datadog
 
           # Check if already uploaded
           # steep:ignore:start
-          return if @uploaded_modules.include?(scope.name)
+          if @uploaded_modules.include?(scope.name)
+            @logger.trace { "symdb: skipping #{scope.name}: already uploaded" } if @logger.respond_to?(:trace)
+            return
+          end
 
           @uploaded_modules.add(scope.name)
           # steep:ignore:end
@@ -104,7 +108,7 @@ module Datadog
         # Upload outside mutex (if batch was full)
         perform_upload(scopes_to_upload) if scopes_to_upload
       rescue => e
-        Datadog.logger.debug("SymDB: Failed to add scope: #{e.class}: #{e}")
+        @logger.debug { "symdb: failed to add scope: #{e.class}: #{e}" }
         @telemetry&.inc('tracers', 'symbol_database.add_scope_error', 1)
         # Don't propagate, continue operation
       end
@@ -233,7 +237,7 @@ module Datadog
         @uploader.upload_scopes(scopes)
         @on_upload&.call(scopes)  # Notify tests after upload
       rescue => e
-        Datadog.logger.debug("SymDB: Upload failed: #{e.class}: #{e}")
+        @logger.debug { "symdb: upload failed: #{e.class}: #{e}" }
         @telemetry&.inc('tracers', 'symbol_database.perform_upload_error', 1)
         # Don't propagate, uploader handles retries
       end
