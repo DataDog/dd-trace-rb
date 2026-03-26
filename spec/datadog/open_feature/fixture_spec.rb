@@ -5,7 +5,7 @@ require 'datadog/core/feature_flags'
 require 'json'
 
 RSpec.describe 'OpenFeature evaluation fixtures' do
-  let(:config_json) { File.read(File.join(__dir__, 'testdata', 'ufc-config.json')) }
+  let(:config_json) { File.read(File.join(__dir__, 'ffe-system-test-data', 'ufc-config.json')) }
   let(:configuration) { Datadog::Core::FeatureFlags::Configuration.new(config_json) }
 
   # Map fixture variationType strings to Ruby expected_type symbols
@@ -34,7 +34,7 @@ RSpec.describe 'OpenFeature evaluation fixtures' do
     ['empty_string_flag', 'bob'] => 'STATIC',
   }.freeze
 
-  Dir.glob(File.join(__dir__, 'testdata', 'evaluation-cases', '*.json')).sort.each do |fixture_file|
+  Dir.glob(File.join(__dir__, 'ffe-system-test-data', 'evaluation-cases', '*.json')).sort.each do |fixture_file|
     fixture_name = File.basename(fixture_file)
     cases = JSON.parse(File.read(fixture_file))
 
