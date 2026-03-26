@@ -24,7 +24,7 @@ module Datadog
         # @return [Transport::Client] Transport client configured for symbol database
         def self.build(
           agent_settings:,
-          logger: Datadog.logger,
+          logger:,
           headers: nil
         )
           Core::Transport::HTTP.build(

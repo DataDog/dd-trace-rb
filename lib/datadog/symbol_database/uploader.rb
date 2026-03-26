@@ -40,7 +40,7 @@ module Datadog
       # @param config [Configuration] Tracer configuration (for service, env, version metadata)
       # @param agent_settings [Configuration::AgentSettings] Agent connection settings
       # @param telemetry [Telemetry, nil] Optional telemetry for metrics
-      def initialize(config, agent_settings, logger: Datadog.logger, telemetry: nil)
+      def initialize(config, agent_settings, logger:, telemetry: nil)
         @config = config
         @agent_settings = agent_settings
         @logger = logger
@@ -49,7 +49,7 @@ module Datadog
         # Initialize transport using symbol database transport infrastructure
         @transport = Transport::HTTP.build(
           agent_settings: agent_settings,
-          logger: Datadog.logger
+          logger: @logger,
         )
       end
 
