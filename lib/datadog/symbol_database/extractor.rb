@@ -550,7 +550,7 @@ module Datadog
 
           # Skip if param_name is nil (defensive)
           if param_name.nil?
-            Datadog.logger.debug { "symdb: param_name is nil for #{method_name}, param_type: #{param_type}" }
+            Datadog.logger.trace { "symdb: param_name is nil for #{method_name}, param_type: #{param_type}" } if Datadog.logger.respond_to?(:trace)
             next
           end
 
