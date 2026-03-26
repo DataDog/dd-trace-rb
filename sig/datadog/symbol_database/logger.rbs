@@ -1,0 +1,17 @@
+module Datadog
+  module SymbolDatabase
+    class Logger
+      @settings: untyped
+
+      @target: untyped
+
+      def initialize: (untyped settings, untyped target) -> void
+
+      attr_reader settings: untyped
+
+      attr_reader target: untyped
+
+      def trace: () { () -> untyped } -> void
+    end
+  end
+end
