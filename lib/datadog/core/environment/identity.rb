@@ -13,16 +13,38 @@ module Datadog
       module Identity
         extend Core::Utils::Forking
 
+        ENV_ROOT_SESSION_ID = '_DD_ROOT_RB_SESSION_ID'
+        ENV_PARENT_SESSION_ID = '_DD_PARENT_RB_SESSION_ID'
+
         module_function
 
-        # Retrieves number of classes from runtime
+        env = defined?(::Datadog::DATADOG_ENV) ? ::Datadog::DATADOG_ENV : ENV # rubocop:disable CustomCops/EnvUsageCop
+        @root_runtime_id = env[ENV_ROOT_SESSION_ID]&.freeze
+        @parent_runtime_id = env[ENV_PARENT_SESSION_ID]&.freeze
+
         def id
           @id ||= ::SecureRandom.uuid.freeze
 
-          # Check if runtime has changed, e.g. forked.
-          after_fork! { @id = ::SecureRandom.uuid.freeze }
+          after_fork! do
+            # Order matters: capture @id before overwriting
+            @parent_runtime_id = @id
+            @root_runtime_id ||= @id
+            @id = ::SecureRandom.uuid.freeze
+          end
 
           @id
+        end
+
+        def root_runtime_id
+          @root_runtime_id
+        end
+
+        def parent_runtime_id
+          @parent_runtime_id
+        end
+
+        def runtime_propagation_envs
+          {ENV_ROOT_SESSION_ID => root_runtime_id || id, ENV_PARENT_SESSION_ID => id}.freeze
         end
 
         def pid
