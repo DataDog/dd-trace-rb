@@ -44,12 +44,18 @@ RSpec.describe 'Symbol Database Integration' do
         uploader = instance_double(Datadog::SymbolDatabase::Uploader)
         allow(uploader).to receive(:upload_scopes) { |scopes| uploaded_scopes.concat(scopes) }
 
-        context = Datadog::SymbolDatabase::ScopeContext.new(uploader)
+        settings = double('settings')
+        symdb_settings = double('symbol_database', internal: double('internal', upload_class_methods: false))
+        allow(settings).to receive(:symbol_database).and_return(symdb_settings)
+        logger = instance_double(Logger, debug: nil)
+
+        context = Datadog::SymbolDatabase::ScopeContext.new(uploader, logger: logger)
+        extractor = Datadog::SymbolDatabase::Extractor.new(logger: logger, settings: settings, telemetry: nil)
 
         # Use extract_all — the production path
         # GC.start cleans up stale modules from other tests in ObjectSpace
         GC.start
-        file_scopes = Datadog::SymbolDatabase::Extractor.extract_all
+        file_scopes = extractor.extract_all
 
         # Find our test file's scope by content (not path — ObjectSpace may have stale modules)
         file_scope = file_scopes.find { |s| s.scope_type == 'FILE' && s.scopes.any? { |c| c.name == 'IntegrationTestModule' } }

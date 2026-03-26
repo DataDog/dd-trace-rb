@@ -9,6 +9,10 @@ module Datadog
   module SymbolDatabase
     # Extracts symbol metadata from loaded Ruby modules and classes via introspection.
     #
+    # Instance created by Component with injected dependencies (logger, settings,
+    # telemetry). All methods are instance methods accessing @logger, @settings,
+    # @telemetry directly — no parameter threading needed.
+    #
     # Uses Ruby's reflection APIs (Module#constants, Class#instance_methods, Method#parameters)
     # to build hierarchical Scope structures representing code organization.
     # Filters to user code only (excludes gems, stdlib, test files).
@@ -34,6 +38,15 @@ module Datadog
       # Comparable: Core comparison protocol, extremely common
       EXCLUDED_COMMON_MODULES = ['Kernel', 'PP::', 'JSON::', 'Enumerable', 'Comparable'].freeze
 
+      # @param logger [Logger] Logger instance (SymbolDatabase::Logger facade or compatible)
+      # @param settings [Configuration::Settings] Tracer settings
+      # @param telemetry [Telemetry, nil] Optional telemetry for metrics
+      def initialize(logger:, settings:, telemetry: nil)
+        @logger = logger
+        @settings = settings
+        @telemetry = telemetry
+      end
+
       # Extract symbols from a single module or class.
       # Returns nil if module should be skipped (anonymous, gem code, stdlib).
       #
@@ -46,7 +59,7 @@ module Datadog
       #
       # @param mod [Module, Class] The module or class to extract from
       # @return [Scope, nil] FILE scope wrapping extracted scope, or nil if filtered out
-      def self.extract(mod, upload_class_methods: false)
+      def extract(mod)
         return nil unless mod.is_a?(Module)
         mod_name = safe_mod_name(mod)
         return nil unless mod_name
@@ -57,7 +70,7 @@ module Datadog
         return nil unless source_file
 
         inner_scope = if mod.is_a?(Class)
-          extract_class_scope(mod, upload_class_methods: upload_class_methods)
+          extract_class_scope(mod)
         else
           extract_module_scope(mod)
         end
@@ -65,7 +78,7 @@ module Datadog
         wrap_in_file_scope(source_file, [inner_scope])
       rescue => e
         mod_name = safe_mod_name(mod) || '<unknown>'
-        Datadog.logger.debug { "symdb: failed to extract #{mod_name}: #{e.class}: #{e}" }
+        @logger.debug { "symdb: failed to extract #{mod_name}: #{e.class}: #{e}" }
         nil
       end
 
@@ -80,15 +93,22 @@ module Datadog
       # so a class reopened across two files produces two FILE scopes, each with only
       # the methods defined in that file.
       #
-      # @param upload_class_methods [Boolean] Whether to include singleton methods
       # @return [Array<Scope>] Array of FILE scopes
-      def self.extract_all(logger: Datadog.logger, upload_class_methods: false)
-        entries = collect_extractable_modules(logger: logger, upload_class_methods: upload_class_methods)
-        file_trees = build_file_trees(entries, logger: logger)
+      def extract_all
+        entries = collect_extractable_modules
+        file_trees = build_file_trees(entries)
         convert_trees_to_scopes(file_trees)
       rescue => e
-        logger.debug { "symdb: error in extract_all: #{e.class}: #{e}" }
+        @logger.debug { "symdb: error in extract_all: #{e.class}: #{e}" }
         []
+      end
+
+      private
+
+      # Whether to include class methods (def self.foo) in extraction.
+      # Read from settings on each call so it tracks config changes.
+      def upload_class_methods?
+        @settings.symbol_database.internal.upload_class_methods
       end
 
       # Safe Module#name lookup — some classes override the singleton `name` method
@@ -96,7 +116,7 @@ module Datadog
       # which shadows Module#name and raises ArgumentError when called without args).
       # @param mod [Module] The module
       # @return [String, nil] Module name or nil
-      def self.safe_mod_name(mod)
+      def safe_mod_name(mod)
         Module.instance_method(:name).bind(mod).call
       rescue
         nil
@@ -105,7 +125,7 @@ module Datadog
       # Check if module is from user code (not gems or stdlib)
       # @param mod [Module] The module to check
       # @return [Boolean] true if user code
-      def self.user_code_module?(mod)
+      def user_code_module?(mod)
         mod_name = safe_mod_name(mod)
         return false unless mod_name
 
@@ -123,7 +143,7 @@ module Datadog
       # Check if path is user code
       # @param path [String] File path
       # @return [Boolean] true if user code
-      def self.user_code_path?(path)
+      def user_code_path?(path)
         # Only absolute paths are real source files. Pseudo-paths like '<main>',
         # '<internal:...>', '(eval)' are not user code.
         return false unless path.start_with?('/')
@@ -156,7 +176,7 @@ module Datadog
       #
       # @param mod [Module] The module
       # @return [String, nil] Source file path or nil
-      def self.find_source_file(mod)
+      def find_source_file(mod)
         fallback = nil
 
         # Try instance methods first
@@ -218,7 +238,7 @@ module Datadog
       # @param file_path [String] Source file path
       # @param inner_scopes [Array<Scope>] Child scopes to nest under FILE
       # @return [Scope] FILE scope wrapping the inner scopes
-      def self.wrap_in_file_scope(file_path, inner_scopes)
+      def wrap_in_file_scope(file_path, inner_scopes)
         file_hash = FileHash.compute(file_path)
         lang = {}
         lang[:file_hash] = file_hash if file_hash
@@ -240,7 +260,7 @@ module Datadog
       # Does not include nested classes — nesting is handled by extract_all via FQN splitting.
       # @param mod [Module] The module
       # @return [Scope] The module scope
-      def self.extract_module_scope(mod)
+      def extract_module_scope(mod)
         source_file = find_source_file(mod)
 
         # steep:ignore:start
@@ -258,7 +278,7 @@ module Datadog
       # Extract CLASS scope
       # @param klass [Class] The class
       # @return [Scope] The class scope
-      def self.extract_class_scope(klass, upload_class_methods: false)
+      def extract_class_scope(klass)
         methods = klass.instance_methods(false)
         start_line, end_line = calculate_class_line_range(klass, methods)
         source_file = find_source_file(klass)
@@ -271,7 +291,7 @@ module Datadog
           start_line: start_line,
           end_line: end_line,
           language_specifics: build_class_language_specifics(klass),
-          scopes: extract_method_scopes(klass, upload_class_methods: upload_class_methods),
+          scopes: extract_method_scopes(klass),
           symbols: extract_class_symbols(klass)
         )
         # steep:ignore:end
@@ -281,7 +301,7 @@ module Datadog
       # @param klass [Class] The class
       # @param methods [Array<Symbol>] Method names
       # @return [Array<Integer, Integer>] [start_line, end_line]
-      def self.calculate_class_line_range(klass, methods)
+      def calculate_class_line_range(klass, methods)
         lines = Core::Utils::Array.filter_map(methods) do |method_name|
           method = klass.instance_method(method_name)
           location = method.source_location
@@ -298,7 +318,7 @@ module Datadog
       # Build language specifics for CLASS
       # @param klass [Class] The class
       # @return [Hash] Language-specific metadata
-      def self.build_class_language_specifics(klass)
+      def build_class_language_specifics(klass)
         specifics = {}
 
         # Superclass chain (exclude Object and BasicObject).
@@ -331,7 +351,7 @@ module Datadog
       # Extract MODULE-level symbols (constants, module functions)
       # @param mod [Module] The module
       # @return [Array<Symbol>] Module symbols
-      def self.extract_module_symbols(mod)
+      def extract_module_symbols(mod)
         symbols = []
 
         # Constants (STATIC_FIELD)
@@ -357,14 +377,14 @@ module Datadog
 
         symbols
       rescue => e
-        Datadog.logger.debug { "symdb: failed to extract module symbols from #{mod.name}: #{e.class}: #{e}" }
+        @logger.debug { "symdb: failed to extract module symbols from #{mod.name}: #{e.class}: #{e}" }
         []
       end
 
       # Extract CLASS-level symbols (class variables, constants)
       # @param klass [Class] The class
       # @return [Array<Symbol>] Class symbols
-      def self.extract_class_symbols(klass)
+      def extract_class_symbols(klass)
         symbols = []
 
         # Class variables (STATIC_FIELD)
@@ -393,14 +413,14 @@ module Datadog
 
         symbols
       rescue => e
-        Datadog.logger.debug { "symdb: failed to extract class symbols from #{klass.name}: #{e.class}: #{e}" }
+        @logger.debug { "symdb: failed to extract class symbols from #{klass.name}: #{e.class}: #{e}" }
         []
       end
 
       # Extract method scopes from a class
       # @param klass [Class] The class
       # @return [Array<Scope>] Method scopes
-      def self.extract_method_scopes(klass, upload_class_methods: false)
+      def extract_method_scopes(klass)
         scopes = []
 
         # Get all instance methods (public, protected, private)
@@ -420,7 +440,7 @@ module Datadog
         # not to the singleton class. Enable with:
         #   settings.symbol_database.internal.upload_class_methods = true
         # See: docs/class_methods_di_design.md
-        if upload_class_methods
+        if upload_class_methods?
           klass.singleton_methods(false).each do |method_name|
             method_scope = extract_singleton_method_scope(klass, method_name)
             scopes << method_scope if method_scope
@@ -429,7 +449,7 @@ module Datadog
 
         scopes
       rescue => e
-        Datadog.logger.debug { "symdb: failed to extract methods from #{klass.name}: #{e.class}: #{e}" }
+        @logger.debug { "symdb: failed to extract methods from #{klass.name}: #{e.class}: #{e}" }
         []
       end
 
@@ -438,7 +458,7 @@ module Datadog
       # @param method_name [Symbol] Method name
       # @param method_type [Symbol] :instance or :class
       # @return [Scope, nil] Method scope or nil
-      def self.extract_method_scope(klass, method_name, method_type)
+      def extract_method_scope(klass, method_name, method_type)
         method = klass.instance_method(method_name)
         location = method.source_location
 
@@ -460,7 +480,7 @@ module Datadog
           symbols: extract_method_parameters(method, method_type)
         )
       rescue => e
-        Datadog.logger.debug { "symdb: failed to extract method #{klass.name}##{method_name}: #{e.class}: #{e}" }
+        @logger.debug { "symdb: failed to extract method #{klass.name}##{method_name}: #{e.class}: #{e}" }
         nil
       end
 
@@ -468,7 +488,7 @@ module Datadog
       # @param klass [Class] The class
       # @param method_name [Symbol] Method name
       # @return [Scope, nil] Method scope or nil
-      def self.extract_singleton_method_scope(klass, method_name)
+      def extract_singleton_method_scope(klass, method_name)
         method = klass.method(method_name)
         location = method.source_location
 
@@ -494,7 +514,7 @@ module Datadog
           symbols: extract_singleton_method_parameters(method)
         )
       rescue => e
-        Datadog.logger.debug { "symdb: failed to extract singleton method #{klass.name}.#{method_name}: #{e.class}: #{e}" }
+        @logger.debug { "symdb: failed to extract singleton method #{klass.name}.#{method_name}: #{e.class}: #{e}" }
         nil
       end
 
@@ -502,7 +522,7 @@ module Datadog
       # @param klass [Class] The class
       # @param method_name [Symbol] Method name
       # @return [String] 'public', 'private', or 'protected'
-      def self.method_visibility(klass, method_name)
+      def method_visibility(klass, method_name)
         if klass.private_instance_methods(false).include?(method_name)
           'private'
         elsif klass.protected_instance_methods(false).include?(method_name)
@@ -519,7 +539,7 @@ module Datadog
       # @param method [UnboundMethod] The method
       # @param method_type [Symbol] :instance or :class
       # @return [Array<Symbol>] Parameter symbols
-      def self.extract_method_parameters(method, method_type = :instance)
+      def extract_method_parameters(method, method_type = :instance)
         # Method name extraction can fail for exotic methods (e.g., dynamically defined via define_method
         # with unusual names, or methods on singleton classes with overridden #name).
         # Even without a name, we still extract parameter information - it's valuable for analysis.
@@ -548,11 +568,9 @@ module Datadog
           # Skip block parameters for MVP
           next if param_type == :block
 
-          # Skip if param_name is nil (defensive)
-          if param_name.nil?
-            Datadog.logger.trace { "symdb: param_name is nil for #{method_name}, param_type: #{param_type}" } if Datadog.logger.respond_to?(:trace)
-            next
-          end
+          # Skip if param_name is nil — normal for generated methods (attr_writer, attr_accessor).
+          # See pitfall 37 and specs/json-schema.md "Discovered During Implementation".
+          next if param_name.nil?
 
           Symbol.new(
             symbol_type: 'ARG',
@@ -566,14 +584,14 @@ module Datadog
 
         self_arg + result
       rescue => e
-        Datadog.logger.debug { "symdb: failed to extract parameters from #{method_name}: #{e.class}: #{e}" }
+        @logger.debug { "symdb: failed to extract parameters from #{method_name}: #{e.class}: #{e}" }
         self_arg
       end
 
       # Extract singleton method parameters
       # @param method [Method] The singleton method
       # @return [Array<Symbol>] Parameter symbols
-      def self.extract_singleton_method_parameters(method)
+      def extract_singleton_method_parameters(method)
         method_name = begin
           method.name.to_s
         rescue
@@ -589,11 +607,8 @@ module Datadog
           # Skip block parameters for MVP
           next if param_type == :block
 
-          # Skip if param_name is nil (defensive)
-          if param_name.nil?
-            Datadog.logger.debug { "symdb: param_name is nil for singleton #{method_name}, param_type: #{param_type}" }
-            next
-          end
+          # Skip if param_name is nil — normal for generated methods.
+          next if param_name.nil?
 
           Symbol.new(
             symbol_type: 'ARG',
@@ -607,7 +622,7 @@ module Datadog
 
         result
       rescue => e
-        Datadog.logger.debug { "symdb: failed to extract singleton method parameters from #{method_name}: #{e.class}: #{e}\n#{e.backtrace.first(5).join("\n")}" }
+        @logger.debug { "symdb: failed to extract singleton method parameters from #{method_name}: #{e.class}: #{e}\n#{e.backtrace.first(5).join("\n")}" }
         []
       end
 
@@ -615,7 +630,7 @@ module Datadog
 
       # Pass 1: Collect all extractable modules with methods grouped by source file.
       # @return [Hash] { mod_name => { mod:, methods_by_file: { path => [{name:, method:, type:}] } } }
-      def self.collect_extractable_modules(upload_class_methods:, logger: Datadog.logger)
+      def collect_extractable_modules
         entries = {}
 
         ObjectSpace.each_object(Module) do |mod|
@@ -623,7 +638,7 @@ module Datadog
           next unless mod_name
           next unless user_code_module?(mod)
 
-          methods_by_file = group_methods_by_file(mod, upload_class_methods: upload_class_methods)
+          methods_by_file = group_methods_by_file(mod)
 
           # For modules/classes with no methods but valid source, use find_source_file as fallback.
           # This handles namespace modules and classes with only constants.
@@ -636,7 +651,7 @@ module Datadog
 
           entries[mod_name] = {mod: mod, methods_by_file: methods_by_file}
         rescue => e
-          Datadog.logger.debug { "symdb: error collecting #{mod_name || '<unknown>'}: #{e.class}: #{e}" }
+          @logger.debug { "symdb: error collecting #{mod_name || '<unknown>'}: #{e.class}: #{e}" }
         end
 
         entries
@@ -644,9 +659,8 @@ module Datadog
 
       # Group a module's methods by their source file path.
       # @param mod [Module] The module
-      # @param upload_class_methods [Boolean] Whether to include singleton methods
       # @return [Hash] { file_path => [{name:, method:, type:}] }
-      def self.group_methods_by_file(mod, upload_class_methods:)
+      def group_methods_by_file(mod)
         result = Hash.new { |h, k| h[k] = [] }
 
         # Instance methods (public, protected, private)
@@ -663,11 +677,11 @@ module Datadog
 
           result[loc[0]] << {name: method_name, method: method, type: :instance}
         rescue => e
-          Datadog.logger.debug { "symdb: error grouping method #{method_name}: #{e.class}: #{e}" }
+          @logger.debug { "symdb: error grouping method #{method_name}: #{e.class}: #{e}" }
         end
 
         # Singleton methods (if enabled)
-        if upload_class_methods
+        if upload_class_methods?
           mod.singleton_methods(false).each do |method_name|
             method = mod.method(method_name)
             loc = method.source_location
@@ -676,13 +690,13 @@ module Datadog
 
             result[loc[0]] << {name: method_name, method: method, type: :singleton}
           rescue => e
-            Datadog.logger.debug { "symdb: error grouping singleton method #{method_name}: #{e.class}: #{e}" }
+            @logger.debug { "symdb: error grouping singleton method #{method_name}: #{e.class}: #{e}" }
           end
         end
 
         result
       rescue => e
-        Datadog.logger.debug { "symdb: error grouping methods: #{e.class}: #{e}" }
+        @logger.debug { "symdb: error grouping methods: #{e.class}: #{e}" }
         {}
       end
 
@@ -693,7 +707,7 @@ module Datadog
       #
       # @param entries [Hash] Output from collect_extractable_modules
       # @return [Hash] { file_path => root_node }
-      def self.build_file_trees(entries, logger: Datadog.logger)
+      def build_file_trees(entries)
         file_trees = {}
 
         # Sort by FQN depth so parents are placed before children.
@@ -710,7 +724,7 @@ module Datadog
             place_in_tree(root, parts, entry[:mod], methods, file_path)
           end
         rescue => e
-          Datadog.logger.debug { "symdb: error building tree for #{mod_name}: #{e.class}: #{e}" }
+          @logger.debug { "symdb: error building tree for #{mod_name}: #{e.class}: #{e}" }
         end
 
         file_trees
@@ -718,7 +732,7 @@ module Datadog
 
       # Place a module/class in the file tree at the correct nesting depth.
       # Creates intermediate namespace nodes as needed.
-      def self.place_in_tree(root, name_parts, mod, methods, file_path)
+      def place_in_tree(root, name_parts, mod, methods, file_path)
         current = root
 
         # Create/find intermediate nodes for each namespace segment except the last
@@ -759,7 +773,7 @@ module Datadog
       # Looks up the actual Ruby constant to check if it's a Class.
       # @param fqn [String] Fully-qualified name (e.g. "Authentication::Strategies")
       # @return [String] 'CLASS' or 'MODULE'
-      def self.resolve_scope_type(fqn)
+      def resolve_scope_type(fqn)
         const = Object.const_get(fqn)
         const.is_a?(Class) ? 'CLASS' : 'MODULE'
       rescue
@@ -769,7 +783,7 @@ module Datadog
       # Convert hash-based file trees to Scope objects.
       # @param file_trees [Hash] { file_path => root_node }
       # @return [Array<Scope>] Array of FILE scopes
-      def self.convert_trees_to_scopes(file_trees)
+      def convert_trees_to_scopes(file_trees)
         file_trees.map do |file_path, root|
           file_hash = FileHash.compute(file_path)
           lang = {}
@@ -792,7 +806,7 @@ module Datadog
       # Convert a single hash node to a Scope object (recursive).
       # @param node [Hash] Tree node
       # @return [Scope] Scope object
-      def self.convert_node_to_scope(node)
+      def convert_node_to_scope(node)
         # Build method scopes from collected method entries
         method_scopes = Core::Utils::Array.filter_map(node[:methods]) do |method_info|
           if method_info[:type] == :singleton
@@ -840,7 +854,7 @@ module Datadog
       # @param method_name [Symbol] Method name
       # @param method [UnboundMethod] The method object
       # @return [Scope, nil] Method scope or nil
-      def self.build_instance_method_scope(klass, method_name, method)
+      def build_instance_method_scope(klass, method_name, method)
         location = method.source_location
         return nil unless location
 
@@ -861,14 +875,14 @@ module Datadog
         )
       rescue => e
         klass_name = klass ? (safe_mod_name(klass) || '<unknown>') : '<unknown>'
-        Datadog.logger.debug { "symdb: failed to build method scope #{klass_name}##{method_name}: #{e.class}: #{e}" }
+        @logger.debug { "symdb: failed to build method scope #{klass_name}##{method_name}: #{e.class}: #{e}" }
         nil
       end
 
       # Build a METHOD scope from a pre-resolved singleton method.
       # @param method [Method] The singleton method object
       # @return [Scope, nil] Method scope or nil
-      def self.build_singleton_method_scope(method)
+      def build_singleton_method_scope(method)
         location = method.source_location
         return nil unless location
 
@@ -888,7 +902,7 @@ module Datadog
           symbols: extract_singleton_method_parameters(method)
         )
       rescue => e
-        Datadog.logger.debug { "symdb: failed to build singleton method scope: #{e.class}: #{e}" }
+        @logger.debug { "symdb: failed to build singleton method scope: #{e.class}: #{e}" }
         nil
       end
 
@@ -896,7 +910,7 @@ module Datadog
       # Unified version of extract_module_symbols and extract_class_symbols.
       # @param mod [Module] The module or class
       # @return [Array<Symbol>] Symbols
-      def self.extract_scope_symbols(mod)
+      def extract_scope_symbols(mod)
         symbols = []
 
         # Class variables (only for classes)
@@ -928,25 +942,9 @@ module Datadog
         symbols
       rescue => e
         mod_name = safe_mod_name(mod) || '<unknown>'
-        Datadog.logger.debug { "symdb: failed to extract symbols from #{mod_name}: #{e.class}: #{e}" }
+        @logger.debug { "symdb: failed to extract symbols from #{mod_name}: #{e.class}: #{e}" }
         []
       end
-
-      # @api private
-      private_class_method :safe_mod_name, :user_code_module?, :user_code_path?,
-        :find_source_file, :wrap_in_file_scope,
-        :extract_module_scope, :extract_class_scope,
-        :calculate_class_line_range,
-        :build_class_language_specifics,
-        :extract_module_symbols, :extract_class_symbols,
-        :extract_method_scopes, :extract_method_scope,
-        :extract_singleton_method_scope, :method_visibility,
-        :extract_method_parameters, :extract_singleton_method_parameters,
-        :collect_extractable_modules, :group_methods_by_file,
-        :build_file_trees, :place_in_tree, :resolve_scope_type,
-        :convert_trees_to_scopes, :convert_node_to_scope,
-        :build_instance_method_scope, :build_singleton_method_scope,
-        :extract_scope_symbols
     end
   end
 end
