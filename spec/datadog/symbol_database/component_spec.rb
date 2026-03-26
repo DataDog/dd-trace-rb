@@ -30,7 +30,8 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     )
   end
 
-  let(:logger) { instance_double(Logger, debug: nil) }
+  let(:raw_logger) { instance_double(Logger, debug: nil) }
+  let(:logger) { Datadog::SymbolDatabase::Logger.new(settings, raw_logger) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component, inc: nil, distribution: nil) }
 
   # Reset the class-level OnlyOnce guard between tests
@@ -57,7 +58,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
     it 'returns false and logs on JRuby' do
       stub_const('RUBY_ENGINE', 'jruby')
-      expect(logger).to receive(:debug).with(/not supported on jruby/)
+      expect(raw_logger).to receive(:debug) { |&block| expect(block.call).to match(/not supported on jruby/) }
 
       expect(described_class.send(:environment_supported?, logger)).to be false
     end
@@ -65,7 +66,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     it 'returns false and logs on Ruby < 2.6' do
       stub_const('RUBY_ENGINE', 'ruby')
       stub_const('RUBY_VERSION', '2.5.9')
-      expect(logger).to receive(:debug).with(/requires Ruby 2\.6\+/)
+      expect(raw_logger).to receive(:debug) { |&block| expect(block.call).to match(/requires Ruby 2\.6\+/) }
 
       expect(described_class.send(:environment_supported?, logger)).to be false
     end
