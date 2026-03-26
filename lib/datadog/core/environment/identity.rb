@@ -2,6 +2,7 @@
 
 require 'securerandom'
 
+require_relative '../configuration/config_helper'
 require_relative 'ext'
 require_relative '../utils/forking'
 
@@ -18,9 +19,8 @@ module Datadog
 
         module_function
 
-        env = defined?(::Datadog::DATADOG_ENV) ? ::Datadog::DATADOG_ENV : ENV # rubocop:disable CustomCops/EnvUsageCop
-        @root_runtime_id = env[ENV_ROOT_SESSION_ID]&.freeze
-        @parent_runtime_id = env[ENV_PARENT_SESSION_ID]&.freeze
+        @root_runtime_id = ::Datadog::DATADOG_ENV[ENV_ROOT_SESSION_ID]&.freeze
+        @parent_runtime_id = ::Datadog::DATADOG_ENV[ENV_PARENT_SESSION_ID]&.freeze
 
         def id
           @id ||= ::SecureRandom.uuid.freeze
