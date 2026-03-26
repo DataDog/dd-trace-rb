@@ -58,6 +58,7 @@ module Datadog
       class Events
         include Tracing::Events
 
+        attr_reader span_before_finish: untyped
         attr_reader span_before_start: untyped
         attr_reader span_finished: untyped
         attr_reader trace_finished: untyped
@@ -65,6 +66,10 @@ module Datadog
         attr_reader trace_resource_change: untyped
 
         def initialize: () -> void
+
+        class SpanBeforeFinish < Tracing::Event
+          def initialize: () -> void
+        end
 
         class SpanBeforeStart < Tracing::Event
           def initialize: () -> void
@@ -98,6 +103,7 @@ module Datadog
       def activate_span!: (untyped span_op) -> untyped
       def deactivate_span!: (untyped span_op) -> untyped
       def start_span: (untyped span_op) -> untyped
+      def before_finish_span: (untyped span_op) -> untyped
       def finish_span: (untyped span, untyped span_op, untyped parent) -> untyped
 
       def set_root_span!: (untyped span) -> (nil | untyped)

@@ -1121,6 +1121,58 @@ RSpec.describe Datadog::Tracing::Tracer do
     it { is_expected.to be_a_kind_of(described_class::TraceCompleted) }
   end
 
+  describe '_dd.base_service tag' do
+    let(:default_service) { 'global-app' }
+    let(:tracer_options) { {**super(), default_service: default_service} }
+
+    def finish_span(service:)
+      tracer.trace('op', service: service) {}
+      spans.last
+    end
+
+    context 'when span service differs from the default service' do
+      it 'sets _dd.base_service to the default service' do
+        span = finish_span(service: 'other-service')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE)).to eq(default_service)
+      end
+    end
+
+    context 'when span service equals the default service' do
+      it 'does not set _dd.base_service' do
+        span = finish_span(service: default_service)
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE)).to be_nil
+      end
+    end
+
+    context 'when span service inherits the default service (nil at trace time)' do
+      it 'does not set _dd.base_service' do
+        tracer.trace('op') {}
+        span = spans.last
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE)).to be_nil
+      end
+    end
+
+    context 'when _dd.base_service is pre-set and service still differs' do
+      it 'overwrites with the default service' do
+        tracer.trace('op', service: 'other-service') do |span_op|
+          span_op.set_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE, 'stale-value')
+        end
+        span = spans.last
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE)).to eq(default_service)
+      end
+    end
+
+    context 'when _dd.base_service is pre-set but service no longer differs' do
+      it 'clears the tag' do
+        tracer.trace('op', service: default_service) do |span_op|
+          span_op.set_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE, 'stale-value')
+        end
+        span = spans.last
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE)).to be_nil
+      end
+    end
+  end
+
   describe '#default_service' do
     subject(:default_service) { tracer.default_service }
 

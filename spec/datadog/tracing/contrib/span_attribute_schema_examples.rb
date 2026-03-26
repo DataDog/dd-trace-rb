@@ -1,6 +1,10 @@
 RSpec.shared_examples 'schema version span' do
   before do
     subject
+    # _dd.base_service is set in SpanOperation#finish. If the integration
+    # test uses an open SpanOperation as `span` (e.g. because the complete
+    # callback is mocked out), finish it now so the tag is available.
+    span.finish if span.respond_to?(:finished?) && !span.finished?
   end
 
   context 'service name env var testing' do
