@@ -25,6 +25,8 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
 
   let(:test_scope) { Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'TestClass') }
 
+  let(:logger) { instance_double(Logger, debug: nil) }
+
   # Mock transport infrastructure
   let(:mock_transport) { instance_double(Datadog::SymbolDatabase::Transport::Transport) }
   let(:mock_response) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200) }
@@ -34,7 +36,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
     allow(Datadog::SymbolDatabase::Transport::HTTP).to receive(:build).and_return(mock_transport)
   end
 
-  subject(:uploader) { described_class.new(config, agent_settings) }
+  subject(:uploader) { described_class.new(config, agent_settings, logger: logger) }
 
   describe '#upload_scopes' do
     it 'returns early if scopes is nil' do
@@ -69,7 +71,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       end
 
       it 'logs success' do
-        expect(Datadog.logger).to receive(:debug).with(/Uploaded.*successfully/)
+        expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/uploaded.*successfully/i) }
 
         uploader.upload_scopes([test_scope])
       end
@@ -81,7 +83,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       end
 
       it 'logs error and returns nil' do
-        expect(Datadog.logger).to receive(:debug).with(/Serialization failed/)
+        expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/serialization failed/i) }
 
         result = uploader.upload_scopes([test_scope])
 
@@ -89,7 +91,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       end
 
       it 'does not attempt HTTP request' do
-        allow(Datadog.logger).to receive(:debug)
+        allow(logger).to receive(:debug)
         expect(mock_transport).not_to receive(:send_symdb_payload)
 
         uploader.upload_scopes([test_scope])
@@ -102,7 +104,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       end
 
       it 'logs error and returns nil' do
-        expect(Datadog.logger).to receive(:debug).with(/Compression failed/)
+        expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/compression failed/i) }
 
         result = uploader.upload_scopes([test_scope])
 
@@ -115,7 +117,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
         # Stub to return huge payload
         allow(Zlib).to receive(:gzip).and_return('x' * (described_class::MAX_PAYLOAD_SIZE + 1))
 
-        expect(Datadog.logger).to receive(:debug).with(/Payload too large/)
+        expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/payload too large/i) }
         expect(mock_transport).not_to receive(:send_symdb_payload)
 
         uploader.upload_scopes([test_scope])
@@ -191,7 +193,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
         allow(mock_transport).to receive(:send_symdb_payload)
           .and_return(instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 400))
 
-        expect(Datadog.logger).to receive(:debug).with(/rejected/)
+        expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/rejected/i) }
 
         uploader.upload_scopes([test_scope])
       end

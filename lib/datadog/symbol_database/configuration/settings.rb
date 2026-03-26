@@ -55,6 +55,14 @@ module Datadog
                 # should be switched to default true and moved to a public setting.
                 #
                 # See: docs/class_methods_di_design.md for full analysis.
+                # Enable verbose trace-level logging for symdb operations.
+                # Activated by DD_TRACE_DEBUG (same trigger as DI trace logging).
+                option :trace_logging do |o|
+                  o.type :bool
+                  o.default false
+                  o.env 'DD_TRACE_DEBUG'
+                end
+
                 option :upload_class_methods do |o|
                   o.type :bool
                   o.default false
