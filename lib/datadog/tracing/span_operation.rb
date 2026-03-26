@@ -531,12 +531,12 @@ module Datadog
 
       def set_base_service_tag
         global_service = Datadog.configuration.service
-        return unless global_service
-        return unless service
-        return if service == global_service
-        return if get_tag(Tracing::Metadata::Ext::TAG_BASE_SERVICE)
 
-        set_tag(Tracing::Metadata::Ext::TAG_BASE_SERVICE, global_service)
+        if global_service && service && service != global_service
+          set_tag(Tracing::Metadata::Ext::TAG_BASE_SERVICE, global_service)
+        else
+          meta.delete(Tracing::Metadata::Ext::TAG_BASE_SERVICE)
+        end
       end
 
       # Set this span's parent, setting this span's trace_id to the parent's trace_id.

@@ -869,14 +869,25 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         end
       end
 
-      context 'when _dd.base_service is already set' do
+      context 'when _dd.base_service is already set and service still differs' do
         let(:options) { {service: 'other-service'} }
 
-        before { span_op.set_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE, 'pre-existing') }
+        before { span_op.set_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE, 'stale-value') }
 
-        it 'does not overwrite the existing value' do
+        it 'overwrites with the current global service' do
           span = finish
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE)).to eq('pre-existing')
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE)).to eq(global_service)
+        end
+      end
+
+      context 'when _dd.base_service is already set but service no longer differs' do
+        let(:options) { {service: global_service} }
+
+        before { span_op.set_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE, 'stale-value') }
+
+        it 'clears the tag' do
+          span = finish
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE)).to be_nil
         end
       end
     end
