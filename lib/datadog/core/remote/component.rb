@@ -45,7 +45,7 @@ module Datadog
             rescue Client::SyncError => e
               # Transient errors due to network or agent. Logged the error but not via telemetry
               logger.error do
-                "remote worker client sync error: #{e.message} location: #{Array(e.backtrace).first}. skipping sync"
+                "remote worker client sync error: #{e.class}: #{e} location: #{Array(e.backtrace).first}. skipping sync"
               end
             rescue => e
               # In case of unexpected errors, reset the negotiation object
@@ -55,7 +55,7 @@ module Datadog
 
               # Transient errors due to network or agent. Logged the error but not via telemetry
               logger.error do
-                "remote worker error: #{e.class.name} #{e.message} location: #{Array(e.backtrace).first}. " \
+                "remote worker error: #{e.class}: #{e} location: #{Array(e.backtrace).first}. " \
                 'resetting client state'
               end
 
