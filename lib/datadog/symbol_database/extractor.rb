@@ -178,12 +178,12 @@ module Datadog
       #
       # @param upload_class_methods [Boolean] Whether to include singleton methods
       # @return [Array<Scope>] Array of FILE scopes
-      def self.extract_all(upload_class_methods: false)
-        entries = collect_extractable_modules(upload_class_methods: upload_class_methods)
-        file_trees = build_file_trees(entries)
+      def self.extract_all(logger: Datadog.logger, upload_class_methods: false)
+        entries = collect_extractable_modules(logger: logger, upload_class_methods: upload_class_methods)
+        file_trees = build_file_trees(entries, logger: logger)
         convert_trees_to_scopes(file_trees)
       rescue => e
-        Datadog.logger.debug("SymDB: Error in extract_all: #{e.class}: #{e}")
+        logger.debug { "symdb: error in extract_all: #{e.class}: #{e}" }
         []
       end
 
@@ -665,7 +665,7 @@ module Datadog
 
           # Skip if param_name is nil (defensive)
           if param_name.nil?
-            Datadog.logger.debug("SymDB: param_name is nil for #{method_name}, param_type: #{param_type}")
+            Datadog.logger.debug { "symdb: param_name is nil for #{method_name}, param_type: #{param_type}" }
             next
           end
 
