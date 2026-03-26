@@ -78,6 +78,47 @@ actionlint .github/workflows/your-workflow.yml
   - Exception: constants initialized at load time (before user configuration) may use `::Time.now` directly; add a comment explaining why (see `lib/datadog/profiling/collectors/info.rb` for an example)
   - Exception: Dynamic Instrumentation (DI) probe instrumentation code that runs inside customer application methods must use `::Time.now` directly — the time provider supports runtime overrides (the API exists even if rarely used in production), and DI must never invoke customer-provided code during instrumentation
 
+## Component Pattern
+
+Pass dependencies (logger, settings, telemetry) via constructor injection. Do not access
+globals (`Datadog.logger`, `Datadog.configuration`) from within component code — that
+means a dependency wasn't injected.
+
+`Datadog.send(:components)` is for component boundaries only: RC callbacks, deferred
+hooks, threads that outlive component rebuilds. Not a general substitute for injection.
+
+Static methods are appropriate only for pure helpers with no dependencies. If a static
+method needs logging, config, or telemetry, convert it to an instance method on a
+component.
+
+**Exception:** Tracing contrib/integration code that runs inside monkey-patched methods
+must read configuration at call time via globals — patches persist across component
+rebuilds and cannot capture injected references. This is the only context where direct
+`Datadog.configuration` access is appropriate.
+
+## Error Handling
+
+Every `rescue` block must:
+- Log at debug level with exception class AND message: `"component: context: #{e.class}: #{e.message}"`
+- Report to telemetry (`Datadog.health_metrics` or equivalent)
+- Never silently swallow exceptions (bare `rescue` without logging)
+
+Silent `rescue` blocks are allowed only for intentional cases (timer cleanup, component
+lookup before init) and must have a comment explaining why.
+
+Use `warn` only for user-actionable problems (missing config, incompatible runtime).
+Use `debug` for operational state (errors, upload outcomes, config changes).
+
+## Ruby Compatibility
+
+Minimum supported Ruby is 2.5. Do not use methods added after 2.5 without a polyfill:
+- `filter_map` (2.7+) → use `Core::Utils::Array.filter_map`
+- `then` (2.6+) → use `yield_self`
+
+Check the file you're editing for existing polyfill usage before introducing bare
+stdlib calls. If three call sites use the polyfill and you write a bare call, that's
+a bug.
+
 ## Documentation
 
 - **Dynamic Instrumentation docs**: Never mention telemetry in customer-facing documentation (e.g., `docs/DynamicInstrumentation.md`)
