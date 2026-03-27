@@ -106,7 +106,7 @@ module Datadog
       def add_current_component(component)
         LOCK.synchronize do
           @current_components ||= []
-          @current_components << component
+          @current_components << component # steep:ignore NoMethod
         end
       end
 
