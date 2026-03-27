@@ -211,6 +211,12 @@ module Datadog
       # @param scope_count [Integer] Number of scopes uploaded
       # @return [Boolean] true if successful, false otherwise
       def handle_response(response, scope_count)
+        if response.internal_error?
+          # Transport failed at the connection level (e.g. ECONNREFUSED). Re-raise
+          # the underlying error so upload_with_retry can retry it.
+          raise response.error
+        end
+
         case response.code
         when 200..299
           @logger.debug { "symdb: uploaded #{scope_count} scopes successfully" }

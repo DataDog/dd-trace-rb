@@ -29,7 +29,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
 
   # Mock transport infrastructure
   let(:mock_transport) { instance_double(Datadog::SymbolDatabase::Transport::Transport) }
-  let(:mock_response) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200) }
+  let(:mock_response) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200, internal_error?: false) }
 
   before do
     # Mock Transport::HTTP.build to return our mock transport
@@ -132,7 +132,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
           if attempt < 3
             raise Errno::ECONNREFUSED, 'Connection refused'
           else
-            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200)
+            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200, internal_error?: false)
           end
         end
 
@@ -154,6 +154,26 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
         # Should have tried MAX_RETRIES + 1 times (initial + retries)
         expect(attempt).to eq(11)  # MAX_RETRIES = 10, so 1 + 10 = 11
       end
+
+      it 'retries when transport returns InternalErrorResponse (e.g. ECONNREFUSED)' do
+        # The transport can return InternalErrorResponse instead of raising when the
+        # connection fails at the HTTP layer. handle_response must not call .code on it.
+        connection_error = Errno::ECONNREFUSED.new('Connection refused - connect(2) for "127.0.0.1" port 28126')
+        internal_error_response = Datadog::Core::Transport::InternalErrorResponse.new(connection_error)
+
+        attempt = 0
+        allow(mock_transport).to receive(:send_symdb_payload) do
+          attempt += 1
+          if attempt < 3
+            internal_error_response
+          else
+            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200, internal_error?: false)
+          end
+        end
+
+        expect { uploader.upload_scopes([test_scope]) }.not_to raise_error
+        expect(attempt).to eq(3)
+      end
     end
 
     context 'with HTTP errors' do
@@ -162,9 +182,9 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
         allow(mock_transport).to receive(:send_symdb_payload) do
           attempt += 1
           if attempt < 3
-            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 500)
+            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 500, internal_error?: false)
           else
-            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200)
+            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200, internal_error?: false)
           end
         end
 
@@ -178,9 +198,9 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
         allow(mock_transport).to receive(:send_symdb_payload) do
           attempt += 1
           if attempt < 2
-            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 429)
+            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 429, internal_error?: false)
           else
-            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200)
+            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200, internal_error?: false)
           end
         end
 
@@ -191,7 +211,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
 
       it 'does not retry on 400 errors' do
         allow(mock_transport).to receive(:send_symdb_payload)
-          .and_return(instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 400))
+          .and_return(instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 400, internal_error?: false))
 
         expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/rejected/i) }
 
@@ -358,9 +378,9 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
         if attempt < 2
           # 408 maps to server error range in Ruby uploader (only 500+ retries)
           # but verify behavior is correct for retryable errors
-          instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 500)
+          instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 500, internal_error?: false)
         else
-          instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200)
+          instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200, internal_error?: false)
         end
       end
 
