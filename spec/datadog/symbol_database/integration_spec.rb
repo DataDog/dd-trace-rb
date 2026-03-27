@@ -81,10 +81,11 @@ RSpec.describe 'Symbol Database Integration' do
         symbol_names = class_scope.symbols.map(&:name)
         expect(symbol_names).to include('@@class_var')
 
-        # Method parameters (self + arg1 + arg2)
+        # Method parameters (arg1 + arg2, no self)
         test_method_scope = class_scope.scopes.find { |s| s.name == 'test_method' }
         param_names = test_method_scope.symbols.map(&:name)
-        expect(param_names).to include('self', 'arg1', 'arg2')
+        expect(param_names).to include('arg1', 'arg2')
+        expect(param_names).not_to include('self')
 
         # Batch and upload
         context.add_scope(file_scope)
