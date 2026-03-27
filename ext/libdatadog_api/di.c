@@ -3,7 +3,11 @@
 #include "datadog_ruby_common.h"
 
 // Prototypes for Ruby functions declared in internal Ruby headers.
+// rb_iseqw_new wraps an internal iseq pointer into a Ruby-visible
+// RubyVM::InstructionSequence object.
 VALUE rb_iseqw_new(const void *iseq);
+// rb_iseqw_to_iseq unwraps a RubyVM::InstructionSequence object back
+// to its internal iseq pointer.
 const void *rb_iseqw_to_iseq(VALUE iseqw);
 int rb_objspace_internal_object_p(VALUE obj);
 void rb_objspace_each_objects(

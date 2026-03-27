@@ -1,10 +1,12 @@
+require "datadog/di/spec_helper"
+
 RSpec.describe 'iseq_type' do
   def iseq_type(iseq)
     Datadog::DI.iseq_type(iseq)
   end
 
   before(:all) do
-    skip 'Test requires DI C extension' unless Datadog::DI.respond_to?(:iseq_type)
+    skip 'iseq_type requires rb_iseq_type (not available on this Ruby)' unless Datadog::DI.respond_to?(:iseq_type)
   end
 
   it 'returns :top for a compiled file' do
