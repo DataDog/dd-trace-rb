@@ -49,7 +49,7 @@ RSpec.describe 'Symbol Database Telemetry Integration' do
 
     it 'calls inc and distribution with correct signatures on successful upload' do
       allow(mock_transport).to receive(:send_symdb_payload)
-        .and_return(instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200))
+        .and_return(instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200, internal_error?: false))
 
       expect(telemetry).to receive(:distribution).with('tracers', 'symbol_database.compression_ratio', a_kind_of(Numeric))
       expect(telemetry).to receive(:distribution).with('tracers', 'symbol_database.payload_size', a_kind_of(Integer))
@@ -61,7 +61,7 @@ RSpec.describe 'Symbol Database Telemetry Integration' do
 
     it 'calls inc on upload error' do
       allow(mock_transport).to receive(:send_symdb_payload)
-        .and_return(instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 400))
+        .and_return(instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 400, internal_error?: false))
 
       allow(telemetry).to receive(:distribution)
       expect(telemetry).to receive(:inc).with('tracers', 'symbol_database.upload_error', 1, tags: ['error:client_error'])
