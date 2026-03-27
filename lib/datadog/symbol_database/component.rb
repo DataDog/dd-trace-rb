@@ -239,15 +239,17 @@ module Datadog
           file_scopes.each do |scope|
             @scope_context.add_scope(scope)
             extracted_count += 1
+            @logger.trace { "symdb: extracted scope: #{scope.scope_type} #{scope.name}" }
           end
 
-          # Flush any remaining scopes
-          @scope_context.flush
-
           # Track extraction metrics
-          duration = Datadog::Core::Utils::Time.get_time - start_time
-          @telemetry&.distribution('tracers', 'symbol_database.extraction_time', duration)
+          extraction_duration = Datadog::Core::Utils::Time.get_time - start_time
+          @telemetry&.distribution('tracers', 'symbol_database.extraction_time', extraction_duration)
           @telemetry&.inc('tracers', 'symbol_database.scopes_extracted', extracted_count)
+          @logger.debug { "symdb: extracted #{extracted_count} scopes in #{'%.2f' % extraction_duration}s" }
+
+          # Flush any remaining scopes (triggers upload)
+          @scope_context.flush
         rescue => e
           @logger.debug { "symdb: extraction error: #{e.class}: #{e}" }
           @telemetry&.inc('tracers', 'symbol_database.extraction_error', 1)
