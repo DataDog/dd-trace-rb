@@ -340,6 +340,74 @@ RSpec.describe Datadog::DI::CodeTracker do
         tracker.backfill_registry
         expect(tracker.send(:registry)).to be_empty
       end
+
+      context 'when component is available' do
+        let(:component) do
+          instance_double(Datadog::DI::Component).tap do |component|
+            allow(component).to receive(:logger).and_return(logger)
+            allow(component).to receive(:telemetry).and_return(telemetry)
+          end
+        end
+
+        let(:logger) do
+          instance_double(Datadog::DI::Logger).tap do |logger|
+            allow(logger).to receive(:debug)
+          end
+        end
+
+        let(:telemetry) do
+          instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
+            allow(telemetry).to receive(:report)
+          end
+        end
+
+        before do
+          allow(Datadog::DI).to receive(:current_component).and_return(component)
+        end
+
+        it 'logs the error at debug level' do
+          tracker.backfill_registry
+
+          expect(logger).to have_received(:debug) do |&block|
+            expect(block.call).to match(/backfill_registry failed.*RuntimeError.*object space walk failed/)
+          end
+        end
+
+        it 'reports the error via telemetry' do
+          tracker.backfill_registry
+
+          expect(telemetry).to have_received(:report).with(
+            an_instance_of(RuntimeError),
+            hash_including(description: "backfill_registry failed"),
+          )
+        end
+      end
+    end
+
+    context 'when iseq_type is not available' do
+      before do
+        allow(Datadog::DI).to receive(:respond_to?).with(:iseq_type).and_return(false)
+      end
+
+      it 'falls back to first_lineno == 0 for whole-file detection' do
+        allow(Datadog::DI).to receive(:file_iseqs).and_return(
+          [whole_file_iseq, per_method_iseq],
+        )
+
+        tracker.backfill_registry
+
+        registry = tracker.send(:registry)
+        expect(registry.length).to eq(1)
+        expect(registry['/app/lib/foo.rb']).to equal(whole_file_iseq)
+      end
+
+      it 'skips iseqs with non-zero first_lineno' do
+        allow(Datadog::DI).to receive(:file_iseqs).and_return([per_method_iseq])
+
+        tracker.backfill_registry
+
+        expect(tracker.send(:registry)).to be_empty
+      end
     end
 
     context 'when C extension is not available' do
