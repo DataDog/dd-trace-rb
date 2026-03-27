@@ -8,6 +8,15 @@ require "datadog/di"
 # time before DI activates. Without backfill, line probes on this code
 # would fail with DITargetNotDefined because the iseq is not in the
 # CodeTracker registry.
+#
+# Disable GC immediately before loading the test class. The top-level
+# file iseq (first_lineno=0, type=:top) is not referenced by any
+# constant or method after loading completes — only class/method iseqs
+# survive via BackfillIntegrationTestClass. Without this, the top-level
+# iseq can be collected between require_relative and the before block's
+# backfill_registry call, causing DITargetNotInRegistry.
+# GC is re-enabled in the before block after backfill completes.
+GC.disable
 require_relative "backfill_integration_test_class"
 
 RSpec.describe "CodeTracker backfill integration" do
@@ -60,16 +69,11 @@ RSpec.describe "CodeTracker backfill integration" do
 
   context "line probe on pre-loaded file" do
     before do
-      # Disable GC during tracking activation to prevent the pre-loaded
-      # file's iseq from being collected before backfill walks the object
-      # space. In production, application code is referenced by live
-      # constants/methods and survives GC; in the test environment, the
-      # iseq can be collected between require_relative and backfill.
-      GC.disable
-
       # Activate tracking AFTER the test class was loaded (at require_relative
       # above). The backfill in CodeTracker#start should recover the iseq
       # for backfill_integration_test_class.rb from the object space.
+      # GC was disabled at file load time to keep the top-level iseq alive;
+      # re-enable it after backfill completes.
       Datadog::DI.activate_tracking!
       allow(Datadog::DI).to receive(:current_component).and_return(component)
 
