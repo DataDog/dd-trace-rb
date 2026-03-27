@@ -56,6 +56,10 @@ module Datadog
       NANOSECONDS = 1_000_000_000
       MILLISECONDS = 1000
 
+      # Matches Ruby backtrace frame format: "/path/file.rb:42:in `method_name'"
+      # Captures: $1 = file path, $2 = line number, $3 = method name
+      BACKTRACE_FRAME_PATTERN = /\A(.+):(\d+):in\s+[`'](.+)'\z/
+
       def build_snapshot(context)
         probe = context.probe
 
@@ -207,7 +211,7 @@ module Datadog
         return [] if backtrace.nil?
 
         backtrace.map do |frame|
-          if frame =~ /\A(.+):(\d+):in\s+[`'](.+)'\z/
+          if frame =~ BACKTRACE_FRAME_PATTERN
             {fileName: $1, function: $3, lineNumber: $2.to_i}
           else
             {fileName: frame, function: '', lineNumber: 0}
