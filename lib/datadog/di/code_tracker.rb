@@ -40,9 +40,12 @@ module Datadog
       # - Ruby 3.1+: DI.iseq_type (wraps rb_iseq_type) returns :top for
       #   require/load and :main for the entry script. This is precise.
       # - Ruby < 3.1: falls back to first_lineno == 0, which is true for
-      #   whole-file iseqs and false for method/block/class definitions.
-      #   This heuristic can match top-level eval iseqs, but that's
-      #   acceptable for backfill purposes.
+      #   whole-file iseqs from require/load (INT2FIX(0) in Ruby's
+      #   rb_iseq_new_top and rb_iseq_new_main) and false for
+      #   method/block/class definitions (first_lineno >= 1).
+      #   InstructionSequence.compile passes first_lineno = 1 by default,
+      #   so eval'd code is not matched. Both strategies produce the same
+      #   result in practice.
       #
       # Does not overwrite iseqs already in the registry (from
       # :script_compiled), since those are guaranteed to be whole-file
