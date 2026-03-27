@@ -84,6 +84,7 @@ module Datadog
           component.logger.debug { "di: backfill_registry failed: #{exc.class}: #{exc}" }
           component.telemetry&.report(exc, description: "backfill_registry failed")
         end
+        nil
       end
 
       # Starts tracking loaded code.
