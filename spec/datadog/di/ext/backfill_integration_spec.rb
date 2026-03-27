@@ -60,11 +60,20 @@ RSpec.describe "CodeTracker backfill integration" do
 
   context "line probe on pre-loaded file" do
     before do
+      # Disable GC during tracking activation to prevent the pre-loaded
+      # file's iseq from being collected before backfill walks the object
+      # space. In production, application code is referenced by live
+      # constants/methods and survives GC; in the test environment, the
+      # iseq can be collected between require_relative and backfill.
+      GC.disable
+
       # Activate tracking AFTER the test class was loaded (at require_relative
       # above). The backfill in CodeTracker#start should recover the iseq
       # for backfill_integration_test_class.rb from the object space.
       Datadog::DI.activate_tracking!
       allow(Datadog::DI).to receive(:current_component).and_return(component)
+
+      GC.enable
     end
 
     let(:probe) do
