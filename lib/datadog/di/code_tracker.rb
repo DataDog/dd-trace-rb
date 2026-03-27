@@ -32,9 +32,17 @@ module Datadog
       #
       # Uses the all_iseqs C extension to walk the Ruby object space and
       # find instruction sequences for already-loaded code. Only whole-file
-      # iseqs (first_lineno == 0) are stored — per-method iseqs require
-      # instrumenter changes to select the correct iseq for a target line
-      # and will be supported in a follow-up.
+      # iseqs are stored — per-method iseqs require instrumenter changes
+      # to select the correct iseq for a target line and will be supported
+      # in a follow-up.
+      #
+      # Whole-file detection uses two strategies:
+      # - Ruby 3.1+: DI.iseq_type (wraps rb_iseq_type) returns :top for
+      #   require/load and :main for the entry script. This is precise.
+      # - Ruby < 3.1: falls back to first_lineno == 0, which is true for
+      #   whole-file iseqs and false for method/block/class definitions.
+      #   This heuristic can match top-level eval iseqs, but that's
+      #   acceptable for backfill purposes.
       #
       # Does not overwrite iseqs already in the registry (from
       # :script_compiled), since those are guaranteed to be whole-file
