@@ -17,6 +17,11 @@ module Datadog
   module DI
     LOCK = Mutex.new
 
+    # Initialize to avoid "instance variable not initialized" warning
+    # on Ruby 2.6/2.7 when current_component is called before any
+    # component is added (e.g. from backfill_registry's error boundary).
+    @current_components = nil
+
     class << self
       attr_reader :code_tracker
 
