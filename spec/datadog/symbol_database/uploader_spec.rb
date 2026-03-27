@@ -302,7 +302,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       event_io = captured_form['event'].instance_variable_get(:@io)
       event_json = JSON.parse(event_io.read)
 
-      expect(event_json['ddsource']).to eq('dd_debugger')
+      expect(event_json['ddsource']).to eq('ruby')
       expect(event_json['service']).to eq('test-service')
       expect(event_json['type']).to eq('symdb')
     end
@@ -326,7 +326,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       parsed = JSON.parse(json_data)
 
       expect(parsed['service']).to eq('test-service')
-      expect(parsed['language']).to eq('JAVA')
+      expect(parsed['language']).to eq('RUBY')
       expect(parsed['scopes']).to be_an(Array)
     end
   end
