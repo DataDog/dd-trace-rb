@@ -239,7 +239,7 @@ module Datadog
           file_scopes.each do |scope|
             @scope_context.add_scope(scope)
             extracted_count += 1
-            @logger.trace { "symdb: extracted scope: #{scope.scope_type} #{scope.name}" }
+            log_scope_tree(scope, 0)
           end
 
           # Track extraction metrics
@@ -256,6 +256,12 @@ module Datadog
         ensure
           @mutex.synchronize { @upload_in_progress = false }
         end
+      end
+
+      def log_scope_tree(scope, depth)
+        indent = '  ' * depth
+        @logger.trace { "symdb:   #{indent}#{scope.scope_type} #{scope.name}" }
+        scope.scopes&.each { |child| log_scope_tree(child, depth + 1) }
       end
     end
   end
