@@ -1447,15 +1447,30 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       it 'returns nil for empty top-level class (no methods, no constants, no vars)' do
         filename = create_user_code_file("class TestEmptyClass; end")
         load filename
-        expect(extractor.extract(TestEmptyClass)).to be_nil
+        scope = extractor.extract(TestEmptyClass)
+        if Module.method_defined?(:const_source_location)
+          expect(scope).not_to be_nil
+          expect(scope.scope_type).to eq('FILE')
+          expect(scope.scopes.first.scope_type).to eq('CLASS')
+          expect(scope.scopes.first.scopes).to be_empty
+        else
+          expect(scope).to be_nil
+        end
         Object.send(:remove_const, :TestEmptyClass)
         cleanup_user_code_file(filename)
       end
 
-      it 'returns nil for empty top-level module' do
+      it 'extracts empty top-level module as a MODULE scope with no methods (Ruby 2.7+)' do
         filename = create_user_code_file("module TestEmptyModule; end")
         load filename
-        expect(extractor.extract(TestEmptyModule)).to be_nil
+        scope = extractor.extract(TestEmptyModule)
+        if Module.method_defined?(:const_source_location)
+          expect(scope).not_to be_nil
+          expect(scope.scope_type).to eq('FILE')
+          expect(scope.scopes.first.scope_type).to eq('MODULE')
+        else
+          expect(scope).to be_nil
+        end
         Object.send(:remove_const, :TestEmptyModule)
         cleanup_user_code_file(filename)
       end
@@ -1549,7 +1564,11 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
     end
 
     context 'AR-style model with no user-defined methods' do
-      it 'returns nil for class whose only methods come from gem paths' do
+      it 'extracts class whose only methods come from gem paths — finds declaration via const_source_location' do
+        # Simulates ActiveRecord model with only associations (belongs_to, has_many).
+        # Methods are all gem-generated with gem source paths. The class declaration
+        # is in user code. On Ruby 2.7+ we find it via const_source_location and upload
+        # an empty CLASS scope, matching Java/.NET behavior.
         filename = create_user_code_file(<<~RUBY)
           class TestARStyleModel
           end
@@ -1557,30 +1576,76 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         load filename
 
         gem_path = '/fake/gems/activerecord-7.0/lib/active_record/autosave.rb'
-        gem_method = instance_double(Method, source_location: [gem_path, 1])
+        gem_method = instance_double(Method, source_location: [gem_path, 1], arity: 0, parameters: [])
 
         allow(TestARStyleModel).to receive(:instance_methods).with(false).and_return([:gem_generated_method])
         allow(TestARStyleModel).to receive(:instance_method).with(:gem_generated_method).and_return(gem_method)
+        allow(TestARStyleModel).to receive(:protected_instance_methods).with(false).and_return([])
+        allow(TestARStyleModel).to receive(:private_instance_methods).with(false).and_return([])
         allow(TestARStyleModel).to receive(:singleton_methods).with(false).and_return([])
 
-        expect(extractor.extract(TestARStyleModel)).to be_nil
+        scope = extractor.extract(TestARStyleModel)
+        if Module.method_defined?(:const_source_location)
+          expect(scope).not_to be_nil
+          expect(scope.scope_type).to eq('FILE')
+          expect(scope.scopes.first.scope_type).to eq('CLASS')
+          expect(scope.scopes.first.scopes).to be_empty
+        else
+          expect(scope).to be_nil
+        end
 
         Object.send(:remove_const, :TestARStyleModel)
+        cleanup_user_code_file(filename)
+      end
+
+      it 'extracts class with only Forwardable-delegated methods (def_delegators)' do
+        # def_delegators creates methods whose source_location points to forwardable.rb (stdlib).
+        # The class declaration is in user code. Should extract as empty CLASS scope on Ruby 2.7+.
+        filename = create_user_code_file(<<~RUBY)
+          require 'forwardable'
+          class TestForwardableModel
+            extend Forwardable
+            def_delegators :@target, :name, :email
+          end
+        RUBY
+        load filename
+
+        scope = extractor.extract(TestForwardableModel)
+        if Module.method_defined?(:const_source_location)
+          expect(scope).not_to be_nil
+          expect(scope.scope_type).to eq('FILE')
+          inner = scope.scopes.first
+          expect(inner.scope_type).to eq('CLASS')
+          # Delegated methods point to forwardable.rb (stdlib) — not user code, not extracted
+          method_names = inner.scopes.map(&:name)
+          expect(method_names).not_to include('name', 'email')
+        else
+          expect(scope).to be_nil
+        end
+
+        Object.send(:remove_const, :TestForwardableModel)
         cleanup_user_code_file(filename)
       end
     end
 
     context 'class with only class variables (no methods)' do
-      it 'returns nil — class variables are not findable via source_location or const_source_location' do
-        # @@class_var is not a constant, so it does not appear in constants(false)
-        # and const_source_location cannot find it. No methods → source file is nil.
+      it 'extracts class with only class variables on Ruby 2.7+ via const_source_location' do
+        # @@class_var is not a constant, so constants(false) returns nothing.
+        # But const_source_location on the class name itself finds the declaration.
         filename = create_user_code_file(<<~RUBY)
           class TestClassVarOnly
             @@count = 0
           end
         RUBY
         load filename
-        expect(extractor.extract(TestClassVarOnly)).to be_nil
+        scope = extractor.extract(TestClassVarOnly)
+        if Module.method_defined?(:const_source_location)
+          expect(scope).not_to be_nil
+          expect(scope.scope_type).to eq('FILE')
+          expect(scope.scopes.first.scope_type).to eq('CLASS')
+        else
+          expect(scope).to be_nil
+        end
         Object.send(:remove_const, :TestClassVarOnly)
         cleanup_user_code_file(filename)
       end
