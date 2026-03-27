@@ -2,7 +2,7 @@ module Datadog
   module DI
     self.@code_tracker: CodeTracker?
 
-    self.@current_components: ::Array[Component]
+    self.@current_components: ::Array[Component]?
 
     attr_reader self.code_tracker: CodeTracker?
 
