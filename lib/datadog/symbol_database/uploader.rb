@@ -19,7 +19,7 @@ module Datadog
     # 3. Compresses with GZIP (always, ~40:1 ratio expected)
     # 4. Builds multipart form: event.json (metadata) + symbols_{pid}.json.gz (data)
     # 5. POSTs to agent at /symdb/v1/input via Core::Transport::HTTP
-    # 6. Retries handled by transport layer
+    # No retries — single attempt. Any failure is logged at debug and discarded.
     #
     # Uses Core::Transport::HTTP infrastructure (consistent with DI, Profiling, DataStreams).
     # Headers: DD-API-KEY, Datadog-Container-ID, Datadog-Entity-ID (automatic from transport)
@@ -31,9 +31,6 @@ module Datadog
     # @api private
     class Uploader
       MAX_PAYLOAD_SIZE = 50 * 1024 * 1024  # 50MB
-      MAX_RETRIES = 10
-      BASE_BACKOFF_INTERVAL = 0.1  # 100ms
-      MAX_BACKOFF_INTERVAL = 30.0  # 30 seconds
 
       # Initialize uploader.
       # @param config [Configuration] Tracer configuration (for service, env, version metadata)
@@ -55,7 +52,7 @@ module Datadog
       # Upload a batch of scopes to the agent.
       # Wraps in ServiceVersion, serializes to JSON, compresses with GZIP,
       # builds multipart form, and POSTs to /symdb/v1/input via transport.
-      # Retries handled by this layer (transport doesn't retry by default).
+      # No retries — single attempt, matching Python behavior.
       # @param scopes [Array<Scope>] Scopes to upload
       # @return [void]
       def upload_scopes(scopes)
@@ -75,8 +72,7 @@ module Datadog
           return
         end
 
-        # Upload with retry
-        upload_with_retry(compressed_data, scopes.size)
+        perform_http_upload(compressed_data, scopes.size)
       rescue => e
         @logger.debug { "symdb: upload failed: #{e.class}: #{e}" }
         @telemetry&.inc('tracers', 'symbol_database.upload_scopes_error', 1)
@@ -117,39 +113,6 @@ module Datadog
         @logger.debug { "symdb: compression failed: #{e.class}: #{e}" }
         @telemetry&.inc('tracers', 'symbol_database.compression_error', 1)
         nil
-      end
-
-      # Upload with retry logic (up to 10 retries with exponential backoff).
-      # @param compressed_data [String] GZIP compressed payload
-      # @param scope_count [Integer] Number of scopes being uploaded
-      # @return [void]
-      def upload_with_retry(compressed_data, scope_count)
-        retries = 0
-
-        begin
-          perform_http_upload(compressed_data, scope_count)
-        rescue => e
-          retries += 1
-
-          if retries <= MAX_RETRIES
-            backoff = calculate_backoff(retries)
-            @logger.debug { "symdb: upload failed (#{retries}/#{MAX_RETRIES}), retrying in #{backoff}s: #{e.class}: #{e}" }
-            sleep(backoff)
-            retry
-          else
-            @logger.debug { "symdb: upload failed after #{MAX_RETRIES} retries: #{e.class}: #{e}" }
-            @telemetry&.inc('tracers', 'symbol_database.upload_retry_exhausted', 1)
-          end
-        end
-      end
-
-      # Calculate exponential backoff with jitter.
-      # @param retry_count [Integer] Current retry attempt number
-      # @return [Float] Backoff duration in seconds
-      def calculate_backoff(retry_count)
-        backoff = BASE_BACKOFF_INTERVAL * (2**(retry_count - 1))
-        backoff = [backoff, MAX_BACKOFF_INTERVAL].min
-        backoff * (0.5 + rand * 0.5)  # Add jitter
       end
 
       # Perform HTTP POST with multipart form-data via transport layer.
@@ -212,9 +175,9 @@ module Datadog
       # @return [Boolean] true if successful, false otherwise
       def handle_response(response, scope_count)
         if response.internal_error?
-          # Transport failed at the connection level (e.g. ECONNREFUSED). Re-raise
-          # the underlying error so upload_with_retry can retry it.
-          raise response.error
+          @logger.debug { "symdb: upload failed: #{response.error.class}: #{response.error}" }
+          @telemetry&.inc('tracers', 'symbol_database.upload_error', 1, tags: ['error:connection_error'])
+          return false
         end
 
         case response.code
@@ -225,15 +188,12 @@ module Datadog
           true
         when 429
           @telemetry&.inc('tracers', 'symbol_database.upload_error', 1, tags: ['error:rate_limited'])
-          # Raise to trigger retry logic in upload_with_retry (line 130-144).
-          # This follows the same pattern as Core::Transport - retryable errors raise,
-          # non-retryable errors return false. Agent rate limiting is transient and retryable.
-          raise "Rate limited"
+          @logger.debug { "symdb: upload rejected: rate limited (429)" }
+          false
         when 500..599
           @telemetry&.inc('tracers', 'symbol_database.upload_error', 1, tags: ['error:server_error'])
-          # Raise to trigger retry logic in upload_with_retry (line 130-144).
-          # Server errors (500-599) are transient and retryable with exponential backoff.
-          raise "Server error: #{response.code}"
+          @logger.debug { "symdb: upload rejected: server error (#{response.code})" }
+          false
         else
           @telemetry&.inc('tracers', 'symbol_database.upload_error', 1, tags: ['error:client_error'])
           @logger.debug { "symdb: upload rejected: #{response.code}" }
