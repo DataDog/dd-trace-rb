@@ -10,7 +10,6 @@ module Datadog
     module ProcessDiscovery
       class << self
         def publish(settings)
-          Datadog.logger.debug { "Process discovery publish called" }
           if RUBY_PLATFORM.include?("darwin")
             Datadog.logger.debug { "Skipping process discovery, not yet supported on macOS" }
             return
@@ -25,12 +24,10 @@ module Datadog
 
           shutdown!
           @file_descriptor = _native_store_tracer_metadata(Datadog.logger, **metadata)
-          Datadog.logger.debug { "Process Discovery publish event: service=#{metadata[:service_name]} process_tags=#{metadata[:process_tags]}" }
         end
 
         def shutdown!
           if defined?(@file_descriptor)
-            Datadog.logger.debug { "Process discovery is now shutting down itsmemfd" }
             @file_descriptor&.shutdown!(Datadog.logger)
             @file_descriptor = nil
           end
