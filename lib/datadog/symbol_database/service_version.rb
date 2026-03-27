@@ -31,7 +31,7 @@ module Datadog
         @service = service
         @env = env.to_s.empty? ? 'none' : env.to_s
         @version = version.to_s.empty? ? 'none' : version.to_s
-        @language = 'RUBY'
+        @language = 'ruby'
         @scopes = scopes
       end
 
