@@ -153,8 +153,9 @@ module Datadog
         return false if path.include?('/ruby/')
         return false if path.start_with?('<internal:')
         return false if path.include?('(eval)')
-        # Exclude spec files (test code, not application code)
+        # Exclude test code (not application code)
         return false if path.include?('/spec/')
+        return false if path.include?('/test/')
         # Exclude Datadog's own library code (e.g., monkey-patched methods from tracing contrib).
         # Without this, stdlib classes like Net::HTTP appear as user code when dd-trace-rb
         # instruments them, because the patched method source points to lib/datadog/tracing/contrib/.
