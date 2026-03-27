@@ -313,6 +313,37 @@ RSpec.describe Datadog::DI::CodeTracker do
       expect(registry['/app/lib/b.rb']).to equal(iseq_b)
     end
 
+    it 'is idempotent when called twice with the same iseqs' do
+      allow(Datadog::DI).to receive(:file_iseqs).and_return([whole_file_iseq])
+
+      tracker.backfill_registry
+      tracker.backfill_registry
+
+      registry = tracker.send(:registry)
+      expect(registry.length).to eq(1)
+      expect(registry['/app/lib/foo.rb']).to equal(whole_file_iseq)
+    end
+
+    it 'adds new files on second call without overwriting existing entries' do
+      iseq_a = double('iseq_a', absolute_path: '/app/lib/a.rb', first_lineno: 0)
+      allow(Datadog::DI).to receive(:file_iseqs).and_return([iseq_a])
+
+      tracker.backfill_registry
+
+      # Second call returns the original file plus a new one
+      iseq_a_new = double('iseq_a_new', absolute_path: '/app/lib/a.rb', first_lineno: 0)
+      iseq_b = double('iseq_b', absolute_path: '/app/lib/b.rb', first_lineno: 0)
+      allow(Datadog::DI).to receive(:file_iseqs).and_return([iseq_a_new, iseq_b])
+
+      tracker.backfill_registry
+
+      registry = tracker.send(:registry)
+      expect(registry.length).to eq(2)
+      # Original iseq_a preserved, not overwritten by iseq_a_new
+      expect(registry['/app/lib/a.rb']).to equal(iseq_a)
+      expect(registry['/app/lib/b.rb']).to equal(iseq_b)
+    end
+
     it 'filters mixed iseq types from a single file' do
       # file_iseqs returns both whole-file and per-method iseqs for same file
       allow(Datadog::DI).to receive(:file_iseqs).and_return(
