@@ -260,7 +260,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       parsed = JSON.parse(json_data)
 
       expect(parsed['service']).to eq('test-service')
-      expect(parsed['language']).to eq('RUBY')
+      expect(parsed['language']).to eq('ruby')
       expect(parsed['scopes']).to be_an(Array)
     end
   end
