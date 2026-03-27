@@ -1,12 +1,5 @@
 # frozen_string_literal: true
 
-# TODO: Revert language to 'RUBY' and ddsource to 'ruby' (in uploader.rb) after
-# DataDog/debugger-backend#1974 merges. That PR adds RUBY to the backend storage
-# Language enum. Without it, the backend silently drops Ruby uploads.
-# Revert this file: change @language = 'JAVA' back to @language = 'RUBY' on line ~36.
-# Revert uploader.rb: change ddsource: 'dd_debugger' back to ddsource: 'ruby'.
-# Then remove all TODO/TEMPORARY comments from both files.
-
 require 'json'
 
 module Datadog
@@ -16,8 +9,6 @@ module Datadog
     # ServiceVersion is the root object serialized to JSON for symbol database uploads.
     # Contains service metadata (name, env, version) and all extracted scopes.
     # The language field identifies the tracer.
-    # TEMPORARY: Using "JAVA" until debugger-backend#1974 adds RUBY to the storage
-    # Language enum. Revert to "RUBY" once that PR merges.
     #
     # Created by: Uploader (wraps scopes array before serialization)
     # Contains: Array of top-level Scope objects (MODULE scopes)
@@ -40,7 +31,7 @@ module Datadog
         @service = service
         @env = env.to_s.empty? ? 'none' : env.to_s
         @version = version.to_s.empty? ? 'none' : version.to_s
-        @language = 'JAVA' # TEMPORARY: revert to 'RUBY' after debugger-backend#1974
+        @language = 'RUBY'
         @scopes = scopes
       end
 
