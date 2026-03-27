@@ -125,88 +125,39 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
     end
 
     context 'with network errors' do
-      it 'retries on connection errors' do
-        attempt = 0
-        allow(mock_transport).to receive(:send_symdb_payload) do
-          attempt += 1
-          if attempt < 3
-            raise Errno::ECONNREFUSED, 'Connection refused'
-          else
-            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200, internal_error?: false)
-          end
-        end
+      it 'does not retry on connection errors — single attempt, logs and continues' do
+        allow(mock_transport).to receive(:send_symdb_payload).and_raise(Errno::ECONNREFUSED, 'Connection refused')
 
-        # Should not raise, should retry and eventually succeed
+        expect(mock_transport).to receive(:send_symdb_payload).once
         expect { uploader.upload_scopes([test_scope]) }.not_to raise_error
-        expect(attempt).to eq(3)
       end
 
-      it 'gives up after MAX_RETRIES' do
-        attempt = 0
-        allow(mock_transport).to receive(:send_symdb_payload) do
-          attempt += 1
-          raise Errno::ECONNREFUSED, 'Connection refused'
-        end
-
-        # Should not raise, should log and give up
-        expect { uploader.upload_scopes([test_scope]) }.not_to raise_error
-
-        # Should have tried MAX_RETRIES + 1 times (initial + retries)
-        expect(attempt).to eq(11)  # MAX_RETRIES = 10, so 1 + 10 = 11
-      end
-
-      it 'retries when transport returns InternalErrorResponse (e.g. ECONNREFUSED)' do
-        # The transport can return InternalErrorResponse instead of raising when the
-        # connection fails at the HTTP layer. handle_response must not call .code on it.
-        connection_error = Errno::ECONNREFUSED.new('Connection refused - connect(2) for "127.0.0.1" port 28126')
+      it 'does not retry when transport returns InternalErrorResponse' do
+        connection_error = Errno::ECONNREFUSED.new('Connection refused')
         internal_error_response = Datadog::Core::Transport::InternalErrorResponse.new(connection_error)
 
-        attempt = 0
-        allow(mock_transport).to receive(:send_symdb_payload) do
-          attempt += 1
-          if attempt < 3
-            internal_error_response
-          else
-            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200, internal_error?: false)
-          end
-        end
+        allow(mock_transport).to receive(:send_symdb_payload).and_return(internal_error_response)
 
+        expect(mock_transport).to receive(:send_symdb_payload).once
         expect { uploader.upload_scopes([test_scope]) }.not_to raise_error
-        expect(attempt).to eq(3)
       end
     end
 
     context 'with HTTP errors' do
-      it 'retries on 500 errors' do
-        attempt = 0
-        allow(mock_transport).to receive(:send_symdb_payload) do
-          attempt += 1
-          if attempt < 3
-            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 500, internal_error?: false)
-          else
-            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200, internal_error?: false)
-          end
-        end
+      it 'does not retry on 500 errors' do
+        allow(mock_transport).to receive(:send_symdb_payload)
+          .and_return(instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 500, internal_error?: false))
 
+        expect(mock_transport).to receive(:send_symdb_payload).once
         uploader.upload_scopes([test_scope])
-
-        expect(attempt).to eq(3)
       end
 
-      it 'retries on 429 rate limit' do
-        attempt = 0
-        allow(mock_transport).to receive(:send_symdb_payload) do
-          attempt += 1
-          if attempt < 2
-            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 429, internal_error?: false)
-          else
-            instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200, internal_error?: false)
-          end
-        end
+      it 'does not retry on 429 rate limit' do
+        allow(mock_transport).to receive(:send_symdb_payload)
+          .and_return(instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 429, internal_error?: false))
 
+        expect(mock_transport).to receive(:send_symdb_payload).once
         uploader.upload_scopes([test_scope])
-
-        expect(attempt).to eq(2)
       end
 
       it 'does not retry on 400 errors' do
@@ -263,31 +214,6 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       file_upload = captured_form['file']
       expect(file_upload.original_filename).to match(/symbols_\d+\.json\.gz/)
       expect(file_upload.content_type).to eq('application/gzip')
-    end
-  end
-
-  describe '#calculate_backoff' do
-    it 'uses exponential backoff' do
-      backoff1 = uploader.send(:calculate_backoff, 1)
-      backoff2 = uploader.send(:calculate_backoff, 2)
-      backoff3 = uploader.send(:calculate_backoff, 3)
-
-      # Should roughly double each time (with jitter)
-      expect(backoff2).to be > backoff1
-      expect(backoff3).to be > backoff2
-    end
-
-    it 'caps at MAX_BACKOFF_INTERVAL' do
-      backoff = uploader.send(:calculate_backoff, 20)
-
-      expect(backoff).to be <= described_class::MAX_BACKOFF_INTERVAL
-    end
-
-    it 'adds jitter' do
-      # Run multiple times, should get different values due to jitter
-      backoffs = 10.times.map { uploader.send(:calculate_backoff, 1) }
-
-      expect(backoffs.uniq.size).to be > 1
     end
   end
 
@@ -367,26 +293,6 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
 
       scope_names = parsed['scopes'].map { |s| s['name'] }
       expect(scope_names).to include('Class1', 'Class2', 'Class3')
-    end
-  end
-
-  describe 'retry on 408 timeout (ported from Java BatchUploaderTest.testRetryOn500)' do
-    it 'retries on 408 request timeout' do
-      attempt = 0
-      allow(mock_transport).to receive(:send_symdb_payload) do
-        attempt += 1
-        if attempt < 2
-          # 408 maps to server error range in Ruby uploader (only 500+ retries)
-          # but verify behavior is correct for retryable errors
-          instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 500, internal_error?: false)
-        else
-          instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200, internal_error?: false)
-        end
-      end
-
-      uploader.upload_scopes([test_scope])
-
-      expect(attempt).to eq(2)
     end
   end
 
