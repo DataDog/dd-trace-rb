@@ -3,6 +3,7 @@ module Datadog
     class ProbeNotificationBuilder
       NANOSECONDS: Integer
       MILLISECONDS: Integer
+      BACKTRACE_FRAME_PATTERN: Regexp
 
       @serializer: Serializer
 
