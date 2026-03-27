@@ -249,7 +249,7 @@ RSpec.describe Datadog::DI::CodeTracker do
         # and :method for per-method iseqs. Cannot use and_call_original because
         # the C function expects a real RubyVM::InstructionSequence, not a double.
         allow(Datadog::DI).to receive(:iseq_type) do |iseq|
-          iseq.first_lineno == 0 ? :top : :method
+          (iseq.first_lineno == 0) ? :top : :method
         end
       else
         allow(Datadog::DI).to receive(:respond_to?).with(:iseq_type).and_return(false)
@@ -447,7 +447,6 @@ RSpec.describe Datadog::DI::CodeTracker do
         expect(tracker.send(:registry)).to be_empty
       end
     end
-
   end
 
   describe '#start calls backfill_registry' do
@@ -485,7 +484,7 @@ RSpec.describe Datadog::DI::CodeTracker do
         # and :method for per-method iseqs. Cannot use and_call_original because
         # the C function expects a real RubyVM::InstructionSequence, not a double.
         allow(Datadog::DI).to receive(:iseq_type) do |iseq|
-          iseq.first_lineno == 0 ? :top : :method
+          (iseq.first_lineno == 0) ? :top : :method
         end
       else
         allow(Datadog::DI).to receive(:respond_to?).with(:iseq_type).and_return(false)
