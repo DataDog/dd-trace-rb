@@ -9,12 +9,6 @@ void rb_objspace_each_objects(
     int (*callback)(void *start, void *end, size_t stride, void *data),
     void *data);
 
-// Backtrace conversion functions from vm_backtrace.c.
-// rb_backtrace_p returns true if the value is a Thread::Backtrace object.
-// rb_backtrace_to_str_ary converts a Thread::Backtrace to Array<String>.
-int rb_backtrace_p(VALUE obj);
-VALUE rb_backtrace_to_str_ary(VALUE self);
-
 #define IMEMO_TYPE_ISEQ 7
 
 // The ID value of the string "mesg" which is used in Ruby source as
@@ -22,15 +16,10 @@ VALUE rb_backtrace_to_str_ary(VALUE self);
 // from standard library exception classes like NameError.
 static ID id_mesg;
 
-// The ID value of the string "bt" which is used in Ruby source as
-// id_bt or idBt, and is used to set and retrieve the exception backtrace.
-static ID id_bt;
-
-// The ID value of the string "bt_locations" which is used in Ruby source
-// to store the Thread::Backtrace object for lazy backtrace evaluation.
-// On newer Ruby versions, bt may be nil with the actual backtrace stored
-// in bt_locations instead.
-static ID id_bt_locations;
+// Cached UnboundMethod for Exception#backtrace, used to call the original
+// C implementation without dispatching through the method table (which
+// would invoke customer overrides). Initialized once in di_init.
+static VALUE exception_backtrace_unbound_method;
 
 // Returns whether the argument is an IMEMO of type ISEQ.
 static bool ddtrace_imemo_iseq_p(VALUE v) {
@@ -90,67 +79,60 @@ static VALUE exception_message(DDTRACE_UNUSED VALUE _self, VALUE exception) {
  * call-seq:
  *   DI.exception_backtrace(exception) -> Array | nil
  *
- * Returns the backtrace stored on the exception object as an Array of
- * Strings, without invoking any Ruby-level method on the exception.
+ * Returns the backtrace of the exception as an Array of Strings, without
+ * invoking any Ruby-level method on the exception object itself.
  *
- * This reads the internal +bt+ and +bt_locations+ instance variables
- * directly, bypassing any override of +Exception#backtrace+. This is
- * important for DI instrumentation where we must not invoke customer code.
+ * This is important for DI instrumentation where we must not invoke
+ * customer code. If a customer subclass overrides +Exception#backtrace+,
+ * calling +exception.backtrace+ would dispatch to the override. This
+ * method bypasses that by calling the original +Exception#backtrace+
+ * implementation directly via an UnboundMethod captured at init time.
  *
- * Ruby stores the backtrace internally as a Thread::Backtrace object,
- * not as an Array of Strings. The public Exception#backtrace method
- * converts it lazily. This function performs the same conversion using
- * rb_backtrace_to_str_ary (a Ruby internal C function, not customer code).
+ * Implementation: at init time, we capture
+ * +Exception.instance_method(:backtrace)+ as an UnboundMethod. At call
+ * time, we bind it to the exception and call it. This invokes the
+ * original C implementation of +Exception#backtrace+ (defined in
+ * Ruby's error.c), which handles all Ruby version differences in
+ * internal backtrace storage:
  *
- * Ruby version differences in internal backtrace storage:
+ * - Ruby 2.6–3.1: +bt+ ivar holds a Thread::Backtrace object after
+ *   +raise+. +Exception#backtrace+ converts it to Array<String>.
  *
- * - Ruby 2.6: When +raise+ is called, Ruby sets +bt+ to a
- *   Thread::Backtrace object. +Exception#backtrace+ converts it to
- *   Array<String> on first access and caches the result back in +bt+.
+ * - Ruby 3.2+: +bt+ is nil after +raise+; actual backtrace is in
+ *   +bt_locations+. +Exception#backtrace+ reads and converts it.
  *
- * - Ruby 3.2+: When +raise+ is called, Ruby sets +bt+ to +nil+ and
- *   stores the Thread::Backtrace in +bt_locations+ instead (lazy
- *   evaluation). +Exception#backtrace+ reads +bt_locations+, converts
- *   to Array<String>, and caches in +bt+.
+ * - All versions: +Exception#set_backtrace+ stores Array<String>
+ *   directly in +bt+.
  *
- * - All versions: +Exception#set_backtrace+ stores an Array<String>
- *   directly in +bt+ (no Thread::Backtrace involved).
+ * Using bind+call on the UnboundMethod is safe: it only invokes Ruby
+ * stdlib code (the original Exception#backtrace C function), not
+ * customer code. The UnboundMethod is captured once from Exception
+ * itself, so even if a subclass overrides backtrace, bind_call still
+ * dispatches to the original.
  *
  * @param exception [Exception] The exception object
  * @return [Array<String>, nil] The backtrace as an array of strings,
  *   or nil if no backtrace is set
  */
 static VALUE exception_backtrace(DDTRACE_UNUSED VALUE _self, VALUE exception) {
-  VALUE bt = rb_ivar_get(exception, id_bt);
-
-  // Array: backtrace was set via Exception#set_backtrace, or was already
-  // materialized by a prior call to Exception#backtrace. All Ruby versions.
-  if (RB_TYPE_P(bt, T_ARRAY)) return bt;
-
-  // Thread::Backtrace: Ruby 2.6–3.1 store the raw backtrace object in bt
-  // when raise is called, before Exception#backtrace materializes it.
-  if (rb_backtrace_p(bt)) {
-    return rb_backtrace_to_str_ary(bt);
-  }
-
-  // nil: On Ruby 3.2+, bt starts as nil after raise. The actual backtrace
-  // is stored in bt_locations as a Thread::Backtrace (lazy evaluation).
-  // Also nil when no backtrace has been set (e.g. Exception.new without raise).
-  if (NIL_P(bt)) {
-    VALUE bt_locations = rb_ivar_get(exception, id_bt_locations);
-    if (!NIL_P(bt_locations) && rb_backtrace_p(bt_locations)) {
-      return rb_backtrace_to_str_ary(bt_locations);
-    }
-  }
-
-  // No backtrace set (exception created without raise and without set_backtrace).
-  return Qnil;
+  // Use bind + call (not bind_call) for Ruby 2.6 compatibility.
+  // bind_call was added in Ruby 2.7.
+  VALUE bound = rb_funcall(exception_backtrace_unbound_method,
+    rb_intern("bind"), 1, exception);
+  return rb_funcall(bound, rb_intern("call"), 0);
 }
 
 void di_init(VALUE datadog_module) {
   id_mesg = rb_intern("mesg");
-  id_bt = rb_intern("bt");
-  id_bt_locations = rb_intern("bt_locations");
+
+  // Capture Exception.instance_method(:backtrace) once at init time.
+  // This UnboundMethod points to the original C implementation in error.c
+  // and will not be affected by subclass overrides.
+  exception_backtrace_unbound_method = rb_funcall(
+    rb_eException, rb_intern("instance_method"), 1,
+    ID2SYM(rb_intern("backtrace")));
+  // Prevent GC from collecting the cached UnboundMethod.
+  rb_gc_register_mark_object(exception_backtrace_unbound_method);
 
   VALUE di_module = rb_define_module_under(datadog_module, "DI");
   rb_define_singleton_method(di_module, "all_iseqs", all_iseqs, 0);
