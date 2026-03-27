@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 # TODO: Revert ddsource to 'ruby' after DataDog/debugger-backend#1974 merges.
-# See service_version.rb for full revert instructions.
 
 require 'json'
 require 'zlib'
@@ -199,7 +198,7 @@ module Datadog
       # @return [String] JSON string for event metadata
       def build_event_metadata
         JSON.generate(
-          ddsource: 'dd_debugger', # TEMPORARY: revert to 'ruby' after debugger-backend#1974
+          ddsource: 'ruby',
           service: @config.service,
           runtimeId: Datadog::Core::Environment::Identity.id,
           parentId: nil,  # Fork tracking deferred for MVP

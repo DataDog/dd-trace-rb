@@ -16,7 +16,7 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
       expect(sv.service).to eq('my-service')
       expect(sv.env).to eq('production')
       expect(sv.version).to eq('1.0.0')
-      expect(sv.language).to eq('JAVA')
+      expect(sv.language).to eq('RUBY')
       expect(sv.scopes).to eq([])
     end
 
@@ -58,9 +58,9 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
       expect(sv.version).to eq('none')
     end
 
-    it 'sets language' do # TEMPORARY: expects JAVA, revert to RUBY after debugger-backend#1974
+    it 'sets language' do
       sv = described_class.new(service: 'svc', env: 'prod', version: '1.0', scopes: [])
-      expect(sv.language).to eq('JAVA')
+      expect(sv.language).to eq('RUBY')
     end
   end
 
@@ -79,7 +79,7 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         service: 'my-app',
         env: 'staging',
         version: '2.1.0',
-        language: 'JAVA',
+        language: 'RUBY',
         scopes: []
       })
     end
@@ -136,7 +136,7 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         'service' => 'test-service',
         'env' => 'test',
         'version' => '0.1.0',
-        'language' => 'JAVA',
+        'language' => 'RUBY',
         'scopes' => []
       )
     end
@@ -162,7 +162,7 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
       parsed = JSON.parse(json)
 
       expect(parsed['service']).to eq('my-app')
-      expect(parsed['language']).to eq('JAVA')
+      expect(parsed['language']).to eq('RUBY')
       expect(parsed['scopes']).to be_an(Array)
       expect(parsed['scopes'].first['scope_type']).to eq('MODULE')
       expect(parsed['scopes'].first['language_specifics']['file_hash']).to eq('abc123')
