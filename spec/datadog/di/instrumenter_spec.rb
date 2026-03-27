@@ -1619,6 +1619,78 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
+    describe 'method probe executed callback exceptions' do
+      before do
+        Object.const_set(:DITestClass, Class.new do
+          def test_method(arg)
+            arg + 1
+          end
+        end)
+      end
+
+      after do
+        Object.send(:remove_const, :DITestClass)
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: 1, type: :log, type_name: 'DITestClass', method_name: 'test_method',
+          capture_snapshot: false,
+        )
+      end
+
+      let(:responder) do
+        double('responder').tap do |r|
+          allow(r).to receive(:probe_executed_callback).and_raise(StandardError, "callback error")
+        end
+      end
+
+      it 'does not propagate exception to customer code' do
+        expect_lazy_log(logger, :debug, /unhandled exception in method probe.*StandardError.*callback error/)
+
+        expect(telemetry).to receive(:report) do |exc, description:|
+          expect(exc).to be_a(StandardError)
+          expect(exc.message).to eq("callback error")
+          expect(description).to eq("Unhandled exception in method probe")
+        end
+
+        begin
+          instrumenter.hook_method(probe, responder)
+
+          expect do
+            result = DITestClass.new.test_method(42)
+            expect(result).to eq(43)
+          end.not_to raise_error
+        ensure
+          instrumenter.unhook_method(probe)
+        end
+      end
+
+      it 'preserves customer exception when callback also raises' do
+        expect_lazy_log(logger, :debug, /unhandled exception in method probe.*StandardError.*callback error/)
+        allow(telemetry).to receive(:report)
+
+        error_class = Class.new(StandardError)
+
+        Object.send(:remove_const, :DITestClass)
+        Object.const_set(:DITestClass, Class.new do
+          define_method(:test_method) do |_arg|
+            raise error_class, "customer error"
+          end
+        end)
+
+        begin
+          instrumenter.hook_method(probe, responder)
+
+          expect do
+            DITestClass.new.test_method(42)
+          end.to raise_error(error_class, "customer error")
+        ensure
+          instrumenter.unhook_method(probe)
+        end
+      end
+    end
+
     describe 'line probe condition evaluation failed callback exceptions' do
       include_context 'with code tracking'
 
