@@ -211,18 +211,16 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         expect(private_method.language_specifics[:visibility]).to eq('private')
       end
 
-      it 'emits self as first ARG for instance methods' do
+      it 'does not emit self ARG for instance methods' do
+        # self is implicit in Ruby (not a declared parameter). Java skips slot 0 for the
+        # same reason. The web-ui would need a filter for it anyway — don't upload it.
         class_scope = extractor.extract(TestUserClass).scopes.first
         method_scope = class_scope.scopes.find { |s| s.name == 'public_method' }
 
-        expect(method_scope.symbols.first.name).to eq('self')
-        expect(method_scope.symbols.first.symbol_type).to eq('ARG')
+        expect(method_scope.symbols.map(&:name)).not_to include('self')
       end
 
       it 'does not emit self ARG for singleton methods' do
-        # Class-method receiver is the class object, not an instance — `self` is
-        # not a useful DI variable there, so extract_singleton_method_parameters
-        # does not prepend a self ARG.
         method = TestUserClass.method(:class_method)
         symbols = extractor.send(:extract_singleton_method_parameters, method)
         expect(symbols.map(&:name)).not_to include('self')
@@ -769,7 +767,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
 
         param_names = method_scope.symbols.map(&:name)
 
-        expect(param_names).to include('self')
+        expect(param_names).not_to include('self')
         expect(param_names).to include('required')
         expect(param_names).to include('optional')
         expect(param_names).to include('rest')
@@ -1993,7 +1991,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         pub = cls.scopes.find { |s| s.name == 'public_method' }
         expect(pub.language_specifics[:visibility]).to eq('public')
         param_names = pub.symbols.map(&:name)
-        expect(param_names).to include('self', 'arg1', 'arg2')
+        expect(param_names).to include('arg1', 'arg2')
+        expect(param_names).not_to include('self')
 
         priv = cls.scopes.find { |s| s.name == 'private_method' }
         expect(priv.language_specifics[:visibility]).to eq('private')

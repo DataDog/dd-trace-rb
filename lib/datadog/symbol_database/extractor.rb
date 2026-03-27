@@ -533,11 +533,11 @@ module Datadog
       end
 
       # Extract method parameters as symbols.
-      # For instance methods, prepends a synthetic `self` ARG — consistent with Java and .NET
-      # which always emit the implicit receiver (`this`) as the first ARG. This allows DI
-      # expression evaluation to reference `self.field` at a probe point.
+      # Does NOT include `self` — Ruby's implicit receiver is not a declared parameter.
+      # Java skips slot 0 (this) for the same reason. .NET uploads `this` but the web-ui
+      # filters it for dotnet. Ruby follows Java's approach: don't upload it.
       # @param method [UnboundMethod] The method
-      # @param method_type [Symbol] :instance or :class
+      # @param method_type [Symbol] :instance or :class (unused, kept for API compatibility)
       # @return [Array<Symbol>] Parameter symbols
       def extract_method_parameters(method, method_type = :instance)
         # Method name extraction can fail for exotic methods (e.g., dynamically defined via define_method
@@ -551,18 +551,7 @@ module Datadog
         end
         params = method.parameters
 
-        # Prepend synthetic `self` ARG for instance methods.
-        # `self` is implicit in Ruby (not in Method#parameters) but must be registered as
-        # an available symbol so DI can evaluate expressions like `self.name` at a probe point.
-        self_arg = if method_type == :instance
-          [Symbol.new(symbol_type: 'ARG', name: 'self', line: SymbolDatabase::UNKNOWN_MIN_LINE)]
-        else
-          []
-        end
-
-        if params.nil? || params.empty?
-          return self_arg
-        end
+        return [] if params.nil? || params.empty?
 
         result = Core::Utils::Array.filter_map(params) do |param_type, param_name|
           # Skip block parameters for MVP
@@ -579,13 +568,10 @@ module Datadog
           )
         end
 
-        if result.empty? && !params.empty?
-        end
-
-        self_arg + result
+        result
       rescue => e
         @logger.debug { "symdb: failed to extract parameters from #{method_name}: #{e.class}: #{e}" }
-        self_arg
+        []
       end
 
       # Extract singleton method parameters
