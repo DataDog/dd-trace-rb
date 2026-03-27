@@ -583,10 +583,12 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       let(:context) do
         Datadog::DI::Context.new(
           probe: probe,
-          settings: settings, serializer: serializer,
+          settings: settings,
+          serializer: serializer,
           target_self: target_self,
           serialized_entry_args: {},
-          return_value: nil, duration: 0.1,
+          return_value: nil,
+          duration: 0.1,
           exception: exception,
         )
       end

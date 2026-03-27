@@ -30,6 +30,18 @@ RSpec.describe 'exception_backtrace' do
     end
   end
 
+  context 'when backtrace was set via set_backtrace' do
+    let(:exception) do
+      StandardError.new('test').tap do |e|
+        e.set_backtrace(['custom:1:in `foo\'', 'custom:2:in `bar\''])
+      end
+    end
+
+    it 'returns the set backtrace array' do
+      expect(backtrace).to eq(['custom:1:in `foo\'', 'custom:2:in `bar\''])
+    end
+  end
+
   context 'when exception class overrides backtrace method' do
     let(:exception_class) do
       Class.new(StandardError) do
