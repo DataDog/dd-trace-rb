@@ -237,11 +237,17 @@ RSpec.describe Datadog::DI::CodeTracker do
         first_lineno: 1,)
     end
 
+    # On Ruby 3.1+ iseq_type exists natively; on older Rubies
+    # backfill_registry falls back to first_lineno == 0.
+    # Only stub iseq_type when it actually exists — RSpec's
+    # verify_partial_doubles rejects stubs on nonexistent methods.
     before do
       allow(Datadog::DI).to receive(:respond_to?).and_call_original
-      allow(Datadog::DI).to receive(:respond_to?).with(:iseq_type).and_return(true)
-      allow(Datadog::DI).to receive(:iseq_type) do |iseq|
-        (iseq.first_lineno == 0) ? :top : :method
+      if Datadog::DI.respond_to?(:iseq_type)
+        allow(Datadog::DI).to receive(:respond_to?).with(:iseq_type).and_return(true)
+        allow(Datadog::DI).to receive(:iseq_type).and_call_original
+      else
+        allow(Datadog::DI).to receive(:respond_to?).with(:iseq_type).and_return(false)
       end
     end
 
@@ -468,9 +474,11 @@ RSpec.describe Datadog::DI::CodeTracker do
   describe '#iseqs_for_path_suffix with backfilled entries' do
     before do
       allow(Datadog::DI).to receive(:respond_to?).and_call_original
-      allow(Datadog::DI).to receive(:respond_to?).with(:iseq_type).and_return(true)
-      allow(Datadog::DI).to receive(:iseq_type) do |iseq|
-        (iseq.first_lineno == 0) ? :top : :method
+      if Datadog::DI.respond_to?(:iseq_type)
+        allow(Datadog::DI).to receive(:respond_to?).with(:iseq_type).and_return(true)
+        allow(Datadog::DI).to receive(:iseq_type).and_call_original
+      else
+        allow(Datadog::DI).to receive(:respond_to?).with(:iseq_type).and_return(false)
       end
     end
 
