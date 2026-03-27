@@ -29,7 +29,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component, inc: nil, distribution: nil) }
 
   let(:mock_transport) { instance_double(Datadog::SymbolDatabase::Transport::Transport) }
-  let(:mock_response) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200) }
+  let(:mock_response) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200, internal_error?: false) }
 
   let(:captured_forms) { [] }
 
