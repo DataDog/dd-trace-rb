@@ -360,10 +360,40 @@ module Datadog
           end
         end
 
-        # For namespace-only modules (no methods), try const_source_location (Ruby 2.7+).
-        # This handles `module Foo; class Bar...; end; end` where Foo has no methods.
-        # Guarded by respond_to? for Ruby 2.5/2.6 compatibility.
-        if fallback.nil? && mod.respond_to?(:const_source_location)
+        # Try const_source_location (Ruby 2.7+) to find where this class/module is declared.
+        # This handles two cases:
+        #   1. Classes with no user-defined methods (e.g. AR models with only associations) whose
+        #      generated methods point to gem code — we find the `class Foo` declaration instead.
+        #   2. Namespace-only modules (`module Foo; class Bar; end; end`) with no methods at all.
+        if Module.method_defined?(:const_source_location) && mod.name
+          # Look up the class/module by its last name component in its enclosing namespace.
+          parts = mod.name.split('::')
+          const_name = parts.last
+          namespace = if parts.length > 1
+            begin
+              Object.const_get(parts[0..-2].join('::'))
+            rescue NameError
+              nil
+            end
+          else
+            Object
+          end
+
+          if namespace
+            location = begin
+              namespace.const_source_location(const_name)
+            rescue
+              nil
+            end
+
+            if location && !location.empty?
+              path = location[0]
+              return path if path && !path.empty? && user_code_path?(path)
+              fallback ||= (path && !path.empty? ? path : nil)
+            end
+          end
+
+          # Also scan constants defined by mod itself (namespace-only modules).
           mod.constants(false).each do |const_name|
             location = begin
               mod.const_source_location(const_name)
