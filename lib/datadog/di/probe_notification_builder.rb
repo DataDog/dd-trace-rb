@@ -196,7 +196,7 @@ module Datadog
         {
           type: exception.class.name,
           message: message,
-          stacktrace: format_backtrace(exception.backtrace),
+          stacktrace: format_backtrace(DI.exception_backtrace(exception)),
         }
       end
 

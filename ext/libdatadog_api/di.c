@@ -16,6 +16,10 @@ void rb_objspace_each_objects(
 // from standard library exception classes like NameError.
 static ID id_mesg;
 
+// The ID value of the string "bt" which is used in Ruby source as
+// id_bt or idBt, and is used to set and retrieve the exception backtrace.
+static ID id_bt;
+
 // Returns whether the argument is an IMEMO of type ISEQ.
 static bool ddtrace_imemo_iseq_p(VALUE v) {
   return rb_objspace_internal_object_p(v) && RB_TYPE_P(v, T_IMEMO) && ddtrace_imemo_type(v) == IMEMO_TYPE_ISEQ;
@@ -70,10 +74,30 @@ static VALUE exception_message(DDTRACE_UNUSED VALUE _self, VALUE exception) {
   return rb_ivar_get(exception, id_mesg);
 }
 
+/*
+ * call-seq:
+ *   DI.exception_backtrace(exception) -> Array | nil
+ *
+ * Returns the raw backtrace stored on the exception object without
+ * invoking any Ruby-level method.
+ *
+ * This reads the internal +bt+ instance variable directly, bypassing
+ * any override of +Exception#backtrace+. This is important for DI
+ * instrumentation where we must not invoke customer code.
+ *
+ * @param exception [Exception] The exception object
+ * @return [Array<String>, nil] The raw backtrace array, or nil if not set
+ */
+static VALUE exception_backtrace(DDTRACE_UNUSED VALUE _self, VALUE exception) {
+  return rb_ivar_get(exception, id_bt);
+}
+
 void di_init(VALUE datadog_module) {
   id_mesg = rb_intern("mesg");
+  id_bt = rb_intern("bt");
 
   VALUE di_module = rb_define_module_under(datadog_module, "DI");
   rb_define_singleton_method(di_module, "all_iseqs", all_iseqs, 0);
   rb_define_singleton_method(di_module, "exception_message", exception_message, 1);
+  rb_define_singleton_method(di_module, "exception_backtrace", exception_backtrace, 1);
 }
