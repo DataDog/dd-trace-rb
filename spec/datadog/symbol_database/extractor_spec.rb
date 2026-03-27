@@ -1795,7 +1795,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
 
         param_names = method_scope.symbols.map(&:name)
 
-        expect(param_names).to include('self')
+        expect(param_names).not_to include('self')
         expect(param_names).to include('required')
         expect(param_names).to include('optional')
         expect(param_names).to include('rest')
