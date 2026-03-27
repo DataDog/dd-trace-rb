@@ -51,14 +51,7 @@ module Datadog
       # :script_compiled), since those are guaranteed to be whole-file
       # iseqs and are authoritative.
       #
-      # This method is safe to call even if the C extension is not
-      # available — it silently returns without modifying the registry.
       def backfill_registry
-        # Check for the C extension method (all_iseqs), not the Ruby
-        # wrapper (file_iseqs), since file_iseqs is always defined but
-        # calls all_iseqs which is only available from the C extension.
-        return unless DI.respond_to?(:all_iseqs)
-
         iseqs = DI.file_iseqs
         have_iseq_type = DI.respond_to?(:iseq_type)
         registry_lock.synchronize do
