@@ -575,11 +575,9 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       end
 
       let(:exception) do
-        begin
-          raise exception_class, 'test'
-        rescue => e
-          e
-        end
+        raise exception_class, 'test'
+      rescue => e
+        e
       end
 
       let(:context) do

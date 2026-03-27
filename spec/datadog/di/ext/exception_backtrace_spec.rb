@@ -40,11 +40,9 @@ RSpec.describe 'exception_backtrace' do
     end
 
     let(:exception) do
-      begin
-        raise exception_class, 'test'
-      rescue => e
-        e
-      end
+      raise exception_class, 'test'
+    rescue => e
+      e
     end
 
     it 'returns the real backtrace, not the overridden one' do
