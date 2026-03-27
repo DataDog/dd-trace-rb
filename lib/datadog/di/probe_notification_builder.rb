@@ -56,10 +56,6 @@ module Datadog
       NANOSECONDS = 1_000_000_000
       MILLISECONDS = 1000
 
-      # Matches Ruby backtrace frame format: "/path/file.rb:42:in `method_name'"
-      # Captures: $1 = file path, $2 = line number, $3 = method name
-      BACKTRACE_FRAME_PATTERN = /\A(.+):(\d+):in\s+[`'](.+)'\z/
-
       def build_snapshot(context)
         probe = context.probe
 
@@ -200,22 +196,20 @@ module Datadog
         }
       end
 
-      # Parses Ruby backtrace strings into the stack frame format
+      # Converts backtrace locations into the stack frame format
       # expected by the Datadog UI.
       #
-      # Ruby backtrace format: "/path/file.rb:42:in `method_name'"
+      # Uses Thread::Backtrace::Location objects which provide structured
+      # path/lineno/label directly, avoiding the round-trip of formatting
+      # to strings and regex-parsing back.
       #
-      # @param backtrace [Array<String>, nil] from Exception#backtrace
-      # @return [Array<Hash>, nil]
-      def format_backtrace(backtrace)
-        return [] if backtrace.nil?
+      # @param locations [Array<Thread::Backtrace::Location>, nil]
+      # @return [Array<Hash>]
+      def format_backtrace(locations)
+        return [] if locations.nil?
 
-        backtrace.map do |frame|
-          if frame =~ BACKTRACE_FRAME_PATTERN
-            {fileName: $1, function: $3, lineNumber: $2.to_i}
-          else
-            {fileName: frame, function: '', lineNumber: 0}
-          end
+        locations.map do |loc|
+          {fileName: loc.path, function: loc.label, lineNumber: loc.lineno}
         end
       end
 

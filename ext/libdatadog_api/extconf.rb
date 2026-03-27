@@ -89,8 +89,6 @@ Datadog::LibdatadogExtconfHelpers.add_libdatadog_version_define
 # When requiring, we need to use the exact same string, including the version and the platform.
 EXTENSION_NAME = "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}".freeze
 
-have_func('rb_backtrace_p')
-
 create_makefile(EXTENSION_NAME)
 
 # rubocop:enable Style/GlobalVars

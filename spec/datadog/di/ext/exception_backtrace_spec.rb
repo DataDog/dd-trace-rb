@@ -12,11 +12,12 @@ RSpec.describe 'exception_backtrace' do
       e
     end
 
-    it 'returns an array of strings' do
+    it 'returns an array of Thread::Backtrace::Location' do
       expect(backtrace).to be_an(Array)
       expect(backtrace).not_to be_empty
-      expect(backtrace.first).to be_a(String)
-      expect(backtrace.first).to match(/\A.+:\d+:in\s/)
+      expect(backtrace.first).to be_a(Thread::Backtrace::Location)
+      expect(backtrace.first.path).to be_a(String)
+      expect(backtrace.first.lineno).to be_a(Integer)
     end
   end
 
@@ -30,23 +31,11 @@ RSpec.describe 'exception_backtrace' do
     end
   end
 
-  context 'when backtrace was set via set_backtrace' do
-    let(:exception) do
-      StandardError.new('test').tap do |e|
-        e.set_backtrace(['custom:1:in `foo\'', 'custom:2:in `bar\''])
-      end
-    end
-
-    it 'returns the set backtrace array' do
-      expect(backtrace).to eq(['custom:1:in `foo\'', 'custom:2:in `bar\''])
-    end
-  end
-
-  context 'when exception class overrides backtrace method' do
+  context 'when exception class overrides backtrace_locations method' do
     let(:exception_class) do
       Class.new(StandardError) do
-        define_method(:backtrace) do
-          ['overridden']
+        define_method(:backtrace_locations) do
+          []
         end
       end
     end
@@ -58,13 +47,13 @@ RSpec.describe 'exception_backtrace' do
     end
 
     it 'returns the real backtrace, not the overridden one' do
-      # The raw backtrace from the C extension bypasses the override.
+      # The UnboundMethod bypasses the subclass override.
       expect(backtrace).to be_an(Array)
-      expect(backtrace).not_to eq(['overridden'])
-      expect(backtrace.first).to match(/\A.+:\d+:in\s/)
+      expect(backtrace).not_to be_empty
+      expect(backtrace.first).to be_a(Thread::Backtrace::Location)
 
       # Verify the override exists on the Ruby side.
-      expect(exception.backtrace).to eq(['overridden'])
+      expect(exception.backtrace_locations).to eq([])
     end
   end
 end
