@@ -394,9 +394,9 @@ module Datadog
           end
 
           # Also scan constants defined by mod itself (namespace-only modules).
-          mod.constants(false).each do |const_name|
+          mod.constants(false).each do |child_const_name|
             location = begin
-              mod.const_source_location(const_name)
+              mod.const_source_location(child_const_name)
             rescue
               nil
             end
