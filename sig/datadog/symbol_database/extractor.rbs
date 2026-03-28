@@ -1,0 +1,47 @@
+module Datadog
+  module SymbolDatabase
+    class Extractor
+      EXCLUDED_COMMON_MODULES: Array[String]
+
+      def self.extract: (Module mod, ?upload_class_methods: bool) -> Scope?
+
+      private
+
+      def self.user_code_module?: (Module mod) -> bool
+
+      def self.user_code_path?: (String path) -> bool
+
+      def self.find_source_file: (Module mod) -> String?
+
+      def self.wrap_class_in_module_scope: (Class klass, Scope class_scope) -> Scope
+
+      def self.extract_module_scope: (Module mod) -> Scope
+
+      def self.extract_class_scope: (Class klass, ?upload_class_methods: bool) -> Scope
+
+      def self.calculate_class_line_range: (Class klass, Array[::Symbol] methods) -> [Integer, Integer]
+
+      def self.build_module_language_specifics: (Module mod, String? source_file) -> Hash[Symbol, untyped]
+
+      def self.build_class_language_specifics: (Class klass) -> Hash[Symbol, untyped]
+
+      def self.extract_nested_classes: (Module mod) -> Array[Scope]
+
+      def self.extract_module_symbols: (Module mod) -> Array[Symbol]
+
+      def self.extract_class_symbols: (Class klass) -> Array[Symbol]
+
+      def self.extract_method_scopes: (Class klass, ?upload_class_methods: bool) -> Array[Scope]
+
+      def self.extract_method_scope: (Class klass, ::Symbol method_name, ::Symbol method_type) -> Scope?
+
+      def self.extract_singleton_method_scope: (Class klass, ::Symbol method_name) -> Scope?
+
+      def self.method_visibility: (Class klass, ::Symbol method_name) -> String
+
+      def self.extract_method_parameters: (UnboundMethod method, ?::Symbol method_type) -> Array[Symbol]
+
+      def self.extract_singleton_method_parameters: (Method method) -> Array[Symbol]
+    end
+  end
+end

@@ -102,6 +102,8 @@ module Datadog
           "DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED",
           "DD_SERVICE",
           "DD_SITE",
+          "DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD",
+          "DD_SYMBOL_DATABASE_UPLOAD_ENABLED",
           "DD_SPAN_SAMPLING_RULES",
           "DD_SPAN_SAMPLING_RULES_FILE",
           "DD_TAGS",
