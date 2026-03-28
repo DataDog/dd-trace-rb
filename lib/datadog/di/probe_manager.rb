@@ -26,13 +26,12 @@ module Datadog
         @telemetry = telemetry
         @probe_repository = probe_repository
 
-        @definition_trace_point = TracePoint.trace(:end) do |tp|
+        @definition_trace_point = TracePoint.new(:end) do |tp|
           install_pending_method_probes(tp.self)
         rescue => exc
           raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
           logger.debug { "di: unhandled exception in definition trace point: #{exc.class}: #{exc}" }
           telemetry&.report(exc, description: "Unhandled exception in definition trace point")
-          # TODO test this path
         end
       end
 
