@@ -36,6 +36,9 @@ module Datadog
       # to select the correct iseq for a target line and will be supported
       # in a follow-up.
       #
+      # See docs/DynamicInstrumentationDevelopment.md "Iseq Lifecycle and GC"
+      # for which iseq types survive GC and implications for backfill.
+      #
       # Whole-file detection uses two strategies:
       # - Ruby 3.1+: DI.iseq_type (wraps rb_iseq_type) returns :top for
       #   require/load and :main for the entry script. This is precise.
