@@ -26,6 +26,7 @@ module Datadog
 
           new(settings, agent_settings, logger, code_tracker: DI.code_tracker, telemetry: telemetry).tap do |component|
             DI.add_current_component(component)
+            component.start!
           end
         end
 
@@ -80,7 +81,7 @@ module Datadog
           settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, probe_repository,
           telemetry: telemetry,
         )
-        probe_notifier_worker.start
+        @started = false
       end
 
       attr_reader :settings
@@ -96,9 +97,43 @@ module Datadog
       attr_reader :redactor
       attr_reader :serializer
 
-      # Shuts down dynamic instrumentation.
+      # Starts the DI component: begins accepting probes and
+      # processing snapshots.
+      #
+      # Starts the probe notifier worker thread and enables the
+      # definition trace point for pending method probes.
+      # No-op if already started.
+      def start!
+        return if @started
+
+        probe_notifier_worker.start
+        probe_manager.reopen
+        @started = true
+      end
+
+      # Stops the DI component: removes all probes and stops
+      # background threads.
+      #
+      # The component remains alive and can be restarted with {#start!}.
+      # Does not clear out the code tracker.
+      # No-op if already stopped.
+      def stop!
+        return unless @started
+
+        probe_manager.stop
+        probe_notifier_worker.stop
+        @started = false
+      end
+
+      def started?
+        @started
+      end
+
+      # Shuts down dynamic instrumentation permanently.
       #
       # Removes all code hooks and stops background threads.
+      # Called by Components#shutdown! during component destruction.
+      # Unlike {#stop!}, this is not reversible.
       #
       # Does not clear out the code tracker, because it's only populated
       # by code when code is compiled and therefore, if the code tracker
@@ -107,6 +142,7 @@ module Datadog
       def shutdown!(replacement = nil)
         DI.remove_current_component(self)
 
+        @started = false
         probe_manager.clear_hooks
         probe_manager.close
         probe_notifier_worker.stop
