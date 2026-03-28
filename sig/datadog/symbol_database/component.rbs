@@ -23,6 +23,8 @@ module Datadog
 
       @upload_in_progress: bool
 
+      @upload_done_cv: Thread::ConditionVariable
+
       def self.build: (untyped settings, untyped agent_settings, untyped logger, ?telemetry: untyped?) -> Component?
 
       def initialize: (untyped settings, untyped agent_settings, untyped logger, ?telemetry: untyped?) -> void
