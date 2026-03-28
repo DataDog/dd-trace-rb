@@ -90,6 +90,7 @@ module Datadog
         @last_upload_time = nil
         @mutex = Mutex.new
         @upload_in_progress = false
+        @upload_done_cv = ConditionVariable.new
         @shutdown = false
       end
 
@@ -177,12 +178,14 @@ module Datadog
       # Waits for any in-flight upload to complete before shutting down.
       # @return [void]
       def shutdown!
-        @mutex.synchronize { @shutdown = true }
+        @mutex.synchronize do
+          @shutdown = true
 
-        # Wait for in-flight upload to complete (max 5 seconds)
-        deadline = Datadog::Core::Utils::Time.now + 5
-        while @upload_in_progress && Datadog::Core::Utils::Time.now < deadline
-          sleep 0.1
+          # Wait for in-flight upload to complete (max 5 seconds).
+          # extract_and_upload signals @upload_done_cv when it finishes.
+          if @upload_in_progress
+            @upload_done_cv.wait(@mutex, 5)
+          end
         end
 
         @scope_context.shutdown
@@ -254,7 +257,10 @@ module Datadog
           @logger.debug { "symdb: extraction error: #{e.class}: #{e}" }
           @telemetry&.inc('tracers', 'symbol_database.extraction_error', 1)
         ensure
-          @mutex.synchronize { @upload_in_progress = false }
+          @mutex.synchronize do
+            @upload_in_progress = false
+            @upload_done_cv.signal
+          end
         end
       end
 
