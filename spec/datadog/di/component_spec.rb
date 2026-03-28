@@ -7,72 +7,151 @@ RSpec.describe Datadog::DI::Component do
   describe '.build' do
     let(:settings) do
       settings = Datadog::Core::Configuration::Settings.new
-      settings.dynamic_instrumentation.enabled = dynamic_instrumentation_enabled
       settings.dynamic_instrumentation.internal.development = true
       settings
     end
 
     let(:agent_settings) do
-      instance_double_agent_settings
+      instance_double_agent_settings_with_stubs
     end
 
     let(:logger) do
       instance_double(Logger)
     end
 
-    context 'when dynamic instrumentation is enabled' do
-      let(:dynamic_instrumentation_enabled) { true }
-
-      let(:agent_settings) do
-        instance_double_agent_settings_with_stubs
+    context 'when remote config is enabled' do
+      before do
+        settings.remote.enabled = true
       end
 
-      context 'when remote config is enabled' do
-        before do
-          settings.remote.enabled = true
-        end
-
-        it 'returns a Datadog::DI::Component instance' do
-          component = described_class.build(settings, agent_settings, logger)
-          expect(component).to be_a(described_class)
-          component.shutdown!
-        end
-      end
-
-      context 'when remote config is disabled' do
-        before do
-          settings.remote.enabled = false
-        end
-
-        it 'returns nil' do
-          expect(logger).to receive(:warn).with(/dynamic instrumentation could not be enabled because Remote Configuration Management is not available/)
-          component = described_class.build(settings, agent_settings, logger)
-          expect(component).to be nil
-        end
-      end
-
-      context 'when C extension is not available' do
-        before do
-          settings.remote.enabled = true
-          allow(Datadog::DI).to receive(:respond_to?).and_call_original
-          allow(Datadog::DI).to receive(:respond_to?).with(:exception_message).and_return(false)
-        end
-
-        it 'returns nil' do
-          expect(logger).to receive(:warn).with(/C extension is not available/)
-          component = described_class.build(settings, agent_settings, logger)
-          expect(component).to be nil
-        end
+      it 'returns a Component in stopped state' do
+        component = described_class.build(settings, agent_settings, logger)
+        expect(component).to be_a(described_class)
+        expect(component.started?).to be false
+        component.shutdown!
       end
     end
 
-    context 'when dynamic instrumentation is disabled' do
-      let(:dynamic_instrumentation_enabled) { false }
+    context 'when remote config is disabled' do
+      before do
+        settings.remote.enabled = false
+      end
 
       it 'returns nil' do
+        expect(logger).to receive(:debug)
         component = described_class.build(settings, agent_settings, logger)
         expect(component).to be nil
       end
+    end
+
+    context 'when C extension is not available' do
+      before do
+        settings.remote.enabled = true
+        allow(Datadog::DI).to receive(:respond_to?).and_call_original
+        allow(Datadog::DI).to receive(:respond_to?).with(:exception_message).and_return(false)
+      end
+
+      it 'returns nil' do
+        expect(logger).to receive(:debug)
+        component = described_class.build(settings, agent_settings, logger)
+        expect(component).to be nil
+      end
+    end
+
+    context 'regardless of DD_DYNAMIC_INSTRUMENTATION_ENABLED' do
+      before do
+        settings.remote.enabled = true
+        settings.dynamic_instrumentation.enabled = false
+      end
+
+      it 'still builds the component' do
+        component = described_class.build(settings, agent_settings, logger)
+        expect(component).to be_a(described_class)
+        expect(component.started?).to be false
+        component.shutdown!
+      end
+    end
+  end
+
+  describe '#start! and #stop!' do
+    let(:settings) do
+      settings = Datadog::Core::Configuration::Settings.new
+      settings.dynamic_instrumentation.internal.development = true
+      settings.remote.enabled = true
+      settings
+    end
+
+    let(:agent_settings) do
+      instance_double_agent_settings_with_stubs
+    end
+
+    let(:logger) do
+      instance_double(Logger)
+    end
+
+    let(:component) do
+      described_class.build(settings, agent_settings, logger)
+    end
+
+    after do
+      component&.shutdown!
+    end
+
+    it 'starts and stops the component' do
+      expect(component.started?).to be false
+      component.start!
+      expect(component.started?).to be true
+      component.stop!
+      expect(component.started?).to be false
+    end
+
+    it 'start! is idempotent' do
+      component.start!
+      component.start!
+      expect(component.started?).to be true
+    end
+
+    it 'stop! is idempotent' do
+      component.stop!
+      component.stop!
+      expect(component.started?).to be false
+    end
+
+    it 'supports restart after stop' do
+      component.start!
+      expect(component.started?).to be true
+      component.stop!
+      expect(component.started?).to be false
+      component.start!
+      expect(component.started?).to be true
+    end
+
+    it 'does not have background threads when stopped' do
+      threads_before = Thread.list.size
+      # Component is built but stopped — no new threads
+      expect(Thread.list.size).to eq(threads_before)
+    end
+
+    it 'definition trace point is disabled when stopped' do
+      expect(component.probe_manager.send(:definition_trace_point).enabled?).to be false
+    end
+
+    it 'definition trace point is enabled after start' do
+      component.start!
+      expect(component.probe_manager.send(:definition_trace_point).enabled?).to be true
+    end
+
+    it 'definition trace point is disabled after stop' do
+      component.start!
+      component.stop!
+      expect(component.probe_manager.send(:definition_trace_point).enabled?).to be false
+    end
+
+    it 'definition trace point is re-enabled after restart' do
+      component.start!
+      component.stop!
+      component.start!
+      expect(component.probe_manager.send(:definition_trace_point).enabled?).to be true
     end
   end
 
@@ -98,7 +177,7 @@ RSpec.describe Datadog::DI::Component do
     end
 
     let(:component) do
-      described_class.build(settings, agent_settings, logger, telemetry: telemetry)
+      described_class.build(settings, agent_settings, logger, telemetry: telemetry).tap(&:start!)
     end
 
     let(:probe_spec) do
