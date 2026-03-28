@@ -1,0 +1,17 @@
+module Datadog
+  module SymbolDatabase
+    UNKNOWN_MIN_LINE: Integer
+
+    UNKNOWN_MAX_LINE: Integer
+
+    @mutex: untyped
+
+    @component: untyped
+
+    def self.component: () -> Component?
+
+    def self.set_component: (Component? component) -> void
+
+    def self.enabled?: () -> bool
+  end
+end

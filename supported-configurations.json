@@ -306,6 +306,20 @@
         "default": "[]"
       }
     ],
+    "DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_SYMBOL_DATABASE_UPLOAD_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_ENV": [
       {
         "version": "B",
