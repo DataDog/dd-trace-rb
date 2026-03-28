@@ -75,6 +75,10 @@ RSpec.describe Datadog::DI::Instrumenter do
   shared_context 'with code tracking' do
     let!(:code_tracker) do
       Datadog::DI::CodeTracker.new.tap do |tracker|
+        # Stub backfill so only files loaded after start (via
+        # :script_compiled) are in the registry, matching the
+        # pre-backfill behavior these tests were written for.
+        allow(tracker).to receive(:backfill_registry)
         tracker.start
       end
     end
@@ -1318,11 +1322,11 @@ RSpec.describe Datadog::DI::Instrumenter do
             id: 1, type: :log)
         end
 
-        it 'raises DITargetNotInRegistry' do
+        it 'raises DITargetNotInRegistry with no surviving iseqs message' do
           expect do
             hook_line(probe) do |payload|
             end
-          end.to raise_error(Datadog::DI::Error::DITargetNotInRegistry, /File matching probe path.*was loaded and is not in code tracker registry/)
+          end.to raise_error(Datadog::DI::Error::DITargetNotInRegistry, /no surviving iseqs/)
         end
       end
 

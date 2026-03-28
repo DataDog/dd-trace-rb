@@ -22,9 +22,73 @@ module Datadog
     class CodeTracker
       def initialize
         @registry = {}
+        @per_method_registry = {}
         @trace_point_lock = Mutex.new
         @registry_lock = Mutex.new
         @compiled_trace_point = nil
+      end
+
+      # Populates the registry with iseqs for files that were loaded
+      # before code tracking started.
+      #
+      # Uses the all_iseqs C extension to walk the Ruby object space and
+      # find instruction sequences for already-loaded code. Only whole-file
+      # iseqs are stored — per-method iseqs require instrumenter changes
+      # to select the correct iseq for a target line and will be supported
+      # in a follow-up.
+      #
+      # Whole-file detection uses two strategies:
+      # - Ruby 3.1+: DI.iseq_type (wraps rb_iseq_type) returns :top for
+      #   require/load and :main for the entry script. This is precise.
+      # - Ruby < 3.1: falls back to first_lineno == 0, which is true for
+      #   whole-file iseqs from require/load (INT2FIX(0) in Ruby's
+      #   rb_iseq_new_top and rb_iseq_new_main) and false for
+      #   method/block/class definitions (first_lineno >= 1).
+      #   InstructionSequence.compile passes first_lineno = 1 by default,
+      #   so eval'd code is not matched. Both strategies produce the same
+      #   result in practice.
+      #
+      # Does not overwrite iseqs already in the registry (from
+      # :script_compiled), since those are guaranteed to be whole-file
+      # iseqs and are authoritative.
+      #
+      def backfill_registry
+        iseqs = DI.file_iseqs
+        have_iseq_type = DI.respond_to?(:iseq_type)
+        registry_lock.synchronize do
+          iseqs.each do |iseq|
+            path = iseq.absolute_path
+            next unless path
+
+            whole_file = if have_iseq_type
+              type = DI.iseq_type(iseq)
+              type == :top || type == :main
+            else
+              iseq.first_lineno == 0
+            end
+
+            if whole_file
+              # Do not overwrite entries from :script_compiled — those are
+              # captured at load time and are authoritative.
+              next if registry.key?(path)
+
+              registry[path] = iseq
+            else
+              # Store per-method/block/class iseqs as fallback for files
+              # whose whole-file iseq was GC'd. These can be used to
+              # target line probes on lines within their range.
+              (per_method_registry[path] ||= []) << iseq
+            end
+          end
+        end
+      rescue => exc
+        # Backfill is best-effort — if it fails, line probes on
+        # pre-loaded code won't work but everything else is unaffected.
+        if component = DI.current_component
+          component.logger.debug { "di: backfill_registry failed: #{exc.class}: #{exc}" }
+          component.telemetry&.report(exc, description: "backfill_registry failed")
+        end
+        nil
       end
 
       # Starts tracking loaded code.
@@ -104,6 +168,12 @@ module Datadog
               # TODO test this path
             end
           end
+
+          # Backfill the registry with iseqs for files that were loaded
+          # before tracking started. This must happen after the trace
+          # point is enabled so that any files loaded concurrently are
+          # captured by the trace point (backfill won't overwrite them).
+          backfill_registry
         end
       end
 
@@ -160,6 +230,36 @@ module Datadog
         end
       end
 
+      # Returns a [path, iseq] pair for a line probe target, or nil.
+      #
+      # First checks the whole-file iseq registry (via iseqs_for_path_suffix).
+      # If no whole-file iseq exists, searches the per-method iseq registry
+      # for an iseq whose trace_points include the target line.
+      #
+      # @param suffix [String] file path or suffix to match
+      # @param line [Integer] target line number
+      # @return [Array(String, RubyVM::InstructionSequence), nil]
+      def iseq_for_line(suffix, line)
+        # Try whole-file iseq first — it always covers all lines.
+        result = iseqs_for_path_suffix(suffix)
+        return result if result
+
+        # Fall back to per-method iseqs.
+        registry_lock.synchronize do
+          # Resolve the path using the per-method registry keys.
+          path = resolve_path_suffix(suffix, per_method_registry.keys)
+          return nil unless path
+
+          iseqs = per_method_registry[path]
+          return nil unless iseqs
+
+          matching = iseqs.find do |iseq|
+            iseq.trace_points.any? { |tp_line, _event| tp_line == line }
+          end
+          matching ? [path, matching] : nil
+        end
+      end
+
       # Stops tracking code that is being loaded.
       #
       # This method should ordinarily never be called - if a file is loaded
@@ -186,6 +286,7 @@ module Datadog
       def clear
         registry_lock.synchronize do
           registry.clear
+          per_method_registry.clear
         end
       end
 
@@ -195,8 +296,31 @@ module Datadog
       # objects representing compiled code of those files.
       attr_reader :registry
 
+      # Mapping from paths to arrays of per-method/block/class iseqs.
+      # Used as fallback when the whole-file iseq has been GC'd.
+      attr_reader :per_method_registry
+
       attr_reader :trace_point_lock
       attr_reader :registry_lock
+
+      # Resolves a path suffix against a set of known paths.
+      # Returns the matching path or nil.
+      #
+      # Must be called within registry_lock.
+      def resolve_path_suffix(suffix, paths)
+        # Exact match.
+        return suffix if paths.include?(suffix)
+
+        # Suffix match.
+        suffix = suffix.dup
+        loop do
+          matches = paths.select { |p| Utils.path_matches_suffix?(p, suffix) }
+          return nil if matches.length > 1
+          return matches.first if matches.any?
+          return nil unless suffix.include?('/')
+          suffix.sub!(%r{.*/+}, '')
+        end
+      end
     end
   end
 end
