@@ -45,7 +45,7 @@ module Datadog
 
       def build_multipart_form: (String compressed_data) -> Hash[String, Core::Vendor::Multipart::Post::UploadIO]
 
-      def handle_response: (Net::HTTPResponse response, Integer scope_count) -> bool
+      def handle_response: (untyped response, Integer scope_count) -> bool
     end
   end
 end
