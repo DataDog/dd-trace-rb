@@ -9,15 +9,22 @@ require "datadog/di"
 # would fail with DITargetNotDefined because the iseq is not in the
 # CodeTracker registry.
 #
-# Disable GC immediately before loading the test class. The top-level
-# file iseq (first_lineno=0, type=:top) is not referenced by any
-# constant or method after loading completes — only class/method iseqs
-# survive via BackfillIntegrationTestClass. Without this, the top-level
-# iseq can be collected between require_relative and the before block's
-# backfill_registry call, causing DITargetNotInRegistry.
-# GC is re-enabled in the before block after backfill completes.
+# Load the test class with GC disabled so the top-level (:top) iseq
+# survives long enough to be captured below. The top-level iseq is not
+# referenced by any constant or method after loading completes — only
+# class/method child iseqs survive via BackfillIntegrationTestClass.
 GC.disable
 require_relative "backfill_integration_test_class"
+
+# Keep the top-level iseq alive across tests by holding a reference.
+# Without this, deactivate_tracking! in the after block clears the
+# registry (the only reference), and GC can collect the iseq before
+# the next test's backfill_registry walks object space.
+BACKFILL_TEST_TOP_ISEQ = Datadog::DI.file_iseqs.find { |i|
+  i.absolute_path&.end_with?("backfill_integration_test_class.rb") &&
+    (Datadog::DI.respond_to?(:iseq_type) ? Datadog::DI.iseq_type(i) == :top : i.first_lineno == 0)
+}
+GC.enable
 
 RSpec.describe "CodeTracker backfill integration" do
   di_test
@@ -72,12 +79,10 @@ RSpec.describe "CodeTracker backfill integration" do
       # Activate tracking AFTER the test class was loaded (at require_relative
       # above). The backfill in CodeTracker#start should recover the iseq
       # for backfill_integration_test_class.rb from the object space.
-      # GC was disabled at file load time to keep the top-level iseq alive;
-      # re-enable it after backfill completes.
+      # BACKFILL_TEST_TOP_ISEQ (set above) keeps the top-level iseq alive
+      # so backfill_registry can find it across tests.
       Datadog::DI.activate_tracking!
       allow(Datadog::DI).to receive(:current_component).and_return(component)
-
-      GC.enable
     end
 
     let(:probe) do
