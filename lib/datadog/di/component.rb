@@ -15,10 +15,10 @@ module Datadog
     class Component
       class << self
         def build(settings, agent_settings, logger, telemetry: nil)
-          return unless settings.respond_to?(:dynamic_instrumentation) && settings.dynamic_instrumentation.enabled
+          return unless settings.respond_to?(:dynamic_instrumentation)
 
           unless settings.respond_to?(:remote) && settings.remote.enabled
-            logger.warn("di: dynamic instrumentation could not be enabled because Remote Configuration Management is not available. To enable Remote Configuration, see https://docs.datadoghq.com/agent/remote_config")
+            logger.debug { "di: not building DI component because Remote Configuration Management is not available" }
             return
           end
 
@@ -26,7 +26,6 @@ module Datadog
 
           new(settings, agent_settings, logger, code_tracker: DI.code_tracker, telemetry: telemetry).tap do |component|
             DI.add_current_component(component)
-            component.start!
           end
         end
 
@@ -35,23 +34,22 @@ module Datadog
         # is used, that Rails environment is not development because
         # DI does not currently support code unloading and reloading.
         def environment_supported?(settings, logger)
-          # TODO add tests?
           unless settings.dynamic_instrumentation.internal.development
             if Datadog::Core::Environment::Execution.development?
-              logger.warn("di: development environment detected; not enabling dynamic instrumentation")
+              logger.debug { "di: development environment detected; not building DI component" }
               return false
             end
           end
           if RUBY_ENGINE != 'ruby'
-            logger.warn("di: cannot enable dynamic instrumentation: MRI is required, but running on #{RUBY_ENGINE}")
+            logger.debug { "di: not building DI component: MRI is required, but running on #{RUBY_ENGINE}" }
             return false
           end
           if RUBY_VERSION < '2.6'
-            logger.warn("di: cannot enable dynamic instrumentation: Ruby 2.6+ is required, but running on #{RUBY_VERSION}")
+            logger.debug { "di: not building DI component: Ruby 2.6+ is required, but running on #{RUBY_VERSION}" }
             return false
           end
           unless DI.respond_to?(:exception_message)
-            logger.warn("di: cannot enable dynamic instrumentation: C extension is not available")
+            logger.debug { "di: not building DI component: C extension is not available" }
             return false
           end
           true
