@@ -379,7 +379,7 @@ module Datadog
             if location && !location.empty?
               path = location[0]
               return path if path && !path.empty? && user_code_path?(path)
-              fallback ||= (path && !path.empty? ? path : nil)
+              fallback ||= ((path && !path.empty?) ? path : nil)
             end
           end
 
