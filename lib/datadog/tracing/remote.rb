@@ -15,6 +15,7 @@ module Datadog
           1 << 13, # APM_TRACING_LOGS_INJECTION: Dynamic trace logs injection configuration
           1 << 14, # APM_TRACING_HTTP_HEADER_TAGS: Dynamic trace HTTP header tags configuration
           1 << 29, # APM_TRACING_SAMPLE_RULES: Dynamic trace sampling rules configuration
+          1 << 38, # APM_TRACING_ENABLE_DYNAMIC_INSTRUMENTATION: Implicit DI enablement
         ].freeze
 
         def products
@@ -37,6 +38,10 @@ module Datadog
             option.call(value)
 
             [env_var, value]
+          end
+
+          if (di_enabled = lib_config['dynamic_instrumentation_enabled']) != nil # rubocop:disable Style/NonNilCheck
+            Datadog::DI::Remote.handle_rc_enablement(di_enabled)
           end
 
           content.applied
