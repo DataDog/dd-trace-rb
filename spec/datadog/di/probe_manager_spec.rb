@@ -271,7 +271,7 @@ RSpec.describe Datadog::DI::ProbeManager do
     end
 
     it 'disables the trace point' do
-      expect(TracePoint).to receive(:trace).with(:end).and_return(trace_point)
+      expect(TracePoint).to receive(:new).with(:end).and_return(trace_point)
 
       manager
 
@@ -349,6 +349,7 @@ RSpec.describe Datadog::DI::ProbeManager do
           expect(cls.name).to eq 'ProbeManagerSpecTestClass'
         end
 
+        manager.reopen
         class ProbeManagerSpecTestClass; end # rubocop:disable Lint/ConstantDefinitionInBlock
       end
     end
