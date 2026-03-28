@@ -20,6 +20,8 @@ RSpec.describe Datadog::DI::Remote do
   end
 
   it 'declares no capabilities' do
+    # DI enablement capability (bit 38) is declared by Tracing::Remote,
+    # not DI::Remote, because it's an APM_TRACING capability.
     expect(remote.capabilities).to eq []
   end
 
@@ -88,6 +90,7 @@ RSpec.describe Datadog::DI::Remote do
         instance_double(Datadog::DI::Component).tap do |component|
           expect(component).to receive(:probe_manager).and_return(probe_manager)
           allow(component).to receive(:settings).and_return(settings)
+          allow(component).to receive(:started?).and_return(true)
         end
       end
 

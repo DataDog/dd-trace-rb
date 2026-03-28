@@ -25,6 +25,28 @@ module Datadog
           []
         end
 
+        def handle_rc_enablement(enabled)
+          component = Datadog.send(:components).dynamic_instrumentation
+          return unless component
+
+          if enabled
+            return if explicitly_disabled?
+            DI.activate_tracking
+            component.start!
+          else
+            component.stop!
+          end
+        rescue => e
+          Datadog.logger.debug { "di: error handling implicit enablement: #{e.class}: #{e}" }
+          Datadog.send(:components).telemetry&.report(e, description: "Error handling DI implicit enablement")
+        end
+
+        def explicitly_disabled?
+          settings = Datadog.configuration
+          !settings.dynamic_instrumentation.options[:enabled].default_precedence? &&
+            !settings.dynamic_instrumentation.enabled
+        end
+
         def receivers(telemetry)
           receiver do |repository, changes|
             # DEV: Filter our by product. Given it will be very common
@@ -32,13 +54,7 @@ module Datadog
             # DEV: Apply this refactor to AppSec as well if implemented.
 
             component = DI.component
-            # We should always have a non-nil DI component here, because we
-            # only add DI product to remote config request if DI is enabled.
-            # Ideally, we should be injected with the DI component here
-            # rather than having to retrieve it from global state.
-            # If the component is nil for some reason, we also don't have a
-            # logger instance to report the issue.
-            if component
+            if component&.started?
               changes.each do |change|
                 case change.type
                 when :insert

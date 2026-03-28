@@ -35,17 +35,16 @@ module Datadog
               register_receivers(Datadog::AppSec::Remote.receivers(@telemetry))
             end
 
-            if settings.respond_to?(:dynamic_instrumentation) && settings.dynamic_instrumentation.enabled
+            if settings.respond_to?(:dynamic_instrumentation)
               register_capabilities(Datadog::DI::Remote.capabilities)
               register_products(Datadog::DI::Remote.products)
               register_receivers(Datadog::DI::Remote.receivers(@telemetry))
+            end
 
-              # Symbol Database
-              if settings.respond_to?(:symbol_database) && settings.symbol_database.enabled
-                register_capabilities(Datadog::SymbolDatabase::Remote.capabilities)
-                register_products(Datadog::SymbolDatabase::Remote.products)
-                register_receivers(Datadog::SymbolDatabase::Remote.receivers(@telemetry))
-              end
+            if settings.respond_to?(:symbol_database) && settings.symbol_database.enabled
+              register_capabilities(Datadog::SymbolDatabase::Remote.capabilities)
+              register_products(Datadog::SymbolDatabase::Remote.products)
+              register_receivers(Datadog::SymbolDatabase::Remote.receivers(@telemetry))
             end
 
             if settings.respond_to?(:open_feature) && settings.open_feature.enabled
