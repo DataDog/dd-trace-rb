@@ -11,6 +11,21 @@ module Datadog
   module DI
     INSTRUMENTED_COUNTERS_LOCK = Mutex.new
 
+    # Captured at load time from Exception itself (not a subclass).
+    # Used to bypass subclass overrides of backtrace_locations.
+    #
+    # This does NOT protect against monkeypatching Exception#backtrace_locations
+    # before dd-trace-rb loads — in that case we'd capture the monkeypatch.
+    # The practical threat model is customer subclasses overriding the method:
+    #
+    #   class MyError < StandardError
+    #     def backtrace_locations; []; end
+    #   end
+    #
+    # The UnboundMethod bypasses subclass overrides: bind(exception).call
+    # always dispatches to the original Exception implementation.
+    EXCEPTION_BACKTRACE_LOCATIONS = Exception.instance_method(:backtrace_locations)
+
     class << self
       def enabled?
         Datadog.configuration.dynamic_instrumentation.enabled
