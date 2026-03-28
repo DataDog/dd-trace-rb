@@ -585,9 +585,15 @@ RSpec.describe Datadog::DI::CodeTracker do
     before do
       allow(Datadog::DI).to receive(:respond_to?).and_call_original
       allow(Datadog::DI).to receive(:respond_to?).with(:all_iseqs).and_return(true)
-      allow(Datadog::DI).to receive(:respond_to?).with(:iseq_type).and_return(true)
-      allow(Datadog::DI).to receive(:iseq_type) do |iseq|
-        (iseq.first_lineno == 0) ? :top : :method
+      # Only stub iseq_type when it actually exists — RSpec's partial double
+      # verification rejects stubs for undefined methods (Ruby < 3.1).
+      if Datadog::DI.respond_to?(:iseq_type)
+        allow(Datadog::DI).to receive(:respond_to?).with(:iseq_type).and_return(true)
+        allow(Datadog::DI).to receive(:iseq_type) do |iseq|
+          (iseq.first_lineno == 0) ? :top : :method
+        end
+      else
+        allow(Datadog::DI).to receive(:respond_to?).with(:iseq_type).and_return(false)
       end
     end
 
@@ -688,9 +694,15 @@ RSpec.describe Datadog::DI::CodeTracker do
     before do
       allow(Datadog::DI).to receive(:respond_to?).and_call_original
       allow(Datadog::DI).to receive(:respond_to?).with(:all_iseqs).and_return(true)
-      allow(Datadog::DI).to receive(:respond_to?).with(:iseq_type).and_return(true)
-      allow(Datadog::DI).to receive(:iseq_type) do |iseq|
-        (iseq.first_lineno == 0) ? :top : :method
+      # Only stub iseq_type when it actually exists — RSpec's partial double
+      # verification rejects stubs for undefined methods (Ruby < 3.1).
+      if Datadog::DI.respond_to?(:iseq_type)
+        allow(Datadog::DI).to receive(:respond_to?).with(:iseq_type).and_return(true)
+        allow(Datadog::DI).to receive(:iseq_type) do |iseq|
+          (iseq.first_lineno == 0) ? :top : :method
+        end
+      else
+        allow(Datadog::DI).to receive(:respond_to?).with(:iseq_type).and_return(false)
       end
     end
 
