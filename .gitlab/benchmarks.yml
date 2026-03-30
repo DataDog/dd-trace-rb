@@ -271,7 +271,9 @@ microbenchmarks-pr-comment:
   stage: microbenchmarks
   when: on_success
   allow_failure: true
-  needs: [microbenchmarks]
+  needs:
+    - job: microbenchmarks
+      optional: true
   tags: ["arch:amd64"]
   image: $BASE_CI_IMAGE
   timeout: 30m

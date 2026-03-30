@@ -87,6 +87,10 @@ Gem::Specification.new do |spec|
   # ADD NEW DEPENDENCIES HERE
   # to find out a few more places that need to be kept in-sync.
 
+  # DEV-3.0 Remove this message
+  spec.post_install_message =
+    'JRuby support in the datadog gem is deprecated. Details: https://dtdg.co/jruby-deprecation'
+
   spec.extensions = [
     'ext/datadog_profiling_native_extension/extconf.rb',
     'ext/libdatadog_api/extconf.rb'

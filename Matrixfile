@@ -14,6 +14,11 @@
   'core_with_libdatadog_api' => {
     '' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 4.0 / ❌ jruby',
   },
+  # DI tests that require the libdatadog_api C extension (all_iseqs, exception_message, iseq_type).
+  # script_compiled trace point requires Ruby 2.6+. C extensions don't compile on JRuby.
+  'di:di_with_ext' => {
+    '' => '❌ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 4.0 / ❌ jruby',
+  },
   'core_with_rails' => {
     # Run with Rails integration
     'rails8' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 3.5 / ❌ jruby',
