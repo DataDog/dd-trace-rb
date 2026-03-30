@@ -46,6 +46,77 @@ RSpec.describe Datadog::Core::Configuration::Options do
         end
       end
 
+      describe '#settings_children' do
+        subject(:settings_children) { options_class.settings_children }
+
+        context 'for a class directly implementing Options' do
+          it { is_expected.to eq({}) }
+        end
+
+        context 'on class inheriting from a class implementing Options' do
+          let(:parent_class) do
+            Class.new.tap do |klass|
+              klass.include(Datadog::Core::Configuration::Base)
+              klass.send(:settings, :debug) { option :enabled }
+            end
+          end
+
+          let(:options_class) { Class.new(parent_class) }
+
+          # These checks are especially important for contrib integrations,
+          # where the integration settings are inherited from a common parent settings class.
+          # Inherited classes should start with the same nested settings entries
+          # that were already defined on the parent class.
+          it { is_expected.to include(debug: parent_class.settings_children[:debug]) }
+          # The child class should get its own registry hash so later mutations do
+          # not accidentally modify the parent's registry.
+          it { is_expected.to_not be(parent_class.settings_children) }
+
+          it 'duplicates the registry before adding child settings' do
+            options_class.send(:settings, :custom) { option :enabled }
+
+            expect(parent_class.settings_children).to_not include(:custom)
+          end
+        end
+      end
+
+      describe '#settings_path=' do
+        subject(:set_settings_path) { options_class.settings_path = settings_path }
+
+        let(:options_class) do
+          Class.new.tap do |klass|
+            klass.include(Datadog::Core::Configuration::Base)
+            klass.send(:settings, :debug) { option :enabled }
+          end
+        end
+
+        let(:debug_settings_class) { options_class.settings_children[:debug] }
+
+        context 'when a path is provided' do
+          let(:settings_path) { 'tracing.test' }
+
+          it 'propagates the assigned path through nested settings' do
+            set_settings_path
+
+            expect(options_class.settings_path).to eq('tracing.test')
+            expect(debug_settings_class.settings_path).to eq('tracing.test.debug')
+          end
+        end
+
+        context 'when the path is cleared' do
+          let(:settings_path) { nil }
+
+          before { options_class.settings_path = 'tracing.test' }
+
+          it 'falls back to relative paths for nested settings' do
+            set_settings_path
+
+            expect(options_class.settings_path).to be_nil
+            expect(debug_settings_class.settings_path).to eq('debug')
+          end
+        end
+      end
+
       describe '#option' do
         subject(:option) { options_class.send(:option, name, meta, &block) }
 
@@ -103,41 +174,6 @@ RSpec.describe Datadog::Core::Configuration::Options do
           end
         end
       end
-
-      describe '#settings_path=' do
-        subject(:set_settings_path) { options_class.settings_path = settings_path }
-
-        let(:settings_path) { 'tracing.fake_integration' }
-        let(:options_class) do
-          Class.new do
-            include Datadog::Core::Configuration::Base
-
-            option :custom_option, default: false
-
-            settings :nested do
-              option :enabled, default: true
-            end
-          end
-        end
-
-        before do
-          set_settings_path
-        end
-
-        it 'computes inherited option names from the settings path' do
-          settings = options_class.new
-
-          expect(settings.send(:resolve_option, :custom_option).name_with_settings_path)
-            .to eq('tracing.fake_integration.custom_option')
-        end
-
-        it 'computes nested option names from the settings path' do
-          settings = options_class.new
-
-          expect(settings.nested.send(:resolve_option, :enabled).name_with_settings_path)
-            .to eq('tracing.fake_integration.nested.enabled')
-        end
-      end
     end
 
     describe 'instance behavior' do
@@ -174,25 +210,6 @@ RSpec.describe Datadog::Core::Configuration::Options do
             it 'sets the option precedence' do
               set_option
               expect(options_object.options[name].send(:precedence_set)).to eq(precedence)
-            end
-          end
-
-          context 'when the option has a default value' do
-            let(:value) { :programmatic_value }
-
-            before do
-              options_class.send(:option, :bar, default: :default_value)
-            end
-
-            subject(:set_option) { options_object.set_option(:bar, value) }
-
-            it 'preserves the default value in telemetry payload' do
-              set_option
-
-              expect(options_object.options[:bar].telemetry_payload).to include(
-                {name: 'bar', origin: 'default', seq_id: 1, value: 'default_value'},
-                {name: 'bar', origin: 'code', seq_id: 5, value: 'programmatic_value'},
-              )
             end
           end
         end

@@ -45,13 +45,11 @@ module Datadog
             config = if matcher == :default
               default_configuration
             else
-              # Get or add the configuration
-              existing_config = resolver.get(matcher)
-              return existing_config if existing_config
-
-              new_config = new_configuration
-              set_integration_settings_path!(new_config)
-              resolver.add(matcher, new_config)
+              resolver.get(matcher) || begin
+                new_config = new_configuration
+                set_integration_settings_path!(new_config)
+                resolver.add(matcher, new_config)
+              end
             end
 
             # Apply the settings

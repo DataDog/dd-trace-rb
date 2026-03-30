@@ -45,6 +45,32 @@ RSpec.describe Datadog::Core::Configuration::Option do
     it { expect(option.definition).to be(definition) }
   end
 
+  describe '#name_with_settings_path' do
+    subject(:name_with_settings_path) { option.name_with_settings_path }
+
+    context 'when the option context has no settings path' do
+      it { is_expected.to eq('test_name') }
+    end
+
+    context 'when the option belongs to nested settings' do
+      let(:base_class) do
+        Class.new do
+          include Datadog::Core::Configuration::Base
+
+          settings :tracing do
+            settings :rails do
+              option :enabled
+            end
+          end
+        end
+      end
+      let(:context) { base_class.new.tracing.rails }
+      let(:definition) { context.class.options[:enabled] }
+
+      it { is_expected.to eq('tracing.rails.enabled') }
+    end
+  end
+
   describe '#set' do
     subject(:set) { option.set(value) }
 
