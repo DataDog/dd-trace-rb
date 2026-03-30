@@ -51,12 +51,8 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
 
   VALUE version = datadog_gem_version();
 
-  // Tags and endpoint are heap-allocated, so after here we can't raise exceptions otherwise we'll leak this memory
+  // Tags are heap-allocated, so after here we can't raise exceptions otherwise we'll leak this memory
   // Start of exception-free zone to prevent leaks {{
-  ddog_Endpoint *endpoint = ddog_endpoint_from_url(char_slice_from_ruby_string(agent_base_url));
-  if (endpoint == NULL) {
-    raise_error(rb_eRuntimeError, "Failed to create endpoint from agent_base_url: %"PRIsVALUE, agent_base_url);
-  }
   ddog_Vec_Tag tags = convert_tags(tags_as_array);
 
   ddog_crasht_Config config = {
@@ -73,7 +69,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
     // overriding what Ruby set up seems a saner default to keep anyway.
     .create_alt_stack = false,
     .use_alt_stack = true,
-    .endpoint = endpoint,
+    .endpoint = {.url = char_slice_from_ruby_string(agent_base_url)},
     .resolve_frames = DDOG_CRASHT_STACKTRACE_COLLECTION_ENABLED_WITH_SYMBOLS_IN_RECEIVER,
     .timeout_ms = FIX2INT(upload_timeout_seconds) * 1000,
   };
@@ -110,7 +106,6 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
 
   // Clean up before potentially raising any exceptions
   ddog_Vec_Tag_drop(tags);
-  ddog_endpoint_drop(endpoint);
   // }} End of exception-free zone to prevent leaks
 
   CHECK_VOID_RESULT("Failed to start/update the crash tracker", result);
