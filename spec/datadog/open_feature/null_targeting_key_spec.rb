@@ -12,6 +12,10 @@ require 'datadog/core/feature_flags'
 # - Rule-match flags (no shards): return value if rule matches on non-id attribute
 
 RSpec.describe 'OpenFeature OF.2: Optional Targeting Key' do
+  before do
+    skip 'Requires native libdatadog extension' unless Datadog::Core::FeatureFlags::Configuration.method(:new).arity == 1
+  end
+
   let(:flags_json) do
     <<~JSON
       {
