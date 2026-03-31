@@ -24,6 +24,13 @@ module Datadog
     #
     # The UnboundMethod bypasses subclass overrides: bind(exception).call
     # always dispatches to the original Exception implementation.
+    #
+    # Note: if the subclass overrides #backtrace (not #backtrace_locations),
+    # MRI's setup_exception skips storing the VM backtrace entirely — both
+    # @bt and @bt_locations stay nil. In that case this UnboundMethod also
+    # returns nil. See EXCEPTION_BACKTRACE comment and
+    # docs/ruby/exception-backtrace-internals.md in claude-projects for the
+    # full MRI analysis.
     EXCEPTION_BACKTRACE_LOCATIONS = Exception.instance_method(:backtrace_locations)
 
     # Same UnboundMethod trick for Exception#backtrace (Array<String>).
@@ -56,8 +63,17 @@ module Datadog
     # for backtrace_locations reads it directly from @bt_locations.
     #
     # This limitation is acceptable because this constant is only used as
-    # a fallback for the set_backtrace-with-strings case, where no
-    # subclass override is involved.
+    # a fallback when backtrace_locations returns nil. In the common
+    # set_backtrace-with-strings case, no subclass override is involved
+    # and the fallback works. If a subclass does override #backtrace AND
+    # set_backtrace was called, set_backtrace writes to @bt via C
+    # regardless of overrides, so the fallback still works.
+    #
+    # The only unrecoverable case: a subclass overrides #backtrace, the
+    # exception is raised normally, and set_backtrace is never called.
+    # Both @bt and @bt_locations are nil — the real backtrace was never
+    # stored by raise. DI reports an empty stacktrace (type and message
+    # are still reported).
     EXCEPTION_BACKTRACE = Exception.instance_method(:backtrace)
 
     class << self

@@ -201,6 +201,11 @@ module Datadog
         #
         # Both accessors use the UnboundMethod trick to bypass subclass
         # overrides, consistent with the rest of this method.
+        #
+        # If a subclass overrides #backtrace, MRI's raise never stores
+        # the real backtrace — both paths return nil and stacktrace is [].
+        # This is unrecoverable without calling customer code.
+        # See DI::EXCEPTION_BACKTRACE comment for details.
         locations = DI::EXCEPTION_BACKTRACE_LOCATIONS.bind(exception).call
         stacktrace = if locations
           format_backtrace_locations(locations)
