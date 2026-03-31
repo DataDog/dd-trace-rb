@@ -77,6 +77,16 @@ module Datadog
           @precedence_set = Precedence::DEFAULT
         end
 
+        # Computes the name of the option with the settings path.
+        # E.g. "tracing.rails.middleware_names" for the "middleware_names" option in the "tracing.rails" settings.
+        # @return [String] the name of the option with the settings path
+        def name_with_settings_path
+          @name_with_settings_path ||= begin
+            settings_path = @context.class.settings_path
+            settings_path.nil? ? definition.name.to_s : "#{settings_path}.#{definition.name}"
+          end
+        end
+
         # Overrides the current value for this option if the `precedence` is equal or higher than
         # the previously set value.
         # The first call to `#set` will always store the value regardless of precedence.
@@ -89,7 +99,7 @@ module Datadog
             # This should be uncommon, as higher precedence values tend to
             # happen later in the application lifecycle.
             Datadog.logger.info do
-              "Option '#{definition.name}' not changed to '#{value}' (precedence: #{precedence.name}) because the higher " \
+              "Option '#{name_with_settings_path}' not changed to '#{value}' (precedence: #{precedence.name}) because the higher " \
                 "precedence value '#{@value}' (precedence: #{@precedence_set.name}) was already set."
             end
 
@@ -178,6 +188,10 @@ module Datadog
           precedence_set == Precedence::DEFAULT
         end
 
+        def settings?
+          @definition.is_settings
+        end
+
         def values_per_precedence
           # value_per_precedence is only filled after we call `get` once.
           get unless @is_set
@@ -227,7 +241,7 @@ module Datadog
             value
           else
             raise InvalidDefinitionError,
-              "The option #{@definition.name} is using an unsupported type option for env coercion `#{@definition.type}`"
+              "The option #{name_with_settings_path} is using an unsupported type option for env coercion `#{@definition.type}`"
           end
         end
 
@@ -250,10 +264,10 @@ module Datadog
 
           if raise_error
             error_msg = if @definition.type_options[:nilable]
-              "The setting `#{@definition.name}` inside your app's `Datadog.configure` block expects a " \
+              "The setting `#{name_with_settings_path}` inside your app's `Datadog.configure` block expects a " \
               "#{@definition.type} or `nil`, but a `#{value.class}` was provided (#{value.inspect})." \
             else
-              "The setting `#{@definition.name}` inside your app's `Datadog.configure` block expects a " \
+              "The setting `#{name_with_settings_path}` inside your app's `Datadog.configure` block expects a " \
               "#{@definition.type}, but a `#{value.class}` was provided (#{value.inspect})." \
             end
 
@@ -287,7 +301,7 @@ module Datadog
             true # No validation is performed when option is typeless
           else
             raise InvalidDefinitionError,
-              "The option #{@definition.name} is using an unsupported type option `#{@definition.type}`"
+              "The option #{name_with_settings_path} is using an unsupported type option `#{@definition.type}`"
           end
         end
 

@@ -28,7 +28,8 @@ RSpec.describe Datadog::Core::Configuration::Option do
   let(:type_options) { {} }
   let(:setter) { proc { setter_value } }
   let(:setter_value) { double('setter_value') }
-  let(:context) { double('configuration object') }
+  let(:context_class) { Class.new { include Datadog::Core::Configuration::Base } }
+  let(:context) { context_class.new }
 
   # When setting the setting value, we make sure to duplicate it to avoid unwanted modifications
   # to make sure specs pass when comparing result ex. expect(result).to be value
@@ -42,6 +43,32 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
   describe '#initialize' do
     it { expect(option.definition).to be(definition) }
+  end
+
+  describe '#name_with_settings_path' do
+    subject(:name_with_settings_path) { option.name_with_settings_path }
+
+    context 'when the option context has no settings path' do
+      it { is_expected.to eq('test_name') }
+    end
+
+    context 'when the option belongs to nested settings' do
+      let(:base_class) do
+        Class.new do
+          include Datadog::Core::Configuration::Base
+
+          settings :tracing do
+            settings :rails do
+              option :enabled
+            end
+          end
+        end
+      end
+      let(:context) { base_class.new.tracing.rails }
+      let(:definition) { context.class.options[:enabled] }
+
+      it { is_expected.to eq('tracing.rails.enabled') }
+    end
   end
 
   describe '#set' do
