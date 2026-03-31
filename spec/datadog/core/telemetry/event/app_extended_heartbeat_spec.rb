@@ -7,8 +7,8 @@ require 'datadog/core/telemetry/event/app_extended_heartbeat'
 RSpec.describe Datadog::Core::Telemetry::Event::AppExtendedHeartbeat do
   let(:configuration) do
     [
-      { name: 'DD_TRACE_ENABLED', value: 'true', origin: 'default', seq_id: 1 },
-      { name: 'DD_ENV', value: 'production', origin: 'env_var', seq_id: 1 },
+      {name: 'DD_TRACE_ENABLED', value: 'true', origin: 'default', seq_id: 1},
+      {name: 'DD_ENV', value: 'production', origin: 'env_var', seq_id: 1},
     ]
   end
   let(:event) { described_class.new(configuration: configuration) }
