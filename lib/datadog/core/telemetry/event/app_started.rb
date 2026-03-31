@@ -76,42 +76,6 @@ module Datadog
             products
           end
 
-          TARGET_OPTIONS = %w[
-            dynamic_instrumentation.enabled
-            logger.level
-            profiling.advanced.code_provenance_enabled
-            profiling.advanced.endpoint.collection.enabled
-            profiling.enabled
-            runtime_metrics.enabled
-            tracing.analytics.enabled
-            tracing.propagation_style_extract
-            tracing.propagation_style_inject
-            tracing.enabled
-            tracing.log_injection
-            tracing.partial_flush.enabled
-            tracing.partial_flush.min_spans_threshold
-            tracing.report_hostname
-            tracing.sampling.rate_limit
-            apm.tracing.enabled
-            agent.host
-            tracing.sampling.default_rate
-            tracing.contrib.global_default_service_name.enabled
-            tracing.contrib.peer_service_defaults
-            tracing.contrib.peer_service_mapping
-            diagnostics.debug
-            opentelemetry.exporter.endpoint
-            opentelemetry.exporter.protocol
-            opentelemetry.exporter.timeout_millis
-            opentelemetry.metrics.enabled
-            opentelemetry.metrics.exporter
-            opentelemetry.metrics.endpoint
-            opentelemetry.metrics.protocol
-            opentelemetry.metrics.timeout_millis
-            opentelemetry.metrics.temporality_preference
-            opentelemetry.metrics.export_interval_millis
-            opentelemetry.metrics.export_timeout_millis
-          ].freeze
-
           def configuration(settings, agent_settings)
             # Special values that are not tied to a configuration option
             list = [
@@ -212,20 +176,15 @@ module Datadog
             if settings.logger.instance
               logger_instance_option = resolve_option(settings, 'logger.instance')
               logger_instance_option.values_per_precedence.each do |precedence, value|
-                list << conf_value(option_telemetry_name(logger_instance_option), value.class.to_s, precedence)
+                list << conf_value(option_telemetry_name(logger_instance_option), value.nil? ? nil : value.class.to_s, precedence)
               end
             end
-            if settings.respond_to?('appsec')
-              list.push(*get_telemetry_payload(settings, 'appsec.enabled'))
-              list.push(*get_telemetry_payload(settings, 'appsec.sca_enabled'))
-            end
-            if settings.respond_to?('ci')
-              list.push(*get_telemetry_payload(settings, 'ci.enabled'))
-            end
 
-            # Whitelist of configuration options to send in additional payload object
-            TARGET_OPTIONS.each do |option_path|
-              list.push(*get_telemetry_payload(settings, option_path))
+            # Configuration options (regular + integration specific)
+            collect_all_configuration_options(settings).each do |option|
+              option.values_per_precedence.each do |precedence, value|
+                list << conf_value(option_telemetry_name(option), to_telemetry_value(value), precedence)
+              end
             end
 
             # We still want to report nil default and programmatic values as they are valid values
@@ -282,8 +241,14 @@ module Datadog
               value.map { |key, entry_value| "#{key}:#{entry_value}" }.join(',')
             when Array
               value.join(',')
+            when Module
+              value.name.to_s
             else
-              value.to_s
+              if implements_to_s?(value)
+                value.to_s
+              else
+                value.class.to_s
+              end
             end
           end
 
@@ -295,17 +260,35 @@ module Datadog
             }
           end
 
-          def get_telemetry_payload(settings, config_path)
-            option = resolve_option(settings, config_path)
-            name = option_telemetry_name(option)
+          def collect_all_configuration_options(settings)
+            collect_configuration_options_from(settings).concat(collect_integration_configuration_options(settings.tracing))
+          end
 
-            option.values_per_precedence.map do |precedence, value|
-              conf_value(name, to_telemetry_value(value), precedence)
+          def collect_integration_configuration_options(tracing_settings)
+            return [] unless tracing_settings.respond_to?(:instrumented_integrations)
+
+            tracing_settings.instrumented_integrations.each_value.with_object([]) do |integration, entries|
+              integration.configurations.each_value do |configuration|
+                entries.concat(collect_configuration_options_from(configuration))
+              end
+            end
+          end
+
+          def collect_configuration_options_from(settings)
+            settings.class.options.each_key.with_object([]) do |name, options|
+              option = settings.send(:resolve_option, name)
+              next if option.definition.skip_telemetry
+
+              if option.settings?
+                options.concat(collect_configuration_options_from(option.get))
+              else
+                options << option
+              end
             end
           end
 
           def option_telemetry_name(option)
-            option.definition.env || option.definition.name.to_s
+            option.definition.env || option.name_with_settings_path
           end
 
           def resolve_option(settings, config_path)
@@ -313,9 +296,14 @@ module Datadog
             option_name = split_option.pop
             raise ArgumentError, "Invalid config path: #{config_path}" if option_name.nil?
 
-            # @type var parent_setting: Core::Configuration::Options
             parent_setting = settings.dig(*split_option)
             parent_setting.send(:resolve_option, option_name.to_sym)
+          end
+
+          def implements_to_s?(value)
+            value.method(:to_s).owner != Kernel
+          rescue NameError
+            false
           end
         end
       end

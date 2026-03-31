@@ -40,8 +40,6 @@ module Datadog
           def app_started?: -> bool?
 
           private
-          TARGET_OPTIONS: ::Array[::String]
-
           def products: (Datadog::Core::Configuration::Components components) -> telemetry_products
 
           def configuration: (untyped settings, Core::Configuration::AgentSettings agent_settings) -> ::Array[telemetry_configuration]
@@ -58,11 +56,17 @@ module Datadog
 
           def install_signature: (untyped settings) -> install_signature
 
-          def get_telemetry_payload: (untyped settings, ::String config_path) -> ::Array[telemetry_configuration]
+          def collect_all_configuration_options: (untyped settings) -> ::Array[Configuration::Option]
+
+          def collect_integration_configuration_options: (untyped tracing_settings) -> ::Array[Configuration::Option]
+
+          def collect_configuration_options_from: (untyped settings) -> ::Array[Configuration::Option]
 
           def option_telemetry_name: (Configuration::Option option) -> ::String
 
           def resolve_option: (untyped settings, ::String config_path) -> Configuration::Option
+
+          def implements_to_s?: (any value) -> bool
         end
       end
     end
