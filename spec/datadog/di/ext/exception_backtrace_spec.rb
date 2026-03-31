@@ -117,11 +117,15 @@ RSpec.describe 'EXCEPTION_BACKTRACE' do
       e
     end
 
-    it 'returns the real backtrace, not the overridden one' do
-      expect(backtrace).to be_an(Array)
-      expect(backtrace).not_to be_empty
-      # The real backtrace contains the actual file path, not the override.
-      expect(backtrace.first).not_to eq('overridden:0:in `fake\'')
+    it 'returns nil — UnboundMethod does NOT bypass overrides for backtrace' do
+      # Unlike backtrace_locations, the UnboundMethod trick does not bypass
+      # subclass overrides of Exception#backtrace. The C implementation
+      # returns nil when a Ruby-level override exists.
+      #
+      # This is acceptable because EXCEPTION_BACKTRACE is only used as a
+      # fallback when backtrace_locations returns nil (the set_backtrace
+      # with strings case), where no subclass override is involved.
+      expect(backtrace).to be_nil
 
       # Verify the override exists on the Ruby side.
       expect(exception.backtrace).to eq(['overridden:0:in `fake\''])

@@ -41,6 +41,13 @@ module Datadog
     # Ruby 3.4+ also allows set_backtrace(Array<Location>), which preserves
     # backtrace_locations — but older Rubies and most existing code use
     # the string form.
+    #
+    # LIMITATION: Unlike EXCEPTION_BACKTRACE_LOCATIONS, this UnboundMethod
+    # does NOT bypass subclass overrides of #backtrace — the C implementation
+    # returns nil when a Ruby-level override exists. This is acceptable
+    # because this constant is only used as a fallback for the set_backtrace
+    # case, where no subclass override is involved. The primary protection
+    # (backtrace_locations via UnboundMethod) handles the override case.
     EXCEPTION_BACKTRACE = Exception.instance_method(:backtrace)
 
     class << self
