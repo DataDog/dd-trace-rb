@@ -60,6 +60,27 @@ Each framework integration (@lib/datadog/*/contrib/) follows a common pattern:
 
 - `Matrixfile` defines testing combinations, and `appraisal/` files declare respective gemsets. `gemfiles/` are tool generated files.
 
+## One-Pipeline (GitLab CI)
+
+The GitLab CI configuration (`.gitlab-ci.yml`) includes a remote template called
+"one-pipeline" via `.gitlab/one-pipeline.locked.yml`. This template defines OCI
+packaging, lib-injection image building, and promotion jobs shared across all Datadog
+tracing libraries.
+
+- **Source repo**: `DataDog/libdatadog-build` on GitHub (`templates/one-pipeline.yml`)
+- **Distribution**: A GitLab CI job publishes the template to
+  `gitlab-templates.ddbuild.io` under a content-addressed hash. A campaigner tool then
+  opens PRs (titled "chore(ci) update one-pipeline") in all consuming repos to update
+  the locked URL in `.gitlab/one-pipeline.locked.yml`.
+- **Local overrides**: `.gitlab-ci.yml` overrides template variables like
+  `OCI_PACKAGE_MAX_SIZE_BYTES` and `LIB_INJECTION_IMAGE_MAX_SIZE_BYTES`. When
+  `package-oci` jobs fail with size limit errors, check the local override values in
+  `.gitlab-ci.yml` — the template's error messages hardcode the default limit, not the
+  actual override value.
+- **Consuming repos**: dd-trace-rb, dd-trace-java, dd-trace-py, dd-trace-dotnet,
+  dd-trace-js, dd-trace-php, auto_inject, httpd-datadog, nginx-datadog,
+  inject-browser-sdk (listed in `libdatadog-build/campaigner-config.yml`).
+
 # Guidelines
 
 ## ⚠️ Ask First

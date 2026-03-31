@@ -487,6 +487,37 @@ RSpec.describe 'Instrumentation integration' do
           end
         end
 
+        context 'when method raises an exception' do
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "1234", type: :log,
+              type_name: 'InstrumentationSpecTestClass', method_name: 'exception_method',
+              capture_snapshot: true,)
+          end
+
+          it 'populates throwable in captures' do
+            expect(diagnostics_transport).to receive(:send_diagnostics)
+            probe_manager.add_probe(probe)
+            payload = nil
+            expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+              payload = payload_
+            end
+
+            expect do
+              InstrumentationSpecTestClass.new.exception_method
+            end.to raise_error(InstrumentationSpecTestClass::TestException, /Test exception/)
+
+            component.probe_notifier_worker.flush
+
+            expect(payload).to be_a(Hash)
+            captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
+            throwable = captures.fetch(:return).fetch(:throwable)
+            expect(throwable[:type]).to eq('InstrumentationSpecTestClass::TestException')
+            expect(throwable[:message]).to eq('Test exception')
+            expect(throwable[:stacktrace]).to be_an(Array)
+            expect(throwable[:stacktrace]).not_to be_empty
+          end
+        end
+
         context 'when instance variable is mutated by method' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
