@@ -45,6 +45,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     allow(Datadog::Core::Telemetry::Worker).to receive(:new).with(
       logger: logger,
       heartbeat_interval_seconds: heartbeat_interval_seconds,
+      extended_heartbeat_interval_seconds: settings.telemetry.extended_heartbeat_interval_seconds,
       metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
       dependency_collection: dependency_collection,
       enabled: enabled,
