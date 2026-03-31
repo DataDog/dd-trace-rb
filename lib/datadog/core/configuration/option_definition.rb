@@ -10,28 +10,36 @@ module Datadog
         IDENTITY = ->(new_value, _old_value) { new_value }
 
         attr_reader \
+          :is_settings,
           :default,
           :default_proc,
           :env,
           :env_parser,
           :name,
           :after_set,
+          :skip_telemetry,
           :resetter,
           :setter,
           :type,
           :type_options
 
-        def initialize(name, meta, &block)
-          @default = meta[:default]
-          @default_proc = meta[:default_proc]
-          @env = meta[:env]
-          @env_parser = meta[:env_parser]
+        def initialize(name, attributes, &block)
+          # When a settings is defined using the config DSL, an option is also created.
+          # See Datadog::Core::Configuration::Base::ClassMethods#settings for more details.
+          # This flag is used to indicate that the option is a settings option.
+          @is_settings = attributes[:is_settings]
+
+          @default = attributes[:default]
+          @default_proc = attributes[:default_proc]
+          @env = attributes[:env]
+          @env_parser = attributes[:env_parser]
           @name = name.to_sym
-          @after_set = meta[:after_set]
-          @resetter = meta[:resetter]
-          @setter = meta[:setter] || block || IDENTITY
-          @type = meta[:type]
-          @type_options = meta[:type_options]
+          @after_set = attributes[:after_set]
+          @skip_telemetry = attributes[:skip_telemetry]
+          @resetter = attributes[:resetter]
+          @setter = attributes[:setter] || block || IDENTITY
+          @type = attributes[:type]
+          @type_options = attributes[:type_options]
         end
 
         # Creates a new Option, bound to the context provided.
@@ -49,6 +57,8 @@ module Datadog
             :helpers
 
           def initialize(name, options = {})
+            @is_settings = options.fetch(:is_settings, false)
+
             @env = nil
             @env_parser = nil
             @default = nil
@@ -56,6 +66,7 @@ module Datadog
             @helpers = {}
             @name = name.to_sym
             @after_set = nil
+            @skip_telemetry = false
             @resetter = nil
             @setter = OptionDefinition::IDENTITY
             @type = nil
@@ -95,6 +106,16 @@ module Datadog
             @after_set = block
           end
 
+          # This should only be set to true for options that are manually modified
+          # before being added to the telemetry payload in app_started.rb.
+          # E.g. telemetry is skipped for `tracing.writer_options`, but in app_started.rb,
+          # we send two separate entries for the buffer_size and flush_interval values.
+          # Standard: We want to keep this method as skip_telemetry(value),
+          # not skip_telemetry = value, so attr_writer is not used.
+          def skip_telemetry(value) # standard:disable Style/TrivialAccessors
+            @skip_telemetry = value
+          end
+
           def resetter(&block)
             @resetter = block
           end
@@ -119,6 +140,8 @@ module Datadog
             env(options[:env]) if options.key?(:env)
             env_parser(&options[:env_parser]) if options.key?(:env_parser)
             after_set(&options[:after_set]) if options.key?(:after_set)
+            # Steep: https://github.com/soutaro/steep/issues/1979
+            skip_telemetry(options[:skip_telemetry]) if options.key?(:skip_telemetry) # steep:ignore ArgumentTypeMismatch
             resetter(&options[:resetter]) if options.key?(:resetter)
             # Steep: https://github.com/soutaro/steep/issues/1979
             setter(&options[:setter]) if options.key?(:setter) # steep:ignore BlockTypeMismatch
@@ -126,16 +149,19 @@ module Datadog
           end
 
           def to_definition
-            OptionDefinition.new(@name, meta)
+            OptionDefinition.new(@name, attributes)
           end
 
-          def meta
+          def attributes
             {
+              is_settings: @is_settings,
+
               default: @default,
               default_proc: @default_proc,
               env: @env,
               env_parser: @env_parser,
               after_set: @after_set,
+              skip_telemetry: @skip_telemetry,
               resetter: @resetter,
               setter: @setter,
               type: @type,

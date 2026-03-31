@@ -239,9 +239,16 @@ module Datadog
                 caller_locations: caller_locs,
                 return_value: rv, duration: duration, exception: exc,)
 
-              responder.probe_executed_callback(context)
+              begin
+                responder.probe_executed_callback(context)
 
-              instrumenter.send(:check_and_disable_if_exceeded, probe, responder, di_start_time, di_duration)
+                instrumenter.send(:check_and_disable_if_exceeded, probe, responder, di_start_time, di_duration)
+              rescue => di_exc
+                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                instrumenter.logger.debug { "di: unhandled exception in method probe: #{di_exc.class}: #{di_exc}" }
+                instrumenter.telemetry&.report(di_exc, description: "Unhandled exception in method probe")
+              end
 
               if exc
                 raise exc
