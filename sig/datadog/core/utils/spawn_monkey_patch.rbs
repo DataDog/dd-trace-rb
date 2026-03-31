@@ -1,0 +1,18 @@
+module Datadog
+  module Core
+    module Utils
+      module SpawnMonkeyPatch
+        # Set in apply! before Process.spawn is intercepted; internal wiring only.
+        self.@lineage_envs_provider: ^() -> ::Hash[::String, ::String]
+
+        def self.apply!: (lineage_envs_provider: ^() -> ::Hash[::String, ::String]) -> true
+
+        module ProcessSpawnPatch
+          def spawn: (*untyped args, **untyped opts) -> untyped
+        end
+
+        def self.inject_lineage_envs: (untyped args) -> ::Array[untyped]
+      end
+    end
+  end
+end

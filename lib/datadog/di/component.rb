@@ -49,6 +49,10 @@ module Datadog
             logger.warn("di: cannot enable dynamic instrumentation: Ruby 2.6+ is required, but running on #{RUBY_VERSION}")
             return false
           end
+          unless DI.respond_to?(:exception_message)
+            logger.warn("di: cannot enable dynamic instrumentation: C extension is not available")
+            return false
+          end
           true
         end
       end

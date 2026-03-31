@@ -34,6 +34,11 @@ CORE_WITH_LIBDATADOG_API = [
   'spec/datadog/core/datadog_ruby_common_spec.rb',
 ].freeze
 
+DI_WITH_EXT = %w[
+  spec/datadog/di/*_spec.rb
+  spec/datadog/di/**/*_spec.rb
+].freeze
+
 # Data Streams Monitoring (DSM) requires libdatadog_api for DDSketch
 # Add new instrumentation libraries here as they gain DSM support
 DSM_ENABLED_LIBRARIES = [
@@ -89,7 +94,7 @@ namespace :spec do
     :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
     :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
     :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
-    :profiling, :core_with_libdatadog_api, :error_tracking, :open_feature, :core_with_rails, :environment, :ai_guard]
+    :profiling, :core_with_libdatadog_api, :"di:di_with_ext", :error_tracking, :open_feature, :core_with_rails, :environment, :ai_guard]
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
@@ -98,6 +103,8 @@ namespace :spec do
                         ' spec/**/{auto_instrument,opentelemetry,process,ai_guard}_spec.rb,' \
                         ' spec/**/*_rails_spec.rb,' \
                         ' spec/datadog/core/environment/execution_spec.rb,' \
+                        ' spec/datadog/di/*_spec.rb,' \
+                        ' spec/datadog/di/**/*_spec.rb,' \
                         ' spec/datadog/gem_packaging_spec.rb,' \
                         + CORE_WITH_LIBDATADOG_API.join(', ')
     t.rspec_opts = args.to_a.join(' ')
@@ -444,6 +451,16 @@ namespace :spec do
         t.rspec_opts = args.to_a.join(' ')
       end
     end
+
+    # rubocop:disable Style/MultilineBlockChain
+    RSpec::Core::RakeTask.new(:di_with_ext) do |t, args|
+      t.pattern = DI_WITH_EXT.join(', ')
+      t.exclude_pattern = 'spec/datadog/di/contrib/**/*_spec.rb'
+      t.rspec_opts = args.to_a.join(' ')
+    end.tap do |t|
+      Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
+    end
+    # rubocop:enable Style/MultilineBlockChain
   end
 
   namespace :profiling do
