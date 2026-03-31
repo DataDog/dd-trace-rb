@@ -183,7 +183,7 @@ module Datadog
         def extended_heartbeat!
           return if !enabled? || !sent_initial_event?
 
-          configuration = @initial_event&.payload&.fetch(:configuration, []) || []
+          configuration = @initial_event&.configuration || []
           send_event(Event::AppExtendedHeartbeat.new(configuration: configuration))
         end
 
