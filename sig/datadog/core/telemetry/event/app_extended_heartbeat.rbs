@@ -1,0 +1,15 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Event
+        class AppExtendedHeartbeat < Base
+          @configuration: Array[Hash[Symbol, untyped]]
+
+          def initialize: (configuration: Array[Hash[Symbol, untyped]]) -> void
+          def type: () -> "app-extended-heartbeat"
+          def payload: () -> { configuration: Array[Hash[Symbol, untyped]] }
+        end
+      end
+    end
+  end
+end
