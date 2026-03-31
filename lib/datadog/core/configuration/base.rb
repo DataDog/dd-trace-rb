@@ -26,8 +26,19 @@ module Datadog
           def settings(name, &block)
             nested_settings_path = settings_path ? "#{settings_path}.#{name}" : name.to_s
             settings_class = new_settings_class(name, nested_settings_path, &block)
+            # Record the child settings class on the owning class so
+            # Options::ClassMethods#settings_path= can later propagate any path
+            # changes down to nested settings classes.
+            #
+            # Example:
+            #   settings :cache_key { option :enabled }
+            # creates a child class whose initial settings_path is "cache_key".
+            # If a contrib integration later assigns the parent path to
+            # "tracing.active_support", settings_children lets us update the
+            # nested class to "tracing.active_support.cache_key" as well.
+            settings_children[name] = settings_class
 
-            option(name) do |o|
+            option(name, is_settings: true) do |o|
               o.default { settings_class.new }
 
               o.resetter do |value|

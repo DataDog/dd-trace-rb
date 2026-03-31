@@ -221,6 +221,8 @@ module Datadog
           #
           # @return Logger::Severity
           option :instance do |o|
+            # Telemetry for this option is manually modified and added in the AppStarted event.
+            o.skip_telemetry true
             o.after_set { |value| set_option(:level, value.level) unless value.nil? }
           end
 
