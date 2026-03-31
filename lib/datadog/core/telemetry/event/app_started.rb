@@ -8,8 +8,6 @@ module Datadog
       module Event
         # Telemetry class for the 'app-started' event
         class AppStarted < Base
-          attr_reader :configuration
-
           def initialize(components:)
             # To not hold a reference to the component tree, generate
             # the event payload here in the constructor.
@@ -26,6 +24,10 @@ module Datadog
 
           def type
             'app-started'
+          end
+
+          def current_configuration
+            @configuration
           end
 
           def payload

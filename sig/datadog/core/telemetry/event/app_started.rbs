@@ -29,11 +29,11 @@ module Datadog
           @install_signature: install_signature
           @products: telemetry_products
 
-          attr_reader configuration: ::Array[telemetry_configuration]
-
           def initialize: (components: Datadog::Core::Configuration::Components) -> void
 
           def type: () -> "app-started"
+
+          def current_configuration: () -> ::Array[telemetry_configuration]
 
           def payload: () -> { products: untyped, configuration: untyped, install_signature: untyped }
 
