@@ -17,6 +17,15 @@ on: # yamllint disable-line rule:truthy
         description: Reference to be updated (commit hash, branch, or tag)
         required: false
         type: string
+      require-green:
+        description: >-
+          Checked: pin to the most recent ST commit that passed full ST CI.
+          Unchecked: pin to HEAD of ST main regardless of CI status —
+          use if you need changes that just landed or no recent commit is green.
+          Ignored when a specific ref is provided.
+        required: false
+        type: boolean
+        default: true
       dry-run:
         description: Skip PR creation and only show changes
         required: false
@@ -39,6 +48,22 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Find green system-tests commit
+        id: find-green
+        if: >-
+          ${{
+            (github.event.client_payload.ref || github.event.inputs.ref || '') == '' &&
+            (
+              github.event_name == 'schedule' ||
+              github.event.inputs.require-green == 'true' ||
+              github.event.client_payload.require-green == 'true'
+            )
+          }}
+        run: .github/scripts/find_green_commit.sh
+        env:
+          REPO: DataDog/system-tests
+          GH_TOKEN: ${{ github.token }}
+
       - name: Checkout System Test
         id: system-test-ref
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -46,8 +71,7 @@ jobs:
           repository: "DataDog/system-tests"
           path: system-tests
           persist-credentials: false
-          # Use ref from repository_dispatch payload if available, otherwise from workflow_dispatch
-          ref: ${{ github.event.client_payload.ref || github.event.inputs.ref || '' }}
+          ref: ${{ steps.find-green.outputs.ref || github.event.client_payload.ref || github.event.inputs.ref || '' }}
 
       - run: .github/scripts/update_reference.sh
         env:
