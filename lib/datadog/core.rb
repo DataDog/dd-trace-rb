@@ -22,7 +22,6 @@ module Datadog
       end
   end
 
-  DATADOG_ENV = Core::Configuration::ConfigHelper.new
   extend Core::Extensions
 
   # Add shutdown hook:
