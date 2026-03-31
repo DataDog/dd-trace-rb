@@ -11,7 +11,6 @@ module Datadog
 
         attr_reader \
           :is_settings,
-
           :default,
           :default_proc,
           :env,
@@ -111,7 +110,9 @@ module Datadog
           # before being added to the telemetry payload in app_started.rb.
           # E.g. telemetry is skipped for `tracing.writer_options`, but in app_started.rb,
           # we send two separate entries for the buffer_size and flush_interval values.
-          def skip_telemetry(value)
+          # Standard: We want to keep this method as skip_telemetry(value),
+          # not skip_telemetry = value, so attr_writer is not used.
+          def skip_telemetry(value) # standard:disable Style/TrivialAccessors
             @skip_telemetry = value
           end
 
