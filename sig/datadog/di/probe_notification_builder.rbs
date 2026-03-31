@@ -3,6 +3,7 @@ module Datadog
     class ProbeNotificationBuilder
       NANOSECONDS: Integer
       MILLISECONDS: Integer
+      BACKTRACE_FRAME_PATTERN: Regexp
 
       @serializer: Serializer
 
@@ -25,7 +26,8 @@ module Datadog
 
       def build_snapshot: (Context context) -> Hash[Symbol,untyped]
       def serialize_throwable: (Exception exception) -> Hash[Symbol, String? | Array[Hash[Symbol, String | Integer | nil]]?]
-      def format_backtrace: (Array[Thread::Backtrace::Location]? locations) -> Array[Hash[Symbol, String | Integer | nil]]
+      def format_backtrace_locations: (Array[Thread::Backtrace::Location] locations) -> Array[Hash[Symbol, String | Integer | nil]]
+      def format_backtrace_strings: (Array[String]? backtrace) -> Array[Hash[Symbol, String | Integer | nil]]
 
       def build_snapshot_base: (Context context, ?evaluation_errors: Array[untyped]?, ?captures: untyped?, ?message: String?) -> Hash[Symbol,untyped]
 

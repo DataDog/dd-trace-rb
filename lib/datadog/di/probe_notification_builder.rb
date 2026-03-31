@@ -189,12 +189,34 @@ module Datadog
           # The exception class is already reported via the :type field.
           '<REDACTED: not a string value>'
         end
+        # Prefer backtrace_locations (structured Location objects) over
+        # backtrace (formatted strings that need regex parsing).
+        #
+        # However, backtrace_locations returns nil when someone has called
+        # Exception#set_backtrace with Array<String> — the VM cannot
+        # reconstruct Location objects from formatted strings. This happens
+        # in exception wrapping patterns (catch, create new exception, copy
+        # original's string backtrace via set_backtrace, re-raise).
+        # In that case, fall back to backtrace strings.
+        #
+        # Both accessors use the UnboundMethod trick to bypass subclass
+        # overrides, consistent with the rest of this method.
+        locations = DI::EXCEPTION_BACKTRACE_LOCATIONS.bind(exception).call
+        stacktrace = if locations
+          format_backtrace_locations(locations)
+        else
+          format_backtrace_strings(DI::EXCEPTION_BACKTRACE.bind(exception).call)
+        end
         {
           type: exception.class.name,
           message: message,
-          stacktrace: format_backtrace(DI::EXCEPTION_BACKTRACE_LOCATIONS.bind(exception).call),
+          stacktrace: stacktrace,
         }
       end
+
+      # Matches Ruby backtrace frame format: "/path/file.rb:42:in `method_name'"
+      # Captures: $1 = file path, $2 = line number, $3 = method name
+      BACKTRACE_FRAME_PATTERN = /\A(.+):(\d+):in\s+[`'](.+)'\z/
 
       # Converts backtrace locations into the stack frame format
       # expected by the Datadog UI.
@@ -203,13 +225,33 @@ module Datadog
       # path/lineno/label directly, avoiding the round-trip of formatting
       # to strings and regex-parsing back.
       #
-      # @param locations [Array<Thread::Backtrace::Location>, nil]
+      # @param locations [Array<Thread::Backtrace::Location>]
       # @return [Array<Hash>]
-      def format_backtrace(locations)
-        return [] if locations.nil?
-
+      def format_backtrace_locations(locations)
         locations.map do |loc|
           {fileName: loc.path, function: loc.label, lineNumber: loc.lineno}
+        end
+      end
+
+      # Parses Ruby backtrace strings into the stack frame format
+      # expected by the Datadog UI.
+      #
+      # Fallback for when backtrace_locations returns nil (see
+      # serialize_throwable for details on when this happens).
+      #
+      # Ruby backtrace format: "/path/file.rb:42:in `method_name'"
+      #
+      # @param backtrace [Array<String>, nil] from Exception#backtrace
+      # @return [Array<Hash>]
+      def format_backtrace_strings(backtrace)
+        return [] if backtrace.nil?
+
+        backtrace.map do |frame|
+          if frame =~ BACKTRACE_FRAME_PATTERN
+            {fileName: $1, function: $3, lineNumber: $2.to_i}
+          else
+            {fileName: frame, function: '', lineNumber: 0}
+          end
         end
       end
 
