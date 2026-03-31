@@ -397,6 +397,25 @@ RSpec.shared_examples 'Datadog distributed format' do
               extract
             end
           end
+
+          context 'with tags that cause a decoding error' do
+            let(:tags) { 'not a valid tag' }
+
+            it 'does not raise NoMethodError from extract_trace_id!' do
+              # Regression test: the rescue block in extract_tags must return nil,
+              # not the return value of Logger#warn (true). When true is passed to
+              # extract_trace_id!, it calls .delete on it, raising NoMethodError.
+              # This test intentionally does NOT mock the logger, to exercise the
+              # real return value path.
+              allow(active_trace).to receive(:set_tag)
+              expect { extract }.not_to raise_error
+            end
+
+            it 'returns a valid TraceDigest' do
+              allow(active_trace).to receive(:set_tag)
+              expect(extract).to be_a(Datadog::Tracing::TraceDigest)
+            end
+          end
         end
 
         context '{ _dd.p.upstream_services: "any" }' do

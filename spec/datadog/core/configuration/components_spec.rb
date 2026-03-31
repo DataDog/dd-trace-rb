@@ -135,14 +135,28 @@ RSpec.describe Datadog::Core::Configuration::Components do
           components.dynamic_instrumentation&.shutdown!
         end
 
-        context 'MRI' do
+        context 'MRI with C extension' do
           before(:all) do
             skip 'Test requires MRI' if PlatformHelpers.jruby?
+            skip 'Test requires DI C extension' unless Datadog::DI.respond_to?(:exception_message)
           end
 
           it 'reports DI as enabled' do
             expect(components.dynamic_instrumentation).to be_a(Datadog::DI::Component)
             expect(extra).to eq(dynamic_instrumentation_enabled: true)
+          end
+        end
+
+        context 'MRI without C extension' do
+          before(:all) do
+            skip 'Test requires MRI' if PlatformHelpers.jruby?
+            skip 'Test requires C extension to be absent' if Datadog::DI.respond_to?(:exception_message)
+          end
+
+          it 'reports DI as disabled' do
+            expect(logger).to receive(:warn).with(/C extension is not available/)
+            expect(components.dynamic_instrumentation).to be nil
+            expect(extra).to eq(dynamic_instrumentation_enabled: false)
           end
         end
 
@@ -749,6 +763,28 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
           shutdown!
         end
+      end
+    end
+  end
+
+  describe 'PATCH_ONLY_ONCE monkey patches' do
+    reset_at_fork_monkey_patch_for_components!
+
+    before do
+      skip 'Fork not supported' unless Process.respond_to?(:fork)
+      skip 'Process.spawn not supported' unless Process.respond_to?(:spawn)
+    end
+
+    it 'applies AtForkMonkeyPatch and SpawnMonkeyPatch when Components is initialized' do
+      expect_in_fork do
+        described_class.new(Datadog::Core::Configuration::Settings.new)
+
+        expect(Process.singleton_class.ancestors).to include(
+          Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch,
+        )
+        expect(Process.singleton_class.ancestors).to include(
+          Datadog::Core::Utils::SpawnMonkeyPatch::ProcessSpawnPatch,
+        )
       end
     end
   end

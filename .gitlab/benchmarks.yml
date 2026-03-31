@@ -202,9 +202,24 @@ microbenchmarks:
   tags: ["runner:apm-k8s-tweaked-metal"]
   image: $BASE_CI_IMAGE
   rules:
+    # On master: always run, never auto-cancel (interruptible: false is the default on master anyway,
+    # but stated explicitly here for clarity)
     - if: $CI_COMMIT_REF_NAME == "master"
       interruptible: false
-    - interruptible: true
+    # On PR branches: only run when files that affect benchmark results are changed.
+    # Without this, benchmarks run on every PR regardless of what changed (e.g. docs, specs, CI config).
+    # Note: on the first push of a new branch (no diff base), GitLab evaluates changes: as true,
+    # so benchmarks run once — conservative/safe behavior.
+    - changes:
+        - lib/**/*
+        - ext/**/*
+        - benchmarks/**/*
+        - datadog.gemspec
+        - .gitlab/**/*
+      interruptible: true
+    # Terminating rule: if no rule above matched, skip the job.
+    # Without this, GitLab falls through to its default (run the job), making the changes: rule above pointless.
+    - when: never
   timeout: 1h
   variables:
     # GitLab CI variables passed to bp-runner
@@ -254,8 +269,11 @@ microbenchmarks:
 
 microbenchmarks-pr-comment:
   stage: microbenchmarks
-  when: always
-  needs: [microbenchmarks]
+  when: on_success
+  allow_failure: true
+  needs:
+    - job: microbenchmarks
+      optional: true
   tags: ["arch:amd64"]
   image: $BASE_CI_IMAGE
   timeout: 30m
