@@ -43,11 +43,21 @@ module Datadog
     # the string form.
     #
     # LIMITATION: Unlike EXCEPTION_BACKTRACE_LOCATIONS, this UnboundMethod
-    # does NOT bypass subclass overrides of #backtrace — the C implementation
-    # returns nil when a Ruby-level override exists. This is acceptable
-    # because this constant is only used as a fallback for the set_backtrace
-    # case, where no subclass override is involved. The primary protection
-    # (backtrace_locations via UnboundMethod) handles the override case.
+    # does NOT bypass subclass overrides of #backtrace. When a subclass
+    # overrides #backtrace, MRI's setup_exception (eval.c) calls the
+    # override via rb_get_backtrace, gets a non-nil result, and skips
+    # storing the real VM backtrace in @bt and @bt_locations entirely.
+    # The C function exc_backtrace then reads @bt (still nil from
+    # exc_init) and returns nil.
+    #
+    # By contrast, setup_exception only checks for #backtrace overrides,
+    # not #backtrace_locations overrides. So when only backtrace_locations
+    # is overridden, the real backtrace IS stored, and the UnboundMethod
+    # for backtrace_locations reads it directly from @bt_locations.
+    #
+    # This limitation is acceptable because this constant is only used as
+    # a fallback for the set_backtrace-with-strings case, where no
+    # subclass override is involved.
     EXCEPTION_BACKTRACE = Exception.instance_method(:backtrace)
 
     class << self
