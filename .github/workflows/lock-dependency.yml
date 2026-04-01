@@ -85,13 +85,15 @@ jobs:
     name: Commit changes
     needs: lock
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     steps:
-      - name: Generate GitHub App Token
+      - name: Get GitHub Token via dd-octo-sts
         id: generate-token
-        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
         with:
-          app-id: ${{ vars.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          scope: DataDog/dd-trace-rb
+          policy: self.lock-dependency
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: true # required for `git` operations (commit & push) at later steps
