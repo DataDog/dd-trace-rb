@@ -145,7 +145,7 @@ module CoreHelpers
         # because normally it would be added during library initialization
         # and after the fork monkey patch test runs, the handler would get
         # cleared out.
-        Datadog::Core::Configuration::Components.const_get(:AT_FORK_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
+        Datadog::Core::Configuration::Components.const_get(:PATCH_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
 
         # We also need to clear out the handlers because we could have
         # the handlers registered from the library initialization time,
