@@ -127,9 +127,6 @@ jobs:
     runs-on: ubuntu-24.04
     container:
       image: datadog/ci:v3.7.1
-      credentials:
-        username: "${{ secrets.DOCKERHUB_USERNAME }}"
-        password: "${{ secrets.DOCKERHUB_TOKEN }}"
       env:
         DD_API_KEY: "${{ secrets.DD_API_KEY }}"
         DD_ENV: ci
@@ -209,9 +206,6 @@ jobs:
       - ruby-25
     container:
       image: datadog/ci:v5.7.0
-      credentials:
-        username: "${{ secrets.DOCKERHUB_USERNAME }}"
-        password: "${{ secrets.DOCKERHUB_TOKEN }}"
       env:
         DD_API_KEY: "${{ secrets.DD_API_KEY }}"
         DD_ENV: ci
