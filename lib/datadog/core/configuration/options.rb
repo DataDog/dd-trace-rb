@@ -20,6 +20,30 @@ module Datadog
             defined?(@settings_path) ? @settings_path : nil
           end
 
+          # Registry of nested settings classes keyed by the option name declared
+          # via `Base.settings`. This lets us propagate a new settings path down the
+          # tree without storing parent references on the nested class or on the
+          # option definition itself.
+          def settings_children
+            @settings_children ||= if superclass <= Options
+              superclass.settings_children.dup
+            else
+              {}
+            end
+          end
+
+          def settings_path=(path)
+            @settings_path = path
+
+            # Keep nested settings paths in sync when a parent settings path is
+            # assigned later, which is how contrib integrations inject
+            # "tracing.<integration>" into their configuration classes.
+            settings_children.each do |name, settings_class|
+              nested_settings_path = path ? "#{path}.#{name}" : name.to_s
+              settings_class.settings_path = nested_settings_path
+            end
+          end
+
           def options
             # Allows for class inheritance of option definitions
             @options ||= if superclass <= Options
@@ -32,8 +56,7 @@ module Datadog
           protected
 
           def option(name, attributes = {}, &block)
-            option_name = settings_path ? "#{settings_path}.#{name}" : name
-            builder = OptionDefinition::Builder.new(option_name, attributes, &block)
+            builder = OptionDefinition::Builder.new(name, attributes, &block)
             options[name] = builder.to_definition.tap do
               # Resolve and define helper functions
               helpers = default_helpers(name)
@@ -82,7 +105,11 @@ module Datadog
           end
 
           def set_option(name, value, precedence: Configuration::Option::Precedence::PROGRAMMATIC)
-            resolve_option(name).set(value, precedence: precedence)
+            option = resolve_option(name)
+            # Populate lower-precedence values so telemetry and `unset` can
+            # still observe the fallback chain after a first programmatic set.
+            option.get
+            option.set(value, precedence: precedence)
           end
 
           def unset_option(name, precedence: Configuration::Option::Precedence::PROGRAMMATIC)

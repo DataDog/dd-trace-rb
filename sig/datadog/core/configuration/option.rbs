@@ -6,6 +6,7 @@ module Datadog
         type env_vars = Hash[String, String] | ::RBS::Unnamed::ENVClass
         type option_value = OptionDefinition::option_type | OptionDefinition::generic_proc
 
+        @name_with_settings_path: ::String
         @context: OptionDefinition::settings_context
 
         @is_set: bool
@@ -43,6 +44,8 @@ module Datadog
 
         def initialize: (OptionDefinition definition, OptionDefinition::settings_context context) -> void
 
+        def name_with_settings_path: () -> ::String
+
         def set: (option_value value, ?precedence: Precedence::Value) -> Object?
 
         def get: () -> Object?
@@ -52,6 +55,8 @@ module Datadog
         def default_value: () -> (OptionDefinition::generic_proc | OptionDefinition::option_type)
 
         def default_precedence?: () -> bool
+
+        def settings?: () -> bool
 
         def values_per_precedence: () -> ::Hash[Precedence::Value, option_value]
 
