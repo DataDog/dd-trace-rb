@@ -5,7 +5,7 @@ require 'spec_helper'
 require 'datadog/core/telemetry/event/app_extended_heartbeat'
 
 RSpec.describe Datadog::Core::Telemetry::Event::AppExtendedHeartbeat do
-  let(:settings) { Datadog.configuration }
+  let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings) }
   let(:event) { described_class.new(settings: settings, agent_settings: agent_settings) }
 
@@ -29,9 +29,24 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppExtendedHeartbeat do
       expect(payload[:configuration]).not_to be_empty
     end
 
-    it 'computes configuration fresh from settings' do
-      expect(payload[:configuration]).to include(
-        hash_including(name: 'DD_TRACE_ENABLED')
+    it 'reflects settings values at instantiation time' do
+      settings.service = 'my-service'
+      event = described_class.new(settings: settings, agent_settings: agent_settings)
+
+      expect(event.payload[:configuration]).to include(
+        hash_including(name: 'DD_SERVICE', value: 'my-service')
+      )
+    end
+
+    it 'picks up changes made after a prior instantiation' do
+      settings.service = 'before'
+      _old_event = described_class.new(settings: settings, agent_settings: agent_settings)
+
+      settings.service = 'after'
+      new_event = described_class.new(settings: settings, agent_settings: agent_settings)
+
+      expect(new_event.payload[:configuration]).to include(
+        hash_including(name: 'DD_SERVICE', value: 'after')
       )
     end
   end

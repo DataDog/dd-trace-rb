@@ -15,7 +15,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
       metrics_manager: metrics_manager,
       dependency_collection: dependency_collection,
       logger: logger,
-      settings: Datadog.configuration,
+      settings: settings,
       agent_settings: agent_settings,
     )
   end
@@ -24,6 +24,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   let(:heartbeat_interval_seconds) { 0.5 }
   let(:extended_heartbeat_interval_seconds) { 86400 }
   let(:metrics_aggregation_interval_seconds) { 0.25 }
+  let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:metrics_manager) { instance_double(Datadog::Core::Telemetry::MetricsManager, flush!: [], disable!: nil) }
   let(:emitter) { instance_double(Datadog::Core::Telemetry::Emitter) }
   let(:dependency_collection) { false }
@@ -383,6 +384,60 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
     end
   end
 
+  describe '#extended_heartbeat!' do
+    let(:heartbeat_interval_seconds) { 0.5 }
+    let(:extended_heartbeat_interval_seconds) { 1 }
+    let(:metrics_aggregation_interval_seconds) { 0.5 }
+
+    before do
+      allow(emitter).to receive(:request).and_return(response)
+    end
+
+    context 'before the initial event is sent' do
+      it 'does not send the extended heartbeat' do
+        received_extended_heartbeat = false
+        allow(emitter).to receive(:request).with(an_instance_of(Datadog::Core::Telemetry::Event::AppExtendedHeartbeat)) do
+          received_extended_heartbeat = true
+          response
+        end
+
+        worker.send(:extended_heartbeat!)
+
+        expect(received_extended_heartbeat).to be(false)
+      end
+    end
+
+    context 'after the initial event is sent' do
+      it 'fires after the configured interval' do
+        received_extended_heartbeat = false
+        allow(emitter).to receive(:request).with(an_instance_of(Datadog::Core::Telemetry::Event::AppExtendedHeartbeat)) do
+          received_extended_heartbeat = true
+          response
+        end
+
+        worker.start(initial_event)
+        try_wait_until { worker.sent_initial_event? }
+        try_wait_until { received_extended_heartbeat }
+
+        expect(received_extended_heartbeat).to be(true)
+      end
+
+      it 'resets the tick counter and fires repeatedly' do
+        fired_count = 0
+        allow(emitter).to receive(:request).with(an_instance_of(Datadog::Core::Telemetry::Event::AppExtendedHeartbeat)) do
+          fired_count += 1
+          response
+        end
+
+        worker.start(initial_event)
+        try_wait_until { worker.sent_initial_event? }
+        try_wait_until { fired_count >= 2 }
+
+        expect(fired_count).to be >= 2
+      end
+    end
+  end
+
   describe '#perform' do
     context 'when worker is started and immediately stopped' do
       # The test now is passing locally for me without modifications to
@@ -419,11 +474,14 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
           worker = worker_class.new(
             enabled: enabled,
             heartbeat_interval_seconds: heartbeat_interval_seconds,
+            extended_heartbeat_interval_seconds: extended_heartbeat_interval_seconds,
             metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
             emitter: emitter,
             metrics_manager: metrics_manager,
             dependency_collection: dependency_collection,
             logger: logger,
+            settings: settings,
+            agent_settings: agent_settings,
           )
 
           worker.perform
