@@ -189,6 +189,42 @@ ddprof-benchmark:
 # Microbenchmarks
 # -----------------------------------------------------
 
+# Detect the PR's target branch from GitHub so microbenchmarks can compare
+# against the correct baseline. Uses dd-octo-sts for GitHub auth instead of
+# the benchmarking platform's GitHub App (which may be unavailable).
+# Modeled on dd-trace-py's baseline:detect job.
+microbenchmarks-baseline-detect:
+  stage: package
+  image: registry.ddbuild.io/images/dd-octo-sts-ci-base:2025.06-1
+  tags: ["arch:amd64"]
+  id_tokens:
+    DDOCTOSTS_ID_TOKEN:
+      aud: dd-octo-sts
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "master"
+      when: never
+    - changes:
+        - lib/**/*
+        - ext/**/*
+        - benchmarks/**/*
+        - datadog.gemspec
+        - .gitlab/**/*
+    - when: never
+  script:
+    - |
+      git config --global --add safe.directory "$CI_PROJECT_DIR"
+      git remote set-url origin "https://github.com/DataDog/dd-trace-rb.git"
+    - |
+      dd-octo-sts token --scope DataDog/dd-trace-rb --policy gitlab.github-access.read > /tmp/gh-token
+      gh auth login --with-token < /tmp/gh-token
+      rm /tmp/gh-token
+    - |
+      BASELINE_BRANCH=$(gh pr view --json "baseRefName" --jq ".baseRefName" "$CI_COMMIT_REF_NAME" || echo "master")
+      echo "MANUAL_BASELINE_BRANCH=${BASELINE_BRANCH}" | tee baseline.env
+  artifacts:
+    reports:
+      dotenv: baseline.env
+
 # Configuration for executing microbenchmarks in parallel
 # Choose which benchmarks to execute, with how many CPUs, on what CI job
 include:
@@ -198,7 +234,10 @@ microbenchmarks:
   extends: .execution  # From benchmarks/execution.yml
   stage: microbenchmarks
   when: always
-  needs: []
+  needs:
+    - job: microbenchmarks-baseline-detect
+      optional: true
+      artifacts: true
   tags: ["runner:apm-k8s-tweaked-metal"]
   image: $BASE_CI_IMAGE
   rules:
