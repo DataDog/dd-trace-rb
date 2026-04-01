@@ -68,7 +68,7 @@ module Datadog
       # Removes nil values to reduce payload size.
       # @return [Hash] Scope as hash with symbol keys
       def to_h
-        {
+        h = {
           scope_type: scope_type,
           name: name,
           source_file: source_file,
