@@ -105,6 +105,7 @@ module Datadog
         class Barrier
           def initialize(timeout = nil)
             @once = false
+            @waited = false
             @timeout = timeout
 
             @mutex = Mutex.new
@@ -112,28 +113,48 @@ module Datadog
           end
 
           # Wait for first lift to happen, otherwise don't wait
+          #
+          # Returns:
+          # - :lift if the barrier was lifted (worker completed a cycle)
+          # - :timeout if the wait timed out before the barrier was lifted
+          # - :pass if wait_once was already called previously
+          #
+          # Uses a separate @waited flag to distinguish "already waited" (:pass)
+          # from "worker lifted before we could wait" (:lift). Without this,
+          # a race between Worker#start and wait_once can cause the first call
+          # to return :pass if the worker completes before wait_once runs.
           def wait_once(timeout = nil)
-            # TTAS (Test and Test-And-Set) optimisation
-            # Since @once only ever goes from false to true, this is semantically valid
-            return :pass if @once
+            # TTAS (Test and Test-And-Set) optimisation for subsequent calls.
+            # @waited is only set inside the mutex and only transitions false -> true,
+            # so an unsynchronized read is safe: a stale `false` just falls through
+            # to the synchronized path which re-checks.
+            return :pass if @waited
 
             begin
               @mutex.lock
 
-              return :pass if @once
+              return :pass if @waited
 
-              timeout ||= @timeout
+              unless @once
+                timeout ||= @timeout
 
-              # - starting with Ruby 3.2, ConditionVariable#wait returns nil on
-              #   timeout and an integer otherwise
-              # - before Ruby 3.2, ConditionVariable returns itself
-              # so we have to rely on @once having been set
-              if RUBY_VERSION >= '3.2'
-                lifted = @condition.wait(@mutex, timeout)
+                # - starting with Ruby 3.2, ConditionVariable#wait returns nil on
+                #   timeout and an integer otherwise
+                # - before Ruby 3.2, ConditionVariable returns itself
+                # so we have to rely on @once having been set
+                if RUBY_VERSION >= '3.2'
+                  lifted = @condition.wait(@mutex, timeout)
+                else
+                  @condition.wait(@mutex, timeout)
+                  lifted = @once
+                end
               else
-                @condition.wait(@mutex, timeout)
-                lifted = @once
+                # Worker lifted the barrier before we could wait.
+                # This is still the first call, so return :lift not :pass.
+                lifted = true
               end
+
+              @waited = true
 
               if lifted
                 :lift

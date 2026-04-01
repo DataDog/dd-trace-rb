@@ -430,5 +430,15 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
         expect(record).to eq [:one, :two, :three]
       end
     end
+
+    context 'when lift happens before wait_once' do
+      it 'returns :lift on first call, not :pass' do
+        # Simulate the race: worker lifts barrier before wait_once is called
+        barrier.lift
+
+        expect(barrier.wait_once).to eq :lift
+        expect(barrier.wait_once).to eq :pass
+      end
+    end
   end
 end
