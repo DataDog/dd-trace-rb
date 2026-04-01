@@ -277,7 +277,8 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
       before do
         allow(runtime_metrics).to receive(:statsd).and_return(statsd)
         allow(statsd).to receive(:gauge)
-        allow(Datadog::Core::Environment::Process).to receive(:tags).and_return(['entrypoint.workdir:test'])
+        allow(Datadog::Core::Environment::Process).to receive(:tags)
+          .and_return(['entrypoint.workdir:test', 'rails.application:test_app'])
         runtime_metrics.enabled = true
       end
 
@@ -285,6 +286,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
         flush
 
         expect(statsd).to have_received(:gauge).with(anything, anything, hash_including(tags: array_including('entrypoint.workdir:test'))).at_least(:once)
+        expect(statsd).to have_received(:gauge).with(anything, anything, hash_including(tags: array_including('rails.application:test_app'))).at_least(:once)
       end
     end
   end
@@ -328,12 +330,13 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
       context 'when :experimental_propagate_process_tags_enabled is true' do
         before do
           allow(Datadog::Core::Environment::Process).to receive(:tags)
-            .and_return(['entrypoint.workdir:test', 'entrypoint.name:test_script'])
+            .and_return(['entrypoint.workdir:test', 'entrypoint.name:test_script', 'rails.application:test_app'])
         end
 
         it 'includes process tags by default' do
           is_expected.to include('entrypoint.workdir:test')
           is_expected.to include('entrypoint.name:test_script')
+          is_expected.to include('rails.application:test_app')
         end
       end
 
@@ -373,7 +376,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
         let(:options) { super().merge(experimental_propagate_process_tags_enabled: true) }
 
         before do
-          expect(Datadog::Core::Environment::Process).to receive(:tags).and_return(['entrypoint.workdir:test', 'entrypoint.name:test_script', 'entrypoint.basedir:test', 'entrypoint.type:script'])
+          expect(Datadog::Core::Environment::Process).to receive(:tags).and_return(['entrypoint.workdir:test', 'entrypoint.name:test_script', 'entrypoint.basedir:test', 'entrypoint.type:script', 'rails.application:test_app'])
         end
 
         it 'includes process tags when enabled' do
@@ -381,6 +384,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
           is_expected.to include('entrypoint.name:test_script')
           is_expected.to include('entrypoint.basedir:test')
           is_expected.to include('entrypoint.type:script')
+          is_expected.to include('rails.application:test_app')
         end
       end
 
