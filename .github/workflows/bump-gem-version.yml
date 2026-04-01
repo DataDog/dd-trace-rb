@@ -28,6 +28,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      id-token: write
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       NEXT_VERSION: ${{ inputs.version }}
@@ -50,12 +51,12 @@ jobs:
           echo "Updating version to ${NEXT_VERSION}"
           bundle exec rake version:bump["${NEXT_VERSION}]"
 
-      - name: Generate GitHub App Token
+      - name: Get GitHub Token via dd-octo-sts
         id: generate-token
-        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
         with:
-          app-id: ${{ vars.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          scope: DataDog/dd-trace-rb
+          policy: self.bump-gem-version
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 # v8.1.0
