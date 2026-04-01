@@ -10,13 +10,6 @@ module Datadog
       #
       # @api private
       module Event
-        extend Core::Utils::Forking
-
-        # returns sequence that increments every time the configuration changes
-        def self.configuration_sequence
-          after_fork! { @sequence = Datadog::Core::Utils::Sequence.new(1) }
-          @sequence ||= Datadog::Core::Utils::Sequence.new(1)
-        end
       end
     end
   end

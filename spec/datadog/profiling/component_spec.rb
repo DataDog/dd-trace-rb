@@ -64,6 +64,24 @@ RSpec.describe Datadog::Profiling::Component do
         expect(build_profiler_component).to match([instance_of(Datadog::Profiling::Profiler), {profiling_enabled: true}])
       end
 
+      context "when an exception is raised during initialization" do
+        before do
+          expect(Datadog::Profiling::HttpTransport).to receive(:new).and_raise(
+            ArgumentError.new("Failed to initialize transport: something went wrong")
+          )
+        end
+
+        it "logs a warning, reports via telemetry, and returns nil" do
+          expect(logger).to receive(:warn) do |&block|
+            expect(block.call).to match(/Failed to initialize profiling.*ArgumentError/)
+          end
+          expect(Datadog::Core::Telemetry::Logger).to receive(:report)
+            .with(instance_of(ArgumentError), hash_including(description: "Failed to initialize profiling"))
+
+          is_expected.to eq [nil, {profiling_enabled: false}]
+        end
+      end
+
       context "when using the new CPU Profiling 2.0 profiler" do
         it "initializes a ThreadContext collector" do
           allow(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new)

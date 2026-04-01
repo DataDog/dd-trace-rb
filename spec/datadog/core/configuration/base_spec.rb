@@ -22,6 +22,14 @@ RSpec.describe Datadog::Core::Configuration::Base do
             it { expect(settings.settings_path).to eq 'debug' }
           end
 
+          describe 'settings registry' do
+            it 'registers the nested settings class as a child setting' do
+              expect { settings }.to change { base_class.settings_children.size }.from(0).to(1)
+
+              expect(base_class.settings_children[:debug]).to be(settings)
+            end
+          end
+
           describe 'defines a settings option' do
             subject(:definition) { base_class.options[name] }
 
@@ -31,6 +39,7 @@ RSpec.describe Datadog::Core::Configuration::Base do
 
             it 'sets default properties' do
               is_expected.to have_attributes(
+                is_settings: true,
                 default: kind_of(Proc),
                 resetter: kind_of(Proc)
               )
