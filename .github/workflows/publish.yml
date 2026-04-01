@@ -175,8 +175,7 @@ jobs:
         with:
           ruby-version: "3.3.7"
       - run: bundle install
-      # TODO: Use rubygems/release-gem instead when https://github.com/rubygems/release-gem/pull/30 is merged
-      - uses: TonyCTHsu/release-gem@9031851d2338ad011e20911c2a1ec61eb4ab6793
+      - uses: rubygems/release-gem@6317d8d1f7e28c24d28f6eff169ea854948bd9f7 # v1.2.0
         with:
           token: ${{ steps.octo-sts.outputs.token }}
 
