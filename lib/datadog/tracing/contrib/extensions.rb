@@ -3,6 +3,7 @@
 require 'set'
 
 require_relative '../../core/configuration/settings'
+require_relative 'rails/ext'
 
 # Datadog
 module Datadog
@@ -157,6 +158,23 @@ module Datadog
                       o.env Tracing::Configuration::Ext::SpanAttributeSchema::ENV_GLOBAL_DEFAULT_SERVICE_NAME_ENABLED
                       o.type :bool
                       o.default false
+                    end
+                  end
+
+                  # Disable patching for Rails
+                  # DEV 3.0: Remove this option
+                  option :disable_rails_patching do |o|
+                    o.env Contrib::Rails::Ext::ENV_DISABLE
+                    o.type :bool
+                    o.default false
+                    o.after_set do |_, _, precedence|
+                      unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                        Core.log_deprecation(key: :disable_rails_patching) do
+                          'The tracing.contrib.disable_rails_patching option (`DD_DISABLE_DATADOG_RAILS`) is deprecated.' \
+                          'Please remove it from your Datadog.configure block or remove the environment variable' \
+                          'And use `DD_TRACE_RAILS_ENABLED=false` instead.'
+                        end
+                      end
                     end
                   end
                 end

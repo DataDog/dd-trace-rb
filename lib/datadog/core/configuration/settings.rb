@@ -53,6 +53,14 @@ module Datadog
         # {https://docs.datadoghq.com/agent/ Datadog Agent} configuration.
         # @public_api
         settings :agent do
+          # Agent URL.
+          # @default `DD_TRACE_AGENT_URL` environment variable, otherwise `nil`
+          # @return [String,nil]
+          option :url do |o|
+            o.type :string, nilable: true
+            o.env Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL
+          end
+
           # Agent hostname or IP.
           # @default `DD_AGENT_HOST` environment variable, otherwise `127.0.0.1`
           # @return [String,nil]
@@ -75,7 +83,10 @@ module Datadog
           # @see https://docs.datadoghq.com/getting_started/tracing/#datadog-apm
           # @default `DD_TRACE_AGENT_TIMEOUT_SECONDS` environment variable, otherwise `30` for http, '1' for UDS
           # @return [Integer,nil]
-          option :timeout_seconds
+          option :timeout_seconds do |o|
+            o.type :int, nilable: true
+            o.env Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS
+          end
 
           # Agent unix domain socket path.
           # @default defined in `DD_TRACE_AGENT_URL` environment variable, otherwise '/var/run/datadog/apm.socket'
@@ -84,16 +95,20 @@ module Datadog
           # @return [String,nil]
           option :uds_path
 
-          # TODO: add declarative statsd configuration. Currently only usable via an environment variable.
+          # TODO: add more declarative statsd configuration. Currently only usable via an environment variable.
           # Statsd configuration for agent access.
           # @public_api
-          # settings :statsd do
-          #   # Agent Statsd UDP port.
-          #   # @configure_with {Datadog::Statsd}
-          #   # @default `DD_AGENT_HOST` environment variable, otherwise `8125`
-          #   # @return [String,nil]
-          #   option :port
-          # end
+          settings :statsd do
+            # Agent Statsd UDP port.
+            # @configure_with {Datadog::Statsd}
+            # @default `DD_METRIC_AGENT_PORT` environment variable, otherwise `8125`
+            # @return [Integer,nil]
+            option :port do |o|
+              o.type :int
+              o.env Datadog::Core::Configuration::Ext::Metrics::ENV_DEFAULT_PORT
+              o.default 8125
+            end
+          end
         end
 
         # Datadog API key.

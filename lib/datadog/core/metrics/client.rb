@@ -23,8 +23,9 @@ module Datadog
 
         attr_reader :statsd, :logger, :telemetry
 
-        def initialize(telemetry:, logger: Datadog.logger, statsd: nil, enabled: true, **_)
+        def initialize(telemetry:, port:, logger: Datadog.logger, statsd: nil, enabled: true, **_)
           @telemetry = telemetry
+          @port = port
           @logger = logger
           @statsd =
             if supported?
@@ -53,12 +54,10 @@ module Datadog
           @enabled = (enabled == true)
         end
 
+        # DEV 3.0: Remove this and replace by access to c.agent.host.
+        # This is a breaking change due to the precedence in AgentSettingsResolver#configured_hostname.
         def default_hostname
           DATADOG_ENV.fetch(Configuration::Ext::Agent::ENV_DEFAULT_HOST, Ext::DEFAULT_HOST)
-        end
-
-        def default_port
-          DATADOG_ENV.fetch(Configuration::Ext::Metrics::ENV_DEFAULT_PORT, Ext::DEFAULT_PORT).to_i
         end
 
         def default_statsd_client
@@ -80,7 +79,7 @@ module Datadog
             {}
           end
 
-          Datadog::Statsd.new(default_hostname, default_port, **options)
+          Datadog::Statsd.new(default_hostname, @port, **options)
         end
 
         def configure(options = {})
@@ -155,7 +154,8 @@ module Datadog
           yield
         ensure
           begin
-            if send_stats? && !start.nil?
+            # Steep: https://github.com/soutaro/steep/issues/1971
+            if send_stats? && !start.nil? # steep:ignore FallbackAny
               finished = Utils::Time.get_time
               distribution(stat, ((finished - start) * 1000), options)
             end

@@ -35,7 +35,7 @@ module Datadog
           end
 
           def self.patchable?
-            super && !DATADOG_ENV.key?(Ext::ENV_DISABLE)
+            super && !Datadog.configuration.tracing.contrib.disable_rails_patching
           end
 
           def new_configuration

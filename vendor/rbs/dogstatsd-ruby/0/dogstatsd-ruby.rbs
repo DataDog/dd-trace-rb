@@ -1,0 +1,34 @@
+module Datadog
+  class Statsd
+    VERSION: String
+
+    def initialize: (
+      ?String? host,
+      ?Integer? port,
+      ?socket_path: String?,
+
+      ?namespace: String?,
+      ?tags: Array[String] | Hash[String, String]?,
+      ?sample_rate: Float?,
+
+      ?buffer_max_payload_size: Integer?,
+      ?buffer_max_pool_size: Integer?,
+      ?buffer_overflowing_stategy: :drop | :raise,
+      ?buffer_flush_interval: Numeric?,
+
+      ?sender_queue_size: Integer?,
+
+      ?logger: Datadog::Core::Logger?,
+
+      ?single_thread: bool?,
+      ?delay_serialization: bool?,
+
+      ?telemetry_enable: bool?,
+      ?telemetry_flush_interval: Numeric?,
+
+      ?origin_detection: bool?,
+      ?container_id: String?,
+      ?cardinality: String?
+    ) -> void
+  end
+end

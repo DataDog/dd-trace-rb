@@ -8,9 +8,10 @@ RSpec.describe Datadog::Core::Metrics::Client do
 
   let(:logger) { Logger.new($stderr) }
   let(:telemetry) { double(Datadog::Core::Telemetry::Component) }
+  let(:port) { 8125 }
   let(:options) { {statsd: statsd} }
 
-  subject(:metrics) { described_class.new(telemetry: telemetry, logger: logger, **options) }
+  subject(:metrics) { described_class.new(telemetry: telemetry, port: port, logger: logger, **options) }
   after { metrics.close }
 
   it { is_expected.to have_attributes(statsd: statsd) }
@@ -241,30 +242,6 @@ RSpec.describe Datadog::Core::Metrics::Client do
     end
   end
 
-  describe '#default_port' do
-    subject(:default_port) { metrics.default_port }
-
-    context 'when environment variable is' do
-      context 'set' do
-        let(:value) { '1234' }
-
-        around do |example|
-          ClimateControl.modify(Datadog::Core::Configuration::Ext::Metrics::ENV_DEFAULT_PORT => value) do
-            example.run
-          end
-        end
-
-        it { is_expected.to eq(value.to_i) }
-      end
-
-      context 'not set' do
-        with_env Datadog::Core::Configuration::Ext::Metrics::ENV_DEFAULT_PORT => nil
-
-        it { is_expected.to eq(Datadog::Core::Metrics::Ext::DEFAULT_PORT) }
-      end
-    end
-  end
-
   describe '#default_statsd_client' do
     subject(:default_statsd_client) { metrics.default_statsd_client }
 
@@ -280,7 +257,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
 
     before do
       expect(Datadog::Statsd).to receive(:new)
-        .with(metrics.default_hostname, metrics.default_port, **options)
+        .with(metrics.default_hostname, port, **options)
         .and_return(statsd_client)
     end
 

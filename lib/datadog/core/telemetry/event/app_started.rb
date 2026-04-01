@@ -119,11 +119,13 @@ module Datadog
                 instrumentation_source,
                 (instrumentation_source == 'ssi') ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT
               ),
+              # No need to create a config through the DSL as this is only used for reporting through telemetry.
               conf_value(
                 'DD_INJECT_FORCE',
                 Core::Environment::VariableHelpers.env_to_bool('DD_INJECT_FORCE', false),
                 (DATADOG_ENV.key?('DD_INJECT_FORCE') ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
               ),
+              # No need to create a config through the DSL as this is only used for reporting through telemetry.
               conf_value(
                 'DD_INJECTION_ENABLED',
                 DATADOG_ENV['DD_INJECTION_ENABLED'] || '',

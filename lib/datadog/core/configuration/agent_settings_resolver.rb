@@ -55,6 +55,9 @@ module Datadog
         end
 
         def configured_hostname
+          # DEV 3.0: In dd-trace-rs, DD_TRACE_AGENT_URL takes precedence over DD_AGENT_HOST and DD_TRACE_AGENT_PORT
+          # Before releasing dd-trace-rb 3.0, we should consider following that logic.
+          # (Add the env vars to c.agent.host and c.agent.port, and prioritize parsed_http_url)
           return @configured_hostname if defined?(@configured_hostname)
 
           @configured_hostname = pick_from(
@@ -73,6 +76,7 @@ module Datadog
           )
         end
 
+        # DEV 3.0: Same as above, but for port.
         def configured_port
           return @configured_port if defined?(@configured_port)
 
@@ -110,17 +114,7 @@ module Datadog
         def configured_timeout_seconds
           return @configured_timeout_seconds if defined?(@configured_timeout_seconds)
 
-          @configured_timeout_seconds = pick_from(
-            try_parsing_as_integer(
-              friendly_name: '"c.agent.timeout_seconds"',
-              value: settings.agent.timeout_seconds,
-            ),
-            try_parsing_as_integer(
-              friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS} " \
-                'environment variable',
-              value: DATADOG_ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS],
-            )
-          )
+          @configured_timeout_seconds = settings.agent.timeout_seconds
         end
 
         def configured_uds_path
@@ -256,22 +250,20 @@ module Datadog
         def parsed_url
           return @parsed_url if defined?(@parsed_url)
 
-          unparsed_url_from_env = DATADOG_ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL]
+          unparsed_url = settings.agent.url
 
           @parsed_url =
-            if unparsed_url_from_env
-              parsed = URI.parse(unparsed_url_from_env)
+            if unparsed_url
+              parsed = URI.parse(unparsed_url)
 
               if http_scheme?(parsed) || unix_scheme?(parsed)
                 parsed
               else
-                # rubocop:disable Layout/LineLength
                 log_warning(
                   "Invalid URI scheme '#{parsed.scheme}' for #{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL} " \
-                  "environment variable ('#{unparsed_url_from_env}'). " \
+                  "environment variable ('#{unparsed_url}'). " \
                   "Ignoring the contents of #{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL}."
                 )
-                # rubocop:enable Layout/LineLength
 
                 nil
               end

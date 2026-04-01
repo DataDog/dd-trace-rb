@@ -394,7 +394,8 @@ module Datadog
                 # @public_api
                 option :rules do |o|
                   o.type :string, nilable: true
-                  o.default { DATADOG_ENV.fetch(Configuration::Ext::Sampling::ENV_RULES, nil) }
+                  o.env Configuration::Ext::Sampling::ENV_RULES
+                  o.default nil
                 end
 
                 # Single span sampling rules.

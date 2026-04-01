@@ -56,7 +56,6 @@ target :datadog do
   ignore 'lib/datadog/core/environment/socket.rb'
   ignore 'lib/datadog/core/environment/variable_helpers.rb'
   ignore 'lib/datadog/core/environment/vm_cache.rb'
-  ignore 'lib/datadog/core/metrics/client.rb'
   ignore 'lib/datadog/core/metrics/helpers.rb'
   ignore 'lib/datadog/core/metrics/metric.rb'
   ignore 'lib/datadog/core/metrics/options.rb'
@@ -65,8 +64,6 @@ target :datadog do
   # steep gets lost in module inclusions
   ignore 'lib/datadog/core/remote/transport/http/config.rb'
   ignore 'lib/datadog/core/remote/transport/http/negotiation.rb'
-  ignore 'lib/datadog/core/runtime/ext.rb'
-  ignore 'lib/datadog/core/runtime/metrics.rb'
   ignore 'lib/datadog/core/transport/http/adapters/net.rb'
   ignore 'lib/datadog/core/transport/http/adapters/unix_socket.rb'
   ignore 'lib/datadog/core/utils/at_fork_monkey_patch.rb' # @ivoanjo: I wasn't able to type this one, it's kinda weird
@@ -81,7 +78,6 @@ target :datadog do
   ignore 'lib/datadog/core/workers/interval_loop.rb'
   ignore 'lib/datadog/core/workers/polling.rb'
   ignore 'lib/datadog/core/workers/queue.rb'
-  ignore 'lib/datadog/core/workers/runtime_metrics.rb'
   ignore 'lib/datadog/di/configuration/settings.rb'
   ignore 'lib/datadog/di/contrib/railtie.rb'
   ignore 'lib/datadog/di/transport/http/api.rb'
