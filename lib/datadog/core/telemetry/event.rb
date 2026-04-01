@@ -18,6 +18,7 @@ end
 require_relative 'event/base'
 require_relative 'event/app_client_configuration_change'
 require_relative 'event/app_closing'
+require_relative 'event/app_extended_heartbeat'
 require_relative 'event/app_dependencies_loaded'
 require_relative 'event/app_endpoints_loaded'
 require_relative 'event/app_heartbeat'
