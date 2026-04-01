@@ -45,6 +45,11 @@ RSpec.describe Datadog::Core::Contrib::Rails::Utils do
       end
 
       it { is_expected.to be_nil }
+
+      it 'returns nil and logs a debug message' do
+        expect(Datadog.logger).to receive(:debug).with(/Failed to extract Rails application name/)
+        expect(app_name).to be_nil
+      end
     end
   end
 
