@@ -67,6 +67,15 @@ module Datadog
                   o.type :bool
                   o.default false
                 end
+
+                # Which RubyVM::InstructionSequence#trace_points event types
+                # to include when computing injectable lines on METHOD scopes.
+                # Default: [:line, :return]. :call excluded because method
+                # entry is handled by method probes, not line probes.
+                # Changeable at runtime — takes effect on next extraction.
+                option :injectable_line_events do |o|
+                  o.default [:line, :return]
+                end
               end
             end
             # steep:ignore:end
