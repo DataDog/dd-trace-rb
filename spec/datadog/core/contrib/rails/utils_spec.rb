@@ -46,7 +46,10 @@ RSpec.describe Datadog::Core::Contrib::Rails::Utils do
 
       it { is_expected.to be_nil }
     end
-  end
+      it 'returns nil and logs a debug message' do
+        expect(Datadog.logger).to receive(:debug).with(/Failed to extract Rails application name/)
+        expect(app_name).to be_nil
+      end
 
   describe 'railtie_supported?' do
     subject(:railtie_supported?) { described_class.railtie_supported? }
