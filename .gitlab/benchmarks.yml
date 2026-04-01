@@ -259,6 +259,11 @@ microbenchmarks:
         exit 1
       fi
     - cd platform
+    # Detect baseline branch from the repo default branch. This bypasses
+    # github-find-merge-into-branch inside bp-runner, which depends on a GitHub App
+    # that may be unavailable (incident-51987). Other tracers (Go, Cpp, PHP) use the
+    # same pattern — detect baseline themselves rather than relying on the shared tool.
+    - export MANUAL_BASELINE_BRANCH=$(git -C "$CI_PROJECT_DIR" remote show origin | sed -n 's/.*HEAD branch: //p')
     - bp-runner bp-runner.yml --debug
   artifacts:
     name: "artifacts"
