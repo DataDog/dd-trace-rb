@@ -917,12 +917,12 @@ module Datadog
           # This method is used internally, for testing purposes only.
           #
           # @default `DD_TELEMETRY_EXTENDED_HEARTBEAT_INTERVAL` environment variable, otherwise `86400`.
-          # @return [Float]
+          # @return [Integer]
           # @!visibility private
           option :extended_heartbeat_interval_seconds do |o|
-            o.type :float
+            o.type :int
             o.env Core::Telemetry::Ext::ENV_EXTENDED_HEARTBEAT_INTERVAL
-            o.default 86400.0
+            o.default 86400
           end
 
           # The interval in seconds when telemetry metrics are aggregated.

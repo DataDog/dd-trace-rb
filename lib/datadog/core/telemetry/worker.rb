@@ -27,7 +27,7 @@ module Datadog
           metrics_manager:,
           dependency_collection:,
           logger:,
-          extended_heartbeat_interval_seconds: 86400.0,
+          extended_heartbeat_interval_seconds: 86400,
           enabled: true,
           shutdown_timeout: Workers::Polling::DEFAULT_SHUTDOWN_TIMEOUT,
           buffer_size: DEFAULT_BUFFER_MAX_SIZE
