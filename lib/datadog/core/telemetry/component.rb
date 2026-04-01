@@ -109,6 +109,8 @@ module Datadog
             metrics_manager: @metrics_manager,
             dependency_collection: settings.telemetry.dependency_collection,
             logger: logger,
+            settings: settings,
+            agent_settings: agent_settings,
             shutdown_timeout: settings.telemetry.shutdown_timeout_seconds,
           )
 

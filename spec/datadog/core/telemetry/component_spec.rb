@@ -51,6 +51,8 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       enabled: enabled,
       emitter: an_instance_of(Datadog::Core::Telemetry::Emitter),
       metrics_manager: anything,
+      settings: settings,
+      agent_settings: agent_settings,
       shutdown_timeout: shutdown_timeout_seconds
     ).and_return(worker)
 

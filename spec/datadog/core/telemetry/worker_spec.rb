@@ -9,16 +9,20 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
     described_class.new(
       enabled: enabled,
       heartbeat_interval_seconds: heartbeat_interval_seconds,
+      extended_heartbeat_interval_seconds: extended_heartbeat_interval_seconds,
       metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
       emitter: emitter,
       metrics_manager: metrics_manager,
       dependency_collection: dependency_collection,
       logger: logger,
+      settings: Datadog.configuration,
+      agent_settings: agent_settings,
     )
   end
 
   let(:enabled) { true }
   let(:heartbeat_interval_seconds) { 0.5 }
+  let(:extended_heartbeat_interval_seconds) { 86400 }
   let(:metrics_aggregation_interval_seconds) { 0.25 }
   let(:metrics_manager) { instance_double(Datadog::Core::Telemetry::MetricsManager, flush!: [], disable!: nil) }
   let(:emitter) { instance_double(Datadog::Core::Telemetry::Emitter) }

@@ -27,7 +27,9 @@ module Datadog
           metrics_manager:,
           dependency_collection:,
           logger:,
-          extended_heartbeat_interval_seconds: 86400,
+          settings:,
+          agent_settings:,
+          extended_heartbeat_interval_seconds:,
           enabled: true,
           shutdown_timeout: Workers::Polling::DEFAULT_SHUTDOWN_TIMEOUT,
           buffer_size: DEFAULT_BUFFER_MAX_SIZE
@@ -36,6 +38,8 @@ module Datadog
           @metrics_manager = metrics_manager
           @dependency_collection = dependency_collection
           @logger = logger
+          @settings = settings
+          @agent_settings = agent_settings
 
           @ticks_per_heartbeat = (heartbeat_interval_seconds / metrics_aggregation_interval_seconds).to_i
           @ticks_per_extended_heartbeat = (extended_heartbeat_interval_seconds / metrics_aggregation_interval_seconds).to_i
@@ -183,8 +187,7 @@ module Datadog
         def extended_heartbeat!
           return if !enabled? || !sent_initial_event?
 
-          configuration = @initial_event&.current_configuration || []
-          send_event(Event::AppExtendedHeartbeat.new(configuration: configuration))
+          send_event(Event::AppExtendedHeartbeat.new(settings: @settings, agent_settings: @agent_settings))
         end
 
         def started!

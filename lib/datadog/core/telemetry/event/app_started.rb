@@ -26,10 +26,6 @@ module Datadog
             'app-started'
           end
 
-          def current_configuration
-            @configuration
-          end
-
           def payload
             {
               products: @products,

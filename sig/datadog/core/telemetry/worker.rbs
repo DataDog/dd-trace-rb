@@ -22,12 +22,14 @@ module Datadog
         @current_ticks: Integer
         @extended_heartbeat_ticks: Integer
         @logger: ::Logger
+        @settings: untyped
+        @agent_settings: Core::Configuration::AgentSettings
 
         attr_reader logger: ::Logger
         attr_reader initial_event: Telemetry::Event::AppStarted
 	attr_reader initial_event_once: Datadog::Core::Utils::OnlyOnceSuccessful
 
-        def initialize: (?enabled: bool, heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, emitter: Emitter, metrics_manager: MetricsManager, ?extended_heartbeat_interval_seconds: Integer, ?shutdown_timeout: Float | Integer, ?buffer_size: Integer, dependency_collection: bool, logger: ::Logger) -> void
+        def initialize: (?enabled: bool, heartbeat_interval_seconds: Float, extended_heartbeat_interval_seconds: Integer, metrics_aggregation_interval_seconds: Float, emitter: Emitter, metrics_manager: MetricsManager, settings: untyped, agent_settings: Core::Configuration::AgentSettings, ?shutdown_timeout: Float | Integer, ?buffer_size: Integer, dependency_collection: bool, logger: ::Logger) -> void
         def initialize_state: -> void
 
         def start: (Telemetry::Event::AppStarted initial_event) -> void

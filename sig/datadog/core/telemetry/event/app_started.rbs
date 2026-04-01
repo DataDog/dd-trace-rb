@@ -33,8 +33,6 @@ module Datadog
 
           def type: () -> "app-started"
 
-          def current_configuration: () -> ::Array[telemetry_configuration]
-
           def payload: () -> { products: untyped, configuration: untyped, install_signature: untyped }
 
           def app_started?: -> bool?

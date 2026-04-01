@@ -2,12 +2,13 @@ module Datadog
   module Core
     module Telemetry
       module Event
-        class AppExtendedHeartbeat < Base
-          @configuration: Array[Hash[Symbol, untyped]]
+        class AppExtendedHeartbeat < AppStarted
+          @configuration: ::Array[telemetry_configuration]
 
-          def initialize: (configuration: Array[Hash[Symbol, untyped]]) -> void
+          def initialize: (settings: untyped, agent_settings: Core::Configuration::AgentSettings) -> void
           def type: () -> "app-extended-heartbeat"
-          def payload: () -> { configuration: Array[Hash[Symbol, untyped]] }
+          def payload: () -> { configuration: ::Array[telemetry_configuration] }
+          def app_started?: () -> false
         end
       end
     end
