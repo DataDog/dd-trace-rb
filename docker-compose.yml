@@ -11,7 +11,7 @@ services:
       - mysql
       - opensearch
       - postgres
-      # - presto
+      - presto
       - redis
       - testagent
     links: &common-links
