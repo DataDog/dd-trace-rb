@@ -36,7 +36,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       context 'is defined' do
         let(:api_key_env) { SecureRandom.uuid.delete('-') }
 
-        it { is_expected.to eq(api_key_env) }
+        it 'returns the api key from the environment' do
+          is_expected.to eq(api_key_env)
+        end
       end
     end
   end
@@ -49,7 +51,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       before { set_api_key }
 
-      it { expect(settings.api_key).to eq(api_key) }
+      it 'sets the api key' do
+        expect(settings.api_key).to eq(api_key)
+      end
     end
   end
 

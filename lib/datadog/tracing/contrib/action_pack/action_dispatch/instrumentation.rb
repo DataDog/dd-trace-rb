@@ -76,6 +76,26 @@ module Datadog
                   end
                 end
               end
+
+              # Since Rails 8.1, `Router#find_routes` was removed by inlining its body into `recognize`.
+              # https://github.com/rails/rails/commit/e533a32ddf06668dfa3dfbe9b665607e235b06ac
+              module RecognizeRouter
+                def recognize(req)
+                  # recognize modifies SCRIPT_NAME before yielding; capture it before super.
+                  original_script_name = req.env[SCRIPT_NAME_KEY]
+
+                  super do |route, parameters|
+                    if Instrumentation.dispatcher_route?(route)
+                      http_route = route.path.spec.to_s
+                      http_route = http_route.delete_suffix(FORMAT_SUFFIX)
+
+                      Instrumentation.set_http_route_tags(http_route, original_script_name)
+                    end
+
+                    yield route, parameters
+                  end
+                end
+              end
             end
           end
         end

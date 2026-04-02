@@ -156,20 +156,28 @@ jobs:
     environment: "rubygems.org" # see: https://github.com/DataDog/dd-trace-rb/settings/environments
     needs: verify-checks # Make sure to release from a healthy commit
     permissions:
+      # This controls whether the job can request an OIDC token from
+      # GitHub's identity provider (token.actions.githubusercontent.com).
       id-token: write
-      contents: write
     env:
       SKIP_SIMPLECOV: 1
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false # `rubygems/release-gem` action handles credentials itself
+      - uses: DataDog/dd-octo-sts-action@acaa02eee7e3bb0839e4272dacb37b8f3b58ba80 # v1.0.3
+        id: octo-sts
+        with:
+          scope: DataDog/dd-trace-rb
+          policy: self.publish
       - name: Set up Ruby
         uses: ruby/setup-ruby@90be1154f987f4dc0fe0dd0feedac9e473aa4ba8 # v1.286.0
         with:
           ruby-version: "3.3.7"
       - run: bundle install
-      - uses: rubygems/release-gem@1c162a739e8b4cb21a676e97b087e8268d8fc40b # v1.1.2
+      - uses: rubygems/release-gem@6317d8d1f7e28c24d28f6eff169ea854948bd9f7 # v1.2.0
+        with:
+          token: ${{ steps.octo-sts.outputs.token }}
 
   github-release:
     name: Attach gem to Github Release and publish
@@ -335,7 +343,7 @@ jobs:
         id: generate-token
         uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
         with:
-          app-id: ${{ secrets.APP_ID }}
+          app-id: ${{ vars.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
