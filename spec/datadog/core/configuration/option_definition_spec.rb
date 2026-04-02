@@ -88,7 +88,9 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition do
     end
 
     context 'when not initialized' do
-      it { is_expected.to be described_class::IDENTITY }
+      it 'returns the IDENTITY lambda' do
+        is_expected.to be described_class::IDENTITY
+      end
     end
   end
 
