@@ -396,7 +396,9 @@ RSpec.describe 'Sinatra instrumentation' do
         let(:headers) { {'HTTP_X_REQUEST_HEADER' => header_value} }
         let(:header_value) { SecureRandom.uuid }
 
-        it { expect(span.get_tag('http.request.headers.x-request-header')).to eq(header_value) }
+        it 'tags the request header' do
+          expect(span.get_tag('http.request.headers.x-request-header')).to eq(header_value)
+        end
 
         context 'and configured with global tag headers' do
           include_context 'with trace header tags'
