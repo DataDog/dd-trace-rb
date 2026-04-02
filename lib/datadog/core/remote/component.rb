@@ -86,6 +86,7 @@ module Datadog
         # Then, waits for one client sync to be executed if `kind` is `:once`.
         def barrier(_kind)
           start
+          sleep 2 # REPRODUCER: force worker to complete before wait_once runs
           @barrier.wait_once
         end
 
