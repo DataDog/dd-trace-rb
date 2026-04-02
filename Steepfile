@@ -54,7 +54,6 @@ target :datadog do
   ignore 'lib/datadog/core/environment/identity.rb'
   ignore 'lib/datadog/core/environment/platform.rb'
   ignore 'lib/datadog/core/environment/socket.rb'
-  ignore 'lib/datadog/core/environment/variable_helpers.rb'
   ignore 'lib/datadog/core/environment/vm_cache.rb'
   ignore 'lib/datadog/core/metrics/helpers.rb'
   ignore 'lib/datadog/core/metrics/metric.rb'

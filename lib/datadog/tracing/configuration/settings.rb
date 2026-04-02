@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative '../../tracing/configuration/ext'
-require_relative '../../core/environment/variable_helpers'
 require_relative '../contrib/status_range_matcher'
 require_relative '../contrib/status_range_env_parser'
 require_relative 'http'
