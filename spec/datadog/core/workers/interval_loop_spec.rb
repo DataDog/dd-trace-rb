@@ -167,7 +167,7 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
       context 'when set' do
         let(:value) { rand }
 
-        it do
+        it 'changes the loop_base_interval' do
           expect { worker.send(:loop_base_interval=, value) }
             .to change { worker.loop_base_interval }
             .from(described_class::BASE_INTERVAL)
@@ -186,7 +186,7 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
       context 'when set' do
         let(:value) { rand }
 
-        it do
+        it 'changes the loop_back_off_ratio' do
           expect { worker.send(:loop_back_off_ratio=, value) }
             .to change { worker.loop_back_off_ratio }
             .from(described_class::BACK_OFF_RATIO)
@@ -205,7 +205,7 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
       context 'when set' do
         let(:value) { rand }
 
-        it do
+        it 'changes the loop_back_off_max' do
           expect { worker.send(:loop_back_off_max=, value) }
             .to change { worker.loop_back_off_max }
             .from(described_class::BACK_OFF_MAX)
@@ -225,7 +225,7 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
     describe '#loop_wait_time=' do
       let(:value) { rand }
 
-      it do
+      it 'changes the loop_wait_time' do
         expect { worker.loop_wait_time = value }
           .to change { worker.loop_wait_time }
           .from(described_class::BASE_INTERVAL)

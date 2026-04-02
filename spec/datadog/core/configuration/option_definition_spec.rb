@@ -82,7 +82,9 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition do
     context 'when initialized with a block' do
       let(:block) { proc {} }
 
-      it { is_expected.to be block }
+      it 'returns the block as the setter' do
+        is_expected.to be block
+      end
     end
 
     context 'when not initialized' do
@@ -288,7 +290,9 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
 
     let(:block) { proc {} }
 
-    it { is_expected.to be block }
+    it 'returns the block' do
+      is_expected.to be block
+    end
   end
 
   describe '#skip_telemetry' do
@@ -305,7 +309,9 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
 
     let(:block) { proc {} }
 
-    it { is_expected.to be block }
+    it 'returns the block' do
+      is_expected.to be block
+    end
   end
 
   describe '#setter' do
@@ -313,7 +319,9 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
 
     let(:block) { proc {} }
 
-    it { is_expected.to be block }
+    it 'returns the block' do
+      is_expected.to be block
+    end
   end
 
   describe '#type' do
@@ -354,7 +362,9 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     context 'given a block' do
       let(:block) { proc { false } }
 
-      it { is_expected.to be block }
+      it 'returns the block' do
+        is_expected.to be block
+      end
     end
   end
 

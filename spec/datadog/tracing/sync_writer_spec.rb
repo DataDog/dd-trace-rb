@@ -37,7 +37,9 @@ RSpec.describe Datadog::Tracing::SyncWriter do
           .and_return(transport)
       end
 
-      it { is_expected.to have_attributes(transport: transport) }
+      it 'sets the transport to the built transport' do
+        is_expected.to have_attributes(transport: transport)
+      end
     end
 
     context 'when transport options include headers' do

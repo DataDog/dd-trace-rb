@@ -9,7 +9,9 @@ RSpec.describe Datadog::Core::Worker do
 
   describe '#initialize' do
     context 'given a block' do
-      it { is_expected.to have_attributes(task: block) }
+      it 'sets the task to the given block' do
+        is_expected.to have_attributes(task: block)
+      end
     end
   end
 

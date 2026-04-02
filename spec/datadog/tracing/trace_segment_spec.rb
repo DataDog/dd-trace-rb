@@ -63,7 +63,9 @@ RSpec.describe Datadog::Tracing::TraceSegment do
         let(:options) { {agent_sample_rate: agent_sample_rate} }
         let(:agent_sample_rate) { rand }
 
-        it { is_expected.to have_attributes(agent_sample_rate: agent_sample_rate) }
+        it 'sets the agent_sample_rate attribute' do
+          is_expected.to have_attributes(agent_sample_rate: agent_sample_rate)
+        end
       end
 
       context ':hostname' do
@@ -105,7 +107,9 @@ RSpec.describe Datadog::Tracing::TraceSegment do
         let(:options) { {rate_limiter_rate: rate_limiter_rate} }
         let(:rate_limiter_rate) { rand }
 
-        it { is_expected.to have_attributes(rate_limiter_rate: rate_limiter_rate) }
+        it 'sets the rate_limiter_rate attribute' do
+          is_expected.to have_attributes(rate_limiter_rate: rate_limiter_rate)
+        end
       end
 
       context ':resource' do
@@ -119,21 +123,27 @@ RSpec.describe Datadog::Tracing::TraceSegment do
         let(:options) { {rule_sample_rate: rule_sample_rate} }
         let(:rule_sample_rate) { rand }
 
-        it { is_expected.to have_attributes(rule_sample_rate: rule_sample_rate) }
+        it 'sets the rule_sample_rate attribute' do
+          is_expected.to have_attributes(rule_sample_rate: rule_sample_rate)
+        end
       end
 
       context ':runtime_id' do
         let(:options) { {runtime_id: runtime_id} }
         let(:runtime_id) { Datadog::Core::Environment::Identity.id }
 
-        it { is_expected.to have_attributes(runtime_id: runtime_id) }
+        it 'sets the runtime_id attribute' do
+          is_expected.to have_attributes(runtime_id: runtime_id)
+        end
       end
 
       context ':sample_rate' do
         let(:options) { {sample_rate: sample_rate} }
         let(:sample_rate) { rand }
 
-        it { is_expected.to have_attributes(sample_rate: sample_rate) }
+        it 'sets the sample_rate attribute' do
+          is_expected.to have_attributes(sample_rate: sample_rate)
+        end
       end
 
       context ':sampling_priority' do
@@ -176,7 +186,9 @@ RSpec.describe Datadog::Tracing::TraceSegment do
         let(:options) { {metrics: {Datadog::Tracing::Metadata::Ext::Sampling::TAG_AGENT_RATE => agent_sample_rate}} }
         let(:agent_sample_rate) { rand }
 
-        it { is_expected.to have_attributes(agent_sample_rate: agent_sample_rate) }
+        it 'sets the agent_sample_rate attribute from the tag' do
+          is_expected.to have_attributes(agent_sample_rate: agent_sample_rate)
+        end
       end
 
       context ':hostname' do
@@ -220,7 +232,9 @@ RSpec.describe Datadog::Tracing::TraceSegment do
         end
         let(:rate_limiter_rate) { rand }
 
-        it { is_expected.to have_attributes(rate_limiter_rate: rate_limiter_rate) }
+        it 'sets the rate_limiter_rate attribute from the tag' do
+          is_expected.to have_attributes(rate_limiter_rate: rate_limiter_rate)
+        end
       end
 
       context ':resource' do
@@ -236,21 +250,27 @@ RSpec.describe Datadog::Tracing::TraceSegment do
         end
         let(:rule_sample_rate) { rand }
 
-        it { is_expected.to have_attributes(rule_sample_rate: rule_sample_rate) }
+        it 'sets the rule_sample_rate attribute from the tag' do
+          is_expected.to have_attributes(rule_sample_rate: rule_sample_rate)
+        end
       end
 
       context ':runtime_id' do
         let(:options) { {tags: {Datadog::Core::Runtime::Ext::TAG_ID => runtime_id}} }
         let(:runtime_id) { Datadog::Core::Environment::Identity.id }
 
-        it { is_expected.to have_attributes(runtime_id: runtime_id) }
+        it 'sets the runtime_id attribute from the tag' do
+          is_expected.to have_attributes(runtime_id: runtime_id)
+        end
       end
 
       context ':sample_rate' do
         let(:options) { {metrics: {Datadog::Tracing::Metadata::Ext::Sampling::TAG_SAMPLE_RATE => sample_rate}} }
         let(:sample_rate) { rand }
 
-        it { is_expected.to have_attributes(sample_rate: sample_rate) }
+        it 'sets the sample_rate attribute from the tag' do
+          is_expected.to have_attributes(sample_rate: sample_rate)
+        end
       end
 
       context ':sampling_decision_maker' do
