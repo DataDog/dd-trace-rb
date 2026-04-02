@@ -995,7 +995,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
           before { reset }
 
-          it do
+          it 'returns the default value' do
             is_expected.to be(default)
           end
         end
@@ -1066,11 +1066,13 @@ RSpec.describe Datadog::Core::Configuration::Option do
         end
       end
 
-      it { is_expected.to be block_default }
+      it 'returns the result of evaluating the block' do
+        is_expected.to be block_default
+      end
     end
 
     context 'when default is not a block' do
-      it do
+      it 'returns the default value' do
         is_expected.to be default
       end
     end
@@ -1078,7 +1080,9 @@ RSpec.describe Datadog::Core::Configuration::Option do
     context 'when default_proc is defined' do
       let(:default_proc) { proc { 'default_proc' } }
 
-      it { is_expected.to be default_proc }
+      it 'returns the default_proc' do
+        is_expected.to be default_proc
+      end
     end
   end
 

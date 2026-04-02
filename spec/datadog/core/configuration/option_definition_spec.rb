@@ -230,14 +230,18 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     context 'given a block' do
       let(:block) { proc { false } }
 
-      it { is_expected.to be block }
+      it 'returns the block' do
+        is_expected.to be block
+      end
     end
 
     context 'given a value and block' do
       let(:value) { true }
       let(:block) { proc { false } }
 
-      it { is_expected.to be block }
+      it 'returns the block' do
+        is_expected.to be block
+      end
     end
   end
 
@@ -247,7 +251,9 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     context 'given a block' do
       let(:block) { proc { false } }
 
-      it { is_expected.to be block }
+      it 'returns the block' do
+        is_expected.to be block
+      end
     end
   end
 
@@ -361,7 +367,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       let(:options) { {default: value} }
       let(:value) { double('value') }
 
-      it do
+      it 'delegates to #default' do
         expect(builder).to receive(:default).with(value)
         apply_options!
       end
@@ -371,7 +377,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       let(:options) { {after_set: value} }
       let(:value) { proc {} }
 
-      it do
+      it 'delegates to #after_set' do
         expect(builder).to receive(:after_set) do |&block|
           expect(block).to be value
         end
@@ -384,7 +390,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       let(:options) { {skip_telemetry: value} }
       let(:value) { true }
 
-      it do
+      it 'delegates to #skip_telemetry' do
         expect(builder).to receive(:skip_telemetry).with(value)
         apply_options!
       end
@@ -394,7 +400,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       let(:options) { {resetter: value} }
       let(:value) { proc {} }
 
-      it do
+      it 'delegates to #resetter' do
         expect(builder).to receive(:resetter) do |&block|
           expect(block).to be value
         end
@@ -407,7 +413,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       let(:options) { {setter: value} }
       let(:value) { proc {} }
 
-      it do
+      it 'delegates to #setter' do
         expect(builder).to receive(:setter) do |&block|
           expect(block).to be value
         end

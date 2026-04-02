@@ -97,7 +97,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         .with(logger)
     end
 
-    it do
+    it 'initializes all components' do
       expect(components.logger).to be logger
       expect(components.tracer).to be tracer
       expect(components.profiler).to be profiler
