@@ -210,14 +210,18 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         subject(:options) { {rule_sample_rate: rule_sample_rate} }
         let(:rule_sample_rate) { rand }
 
-        it { expect(trace_op.rule_sample_rate).to eq(rule_sample_rate) }
+        it 'sets the rule_sample_rate' do
+          expect(trace_op.rule_sample_rate).to eq(rule_sample_rate)
+        end
       end
 
       context ':sample_rate' do
         subject(:options) { {sample_rate: sample_rate} }
         let(:sample_rate) { rand }
 
-        it { expect(trace_op.sample_rate).to eq(sample_rate) }
+        it 'sets the sample_rate' do
+          expect(trace_op.sample_rate).to eq(sample_rate)
+        end
       end
 
       context ':sampled' do

@@ -367,7 +367,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
     end
 
     context 'when the span has not yet started' do
-      it do
+      it 'yields the span operation to the block' do
         expect { |b| span_op.measure(&b) }
           .to yield_with_args(span_op)
       end
@@ -386,7 +386,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
 
         before { measure }
 
-        it do
+        it 'calls before_start, after_stop, and after_finish callbacks in order' do
           expect(callback_spy).to have_received(:before_start).with(span_op).ordered
           expect(callback_spy).to have_received(:after_stop).with(span_op, nil).ordered
           expect(callback_spy).to have_received(:after_finish).with(kind_of(Datadog::Tracing::Span), span_op).ordered
@@ -438,7 +438,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
 
         before { expect { measure }.to raise_error(error) }
 
-        it do
+        it 'calls before_start, after_stop, on_error, and after_finish callbacks in order' do
           expect(callback_spy).to have_received(:before_start).with(span_op).ordered
           expect(callback_spy).to have_received(:after_stop).with(span_op, error).ordered
           expect(callback_spy).to have_received(:on_error).with(span_op, error).ordered
@@ -470,7 +470,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
 
         before { expect { measure }.to raise_error(error) }
 
-        it do
+        it 'calls before_start, after_stop, on_error, and after_finish callbacks in order' do
           expect(callback_spy).to have_received(:before_start).with(span_op).ordered
           expect(callback_spy).to have_received(:after_stop).with(span_op, error).ordered
           expect(callback_spy).to have_received(:on_error).with(span_op, error).ordered
@@ -580,7 +580,9 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       context 'and callbacks have been configured' do
         include_context 'callbacks'
         before { start }
-        it { expect(callback_spy).to have_received(:before_start).with(span_op) }
+        it 'calls the before_start callback with the span operation' do
+          expect(callback_spy).to have_received(:before_start).with(span_op)
+        end
       end
     end
 
@@ -610,7 +612,9 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       context 'and callbacks have been configured' do
         include_context 'callbacks'
         before { start }
-        it { expect(callback_spy).to have_received(:before_start).with(span_op) }
+        it 'calls the before_start callback with the span operation' do
+          expect(callback_spy).to have_received(:before_start).with(span_op)
+        end
       end
     end
 
@@ -662,7 +666,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         context 'and callbacks have been configured' do
           include_context 'callbacks'
           before { stop }
-          it do
+          it 'calls after_stop and before_start callbacks but not after_finish' do
             expect(callback_spy).to have_received(:after_stop).with(span_op, nil)
             expect(callback_spy).to have_received(:before_start).with(span_op)
             expect(callback_spy).to_not have_received(:after_finish)
@@ -687,7 +691,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         context 'and callbacks have been configured' do
           include_context 'callbacks'
           before { stop }
-          it do
+          it 'calls only after_stop callback' do
             expect(callback_spy).to have_received(:after_stop).with(span_op, nil)
             expect(callback_spy).to_not have_received(:before_start)
             expect(callback_spy).to_not have_received(:after_finish)
@@ -714,7 +718,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         context 'and callbacks have been configured' do
           include_context 'callbacks'
           before { stop }
-          it do
+          it 'does not call any callbacks' do
             expect(callback_spy).to_not have_received(:after_stop)
             expect(callback_spy).to_not have_received(:before_start)
             expect(callback_spy).to_not have_received(:after_finish)
@@ -778,7 +782,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       context 'and callbacks have been configured' do
         include_context 'callbacks'
         before { finish }
-        it do
+        it 'calls after_stop and after_finish callbacks in order' do
           expect(callback_spy).to have_received(:after_stop).with(span_op, nil).ordered
           expect(callback_spy).to have_received(:after_finish).with(kind_of(Datadog::Tracing::Span), span_op).ordered
         end

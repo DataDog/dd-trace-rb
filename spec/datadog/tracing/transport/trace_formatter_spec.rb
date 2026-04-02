@@ -283,7 +283,9 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         include_context 'no root span'
 
         context 'when trace has no metadata set' do
-          it { is_expected.to be(trace) }
+          it 'returns the trace' do
+            is_expected.to be(trace)
+          end
 
           it 'does not override the root span resource' do
             expect { format! }.to_not(change { root_span.resource })
@@ -295,7 +297,9 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         context 'when trace has metadata set' do
           include_context 'trace metadata'
 
-          it { is_expected.to be(trace) }
+          it 'returns the trace' do
+            is_expected.to be(trace)
+          end
 
           it 'does not override the root span resource' do
             expect { format! }.to_not(change { root_span.resource })
@@ -307,7 +311,9 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         context 'when trace has metadata set with generic tags' do
           include_context 'trace metadata with tags'
 
-          it { is_expected.to be(trace) }
+          it 'returns the trace' do
+            is_expected.to be(trace)
+          end
 
           it 'does not override the root span resource' do
             expect { format! }.to_not(change { root_span.resource })
@@ -346,7 +352,9 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         include_context 'missing root span'
 
         context 'when trace has no metadata set' do
-          it { is_expected.to be(trace) }
+          it 'returns the trace' do
+            is_expected.to be(trace)
+          end
 
           it 'does not override the root span resource' do
             expect { format! }.to_not(change { root_span.resource })
@@ -358,7 +366,9 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         context 'when trace has metadata set' do
           include_context 'trace metadata'
 
-          it { is_expected.to be(trace) }
+          it 'returns the trace' do
+            is_expected.to be(trace)
+          end
 
           it 'does not override the root span resource' do
             expect { format! }.to_not(change { root_span.resource })
@@ -370,7 +380,9 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         context 'when trace has metadata set with generic tags' do
           include_context 'trace metadata with tags'
 
-          it { is_expected.to be(trace) }
+          it 'returns the trace' do
+            is_expected.to be(trace)
+          end
 
           it 'does not override the root span resource' do
             expect { format! }.to_not(change { root_span.resource })
@@ -409,7 +421,9 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         include_context 'available root span'
 
         context 'when trace has no metadata set' do
-          it { is_expected.to be(trace) }
+          it 'returns the trace' do
+            is_expected.to be(trace)
+          end
 
           it 'does not override the root span resource' do
             expect { format! }.to_not(change { root_span.resource })
@@ -421,7 +435,9 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         context 'when trace has metadata set' do
           include_context 'trace metadata'
 
-          it { is_expected.to be(trace) }
+          it 'returns the trace' do
+            is_expected.to be(trace)
+          end
 
           it 'sets the root span resource from trace resource' do
             format!
@@ -434,7 +450,9 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         context 'when trace has metadata set with generic tags' do
           include_context 'trace metadata with tags'
 
-          it { is_expected.to be(trace) }
+          it 'returns the trace' do
+            is_expected.to be(trace)
+          end
 
           it 'sets the root span resource from trace resource' do
             format!

@@ -16,7 +16,7 @@ RSpec.shared_examples 'tracing dynamic simple option' do |name:, env_var:, confi
   describe '#call' do
     subject(:call) { option.call(new_value) }
 
-    it "changes #{config_key} to #{value}" do
+    it "changes #{config_key}" do
       expect { call }.to change { configuration_object.public_send(config_key) }.from(old_value).to(value)
     end
 

@@ -323,7 +323,9 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
         allow(default_sampler).to receive(:sample!).with(trace).and_return(delegated)
       end
 
-      it { is_expected.to eq(delegated) }
+      it 'delegates to the default sampler' do
+        is_expected.to eq(delegated)
+      end
 
       it 'skips metrics' do
         sample
