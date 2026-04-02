@@ -25,6 +25,7 @@
 - Leave resources open (terminate threads, close files)
 - Make breaking public API changes
 - Use `sleep` in tests for synchronization (use deterministic waits: Queue, ConditionVariable, flush methods that block, or mock time)
+- Use non-verifying `double()` in tests — always use `instance_double(ClassName)`, `class_double(ClassName)`, or `object_double(instance)` so RSpec verifies method existence and arity against the real class
 
 ## Ask First
 
@@ -65,6 +66,17 @@ When creating or modifying workflows in `.github/workflows/`:
 yamllint --strict .github/workflows/your-workflow.yml
 actionlint .github/workflows/your-workflow.yml
 ```
+
+## Troubleshooting
+
+When investigating a bug or unexpected behavior:
+1. State the observed behavior clearly
+2. Formulate a specific, testable hypothesis
+3. Verify the hypothesis with evidence (run code, read logs, add instrumentation) before proceeding
+4. Do not guess at causes or propose fixes until the hypothesis is confirmed
+5. If the hypothesis is disproven, formulate a new one — do not stack speculations
+6. When the fix is found, document in learnings: observed behavior, hypothesis chain, root cause, and fix
+7. Every hypothesis verification must become a test — if you checked behavior manually, encode that check as a spec so the expected behavior is retained in the test suite
 
 ## Code Changes
 

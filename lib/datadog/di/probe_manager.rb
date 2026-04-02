@@ -26,13 +26,12 @@ module Datadog
         @telemetry = telemetry
         @probe_repository = probe_repository
 
-        @definition_trace_point = TracePoint.trace(:end) do |tp|
+        @definition_trace_point = TracePoint.new(:end) do |tp|
           install_pending_method_probes(tp.self)
         rescue => exc
           raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
           logger.debug { "di: unhandled exception in definition trace point: #{exc.class}: #{exc}" }
           telemetry&.report(exc, description: "Unhandled exception in definition trace point")
-          # TODO test this path
         end
       end
 
@@ -40,15 +39,34 @@ module Datadog
       attr_reader :telemetry
       attr_reader :probe_repository
 
+      # Stops the probe manager without permanently releasing resources.
+      #
+      # Disables the class definition trace point and removes all installed
+      # probe instrumentation. Can be reversed by calling {#reopen}.
+      #
+      # @return [void]
+      def stop
+        definition_trace_point.disable
+        clear_hooks
+      end
+
+      # Re-enables the probe manager after a {#stop}.
+      #
+      # Re-enables the class definition trace point so that pending
+      # method probes can be installed when their target classes are defined.
+      #
+      # @return [void]
+      def reopen
+        definition_trace_point.enable
+      end
+
       # Shuts down the probe manager and releases all resources.
       #
       # Disables the class definition trace point and removes all installed
       # probe instrumentation. Called during component teardown.
+      # Unlike {#stop}, this is not reversible.
       #
       # @return [void]
-      #
-      # TODO test that close is called during component teardown and
-      # the trace point is cleared
       def close
         definition_trace_point.disable
         clear_hooks

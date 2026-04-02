@@ -13,7 +13,8 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
 
   shared_examples 'matches tracing capabilities only' do
     it 'matches tracing capabilities only' do
-      expect(capabilities.base64_capabilities).to eq('IABwAA==')
+      # Bits 12, 13, 14, 29 (tracing) + 38 (DI enablement)
+      expect(capabilities.base64_capabilities).to eq('QCAAcAA=')
     end
   end
 
@@ -95,9 +96,9 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         settings
       end
 
-      it 'does not register any capabilities, products, and receivers' do
-        expect(capabilities.products).to_not include('LIVE_DEBUGGING')
-        expect(capabilities.receivers).to_not include(
+      it 'always registers capabilities, products, and receivers' do
+        expect(capabilities.products).to include('LIVE_DEBUGGING')
+        expect(capabilities.receivers).to include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse('datadog/2/LIVE_DEBUGGING/_/_')
           }
@@ -110,7 +111,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
     end
 
     context 'when not present' do
-      it 'does not register any capabilities, products, and receivers' do
+      it 'does not register DI when settings are absent' do
         expect(capabilities.products).to_not include('LIVE_DEBUGGING')
         expect(capabilities.receivers).to_not include(
           lambda { |r|
@@ -120,6 +121,8 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       end
 
       describe '#base64_capabilities' do
+        # DI settings not present → no DI capabilities registered.
+        # But tracing still declares bit 38 (APM_TRACING_ENABLE_DYNAMIC_INSTRUMENTATION).
         include_examples 'matches tracing capabilities only'
       end
     end
@@ -131,7 +134,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         settings
       end
 
-      it 'register capabilities, products, and receivers' do
+      it 'registers capabilities, products, and receivers' do
         expect(capabilities.products).to include('LIVE_DEBUGGING')
         expect(capabilities.receivers).to include(
           lambda { |r|
@@ -141,7 +144,6 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       end
 
       describe '#base64_capabilities' do
-        # DI does not contain any additional capabilities at this time
         include_examples 'matches tracing capabilities only'
       end
     end
@@ -149,7 +151,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
 
   context 'Tracing component' do
     it 'register capabilities, products, and receivers' do
-      expect(capabilities.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29)
+      expect(capabilities.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29, 1 << 38)
       expect(capabilities.products).to include('APM_TRACING')
       expect(capabilities.receivers).to include(
         lambda { |r|

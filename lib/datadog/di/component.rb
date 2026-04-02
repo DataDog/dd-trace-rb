@@ -15,10 +15,10 @@ module Datadog
     class Component
       class << self
         def build(settings, agent_settings, logger, telemetry: nil)
-          return unless settings.respond_to?(:dynamic_instrumentation) && settings.dynamic_instrumentation.enabled
+          return unless settings.respond_to?(:dynamic_instrumentation)
 
           unless settings.respond_to?(:remote) && settings.remote.enabled
-            logger.warn("di: dynamic instrumentation could not be enabled because Remote Configuration Management is not available. To enable Remote Configuration, see https://docs.datadoghq.com/agent/remote_config")
+            logger.debug { "di: not building DI component because Remote Configuration Management is not available" }
             return
           end
 
@@ -34,23 +34,22 @@ module Datadog
         # is used, that Rails environment is not development because
         # DI does not currently support code unloading and reloading.
         def environment_supported?(settings, logger)
-          # TODO add tests?
           unless settings.dynamic_instrumentation.internal.development
             if Datadog::Core::Environment::Execution.development?
-              logger.warn("di: development environment detected; not enabling dynamic instrumentation")
+              logger.debug { "di: development environment detected; not building DI component" }
               return false
             end
           end
           if RUBY_ENGINE != 'ruby'
-            logger.warn("di: cannot enable dynamic instrumentation: MRI is required, but running on #{RUBY_ENGINE}")
+            logger.debug { "di: not building DI component: MRI is required, but running on #{RUBY_ENGINE}" }
             return false
           end
           if RUBY_VERSION < '2.6'
-            logger.warn("di: cannot enable dynamic instrumentation: Ruby 2.6+ is required, but running on #{RUBY_VERSION}")
+            logger.debug { "di: not building DI component: Ruby 2.6+ is required, but running on #{RUBY_VERSION}" }
             return false
           end
           unless DI.respond_to?(:exception_message)
-            logger.warn("di: cannot enable dynamic instrumentation: C extension is not available")
+            logger.debug { "di: not building DI component: C extension is not available" }
             return false
           end
           true
@@ -80,7 +79,7 @@ module Datadog
           settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, probe_repository,
           telemetry: telemetry,
         )
-        probe_notifier_worker.start
+        @started = false
       end
 
       attr_reader :settings
@@ -96,9 +95,43 @@ module Datadog
       attr_reader :redactor
       attr_reader :serializer
 
-      # Shuts down dynamic instrumentation.
+      # Starts the DI component: begins accepting probes and
+      # processing snapshots.
+      #
+      # Starts the probe notifier worker thread and enables the
+      # definition trace point for pending method probes.
+      # No-op if already started.
+      def start!
+        return if @started
+
+        probe_notifier_worker.start
+        probe_manager.reopen
+        @started = true
+      end
+
+      # Stops the DI component: removes all probes and stops
+      # background threads.
+      #
+      # The component remains alive and can be restarted with {#start!}.
+      # Does not clear out the code tracker.
+      # No-op if already stopped.
+      def stop!
+        return unless @started
+
+        probe_manager.stop
+        probe_notifier_worker.stop
+        @started = false
+      end
+
+      def started?
+        @started
+      end
+
+      # Shuts down dynamic instrumentation permanently.
       #
       # Removes all code hooks and stops background threads.
+      # Called by Components#shutdown! during component destruction.
+      # Unlike {#stop!}, this is not reversible.
       #
       # Does not clear out the code tracker, because it's only populated
       # by code when code is compiled and therefore, if the code tracker
@@ -107,6 +140,7 @@ module Datadog
       def shutdown!(replacement = nil)
         DI.remove_current_component(self)
 
+        @started = false
         probe_manager.clear_hooks
         probe_manager.close
         probe_notifier_worker.stop

@@ -154,7 +154,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           end
 
           it 'reports DI as disabled' do
-            expect(logger).to receive(:warn).with(/C extension is not available/)
+            expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/C extension is not available/) }
             expect(components.dynamic_instrumentation).to be nil
             expect(extra).to eq(dynamic_instrumentation_enabled: false)
           end

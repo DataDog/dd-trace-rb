@@ -19,6 +19,8 @@ require_relative '../../profiling/component'
 require_relative '../../appsec/component'
 require_relative '../../ai_guard/component'
 require_relative '../../di/component'
+require_relative '../../symbol_database'
+require_relative '../../symbol_database/component'
 require_relative '../../open_feature/component'
 require_relative '../../error_tracking/component'
 require_relative '../crashtracking/component'
@@ -120,6 +122,7 @@ module Datadog
           :ai_guard,
           :agent_info,
           :data_streams,
+          :symbol_database,
           :open_feature
 
         def initialize(settings)
@@ -171,9 +174,10 @@ module Datadog
           @ai_guard = Datadog::AIGuard::Component.build(settings, logger: @logger, telemetry: telemetry)
           @open_feature = OpenFeature::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
+          @symbol_database = Datadog::SymbolDatabase::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
           @data_streams = self.class.build_data_streams(settings, agent_settings, @logger, @agent_info)
-          @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
+          @environment_logger_extra[:dynamic_instrumentation_enabled] = false
 
           # Configure non-privileged components.
           Datadog::Tracing::Contrib::Component.configure(settings)
@@ -224,10 +228,21 @@ module Datadog
             remote&.start
           end
 
+          # Start DI component if enabled by env var or if it was implicitly enabled
+          # (via RC) in the previous Components instance.
+          if dynamic_instrumentation
+            if settings.dynamic_instrumentation.enabled || old_state&.di_implicitly_enabled?
+              DI.activate_tracking
+              dynamic_instrumentation.start!
+            end
+          end
+
           # This should stay here, not in initialize. During reconfiguration, the order of the calls is:
           # initialize new components, shutdown old components, startup new components.
           # Because this is a singleton, if we call it in initialize, it will be shutdown right away.
           Core::ProcessDiscovery.publish(settings)
+
+          @environment_logger_extra[:dynamic_instrumentation_enabled] = dynamic_instrumentation&.started? || false
 
           Core::Diagnostics::EnvironmentLogger.collect_and_log!(@environment_logger_extra)
         end
@@ -241,6 +256,9 @@ module Datadog
 
           # Shutdown DI after remote, since remote config triggers DI operations.
           dynamic_instrumentation&.shutdown!
+
+          # Shutdown Symbol Database
+          symbol_database&.shutdown!
 
           # Shutdown OpenFeature component
           open_feature&.shutdown!
@@ -301,6 +319,7 @@ module Datadog
           ComponentsState.new(
             telemetry_enabled: telemetry.enabled,
             remote_started: remote&.started?,
+            di_implicitly_enabled: dynamic_instrumentation&.started? || false,
           )
         end
       end
