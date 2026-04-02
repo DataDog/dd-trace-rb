@@ -79,7 +79,6 @@ jobs:
       - build
     uses: DataDog/system-tests/.github/workflows/system-tests.yml@b38df18ddc8aa6af24e3838cfd91e4232404471b  # Automated: This reference is automatically updated.
     secrets:
-      TEST_OPTIMIZATION_API_KEY: ${{ secrets.DD_API_KEY }}  # key used to pushed test results to test optim
       DD_API_KEY: ${{ secrets.DD_API_KEY }}  # key used in tests runs
     permissions:
       contents: read
@@ -94,7 +93,7 @@ jobs:
       ref: b38df18ddc8aa6af24e3838cfd91e4232404471b  # Automated: This reference is automatically updated.
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8
-      push_to_test_optimization: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+      push_to_test_optimization: false  # disabled while API key usage is transitioning to system-tests
 
   complete:
     name: System Tests (complete)
