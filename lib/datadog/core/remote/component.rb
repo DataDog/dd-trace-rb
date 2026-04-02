@@ -133,7 +133,11 @@ module Datadog
             @mutex.synchronize do
               return :pass if @waited
 
-              unless @once
+              if @once
+                # Worker lifted the barrier before we could wait.
+                # This is still the first call, so return :lift not :pass.
+                lifted = true
+              else
                 timeout ||= @timeout
 
                 # - starting with Ruby 3.2, ConditionVariable#wait returns nil on
@@ -146,10 +150,6 @@ module Datadog
                   @condition.wait(@mutex, timeout)
                   lifted = @once
                 end
-              else
-                # Worker lifted the barrier before we could wait.
-                # This is still the first call, so return :lift not :pass.
-                lifted = true
               end
 
               @waited = true
