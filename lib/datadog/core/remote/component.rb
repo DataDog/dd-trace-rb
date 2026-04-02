@@ -130,9 +130,7 @@ module Datadog
             # to the synchronized path which re-checks.
             return :pass if @waited
 
-            begin
-              @mutex.lock
-
+            @mutex.synchronize do
               return :pass if @waited
 
               unless @once
@@ -162,8 +160,6 @@ module Datadog
                 @once = true
                 :timeout
               end
-            ensure
-              @mutex.unlock
             end
           end
 
