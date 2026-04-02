@@ -147,7 +147,7 @@ jobs:
     steps:
       - run: mkdir -p tmp/rspec && datadog-ci version
       - name: Download all junit reports
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: tmp/rspec
           pattern: junit-*
@@ -198,7 +198,7 @@ jobs:
     steps:
       - run: mkdir -p tmp/coverage && datadog-ci version
       - name: Download all coverage data
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: tmp/coverage
           pattern: coverage-*
