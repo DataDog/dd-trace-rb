@@ -264,7 +264,9 @@ RSpec.describe Datadog::Tracing::SpanOperation do
               attributes: {"link.name": 'moon'}
             )]
           end
-          it { is_expected.to have_attributes(links: span_links) }
+          it 'sets the links attribute' do
+            is_expected.to have_attributes(links: span_links)
+          end
         end
 
         context 'that is nil' do
@@ -284,7 +286,9 @@ RSpec.describe Datadog::Tracing::SpanOperation do
 
         context 'that is a Time' do
           let(:start_time) { instance_double(Time) }
-          it { is_expected.to have_attributes(start_time: start_time) }
+          it 'sets the start_time attribute' do
+            is_expected.to have_attributes(start_time: start_time)
+          end
         end
       end
 
@@ -315,7 +319,9 @@ RSpec.describe Datadog::Tracing::SpanOperation do
 
         context 'that is an Integer' do
           let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }
-          it { is_expected.to have_attributes(trace_id: trace_id) }
+          it 'sets the trace_id attribute' do
+            is_expected.to have_attributes(trace_id: trace_id)
+          end
         end
       end
 
@@ -600,7 +606,9 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       subject(:start) { span_op.start(start_time) }
       let(:start_time) { Datadog::Core::Utils::Time.now.utc }
 
-      it { expect { start }.to change { span_op.start_time }.from(nil).to(start_time) }
+      it 'sets the start_time to the given time' do
+        expect { start }.to change { span_op.start_time }.from(nil).to(start_time)
+      end
       # Because span is still running, duration is unavailable.
       it { expect { start }.to_not(change { span_op.duration }) }
 
@@ -655,9 +663,15 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       let(:end_time) { kind_of(Time) }
 
       context 'which wasn\'t already started' do
-        it { expect { stop }.to change { span_op.start_time }.from(nil).to(end_time) }
-        it { expect { stop }.to change { span_op.end_time }.from(nil).to(end_time) }
-        it { expect { stop }.to change { span_op.duration }.from(nil).to(kind_of(Float)) }
+        it 'sets the start_time' do
+          expect { stop }.to change { span_op.start_time }.from(nil).to(end_time)
+        end
+        it 'sets the end_time' do
+          expect { stop }.to change { span_op.end_time }.from(nil).to(end_time)
+        end
+        it 'sets the duration' do
+          expect { stop }.to change { span_op.duration }.from(nil).to(kind_of(Float))
+        end
 
         it { expect { stop }.to change { span_op.started? }.from(false).to(true) }
         it { expect { stop }.to change { span_op.stopped? }.from(false).to(true) }
@@ -681,8 +695,12 @@ RSpec.describe Datadog::Tracing::SpanOperation do
           expect { stop }.to_not change { span_op.start_time }.from(start_time)
         end
 
-        it { expect { stop }.to change { span_op.end_time }.from(nil).to(end_time) }
-        it { expect { stop }.to change { span_op.duration }.from(nil).to(kind_of(Float)) }
+        it 'sets the end_time' do
+          expect { stop }.to change { span_op.end_time }.from(nil).to(end_time)
+        end
+        it 'sets the duration' do
+          expect { stop }.to change { span_op.duration }.from(nil).to(kind_of(Float))
+        end
 
         it { expect { stop }.to_not change { span_op.started? }.from(true) }
         it { expect { stop }.to change { span_op.stopped? }.from(false).to(true) }
@@ -776,8 +794,12 @@ RSpec.describe Datadog::Tracing::SpanOperation do
     shared_examples 'finished span' do
       let(:end_time) { kind_of(Time) }
 
-      it { expect { finish }.to change { span_op.end_time }.from(nil).to(end_time) }
-      it { expect { finish }.to change { span_op.duration }.from(nil).to(kind_of(Float)) }
+      it 'sets the end_time' do
+        expect { finish }.to change { span_op.end_time }.from(nil).to(end_time)
+      end
+      it 'sets the duration' do
+        expect { finish }.to change { span_op.duration }.from(nil).to(kind_of(Float))
+      end
 
       context 'and callbacks have been configured' do
         include_context 'callbacks'

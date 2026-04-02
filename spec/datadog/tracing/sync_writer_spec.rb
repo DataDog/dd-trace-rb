@@ -111,7 +111,9 @@ RSpec.describe Datadog::Tracing::SyncWriter do
     context 'when initializing a tracer' do
       subject(:tracer) { Datadog::Tracing::Tracer.new(writer: sync_writer) }
 
-      it { expect(tracer.writer).to be sync_writer }
+      it 'uses the provided sync writer' do
+        expect(tracer.writer).to be sync_writer
+      end
 
       context 'then submitting a trace' do
         before do

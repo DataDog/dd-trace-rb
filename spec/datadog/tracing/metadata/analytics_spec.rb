@@ -43,7 +43,7 @@ RSpec.describe Datadog::Tracing::Metadata::Analytics do
           context 'true' do
             let(:value) { true }
 
-            it do
+            it 'sets the default sample rate' do
               expect(Datadog::Tracing::Analytics).to have_received(:set_sample_rate)
                 .with(test_object, Datadog::Tracing::Metadata::Ext::Analytics::DEFAULT_SAMPLE_RATE)
             end
@@ -52,7 +52,7 @@ RSpec.describe Datadog::Tracing::Metadata::Analytics do
           context 'false' do
             let(:value) { false }
 
-            it do
+            it 'sets the sample rate to 0.0' do
               expect(Datadog::Tracing::Analytics).to have_received(:set_sample_rate)
                 .with(test_object, 0.0)
             end
@@ -61,7 +61,7 @@ RSpec.describe Datadog::Tracing::Metadata::Analytics do
           context 'nil' do
             let(:value) { nil }
 
-            it do
+            it 'sets the sample rate to 0.0' do
               expect(Datadog::Tracing::Analytics).to have_received(:set_sample_rate)
                 .with(test_object, 0.0)
             end
@@ -74,7 +74,7 @@ RSpec.describe Datadog::Tracing::Metadata::Analytics do
           context 'a Float' do
             let(:value) { 0.5 }
 
-            it do
+            it 'sets the sample rate to the given value' do
               expect(Datadog::Tracing::Analytics).to have_received(:set_sample_rate)
                 .with(test_object, value)
             end
@@ -83,7 +83,7 @@ RSpec.describe Datadog::Tracing::Metadata::Analytics do
           context 'a String' do
             let(:value) { '0.5' }
 
-            it do
+            it 'sets the sample rate to the given value' do
               expect(Datadog::Tracing::Analytics).to have_received(:set_sample_rate)
                 .with(test_object, value)
             end
@@ -92,7 +92,7 @@ RSpec.describe Datadog::Tracing::Metadata::Analytics do
           context 'nil' do
             let(:value) { nil }
 
-            it do
+            it 'sets the sample rate to the given value' do
               expect(Datadog::Tracing::Analytics).to have_received(:set_sample_rate)
                 .with(test_object, value)
             end

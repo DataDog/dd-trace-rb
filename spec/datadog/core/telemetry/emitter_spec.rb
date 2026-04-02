@@ -119,7 +119,7 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
     let(:transport) { double(Datadog::Core::Telemetry::Transport::Telemetry::Transport) }
 
     context 'sequence is stored' do
-      it do
+      it 'shares the same sequence object across instances' do
         emitter_first = described_class.new(transport)
         emitter_second = described_class.new(transport)
         expect(emitter_first.class.sequence).to be(emitter_second.class.sequence)

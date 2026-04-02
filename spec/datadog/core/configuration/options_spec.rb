@@ -40,7 +40,9 @@ RSpec.describe Datadog::Core::Configuration::Options do
             before { parent_class.send(:option, :foo) }
 
             it { is_expected.to be_a(Hash) }
-            it { is_expected.to_not be(parent_class.options) }
+            it 'is a different options hash than the parent' do
+              is_expected.to_not be(parent_class.options)
+            end
             it { is_expected.to include(:foo) }
           end
         end
@@ -67,10 +69,14 @@ RSpec.describe Datadog::Core::Configuration::Options do
           # where the integration settings are inherited from a common parent settings class.
           # Inherited classes should start with the same nested settings entries
           # that were already defined on the parent class.
-          it { is_expected.to include(debug: parent_class.settings_children[:debug]) }
+          it 'includes the parent settings children' do
+            is_expected.to include(debug: parent_class.settings_children[:debug])
+          end
           # The child class should get its own registry hash so later mutations do
           # not accidentally modify the parent's registry.
-          it { is_expected.to_not be(parent_class.settings_children) }
+          it 'is a different registry object than the parent' do
+            is_expected.to_not be(parent_class.settings_children)
+          end
 
           it 'duplicates the registry before adding child settings' do
             options_class.send(:settings, :custom) { option :enabled }

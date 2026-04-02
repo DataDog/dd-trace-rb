@@ -147,9 +147,17 @@ RSpec.describe Datadog::Core::Remote::Configuration::Path do
 
     let(:other_path) { described_class.parse('datadog/43/BAR/baz/quz') }
 
-    it { is_expected.to eq(path) }
-    it { is_expected.to eq(path.dup) }
-    it { is_expected.to_not eq(other_path) }
+    it 'equals itself' do
+      is_expected.to eq(path)
+    end
+
+    it 'equals a duplicate' do
+      is_expected.to eq(path.dup)
+    end
+
+    it 'does not equal a path with a different org_id' do
+      is_expected.to_not eq(other_path)
+    end
   end
 
   describe '#eql?' do
@@ -157,8 +165,16 @@ RSpec.describe Datadog::Core::Remote::Configuration::Path do
 
     let(:other_path) { described_class.parse('datadog/43/BAR/baz/quz') }
 
-    it { is_expected.to be_eql(path) }
-    it { is_expected.to be_eql(path.dup) }
-    it { is_expected.to_not be_eql(other_path) }
+    it 'is eql to itself' do
+      is_expected.to be_eql(path)
+    end
+
+    it 'is eql to a duplicate' do
+      is_expected.to be_eql(path.dup)
+    end
+
+    it 'is not eql to a path with a different org_id' do
+      is_expected.to_not be_eql(other_path)
+    end
   end
 end

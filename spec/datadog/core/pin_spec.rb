@@ -204,6 +204,8 @@ RSpec.describe Datadog::Core::Pin do
 
     before { pin.onto(target) }
 
-    it { expect(returned_pin).to be(pin) }
+    it 'returns the pinned object' do
+      expect(returned_pin).to be(pin)
+    end
   end
 end

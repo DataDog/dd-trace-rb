@@ -29,7 +29,7 @@ RSpec.describe Datadog::Tracing::Writer do
         let(:options) { {} }
 
         context 'and default transport options' do
-          it do
+          it 'passes agent_settings and logger to transport' do
             expect(Datadog::Tracing::Transport::HTTP).to receive(:default) do |**options|
               expect(options).to eq(agent_settings: test_agent_settings, logger: logger)
             end
@@ -43,7 +43,7 @@ RSpec.describe Datadog::Tracing::Writer do
             super().merge(transport_options: {headers: {foo: 'bar'}})
           end
 
-          it do
+          it 'passes the headers to transport' do
             expect(Datadog::Tracing::Transport::HTTP).to receive(:default) do |**options|
               expect(options).to include(headers: {foo: 'bar'})
             end

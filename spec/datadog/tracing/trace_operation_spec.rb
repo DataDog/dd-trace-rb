@@ -1318,7 +1318,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           let(:events) { Datadog::Tracing::SpanOperation::Events.new }
 
           it_behaves_like 'a span with default events' do
-            it { expect(span_events).to be(events) }
+            it 'uses the provided events object' do
+              expect(span_events).to be(events)
+            end
           end
         end
       end
@@ -1403,7 +1405,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
         context 'as DateTime' do
           let(:start_time) { Time.now }
-          it { expect(span.start_time).to eq(start_time) }
+          it 'sets the start_time' do
+            expect(span.start_time).to eq(start_time)
+          end
           it { expect(span.started?).to be true }
         end
       end

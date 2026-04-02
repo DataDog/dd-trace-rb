@@ -65,7 +65,7 @@ RSpec.describe Datadog::Core::Telemetry::Request do
     end
 
     context 'when process tags propagation is disabled' do
-      it do
+      it 'builds the payload without process tags' do
         is_expected.to match(
           api_version: api_version,
           application: application,
@@ -88,7 +88,7 @@ RSpec.describe Datadog::Core::Telemetry::Request do
         allow(Datadog::Core::Environment::Process).to receive(:serialized).and_return(process_tags)
       end
 
-      it do
+      it 'builds the payload with process tags in the application field' do
         is_expected.to match(
           api_version: api_version,
           application: application.merge(process_tags: process_tags),
@@ -118,7 +118,7 @@ RSpec.describe Datadog::Core::Telemetry::Request do
         )
       end
 
-      it do
+      it 'appends the CI version to the tracer version' do
         is_expected.to match(
           api_version: api_version,
           application: application.merge(tracer_version: "#{tracer_version}-ci-1.2.3"),

@@ -529,8 +529,9 @@ RSpec.describe Datadog::Tracing::Component do
   end
 
   describe 'writer event callbacks' do
-    describe Datadog::Tracing::Component::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK do
-      subject(:call) { described_class.call(writer, responses) }
+    describe 'WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK' do
+      let(:callback) { Datadog::Tracing::Component::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK }
+      subject(:call) { callback.call(writer, responses) }
       let(:writer) { double('writer') }
       let(:responses) { [double('response')] }
 
@@ -546,8 +547,8 @@ RSpec.describe Datadog::Tracing::Component do
       it 'invokes the environment logger only once' do
         expect(Datadog::Tracing::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!).once
 
-        described_class.call(writer, responses)
-        described_class.call(writer, responses)
+        callback.call(writer, responses)
+        callback.call(writer, responses)
       end
     end
 

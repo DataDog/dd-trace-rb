@@ -117,7 +117,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
   describe '::new' do
     context 'given a TraceSegment' do
       shared_examples 'a formatter with root span' do
-        it do
+        it 'has the correct trace and root span attributes' do
           is_expected.to have_attributes(
             trace: trace,
             root_span: root_span
@@ -167,7 +167,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
       end
 
       shared_examples 'root span with tags' do
-        it do
+        it 'sets all sampling tags on root span' do
           format!
           expect(root_span).to have_metadata(
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_AGENT_RATE => agent_sample_rate,
