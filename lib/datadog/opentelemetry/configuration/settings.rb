@@ -76,6 +76,7 @@ module Datadog
                 end
 
                 option :headers do |o|
+                  o.skip_telemetry true
                   o.type :hash
                   o.env 'OTEL_EXPORTER_OTLP_HEADERS'
                   o.default { {} }
@@ -131,6 +132,7 @@ module Datadog
                 end
 
                 option :headers do |o|
+                  o.skip_telemetry true
                   o.type :hash, nilable: true
                   o.env 'OTEL_EXPORTER_OTLP_METRICS_HEADERS'
                   o.default nil

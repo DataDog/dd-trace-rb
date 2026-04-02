@@ -56,6 +56,10 @@ module Datadog
       NANOSECONDS = 1_000_000_000
       MILLISECONDS = 1000
 
+      # Matches Ruby backtrace frame format: "/path/file.rb:42:in `method_name'"
+      # Captures: $1 = file path, $2 = line number, $3 = method name
+      BACKTRACE_FRAME_PATTERN = /\A(.+):(\d+):in\s+[`'](.+)'\z/
+
       def build_snapshot(context)
         probe = context.probe
 
@@ -79,7 +83,7 @@ module Datadog
               },
               return: {
                 arguments: return_arguments,
-                throwable: nil,
+                throwable: context.exception ? serialize_throwable(context.exception) : nil,
               },
             }
           elsif probe.line?
@@ -152,6 +156,68 @@ module Datadog
       end
 
       private
+
+      # Serializes an exception for the throwable field in snapshot captures.
+      #
+      # Uses the C extension's exception_message to get the original message
+      # without invoking any Ruby-level message method override, which
+      # could be customer code.
+      #
+      # Caveats:
+      #
+      # 1. The value returned by exception_message is not guaranteed to be
+      #    a string — it is whatever was passed to the Exception constructor.
+      #    Calling .to_s on an arbitrary object would invoke customer code,
+      #    violating DI's constraint of never executing customer methods
+      #    during instrumentation. We only use the value directly when it
+      #    is a String; for non-string values we return a redacted
+      #    placeholder (reporting the class name would duplicate the
+      #    exception type already present in the :type field).
+      #
+      # 2. Custom exception classes may not store a meaningful message via
+      #    the constructor (e.g. they may compute it in an overridden
+      #    +message+ method). In such cases exception_message may return
+      #    nil or an unrelated constructor argument. This is acceptable:
+      #    we still report the exception type, and a missing/wrong message
+      #    is better than invoking customer code or reporting nothing.
+      #
+      # @param exception [Exception] the exception to serialize
+      # @return [Hash{Symbol => String?}] hash with :type and :message keys
+      def serialize_throwable(exception)
+        msg = DI.exception_message(exception)
+        message = if msg.nil? || String === msg
+          msg
+        else
+          # Non-string constructor argument — return a redacted placeholder
+          # rather than calling .to_s which could be customer code.
+          # The exception class is already reported via the :type field.
+          '<REDACTED: not a string value>'
+        end
+        {
+          type: exception.class.name,
+          message: message,
+          stacktrace: format_backtrace(exception.backtrace),
+        }
+      end
+
+      # Parses Ruby backtrace strings into the stack frame format
+      # expected by the Datadog UI.
+      #
+      # Ruby backtrace format: "/path/file.rb:42:in `method_name'"
+      #
+      # @param backtrace [Array<String>, nil] from Exception#backtrace
+      # @return [Array<Hash>, nil]
+      def format_backtrace(backtrace)
+        return [] if backtrace.nil?
+
+        backtrace.map do |frame|
+          if frame =~ BACKTRACE_FRAME_PATTERN
+            {fileName: $1, function: $3, lineNumber: $2.to_i}
+          else
+            {fileName: frame, function: '', lineNumber: 0}
+          end
+        end
+      end
 
       def build_snapshot_base(context, evaluation_errors: [], captures: nil, message: nil)
         probe = context.probe

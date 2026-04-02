@@ -424,6 +424,172 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     end
   end
 
+  describe '#build_executed for method probe with exception' do
+    let(:probe) do
+      Datadog::DI::Probe.new(id: '123', type: :log,
+        type_name: 'TestClass', method_name: 'test_method',
+        capture_snapshot: true,)
+    end
+
+    let(:target_self) { Object.new }
+
+    context 'when exception is present' do
+      let(:exception) do
+        raise NameError, 'test error'
+      rescue => e
+        e
+      end
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings, serializer: serializer,
+          target_self: target_self,
+          serialized_entry_args: {},
+          return_value: nil, duration: 0.1,
+          exception: exception,
+        )
+      end
+
+      let(:payload) { builder.build_executed(context) }
+
+      it 'populates throwable in captures' do
+        throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+        expect(throwable[:type]).to eq('NameError')
+        expect(throwable[:message]).to eq('test error')
+        expect(throwable[:stacktrace]).to be_an(Array)
+        expect(throwable[:stacktrace]).not_to be_empty
+        frame = throwable[:stacktrace].first
+        expect(frame).to include(:fileName, :function, :lineNumber)
+        expect(frame[:lineNumber]).to be_a(Integer)
+      end
+    end
+
+    context 'when exception is not present' do
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings, serializer: serializer,
+          target_self: target_self,
+          serialized_entry_args: {},
+          return_value: 42, duration: 0.1,
+        )
+      end
+
+      let(:payload) { builder.build_executed(context) }
+
+      it 'has nil throwable in captures' do
+        throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+        expect(throwable).to be_nil
+      end
+    end
+
+    context 'when exception has overridden message method' do
+      let(:exception_class) do
+        Class.new(StandardError) do
+          define_method(:message) do
+            'overridden message'
+          end
+        end
+      end
+
+      let(:exception) { exception_class.new('constructor message') }
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings, serializer: serializer,
+          target_self: target_self,
+          serialized_entry_args: {},
+          return_value: nil, duration: 0.1,
+          exception: exception,
+        )
+      end
+
+      let(:payload) { builder.build_executed(context) }
+
+      it 'uses raw constructor message, not overridden message method' do
+        throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+        expect(throwable[:message]).to eq('constructor message')
+        expect(throwable[:stacktrace]).to eq([])
+        # Verify the override exists
+        expect(exception.message).to eq('overridden message')
+      end
+    end
+
+    context 'when exception has nil constructor argument' do
+      let(:exception) { StandardError.new(nil) }
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings, serializer: serializer,
+          target_self: target_self,
+          serialized_entry_args: {},
+          return_value: nil, duration: 0.1,
+          exception: exception,
+        )
+      end
+
+      let(:payload) { builder.build_executed(context) }
+
+      it 'reports nil message instead of NilClass' do
+        throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+        expect(throwable[:message]).to be_nil
+        expect(throwable[:type]).to eq('StandardError')
+        expect(throwable[:stacktrace]).to eq([])
+      end
+    end
+
+    context 'when exception has no constructor argument' do
+      let(:exception) { StandardError.new }
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings, serializer: serializer,
+          target_self: target_self,
+          serialized_entry_args: {},
+          return_value: nil, duration: 0.1,
+          exception: exception,
+        )
+      end
+
+      let(:payload) { builder.build_executed(context) }
+
+      it 'reports nil message for no-argument exception' do
+        throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+        expect(throwable[:message]).to be_nil
+        expect(throwable[:type]).to eq('StandardError')
+        expect(throwable[:stacktrace]).to eq([])
+      end
+    end
+
+    context 'when exception constructor argument is not a string' do
+      let(:exception) { NameError.new(42) }
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings, serializer: serializer,
+          target_self: target_self,
+          serialized_entry_args: {},
+          return_value: nil, duration: 0.1,
+          exception: exception,
+        )
+      end
+
+      let(:payload) { builder.build_executed(context) }
+
+      it 'reports redacted placeholder for non-string constructor argument' do
+        throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+        expect(throwable[:message]).to eq('<REDACTED: not a string value>')
+        expect(throwable[:type]).to eq('NameError')
+        expect(throwable[:stacktrace]).to eq([])
+      end
+    end
+  end
+
   describe '#evaluate_template' do
     context 'when there are variables to be substituted' do
       let(:compiler) { Datadog::DI::EL::Compiler.new }

@@ -177,6 +177,11 @@ module Datadog
 
           # Configure non-privileged components.
           Datadog::Tracing::Contrib::Component.configure(settings)
+
+          # Load the core Rails Railtie when Rails is present so all products benefit from Rails-specific setup.
+          if defined?(::Rails::Railtie)
+            require_relative '../contrib/rails/railtie'
+          end
         end
 
         # Called when a fork is detected

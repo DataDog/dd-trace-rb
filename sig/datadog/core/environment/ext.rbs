@@ -50,6 +50,8 @@ module Datadog
 
         TAG_ENTRYPOINT_TYPE: ::String
 
+        TAG_RAILS_APPLICATION: ::String
+
         TAG_PROCESS_TAGS: ::String
       end
     end
