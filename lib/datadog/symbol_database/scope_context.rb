@@ -244,7 +244,7 @@ module Datadog
               # Woke up because add_scope signaled — loop back to re-wait with
               # a fresh timeout. This implements the debounce: the timeout resets
               # on every scope addition.
-              next
+              next # steep:ignore BreakTypeMismatch
             end
 
             # Timed out (no signal within INACTIVITY_TIMEOUT). If there are
