@@ -367,17 +367,17 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         labels_without_state = proc { |labels| labels.reject { |key| key == :state } }
 
         # Other samples have not been changed
-        expect(samples.select { |it| labels_without_state.call(it.labels).empty? }).to have(2).items
+        expect(samples.select { |sample| labels_without_state.call(sample.labels).empty? }).to have(2).items
         expect(
-          samples.select do |it|
-            labels_without_state.call(it.labels) == {"local root span id": 456}
+          samples.select do |sample|
+            labels_without_state.call(sample.labels) == {"local root span id": 456}
           end
         ).to have(2).items
 
         # Matching samples taken before and after recording the endpoint have been changed
         expect(
-          samples.select do |it|
-            labels_without_state.call(it.labels) ==
+          samples.select do |sample|
+            labels_without_state.call(sample.labels) ==
               {"local root span id": 123, "trace endpoint": "recorded-endpoint"}
           end
         ).to have(2).items
@@ -651,10 +651,10 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           expect(unique_heap_stacks.size).to be 2
 
           stack1, stack2 = unique_heap_stacks
-          unique_line1 = stack1.find { |it| it.base_label == 'introduce_distinct_stacktraces' }
-          unique_line2 = stack2.find { |it| it.base_label == 'introduce_distinct_stacktraces' }
+          unique_line1 = stack1.find { |frame| frame.base_label == 'introduce_distinct_stacktraces' }
+          unique_line2 = stack2.find { |frame| frame.base_label == 'introduce_distinct_stacktraces' }
 
-          expect(stack1.reject { |it| it == unique_line1 }).to eq(stack2.reject { |it| it == unique_line2 })
+          expect(stack1.reject { |frame| frame == unique_line1 }).to eq(stack2.reject { |frame| frame == unique_line2 })
           expect(unique_line1.lineno).to be_within(2).of(unique_line2.lineno)
         end
 
@@ -761,12 +761,12 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
             it "clears young dead objects with age 1 and 2, but not older objects" do
               # Every object is still being tracked at this point
-              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, true, true]
+              expect(@object_ids.map { |object_id| is_object_recorded?(object_id) }).to eq [true, true, true, true]
 
               recorder_after_gc_step
 
               # Young objects should no longer be tracked, but older objects are still kept
-              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, false, false]
+              expect(@object_ids.map { |object_id| is_object_recorded?(object_id) }).to eq [true, true, false, false]
 
               stack_recorder.serialize
 
@@ -779,7 +779,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               end
 
               # Older objects are only cleared at serialization time
-              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [false, false, false, false]
+              expect(@object_ids.map { |object_id| is_object_recorded?(object_id) }).to eq [false, false, false, false]
             end
 
             context "when there's a heap serialization ongoing" do
@@ -831,17 +831,17 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
             it "does nothing" do
               # Every object is still being tracked at this point
-              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, true, true]
+              expect(@object_ids.map { |object_id| is_object_recorded?(object_id) }).to eq [true, true, true, true]
 
               recorder_after_gc_step
 
               # No change -- all objects are still being tracked
-              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, true, true]
+              expect(@object_ids.map { |object_id| is_object_recorded?(object_id) }).to eq [true, true, true, true]
 
               stack_recorder.serialize
 
               # All objects are finally cleared
-              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [false, false, false, false]
+              expect(@object_ids.map { |object_id| is_object_recorded?(object_id) }).to eq [false, false, false, false]
             end
           end
         end
@@ -910,7 +910,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           .to receive(:_native_serialize).and_return([:ok, [:dummy_start, :dummy_finish, encoded_profile]])
       end
 
-      it { is_expected.to be encoded_profile }
+      it 'returns the encoded profile' do
+        is_expected.to be encoded_profile
+      end
     end
 
     context "when serialization fails" do
