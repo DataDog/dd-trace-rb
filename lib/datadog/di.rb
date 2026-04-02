@@ -11,6 +11,71 @@ module Datadog
   module DI
     INSTRUMENTED_COUNTERS_LOCK = Mutex.new
 
+    # Captured at load time from Exception itself (not a subclass).
+    # Used to bypass subclass overrides of backtrace_locations.
+    #
+    # This does NOT protect against monkeypatching Exception#backtrace_locations
+    # before dd-trace-rb loads — in that case we'd capture the monkeypatch.
+    # The practical threat model is customer subclasses overriding the method:
+    #
+    #   class MyError < StandardError
+    #     def backtrace_locations; []; end
+    #   end
+    #
+    # The UnboundMethod bypasses subclass overrides: bind(exception).call
+    # always dispatches to the original Exception implementation.
+    #
+    # Note: if the subclass overrides #backtrace (not #backtrace_locations),
+    # MRI's setup_exception skips storing the VM backtrace entirely — both
+    # @bt and @bt_locations stay nil. In that case this UnboundMethod also
+    # returns nil. See EXCEPTION_BACKTRACE comment and
+    # docs/ruby/exception-backtrace-internals.md in claude-projects for the
+    # full MRI analysis.
+    EXCEPTION_BACKTRACE_LOCATIONS = Exception.instance_method(:backtrace_locations)
+
+    # Same UnboundMethod trick for Exception#backtrace (Array<String>).
+    # Used as a fallback when backtrace_locations returns nil — which happens
+    # when someone calls Exception#set_backtrace with an Array<String>.
+    #
+    # set_backtrace accepts Array<String> or nil. When called with strings,
+    # it replaces the VM-level backtrace: backtrace returns the new strings,
+    # but backtrace_locations returns nil because the VM cannot reconstruct
+    # Location objects from formatted strings. This occurs in exception
+    # wrapping patterns where a library catches an exception, creates a new
+    # one, and copies the original's string backtrace onto it via
+    # set_backtrace before re-raising.
+    #
+    # Ruby 3.4+ also allows set_backtrace(Array<Location>), which preserves
+    # backtrace_locations — but older Rubies and most existing code use
+    # the string form.
+    #
+    # LIMITATION: Unlike EXCEPTION_BACKTRACE_LOCATIONS, this UnboundMethod
+    # does NOT bypass subclass overrides of #backtrace. When a subclass
+    # overrides #backtrace, MRI's setup_exception (eval.c) calls the
+    # override via rb_get_backtrace, gets a non-nil result, and skips
+    # storing the real VM backtrace in @bt and @bt_locations entirely.
+    # The C function exc_backtrace then reads @bt (still nil from
+    # exc_init) and returns nil.
+    #
+    # By contrast, setup_exception only checks for #backtrace overrides,
+    # not #backtrace_locations overrides. So when only backtrace_locations
+    # is overridden, the real backtrace IS stored, and the UnboundMethod
+    # for backtrace_locations reads it directly from @bt_locations.
+    #
+    # This limitation is acceptable because this constant is only used as
+    # a fallback when backtrace_locations returns nil. In the common
+    # set_backtrace-with-strings case, no subclass override is involved
+    # and the fallback works. If a subclass does override #backtrace AND
+    # set_backtrace was called, set_backtrace writes to @bt via C
+    # regardless of overrides, so the fallback still works.
+    #
+    # The only unrecoverable case: a subclass overrides #backtrace, the
+    # exception is raised normally, and set_backtrace is never called.
+    # Both @bt and @bt_locations are nil — the real backtrace was never
+    # stored by raise. DI reports an empty stacktrace (type and message
+    # are still reported).
+    EXCEPTION_BACKTRACE = Exception.instance_method(:backtrace)
+
     class << self
       def enabled?
         Datadog.configuration.dynamic_instrumentation.enabled

@@ -565,6 +565,81 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       end
     end
 
+    context 'when exception has overridden backtrace method' do
+      let(:exception_class) do
+        Class.new(StandardError) do
+          define_method(:backtrace) do
+            ['overridden:0:in `fake_method\'']
+          end
+        end
+      end
+
+      let(:exception) do
+        raise exception_class, 'test'
+      rescue => e
+        e
+      end
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings,
+          serializer: serializer,
+          target_self: target_self,
+          serialized_entry_args: {},
+          return_value: nil,
+          duration: 0.1,
+          exception: exception,
+        )
+      end
+
+      let(:payload) { builder.build_executed(context) }
+
+      it 'uses raw backtrace, not overridden backtrace method' do
+        throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+        expect(throwable[:stacktrace]).to be_an(Array)
+        expect(throwable[:stacktrace]).not_to eq(
+          [{fileName: 'overridden', function: 'fake_method', lineNumber: 0}],
+        )
+        # Verify the override exists on the Ruby side
+        expect(exception.backtrace).to eq(['overridden:0:in `fake_method\''])
+      end
+    end
+
+    context 'when backtrace was set via set_backtrace with strings' do
+      let(:exception) do
+        e = StandardError.new('wrapped')
+        e.set_backtrace(['/app/foo.rb:10:in `bar\'', '/app/baz.rb:20:in `qux\''])
+        e
+      end
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          probe: probe,
+          settings: settings,
+          serializer: serializer,
+          target_self: target_self,
+          serialized_entry_args: {},
+          return_value: nil,
+          duration: 0.1,
+          exception: exception,
+        )
+      end
+
+      let(:payload) { builder.build_executed(context) }
+
+      it 'falls back to string backtrace parsing' do
+        # set_backtrace with Array<String> causes backtrace_locations to
+        # return nil. serialize_throwable should fall back to parsing the
+        # string backtrace.
+        throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
+        expect(throwable[:stacktrace]).to eq([
+          {fileName: '/app/foo.rb', function: 'bar', lineNumber: 10},
+          {fileName: '/app/baz.rb', function: 'qux', lineNumber: 20},
+        ])
+      end
+    end
+
     context 'when exception constructor argument is not a string' do
       let(:exception) { NameError.new(42) }
 
