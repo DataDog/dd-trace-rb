@@ -1,0 +1,12 @@
+issuer: https://token.actions.githubusercontent.com
+
+subject_pattern: "repo:DataDog/dd-trace-rb:pull_request"
+
+claim_pattern:
+  event_name: pull_request
+  repository: DataDog/dd-trace-rb
+  job_workflow_ref: DataDog/dd-trace-rb/\.github/workflows/lock-dependency\.yml@refs/heads/master
+
+permissions:
+  contents: write
+  pull_requests: write

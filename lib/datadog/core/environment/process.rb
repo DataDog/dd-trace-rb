@@ -35,6 +35,9 @@ module Datadog
 
           tags << "#{Environment::Ext::TAG_ENTRYPOINT_TYPE}:#{TagNormalizer.normalize(entrypoint_type, remove_digit_start_char: false)}"
 
+          rails_application_name = TagNormalizer.normalize_process_value(@rails_application_name.to_s)
+          tags << "#{Environment::Ext::TAG_RAILS_APPLICATION}:#{rails_application_name}" unless rails_application_name.empty?
+
           @tags = tags.freeze
         end
 
@@ -78,6 +81,15 @@ module Datadog
         # We might improve this in the future if there is customer demand.
         def self.entrypoint_basedir
           File.basename(File.expand_path(File.dirname($0)))
+        end
+
+        # Sets the rails application name from other places in code
+        # @param name [String] the rails application name
+        # @return [void]
+        def self.rails_application_name=(name)
+          @rails_application_name = name
+          remove_instance_variable(:@tags) if instance_variable_defined?(:@tags)
+          remove_instance_variable(:@serialized) if instance_variable_defined?(:@serialized)
         end
 
         private_class_method :entrypoint_workdir, :entrypoint_type, :entrypoint_name, :entrypoint_basedir
