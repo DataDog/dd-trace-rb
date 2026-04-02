@@ -72,7 +72,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
       context 'when available' do
         before { allow(runtime_metrics).to receive(:gauge) }
 
-        it do
+        it 'flushes the metric via gauge' do
           allow(metric).to receive(:available?)
             .and_return(true)
           allow(metric).to receive(:value)
@@ -87,7 +87,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
       end
 
       context 'when unavailable' do
-        it do
+        it 'does not flush the metric' do
           allow(metric).to receive(:available?)
             .and_return(false)
           expect(metric).to_not receive(:value)
@@ -101,7 +101,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
       context 'when an error is thrown' do
         before { allow(Datadog.logger).to receive(:warn) }
 
-        it do
+        it 'logs a warning' do
           allow(metric).to receive(:available?)
             .and_raise(RuntimeError)
 
