@@ -28,9 +28,7 @@ module Datadog
     # Note: if the subclass overrides #backtrace (not #backtrace_locations),
     # MRI's setup_exception skips storing the VM backtrace entirely — both
     # @bt and @bt_locations stay nil. In that case this UnboundMethod also
-    # returns nil. See EXCEPTION_BACKTRACE comment and
-    # docs/ruby/exception-backtrace-internals.md in claude-projects for the
-    # full MRI analysis.
+    # returns nil. See EXCEPTION_BACKTRACE comment for details.
     EXCEPTION_BACKTRACE_LOCATIONS = Exception.instance_method(:backtrace_locations)
 
     # Same UnboundMethod trick for Exception#backtrace (Array<String>).
@@ -49,31 +47,23 @@ module Datadog
     # backtrace_locations — but older Rubies and most existing code use
     # the string form.
     #
-    # LIMITATION: Unlike EXCEPTION_BACKTRACE_LOCATIONS, this UnboundMethod
-    # does NOT bypass subclass overrides of #backtrace. When a subclass
-    # overrides #backtrace, MRI's setup_exception (eval.c) calls the
-    # override via rb_get_backtrace, gets a non-nil result, and skips
-    # storing the real VM backtrace in @bt and @bt_locations entirely.
-    # The C function exc_backtrace then reads @bt (still nil from
-    # exc_init) and returns nil.
+    # Like EXCEPTION_BACKTRACE_LOCATIONS, this UnboundMethod bypasses
+    # subclass overrides of #backtrace: bind(exception).call dispatches
+    # to Exception#backtrace regardless of what the subclass defines.
     #
-    # By contrast, setup_exception only checks for #backtrace overrides,
-    # not #backtrace_locations overrides. So when only backtrace_locations
-    # is overridden, the real backtrace IS stored, and the UnboundMethod
-    # for backtrace_locations reads it directly from @bt_locations.
+    # However, when a subclass overrides #backtrace, MRI's setup_exception
+    # (eval.c) calls the override via rb_get_backtrace during raise. If it
+    # gets a non-nil result, it skips storing the VM backtrace in @bt and
+    # @bt_locations entirely. So the UnboundMethod bypasses the override
+    # at dispatch but reads nil from @bt because the data was never stored.
     #
-    # This limitation is acceptable because this constant is only used as
-    # a fallback when backtrace_locations returns nil. In the common
-    # set_backtrace-with-strings case, no subclass override is involved
-    # and the fallback works. If a subclass does override #backtrace AND
-    # set_backtrace was called, set_backtrace writes to @bt via C
-    # regardless of overrides, so the fallback still works.
-    #
-    # The only unrecoverable case: a subclass overrides #backtrace, the
-    # exception is raised normally, and set_backtrace is never called.
-    # Both @bt and @bt_locations are nil — the real backtrace was never
-    # stored by raise. DI reports an empty stacktrace (type and message
-    # are still reported).
+    # This constant is used as a fallback when backtrace_locations returns
+    # nil. In the common set_backtrace-with-strings case, no subclass
+    # override is involved and the fallback works. The only unrecoverable
+    # case: a subclass overrides #backtrace, the exception is raised
+    # normally, and set_backtrace is never called. Both @bt and
+    # @bt_locations are nil — DI reports an empty stacktrace (type and
+    # message are still reported).
     EXCEPTION_BACKTRACE = Exception.instance_method(:backtrace)
 
     class << self
