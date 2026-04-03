@@ -121,6 +121,29 @@ module Datadog
 
         mod = Module.new do
           define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore NoMethod
+            # Re-entrancy guard: if we are already inside a DI probe
+            # callback, skip DI processing and call the original method
+            # directly. This prevents SystemStackError when a probe is
+            # set on a stdlib method that DI itself calls during
+            # snapshot building (e.g., String#length, Hash#each).
+            # Uses fiber-local storage so each fiber tracks independently.
+            if Thread.current[:datadog_di_in_probe]
+              if args.any?
+                if kwargs.any?
+                  return super(*args, **kwargs, &target_block)
+                else
+                  return super(*args, &target_block)
+                end
+              elsif kwargs.any?
+                return super(**kwargs, &target_block)
+              else
+                return super(&target_block)
+              end
+            end
+
+            begin
+            Thread.current[:datadog_di_in_probe] = true # rubocop:disable Layout/IndentationWidth
+
             # Steep: Unsure why it cannot detect kwargs in this block. Workaround:
             # @type var kwargs: ::Hash[::Symbol, untyped]
             di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
@@ -188,6 +211,11 @@ module Datadog
 
               di_duration = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID) - di_start_time
 
+              # Release re-entrancy guard for the original method so that
+              # probes on other methods (or recursive calls) fire normally
+              # during user code execution.
+              Thread.current[:datadog_di_in_probe] = nil
+
               rv = nil
               begin
                 # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
@@ -209,6 +237,10 @@ module Datadog
                 # We will raise the exception captured here later, after
                 # the instrumentation callback runs.
               end
+
+              # Re-acquire re-entrancy guard for DI post-processing
+              # (building context, notification callback).
+              Thread.current[:datadog_di_in_probe] = true
 
               end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
               duration = end_time - start_time
@@ -263,6 +295,9 @@ module Datadog
               # stop standard from trying to mess up my code
               _ = 42
 
+              # Release re-entrancy guard for the original method.
+              Thread.current[:datadog_di_in_probe] = nil
+
               # The necessity to invoke super in each of these specific
               # ways is very difficult to test.
               # Existing tests, even though I wrote many, still don't
@@ -282,6 +317,10 @@ module Datadog
               else
                 super(&target_block)
               end
+            end
+
+            ensure
+              Thread.current[:datadog_di_in_probe] = nil # rubocop:disable Layout/IndentationWidth
             end
           end
         end
