@@ -1690,11 +1690,17 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         RUBY
         load filename
 
-        # TestNsFileHash has no methods but has a class constant — extracted via const_source_location
         scope = extractor.extract(TestNsFileHash)
-        expect(scope).not_to be_nil
-        expect(scope.language_specifics[:file_hash]).not_to be_nil
-        expect(scope.language_specifics[:file_hash]).to match(/\A[0-9a-f]{40}\z/)
+
+        if Module.method_defined?(:const_source_location)
+          # Ruby 2.7+: const_source_location finds the module via its constants
+          expect(scope).not_to be_nil
+          expect(scope.language_specifics[:file_hash]).not_to be_nil
+          expect(scope.language_specifics[:file_hash]).to match(/\A[0-9a-f]{40}\z/)
+        else
+          # Ruby < 2.7: namespace module with no methods is not extractable
+          expect(scope).to be_nil
+        end
 
         Object.send(:remove_const, :TestNsFileHash)
         cleanup_user_code_file(filename)
