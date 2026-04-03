@@ -363,7 +363,7 @@ module Datadog
           const_name = parts.last
           namespace = if parts.length > 1
             begin
-              Object.const_get(parts[0..-2].join('::'))
+              Object.const_get(parts[0..-2].join('::')) # steep:ignore
             rescue NameError
               nil
             end
