@@ -45,7 +45,7 @@ RSpec.describe 'Symbol Database Integration' do
         allow(uploader).to receive(:upload_scopes) { |scopes| uploaded_scopes.concat(scopes) }
 
         settings = double('settings')
-        symdb_settings = double('symbol_database', internal: double('internal', upload_class_methods: false))
+        symdb_settings = double('symbol_database', internal: double('internal', upload_class_methods: false, injectable_line_events: [:line, :return]))
         allow(settings).to receive(:symbol_database).and_return(symdb_settings)
         logger = instance_double(Logger, debug: nil)
 
@@ -87,6 +87,17 @@ RSpec.describe 'Symbol Database Integration' do
         expect(param_names).to include('arg1', 'arg2')
         expect(param_names).not_to include('self')
 
+        # Injectable lines on METHOD scope (production path)
+        expect(test_method_scope.has_injectible_lines).to eq(true)
+        expect(test_method_scope.injectible_lines).to be_an(Array)
+        expect(test_method_scope.injectible_lines).not_to be_empty
+        test_method_scope.injectible_lines.each do |range|
+          expect(range[:start]).to be <= range[:end]
+          expect(range[:start]).to be >= test_method_scope.start_line
+          expect(range[:end]).to be <= test_method_scope.end_line
+        end
+        expect(test_method_scope.end_line).to be > test_method_scope.start_line
+
         # Batch and upload
         context.add_scope(file_scope)
         context.flush
@@ -100,6 +111,16 @@ RSpec.describe 'Symbol Database Integration' do
         parsed = JSON.parse(json)
         expect(parsed['scope_type']).to eq('FILE')
         expect(parsed['scopes']).to be_an(Array)
+
+        # Injectable lines survive JSON round-trip
+        parsed_method = parsed['scopes']
+          .flat_map { |s| s['scopes'] || [] }
+          .flat_map { |s| s['scopes'] || [] }
+          .find { |s| s['name'] == 'test_method' }
+        expect(parsed_method).not_to be_nil
+        expect(parsed_method['has_injectible_lines']).to eq(true)
+        expect(parsed_method['injectible_lines']).to be_an(Array)
+        expect(parsed_method['injectible_lines']).not_to be_empty
       ensure
         Object.send(:remove_const, :IntegrationTestModule) if defined?(IntegrationTestModule)
       end
