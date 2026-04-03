@@ -42,18 +42,17 @@ module Datadog
         # @return [Array<Receiver>] Array of receivers
         def receivers(telemetry)
           receiver do |repository, changes|
-            # Get component from global state
-            # Ideally should be injected, but follows DI pattern of accessing via global
             component = begin
               Datadog.send(:components)&.symbol_database
-            rescue
+            rescue => e
+              Datadog.logger.debug { "symdb: failed to look up component in RC receiver: #{e.class}: #{e}" }
               nil
             end
 
             return unless component # steep:ignore ReturnTypeMismatch
 
             changes.each do |change|
-              process_change(component, change)
+              process_change(component, change, telemetry: telemetry)
             end
           end
         end
@@ -71,30 +70,28 @@ module Datadog
         # Process a single configuration change.
         # @param component [Component] Symbol database component
         # @param change [Change] Configuration change (:insert, :update, :delete)
+        # @param telemetry [Telemetry, nil] Optional telemetry for metrics
         # @return [void]
         # @api private
-        def process_change(component, change)
+        def process_change(component, change, telemetry: nil)
           case change.type
           when :insert
             enable_upload(component, change.content)
             change.content.applied
           when :update
-            # Re-enable with new config
             disable_upload(component)
             enable_upload(component, change.content)
             change.content.applied
           when :delete
             disable_upload(component)
-            # Delete change has 'previous' not 'content'
             change.previous&.applied
           else
             Datadog.logger.debug { "symdb: unrecognized change type: #{change.type}" }
-            # Only call errored() if change has content
             change.content.errored("Unrecognized change type: #{change.type}") if change.respond_to?(:content)
           end
         rescue => e
           Datadog.logger.debug { "symdb: error processing remote config change: #{e.class}: #{e}" }
-          # Handle both content and previous
+          telemetry&.inc('tracers', 'symbol_database.remote_config_error', 1)
           content_obj = change.respond_to?(:content) ? change.content : change.previous
           content_obj&.errored(e.message)
         end
@@ -133,11 +130,8 @@ module Datadog
         # @return [Hash, nil] Parsed config or nil if invalid
         # @api private
         def parse_config(content)
-          # Parse JSON string to Hash
-          # content.data is a JSON string, not a Hash (matches DI pattern: lib/datadog/di/remote.rb:144)
           config = JSON.parse(content.data)
 
-          # Validate it's actually a Hash
           unless config.is_a?(Hash)
             Datadog.logger.debug { "symdb: invalid config format: expected Hash, got #{config.class}" }
             return nil
