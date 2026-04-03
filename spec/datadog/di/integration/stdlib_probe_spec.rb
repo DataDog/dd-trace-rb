@@ -12,17 +12,29 @@ require "set"
 # (via rate limiting, serialization depth limits, or error recovery)
 # and document cases where it does not.
 #
-# Key finding: for capture probes (rate limit 1/sec), the rate limiter
-# prevents infinite recursion because nested invocations are rate-limited
-# and just call the original method via super.
-# For non-capture probes (rate limit 5000/sec), the higher rate limit
-# allows many nested invocations, which can cause SystemStackError
-# (see String#length without snapshot capture test).
+# Key findings:
 #
-# Another subtlety: stdlib methods like Hash#each are called by DI's
-# own code during probe installation and diagnostics. The first call
-# after installation consumes the rate limiter token, so test mocks
-# must be set up BEFORE probe installation to observe this.
+# 1. Line probes (TracePoint) are NOT vulnerable to re-entrancy.
+#    Ruby self-disables a TracePoint during its callback, preventing
+#    the same trace point from firing while already processing.
+#
+# 2. Method probes (module prepending) ARE vulnerable.
+#    Module prepending has no re-entrancy protection. The vulnerability
+#    manifests when:
+#    a) The probed method is called in the always-executed snapshot
+#       building path (e.g., String#length via SecureRandom.uuid), AND
+#    b) The rate limit is high enough to allow nested invocations
+#       (5000/sec for non-capture probes).
+#    Capture probes (1/sec rate limit) are safe because the rate limiter
+#    blocks nested invocations.
+#
+# 3. Methods only called in the capture-only serialization path
+#    (e.g., Set#include? via redactor) are safe for non-capture probes
+#    because that path isn't executed.
+#
+# 4. Stdlib methods like Hash#each fire during DI's own probe
+#    installation/diagnostics, consuming the rate limiter token before
+#    user code runs. Test mocks must be set up BEFORE probe installation.
 
 # Test class whose methods invoke stdlib methods.
 # We set probes on the stdlib methods themselves, then invoke these
@@ -339,16 +351,126 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
       )
     end
 
-    it "installs line probe on stdlib and fires" do
-      skip "Cannot determine Set#include? source location" unless set_source_file && set_include_line
+    context "with snapshot capture" do
+      it "installs line probe on stdlib and fires" do
+        skip "Cannot determine Set#include? source location" unless set_source_file && set_include_line
 
-      payloads = run_stdlib_probe_test(probe) do
-        s = Set.new([:a, :b, :c])
-        expect(s.include?(:b)).to be true
-        expect(s.include?(:d)).to be false
+        payloads = run_stdlib_probe_test(probe) do
+          s = Set.new([:a, :b, :c])
+          expect(s.include?(:b)).to be true
+          expect(s.include?(:d)).to be false
+        end
+
+        expect(payloads.length).to be >= 1
+      end
+    end
+
+    context "without snapshot capture" do
+      # Line probes use TracePoint, which Ruby self-disables during its
+      # callback — the same trace point will NOT fire while already
+      # inside its own callback. This is fundamentally different from
+      # method probes (module prepending), which have no such protection.
+      #
+      # Therefore, non-capture line probes on stdlib methods should NOT
+      # cause SystemStackError, unlike the equivalent method probe test
+      # (String#length without capture).
+
+      let(:probe) do
+        skip "Cannot determine Set#include? source location" unless set_source_file && set_include_line
+
+        Datadog::DI::Probe.new(
+          id: "stdlib-set-include-line-no-snap",
+          type: :log,
+          file: set_source_file,
+          line_no: set_include_line,
+          capture_snapshot: false,
+        )
       end
 
-      expect(payloads.length).to be >= 1
+      it "does not cause SystemStackError because TracePoint is self-disabling" do
+        skip "Cannot determine Set#include? source location" unless set_source_file && set_include_line
+
+        payloads = run_stdlib_probe_test(probe) do
+          s = Set.new([:a, :b, :c])
+          expect(s.include?(:b)).to be true
+          expect(s.include?(:d)).to be false
+        end
+
+        # Unlike the method probe on String#length (no capture) which
+        # causes SystemStackError, this line probe completes normally
+        # because Ruby's TracePoint prevents re-entrant callback firing.
+        expect(payloads.length).to be >= 1
+      end
+    end
+  end
+
+  # ----------------------------------------------------------------
+  # Method probe on Set#include? — contrast with line probe above
+  # ----------------------------------------------------------------
+
+  context "method probe on Set#include?" do
+    # Set#include? is called by DI's redactor during serialization.
+    # Unlike the line probe test above (which uses TracePoint and is
+    # self-disabling), this method probe uses module prepending and
+    # has no re-entrancy protection.
+
+    context "with snapshot capture" do
+      include_context "permissive settings"
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "stdlib-set-include-method",
+          type: :log,
+          type_name: "Set",
+          method_name: "include?",
+          capture_snapshot: true,
+        )
+      end
+
+      it "handles re-entrancy via rate limiting" do
+        payloads = run_stdlib_probe_test(probe) do
+          s = Set.new([:a, :b, :c])
+          expect(s.include?(:b)).to be true
+          expect(s.include?(:d)).to be false
+        end
+
+        expect(payloads.length).to be >= 1
+      end
+    end
+
+    context "without snapshot capture" do
+      include_context "permissive settings"
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "stdlib-set-include-method-no-snap",
+          type: :log,
+          type_name: "Set",
+          method_name: "include?",
+          capture_snapshot: false,
+        )
+      end
+
+      it "does not cause SystemStackError because non-capture path does not call redactor" do
+        # Without snapshot capture, DI's snapshot building does NOT call
+        # the serializer or redactor. Set#include? is only called by
+        # the redactor during capture serialization, so there is no
+        # re-entrant invocation in the non-capture path.
+        #
+        # This contrasts with String#length (no capture) which DOES
+        # cause SystemStackError because SecureRandom.uuid (called in
+        # every snapshot) invokes String#length via gen_random_urandom.
+        #
+        # Vulnerability requires the probed method to be called in the
+        # always-executed snapshot building path, not just in the
+        # capture-only serialization path.
+        payloads = run_stdlib_probe_test(probe) do
+          s = Set.new([:a, :b, :c])
+          expect(s.include?(:b)).to be true
+        end
+
+        expect(payloads.length).to be >= 1
+      end
     end
   end
 
