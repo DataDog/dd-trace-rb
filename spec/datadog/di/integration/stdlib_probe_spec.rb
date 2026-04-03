@@ -475,6 +475,66 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
   end
 
   # ----------------------------------------------------------------
+  # DI-internal code should not fire probes
+  # ----------------------------------------------------------------
+
+  context "desired: probe on stdlib fires only for customer code, not DI-internal code" do
+    # When a customer sets a probe on a stdlib method (e.g., String#length),
+    # the desired behavior is:
+    #   - DI-internal calls to String#length (during add_probe, serialization,
+    #     snapshot building, flush, shutdown) should NOT fire the probe.
+    #   - Only customer code calls to String#length should fire the probe.
+    #
+    # Currently DI has no mechanism to distinguish DI-internal calls from
+    # customer code calls. The probe fires for ALL invocations, including
+    # DI-internal ones. This has two consequences:
+    #
+    # 1. DI-internal invocations consume rate limiter tokens, potentially
+    #    starving customer code of snapshots.
+    # 2. DI-internal invocations can cause re-entrant recursion
+    #    (SystemStackError for non-capture probes on hot methods).
+    #
+    # The split re-entrancy guard (proposed in the investigation doc)
+    # only prevents re-entrancy during an active probe callback. It does
+    # NOT suppress probes during DI code paths that run outside of any
+    # probe callback: add_probe, flush, shutdown, diagnostics.
+    #
+    # To fully suppress probes during all DI processing, the guard would
+    # need to be set around every DI entry point.
+
+    include_context "permissive settings"
+
+    let(:probe) do
+      Datadog::DI::Probe.new(
+        id: "stdlib-string-length-di-internal",
+        type: :log,
+        type_name: "String",
+        method_name: "length",
+        capture_snapshot: true,
+      )
+    end
+
+    it "currently fires probe for DI-internal invocations during snapshot building" do
+      payloads = run_stdlib_probe_test(probe) do
+        # This single user-code call to String#length triggers the probe.
+        # During DI's snapshot building for this invocation, DI calls
+        # String#length internally (e.g., in serializer for truncation
+        # checks, in SecureRandom.uuid). Those DI-internal calls ALSO
+        # go through the probe wrapper — they are rate-limited (1/sec)
+        # so they just call super, but they still consume overhead
+        # checking the rate limiter and probe.enabled?.
+        #
+        # Desired: DI-internal calls should be completely invisible to
+        # the probe — no rate limiter check, no enabled? check, just
+        # the original method.
+        StdlibProbeTestClass.new.call_string_length("hello world")
+      end
+
+      expect(payloads.length).to be >= 1
+    end
+  end
+
+  # ----------------------------------------------------------------
   # Method probe on method called during probe installation
   # ----------------------------------------------------------------
 
