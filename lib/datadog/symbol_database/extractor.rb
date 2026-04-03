@@ -176,6 +176,7 @@ module Datadog
         convert_trees_to_scopes(file_trees)
       rescue => e
         @logger.debug { "symdb: error in extract_all: #{e.class}: #{e}" }
+        @telemetry&.inc('tracers', 'symbol_database.extract_all_error', 1)
         []
       end
 
