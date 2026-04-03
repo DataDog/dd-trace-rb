@@ -249,7 +249,8 @@ module Datadog
           extraction_duration = Datadog::Core::Utils::Time.get_time - start_time
           @telemetry&.distribution('tracers', 'symbol_database.extraction_time', extraction_duration)
           @telemetry&.inc('tracers', 'symbol_database.scopes_extracted', extracted_count)
-          @logger.debug { "symdb: extracted #{extracted_count} scopes in #{'%.2f' % extraction_duration}s" }
+          injectable_count = count_injectable_methods(file_scopes)
+          @logger.debug { "symdb: extracted #{extracted_count} scopes (#{injectable_count} methods with injectable lines) in #{'%.2f' % extraction_duration}s" }
 
           # Flush any remaining scopes (triggers upload)
           @scope_context.flush
@@ -268,6 +269,18 @@ module Datadog
         indent = '  ' * depth
         @logger.trace { "symdb:   #{indent}#{scope.scope_type} #{scope.name}" }
         scope.scopes&.each { |child| log_scope_tree(child, depth + 1) }
+      end
+
+      def count_injectable_methods(file_scopes)
+        count = 0
+        file_scopes.each do |file_scope|
+          file_scope.scopes&.each do |class_or_module|
+            class_or_module.scopes&.each do |method_scope|
+              count += 1 if method_scope.scope_type == 'METHOD' && method_scope.has_injectible_lines
+            end
+          end
+        end
+        count
       end
     end
   end
