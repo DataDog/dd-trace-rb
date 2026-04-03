@@ -103,10 +103,6 @@ target :datadog do
   ignore 'lib/datadog/di/transport/http/api.rb'
   ignore 'lib/datadog/di/transport/http/diagnostics.rb'
   ignore 'lib/datadog/di/transport/http/input.rb'
-  # extractor.rb RBS only covers public API; private methods (30+) are not declared.
-  # component.rb has similar issues with OnlyOnce, ConditionVariable, and thread types.
-  ignore 'lib/datadog/symbol_database/component.rb'
-  ignore 'lib/datadog/symbol_database/extractor.rb'
   # steep thinks the type of the class is 'self', whatever that is,
   # and then complains that this type doesn't have any methods including
   # language basics like 'send' and 'raise'.
