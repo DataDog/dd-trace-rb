@@ -2946,6 +2946,29 @@ Alternatively, set error tracking parameters inside a `Datadog.configure` block 
 - Relative path: For example, for a program running in the `app` directory, use `./lib/mypackage/main.rb` to instrument the `main.rb` file, or`./lib/mypackage/` to instrument every Ruby file in that folder.
 
 
+### Symbol Database
+
+When Dynamic Instrumentation is enabled, the tracer can extract and upload symbol information (class names, method signatures, parameter names) from your application to enable auto-completion in the DI UI. Symbol Database upload is enabled by default and activates automatically via Remote Configuration.
+
+#### Configuration
+
+| Environment variable | Type | Description | Default |
+|---|---|---|---|
+| `DD_SYMBOL_DATABASE_UPLOAD_ENABLED` | `Boolean` | Enable or disable symbol database upload. | `true` |
+
+Alternatively, set symbol database parameters inside a `Datadog.configure` block:
+
+| Setting | Type | Description | Default |
+|---|---|---|---|
+| `c.symbol_database.enabled` | `Boolean` | Enable or disable symbol database upload. | `true` |
+
+#### Requirements
+
+- MRI Ruby 2.6+. JRuby and TruffleRuby are not supported.
+- Remote Configuration must be enabled (default).
+
+For more details on what is extracted, which code is included, and behavior differences across Ruby versions, see [Dynamic Instrumentation — Symbol Database](DynamicInstrumentation.md#symbol-database).
+
 ## Known issues and suggested configurations
 
 ### Payload too large
