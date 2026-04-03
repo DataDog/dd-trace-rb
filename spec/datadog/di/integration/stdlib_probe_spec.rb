@@ -193,28 +193,24 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
         )
       end
 
-      it "causes SystemStackError due to re-entrancy without capture rate limit protection" do
+      it "handles re-entrancy via fiber-local guard" do
         # Without snapshot capture, rate limit is 5000/sec.
-        # The recursion path is:
+        # Without the re-entrancy guard this would cause SystemStackError:
         #   String#length probe fires ->
         #   DI builds snapshot (no capture) ->
         #   SecureRandom.uuid calls gen_random_urandom ->
         #   gen_random_urandom calls String#length ->
-        #   String#length probe fires again ->
-        #   ... infinite recursion
+        #   String#length probe fires again -> ... infinite recursion
         #
-        # The rate limiter (5000/sec) cannot prevent this because the
-        # recursion happens faster than the rate limit check can stop it.
-        # The SystemStackError occurs inside rate_limiter.allow? itself.
-        #
-        # This demonstrates that DI needs re-entrancy guards (e.g.,
-        # a thread-local flag) to safely handle probes on hot stdlib methods
-        # with high rate limits.
-        expect do
-          run_stdlib_probe_test(probe) do
-            StdlibProbeTestClass.new.call_string_length("hello world")
-          end
-        end.to raise_error(SystemStackError)
+        # The fiber-local guard (Thread.current[:datadog_di_in_probe])
+        # prevents this: DI-internal calls to String#length see the
+        # guard is set and call the original method directly.
+        payloads = run_stdlib_probe_test(probe) do
+          result = StdlibProbeTestClass.new.call_string_length("hello world")
+          expect(result).to eq(11)
+        end
+
+        expect(payloads.length).to be >= 1
       end
     end
   end
