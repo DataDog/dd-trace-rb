@@ -117,14 +117,12 @@ RSpec.describe 'EXCEPTION_BACKTRACE' do
       e
     end
 
-    it 'returns nil — UnboundMethod does NOT bypass overrides for backtrace' do
-      # Unlike backtrace_locations, the UnboundMethod trick does not bypass
-      # subclass overrides of Exception#backtrace. MRI's setup_exception
-      # (eval.c) calls rb_get_backtrace during raise, which detects the
-      # #backtrace override and calls it. Since the override returns
-      # non-nil, setup_exception skips storing the real VM backtrace in
-      # @bt entirely. The C function exc_backtrace then reads @bt (still
-      # nil from exc_init) and returns nil.
+    it 'returns nil — MRI never stored the real backtrace' do
+      # The UnboundMethod bypasses the subclass override at dispatch, but
+      # MRI's setup_exception (eval.c) calls rb_get_backtrace during raise.
+      # When it gets a non-nil result from the override, it skips storing
+      # the real VM backtrace in @bt. So the UnboundMethod reads nil from
+      # @bt because the data was never stored.
       #
       # This is acceptable because EXCEPTION_BACKTRACE is only used as a
       # fallback when backtrace_locations returns nil (the set_backtrace

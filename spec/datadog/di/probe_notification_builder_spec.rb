@@ -598,6 +598,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       it 'uses raw backtrace, not overridden backtrace method' do
         throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
         expect(throwable[:stacktrace]).to be_an(Array)
+        expect(throwable[:stacktrace].first[:fileName]).to eq(__FILE__)
         expect(throwable[:stacktrace]).not_to eq(
           [{fileName: 'overridden', function: 'fake_method', lineNumber: 0}],
         )
