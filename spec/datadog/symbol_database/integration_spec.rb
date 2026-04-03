@@ -126,4 +126,59 @@ RSpec.describe 'Symbol Database Integration' do
       end
     end
   end
+
+  describe 'wire format' do
+    it 'builds multipart form with event.json and gzipped symbols file' do
+      config = double('config', service: 'test-service', env: 'test', version: '1.0')
+      agent_settings = instance_double(
+        Datadog::Core::Configuration::AgentSettings,
+        hostname: 'localhost', port: 8126, timeout_seconds: 30, ssl: false
+      )
+      logger = instance_double(Logger, debug: nil)
+
+      transport = double('transport')
+      allow(Datadog::SymbolDatabase::Transport::HTTP).to receive(:build).and_return(transport)
+
+      uploader = Datadog::SymbolDatabase::Uploader.new(config, agent_settings, logger: logger)
+
+      scope = Datadog::SymbolDatabase::Scope.new(
+        scope_type: 'FILE',
+        name: '/app/test.rb',
+        source_file: '/app/test.rb',
+        start_line: 1,
+        end_line: 10,
+        scopes: []
+      )
+
+      captured_form = nil
+      allow(transport).to receive(:send_symdb_payload) do |form|
+        captured_form = form
+        double('response', ok?: true, code: 200, internal_error?: false)
+      end
+
+      uploader.upload_scopes([scope])
+
+      expect(captured_form).not_to be_nil
+      expect(captured_form['event']).to be_a(Datadog::Core::Vendor::Multipart::Post::UploadIO)
+      expect(captured_form['file']).to be_a(Datadog::Core::Vendor::Multipart::Post::UploadIO)
+
+      # Verify event.json content
+      event_json = JSON.parse(captured_form['event'].io.string)
+      expect(event_json['ddsource']).to eq('ruby')
+      expect(event_json['service']).to eq('test-service')
+      expect(event_json['runtimeId']).not_to be_nil
+
+      # Verify file is gzip-compressed JSON with correct structure
+      compressed = captured_form['file'].io.string
+      decompressed = Zlib::GzipReader.new(StringIO.new(compressed)).read
+      payload = JSON.parse(decompressed)
+      expect(payload).to be_a(Hash)
+      expect(payload['language']).to eq('ruby')
+      expect(payload['service']).to eq('test-service')
+      expect(payload['env']).to eq('test')
+      expect(payload['version']).to eq('1.0')
+      expect(payload['scopes']).to be_an(Array)
+      expect(payload['scopes'].first['scope_type']).to eq('FILE')
+    end
+  end
 end

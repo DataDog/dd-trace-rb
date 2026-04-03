@@ -109,6 +109,13 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(result).to be_a(described_class)
     end
 
+    it 'returns a Component when DI is disabled (SymDB is independent of DI)' do
+      allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(false)
+
+      result = described_class.build(settings, agent_settings, logger, telemetry: telemetry)
+      expect(result).to be_a(described_class)
+    end
+
     it 'returns a Component when force_upload is true even without remote' do
       allow(settings.remote).to receive(:enabled).and_return(false)
       allow(settings.symbol_database.internal).to receive(:force_upload).and_return(true)
