@@ -388,6 +388,17 @@ This means internal or private gems installed via Bundler are also
 excluded. There is currently no mechanism to force-include specific
 gems.
 
+### Ruby Version Differences
+
+On Ruby 2.7+, the Symbol Database uses `Module#const_source_location`
+(added in Ruby 2.7) to locate modules and classes that have no
+user-defined methods — for example, namespace modules like
+`module ApplicationCable; class Channel...; end; end`, or ActiveRecord
+models that only define associations and no custom methods. On Ruby 2.6,
+this fallback is unavailable, so these modules and classes may not appear
+in the auto-completion UI. Classes and modules with at least one
+user-defined method are extracted on all supported Ruby versions.
+
 ### Behavior Differences from Other Tracers
 
 Ruby's Symbol Database implementation differs from Java, Python, and
