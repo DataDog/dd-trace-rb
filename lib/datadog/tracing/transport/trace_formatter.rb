@@ -257,11 +257,11 @@ module Datadog
         end
 
         def git_repository_url
-          Core::Environment::Git.git_repository_url
+          Core::Environment::Git.git_repository_url(Datadog.configuration)
         end
 
         def git_commit_sha
-          Core::Environment::Git.git_commit_sha
+          Datadog.configuration.git.commit_sha
         end
       end
     end

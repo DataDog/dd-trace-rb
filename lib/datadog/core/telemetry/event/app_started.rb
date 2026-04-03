@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'base'
-
+require_relative '../../utils/url'
 module Datadog
   module Core
     module Telemetry
@@ -75,17 +75,6 @@ module Datadog
           def configuration(settings, agent_settings)
             # Special values that are not tied to a configuration option
             list = [
-              conf_value(
-                'DD_GIT_REPOSITORY_URL',
-                Core::Environment::Git.git_repository_url,
-                (Core::Environment::Git.git_repository_url ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
-              ),
-              conf_value(
-                'DD_GIT_COMMIT_SHA',
-                Core::Environment::Git.git_commit_sha,
-                (Core::Environment::Git.git_commit_sha ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
-              ),
-
               # Mix of env var, programmatic and default config, so we use unknown
               unknown_conf_value('DD_AGENT_TRANSPORT', agent_transport(agent_settings)), # rubocop:disable CustomCops/EnvStringValidationCop
             ]
@@ -145,6 +134,21 @@ module Datadog
                 'tracing.writer_options.flush_interval',
                 # Steep: Value is always a hash for writer_options (ensured by o.type :hash)
                 to_telemetry_value(value[:flush_interval]), # steep:ignore NoMethod
+                precedence
+              )
+            end
+
+            # Git repository URL (commit SHA is reported during collect_all_configuration_options)
+            git_repository_url_option = resolve_option(settings, 'git.repository_url')
+            git_repository_url_option.values_per_precedence.each do |precedence, value|
+              list << conf_value(
+                option_telemetry_name(git_repository_url_option),
+                # Steep: There's still some improvements to be done with Option, OptionDefinition, etc...
+                # Right now value is typed as OptionDefinition::option_type | OptionDefinition::generic_proc
+                # We know it is String?, but it is not possible to add an annotation to force value to be String?
+                # due to its definition in a .rbs file. Maybe Option should be contain a type variable.
+                # E.g. Option[T] instead of Option. We'd have to retype all methods and classes that use Option.
+                Utils::Url.filter_basic_auth(value), # steep:ignore ArgumentTypeMismatch
                 precedence
               )
             end

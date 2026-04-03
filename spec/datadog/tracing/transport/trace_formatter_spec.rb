@@ -68,8 +68,8 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
 
   shared_context 'git environment stub' do
     before do
-      allow(Datadog::Core::Environment::Git).to receive(:git_repository_url).and_return(git_repository_url)
-      allow(Datadog::Core::Environment::Git).to receive(:git_commit_sha).and_return(git_commit_sha)
+      allow(Datadog::Core::Environment::Git).to receive(:git_repository_url).with(anything).and_return(git_repository_url)
+      Datadog.configuration.git.commit_sha = git_commit_sha if git_commit_sha
     end
   end
 

@@ -4,6 +4,16 @@ module Datadog
       class Settings
         include Base
 
+        interface _Git
+          def repository_url: () -> ::String?
+
+          def repository_url=: (::String?) -> void
+
+          def commit_sha: () -> ::String?
+
+          def commit_sha=: (::String?) -> void
+        end
+
         interface _Remote
           def enabled: () -> bool
 
@@ -185,6 +195,8 @@ module Datadog
         def ai_guard: (?untyped? options) -> Datadog::Core::Configuration::Settings::_AIGuard
 
         def dynamic_instrumentation: (?untyped? options) -> Datadog::Core::Configuration::Settings::_DI
+
+        def git: (?untyped? options) -> Datadog::Core::Configuration::Settings::_Git
 
         def remote: (?untyped? options) -> Datadog::Core::Configuration::Settings::_Remote
 

@@ -6,6 +6,7 @@ require_relative 'base'
 require_relative 'ext'
 require_relative '../environment/execution'
 require_relative '../environment/ext'
+require_relative '../git/ext'
 require_relative '../runtime/ext'
 require_relative '../telemetry/ext'
 require_relative '../remote/ext'
@@ -1017,6 +1018,31 @@ module Datadog
           option :debug do |o|
             o.type :bool
             o.default false
+          end
+        end
+
+        # Git repository configuration.
+        # These settings allow configuring git repository information programmatically,
+        # via stable config, or through environment variables.
+        # @public_api
+        settings :git do
+          # The URL of the git repository.
+          # @default `DD_GIT_REPOSITORY_URL` environment variable, otherwise `nil`
+          # @return [String,nil]
+          option :repository_url do |o|
+            o.type :string, nilable: true
+            o.env Core::Git::Ext::ENV_REPOSITORY_URL
+            # Sensitive informations are filtered before being manually sent through telemetry
+            # in core/telemetry/event/app_started.rb
+            o.skip_telemetry true
+          end
+
+          # The SHA of the git commit.
+          # @default `DD_GIT_COMMIT_SHA` environment variable, otherwise `nil`
+          # @return [String,nil]
+          option :commit_sha do |o|
+            o.type :string, nilable: true
+            o.env Core::Git::Ext::ENV_COMMIT_SHA
           end
         end
 
