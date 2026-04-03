@@ -195,7 +195,8 @@ module Datadog
       # @return [String, nil] Module name or nil
       def safe_mod_name(mod)
         Module.instance_method(:name).bind(mod).call
-      rescue
+      rescue => e
+        @logger.debug { "symdb: safe_mod_name failed: #{e.class}: #{e}" }
         nil
       end
 
@@ -388,7 +389,8 @@ module Datadog
           mod.constants(false).each do |child_const_name|
             location = begin
               mod.const_source_location(child_const_name)
-            rescue
+            rescue => e
+              @logger.debug { "symdb: const_source_location(#{child_const_name}) failed: #{e.class}: #{e}" }
               nil
             end
             next unless location && !location.empty?
