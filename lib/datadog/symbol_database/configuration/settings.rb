@@ -12,6 +12,9 @@ module Datadog
       # Accessed as: Datadog.configuration.symbol_database.enabled
       # Used by: Component.build (checks if feature enabled)
       module Settings
+        # Hook called when this module is extended into a class.
+        # @param base [Class, Module] The class or module being extended
+        # @return [void]
         def self.extended(base)
           base = base.singleton_class unless base.is_a?(Class)
           add_settings!(base)

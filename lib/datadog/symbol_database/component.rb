@@ -81,7 +81,6 @@ module Datadog
         @logger = logger
         @telemetry = telemetry
 
-        # Build components
         @extractor = Extractor.new(logger: logger, settings: settings, telemetry: telemetry)
         @uploader = Uploader.new(settings, agent_settings, logger: logger, telemetry: telemetry)
         @scope_context = ScopeContext.new(@uploader, logger: logger, telemetry: telemetry)
@@ -118,7 +117,8 @@ module Datadog
             ::ActiveSupport.on_load(:after_initialize) do
               current = begin
                 Datadog.send(:components).symbol_database
-              rescue
+              rescue => e
+                Datadog.logger.debug { "symdb: failed to look up component in deferred upload: #{e.class}: #{e}" }
                 nil
               end
               current&.start_upload

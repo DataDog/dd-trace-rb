@@ -12,6 +12,8 @@ module Datadog
           class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
             attr_reader :encoder
 
+            # @param path [String] URL path for the endpoint
+            # @param encoder [#encode] Encoder for request data
             def initialize(path, encoder)
               super(:post, path)
               @encoder = encoder
