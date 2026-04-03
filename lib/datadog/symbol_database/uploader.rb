@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# TODO: Revert ddsource to 'ruby' after DataDog/debugger-backend#1974 merges.
-
 require 'json'
 require 'zlib'
 require 'stringio'
