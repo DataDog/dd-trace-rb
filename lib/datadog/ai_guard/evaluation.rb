@@ -56,14 +56,31 @@ module Datadog
 
         private
 
+        # Truncates content in serialized messages to stay within the configured byte limit.
+        # For multi-modal messages, only text parts are truncated; image URLs are left intact.
         def truncate_content(serialized_messages)
+          max_bytes = Datadog.configuration.ai_guard.max_content_size_bytes
+
           serialized_messages.map do |message| # steep:ignore
             next message unless message[:content]
 
-            {
-              **message,
-              content: message[:content].byteslice(0, Datadog.configuration.ai_guard.max_content_size_bytes)
-            }
+            if message[:content].is_a?(::Array)
+              {
+                **message,
+                content: message[:content].map { |part|
+                  if part[:text]
+                    {**part, text: part[:text].to_s.byteslice(0, max_bytes)}
+                  else
+                    part
+                  end
+                }
+              }
+            else
+              {
+                **message,
+                content: message[:content].byteslice(0, max_bytes)
+              }
+            end
           end
         end
       end
