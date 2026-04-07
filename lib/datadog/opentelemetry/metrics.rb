@@ -26,11 +26,9 @@ module Datadog
         provider = ::OpenTelemetry.meter_provider
         provider.shutdown if provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
 
-        # The OpenTelemetry SDK defaults to cumulative temporality, but Datadog prefers delta temporality.
+        # The OpenTelemetry SDK defaults to cumulative temporality, but Datadog prefers delta temporality (set as default for temporality_preference option).
         # Here is an example of how this config is applied: https://github.com/open-telemetry/opentelemetry-ruby/blob/1933d4c18e5f5e45c53fa9e902e58aa91e85cc38/metrics_sdk/lib/opentelemetry/sdk/metrics/aggregation/sum.rb#L14
-        if DATADOG_ENV['OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE'].nil?
-          ENV['OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE'] = 'delta' # rubocop:disable CustomCops/EnvUsageCop
-        end
+        ENV['OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE'] = @settings.opentelemetry.metrics.temporality_preference # rubocop:disable CustomCops/EnvUsageCop
 
         resource = create_resource
         provider = ::OpenTelemetry::SDK::Metrics::MeterProvider.new(resource: resource)
