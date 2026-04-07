@@ -3,6 +3,7 @@
 require_relative '../../configuration/settings'
 require_relative '../ext'
 require_relative '../utils'
+require_relative '../../span_attribute_schema'
 
 module Datadog
   module Tracing
@@ -33,12 +34,7 @@ module Datadog
 
             option :service_name do |o|
               o.type :string, nilable: true
-              o.default do
-                Contrib::SpanAttributeSchema.fetch_service_name(
-                  '',
-                  Utils.adapter_name
-                )
-              end
+              o.default Contrib::SpanAttributeSchema.default_or_global_service_name(Utils.adapter_name)
             end
           end
         end

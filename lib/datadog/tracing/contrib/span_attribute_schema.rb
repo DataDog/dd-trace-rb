@@ -10,14 +10,12 @@ module Datadog
         REFLEXIVE_SOURCES = [Tracing::Metadata::Ext::TAG_PEER_SERVICE].freeze
         NO_SOURCE = [].freeze
 
-        def self.fetch_service_name(env, default)
-          DATADOG_ENV.fetch(env) do
-            if Datadog.configuration.tracing.contrib.global_default_service_name.enabled
-              return Datadog.configuration.service
-            end
-
-            default
+        def self.default_or_global_service_name(default)
+          if Datadog.configuration.tracing.contrib.global_default_service_name.enabled
+            return Datadog.configuration.service
           end
+
+          default
         end
 
         def self.set_peer_service!(span, sources)

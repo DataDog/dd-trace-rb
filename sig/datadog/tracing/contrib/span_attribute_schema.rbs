@@ -5,7 +5,7 @@ module Datadog
         NO_SOURCE: Array[string]
         REFLEXIVE_SOURCES: Array[string]
 
-        def self?.fetch_service_name: (string env, string default) -> bool
+        def self.default_or_global_service_name: (::String default) -> ::String
 
         def self.filter_peer_service_sources: (SpanOperation span, Array[string] sources) -> Array[string]
 

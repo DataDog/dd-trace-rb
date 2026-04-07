@@ -2,6 +2,7 @@
 
 require_relative '../../configuration/settings'
 require_relative '../ext'
+require_relative '../../span_attribute_schema'
 
 module Datadog
   module Tracing
@@ -37,12 +38,8 @@ module Datadog
             end
 
             option :service_name do |o|
-              o.default do
-                Contrib::SpanAttributeSchema.fetch_service_name(
-                  Ext::ENV_SERVICE_NAME,
-                  Ext::DEFAULT_PEER_SERVICE_NAME
-                )
-              end
+              o.env Ext::ENV_SERVICE_NAME
+              o.default Contrib::SpanAttributeSchema.default_or_global_service_name(Ext::DEFAULT_PEER_SERVICE_NAME)
             end
 
             option :peer_service do |o|

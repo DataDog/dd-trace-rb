@@ -2,6 +2,7 @@
 
 require_relative '../../configuration/settings'
 require_relative '../ext'
+require_relative '../../span_attribute_schema'
 
 module Datadog
   module Tracing
@@ -32,12 +33,7 @@ module Datadog
 
             option :cache_service do |o|
               o.type :string, nilable: true
-              o.default do
-                Contrib::SpanAttributeSchema.fetch_service_name(
-                  '',
-                  Ext::SERVICE_CACHE
-                )
-              end
+              o.default Contrib::SpanAttributeSchema.default_or_global_service_name(Ext::SERVICE_CACHE)
             end
 
             # grouped "cache_key.*" settings
