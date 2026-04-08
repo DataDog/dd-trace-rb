@@ -4,9 +4,13 @@ module Datadog
       class Request
         REQUEST_PATH: ::String
 
+        type serialized_text_part = { type: ::String, text: ::String }
+        type serialized_image_url_part = { type: ::String, image_url: { url: ::String } }
+        type serialized_content_part = serialized_text_part | serialized_image_url_part
+
         type serialized_message = {
           role: ::Symbol,
-          ?content: ::String?,
+          ?content: ::String | ::Array[serialized_content_part] | nil,
           ?tool_calls: ::Array[{
             id: ::String,
             function: {
@@ -31,7 +35,7 @@ module Datadog
 
         def serialize_message: (Message message) -> serialized_message
 
-        def truncate_content: (::String? content) -> ::String?
+        def serialize_content_parts: (::Array[Message::content_part] parts) -> ::Array[serialized_content_part]
       end
     end
   end

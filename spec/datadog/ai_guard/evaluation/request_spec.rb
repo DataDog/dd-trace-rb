@@ -96,6 +96,25 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
       expect(request.serialized_messages).to eq([{role: :tool, tool_call_id: "call-1", content: "Some output"}])
     end
 
+    it "correctly serializes multi-modal messages" do
+      request = described_class.new([
+        Datadog::AIGuard.message(role: :user) { |m|
+          m.text("What's in this image?")
+          m.image_url("https://example.com/img.png")
+        }
+      ])
+
+      expect(request.serialized_messages).to eq([
+        {
+          role: :user,
+          content: [
+            {type: "text", text: "What's in this image?"},
+            {type: "image_url", image_url: {url: "https://example.com/img.png"}},
+          ]
+        }
+      ])
+    end
+
     it "limits the maximum amount of messages" do
       allow(Datadog.configuration.ai_guard).to receive(:max_messages_length).and_return(2)
 
