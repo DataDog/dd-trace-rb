@@ -15,10 +15,17 @@ require "tmpdir"
 RSpec.describe "DI CodeTracker with Bootsnap" do
   di_test
 
-  before(:all) do
+  before(:all) do # standard:disable Style/RedundantBegin
     require "bootsnap"
-  rescue LoadError
-    skip "Bootsnap not available"
+    # Verify bootsnap's iseq cache can actually initialize —
+    # the gem may load but fail to install if its C extension
+    # wasn't compiled for this environment.
+    test_dir = Dir.mktmpdir("bootsnap_probe")
+    Bootsnap::CompileCache::ISeq.install!(test_dir)
+    Bootsnap::CompileCache::ISeq::InstructionSequenceMixin.send(:remove_method, :load_iseq)
+    FileUtils.remove_entry(test_dir)
+  rescue LoadError, StandardError => e
+    skip "Bootsnap iseq cache not available: #{e.class}: #{e}"
   end
 
   let(:diagnostics_transport) do
