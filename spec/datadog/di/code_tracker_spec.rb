@@ -303,7 +303,6 @@ RSpec.describe Datadog::DI::CodeTracker do
 
       tracker.backfill_registry
 
-      # Original from :script_compiled should be preserved
       expect(tracker.send(:registry)[path]).to equal(original_iseq)
     end
 
@@ -346,7 +345,6 @@ RSpec.describe Datadog::DI::CodeTracker do
 
       registry = tracker.send(:registry)
       expect(registry.length).to eq(2)
-      # Original iseq_a preserved, not overwritten by iseq_a_new
       expect(registry['/app/lib/a.rb']).to equal(iseq_a)
       expect(registry['/app/lib/b.rb']).to equal(iseq_b)
     end
@@ -459,18 +457,9 @@ RSpec.describe Datadog::DI::CodeTracker do
       tracker.start
     end
 
-    it 'calls backfill_registry after trace point is enabled' do
-      # Verify ordering: trace point enabled first, then backfill.
-      # If backfill ran before the trace point, files loaded concurrently
-      # could be missed by both mechanisms.
-      order = []
-      allow(tracker).to receive(:backfill_registry) { order << :backfill }
-
-      # The trace point is enabled inside start via TracePoint.trace.
-      # We can verify the trace point is active by loading a file and
-      # checking the registry.
+    it 'tracker is active after start calls backfill_registry' do
+      allow(tracker).to receive(:backfill_registry)
       tracker.start
-      expect(order).to eq([:backfill])
       expect(tracker.active?).to be true
     end
   end

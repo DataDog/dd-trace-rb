@@ -14,7 +14,7 @@ RSpec.describe 'iseq_type' do
     expect(iseq_type(iseq)).to eq(:top)
   end
 
-  it 'returns :top for eval with top-level code' do
+  it 'returns :top for compiled top-level code' do
     iseq = RubyVM::InstructionSequence.compile('1 + 1')
     expect(iseq_type(iseq)).to eq(:top)
   end

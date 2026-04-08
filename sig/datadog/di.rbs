@@ -12,7 +12,7 @@ module Datadog
     def self.exception_message: (Exception exception) -> untyped
     EXCEPTION_BACKTRACE_LOCATIONS: UnboundMethod
     EXCEPTION_BACKTRACE: UnboundMethod
-    def self.iseq_type: (RubyVM::InstructionSequence iseq) -> Symbol
+    def self.iseq_type: (RubyVM::InstructionSequence iseq) -> Symbol?
 
     def self.component: () -> Component
 

@@ -15,7 +15,7 @@ RSpec.describe "backfill_registry with compile_file iseqs" do
   di_test
 
   before(:all) do
-    skip "Test requires iseq_type (Ruby < 3.1)" unless Datadog::DI.respond_to?(:iseq_type)
+    skip "Test requires iseq_type (Ruby >= 3.1 only)" unless Datadog::DI.respond_to?(:iseq_type)
   end
 
   let(:tracker) { Datadog::DI::CodeTracker.new }
