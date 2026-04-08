@@ -759,8 +759,6 @@ module Datadog
         if result.empty? && !params.empty?
           Datadog.logger.debug("SymDB: Extracted 0 parameters from singleton #{method_name} (params: #{params.inspect})")
         end
-
-        result
       rescue => e
         @logger.debug { "symdb: failed to extract parameters from #{method_name}: #{e.class}: #{e}" }
         []
