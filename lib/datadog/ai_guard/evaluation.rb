@@ -65,16 +65,15 @@ module Datadog
             next message unless message[:content]
 
             if message[:content].is_a?(::Array)
-              {
-                **message,
-                content: message[:content].map { |part|
-                  if part[:text]
-                    {**part, text: part[:text].to_s.byteslice(0, max_bytes)}
-                  else
-                    part
-                  end
-                }
-              }
+              serialized_content = message[:content].map do |part|
+                if part[:text]
+                  {**part, text: part[:text].to_s.byteslice(0, max_bytes)}
+                else
+                  part
+                end
+              end
+
+              {**message, content: serialized_content}
             else
               {
                 **message,
