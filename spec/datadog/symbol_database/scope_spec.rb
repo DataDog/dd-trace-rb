@@ -307,7 +307,6 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
       expect(hash).not_to have_key(:has_injectible_lines)
       expect(hash).not_to have_key(:injectible_lines)
     end
-  end
 
     it 'includes injectable lines fields on METHOD scope with ranges' do
       scope = described_class.new(
