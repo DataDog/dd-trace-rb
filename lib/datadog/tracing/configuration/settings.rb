@@ -359,7 +359,7 @@ module Datadog
                     when 'parentbased_always_off'
                       0.0
                     when 'parentbased_traceidratio'
-                      DATADOG_ENV.fetch(Configuration::Ext::Sampling::OTEL_TRACES_SAMPLER_ARG, 1.0).to_f
+                      Datadog.configuration.opentelemetry.traces.sampler_arg
                     else
                       value.to_f
                     end
@@ -397,44 +397,57 @@ module Datadog
                   o.default nil
                 end
 
+                # Single span sampling rules file.
+                # These rules allow a span to be kept when its encompassing trace is dropped.
+                #
+                # This option expects a path to a file containing the JSON rules. When configured,
+                # the file is read and this option resolves to the file contents.
+                #
+                # @default `DD_SPAN_SAMPLING_RULES_FILE` environment variable. Otherwise `nil`.
+                # @return [String,nil]
+                # @public_api
+                option :span_rules_file do |o|
+                  o.type :string, nilable: true
+                  o.env Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE
+                  o.setter do |value|
+                    next if value.nil?
+
+                    begin
+                      File.read(value)
+                    rescue => e
+                      # `File#read` errors have clear and actionable messages, no need to add extra exception info.
+                      Datadog.logger.warn(
+                        "Cannot read span sampling rules file `#{value}`: #{e.message}." \
+                        'Span sampling rules file will be ignored.'
+                      )
+                      nil
+                    end
+                  end
+                end
+
                 # Single span sampling rules.
                 # These rules allow a span to be kept when its encompassing trace is dropped.
                 #
                 # The syntax for single span sampling rules can be found here:
                 # TODO: <Single Span Sampling documentation URL here>
                 #
-                # @default `DD_SPAN_SAMPLING_RULES` environment variable.
-                #   Otherwise, `ENV_SPAN_SAMPLING_RULES_FILE` environment variable.
-                #   Otherwise `nil`.
+                # When both `span_rules` and `span_rules_file` are configured,
+                # `span_rules` takes precedence.
+                #
+                # @default `DD_SPAN_SAMPLING_RULES` environment variable. Otherwise `nil`.
                 # @return [String,nil]
                 # @public_api
                 option :span_rules do |o|
                   o.type :string, nilable: true
-                  o.default do
-                    rules = DATADOG_ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES]
-                    rules_file = DATADOG_ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE]
-
-                    if rules
-                      if rules_file
-                        Datadog.logger.warn(
-                          'Both DD_SPAN_SAMPLING_RULES and DD_SPAN_SAMPLING_RULES_FILE were provided: only ' \
-                            'DD_SPAN_SAMPLING_RULES will be used. Please do not provide DD_SPAN_SAMPLING_RULES_FILE when ' \
-                            'also providing DD_SPAN_SAMPLING_RULES as their configuration conflicts. ' \
-                            "DD_SPAN_SAMPLING_RULES_FILE=#{rules_file} DD_SPAN_SAMPLING_RULES=#{rules}"
-                        )
-                      end
-                      rules
-                    elsif rules_file
-                      begin
-                        File.read(rules_file)
-                      rescue => e
-                        # `File#read` errors have clear and actionable messages, no need to add extra exception info.
-                        Datadog.logger.warn(
-                          "Cannot read span sampling rules file `#{rules_file}`: #{e.message}." \
-                          'No span sampling rules will be applied.'
-                        )
-                        nil
-                      end
+                  o.env Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES
+                  o.after_set do |value|
+                    if value && span_rules_file
+                      Datadog.logger.warn(
+                        'Both DD_SPAN_SAMPLING_RULES and DD_SPAN_SAMPLING_RULES_FILE were provided: only ' \
+                          'DD_SPAN_SAMPLING_RULES will be used. Please do not provide DD_SPAN_SAMPLING_RULES_FILE when ' \
+                          'also providing DD_SPAN_SAMPLING_RULES as their configuration conflicts. ' \
+                          "DD_SPAN_SAMPLING_RULES_FILE=#{span_rules_file} DD_SPAN_SAMPLING_RULES=#{value}"
+                      )
                     end
                   end
                 end
