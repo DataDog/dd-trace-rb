@@ -32,10 +32,10 @@ module Datadog
       # before code tracking started.
       #
       # Uses the all_iseqs C extension to walk the Ruby object space and
-      # find instruction sequences for already-loaded code. Only whole-file
-      # iseqs are stored — per-method iseqs require instrumenter changes
-      # to select the correct iseq for a target line and will be supported
-      # in a follow-up.
+      # find instruction sequences for already-loaded code. Whole-file
+      # iseqs are stored in the main registry; per-method/block/class
+      # iseqs are stored in per_method_registry as fallback for files
+      # whose whole-file iseq was GC'd.
       #
       # See docs/DynamicInstrumentationDevelopment.md "Iseq Lifecycle and GC"
       # for which iseq types survive GC and implications for backfill.
