@@ -216,16 +216,6 @@ generated.
 
 ## Code Loading and Instrumentation
 
-### Code Tracking Requirement
-- Files must be loaded **after** Dynamic Instrumentation code tracking
-  starts
-- Code loaded before the tracer initializes cannot be instrumented with
-  line probes
-- Method probes can still work for classes defined before code tracking
-  starts
-- Best practice: Ensure the Datadog tracer initializes early in your
-  application boot process
-
 ### Application Must Be Processing Requests
 - Dynamic Instrumentation is initialized via Rack middleware when
   processing HTTP requests
