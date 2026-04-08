@@ -14,8 +14,7 @@ RSpec.describe "Per-method iseq line probe integration" do
   di_test
 
   before(:all) do
-    skip "Test requires DI C extension" unless Datadog::DI.respond_to?(:all_iseqs)
-    skip "Test requires iseq_type" unless Datadog::DI.respond_to?(:iseq_type)
+    skip "Test requires iseq_type (Ruby < 3.1)" unless Datadog::DI.respond_to?(:iseq_type)
 
     # Verify that the top iseq was actually GC'd and only method iseq survives.
     target = "per_method_iseq_integration_test_class.rb"
