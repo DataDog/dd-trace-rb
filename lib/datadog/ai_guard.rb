@@ -84,25 +84,42 @@ module Datadog
 
       # Builds a generic evaluation message.
       #
-      # Example:
+      # Accepts either a string content or a block for multi-modal content parts:
       #
       # ```
+      # # String content:
       # Datadog::AIGuard.message(role: :user, content: "Hello, assistant")
+      #
+      # # Multi-modal content with block:
+      # Datadog::AIGuard.message(role: :user) do |m|
+      #   m.text("What's in this image?")
+      #   m.image_url("https://example.com/img.png")
+      # end
       # ```
       #
       # @param role [Symbol]
       #   The role associated with the message.
       #   Must be one of `:assistant`, `:tool`, `:system`, `:developer`, or `:user`.
-      # @param content [String]
-      #   The textual content of the message.
+      # @param content [String, nil]
+      #   The textual content of the message. Cannot be combined with a block.
+      # @yield [builder] A block for building multi-modal content parts.
+      # @yieldparam builder [Datadog::AIGuard::Evaluation::ContentBuilder]
       #
       # @return [Datadog::AIGuard::Evaluation::Message]
       #   A new message instance with the given role and content.
       # @raise [ArgumentError]
-      #   If an invalid role is provided.
+      #   If both content and a block are provided, or if an invalid role is provided.
       # @public_api
-      def message(role:, content:)
-        Evaluation::Message.new(role: role, content: content)
+      def message(role:, content: nil)
+        if block_given?
+          raise ArgumentError, "Cannot pass both content and a block" if content
+
+          builder = Evaluation::ContentBuilder.new
+          yield builder
+          Evaluation::Message.new(role: role, content: builder.parts)
+        else
+          Evaluation::Message.new(role: role, content: content)
+        end
       end
 
       # Builds an assistant message representing a tool call initiated by the model.
