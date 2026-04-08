@@ -64,6 +64,10 @@ RSpec.describe "backfill_registry with compile_file iseqs" do
     # on it would never fire when the actual method executes.
     result = tracker.iseqs_for_path_suffix(tempfile.path)
 
+    expect(result).to be_nil,
+      "backfill_registry should not register compile_file iseqs, " \
+      "but registered iseq for: #{result&.first}"
+
     if result
       _path, registered_iseq = result
 
