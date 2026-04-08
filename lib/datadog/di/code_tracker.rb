@@ -72,7 +72,7 @@ module Datadog
             # silently never fires when the require-produced code runs.
             if have_iseq_type
               type = DI.iseq_type(iseq)
-              next unless (type == :top || type == :main) && iseq.first_lineno == 0
+              next if (type != :top && type != :main) || iseq.first_lineno != 0
             else
               next unless iseq.first_lineno == 0
             end

@@ -16,11 +16,9 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
   di_test
 
   before(:all) do
-    begin
-      require "bootsnap"
-    rescue LoadError
-      skip "Bootsnap not available"
-    end
+    require "bootsnap"
+  rescue LoadError
+    skip "Bootsnap not available"
   end
 
   let(:diagnostics_transport) do
@@ -109,7 +107,7 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
       expect(tracker).not_to be_nil
 
       result = tracker.iseqs_for_path_suffix("bootsnap_test_class.rb")
-      expect(result).not_to be_nil, \
+      expect(result).not_to be_nil,
         "CodeTracker registry does not contain bootsnap_test_class.rb " \
         "after Bootsnap-cached load. :script_compiled may not have fired."
 
@@ -139,7 +137,7 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
 
       tp.disable
 
-      expect(fired).to be(true), \
+      expect(fired).to be(true),
         "TracePoint targeted at the CodeTracker iseq did not fire. " \
         "The iseq captured by :script_compiled may not be the one " \
         "Ruby is executing (Bootsnap interaction issue)."
@@ -160,7 +158,7 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
 
       # Probe should be installed successfully.
       installed = probe_manager.probe_repository.installed_probes
-      expect(installed.length).to eq(1), \
+      expect(installed.length).to eq(1),
         "Expected 1 installed probe, got #{installed.length}. " \
         "Probe installation failed on Bootsnap-cached file."
     end
@@ -205,21 +203,21 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
       component.probe_notifier_worker.flush
 
       # Verify the snapshot captured local variables correctly.
-      expect(payload).to be_a(Hash), \
+      expect(payload).to be_a(Hash),
         "Snapshot payload is nil — probe did not fire on Bootsnap-cached code."
 
       captures = payload.dig(:debugger, :snapshot, :captures)
-      expect(captures).not_to be_nil, \
+      expect(captures).not_to be_nil,
         "Snapshot has no captures — probe fired but didn't capture data."
 
       locals = captures.dig(:lines, 22, :locals)
-      expect(locals).not_to be_nil, \
+      expect(locals).not_to be_nil,
         "Snapshot has no locals for line 22 — capture may have targeted wrong line."
 
-      expect(locals).to include(:a), \
+      expect(locals).to include(:a),
         "Local variable :a not captured. Locals present: #{locals.keys}"
 
-      expect(locals[:a]).to eq({type: "Integer", value: "21"}), \
+      expect(locals[:a]).to eq({type: "Integer", value: "21"}),
         "Local variable :a has wrong value: #{locals[:a].inspect}"
     end
 
@@ -227,7 +225,7 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
       # Verify precondition: the cache file exists on disk, proving
       # Bootsnap wrote a cached binary during the first load.
       cache_files = Dir.glob(File.join(cache_dir, "**/*")).select { |f| File.file?(f) }
-      expect(cache_files).not_to be_empty, \
+      expect(cache_files).not_to be_empty,
         "No Bootsnap cache files found in #{cache_dir}. " \
         "Bootsnap may not have been properly initialized."
 
