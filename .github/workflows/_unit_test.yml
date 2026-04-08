@@ -232,7 +232,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
       memcached:
-        image: ghcr.io/datadog/images-rb/services/memcached:1.5-alpine
+        image: ghcr.io/datadog/images-rb/services/memcached:1.6-alpine
       mongodb:
         image: ghcr.io/datadog/images-rb/services/mongo:3.6
       opensearch:
