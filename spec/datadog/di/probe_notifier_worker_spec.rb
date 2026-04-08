@@ -24,6 +24,16 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
     allow(settings).to receive(:env)
     allow(settings).to receive(:service)
     allow(settings).to receive(:version)
+
+    # git ddtags
+    allow(settings).to receive(:git).and_return(git_settings)
+  end
+
+  let(:git_settings) do
+    double('git settings').tap do |settings|
+      allow(settings).to receive(:repository_url).and_return(nil)
+      allow(settings).to receive(:commit_sha).and_return(nil)
+    end
   end
 
   let(:agent_settings) do
