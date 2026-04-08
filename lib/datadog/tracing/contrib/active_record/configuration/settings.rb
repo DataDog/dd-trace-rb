@@ -34,7 +34,7 @@ module Datadog
 
             option :service_name do |o|
               o.type :string, nilable: true
-              o.default Contrib::SpanAttributeSchema.default_or_global_service_name(Utils.adapter_name)
+              o.default { Contrib::SpanAttributeSchema.default_or_global_service_name(Utils.adapter_name) }
             end
           end
         end

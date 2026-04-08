@@ -38,6 +38,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       allow(telemetry).to receive(:enabled).and_return(false)
     end
   end
+  let(:port) { Datadog::Core::Configuration::Ext::Metrics::DEFAULT_PORT }
 
   let(:environment_logger_extra) { {hello: 123, world: '456'} }
 
@@ -186,7 +187,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         before do
           expect(Datadog::Core::Diagnostics::Health::Metrics).to receive(:new)
-            .with(default_options.merge(options).merge(logger: logger, telemetry: telemetry))
+            .with(default_options.merge(options).merge(logger: logger, telemetry: telemetry, port: port))
             .and_return(health_metrics)
         end
 
@@ -327,7 +328,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         before do
           expect(Datadog::Core::Runtime::Metrics).to receive(:new)
-            .with(**default_options.merge(options).merge(logger: logger, telemetry: telemetry))
+            .with(**default_options.merge(options).merge(logger: logger, telemetry: telemetry, port: port))
             .and_return(runtime_metrics)
         end
 
@@ -417,7 +418,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
             .and_return(runtime_metrics)
 
           expect(Datadog::Core::Workers::RuntimeMetrics).to receive(:new)
-            .with(**default_options.merge(options).merge(logger: logger, telemetry: telemetry))
+            .with(**default_options.merge(options).merge(logger: logger, telemetry: telemetry, port: port))
             .and_return(runtime_metrics_worker)
         end
 

@@ -40,7 +40,7 @@ module Datadog
             option :service_name do |o|
               o.type :string, nilable: true
               o.env Ext::ENV_SERVICE_NAME
-              o.default Contrib::SpanAttributeSchema.default_or_global_service_name(Ext::DEFAULT_PEER_SERVICE_NAME)
+              o.default { Contrib::SpanAttributeSchema.default_or_global_service_name(Ext::DEFAULT_PEER_SERVICE_NAME) }
             end
 
             option :comment_propagation do |o|

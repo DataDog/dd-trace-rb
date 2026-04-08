@@ -87,6 +87,16 @@ module Datadog
           option :timeout_seconds do |o|
             o.type :int, nilable: true
             o.env Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS
+            o.env_parser do |value|
+              if value
+                begin
+                  Integer(value)
+                rescue ArgumentError
+                  Datadog.logger.warn("Invalid value for #{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS} (#{value.inspect}). Ignoring this configuration.")
+                  nil
+                end
+              end
+            end
           end
 
           # Agent unix domain socket path.
@@ -107,7 +117,7 @@ module Datadog
             option :port do |o|
               o.type :int
               o.env Datadog::Core::Configuration::Ext::Metrics::ENV_DEFAULT_PORT
-              o.default 8125
+              o.default Datadog::Core::Configuration::Ext::Metrics::DEFAULT_PORT
             end
           end
         end

@@ -33,7 +33,7 @@ module Datadog
 
             option :cache_service do |o|
               o.type :string, nilable: true
-              o.default Contrib::SpanAttributeSchema.default_or_global_service_name(Ext::SERVICE_CACHE)
+              o.default { Contrib::SpanAttributeSchema.default_or_global_service_name(Ext::SERVICE_CACHE) }
             end
 
             # grouped "cache_key.*" settings
