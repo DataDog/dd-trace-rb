@@ -455,6 +455,7 @@ namespace :spec do
     # Datadog DI integrations
     [
       :active_record,
+      :bootsnap,
       :rails,
     ].each do |contrib|
       desc '' # "Explicitly hiding from `rake -T`"
