@@ -65,10 +65,14 @@ module Datadog
             # Only store whole-file iseqs (:top from require/load,
             # :main from entry point). Per-method/block/class iseqs
             # cover only a subset of lines in the file.
-            # Fall back to first_lineno == 0 if iseq_type is unavailable.
+            # Require first_lineno == 0 on all paths to exclude
+            # compile_file/compile iseqs. These are :top type but have
+            # first_lineno == 1. Targeted TracePoints are bound to the
+            # specific iseq object — a probe on a compile_file iseq
+            # silently never fires when the require-produced code runs.
             if have_iseq_type
               type = DI.iseq_type(iseq)
-              next unless type == :top || type == :main
+              next unless (type == :top || type == :main) && iseq.first_lineno == 0
             else
               next unless iseq.first_lineno == 0
             end
