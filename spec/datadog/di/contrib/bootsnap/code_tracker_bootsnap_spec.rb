@@ -91,11 +91,12 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
 
     after do
       FileUtils.remove_entry(cache_dir)
-      # Restore default load_iseq behavior by removing Bootsnap's hook.
-      # Bootsnap prepends InstructionSequenceMixin onto the singleton class
-      # of RubyVM::InstructionSequence. We can't easily unprepend, but
-      # we can clear the cache dir so subsequent loads go through normal
-      # compilation.
+      # Remove load_iseq from the prepended module so it falls through
+      # to normal compilation. The module stays in the ancestor chain but
+      # becomes a no-op (same pattern as DI instrumenter method probe cleanup).
+      if Bootsnap::CompileCache::ISeq::InstructionSequenceMixin.method_defined?(:load_iseq)
+        Bootsnap::CompileCache::ISeq::InstructionSequenceMixin.send(:remove_method, :load_iseq)
+      end
       Object.send(:remove_const, :BootsnapTestClass) if defined?(BootsnapTestClass)
     end
 
