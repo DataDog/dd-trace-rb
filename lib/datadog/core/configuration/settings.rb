@@ -106,7 +106,7 @@ module Datadog
           # @return [String,nil]
           option :uds_path
 
-          # TODO: add more declarative statsd configuration. Currently only usable via an environment variable.
+          # TODO: add more declarative statsd configuration.
           # Statsd configuration for agent access.
           # @public_api
           settings :statsd do

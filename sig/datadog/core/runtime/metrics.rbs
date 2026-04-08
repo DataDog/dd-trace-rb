@@ -4,7 +4,7 @@ module Datadog
       class Metrics < Core::Metrics::Client
         @runtime_id_enabled: bool
 
-        def initialize: (telemetry: Core::Telemetry::Component, port: Integer, **untyped options) -> void
+        def initialize: (telemetry: Core::Telemetry::Component, port: ::Integer, **untyped options) -> void
         def register_service: (untyped service) -> (nil | untyped)
         def flush: () -> (nil | untyped)
 

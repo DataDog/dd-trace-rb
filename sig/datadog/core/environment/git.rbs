@@ -2,7 +2,7 @@ module Datadog
   module Core
     module Environment
       module Git
-        def self?.git_repository_url: (Configuration::Settings settings) -> String?
+        def self?.git_repository_url: (Configuration::Settings settings) -> ::String?
       end
     end
   end

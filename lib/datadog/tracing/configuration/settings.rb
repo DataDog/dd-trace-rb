@@ -394,7 +394,6 @@ module Datadog
                 option :rules do |o|
                   o.type :string, nilable: true
                   o.env Configuration::Ext::Sampling::ENV_RULES
-                  o.default nil
                 end
 
                 # Single span sampling rules file.

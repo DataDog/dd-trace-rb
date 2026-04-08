@@ -8,16 +8,16 @@ module Datadog
 
         extend Helpers
 
-        @port: Integer
+        @port: ::Integer
 	      @logger: Core::Logger
         @enabled: bool
-        @dogstatsd_version: Gem::Version?
+        @dogstatsd_version: ::Gem::Version?
 
         attr_reader statsd: untyped
 	      attr_reader logger: Core::Logger
         attr_reader telemetry: Core::Telemetry::Component
 
-        def initialize: (telemetry: Core::Telemetry::Component, port: Integer, ?logger: Datadog::Core::Logger, ?statsd: untyped?, ?enabled: bool, **untyped _) -> void
+        def initialize: (telemetry: Core::Telemetry::Component, port: ::Integer, ?logger: Datadog::Core::Logger, ?statsd: untyped?, ?enabled: bool, **untyped _) -> void
 
         def supported?: () -> untyped
 
