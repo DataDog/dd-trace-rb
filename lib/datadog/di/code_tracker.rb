@@ -80,6 +80,7 @@ module Datadog
             registry[path] = iseq
           end
         end
+        nil
       rescue => exc
         # Backfill is best-effort — if it fails, line probes on
         # pre-loaded code won't work but everything else is unaffected.
