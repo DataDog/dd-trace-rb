@@ -44,6 +44,8 @@ module Datadog
 
         def dequeue: () -> Array[Event::Base]
 
+        def stop: (?bool force_stop, ?::Integer | ::Float timeout) -> untyped
+
 	def flush: (?timeout: Numeric?) -> bool
 
         private
