@@ -2,24 +2,7 @@
 
 require "datadog/di/spec_helper"
 require "datadog/di"
-require "tmpdir"
-
-# Load bootsnap at file load time, not inside before(:all). This makes
-# the require visible and predictable — if bootsnap isn't available, the
-# entire file is skipped before any RSpec context is created.
-BOOTSNAP_AVAILABLE = begin
-  require "bootsnap"
-  # Verify bootsnap's iseq cache can actually initialize —
-  # the gem may load but fail to install if its C extension
-  # wasn't compiled for this environment.
-  test_dir = Dir.mktmpdir("bootsnap_probe")
-  Bootsnap::CompileCache::ISeq.install!(test_dir)
-  Bootsnap::CompileCache::ISeq::InstructionSequenceMixin.send(:remove_method, :load_iseq)
-  FileUtils.remove_entry(test_dir)
-  true
-rescue LoadError, StandardError
-  false
-end
+require "bootsnap"
 
 # End-to-end test: DI code tracking works correctly when Bootsnap's iseq
 # cache is active. Bootsnap hooks RubyVM::InstructionSequence.load_iseq
@@ -31,10 +14,6 @@ end
 # This test uses the real Bootsnap gem — not a simulation.
 RSpec.describe "DI CodeTracker with Bootsnap" do
   di_test
-
-  before(:all) do
-    skip "Bootsnap iseq cache not available" unless BOOTSNAP_AVAILABLE
-  end
 
   let(:diagnostics_transport) do
     double(Datadog::DI::Transport::Diagnostics::Transport)
