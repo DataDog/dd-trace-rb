@@ -55,9 +55,11 @@ module Datadog
         end
 
         def configured_hostname
-          # DEV 3.0: In dd-trace-rs, DD_TRACE_AGENT_URL takes precedence over DD_AGENT_HOST and DD_TRACE_AGENT_PORT
+          # DEV 3.0: According to public documentation,
+          # DD_TRACE_AGENT_URL takes precedence over DD_AGENT_HOST and DD_TRACE_AGENT_PORT
           # Before releasing dd-trace-rb 3.0, we should consider following that logic.
           # (Add the env vars to c.agent.host and c.agent.port, and prioritize parsed_http_url)
+          # Source: https://docs.datadoghq.com/tracing/trace_collection/library_config/#agent
           return @configured_hostname if defined?(@configured_hostname)
 
           @configured_hostname = pick_from(
