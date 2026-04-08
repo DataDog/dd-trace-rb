@@ -7,6 +7,8 @@ require_relative 'evaluation/result'
 require_relative 'evaluation/no_op_result'
 require_relative 'evaluation/message'
 require_relative 'evaluation/tool_call'
+require_relative 'evaluation/content_part'
+require_relative 'evaluation/content_builder'
 require_relative 'ext'
 
 module Datadog
