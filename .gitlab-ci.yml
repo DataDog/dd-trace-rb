@@ -2,8 +2,8 @@ stages:
   - manual-images
   - package
   - shared-pipeline
-  - macrobenchmarks
   - microbenchmarks
+  - macrobenchmarks
   - macrobenchmarks-gates
   - macrobenchmarks-notify
 
