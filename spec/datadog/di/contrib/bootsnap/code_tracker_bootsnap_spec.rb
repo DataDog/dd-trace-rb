@@ -72,6 +72,17 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
     let(:test_file) { File.join(__dir__, "bootsnap_test_class.rb") }
 
     before do
+      # Bootsnap's load_iseq returns nil when Coverage is running (SimpleCov),
+      # disabling iseq caching entirely. Suspend Coverage so Bootsnap's cache
+      # works normally — both for the priming load (writes cache) and the
+      # test loads (reads cache via load_iseq).
+      # Coverage.suspend requires Ruby 3.2+; di:bootsnap runs on 3.2+ only.
+      @coverage_was_suspended = false
+      if defined?(Coverage) && Coverage.respond_to?(:suspend) && Coverage.running?
+        Coverage.suspend
+        @coverage_was_suspended = true
+      end
+
       # Install Bootsnap's iseq cache with a fresh temp directory.
       Bootsnap::CompileCache::ISeq.install!(cache_dir)
 
@@ -89,6 +100,7 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
     end
 
     after do
+      Coverage.resume if @coverage_was_suspended
       FileUtils.remove_entry(cache_dir)
       # Remove load_iseq from the prepended module so it falls through
       # to normal compilation. The module stays in the ancestor chain but
