@@ -244,9 +244,21 @@ namespace :spec do
 
   desc 'Run spec:core_with_libdatadog_api tests with memory leak checking'
   if Gem.loaded_specs.key?('ruby_memcheck')
-    RubyMemcheck::RSpec::RakeTask.new(:core_with_libdatadog_api_memcheck) do |t, args|
-      t.pattern = CORE_WITH_LIBDATADOG_API.join(', ')
-      t.rspec_opts = [*args.to_a, '-t ~memcheck_valgrind_skip'].join(' ')
+    require 'libdatadog'
+
+    # Temporary workaround to unblock moving to libdatadog v30. If you see this code here and we've moved past v30 already,
+    # we forgot to clean it up -- please do!
+    if Libdatadog::VERSION.start_with?('30.')
+      task :core_with_libdatadog_api_memcheck do
+        warn "Skipping memcheck for libdatadog v30 because of https://github.com/bytecodealliance/rustix/issues/1559" \
+          " (libdatadog v30 causes a crash when running inside valgrind)." \
+          " Libdatadog 31? 32? should include https://github.com/DataDog/libdatadog/pull/1859 and fix this issue."
+      end
+    else
+      RubyMemcheck::RSpec::RakeTask.new(:core_with_libdatadog_api_memcheck) do |t, args|
+        t.pattern = CORE_WITH_LIBDATADOG_API.join(', ')
+        t.rspec_opts = [*args.to_a, '-t ~memcheck_valgrind_skip'].join(' ')
+      end
     end
   else
     task :core_with_libdatadog_api_memcheck do
