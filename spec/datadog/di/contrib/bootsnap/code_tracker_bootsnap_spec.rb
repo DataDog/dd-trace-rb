@@ -22,7 +22,6 @@ require "bootsnap/compile_cache/iseq"
 RSpec.describe "DI CodeTracker with Bootsnap" do
   di_test
 
-
   let(:diagnostics_transport) do
     double(Datadog::DI::Transport::Diagnostics::Transport)
   end
