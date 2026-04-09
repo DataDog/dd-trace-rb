@@ -316,6 +316,49 @@ microbenchmarks-pr-comment:
       - artifacts/
     expire_in: 3 months
 
+check-big-regressions:
+  stage: microbenchmarks
+  when: always
+  needs:
+    - job: microbenchmarks
+  tags: ["arch:amd64"]
+  image: $BASE_CI_IMAGE
+  timeout: 30m
+  allow_failure: true
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "master"
+      interruptible: false
+    - interruptible: true
+  variables:
+    CI_COMMIT_REF_NAME: $CI_COMMIT_REF_NAME
+    CI_PROJECT_NAME: $CI_PROJECT_NAME
+  script:
+    - export ARTIFACTS_DIR="$(pwd)/artifacts"
+    - |
+      if ! mkdir -p "$ARTIFACTS_DIR"; then
+        echo "Error: Failed to create artifacts directory: $ARTIFACTS_DIR" >&2
+        exit 1
+      fi
+    - |
+      if [ -z "$CI_JOB_TOKEN" ]; then
+        echo "Error: CI_JOB_TOKEN is not set" >&2
+        exit 1
+      fi
+    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
+    - |
+      if ! git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform; then
+        echo "Error: Failed to clone benchmarking-platform repository (branch dd-trace-rb)" >&2
+        exit 1
+      fi
+    - cd platform
+    - bp-runner bp-runner.fail-on-regression.yml --debug
+  artifacts:
+    name: "artifacts"
+    when: always
+    paths:
+      - artifacts/
+    expire_in: 3 months
+
 # -----------------------------------------------------
 # Pre-release Performance Quality Gates
 # -----------------------------------------------------
