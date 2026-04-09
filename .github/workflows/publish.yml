@@ -344,7 +344,7 @@ jobs:
         id: generate-token
         with:
           scope: DataDog/dd-trace-rb
-          policy: self.publish
+          policy: self.update-release-branch
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: true # required for `git` operations (push) at later steps
