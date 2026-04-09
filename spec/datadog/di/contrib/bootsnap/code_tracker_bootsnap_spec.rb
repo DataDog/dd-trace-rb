@@ -34,6 +34,9 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
 
   before(:all) do
     skip "Bootsnap iseq cache not available" unless BOOTSNAP_AVAILABLE
+    # DI::Component.build requires the C extension (DI.respond_to?(:exception_message)).
+    # The di:bootsnap CI task does not compile the extension — skip when absent.
+    skip "DI C extension not available" unless Datadog::DI.respond_to?(:exception_message)
   end
 
   let(:diagnostics_transport) do
