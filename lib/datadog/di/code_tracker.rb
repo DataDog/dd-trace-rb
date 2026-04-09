@@ -54,6 +54,7 @@ module Datadog
       # :script_compiled), since those are guaranteed to be whole-file
       # iseqs and are authoritative.
       #
+      # @return [void]
       def backfill_registry
         iseqs = DI.file_iseqs
         have_iseq_type = DI.respond_to?(:iseq_type)

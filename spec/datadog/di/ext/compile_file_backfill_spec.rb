@@ -14,23 +14,16 @@ require "tempfile"
 RSpec.describe "backfill_registry with compile_file iseqs" do
   di_test
 
-  before(:all) do
-    skip "Test requires iseq_type (Ruby >= 3.1 only)" unless Datadog::DI.respond_to?(:iseq_type)
-  end
-
   let(:tracker) { Datadog::DI::CodeTracker.new }
 
   after do
     tracker.stop
   end
 
-  # Simulate the scenario: a file is loaded (require), then someone
-  # also calls compile_file on it and holds the reference. The require-
-  # produced :top iseq gets GC'd (normal behavior), but the compile_file
-  # :top iseq survives because a reference is held. backfill_registry
-  # should NOT register the compile_file iseq.
-  it "does not register compile_file iseqs that would cause probes to never fire" do
-    # Create a temp source file
+  # Helper: create a temp file, load it, compile_file it, GC the
+  # require-produced :top iseq, then stub file_iseqs to return only
+  # the compile_file iseq.
+  def setup_compile_file_scenario
     tempfile = Tempfile.new(["backfill_compile_test", ".rb"])
     tempfile.write(<<~RUBY)
       class BackfillCompileTestClass
@@ -58,38 +51,77 @@ RSpec.describe "backfill_registry with compile_file iseqs" do
     # find in object space.
     allow(Datadog::DI).to receive(:file_iseqs).and_return([compiled_iseq])
 
-    tracker.backfill_registry
+    tempfile
+  end
 
-    # If backfill registered the compile_file iseq, a targeted TracePoint
-    # on it would never fire when the actual method executes.
-    result = tracker.iseqs_for_path_suffix(tempfile.path)
-
-    expect(result).to be_nil,
-      "backfill_registry should not register compile_file iseqs, " \
-      "but registered iseq for: #{result&.first}"
-
-    if result
-      _path, registered_iseq = result
-
-      # Verify: does a trace point on the registered iseq actually fire?
-      fired = false
-      tp = TracePoint.new(:line) { fired = true }
-      tp.enable(target: registered_iseq)
-
-      BackfillCompileTestClass.new.test_method
-
-      tp.disable
-
-      # If this fails, backfill registered a compile_file iseq that
-      # produces a non-firing probe — the bot's concern is confirmed.
-      expect(fired).to be(true),
-        "backfill_registry registered an iseq that does not fire when " \
-        "the actual code executes. This is likely a compile_file iseq " \
-        "rather than the require-produced iseq."
+  # Simulate the scenario: a file is loaded (require), then someone
+  # also calls compile_file on it and holds the reference. The require-
+  # produced :top iseq gets GC'd (normal behavior), but the compile_file
+  # :top iseq survives because a reference is held. backfill_registry
+  # should NOT register the compile_file iseq.
+  context "with iseq_type (Ruby 3.1+)" do
+    before(:all) do
+      skip "Test requires iseq_type (Ruby >= 3.1 only)" unless Datadog::DI.respond_to?(:iseq_type)
     end
-  ensure
-    Object.send(:remove_const, :BackfillCompileTestClass) if defined?(BackfillCompileTestClass)
-    tempfile&.close
-    tempfile&.unlink
+
+    it "does not register compile_file iseqs that would cause probes to never fire" do
+      tempfile = setup_compile_file_scenario
+
+      tracker.backfill_registry
+
+      result = tracker.iseqs_for_path_suffix(tempfile.path)
+
+      expect(result).to be_nil,
+        "backfill_registry should not register compile_file iseqs, " \
+        "but registered iseq for: #{result&.first}"
+
+      if result
+        _path, registered_iseq = result
+
+        # Verify: does a trace point on the registered iseq actually fire?
+        fired = false
+        tp = TracePoint.new(:line) { fired = true }
+        tp.enable(target: registered_iseq)
+
+        BackfillCompileTestClass.new.test_method
+
+        tp.disable
+
+        expect(fired).to be(true),
+          "backfill_registry registered an iseq that does not fire when " \
+          "the actual code executes. This is likely a compile_file iseq " \
+          "rather than the require-produced iseq."
+      end
+    ensure
+      Object.send(:remove_const, :BackfillCompileTestClass) if defined?(BackfillCompileTestClass)
+      tempfile&.close
+      tempfile&.unlink
+    end
+  end
+
+  # On Ruby < 3.1, backfill_registry uses the first_lineno == 0
+  # heuristic. compile_file produces iseqs with first_lineno == 1,
+  # so they are excluded by the same check. This test verifies the
+  # fallback path works on all supported Ruby versions.
+  context "with first_lineno fallback (all Ruby versions)" do
+    it "does not register compile_file iseqs via first_lineno check" do
+      tempfile = setup_compile_file_scenario
+
+      # Force the first_lineno fallback by stubbing iseq_type away
+      allow(Datadog::DI).to receive(:respond_to?).and_call_original
+      allow(Datadog::DI).to receive(:respond_to?).with(:iseq_type).and_return(false)
+
+      tracker.backfill_registry
+
+      result = tracker.iseqs_for_path_suffix(tempfile.path)
+
+      expect(result).to be_nil,
+        "backfill_registry (first_lineno fallback) should not register " \
+        "compile_file iseqs, but registered iseq for: #{result&.first}"
+    ensure
+      Object.send(:remove_const, :BackfillCompileTestClass) if defined?(BackfillCompileTestClass)
+      tempfile&.close
+      tempfile&.unlink
+    end
   end
 end
