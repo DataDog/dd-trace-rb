@@ -20,8 +20,7 @@ variables:
     - if: $CI_COMMIT_REF_NAME == "master"
       when: always
       interruptible: false
-    # TODO: Revert to `when: manual` before merging this PR
-    - when: always
+    - when: manual
       interruptible: true
   # If you have a problem with Gitlab cache, see Troubleshooting section in Benchmarking Platform docs
   image: $GITLAB_BENCHMARKS_CI_IMAGE
@@ -366,9 +365,8 @@ check-big-regressions:
 # for documentation on performance quality gates.
 
 check-slo-breaches:
+  extends: .check-slo-breaches
   stage: macrobenchmarks-gates
-  tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/benchmarking-platform-tools-ubuntu:latest
   when: always
   allow_failure: true
   needs:
@@ -384,11 +382,25 @@ check-slo-breaches:
     - if: $CI_COMMIT_REF_NAME == "master"
       interruptible: false
     - interruptible: true
-  script:
-    - echo "SLO check placeholder - collecting baseline artifacts"
+  variables:
+    DDOCTOSTS_POLICY: "gitlab.github-access.slo-change-tracking.contents-read"
+    ARTIFACTS_DIR: "platform/artifacts"
+    SLO_FILE: ".gitlab/benchmarks/bp-runner.macrobenchmarks.fail-on-breach.yml"
   artifacts:
     name: "artifacts"
     when: always
     paths:
       - platform/artifacts/
     expire_in: 3 months
+
+notify-slo-breaches:
+  extends: .notify-slo-breaches
+  stage: macrobenchmarks-notify
+  needs: ["check-slo-breaches"]
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "master"
+      interruptible: false
+    - interruptible: true
+  variables:
+    # TODO: Change to #guild-dd-ruby once the quality gates are validated
+    CHANNEL: "apm-dcs-performance-alerts"

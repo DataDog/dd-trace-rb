@@ -1,0 +1,358 @@
+# Auto-generated SLO Thresholds
+# Generated: 2026-04-09 19:27:29
+#
+# Generation Strategy: tight
+#   Formula: CI_bound / (1 ± T) (T = 5.0%)
+#
+# SLO Checking:
+#   - BREACH: 90% CI boundary crosses threshold
+#   - WARNING: 90% CI boundary crosses warning_threshold (constant)
+#
+# Average Sample Size: 1442 measurements per metric
+#
+# DO NOT EDIT MANUALLY - Regenerate using:
+#   benchmark_analyzer generate slos --help
+
+experiments:
+  - name: Check macrobenchmark SLO breaches
+    steps:
+      - name: SLO breach check
+        run: fail_on_breach
+        warning_range: 10
+        submit_metrics_to_datadog: true
+        scenarios:
+          - name: high_load--baseline
+            thresholds:
+              - agg_http_req_duration_max < 124906253.47 ns
+              - agg_http_req_duration_min < 41674557.32 ns
+              - agg_http_req_duration_p50 < 72658352.67 ns
+              - agg_http_req_duration_p75 < 84236092.07 ns
+              - agg_http_req_duration_p95 < 108348803.74 ns
+              - agg_http_req_duration_p99 < 120279495.51 ns
+              - data_received < 1120295.91 B/s
+              - data_sent < 5955.4 B/s
+              - dropped_iterations < 154.32 iterations
+              - http_req_duration < 74537030.2 ns
+              - throughput > 50.65 op/s
+
+          - name: high_load--baseline--gitlab-wrapper-utilization
+            thresholds:
+              - cpu_usage_percentage < 231.48 %
+              - rss < 6178544617.46 bytes
+
+          - name: high_load--baseline--puma-utilization
+            thresholds:
+              - cpu_usage_percentage < 207.78 %
+              - rss < 2956379992.96 bytes
+
+          - name: high_load--only-profiling
+            thresholds:
+              - agg_http_req_duration_max < 139620238.27 ns
+              - agg_http_req_duration_min < 44714700.78 ns
+              - agg_http_req_duration_p50 < 83219469.44 ns
+              - agg_http_req_duration_p75 < 99003408.28 ns
+              - agg_http_req_duration_p95 < 122490554.66 ns
+              - agg_http_req_duration_p99 < 135023783.1 ns
+              - data_received < 1001975.55 B/s
+              - data_sent < 5326.42 B/s
+              - dropped_iterations < 160.19 iterations
+              - http_req_duration < 84124703.9 ns
+              - throughput > 45.32 op/s
+
+          - name: high_load--only-profiling--gitlab-wrapper-utilization
+            thresholds:
+              - cpu_usage_percentage < 233.91 %
+              - rss < 5426922396.72 bytes
+
+          - name: high_load--only-profiling--puma-utilization
+            thresholds:
+              - cpu_usage_percentage < 210.71 %
+              - rss < 2116284613.71 bytes
+
+          - name: high_load--only-profiling-alloc
+            thresholds:
+              - agg_http_req_duration_max < 143706773.22 ns
+              - agg_http_req_duration_min < 48098912.5 ns
+              - agg_http_req_duration_p50 < 89028568.79 ns
+              - agg_http_req_duration_p75 < 105928721.29 ns
+              - agg_http_req_duration_p95 < 129991841.57 ns
+              - agg_http_req_duration_p99 < 140402844.0 ns
+              - data_received < 939280.89 B/s
+              - data_sent < 4993.14 B/s
+              - dropped_iterations < 163.49 iterations
+              - http_req_duration < 90015017.09 ns
+              - throughput > 42.43 op/s
+
+          - name: high_load--only-profiling-alloc--gitlab-wrapper-utilization
+            thresholds:
+              - cpu_usage_percentage < 233.58 %
+              - rss < 5317711579.51 bytes
+
+          - name: high_load--only-profiling-alloc--puma-utilization
+            thresholds:
+              - cpu_usage_percentage < 210.64 %
+              - rss < 2143569719.79 bytes
+
+          - name: high_load--only-profiling-heap
+            thresholds:
+              - agg_http_req_duration_max < 145958727.66 ns
+              - agg_http_req_duration_min < 48230678.04 ns
+              - agg_http_req_duration_p50 < 89644158.29 ns
+              - agg_http_req_duration_p75 < 105941503.04 ns
+              - agg_http_req_duration_p95 < 131798306.99 ns
+              - agg_http_req_duration_p99 < 142616771.42 ns
+              - data_received < 934492.95 B/s
+              - data_sent < 4967.69 B/s
+              - dropped_iterations < 163.54 iterations
+              - http_req_duration < 90439649.29 ns
+              - throughput > 42.27 op/s
+
+          - name: high_load--only-profiling-heap--gitlab-wrapper-utilization
+            thresholds:
+              - cpu_usage_percentage < 232.93 %
+              - rss < 5192477450.86 bytes
+
+          - name: high_load--only-profiling-heap--puma-utilization
+            thresholds:
+              - cpu_usage_percentage < 210.73 %
+              - rss < 1954118604.86 bytes
+
+          - name: high_load--only-tracing
+            thresholds:
+              - agg_http_req_duration_max < 222921937.72 ns
+              - agg_http_req_duration_min < 54985194.65 ns
+              - agg_http_req_duration_p50 < 103924926.52 ns
+              - agg_http_req_duration_p75 < 125580535.06 ns
+              - agg_http_req_duration_p95 < 186186442.69 ns
+              - agg_http_req_duration_p99 < 215492789.43 ns
+              - data_received < 796812.96 B/s
+              - data_sent < 4235.79 B/s
+              - dropped_iterations < 170.95 iterations
+              - http_req_duration < 107974902.29 ns
+              - throughput > 35.6 op/s
+
+          - name: high_load--only-tracing--gitlab-wrapper-utilization
+            thresholds:
+              - cpu_usage_percentage < 229.61 %
+              - rss < 6206340158.23 bytes
+
+          - name: high_load--only-tracing--puma-utilization
+            thresholds:
+              - cpu_usage_percentage < 208.24 %
+              - rss < 3030664454.83 bytes
+
+          - name: high_load--profiling-and-tracing
+            thresholds:
+              - agg_http_req_duration_max < 227195763.26 ns
+              - agg_http_req_duration_min < 59092716.33 ns
+              - agg_http_req_duration_p50 < 110586848.76 ns
+              - agg_http_req_duration_p75 < 133241056.27 ns
+              - agg_http_req_duration_p95 < 194862148.22 ns
+              - agg_http_req_duration_p99 < 220750544.23 ns
+              - data_received < 752080.69 B/s
+              - data_sent < 3998.0 B/s
+              - dropped_iterations < 173.16 iterations
+              - http_req_duration < 114535713.38 ns
+              - throughput > 33.63 op/s
+
+          - name: high_load--profiling-and-tracing--gitlab-wrapper-utilization
+            thresholds:
+              - cpu_usage_percentage < 238.44 %
+              - rss < 6383611889.12 bytes
+
+          - name: high_load--profiling-and-tracing--puma-utilization
+            thresholds:
+              - cpu_usage_percentage < 213.01 %
+              - rss < 3112198495.03 bytes
+
+          - name: high_load--profiling-and-tracing-and-appsec
+            thresholds:
+              - agg_http_req_duration_max < 224640495.52 ns
+              - agg_http_req_duration_min < 59146953.02 ns
+              - agg_http_req_duration_p50 < 113706102.83 ns
+              - agg_http_req_duration_p75 < 137278030.15 ns
+              - agg_http_req_duration_p95 < 197012276.91 ns
+              - agg_http_req_duration_p99 < 219328083.73 ns
+              - data_received < 738868.56 B/s
+              - data_sent < 3927.76 B/s
+              - dropped_iterations < 173.93 iterations
+              - http_req_duration < 116651367.96 ns
+              - throughput > 33.06 op/s
+
+          - name: high_load--profiling-and-tracing-and-appsec--gitlab-wrapper-utilization
+            thresholds:
+              - cpu_usage_percentage < 236.5 %
+              - rss < 5718671535.43 bytes
+
+          - name: high_load--profiling-and-tracing-and-appsec--puma-utilization
+            thresholds:
+              - cpu_usage_percentage < 213.63 %
+              - rss < 2586284470.78 bytes
+
+          - name: normal_operation--baseline
+            thresholds:
+              - agg_http_req_duration_max < 55472476.99 ns
+              - agg_http_req_duration_min < 38873642.7 ns
+              - agg_http_req_duration_p50 < 41047543.27 ns
+              - agg_http_req_duration_p75 < 42114341.42 ns
+              - agg_http_req_duration_p95 < 50408675.17 ns
+              - agg_http_req_duration_p99 < 54289685.17 ns
+              - data_received < 623920.83 B/s
+              - data_sent < 3316.71 B/s
+              - http_req_duration < 41604950.21 ns
+              - throughput > 28.4 op/s
+
+          - name: normal_operation--baseline--gitlab-wrapper-utilization
+            thresholds:
+              - cpu_usage_percentage < 132.11 %
+              - rss < 5923821498.16 bytes
+
+          - name: normal_operation--baseline--puma-utilization
+            thresholds:
+              - cpu_usage_percentage < 115.76 %
+              - rss < 2910031515.81 bytes
+
+          - name: normal_operation--only-profiling
+            thresholds:
+              - agg_http_req_duration_max < 63044078.81 ns
+              - agg_http_req_duration_min < 42961243.06 ns
+              - agg_http_req_duration_p50 < 44981562.25 ns
+              - agg_http_req_duration_p75 < 46321555.22 ns
+              - agg_http_req_duration_p95 < 58086576.56 ns
+              - agg_http_req_duration_p99 < 61906005.77 ns
+              - data_received < 624255.01 B/s
+              - data_sent < 3318.49 B/s
+              - dropped_iterations < 3.09 iterations
+              - http_req_duration < 46351957.27 ns
+              - throughput > 28.34 op/s
+
+          - name: normal_operation--only-profiling--gitlab-wrapper-utilization
+            thresholds:
+              - cpu_usage_percentage < 150.05 %
+              - rss < 6203083349.23 bytes
+
+          - name: normal_operation--only-profiling--puma-utilization
+            thresholds:
+              - cpu_usage_percentage < 133.73 %
+              - rss < 3060613196.75 bytes
+
+          - name: normal_operation--only-profiling-alloc
+            thresholds:
+              - agg_http_req_duration_max < 68246359.37 ns
+              - agg_http_req_duration_min < 46383141.0 ns
+              - agg_http_req_duration_p50 < 48435155.19 ns
+              - agg_http_req_duration_p75 < 55893088.32 ns
+              - agg_http_req_duration_p95 < 63439931.31 ns
+              - agg_http_req_duration_p99 < 67120321.03 ns
+              - data_received < 623710.23 B/s
+              - data_sent < 3315.59 B/s
+              - dropped_iterations < 0.56 iterations
+              - http_req_duration < 49893842.34 ns
+              - throughput > 28.33 op/s
+
+          - name: normal_operation--only-profiling-alloc--gitlab-wrapper-utilization
+            thresholds:
+              - cpu_usage_percentage < 160.43 %
+              - rss < 6216348877.44 bytes
+
+          - name: normal_operation--only-profiling-alloc--puma-utilization
+            thresholds:
+              - cpu_usage_percentage < 143.4 %
+              - rss < 3068517114.0 bytes
+
+          - name: normal_operation--only-profiling-heap
+            thresholds:
+              - agg_http_req_duration_max < 69672445.45 ns
+              - agg_http_req_duration_min < 46464612.78 ns
+              - agg_http_req_duration_p50 < 48691356.17 ns
+              - agg_http_req_duration_p75 < 50150129.86 ns
+              - agg_http_req_duration_p95 < 63480294.96 ns
+              - agg_http_req_duration_p99 < 68234862.55 ns
+              - data_received < 623766.96 B/s
+              - data_sent < 3315.89 B/s
+              - dropped_iterations < 0.59 iterations
+              - http_req_duration < 50022654.72 ns
+              - throughput > 28.32 op/s
+
+          - name: normal_operation--only-profiling-heap--gitlab-wrapper-utilization
+            thresholds:
+              - cpu_usage_percentage < 161.17 %
+              - rss < 6288880920.32 bytes
+
+          - name: normal_operation--only-profiling-heap--puma-utilization
+            thresholds:
+              - cpu_usage_percentage < 143.79 %
+              - rss < 3106246804.21 bytes
+
+          - name: normal_operation--only-tracing
+            thresholds:
+              - agg_http_req_duration_max < 113325020.83 ns
+              - agg_http_req_duration_min < 51375620.14 ns
+              - agg_http_req_duration_p50 < 57068967.32 ns
+              - agg_http_req_duration_p75 < 62774516.54 ns
+              - agg_http_req_duration_p95 < 93617155.78 ns
+              - agg_http_req_duration_p99 < 109161731.48 ns
+              - data_received < 617361.21 B/s
+              - data_sent < 3281.84 B/s
+              - dropped_iterations < 0.55 iterations
+              - http_req_duration < 60463782.03 ns
+              - throughput > 28.0 op/s
+
+          - name: normal_operation--only-tracing--gitlab-wrapper-utilization
+            thresholds:
+              - cpu_usage_percentage < 178.13 %
+              - rss < 6062022852.92 bytes
+
+          - name: normal_operation--only-tracing--puma-utilization
+            thresholds:
+              - cpu_usage_percentage < 160.3 %
+              - rss < 2997424410.94 bytes
+
+          - name: normal_operation--profiling-and-tracing
+            thresholds:
+              - agg_http_req_duration_max < 128797673.49 ns
+              - agg_http_req_duration_min < 54608506.21 ns
+              - agg_http_req_duration_p50 < 67596399.4 ns
+              - agg_http_req_duration_p75 < 76519980.21 ns
+              - agg_http_req_duration_p95 < 109943940.81 ns
+              - agg_http_req_duration_p99 < 124935973.55 ns
+              - data_received < 614264.96 B/s
+              - data_sent < 3265.38 B/s
+              - dropped_iterations < 0.82 iterations
+              - http_req_duration < 66604987.74 ns
+              - throughput > 27.76 op/s
+
+          - name: normal_operation--profiling-and-tracing--gitlab-wrapper-utilization
+            thresholds:
+              - cpu_usage_percentage < 196.64 %
+              - rss < 6223986276.87 bytes
+
+          - name: normal_operation--profiling-and-tracing--puma-utilization
+            thresholds:
+              - cpu_usage_percentage < 175.34 %
+              - rss < 3081276672.78 bytes
+
+          - name: normal_operation--profiling-and-tracing-and-appsec
+            thresholds:
+              - agg_http_req_duration_max < 131289072.75 ns
+              - agg_http_req_duration_min < 56319612.8 ns
+              - agg_http_req_duration_p50 < 64327412.86 ns
+              - agg_http_req_duration_p75 < 77169642.1 ns
+              - agg_http_req_duration_p95 < 113812659.57 ns
+              - agg_http_req_duration_p99 < 127644940.32 ns
+              - data_received < 614785.78 B/s
+              - data_sent < 3268.15 B/s
+              - dropped_iterations < 0.75 iterations
+              - http_req_duration < 70051456.13 ns
+              - throughput > 27.82 op/s
+
+          - name: normal_operation--profiling-and-tracing-and-appsec--gitlab-wrapper-utilization
+            thresholds:
+              - cpu_usage_percentage < 200.47 %
+              - rss < 6200659994.27 bytes
+
+          - name: normal_operation--profiling-and-tracing-and-appsec--puma-utilization
+            thresholds:
+              - cpu_usage_percentage < 178.29 %
+              - rss < 3063535057.24 bytes
+
