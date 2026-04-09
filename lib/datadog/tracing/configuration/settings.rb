@@ -481,6 +481,7 @@ module Datadog
               # @default `{}`
               # @return [Hash]
               option :writer_options do |o|
+                o.skip_telemetry true
                 o.type :hash
                 o.default({})
               end

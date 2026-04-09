@@ -673,7 +673,10 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       context 'when already started' do
         let!(:start_time) { span_op.start_time = Time.now }
 
-        it { expect { stop }.to_not change { span_op.start_time }.from(start_time) }
+        it 'does not change the start time' do
+          expect { stop }.to_not change { span_op.start_time }.from(start_time)
+        end
+
         it { expect { stop }.to change { span_op.end_time }.from(nil).to(end_time) }
         it { expect { stop }.to change { span_op.duration }.from(nil).to(kind_of(Float)) }
 
@@ -695,8 +698,13 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       context 'when already stopped' do
         let!(:original_end_time) { span_op.end_time = Time.now }
 
-        it { expect { stop }.to_not change { span_op.start_time }.from(original_end_time) }
-        it { expect { stop }.to_not change { span_op.end_time }.from(original_end_time) }
+        it 'does not change the start time' do
+          expect { stop }.to_not change { span_op.start_time }.from(original_end_time)
+        end
+
+        it 'does not change the end time' do
+          expect { stop }.to_not change { span_op.end_time }.from(original_end_time)
+        end
         it { expect { stop }.to_not change { span_op.duration }.from(0) }
 
         it { expect { stop }.to_not change { span_op.started? }.from(true) }
