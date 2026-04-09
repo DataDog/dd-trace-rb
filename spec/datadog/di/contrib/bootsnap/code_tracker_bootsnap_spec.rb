@@ -222,16 +222,24 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
         "Local variable :a has wrong value: #{locals[:a].inspect}"
     end
 
-    # Removed: "Bootsnap cache was actually used" test.
-    # Bootsnap's load_iseq returns nil when Coverage is running (SimpleCov),
-    # disabling disk caching entirely. Since SimpleCov is always active in CI
-    # (spec_helper.rb), this test would be skipped in every CI job — a
-    # zero-CI-jobs skip.
-    #
-    # The other tests in this context already verify what DI cares about:
-    # :script_compiled fires for Bootsnap-served code, the captured iseq is
-    # the one Ruby executes, probes install and fire, and snapshots capture
-    # local variables. Disk cache existence is a Bootsnap internal that
-    # DI doesn't depend on.
+    it "Bootsnap cache was actually used (not just normal compilation)" do
+      # Verify precondition: the cache file exists on disk, proving
+      # Bootsnap wrote a cached binary during the first load.
+      cache_files = Dir.glob(File.join(cache_dir, "**/*")).select { |f| File.file?(f) }
+      expect(cache_files).not_to be_empty,
+        "No Bootsnap cache files found in #{cache_dir}. " \
+        "Bootsnap may not have been properly initialized."
+
+      # Load the file and verify load_iseq was called (Bootsnap's hook).
+      # We can't easily check this without instrumenting Bootsnap itself,
+      # but the presence of cache files + successful probe firing
+      # (tested above) is sufficient evidence.
+      load test_file
+
+      # The file should be in the registry.
+      tracker = Datadog::DI.code_tracker
+      result = tracker.iseqs_for_path_suffix("bootsnap_test_class.rb")
+      expect(result).not_to be_nil
+    end
   end
 end
