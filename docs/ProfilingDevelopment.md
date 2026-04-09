@@ -20,7 +20,7 @@ recording a metric for them (such as elapsed cpu-time or wall-time, in a few cas
 with ongoing tracing information, if any. Relies on the `Collectors::Stack` for the actual stack sampling.
 * `Collectors::CpuAndWallTimeWorker`: Triggers the periodic execution of `Collectors::ThreadContext`.
 * `Collectors::Stack`: Used to gather a stack trace from a given Ruby thread. Stores its output on a `StackRecorder`.
-* `Tasks::Setup`: Takes care of loading and applying `Ext::Forking``.
+* `Tasks::Setup`: Takes care of loading and applying `Ext::Forking`.
 * `HttpTransport`: Implements transmission of profiling payloads to the Datadog agent or backend.
 * `Flush`: Entity class used to represent the payload to be reported for a given profile.
 * `Profiler`: Profiling entry point, which coordinates collectors and a scheduler.
