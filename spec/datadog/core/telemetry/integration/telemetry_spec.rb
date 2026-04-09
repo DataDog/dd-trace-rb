@@ -595,12 +595,16 @@ RSpec.describe 'Telemetry integration tests' do
 
       it "reports #{product_key} as configured #{requested} and actually #{running ? 'enabled' : 'disabled'}" do
         component.flush
-        expect(sent_payloads.length).to eq 3
+        # There may be more than 3 payloads when component initialization emits
+        # telemetry error events (e.g. AppSec logging why it failed to start).
+        expect(sent_payloads.length).to be >= 3
 
-        payload = sent_payloads[0].fetch(:payload)
-        expect(payload).to include(
-          'request_type' => 'app-started',
-        )
+        # Find app-started by content rather than index — extra telemetry events
+        # may arrive before or after, depending on Ruby version and timing.
+        app_started = sent_payloads.find { |p| p.fetch(:payload)['request_type'] == 'app-started' }
+        expect(app_started).not_to be_nil
+        payload = app_started.fetch(:payload)
+
         expect(payload.dig('payload', 'configuration')).to include(
           {'name' => configuration[:name], 'value' => configuration[:value], 'origin' => 'code', 'seq_id' => Integer},
         )
@@ -700,6 +704,15 @@ RSpec.describe 'Telemetry integration tests' do
 
     context 'when dynamic instrumentation is fully enabled' do
       before do
+        # DI requires a C extension and MRI Ruby 2.6+, which are not
+        # available in all CI configurations. Mock the component build
+        # so the test can run everywhere, same approach as profiling.
+        fake_di = Object.new
+        def fake_di.shutdown!
+        end
+
+        allow(Datadog::DI::Component).to receive(:build).and_return(fake_di)
+
         Datadog.configure do |c|
           common_configuration(c)
 
