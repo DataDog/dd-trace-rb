@@ -35,7 +35,7 @@ module Datadog
 
               set_common_tags(span, payload)
             rescue => e
-              Datadog.logger.debug("#{e.class}: #{e}")
+              Datadog.logger.debug { "#{e.class}: #{e}" }
             end
           end
         end

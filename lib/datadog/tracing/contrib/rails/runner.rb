@@ -86,7 +86,7 @@ module Datadog
                 # Reads one more byte than the limit to allow us to check if the source exceeds the limit.
                 source = File.read(file, MAX_TAG_VALUE_SIZE + 1)
               rescue => e
-                Datadog.logger.debug("Failed to read file '#{file}' for Rails runner: #{e.class}: #{e}")
+                Datadog.logger.debug { "Failed to read file '#{file}' for Rails runner: #{e.class}: #{e}" }
               end
 
               Tracing.trace(

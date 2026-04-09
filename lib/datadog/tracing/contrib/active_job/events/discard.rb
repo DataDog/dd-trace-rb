@@ -40,7 +40,7 @@ module Datadog
               set_common_tags(span, payload)
               span.set_tag(Ext::TAG_JOB_ERROR, payload[:error])
             rescue => e
-              Datadog.logger.debug("#{e.class}: #{e}")
+              Datadog.logger.debug { "#{e.class}: #{e}" }
             end
           end
         end

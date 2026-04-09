@@ -41,7 +41,7 @@ module Datadog
               span.set_tag(Ext::TAG_JOB_ERROR, payload[:error])
               span.set_tag(Ext::TAG_JOB_RETRY_WAIT, payload[:wait])
             rescue => e
-              Datadog.logger.debug("#{e.class}: #{e}")
+              Datadog.logger.debug { "#{e.class}: #{e}" }
             end
           end
         end

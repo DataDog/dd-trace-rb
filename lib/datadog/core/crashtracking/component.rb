@@ -55,7 +55,7 @@ module Datadog
             # Unhandled exception report triggering means that the application is already in a bad state
             # We don't want to swallow non-StandardError exceptions here; we would rather just let the
             # application crash
-            Datadog.logger.debug("Crashtracker failed to report unhandled exception: #{e.class}: #{e}")
+            Datadog.logger.debug { "Crashtracker failed to report unhandled exception: #{e.class}: #{e}" }
           end
         end
 

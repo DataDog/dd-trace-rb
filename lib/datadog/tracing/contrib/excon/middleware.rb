@@ -40,7 +40,7 @@ module Datadog
                 span
               end
             rescue => e
-              Datadog.logger.debug("#{e.class}: #{e}")
+              Datadog.logger.debug { "#{e.class}: #{e}" }
             end
 
             @stack.request_call(datum)
@@ -180,7 +180,7 @@ module Datadog
               end
             end
           rescue => e
-            Datadog.logger.debug("#{e.class}: #{e}")
+            Datadog.logger.debug { "#{e.class}: #{e}" }
           end
 
           def propagate!(trace, span, datum)
