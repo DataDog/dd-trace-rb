@@ -102,7 +102,9 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
       ) :
       ddog_crasht_update_on_fork(config, receiver_config, metadata);
 
-  first_init = false;
+  // We use first_init to know which of [init, reconfigure] needs to be called. BUT if init failed we actually need
+  // to call init next time again, not reconfigure.
+  if (result.tag == DDOG_VOID_RESULT_OK) first_init = false;
 
   // Clean up before potentially raising any exceptions
   ddog_Vec_Tag_drop(tags);
