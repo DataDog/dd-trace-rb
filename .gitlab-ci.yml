@@ -4,6 +4,8 @@ stages:
   - shared-pipeline
   - macrobenchmarks
   - microbenchmarks
+  - macrobenchmarks-gates
+  - macrobenchmarks-notify
 
 include:
   - local: ".gitlab/one-pipeline.locked.yml"
