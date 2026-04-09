@@ -1,11 +1,10 @@
 module Datadog
   module Profiling
     class HttpTransport
-      type exporter_configuration_array = [:agentless, String?, String?] | [:agent, String]
+      type exporter_configuration_array = [:agentless, Integer, bool, String, String] | [:agent, Integer, bool, String]
 
       attr_reader exporter_configuration: exporter_configuration_array
 
-      @upload_timeout_milliseconds: ::Integer
       @exporter_configuration: exporter_configuration_array
 
       def initialize: (
@@ -13,6 +12,7 @@ module Datadog
         site: ::String?,
         api_key: ::String?,
         upload_timeout_seconds: ::Integer,
+        use_system_dns: bool,
       ) -> void
 
       def export: (Datadog::Profiling::Flush flush) -> bool
@@ -25,7 +25,6 @@ module Datadog
 
       def self._native_do_export: (
         exporter_configuration_array exporter_configuration,
-        ::Integer upload_timeout_milliseconds,
         Datadog::Profiling::Flush flush,
       ) -> [:ok | :error, ::Integer | ::String]
 

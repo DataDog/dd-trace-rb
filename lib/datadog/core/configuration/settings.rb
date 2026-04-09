@@ -221,6 +221,8 @@ module Datadog
           #
           # @return Logger::Severity
           option :instance do |o|
+            # Telemetry for this option is manually modified and added in the AppStarted event.
+            o.skip_telemetry true
             o.after_set { |value| set_option(:level, value.level) unless value.nil? }
           end
 
@@ -604,6 +606,30 @@ module Datadog
                   !(RUBY_VERSION.start_with?('3.3.') && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.3.4'))
               end
             end
+
+            # Experimental: Controls the CPU sampling interval in milliseconds. This sets how often the profiler
+            # attempts to take a CPU sample. Valid values are 1 to 10.
+            #
+            # Lower values increase accuracy but also increase overhead. If you need to reduce profiler overhead,
+            # use the `overhead_target_percentage` setting instead.
+            #
+            # @warn This setting is experimental and may be removed or changed in future versions.
+            #
+            # # No config via environment variable yet
+            # @default 10
+            option :experimental_cpu_sampling_interval_ms do |o|
+              o.type :int
+              o.default 10
+            end
+
+            # Fallback to system dns instead of using libdatadog built-in resolver.
+            #
+            # @default `DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS` environment variable as a boolean, otherwise `true`
+            option :experimental_use_system_dns do |o|
+              o.type :bool
+              o.env 'DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS'
+              o.default true
+            end
           end
 
           # @public_api
@@ -888,6 +914,19 @@ module Datadog
             o.default 60.0
           end
 
+          # The interval in seconds when extended heartbeat must be sent.
+          #
+          # This method is used internally, for testing purposes only.
+          #
+          # @default `DD_TELEMETRY_EXTENDED_HEARTBEAT_INTERVAL` environment variable, otherwise `86400`.
+          # @return [Integer]
+          # @!visibility private
+          option :extended_heartbeat_interval_seconds do |o|
+            o.type :int
+            o.env Core::Telemetry::Ext::ENV_EXTENDED_HEARTBEAT_INTERVAL
+            o.default 86400
+          end
+
           # The interval in seconds when telemetry metrics are aggregated.
           # Should be a denominator of `heartbeat_interval_seconds`.
           #
@@ -1033,13 +1072,13 @@ module Datadog
           end
         end
 
-        # Enable experimental process tags propagation such that payloads like spans contain the process tag.
+        # Enable process tags propagation such that payloads like spans contain the process tag.
         #
-        # @default `DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED` environment variable, otherwise `false`
+        # @default `DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED` environment variable, otherwise `true`
         # @return [Boolean]
         option :experimental_propagate_process_tags_enabled do |o|
           o.env 'DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED'
-          o.default false
+          o.default true
           o.type :bool
         end
 

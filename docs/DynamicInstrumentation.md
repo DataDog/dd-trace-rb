@@ -21,6 +21,8 @@ practices for using Dynamic Instrumentation.
 - Datadog Agent 7.49.0 or higher
 - Ruby 2.6 or higher
   - Only MRI (CRuby) is supported; JRuby and other Ruby implementations are not currently supported
+  - The `libdatadog_api` C extension must be compiled; DI will not
+    activate without it
 - Rack-based applications only
   - Includes Rails, Sinatra, and other Rack-compatible frameworks
   - Non-Rack applications are not currently supported
@@ -275,19 +277,39 @@ per-probe in the probe definition.
 - **Workaround:** Increase the capture depth for probes targeting code
   that works with complex objects
 
-## Application Data Sent to Datadog
+#### Custom Serializers
 
-Dynamic instrumentation sends some of the application data to Datadog.
-The following data is generally sent:
+Custom serializers allow you to define how specific objects are serialized
+in Dynamic Instrumentation snapshots. The API is currently internal and
+subject to change.
 
-- Class names of objects
-- Serialized object values, subject to redaction. There are built-in
-  redaction rules based on identifier names that are always active.
-  Additionally, it is possible to provide a list of class names whose
-  object values should always be redacted, and a list of additional
-  identifiers to be redacted.
-- Exception class names and messages
-- Exception stack traces
+**Exception Handling:** If a custom serializer's condition lambda raises
+an exception (for example, a regex match against a string with invalid
+UTF-8 encoding), the exception will be logged at WARN level, then the
+serializer will be skipped and the next serializer will be tried. This
+prevents custom serializers from breaking the entire serialization process.
+The value will fall back to default serialization.
+
+## What Data Is Captured
+
+When a probe fires, Dynamic Instrumentation captures a snapshot of
+application state and sends it to Datadog. The snapshot includes:
+
+- **Variable values** — local variables, method arguments, and return
+  values, subject to the capture depth and collection size limits
+  described below. Values are automatically redacted when their
+  identifier names match built-in redaction rules. You can also
+  configure additional identifiers and class names to redact.
+- **Object class names** — the class of each captured value.
+- **Exception details** (method probes only) — the exception class name
+  and the message passed to the exception's constructor.
+  - The reported message is the value given to the constructor, not the
+    return value of the `message` method. If a custom exception class
+    overrides `message`, the reported value may differ.
+  - If the constructor argument is not a string (or is nil), the
+    exception type is still reported but the message will show as
+    redacted.
+- **Stack traces** — the call stack at the point the probe fires.
 
 ## Rate Limiting and Performance
 

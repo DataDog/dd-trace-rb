@@ -49,6 +49,10 @@ module Datadog
             logger.warn("di: cannot enable dynamic instrumentation: Ruby 2.6+ is required, but running on #{RUBY_VERSION}")
             return false
           end
+          unless DI.respond_to?(:exception_message)
+            logger.warn("di: cannot enable dynamic instrumentation: C extension is not available")
+            return false
+          end
           true
         end
       end
@@ -63,9 +67,19 @@ module Datadog
         @redactor = Redactor.new(settings)
         @serializer = Serializer.new(settings, redactor, telemetry: telemetry)
         @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry)
-        @probe_notifier_worker = ProbeNotifierWorker.new(settings, logger, agent_settings: agent_settings, telemetry: telemetry)
+        @probe_repository = ProbeRepository.new
         @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer)
-        @probe_manager = ProbeManager.new(settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, telemetry: telemetry)
+        @probe_notifier_worker = ProbeNotifierWorker.new(
+          settings, logger,
+          agent_settings: agent_settings,
+          probe_repository: probe_repository,
+          probe_notification_builder: probe_notification_builder,
+          telemetry: telemetry,
+        )
+        @probe_manager = ProbeManager.new(
+          settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, probe_repository,
+          telemetry: telemetry,
+        )
         probe_notifier_worker.start
       end
 
@@ -75,6 +89,7 @@ module Datadog
       attr_reader :telemetry
       attr_reader :code_tracker
       attr_reader :instrumenter
+      attr_reader :probe_repository
       attr_reader :probe_notifier_worker
       attr_reader :probe_notification_builder
       attr_reader :probe_manager
@@ -106,8 +121,9 @@ module Datadog
           )
           payload = probe_notification_builder.build_errored(probe, exc)
           probe_notifier_worker.add_status(payload)
-        rescue # standard:disable Lint/UselessRescue
-          # TODO report via instrumentation telemetry?
+        rescue => nested_exc
+          logger.debug { "di: failed to build error notification: #{nested_exc.class}: #{nested_exc}" }
+          telemetry&.report(nested_exc, description: 'Error building probe error notification')
           raise
         end
 

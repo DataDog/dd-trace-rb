@@ -6,7 +6,7 @@ require 'datadog/core/runtime/metrics'
 RSpec.describe Datadog::Core::Runtime::Metrics do
   let(:logger) { logger_allowing_debug }
   let(:telemetry) { double(Datadog::Core::Telemetry::Component) }
-  let(:options) { {} }
+  let(:options) { {experimental_propagate_process_tags_enabled: true} }
   subject(:runtime_metrics) { described_class.new(logger: logger, telemetry: telemetry, **options) }
 
   describe '::new' do
@@ -72,7 +72,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
       context 'when available' do
         before { allow(runtime_metrics).to receive(:gauge) }
 
-        it do
+        it 'flushes the metric via gauge' do
           allow(metric).to receive(:available?)
             .and_return(true)
           allow(metric).to receive(:value)
@@ -87,7 +87,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
       end
 
       context 'when unavailable' do
-        it do
+        it 'does not flush the metric' do
           allow(metric).to receive(:available?)
             .and_return(false)
           expect(metric).to_not receive(:value)
@@ -101,7 +101,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
       context 'when an error is thrown' do
         before { allow(Datadog.logger).to receive(:warn) }
 
-        it do
+        it 'logs a warning' do
           allow(metric).to receive(:available?)
             .and_raise(RuntimeError)
 
@@ -277,7 +277,8 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
       before do
         allow(runtime_metrics).to receive(:statsd).and_return(statsd)
         allow(statsd).to receive(:gauge)
-        allow(Datadog::Core::Environment::Process).to receive(:tags).and_return(['entrypoint.workdir:test'])
+        allow(Datadog::Core::Environment::Process).to receive(:tags)
+          .and_return(['entrypoint.workdir:test', 'rails.application:test_app'])
         runtime_metrics.enabled = true
       end
 
@@ -285,6 +286,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
         flush
 
         expect(statsd).to have_received(:gauge).with(anything, anything, hash_including(tags: array_including('entrypoint.workdir:test'))).at_least(:once)
+        expect(statsd).to have_received(:gauge).with(anything, anything, hash_including(tags: array_including('rails.application:test_app'))).at_least(:once)
       end
     end
   end
@@ -325,6 +327,19 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
     describe ':tags' do
       subject(:default_tags) { default_metric_options[:tags] }
 
+      context 'when :experimental_propagate_process_tags_enabled is true' do
+        before do
+          allow(Datadog::Core::Environment::Process).to receive(:tags)
+            .and_return(['entrypoint.workdir:test', 'entrypoint.name:test_script', 'rails.application:test_app'])
+        end
+
+        it 'includes process tags by default' do
+          is_expected.to include('entrypoint.workdir:test')
+          is_expected.to include('entrypoint.name:test_script')
+          is_expected.to include('rails.application:test_app')
+        end
+      end
+
       context 'given :experimental_runtime_id_enabled' do
         let(:options) { super().merge(experimental_runtime_id_enabled: runtime_id_enabled) }
         let(:runtime_id_enabled) { true }
@@ -361,7 +376,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
         let(:options) { super().merge(experimental_propagate_process_tags_enabled: true) }
 
         before do
-          expect(Datadog::Core::Environment::Process).to receive(:tags).and_return(['entrypoint.workdir:test', 'entrypoint.name:test_script', 'entrypoint.basedir:test', 'entrypoint.type:script'])
+          expect(Datadog::Core::Environment::Process).to receive(:tags).and_return(['entrypoint.workdir:test', 'entrypoint.name:test_script', 'entrypoint.basedir:test', 'entrypoint.type:script', 'rails.application:test_app'])
         end
 
         it 'includes process tags when enabled' do
@@ -369,6 +384,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
           is_expected.to include('entrypoint.name:test_script')
           is_expected.to include('entrypoint.basedir:test')
           is_expected.to include('entrypoint.type:script')
+          is_expected.to include('rails.application:test_app')
         end
       end
 

@@ -96,6 +96,7 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
   after do
     Datadog.configuration.reset!
     ::Excon.defaults[:middlewares].delete(Datadog::AppSec::Contrib::Excon::SSRFDetectionMiddleware)
+    Datadog::AppSec::Contrib::Excon::Patcher.instance_variable_set(:@patched, false)
   end
 
   context 'when RASP is disabled' do

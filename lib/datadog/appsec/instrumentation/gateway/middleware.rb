@@ -7,10 +7,9 @@ module Datadog
         # NOTE: This class extracted as-is and will be deprecated
         # Instrumentation gateway middleware
         class Middleware
-          attr_reader :key, :block
+          attr_reader :block
 
-          def initialize(key, &block)
-            @key = key
+          def initialize(&block)
             @block = block
           end
 

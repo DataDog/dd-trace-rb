@@ -69,7 +69,7 @@ Gem::Specification.new do |spec|
 
   # When updating the version here, please also update the version in `libdatadog_extconf_helpers.rb`
   # (and yes we have a test for it)
-  spec.add_dependency 'libdatadog', '~> 25.0.0.1.0'
+  spec.add_dependency 'libdatadog', '~> 29.0.0.1.0'
 
   # Will no longer be a default gem on Ruby 3.5, see
   # https://github.com/ruby/ruby/commit/d7e558e3c48c213d0e8bedca4fb547db55613f7c and
@@ -86,6 +86,10 @@ Gem::Specification.new do |spec|
   # Tip: When adding or removing dependencies, search the codebase for the string
   # ADD NEW DEPENDENCIES HERE
   # to find out a few more places that need to be kept in-sync.
+
+  # DEV-3.0 Remove this message
+  spec.post_install_message =
+    'JRuby support in the datadog gem is deprecated. Details: https://dtdg.co/jruby-deprecation'
 
   spec.extensions = [
     'ext/datadog_profiling_native_extension/extconf.rb',

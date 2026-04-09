@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../core/telemetry/logger"
+
 module Datadog
   module Profiling
     # Responsible for wiring up the Profiler for execution
@@ -45,6 +47,8 @@ module Datadog
 
         overhead_target_percentage = valid_overhead_target(settings.profiling.advanced.overhead_target_percentage, logger)
         upload_period_seconds = [60, settings.profiling.advanced.upload_period_seconds].max
+        cpu_sampling_interval_ms =
+          valid_cpu_sampling_interval(settings.profiling.advanced.experimental_cpu_sampling_interval_ms, logger)
 
         recorder = Datadog::Profiling::StackRecorder.new(
           cpu_time_enabled: RUBY_PLATFORM.include?("linux"), # Only supported on Linux currently
@@ -65,6 +69,7 @@ module Datadog
           allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
           gvl_profiling_enabled: enable_gvl_profiling?(settings, logger),
           sighandler_sampling_enabled: settings.profiling.advanced.sighandler_sampling_enabled,
+          cpu_sampling_interval_ms: cpu_sampling_interval_ms,
         )
 
         internal_metadata = {
@@ -87,6 +92,14 @@ module Datadog
         end
 
         [profiler, {profiling_enabled: true}]
+      rescue Exception => e # rubocop:disable Lint/RescueException
+        logger.warn do
+          "Failed to initialize profiling: #{e.class.name} #{e.message} " \
+          "Location: #{Array(e.backtrace).first}"
+        end
+        Datadog::Core::Telemetry::Logger.report(e, description: "Failed to initialize profiling")
+
+        [nil, {profiling_enabled: false}]
       end
 
       private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
@@ -123,6 +136,7 @@ module Datadog
             site: settings.site,
             api_key: settings.api_key,
             upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
+            use_system_dns: settings.profiling.advanced.experimental_use_system_dns,
           )
       end
 
@@ -394,6 +408,22 @@ module Datadog
           )
 
           2.0
+        end
+      end
+
+      private_class_method def self.valid_cpu_sampling_interval(cpu_sampling_interval_ms, logger)
+        if cpu_sampling_interval_ms > 10
+          logger.warn(
+            "Profiling cpu_sampling_interval_ms is set to #{cpu_sampling_interval_ms}ms, but values above 10ms are " \
+            "not supported. Using 10ms instead. To reduce profiler overhead, consider adjusting the " \
+            "overhead_target_percentage setting."
+          )
+          10
+        elsif cpu_sampling_interval_ms < 10
+          logger.debug { "Profiling cpu_sampling_interval_ms set to #{cpu_sampling_interval_ms}ms" }
+          cpu_sampling_interval_ms
+        else
+          cpu_sampling_interval_ms
         end
       end
 

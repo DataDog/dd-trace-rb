@@ -44,7 +44,6 @@ require 'support/tag_builder_helpers'
 require 'support/test_helpers'
 require 'support/telemetry_helpers'
 require 'support/tracer_helpers'
-require 'support/libdatadog_helpers'
 require 'support/http_server_helpers'
 
 begin
@@ -189,8 +188,6 @@ RSpec.configure do |config|
           t == Timeout.instance_exec { @timeout_thread if defined?(@timeout_thread) } ||
           # Internal JRuby thread
           defined?(JRuby) && JRuby.reference(t).native_thread.name == 'Finalizer' ||
-          # JRuby 10 JIT threads
-          defined?(JRuby) && JRuby.reference(t).native_thread.name =~ /Ruby-\d+-JIT-\d+/ ||
           # WEBrick singleton thread for handling timeouts
           backtrace.find { |b| b.include?('/webrick/utils.rb') } ||
           # WEBrick server thread

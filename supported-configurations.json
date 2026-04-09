@@ -343,9 +343,9 @@
     ],
     "DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED": [
       {
-        "version": "A",
+        "version": "B",
         "type": "boolean",
-        "default": "false"
+        "default": "true"
       }
     ],
     "DD_GIT_COMMIT_SHA": [
@@ -457,6 +457,13 @@
     "DD_PROFILING_ENDPOINT_COLLECTION_ENABLED": [
       {
         "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS": [
+      {
+        "version": "B",
         "type": "boolean",
         "default": "true"
       }
@@ -691,6 +698,13 @@
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_TELEMETRY_EXTENDED_HEARTBEAT_INTERVAL": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "86400"
       }
     ],
     "DD_TELEMETRY_HEARTBEAT_INTERVAL": [
@@ -1115,6 +1129,13 @@
         "default": "1.0"
       }
     ],
+    "DD_TRACE_ETHON_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_TRACE_ETHON_ENABLED": [
       {
         "version": "A",
@@ -1148,6 +1169,13 @@
         "version": "A",
         "type": "decimal",
         "default": "1.0"
+      }
+    ],
+    "DD_TRACE_EXCON_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
       }
     ],
     "DD_TRACE_EXCON_ENABLED": [
@@ -1197,6 +1225,13 @@
         "version": "A",
         "type": "decimal",
         "default": "1.0"
+      }
+    ],
+    "DD_TRACE_FARADAY_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
       }
     ],
     "DD_TRACE_FARADAY_ENABLED": [
@@ -1311,6 +1346,13 @@
         "default": "1.0"
       }
     ],
+    "DD_TRACE_GRPC_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_TRACE_GRPC_ENABLED": [
       {
         "version": "A",
@@ -1360,6 +1402,13 @@
         "default": "1.0"
       }
     ],
+    "DD_TRACE_HTTPCLIENT_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_TRACE_HTTPCLIENT_ENABLED": [
       {
         "version": "A",
@@ -1400,6 +1449,13 @@
         "version": "A",
         "type": "decimal",
         "default": "1.0"
+      }
+    ],
+    "DD_TRACE_HTTPRB_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
       }
     ],
     "DD_TRACE_HTTPRB_ENABLED": [
@@ -1449,6 +1505,13 @@
         "version": "A",
         "type": "string",
         "default": "400-499"
+      }
+    ],
+    "DD_TRACE_HTTP_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
       }
     ],
     "DD_TRACE_HTTP_ENABLED": [
@@ -1788,6 +1851,13 @@
         "default": "1.0"
       }
     ],
+    "DD_TRACE_QUE_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_TRACE_QUE_ENABLED": [
       {
         "version": "A",
@@ -1844,6 +1914,13 @@
         "default": "1.0"
       }
     ],
+    "DD_TRACE_RACK_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_TRACE_RACK_ENABLED": [
       {
         "version": "A",
@@ -1863,6 +1940,13 @@
         "version": "A",
         "type": "decimal",
         "default": "1.0"
+      }
+    ],
+    "DD_TRACE_RAILS_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
       }
     ],
     "DD_TRACE_RAILS_ENABLED": [
@@ -1996,6 +2080,13 @@
         "version": "A",
         "type": "decimal",
         "default": "1.0"
+      }
+    ],
+    "DD_TRACE_REST_CLIENT_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
       }
     ],
     "DD_TRACE_REST_CLIENT_ENABLED": [
@@ -2132,6 +2223,13 @@
         "default": "1.0"
       }
     ],
+    "DD_TRACE_SINATRA_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_TRACE_SINATRA_ENABLED": [
       {
         "version": "A",
@@ -2249,6 +2347,13 @@
         "version": "A",
         "type": "string",
         "default": "trilogy"
+      }
+    ],
+    "DD_TRACE_WATERDROP_DISTRIBUTED_TRACING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
       }
     ],
     "DD_TRACE_WATERDROP_ENABLED": [

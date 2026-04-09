@@ -83,12 +83,11 @@ module Datadog
           start_or_update_on_fork(action: :update_on_fork, tags: self.class.latest_tags(settings))
         end
 
-        def report_unhandled_exception(exception, settings: Datadog.configuration)
+        def report_unhandled_exception(exception)
           # Maximum number of stack frames to include in exception crash reports
           # This is the same number used for signal-based crashtracking's runtime stack
           max_exception_stack_frames = 512
 
-          current_tags = self.class.latest_tags(settings)
           # extract all frame data upfront; c expects exactly 3 elements, proper types, no nils
           # limit to max_exception_stack_frames frames
           all_backtrace_locations = exception.backtrace_locations || []
@@ -116,19 +115,12 @@ module Datadog
           end
 
           exception_message = exception.message
-          message =
-            if exception_message && !exception_message.empty?
-              "Process was terminated due to an unhandled exception of type '#{exception.class}'. Message: \"#{exception_message}\""
-            else
-              "Process was terminated due to an unhandled exception of type '#{exception.class}'."
-            end
+          exception_type = exception.class.to_s
 
           success = self.class._native_report_ruby_exception(
-            agent_base_url,
-            message,
+            exception_type,
+            exception_message,
             frames_data,
-            current_tags.to_a,
-            Datadog::VERSION::STRING
           )
 
           logger.debug('Crashtracker failed to report unhandled exception to crash tracker') unless success

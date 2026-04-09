@@ -79,7 +79,7 @@ module Datadog
               },
               return: {
                 arguments: return_arguments,
-                throwable: nil,
+                throwable: context.exception ? serialize_throwable(context.exception) : nil,
               },
             }
           elsif probe.line?
@@ -112,7 +112,154 @@ module Datadog
         build_snapshot_base(context, evaluation_errors: [error])
       end
 
+      # Builds a probe status notification payload.
+      #
+      # @param probe [Probe] the probe to build status for
+      # @param message [String] human-readable status message
+      # @param status [String] status value (RECEIVED, INSTALLED, EMITTING, ERROR)
+      # @param exception [Exception, nil] exception to include for ERROR status
+      # @return [Hash] the status payload
+      def build_status(probe, message:, status:, exception: nil)
+        diagnostics = {
+          probeId: probe.id,
+          probeVersion: 0,
+          runtimeId: Core::Environment::Identity.id,
+          parentId: nil,
+          status: status,
+        }
+
+        # Exception field is required by the backend for ERROR status.
+        # If the ERROR status is sent without the exception field, the status
+        # appears to be completely ignored by the backend.
+        # Note: The Go DI implementation does not send the top-level message
+        # field at all when sending error statuses.
+        if status == 'ERROR'
+          diagnostics[:exception] = { # steep:ignore
+            type: exception ? exception.class.name : 'Error',
+            message: exception ? exception.message : message
+          }
+        end
+
+        {
+          service: settings.service,
+          timestamp: timestamp_now,
+          message: message,
+          ddsource: 'dd_debugger',
+          debugger: {
+            diagnostics: diagnostics,
+          },
+        }
+      end
+
       private
+
+      # Serializes an exception for the throwable field in snapshot captures.
+      #
+      # Uses the C extension's exception_message to get the original message
+      # without invoking any Ruby-level message method override, which
+      # could be customer code.
+      #
+      # Caveats:
+      #
+      # 1. The value returned by exception_message is not guaranteed to be
+      #    a string — it is whatever was passed to the Exception constructor.
+      #    Calling .to_s on an arbitrary object would invoke customer code,
+      #    violating DI's constraint of never executing customer methods
+      #    during instrumentation. We only use the value directly when it
+      #    is a String; for non-string values we return a redacted
+      #    placeholder (reporting the class name would duplicate the
+      #    exception type already present in the :type field).
+      #
+      # 2. Custom exception classes may not store a meaningful message via
+      #    the constructor (e.g. they may compute it in an overridden
+      #    +message+ method). In such cases exception_message may return
+      #    nil or an unrelated constructor argument. This is acceptable:
+      #    we still report the exception type, and a missing/wrong message
+      #    is better than invoking customer code or reporting nothing.
+      #
+      # @param exception [Exception] the exception to serialize
+      # @return [Hash{Symbol => String?}] hash with :type and :message keys
+      def serialize_throwable(exception)
+        msg = DI.exception_message(exception)
+        message = if msg.nil? || String === msg
+          msg
+        else
+          # Non-string constructor argument — return a redacted placeholder
+          # rather than calling .to_s which could be customer code.
+          # The exception class is already reported via the :type field.
+          '<REDACTED: not a string value>'
+        end
+        # Prefer backtrace_locations (structured Location objects) over
+        # backtrace (formatted strings that need regex parsing).
+        #
+        # However, backtrace_locations returns nil when someone has called
+        # Exception#set_backtrace with Array<String> — the VM cannot
+        # reconstruct Location objects from formatted strings. This happens
+        # in exception wrapping patterns (catch, create new exception, copy
+        # original's string backtrace via set_backtrace, re-raise).
+        # In that case, fall back to backtrace strings.
+        #
+        # Both accessors use the UnboundMethod trick to bypass subclass
+        # overrides, consistent with the rest of this method.
+        #
+        # If a subclass overrides #backtrace, MRI's raise never stores
+        # the real backtrace — both backtrace_locations and backtrace
+        # return nil, and stacktrace is [].
+        # This is unrecoverable without calling customer code.
+        # See DI::EXCEPTION_BACKTRACE comment for details.
+        locations = DI::EXCEPTION_BACKTRACE_LOCATIONS.bind(exception).call
+        stacktrace = if locations
+          format_backtrace_locations(locations)
+        else
+          format_backtrace_strings(DI::EXCEPTION_BACKTRACE.bind(exception).call)
+        end
+        {
+          type: exception.class.name,
+          message: message,
+          stacktrace: stacktrace,
+        }
+      end
+
+      # Matches Ruby backtrace frame format: "/path/file.rb:42:in `method_name'"
+      # Captures: $1 = file path, $2 = line number, $3 = method name
+      BACKTRACE_FRAME_PATTERN = /\A(.+):(\d+):in\s+[`'](.+)'\z/
+
+      # Converts backtrace locations into the stack frame format
+      # expected by the Datadog UI.
+      #
+      # Uses Thread::Backtrace::Location objects which provide structured
+      # path/lineno/label directly, avoiding the round-trip of formatting
+      # to strings and regex-parsing back.
+      #
+      # @param locations [Array<Thread::Backtrace::Location>]
+      # @return [Array<Hash>]
+      def format_backtrace_locations(locations)
+        locations.map do |loc|
+          {fileName: loc.path, function: loc.label, lineNumber: loc.lineno}
+        end
+      end
+
+      # Parses Ruby backtrace strings into the stack frame format
+      # expected by the Datadog UI.
+      #
+      # Fallback for when backtrace_locations returns nil (see
+      # serialize_throwable for details on when this happens).
+      #
+      # Ruby backtrace format: "/path/file.rb:42:in `method_name'"
+      #
+      # @param backtrace [Array<String>, nil] from Exception#backtrace
+      # @return [Array<Hash>]
+      def format_backtrace_strings(backtrace)
+        return [] if backtrace.nil?
+
+        backtrace.map do |frame|
+          if frame =~ BACKTRACE_FRAME_PATTERN
+            {fileName: $1, function: $3, lineNumber: $2.to_i}
+          else
+            {fileName: frame, function: '', lineNumber: 0}
+          end
+        end
+      end
 
       def build_snapshot_base(context, evaluation_errors: [], captures: nil, message: nil)
         probe = context.probe
@@ -200,38 +347,6 @@ module Datadog
         tag_process_tags!(payload, settings)
 
         payload
-      end
-
-      def build_status(probe, message:, status:, exception: nil)
-        diagnostics = {
-          probeId: probe.id,
-          probeVersion: 0,
-          runtimeId: Core::Environment::Identity.id,
-          parentId: nil,
-          status: status,
-        }
-
-        # Exception field is required by the backend for ERROR status.
-        # If the ERROR status is sent without the exception field, the status
-        # appears to be completely ignored by the backend.
-        # Note: The Go DI implementation does not send the top-level message
-        # field at all when sending error statuses.
-        if status == 'ERROR'
-          diagnostics[:exception] = { # steep:ignore
-            type: exception ? exception.class.name : 'Error',
-            message: exception ? exception.message : message
-          }
-        end
-
-        {
-          service: settings.service,
-          timestamp: timestamp_now,
-          message: message,
-          ddsource: 'dd_debugger',
-          debugger: {
-            diagnostics: diagnostics,
-          },
-        }
       end
 
       def format_caller_locations(caller_locations)

@@ -147,17 +147,19 @@ module Datadog
                     # the probe notifier builder requires a context.
                     begin
                       responder.probe_condition_evaluation_failed_callback(context, exc)
-                    rescue
+                    rescue => nested_exc
                       raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                      # TODO log / report via telemetry?
+                      instrumenter.logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc}" }
+                      instrumenter.telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
                     end
                   else
                     _ = 42 # stop standard from wrecking this code
 
                     raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                    # TODO log / report via telemetry?
+                    instrumenter.logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc}" }
+                    instrumenter.telemetry&.report(exc, description: "Error evaluating condition without context")
                     # If execution gets here, there is probably a bug in the tracer.
                   end
 
@@ -237,9 +239,16 @@ module Datadog
                 caller_locations: caller_locs,
                 return_value: rv, duration: duration, exception: exc,)
 
-              responder.probe_executed_callback(context)
+              begin
+                responder.probe_executed_callback(context)
 
-              instrumenter.send(:check_and_disable_if_exceeded, probe, responder, di_start_time, di_duration)
+                instrumenter.send(:check_and_disable_if_exceeded, probe, responder, di_start_time, di_duration)
+              rescue => di_exc
+                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                instrumenter.logger.debug { "di: unhandled exception in method probe: #{di_exc.class}: #{di_exc}" }
+                instrumenter.telemetry&.report(di_exc, description: "Unhandled exception in method probe")
+              end
 
               if exc
                 raise exc
@@ -525,10 +534,11 @@ module Datadog
               # the probe notifier builder requires a context.
               begin
                 responder.probe_condition_evaluation_failed_callback(context, condition, exc)
-              rescue
+              rescue => nested_exc
                 raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                # TODO log / report via telemetry?
+                logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc}" }
+                telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
               end
 
               return
@@ -537,7 +547,8 @@ module Datadog
 
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-              # TODO log / report via telemetry?
+              logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc}" }
+              telemetry&.report(exc, description: "Error evaluating condition without context")
               # If execution gets here, there is probably a bug in the tracer.
             end
           end

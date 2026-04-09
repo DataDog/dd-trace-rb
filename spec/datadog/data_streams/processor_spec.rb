@@ -3,7 +3,6 @@
 require 'datadog/core'
 require 'datadog/data_streams/processor'
 require 'datadog/core/ddsketch'
-require_relative 'spec_helper'
 
 # Expected deterministic hash values for specific pathways (with manual_checkpoint: false)
 KAFKA_ORDERS_PRODUCE_HASH = 17981503584283442515
@@ -15,7 +14,7 @@ KAFKA_PAYMENTS_PRODUCE_HASH = 10550901661805295262
 RSpec.describe Datadog::DataStreams::Processor do
   let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: nil) }
   before do
-    skip_if_data_streams_not_supported(self)
+    skip_if_libdatadog_not_supported
   end
 
   let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }
@@ -331,6 +330,44 @@ RSpec.describe Datadog::DataStreams::Processor do
 
         # Should flush without errors
         expect { processor.send(:perform) }.not_to raise_error
+      end
+    end
+  end
+
+  describe '#flush_stats' do
+    let(:env_value) { 'staging' }
+    let(:flush_settings) { double('Settings', service: 'test-service', env: env_value, experimental_propagate_process_tags_enabled: false) }
+    let(:flush_processor) { described_class.new(interval: 10.0, logger: logger, settings: flush_settings, agent_settings: agent_settings, agent_info: agent_info) }
+    let(:sent_payload) { @sent_payload }
+
+    before do
+      flush_processor.set_produce_checkpoint(type: 'kafka', destination: 'orders')
+      flush_processor.send(:process_events)
+
+      @sent_payload = nil
+      allow(flush_processor).to receive(:send_stats_to_agent) { |payload| @sent_payload = payload }
+
+      flush_processor.send(:flush_stats)
+    end
+
+    after { flush_processor.stop(true) }
+
+    context 'when env is configured' do
+      let(:env_value) { 'staging' }
+
+      it 'includes Env from settings in the payload' do
+        expect(sent_payload).not_to be_nil
+        expect(sent_payload['Env']).to eq('staging')
+        expect(sent_payload['Service']).to eq('test-service')
+      end
+    end
+
+    context 'when env is not configured' do
+      let(:env_value) { nil }
+
+      it 'defaults Env to none' do
+        expect(sent_payload).not_to be_nil
+        expect(sent_payload['Env']).to eq('none')
       end
     end
   end

@@ -6,6 +6,10 @@ appraise 'rails71' do
   gem 'rails', '~> 7.1.0'
 end
 
+appraise 'rails81' do
+  gem 'rails', '~> 8.1.0'
+end
+
 appraise 'rails8-mysql2' do
   gem 'rails', '~> 8.0.0'
   gem 'mysql2', '~> 0.5', platform: :ruby
@@ -84,6 +88,13 @@ appraise 'http' do
   gem 'typhoeus'
 end
 
+appraise 'http6' do
+  gem 'ethon'
+  gem 'http', '~> 6'
+  gem 'httpclient'
+  gem 'typhoeus'
+end
+
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
 build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
@@ -127,7 +138,7 @@ appraise 'activesupport' do
   gem 'actionpack'
   gem 'actionview'
   gem 'active_model_serializers', '>= 0.10.0'
-  gem 'grape', '< 2.3'
+  gem 'grape'
   gem 'lograge'
   gem 'racecar', '>= 0.3.5'
   gem 'ruby-kafka', '>= 0.7.10'
