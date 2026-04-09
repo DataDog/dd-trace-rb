@@ -48,6 +48,7 @@ module Datadog
           new(security_engine: security_engine, telemetry: telemetry)
         rescue => e
           Datadog.logger.warn("AppSec is disabled: #{e.class}: #{e}; there may be additional logged errors above")
+          telemetry.report(e, description: 'AppSec: initialization failed')
 
           nil
         end
