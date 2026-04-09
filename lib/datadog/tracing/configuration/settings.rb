@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'json'
+
 require_relative '../../tracing/configuration/ext'
 require_relative '../../core/environment/variable_helpers'
 require_relative '../contrib/status_range_matcher'
@@ -252,7 +254,11 @@ module Datadog
                 #
                 # @default `false`
                 # @return [Boolean]
-                option :enabled, default: false, type: :bool
+                option :enabled do |o|
+                  o.type :bool
+                  o.env Configuration::Ext::PartialFlush::ENV_ENABLED
+                  o.default false
+                end
 
                 # Minimum number of finished spans required in a single unfinished trace before
                 # the tracer will consider that trace for partial flushing.
@@ -265,7 +271,11 @@ module Datadog
                 #
                 # @default 500
                 # @return [Integer]
-                option :min_spans_threshold, default: 500, type: :int
+                option :min_spans_threshold do |o|
+                  o.type :int
+                  o.env Configuration::Ext::PartialFlush::ENV_MIN_SPANS
+                  o.default 500
+                end
               end
 
               option :report_hostname do |o|
@@ -454,14 +464,21 @@ module Datadog
 
                 option :async do |o|
                   o.type :bool
+                  o.env Tracing::Configuration::Ext::Test::ENV_MODE_ASYNC
                   o.default false
                 end
 
+                # @default `nil`
+                # @return [Object,nil]
                 option :trace_flush
 
                 option :writer_options do |o|
                   o.type :hash
+                  o.env Tracing::Configuration::Ext::Test::ENV_MODE_WRITER_OPTIONS
                   o.default({})
+                  o.env_parser do |value|
+                    Datadog::Core::Configuration::Option.parse_json_env(value)
+                  end
                 end
               end
 
@@ -483,7 +500,11 @@ module Datadog
               option :writer_options do |o|
                 o.skip_telemetry true
                 o.type :hash
+                o.env Tracing::Configuration::Ext::ENV_WRITER_OPTIONS
                 o.default({})
+                o.env_parser do |value|
+                  Datadog::Core::Configuration::Option.parse_json_env(value)
+                end
               end
 
               # Client IP configuration

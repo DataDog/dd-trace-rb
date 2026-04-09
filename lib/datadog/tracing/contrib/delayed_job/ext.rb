@@ -11,6 +11,8 @@ module Datadog
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_DELAYED_JOB_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_DELAYED_JOB_ANALYTICS_SAMPLE_RATE'
+          ENV_SERVICE_NAME = 'DD_TRACE_DELAYED_JOB_SERVICE_NAME'
+          ENV_CLIENT_SERVICE_NAME = 'DD_TRACE_DELAYED_JOB_CLIENT_SERVICE_NAME'
           SPAN_JOB = 'delayed_job'
           SPAN_ENQUEUE = 'delayed_job.enqueue'
           SPAN_RESERVE_JOB = 'delayed_job.reserve_job'

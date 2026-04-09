@@ -36,7 +36,11 @@ module Datadog
               o.default true
             end
 
-            option :split_by_domain, default: false, type: :bool
+            option :split_by_domain do |o|
+              o.type :bool
+              o.env Ext::ENV_SPLIT_BY_DOMAIN
+              o.default false
+            end
 
             option :service_name do |o|
               o.type :string, nilable: true

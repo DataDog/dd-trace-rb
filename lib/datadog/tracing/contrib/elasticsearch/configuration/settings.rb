@@ -32,7 +32,9 @@ module Datadog
 
             option :quantize do |o|
               o.type :hash
+              o.env Ext::ENV_QUANTIZE
               o.default({})
+              o.env_parser { |value| parse_quantize_env(value) }
             end
 
             option :service_name do |o|

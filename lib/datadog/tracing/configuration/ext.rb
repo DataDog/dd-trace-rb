@@ -94,7 +94,16 @@ module Datadog
         # @public_api
         module Test
           ENV_MODE_ENABLED = 'DD_TRACE_TEST_MODE_ENABLED'
+          ENV_MODE_ASYNC = 'DD_TRACE_TEST_MODE_ASYNC'
+          ENV_MODE_WRITER_OPTIONS = 'DD_TRACE_TEST_MODE_WRITER_OPTIONS'
         end
+
+        module PartialFlush
+          ENV_ENABLED = 'DD_TRACE_PARTIAL_FLUSH_ENABLED'
+          ENV_MIN_SPANS = 'DD_TRACE_PARTIAL_FLUSH_MIN_SPANS'
+        end
+
+        ENV_WRITER_OPTIONS = 'DD_TRACE_WRITER_OPTIONS'
 
         # @public_api
         module Transport

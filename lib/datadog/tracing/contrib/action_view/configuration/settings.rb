@@ -30,9 +30,14 @@ module Datadog
               o.default 1.0
             end
 
-            option :service_name
+            option :service_name do |o|
+              o.type :string, nilable: true
+              o.env Ext::ENV_SERVICE_NAME
+            end
+
             option :template_base_path do |o|
               o.type :string
+              o.env Ext::ENV_TEMPLATE_BASE_PATH
               o.default 'views/'
             end
           end

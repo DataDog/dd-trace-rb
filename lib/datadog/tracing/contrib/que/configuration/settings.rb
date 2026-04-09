@@ -10,7 +10,10 @@ module Datadog
         module Configuration
           # Default settings for the Que integration
           class Settings < Contrib::Configuration::Settings
-            option :service_name
+            option :service_name do |o|
+              o.type :string, nilable: true
+              o.env Ext::ENV_SERVICE_NAME
+            end
             option :distributed_tracing do |o|
               o.type :bool
               o.env Ext::ENV_DISTRIBUTED_TRACING

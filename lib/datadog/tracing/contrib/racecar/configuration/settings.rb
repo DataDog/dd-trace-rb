@@ -32,6 +32,7 @@ module Datadog
 
             option :service_name do |o|
               o.type :string, nilable: true
+              o.env Ext::ENV_SERVICE_NAME
               o.default do
                 Contrib::SpanAttributeSchema.fetch_service_name(
                   '',

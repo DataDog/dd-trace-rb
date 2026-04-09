@@ -11,6 +11,7 @@ module Datadog
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTION_MAILER_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_ACTION_MAILER_ANALYTICS_SAMPLE_RATE'
+          ENV_SERVICE_NAME = 'DD_TRACE_ACTION_MAILER_SERVICE_NAME'
           SPAN_PROCESS = 'action_mailer.process'
           SPAN_DELIVER = 'action_mailer.deliver'
           TAG_COMPONENT = 'action_mailer'

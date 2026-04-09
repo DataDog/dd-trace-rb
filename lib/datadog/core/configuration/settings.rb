@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
+require 'json'
 require 'logger'
+require 'uri'
 
 require_relative 'base'
 require_relative 'ext'
@@ -22,6 +24,15 @@ module Datadog
       # standard:disable Metrics/BlockLength
       class Settings
         include Base
+
+        LOGGER_LEVELS = {
+          'debug' => ::Logger::DEBUG,
+          'info' => ::Logger::INFO,
+          'warn' => ::Logger::WARN,
+          'error' => ::Logger::ERROR,
+          'fatal' => ::Logger::FATAL,
+          'unknown' => ::Logger::UNKNOWN,
+        }.freeze
 
         # @!visibility private
         def initialize(*_)
@@ -66,10 +77,13 @@ module Datadog
 
           # Agent APM SSL.
           # @see https://docs.datadoghq.com/getting_started/tracing/#datadog-apm
-          # @default defined as part of `DD_TRACE_AGENT_URL` environment variable, otherwise `false`
+          # @default `DD_TRACE_AGENT_USE_SSL` environment variable, otherwise `false`
           # Only applies to http connections.
           # @return [Boolean,nil]
-          option :use_ssl
+          option :use_ssl do |o|
+            o.type :bool, nilable: true
+            o.env Configuration::Ext::Agent::ENV_DEFAULT_USE_SSL
+          end
 
           # Agent APM Timeout.
           # @see https://docs.datadoghq.com/getting_started/tracing/#datadog-apm
@@ -78,11 +92,14 @@ module Datadog
           option :timeout_seconds
 
           # Agent unix domain socket path.
-          # @default defined in `DD_TRACE_AGENT_URL` environment variable, otherwise '/var/run/datadog/apm.socket'
+          # @default `DD_TRACE_AGENT_UDS_PATH` environment variable, otherwise `nil`
           # Agent connects via HTTP by default, but will use UDS if this is set or if unix scheme defined in
           # DD_TRACE_AGENT_URL.
           # @return [String,nil]
-          option :uds_path
+          option :uds_path do |o|
+            o.type :string, nilable: true
+            o.env Configuration::Ext::Agent::ENV_DEFAULT_UDS_PATH
+          end
 
           # TODO: add declarative statsd configuration. Currently only usable via an environment variable.
           # Statsd configuration for agent access.
@@ -229,8 +246,17 @@ module Datadog
           # Log level for `Datadog.logger`.
           # @see Logger::Severity
           # @return Logger::Severity
-          # TODO: Add environment variable for this `DD_TRACE_LOG_LEVEL`
-          option :level, default: ::Logger::INFO
+          option :level do |o|
+            o.env 'DD_TRACE_LOG_LEVEL'
+            o.default ::Logger::INFO
+            o.type :int
+            o.env_parser do |value|
+              if value
+                normalized = value.strip.downcase
+                LOGGER_LEVELS.key?(normalized) ? LOGGER_LEVELS[normalized] : nil
+              end
+            end
+          end
         end
 
         # Datadog Profiler-specific configurations.
@@ -250,6 +276,10 @@ module Datadog
 
           # @public_api
           settings :exporter do
+            # Transport object to use for sending profiling data to the Datadog Agent.
+            # If not provided, a default transport will be used.
+            # @default `nil`
+            # @return [Object,nil]
             option :transport
           end
 
@@ -300,6 +330,7 @@ module Datadog
             # grouping and categorization of stack traces.
             option :code_provenance_enabled do |o|
               o.type :bool
+              o.env Profiling::Ext::ENV_CODE_PROVENANCE_ENABLED
               o.default true
             end
 
@@ -323,6 +354,7 @@ module Datadog
             # @default false
             option :allocation_counting_enabled do |o|
               o.type :bool
+              o.env Profiling::Ext::ENV_ALLOCATION_COUNTING_ENABLED
               o.default false
             end
 
@@ -533,6 +565,7 @@ module Datadog
             # @default 10_000_000 (10ms)
             option :waiting_for_gvl_threshold_ns do |o|
               o.type :int
+              o.env Profiling::Ext::ENV_WAITING_FOR_GVL_THRESHOLD_NS
               o.default 10_000_000
             end
 
@@ -615,10 +648,10 @@ module Datadog
             #
             # @warn This setting is experimental and may be removed or changed in future versions.
             #
-            # # No config via environment variable yet
             # @default 10
             option :experimental_cpu_sampling_interval_ms do |o|
               o.type :int
+              o.env Profiling::Ext::ENV_EXPERIMENTAL_CPU_INTERVAL_MS
               o.default 10
             end
 
@@ -665,7 +698,18 @@ module Datadog
             o.default false
           end
 
-          option :opts, default: {}, type: :hash
+          option :opts do |o|
+            o.type :hash
+            o.env 'DD_RUNTIME_METRICS_OPTS'
+            o.default({})
+            o.env_parser do |value|
+              Datadog::Core::Configuration::Option.parse_json_env(value)
+            end
+          end
+
+          # The StatsD client (Ruby Object) to use for sending runtime metrics.
+          # @default `nil`
+          # @return [Object,nil]
           option :statsd
         end
 
@@ -878,6 +922,7 @@ module Datadog
           # @!visibility private
           option :agentless_enabled do |o|
             o.type :bool
+            o.env Core::Telemetry::Ext::ENV_AGENTLESS_ENABLED
             o.default false
           end
 
@@ -981,6 +1026,7 @@ module Datadog
           # @!visibility private
           option :shutdown_timeout_seconds do |o|
             o.type :float
+            o.env Core::Telemetry::Ext::ENV_SHUTDOWN_TIMEOUT_SECONDS
             o.default 1.0
           end
 
@@ -1001,6 +1047,7 @@ module Datadog
           # @return [Boolean]
           option :debug do |o|
             o.type :bool
+            o.env Core::Telemetry::Ext::ENV_DEBUG
             o.default false
           end
         end
@@ -1058,9 +1105,12 @@ module Datadog
           # DD_SERVICE does not match the correct integration for which remote
           # configuration applies.
           #
-          # @default `nil`.
+          # @default `DD_REMOTE_CONFIG_SERVICE_NAME` environment variable, otherwise `nil`.
           # @return [String,nil]
-          option :service
+          option :service do |o|
+            o.type :string, nilable: true
+            o.env Core::Remote::Ext::ENV_SERVICE
+          end
         end
 
         settings :crashtracking do

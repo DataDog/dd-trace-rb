@@ -11,6 +11,7 @@ module Datadog
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_RODA_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_RODA_ANALYTICS_SAMPLE_RATE'
+          ENV_SERVICE_NAME = 'DD_TRACE_RODA_SERVICE_NAME'
           SPAN_REQUEST = 'roda.request'
         end
       end

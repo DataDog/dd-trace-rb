@@ -42,19 +42,43 @@ module Datadog
               o.env Ext::ENV_DISTRIBUTED_TRACING
               o.default true
             end
-            option :headers, default: DEFAULT_HEADERS, type: :hash
-            option :middleware_names, default: false, type: :bool
-            option :quantize, default: {}, type: :hash
+
+            option :headers do |o|
+              o.type :hash
+              o.env Ext::ENV_HEADERS
+              o.default DEFAULT_HEADERS
+              o.env_parser { |value| Core::Configuration::Option.parse_json_env(value) }
+            end
+
+            option :middleware_names do |o|
+              o.type :bool
+              o.env Ext::ENV_MIDDLEWARE_NAMES
+              o.default false
+            end
+
+            option :quantize do |o|
+              o.type :hash
+              o.env Ext::ENV_QUANTIZE
+              o.default({})
+              o.env_parser { |value| parse_quantize_env(value) }
+            end
+
             option :request_queuing do |o|
               o.type :bool
+              o.env Ext::ENV_REQUEST_QUEUING
               o.default false
             end
 
             option :service_name do |o|
               o.type :string, nilable: true
+              o.env Ext::ENV_SERVICE_NAME
             end
 
-            option :web_service_name, default: Ext::DEFAULT_PEER_WEBSERVER_SERVICE_NAME, type: :string
+            option :web_service_name do |o|
+              o.type :string
+              o.env Ext::ENV_WEB_SERVICE_NAME
+              o.default Ext::DEFAULT_PEER_WEBSERVER_SERVICE_NAME
+            end
           end
         end
       end

@@ -215,6 +215,30 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
       it 'returns default value' do
         expect(settings.appsec.ip_passlist).to eq([])
       end
+
+      context 'when DD_APPSEC_IP_PASSLIST is a comma-separated list' do
+        around do |example|
+          ClimateControl.modify('DD_APPSEC_IP_PASSLIST' => '1.1.1.1, 2.2.2.2') do
+            example.run
+          end
+        end
+
+        it 'parses the environment variable' do
+          expect(settings.appsec.ip_passlist).to eq(['1.1.1.1', '2.2.2.2'])
+        end
+      end
+
+      context 'when DD_APPSEC_IP_PASSLIST is JSON' do
+        around do |example|
+          ClimateControl.modify('DD_APPSEC_IP_PASSLIST' => '{"pass":["1.1.1.1"],"monitor":["2.2.2.2"]}') do
+            example.run
+          end
+        end
+
+        it 'parses the structured environment variable' do
+          expect(settings.appsec.ip_passlist).to eq(pass: ['1.1.1.1'], monitor: ['2.2.2.2'])
+        end
+      end
     end
 
     describe '#ip_passlist=' do
@@ -241,6 +265,18 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
       it 'returns default value' do
         expect(settings.appsec.ip_denylist).to eq([])
       end
+
+      context 'when DD_APPSEC_IP_DENYLIST is defined' do
+        around do |example|
+          ClimateControl.modify('DD_APPSEC_IP_DENYLIST' => '1.1.1.1,2.2.2.2') do
+            example.run
+          end
+        end
+
+        it 'parses the environment variable' do
+          expect(settings.appsec.ip_denylist).to eq(['1.1.1.1', '2.2.2.2'])
+        end
+      end
     end
 
     describe '#ip_denylist=' do
@@ -266,6 +302,18 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     describe '#user_id_denylist' do
       it 'returns default value' do
         expect(settings.appsec.user_id_denylist).to eq([])
+      end
+
+      context 'when DD_APPSEC_USER_ID_DENYLIST is defined' do
+        around do |example|
+          ClimateControl.modify('DD_APPSEC_USER_ID_DENYLIST' => '1,2,3') do
+            example.run
+          end
+        end
+
+        it 'parses the environment variable' do
+          expect(settings.appsec.user_id_denylist).to eq(%w[1 2 3])
+        end
       end
     end
 

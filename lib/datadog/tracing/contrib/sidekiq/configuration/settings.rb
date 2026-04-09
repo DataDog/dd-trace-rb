@@ -30,14 +30,25 @@ module Datadog
               o.default 1.0
             end
 
-            option :service_name
-            option :client_service_name
+            option :service_name do |o|
+              o.type :string, nilable: true
+              o.env Ext::ENV_SERVICE_NAME
+            end
+            option :client_service_name do |o|
+              o.type :string, nilable: true
+              o.env Ext::ENV_CLIENT_SERVICE_NAME
+            end
 
             option :on_error do |o|
               o.type :proc, nilable: true
             end
 
-            option :quantize, default: {}, type: :hash
+            option :quantize do |o|
+              o.type :hash
+              o.env Ext::ENV_QUANTIZE
+              o.default({})
+              o.env_parser { |value| parse_quantize_env(value) }
+            end
             option :distributed_tracing do |o|
               o.type :bool
               o.env Ext::ENV_DISTRIBUTED_TRACING

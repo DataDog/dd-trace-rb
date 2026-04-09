@@ -11,6 +11,7 @@ module Datadog
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_SEQUEL_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_SEQUEL_ANALYTICS_SAMPLE_RATE'
+          ENV_SERVICE_NAME = 'DD_TRACE_SEQUEL_SERVICE_NAME'
           SPAN_QUERY = 'sequel.query'
           TAG_DB_VENDOR = 'sequel.db.vendor'
           TAG_PREPARED_NAME = 'sequel.prepared.name'

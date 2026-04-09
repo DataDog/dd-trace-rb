@@ -29,6 +29,11 @@ module Datadog
               o.env Ext::ENV_ANALYTICS_SAMPLE_RATE
               o.default 1.0
             end
+
+            option :service_name do |o|
+              o.type :string, nilable: true
+              o.env Ext::ENV_SERVICE_NAME
+            end
           end
         end
       end

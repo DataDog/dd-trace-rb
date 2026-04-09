@@ -32,10 +32,12 @@ module Datadog
 
             option :service_name do |o|
               o.type :string, nilable: true
+              o.env Ext::ENV_SERVICE_NAME
             end
 
             option :client_service_name do |o|
               o.type :string, nilable: true
+              o.env Ext::ENV_CLIENT_SERVICE_NAME
             end
 
             option :on_error do |o|

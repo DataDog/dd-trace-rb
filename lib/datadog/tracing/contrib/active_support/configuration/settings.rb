@@ -32,6 +32,7 @@ module Datadog
 
             option :cache_service do |o|
               o.type :string, nilable: true
+              o.env Ext::ENV_CACHE_SERVICE
               o.default do
                 Contrib::SpanAttributeSchema.fetch_service_name(
                   '',
@@ -46,6 +47,7 @@ module Datadog
               option :enabled do |o|
                 # cache_key.enabled
                 o.type :bool
+                o.env Ext::ENV_CACHE_KEY_ENABLED
                 o.default true
               end
             end
@@ -57,6 +59,7 @@ module Datadog
             # @see https://github.com/rails/rails/blob/b7520a13adda46c0cc5f3fb4a4c1726633af2bba/guides/source/caching_with_rails.md?plain=1#L576-L582
             option :cache_store do |o|
               o.type :array, nilable: true
+              o.env Ext::ENV_CACHE_STORE
               o.default nil
               o.after_set do |stores|
                 stores&.map!(&:to_s) # Convert symbols to strings to match the Rails configuration format

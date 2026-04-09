@@ -11,6 +11,8 @@ module Datadog
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_SNEAKERS_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_SNEAKERS_ANALYTICS_SAMPLE_RATE'
+          ENV_SERVICE_NAME = 'DD_TRACE_SNEAKERS_SERVICE_NAME'
+          ENV_TAG_BODY = 'DD_TRACE_SNEAKERS_TAG_BODY'
           SERVICE_NAME = 'sneakers'
           SPAN_JOB = 'sneakers.job'
           TAG_JOB_ROUTING_KEY = 'sneakers.routing_key'

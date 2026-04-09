@@ -306,7 +306,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           info: true,
           warn: true,
           error: true,
-          level: true
+          level: ::Logger::INFO
         )
       end
 
@@ -322,6 +322,26 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       subject(:level) { settings.logger.level }
 
       it { is_expected.to be ::Logger::INFO }
+
+      context 'when DD_TRACE_LOG_LEVEL' do
+        around do |example|
+          ClimateControl.modify('DD_TRACE_LOG_LEVEL' => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to be ::Logger::INFO }
+        end
+
+        context 'is defined' do
+          let(:environment) { 'error' }
+
+          it { is_expected.to be ::Logger::ERROR }
+        end
+      end
     end
 
     describe 'level=' do
@@ -443,6 +463,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         subject(:code_provenance_enabled) { settings.profiling.advanced.code_provenance_enabled }
 
         it { is_expected.to be true }
+
+        it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_CODE_PROVENANCE_ENABLED', default: true
       end
 
       describe '#code_provenance_enabled=' do
@@ -473,6 +495,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         subject(:allocation_counting_enabled) { settings.profiling.advanced.allocation_counting_enabled }
 
         it { is_expected.to be false }
+
+        it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_ALLOCATION_COUNTING_ENABLED', default: false
       end
 
       describe '#allocation_counting_enabled=' do
@@ -799,6 +823,26 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         subject(:waiting_for_gvl_threshold_ns) { settings.profiling.advanced.waiting_for_gvl_threshold_ns }
 
         it { is_expected.to be 10_000_000 }
+
+        context 'when DD_PROFILING_WAITING_FOR_GVL_THRESHOLD_NS' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_WAITING_FOR_GVL_THRESHOLD_NS' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be 10_000_000 }
+          end
+
+          context 'is defined' do
+            let(:environment) { '42' }
+
+            it { is_expected.to eq(42) }
+          end
+        end
       end
 
       describe '#waiting_for_gvl_threshold_ns=' do
@@ -947,6 +991,26 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         subject(:experimental_cpu_sampling_interval_ms) { settings.profiling.advanced.experimental_cpu_sampling_interval_ms }
 
         it { is_expected.to eq 10 }
+
+        context 'when DD_PROFILING_EXPERIMENTAL_CPU_INTERVAL_MS' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_CPU_INTERVAL_MS' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to eq(10) }
+          end
+
+          context 'is defined' do
+            let(:environment) { '15' }
+
+            it { is_expected.to eq(15) }
+          end
+        end
       end
 
       describe '#experimental_cpu_sampling_interval_ms=' do
@@ -1085,6 +1149,26 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       subject(:opts) { settings.runtime_metrics.opts }
 
       it { is_expected.to eq({}) }
+
+      context 'when DD_RUNTIME_METRICS_OPTS' do
+        around do |example|
+          ClimateControl.modify('DD_RUNTIME_METRICS_OPTS' => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to eq({}) }
+        end
+
+        context 'is defined' do
+          let(:environment) { '{"statsd_host":"agent","buffer_size":10}' }
+
+          it { is_expected.to eq(statsd_host: 'agent', buffer_size: 10) }
+        end
+      end
     end
 
     describe '#opts=' do
@@ -1579,6 +1663,78 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
     end
+
+    describe '#use_ssl' do
+      subject(:use_ssl) { settings.agent.use_ssl }
+
+      it { is_expected.to be nil }
+
+      context 'when DD_TRACE_AGENT_USE_SSL' do
+        around do |example|
+          ClimateControl.modify('DD_TRACE_AGENT_USE_SSL' => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to be nil }
+        end
+
+        context 'is defined' do
+          let(:environment) { 'true' }
+
+          it { is_expected.to be true }
+        end
+      end
+    end
+
+    describe '#use_ssl=' do
+      it 'updates the #use_ssl setting' do
+        expect { settings.agent.use_ssl = true }
+          .to change { settings.agent.use_ssl }
+          .from(nil)
+          .to(true)
+      end
+    end
+
+    describe '#uds_path' do
+      subject(:uds_path) { settings.agent.uds_path }
+
+      it { is_expected.to be nil }
+
+      context 'when DD_TRACE_AGENT_UDS_PATH' do
+        around do |example|
+          ClimateControl.modify('DD_TRACE_AGENT_UDS_PATH' => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to be nil }
+        end
+
+        context 'is defined' do
+          let(:environment) { '/var/run/datadog/apm.socket' }
+
+          it { is_expected.to eq('/var/run/datadog/apm.socket') }
+        end
+      end
+    end
+
+    describe '#uds_path=' do
+      let(:uds_path) { '/tmp/dd.socket' }
+
+      it 'updates the #uds_path setting' do
+        expect { settings.agent.uds_path = uds_path }
+          .to change { settings.agent.uds_path }
+          .from(nil)
+          .to(uds_path)
+      end
+    end
   end
 
   describe '#version' do
@@ -1688,6 +1844,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       subject(:agentless_enabled) { settings.telemetry.agentless_enabled }
 
       it { is_expected.to be false }
+
+      it_behaves_like 'a binary setting with', env_variable: 'DD_INSTRUMENTATION_TELEMETRY_AGENTLESS_ENABLED', default: false
     end
 
     describe '#agentless_enabled=' do
@@ -1890,6 +2048,26 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       subject(:shutdown_timeout_seconds) { settings.telemetry.shutdown_timeout_seconds }
 
       it { is_expected.to eq 1.0 }
+
+      context 'when DD_TELEMETRY_SHUTDOWN_TIMEOUT_SECONDS' do
+        around do |example|
+          ClimateControl.modify('DD_TELEMETRY_SHUTDOWN_TIMEOUT_SECONDS' => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to eq(1.0) }
+        end
+
+        context 'is defined' do
+          let(:environment) { '2.5' }
+
+          it { is_expected.to eq(2.5) }
+        end
+      end
     end
 
     describe '#shutdown_timeout_seconds=' do
@@ -1898,6 +2076,23 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to change { settings.telemetry.shutdown_timeout_seconds }
           .from(1.0)
           .to(42.0)
+      end
+    end
+
+    describe '#debug' do
+      subject(:debug) { settings.telemetry.debug }
+
+      it { is_expected.to be false }
+
+      it_behaves_like 'a binary setting with', env_variable: 'DD_TELEMETRY_DEBUG', default: false
+    end
+
+    describe '#debug=' do
+      it 'updates the #debug setting' do
+        expect { settings.telemetry.debug = true }
+          .to change { settings.telemetry.debug }
+          .from(false)
+          .to(true)
       end
     end
   end
@@ -2017,6 +2212,26 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       context 'defaults to nil' do
         it { is_expected.to be nil }
+      end
+
+      context 'when DD_REMOTE_CONFIG_SERVICE_NAME' do
+        around do |example|
+          ClimateControl.modify('DD_REMOTE_CONFIG_SERVICE_NAME' => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to be nil }
+        end
+
+        context 'is defined' do
+          let(:environment) { 'remote-service' }
+
+          it { is_expected.to eq('remote-service') }
+        end
       end
     end
 

@@ -492,6 +492,26 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         subject(:enabled) { settings.tracing.partial_flush.enabled }
 
         it { is_expected.to be false }
+
+        context "when #{Datadog::Tracing::Configuration::Ext::PartialFlush::ENV_ENABLED}" do
+          around do |example|
+            ClimateControl.modify(Datadog::Tracing::Configuration::Ext::PartialFlush::ENV_ENABLED => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be false }
+          end
+
+          context 'is defined' do
+            let(:environment) { 'true' }
+
+            it { is_expected.to be true }
+          end
+        end
       end
 
       describe '#enabled=' do
@@ -507,6 +527,26 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         subject(:min_spans_threshold) { settings.tracing.partial_flush.min_spans_threshold }
 
         it { is_expected.to eq(500) }
+
+        context "when #{Datadog::Tracing::Configuration::Ext::PartialFlush::ENV_MIN_SPANS}" do
+          around do |example|
+            ClimateControl.modify(Datadog::Tracing::Configuration::Ext::PartialFlush::ENV_MIN_SPANS => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to eq(500) }
+          end
+
+          context 'is defined' do
+            let(:environment) { '42' }
+
+            it { is_expected.to eq(42) }
+          end
+        end
       end
 
       describe '#min_spans_threshold=' do
@@ -773,13 +813,13 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         context 'when DD_SPAN_SAMPLING_RULES is provided' do
           around do |example|
             ClimateControl.modify(
-              Datadog::Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES => '{}'
+              Datadog::Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES => '[]'
             ) do
               example.run
             end
           end
 
-          it { is_expected.to eq('{}') }
+          it { is_expected.to eq('[]') }
 
           context 'and DD_SPAN_SAMPLING_RULES_FILE is also provided' do
             around do |example|
@@ -791,8 +831,8 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             end
 
             it 'emits a conflict warning and returns DD_SPAN_SAMPLING_RULES' do
-              expect(Datadog.logger).to receive(:warn).with(include('configuration conflict'))
-              is_expected.to eq('{}')
+              expect(Datadog.logger).to receive(:warn).with(include('configuration conflict')).at_least(:once)
+              is_expected.to eq('[]')
             end
           end
         end
@@ -881,6 +921,26 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         subject(:enabled) { settings.tracing.test_mode.async }
 
         it { is_expected.to be false }
+
+        context "when #{Datadog::Tracing::Configuration::Ext::Test::ENV_MODE_ASYNC}" do
+          around do |example|
+            ClimateControl.modify(Datadog::Tracing::Configuration::Ext::Test::ENV_MODE_ASYNC => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be false }
+          end
+
+          context 'is defined' do
+            let(:environment) { 'true' }
+
+            it { is_expected.to be true }
+          end
+        end
       end
 
       describe '#async=' do
@@ -903,6 +963,18 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             expect(settings.tracing.test_mode.writer_options).to_not be_empty
             expect(settings.tracing.test_mode.options[:writer_options].default_value).to be_empty
           end
+        end
+
+        context "when #{Datadog::Tracing::Configuration::Ext::Test::ENV_MODE_WRITER_OPTIONS}" do
+          around do |example|
+            ClimateControl.modify(
+              Datadog::Tracing::Configuration::Ext::Test::ENV_MODE_WRITER_OPTIONS => '{"buffer_size":2,"transport":{"ssl":true}}'
+            ) do
+              example.run
+            end
+          end
+
+          it { is_expected.to eq(buffer_size: 2, transport: {ssl: true}) }
         end
       end
 
@@ -946,6 +1018,18 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           expect(settings.tracing.writer_options).to_not be_empty
           expect(settings.tracing.options[:writer_options].default_value).to be_empty
         end
+      end
+
+      context "when #{Datadog::Tracing::Configuration::Ext::ENV_WRITER_OPTIONS}" do
+        around do |example|
+          ClimateControl.modify(
+            Datadog::Tracing::Configuration::Ext::ENV_WRITER_OPTIONS => '{"buffer_size":4,"transport":{"ssl":true}}'
+          ) do
+            example.run
+          end
+        end
+
+        it { is_expected.to eq(buffer_size: 4, transport: {ssl: true}) }
       end
     end
 

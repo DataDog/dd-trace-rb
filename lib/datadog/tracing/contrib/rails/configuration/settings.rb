@@ -56,15 +56,32 @@ module Datadog
               o.env Ext::ENV_DISTRIBUTED_TRACING
               o.default true
             end
+
+            option :service_name do |o|
+              o.type :string, nilable: true
+              o.env Ext::ENV_SERVICE_NAME
+            end
+
             option :request_queuing do |o|
               o.type :bool
+              o.env Ext::ENV_REQUEST_QUEUING
               o.default false
             end
 
-            option :middleware, default: true, type: :bool
-            option :middleware_names, default: false, type: :bool
+            option :middleware do |o|
+              o.type :bool
+              o.env Ext::ENV_MIDDLEWARE
+              o.default true
+            end
+
+            option :middleware_names do |o|
+              o.type :bool
+              o.env Ext::ENV_MIDDLEWARE_NAMES
+              o.default false
+            end
             option :template_base_path do |o|
               o.type :string
+              o.env Ext::ENV_TEMPLATE_BASE_PATH
               o.default 'views/'
               o.after_set do |value|
                 # Update ActionView template base path too
