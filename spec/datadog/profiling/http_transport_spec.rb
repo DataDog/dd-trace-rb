@@ -15,7 +15,6 @@ require "webrick"
 # that things come out of libdatadog as we expected.
 RSpec.describe Datadog::Profiling::HttpTransport do
   before do
-    skip "Profiling HTTP transport integration tests require Linux networking helpers" if PlatformHelpers.mac?
     skip_if_profiling_not_supported
   end
 
