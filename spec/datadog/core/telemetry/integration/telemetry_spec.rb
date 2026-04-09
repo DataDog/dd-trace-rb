@@ -586,8 +586,14 @@ RSpec.describe 'Telemetry integration tests' do
       )
     end
 
-    shared_examples 'reports component telemetry state' do |component_key, config_name, config_value, expected_state|
-      it "reports #{component_key} as being #{expected_state[:enabled] ? 'enabled' : 'disabled'}" do
+    # Configuration names use env var names (DD_PROFILING_ENABLED, not
+    # profiling.enabled) because AppStarted#option_telemetry_name prefers
+    # option.definition.env over the setting path when an env var is defined.
+    shared_examples 'reports requested configuration and actual product state' do |product_key:, configuration:, actual_state:|
+      requested = configuration[:value]
+      running = actual_state[:enabled] || actual_state['enabled']
+
+      it "reports #{product_key} as configured #{requested} and actually #{running ? 'enabled' : 'disabled'}" do
         component.flush
         expect(sent_payloads.length).to eq 3
 
@@ -596,10 +602,10 @@ RSpec.describe 'Telemetry integration tests' do
           'request_type' => 'app-started',
         )
         expect(payload.dig('payload', 'configuration')).to include(
-          {'name' => config_name, 'value' => config_value, 'origin' => 'code', 'seq_id' => Integer},
+          {'name' => configuration[:name], 'value' => configuration[:value], 'origin' => 'code', 'seq_id' => Integer},
         )
         expect(payload.dig('payload', 'products')).to include(
-          component_key => expected_state,
+          product_key => actual_state,
         )
 
         assert_remaining_events
@@ -618,11 +624,10 @@ RSpec.describe 'Telemetry integration tests' do
         end
       end
 
-      include_examples 'reports component telemetry state',
-        'profiler',
-        'profiling.enabled',
-        false,
-        {'enabled' => false}
+      include_examples 'reports requested configuration and actual product state',
+        product_key: 'profiler',
+        configuration: {name: 'DD_PROFILING_ENABLED', value: false},
+        actual_state: {'enabled' => false}
     end
 
     context 'when profiling is fully enabled' do
@@ -649,11 +654,10 @@ RSpec.describe 'Telemetry integration tests' do
         end
       end
 
-      include_examples 'reports component telemetry state',
-        'profiler',
-        'profiling.enabled',
-        true,
-        {'enabled' => true}
+      include_examples 'reports requested configuration and actual product state',
+        product_key: 'profiler',
+        configuration: {name: 'DD_PROFILING_ENABLED', value: true},
+        actual_state: {'enabled' => true}
     end
 
     context 'when profiling is requested to be enabled but fails prerequisites' do
@@ -667,11 +671,10 @@ RSpec.describe 'Telemetry integration tests' do
         end
       end
 
-      include_examples 'reports component telemetry state',
-        'profiler',
-        'profiling.enabled',
-        true,
-        {
+      include_examples 'reports requested configuration and actual product state',
+        product_key: 'profiler',
+        configuration: {name: 'DD_PROFILING_ENABLED', value: true},
+        actual_state: {
           'enabled' => false,
           'error' => {
             'code' => 1,
@@ -689,11 +692,10 @@ RSpec.describe 'Telemetry integration tests' do
         end
       end
 
-      include_examples 'reports component telemetry state',
-        'dynamic_instrumentation',
-        'dynamic_instrumentation.enabled',
-        false,
-        {'enabled' => false}
+      include_examples 'reports requested configuration and actual product state',
+        product_key: 'dynamic_instrumentation',
+        configuration: {name: 'DD_DYNAMIC_INSTRUMENTATION_ENABLED', value: false},
+        actual_state: {'enabled' => false}
     end
 
     context 'when dynamic instrumentation is fully enabled' do
@@ -707,11 +709,10 @@ RSpec.describe 'Telemetry integration tests' do
         end
       end
 
-      include_examples 'reports component telemetry state',
-        'dynamic_instrumentation',
-        'dynamic_instrumentation.enabled',
-        true,
-        {'enabled' => true}
+      include_examples 'reports requested configuration and actual product state',
+        product_key: 'dynamic_instrumentation',
+        configuration: {name: 'DD_DYNAMIC_INSTRUMENTATION_ENABLED', value: true},
+        actual_state: {'enabled' => true}
     end
 
     context 'when dynamic instrumentation is requested to be enabled but fails prerequisites' do
@@ -725,11 +726,10 @@ RSpec.describe 'Telemetry integration tests' do
         end
       end
 
-      include_examples 'reports component telemetry state',
-        'dynamic_instrumentation',
-        'dynamic_instrumentation.enabled',
-        true,
-        {
+      include_examples 'reports requested configuration and actual product state',
+        product_key: 'dynamic_instrumentation',
+        configuration: {name: 'DD_DYNAMIC_INSTRUMENTATION_ENABLED', value: true},
+        actual_state: {
           'enabled' => false,
           # DI currently does not provide the reason why it's not enabled.
         }
@@ -744,11 +744,10 @@ RSpec.describe 'Telemetry integration tests' do
         end
       end
 
-      include_examples 'reports component telemetry state',
-        'appsec',
-        'appsec.enabled',
-        false,
-        {'enabled' => false}
+      include_examples 'reports requested configuration and actual product state',
+        product_key: 'appsec',
+        configuration: {name: 'DD_APPSEC_ENABLED', value: false},
+        actual_state: {'enabled' => false}
     end
 
     context 'when appsec is fully enabled' do
@@ -760,11 +759,10 @@ RSpec.describe 'Telemetry integration tests' do
         end
       end
 
-      include_examples 'reports component telemetry state',
-        'appsec',
-        'appsec.enabled',
-        true,
-        {'enabled' => true}
+      include_examples 'reports requested configuration and actual product state',
+        product_key: 'appsec',
+        configuration: {name: 'DD_APPSEC_ENABLED', value: true},
+        actual_state: {'enabled' => true}
     end
 
     context 'when appsec is requested to be enabled but fails prerequisites' do
@@ -781,11 +779,10 @@ RSpec.describe 'Telemetry integration tests' do
         end
       end
 
-      include_examples 'reports component telemetry state',
-        'appsec',
-        'appsec.enabled',
-        true,
-        {
+      include_examples 'reports requested configuration and actual product state',
+        product_key: 'appsec',
+        configuration: {name: 'DD_APPSEC_ENABLED', value: true},
+        actual_state: {
           'enabled' => false,
           # AppSec currently does not provide the reason why it's not enabled.
         }
@@ -804,11 +801,10 @@ RSpec.describe 'Telemetry integration tests' do
         end
       end
 
-      include_examples 'reports component telemetry state',
-        'appsec',
-        'appsec.enabled',
-        true,
-        {
+      include_examples 'reports requested configuration and actual product state',
+        product_key: 'appsec',
+        configuration: {name: 'DD_APPSEC_ENABLED', value: true},
+        actual_state: {
           'enabled' => false,
           # AppSec currently does not provide the reason why it's not enabled.
         }
