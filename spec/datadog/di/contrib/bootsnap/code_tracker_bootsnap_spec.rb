@@ -6,16 +6,10 @@ require "tmpdir"
 
 # Load bootsnap at file load time. `require "bootsnap"` alone does not load
 # Bootsnap::CompileCache::ISeq — that submodule requires an explicit require.
+# If these requires fail, the file fails to load — no skip guard needed
+# because bootsnap is in the gemfile for the di:bootsnap CI task.
 require "bootsnap"
 require "bootsnap/compile_cache/iseq"
-
-# Verify the ISeq cache can actually initialize in this environment.
-# This runs at load time so failures are visible immediately, not
-# hidden behind a skip guard.
-BOOTSNAP_VERIFY_DIR = Dir.mktmpdir("bootsnap_probe")
-Bootsnap::CompileCache::ISeq.install!(BOOTSNAP_VERIFY_DIR)
-Bootsnap::CompileCache::ISeq::InstructionSequenceMixin.send(:remove_method, :load_iseq)
-FileUtils.remove_entry(BOOTSNAP_VERIFY_DIR)
 
 # End-to-end test: DI code tracking works correctly when Bootsnap's iseq
 # cache is active. Bootsnap hooks RubyVM::InstructionSequence.load_iseq
