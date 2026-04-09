@@ -571,19 +571,17 @@ RSpec.describe 'Telemetry integration tests' do
 
     def assert_remaining_events
       # For sanity checking verify that the remaining events are as we
-      # expect them to be.
-      payload = sent_payloads[1]
-      expect(payload.fetch(:payload)).to include(
-        'request_type' => 'app-dependencies-loaded',
-      )
+      # expect them to be. Search by content rather than index — some test
+      # cases emit extra telemetry events (error logs, WAF metrics) that
+      # shift the payload order depending on Ruby version and environment.
+      deps_payload = sent_payloads.find { |p| p.fetch(:payload)['request_type'] == 'app-dependencies-loaded' }
+      expect(deps_payload).not_to be_nil
 
-      payload = sent_payloads[2]
-      expect(payload.fetch(:payload)).to include(
-        'request_type' => 'message-batch',
-      )
-      expect(payload.fetch(:payload).fetch('payload').first).to include(
-        'request_type' => 'app-integrations-change',
-      )
+      integrations_batch = sent_payloads.find do |p|
+        p.fetch(:payload)['request_type'] == 'message-batch' &&
+          Array(p.fetch(:payload)['payload']).any? { |e| e['request_type'] == 'app-integrations-change' }
+      end
+      expect(integrations_batch).not_to be_nil
     end
 
     # Configuration names use env var names (DD_PROFILING_ENABLED, not
