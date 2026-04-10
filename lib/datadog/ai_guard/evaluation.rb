@@ -10,6 +10,12 @@ module Datadog
           raise ArgumentError, "Messages must not be empty" if messages&.empty?
 
           Tracing.trace(Ext::SPAN_NAME) do |span, trace|
+            trace.keep!
+            trace.set_tag(
+              Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+              Tracing::Sampling::Ext::Decision::AI_GUARD
+            )
+
             if (last_message = messages.last)
               if last_message.tool_call
                 span.set_tag(Ext::TARGET_TAG, "tool")

@@ -51,6 +51,16 @@ RSpec.describe Datadog::AIGuard::Evaluation do
       expect(ai_guard_span).not_to be_nil
     end
 
+    it "sets manual.keep on the trace with AI Guard decision maker" do
+      described_class.perform([
+        Datadog::AIGuard.message(role: :user, content: "Some content")
+      ])
+
+      trace = traces.first
+      expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
+      expect(trace.send(:sampling_decision_maker)).to eq('-13')
+    end
+
     it "sets target tag to 'prompt' when last message is a prompt" do
       described_class.perform([
         Datadog::AIGuard.message(role: :system, content: "Some content"),
