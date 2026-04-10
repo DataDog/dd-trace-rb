@@ -135,6 +135,104 @@ RSpec.describe "RubyLLM chat instrumentation" do
     end
   end
 
+  context "messages with attachments" do
+    let(:raw_response) do
+      {
+        "data" => {
+          "attributes" => {
+            "action" => "ALLOW",
+            "reason" => "No rule matching",
+            "tags" => [],
+            "is_blocking_enabled" => false
+          }
+        }
+      }
+    end
+
+    before do
+      allow_any_instance_of(RubyLLM::Provider).to receive(:complete).and_return(
+        RubyLLM::Message.new(role: "assistant", content: "I see an image")
+      )
+    end
+
+    it "sends text and image_url parts for a message with an image attachment" do
+      content = RubyLLM::Content.new("Describe this")
+      content.add_attachment(StringIO.new(Base64.decode64("iVBORw0KGgo=")), filename: "photo.png")
+
+      user_message = RubyLLM::Message.new(role: :user, content: content)
+
+      chat = RubyLLM.chat
+      allow(chat).to receive(:messages).and_return([user_message])
+
+      chat.complete
+
+      messages = ai_guard_span.get_metastruct_tag("ai_guard").fetch(:messages)
+      parts = messages.first[:content]
+
+      expect(parts.size).to eq(2)
+      expect(parts[0]).to eq(type: "text", text: "Describe this")
+      expect(parts[1][:type]).to eq("image_url")
+      expect(parts[1][:image_url][:url]).to start_with("data:image/png;base64,")
+    end
+
+    it "sends text parts for a message with a text file attachment" do
+      content = RubyLLM::Content.new("Summarize this file")
+      content.add_attachment(StringIO.new("some notes"), filename: "notes.txt")
+
+      user_message = RubyLLM::Message.new(role: :user, content: content)
+
+      chat = RubyLLM.chat
+      allow(chat).to receive(:messages).and_return([user_message])
+
+      chat.complete
+
+      messages = ai_guard_span.get_metastruct_tag("ai_guard").fetch(:messages)
+      parts = messages.first[:content]
+
+      expect(parts.size).to eq(2)
+      expect(parts[0]).to eq(type: "text", text: "Summarize this file")
+      expect(parts[1][:type]).to eq("text")
+      expect(parts[1][:text]).to include("some notes")
+    end
+
+    it "skips unsupported attachment types without error" do
+      content = RubyLLM::Content.new("Transcribe this")
+      content.add_attachment(StringIO.new("\xFF\xFB".b), filename: "audio.mp3")
+
+      user_message = RubyLLM::Message.new(role: :user, content: content)
+
+      chat = RubyLLM.chat
+      allow(chat).to receive(:messages).and_return([user_message])
+
+      chat.complete
+
+      messages = ai_guard_span.get_metastruct_tag("ai_guard").fetch(:messages)
+      parts = messages.first[:content]
+
+      expect(parts).to eq([{type: "text", text: "Transcribe this"}])
+    end
+
+    it "sends only attachment parts when text is nil" do
+      content = RubyLLM::Content.new("placeholder")
+      content.add_attachment(StringIO.new(Base64.decode64("iVBORw0KGgo=")), filename: "photo.png")
+      allow(content).to receive(:text).and_return(nil)
+
+      user_message = RubyLLM::Message.new(role: :user, content: content)
+
+      chat = RubyLLM.chat
+      allow(chat).to receive(:messages).and_return([user_message])
+
+      chat.complete
+
+      messages = ai_guard_span.get_metastruct_tag("ai_guard").fetch(:messages)
+      parts = messages.first[:content]
+
+      expect(parts.size).to eq(1)
+      expect(parts[0][:type]).to eq("image_url")
+      expect(parts[0][:image_url][:url]).to start_with("data:image/png;base64,")
+    end
+  end
+
   context "tool calls" do
     let(:shell_tool) do
       Class.new(RubyLLM::Tool) do
