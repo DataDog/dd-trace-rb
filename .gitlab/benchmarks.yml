@@ -347,13 +347,14 @@ microbenchmarks-check-big-regressions:
       - artifacts/
     expire_in: 3 months
 
-# -----------------------------------------------------
-# Pre-release Performance Quality Gates
-# -----------------------------------------------------
-# See https://datadoghq.atlassian.net/wiki/spaces/APMINT/pages/5158175217
-# for documentation on performance quality gates.
+# This repository is using pre-release performance quality gates.
+# On master, verify that the latest CI pipeline passed the check-slo-breaches job.
+# If any SLO is breached, your release will be blocked.
 
-check-slo-breaches:
+# See our SLO file at https://github.com/DataDog/dd-trace-rb/blob/master/.gitlab/benchmarks/bp-runner.macrobenchmarks.fail-on-breach.yml
+
+# If bypassing is necessary, see https://datadoghq.atlassian.net/wiki/x/8YFzMwE for more details.
+macrobenchmarks-check-slo-breaches:
   extends: .check-slo-breaches
   stage: macrobenchmarks-gates
   allow_failure: true
@@ -382,7 +383,7 @@ check-slo-breaches:
       - platform/artifacts/
     expire_in: 3 months
 
-notify-slo-breaches:
+macrobenchmarks-notify-slo-breaches:
   extends: .notify-slo-breaches
   stage: macrobenchmarks-notify
   needs: ["check-slo-breaches"]
