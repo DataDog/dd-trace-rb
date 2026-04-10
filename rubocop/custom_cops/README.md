@@ -142,3 +142,47 @@ logger.debug("Processing DD_CUSTOM_METRIC_NAME") # rubocop:disable CustomCops/En
 ### Additional information
 
 See docs/AccessEnvironmentVariables.md for details.
+
+## ExceptionMessageCop
+
+The `CustomCops::ExceptionMessageCop` enforces consistent exception logging format.
+
+### Purpose
+
+In string interpolation, `e.message` is redundant because `e.to_s` (called implicitly by interpolation) returns the same value. Similarly, `e.class.name` is redundant because `e.class.to_s` returns the class name. This cop detects these patterns inside rescue blocks and auto-corrects them within string interpolation.
+
+### Examples
+
+#### Bad
+
+```ruby
+rescue => e
+  log("#{e.class.name}: #{e.message}")
+  log("#{e.class.name} #{e.message}")
+  log("error: #{e.message}")
+```
+
+#### Good
+
+```ruby
+rescue => e
+  log("#{e.class}: #{e}")
+  log("error: #{e}")
+```
+
+### Auto-correction
+
+The cop auto-corrects within string interpolation only:
+
+- `#{e.message}` → `#{e}`
+- `#{e.class.name}` → `#{e.class}`
+
+Outside interpolation (e.g., `log(e.message)`), the cop flags the offense but does not auto-correct, since the replacement may change semantics.
+
+### Testing
+
+Run the cop tests with:
+
+```bash
+bundle exec rspec spec/rubocop/exception_message_cop_spec.rb
+```
