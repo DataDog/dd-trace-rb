@@ -367,7 +367,6 @@ check-big-regressions:
 check-slo-breaches:
   extends: .check-slo-breaches
   stage: macrobenchmarks-gates
-  when: always
   allow_failure: true
   needs:
     - baseline
@@ -378,6 +377,11 @@ check-slo-breaches:
     - profiling-and-tracing
     - tracing-and-appsec
     - profiling-and-tracing-and-appsec
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "master"
+      when: always
+      interruptible: false
+    - interruptible: true
   variables:
     DDOCTOSTS_POLICY: "gitlab.github-access.slo-change-tracking.contents-read"
     ARTIFACTS_DIR: "platform/artifacts"
@@ -393,7 +397,11 @@ notify-slo-breaches:
   extends: .notify-slo-breaches
   stage: macrobenchmarks-notify
   needs: ["check-slo-breaches"]
-  when: always
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "master"
+      when: always
+      interruptible: false
+    - interruptible: true
   variables:
     # TODO: Change to #guild-dd-ruby once the quality gates are validated
     CHANNEL: "apm-dcs-performance-alerts"
