@@ -175,7 +175,7 @@ macrobenchmarks-check-slo-breaches:
 macrobenchmarks-notify-slo-breaches:
   extends: .notify-slo-breaches
   stage: macrobenchmarks-notify
-  needs: ["check-slo-breaches"]
+  needs: ["macrobenchmarks-check-slo-breaches"]
   rules:
     - if: $CI_COMMIT_REF_NAME == "master"
       when: always
@@ -372,13 +372,14 @@ microbenchmarks-check-big-regressions:
   tags: ["arch:amd64"]
   image: $BASE_CI_IMAGE
   timeout: 30m
-  when: always
   # TODO: Change to false once quality gates are validated
   allow_failure: true
   rules:
     - if: $CI_COMMIT_REF_NAME == "master"
+      when: always
       interruptible: false
-    - interruptible: true
+    - when: always
+      interruptible: true
   variables:
     CI_COMMIT_REF_NAME: $CI_COMMIT_REF_NAME
     CI_PROJECT_NAME: $CI_PROJECT_NAME
