@@ -315,7 +315,10 @@ microbenchmarks-pr-comment:
       - artifacts/
     expire_in: 3 months
 
-check-big-regressions:
+# This repository is using PR-level performance quality gates.
+# Verify that the microbenchmarks-check-big-regressions CI job has passed. If any regression happened, merging this PR will be blocked.
+# If bypassing is necessary, see https://datadoghq.atlassian.net/wiki/x/8YFzMwE for more details.
+microbenchmarks-check-big-regressions:
   stage: microbenchmarks
   when: always
   needs:
