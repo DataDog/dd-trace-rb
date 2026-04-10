@@ -37,7 +37,7 @@ module Datadog
 
                 if Tracing::Distributed::PropagationPolicy.enabled?(
                   pin_config: client_config,
-                  global_config: Datadog.configuration.tracing[:http],
+                  global_config: request_options,
                   trace: trace
                 )
                   Contrib::HTTP.inject(trace, req)
