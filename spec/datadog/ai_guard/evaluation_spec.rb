@@ -159,10 +159,10 @@ RSpec.describe Datadog::AIGuard::Evaluation do
         expect(ai_guard_span.get_metastruct_tag("ai_guard").fetch(:attack_categories)).to eq([])
       end
 
-      it "sets ai_guard metastruct tag with empty sds_findings" do
+      it "sets ai_guard metastruct tag with empty sds" do
         perform
 
-        expect(ai_guard_span.get_metastruct_tag("ai_guard").fetch(:sds_findings)).to eq([])
+        expect(ai_guard_span.get_metastruct_tag("ai_guard").fetch(:sds)).to eq([])
       end
     end
 
@@ -231,10 +231,10 @@ RSpec.describe Datadog::AIGuard::Evaluation do
           )
         end
 
-        it "sets ai_guard metastruct tag with sds_findings" do
+        it "sets ai_guard metastruct tag with sds" do
           perform
 
-          expect(ai_guard_span.get_metastruct_tag("ai_guard").fetch(:sds_findings)).to eq(
+          expect(ai_guard_span.get_metastruct_tag("ai_guard").fetch(:sds)).to eq(
             ["pii-email"]
           )
         end
