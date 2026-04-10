@@ -23,11 +23,11 @@ module CustomCops
   #     log("#{e.class.name}: #{e.message}")
   #     log("#{e.class.name} #{e.message}")
   #     log("error: #{e.message}")
+  #     log("error: #{e}")           # missing class name
   #
   #   # good
   #   rescue => e
   #     log("#{e.class}: #{e}")
-  #     log("error: #{e}")
   class ExceptionMessageCop < RuboCop::Cop::Base
     extend RuboCop::Cop::AutoCorrector
 
@@ -37,7 +37,39 @@ module CustomCops
     MSG_CLASS_NAME = 'Use `.class` instead of `.class.name`. ' \
                      '`Class#to_s` already returns the name; the extra `.name` call is redundant in interpolation.'
 
-    # Detect `e.message` where `e` is a rescue variable
+    MSG_MISSING_CLASS = 'Include `#{e.class}` when interpolating an exception. ' \
+                        'The convention is `"#{e.class}: #{e}"`.'
+
+    # Detect bare `#{e}` without `#{e.class}` in the same string
+    def on_dstr(node)
+      return unless inside_rescue?(node)
+
+      rescue_vars_in_string = []
+      has_class_call = {}
+
+      node.children.each do |child|
+        next unless child.begin_type?
+
+        expr = child.children.first
+        next unless expr
+
+        if expr.lvar_type? && rescue_variable?(expr)
+          rescue_vars_in_string << expr
+        elsif class_reference?(expr)
+          var_node = class_reference_variable(expr)
+          has_class_call[var_node.children.first] = true if var_node
+        end
+      end
+
+      rescue_vars_in_string.each do |var_node|
+        var_name = var_node.children.first
+        next if has_class_call[var_name]
+
+        add_offense(var_node, message: MSG_MISSING_CLASS)
+      end
+    end
+
+    # Detect `e.message` and `e.class.name` where `e` is a rescue variable
     # @!method on_send
     def on_send(node)
       return unless inside_rescue?(node)
@@ -111,6 +143,33 @@ module CustomCops
     # Check if the node is inside a rescue block
     def inside_rescue?(node)
       find_rescue_ancestor(node) != nil
+    end
+
+    # Check if an expression references e.class (either e.class or e.class.name)
+    def class_reference?(node)
+      return false unless node&.send_type?
+
+      # e.class
+      if node.method_name == :class && node.receiver&.lvar_type?
+        return rescue_variable?(node.receiver)
+      end
+
+      # e.class.name
+      if node.method_name == :name && node.receiver&.send_type? &&
+         node.receiver.method_name == :class && node.receiver.receiver&.lvar_type?
+        return rescue_variable?(node.receiver.receiver)
+      end
+
+      false
+    end
+
+    # Extract the rescue variable node from a class reference
+    def class_reference_variable(node)
+      if node.method_name == :class
+        node.receiver
+      elsif node.method_name == :name
+        node.receiver.receiver
+      end
     end
 
     # Check if the node is inside string interpolation (dstr > begin > node)

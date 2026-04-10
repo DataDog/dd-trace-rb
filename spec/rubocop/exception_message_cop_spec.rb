@@ -190,8 +190,30 @@ RSpec.describe CustomCops::ExceptionMessageCop do
     end
   end
 
-  describe 'good patterns (no offense)' do
-    it 'does not flag e.class (already correct)' do
+  describe 'missing class detection' do
+    it 'registers an offense for bare exception without class in interpolation' do
+      expect_offense(<<~'RUBY')
+        begin
+          something
+        rescue => e
+          log("error: #{e}")
+                        ^ CustomCops/ExceptionMessageCop: Include `#{e.class}` when interpolating an exception. The convention is `"#{e.class}: #{e}"`.
+        end
+      RUBY
+    end
+
+    it 'registers an offense for bare exception with different variable name' do
+      expect_offense(<<~'RUBY')
+        begin
+          something
+        rescue => err
+          log("error: #{err}")
+                        ^^^ CustomCops/ExceptionMessageCop: Include `#{e.class}` when interpolating an exception. The convention is `"#{e.class}: #{e}"`.
+        end
+      RUBY
+    end
+
+    it 'does not register an offense when class is present in the same string' do
       expect_no_offenses(<<~'RUBY')
         begin
           something
@@ -201,12 +223,31 @@ RSpec.describe CustomCops::ExceptionMessageCop do
       RUBY
     end
 
-    it 'does not flag e directly in interpolation' do
+    it 'does not register an offense when class is present elsewhere in the same string' do
       expect_no_offenses(<<~'RUBY')
         begin
           something
         rescue => e
-          log("#{e}")
+          log("#{e.class} happened: #{e}")
+        end
+      RUBY
+    end
+
+    it 'does not register an offense outside a rescue block' do
+      expect_no_offenses(<<~'RUBY')
+        e = SomeObject.new
+        log("error: #{e}")
+      RUBY
+    end
+  end
+
+  describe 'good patterns (no offense)' do
+    it 'does not flag the correct convention' do
+      expect_no_offenses(<<~'RUBY')
+        begin
+          something
+        rescue => e
+          log("#{e.class}: #{e}")
         end
       RUBY
     end
