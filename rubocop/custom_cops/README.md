@@ -149,7 +149,7 @@ The `CustomCops::ExceptionMessageCop` enforces consistent exception logging form
 
 ### Purpose
 
-`Exception#to_s` and `Exception#message` have different contracts in Ruby. Subclasses can override them independently, and `to_s` is the method Ruby calls during string interpolation (`"#{e}"`). Using `e.message` directly can produce different output than `#{e}` when a subclass overrides one without the other. The codebase convention is `"#{e.class}: #{e}"`. This cop enforces it by detecting `e.message` and `e.class.name` inside rescue blocks and auto-correcting within string interpolation.
+`Exception#to_s` and `Exception#message` have different contracts in Ruby. Subclasses can override them independently, and `to_s` is the method Ruby calls during string interpolation (`"#{e}"`). Using `e.message` directly can produce different output than `#{e}` when a subclass overrides one without the other. The codebase convention is `"#{e.class}: #{e}"`. This cop enforces it by detecting `e.message`, `e.class.name`, and bare `#{e}` without `#{e.class}` inside rescue blocks.
 
 ### Examples
 
@@ -160,6 +160,7 @@ rescue => e
   log("#{e.class.name}: #{e.message}")
   log("#{e.class.name} #{e.message}")
   log("error: #{e.message}")
+  log("error: #{e}")           # missing class name
 ```
 
 #### Good
@@ -167,7 +168,6 @@ rescue => e
 ```ruby
 rescue => e
   log("#{e.class}: #{e}")
-  log("error: #{e}")
 ```
 
 ### Auto-correction
