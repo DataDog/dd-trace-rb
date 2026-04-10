@@ -96,6 +96,7 @@ RSpec.describe Datadog::AIGuard do
                 "action" => "ALLOW",
                 "reason" => "No rule match",
                 "tags" => [],
+                "tag_probs" => {},
                 "is_blocking_enabled" => false
               }
             }
@@ -122,6 +123,7 @@ RSpec.describe Datadog::AIGuard do
                 "action" => "DENY",
                 "reason" => "Rule match",
                 "tags" => ["indirect-prompt-injection"],
+                "tag_probs" => {"indirect-prompt-injection" => 0.95},
                 "is_blocking_enabled" => true
               }
             }

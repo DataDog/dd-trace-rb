@@ -37,6 +37,7 @@ module Datadog
                 messages: truncate_content(request.serialized_messages),
                 attack_categories: result.tags,
                 sds: result.sds_findings,
+                tag_probs: result.tag_probabilities
               }
             )
 

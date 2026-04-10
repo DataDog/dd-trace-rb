@@ -50,6 +50,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
               "action" => "ALLOW",
               "reason" => "No rule matching",
               "tags" => [],
+              "tag_probs" => {},
               "is_blocking_enabled" => false
             }
           }
@@ -81,6 +82,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
               "action" => "DENY",
               "reason" => "Rule matching: instruction-override",
               "tags" => ["instruction-override"],
+              "tag_probs" => {"instruction-override" => 0.95},
               "is_blocking_enabled" => false
             }
           }
@@ -112,6 +114,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
               "action" => "DENY",
               "reason" => "Rule matching: instruction-override",
               "tags" => ["instruction-override"],
+              "tag_probs" => {"instruction-override" => 0.95},
               "is_blocking_enabled" => true
             }
           }
@@ -143,6 +146,7 @@ RSpec.describe "RubyLLM chat instrumentation" do
             "action" => "ALLOW",
             "reason" => "No rule matching",
             "tags" => [],
+            "tag_probs" => {},
             "is_blocking_enabled" => false
           }
         }
