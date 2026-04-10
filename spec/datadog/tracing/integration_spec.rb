@@ -590,19 +590,17 @@ RSpec.describe 'Tracer integration tests' do
     include_context 'agent-based test'
 
     context 'executes only once' do
-      # The default 1-second shutdown timeout can be too short for the HTTP
-      # round-trip to the agent under CI load, causing traces_flushed: 0.
-      # Use a generous timeout so the flush reliably completes during shutdown,
-      # keeping the trace in the buffer when shutdown starts (which is what
-      # this test is meant to exercise).
-      before do
-        stub_const('Datadog::Tracing::Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT', 5)
-      end
-
       subject!(:multiple_shutdown) do
         tracer.trace('my.short.op') do |span|
           span.service = 'my.service'
         end
+
+        # The background worker flushes nearly instantly (DEFAULT_FLUSH_INTERVAL
+        # is stubbed to 0), so the trace is almost always already flushed before
+        # shutdown threads start. Make that deterministic to avoid flakiness when
+        # the 1-second DEFAULT_SHUTDOWN_TIMEOUT is occasionally too short for the
+        # HTTP round-trip under CI load.
+        try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
 
         threads = Array.new(10) do
           Thread.new { tracer.shutdown! }
