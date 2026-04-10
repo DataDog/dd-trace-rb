@@ -20,7 +20,30 @@ RSpec.describe Datadog::AIGuard::Evaluation::Result do
           "reason" => "Some reason",
           "tags" => ["some", "tags"],
           "is_blocking_enabled" => is_blocking_enabled,
-          "sds_findings" => ["pii-email", "pii-phone"]
+          "sds_findings" => [
+            {
+              "rule_display_name" => "Credit Card Number",
+              "rule_tag" => "credit_card",
+              "category" => "pii",
+              "matched_text" => "4111111111111111",
+              "location" => {
+                "start_index" => 0,
+                "end_index_exclusive" => 26,
+                "path" => "messages[0].content[0].text"
+              }
+            },
+            {
+              "rule_display_name" => "Email Address",
+              "rule_tag" => "email",
+              "category" => "pii",
+              "matched_text" => "test@example.com",
+              "location" => {
+                "start_index" => 30,
+                "end_index_exclusive" => 46,
+                "path" => "messages[0].content[0].text"
+              }
+            }
+          ]
         }
       }
     }
@@ -49,7 +72,9 @@ RSpec.describe Datadog::AIGuard::Evaluation::Result do
 
   describe "#sds_findings" do
     it "returns the sds_findings from the response body" do
-      expect(described_class.new(raw_response).sds_findings).to eq(["pii-email", "pii-phone"])
+      expect(described_class.new(raw_response).sds_findings).to eq(
+        raw_response.dig("data", "attributes", "sds_findings")
+      )
     end
 
     context "when sds_findings is not present in the response" do

@@ -176,7 +176,19 @@ RSpec.describe Datadog::AIGuard::Evaluation do
                 "reason" => "Rule matches: indirect-prompt-injection, instruction-override",
                 "tags" => ["indirect-prompt-injection", "instruction-override"],
                 "is_blocking_enabled" => blocking_enabled,
-                "sds_findings" => ["pii-email"]
+                "sds_findings" => [
+                  {
+                    "rule_display_name" => "Credit Card Number",
+                    "rule_tag" => "credit_card",
+                    "category" => "pii",
+                    "matched_text" => "4111111111111111",
+                    "location" => {
+                      "start_index" => 0,
+                      "end_index_exclusive" => 26,
+                      "path" => "messages[0].content[0].text"
+                    }
+                  }
+                ]
               }
             }
           }
@@ -235,7 +247,19 @@ RSpec.describe Datadog::AIGuard::Evaluation do
           perform
 
           expect(ai_guard_span.get_metastruct_tag("ai_guard").fetch(:sds)).to eq(
-            ["pii-email"]
+            [
+              {
+                "rule_display_name" => "Credit Card Number",
+                "rule_tag" => "credit_card",
+                "category" => "pii",
+                "matched_text" => "4111111111111111",
+                "location" => {
+                  "start_index" => 0,
+                  "end_index_exclusive" => 26,
+                  "path" => "messages[0].content[0].text"
+                }
+              }
+            ]
           )
         end
 
