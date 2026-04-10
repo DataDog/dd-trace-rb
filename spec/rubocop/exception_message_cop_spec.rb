@@ -127,7 +127,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
           something
         rescue => e
           log("#{e.class.name} #{e.message}")
-                                  ^^^^^^^^^ CustomCops/ExceptionMessageCop: Use the exception directly instead of `.message`. `to_s` and `message` have different contracts; `#{e}` calls `to_s`, which is the convention.
+                                 ^^^^^^^^^ CustomCops/ExceptionMessageCop: Use the exception directly instead of `.message`. `to_s` and `message` have different contracts; `#{e}` calls `to_s`, which is the convention.
                  ^^^^^^^^^^^^ CustomCops/ExceptionMessageCop: Use `.class` instead of `.class.name`. `Class#to_s` already returns the name; the extra `.name` call is redundant in interpolation.
         end
       RUBY
