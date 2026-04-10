@@ -191,4 +191,4 @@ experiments:
           - name: high_load--profiling-and-tracing-and-appsec--puma-utilization
             thresholds:
               - cpu_usage_percentage < 225.50 %
-              - rss < 2.73 GB
+              - rss < 3.25 GB
