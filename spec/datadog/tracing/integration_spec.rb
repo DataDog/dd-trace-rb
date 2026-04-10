@@ -595,6 +595,12 @@ RSpec.describe 'Tracer integration tests' do
           span.service = 'my.service'
         end
 
+        # Wait for the background worker to flush the trace before shutting down.
+        # Without this, concurrent shutdown! calls may race with the flush and the
+        # 1-second DEFAULT_SHUTDOWN_TIMEOUT may expire before the HTTP send completes,
+        # resulting in traces_flushed: 0.
+        try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
+
         threads = Array.new(10) do
           Thread.new { tracer.shutdown! }
         end
