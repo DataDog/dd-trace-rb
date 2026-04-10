@@ -137,6 +137,55 @@ profiling-and-tracing-and-appsec:
     DD_PROFILING_ENABLED: "true"
     DD_APPSEC_ENABLED: "true"
 
+# This repository is using pre-release performance quality gates.
+# On master, verify that the latest CI pipeline passed the check-slo-breaches job.
+# If any SLO is breached, your release will be blocked.
+
+# See our SLO file at https://github.com/DataDog/dd-trace-rb/blob/master/.gitlab/benchmarks/bp-runner.macrobenchmarks.fail-on-breach.yml
+
+# If bypassing is necessary, see https://datadoghq.atlassian.net/wiki/x/8YFzMwE for more details.
+macrobenchmarks-check-slo-breaches:
+  extends: .check-slo-breaches
+  stage: macrobenchmarks-gates
+  allow_failure: true
+  needs:
+    - baseline
+    - only-tracing
+    - only-profiling
+    - only-profiling-alloc
+    - only-profiling-heap
+    - profiling-and-tracing
+    - tracing-and-appsec
+    - profiling-and-tracing-and-appsec
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "master"
+      when: always
+      interruptible: false
+    - interruptible: true
+  variables:
+    DDOCTOSTS_POLICY: "gitlab.github-access.slo-change-tracking.contents-read"
+    ARTIFACTS_DIR: "platform/artifacts"
+    SLO_FILE: ".gitlab/benchmarks/bp-runner.macrobenchmarks.fail-on-breach.yml"
+  artifacts:
+    name: "artifacts"
+    when: always
+    paths:
+      - platform/artifacts/
+    expire_in: 3 months
+
+macrobenchmarks-notify-slo-breaches:
+  extends: .notify-slo-breaches
+  stage: macrobenchmarks-notify
+  needs: ["check-slo-breaches"]
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "master"
+      when: always
+      interruptible: false
+    - interruptible: true
+  variables:
+    # TODO: Change to #guild-dd-ruby once the quality gates are validated
+    CHANNEL: "apm-dcs-performance-alerts"
+
 # -----------------------------------------------------
 # Microbenchmarks that report to statsd
 # -----------------------------------------------------
@@ -346,52 +395,3 @@ microbenchmarks-check-big-regressions:
     paths:
       - artifacts/
     expire_in: 3 months
-
-# This repository is using pre-release performance quality gates.
-# On master, verify that the latest CI pipeline passed the check-slo-breaches job.
-# If any SLO is breached, your release will be blocked.
-
-# See our SLO file at https://github.com/DataDog/dd-trace-rb/blob/master/.gitlab/benchmarks/bp-runner.macrobenchmarks.fail-on-breach.yml
-
-# If bypassing is necessary, see https://datadoghq.atlassian.net/wiki/x/8YFzMwE for more details.
-macrobenchmarks-check-slo-breaches:
-  extends: .check-slo-breaches
-  stage: macrobenchmarks-gates
-  allow_failure: true
-  needs:
-    - baseline
-    - only-tracing
-    - only-profiling
-    - only-profiling-alloc
-    - only-profiling-heap
-    - profiling-and-tracing
-    - tracing-and-appsec
-    - profiling-and-tracing-and-appsec
-  rules:
-    - if: $CI_COMMIT_REF_NAME == "master"
-      when: always
-      interruptible: false
-    - interruptible: true
-  variables:
-    DDOCTOSTS_POLICY: "gitlab.github-access.slo-change-tracking.contents-read"
-    ARTIFACTS_DIR: "platform/artifacts"
-    SLO_FILE: ".gitlab/benchmarks/bp-runner.macrobenchmarks.fail-on-breach.yml"
-  artifacts:
-    name: "artifacts"
-    when: always
-    paths:
-      - platform/artifacts/
-    expire_in: 3 months
-
-macrobenchmarks-notify-slo-breaches:
-  extends: .notify-slo-breaches
-  stage: macrobenchmarks-notify
-  needs: ["check-slo-breaches"]
-  rules:
-    - if: $CI_COMMIT_REF_NAME == "master"
-      when: always
-      interruptible: false
-    - interruptible: true
-  variables:
-    # TODO: Change to #guild-dd-ruby once the quality gates are validated
-    CHANNEL: "apm-dcs-performance-alerts"
