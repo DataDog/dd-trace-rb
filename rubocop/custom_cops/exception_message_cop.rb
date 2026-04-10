@@ -3,16 +3,19 @@
 module CustomCops
   # Custom cop that enforces consistent exception logging format.
   #
-  # In string interpolation, `e.message` is redundant because `e.to_s` (which
-  # interpolation calls) returns the same value. Similarly, `e.class.name` is
-  # redundant because `e.class.to_s` returns the class name.
+  # `Exception#to_s` and `Exception#message` have different contracts in Ruby.
+  # Subclasses can override them independently, and `to_s` is the method Ruby
+  # calls during string interpolation (`"#{e}"`). Using `e.message` directly
+  # can produce different output than `#{e}` when a subclass overrides one
+  # without the other.
   #
-  # This cop detects these patterns inside rescue blocks and auto-corrects them.
+  # The codebase convention is `"#{e.class}: #{e}"`. This cop enforces it by
+  # detecting `e.message` and `e.class.name` inside rescue blocks.
   #
   # @safety
   #   This cop's autocorrection is unsafe because `e.message` and `e.to_s`
   #   can differ if a custom exception overrides `to_s` without overriding
-  #   `message`, or vice versa.
+  #   `message`, or vice versa. The convention prefers `to_s` (via interpolation).
   #
   # @example
   #   # bad
@@ -29,10 +32,10 @@ module CustomCops
     extend RuboCop::Cop::AutoCorrector
 
     MSG_MESSAGE = 'Use the exception directly instead of `.message`. ' \
-                  'In string interpolation, `e.to_s` (called implicitly) returns the same value as `e.message`.'
+                  '`to_s` and `message` have different contracts; `#{e}` calls `to_s`, which is the convention.'
 
     MSG_CLASS_NAME = 'Use `.class` instead of `.class.name`. ' \
-                     'In string interpolation, `e.class.to_s` (called implicitly) returns the class name.'
+                     '`Class#to_s` already returns the name; the extra `.name` call is redundant in interpolation.'
 
     # Detect `e.message` where `e` is a rescue variable
     # @!method on_send

@@ -149,7 +149,7 @@ The `CustomCops::ExceptionMessageCop` enforces consistent exception logging form
 
 ### Purpose
 
-In string interpolation, `e.message` is redundant because `e.to_s` (called implicitly by interpolation) returns the same value. Similarly, `e.class.name` is redundant because `e.class.to_s` returns the class name. This cop detects these patterns inside rescue blocks and auto-corrects them within string interpolation.
+`Exception#to_s` and `Exception#message` have different contracts in Ruby. Subclasses can override them independently, and `to_s` is the method Ruby calls during string interpolation (`"#{e}"`). Using `e.message` directly can produce different output than `#{e}` when a subclass overrides one without the other. The codebase convention is `"#{e.class}: #{e}"`. This cop enforces it by detecting `e.message` and `e.class.name` inside rescue blocks and auto-correcting within string interpolation.
 
 ### Examples
 
