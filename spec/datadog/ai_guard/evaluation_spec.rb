@@ -13,7 +13,8 @@ RSpec.describe Datadog::AIGuard::Evaluation do
             "action" => "ALLOW",
             "reason" => "Because why not",
             "tags" => [],
-            "is_blocking_enabled" => false
+            "is_blocking_enabled" => false,
+            "sds_findings" => []
           }
         }
       }
@@ -109,7 +110,8 @@ RSpec.describe Datadog::AIGuard::Evaluation do
               "action" => "ALLOW",
               "reason" => "Because why not",
               "tags" => [],
-              "is_blocking_enabled" => false
+              "is_blocking_enabled" => false,
+              "sds_findings" => []
             }
           }
         }
@@ -156,6 +158,12 @@ RSpec.describe Datadog::AIGuard::Evaluation do
 
         expect(ai_guard_span.get_metastruct_tag("ai_guard").fetch(:attack_categories)).to eq([])
       end
+
+      it "sets ai_guard metastruct tag with empty sds_findings" do
+        perform
+
+        expect(ai_guard_span.get_metastruct_tag("ai_guard").fetch(:sds_findings)).to eq([])
+      end
     end
 
     %w[DENY ABORT].each do |blocking_action|
@@ -167,7 +175,8 @@ RSpec.describe Datadog::AIGuard::Evaluation do
                 "action" => blocking_action,
                 "reason" => "Rule matches: indirect-prompt-injection, instruction-override",
                 "tags" => ["indirect-prompt-injection", "instruction-override"],
-                "is_blocking_enabled" => blocking_enabled
+                "is_blocking_enabled" => blocking_enabled,
+                "sds_findings" => ["pii-email"]
               }
             }
           }
@@ -219,6 +228,14 @@ RSpec.describe Datadog::AIGuard::Evaluation do
 
           expect(ai_guard_span.get_metastruct_tag("ai_guard").fetch(:attack_categories)).to eq(
             ["indirect-prompt-injection", "instruction-override"]
+          )
+        end
+
+        it "sets ai_guard metastruct tag with sds_findings" do
+          perform
+
+          expect(ai_guard_span.get_metastruct_tag("ai_guard").fetch(:sds_findings)).to eq(
+            ["pii-email"]
           )
         end
 

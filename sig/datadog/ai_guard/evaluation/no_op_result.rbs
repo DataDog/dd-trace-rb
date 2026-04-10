@@ -5,6 +5,7 @@ module Datadog
         attr_reader action: ::String
         attr_reader reason: ::String
         attr_reader tags: ::Array[::String]
+        attr_reader sds_findings: ::Array[::String]
 
         def initialize: () -> void
 

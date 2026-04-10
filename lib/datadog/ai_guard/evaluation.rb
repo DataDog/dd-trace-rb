@@ -35,7 +35,8 @@ module Datadog
               Ext::METASTRUCT_TAG,
               {
                 messages: truncate_content(request.serialized_messages),
-                attack_categories: result.tags
+                attack_categories: result.tags,
+                sds_findings: result.sds_findings,
               }
             )
 

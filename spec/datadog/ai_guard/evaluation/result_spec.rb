@@ -19,7 +19,8 @@ RSpec.describe Datadog::AIGuard::Evaluation::Result do
           "action" => action,
           "reason" => "Some reason",
           "tags" => ["some", "tags"],
-          "is_blocking_enabled" => is_blocking_enabled
+          "is_blocking_enabled" => is_blocking_enabled,
+          "sds_findings" => ["pii-email", "pii-phone"]
         }
       }
     }
@@ -43,6 +44,31 @@ RSpec.describe Datadog::AIGuard::Evaluation::Result do
   describe "#tags" do
     it "returns the tags from the response body" do
       expect(described_class.new(raw_response).tags).to eq(raw_response.dig("data", "attributes", "tags"))
+    end
+  end
+
+  describe "#sds_findings" do
+    it "returns the sds_findings from the response body" do
+      expect(described_class.new(raw_response).sds_findings).to eq(["pii-email", "pii-phone"])
+    end
+
+    context "when sds_findings is not present in the response" do
+      let(:raw_response) do
+        {
+          "data" => {
+            "attributes" => {
+              "action" => action,
+              "reason" => "Some reason",
+              "tags" => ["some", "tags"],
+              "is_blocking_enabled" => is_blocking_enabled
+            }
+          }
+        }
+      end
+
+      it "defaults to an empty array" do
+        expect(described_class.new(raw_response).sds_findings).to eq([])
+      end
     end
   end
 
