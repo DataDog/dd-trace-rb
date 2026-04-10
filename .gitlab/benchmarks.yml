@@ -149,7 +149,6 @@ macrobenchmarks-check-slo-breaches:
   stage: macrobenchmarks-gates
   allow_failure: true
   needs:
-    - baseline
     - only-tracing
     - only-profiling
     - only-profiling-alloc
