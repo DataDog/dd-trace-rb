@@ -15,7 +15,6 @@ void encoded_profile_init(VALUE profiling_module) {
   encoded_profile_class = rb_define_class_under(profiling_module, "EncodedProfile", rb_cObject);
 
   rb_undef_alloc_func(encoded_profile_class); // Class cannot be created from Ruby code
-  rb_global_variable(&encoded_profile_class);
 
   rb_define_method(encoded_profile_class, "_native_bytes", _native_bytes, 0);
 }

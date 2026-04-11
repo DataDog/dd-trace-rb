@@ -13,9 +13,9 @@ static ID inspect_id = Qnil;
 static ID to_s_id = Qnil;
 
 void ruby_helpers_init(void) {
-  rb_global_variable(&module_object_space);
-
   module_object_space = rb_const_get(rb_cObject, rb_intern("ObjectSpace"));
+  // This module should already be immortal, but just-in-case let's prevent it from being GC'd
+  rb_gc_register_mark_object(module_object_space);
   _id2ref_id = rb_intern("_id2ref");
   inspect_id = rb_intern("inspect");
   to_s_id = rb_intern("to_s");

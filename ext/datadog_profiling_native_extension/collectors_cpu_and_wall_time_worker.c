@@ -319,7 +319,6 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(collectors_cpu_and_wall_time_worker_class, "Testing");
   clock_failure_exception_class = rb_define_class_under(collectors_cpu_and_wall_time_worker_class, "ClockFailure", rb_eRuntimeError);
-  rb_gc_register_mark_object(clock_failure_exception_class);
 
   // Instances of the CpuAndWallTimeWorker class are "TypedData" objects.
   // "TypedData" objects are special objects in the Ruby VM that can wrap C structs.
