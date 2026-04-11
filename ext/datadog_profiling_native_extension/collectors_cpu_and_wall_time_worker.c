@@ -1062,7 +1062,6 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
   VALUE allocation_sampler_snapshot = state->allocation_profiling_enabled && state->dynamic_sampling_rate_enabled ?
     discrete_dynamic_sampler_state_snapshot(&state->allocation_sampler) : Qnil;
 
-  VALUE stats_as_hash = rb_hash_new();
   VALUE arguments[] = {
     ID2SYM(rb_intern("trigger_sample_attempts")),                    /* => */ UINT2NUM(state->stats.trigger_sample_attempts),
     ID2SYM(rb_intern("trigger_sample_extra_sleep")),                 /* => */ UINT2NUM(state->stats.trigger_sample_extra_sleep),
@@ -1101,6 +1100,7 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("gvl_sampling_time_ns_total")), /* => */ RUBY_NUM_OR_NIL(state->stats.gvl_sampling_time_ns_total, > 0, ULL2NUM),
     ID2SYM(rb_intern("gvl_sampling_time_ns_avg")),   /* => */ RUBY_AVG_OR_NIL(state->stats.gvl_sampling_time_ns_total, state->stats.after_gvl_running),
   };
+  VALUE stats_as_hash = rb_hash_new_capa(VALUE_COUNT(arguments) / 2);
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;
 }

@@ -1194,9 +1194,6 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
   VALUE thread = (VALUE) key_thread;
   per_thread_context *thread_context = (per_thread_context*) value_context;
   VALUE result = (VALUE) result_hash;
-  VALUE context_as_hash = rb_hash_new();
-  rb_hash_aset(result, thread, context_as_hash);
-
   VALUE arguments[] = {
     ID2SYM(rb_intern("thread_id")),                       /* => */ rb_str_new2(thread_context->thread_id),
     ID2SYM(rb_intern("thread_invoke_location")),          /* => */ rb_str_new2(thread_context->thread_invoke_location),
@@ -1212,6 +1209,8 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
       ID2SYM(rb_intern("gvl_waiting_at")), /* => */ LONG2NUM(gvl_profiling_state_thread_object_get(thread)),
     #endif
   };
+  VALUE context_as_hash = rb_hash_new_capa(VALUE_COUNT(arguments) / 2);
+  rb_hash_aset(result, thread, context_as_hash);
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(context_as_hash, arguments[i], arguments[i+1]);
 
   return ST_CONTINUE;
@@ -1219,24 +1218,24 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
 
 static VALUE stats_as_ruby_hash(thread_context_collector_state *state) {
   // Update this when modifying state struct (stats inner struct)
-  VALUE stats_as_hash = rb_hash_new();
   VALUE arguments[] = {
     ID2SYM(rb_intern("gc_samples")),                               /* => */ UINT2NUM(state->stats.gc_samples),
     ID2SYM(rb_intern("gc_samples_missed_due_to_missing_context")), /* => */ UINT2NUM(state->stats.gc_samples_missed_due_to_missing_context),
   };
+  VALUE stats_as_hash = rb_hash_new_capa(VALUE_COUNT(arguments) / 2);
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;
 }
 
 static VALUE gc_tracking_as_ruby_hash(thread_context_collector_state *state) {
   // Update this when modifying state struct (gc_tracking inner struct)
-  VALUE result = rb_hash_new();
   VALUE arguments[] = {
     ID2SYM(rb_intern("accumulated_cpu_time_ns")),               /* => */ ULONG2NUM(state->gc_tracking.accumulated_cpu_time_ns),
     ID2SYM(rb_intern("accumulated_wall_time_ns")),              /* => */ ULONG2NUM(state->gc_tracking.accumulated_wall_time_ns),
     ID2SYM(rb_intern("wall_time_at_previous_gc_ns")),           /* => */ LONG2NUM(state->gc_tracking.wall_time_at_previous_gc_ns),
     ID2SYM(rb_intern("wall_time_at_last_flushed_gc_event_ns")), /* => */ LONG2NUM(state->gc_tracking.wall_time_at_last_flushed_gc_event_ns),
   };
+  VALUE result = rb_hash_new_capa(VALUE_COUNT(arguments) / 2);
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(result, arguments[i], arguments[i+1]);
   return result;
 }

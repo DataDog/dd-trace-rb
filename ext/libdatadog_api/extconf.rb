@@ -74,6 +74,9 @@ if ENV['DDTRACE_DEBUG'] == 'true'
   CONFIG['debugflags'] = '-ggdb3'
 end
 
+# On older Rubies, rb_hash_new_capa did not exist (we polyfill it in datadog_ruby_common.h)
+$defs << "-DNO_RB_HASH_NEW_CAPA" if RUBY_VERSION < "3.2"
+
 # If we got here, libdatadog is available and loaded
 $stderr.puts("Using libdatadog #{Libdatadog::VERSION} from #{Libdatadog.pkgconfig_folder}")
 

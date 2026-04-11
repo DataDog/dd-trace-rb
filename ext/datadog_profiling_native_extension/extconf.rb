@@ -167,6 +167,9 @@ $defs << "-DNO_RACTOR_HEADER_INCLUDE" if RUBY_VERSION < "3.3"
 # On older Rubies, some of the Ractor internal APIs were directly accessible
 $defs << "-DUSE_RACTOR_INTERNAL_APIS_DIRECTLY" if RUBY_VERSION < "3.3"
 
+# On older Rubies, rb_hash_new_capa did not exist (we polyfill it in datadog_ruby_common.h)
+$defs << "-DNO_RB_HASH_NEW_CAPA" if RUBY_VERSION < "3.2"
+
 # On older Rubies, there was no GVL instrumentation API and APIs created to support it
 $defs << "-DNO_GVL_INSTRUMENTATION" if RUBY_VERSION < "3.2"
 
