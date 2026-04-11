@@ -589,7 +589,7 @@ RSpec.describe 'Telemetry integration tests' do
     # option.definition.env over the setting path when an env var is defined.
     shared_examples 'reports requested configuration and actual product state' do |product_key:, configuration:, actual_state:|
       requested = configuration[:value]
-      running = actual_state[:enabled] || actual_state['enabled']
+      running = actual_state.fetch('enabled')
 
       it "reports #{product_key} as configured #{requested} and actually #{running ? 'enabled' : 'disabled'}" do
         component.flush
