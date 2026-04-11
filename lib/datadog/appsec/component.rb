@@ -45,7 +45,7 @@ module Datadog
           settings.appsec.instrument(:devise) unless devise_integration.patcher.patched?
 
           security_engine = SecurityEngine::Engine.new(appsec_settings: settings.appsec, telemetry: telemetry)
-          new(security_engine: security_engine, telemetry: telemetry)
+          new(security_engine: security_engine)
         rescue => e
           Datadog.logger.warn("AppSec is disabled: #{e.class}: #{e}; there may be additional logged errors above")
           telemetry.report(e, description: 'AppSec: initialization failed')
@@ -71,11 +71,10 @@ module Datadog
         end
       end
 
-      attr_reader :security_engine, :telemetry
+      attr_reader :security_engine
 
-      def initialize(security_engine:, telemetry:)
+      def initialize(security_engine:)
         @security_engine = security_engine
-        @telemetry = telemetry
       end
 
       def reconfigure!
