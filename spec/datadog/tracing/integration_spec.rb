@@ -591,6 +591,15 @@ RSpec.describe 'Tracer integration tests' do
 
     context 'executes only once' do
       subject!(:multiple_shutdown) do
+        # Force the HTTP round-trip to take longer than DEFAULT_SHUTDOWN_TIMEOUT (1s).
+        # This reproduces the CI flakiness: the worker thread is mid-HTTP-call when
+        # shutdown! joins with a 1-second timeout, so join times out and
+        # traces_flushed is still 0 when the assertion runs.
+        allow(tracer.writer.transport).to receive(:send_traces).and_wrap_original do |original, *args|
+          sleep(2)
+          original.call(*args)
+        end
+
         tracer.trace('my.short.op') do |span|
           span.service = 'my.service'
         end
