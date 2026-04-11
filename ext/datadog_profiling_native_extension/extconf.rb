@@ -207,6 +207,9 @@ $defs << "-DNO_IMEMO_NAME" if RUBY_VERSION < "3"
 # On older Rubies, objects would not move
 $defs << "-DNO_T_MOVED" if RUBY_VERSION < "2.7"
 
+# On older Rubies, rb_hash_bulk_insert did not exist (we polyfill it in ruby_helpers.h)
+$defs << "-DNO_RB_HASH_BULK_INSERT" if RUBY_VERSION < "2.6"
+
 # On older Rubies, rb_global_vm_lock_struct did not include the owner field
 $defs << "-DNO_GVL_OWNER" if RUBY_VERSION < "2.6"
 

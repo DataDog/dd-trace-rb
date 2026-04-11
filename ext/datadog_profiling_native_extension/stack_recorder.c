@@ -1005,7 +1005,7 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
     ID2SYM(rb_intern("heap_recorder_snapshot")), /* => */ heap_recorder_snapshot,
   };
   VALUE stats_as_hash = rb_hash_new_capa(VALUE_COUNT(arguments) / 2);
-  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
+  rb_hash_bulk_insert(VALUE_COUNT(arguments), arguments, stats_as_hash);
   return stats_as_hash;
 }
 
@@ -1017,7 +1017,7 @@ static VALUE build_profile_stats(profile_slot *slot, long serialization_time_ns,
     ID2SYM(rb_intern("heap_profile_build_time_ns")), /* => */ LONG2NUM(heap_profile_build_time_ns),
   };
   VALUE stats_as_hash = rb_hash_new_capa(VALUE_COUNT(arguments) / 2);
-  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
+  rb_hash_bulk_insert(VALUE_COUNT(arguments), arguments, stats_as_hash);
   return stats_as_hash;
 }
 

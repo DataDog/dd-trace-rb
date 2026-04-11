@@ -40,6 +40,14 @@ static inline int check_if_pending_exception(void) {
 
 #define VALUE_COUNT(array) (sizeof(array) / sizeof(VALUE))
 
+// rb_hash_bulk_insert was added in Ruby 2.6 to insert key-value pairs from a flat array
+// into a hash in one call. On older Rubies we polyfill it with a simple loop.
+#ifdef NO_RB_HASH_BULK_INSERT
+static inline void rb_hash_bulk_insert(long argc, const VALUE *argv, VALUE hash) {
+  for (long i = 0; i < argc; i += 2) rb_hash_aset(hash, argv[i], argv[i + 1]);
+}
+#endif
+
 // Raises a SysErr exception with the formatted string as its message.
 // See `raise_error` for details about telemetry messages.
 #define raise_syserr(syserr_errno, fmt, ...) \
