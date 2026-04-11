@@ -1351,7 +1351,7 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-  VALUE result = rb_str_new2(" (native state)");
+  VALUE result = rb_str_new_lit(" (native state)");
 
   // Update this when modifying state struct
   rb_str_concat(result, rb_sprintf(" max_frames=%d", state->locations.len));
@@ -1379,8 +1379,8 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
 
 static VALUE per_thread_context_to_ruby_hash(per_thread_context *thread_context) {
   VALUE arguments[] = {
-    ID2SYM(rb_intern("thread_id")),                       /* => */ rb_str_new2(thread_context->thread_id),
-    ID2SYM(rb_intern("thread_invoke_location")),          /* => */ rb_str_new2(thread_context->thread_invoke_location),
+    ID2SYM(rb_intern("thread_id")),                       /* => */ rb_str_new_cstr(thread_context->thread_id),
+    ID2SYM(rb_intern("thread_invoke_location")),          /* => */ rb_str_new_cstr(thread_context->thread_invoke_location),
     ID2SYM(rb_intern("thread_cpu_time_id_valid?")),       /* => */ thread_context->thread_cpu_time_id.valid ? Qtrue : Qfalse,
     #ifdef __APPLE__
       ID2SYM(rb_intern("thread_cpu_time_id")),              /* => */ ULL2NUM(thread_context->thread_cpu_time_id.clock_id),
