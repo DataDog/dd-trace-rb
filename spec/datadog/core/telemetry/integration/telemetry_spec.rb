@@ -561,12 +561,22 @@ RSpec.describe 'Telemetry integration tests' do
 
     let(:component) { Datadog.send(:components).telemetry }
 
-    # Helper function to not copy/paste all of these settings for each
-    # test case, and also to not call Datadog.configure twice for each test.
-    def common_configuration(c)
-      c.agent.port = http_server_port
-      c.telemetry.enabled = true
-      c.telemetry.metrics_aggregation_interval_seconds = 1
+    # Override in inner contexts to set up mocks before Datadog.configure runs.
+    let(:product_mock_setup) { nil }
+
+    # Override in inner contexts to set product-specific settings.
+    let(:product_configuration) { ->(c) {} }
+
+    before do
+      product_mock_setup
+
+      Datadog.configure do |c|
+        c.agent.port = http_server_port
+        c.telemetry.enabled = true
+        c.telemetry.metrics_aggregation_interval_seconds = 1
+
+        product_configuration.call(c)
+      end
     end
 
     def assert_remaining_events
@@ -615,16 +625,12 @@ RSpec.describe 'Telemetry integration tests' do
     end
 
     context 'when profiling is disabled' do
-      before do
+      let(:product_mock_setup) do
         # Avoid profiling reporting unsupported errors when disabled
         expect(Datadog::Profiling).to receive(:unsupported_reason).at_least(:once).and_return(nil)
-
-        Datadog.configure do |c|
-          common_configuration(c)
-
-          c.profiling.enabled = false
-        end
       end
+
+      let(:product_configuration) { ->(c) { c.profiling.enabled = false } }
 
       include_examples 'reports requested configuration and actual product state',
         product_key: 'profiler',
@@ -633,7 +639,7 @@ RSpec.describe 'Telemetry integration tests' do
     end
 
     context 'when profiling is fully enabled' do
-      before do
+      let(:product_mock_setup) do
         # Mock profiling as supported
         expect(Datadog::Profiling).to receive(:unsupported_reason).at_least(:once).and_return(nil)
 
@@ -648,13 +654,9 @@ RSpec.describe 'Telemetry integration tests' do
         end
 
         allow(Datadog::Profiling::Component).to receive(:build_profiler_component).and_return([fake_profiler, nil])
-
-        Datadog.configure do |c|
-          common_configuration(c)
-
-          c.profiling.enabled = true
-        end
       end
+
+      let(:product_configuration) { ->(c) { c.profiling.enabled = true } }
 
       include_examples 'reports requested configuration and actual product state',
         product_key: 'profiler',
@@ -663,15 +665,11 @@ RSpec.describe 'Telemetry integration tests' do
     end
 
     context 'when profiling is requested to be enabled but fails prerequisites' do
-      before do
+      let(:product_mock_setup) do
         expect(Datadog::Profiling).to receive(:unsupported_reason).at_least(:once).and_return('fake not supported reason')
-
-        Datadog.configure do |c|
-          common_configuration(c)
-
-          c.profiling.enabled = true
-        end
       end
+
+      let(:product_configuration) { ->(c) { c.profiling.enabled = true } }
 
       include_examples 'reports requested configuration and actual product state',
         product_key: 'profiler',
@@ -686,13 +684,7 @@ RSpec.describe 'Telemetry integration tests' do
     end
 
     context 'when dynamic instrumentation is disabled' do
-      before do
-        Datadog.configure do |c|
-          common_configuration(c)
-
-          c.dynamic_instrumentation.enabled = false
-        end
-      end
+      let(:product_configuration) { ->(c) { c.dynamic_instrumentation.enabled = false } }
 
       include_examples 'reports requested configuration and actual product state',
         product_key: 'dynamic_instrumentation',
@@ -701,7 +693,7 @@ RSpec.describe 'Telemetry integration tests' do
     end
 
     context 'when dynamic instrumentation is fully enabled' do
-      before do
+      let(:product_mock_setup) do
         # DI requires a C extension and MRI Ruby 2.6+, which are not
         # available in all CI configurations. Mock the component build
         # so the test can run everywhere, same approach as profiling.
@@ -710,14 +702,14 @@ RSpec.describe 'Telemetry integration tests' do
         end
 
         allow(Datadog::DI::Component).to receive(:build).and_return(fake_di)
+      end
 
-        Datadog.configure do |c|
-          common_configuration(c)
-
+      let(:product_configuration) do
+        lambda { |c|
           c.dynamic_instrumentation.enabled = true
           c.dynamic_instrumentation.internal.development = true
           c.remote.enabled = true
-        end
+        }
       end
 
       include_examples 'reports requested configuration and actual product state',
@@ -727,14 +719,12 @@ RSpec.describe 'Telemetry integration tests' do
     end
 
     context 'when dynamic instrumentation is requested to be enabled but fails prerequisites' do
-      before do
-        Datadog.configure do |c|
-          common_configuration(c)
-
+      let(:product_configuration) do
+        lambda { |c|
           c.dynamic_instrumentation.enabled = true
           # Disable remote config which is a prerequisite for DI
           c.remote.enabled = false
-        end
+        }
       end
 
       include_examples 'reports requested configuration and actual product state',
@@ -747,13 +737,7 @@ RSpec.describe 'Telemetry integration tests' do
     end
 
     context 'when appsec is disabled' do
-      before do
-        Datadog.configure do |c|
-          common_configuration(c)
-
-          c.appsec.enabled = false
-        end
-      end
+      let(:product_configuration) { ->(c) { c.appsec.enabled = false } }
 
       include_examples 'reports requested configuration and actual product state',
         product_key: 'appsec',
@@ -762,13 +746,7 @@ RSpec.describe 'Telemetry integration tests' do
     end
 
     context 'when appsec is fully enabled' do
-      before do
-        Datadog.configure do |c|
-          common_configuration(c)
-
-          c.appsec.enabled = true
-        end
-      end
+      let(:product_configuration) { ->(c) { c.appsec.enabled = true } }
 
       include_examples 'reports requested configuration and actual product state',
         product_key: 'appsec',
@@ -777,18 +755,14 @@ RSpec.describe 'Telemetry integration tests' do
     end
 
     context 'when appsec is requested to be enabled but fails prerequisites' do
-      before do
+      let(:product_mock_setup) do
         # Simulate FFI gem not being loaded (prerequisite check)
         fake_specs = Gem.loaded_specs.dup
         fake_specs.delete('ffi')
         allow(Gem).to receive(:loaded_specs).and_return(fake_specs)
-
-        Datadog.configure do |c|
-          common_configuration(c)
-
-          c.appsec.enabled = true
-        end
       end
+
+      let(:product_configuration) { ->(c) { c.appsec.enabled = true } }
 
       include_examples 'reports requested configuration and actual product state',
         product_key: 'appsec',
@@ -800,17 +774,13 @@ RSpec.describe 'Telemetry integration tests' do
     end
 
     context 'when appsec is requested to be enabled but fails initialization' do
-      before do
+      let(:product_mock_setup) do
         # AppSec has very modest prerequisites, it's easier to fail
         # its initialization than to make the prerequisites not fulfilled.
         expect(Datadog::AppSec::SecurityEngine::Engine).to receive(:new).and_raise("fake exception")
-
-        Datadog.configure do |c|
-          common_configuration(c)
-
-          c.appsec.enabled = true
-        end
       end
+
+      let(:product_configuration) { ->(c) { c.appsec.enabled = true } }
 
       include_examples 'reports requested configuration and actual product state',
         product_key: 'appsec',
