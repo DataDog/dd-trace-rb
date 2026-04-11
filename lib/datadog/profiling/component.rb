@@ -94,7 +94,7 @@ module Datadog
         [profiler, {profiling_enabled: true}]
       rescue Exception => e # rubocop:disable Lint/RescueException
         logger.warn do
-          "Failed to initialize profiling: #{e.class.name} #{e.message} " \
+          "Failed to initialize profiling: #{e.class}: #{e} " \
           "Location: #{Array(e.backtrace).first}"
         end
         Datadog::Core::Telemetry::Logger.report(e, description: "Failed to initialize profiling")
@@ -378,7 +378,7 @@ module Datadog
         rescue StandardError, LoadError => e
           logger.warn(
             "Failed to probe `mysql2` gem information. " \
-            "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+            "Cause: #{e.class}: #{e} Location: #{Array(e.backtrace).first}"
           )
 
           true

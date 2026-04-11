@@ -7,7 +7,7 @@ if %w[1 true].include?((Datadog::DATADOG_ENV['DD_APPSEC_ENABLED'] || '').downcas
   rescue => e
     Kernel.warn(
       '[datadog] AppSec failed to instrument. No security check will be performed. error: ' \
-      " #{e.class.name} #{e.message}"
+      " #{e.class}: #{e}"
     )
   end
 end

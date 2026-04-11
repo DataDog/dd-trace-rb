@@ -25,7 +25,7 @@ module Datadog
             def query
               ::Rack::Utils.parse_query(request.query_string)
             rescue => e
-              Datadog.logger.debug { "AppSec: Failed to parse request query string: #{e.class}: #{e.message}" }
+              Datadog.logger.debug { "AppSec: Failed to parse request query string: #{e.class}: #{e}" }
               AppSec.telemetry.report(e, description: 'AppSec: Failed to parse request query string')
 
               {}
