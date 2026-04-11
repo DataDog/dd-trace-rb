@@ -132,8 +132,8 @@ static VALUE _native_configurator_get(VALUE self) {
 
   bool local_config_id_set = false;
   bool fleet_config_id_set = false;
-  VALUE local_hash = rb_hash_new();
-  VALUE fleet_hash = rb_hash_new();
+  VALUE local_hash = rb_hash_new_capa(2);
+  VALUE fleet_hash = rb_hash_new_capa(2);
   for (uintptr_t i = 0; i < config_vec.len; i++) {
     ddog_LibraryConfig config = config_vec.ptr[i];
     VALUE selected_hash;
@@ -162,7 +162,7 @@ static VALUE _native_configurator_get(VALUE self) {
   rb_hash_aset(local_hash, ID2SYM(rb_intern("config")), local_config_hash);
   rb_hash_aset(fleet_hash, ID2SYM(rb_intern("config")), fleet_config_hash);
 
-  VALUE result = rb_hash_new();
+  VALUE result = rb_hash_new_capa(3);
   rb_hash_aset(result, ID2SYM(rb_intern("logs")), logs);
   rb_hash_aset(result, ID2SYM(rb_intern("local")), local_hash);
   rb_hash_aset(result, ID2SYM(rb_intern("fleet")), fleet_hash);

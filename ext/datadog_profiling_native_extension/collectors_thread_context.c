@@ -1378,8 +1378,6 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
 }
 
 static VALUE per_thread_context_to_ruby_hash(per_thread_context *thread_context) {
-  VALUE context_as_hash = rb_hash_new();
-
   VALUE arguments[] = {
     ID2SYM(rb_intern("thread_id")),                       /* => */ rb_str_new2(thread_context->thread_id),
     ID2SYM(rb_intern("thread_invoke_location")),          /* => */ rb_str_new2(thread_context->thread_invoke_location),
@@ -1401,6 +1399,7 @@ static VALUE per_thread_context_to_ruby_hash(per_thread_context *thread_context)
     ID2SYM(rb_intern("was_skipped_at_last_sample")), /* => */ thread_context->was_skipped_at_last_sample ? Qtrue : Qfalse,
     ID2SYM(rb_intern("is_profiler_internal_thread")), /* => */ thread_context->is_profiler_internal_thread ? Qtrue : Qfalse,
   };
+  VALUE context_as_hash = rb_hash_new_capa(VALUE_COUNT(arguments) / 2);
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(context_as_hash, arguments[i], arguments[i+1]);
 
   return context_as_hash;
@@ -1422,13 +1421,13 @@ static VALUE stats_to_ruby_hash(thread_context_collector_state *state, VALUE has
 
 static VALUE gc_tracking_as_ruby_hash(thread_context_collector_state *state) {
   // Update this when modifying state struct (gc_tracking inner struct)
-  VALUE result = rb_hash_new();
   VALUE arguments[] = {
     ID2SYM(rb_intern("accumulated_cpu_time_ns")),               /* => */ ULONG2NUM(state->gc_tracking.accumulated_cpu_time_ns),
     ID2SYM(rb_intern("accumulated_wall_time_ns")),              /* => */ ULONG2NUM(state->gc_tracking.accumulated_wall_time_ns),
     ID2SYM(rb_intern("wall_time_at_previous_gc_ns")),           /* => */ LONG2NUM(state->gc_tracking.wall_time_at_previous_gc_ns),
     ID2SYM(rb_intern("wall_time_at_last_flushed_gc_event_ns")), /* => */ LONG2NUM(state->gc_tracking.wall_time_at_last_flushed_gc_event_ns),
   };
+  VALUE result = rb_hash_new_capa(VALUE_COUNT(arguments) / 2);
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(result, arguments[i], arguments[i+1]);
   return result;
 }
