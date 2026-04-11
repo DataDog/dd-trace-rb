@@ -47,7 +47,6 @@ static const rb_data_type_t config_logged_result_typed_data = {
 };
 
 void library_config_init(VALUE core_module) {
-  rb_global_variable(&config_logged_result_class);
   VALUE configuration_module = rb_define_module_under(core_module, "Configuration");
   VALUE stable_config_module = rb_define_module_under(configuration_module, "StableConfig");
   VALUE configurator_class = rb_define_class_under(stable_config_module, "Configurator", rb_cObject);

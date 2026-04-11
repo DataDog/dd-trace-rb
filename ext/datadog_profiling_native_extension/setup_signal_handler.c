@@ -135,5 +135,4 @@ void setup_signal_handler_init(VALUE profiling_module) {
     "ExistingSignalHandler",
     rb_eRuntimeError
   );
-  rb_gc_register_mark_object(existing_signal_handler_exception_class);
 }
