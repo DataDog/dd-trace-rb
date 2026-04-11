@@ -1155,7 +1155,7 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-  VALUE result = rb_str_new2(" (native state)");
+  VALUE result = rb_str_new_lit(" (native state)");
 
   // Update this when modifying state struct
   rb_str_concat(result, rb_sprintf(" max_frames=%d", state->max_frames));
@@ -1195,8 +1195,8 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
   per_thread_context *thread_context = (per_thread_context*) value_context;
   VALUE result = (VALUE) result_hash;
   VALUE arguments[] = {
-    ID2SYM(rb_intern("thread_id")),                       /* => */ rb_str_new2(thread_context->thread_id),
-    ID2SYM(rb_intern("thread_invoke_location")),          /* => */ rb_str_new2(thread_context->thread_invoke_location),
+    ID2SYM(rb_intern("thread_id")),                       /* => */ rb_str_new_cstr(thread_context->thread_id),
+    ID2SYM(rb_intern("thread_invoke_location")),          /* => */ rb_str_new_cstr(thread_context->thread_invoke_location),
     ID2SYM(rb_intern("thread_cpu_time_id_valid?")),       /* => */ thread_context->thread_cpu_time_id.valid ? Qtrue : Qfalse,
     ID2SYM(rb_intern("thread_cpu_time_id")),              /* => */ CLOCKID2NUM(thread_context->thread_cpu_time_id.clock_id),
     ID2SYM(rb_intern("cpu_time_at_previous_sample_ns")),  /* => */ LONG2NUM(thread_context->cpu_time_at_previous_sample_ns),
