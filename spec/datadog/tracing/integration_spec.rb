@@ -609,6 +609,11 @@ RSpec.describe 'Tracer integration tests' do
         end
 
         threads.each(&:join)
+
+        # The worker thread may still be completing an HTTP call after
+        # shutdown!'s join(DEFAULT_SHUTDOWN_TIMEOUT) timed out. Wait for
+        # the flush to finish so the assertion sees the final stats.
+        try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
       end
 
       let(:stats) { tracer.writer.stats }
