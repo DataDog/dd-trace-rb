@@ -48,8 +48,12 @@ module Datadog
           new(security_engine: security_engine)
         rescue => e
           Datadog.logger.warn("AppSec is disabled: #{e.class}: #{e}; there may be additional logged errors above")
-          telemetry.report(e, description: 'AppSec: initialization failed')
 
+          # Not reporting to telemetry here because some of the rescued exceptions
+          # have already been reported by the code that raised them
+          # (e.g. SecurityEngine::Engine.new reports WAF init failures).
+          # TODO: reconsider whether telemetry reporting belongs here
+          # (single catch-all) or in the downstream code (as it is now).
           nil
         end
 
