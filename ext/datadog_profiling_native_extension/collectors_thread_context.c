@@ -1400,7 +1400,7 @@ static VALUE per_thread_context_to_ruby_hash(per_thread_context *thread_context)
     ID2SYM(rb_intern("is_profiler_internal_thread")), /* => */ thread_context->is_profiler_internal_thread ? Qtrue : Qfalse,
   };
   VALUE context_as_hash = rb_hash_new_capa(VALUE_COUNT(arguments) / 2);
-  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(context_as_hash, arguments[i], arguments[i+1]);
+  rb_hash_bulk_insert(VALUE_COUNT(arguments), arguments, context_as_hash);
 
   return context_as_hash;
 }
@@ -1415,7 +1415,7 @@ static VALUE stats_to_ruby_hash(thread_context_collector_state *state, VALUE has
     ID2SYM(rb_intern("inactive_thread_samples_skipped")),          /* => */ UINT2NUM(state->stats.inactive_thread_samples_skipped),
     ID2SYM(rb_intern("profiler_thread_samples_skipped")),          /* => */ UINT2NUM(state->stats.profiler_thread_samples_skipped),
   };
-  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(hash, arguments[i], arguments[i+1]);
+  rb_hash_bulk_insert(VALUE_COUNT(arguments), arguments, hash);
   return hash;
 }
 
@@ -1428,7 +1428,7 @@ static VALUE gc_tracking_as_ruby_hash(thread_context_collector_state *state) {
     ID2SYM(rb_intern("wall_time_at_last_flushed_gc_event_ns")), /* => */ LONG2NUM(state->gc_tracking.wall_time_at_last_flushed_gc_event_ns),
   };
   VALUE result = rb_hash_new_capa(VALUE_COUNT(arguments) / 2);
-  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(result, arguments[i], arguments[i+1]);
+  rb_hash_bulk_insert(VALUE_COUNT(arguments), arguments, result);
   return result;
 }
 

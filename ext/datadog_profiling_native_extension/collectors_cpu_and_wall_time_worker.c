@@ -1259,7 +1259,7 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("gvl_waiting_time_ns_total")),  /* => */ state->gvl_profiling_enabled ? ULL2NUM(state->stats.vm_metrics.gvl_waiting_time_ns_total) : Qnil,
   };
   VALUE stats_as_hash = rb_hash_new_capa(VALUE_COUNT(arguments) / 2);
-  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
+  rb_hash_bulk_insert(VALUE_COUNT(arguments), arguments, stats_as_hash);
 
   thread_context_collector_stats(state->thread_context_collector_instance, stats_as_hash);
 
