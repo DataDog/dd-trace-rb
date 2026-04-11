@@ -48,6 +48,10 @@ RSpec.describe Datadog::AppSec::Component do
       it 'returns nil when security engine fails to instantiate' do
         settings.appsec.ruleset = {}
 
+        # Two telemetry reports: one from require_libddwaf (with platform details)
+        # and one from build_appsec_component's top-level rescue (generic init failure).
+        # Both are useful — the first has the specific load error, the second flags
+        # that AppSec as a whole failed to start.
         expect(telemetry).to receive(:report).twice
         expect(Datadog.logger).to receive(:warn)
 
