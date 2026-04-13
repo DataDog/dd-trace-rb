@@ -277,7 +277,8 @@ services:
       - xpack.security.enabled=false
       - ES_JAVA_OPTS=-Xmx750m
   memcached:
-    image: memcached:1.5-alpine
+    # Dalli 5.x uses the memcached meta protocol, which requires memcached 1.6+.
+    image: memcached:1.6-alpine
     expose:
       - "11211"
     ports:

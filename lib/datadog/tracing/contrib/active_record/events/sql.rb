@@ -69,7 +69,7 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, config[:host]) if config[:host]
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, config[:port]) if config[:port]
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
           end

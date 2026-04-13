@@ -96,13 +96,14 @@ RSpec.describe Datadog::AIGuard do
                 "action" => "ALLOW",
                 "reason" => "No rule match",
                 "tags" => [],
+                "tag_probs" => {},
                 "is_blocking_enabled" => false
               }
             }
           }
         end
 
-        it "returns Datadog::AIGuard::Evaluation::Result when allow_raise is set to false" do
+        it "returns Datadog::AIGuard::Evaluation::Result when allow_raise is set to true" do
           result = described_class.evaluate(*messages, allow_raise: true)
 
           aggregate_failures "result properties" do
@@ -122,6 +123,7 @@ RSpec.describe Datadog::AIGuard do
                 "action" => "DENY",
                 "reason" => "Rule match",
                 "tags" => ["indirect-prompt-injection"],
+                "tag_probs" => {"indirect-prompt-injection" => 0.95},
                 "is_blocking_enabled" => true
               }
             }
@@ -135,7 +137,7 @@ RSpec.describe Datadog::AIGuard do
         end
 
         it "returns Datadog::AIGuard::Evaluation::Result when allow_raise is set to false" do
-          result = described_class.evaluate(*messages)
+          result = described_class.evaluate(*messages, allow_raise: false)
 
           aggregate_failures "result properties" do
             expect(result).to be_a(Datadog::AIGuard::Evaluation::Result)

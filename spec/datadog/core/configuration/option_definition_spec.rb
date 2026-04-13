@@ -55,6 +55,20 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition do
     end
   end
 
+  describe '#skip_telemetry' do
+    subject(:skip_telemetry) { definition.skip_telemetry }
+
+    context 'when given a value' do
+      let(:meta) { {skip_telemetry: true} }
+
+      it { is_expected.to be true }
+    end
+
+    context 'when not initialized' do
+      it { is_expected.to be nil }
+    end
+  end
+
   describe '#setter' do
     subject(:setter) { definition.setter }
 
@@ -149,6 +163,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
               default_proc: nil,
               name: name,
               after_set: nil,
+              skip_telemetry: false,
               resetter: nil,
               setter: Datadog::Core::Configuration::OptionDefinition::IDENTITY,
               type: nil,
@@ -270,6 +285,15 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
     it { is_expected.to be block }
   end
 
+  describe '#skip_telemetry' do
+    subject(:skip_telemetry) { builder.skip_telemetry(value) }
+
+    let(:value) { true }
+
+    it { is_expected.to be value }
+    it { expect { skip_telemetry }.to change { builder.attributes[:skip_telemetry] }.from(false).to(value) }
+  end
+
   describe '#resetter' do
     subject(:resetter) { builder.resetter(&block) }
 
@@ -356,6 +380,16 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
       end
     end
 
+    context 'given :skip_telemetry' do
+      let(:options) { {skip_telemetry: value} }
+      let(:value) { true }
+
+      it do
+        expect(builder).to receive(:skip_telemetry).with(value)
+        apply_options!
+      end
+    end
+
     context 'given :resetter' do
       let(:options) { {resetter: value} }
       let(:value) { proc {} }
@@ -407,6 +441,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
         :default,
         :default_proc,
         :after_set,
+        :skip_telemetry,
         :resetter,
         :setter,
         :type,

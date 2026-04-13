@@ -84,7 +84,7 @@ module Datadog
           new(parsed_rules, rate_limit: rate_limit, default_sample_rate: default_sample_rate)
         rescue => e
           Datadog.logger.warn do
-            "Could not parse trace sampling rules '#{rules}': #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
+            "Could not parse trace sampling rules '#{rules}': #{e.class}: #{e} at #{Array(e.backtrace).first}"
           end
 
           nil
@@ -142,7 +142,7 @@ module Datadog
           end
         rescue => e
           Datadog.logger.error(
-            "Rule sampling failed. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
+            "Rule sampling failed. Cause: #{e.class}: #{e} Source: #{Array(e.backtrace).first}"
           )
           Datadog::Core::Telemetry::Logger.report(e, description: 'Rule sampling failed')
 

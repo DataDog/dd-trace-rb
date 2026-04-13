@@ -12,7 +12,7 @@ module Datadog
         interface _ClassMethods
           def settings: (Symbol | String name) ?{ () [self: _DslContext] -> untyped } -> ::Class
 
-          def new_settings_class: (Symbol | String name) ?{ () [self: _DslContext] -> untyped } -> ::Class
+          def new_settings_class: (Symbol | String name, ::String settings_path) ?{ () [self: _DslContext] -> untyped } -> ::Class
         end
 
         interface _DslContext
