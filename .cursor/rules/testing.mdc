@@ -31,6 +31,9 @@ alwaysApply: false
 
 ## Running Tests
 
+- Run tests in Docker containers, e.g. `docker compose run --rm tracer-2.5` and `docker compose run --rm tracer-4.0`
+- Always run the relevant tests against both the minimum supported Ruby version (2.5) and the maximum supported Ruby version (4.0)
+- If Bundler fails in the container, run `bundle install` and retry
 - Run core library tests: `bundle exec rake test:main`
 - Run a specific test/file from core library tests: `bundle exec rspec <relative path to the file>`
   - You can't run `shared_examples` directly, run the tests that use it instead.
