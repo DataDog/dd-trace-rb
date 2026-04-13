@@ -654,7 +654,6 @@ module Datadog
       end
 
       def publish_metadata_change(previous_value, key)
-
         current_value = get_tag(key)
         return if previous_value == current_value
 
