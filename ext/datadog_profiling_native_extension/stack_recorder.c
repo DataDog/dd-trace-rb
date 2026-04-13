@@ -308,7 +308,7 @@ static const rb_data_type_t stack_recorder_typed_data = {
   .function = {
     .dmark = stack_recorder_typed_data_mark,
     .dfree = stack_recorder_typed_data_free,
-    .dsize = NULL, // We don't track profile memory usage (although it'd be cool if we did!)
+    .dsize = NULL, // State includes opaque libdatadog types -- libdatadog does not expose their internal sizes
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };

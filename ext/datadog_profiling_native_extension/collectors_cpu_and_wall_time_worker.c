@@ -354,6 +354,10 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_gvl_profiling_hook_active", _native_gvl_profiling_hook_active, 1);
 }
 
+static size_t cpu_and_wall_time_worker_typed_data_size(DDTRACE_UNUSED const void *data) {
+  return sizeof(cpu_and_wall_time_worker_state);
+}
+
 // This structure is used to define a Ruby object that stores a pointer to a cpu_and_wall_time_worker_state
 // See also https://github.com/ruby/ruby/blob/master/doc/extension.rdoc for how this works
 static const rb_data_type_t cpu_and_wall_time_worker_typed_data = {
@@ -361,8 +365,8 @@ static const rb_data_type_t cpu_and_wall_time_worker_typed_data = {
   .function = {
     .dmark = cpu_and_wall_time_worker_typed_data_mark,
     .dfree = RUBY_DEFAULT_FREE,
-    .dsize = NULL, // We don't track memory usage (although it'd be cool if we did!)
     //.dcompact = NULL, // FIXME: Add support for compaction
+    .dsize = cpu_and_wall_time_worker_typed_data_size,
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };

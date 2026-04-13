@@ -24,7 +24,7 @@ static const rb_data_type_t configurator_typed_data = {
   .wrap_struct_name = "Datadog::Core::Configuration::StableConfig::Configurator",
   .function = {
     .dfree = configurator_free,
-    .dsize = NULL,
+    .dsize = NULL, // Opaque handle managed by libdatadog -- libdatadog does not expose its internal size
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };
@@ -41,7 +41,7 @@ static const rb_data_type_t config_logged_result_typed_data = {
   .wrap_struct_name = "Datadog::Core::Configuration::StableConfigLoggedResult",
   .function = {
     .dfree = config_logged_result_free,
-    .dsize = NULL,
+    .dsize = NULL, // Opaque libdatadog type -- libdatadog does not expose its internal size
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };
