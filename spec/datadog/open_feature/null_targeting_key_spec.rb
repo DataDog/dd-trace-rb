@@ -11,7 +11,7 @@ require 'datadog/core/feature_flags'
 # - Sharded flags: return TARGETING_KEY_MISSING error
 # - Rule-match flags (no shards): return value if rule matches on non-id attribute
 
-RSpec.describe 'OpenFeature OF.2: Optional Targeting Key' do
+RSpec.describe 'Datadog Provider OF.2: Optional Targeting Key' do
   before do
     skip 'Requires native libdatadog extension' unless Datadog::Core::FeatureFlags::Configuration.method(:new).arity == 1
   end
