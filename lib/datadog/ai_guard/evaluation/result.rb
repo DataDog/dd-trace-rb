@@ -9,7 +9,7 @@ module Datadog
         DENY_ACTION = "DENY"
         ABORT_ACTION = "ABORT"
 
-        attr_reader :action, :reason, :tags
+        attr_reader :action, :reason, :tags, :sds_findings
 
         def initialize(raw_response)
           attributes = raw_response.fetch("data").fetch("attributes")
@@ -18,6 +18,7 @@ module Datadog
           @reason = attributes.fetch("reason")
           @tags = attributes.fetch("tags")
           @is_blocking_enabled = attributes.fetch("is_blocking_enabled")
+          @sds_findings = attributes.fetch("sds_findings", [])
         rescue KeyError => e
           raise AIGuardClientError, "Missing key: \"#{e.key}\""
         end
