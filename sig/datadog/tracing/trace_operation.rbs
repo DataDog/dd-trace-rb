@@ -4,6 +4,8 @@ module Datadog
       include Metadata::Tagging
 
       DEFAULT_MAX_LENGTH: ::Integer
+      AUTO_SAMPLING_PRIORITIES: ::Array[::Integer]
+      RECONSIDERABLE_DECISIONS: ::Array[::String]
 
       @logger: Core::Logger
 

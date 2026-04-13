@@ -29,6 +29,8 @@ module Datadog
       include Metadata::ChangeTracking
 
       DEFAULT_MAX_LENGTH = 100_000
+      AUTO_SAMPLING_PRIORITIES = [Sampling::Ext::Priority::AUTO_KEEP, Sampling::Ext::Priority::AUTO_REJECT].freeze
+      RECONSIDERABLE_DECISIONS = [Sampling::Ext::Decision::DEFAULT, Sampling::Ext::Decision::AGENT_RATE].freeze
 
       attr_accessor \
         :agent_sample_rate,
@@ -177,7 +179,7 @@ module Datadog
         previous_resource = @resource
         @resource = value
 
-        return unless previous_resource.nil? && !value.nil?
+        return if !!previous_resource || value.nil?
 
         events.trace_resource_change.publish(self)
       rescue => e
@@ -637,14 +639,9 @@ module Datadog
       def reconsider_rule_sample?
         decision = get_tag(Metadata::Ext::Distributed::TAG_DECISION_MAKER)
 
-        return false if remote_parent
-        return false if @propagated || @flushed
-        return false unless [Sampling::Ext::Priority::AUTO_KEEP, Sampling::Ext::Priority::AUTO_REJECT]
-          .include?(@sampling_priority)
-        return false if decision && ![
-          Sampling::Ext::Decision::DEFAULT,
-          Sampling::Ext::Decision::AGENT_RATE
-        ].include?(decision)
+        return false if remote_parent || @propagated || @flushed
+        return false unless AUTO_SAMPLING_PRIORITIES.include?(@sampling_priority)
+        return false if decision && !RECONSIDERABLE_DECISIONS.include?(decision)
 
         true
       end
