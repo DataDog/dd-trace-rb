@@ -6,7 +6,7 @@ module Datadog
     # and creating `ai_guard` span with required tags
     module Evaluation
       class << self
-        def perform(messages, allow_raise: false)
+        def perform(messages, allow_raise: true)
           raise ArgumentError, "Messages must not be empty" if messages&.empty?
 
           Tracing.trace(Ext::SPAN_NAME) do |span, trace|
