@@ -85,6 +85,14 @@ module Datadog
           end
         end
 
+        def reconsider_sample_tags!(trace)
+          return unless @priority_sampler.respond_to?(:reconsider_sample_tags!)
+
+          preserving_sampling(trace) do
+            @priority_sampler.reconsider_sample_tags!(trace)
+          end
+        end
+
         # (see Datadog::Tracing::Sampling::RateByServiceSampler#update)
         def update(rate_by_service, decision: nil)
           @priority_sampler.update(rate_by_service, decision: decision)

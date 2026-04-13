@@ -45,6 +45,8 @@ module Datadog
       def resource: () -> untyped
       def set_distributed_source: (Integer product_bit) -> void
       def resource_override?: () -> bool
+      def reconsider_resource_sample?: () -> bool
+      def reconsider_tags_sample?: () -> bool
       def service: () -> untyped
       def measure: (untyped op_name, ?events: untyped?, ?on_error: on_error, ?resource: untyped?, ?service: untyped?, ?start_time: untyped?, ?tags: untyped?, ?type: untyped?) { (untyped, untyped) -> untyped } -> untyped
       def build_span: (untyped op_name, ?events: untyped?, ?on_error: on_error, ?resource: untyped?, ?service: untyped?, ?start_time: untyped?, ?tags: untyped?, ?type: untyped?) -> untyped
@@ -58,6 +60,9 @@ module Datadog
         attr_reader span_before_start: untyped
         attr_reader span_finished: untyped
         attr_reader trace_finished: untyped
+        attr_reader trace_propagated: untyped
+        attr_reader trace_resource_change: untyped
+        attr_reader trace_tags_change: untyped
 
         def initialize: () -> void
 
@@ -75,6 +80,18 @@ module Datadog
           def deactivate_trace_subscribed?: () -> untyped
           def subscribe_deactivate_trace: () ?{ () -> untyped } -> untyped
         end
+
+        class TracePropagated < Tracing::Event
+          def initialize: () -> void
+        end
+
+        class TraceResourceChange < Tracing::Event
+          def initialize: () -> void
+        end
+
+        class TraceTagsChange < Tracing::Event
+          def initialize: () -> void
+        end
       end
 
       private
@@ -91,6 +108,8 @@ module Datadog
 
       def build_trace: (untyped spans, ?bool partial) -> untyped
       def distributed_tags: () -> untyped
+      def metadata_change_ignored?: (untyped key) -> bool
+      def publish_metadata_change: (untyped previous_value, untyped key) -> untyped
     end
   end
 end

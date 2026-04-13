@@ -9,6 +9,7 @@ require_relative '../core/utils/safe_dup'
 
 require_relative 'event'
 require_relative 'metadata'
+require_relative 'metadata/change_tracking'
 require_relative 'metadata/ext'
 require_relative 'span'
 require_relative 'span_event'
@@ -24,6 +25,7 @@ module Datadog
     # @public_api
     class SpanOperation
       include Metadata
+      include Metadata::ChangeTracking
 
       # Span attributes
       # NOTE: In the future, we should drop the me
@@ -398,12 +400,14 @@ module Datadog
 
         attr_reader \
           :logger,
+          :after_tag_change,
           :after_finish,
           :after_stop,
           :before_start
 
         def initialize(logger: Datadog.logger)
           @logger = logger
+          @after_tag_change = AfterTagChange.new
           @after_finish = AfterFinish.new
           @after_stop = AfterStop.new
           @before_start = BeforeStart.new
@@ -433,6 +437,13 @@ module Datadog
         class BeforeStart < Tracing::Event
           def initialize
             super(:before_start)
+          end
+        end
+
+        # Triggered when a span tag or metric changes.
+        class AfterTagChange < Tracing::Event
+          def initialize
+            super(:after_tag_change)
           end
         end
 
@@ -566,6 +577,15 @@ module Datadog
       # @return [Integer] in nanoseconds since Epoch
       def duration_nano
         (duration * 1e9).to_i
+      end
+
+      def publish_metadata_change(previous_value, key)
+        current_value = get_tag(key)
+        return if previous_value == current_value
+
+        events.after_tag_change.publish(self, key, current_value)
+      rescue => e
+        logger.debug { "Error updating span tags: #{e} Backtrace: #{e.backtrace.first(3)}" }
       end
     end
   end

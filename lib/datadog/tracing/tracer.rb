@@ -320,6 +320,19 @@ module Datadog
         end
       end
 
+      def reconsider_trace_sampling_on_tags(trace_op)
+        return unless trace_op.reconsider_tags_sample?
+        return unless @sampler.respond_to?(:reconsider_sample_tags!)
+
+        @sampler.reconsider_sample_tags!(trace_op)
+      rescue => e
+        RECONSIDER_TAGS_SAMPLE_TRACE_LOG_ONLY_ONCE.run do
+          logger.warn do
+            "Failed to reconsider trace sampling on tags: #{e.class.name} #{e} at #{Array(e.backtrace).first}"
+          end
+        end
+      end
+
       # @!visibility private
       # TODO: make this private
       def trace_completed
@@ -431,6 +444,10 @@ module Datadog
 
         events.trace_resource_change.subscribe do |event_trace_op|
           reconsider_trace_sampling_on_resource(event_trace_op)
+        end
+
+        events.trace_tags_change.subscribe do |event_trace_op|
+          reconsider_trace_sampling_on_tags(event_trace_op)
         end
       end
 
@@ -553,6 +570,9 @@ module Datadog
 
       RECONSIDER_RESOURCE_SAMPLE_TRACE_LOG_ONLY_ONCE = Core::Utils::OnlyOnce.new
       private_constant :RECONSIDER_RESOURCE_SAMPLE_TRACE_LOG_ONLY_ONCE
+
+      RECONSIDER_TAGS_SAMPLE_TRACE_LOG_ONLY_ONCE = Core::Utils::OnlyOnce.new
+      private_constant :RECONSIDER_TAGS_SAMPLE_TRACE_LOG_ONLY_ONCE
 
       def sample_span(trace_op, span)
         @span_sampler.sample!(trace_op, span)

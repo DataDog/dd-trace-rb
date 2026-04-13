@@ -107,9 +107,14 @@ module Datadog
           rule = @rules.find { |r| resource_rule?(r) && r.match?(trace) }
           return if rule.nil?
 
-          trace.agent_sample_rate = nil
-          trace.clear_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)
-          apply_rule!(trace, rule)
+          reconsider_matching_rule!(trace, rule)
+        end
+
+        def reconsider_sample_tags!(trace)
+          rule = @rules.find { |r| tags_rule?(r) && r.match?(trace) }
+          return if rule.nil?
+
+          reconsider_matching_rule!(trace, rule)
         end
 
         # @!visibility private
@@ -184,6 +189,17 @@ module Datadog
         def resource_rule?(rule)
           matcher = rule.matcher
           matcher.respond_to?(:resource) && matcher.resource != Matcher::MATCH_ALL
+        end
+
+        def tags_rule?(rule)
+          matcher = rule.matcher
+          matcher.respond_to?(:tags) && !matcher.tags.empty?
+        end
+
+        def reconsider_matching_rule!(trace, rule)
+          trace.agent_sample_rate = nil
+          trace.clear_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)
+          apply_rule!(trace, rule)
         end
       end
     end
