@@ -20,6 +20,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
             "action" => "ALLOW",
             "reason" => "Because why not",
             "tags" => [],
+            "tag_probs" => {},
             "is_blocking_enabled" => false
           }
         }
