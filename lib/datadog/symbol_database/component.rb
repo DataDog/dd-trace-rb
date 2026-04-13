@@ -68,7 +68,7 @@ module Datadog
         end
       end
 
-      attr_reader :settings
+      attr_reader :settings, :enabled, :last_upload_time, :upload_in_progress
 
       # Initialize component.
       # @param settings [Configuration::Settings] Tracer settings
