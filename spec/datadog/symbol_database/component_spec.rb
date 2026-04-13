@@ -271,6 +271,62 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
   end
 
+  describe 'diagnostic accessors' do
+    let(:component) do
+      described_class.new(settings, agent_settings, logger, telemetry: telemetry)
+    end
+
+    describe '#enabled' do
+      it 'is false before start_upload' do
+        expect(component.enabled).to be false
+      end
+
+      it 'is true after start_upload' do
+        allow(component).to receive(:extract_and_upload)
+        component.start_upload
+        expect(component.enabled).to be true
+      end
+
+      it 'is false after stop_upload' do
+        allow(component).to receive(:extract_and_upload)
+        component.start_upload
+        component.stop_upload
+        expect(component.enabled).to be false
+      end
+    end
+
+    describe '#last_upload_time' do
+      it 'is nil before start_upload' do
+        expect(component.last_upload_time).to be_nil
+      end
+
+      it 'is a Time after start_upload' do
+        allow(component).to receive(:extract_and_upload)
+        component.start_upload
+        expect(component.last_upload_time).to be_a(Time)
+      end
+    end
+
+    describe '#upload_in_progress' do
+      it 'is false before any upload' do
+        expect(component.upload_in_progress).to be false
+      end
+
+      it 'is true during extract_and_upload and false after' do
+        in_progress_during_extraction = nil
+        extractor = component.instance_variable_get(:@extractor)
+        allow(extractor).to receive(:extract_all) do
+          in_progress_during_extraction = component.upload_in_progress
+          []
+        end
+
+        component.start_upload
+        expect(in_progress_during_extraction).to be true
+        expect(component.upload_in_progress).to be false
+      end
+    end
+  end
+
   describe '#shutdown!' do
     let(:component) do
       described_class.new(settings, agent_settings, logger, telemetry: telemetry)
@@ -323,10 +379,10 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(component).to receive(:extract_and_upload).once
 
       component.start_upload
-      expect(component.send(:instance_variable_get, :@enabled)).to be true
+      expect(component.enabled).to be true
 
       component.stop_upload
-      expect(component.send(:instance_variable_get, :@enabled)).to be false
+      expect(component.enabled).to be false
     end
 
     it 'does not extract again after stop and re-start (already enabled guard)' do
