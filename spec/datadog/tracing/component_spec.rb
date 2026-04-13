@@ -623,4 +623,32 @@ RSpec.describe Datadog::Tracing::Component::SamplerDelegatorComponent do
   it "does not delegate #update when internal sampler doesn't support it" do
     delegator.update(1, 2, a: 3, b: 4)
   end
+
+  describe '#resource_sampling?' do
+    subject(:resource_sampling?) { delegator.resource_sampling? }
+
+    context 'when the internal sampler exposes resource reconsideration support' do
+      let(:old_sampler) { double('initial', resource_sampling?: true) }
+
+      it { is_expected.to be(true) }
+    end
+
+    context "when the internal sampler doesn't expose resource reconsideration support" do
+      it { is_expected.to be(false) }
+    end
+  end
+
+  describe '#tag_sampling?' do
+    subject(:tag_sampling?) { delegator.tag_sampling? }
+
+    context 'when the internal sampler exposes tag reconsideration support' do
+      let(:old_sampler) { double('initial', tag_sampling?: true) }
+
+      it { is_expected.to be(true) }
+    end
+
+    context "when the internal sampler doesn't expose tag reconsideration support" do
+      it { is_expected.to be(false) }
+    end
+  end
 end

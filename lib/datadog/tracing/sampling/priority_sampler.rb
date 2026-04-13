@@ -85,12 +85,22 @@ module Datadog
           end
         end
 
+        def resource_sampling?
+          @priority_sampler.respond_to?(:resource_sampling?) &&
+            @priority_sampler.resource_sampling?
+        end
+
         def reconsider_sample_tags!(trace)
           return unless @priority_sampler.respond_to?(:reconsider_sample_tags!)
 
           preserving_sampling(trace) do
             @priority_sampler.reconsider_sample_tags!(trace)
           end
+        end
+
+        def tag_sampling?
+          @priority_sampler.respond_to?(:tag_sampling?) &&
+            @priority_sampler.tag_sampling?
         end
 
         # (see Datadog::Tracing::Sampling::RateByServiceSampler#update)

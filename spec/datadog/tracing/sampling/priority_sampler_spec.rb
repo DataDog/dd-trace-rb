@@ -271,6 +271,23 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
     end
   end
 
+  describe '#resource_sampling?' do
+    subject(:resource_sampling?) { sampler.resource_sampling? }
+
+    context 'when the post sampler exposes resource reconsideration support' do
+      let(:post_sampler) { double('post sampler', resource_sampling?: enabled) }
+      let(:enabled) { true }
+
+      it { is_expected.to be(true) }
+    end
+
+    context "when the post sampler doesn't expose resource reconsideration support" do
+      let(:post_sampler) { double('post sampler') }
+
+      it { is_expected.to be(false) }
+    end
+  end
+
   describe '#reconsider_sample_tags!' do
     subject(:reconsider_sample_tags!) { sampler.reconsider_sample_tags!(trace) }
 
@@ -352,6 +369,23 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
         expect(trace.agent_sample_rate).to eq(0.5)
         expect(trace.get_tag('_dd.p.dm')).to eq(Datadog::Tracing::Sampling::Ext::Decision::DEFAULT)
       end
+    end
+  end
+
+  describe '#tag_sampling?' do
+    subject(:tag_sampling?) { sampler.tag_sampling? }
+
+    context 'when the post sampler exposes tag reconsideration support' do
+      let(:post_sampler) { double('post sampler', tag_sampling?: enabled) }
+      let(:enabled) { true }
+
+      it { is_expected.to be(true) }
+    end
+
+    context "when the post sampler doesn't expose tag reconsideration support" do
+      let(:post_sampler) { double('post sampler') }
+
+      it { is_expected.to be(false) }
     end
   end
 

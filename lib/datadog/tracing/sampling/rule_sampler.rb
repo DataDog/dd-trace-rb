@@ -50,6 +50,8 @@ module Datadog
             # TODO: Simplify .tags access, as `Tracer#tags` can't be arbitrarily changed anymore
             RateByServiceSampler.new(1.0, env: -> { Tracing.send(:tracer).tags['env'] })
           end
+          @reconsider_sample_resource_enabled = @rules.any? { |rule| resource_rule?(rule) }
+          @reconsider_sample_tags_enabled = @rules.any? { |rule| tags_rule?(rule) }
         end
 
         def self.parse(rules, rate_limit, default_sample_rate)
@@ -110,11 +112,21 @@ module Datadog
           reconsider_matching_rule!(trace, rule)
         end
 
+        # Do any rules match on the resource name?
+        def resource_sampling?
+          @reconsider_sample_resource_enabled
+        end
+
         def reconsider_sample_tags!(trace)
           rule = @rules.find { |r| tags_rule?(r) && r.match?(trace) }
           return if rule.nil?
 
           reconsider_matching_rule!(trace, rule)
+        end
+
+        # Do any rules match on tags or metrics?
+        def tag_sampling?
+          @reconsider_sample_tags_enabled
         end
 
         # @!visibility private

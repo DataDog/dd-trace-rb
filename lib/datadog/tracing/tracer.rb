@@ -442,12 +442,19 @@ module Datadog
           flush_trace(event_trace_op)
         end
 
-        events.trace_resource_change.subscribe do |event_trace_op|
-          reconsider_trace_sampling_on_resource(event_trace_op)
+        # Conditionally subscribe to the less common sampling rules below, to avoid
+        # measurable unnecessary performance overhead when they are not present.
+
+        if @sampler.respond_to?(:resource_sampling?) && @sampler.resource_sampling?
+          events.trace_resource_change.subscribe do |event_trace_op|
+            reconsider_trace_sampling_on_resource(event_trace_op)
+          end
         end
 
-        events.trace_tags_change.subscribe do |event_trace_op|
-          reconsider_trace_sampling_on_tags(event_trace_op)
+        if @sampler.respond_to?(:tag_sampling?) && @sampler.tag_sampling?
+          events.trace_tags_change.subscribe do |event_trace_op|
+            reconsider_trace_sampling_on_tags(event_trace_op)
+          end
         end
       end
 
