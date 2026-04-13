@@ -33,7 +33,7 @@ static const rb_data_type_t configuration_data_type = {
   .function = {
     .dmark = NULL,
     .dfree = configuration_free,
-    .dsize = NULL,
+    .dsize = NULL, // Opaque handle managed by libdatadog -- libdatadog does not expose its internal size
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY,
 };
@@ -43,7 +43,7 @@ static const rb_data_type_t resolution_details_typed_data = {
   .function = {
     .dmark = NULL,
     .dfree = resolution_details_free,
-    .dsize = NULL,
+    .dsize = NULL, // Opaque handle managed by libdatadog -- libdatadog does not expose its internal size
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY,
 };

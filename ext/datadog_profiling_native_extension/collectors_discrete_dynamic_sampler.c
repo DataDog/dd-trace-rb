@@ -355,11 +355,15 @@ void collectors_discrete_dynamic_sampler_init(VALUE profiling_module) {
   rb_define_method(sampler_class, "_native_state_snapshot", _native_state_snapshot, 0);
 }
 
+static size_t sampler_typed_data_size(DDTRACE_UNUSED const void *data) {
+  return sizeof(sampler_state);
+}
+
 static const rb_data_type_t sampler_typed_data = {
   .wrap_struct_name = "Datadog::Profiling::DiscreteDynamicSampler::Testing::Sampler",
   .function = {
     .dfree = RUBY_DEFAULT_FREE,
-    .dsize = NULL,
+    .dsize = sampler_typed_data_size,
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };
