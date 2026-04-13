@@ -23,6 +23,9 @@ module Datadog
       def initialize: (untyped settings, untyped agent_settings, untyped logger, ?telemetry: untyped?) -> void
 
       attr_reader settings: untyped
+      attr_reader enabled: bool
+      attr_reader last_upload_time: Time?
+      attr_reader upload_in_progress: bool
 
       def schedule_deferred_upload: () -> void
 
