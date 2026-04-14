@@ -11,10 +11,6 @@ RSpec.shared_examples_for 'environment service name' do |env_service_name_key, e
         expect { subject }.to raise_error error
       else
         subject
-        # _dd.base_service is set in SpanOperation#finish. If the integration
-        # test uses an open SpanOperation as `span` (e.g. because the complete
-        # callback is mocked out), finish it now so the tag is available.
-        span.finish if span.respond_to?(:finished?) && !span.finished?
       end
     end
 
