@@ -229,8 +229,7 @@ module Datadog
                 # that location here.
                 []
               end
-              # Steep: https://github.com/ruby/rbs/pull/2745
-              caller_locs = method_frame + caller_locations # steep:ignore ArgumentTypeMismatch
+              caller_locs = method_frame + caller_locations
               # TODO capture arguments at exit
 
               context = Context.new(locals: nil, target_self: self,
