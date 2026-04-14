@@ -406,7 +406,8 @@ void sample_thread(
     recorder_instance,
     (ddog_prof_Slice_Location) {.ptr = buffer->locations, .len = captured_frames},
     values,
-    labels
+    labels,
+    buffer
   );
 }
 
@@ -598,7 +599,8 @@ void record_placeholder_stack(
     recorder_instance,
     (ddog_prof_Slice_Location) {.ptr = &placeholder_location, .len = 1},
     values,
-    labels
+    labels,
+    NULL
   );
 }
 

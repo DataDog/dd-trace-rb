@@ -2,6 +2,17 @@
 
 #include <datadog/profiling.h>
 #include <ruby.h>
+#include "private_vm_api_access.h"
+
+// Used as scratch space during sampling
+typedef struct {
+  uint16_t max_frames;
+  ddog_prof_Location *locations;
+  frame_info *stack_buffer;
+  bool pending_sample;
+  bool is_marking; // Used to avoid recording a sample when marking
+  int pending_sample_result;
+} sampling_buffer;
 
 typedef struct {
   int64_t cpu_time_ns;
@@ -24,7 +35,7 @@ typedef struct {
   int64_t end_timestamp_ns;
 } sample_labels;
 
-void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, sample_labels labels);
+void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, sample_labels labels, sampling_buffer *buffer);
 void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_CharSlice endpoint);
 __attribute__((warn_unused_result)) bool track_object(VALUE recorder_instance, VALUE new_object, unsigned int sample_weight, ddog_CharSlice alloc_class);
 void recorder_after_sample(VALUE recorder_instance);
