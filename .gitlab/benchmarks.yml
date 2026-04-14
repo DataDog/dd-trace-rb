@@ -320,8 +320,7 @@ microbenchmarks-check-big-regressions:
   tags: ["arch:amd64"]
   image: $BASE_CI_IMAGE
   timeout: 30m
-  # TODO: Change to false once quality gates are validated
-  allow_failure: true
+  allow_failure: false
   rules:
     - if: $CI_COMMIT_REF_NAME == "master"
       when: always

@@ -2,8 +2,8 @@ stages:
   - manual-images
   - package
   - shared-pipeline
-  - microbenchmarks
   - macrobenchmarks
+  - microbenchmarks
 
 include:
   - local: ".gitlab/one-pipeline.locked.yml"
