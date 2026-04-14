@@ -11,7 +11,7 @@ This repository is the source code of a Ruby gem created by Datadog to provide D
 - Smoke verification: `bundle exec rake test:main`. Baseline general testing (no native or integration testing).
 - Lint and type check: `bundle exec rake standard typecheck`.
 - Discover tasks: `bundle exec rake -T`.
-- Targeted test runs: `bundle exec rspec spec/path/to/file_spec.rb[:line]` or `BUNDLE_GEMFILE=$(pwd)/gemfiles/<name>.gemfile bundle exec rspec spec/path/to/file_spec.rb[:line]`.
+- Targeted test runs (only for `test:main` specs): `bundle exec rspec spec/path/to/file_spec.rb[:line]`. For contrib/integration tests, always use `bundle exec rake test:TASK_KEY` (see "Testing matrix" below).
 - Native extension compilation: `bundle exec rake compile` or `bundle exec rake clean compile`. See `docs/ProfilingDevelopment.md` & `docs/LibdatadogDevelopment.md`.
 
 # Project Structure
@@ -59,6 +59,26 @@ Each framework integration (@lib/datadog/*/contrib/) follows a common pattern:
 ## Testing matrix
 
 - `Matrixfile` defines testing combinations, and `appraisal/` files declare respective gemsets. `gemfiles/` are tool generated files.
+- **The Matrixfile and Rakefile are the authoritative sources of truth.** When modifying them or `appraisal/` files, also update this section and `CLAUDE.md`.
+
+### Always use rake tasks
+
+Tests MUST be run via `bundle exec rake test:TASK_KEY`, not bare `bundle exec rspec`. Contrib/integration tests require specific Gemfiles managed by appraisals; running them with `bundle exec rspec` will fail due to missing dependencies. The only exception: specs under `test:main` can also be run individually with `bundle exec rspec`.
+
+### File → rake task mapping
+
+`lib/datadog/X/...` maps to `spec/datadog/X/..._spec.rb` (1:1 mirroring). Then:
+
+- **Products with namespaced tasks** (`test:PRODUCT:SUBTASK`): appsec, profiling, di, ai_guard
+  - `spec/datadog/PRODUCT/contrib/CONTRIB/**` → `test:PRODUCT:CONTRIB`
+  - `spec/datadog/PRODUCT/**` (everything else) → `test:PRODUCT:main` (or `test:di:di_with_ext` for DI)
+- **Tracing contribs**: `spec/datadog/tracing/contrib/CONTRIB/**` → `test:CONTRIB` (flat name, e.g. `test:redis`, `test:rack`)
+- **Core/main**: `spec/datadog/core/**`, `spec/datadog/tracing/**` (excluding `contrib/`), `spec/datadog/kit/**` → `test:main`
+- **Other**: `test:error_tracking`, `test:opentelemetry`, `test:open_feature`, `test:autoinstrument`, `test:custom_cop`
+
+When any AppSec integration changes, also run: `docker compose run --rm tracer-3.3 bundle exec rake test:appsec:integration`
+
+When unsure: `bundle exec rake -T test | grep KEYWORD`, or check the Rakefile `spec:TASK` definition. See `CLAUDE.md` for full detail including rails sub-tasks and `test:main` exceptions.
 
 ## One-Pipeline (GitLab CI)
 

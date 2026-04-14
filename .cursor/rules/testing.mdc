@@ -31,9 +31,39 @@ alwaysApply: false
 
 ## Running Tests
 
-- Run core library tests: `bundle exec rake test:main`
-- Run a specific test/file from core library tests: `bundle exec rspec <relative path to the file>`
-  - You can't run `shared_examples` directly, run the tests that use it instead.
+Tests MUST be run via rake tasks, not bare `bundle exec rspec`, because most test suites require specific Gemfiles (appraisals). The rake task selects the correct Gemfile automatically.
+
+```bash
+bundle exec rake test:TASK_KEY          # Correct - always use this
+bundle exec rspec spec/path/file.rb     # ONLY for specs covered by test:main
+```
+
+**When modifying Rakefile, Matrixfile, or `appraisal/` files, also update this section and `CLAUDE.md`.**
+
+### File → rake task mapping
+
+`lib/datadog/X/...` maps to `spec/datadog/X/..._spec.rb` (1:1 mirroring). Then:
+
+- **Products with namespaced tasks** (`test:PRODUCT:SUBTASK`): appsec, profiling, di, ai_guard
+  - `spec/datadog/PRODUCT/contrib/CONTRIB/**` → `test:PRODUCT:CONTRIB`
+  - `spec/datadog/PRODUCT/**` (everything else) → `test:PRODUCT:main` (or `test:di:di_with_ext` for DI)
+- **Tracing contribs**: `spec/datadog/tracing/contrib/CONTRIB/**` → `test:CONTRIB` (flat name, e.g. `test:redis`, `test:rack`)
+- **Core/main**: `spec/datadog/core/**`, `spec/datadog/tracing/**` (excluding `contrib/`), `spec/datadog/kit/**` → `test:main`
+  - Some core specs are excluded from `test:main` — check the Rakefile if a spec is unexpectedly skipped
+- **Other**: `test:error_tracking`, `test:opentelemetry`, `test:open_feature`, `test:autoinstrument`, `test:custom_cop`
+
+When any AppSec integration changes, also run: `docker compose run --rm tracer-3.3 bundle exec rake test:appsec:integration`
+
+See `CLAUDE.md` "Running Tests" for more detail. When unsure: `bundle exec rake -T test | grep KEYWORD`
+
+### Docker requirement
+
+- Contrib/integration tests need Docker: `docker compose run --rm tracer-3.4 /bin/bash`, then run the rake task inside
+- `test:main` can run locally on any Ruby for quick feedback
+
+### Other notes
+
+- You can't run `shared_examples` directly; run the tests that use them instead
 - Re-run impacted tests after modifying `lib/` or `ext/`
 
 ## Appraisal Groups
