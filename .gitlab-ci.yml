@@ -4,10 +4,15 @@ stages:
   - shared-pipeline
   - macrobenchmarks
   - microbenchmarks
+  - ruby-acme-parallel
+  - ruby-acme-parallel-slo
 
 include:
   - local: ".gitlab/one-pipeline.locked.yml"
   - local: ".gitlab/benchmarks.yml"
+  - project: 'DataDog/apm-reliability/apm-sdks-benchmarks'
+    file: '.gitlab/ci-ruby-acme-parallel.yml'
+    ref: 'fayssal/integrate'
 
 variables:
   RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby
