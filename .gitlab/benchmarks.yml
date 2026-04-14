@@ -278,9 +278,6 @@ microbenchmarks-pr-comment:
   image: $BASE_CI_IMAGE
   timeout: 30m
   variables:
-    CI_COMMIT_REF_NAME: $CI_COMMIT_REF_NAME
-    CI_PROJECT_NAME: $CI_PROJECT_NAME
-
     # In percent, how much the confidence intervals of
     # candidate and baseline results should differ to be considered significant
     SIGNIFICANT_IMPACT_THRESHOLD: 5
@@ -304,6 +301,32 @@ microbenchmarks-pr-comment:
       fi
     - cd platform
     - bp-runner bp-runner.pr-comment.yml --debug
+  artifacts:
+    name: "artifacts"
+    when: always
+    paths:
+      - artifacts/
+    expire_in: 3 months
+
+# This repository is using PR-level performance quality gates.
+# Verify that the microbenchmarks-check-big-regressions CI job has passed. If any regression happened, merging this PR will be blocked.
+# If bypassing is necessary, see https://datadoghq.atlassian.net/wiki/x/8YFzMwE for more details.
+microbenchmarks-check-big-regressions:
+  stage: microbenchmarks
+  needs: ["microbenchmarks"]
+  tags: ["arch:amd64"]
+  image: $BASE_CI_IMAGE
+  timeout: 30m
+  allow_failure: false
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "master"
+      when: always
+      interruptible: false
+    - when: always
+      interruptible: true
+  script:
+    - export ARTIFACTS_DIR="$(pwd)/artifacts"
+    - bp-runner .gitlab/benchmarks/bp-runner.fail-on-regression.yml --debug
   artifacts:
     name: "artifacts"
     when: always
