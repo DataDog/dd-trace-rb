@@ -637,10 +637,12 @@ void sampling_buffer_free(sampling_buffer *buffer) {
   }
 
   ruby_xfree(buffer->stack_buffer);
+  free(buffer->locations2);  // calloc-allocated in record_sample; free(NULL) is safe
   // Note: buffer->locations are owned by whoever called sampling_buffer_initialize, not by the buffer itself
 
   buffer->max_frames = 0;
   buffer->locations = NULL;
+  buffer->locations2 = NULL;
   buffer->stack_buffer = NULL;
   buffer->pending_sample = false;
   buffer->is_marking = false;

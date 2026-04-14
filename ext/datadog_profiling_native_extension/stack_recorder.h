@@ -8,6 +8,7 @@
 typedef struct {
   uint16_t max_frames;
   ddog_prof_Location *locations;
+  ddog_prof_Location2 *locations2;  // lazily allocated on first heap sample; NULL otherwise
   frame_info *stack_buffer;
   bool pending_sample;
   bool is_marking; // Used to avoid recording a sample when marking

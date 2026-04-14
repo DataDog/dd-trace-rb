@@ -33,8 +33,9 @@ typedef struct {
   size_t size;
 
   // The class of the object that we're tracking.
-  // NOTE: This is optional and will be set to NULL if not set.
-  ddog_prof_ManagedStringId class;
+  // NOTE: This is optional and class_name will be NULL if not set.
+  char *class_name;     // heap-allocated via calloc; NULL when no class
+  uint32_t class_len;
 
   // The GC allocation gen in which we saw this object being allocated.
   //
@@ -54,12 +55,12 @@ typedef struct {
 // Data that is made available to iterators of heap recorder data for each live object
 // tracked therein.
 typedef struct {
-  ddog_prof_Slice_Location locations;
+  ddog_prof_Slice_Location2 locations;
   live_object_data object_data;
 } heap_recorder_iteration_data;
 
 // Initialize a new heap recorder.
-heap_recorder* heap_recorder_new(ddog_prof_ManagedStringStorage string_storage);
+heap_recorder* heap_recorder_new(void);
 
 // Free a previously initialized heap recorder.
 void heap_recorder_free(heap_recorder *heap_recorder);
@@ -118,7 +119,7 @@ bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 // WARN: It is illegal to call this without previously having called ::start_heap_allocation_recording.
 // WARN: This method rescues exceptions with `rb_protect`, returning the exception state integer for the caller to handle.
 __attribute__((warn_unused_result))
-int end_heap_allocation_recording_with_rb_protect(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations);
+int end_heap_allocation_recording_with_rb_protect(heap_recorder *heap_recorder, ddog_prof_Slice_Location2 locations2);
 
 // Update the heap recorder, **checking young objects only**. The idea here is to align with GC: most young objects never
 // survive enough GC generations, and thus periodically running this method reduces memory usage (we get rid of

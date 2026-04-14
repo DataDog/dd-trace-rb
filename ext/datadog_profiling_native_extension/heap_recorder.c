@@ -36,15 +36,15 @@
 
 // A compact representation of a stacktrace frame for a heap allocation.
 typedef struct {
-  ddog_prof_ManagedStringId name;
-  ddog_prof_ManagedStringId filename;
+  ddog_prof_FunctionId2 function_id;  // opaque pointer; 8 bytes on 64-bit
   int32_t line;
+  int32_t _pad;  // explicit pad to prevent implicit padding; needed for memcmp/st_hash correctness
 } heap_frame;
 
 // We use memcmp/st_hash below to compare/hash an entire array of heap_frames, so want to make sure no padding is added
 // We could define the structure to be packed, but that seems even weirder across compilers, and this seems more portable?
 _Static_assert(
-    sizeof(heap_frame) == sizeof(ddog_prof_ManagedStringId) * 2 + sizeof(int32_t),
+    sizeof(heap_frame) == sizeof(ddog_prof_FunctionId2) + 2 * sizeof(int32_t),
     "Size of heap_frame does not match the sum of its members. Padding detected."
 );
 
@@ -57,7 +57,7 @@ typedef struct {
   uint16_t frames_len;
   heap_frame frames[];
 } heap_record;
-static heap_record* heap_record_new(heap_recorder*, ddog_prof_Slice_Location);
+static heap_record* heap_record_new(heap_recorder*, ddog_prof_Slice_Location2);
 static void heap_record_free(heap_recorder*, heap_record*);
 
 #if MAX_FRAMES_LIMIT > UINT16_MAX
@@ -151,16 +151,10 @@ struct heap_recorder {
 
   // Reusable arrays, implementing a flyweight pattern for things like iteration
   #define REUSABLE_LOCATIONS_SIZE MAX_FRAMES_LIMIT
-  ddog_prof_Location *reusable_locations;
-
-  #define REUSABLE_FRAME_DETAILS_SIZE (2 * MAX_FRAMES_LIMIT) // because it'll be used for both function names AND file names)
-  ddog_prof_ManagedStringId *reusable_ids;
-  ddog_CharSlice *reusable_char_slices;
+  ddog_prof_Location2 *reusable_locations;
 
   // Sampling state
   uint num_recordings_skipped;
-
-  ddog_prof_ManagedStringStorage string_storage;
 
   struct stats_last_update {
     size_t objects_alive;
@@ -190,10 +184,10 @@ struct heap_recorder {
 
 typedef struct {
   heap_recorder *heap_recorder;
-  ddog_prof_Slice_Location locations;
+  ddog_prof_Slice_Location2 locations;
 } end_heap_allocation_args;
 
-static heap_record* get_or_create_heap_record(heap_recorder*, ddog_prof_Slice_Location);
+static heap_record* get_or_create_heap_record(heap_recorder*, ddog_prof_Slice_Location2);
 static void cleanup_heap_record_if_unused(heap_recorder*, heap_record*);
 static void on_committed_object_record_cleanup(heap_recorder *heap_recorder, object_record *record);
 static int st_heap_record_entry_free(st_data_t, st_data_t, st_data_t);
@@ -207,9 +201,6 @@ static void commit_recording(heap_recorder *, heap_record *, object_record *acti
 static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args);
 static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update);
 static inline double ewma_stat(double previous, double current);
-static void unintern_or_raise(heap_recorder *, ddog_prof_ManagedStringId);
-static void unintern_all_or_raise(heap_recorder *recorder, ddog_prof_Slice_ManagedStringId ids);
-static VALUE get_ruby_string_or_raise(heap_recorder*, ddog_prof_ManagedStringId);
 static long obj_id_or_fail(VALUE obj);
 
 // ==========================
@@ -221,19 +212,16 @@ static long obj_id_or_fail(VALUE obj);
 // happens under the GVL.
 //
 // ==========================
-heap_recorder* heap_recorder_new(ddog_prof_ManagedStringStorage string_storage) {
+heap_recorder* heap_recorder_new(void) {
   heap_recorder *recorder = ruby_xcalloc(1, sizeof(heap_recorder));
 
   recorder->heap_records = st_init_table(&st_hash_type_heap_record);
   recorder->object_records = st_init_numtable();
   recorder->object_records_snapshot = NULL;
-  recorder->reusable_locations = ruby_xcalloc(REUSABLE_LOCATIONS_SIZE, sizeof(ddog_prof_Location));
-  recorder->reusable_ids = ruby_xcalloc(REUSABLE_FRAME_DETAILS_SIZE, sizeof(ddog_prof_ManagedStringId));
-  recorder->reusable_char_slices = ruby_xcalloc(REUSABLE_FRAME_DETAILS_SIZE, sizeof(ddog_CharSlice));
+  recorder->reusable_locations = ruby_xcalloc(REUSABLE_LOCATIONS_SIZE, sizeof(ddog_prof_Location2));
   recorder->active_recording = NULL;
   recorder->size_enabled = true;
   recorder->sample_rate = 1; // By default do no sampling on top of what allocation profiling already does
-  recorder->string_storage = string_storage;
   recorder->active_deferred_object = Qnil;
 
   return recorder;
@@ -264,8 +252,6 @@ void heap_recorder_free(heap_recorder *heap_recorder) {
   }
 
   ruby_xfree(heap_recorder->reusable_locations);
-  ruby_xfree(heap_recorder->reusable_ids);
-  ruby_xfree(heap_recorder->reusable_char_slices);
 
   ruby_xfree(heap_recorder);
 }
@@ -369,7 +355,11 @@ bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 
   live_object_data object_data = (live_object_data) {
     .weight = weight * heap_recorder->sample_rate,
-    .class = intern_or_raise(heap_recorder->string_storage, alloc_class),
+    // See "note on calloc vs ruby_xcalloc use" above for why we use calloc here
+    .class_name = alloc_class.len > 0
+      ? (char *) memcpy(calloc(alloc_class.len, 1), alloc_class.ptr, alloc_class.len)
+      : NULL,
+    .class_len = (uint32_t) alloc_class.len,
     .alloc_gen = rb_gc_count(),
   };
 
@@ -390,7 +380,7 @@ bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 // locks. To enable us to correctly unlock the profile on exception, we wrap the call to end_heap_allocation_recording
 // with an rb_protect.
 __attribute__((warn_unused_result))
-int end_heap_allocation_recording_with_rb_protect(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations) {
+int end_heap_allocation_recording_with_rb_protect(heap_recorder *heap_recorder, ddog_prof_Slice_Location2 locations2) {
   if (heap_recorder == NULL) {
     return 0;
   }
@@ -403,7 +393,7 @@ int end_heap_allocation_recording_with_rb_protect(heap_recorder *heap_recorder, 
   int exception_state;
   end_heap_allocation_args args = {
     .heap_recorder = heap_recorder,
-    .locations = locations,
+    .locations = locations2,
   };
   rb_protect(end_heap_allocation_recording, (VALUE) &args, &exception_state);
   return exception_state;
@@ -413,7 +403,7 @@ static VALUE end_heap_allocation_recording(VALUE protect_args) {
   end_heap_allocation_args *args = (end_heap_allocation_args *) protect_args;
 
   heap_recorder *heap_recorder = args->heap_recorder;
-  ddog_prof_Slice_Location locations = args->locations;
+  ddog_prof_Slice_Location2 locations = args->locations;
 
   #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
     if (heap_recorder->active_deferred_object == Qnil) {
@@ -799,24 +789,20 @@ static int st_object_records_iterate(DDTRACE_UNUSED st_data_t key, st_data_t val
     return ST_CONTINUE;
   }
 
-  ddog_prof_Location *locations = recorder->reusable_locations;
+  ddog_prof_Location2 *locations = recorder->reusable_locations;
   for (uint16_t i = 0; i < stack->frames_len; i++) {
     const heap_frame *frame = &stack->frames[i];
-    locations[i] = (ddog_prof_Location) {
-      .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
-      .function = {
-        .name = DDOG_CHARSLICE_C(""),
-        .name_id = frame->name,
-        .filename = DDOG_CHARSLICE_C(""),
-        .filename_id = frame->filename,
-      },
+    locations[i] = (ddog_prof_Location2) {
+      .mapping = NULL,
+      .function = frame->function_id,
+      .address = 0,
       .line = frame->line,
     };
   }
 
   heap_recorder_iteration_data iteration_data;
   iteration_data.object_data = record->object_data;
-  iteration_data.locations = (ddog_prof_Slice_Location) {.ptr = locations, .len = stack->frames_len};
+  iteration_data.locations = (ddog_prof_Slice_Location2) {.ptr = locations, .len = stack->frames_len};
 
   // This is expected to be StackRecorder's add_heap_sample_to_active_profile_without_gvl
   if (!context->for_each_callback(iteration_data, context->for_each_callback_extra_arg)) {
@@ -881,7 +867,7 @@ static int update_heap_record_entry_with_new_allocation(st_data_t *key, st_data_
   return ST_CONTINUE;
 }
 
-static heap_record* get_or_create_heap_record(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations) {
+static heap_record* get_or_create_heap_record(heap_recorder *heap_recorder, ddog_prof_Slice_Location2 locations) {
   // See note on "heap_records" definition for why we keep this map.
   heap_record *stack = heap_record_new(heap_recorder, locations);
 
@@ -940,23 +926,22 @@ object_record* object_record_new(long obj_id, heap_record *heap_record, live_obj
 }
 
 void object_record_free(heap_recorder *recorder, object_record *record) {
-  unintern_or_raise(recorder, record->object_data.class);
+  (void) recorder;
+  free(record->object_data.class_name);
   free(record); // See "note on calloc vs ruby_xcalloc use" above
 }
 
-VALUE object_record_inspect(heap_recorder *recorder, object_record *record) {
+VALUE object_record_inspect(DDTRACE_UNUSED heap_recorder *recorder, object_record *record) {
   heap_frame top_frame = record->heap_record->frames[0];
-  VALUE filename = get_ruby_string_or_raise(recorder, top_frame.filename);
   live_object_data object_data = record->object_data;
 
-  VALUE inspect = rb_sprintf("obj_id=%ld weight=%d size=%zu location=%"PRIsVALUE":%d alloc_gen=%zu gen_age=%zu frozen=%d ",
-      record->obj_id, object_data.weight, object_data.size, filename,
-      (int) top_frame.line, object_data.alloc_gen, object_data.gen_age, object_data.is_frozen);
+  VALUE inspect = rb_sprintf("obj_id=%ld weight=%d size=%zu function_id=%p line=%d alloc_gen=%zu gen_age=%zu frozen=%d ",
+      record->obj_id, object_data.weight, object_data.size,
+      (void *) top_frame.function_id, (int) top_frame.line,
+      object_data.alloc_gen, object_data.gen_age, object_data.is_frozen);
 
-  if (record->object_data.class.value > 0) {
-    VALUE class = get_ruby_string_or_raise(recorder, record->object_data.class);
-
-    rb_str_catf(inspect, "class=%"PRIsVALUE" ", class);
+  if (record->object_data.class_name != NULL) {
+    rb_str_catf(inspect, "class=%.*s ", (int) record->object_data.class_len, record->object_data.class_name);
   }
   VALUE ref;
 
@@ -978,8 +963,9 @@ VALUE object_record_inspect(heap_recorder *recorder, object_record *record) {
 // ==============
 // Heap Record API
 // ==============
-heap_record* heap_record_new(heap_recorder *recorder, ddog_prof_Slice_Location locations) {
-  uint16_t frames_len = locations.len;
+heap_record* heap_record_new(heap_recorder *recorder, ddog_prof_Slice_Location2 locations) {
+  (void) recorder; // no longer needed; kept for symmetry with heap_record_free
+  uint16_t frames_len = (uint16_t) locations.len;
   if (frames_len > MAX_FRAMES_LIMIT) {
     // This is not expected as MAX_FRAMES_LIMIT is shared with the stacktrace construction mechanism
     raise_error(rb_eRuntimeError, "Found stack with more than %d frames (%d)", MAX_FRAMES_LIMIT, frames_len);
@@ -988,24 +974,13 @@ heap_record* heap_record_new(heap_recorder *recorder, ddog_prof_Slice_Location l
   stack->num_tracked_objects = 0;
   stack->frames_len = frames_len;
 
-  // Intern all these strings...
-  ddog_CharSlice *strings = recorder->reusable_char_slices;
-  // Put all the char slices in the same array; we'll pull them out in the same order from the ids array
-  for (uint16_t i = 0; i < stack->frames_len; i++) {
-    const ddog_prof_Location *location = &locations.ptr[i];
-    strings[i] = location->function.filename;
-    strings[i + stack->frames_len] = location->function.name;
-  }
-  intern_all_or_raise(recorder->string_storage, (ddog_prof_Slice_CharSlice) { .ptr = strings, .len = stack->frames_len * 2 }, recorder->reusable_ids, stack->frames_len * 2);
-
-  // ...and record them for later use
-  for (uint16_t i = 0; i < stack->frames_len; i++) {
+  for (uint16_t i = 0; i < frames_len; i++) {
     stack->frames[i] = (heap_frame) {
-      .filename = recorder->reusable_ids[i],
-      .name = recorder->reusable_ids[i + stack->frames_len],
-      // ddog_prof_Location is a int64_t. We don't expect to have to profile files with more than
+      .function_id = locations.ptr[i].function,
+      // ddog_prof_Location2.line is int64_t. We don't expect to have to profile files with more than
       // 2M lines so this cast should be fairly safe?
       .line = (int32_t) locations.ptr[i].line,
+      ._pad = 0,
     };
   }
 
@@ -1013,15 +988,7 @@ heap_record* heap_record_new(heap_recorder *recorder, ddog_prof_Slice_Location l
 }
 
 void heap_record_free(heap_recorder *recorder, heap_record *stack) {
-  ddog_prof_ManagedStringId *ids = recorder->reusable_ids;
-
-  // Put all the ids in the same array; doesn't really matter the order
-  for (u_int16_t i = 0; i < stack->frames_len; i++) {
-    ids[i] = stack->frames[i].filename;
-    ids[i + stack->frames_len] = stack->frames[i].name;
-  }
-  unintern_all_or_raise(recorder, (ddog_prof_Slice_ManagedStringId) { .ptr = ids, .len = stack->frames_len * 2 });
-
+  (void) recorder; // ManagedStringIds gone; nothing to unintern
   free(stack); // See "note on calloc vs ruby_xcalloc use" above
 }
 
@@ -1048,32 +1015,6 @@ st_index_t heap_record_hash_st(st_data_t key) {
   return st_hash(stack->frames, stack->frames_len * sizeof(heap_frame), FNV1_32A_INIT);
 }
 
-static void unintern_or_raise(heap_recorder *recorder, ddog_prof_ManagedStringId id) {
-  if (id.value == 0) return; // Empty string, nothing to do
-
-  ddog_prof_MaybeError result = ddog_prof_ManagedStringStorage_unintern(recorder->string_storage, id);
-  if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
-    raise_error(rb_eRuntimeError, "Failed to unintern id: %"PRIsVALUE, get_error_details_and_drop(&result.some));
-  }
-}
-
-static void unintern_all_or_raise(heap_recorder *recorder, ddog_prof_Slice_ManagedStringId ids) {
-  ddog_prof_MaybeError result = ddog_prof_ManagedStringStorage_unintern_all(recorder->string_storage, ids);
-  if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
-    raise_error(rb_eRuntimeError, "Failed to unintern_all: %"PRIsVALUE, get_error_details_and_drop(&result.some));
-  }
-}
-
-static VALUE get_ruby_string_or_raise(heap_recorder *recorder, ddog_prof_ManagedStringId id) {
-  ddog_StringWrapperResult get_string_result = ddog_prof_ManagedStringStorage_get_string(recorder->string_storage, id);
-  if (get_string_result.tag == DDOG_STRING_WRAPPER_RESULT_ERR) {
-    raise_error(rb_eRuntimeError, "Failed to get string: %"PRIsVALUE, get_error_details_and_drop(&get_string_result.err));
-  }
-  VALUE ruby_string = ruby_string_from_vec_u8(get_string_result.ok.message);
-  ddog_StringWrapper_drop((ddog_StringWrapper *) &get_string_result.ok);
-
-  return ruby_string;
-}
 
 static long obj_id_or_fail(VALUE obj) {
   VALUE ruby_obj_id = rb_obj_id(obj);
@@ -1108,22 +1049,8 @@ void heap_recorder_testonly_reset_last_update(heap_recorder *heap_recorder) {
   heap_recorder->last_update_ns = 0;
 }
 
-void heap_recorder_testonly_benchmark_intern(heap_recorder *heap_recorder, ddog_CharSlice string, int times, bool use_all) {
+void heap_recorder_testonly_benchmark_intern(heap_recorder *heap_recorder, DDTRACE_UNUSED ddog_CharSlice string, DDTRACE_UNUSED int times, DDTRACE_UNUSED bool use_all) {
+  // ManagedStringStorage and the associated reusable_ids/reusable_char_slices were removed as part of
+  // migrating heap profiling to the Location2/Label2/Profile_add2 API. This benchmark is now a no-op.
   if (heap_recorder == NULL) raise_error(rb_eArgError, "heap profiling must be enabled");
-  if (times > REUSABLE_FRAME_DETAILS_SIZE) raise_error(rb_eArgError, "times cannot be > than REUSABLE_FRAME_DETAILS_SIZE");
-
-  if (use_all) {
-    ddog_CharSlice *strings = heap_recorder->reusable_char_slices;
-
-    for (int i = 0; i < times; i++) strings[i] = string;
-
-    intern_all_or_raise(
-      heap_recorder->string_storage,
-      (ddog_prof_Slice_CharSlice) { .ptr = strings, .len = times },
-      heap_recorder->reusable_ids,
-      times
-    );
-  } else {
-    for (int i = 0; i < times; i++) intern_or_raise(heap_recorder->string_storage, string);
-  }
 }
