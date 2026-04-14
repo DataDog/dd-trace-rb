@@ -278,9 +278,6 @@ microbenchmarks-pr-comment:
   image: $BASE_CI_IMAGE
   timeout: 30m
   variables:
-    CI_COMMIT_REF_NAME: $CI_COMMIT_REF_NAME
-    CI_PROJECT_NAME: $CI_PROJECT_NAME
-
     # In percent, how much the confidence intervals of
     # candidate and baseline results should differ to be considered significant
     SIGNIFICANT_IMPACT_THRESHOLD: 5
