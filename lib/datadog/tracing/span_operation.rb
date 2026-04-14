@@ -168,7 +168,7 @@ module Datadog
             #   end its execution (either due to a system error or graceful shutdown).
             # @type var e: Exception?
             # Steep: https://github.com/soutaro/steep/issues/919
-            return_value = yield(self) unless e && !e.is_a?(StandardError) # steep:ignore FallbackAny
+            return_value = yield(self) unless e && !e.is_a?(StandardError)
           end
         # rubocop:disable Lint/RescueException
         # Here we really want to catch *any* exception, not only StandardError,

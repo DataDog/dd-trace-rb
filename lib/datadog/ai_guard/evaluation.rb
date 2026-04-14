@@ -6,10 +6,16 @@ module Datadog
     # and creating `ai_guard` span with required tags
     module Evaluation
       class << self
-        def perform(messages, allow_raise: false)
+        def perform(messages, allow_raise: true)
           raise ArgumentError, "Messages must not be empty" if messages&.empty?
 
           Tracing.trace(Ext::SPAN_NAME) do |span, trace|
+            trace.keep!
+            trace.set_tag(
+              Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+              Tracing::Sampling::Ext::Decision::AI_GUARD
+            )
+
             if (last_message = messages.last)
               if last_message.tool_call
                 span.set_tag(Ext::TARGET_TAG, "tool")
@@ -37,6 +43,7 @@ module Datadog
                 messages: truncate_content(request.serialized_messages),
                 attack_categories: result.tags,
                 sds: result.sds_findings,
+                tag_probs: result.tag_probabilities
               }
             )
 

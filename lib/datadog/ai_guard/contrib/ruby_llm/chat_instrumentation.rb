@@ -20,7 +20,7 @@ module Datadog
                 end
               end
 
-              AIGuard.evaluate(*ai_guard_messages, allow_raise: true)
+              AIGuard.evaluate(*ai_guard_messages)
             end
 
             private

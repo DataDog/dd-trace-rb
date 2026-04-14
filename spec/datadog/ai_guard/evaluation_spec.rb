@@ -13,8 +13,9 @@ RSpec.describe Datadog::AIGuard::Evaluation do
             "action" => "ALLOW",
             "reason" => "Because why not",
             "tags" => [],
-            "is_blocking_enabled" => false,
-            "sds_findings" => []
+            "sds_findings" => [],
+            "tag_probs" => {},
+            "is_blocking_enabled" => false
           }
         }
       }
@@ -50,6 +51,16 @@ RSpec.describe Datadog::AIGuard::Evaluation do
       ])
 
       expect(ai_guard_span).not_to be_nil
+    end
+
+    it "sets manual.keep on the trace with AI Guard decision maker" do
+      described_class.perform([
+        Datadog::AIGuard.message(role: :user, content: "Some content")
+      ])
+
+      trace = traces.first
+      expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
+      expect(trace.send(:sampling_decision_maker)).to eq('-13')
     end
 
     it "sets target tag to 'prompt' when last message is a prompt" do
@@ -110,8 +121,9 @@ RSpec.describe Datadog::AIGuard::Evaluation do
               "action" => "ALLOW",
               "reason" => "Because why not",
               "tags" => [],
-              "is_blocking_enabled" => false,
-              "sds_findings" => []
+              "sds_findings" => [],
+              "tag_probs" => {},
+              "is_blocking_enabled" => false
             }
           }
         }
@@ -164,6 +176,12 @@ RSpec.describe Datadog::AIGuard::Evaluation do
 
         expect(ai_guard_span.get_metastruct_tag("ai_guard").fetch(:sds)).to eq([])
       end
+
+      it "sets ai_guard metastruct tag with empty tag_probs" do
+        perform
+
+        expect(ai_guard_span.get_metastruct_tag("ai_guard").fetch(:tag_probs)).to eq({})
+      end
     end
 
     %w[DENY ABORT].each do |blocking_action|
@@ -175,7 +193,6 @@ RSpec.describe Datadog::AIGuard::Evaluation do
                 "action" => blocking_action,
                 "reason" => "Rule matches: indirect-prompt-injection, instruction-override",
                 "tags" => ["indirect-prompt-injection", "instruction-override"],
-                "is_blocking_enabled" => blocking_enabled,
                 "sds_findings" => [
                   {
                     "rule_display_name" => "Credit Card Number",
@@ -188,7 +205,9 @@ RSpec.describe Datadog::AIGuard::Evaluation do
                       "path" => "messages[0].content[0].text"
                     }
                   }
-                ]
+                ],
+                "tag_probs" => {"indirect-prompt-injection" => 0.95, "instruction-override" => 0.87},
+                "is_blocking_enabled" => blocking_enabled
               }
             }
           }
@@ -260,6 +279,14 @@ RSpec.describe Datadog::AIGuard::Evaluation do
                 }
               }
             ]
+          )
+        end
+
+        it "sets ai_guard metastruct tag with tag_probs" do
+          perform
+
+          expect(ai_guard_span.get_metastruct_tag("ai_guard").fetch(:tag_probs)).to eq(
+            {"indirect-prompt-injection" => 0.95, "instruction-override" => 0.87}
           )
         end
 
