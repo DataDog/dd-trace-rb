@@ -142,6 +142,10 @@ end
 # On older Rubies, there was no primitive mutex and condition variable implemented in `thread_sync.rb` (internal)
 $defs << "-DNO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE" if RUBY_VERSION < "4"
 
+# On Ruby < 4.0, ObjectSpace::WeakMap did not support weak keys for the iseq -> FunctionId2 cache;
+# use a strong-reference Hash instead.
+$defs << "-DNO_WEAK_MAP_FOR_ISEQ_CACHE" if RUBY_VERSION < "4"
+
 # On Ruby 4, we can't ask the object_id from IMEMOs (https://github.com/ruby/ruby/pull/13347)
 $defs << "-DNO_IMEMO_OBJECT_ID" unless RUBY_VERSION < "4"
 

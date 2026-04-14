@@ -10,6 +10,10 @@
 #include "heap_recorder.h"
 #include "encoded_profile.h"
 
+_Static_assert(
+  sizeof(ddog_prof_FunctionId2) == sizeof(uintptr_t),
+  "ddog_prof_FunctionId2 must fit in uintptr_t to be stored as a Ruby Integer");
+
 // Used to wrap a ddog_prof_Profile in a Ruby object and expose Ruby-level serialization APIs
 // This file implements the native bits of the Datadog::Profiling::StackRecorder class
 
@@ -186,6 +190,18 @@ typedef struct {
   ddog_prof_StringId2 label_key_allocation_class;
   ddog_prof_StringId2 label_key_gc_gen_age;
 
+  // Caches mapping frame identity -> FunctionId2 (stored as Ruby Integers via ULL2NUM of the pointer).
+  // iseq_cache: WeakMap (Ruby 4+, weak keys let GC reclaim dead iseqs) or Hash (older Ruby).
+  //   Keys are iseq VALUEs; values are ULL2NUM((uintptr_t) ddog_prof_FunctionId2).
+  // native_id_cache: Hash. Keys are ID2SYM(method_id); values as above.
+  VALUE iseq_cache;
+  VALUE native_id_cache;
+
+  // Pre-allocated FunctionId2 for the synthetic "Truncated Frames" placeholder injected at the
+  // bottom of stacks that exceeded max_frames. Matches the entry that
+  // add_truncated_frames_placeholder injects into buffer->locations[0].
+  ddog_prof_FunctionId2 truncated_frames_function_id;
+
   short active_slot; // MUST NEVER BE ACCESSED FROM record_sample; this is NOT for the sampler thread to use.
 
   uint8_t position_for[ALL_VALUE_TYPES_COUNT];
@@ -351,7 +367,33 @@ static VALUE _native_new(VALUE klass) {
   if (s.err != NULL) { raise_error(rb_eRuntimeError, "Failed to insert gc gen age key: %s", s.err); }
   ddog_prof_Status_drop(&s);
 
+  // Pre-populate the "Truncated Frames" function so that stacks exceeding max_frames get the same
+  // placeholder in the heap profile as in the CPU/wall profile (where add_truncated_frames_placeholder
+  // patches buffer->locations[0] with this name).
+  {
+    ddog_prof_StringId2 truncated_name_sid = NULL, empty_sid = NULL;
+    s = ddog_prof_ProfilesDictionary_insert_str(&truncated_name_sid, state->dict_handle, DDOG_CHARSLICE_C("Truncated Frames"), DDOG_PROF_UTF8_OPTION_ASSUME);
+    if (s.err != NULL) { raise_error(rb_eRuntimeError, "Failed to insert Truncated Frames name: %s", s.err); }
+    ddog_prof_Status_drop(&s);
+
+    s = ddog_prof_ProfilesDictionary_insert_str(&empty_sid, state->dict_handle, DDOG_CHARSLICE_C(""), DDOG_PROF_UTF8_OPTION_ASSUME);
+    if (s.err != NULL) { raise_error(rb_eRuntimeError, "Failed to insert empty string: %s", s.err); }
+    ddog_prof_Status_drop(&s);
+
+    ddog_prof_Function2 truncated_func = { .name = truncated_name_sid, .system_name = NULL, .file_name = empty_sid };
+    s = ddog_prof_ProfilesDictionary_insert_function(&state->truncated_frames_function_id, state->dict_handle, &truncated_func);
+    if (s.err != NULL) { raise_error(rb_eRuntimeError, "Failed to insert Truncated Frames function: %s", s.err); }
+    ddog_prof_Status_drop(&s);
+  }
+
   initialize_profiles(state, sample_types);
+
+#ifdef NO_WEAK_MAP_FOR_ISEQ_CACHE
+  state->iseq_cache = rb_hash_new();
+#else
+  state->iseq_cache = rb_funcall(rb_const_get(rb_mObjectSpace, rb_intern("WeakMap")), rb_intern("new"), 0);
+#endif
+  state->native_id_cache = rb_hash_new();
 
   // NOTE: We initialize this because we want a new recorder to be operational even before #initialize runs and our
   //       default is everything enabled. However, if during recording initialization it turns out we don't want
@@ -398,6 +440,8 @@ static void stack_recorder_typed_data_mark(void *state_ptr) {
   stack_recorder_state *state = (stack_recorder_state *) state_ptr;
 
   heap_recorder_mark_pending_recordings(state->heap_recorder);
+  rb_gc_mark(state->iseq_cache);
+  rb_gc_mark(state->native_id_cache);
 }
 
 static void stack_recorder_typed_data_free(void *state_ptr) {
@@ -603,16 +647,138 @@ static VALUE ruby_time_from(ddog_Timespec ddprof_time) {
   return rb_time_timespec_new(&time, utc);
 }
 
-// STUB: Populate locations2 from iseq values in the stack buffer.
-// TODO: Implement iseq -> FunctionId2 cache using state->dict_handle.
-// KNOWN ISSUE: With function = NULL, heap_record deduplication is broken until the cache is filled in.
+// Populate locations2 from the frame_info entries in stack_buffer, looking up or creating
+// FunctionId2 handles in state->dict_handle via two caches:
+//   state->iseq_cache       – iseq VALUE     -> FunctionId2 (WeakMap on Ruby 4+, Hash on older)
+//   state->native_id_cache  – ID2SYM(method) -> FunctionId2 (always a Hash)
+// FunctionId2 values are round-tripped through Ruby Integers (ULL2NUM / NUM2ULL) so the Ruby GC
+// can own the cache entries without needing to understand raw C pointers.
+// Note: ddog_prof_ProfilesDictionary_insert_* APIs are internally thread-safe, but the Ruby cache
+// lookups/stores (rb_hash_*, rb_funcall) require the GVL, so this function must be called with
+// the GVL held (which record_sample already guarantees).
 static void build_location2_from_iseqs(
     ddog_prof_Location2 *locations2,
     uint16_t count,
-    DDTRACE_UNUSED const frame_info *stack_buffer
+    const frame_info *stack_buffer,
+    stack_recorder_state *state,
+    bool truncated  // true when captured_frames == buffer->max_frames (stack was cut short)
 ) {
-  for (uint16_t i = 0; i < count; i++) {
-    locations2[i] = (ddog_prof_Location2) {.mapping = NULL, .function = NULL, .address = 0, .line = 0};
+  // stack_buffer uses rb_profile_frames ordering: index 0 = newest (top of stack), count-1 = oldest.
+  // libdatadog Profile_add2 uses the same convention as Profile_add: index 0 = oldest (bottom), count-1 = newest.
+  // So we walk locations2 oldest-first and read stack_buffer newest-last:
+  //   locations2[i] <- stack_buffer[count - 1 - i]
+  //
+  // When the stack was truncated (captured_frames == max_frames), add_truncated_frames_placeholder
+  // overwrites buffer->locations[0] (the oldest slot) with "Truncated Frames", discarding the
+  // content of stack_buffer[count-1] (the oldest visible frame). We mirror that here.
+  uint16_t start = 0;
+  if (truncated) {
+    locations2[0] = (ddog_prof_Location2) {
+      .mapping  = NULL,
+      .function = state->truncated_frames_function_id,
+      .address  = 0,
+      .line     = 0,
+    };
+    start = 1;  // skip locations2[0] AND skip stack_buffer[count-1] (overwritten by placeholder)
+  }
+
+  for (uint16_t i = start; i < count; i++) {
+    ddog_prof_FunctionId2 function_id = NULL;
+    // Flip: locations2[i] corresponds to stack_buffer[count - 1 - i] (oldest first)
+    uint16_t sb = count - 1 - i;
+
+    if (stack_buffer[sb].is_ruby_frame) {
+      VALUE iseq = stack_buffer[sb].as.ruby_frame.iseq;
+
+      // Look up in iseq_cache
+      VALUE cached;
+#ifdef NO_WEAK_MAP_FOR_ISEQ_CACHE
+      cached = rb_hash_lookup2(state->iseq_cache, iseq, Qnil);
+#else
+      cached = rb_funcall(state->iseq_cache, rb_intern("[]"), 1, iseq);
+#endif
+
+      if (!NIL_P(cached)) {
+        function_id = (ddog_prof_FunctionId2)(uintptr_t) NUM2ULL(cached);
+      } else {
+        // Cache miss: resolve name/filename and insert a new Function into the ProfilesDictionary
+        VALUE name_val     = ddtrace_iseq_base_label((const void *) iseq);
+        VALUE filename_val = ddtrace_iseq_path((const void *) iseq);
+
+        ddog_CharSlice name_slice     = NIL_P(name_val)     ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name_val);
+        ddog_CharSlice filename_slice = NIL_P(filename_val) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(filename_val);
+
+        ddog_prof_StringId2 name_sid = NULL, filename_sid = NULL;
+        ddog_prof_Status s;
+
+        s = ddog_prof_ProfilesDictionary_insert_str(&name_sid, state->dict_handle, name_slice, DDOG_PROF_UTF8_OPTION_ASSUME);
+        if (s.err != NULL) { ddog_prof_Status_drop(&s); goto store_ruby; }
+        ddog_prof_Status_drop(&s);
+
+        s = ddog_prof_ProfilesDictionary_insert_str(&filename_sid, state->dict_handle, filename_slice, DDOG_PROF_UTF8_OPTION_ASSUME);
+        if (s.err != NULL) { ddog_prof_Status_drop(&s); goto store_ruby; }
+        ddog_prof_Status_drop(&s);
+
+        ddog_prof_Function2 func = { .name = name_sid, .system_name = NULL, .file_name = filename_sid };
+        s = ddog_prof_ProfilesDictionary_insert_function(&function_id, state->dict_handle, &func);
+        if (s.err != NULL) { ddog_prof_Status_drop(&s); goto store_ruby; }
+        ddog_prof_Status_drop(&s);
+
+        store_ruby: ;
+        VALUE function_id_val = ULL2NUM((uintptr_t) function_id);
+#ifdef NO_WEAK_MAP_FOR_ISEQ_CACHE
+        rb_hash_aset(state->iseq_cache, iseq, function_id_val);
+#else
+        rb_funcall(state->iseq_cache, rb_intern("[]="), 2, iseq, function_id_val);
+#endif
+      }
+
+      locations2[i] = (ddog_prof_Location2) {
+        .mapping  = NULL,
+        .function = function_id,
+        .address  = 0,
+        .line     = stack_buffer[sb].as.ruby_frame.line,
+      };
+    } else {
+      ID method_id = stack_buffer[sb].as.native_frame.method_id;
+      VALUE key    = ID2SYM(method_id);
+
+      VALUE cached = rb_hash_lookup2(state->native_id_cache, key, Qnil);
+
+      if (!NIL_P(cached)) {
+        function_id = (ddog_prof_FunctionId2)(uintptr_t) NUM2ULL(cached);
+      } else {
+        VALUE name_val = rb_id2str(method_id);
+
+        ddog_CharSlice name_slice = NIL_P(name_val) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name_val);
+
+        ddog_prof_StringId2 name_sid = NULL, filename_sid = NULL;
+        ddog_prof_Status s;
+
+        s = ddog_prof_ProfilesDictionary_insert_str(&name_sid, state->dict_handle, name_slice, DDOG_PROF_UTF8_OPTION_ASSUME);
+        if (s.err != NULL) { ddog_prof_Status_drop(&s); goto store_native; }
+        ddog_prof_Status_drop(&s);
+
+        s = ddog_prof_ProfilesDictionary_insert_str(&filename_sid, state->dict_handle, DDOG_CHARSLICE_C(""), DDOG_PROF_UTF8_OPTION_ASSUME);
+        if (s.err != NULL) { ddog_prof_Status_drop(&s); goto store_native; }
+        ddog_prof_Status_drop(&s);
+
+        ddog_prof_Function2 func = { .name = name_sid, .system_name = NULL, .file_name = filename_sid };
+        s = ddog_prof_ProfilesDictionary_insert_function(&function_id, state->dict_handle, &func);
+        if (s.err != NULL) { ddog_prof_Status_drop(&s); goto store_native; }
+        ddog_prof_Status_drop(&s);
+
+        store_native: ;
+        rb_hash_aset(state->native_id_cache, key, ULL2NUM((uintptr_t) function_id));
+      }
+
+      locations2[i] = (ddog_prof_Location2) {
+        .mapping  = NULL,
+        .function = function_id,
+        .address  = 0,
+        .line     = 0,
+      };
+    }
   }
 }
 
@@ -645,6 +811,11 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
     // NOTE: The heap recorder is allowed to raise exceptions if something's wrong. But we also need to handle it
     // on this side to make sure we properly unlock the active slot mutex on our way out. Otherwise, this would
     // later lead to deadlocks (since the active slot mutex is not expected to be locked forever).
+    //
+    // NOTE: heap_sample is only set when sampling via trigger_sample_for_thread (the allocation tracepoint path),
+    // which always provides a valid buffer. Callers that pass buffer=NULL (e.g. record_placeholder_stack for GC
+    // frames) always have heap_sample=false, so this branch is never reached with a NULL buffer.
+    RUBY_ASSERT(buffer != NULL);
     if (buffer->locations2 == NULL) {
       buffer->locations2 = calloc(buffer->max_frames, sizeof(ddog_prof_Location2));
       if (buffer->locations2 == NULL) {
@@ -654,7 +825,10 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
     }
 
     uint16_t frame_count = (uint16_t) locations.len;
-    build_location2_from_iseqs(buffer->locations2, frame_count, buffer->stack_buffer);
+    // Detect stack truncation: add_truncated_frames_placeholder runs when captured_frames == max_frames,
+    // replacing locations[0] with a synthetic "Truncated Frames" entry. We mirror that in locations2.
+    bool truncated = (frame_count == buffer->max_frames);
+    build_location2_from_iseqs(buffer->locations2, frame_count, buffer->stack_buffer, state, truncated);
 
     int exception_state = end_heap_allocation_recording_with_rb_protect(
       state->heap_recorder,
