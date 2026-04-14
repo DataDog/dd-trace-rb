@@ -36,7 +36,9 @@ module Datadog
 
         attr_reader profiler: untyped
 
-        attr_reader dynamic_instrumentation: untyped
+        attr_reader dynamic_instrumentation: Datadog::DI::Component?
+
+        attr_reader appsec: Datadog::AppSec::Component?
 
         attr_reader runtime_metrics: untyped
 
@@ -51,8 +53,6 @@ module Datadog
         attr_reader data_streams: Datadog::DataStreams::Processor?
 
         attr_reader open_feature: Datadog::OpenFeature::Component?
-
-        attr_reader appsec: AppSec::Component?
 
         def initialize: (untyped settings) -> untyped
 

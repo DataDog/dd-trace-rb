@@ -72,7 +72,12 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
 
     context 'when appsec is disabled' do
       before do
-        Datadog.configuration.appsec.enabled = false
+        # Reconfigure so the component tree is rebuilt without AppSec.
+        # Setting the config flag alone is not enough — AppSec.enabled?
+        # checks component existence, not configuration.
+        Datadog.configure do |c|
+          c.appsec.enabled = false
+        end
         get('/success', {}, 'REMOTE_ADDR' => '127.0.0.1')
       end
 
