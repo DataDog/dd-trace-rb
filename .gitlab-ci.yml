@@ -4,6 +4,8 @@ stages:
   - shared-pipeline
   - macrobenchmarks
   - microbenchmarks
+  # These benchmarks should ultimately replace the old macrobenchmarks setup
+  # For now they will run in parallel with the macrobenchmarks setups
   - ruby-acme-parallel
   - ruby-acme-parallel-slo
 
