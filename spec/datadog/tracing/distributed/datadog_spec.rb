@@ -154,13 +154,14 @@ RSpec.shared_examples 'Datadog distributed format' do
             let(:tags) { {key: 'very large value' * 32} }
 
             it do
+              expect(Datadog.logger).to receive(:warn).with(/tags are too large/).and_return(true)
               inject!
               expect(data).to_not include('x-datadog-tags')
             end
 
             it 'sets error tag' do
               expect(active_trace).to receive(:set_tag).with('_dd.propagation_error', 'inject_max_size')
-              expect(Datadog.logger).to receive(:warn).with(/tags are too large/)
+              expect(Datadog.logger).to receive(:warn).with(/tags are too large/).and_return(true)
               inject!
             end
           end
@@ -199,7 +200,7 @@ RSpec.shared_examples 'Datadog distributed format' do
 
             it 'sets error tag' do
               expect(active_trace).to receive(:set_tag).with('_dd.propagation_error', 'encoding_error')
-              expect(Datadog.logger).to receive(:warn).with(/Failed to inject/)
+              expect(Datadog.logger).to receive(:warn).with(/Failed to inject/).and_return(true)
               inject!
             end
           end
@@ -355,11 +356,14 @@ RSpec.shared_examples 'Datadog distributed format' do
           context 'with tags too large' do
             let(:tags) { 'key=very large value,' * 25 }
 
-            it { is_expected.to be_nil }
+            it do
+              expect(Datadog.logger).to receive(:warn).with(/tags are too large/).and_return(true)
+              is_expected.to be_nil
+            end
 
             it 'sets error tag' do
               expect(active_trace).to receive(:set_tag).with('_dd.propagation_error', 'extract_max_size')
-              expect(Datadog.logger).to receive(:warn).with(/tags are too large/)
+              expect(Datadog.logger).to receive(:warn).with(/tags are too large/).and_return(true)
               extract
             end
           end
@@ -393,7 +397,7 @@ RSpec.shared_examples 'Datadog distributed format' do
 
             it 'sets error tag' do
               expect(active_trace).to receive(:set_tag).with('_dd.propagation_error', 'decoding_error')
-              expect(Datadog.logger).to receive(:warn).with(/Failed to extract/)
+              expect(Datadog.logger).to receive(:warn).with(/Failed to extract/).and_return(true)
               extract
             end
           end
