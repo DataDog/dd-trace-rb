@@ -671,7 +671,6 @@ RSpec.describe Datadog::Tracing::Tracer do
         end
       end
     end
-
   end
 
   describe '#call_context' do

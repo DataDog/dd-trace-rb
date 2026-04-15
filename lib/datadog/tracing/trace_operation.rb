@@ -508,7 +508,6 @@ module Datadog
             super(:trace_resource_change)
           end
         end
-
       end
 
       private

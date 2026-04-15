@@ -567,7 +567,6 @@ module Datadog
       def duration_nano
         (duration * 1e9).to_i
       end
-
     end
   end
 end
