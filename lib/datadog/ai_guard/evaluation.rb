@@ -6,10 +6,16 @@ module Datadog
     # and creating `ai_guard` span with required tags
     module Evaluation
       class << self
-        def perform(messages, allow_raise: false)
+        def perform(messages, allow_raise: true)
           raise ArgumentError, "Messages must not be empty" if messages&.empty?
 
           Tracing.trace(Ext::SPAN_NAME) do |span, trace|
+            trace.keep!
+            trace.set_tag(
+              Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+              Tracing::Sampling::Ext::Decision::AI_GUARD
+            )
+
             if (last_message = messages.last)
               if last_message.tool_call
                 span.set_tag(Ext::TARGET_TAG, "tool")
@@ -35,7 +41,9 @@ module Datadog
               Ext::METASTRUCT_TAG,
               {
                 messages: truncate_content(request.serialized_messages),
-                attack_categories: result.tags
+                attack_categories: result.tags,
+                sds: result.sds_findings,
+                tag_probs: result.tag_probabilities
               }
             )
 
@@ -56,14 +64,30 @@ module Datadog
 
         private
 
+        # Truncates content in serialized messages to stay within the configured byte limit.
+        # For multi-modal messages, only text parts are truncated; image URLs are left intact.
         def truncate_content(serialized_messages)
+          max_bytes = Datadog.configuration.ai_guard.max_content_size_bytes
+
           serialized_messages.map do |message| # steep:ignore
             next message unless message[:content]
 
-            {
-              **message,
-              content: message[:content].byteslice(0, Datadog.configuration.ai_guard.max_content_size_bytes)
-            }
+            if message[:content].is_a?(::Array)
+              serialized_content = message[:content].map do |part|
+                if part[:text]
+                  {**part, text: part[:text].to_s.byteslice(0, max_bytes)}
+                else
+                  part
+                end
+              end
+
+              {**message, content: serialized_content}
+            else
+              {
+                **message,
+                content: message[:content].byteslice(0, max_bytes)
+              }
+            end
           end
         end
       end

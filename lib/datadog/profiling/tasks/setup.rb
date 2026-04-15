@@ -16,7 +16,7 @@ module Datadog
             setup_at_fork_hooks
           rescue StandardError, ScriptError => e
             Datadog.logger.warn do
-              "Profiler extensions unavailable. Cause: #{e.class.name} #{e.message} " \
+              "Profiler extensions unavailable. Cause: #{e.class}: #{e} " \
               "Location: #{Array(e.backtrace).first}"
             end
             Datadog::Core::Telemetry::Logger.report(e, description: "Profiler extensions unavailable")
@@ -31,7 +31,7 @@ module Datadog
             Profiling.start_if_enabled
           rescue => e
             Datadog.logger.warn do
-              "Error during post-fork hooks. Cause: #{e.class.name} #{e.message} " \
+              "Error during post-fork hooks. Cause: #{e.class}: #{e} " \
               "Location: #{Array(e.backtrace).first}"
             end
             Datadog::Core::Telemetry::Logger.report(e, description: "Error during post-fork hooks")

@@ -34,7 +34,7 @@ module Datadog
           @matcher.match?(trace)
         rescue => e
           Datadog.logger.error(
-            "Matcher failed. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
+            "Matcher failed. Cause: #{e.class}: #{e} Source: #{Array(e.backtrace).first}"
           )
           Datadog::Core::Telemetry::Logger.report(e, description: 'Matcher failed')
           nil

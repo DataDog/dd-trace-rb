@@ -51,11 +51,10 @@ module Datadog
             # @type var products: telemetry_products
             products = {
               appsec: {
-                # TODO take appsec status out of component tree?
-                enabled: components.settings.appsec.enabled,
+                enabled: !!components.appsec,
               },
               profiler: {
-                enabled: !!components.profiler&.enabled?,
+                enabled: !!components.profiler,
               },
               dynamic_instrumentation: {
                 enabled: !!components.dynamic_instrumentation,

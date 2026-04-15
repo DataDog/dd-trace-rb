@@ -47,7 +47,7 @@ module Datadog
 
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
