@@ -3,7 +3,6 @@
 require_relative '../core/environment/identity'
 require_relative '../core/utils'
 require_relative 'event'
-require_relative 'metadata/change_tracking'
 require_relative 'metadata/tagging'
 require_relative 'sampling/ext'
 require_relative 'span_operation'
@@ -26,7 +25,6 @@ module Datadog
     # @public_api
     class TraceOperation
       include Metadata::Tagging
-      include Metadata::ChangeTracking
 
       DEFAULT_MAX_LENGTH = 100_000
       AUTO_SAMPLING_PRIORITIES = [Sampling::Ext::Priority::AUTO_KEEP, Sampling::Ext::Priority::AUTO_REJECT].freeze
@@ -230,10 +228,6 @@ module Datadog
         reconsider_rule_sample?
       end
 
-      def reconsider_tags_sample?
-        reconsider_rule_sample?
-      end
-
       def service
         @service || root_span&.service
       end
@@ -300,18 +294,11 @@ module Datadog
         parent_id = parent ? parent.id : @parent_span_id || 0
 
         # Build events
-        trace_events = send(:events)
         span_events = events || SpanOperation::Events.new(logger: logger)
 
         # Before start: activate the span, publish events.
         span_events.before_start.subscribe do |span_op|
           start_span(span_op)
-        end
-
-        span_events.after_tag_change.subscribe do |span_op|
-          next unless span_op == root_span
-
-          trace_events.trace_tags_change.publish(self)
         end
 
         # After finish: deactivate the span, record, publish events.
@@ -466,8 +453,7 @@ module Datadog
           :span_finished,
           :trace_finished,
           :trace_propagated,
-          :trace_resource_change,
-          :trace_tags_change
+          :trace_resource_change
 
         def initialize
           @span_before_start = SpanBeforeStart.new
@@ -475,7 +461,6 @@ module Datadog
           @trace_finished = TraceFinished.new
           @trace_propagated = TracePropagated.new
           @trace_resource_change = TraceResourceChange.new
-          @trace_tags_change = TraceTagsChange.new
         end
 
         # Triggered before a span starts.
@@ -524,12 +509,6 @@ module Datadog
           end
         end
 
-        # Triggered when trace-level tags, or root span tags visible to the trace, change.
-        class TraceTagsChange < Tracing::Event
-          def initialize
-            super(:trace_tags_change)
-          end
-        end
       end
 
       private
@@ -644,19 +623,6 @@ module Datadog
         return false if decision && !RECONSIDERABLE_DECISIONS.include?(decision)
 
         true
-      end
-
-      def metadata_change_ignored?(key)
-        key == Metadata::Ext::Distributed::TAG_DECISION_MAKER
-      end
-
-      def publish_metadata_change(previous_value, key)
-        current_value = get_tag(key)
-        return if previous_value == current_value
-
-        events.trace_tags_change.publish(self)
-      rescue => e
-        logger.debug { "Error updating trace tags: #{e} Backtrace: #{e.backtrace.first(3)}" }
       end
 
       def reset

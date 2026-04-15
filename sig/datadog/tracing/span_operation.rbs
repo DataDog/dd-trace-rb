@@ -109,8 +109,6 @@ module Datadog
 
         attr_reader after_finish: untyped
 
-        attr_reader after_tag_change: untyped
-
         attr_reader after_stop: untyped
 
         attr_reader before_start: untyped
@@ -128,10 +126,6 @@ module Datadog
         end
 
         class BeforeStart < Tracing::Event
-          def initialize: () -> void
-        end
-
-        class AfterTagChange < Tracing::Event
           def initialize: () -> void
         end
 
@@ -166,8 +160,6 @@ module Datadog
       def build_span: () -> untyped
 
       def parent=: (untyped parent) -> untyped
-
-      def publish_metadata_change: (untyped previous_value, untyped key) -> untyped
 
       def duration_marker: () -> untyped
 

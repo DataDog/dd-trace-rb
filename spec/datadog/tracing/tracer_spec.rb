@@ -652,7 +652,6 @@ RSpec.describe Datadog::Tracing::Tracer do
 
     before do
       allow(sampler).to receive(:resource_sampling?).and_return(false)
-      allow(sampler).to receive(:tag_sampling?).and_return(false)
     end
 
     describe 'with resource sampling' do
@@ -673,23 +672,6 @@ RSpec.describe Datadog::Tracing::Tracer do
       end
     end
 
-    describe 'with tag sampling' do
-      context 'when the sampler does not use tag sampling' do
-        it 'does not subscribe tag sampling reconsideration callbacks' do
-          expect(trace_events.trace_tags_change.subscriptions.length).to eq(0)
-        end
-      end
-
-      context 'when the sampler uses tag sampling' do
-        before do
-          allow(sampler).to receive(:tag_sampling?).and_return(true)
-        end
-
-        it 'subscribes tag sampling reconsideration callbacks' do
-          expect(trace_events.trace_tags_change.subscriptions.length).to eq(1)
-        end
-      end
-    end
   end
 
   describe '#call_context' do

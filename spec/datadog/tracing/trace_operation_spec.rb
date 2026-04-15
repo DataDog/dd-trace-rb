@@ -928,48 +928,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
-  describe 'sampling after tag resolution' do
-    let(:tracer) do
-      Datadog::Tracing::Tracer.new(
-        sampler: Datadog::Tracing::Sampling::PrioritySampler.new(
-          base_sampler: Datadog::Tracing::Sampling::AllSampler.new,
-          post_sampler: Datadog::Tracing::Sampling::RuleSampler.new(
-            [
-              Datadog::Tracing::Sampling::SimpleRule.new(
-                tags: {Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE => '404'},
-                sample_rate: 0.0
-              )
-            ],
-            rate_limit: nil
-          )
-        ),
-        writer: nil
-      )
-    end
-
-    after { tracer.shutdown! }
-
-    it 'resamples a trace that was already sampled before request tags were resolved' do
-      trace = tracer.send(:start_trace)
-      request_span = trace.build_span('rack.request').start
-
-      db_span = trace.build_span('sqlite.query').start
-      db_span.finish
-
-      expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP)
-      expect(trace.get_tag(Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER))
-        .to eq(Datadog::Tracing::Sampling::Ext::Decision::DEFAULT)
-
-      request_span.set_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, 404)
-
-      expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT)
-      expect(trace.rule_sample_rate).to eq(0.0)
-      expect(trace.get_tag(Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)).to be_nil
-    ensure
-      request_span.finish unless request_span.nil? || request_span.finished?
-    end
-  end
-
   describe '#reconsider_resource_sample?' do
     subject(:reconsider_resource_sample?) { trace_op.reconsider_resource_sample? }
 
@@ -1034,26 +992,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
       it { is_expected.to be false }
     end
-  end
-
-  describe '#reconsider_tags_sample?' do
-    subject(:reconsider_tags_sample?) { trace_op.reconsider_tags_sample? }
-
-    let(:options) do
-      {
-        sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP
-      }
-    end
-
-    before do
-      trace_op.set_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, 404)
-      trace_op.set_tag(
-        Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-        Datadog::Tracing::Sampling::Ext::Decision::DEFAULT
-      )
-    end
-
-    it { is_expected.to be true }
   end
 
   describe '#sampled?' do
@@ -1422,27 +1360,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
   end
 
   describe '#set_tag' do
-    it 'notifies the tracer when trace tags change' do
-      trace_tags_change_calls = 0
-      trace_op.send(:events).trace_tags_change.subscribe { trace_tags_change_calls += 1 }
-
-      trace_op.set_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, 404)
-
-      expect(trace_tags_change_calls).to eq(1)
-    end
-
-    it 'notifies the tracer when root span tags visible to the trace change' do
-      trace_tags_change_calls = 0
-      trace_op.send(:events).trace_tags_change.subscribe { trace_tags_change_calls += 1 }
-
-      root_span = trace_op.build_span('rack.request').start
-      root_span.set_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, 404)
-
-      expect(trace_tags_change_calls).to eq(1)
-    ensure
-      root_span.finish unless root_span.nil? || root_span.finished?
-    end
-
     it 'sets tag on trace before a measurement' do
       trace_op.set_tag('foo', 'bar')
       trace_op.measure('top') {}
@@ -2685,7 +2602,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               :trace_finished,
               :trace_propagated,
               :trace_resource_change,
-              :trace_tags_change,
             ].each do |event|
               expect(new_events.send(event).subscriptions).to eq(old_events.send(event).subscriptions)
             end

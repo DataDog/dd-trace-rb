@@ -172,17 +172,6 @@ module Datadog
             @sampler.resource_sampling?
         end
 
-        def reconsider_sample_tags!(trace)
-          return unless @sampler.respond_to?(:reconsider_sample_tags!)
-
-          @sampler.reconsider_sample_tags!(trace)
-        end
-
-        def tag_sampling?
-          @sampler.respond_to?(:tag_sampling?) &&
-            @sampler.tag_sampling?
-        end
-
         def update(*args, **kwargs)
           return unless @sampler.respond_to?(:update)
 

@@ -637,18 +637,4 @@ RSpec.describe Datadog::Tracing::Component::SamplerDelegatorComponent do
       it { is_expected.to be(false) }
     end
   end
-
-  describe '#tag_sampling?' do
-    subject(:tag_sampling?) { delegator.tag_sampling? }
-
-    context 'when the internal sampler exposes tag reconsideration support' do
-      let(:old_sampler) { double('initial', tag_sampling?: true) }
-
-      it { is_expected.to be(true) }
-    end
-
-    context "when the internal sampler doesn't expose tag reconsideration support" do
-      it { is_expected.to be(false) }
-    end
-  end
 end

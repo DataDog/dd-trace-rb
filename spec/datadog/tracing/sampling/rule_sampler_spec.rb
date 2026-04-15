@@ -385,31 +385,6 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
     end
   end
 
-  describe '#tag_sampling?' do
-    subject(:tag_sampling?) { rule_sampler.tag_sampling? }
-
-    context 'without rules that match on tags' do
-      let(:rules) do
-        [
-          Datadog::Tracing::Sampling::SimpleRule.new(sample_rate: 1.0),
-          Datadog::Tracing::Sampling::SimpleRule.new(resource: 'Rails::HealthController#show', sample_rate: 1.0)
-        ]
-      end
-
-      it { is_expected.to be(false) }
-    end
-
-    context 'with a tag rule' do
-      let(:rules) do
-        [
-          Datadog::Tracing::Sampling::SimpleRule.new(tags: {'http.status_code' => '404'}, sample_rate: 1.0)
-        ]
-      end
-
-      it { is_expected.to be(true) }
-    end
-  end
-
   describe '#update' do
     subject(:update) { rule_sampler.update(rates, decision: decision) }
 

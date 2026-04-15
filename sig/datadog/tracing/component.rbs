@@ -37,8 +37,6 @@ module Datadog
         def sample!: (untyped trace) -> untyped
         def reconsider_sample_resource!: (TraceOperation trace) -> TraceOperation?
         def resource_sampling?: -> bool
-        def reconsider_sample_tags!: (TraceOperation trace) -> TraceOperation?
-        def tag_sampling?: -> bool
         def update: (*untyped args, **untyped kwargs) -> untyped?
       end
     end
