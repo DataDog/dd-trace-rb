@@ -2,6 +2,7 @@
 
 require_relative 'base'
 require_relative '../../utils/url'
+require_relative '../../environment/variable_helpers'
 module Datadog
   module Core
     module Telemetry

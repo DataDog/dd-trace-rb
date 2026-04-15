@@ -155,7 +155,8 @@ module Datadog
         ensure
           begin
             # Steep: https://github.com/soutaro/steep/issues/1971
-            if send_stats? && !start.nil? # steep:ignore FallbackAny
+            # @type var start: ::Float?
+            if send_stats? && !start.nil?
               finished = Utils::Time.get_time
               distribution(stat, ((finished - start) * 1000), options)
             end
