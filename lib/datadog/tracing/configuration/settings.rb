@@ -441,11 +441,14 @@ module Datadog
                   o.env Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES
                   o.after_set do |value|
                     if value && span_rules_file
+                      # NOTE: `span_rules_file` resolves to the file *contents* (after the setter reads it),
+                      # so we read the env var directly to show the file *path* in the log message.
+                      rules_file_path = DATADOG_ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE]
                       Datadog.logger.warn(
                         'Both DD_SPAN_SAMPLING_RULES and DD_SPAN_SAMPLING_RULES_FILE were provided: only ' \
                           'DD_SPAN_SAMPLING_RULES will be used. Please do not provide DD_SPAN_SAMPLING_RULES_FILE when ' \
                           'also providing DD_SPAN_SAMPLING_RULES as their configuration conflicts. ' \
-                          "DD_SPAN_SAMPLING_RULES_FILE=#{span_rules_file} DD_SPAN_SAMPLING_RULES=#{value}"
+                          "DD_SPAN_SAMPLING_RULES_FILE=#{rules_file_path} DD_SPAN_SAMPLING_RULES=#{value}"
                       )
                     end
                   end

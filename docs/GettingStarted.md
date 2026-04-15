@@ -2381,7 +2381,7 @@ You can configure sampling rule that allow you keep spans despite their respecti
 
 This allows you to keep important spans when trace-level sampling is applied. Is is not possible to drop spans using Single Span Sampling.
 
-You can provide single span sampling rules inline with `tracing.sampling.span_rules`, or configure `tracing.sampling.span_rules_file` with a path to a file containing the rules. When both are configured, `tracing.sampling.span_rules` takes precedence.
+You can provide single span sampling rules inline with `tracing.sampling.span_rules`, or configure `tracing.sampling.span_rules_file` with a path to a file containing the rules. When both are configured, inline rules take precedence.
 
 To configure it, see the [Ingestion Mechanisms documentation](https://docs.datadoghq.com/tracing/trace_pipeline/ingestion_mechanisms/?tab=ruby#single-spans).
 

@@ -26,7 +26,6 @@ require 'datadog/tracing/tracer'
 require 'datadog/tracing/span'
 
 require 'support/core_helpers'
-require 'support/environment_helpers'
 require 'support/execute_in_fork'
 require 'support/faux_transport'
 require 'support/faux_writer'

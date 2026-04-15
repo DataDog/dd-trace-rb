@@ -23,7 +23,7 @@ module Datadog
 
         attr_reader :statsd, :logger, :telemetry
 
-        def initialize(telemetry:, port:, logger: Datadog.logger, statsd: nil, enabled: true, **_)
+        def initialize(telemetry:, port: Configuration::Ext::Metrics::DEFAULT_PORT, logger: Datadog.logger, statsd: nil, enabled: true, **_)
           @telemetry = telemetry
           @port = port
           @logger = logger

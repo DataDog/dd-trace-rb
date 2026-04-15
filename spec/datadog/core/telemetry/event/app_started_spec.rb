@@ -61,9 +61,6 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
   end
   before do
     allow_any_instance_of(Datadog::Core::Utils::Sequence).to receive(:next).and_return(id)
-
-    # Reset global cache
-    Datadog::Core::Environment::Git.reset_for_tests
   end
 
   describe '.payload' do
@@ -92,16 +89,6 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
     context 'with git/SCI environment variables set' do
       with_env 'DD_GIT_REPOSITORY_URL' => 'https://github.com/datadog/hello',
         'DD_GIT_COMMIT_SHA' => '1234hash'
-
-      before do
-        # Reset global cache so that we get our values back
-        Datadog::Core::Environment::Git.reset_for_tests
-      end
-
-      after do
-        # Do not use our values in other tests
-        Datadog::Core::Environment::Git.reset_for_tests
-      end
 
       it 'reports git/SCI values to telemetry' do
         expect(event.payload[:configuration]).to include(

@@ -203,7 +203,6 @@ Content-Transfer-Encoding: binary
           'DD_GIT_COMMIT_SHA' => '1234hash'
 
         before do
-          Datadog::Core::Environment::Git.reset_for_tests
           Datadog::Core::TagBuilder.reset_for_tests
         end
 

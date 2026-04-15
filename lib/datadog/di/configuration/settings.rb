@@ -133,15 +133,6 @@ module Datadog
                 o.default 20
               end
 
-              # Path to a file containing probe specifications.
-              # When set, the tracer loads probe definitions from this file at startup
-              # instead of subscribing to remote configuration.
-              option :probe_file do |o|
-                o.type :string, nilable: true
-                o.env "DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE"
-                o.default nil
-              end
-
               # Settings in the 'internal' group are for internal Datadog
               # use only, and are needed to test dynamic instrumentation or
               # experiment with features not released to customers.

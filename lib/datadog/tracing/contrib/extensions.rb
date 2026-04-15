@@ -170,9 +170,9 @@ module Datadog
                     o.after_set do |_, _, precedence|
                       unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
                         Core.log_deprecation(key: :disable_rails_patching) do
-                          'The tracing.contrib.disable_rails_patching option (`DD_DISABLE_DATADOG_RAILS`) is deprecated.' \
-                          'Please remove it from your Datadog.configure block or remove the environment variable' \
-                          'And use `DD_TRACE_RAILS_ENABLED=false` instead.'
+                          'The tracing.contrib.disable_rails_patching option (`DD_DISABLE_DATADOG_RAILS`) is deprecated. ' \
+                          'Please remove it from your Datadog.configure block or remove the environment variable. ' \
+                          'Use `DD_TRACE_RAILS_ENABLED=false` instead.'
                         end
                       end
                     end

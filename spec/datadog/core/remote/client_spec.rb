@@ -498,7 +498,6 @@ RSpec.describe Datadog::Core::Remote::Client do
 
     describe '#payload' do
       before do
-        Datadog::Core::Environment::Git.reset_for_tests
         Datadog::Core::TagBuilder.reset_for_tests
       end
 
@@ -614,10 +613,6 @@ RSpec.describe Datadog::Core::Remote::Client do
                     'git.repository_url:http://foo',
                     'git.commit.sha:1234hash',
                   ]
-                end
-
-                before do
-                  Datadog::Core::Environment::Git.reset_for_tests
                 end
 
                 it 'includes SCI tags in remote config' do

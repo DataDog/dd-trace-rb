@@ -8,7 +8,6 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
   before do
     # The tests in this file assert on generated payloads which may include
     # SCM tags.
-    Datadog::Core::Environment::Git.reset_for_tests
     Datadog::Core::TagBuilder.reset_for_tests
   end
 

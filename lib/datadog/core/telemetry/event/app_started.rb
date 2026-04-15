@@ -111,7 +111,7 @@ module Datadog
               # No need to create a config through the DSL as this is only used for reporting through telemetry.
               conf_value(
                 'DD_INJECT_FORCE',
-                %w[1 true].include?(DATADOG_ENV.fetch('DD_INJECT_FORCE', 'false').strip.downcase),
+                Core::Environment::VariableHelpers.env_to_bool('DD_INJECT_FORCE', false),
                 (DATADOG_ENV.key?('DD_INJECT_FORCE') ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
               ),
               # No need to create a config through the DSL as this is only used for reporting through telemetry.

@@ -11,7 +11,7 @@ RSpec.describe Datadog::Tracing::Diagnostics::Health::Metrics do
     Datadog::Core::Diagnostics::Health::Metrics.new(
       logger: logger,
       telemetry: telemetry,
-      port: Datadog::Core::Configuration::Ext::Metrics::ENV_DEFAULT_PORT,
+      port: Datadog::Core::Configuration::Ext::Metrics::DEFAULT_PORT,
     )
   end
 

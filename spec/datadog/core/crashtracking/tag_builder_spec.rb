@@ -84,9 +84,7 @@ RSpec.describe Datadog::Core::Crashtracking::TagBuilder do
     describe 'source code integration' do
       context 'when git environment is available' do
         before do
-          expect(Datadog::Core::Environment::Git).to receive(:git_repository_url).with(anything).and_return(
-            'git_repository_url'
-          )
+          settings.git.repository_url = 'git_repository_url'
           settings.git.commit_sha = 'git_commit_sha'
         end
 
@@ -99,7 +97,8 @@ RSpec.describe Datadog::Core::Crashtracking::TagBuilder do
 
       context 'when git environment is not available' do
         before do
-          expect(Datadog::Core::Environment::Git).to receive(:git_repository_url).with(anything).and_return(nil)
+          settings.git.repository_url = nil
+          settings.git.commit_sha = nil
         end
 
         it 'includes the git repository URL and commit SHA' do

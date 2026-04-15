@@ -20,15 +20,15 @@ module Datadog
       module_function def load_now
         should_propagate = false
 
+        probe_file_path = DATADOG_ENV['DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE']
+        if probe_file_path.nil? || probe_file_path.empty?
+          return
+        end
+
         # We want to initialize the component tree here if it was not already
         # initialized.
         component = Datadog::DI.component
         return unless component
-
-        probe_file_path = component.settings.dynamic_instrumentation.probe_file
-        if probe_file_path.nil? || probe_file_path.empty?
-          return
-        end
 
         begin
           probe_specs = File.open(probe_file_path) do |f|
