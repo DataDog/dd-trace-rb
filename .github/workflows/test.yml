@@ -105,14 +105,6 @@ jobs:
       version: "9.4"
       alias: jruby-94
 
-  jruby-93:
-    name: "JRuby 9.3"
-    uses: ./.github/workflows/_unit_test.yml
-    with:
-      engine: jruby
-      version: "9.3"
-      alias: jruby-93
-
   junit:
     name: dd/junit
     if: ${{ !cancelled() }}
@@ -234,6 +226,5 @@ jobs:
       - ruby-26
       - ruby-25
       - jruby-94
-      - jruby-93
     steps:
       - run: echo "DONE!"

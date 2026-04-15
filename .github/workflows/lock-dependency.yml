@@ -56,8 +56,6 @@ jobs:
             version: "2.5"
           - name: jruby
             version: "9.4"
-          - name: jruby
-            version: "9.3"
     container:
       image: ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}-gnu-gcc
       env:
