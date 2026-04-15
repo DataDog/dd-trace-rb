@@ -29,6 +29,16 @@ module Datadog
       def build_test_mode_sampler: () -> untyped
 
       def build_test_mode_writer: (untyped settings, untyped agent_settings) -> untyped
+
+      class SamplerDelegatorComponent
+        attr_accessor sampler: untyped
+
+        def initialize: (untyped sampler) -> void
+        def sample!: (untyped trace) -> untyped
+        def reconsider_sample_resource!: (TraceOperation trace) -> TraceOperation?
+        def resource_sampling?: -> bool
+        def update: (*untyped args, **untyped kwargs) -> untyped?
+      end
     end
   end
 end
