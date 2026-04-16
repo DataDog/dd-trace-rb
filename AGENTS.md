@@ -59,26 +59,19 @@ Each framework integration (@lib/datadog/*/contrib/) follows a common pattern:
 ## Testing matrix
 
 - `Matrixfile` defines testing combinations, and `appraisal/` files declare respective gemsets. `gemfiles/` are tool generated files.
-- **The Matrixfile and Rakefile are the authoritative sources of truth.** When modifying them or `appraisal/` files, also update this section and `CLAUDE.md`.
+- **The Matrixfile and Rakefile are the authoritative sources of truth.**
 
 ### Always use rake tasks
 
 Tests MUST be run via `bundle exec rake test:TASK_KEY`, not bare `bundle exec rspec`. Contrib/integration tests require specific Gemfiles managed by appraisals; running them with `bundle exec rspec` will fail due to missing dependencies. The only exception: specs under `test:main` can also be run individually with `bundle exec rspec`.
 
-### File → rake task mapping
+### Finding the right rake task
 
-`lib/datadog/X/...` maps to `spec/datadog/X/..._spec.rb` (1:1 mirroring). Then:
+1. **Identify the component**: determine which product or contrib the changed files belong to based on their path under `lib/datadog/` or `spec/datadog/` (e.g. `appsec`, `profiling`, `redis`, `sinatra`)
+2. **Search for a matching task**: `bundle exec rake -T test | grep KEYWORD` using the component name as KEYWORD
+3. **Verify the task**: check the Rakefile `spec:TASK` definition to confirm which spec files are included/excluded, and check the Matrixfile for Ruby version compatibility
 
-- **Products with namespaced tasks** (`test:PRODUCT:SUBTASK`): appsec, profiling, di, ai_guard
-  - `spec/datadog/PRODUCT/contrib/CONTRIB/**` → `test:PRODUCT:CONTRIB`
-  - `spec/datadog/PRODUCT/**` (everything else) → `test:PRODUCT:main` (or `test:di:di_with_ext` for DI)
-- **Tracing contribs**: `spec/datadog/tracing/contrib/CONTRIB/**` → `test:CONTRIB` (flat name, e.g. `test:redis`, `test:rack`)
-- **Core/main**: `spec/datadog/core/**`, `spec/datadog/tracing/**` (excluding `contrib/`), `spec/datadog/kit/**` → `test:main`
-- **Other**: `test:error_tracking`, `test:opentelemetry`, `test:open_feature`, `test:autoinstrument`, `test:custom_cop`
-
-When any AppSec integration changes, also run: `docker compose run --rm tracer-3.3 bundle exec rake test:appsec:integration`
-
-When unsure: `bundle exec rake -T test | grep KEYWORD`, or check the Rakefile `spec:TASK` definition. See `CLAUDE.md` for full detail including rails sub-tasks and `test:main` exceptions.
+The `test:main` task uses the default Gemfile and its specs can also be run individually with `bundle exec rspec`.
 
 ## One-Pipeline (GitLab CI)
 
@@ -131,4 +124,4 @@ tracing libraries.
   - Writing code: `.cursor/rules/code-style.mdc`.
   - Writing tests: `.cursor/rules/testing.mdc`.
 - `docs/GettingStarted.md` is the public documentation of this repo (2900+ lines). All user-facing product documentation lives there.
-- This AGENTS.md is a living document: update it when rake tasks, CI, or scripts evolve. Update specialized personas as well.
+- This AGENTS.md is a living document: update it when CI or scripts evolve. Update specialized personas as well.

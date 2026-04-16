@@ -87,52 +87,18 @@ bundle exec rake test:TASK_KEY          # Correct - always use this
 bundle exec rspec spec/path/file.rb     # ONLY for specs covered by test:main
 ```
 
-**When modifying the Rakefile (spec task definitions), Matrixfile (task keys or appraisal groups), or appraisal/ files, also update this section.**
+### Finding the right rake task
 
-### File → rake task mapping
+1. **Identify the component**: determine which product or contrib the changed files belong to based on their path under `lib/datadog/` or `spec/datadog/` (e.g. `appsec`, `profiling`, `redis`, `sinatra`)
+2. **Search for a matching task**: `bundle exec rake -T test | grep KEYWORD` using the component name as KEYWORD
+3. **Verify the task**: check the Rakefile `spec:TASK` definition to confirm which spec files are included/excluded, and check the Matrixfile for Ruby version compatibility
 
-`lib/datadog/X/...` maps to `spec/datadog/X/..._spec.rb` (1:1 mirroring). Then determine the rake task:
-
-**Products with namespaced tasks** (`test:PRODUCT:SUBTASK`):
-
-| Product | Spec path | Rake task |
-|---|---|---|
-| AppSec | `spec/datadog/appsec/contrib/CONTRIB/**` | `test:appsec:CONTRIB` (also run `test:appsec:integration`, see below) |
-| AppSec | `spec/datadog/appsec/**` (everything else) | `test:appsec:main` |
-| Profiling | `spec/datadog/profiling/**` | `test:profiling:main` |
-| DI | `spec/datadog/di/contrib/CONTRIB/**` | `test:di:CONTRIB` |
-| DI | `spec/datadog/di/**` (everything else) | `test:di:di_with_ext` |
-| AI Guard | `spec/datadog/ai_guard/contrib/CONTRIB/**` | `test:ai_guard:CONTRIB` |
-| AI Guard | `spec/datadog/ai_guard/**` (everything else) | `test:ai_guard:main` |
-
-**Tracing contribs** — flat task names (`test:CONTRIB`, not `test:tracing:CONTRIB`):
-- `spec/datadog/tracing/contrib/CONTRIB/**` → `test:CONTRIB` (e.g. `test:redis`, `test:rack`, `test:sinatra`)
-- Rails has sub-tasks based on filename pattern — check the Rakefile `spec:rails*` definitions
-
-**Core/main** — `test:main` uses the default Gemfile; specs CAN also be run individually with `bundle exec rspec`:
-- `spec/datadog/core/**`, `spec/datadog/tracing/**` (excluding `contrib/`), `spec/datadog/kit/**` → `test:main`
-- Some core specs are **excluded** from `test:main` and need their own task (e.g. `test:core_with_libdatadog_api`, `test:core_with_rails`, `test:environment`). Check the `spec:main` exclude pattern and `CORE_WITH_LIBDATADOG_API` constant in the Rakefile if a spec is unexpectedly skipped.
-
-**Other**: `test:error_tracking`, `test:opentelemetry`, `test:open_feature`, `test:autoinstrument`, `test:custom_cop` — task name matches the product/directory name.
-
-### AppSec integration tests
-
-When any AppSec integration (`appsec/contrib/`) changes, you MUST also run `test:appsec:integration` as a separate command on Ruby 3.3:
-```bash
-docker compose run --rm tracer-3.3 bundle exec rake test:appsec:integration
-```
+The `test:main` task uses the default Gemfile and its specs can also be run individually with `bundle exec rspec`.
 
 ### Docker requirement
 
 - Contrib/integration tests need Docker: `docker compose run --rm tracer-3.4 /bin/bash`, then run the rake task inside
 - `test:main` can run locally on any Ruby for quick feedback
-
-### Finding the right task
-
-When unsure, use these to discover the correct task:
-- `bundle exec rake -T test | grep KEYWORD` — list matching test tasks
-- Check the Matrixfile for the task key and its Ruby version compatibility
-- Check the Rakefile `spec:TASK` definition to see which spec files are included/excluded
 
 ## Documentation
 
