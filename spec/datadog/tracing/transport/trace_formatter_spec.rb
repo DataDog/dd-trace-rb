@@ -564,6 +564,35 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
           )
         end
       end
+
+      context 'locale independence' do
+        let(:trace_options) { {id: trace_id, agent_sample_rate: 0.3} }
+
+        it 'uses period decimal separator regardless of C locale' do
+          require 'fiddle'
+
+          setlocale = Fiddle::Function.new(
+            Fiddle::Handle::DEFAULT['setlocale'],
+            [Fiddle::TYPE_INT, Fiddle::TYPE_VOIDP],
+            Fiddle::TYPE_VOIDP
+          )
+
+          # LC_ALL is 6 on Linux glibc, 0 on macOS
+          lc_all = RUBY_PLATFORM.include?('darwin') ? 0 : 6
+          original_locale = setlocale.call(lc_all, nil).to_s
+
+          begin
+            result = setlocale.call(lc_all, 'de_DE.UTF-8')
+            skip 'de_DE.UTF-8 locale not available' if result.null?
+
+            format!
+
+            expect(root_span.meta[Datadog::Tracing::Metadata::Ext::Distributed::TAG_KNUTH_SAMPLING_RATE]).to eq('0.3')
+          ensure
+            setlocale.call(lc_all, original_locale)
+          end
+        end
+      end
     end
   end
 end
