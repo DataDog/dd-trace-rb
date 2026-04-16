@@ -632,6 +632,7 @@ void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames, dd
 
   buffer->max_frames = max_frames;
   buffer->locations = locations;
+  buffer->locations2 = NULL;  // lazily allocated on first heap sample; must be NULL until then
   buffer->stack_buffer = ruby_xcalloc(max_frames, sizeof(frame_info));
   buffer->pending_sample = false;
   buffer->is_marking = false;
