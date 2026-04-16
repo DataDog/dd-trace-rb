@@ -1,0 +1,25 @@
+module Datadog
+  module OpenFeature
+    module Hooks
+      class FlagEvalHook
+        include ::OpenFeature::SDK::Hooks::Hook
+
+        @metrics: Metrics::FlagEvalMetrics?
+
+        def initialize: (Metrics::FlagEvalMetrics? metrics) -> void
+
+        def finally: (
+          hook_context: ::OpenFeature::SDK::Hooks::HookContext,
+          evaluation_details: ::OpenFeature::SDK::EvaluationDetails,
+          hints: ::Hash[untyped, untyped]
+        ) -> void
+
+        private
+
+        def extract_allocation_key: (
+          ::OpenFeature::SDK::EvaluationDetails evaluation_details
+        ) -> ::String?
+      end
+    end
+  end
+end

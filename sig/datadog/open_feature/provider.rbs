@@ -11,6 +11,8 @@ module Datadog
 
       def shutdown: () -> void
 
+      def hooks: () -> ::Array[Hooks::FlagEvalHook]
+
       def fetch_boolean_value: (
         flag_key: ::String,
         default_value: bool,
@@ -59,6 +61,10 @@ module Datadog
       def component_not_configured_default: (
         ::OpenFeature::SDK::Provider::ResolutionDetails::value_t value
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
+
+      def build_flag_metadata: (
+        untyped result
+      ) -> ::Hash[::String, untyped]
     end
   end
 end

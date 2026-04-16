@@ -1,0 +1,61 @@
+module Datadog
+  module OpenFeature
+    module Metrics
+      class FlagEvalMetrics
+        METER_NAME: ::String
+        METRIC_NAME: ::String
+        METRIC_UNIT: ::String
+        METRIC_DESCRIPTION: ::String
+
+        ATTR_FLAG_KEY: ::String
+        ATTR_VARIANT: ::String
+        ATTR_REASON: ::String
+        ATTR_ALLOCATION_KEY: ::String
+        ATTR_ERROR_TYPE: ::String
+
+        ERROR_TYPE_MAP: ::Hash[::String, ::String]
+        REASON_MAP: ::Hash[::String, ::String]
+        EXCLUDE_ALLOCATION_KEY_REASONS: ::Array[::String]
+
+        @telemetry: Core::Telemetry::Component
+        @logger: Core::Logger
+        @counter: untyped
+        @mutex: ::Mutex
+
+        def initialize: (telemetry: Core::Telemetry::Component, logger: Core::Logger) -> void
+
+        def record: (
+          ::String flag_key,
+          variant: ::String?,
+          reason: ::String?,
+          ?error_code: ::String?,
+          ?allocation_key: ::String?
+        ) -> void
+
+        private
+
+        def get_or_create_counter: () -> untyped
+
+        def otel_metrics_enabled?: () -> bool
+
+        def ensure_meter_provider_initialized!: () -> void
+
+        def meter_provider_available?: (untyped meter_provider) -> bool
+
+        def build_attributes: (
+          ::String flag_key,
+          variant: ::String?,
+          reason: ::String?,
+          error_code: ::String?,
+          allocation_key: ::String?
+        ) -> ::Hash[::String, ::String]
+
+        def normalize_reason_with_upcase: (::String? reason) -> [::String, ::String?]
+
+        def normalize_error_type: (::String? error_code) -> ::String
+
+        def exclude_allocation_key?: (::String? reason_upcase) -> bool
+      end
+    end
+  end
+end
