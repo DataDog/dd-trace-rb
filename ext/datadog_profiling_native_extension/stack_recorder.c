@@ -190,11 +190,15 @@ typedef struct {
   ddog_prof_StringId2 label_key_allocation_class;
   ddog_prof_StringId2 label_key_gc_gen_age;
 
-  // Caches mapping frame identity -> FunctionId2 (stored as Ruby Integers via ULL2NUM of the pointer).
-  // iseq_cache: WeakMap (Ruby 4+, weak keys let GC reclaim dead iseqs) or Hash (older Ruby).
-  //   Keys are iseq VALUEs; values are ULL2NUM((uintptr_t) ddog_prof_FunctionId2).
-  // native_id_cache: Hash. Keys are ID2SYM(method_id); values as above.
-  VALUE iseq_cache;
+  // Caches mapping frame identity -> FunctionId2.
+  // iseq_cache: st_table* (pointer-comparison hash). Keys are raw iseq VALUEs (T_IMEMO objects);
+  //   values are raw ddog_prof_FunctionId2 pointers, both stored as st_data_t (uintptr_t).
+  //   Using st_table avoids calling Ruby's #hash on keys (T_IMEMO doesn't implement it) and
+  //   avoids any Ruby allocation on lookup/insert (safe inside NEWOBJ tracepoint hooks).
+  //   The GC mark function marks each key via rb_gc_mark, which also pins iseqs in place so
+  //   the compactor cannot move them (which would silently invalidate our st_table keys).
+  // native_id_cache: Hash. Keys are ID2SYM(method_id); values are ULL2NUM(FunctionId2 ptr).
+  st_table *iseq_cache;
   VALUE native_id_cache;
 
   // Pre-allocated FunctionId2 for the synthetic "Truncated Frames" placeholder injected at the
@@ -388,11 +392,7 @@ static VALUE _native_new(VALUE klass) {
 
   initialize_profiles(state, sample_types);
 
-#ifdef NO_WEAK_MAP_FOR_ISEQ_CACHE
-  state->iseq_cache = rb_hash_new();
-#else
-  state->iseq_cache = rb_funcall(rb_const_get(rb_const_get(rb_cObject, rb_intern("ObjectSpace")), rb_intern("WeakMap")), rb_intern("new"), 0);
-#endif
+  state->iseq_cache = st_init_numtable(); // pointer-comparison; keys are iseq VALUEs
   state->native_id_cache = rb_hash_new();
 
   // NOTE: We initialize this because we want a new recorder to be operational even before #initialize runs and our
@@ -415,32 +415,34 @@ static void initialize_slot_concurrency_control(stack_recorder_state *state) {
 
 static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_SampleType sample_types) {
   ddog_Timespec start_timestamp = system_epoch_now_timespec();
+  ddog_prof_Status s;
 
-  ddog_prof_Profile_NewResult slot_one_profile_result =
-    ddog_prof_Profile_new(sample_types, NULL /* period is optional */);
+  // Use ddog_prof_Profile_with_dictionary so that profiles support both ddog_prof_Profile_add (for
+  // cpu/wall-time/allocation samples) and ddog_prof_Profile_add2 (for heap serialization).
+  s = ddog_prof_Profile_with_dictionary(&state->profile_slot_one.profile, &state->dict_handle, sample_types, NULL /* period is optional */);
+  if (s.err != NULL) raise_error(rb_eRuntimeError, "Failed to initialize slot one profile: %s", s.err);
+  ddog_prof_Status_drop(&s);
+  state->profile_slot_one.start_timestamp = start_timestamp;
 
-  if (slot_one_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
-    raise_error(rb_eRuntimeError, "Failed to initialize slot one profile: %"PRIsVALUE, get_error_details_and_drop(&slot_one_profile_result.err));
-  }
+  // Note: No need to take any special care of slot one on error; it'll get cleaned up by stack_recorder_typed_data_free
+  s = ddog_prof_Profile_with_dictionary(&state->profile_slot_two.profile, &state->dict_handle, sample_types, NULL /* period is optional */);
+  if (s.err != NULL) raise_error(rb_eRuntimeError, "Failed to initialize slot two profile: %s", s.err);
+  ddog_prof_Status_drop(&s);
+  state->profile_slot_two.start_timestamp = start_timestamp;
+}
 
-  state->profile_slot_one = (profile_slot) { .profile = slot_one_profile_result.ok, .start_timestamp = start_timestamp };
-
-  ddog_prof_Profile_NewResult slot_two_profile_result =
-    ddog_prof_Profile_new(sample_types, NULL /* period is optional */);
-
-  if (slot_two_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
-    // Note: No need to take any special care of slot one, it'll get cleaned up by stack_recorder_typed_data_free
-    raise_error(rb_eRuntimeError, "Failed to initialize slot two profile: %"PRIsVALUE, get_error_details_and_drop(&slot_two_profile_result.err));
-  }
-
-  state->profile_slot_two = (profile_slot) { .profile = slot_two_profile_result.ok, .start_timestamp = start_timestamp };
+static int mark_iseq_cache_key(st_data_t key, DDTRACE_UNUSED st_data_t value, DDTRACE_UNUSED st_data_t extra) {
+  // rb_gc_mark (not rb_gc_mark_movable) pins the iseq at its current address, preventing the
+  // compactor from moving it and silently invalidating our st_table key.
+  rb_gc_mark((VALUE) key);
+  return ST_CONTINUE;
 }
 
 static void stack_recorder_typed_data_mark(void *state_ptr) {
   stack_recorder_state *state = (stack_recorder_state *) state_ptr;
 
   heap_recorder_mark_pending_recordings(state->heap_recorder);
-  rb_gc_mark(state->iseq_cache);
+  st_foreach(state->iseq_cache, mark_iseq_cache_key, 0);
   rb_gc_mark(state->native_id_cache);
 }
 
@@ -456,6 +458,8 @@ static void stack_recorder_typed_data_free(void *state_ptr) {
   heap_recorder_free(state->heap_recorder);
 
   ddog_prof_ProfilesDictionary_drop(&state->dict_handle);
+
+  st_free_table(state->iseq_cache);
 
   ruby_xfree(state);
 }
@@ -649,20 +653,19 @@ static VALUE ruby_time_from(ddog_Timespec ddprof_time) {
 
 // Populate locations2 from the frame_info entries in stack_buffer, looking up or creating
 // FunctionId2 handles in state->dict_handle via two caches:
-//   state->iseq_cache       – iseq VALUE     -> FunctionId2 (WeakMap on Ruby 4+, Hash on older)
-//   state->native_id_cache  – ID2SYM(method) -> FunctionId2 (always a Hash)
-// FunctionId2 values are round-tripped through Ruby Integers (ULL2NUM / NUM2ULL) so the Ruby GC
-// can own the cache entries without needing to understand raw C pointers.
-// Note: ddog_prof_ProfilesDictionary_insert_* APIs are internally thread-safe, but the Ruby cache
-// lookups/stores (rb_hash_*, rb_funcall) require the GVL, so this function must be called with
-// the GVL held (which record_sample already guarantees).
+//   state->iseq_cache       – st_table* keyed by iseq VALUE (pointer comparison)
+//                             Values are raw ddog_prof_FunctionId2 pointers stored as st_data_t.
+//   state->native_id_cache  – Ruby Hash keyed by ID2SYM(method_id)
+//                             Values are ULL2NUM(FunctionId2 ptr) Ruby Integers.
+// Note: ddog_prof_ProfilesDictionary_insert_* APIs are internally thread-safe, but the native_id_cache
+// Hash operations require the GVL, so this function must be called with the GVL held (which
+// record_sample already guarantees).
 static void build_location2_from_iseqs(
     ddog_prof_Location2 *locations2,
     uint16_t count,
     const frame_info *stack_buffer,
     stack_recorder_state *state,
-    bool truncated,  // true when captured_frames == buffer->max_frames (stack was cut short)
-    bool is_safe_to_allocate_objects
+    bool truncated  // true when captured_frames == buffer->max_frames (stack was cut short)
 ) {
   // stack_buffer uses rb_profile_frames ordering: index 0 = newest (top of stack), count-1 = oldest.
   // libdatadog Profile_add2 uses the same convention as Profile_add: index 0 = oldest (bottom), count-1 = newest.
@@ -691,16 +694,11 @@ static void build_location2_from_iseqs(
     if (stack_buffer[sb].is_ruby_frame) {
       VALUE iseq = stack_buffer[sb].as.ruby_frame.iseq;
 
-      // Look up in iseq_cache
-      VALUE cached;
-#ifdef NO_WEAK_MAP_FOR_ISEQ_CACHE
-      cached = rb_hash_lookup2(state->iseq_cache, iseq, Qnil);
-#else
-      cached = rb_funcall(state->iseq_cache, rb_intern("[]"), 1, iseq);
-#endif
-
-      if (!NIL_P(cached)) {
-        function_id = (ddog_prof_FunctionId2)(uintptr_t) NUM2ULL(cached);
+      // Look up in iseq_cache (st_table* with pointer-comparison keys).
+      // No Ruby #hash call, no allocation — safe inside NEWOBJ tracepoint hooks.
+      st_data_t cached_id;
+      if (st_lookup(state->iseq_cache, (st_data_t) iseq, &cached_id)) {
+        function_id = (ddog_prof_FunctionId2) cached_id;
       } else {
         // Cache miss: resolve name/filename and insert a new Function into the ProfilesDictionary
         VALUE name_val     = ddtrace_iseq_base_label((const void *) iseq);
@@ -726,17 +724,9 @@ static void build_location2_from_iseqs(
         ddog_prof_Status_drop(&s);
 
         store_ruby: ;
-        // Skip the cache write when not safe to allocate (e.g. inside a NEWOBJ tracepoint):
-        // rb_hash_aset can trigger GC/postponed-job processing, which would fire the re-entrancy guard.
-        // A cache miss on the next sample is harmless.
-        if (is_safe_to_allocate_objects) {
-          VALUE function_id_val = ULL2NUM((uintptr_t) function_id);
-#ifdef NO_WEAK_MAP_FOR_ISEQ_CACHE
-          rb_hash_aset(state->iseq_cache, iseq, function_id_val);
-#else
-          rb_funcall(state->iseq_cache, rb_intern("[]="), 2, iseq, function_id_val);
-#endif
-        }
+        // st_insert is pure C (no Ruby allocation, no postponed-job processing), so it is safe
+        // to call even inside a NEWOBJ tracepoint hook.
+        st_insert(state->iseq_cache, (st_data_t) iseq, (st_data_t) function_id);
       }
 
       locations2[i] = (ddog_prof_Location2) {
@@ -788,7 +778,7 @@ static void build_location2_from_iseqs(
   }
 }
 
-void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, sample_labels labels, sampling_buffer *buffer, bool is_safe_to_allocate_objects) {
+void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, sample_labels labels, sampling_buffer *buffer) {
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
@@ -834,7 +824,7 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
     // Detect stack truncation: add_truncated_frames_placeholder runs when captured_frames == max_frames,
     // replacing locations[0] with a synthetic "Truncated Frames" entry. We mirror that in locations2.
     bool truncated = (frame_count == buffer->max_frames);
-    build_location2_from_iseqs(buffer->locations2, frame_count, buffer->stack_buffer, state, truncated, is_safe_to_allocate_objects);
+    build_location2_from_iseqs(buffer->locations2, frame_count, buffer->stack_buffer, state, truncated);
 
     int exception_state = end_heap_allocation_recording_with_rb_protect(
       state->heap_recorder,

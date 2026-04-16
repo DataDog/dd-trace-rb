@@ -36,7 +36,7 @@ typedef struct {
   int64_t end_timestamp_ns;
 } sample_labels;
 
-void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, sample_labels labels, sampling_buffer *buffer, bool is_safe_to_allocate_objects);
+void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, sample_labels labels, sampling_buffer *buffer);
 void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_CharSlice endpoint);
 __attribute__((warn_unused_result)) bool track_object(VALUE recorder_instance, VALUE new_object, unsigned int sample_weight, ddog_CharSlice alloc_class);
 void recorder_after_sample(VALUE recorder_instance);
