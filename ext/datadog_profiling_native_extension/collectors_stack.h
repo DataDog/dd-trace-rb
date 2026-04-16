@@ -15,7 +15,8 @@ void sample_thread(
   sample_values values,
   sample_labels labels,
   bool native_filenames_enabled,
-  st_table *native_filenames_cache
+  st_table *native_filenames_cache,
+  bool is_safe_to_allocate_objects
 );
 void record_placeholder_stack(
   VALUE recorder_instance,

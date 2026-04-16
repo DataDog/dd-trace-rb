@@ -212,7 +212,8 @@ static VALUE native_sample_do(VALUE args) {
       args_struct->values,
       args_struct->labels,
       args_struct->native_filenames_enabled,
-      args_struct->native_filenames_cache
+      args_struct->native_filenames_cache,
+      /* is_safe_to_allocate_objects: */ true  // CPU/wall-time sampling runs outside tracepoint hooks
     );
   }
 
@@ -247,7 +248,8 @@ void sample_thread(
   sample_values values,
   sample_labels labels,
   bool native_filenames_enabled,
-  st_table *native_filenames_cache
+  st_table *native_filenames_cache,
+  bool is_safe_to_allocate_objects
 ) {
   // If we already prepared a sample, we use it below; if not, we prepare it now.
   if (!buffer->pending_sample) prepare_sample_thread(thread, buffer);
@@ -256,6 +258,9 @@ void sample_thread(
   int captured_frames = buffer->pending_sample_result;
 
   if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
+    // No real stack to associate with a heap sample; clear the flag so record_sample doesn't
+    // reach the buffer != NULL assertion with a NULL buffer.
+    values.heap_sample = false;
     record_placeholder_stack_in_native_code(recorder_instance, values, labels);
     return;
   }
@@ -407,7 +412,8 @@ void sample_thread(
     (ddog_prof_Slice_Location) {.ptr = buffer->locations, .len = captured_frames},
     values,
     labels,
-    buffer
+    buffer,
+    is_safe_to_allocate_objects
   );
 }
 
@@ -600,7 +606,8 @@ void record_placeholder_stack(
     (ddog_prof_Slice_Location) {.ptr = &placeholder_location, .len = 1},
     values,
     labels,
-    NULL
+    NULL,
+    /* is_safe_to_allocate_objects: */ true  // buffer is NULL so build_location2_from_iseqs is never reached
   );
 }
 

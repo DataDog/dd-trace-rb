@@ -1024,7 +1024,8 @@ static void trigger_sample_for_thread(
       .is_gvl_waiting_state = is_gvl_waiting_state,
     },
     state->native_filenames_enabled,
-    state->native_filenames_cache
+    state->native_filenames_cache,
+    is_safe_to_allocate_objects
   );
 }
 

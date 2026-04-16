@@ -661,7 +661,8 @@ static void build_location2_from_iseqs(
     uint16_t count,
     const frame_info *stack_buffer,
     stack_recorder_state *state,
-    bool truncated  // true when captured_frames == buffer->max_frames (stack was cut short)
+    bool truncated,  // true when captured_frames == buffer->max_frames (stack was cut short)
+    bool is_safe_to_allocate_objects
 ) {
   // stack_buffer uses rb_profile_frames ordering: index 0 = newest (top of stack), count-1 = oldest.
   // libdatadog Profile_add2 uses the same convention as Profile_add: index 0 = oldest (bottom), count-1 = newest.
@@ -725,12 +726,17 @@ static void build_location2_from_iseqs(
         ddog_prof_Status_drop(&s);
 
         store_ruby: ;
-        VALUE function_id_val = ULL2NUM((uintptr_t) function_id);
+        // Skip the cache write when not safe to allocate (e.g. inside a NEWOBJ tracepoint):
+        // rb_hash_aset can trigger GC/postponed-job processing, which would fire the re-entrancy guard.
+        // A cache miss on the next sample is harmless.
+        if (is_safe_to_allocate_objects) {
+          VALUE function_id_val = ULL2NUM((uintptr_t) function_id);
 #ifdef NO_WEAK_MAP_FOR_ISEQ_CACHE
-        rb_hash_aset(state->iseq_cache, iseq, function_id_val);
+          rb_hash_aset(state->iseq_cache, iseq, function_id_val);
 #else
-        rb_funcall(state->iseq_cache, rb_intern("[]="), 2, iseq, function_id_val);
+          rb_funcall(state->iseq_cache, rb_intern("[]="), 2, iseq, function_id_val);
 #endif
+        }
       }
 
       locations2[i] = (ddog_prof_Location2) {
@@ -782,7 +788,7 @@ static void build_location2_from_iseqs(
   }
 }
 
-void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, sample_labels labels, sampling_buffer *buffer) {
+void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, sample_labels labels, sampling_buffer *buffer, bool is_safe_to_allocate_objects) {
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
@@ -828,7 +834,7 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
     // Detect stack truncation: add_truncated_frames_placeholder runs when captured_frames == max_frames,
     // replacing locations[0] with a synthetic "Truncated Frames" entry. We mirror that in locations2.
     bool truncated = (frame_count == buffer->max_frames);
-    build_location2_from_iseqs(buffer->locations2, frame_count, buffer->stack_buffer, state, truncated);
+    build_location2_from_iseqs(buffer->locations2, frame_count, buffer->stack_buffer, state, truncated, is_safe_to_allocate_objects);
 
     int exception_state = end_heap_allocation_recording_with_rb_protect(
       state->heap_recorder,
