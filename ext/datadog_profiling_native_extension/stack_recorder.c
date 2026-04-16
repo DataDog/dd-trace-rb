@@ -821,7 +821,7 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
     // NOTE: heap_sample is only set when sampling via trigger_sample_for_thread (the allocation tracepoint path),
     // which always provides a valid buffer. Callers that pass buffer=NULL (e.g. record_placeholder_stack for GC
     // frames) always have heap_sample=false, so this branch is never reached with a NULL buffer.
-    RUBY_ASSERT(buffer != NULL);
+    if (buffer == NULL) rb_bug("[ddtrace] record_sample: heap_sample=true but buffer is NULL");
     if (buffer->locations2 == NULL) {
       buffer->locations2 = calloc(buffer->max_frames, sizeof(ddog_prof_Location2));
       if (buffer->locations2 == NULL) {
