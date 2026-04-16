@@ -64,7 +64,6 @@ module Datadog
 
         private
 
-        # Truncates the list of serialized messages to the configured maximum length.
         def truncate_messages(serialized_messages)
           max_length = Datadog.configuration.ai_guard.max_messages_length
           serialized_messages.first(max_length)
