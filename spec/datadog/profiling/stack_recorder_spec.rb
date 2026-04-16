@@ -642,7 +642,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it "records stack traces that match the allocations' stack traces" do
-          expect(samples.map(&:locations).uniq.size).to be 2
+          expect(non_heap_samples.map(&:locations).uniq.size).to be 2
         end
 
         it "records correct stack traces" do
