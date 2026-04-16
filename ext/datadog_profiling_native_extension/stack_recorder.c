@@ -190,16 +190,16 @@ typedef struct {
   ddog_prof_StringId2 label_key_allocation_class;
   ddog_prof_StringId2 label_key_gc_gen_age;
 
-  // Caches mapping frame identity -> FunctionId2.
+  // Cache mapping frame identity -> FunctionId2.
   // iseq_cache: st_table* (pointer-comparison hash). Keys are raw iseq VALUEs (T_IMEMO objects);
   //   values are raw ddog_prof_FunctionId2 pointers, both stored as st_data_t (uintptr_t).
   //   Using st_table avoids calling Ruby's #hash on keys (T_IMEMO doesn't implement it) and
   //   avoids any Ruby allocation on lookup/insert (safe inside NEWOBJ tracepoint hooks).
   //   The GC mark function marks each key via rb_gc_mark, which also pins iseqs in place so
   //   the compactor cannot move them (which would silently invalidate our st_table keys).
-  // native_id_cache: Hash. Keys are ID2SYM(method_id); values are ULL2NUM(FunctionId2 ptr).
+  // Native (C) frames are not cached here; ddog_prof_ProfilesDictionary_insert_function handles
+  //   deduplication and is efficient enough for repeated inserts with the same (name, file) pair.
   st_table *iseq_cache;
-  VALUE native_id_cache;
 
   // Pre-allocated FunctionId2 for the synthetic "Truncated Frames" placeholder injected at the
   // bottom of stacks that exceeded max_frames. Matches the entry that
@@ -393,7 +393,6 @@ static VALUE _native_new(VALUE klass) {
   initialize_profiles(state, sample_types);
 
   state->iseq_cache = st_init_numtable(); // pointer-comparison; keys are iseq VALUEs
-  state->native_id_cache = rb_hash_new();
 
   // NOTE: We initialize this because we want a new recorder to be operational even before #initialize runs and our
   //       default is everything enabled. However, if during recording initialization it turns out we don't want
@@ -443,7 +442,6 @@ static void stack_recorder_typed_data_mark(void *state_ptr) {
 
   heap_recorder_mark_pending_recordings(state->heap_recorder);
   st_foreach(state->iseq_cache, mark_iseq_cache_key, 0);
-  rb_gc_mark(state->native_id_cache);
 }
 
 static void stack_recorder_typed_data_free(void *state_ptr) {
@@ -652,14 +650,10 @@ static VALUE ruby_time_from(ddog_Timespec ddprof_time) {
 }
 
 // Populate locations2 from the frame_info entries in stack_buffer, looking up or creating
-// FunctionId2 handles in state->dict_handle via two caches:
-//   state->iseq_cache       – st_table* keyed by iseq VALUE (pointer comparison)
-//                             Values are raw ddog_prof_FunctionId2 pointers stored as st_data_t.
-//   state->native_id_cache  – Ruby Hash keyed by ID2SYM(method_id)
-//                             Values are ULL2NUM(FunctionId2 ptr) Ruby Integers.
-// Note: ddog_prof_ProfilesDictionary_insert_* APIs are internally thread-safe, but the native_id_cache
-// Hash operations require the GVL, so this function must be called with the GVL held (which
-// record_sample already guarantees).
+// FunctionId2 handles in state->dict_handle.
+//   state->iseq_cache – st_table* keyed by iseq VALUE (pointer comparison); values are FunctionId2 pointers.
+// Native (C) frames are not cached; ddog_prof_ProfilesDictionary_insert_function deduplicates them.
+// Must be called with the GVL held (record_sample already guarantees this).
 static void build_location2_from_iseqs(
     ddog_prof_Location2 *locations2,
     uint16_t count,
@@ -667,15 +661,24 @@ static void build_location2_from_iseqs(
     stack_recorder_state *state,
     bool truncated  // true when captured_frames == buffer->max_frames (stack was cut short)
 ) {
-  // stack_buffer uses rb_profile_frames ordering: index 0 = newest (top of stack), count-1 = oldest.
-  // libdatadog Profile_add2 uses the same convention as Profile_add: index 0 = oldest (bottom), count-1 = newest.
-  // So we walk locations2 oldest-first and read stack_buffer newest-last:
-  //   locations2[i] <- stack_buffer[count - 1 - i]
+  // ddtrace_rb_profile_frames iterates OLDEST first: stack_buffer[0] = bottom of call stack
+  // (oldest/deepest), stack_buffer[count-1] = top of call stack (newest, currently executing).
+  // libdatadog uses newest-first: locations2[0] = top of stack (newest), locations2[count-1] = oldest.
+  // We process stack_buffer from OLDEST (sb=0) to NEWEST (sb=count-1) and write to
+  // locations2[count-1-sb], so the oldest frame lands at locations2[count-1] and the newest at locations2[0].
   //
-  // When the stack was truncated (captured_frames == max_frames), add_truncated_frames_placeholder
-  // overwrites buffer->locations[0] (the oldest slot) with "Truncated Frames", discarding the
-  // content of stack_buffer[count-1] (the oldest visible frame). We mirror that here.
-  uint16_t start = 0;
+  // Iterating oldest-first lets us maintain last_ruby_filename_sid and last_ruby_line_val: when a
+  // native (C) frame is encountered, these hold the last-seen Ruby frame's data, which is the
+  // caller of that native frame. This mirrors sample_thread / set_file_info_for_cfunc.
+  //
+  // When truncated (captured_frames == max_frames), add_truncated_frames_placeholder sets
+  // locations[0] (the newest slot) to a "Truncated Frames" placeholder representing missing
+  // top-of-stack frames. We mirror that here and skip stack_buffer[count-1] (the newest captured
+  // frame), whose slot locations2[0] is already occupied by the placeholder.
+
+  ddog_prof_StringId2 last_ruby_filename_sid = NULL;
+  int64_t last_ruby_line_val = 0;
+
   if (truncated) {
     locations2[0] = (ddog_prof_Location2) {
       .mapping  = NULL,
@@ -683,24 +686,33 @@ static void build_location2_from_iseqs(
       .address  = 0,
       .line     = 0,
     };
-    start = 1;  // skip locations2[0] AND skip stack_buffer[count-1] (overwritten by placeholder)
   }
 
-  for (uint16_t i = start; i < count; i++) {
+  // When truncated, skip the newest frame -- its slot (locations2[0]) holds the placeholder.
+  uint16_t frames_to_process = truncated ? count - 1 : count;
+
+  for (uint16_t sb = 0; sb < frames_to_process; sb++) {
+    uint16_t l2_idx = count - 1 - sb;  // oldest (sb=0) -> locations2[count-1]; newest -> locations2[0 or 1]
     ddog_prof_FunctionId2 function_id = NULL;
-    // Flip: locations2[i] corresponds to stack_buffer[count - 1 - i] (oldest first)
-    uint16_t sb = count - 1 - i;
 
     if (stack_buffer[sb].is_ruby_frame) {
       VALUE iseq = stack_buffer[sb].as.ruby_frame.iseq;
 
-      // Look up in iseq_cache (st_table* with pointer-comparison keys).
-      // No Ruby #hash call, no allocation — safe inside NEWOBJ tracepoint hooks.
       st_data_t cached_id;
       if (st_lookup(state->iseq_cache, (st_data_t) iseq, &cached_id)) {
+        // Cache hit: still recompute filename_sid to update last_ruby tracking for native frames above.
+        VALUE filename_val = ddtrace_iseq_path((const void *) iseq);
+        ddog_CharSlice filename_slice = NIL_P(filename_val) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(filename_val);
+        ddog_prof_StringId2 filename_sid = NULL;
+        ddog_prof_Status s = ddog_prof_ProfilesDictionary_insert_str(&filename_sid, state->dict_handle, filename_slice, DDOG_PROF_UTF8_OPTION_ASSUME);
+        if (s.err == NULL) {
+          last_ruby_filename_sid = filename_sid;
+          last_ruby_line_val = (int64_t) stack_buffer[sb].as.ruby_frame.line;
+        }
+        ddog_prof_Status_drop(&s);
         function_id = (ddog_prof_FunctionId2) cached_id;
       } else {
-        // Cache miss: resolve name/filename and insert a new Function into the ProfilesDictionary
+        // Cache miss: resolve name/filename and insert a new Function into the ProfilesDictionary.
         VALUE name_val     = ddtrace_iseq_base_label((const void *) iseq);
         VALUE filename_val = ddtrace_iseq_path((const void *) iseq);
 
@@ -718,61 +730,59 @@ static void build_location2_from_iseqs(
         if (s.err != NULL) { ddog_prof_Status_drop(&s); goto store_ruby; }
         ddog_prof_Status_drop(&s);
 
+        // Update last_ruby tracking now that we have a valid filename_sid.
+        last_ruby_filename_sid = filename_sid;
+        last_ruby_line_val = (int64_t) stack_buffer[sb].as.ruby_frame.line;
+
         ddog_prof_Function2 func = { .name = name_sid, .system_name = NULL, .file_name = filename_sid };
         s = ddog_prof_ProfilesDictionary_insert_function(&function_id, state->dict_handle, &func);
         if (s.err != NULL) { ddog_prof_Status_drop(&s); goto store_ruby; }
         ddog_prof_Status_drop(&s);
 
         store_ruby: ;
-        // st_insert is pure C (no Ruby allocation, no postponed-job processing), so it is safe
-        // to call even inside a NEWOBJ tracepoint hook.
+        // st_insert is pure C (no Ruby allocation), safe inside NEWOBJ tracepoint hooks.
         st_insert(state->iseq_cache, (st_data_t) iseq, (st_data_t) function_id);
       }
 
-      locations2[i] = (ddog_prof_Location2) {
+      locations2[l2_idx] = (ddog_prof_Location2) {
         .mapping  = NULL,
         .function = function_id,
         .address  = 0,
         .line     = stack_buffer[sb].as.ruby_frame.line,
       };
     } else {
+      // Native (C) frame: assign the last Ruby frame's filename and line, matching what
+      // sample_thread / set_file_info_for_cfunc does (the convention from Kernel#caller_locations).
       ID method_id = stack_buffer[sb].as.native_frame.method_id;
-      VALUE key    = ID2SYM(method_id);
+      VALUE name_val = rb_id2str(method_id);
+      ddog_CharSlice name_slice = NIL_P(name_val) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name_val);
 
-      VALUE cached = rb_hash_lookup2(state->native_id_cache, key, Qnil);
+      ddog_prof_StringId2 name_sid = NULL;
+      ddog_prof_Status s;
 
-      if (!NIL_P(cached)) {
-        function_id = (ddog_prof_FunctionId2)(uintptr_t) NUM2ULL(cached);
-      } else {
-        VALUE name_val = rb_id2str(method_id);
+      s = ddog_prof_ProfilesDictionary_insert_str(&name_sid, state->dict_handle, name_slice, DDOG_PROF_UTF8_OPTION_ASSUME);
+      if (s.err != NULL) { ddog_prof_Status_drop(&s); goto store_native; }
+      ddog_prof_Status_drop(&s);
 
-        ddog_CharSlice name_slice = NIL_P(name_val) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name_val);
-
-        ddog_prof_StringId2 name_sid = NULL, filename_sid = NULL;
-        ddog_prof_Status s;
-
-        s = ddog_prof_ProfilesDictionary_insert_str(&name_sid, state->dict_handle, name_slice, DDOG_PROF_UTF8_OPTION_ASSUME);
-        if (s.err != NULL) { ddog_prof_Status_drop(&s); goto store_native; }
-        ddog_prof_Status_drop(&s);
-
+      // Use last_ruby_filename_sid if available; fall back to empty string if no Ruby frame seen yet.
+      ddog_prof_StringId2 filename_sid = last_ruby_filename_sid;
+      if (filename_sid == NULL) {
         s = ddog_prof_ProfilesDictionary_insert_str(&filename_sid, state->dict_handle, DDOG_CHARSLICE_C(""), DDOG_PROF_UTF8_OPTION_ASSUME);
         if (s.err != NULL) { ddog_prof_Status_drop(&s); goto store_native; }
         ddog_prof_Status_drop(&s);
-
-        ddog_prof_Function2 func = { .name = name_sid, .system_name = NULL, .file_name = filename_sid };
-        s = ddog_prof_ProfilesDictionary_insert_function(&function_id, state->dict_handle, &func);
-        if (s.err != NULL) { ddog_prof_Status_drop(&s); goto store_native; }
-        ddog_prof_Status_drop(&s);
-
-        store_native: ;
-        rb_hash_aset(state->native_id_cache, key, ULL2NUM((uintptr_t) function_id));
       }
 
-      locations2[i] = (ddog_prof_Location2) {
+      ddog_prof_Function2 func = { .name = name_sid, .system_name = NULL, .file_name = filename_sid };
+      s = ddog_prof_ProfilesDictionary_insert_function(&function_id, state->dict_handle, &func);
+      if (s.err != NULL) { ddog_prof_Status_drop(&s); goto store_native; }
+      ddog_prof_Status_drop(&s);
+
+      store_native: ;
+      locations2[l2_idx] = (ddog_prof_Location2) {
         .mapping  = NULL,
         .function = function_id,
         .address  = 0,
-        .line     = 0,
+        .line     = last_ruby_line_val,
       };
     }
   }
