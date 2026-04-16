@@ -32,7 +32,7 @@ workflow:
         - .gitlab/Dockerfile-*   # these are direct dependencies
         - .gitlab-ci.yml         # list of images is here so it is a dependency too
       allow_failure: true
-  image: $DOCKER_REGISTRY/docker:20.10.13
+  image: $DOCKER_REGISTRY/docker:29.4.0-noble
   id_tokens:
     DDSIGN_ID_TOKEN:
       aud: image-integrity
@@ -71,7 +71,7 @@ promote-image:
       when: manual               # this one is manual, but it means that install-dependencies may be hitting the wrong <base>:current til this is run
       allow_failure: true
   tags: ["docker-in-docker:amd64"]
-  image: $DOCKER_REGISTRY/docker:20.10.13
+  image: $DOCKER_REGISTRY/docker:29.4.0-noble
   parallel:
     matrix:
       # ADD NEW RUBIES HERE

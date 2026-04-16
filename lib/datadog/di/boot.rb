@@ -18,8 +18,7 @@ require_relative 'serializer'
 require_relative 'transport/http'
 require_relative 'utils'
 
-# Steep: https://github.com/ruby/rbs/pull/2715
-if %w[1 true yes].include?(Datadog::DATADOG_ENV['DD_DYNAMIC_INSTRUMENTATION_ENABLED']) # steep:ignore ArgumentTypeMismatch
+if %w[1 true yes].include?(Datadog::DATADOG_ENV['DD_DYNAMIC_INSTRUMENTATION_ENABLED'])
 
   # For initial release of Dynamic Instrumentation, activate code tracking
   # only if DI is explicitly requested in the environment.
@@ -37,8 +36,7 @@ require_relative 'contrib'
 
 Datadog::DI::Contrib.load_now_or_later
 
-# Steep: https://github.com/ruby/rbs/pull/2715
-if %w[1 true yes].include?(Datadog::DATADOG_ENV['DD_DYNAMIC_INSTRUMENTATION_ENABLED']) # steep:ignore ArgumentTypeMismatch
+if %w[1 true yes].include?(Datadog::DATADOG_ENV['DD_DYNAMIC_INSTRUMENTATION_ENABLED'])
   if Datadog::DATADOG_ENV['DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE']
     require_relative 'probe_file_loader'
     Datadog::DI::ProbeFileLoader.load_now_or_later

@@ -97,30 +97,6 @@ jobs:
       version: "2.5"
       alias: ruby-25
 
-  jruby-94:
-    name: "JRuby 9.4"
-    uses: ./.github/workflows/_unit_test.yml
-    with:
-      engine: jruby
-      version: "9.4"
-      alias: jruby-94
-
-  jruby-93:
-    name: "JRuby 9.3"
-    uses: ./.github/workflows/_unit_test.yml
-    with:
-      engine: jruby
-      version: "9.3"
-      alias: jruby-93
-
-  jruby-92:
-    name: "JRuby 9.2"
-    uses: ./.github/workflows/_unit_test.yml
-    with:
-      engine: jruby
-      version: "9.2"
-      alias: jruby-92
-
   junit:
     name: dd/junit
     if: ${{ !cancelled() }}
@@ -241,8 +217,5 @@ jobs:
       - ruby-27
       - ruby-26
       - ruby-25
-      - jruby-94
-      - jruby-93
-      - jruby-92
     steps:
       - run: echo "DONE!"
