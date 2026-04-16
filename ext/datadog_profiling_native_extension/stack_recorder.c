@@ -658,8 +658,9 @@ static VALUE ruby_time_from(ddog_Timespec ddprof_time) {
 //   state->iseq_cache      – st_table* keyed by iseq VALUE (pointer comparison)
 //   state->native_id_cache – st_table* keyed by Ruby method ID (integer)
 // Native frames use file_name="" and line=0 (we don't have definition-site info from Ruby).
+// Returns true on success, false if any ProfilesDictionary insertion fails.
 // Must be called with the GVL held (record_sample already guarantees this).
-static void build_location2_from_iseqs(
+static bool build_location2_from_iseqs(
     ddog_prof_Location2 *locations2,
     uint16_t count,
     const frame_info *stack_buffer,
@@ -711,19 +712,18 @@ static void build_location2_from_iseqs(
         ddog_prof_Status s;
 
         s = ddog_prof_ProfilesDictionary_insert_str(&name_sid, state->dict_handle, name_slice, DDOG_PROF_UTF8_OPTION_ASSUME);
-        if (s.err != NULL) { ddog_prof_Status_drop(&s); goto store_ruby; }
+        if (s.err != NULL) { ddog_prof_Status_drop(&s); return false; }
         ddog_prof_Status_drop(&s);
 
         s = ddog_prof_ProfilesDictionary_insert_str(&filename_sid, state->dict_handle, filename_slice, DDOG_PROF_UTF8_OPTION_ASSUME);
-        if (s.err != NULL) { ddog_prof_Status_drop(&s); goto store_ruby; }
+        if (s.err != NULL) { ddog_prof_Status_drop(&s); return false; }
         ddog_prof_Status_drop(&s);
 
         ddog_prof_Function2 func = { .name = name_sid, .system_name = NULL, .file_name = filename_sid };
         s = ddog_prof_ProfilesDictionary_insert_function(&function_id, state->dict_handle, &func);
-        if (s.err != NULL) { ddog_prof_Status_drop(&s); goto store_ruby; }
+        if (s.err != NULL) { ddog_prof_Status_drop(&s); return false; }
         ddog_prof_Status_drop(&s);
 
-        store_ruby: ;
         // st_insert is pure C (no Ruby allocation), safe inside NEWOBJ tracepoint hooks.
         st_insert(state->iseq_cache, (st_data_t) iseq, (st_data_t) function_id);
       }
@@ -750,19 +750,18 @@ static void build_location2_from_iseqs(
         ddog_prof_Status s;
 
         s = ddog_prof_ProfilesDictionary_insert_str(&name_sid, state->dict_handle, name_slice, DDOG_PROF_UTF8_OPTION_ASSUME);
-        if (s.err != NULL) { ddog_prof_Status_drop(&s); goto store_native; }
+        if (s.err != NULL) { ddog_prof_Status_drop(&s); return false; }
         ddog_prof_Status_drop(&s);
 
         s = ddog_prof_ProfilesDictionary_insert_str(&filename_sid, state->dict_handle, DDOG_CHARSLICE_C(""), DDOG_PROF_UTF8_OPTION_ASSUME);
-        if (s.err != NULL) { ddog_prof_Status_drop(&s); goto store_native; }
+        if (s.err != NULL) { ddog_prof_Status_drop(&s); return false; }
         ddog_prof_Status_drop(&s);
 
         ddog_prof_Function2 func = { .name = name_sid, .system_name = NULL, .file_name = filename_sid };
         s = ddog_prof_ProfilesDictionary_insert_function(&function_id, state->dict_handle, &func);
-        if (s.err != NULL) { ddog_prof_Status_drop(&s); goto store_native; }
+        if (s.err != NULL) { ddog_prof_Status_drop(&s); return false; }
         ddog_prof_Status_drop(&s);
 
-        store_native: ;
         st_insert(state->native_id_cache, (st_data_t) method_id, (st_data_t) function_id);
       }
 
@@ -774,6 +773,7 @@ static void build_location2_from_iseqs(
       };
     }
   }
+  return true;
 }
 
 void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, sample_labels labels, sampling_buffer *buffer) {
@@ -822,7 +822,10 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
     // Detect stack truncation: add_truncated_frames_placeholder runs when captured_frames == max_frames,
     // replacing locations[0] with a synthetic "Truncated Frames" entry. We mirror that in locations2.
     bool truncated = (frame_count == buffer->max_frames);
-    build_location2_from_iseqs(buffer->locations2, frame_count, buffer->stack_buffer, state, truncated);
+    if (!build_location2_from_iseqs(buffer->locations2, frame_count, buffer->stack_buffer, state, truncated)) {
+      sampler_unlock_active_profile(active_slot);
+      rb_raise(rb_eRuntimeError, "[ddtrace] Failed to build heap sample locations: ProfilesDictionary insertion failed");
+    }
 
     int exception_state = end_heap_allocation_recording_with_rb_protect(
       state->heap_recorder,
