@@ -391,7 +391,7 @@ static VALUE _native_new(VALUE klass) {
 #ifdef NO_WEAK_MAP_FOR_ISEQ_CACHE
   state->iseq_cache = rb_hash_new();
 #else
-  state->iseq_cache = rb_funcall(rb_const_get(rb_mObjectSpace, rb_intern("WeakMap")), rb_intern("new"), 0);
+  state->iseq_cache = rb_funcall(rb_const_get(rb_const_get(rb_cObject, rb_intern("ObjectSpace")), rb_intern("WeakMap")), rb_intern("new"), 0);
 #endif
   state->native_id_cache = rb_hash_new();
 
