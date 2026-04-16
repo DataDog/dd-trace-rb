@@ -1099,5 +1099,4 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
     end
   end
-
 end
