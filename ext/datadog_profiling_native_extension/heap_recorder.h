@@ -174,6 +174,15 @@ bool heap_recorder_for_each_live_object(
 //       VM lock or during GC.
 VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder);
 
+// Migrate all heap_record frame function_ids from old_dict to new_dict, then rebuild the
+// heap_records st_table (whose hash/cmp depends on function_id pointer values).
+// Must be called with the GVL held and only when object_records_snapshot is NULL
+// (i.e. between heap_recorder_finish_iteration and the next heap_recorder_prepare_iteration).
+void heap_recorder_migrate_dictionary(
+    heap_recorder *heap_recorder,
+    ddog_prof_ProfilesDictionaryHandle old_dict,
+    ddog_prof_ProfilesDictionaryHandle new_dict);
+
 // v--- TEST-ONLY APIs ---v
 
 // Returns a Ruby string with a representation of internal data helpful to

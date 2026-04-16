@@ -224,6 +224,10 @@ typedef struct {
     long serialization_time_ns_max;
     uint64_t serialization_time_ns_total;
   } stats_lifetime;
+
+  // When non-zero, rotate the ProfilesDictionary (and caches) every this many successful serializations.
+  // Intended for testing only — not for production use.
+  uint64_t dictionary_rotation_period;
 } stack_recorder_state;
 
 // Used to group mutex and the corresponding profile slot for easy unlocking after work is done.
@@ -279,6 +283,7 @@ static VALUE _native_heap_recorder_reset_last_update(DDTRACE_UNUSED VALUE _self,
 static VALUE _native_recorder_after_gc_step(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_benchmark_intern(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE string, VALUE times, VALUE use_all);
 static VALUE _native_finalize_pending_heap_recordings(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static void rotate_profiles_dictionary(stack_recorder_state *state);
 
 void stack_recorder_init(VALUE profiling_module) {
   VALUE stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
@@ -479,6 +484,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   VALUE heap_sample_every = rb_hash_fetch(options, ID2SYM(rb_intern("heap_sample_every")));
   VALUE timeline_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("timeline_enabled")));
   VALUE heap_clean_after_gc_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("heap_clean_after_gc_enabled")));
+  VALUE dictionary_rotation_period = rb_hash_fetch(options, ID2SYM(rb_intern("dictionary_rotation_period")));
 
   ENFORCE_BOOLEAN(cpu_time_enabled);
   ENFORCE_BOOLEAN(alloc_samples_enabled);
@@ -487,11 +493,13 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   ENFORCE_TYPE(heap_sample_every, T_FIXNUM);
   ENFORCE_BOOLEAN(timeline_enabled);
   ENFORCE_BOOLEAN(heap_clean_after_gc_enabled);
+  ENFORCE_TYPE(dictionary_rotation_period, T_FIXNUM);
 
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
   state->heap_clean_after_gc_enabled = (heap_clean_after_gc_enabled == Qtrue);
+  state->dictionary_rotation_period = (uint64_t) NUM2ULONG(dictionary_rotation_period);
 
   heap_recorder_set_sample_rate(state->heap_recorder, NUM2INT(heap_sample_every));
 
@@ -638,6 +646,13 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   // Once we wrap this into a Ruby object, our `EncodedProfile` class will automatically manage memory for it and we
   // can raise exceptions without worrying about leaking the profile.
   state->stats_lifetime.serialization_successes++;
+
+  // Rotate the ProfilesDictionary every N exports — for testing only, not for production.
+  if (state->dictionary_rotation_period > 0 &&
+      state->stats_lifetime.serialization_successes % state->dictionary_rotation_period == 0) {
+    rotate_profiles_dictionary(state);
+  }
+
   VALUE encoded_profile = from_ddog_prof_EncodedProfile(serialized_profile.ok);
 
   VALUE start = ruby_time_from(args.slot->start_timestamp);
@@ -976,6 +991,85 @@ static void build_heap_profile_without_gvl(stack_recorder_state *state, profile_
   else if (iteration_context.error) {
     grab_gvl_and_raise(rb_eRuntimeError, "Failure during heap profile building: %s", iteration_context.error_msg);
   }
+}
+
+static void rotate_profiles_dictionary(stack_recorder_state *state) {
+  // Step 1: Create a new ProfilesDictionary.
+  ddog_prof_ProfilesDictionaryHandle new_dict = {0};
+  ddog_prof_Status s = ddog_prof_ProfilesDictionary_new(&new_dict);
+  if (s.err != NULL) raise_error(rb_eRuntimeError, "rotate_profiles_dictionary: failed to create new dict: %s", s.err);
+  ddog_prof_Status_drop(&s);
+
+  // Step 2: Re-insert the well-known strings and functions that stack_recorder_state caches.
+  // This mirrors the initialization code in _native_new.
+  ddog_prof_StringId2 new_alloc_class_key = NULL, new_gc_gen_age_key = NULL;
+
+  s = ddog_prof_ProfilesDictionary_insert_str(
+      &new_alloc_class_key, new_dict,
+      DDOG_CHARSLICE_C("allocation class"), DDOG_PROF_UTF8_OPTION_ASSUME);
+  if (s.err != NULL) raise_error(rb_eRuntimeError, "rotate_profiles_dictionary: failed to insert allocation class key: %s", s.err);
+  ddog_prof_Status_drop(&s);
+
+  s = ddog_prof_ProfilesDictionary_insert_str(
+      &new_gc_gen_age_key, new_dict,
+      DDOG_CHARSLICE_C("gc gen age"), DDOG_PROF_UTF8_OPTION_ASSUME);
+  if (s.err != NULL) raise_error(rb_eRuntimeError, "rotate_profiles_dictionary: failed to insert gc gen age key: %s", s.err);
+  ddog_prof_Status_drop(&s);
+
+  ddog_prof_FunctionId2 new_truncated_frames_function_id = NULL;
+  {
+    ddog_prof_StringId2 truncated_name_sid = NULL, empty_sid = NULL;
+
+    s = ddog_prof_ProfilesDictionary_insert_str(&truncated_name_sid, new_dict, DDOG_CHARSLICE_C("Truncated Frames"), DDOG_PROF_UTF8_OPTION_ASSUME);
+    if (s.err != NULL) raise_error(rb_eRuntimeError, "rotate_profiles_dictionary: failed to insert Truncated Frames: %s", s.err);
+    ddog_prof_Status_drop(&s);
+
+    s = ddog_prof_ProfilesDictionary_insert_str(&empty_sid, new_dict, DDOG_CHARSLICE_C(""), DDOG_PROF_UTF8_OPTION_ASSUME);
+    if (s.err != NULL) raise_error(rb_eRuntimeError, "rotate_profiles_dictionary: failed to insert empty string: %s", s.err);
+    ddog_prof_Status_drop(&s);
+
+    ddog_prof_Function2 truncated_func = { .name = truncated_name_sid, .system_name = NULL, .file_name = empty_sid };
+    s = ddog_prof_ProfilesDictionary_insert_function(&new_truncated_frames_function_id, new_dict, &truncated_func);
+    if (s.err != NULL) raise_error(rb_eRuntimeError, "rotate_profiles_dictionary: failed to insert Truncated Frames function: %s", s.err);
+    ddog_prof_Status_drop(&s);
+  }
+
+  // Step 3: Migrate all live heap_record frame function_ids to the new dict, then rebuild
+  // the heap_records st_table (whose hash/cmp depends on function_id pointer values).
+  // Must be called before we drop the old dict (old FunctionId2 pointers must still be live).
+  heap_recorder_migrate_dictionary(state->heap_recorder, state->dict_handle, new_dict);
+
+  // Step 4: Clear the iseq and native caches — their FunctionId2 values point into the old dict.
+  st_free_table(state->iseq_cache);
+  state->iseq_cache = st_init_numtable();
+  st_free_table(state->native_id_cache);
+  state->native_id_cache = st_init_numtable();
+
+  // Step 5: Drop the old profile slots. Each holds a refcount on the old dict.
+  // Any CPU/wall samples pending in the active slot are lost (acceptable for testing).
+  ddog_prof_Profile_drop(&state->profile_slot_one.profile);
+  ddog_prof_Profile_drop(&state->profile_slot_two.profile);
+
+  // Step 6: Drop the old dict handle, bringing its refcount to 0 and freeing it.
+  // By this point no remaining pointers refer to old-dict memory.
+  ddog_prof_ProfilesDictionary_drop(&state->dict_handle);
+
+  // Step 7: Install the new dict and well-known IDs.
+  state->dict_handle = new_dict;
+  state->label_key_allocation_class = new_alloc_class_key;
+  state->label_key_gc_gen_age = new_gc_gen_age_key;
+  state->truncated_frames_function_id = new_truncated_frames_function_id;
+
+  // Step 8: Re-create profile slots with the new dict.
+  // Reconstruct the enabled_sample_types array from position_for (same logic as _native_reset_after_fork).
+  ddog_prof_SampleType enabled_sample_types[ALL_VALUE_TYPES_COUNT];
+  for (uint8_t i = 0; i < ALL_VALUE_TYPES_COUNT; i++) {
+    if (state->position_for[i] < state->enabled_values_count) {
+      enabled_sample_types[state->position_for[i]] = all_sample_types[i];
+    }
+  }
+  ddog_prof_Slice_SampleType sample_types = {.ptr = enabled_sample_types, .len = state->enabled_values_count};
+  initialize_profiles(state, sample_types);
 }
 
 static void *call_serialize_without_gvl(void *call_args) {
