@@ -15,6 +15,7 @@ module Datadog
               Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
               Tracing::Sampling::Ext::Decision::AI_GUARD
             )
+            trace.set_tag(Ext::EVENT_TAG, true)
 
             if (last_message = messages.last)
               if last_message.tool_call
