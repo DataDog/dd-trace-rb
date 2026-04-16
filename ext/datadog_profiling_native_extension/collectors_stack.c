@@ -212,8 +212,7 @@ static VALUE native_sample_do(VALUE args) {
       args_struct->values,
       args_struct->labels,
       args_struct->native_filenames_enabled,
-      args_struct->native_filenames_cache,
-      /* is_safe_to_allocate_objects: */ true  // CPU/wall-time sampling runs outside tracepoint hooks
+      args_struct->native_filenames_cache
     );
   }
 
@@ -248,8 +247,7 @@ void sample_thread(
   sample_values values,
   sample_labels labels,
   bool native_filenames_enabled,
-  st_table *native_filenames_cache,
-  bool is_safe_to_allocate_objects
+  st_table *native_filenames_cache
 ) {
   // If we already prepared a sample, we use it below; if not, we prepare it now.
   if (!buffer->pending_sample) prepare_sample_thread(thread, buffer);
@@ -412,8 +410,7 @@ void sample_thread(
     (ddog_prof_Slice_Location) {.ptr = buffer->locations, .len = captured_frames},
     values,
     labels,
-    buffer,
-    is_safe_to_allocate_objects
+    buffer
   );
 }
 
@@ -606,8 +603,7 @@ void record_placeholder_stack(
     (ddog_prof_Slice_Location) {.ptr = &placeholder_location, .len = 1},
     values,
     labels,
-    NULL,
-    /* is_safe_to_allocate_objects: */ true  // buffer is NULL so build_location2_from_iseqs is never reached
+    NULL
   );
 }
 
