@@ -960,6 +960,93 @@ VALUE object_record_inspect(DDTRACE_UNUSED heap_recorder *recorder, object_recor
   return inspect;
 }
 
+// ==========================
+// Dictionary Migration API
+// ==========================
+
+typedef struct {
+  heap_record **records;
+  size_t count;
+} heap_record_collect_context;
+
+static int collect_heap_record_ptr(st_data_t key, DDTRACE_UNUSED st_data_t value, st_data_t extra) {
+  heap_record_collect_context *ctx = (heap_record_collect_context *) extra;
+  ctx->records[ctx->count++] = (heap_record *) key;
+  return ST_CONTINUE;
+}
+
+void heap_recorder_migrate_dictionary(
+    heap_recorder *recorder,
+    ddog_prof_ProfilesDictionaryHandle old_dict,
+    ddog_prof_ProfilesDictionaryHandle new_dict)
+{
+  if (recorder == NULL) return;
+
+  // Collect all heap_record* pointers. The table may be empty (num_entries == 0).
+  size_t capacity = recorder->heap_records->num_entries;
+  heap_record **records = ruby_xcalloc(capacity == 0 ? 1 : capacity, sizeof(heap_record *));
+  heap_record_collect_context ctx = { records, 0 };
+  st_foreach(recorder->heap_records, collect_heap_record_ptr, (st_data_t) &ctx);
+
+  // Translate each heap_frame's function_id from old_dict to new_dict.
+  for (size_t i = 0; i < ctx.count; i++) {
+    heap_record *record = records[i];
+    for (uint16_t f = 0; f < record->frames_len; f++) {
+      ddog_prof_FunctionId2 old_func_id = record->frames[f].function_id;
+
+      // NULL function_id is the "unknown function" placeholder; it stays NULL in the new dict.
+      if (old_func_id == NULL) continue;
+
+      // FunctionId2 = struct ddog_prof_Function2* — dereference to get StringId2 fields.
+      ddog_prof_Function2 *old_func = old_func_id;
+
+      ddog_prof_StringId2 new_name_sid = NULL, new_file_sid = NULL;
+      ddog_prof_Status s;
+
+      if (old_func->name != NULL) {
+        ddog_CharSlice name_str = {0};
+        s = ddog_prof_ProfilesDictionary_get_str(&name_str, old_dict, old_func->name);
+        if (s.err != NULL) raise_error(rb_eRuntimeError, "heap_recorder_migrate_dictionary: get_str(name) failed: %s", s.err);
+        ddog_prof_Status_drop(&s);
+
+        s = ddog_prof_ProfilesDictionary_insert_str(&new_name_sid, new_dict, name_str, DDOG_PROF_UTF8_OPTION_ASSUME);
+        if (s.err != NULL) raise_error(rb_eRuntimeError, "heap_recorder_migrate_dictionary: insert_str(name) failed: %s", s.err);
+        ddog_prof_Status_drop(&s);
+      }
+
+      if (old_func->file_name != NULL) {
+        ddog_CharSlice file_str = {0};
+        s = ddog_prof_ProfilesDictionary_get_str(&file_str, old_dict, old_func->file_name);
+        if (s.err != NULL) raise_error(rb_eRuntimeError, "heap_recorder_migrate_dictionary: get_str(file_name) failed: %s", s.err);
+        ddog_prof_Status_drop(&s);
+
+        s = ddog_prof_ProfilesDictionary_insert_str(&new_file_sid, new_dict, file_str, DDOG_PROF_UTF8_OPTION_ASSUME);
+        if (s.err != NULL) raise_error(rb_eRuntimeError, "heap_recorder_migrate_dictionary: insert_str(file_name) failed: %s", s.err);
+        ddog_prof_Status_drop(&s);
+      }
+
+      ddog_prof_Function2 new_func = { .name = new_name_sid, .system_name = NULL, .file_name = new_file_sid };
+      ddog_prof_FunctionId2 new_func_id = NULL;
+      s = ddog_prof_ProfilesDictionary_insert_function(&new_func_id, new_dict, &new_func);
+      if (s.err != NULL) raise_error(rb_eRuntimeError, "heap_recorder_migrate_dictionary: insert_function failed: %s", s.err);
+      ddog_prof_Status_drop(&s);
+
+      record->frames[f].function_id = new_func_id;
+    }
+  }
+
+  // Rebuild the heap_records table. The hash/cmp uses the full frames[] bytes including
+  // function_id pointer values, so after updating those pointers we must rebuild the table.
+  // st_free_table frees the table structure only — it does not free the keys/values.
+  st_free_table(recorder->heap_records);
+  recorder->heap_records = st_init_table(&st_hash_type_heap_record);
+  for (size_t i = 0; i < ctx.count; i++) {
+    st_insert(recorder->heap_records, (st_data_t) records[i], (st_data_t) true);
+  }
+
+  ruby_xfree(records);
+}
+
 // ==============
 // Heap Record API
 // ==============
