@@ -99,6 +99,18 @@ The `test:main` task uses the default Gemfile and its specs can also be run indi
 
 - Contrib/integration tests need Docker: `docker compose run --rm tracer-3.4 /bin/bash`, then run the rake task inside
 - `test:main` can run locally on any Ruby for quick feedback
+- If Bundler fails inside the container (e.g. after a dependency update), run `bundle install` and retry the rake task once before investigating further
+
+### Verifying across Ruby versions
+
+Before marking a task complete, run the relevant test task on both the earliest and latest supported Ruby versions. Regressions in older Rubies are easy to miss when only testing on the latest. Check the component's entry in `Matrixfile` for the supported range, then:
+
+```bash
+docker compose run --rm tracer-2.5 bundle exec rake test:TASK_KEY
+docker compose run --rm tracer-4.0 bundle exec rake test:TASK_KEY
+```
+
+Skip versions the Matrixfile marks as unsupported for that task. For `test:main`, the same applies — swap in the tracer container matching each end of the supported range.
 
 ## Documentation
 
