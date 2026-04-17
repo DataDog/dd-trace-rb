@@ -838,8 +838,11 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
     // replacing locations[0] with a synthetic "Truncated Frames" entry. We mirror that in locations2.
     bool truncated = (frame_count == buffer->max_frames);
     if (!build_location2_from_iseqs(buffer->locations2, frame_count, buffer->stack_buffer, state, truncated)) {
+      // ProfilesDictionary insertion failed for this heap sample. Discard the in-progress
+      // recording and skip this sample rather than stopping the entire profiler.
+      heap_recorder_discard_active_recording(state->heap_recorder);
       sampler_unlock_active_profile(active_slot);
-      rb_raise(rb_eRuntimeError, "[ddtrace] Failed to build heap sample locations: ProfilesDictionary insertion failed");
+      return;
     }
 
     int exception_state = end_heap_allocation_recording_with_rb_protect(
