@@ -40,7 +40,7 @@ module Datadog
             span.set_metastruct_tag(
               Ext::METASTRUCT_TAG,
               {
-                messages: truncate_messages(truncate_content(request.serialized_messages)),
+                messages: truncate_content(truncate_messages(request.serialized_messages)),
                 attack_categories: result.tags,
                 sds: result.sds_findings,
                 tag_probs: result.tag_probabilities
