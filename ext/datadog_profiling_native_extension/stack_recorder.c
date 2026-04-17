@@ -359,24 +359,18 @@ static VALUE _native_new(VALUE klass) {
 
   VALUE stack_recorder = TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, state);
 
-  ddog_prof_Status dict_status = ddog_prof_ProfilesDictionary_new(&state->dict_handle);
-  if (dict_status.err != NULL) {
-    raise_error(rb_eRuntimeError, "Failed to create ProfilesDictionary: %s", dict_status.err);
-  }
-  ddog_prof_Status_drop(&dict_status);
+  ddog_prof_Status s = ddog_prof_ProfilesDictionary_new(&state->dict_handle);
+  if (s.err != NULL) raise_status_error("Failed to create ProfilesDictionary", &s);
 
-  ddog_prof_Status s;
   s = ddog_prof_ProfilesDictionary_insert_str(
       &state->label_key_allocation_class, state->dict_handle,
       DDOG_CHARSLICE_C("allocation class"), DDOG_PROF_UTF8_OPTION_ASSUME);
-  if (s.err != NULL) { raise_error(rb_eRuntimeError, "Failed to insert allocation class key: %s", s.err); }
-  ddog_prof_Status_drop(&s);
+  if (s.err != NULL) raise_status_error("Failed to insert allocation class key", &s);
 
   s = ddog_prof_ProfilesDictionary_insert_str(
       &state->label_key_gc_gen_age, state->dict_handle,
       DDOG_CHARSLICE_C("gc gen age"), DDOG_PROF_UTF8_OPTION_ASSUME);
-  if (s.err != NULL) { raise_error(rb_eRuntimeError, "Failed to insert gc gen age key: %s", s.err); }
-  ddog_prof_Status_drop(&s);
+  if (s.err != NULL) raise_status_error("Failed to insert gc gen age key", &s);
 
   // Pre-populate the "Truncated Frames" function so that stacks exceeding max_frames get the same
   // placeholder in the heap profile as in the CPU/wall profile (where add_truncated_frames_placeholder
@@ -384,17 +378,14 @@ static VALUE _native_new(VALUE klass) {
   {
     ddog_prof_StringId2 truncated_name_sid = NULL, empty_sid = NULL;
     s = ddog_prof_ProfilesDictionary_insert_str(&truncated_name_sid, state->dict_handle, DDOG_CHARSLICE_C("Truncated Frames"), DDOG_PROF_UTF8_OPTION_ASSUME);
-    if (s.err != NULL) { raise_error(rb_eRuntimeError, "Failed to insert Truncated Frames name: %s", s.err); }
-    ddog_prof_Status_drop(&s);
+    if (s.err != NULL) raise_status_error("Failed to insert Truncated Frames name", &s);
 
     s = ddog_prof_ProfilesDictionary_insert_str(&empty_sid, state->dict_handle, DDOG_CHARSLICE_C(""), DDOG_PROF_UTF8_OPTION_ASSUME);
-    if (s.err != NULL) { raise_error(rb_eRuntimeError, "Failed to insert empty string: %s", s.err); }
-    ddog_prof_Status_drop(&s);
+    if (s.err != NULL) raise_status_error("Failed to insert empty string", &s);
 
     ddog_prof_Function2 truncated_func = { .name = truncated_name_sid, .system_name = NULL, .file_name = empty_sid };
     s = ddog_prof_ProfilesDictionary_insert_function(&state->truncated_frames_function_id, state->dict_handle, &truncated_func);
-    if (s.err != NULL) { raise_error(rb_eRuntimeError, "Failed to insert Truncated Frames function: %s", s.err); }
-    ddog_prof_Status_drop(&s);
+    if (s.err != NULL) raise_status_error("Failed to insert Truncated Frames function", &s);
   }
 
   initialize_profiles(state, sample_types);
@@ -427,14 +418,12 @@ static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_Sam
   // Use ddog_prof_Profile_with_dictionary so that profiles support both ddog_prof_Profile_add (for
   // cpu/wall-time/allocation samples) and ddog_prof_Profile_add2 (for heap serialization).
   s = ddog_prof_Profile_with_dictionary(&state->profile_slot_one.profile, &state->dict_handle, sample_types, NULL /* period is optional */);
-  if (s.err != NULL) raise_error(rb_eRuntimeError, "Failed to initialize slot one profile: %s", s.err);
-  ddog_prof_Status_drop(&s);
+  if (s.err != NULL) raise_status_error("Failed to initialize slot one profile", &s);
   state->profile_slot_one.start_timestamp = start_timestamp;
 
   // Note: No need to take any special care of slot one on error; it'll get cleaned up by stack_recorder_typed_data_free
   s = ddog_prof_Profile_with_dictionary(&state->profile_slot_two.profile, &state->dict_handle, sample_types, NULL /* period is optional */);
-  if (s.err != NULL) raise_error(rb_eRuntimeError, "Failed to initialize slot two profile: %s", s.err);
-  ddog_prof_Status_drop(&s);
+  if (s.err != NULL) raise_status_error("Failed to initialize slot two profile", &s);
   state->profile_slot_two.start_timestamp = start_timestamp;
 }
 
@@ -1000,8 +989,7 @@ static void rotate_profiles_dictionary(stack_recorder_state *state) {
   // Step 1: Create a new ProfilesDictionary.
   ddog_prof_ProfilesDictionaryHandle new_dict = {0};
   ddog_prof_Status s = ddog_prof_ProfilesDictionary_new(&new_dict);
-  if (s.err != NULL) raise_error(rb_eRuntimeError, "rotate_profiles_dictionary: failed to create new dict: %s", s.err);
-  ddog_prof_Status_drop(&s);
+  if (s.err != NULL) raise_status_error("rotate_profiles_dictionary: failed to create new dict", &s);
 
   // Step 2: Re-insert the well-known strings and functions that stack_recorder_state caches.
   // This mirrors the initialization code in _native_new.
@@ -1010,31 +998,26 @@ static void rotate_profiles_dictionary(stack_recorder_state *state) {
   s = ddog_prof_ProfilesDictionary_insert_str(
       &new_alloc_class_key, new_dict,
       DDOG_CHARSLICE_C("allocation class"), DDOG_PROF_UTF8_OPTION_ASSUME);
-  if (s.err != NULL) raise_error(rb_eRuntimeError, "rotate_profiles_dictionary: failed to insert allocation class key: %s", s.err);
-  ddog_prof_Status_drop(&s);
+  if (s.err != NULL) raise_status_error("rotate_profiles_dictionary: failed to insert allocation class key", &s);
 
   s = ddog_prof_ProfilesDictionary_insert_str(
       &new_gc_gen_age_key, new_dict,
       DDOG_CHARSLICE_C("gc gen age"), DDOG_PROF_UTF8_OPTION_ASSUME);
-  if (s.err != NULL) raise_error(rb_eRuntimeError, "rotate_profiles_dictionary: failed to insert gc gen age key: %s", s.err);
-  ddog_prof_Status_drop(&s);
+  if (s.err != NULL) raise_status_error("rotate_profiles_dictionary: failed to insert gc gen age key", &s);
 
   ddog_prof_FunctionId2 new_truncated_frames_function_id = NULL;
   {
     ddog_prof_StringId2 truncated_name_sid = NULL, empty_sid = NULL;
 
     s = ddog_prof_ProfilesDictionary_insert_str(&truncated_name_sid, new_dict, DDOG_CHARSLICE_C("Truncated Frames"), DDOG_PROF_UTF8_OPTION_ASSUME);
-    if (s.err != NULL) raise_error(rb_eRuntimeError, "rotate_profiles_dictionary: failed to insert Truncated Frames: %s", s.err);
-    ddog_prof_Status_drop(&s);
+    if (s.err != NULL) raise_status_error("rotate_profiles_dictionary: failed to insert Truncated Frames", &s);
 
     s = ddog_prof_ProfilesDictionary_insert_str(&empty_sid, new_dict, DDOG_CHARSLICE_C(""), DDOG_PROF_UTF8_OPTION_ASSUME);
-    if (s.err != NULL) raise_error(rb_eRuntimeError, "rotate_profiles_dictionary: failed to insert empty string: %s", s.err);
-    ddog_prof_Status_drop(&s);
+    if (s.err != NULL) raise_status_error("rotate_profiles_dictionary: failed to insert empty string", &s);
 
     ddog_prof_Function2 truncated_func = { .name = truncated_name_sid, .system_name = NULL, .file_name = empty_sid };
     s = ddog_prof_ProfilesDictionary_insert_function(&new_truncated_frames_function_id, new_dict, &truncated_func);
-    if (s.err != NULL) raise_error(rb_eRuntimeError, "rotate_profiles_dictionary: failed to insert Truncated Frames function: %s", s.err);
-    ddog_prof_Status_drop(&s);
+    if (s.err != NULL) raise_status_error("rotate_profiles_dictionary: failed to insert Truncated Frames function", &s);
   }
 
   // Step 3: Migrate all live heap_record frame function_ids to the new dict, then rebuild
@@ -1048,23 +1031,22 @@ static void rotate_profiles_dictionary(stack_recorder_state *state) {
   st_free_table(state->native_id_cache);
   state->native_id_cache = st_init_numtable();
 
-  // Step 5: Drop the old profile slots. Each holds a refcount on the old dict.
-  // Any CPU/wall samples pending in the active slot are lost (acceptable for testing).
-  ddog_prof_Profile_drop(&state->profile_slot_one.profile);
-  ddog_prof_Profile_drop(&state->profile_slot_two.profile);
-
-  // Step 6: Drop the old dict handle, bringing its refcount to 0 and freeing it.
-  // By this point no remaining pointers refer to old-dict memory.
+  // Step 5: Drop the old dict handle. The existing profile slots each hold their own refcount on
+  // the old dict, so it stays alive until those profiles are naturally reset — no samples are lost.
   ddog_prof_ProfilesDictionary_drop(&state->dict_handle);
 
-  // Step 7: Install the new dict and well-known IDs.
+  // Step 6: Install the new dict and well-known IDs.
   state->dict_handle = new_dict;
   state->label_key_allocation_class = new_alloc_class_key;
   state->label_key_gc_gen_age = new_gc_gen_age_key;
   state->truncated_frames_function_id = new_truncated_frames_function_id;
 
-  // Step 8: Re-create profile slots with the new dict.
-  // Reconstruct the enabled_sample_types array from position_for (same logic as _native_reset_after_fork).
+  // Step 7: Reinitialize the inactive slot (just serialized and empty) with the new dict.
+  // The active slot keeps the old dict via its own refcount and continues collecting samples;
+  // it will be reinitialized on the next rotation after it is serialized.
+  profile_slot *inactive = (state->active_slot == 1) ? &state->profile_slot_two : &state->profile_slot_one;
+  ddog_prof_Profile_drop(&inactive->profile);
+
   ddog_prof_SampleType enabled_sample_types[ALL_VALUE_TYPES_COUNT];
   for (uint8_t i = 0; i < ALL_VALUE_TYPES_COUNT; i++) {
     if (state->position_for[i] < state->enabled_values_count) {
@@ -1072,7 +1054,10 @@ static void rotate_profiles_dictionary(stack_recorder_state *state) {
     }
   }
   ddog_prof_Slice_SampleType sample_types = {.ptr = enabled_sample_types, .len = state->enabled_values_count};
-  initialize_profiles(state, sample_types);
+  s = ddog_prof_Profile_with_dictionary(&inactive->profile, &state->dict_handle, sample_types, NULL);
+  if (s.err != NULL) raise_status_error("rotate_profiles_dictionary: failed to reinitialize inactive slot", &s);
+  inactive->start_timestamp = system_epoch_now_timespec();
+  inactive->stats = (stats_slot) {};
 }
 
 static void *call_serialize_without_gvl(void *call_args) {

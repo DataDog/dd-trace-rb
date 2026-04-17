@@ -47,7 +47,7 @@ module Datadog
         heap_sample_every: 1,
         timeline_enabled: false,
         heap_clean_after_gc_enabled: true,
-        dictionary_rotation_period: 0,
+        dictionary_rotation_period: 1,
         **options
       )
         new(
