@@ -747,8 +747,9 @@ static bool build_location2_from_iseqs(
       } else {
         // Cache miss: look up the method name and insert a Function with file_name="".
         // We don't have a definition-site location for native (C) frames.
-        VALUE name_val = rb_id2str(method_id);
-        ddog_CharSlice name_slice = NIL_P(name_val) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name_val);
+        // rb_id2name returns a const char* (no Ruby allocation), safe inside NEWOBJ tracepoint hooks.
+        const char *name_cstr = rb_id2name(method_id);
+        ddog_CharSlice name_slice = name_cstr != NULL ? (ddog_CharSlice) { .ptr = name_cstr, .len = strlen(name_cstr) } : DDOG_CHARSLICE_C("");
 
         ddog_prof_StringId2 name_sid = NULL, filename_sid = NULL;
         ddog_prof_Status s;
