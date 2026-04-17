@@ -256,8 +256,10 @@ void sample_thread(
   int captured_frames = buffer->pending_sample_result;
 
   if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
-    // No real stack to associate with a heap sample; clear the flag so record_sample doesn't
-    // reach the buffer != NULL assertion with a NULL buffer.
+    // No real stack to associate with a heap sample. Discard any in-progress heap recording
+    // (started by track_object before trigger_sample_for_thread) so the heap recorder doesn't
+    // see a "consecutive starts without end" error on the next allocation.
+    if (values.heap_sample) discard_heap_sample(recorder_instance);
     values.heap_sample = false;
     record_placeholder_stack_in_native_code(recorder_instance, values, labels);
     return;

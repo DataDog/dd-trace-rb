@@ -859,20 +859,8 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
     #endif
   }
 
-  // Suppress allocation sampling while we signal running.
-  //
-  // rb_funcall allocates Ruby objects. With allocation profiling enabled, on_newobj_event fires for each,
-  // triggering record_sample → build_location2_from_iseqs (new in this PR). If that fails, stop_state is
-  // called (should_run=false) before the main thread can observe us as running, causing wait_until_running
-  // to time out.
-  //
-  // Setting during_sample=true prevents on_newobj_event from sampling those startup allocations. It is
-  // cleared immediately after, still under the GVL, so the main thread cannot run any Ruby code (and
-  // therefore cannot allocate tracked objects) until after we clear the flag and release the GVL.
-  state->during_sample = true;
   // Flag the profiler as running before we release the GVL, in case anyone's waiting to know about it
   rb_funcall(instance, rb_intern("signal_running"), 0);
-  state->during_sample = false;
 
   rb_thread_call_without_gvl(run_sampling_trigger_loop, state, interrupt_sampling_trigger_loop, state);
 

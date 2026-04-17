@@ -815,33 +815,36 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
     // which always provides a valid buffer. Callers that pass buffer=NULL (e.g. record_placeholder_stack for GC
     // frames) always have heap_sample=false, so this branch is never reached with a NULL buffer.
     if (buffer == NULL) rb_bug("[ddtrace] record_sample: heap_sample=true but buffer is NULL");
-    if (buffer->locations2 == NULL) {
-      buffer->locations2 = calloc(buffer->max_frames, sizeof(ddog_prof_Location2));
+
+    if (state->heap_recorder != NULL) {
       if (buffer->locations2 == NULL) {
-        sampler_unlock_active_profile(active_slot);
-        rb_raise(rb_eNoMemError, "Failed to allocate locations2 for heap sample");
+        buffer->locations2 = calloc(buffer->max_frames, sizeof(ddog_prof_Location2));
+        if (buffer->locations2 == NULL) {
+          sampler_unlock_active_profile(active_slot);
+          rb_raise(rb_eNoMemError, "Failed to allocate locations2 for heap sample");
+        }
       }
-    }
 
-    uint16_t frame_count = (uint16_t) locations.len;
-    // Detect stack truncation: add_truncated_frames_placeholder runs when captured_frames == max_frames,
-    // replacing locations[0] with a synthetic "Truncated Frames" entry. We mirror that in locations2.
-    bool truncated = (frame_count == buffer->max_frames);
-    if (!build_location2_from_iseqs(buffer->locations2, frame_count, buffer->stack_buffer, state, truncated)) {
-      // ProfilesDictionary insertion failed for this heap sample. Discard the in-progress
-      // recording and skip this sample rather than stopping the entire profiler.
-      heap_recorder_discard_active_recording(state->heap_recorder);
-      sampler_unlock_active_profile(active_slot);
-      return;
-    }
+      uint16_t frame_count = (uint16_t) locations.len;
+      // Detect stack truncation: add_truncated_frames_placeholder runs when captured_frames == max_frames,
+      // replacing locations[0] with a synthetic "Truncated Frames" entry. We mirror that in locations2.
+      bool truncated = (frame_count == buffer->max_frames);
+      if (!build_location2_from_iseqs(buffer->locations2, frame_count, buffer->stack_buffer, state, truncated)) {
+        // ProfilesDictionary insertion failed for this heap sample. Discard the in-progress
+        // recording and skip this sample rather than stopping the entire profiler.
+        heap_recorder_discard_active_recording(state->heap_recorder);
+        sampler_unlock_active_profile(active_slot);
+        return;
+      }
 
-    int exception_state = end_heap_allocation_recording_with_rb_protect(
-      state->heap_recorder,
-      (ddog_prof_Slice_Location2) {.ptr = buffer->locations2, .len = frame_count}
-    );
-    if (exception_state) {
-      sampler_unlock_active_profile(active_slot);
-      rb_jump_tag(exception_state);
+      int exception_state = end_heap_allocation_recording_with_rb_protect(
+        state->heap_recorder,
+        (ddog_prof_Slice_Location2) {.ptr = buffer->locations2, .len = frame_count}
+      );
+      if (exception_state) {
+        sampler_unlock_active_profile(active_slot);
+        rb_jump_tag(exception_state);
+      }
     }
   }
 
@@ -872,6 +875,12 @@ bool track_object(VALUE recorder_instance, VALUE new_object, unsigned int sample
   //        very late in the allocation-sampling path (which is shared with the cpu sampling path). This can
   //        be fixed with some refactoring but for now this leads to a less impactful change.
   return start_heap_allocation_recording(state->heap_recorder, new_object, sample_weight, alloc_class);
+}
+
+void discard_heap_sample(VALUE recorder_instance) {
+  stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
+  heap_recorder_discard_active_recording(state->heap_recorder);
 }
 
 void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_CharSlice endpoint) {
