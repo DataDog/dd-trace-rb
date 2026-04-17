@@ -91,7 +91,6 @@ jobs:
           labels: dev/internal
           commit-message: "[🤖] Update System Tests: ${{github.server_url}}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           delete-branch: true
-          sign-commits: true
           add-paths: |
             .github/
             .gitlab-ci.yml
