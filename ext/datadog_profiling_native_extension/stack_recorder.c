@@ -283,6 +283,8 @@ static VALUE _native_heap_recorder_reset_last_update(DDTRACE_UNUSED VALUE _self,
 static VALUE _native_recorder_after_gc_step(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_benchmark_intern(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE string, VALUE times, VALUE use_all);
 static VALUE _native_finalize_pending_heap_recordings(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static VALUE _native_benchmark_reset_frame_caches(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static VALUE _native_benchmark_reset_heap_records(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static void rotate_profiles_dictionary(stack_recorder_state *state);
 
 void stack_recorder_init(VALUE profiling_module) {
@@ -320,6 +322,8 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_recorder_after_gc_step", _native_recorder_after_gc_step, 1);
   rb_define_singleton_method(testing_module, "_native_benchmark_intern", _native_benchmark_intern, 4);
   rb_define_singleton_method(testing_module, "_native_finalize_pending_heap_recordings", _native_finalize_pending_heap_recordings, 1);
+  rb_define_singleton_method(testing_module, "_native_benchmark_reset_frame_caches", _native_benchmark_reset_frame_caches, 1);
+  rb_define_singleton_method(testing_module, "_native_benchmark_reset_heap_records", _native_benchmark_reset_heap_records, 1);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -1352,6 +1356,32 @@ static VALUE _native_finalize_pending_heap_recordings(DDTRACE_UNUSED VALUE _self
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
   heap_recorder_finalize_pending_recordings(state->heap_recorder);
+
+  return Qtrue;
+}
+
+// Benchmark-only: drop iseq_cache and native_id_cache so the next sample takes the cache-miss path.
+// The ProfilesDictionary is left untouched — its insert_str/insert_function calls will still find
+// existing entries, measuring the cost of rebuilding the per-recorder frame caches.
+static VALUE _native_benchmark_reset_frame_caches(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+  stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
+
+  st_free_table(state->iseq_cache);
+  state->iseq_cache = st_init_numtable();
+  st_free_table(state->native_id_cache);
+  state->native_id_cache = st_init_numtable();
+
+  return Qtrue;
+}
+
+// Benchmark-only: drop all tracked object_records and heap_records from the heap recorder without
+// going through GC/iteration. Used to reset the heap recorder between benchmark batches.
+static VALUE _native_benchmark_reset_heap_records(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+  stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
+
+  heap_recorder_testonly_reset_records(state->heap_recorder);
 
   return Qtrue;
 }

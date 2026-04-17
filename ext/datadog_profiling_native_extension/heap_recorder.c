@@ -1166,3 +1166,13 @@ void heap_recorder_testonly_benchmark_intern(heap_recorder *heap_recorder, DDTRA
   // migrating heap profiling to the Location2/Label2/Profile_add2 API. This benchmark is now a no-op.
   if (heap_recorder == NULL) raise_error(rb_eArgError, "heap profiling must be enabled");
 }
+
+void heap_recorder_testonly_reset_records(heap_recorder *heap_recorder) {
+  if (heap_recorder == NULL) raise_error(rb_eArgError, "heap_recorder is NULL");
+  if (heap_recorder->object_records_snapshot != NULL) {
+    raise_error(rb_eRuntimeError, "heap_recorder_testonly_reset_records: iteration in progress");
+  }
+
+  st_foreach(heap_recorder->object_records, st_object_record_entry_free, (st_data_t) heap_recorder);
+  st_foreach(heap_recorder->heap_records, st_heap_record_entry_free, (st_data_t) heap_recorder);
+}
