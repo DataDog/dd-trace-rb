@@ -376,6 +376,31 @@ bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
   return needs_after_allocation;
 }
 
+// Discard an in-progress heap allocation recording without committing it. Used when a heap sample
+// fails partway through (e.g. ProfilesDictionary insertion fails in build_location2_from_iseqs).
+// After this call, heap_recorder is in the same state as before start_heap_allocation_recording.
+void heap_recorder_discard_active_recording(heap_recorder *heap_recorder) {
+  if (heap_recorder == NULL) return;
+
+  if (heap_recorder->active_recording == &SKIPPED_RECORD) {
+    heap_recorder->active_recording = NULL;
+    return;
+  }
+
+  #ifdef USE_DEFERRED_HEAP_ALLOCATION_RECORDING
+    if (heap_recorder->active_deferred_object != Qnil) {
+      free(heap_recorder->active_deferred_object_data.class_name);
+      heap_recorder->active_deferred_object_data = (live_object_data) {0};
+      heap_recorder->active_deferred_object = Qnil;
+    }
+  #else
+    if (heap_recorder->active_recording != NULL) {
+      object_record_free(heap_recorder, heap_recorder->active_recording);
+      heap_recorder->active_recording = NULL;
+    }
+  #endif
+}
+
 // end_heap_allocation_recording_with_rb_protect gets called while the stack_recorder is holding one of the profile
 // locks. To enable us to correctly unlock the profile on exception, we wrap the call to end_heap_allocation_recording
 // with an rb_protect.

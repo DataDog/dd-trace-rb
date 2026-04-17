@@ -121,6 +121,11 @@ bool start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 __attribute__((warn_unused_result))
 int end_heap_allocation_recording_with_rb_protect(heap_recorder *heap_recorder, ddog_prof_Slice_Location2 locations2);
 
+// Discard an in-progress heap allocation recording without committing it.
+// Used when a heap sample fails partway through (e.g. ProfilesDictionary insertion fails).
+// After this call, heap_recorder is in the same state as before start_heap_allocation_recording.
+void heap_recorder_discard_active_recording(heap_recorder *heap_recorder);
+
 // Update the heap recorder, **checking young objects only**. The idea here is to align with GC: most young objects never
 // survive enough GC generations, and thus periodically running this method reduces memory usage (we get rid of
 // these objects quicker) and hopefully reduces tail latency (because there's less objects at serialization time to check).
