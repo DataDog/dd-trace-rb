@@ -40,7 +40,7 @@ module Datadog
             span.set_metastruct_tag(
               Ext::METASTRUCT_TAG,
               {
-                messages: truncate_content(request.serialized_messages),
+                messages: truncate_content(truncate_messages(request.serialized_messages)),
                 attack_categories: result.tags,
                 sds: result.sds_findings,
                 tag_probs: result.tag_probabilities
@@ -63,6 +63,11 @@ module Datadog
         end
 
         private
+
+        def truncate_messages(serialized_messages)
+          max_length = Datadog.configuration.ai_guard.max_messages_length
+          serialized_messages.first(max_length)
+        end
 
         # Truncates content in serialized messages to stay within the configured byte limit.
         # For multi-modal messages, only text parts are truncated; image URLs are left intact.
