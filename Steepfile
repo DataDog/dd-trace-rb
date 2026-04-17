@@ -8,6 +8,23 @@ target :datadog do
 
   check 'lib/'
 
+  # Profiling files that use inline RBS type annotations instead of sig/*.rbs.
+  # Inline checking requires Steep 2.0+. Some profiling files still need some
+  # info that can't yet live on the .rb, so we keep the sig/*.rbs.
+  check 'lib/datadog/profiling/encoded_profile.rb', inline: true
+  check 'lib/datadog/profiling/exporter.rb', inline: true
+  check 'lib/datadog/profiling/ext.rb', inline: true
+  check 'lib/datadog/profiling/flush.rb', inline: true
+  check 'lib/datadog/profiling/http_transport.rb', inline: true
+  check 'lib/datadog/profiling/profiler.rb', inline: true
+  check 'lib/datadog/profiling/collectors/code_provenance.rb', inline: true
+  check 'lib/datadog/profiling/collectors/cpu_and_wall_time_worker.rb', inline: true
+  check 'lib/datadog/profiling/collectors/dynamic_sampling_rate.rb', inline: true
+  check 'lib/datadog/profiling/collectors/idle_sampling_helper.rb', inline: true
+  check 'lib/datadog/profiling/collectors/info.rb', inline: true
+  check 'lib/datadog/profiling/tasks/exec.rb', inline: true
+  check 'lib/datadog/profiling/tasks/help.rb', inline: true
+
   # This makes Steep check the codebase with the strictest settings.
   # We are free to disable checks if needed inside the block.
   #

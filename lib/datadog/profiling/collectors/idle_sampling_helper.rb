@@ -8,17 +8,22 @@ module Datadog
       #
       # Methods prefixed with _native_ are implemented in `collectors_idle_sampling_helper.c`
       class IdleSamplingHelper
+        # @rbs @worker_thread: untyped
+        # @rbs @start_stop_mutex: ::Thread::Mutex
+
         private
 
-        attr_accessor :failure_exception
+        attr_accessor :failure_exception #: ::Exception?
 
         public
 
+        #: () -> void
         def initialize
           @worker_thread = nil
           @start_stop_mutex = Mutex.new
         end
 
+        #: () -> (nil | true)
         def start
           @start_stop_mutex.synchronize do
             return if @worker_thread&.alive?
@@ -50,6 +55,7 @@ module Datadog
           true
         end
 
+        #: () -> void
         def stop
           @start_stop_mutex.synchronize do
             Datadog.logger.debug("Requesting IdleSamplingHelper thread shut down")
