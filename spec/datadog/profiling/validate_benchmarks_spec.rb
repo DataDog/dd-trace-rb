@@ -33,6 +33,7 @@ RSpec.describe "Profiling benchmarks", :memcheck_valgrind_skip do
     "profiling_allocation",
     "profiling_gc",
     "profiling_heap_sample",
+    "profiling_heap_serialize",
     "profiling_hold_resume_interruptions",
     "profiling_http_transport",
     "profiling_memory_sample_serialize",
