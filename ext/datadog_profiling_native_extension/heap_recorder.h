@@ -186,3 +186,8 @@ VALUE heap_recorder_testonly_is_object_recorded(heap_recorder *heap_recorder, VA
 void heap_recorder_testonly_reset_last_update(heap_recorder *heap_recorder);
 
 void heap_recorder_testonly_benchmark_intern(heap_recorder *heap_recorder, ddog_CharSlice string, int times, bool use_all);
+
+// Drop all tracked object records and heap records without going through GC/iteration.
+// Used by microbenchmarks to reset the heap recorder between batches. Must be called with the GVL
+// held and only when no iteration is in progress (object_records_snapshot == NULL).
+void heap_recorder_testonly_reset_records(heap_recorder *heap_recorder);

@@ -1127,3 +1127,13 @@ void heap_recorder_testonly_benchmark_intern(heap_recorder *heap_recorder, ddog_
     for (int i = 0; i < times; i++) intern_or_raise(heap_recorder->string_storage, string);
   }
 }
+
+void heap_recorder_testonly_reset_records(heap_recorder *heap_recorder) {
+  if (heap_recorder == NULL) raise_error(rb_eArgError, "heap_recorder is NULL");
+  if (heap_recorder->object_records_snapshot != NULL) {
+    raise_error(rb_eRuntimeError, "heap_recorder_testonly_reset_records: iteration in progress");
+  }
+
+  st_foreach(heap_recorder->object_records, st_object_record_entry_free, (st_data_t) heap_recorder);
+  st_foreach(heap_recorder->heap_records, st_heap_record_entry_free, (st_data_t) heap_recorder);
+}
