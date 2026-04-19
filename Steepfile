@@ -15,6 +15,7 @@ target :datadog do
   check 'lib/datadog/profiling/exporter.rb', inline: true
   check 'lib/datadog/profiling/ext.rb', inline: true
   check 'lib/datadog/profiling/flush.rb', inline: true
+  check 'lib/datadog/profiling/preload.rb', inline: true
   check 'lib/datadog/profiling/http_transport.rb', inline: true
   check 'lib/datadog/profiling/profiler.rb', inline: true
   check 'lib/datadog/profiling/collectors/code_provenance.rb', inline: true
