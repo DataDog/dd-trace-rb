@@ -1,0 +1,31 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveStorage
+        module Events
+          # We cannot use a tuple type because ALL is a frozen array
+          type event_module =
+            singleton(Delete) |
+            singleton(DeletePrefixed) |
+            singleton(Download) |
+            singleton(DownloadChunk) |
+            singleton(Exist) |
+            singleton(Preview) |
+            singleton(StreamingDownload) |
+            singleton(Transform) |
+            singleton(UpdateMetadata) |
+            singleton(Upload) |
+            singleton(Url)
+
+          ALL: ::Array[event_module]
+
+          def self?.all: () -> ::Array[event_module]
+
+          def self?.subscriptions: () -> ::Array[ActiveSupport::Notifications::Subscription]
+
+          def self?.subscribe!: () -> void
+        end
+      end
+    end
+  end
+end
