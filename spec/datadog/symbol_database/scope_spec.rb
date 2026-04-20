@@ -1,5 +1,24 @@
 # frozen_string_literal: true
 
+# DESIGN VERIFICATION SUMMARY FOR SCOPE TESTS:
+#
+# Tests verify behavior from:
+#   - specs/json-schema.md (Scope Object, Optional Fields Policy, Special Line Values)
+#   - design/json-serialization.md (compact serialization, empty field handling)
+#   - design/symbol-extraction.md (Injectable Lines, data model defaults)
+#
+# Test accuracy:
+#   - All #initialize tests: ACCURATE -- match design/symbol-extraction.md defaults
+#   - All #to_h compact/nil tests: ACCURATE -- match specs/json-schema.md Optional Fields Policy
+#   - All injectable lines tests: ACCURATE -- match specs/json-schema.md line 74-75
+#   - Nested hierarchy test: ACCURATE but INCOMPLETE -- tests MODULE->CLASS->METHOD
+#     but does not test FILE->MODULE/CLASS->METHOD (the actual Ruby hierarchy per
+#     design/scope-hierarchy.md). No test creates a FILE scope as root of a hierarchy.
+#   - "complete payload" test in service_version_spec uses MODULE as root scope type
+#     (line 146: scope_type: 'MODULE') -- per specs/json-schema.md line 126, Ruby
+#     root scopes should be FILE, not MODULE. Test is valid for the data model
+#     (MODULE is an allowed scope_type) but does not exercise the actual Ruby protocol.
+
 require 'datadog/symbol_database/scope'
 require 'datadog/symbol_database/symbol'
 
@@ -25,6 +44,8 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
         symbols: [],
         scopes: [],
       )
+      # DESIGN VERIFICATION: METHOD language_specifics {visibility: 'public'}
+      #   Source: specs/json-schema.md lines 249-255 -- ACCURATE
 
       expect(scope.scope_type).to eq('METHOD')
       expect(scope.name).to eq('my_method')
@@ -35,6 +56,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     end
 
     it 'defaults language_specifics to empty hash' do
+      # DESIGN VERIFICATION: design/symbol-extraction.md line ~505 -- ACCURATE
       scope = described_class.new(scope_type: 'CLASS')
       expect(scope.language_specifics).to eq({})
     end
@@ -73,6 +95,10 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
         start_line: 10,
         end_line: 20
       )
+      # DESIGN VERIFICATION: METHOD with start_line != end_line.
+      #   Per design/symbol-extraction.md line ~183, METHOD end_line originally
+      #   equals start_line (Ruby doesn't provide end line), but injectable lines
+      #   now fix this. Test uses distinct values which is valid. ACCURATE.
 
       hash = scope.to_h
 
@@ -86,6 +112,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     end
 
     it 'removes nil values via compact' do
+      # DESIGN VERIFICATION: specs/json-schema.md "Optional Fields Policy" -- ACCURATE
       scope = described_class.new(
         scope_type: 'CLASS',
         name: 'MyClass',
@@ -104,6 +131,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     end
 
     it 'excludes empty language_specifics' do
+      # DESIGN VERIFICATION: design/json-serialization.md line 59 -- ACCURATE
       scope = described_class.new(
         scope_type: 'CLASS',
         language_specifics: {},
@@ -115,6 +143,8 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     end
 
     it 'includes non-empty language_specifics' do
+      # DESIGN VERIFICATION: specs/json-schema.md CLASS language_specifics
+      #   super_classes field -- ACCURATE
       scope = described_class.new(
         scope_type: 'CLASS',
         language_specifics: {super_classes: ['BaseClass']},
@@ -126,6 +156,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     end
 
     it 'excludes empty symbols array' do
+      # DESIGN VERIFICATION: specs/json-schema.md "Don't include empty arrays" -- ACCURATE
       scope = described_class.new(
         scope_type: 'CLASS',
         symbols: [],
@@ -142,6 +173,9 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
         name: 'my_field',
         line: 5,
       )
+      # DESIGN VERIFICATION: FIELD symbol with specific line number.
+      #   Per requirements.md, FIELD extraction is deferred for Ruby, but the
+      #   data model accepts it. Test is valid for the model. ACCURATE.
 
       scope = described_class.new(
         scope_type: 'CLASS',
@@ -192,6 +226,10 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     end
 
     it 'handles nested scope hierarchy' do
+      # DESIGN VERIFICATION: Tests MODULE->CLASS->METHOD nesting.
+      #   Source: specs/json-schema.md Scenarios 3-4 show this pattern.
+      #   ACCURATE for the nesting, but INCOMPLETE -- does not test
+      #   FILE as root (the actual Ruby hierarchy per design/scope-hierarchy.md).
       method_scope = described_class.new(
         scope_type: 'METHOD',
         name: 'my_method',
@@ -219,6 +257,8 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     end
 
     it 'includes injectable lines fields on METHOD scope with ranges' do
+      # DESIGN VERIFICATION: specs/json-schema.md line 74-75
+      #   has_injectible_lines: true + injectible_lines present on METHOD -- ACCURATE
       scope = described_class.new(
         scope_type: 'METHOD',
         name: 'my_method',
@@ -233,6 +273,9 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     end
 
     it 'includes has_injectible_lines: false on METHOD scope without ranges' do
+      # DESIGN VERIFICATION: design/symbol-extraction.md "Injectable Lines" > "Serialization"
+      #   "Always emit has_injectible_lines on METHOD scopes" -- ACCURATE
+      #   "Emit injectible_lines only when non-empty" -- ACCURATE
       scope = described_class.new(
         scope_type: 'METHOD',
         name: 'native_method',
@@ -247,6 +290,8 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     end
 
     it 'excludes injectable lines fields from CLASS scope' do
+      # DESIGN VERIFICATION: specs/json-schema.md line 74
+      #   "Not present on CLASS, FILE, MODULE scopes" -- ACCURATE
       scope = described_class.new(
         scope_type: 'CLASS',
         name: 'MyClass',
@@ -259,6 +304,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     end
 
     it 'excludes injectable lines fields from MODULE scope' do
+      # DESIGN VERIFICATION: specs/json-schema.md line 74 -- ACCURATE
       scope = described_class.new(
         scope_type: 'MODULE',
         name: 'MyModule',
@@ -271,6 +317,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     end
 
     it 'excludes injectable lines fields from FILE scope' do
+      # DESIGN VERIFICATION: specs/json-schema.md line 74 -- ACCURATE
       scope = described_class.new(
         scope_type: 'FILE',
         name: '/app/test.rb',

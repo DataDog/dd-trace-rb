@@ -1,3 +1,14 @@
+# DESIGN VERIFICATION: Type declarations mirror lib/datadog/symbol_database/scope.rb.
+#   All field types match the implementation and specs/json-schema.md:
+#     scope_type: String -- ACCURATE (enum values are strings)
+#     name: String? -- ACCURATE (optional per spec)
+#     source_file: String? -- ACCURATE (optional per spec)
+#     start_line/end_line: Integer? -- ACCURATE (optional per spec)
+#     has_injectible_lines: bool -- ACCURATE (boolean per spec)
+#     injectible_lines: Array[Hash[::Symbol, Integer]]? -- ACCURATE ({start:, end:} ranges)
+#     language_specifics: Hash[::Symbol, untyped] -- ACCURATE (flexible JSON blob)
+#     symbols: Array[Symbol] -- ACCURATE
+#     scopes: Array[Scope] -- ACCURATE (recursive)
 module Datadog
   module SymbolDatabase
     class Scope

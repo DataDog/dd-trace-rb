@@ -1,3 +1,13 @@
+# DESIGN VERIFICATION: Type declarations mirror lib/datadog/symbol_database/service_version.rb.
+#   All field types match the implementation and specs/json-schema.md:
+#     service: String -- ACCURATE (required, from DD_SERVICE)
+#     env: String -- ACCURATE (always present, defaults to "none")
+#     version: String -- ACCURATE (always present, defaults to "none")
+#     language: String -- ACCURATE (hardcoded "ruby")
+#     scopes: Array[Scope] -- ACCURATE
+#   Note: env and version typed as String (not String?) because the constructor
+#     coerces nil/empty to "none". The initialize signature correctly accepts
+#     String? for these params. ACCURATE.
 module Datadog
   module SymbolDatabase
     class ServiceVersion

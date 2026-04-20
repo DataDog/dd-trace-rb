@@ -1,5 +1,25 @@
 # frozen_string_literal: true
 
+# DESIGN VERIFICATION SUMMARY FOR SERVICE VERSION TESTS:
+#
+# Tests verify behavior from:
+#   - specs/json-schema.md (Top-Level: ServiceVersion, language values)
+#   - design/json-serialization.md (validation, env/version defaults, language field)
+#
+# Test accuracy:
+#   - Validation tests (nil service, empty service, non-array scopes): ACCURATE
+#     per design/json-serialization.md lines 177-191
+#   - env/version "none" defaults: ACCURATE per design/json-serialization.md line 186-187
+#   - language = 'ruby': ACCURATE per specs/json-schema.md line 42
+#   - "complete payload" test (line 144-169): Uses MODULE as top-level scope type.
+#     Per specs/json-schema.md line 126, Ruby root scopes should be FILE. The test
+#     is VALID for the data model (any scope type can be in the array) but does NOT
+#     exercise the actual Ruby wire format. Also puts file_hash on a MODULE scope's
+#     language_specifics -- per specs/json-schema.md line 228, "Ruby: No language_specifics
+#     on MODULE scopes. File hash is on the parent FILE scope." The test data is
+#     INACCURATE for Ruby protocol, though it correctly exercises serialization.
+#   - schema_version: Correctly NOT tested (Python-only per spec). ACCURATE.
+
 require 'datadog/symbol_database/service_version'
 require 'datadog/symbol_database/scope'
 
@@ -17,6 +37,8 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
       expect(sv.env).to eq('production')
       expect(sv.version).to eq('1.0.0')
       expect(sv.language).to eq('ruby')
+      # DESIGN VERIFICATION: language 'ruby' (lowercase)
+      #   Source: specs/json-schema.md line 42, 719 -- ACCURATE
       expect(sv.scopes).to eq([])
     end
 
@@ -39,11 +61,15 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
     end
 
     it 'converts empty env to "none"' do
+      # DESIGN VERIFICATION: design/json-serialization.md line 186 -- ACCURATE
       sv = described_class.new(service: 'svc', env: '', version: '1.0', scopes: [])
       expect(sv.env).to eq('none')
     end
 
     it 'converts nil env to "none"' do
+      # DESIGN VERIFICATION: Implementation handles nil via .to_s.empty?.
+      #   design/json-serialization.md only shows empty check, not nil.
+      #   Implementation is MORE thorough. ACCURATE+.
       sv = described_class.new(service: 'svc', env: nil, version: '1.0', scopes: [])
       expect(sv.env).to eq('none')
     end
@@ -142,6 +168,13 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
     end
 
     it 'produces valid JSON for complete payload' do
+      # DESIGN VERIFICATION: This test uses MODULE as root scope type with file_hash
+      #   in language_specifics. Per specs/json-schema.md:
+      #   - Line 126: Ruby root scope should be FILE, not MODULE
+      #   - Line 228: "Ruby: No language_specifics on MODULE scopes.
+      #     File hash is on the parent FILE scope."
+      #   The test is valid for serialization mechanics but uses INACCURATE
+      #   Ruby protocol data (should be scope_type: 'FILE' with file_hash).
       scope = Datadog::SymbolDatabase::Scope.new(
         scope_type: 'MODULE',
         name: 'MyApp',

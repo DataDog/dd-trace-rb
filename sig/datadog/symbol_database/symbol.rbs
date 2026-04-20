@@ -1,3 +1,12 @@
+# DESIGN VERIFICATION: Type declarations mirror lib/datadog/symbol_database/symbol.rb.
+#   All field types match the implementation and specs/json-schema.md:
+#     symbol_type: String -- ACCURATE (enum: FIELD, STATIC_FIELD, ARG, LOCAL)
+#     name: String -- ACCURATE (required per spec)
+#     line: Integer -- ACCURATE (required per spec)
+#     type: String? -- ACCURATE (optional type annotation)
+#     language_specifics: Hash[::Symbol, untyped]? -- ACCURATE (optional, nullable unlike Scope's)
+#   Note: language_specifics is typed as nullable (?) here, matching the implementation
+#     where it defaults to nil (not {} like Scope). ACCURATE.
 module Datadog
   module SymbolDatabase
     class Symbol

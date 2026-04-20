@@ -1,3 +1,6 @@
+# DESIGN VERIFICATION: Type declarations mirror lib/datadog/symbol_database.rb.
+#   Constants typed as Integer -- ACCURATE (both are integer sentinels).
+#   Source: specs/json-schema.md, "Special Line Number Values" table.
 module Datadog
   module SymbolDatabase
     UNKNOWN_MIN_LINE: Integer

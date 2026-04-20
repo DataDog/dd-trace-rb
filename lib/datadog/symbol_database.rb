@@ -19,6 +19,18 @@ module Datadog
     #   will be completed in every line of the enclosing scope (CLASS or METHOD)."
     #
     # @see https://www.postgresql.org/docs/current/datatype-numeric.html
+    #
+    # DESIGN VERIFICATION:
+    #   Source: specs/json-schema.md, "Special Line Number Values" table
+    #     "0 = Start of scope, Symbol available from start of scope" -- ACCURATE
+    #   Source: design/symbol-extraction.md, lines ~284,329
+    #     Class variables use line: 0, parameters use line: 0 -- ACCURATE
+    #   Source: specs/json-schema.md, Scenario 1 full JSON
+    #     ARG symbols use line: 0 for scope-wide availability -- ACCURATE
+    #   Note: specs/json-schema.md Scenario 1 shows ARG(self, line:0) in the JSON
+    #     but the Notes below Scenario 1 say "self is NOT uploaded as an ARG".
+    #     The data model constant is unaffected -- the contradiction is in the
+    #     spec's example vs. its own notes.
     UNKNOWN_MIN_LINE = 0
 
     # Sentinel value for unknown or unavailable maximum line number.
@@ -44,6 +56,15 @@ module Datadog
     #
     # Reference: Symbol Database Backend RFC, section "Scope" and "Edge Cases"
     # @see https://www.postgresql.org/docs/current/datatype-numeric.html
+    #
+    # DESIGN VERIFICATION:
+    #   Source: specs/json-schema.md, "Special Line Number Values" table
+    #     "2147483647 = End of scope (INT_MAX)" -- ACCURATE
+    #   Source: specs/json-schema.md, "Validation Rules" > FILE (root)
+    #     FILE scope uses start_line: 0, end_line: 2147483647 -- ACCURATE
+    #   Source: design/symbol-extraction.md, lines ~78-79, ~144
+    #     MODULE/CLASS scopes use 0/2147483647 when lines unknown -- ACCURATE
+    #   Value 2^31 - 1 = 2147483647 -- ACCURATE (math checks out)
     UNKNOWN_MAX_LINE = 2147483647
   end
 end
