@@ -50,7 +50,7 @@ module Datadog
           name: name,
           line: line,
           type: type,
-          language_specifics: language_specifics
+          language_specifics: language_specifics,
         }.compact
       end
 

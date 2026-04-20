@@ -13,8 +13,8 @@ module Datadog
 
       def initialize: (
         service: String,
-        env: String,
-        version: String,
+        env: String?,
+        version: String?,
         scopes: Array[Scope]
       ) -> void
 

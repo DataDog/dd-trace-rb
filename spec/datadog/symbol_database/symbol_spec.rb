@@ -9,7 +9,7 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
       symbol = described_class.new(
         symbol_type: 'FIELD',
         name: '@my_var',
-        line: 10
+        line: 10,
       )
 
       expect(symbol.symbol_type).to eq('FIELD')
@@ -25,7 +25,7 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
         name: 'param1',
         line: Datadog::SymbolDatabase::UNKNOWN_MIN_LINE,
         type: 'String',
-        language_specifics: {optional: false}
+        language_specifics: {optional: false},
       )
 
       expect(symbol.symbol_type).to eq('ARG')
@@ -41,7 +41,7 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
       symbol = described_class.new(
         symbol_type: 'STATIC_FIELD',
         name: 'CONSTANT',
-        line: 5
+        line: 5,
       )
 
       hash = symbol.to_h
@@ -58,7 +58,7 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
         symbol_type: 'LOCAL',
         name: 'local_var',
         line: 15,
-        type: 'Integer'
+        type: 'Integer',
       )
 
       hash = symbol.to_h
@@ -67,7 +67,7 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
         symbol_type: 'LOCAL',
         name: 'local_var',
         line: 15,
-        type: 'Integer'
+        type: 'Integer',
       )
     end
 
@@ -77,7 +77,7 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
         name: '@var',
         line: Datadog::SymbolDatabase::UNKNOWN_MIN_LINE,
         type: nil,
-        language_specifics: nil
+        language_specifics: nil,
       )
 
       hash = symbol.to_h
@@ -95,7 +95,7 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
       symbol = described_class.new(
         symbol_type: 'ARG',
         name: 'param',
-        line: Datadog::SymbolDatabase::UNKNOWN_MIN_LINE
+        line: Datadog::SymbolDatabase::UNKNOWN_MIN_LINE,
       )
 
       hash = symbol.to_h
@@ -107,7 +107,7 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
       symbol = described_class.new(
         symbol_type: 'LOCAL',
         name: 'var',
-        line: Datadog::SymbolDatabase::UNKNOWN_MAX_LINE
+        line: Datadog::SymbolDatabase::UNKNOWN_MAX_LINE,
       )
 
       hash = symbol.to_h
@@ -121,7 +121,7 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
       symbol = described_class.new(
         symbol_type: 'FIELD',
         name: '@my_field',
-        line: 10
+        line: 10,
       )
 
       json = symbol.to_json
@@ -139,7 +139,7 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
         name: 'param',
         line: Datadog::SymbolDatabase::UNKNOWN_MIN_LINE,
         type: 'Hash',
-        language_specifics: {required: true}
+        language_specifics: {required: true},
       )
 
       json = symbol.to_json
@@ -150,7 +150,7 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
         'name' => 'param',
         'line' => Datadog::SymbolDatabase::UNKNOWN_MIN_LINE,
         'type' => 'Hash',
-        'language_specifics' => {'required' => true}
+        'language_specifics' => {'required' => true},
       )
     end
   end
