@@ -44,15 +44,7 @@ module Datadog
         end
 
         def serialize_messages(messages)
-          serialized_messages = []
-
-          messages.each do |message|
-            serialized_messages << serialize_message(message)
-
-            break if serialized_messages.count == Datadog.configuration.ai_guard.max_messages_length
-          end
-
-          serialized_messages
+          messages.map { |message| serialize_message(message) }
         end
 
         def serialize_message(message)
