@@ -92,7 +92,6 @@ jobs:
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8
       push_to_test_optimization: true
-      dd_sts_policy: dd-trace-rb-api-key-system-tests
 
   complete:
     name: System Tests (complete)
