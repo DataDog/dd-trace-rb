@@ -78,6 +78,9 @@ jobs:
           scope: DataDog/dd-trace-rb
           policy: self.update-system-tests
 
+      - name: Wait for token propagation
+        run: sleep 30
+
       - name: Create Pull Request
         # Skip PR creation if dry-run is true (from either trigger type)
         if: ${{ github.event.inputs.dry-run != 'true' && github.event.client_payload.dry-run != 'true' }}
