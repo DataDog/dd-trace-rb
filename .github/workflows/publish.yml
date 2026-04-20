@@ -20,6 +20,7 @@ jobs:
     name: Verify commit status checks
     runs-on: ubuntu-24.04
     permissions:
+      actions: read
       checks: read
       contents: write
     outputs:
