@@ -10,7 +10,7 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         service: 'my-service',
         env: 'production',
         version: '1.0.0',
-        scopes: []
+        scopes: [],
       )
 
       expect(sv.service).to eq('my-service')
@@ -70,7 +70,7 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         service: 'my-app',
         env: 'staging',
         version: '2.1.0',
-        scopes: []
+        scopes: [],
       )
 
       hash = sv.to_h
@@ -87,14 +87,14 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
     it 'serializes scopes recursively' do
       scope = Datadog::SymbolDatabase::Scope.new(
         scope_type: 'CLASS',
-        name: 'MyClass'
+        name: 'MyClass',
       )
 
       sv = described_class.new(
         service: 'svc',
         env: 'prod',
         version: '1.0',
-        scopes: [scope]
+        scopes: [scope],
       )
 
       hash = sv.to_h
@@ -103,7 +103,7 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
       expect(hash[:scopes].size).to eq(1)
       expect(hash[:scopes].first).to include(
         scope_type: 'CLASS',
-        name: 'MyClass'
+        name: 'MyClass',
       )
     end
 
@@ -124,7 +124,7 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         service: 'test-service',
         env: 'test',
         version: '0.1.0',
-        scopes: []
+        scopes: [],
       )
 
       json = sv.to_json
@@ -137,7 +137,7 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         'env' => 'test',
         'version' => '0.1.0',
         'language' => 'ruby',
-        'scopes' => []
+        'scopes' => [],
       )
     end
 
@@ -148,14 +148,14 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         source_file: '/app/lib/my_app.rb',
         start_line: 1,
         end_line: 100,
-        language_specifics: {file_hash: 'abc123'}
+        language_specifics: {file_hash: 'abc123'},
       )
 
       sv = described_class.new(
         service: 'my-app',
         env: 'production',
         version: '1.0.0',
-        scopes: [scope]
+        scopes: [scope],
       )
 
       json = sv.to_json

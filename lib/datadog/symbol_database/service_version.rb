@@ -43,7 +43,7 @@ module Datadog
           env: env,
           version: version,
           language: language,
-          scopes: scopes.map(&:to_h)
+          scopes: scopes.map(&:to_h),
         }
       end
 
