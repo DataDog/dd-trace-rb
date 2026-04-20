@@ -231,6 +231,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      id-token: write
     needs:
       - update-gem-version
     uses: ./.github/workflows/bump-gem-version.yml
