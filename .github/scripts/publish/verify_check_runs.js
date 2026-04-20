@@ -9,37 +9,6 @@
 // - https://docs.github.com/en/rest/checks/suites?apiVersion=2022-11-28#list-check-suites-for-a-git-reference
 // - https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#list-check-runs-in-a-check-suite
 module.exports = async ({github, context, core}) => {
-  // Identify check suites belonging to the current workflow so we can exclude them.
-  // Each workflow run gets its own check suite; we look up our own run's workflow ID,
-  // then find all runs of that workflow on this commit and collect their check suite IDs.
-  const currentWorkflowRunId = parseInt(process.env.CURRENT_RUN_ID);
-  let excludedRunIds = new Set();
-
-  if (currentWorkflowRunId) {
-    // Get the workflow ID for the current run
-    const { data: currentRun } = await github.rest.actions.getWorkflowRun({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      run_id: currentWorkflowRunId,
-    });
-    const workflowId = currentRun.workflow_id;
-
-    // List all runs of this workflow to find their check suite IDs
-    const { data: workflowRuns } = await github.rest.actions.listWorkflowRuns({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      workflow_id: workflowId,
-      head_sha: context.sha,
-      per_page: 100,
-    });
-
-    const workflowRunIds = new Set(workflowRuns.workflow_runs.map(r => r.id));
-    console.log(`Found ${workflowRunIds.size} runs of current workflow (ID: ${workflowId})`);
-
-    // We'll filter by run ID extracted from check run html_url below
-    excludedRunIds = workflowRunIds;
-  }
-
   const checkSuites = await github.paginate(github.rest.checks.listSuitesForRef, {
     owner: context.repo.owner,
     repo: context.repo.repo,
@@ -80,6 +49,32 @@ module.exports = async ({github, context, core}) => {
     let failedChecks = failedChecksArrays.flat();
 
     // Exclude check runs from the current workflow to prevent self-referential cascades.
+    // Only load workflow runs when there are actual failures to avoid unnecessary API calls.
+    const currentWorkflowRunId = parseInt(process.env.CURRENT_RUN_ID);
+    let excludedRunIds = new Set();
+
+    if (currentWorkflowRunId) {
+      // Get the workflow ID for the current run
+      const { data: currentRun } = await github.rest.actions.getWorkflowRun({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        run_id: currentWorkflowRunId,
+      });
+      const workflowId = currentRun.workflow_id;
+
+      // List all runs of this workflow to find their check suite IDs
+      const { data: workflowRuns } = await github.rest.actions.listWorkflowRuns({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        workflow_id: workflowId,
+        head_sha: context.sha,
+        per_page: 100,
+      });
+
+      excludedRunIds = new Set(workflowRuns.workflow_runs.map(r => r.id));
+      console.log(`Found ${excludedRunIds.size} runs of current workflow (ID: ${workflowId})`);
+    }
+
     // html_url format: https://github.com/OWNER/REPO/actions/runs/RUN_ID/job/JOB_ID
     if (excludedRunIds.size > 0) {
       const before = failedChecks.length;
