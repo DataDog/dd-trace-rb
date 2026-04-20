@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'datadog/symbol_database'
 require 'datadog/symbol_database/symbol'
 
 RSpec.describe Datadog::SymbolDatabase::Symbol do
