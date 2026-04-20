@@ -84,7 +84,11 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
       end
 
       # Install Bootsnap's iseq cache with a fresh temp directory.
+      # install! sets cache_dir to "#{cache_dir}-iseq" internally but does
+      # not create the directory. Without it the native fetch silently skips
+      # writing cache files to disk.
       Bootsnap::CompileCache::ISeq.install!(cache_dir)
+      FileUtils.mkdir_p(Bootsnap::CompileCache::ISeq.cache_dir)
 
       # Prime the Bootsnap cache by loading the test file once.
       # This compiles the source and writes the binary cache to disk.
@@ -101,13 +105,15 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
 
     after do
       Coverage.resume if @coverage_was_suspended
+      iseq_cache_dir = Bootsnap::CompileCache::ISeq.cache_dir
+      FileUtils.remove_entry(iseq_cache_dir) if iseq_cache_dir && File.exist?(iseq_cache_dir)
       FileUtils.remove_entry(cache_dir)
-      # Remove load_iseq from the prepended module so it falls through
-      # to normal compilation. The module stays in the ancestor chain but
-      # becomes a no-op (same pattern as DI instrumenter method probe cleanup).
-      if Bootsnap::CompileCache::ISeq::InstructionSequenceMixin.method_defined?(:load_iseq)
-        Bootsnap::CompileCache::ISeq::InstructionSequenceMixin.send(:remove_method, :load_iseq)
-      end
+      # Point Bootsnap's cache at the now-deleted directory. load_iseq stays
+      # in the ancestor chain but fetch silently returns nil when the cache
+      # dir doesn't exist — effectively a no-op.
+      # Do NOT remove_method :load_iseq from the mixin: prepend is permanent,
+      # so a subsequent install! won't re-add it, breaking later examples.
+      Bootsnap::CompileCache::ISeq.cache_dir = cache_dir
       Object.send(:remove_const, :BootsnapTestClass) if defined?(BootsnapTestClass)
     end
 
@@ -237,9 +243,10 @@ RSpec.describe "DI CodeTracker with Bootsnap" do
     it "Bootsnap cache was actually used (not just normal compilation)" do
       # Verify precondition: the cache file exists on disk, proving
       # Bootsnap wrote a cached binary during the first load.
-      cache_files = Dir.glob(File.join(cache_dir, "**/*")).select { |f| File.file?(f) }
+      iseq_cache_dir = Bootsnap::CompileCache::ISeq.cache_dir
+      cache_files = Dir.glob(File.join(iseq_cache_dir, "**/*")).select { |f| File.file?(f) }
       expect(cache_files).not_to be_empty,
-        "No Bootsnap cache files found in #{cache_dir}. " \
+        "No Bootsnap cache files found in #{iseq_cache_dir}. " \
         "Bootsnap may not have been properly initialized."
 
       # Load the file and verify load_iseq was called (Bootsnap's hook).
