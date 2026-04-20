@@ -58,6 +58,10 @@ appraise 'rails71' do
   gem 'rails', '~> 7.1.0'
 end
 
+appraise 'rails81' do
+  gem 'rails', '~> 8.1.0'
+end
+
 appraise 'rails8-mysql2' do
   gem 'rails', '~> 8.0.0'
   gem 'mysql2', '~> 0.5', platform: :ruby
@@ -132,6 +136,13 @@ end
 appraise 'http' do
   gem 'ethon'
   gem 'http'
+  gem 'httpclient'
+  gem 'typhoeus'
+end
+
+appraise 'http6' do
+  gem 'ethon'
+  gem 'http', '~> 6'
   gem 'httpclient'
   gem 'typhoeus'
 end

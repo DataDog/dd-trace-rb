@@ -21,7 +21,7 @@ module Datadog
 
     def self.evaluate: (*Evaluation::Message messages, ?allow_raise: bool) -> (Evaluation::Result | Evaluation::NoOpResult)
 
-    def self.message: (role: ::String | ::Symbol, content: ::String) -> Evaluation::Message
+    def self.message: (role: ::String | ::Symbol, ?content: ::String?) ?{ (Evaluation::ContentBuilder) -> void } -> Evaluation::Message
 
     def self.assistant: (tool_name: ::String, id: ::String | ::Numeric, arguments: ::String) -> Evaluation::Message
 

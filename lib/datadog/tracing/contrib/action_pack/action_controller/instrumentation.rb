@@ -43,7 +43,7 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CONTROLLER)
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
@@ -88,7 +88,7 @@ module Datadog
                 span.finish
               end
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 

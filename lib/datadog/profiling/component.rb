@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../core/telemetry/logger"
+
 module Datadog
   module Profiling
     # Responsible for wiring up the Profiler for execution
@@ -90,6 +92,14 @@ module Datadog
         end
 
         [profiler, {profiling_enabled: true}]
+      rescue Exception => e # rubocop:disable Lint/RescueException
+        logger.warn do
+          "Failed to initialize profiling: #{e.class}: #{e} " \
+          "Location: #{Array(e.backtrace).first}"
+        end
+        Datadog::Core::Telemetry::Logger.report(e, description: "Failed to initialize profiling")
+
+        [nil, {profiling_enabled: false}]
       end
 
       private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
@@ -368,7 +378,7 @@ module Datadog
         rescue StandardError, LoadError => e
           logger.warn(
             "Failed to probe `mysql2` gem information. " \
-            "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+            "Cause: #{e.class}: #{e} Location: #{Array(e.backtrace).first}"
           )
 
           true

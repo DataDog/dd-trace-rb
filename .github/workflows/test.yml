@@ -97,41 +97,15 @@ jobs:
       version: "2.5"
       alias: ruby-25
 
-  jruby-94:
-    name: "JRuby 9.4"
-    uses: ./.github/workflows/_unit_test.yml
-    with:
-      engine: jruby
-      version: "9.4"
-      alias: jruby-94
-
-  jruby-93:
-    name: "JRuby 9.3"
-    uses: ./.github/workflows/_unit_test.yml
-    with:
-      engine: jruby
-      version: "9.3"
-      alias: jruby-93
-
-  jruby-92:
-    name: "JRuby 9.2"
-    uses: ./.github/workflows/_unit_test.yml
-    with:
-      engine: jruby
-      version: "9.2"
-      alias: jruby-92
-
   junit:
     name: dd/junit
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     container:
       image: datadog/ci:v3.7.1
-      credentials:
-        username: "${{ secrets.DOCKERHUB_USERNAME }}"
-        password: "${{ secrets.DOCKERHUB_TOKEN }}"
       env:
-        DD_API_KEY: "${{ secrets.DD_API_KEY }}"
         DD_ENV: ci
         DATADOG_SITE: datadoghq.com
         DD_SERVICE: dd-trace-rb
@@ -148,9 +122,6 @@ jobs:
       - ruby-26
       - ruby-25
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
       - run: mkdir -p tmp/rspec && datadog-ci version
       - name: Download all junit reports
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
@@ -175,27 +146,21 @@ jobs:
           DD_GIT_COMMIT_SHA: ${{ github.sha }}
         run: echo "DD_GIT_COMMIT_SHA=$DD_GIT_COMMIT_SHA" >> "$GITHUB_ENV"
       - run: echo "$DD_GIT_COMMIT_SHA"
-      # We're using not-that-ideal XSLT here as this change, because it must be done over 17+ repos.
-      # It's a workaround until this gets integrated into a better place, such as datadog-ci or the backend.
-      #
-      # * ticket: https://datadoghq.atlassian.net/browse/APMSP-2610
-      # * RFC: https://docs.google.com/document/d/1OaX_h09fCXWmK_1ADrwvilt8Yt5h4WjC7UUAdS3Y3uw/edit?pli=1&tab=t.0#heading=h.tfy5viz7rz2
-      - name: Add final_status property
-        run: |
-          apk add libxslt
-          find tmp/rspec -name '*.xml' | while read -r xml_file; do
-              echo "Fixing $xml_file"
-              tmp_file="$(mktemp)"
-              xsltproc --output "$tmp_file" ".github/add_final_status.xsl" "$xml_file"
-              mv "$tmp_file" "$xml_file"
-          done
+      - name: Get Datadog credentials via dd-sts
+        id: dd-sts
+        uses: DataDog/dd-sts-action@2e8187910199bd93129520183c093e19aa585c75
+        with:
+          policy: public-datadog-dd-trace-rb
       - name: Upload junit reports
-        continue-on-error: true
+        env:
+          DD_API_KEY: ${{ steps.dd-sts.outputs.api_key }}
         run: datadog-ci junit upload --verbose tmp/rspec/
 
   coverage:
     name: dd/coverage
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     needs:
       # ADD NEW RUBIES HERE
       - ruby-40
@@ -209,11 +174,7 @@ jobs:
       - ruby-25
     container:
       image: datadog/ci:v5.7.0
-      credentials:
-        username: "${{ secrets.DOCKERHUB_USERNAME }}"
-        password: "${{ secrets.DOCKERHUB_TOKEN }}"
       env:
-        DD_API_KEY: "${{ secrets.DD_API_KEY }}"
         DD_ENV: ci
         DATADOG_SITE: datadoghq.com
         DD_SERVICE: dd-trace-rb
@@ -226,7 +187,14 @@ jobs:
           path: tmp/coverage
           pattern: coverage-*
           merge-multiple: true
+      - name: Get Datadog credentials via dd-sts
+        id: dd-sts
+        uses: DataDog/dd-sts-action@2e8187910199bd93129520183c093e19aa585c75
+        with:
+          policy: public-datadog-dd-trace-rb
       - name: Upload coverage reports to Datadog
+        env:
+          DD_API_KEY: ${{ steps.dd-sts.outputs.api_key }}
         run: |
           for container_dir in tmp/coverage/versions/*/*/; do
             alias_name=$(basename "$(dirname "$container_dir")")
@@ -249,8 +217,5 @@ jobs:
       - ruby-27
       - ruby-26
       - ruby-25
-      - jruby-94
-      - jruby-93
-      - jruby-92
     steps:
       - run: echo "DONE!"

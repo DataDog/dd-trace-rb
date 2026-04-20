@@ -523,4 +523,272 @@ RSpec.describe 'Telemetry integration tests' do
       # Network I/O is mocked
     end
   end
+
+  describe 'app-started event payloads when components are enabled' do
+    # The test cases here are more like unit tests in that they really want
+    # to assert the contents of generated events.
+    # However, the event creation logic is rather cumbersome, and there is
+    # no single point to spy on. AppStarted constructor is perhaps the best
+    # candidate, but this would assert on what is created rather than what is
+    # actually sent over the wire, which still wouldn't be a straightforward
+    # mapping from what we want to test (which are actual payloads).
+    # Therefore, these tests go through a local web server and assert on the
+    # submitted payloads.
+    #
+    # These tests are also subject to a race of sorts between when the
+    # telemetry worker performs its first iteration and when the
+    # app integrations change event is submitted to the queue.
+    # Since the tests flush the queue, if the integration change event is
+    # submitted after the initial worker iteration, each test will wait for
+    # 10 seconds for the second iteration to send out that event.
+    # To work around this we reduce metrics_aggregation_interval_seconds to
+    # 1 (second).
+    # Note that this is (sort of) not an issue in production: all of the
+    # events will be sent, but telemetry does not guarantee when any particular
+    # event will be sent - it could be delayed until the next worker iteration.
+
+    http_server do |http_server|
+      http_server.mount_proc('/telemetry/proxy/api/v2/apmtelemetry', &handler_proc)
+    end
+
+    after do
+      Datadog.configuration.reset!
+    end
+
+    let(:settings) do
+      Datadog.configuration
+    end
+
+    let(:component) { Datadog.send(:components).telemetry }
+
+    # Override in inner contexts to set up mocks before Datadog.configure runs.
+    let(:product_mock_setup) { nil }
+
+    # Override in inner contexts to set product-specific settings.
+    let(:product_configuration) { ->(c) {} }
+
+    before do
+      product_mock_setup
+
+      Datadog.configure do |c|
+        c.agent.port = http_server_port
+        c.telemetry.enabled = true
+        c.telemetry.metrics_aggregation_interval_seconds = 1
+
+        product_configuration.call(c)
+      end
+    end
+
+    def assert_remaining_events
+      # For sanity checking verify that the remaining events are as we
+      # expect them to be. Search by content rather than index — some test
+      # cases emit extra telemetry events (error logs, WAF metrics) that
+      # shift the payload order depending on Ruby version and environment.
+      deps_payload = sent_payloads.find { |p| p.fetch(:payload)['request_type'] == 'app-dependencies-loaded' }
+      expect(deps_payload).not_to be_nil
+
+      integrations_batch = sent_payloads.find do |p|
+        p.fetch(:payload)['request_type'] == 'message-batch' &&
+          Array(p.fetch(:payload)['payload']).any? { |e| e['request_type'] == 'app-integrations-change' }
+      end
+      expect(integrations_batch).not_to be_nil
+    end
+
+    # Configuration names use env var names (DD_PROFILING_ENABLED, not
+    # profiling.enabled) because AppStarted#option_telemetry_name prefers
+    # option.definition.env over the setting path when an env var is defined.
+    shared_examples 'reports requested configuration and actual product state' do |product_key:, configuration:, actual_state:|
+      requested = configuration[:value]
+      running = actual_state.fetch('enabled')
+
+      it "reports #{product_key} as configured #{requested} and actually #{running ? 'enabled' : 'disabled'}" do
+        component.flush
+        # There may be more than 3 payloads when component initialization emits
+        # telemetry error events (e.g. AppSec logging why it failed to start).
+        expect(sent_payloads.length).to be >= 3
+
+        # Find app-started by content rather than index — extra telemetry events
+        # may arrive before or after, depending on Ruby version and timing.
+        app_started = sent_payloads.find { |p| p.fetch(:payload)['request_type'] == 'app-started' }
+        expect(app_started).not_to be_nil
+        payload = app_started.fetch(:payload)
+
+        expect(payload.dig('payload', 'configuration')).to include(
+          {'name' => configuration[:name], 'value' => configuration[:value], 'origin' => 'code', 'seq_id' => Integer},
+        )
+        expect(payload.dig('payload', 'products')).to include(
+          product_key => actual_state,
+        )
+
+        assert_remaining_events
+      end
+    end
+
+    context 'when profiling is disabled' do
+      let(:product_mock_setup) do
+        # Avoid profiling reporting unsupported errors when disabled
+        expect(Datadog::Profiling).to receive(:unsupported_reason).at_least(:once).and_return(nil)
+      end
+
+      let(:product_configuration) { ->(c) { c.profiling.enabled = false } }
+
+      include_examples 'reports requested configuration and actual product state',
+        product_key: 'profiler',
+        configuration: {name: 'DD_PROFILING_ENABLED', value: false},
+        actual_state: {'enabled' => false}
+    end
+
+    context 'when profiling is fully enabled' do
+      let(:product_mock_setup) do
+        # Mock profiling as supported
+        expect(Datadog::Profiling).to receive(:unsupported_reason).at_least(:once).and_return(nil)
+
+        # Profiling tests require building the native extension (via `bundle exec rake compile`)
+        # or mocking the entire profiler object. We mock it here to allow tests to run in
+        # environments where the native extension hasn't been compiled.
+        fake_profiler = Object.new
+        def fake_profiler.shutdown!
+        end
+
+        def fake_profiler.start
+        end
+
+        allow(Datadog::Profiling::Component).to receive(:build_profiler_component).and_return([fake_profiler, nil])
+      end
+
+      let(:product_configuration) { ->(c) { c.profiling.enabled = true } }
+
+      include_examples 'reports requested configuration and actual product state',
+        product_key: 'profiler',
+        configuration: {name: 'DD_PROFILING_ENABLED', value: true},
+        actual_state: {'enabled' => true}
+    end
+
+    context 'when profiling is requested to be enabled but fails prerequisites' do
+      let(:product_mock_setup) do
+        expect(Datadog::Profiling).to receive(:unsupported_reason).at_least(:once).and_return('fake not supported reason')
+      end
+
+      let(:product_configuration) { ->(c) { c.profiling.enabled = true } }
+
+      include_examples 'reports requested configuration and actual product state',
+        product_key: 'profiler',
+        configuration: {name: 'DD_PROFILING_ENABLED', value: true},
+        actual_state: {
+          'enabled' => false,
+          'error' => {
+            'code' => 1,
+            'message' => 'fake not supported reason',
+          },
+        }
+    end
+
+    context 'when dynamic instrumentation is disabled' do
+      let(:product_configuration) { ->(c) { c.dynamic_instrumentation.enabled = false } }
+
+      include_examples 'reports requested configuration and actual product state',
+        product_key: 'dynamic_instrumentation',
+        configuration: {name: 'DD_DYNAMIC_INSTRUMENTATION_ENABLED', value: false},
+        actual_state: {'enabled' => false}
+    end
+
+    context 'when dynamic instrumentation is fully enabled' do
+      let(:product_mock_setup) do
+        # DI requires a C extension and MRI Ruby 2.6+, which are not
+        # available in all CI configurations. Mock the component build
+        # so the test can run everywhere, same approach as profiling.
+        fake_di = Object.new
+        def fake_di.shutdown!
+        end
+
+        allow(Datadog::DI::Component).to receive(:build).and_return(fake_di)
+      end
+
+      let(:product_configuration) do
+        lambda { |c|
+          c.dynamic_instrumentation.enabled = true
+          c.dynamic_instrumentation.internal.development = true
+          c.remote.enabled = true
+        }
+      end
+
+      include_examples 'reports requested configuration and actual product state',
+        product_key: 'dynamic_instrumentation',
+        configuration: {name: 'DD_DYNAMIC_INSTRUMENTATION_ENABLED', value: true},
+        actual_state: {'enabled' => true}
+    end
+
+    context 'when dynamic instrumentation is requested to be enabled but fails prerequisites' do
+      let(:product_configuration) do
+        lambda { |c|
+          c.dynamic_instrumentation.enabled = true
+          # Disable remote config which is a prerequisite for DI
+          c.remote.enabled = false
+        }
+      end
+
+      include_examples 'reports requested configuration and actual product state',
+        product_key: 'dynamic_instrumentation',
+        configuration: {name: 'DD_DYNAMIC_INSTRUMENTATION_ENABLED', value: true},
+        actual_state: {
+          'enabled' => false,
+          # DI currently does not provide the reason why it's not enabled.
+        }
+    end
+
+    context 'when appsec is disabled' do
+      let(:product_configuration) { ->(c) { c.appsec.enabled = false } }
+
+      include_examples 'reports requested configuration and actual product state',
+        product_key: 'appsec',
+        configuration: {name: 'DD_APPSEC_ENABLED', value: false},
+        actual_state: {'enabled' => false}
+    end
+
+    context 'when appsec is fully enabled' do
+      let(:product_configuration) { ->(c) { c.appsec.enabled = true } }
+
+      include_examples 'reports requested configuration and actual product state',
+        product_key: 'appsec',
+        configuration: {name: 'DD_APPSEC_ENABLED', value: true},
+        actual_state: {'enabled' => true}
+    end
+
+    context 'when appsec is requested to be enabled but fails prerequisites' do
+      let(:product_mock_setup) do
+        # Simulate FFI gem not being loaded (prerequisite check)
+        fake_specs = Gem.loaded_specs.dup
+        fake_specs.delete('ffi')
+        allow(Gem).to receive(:loaded_specs).and_return(fake_specs)
+      end
+
+      let(:product_configuration) { ->(c) { c.appsec.enabled = true } }
+
+      include_examples 'reports requested configuration and actual product state',
+        product_key: 'appsec',
+        configuration: {name: 'DD_APPSEC_ENABLED', value: true},
+        actual_state: {
+          'enabled' => false,
+          # AppSec currently does not provide the reason why it's not enabled.
+        }
+    end
+
+    context 'when appsec is requested to be enabled but fails initialization' do
+      let(:product_mock_setup) do
+        # AppSec has very modest prerequisites, it's easier to fail
+        # its initialization than to make the prerequisites not fulfilled.
+        expect(Datadog::AppSec::SecurityEngine::Engine).to receive(:new).and_raise("fake exception")
+      end
+
+      let(:product_configuration) { ->(c) { c.appsec.enabled = true } }
+
+      include_examples 'reports requested configuration and actual product state',
+        product_key: 'appsec',
+        configuration: {name: 'DD_APPSEC_ENABLED', value: true},
+        actual_state: {
+          'enabled' => false,
+          # AppSec currently does not provide the reason why it's not enabled.
+        }
+    end
+  end
 end

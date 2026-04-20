@@ -62,7 +62,7 @@ module Datadog
           block.call(*args)
         rescue => e
           Datadog.logger.debug do
-            "Error while handling '#{name}' event with '#{block}': #{e.class.name} #{e.message} " \
+            "Error while handling '#{name}' event with '#{block}': #{e.class}: #{e} " \
             "at #{Array(e.backtrace).first}"
           end
         end

@@ -93,7 +93,7 @@ module Datadog
               operation_name = self.class._native_failure_exception_during_operation(self).inspect
               Datadog.logger.warn(
                 "CpuAndWallTimeWorker thread error. " \
-                "Operation: #{operation_name} Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+                "Operation: #{operation_name} Cause: #{e.class}: #{e} Location: #{Array(e.backtrace).first}"
               )
               on_failure_proc&.call
               Datadog::Core::Telemetry::Logger.report(e, description: "CpuAndWallTimeWorker thread error: #{operation_name}")

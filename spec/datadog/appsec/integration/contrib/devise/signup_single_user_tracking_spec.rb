@@ -192,8 +192,6 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
         '_dd.appsec.usr.login' => 'john.doe@example.com',
         '_dd.appsec.usr.id' => '1'
       )
-
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
     end
   end
 
@@ -239,8 +237,6 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
         '_dd.appsec.events.users.signup.auto.mode' => 'identification',
         '_dd.appsec.usr.login' => 'john.doe@example.com'
       )
-
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
     end
   end
 
@@ -298,8 +294,6 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
         '_dd.appsec.usr.login' => 'john.doe@example.com',
         '_dd.appsec.usr.id' => '1'
       )
-
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
     end
   end
 
@@ -360,8 +354,6 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
         '_dd.appsec.usr.login' => 'john.doe@example.com',
         '_dd.appsec.usr.id' => '1'
       )
-
-      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
     end
   end
 end

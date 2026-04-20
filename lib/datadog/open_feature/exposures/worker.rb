@@ -105,7 +105,7 @@ module Datadog
 
           response
         rescue => e
-          @logger.debug { "OpenFeature: Failed to flush resolution details events: #{e.class}: #{e.message}" }
+          @logger.debug { "OpenFeature: Failed to flush resolution details events: #{e.class}: #{e}" }
           @telemetry.report(e, description: 'OpenFeature: Failed to flush resolution details events')
 
           nil

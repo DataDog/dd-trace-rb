@@ -60,7 +60,7 @@ module Datadog
       rescue => e
         message = 'OpenFeature: Failed to reconfigure, reverting to the previous configuration'
 
-        @logger.error("#{message}, #{e.class}: #{e.message}")
+        @logger.error("#{message}, #{e.class}: #{e}")
         @telemetry.report(e, description: "#{message} (#{e.class})")
 
         raise ReconfigurationError, e.message

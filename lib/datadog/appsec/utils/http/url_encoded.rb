@@ -30,9 +30,9 @@ module Datadog
               #
               # @type var key: ::String
               # @type var value: ::String
-              key, value = pair.split('=', 2).map! do |value| #: ::String
+              key, value = pair.split('=', 2).map! do |value|
                 CGI.unescape(value)
-              end
+              end #: [::String, ::String]
 
               if (stored = memo[key])
                 if stored.is_a?(Array)

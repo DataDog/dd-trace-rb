@@ -186,7 +186,7 @@ module Datadog
                 # surface errors so they can fix their serializers) or they may be defined
                 # internally by dd-trace-rb (in which case we need to fix them). We use
                 # WARN level to surface these errors in either case.
-                Datadog.logger.warn("DI: Custom serializer condition failed: #{e.class}: #{e.message}")
+                Datadog.logger.warn("DI: Custom serializer condition failed: #{e.class}: #{e}")
                 telemetry&.report(e, description: "Custom serializer condition failed")
                 next
               end
