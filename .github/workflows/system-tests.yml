@@ -67,7 +67,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: dd-trace-rb  # The name must match the folder name so it extracts to binaries/dd-trace-rb on download
+          name: dd-trace-rb # The name must match the folder name so it extracts to binaries/dd-trace-rb on download
           path: packaged
       - id: compute_forced_tests
         run: |
@@ -77,7 +77,7 @@ jobs:
   test:
     needs:
       - build
-    uses: DataDog/system-tests/.github/workflows/system-tests.yml@ec74ba8b7647f5d48432da42295cdf39211fbf6c  # Automated: This reference is automatically updated.
+    uses: DataDog/system-tests/.github/workflows/system-tests.yml@335edb089e8c1310e39cb0b06dbd745ac562c8b9 # Automated: This reference is automatically updated.
     permissions:
       contents: read
       id-token: write
@@ -85,10 +85,10 @@ jobs:
     with:
       library: ruby
       binaries_artifact: dd-trace-rb
-      desired_execution_time: 300  # 5 minutes
+      desired_execution_time: 300 # 5 minutes
       scenarios_groups: tracer_release
       skip_empty_scenarios: true
-      ref: ec74ba8b7647f5d48432da42295cdf39211fbf6c  # Automated: This reference is automatically updated.
+      ref: 335edb089e8c1310e39cb0b06dbd745ac562c8b9 # Automated: This reference is automatically updated.
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8
       push_to_test_optimization: false

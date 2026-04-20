@@ -5,9 +5,9 @@ subject: repo:DataDog/dd-trace-rb:environment:rubygems.org
 claim_pattern:
   event_name: workflow_dispatch
   environment: rubygems.org
-  ref: refs/heads/*
+  ref: refs/heads/[^/]+
   repository: DataDog/dd-trace-rb
-  job_workflow_ref: DataDog/dd-trace-rb/\.github/workflows/publish\.yml@refs/heads/*
+  job_workflow_ref: DataDog/dd-trace-rb/\.github/workflows/publish\.yml@refs/heads/[^/]+
 
 permissions:
   contents: write
