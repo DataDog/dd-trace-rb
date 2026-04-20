@@ -97,7 +97,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         .with(logger)
     end
 
-    it do
+    it 'builds all components and assigns them correctly' do
       expect(components.logger).to be logger
       expect(components.tracer).to be tracer
       expect(components.profiler).to be profiler
@@ -190,7 +190,9 @@ RSpec.describe Datadog::Core::Configuration::Components do
             .and_return(health_metrics)
         end
 
-        it { is_expected.to be(health_metrics) }
+        it 'returns the health metrics instance' do
+          is_expected.to be(health_metrics)
+        end
       end
 
       context 'by default' do
@@ -260,7 +262,9 @@ RSpec.describe Datadog::Core::Configuration::Components do
           expect(logger).to receive(:level=).with(level)
         end
 
-        it { is_expected.to be(logger) }
+        it 'returns the logger instance' do
+          is_expected.to be(logger)
+        end
       end
 
       context 'by default' do
@@ -331,7 +335,9 @@ RSpec.describe Datadog::Core::Configuration::Components do
             .and_return(runtime_metrics)
         end
 
-        it { is_expected.to be(runtime_metrics) }
+        it 'returns the runtime metrics instance' do
+          is_expected.to be(runtime_metrics)
+        end
       end
 
       context 'by default' do
@@ -421,7 +427,9 @@ RSpec.describe Datadog::Core::Configuration::Components do
             .and_return(runtime_metrics_worker)
         end
 
-        it { is_expected.to be(runtime_metrics_worker) }
+        it 'returns the runtime metrics worker instance' do
+          is_expected.to be(runtime_metrics_worker)
+        end
       end
 
       context 'by default' do
@@ -498,7 +506,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
               .and_return(true)
           end
 
-          it do
+          it 'logs a warning that profiling is disabled' do
             expect(components.profiler)
               .to be nil
 
@@ -517,7 +525,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
               .and_return(false)
           end
 
-          it do
+          it 'does not log a profiling warning' do
             expect(components.profiler)
               .to be nil
 
@@ -546,7 +554,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           ).and_return([profiler, environment_logger_extra])
         end
 
-        it do
+        it 'starts the profiler' do
           expect(profiler).to receive(:start)
 
           startup!
