@@ -11,14 +11,7 @@ module Datadog
     # The language field identifies the tracer.
     #
     # Created by: Uploader (wraps scopes array before serialization)
-    # Contains: Array of top-level Scope objects (MODULE scopes)
-    #
-    # DESIGN VERIFICATION: "MODULE scopes" is INACCURATE.
-    #   Source: specs/json-schema.md, "Root Scope Types" table (lines 120-127)
-    #     Ruby root scope type is FILE, not MODULE
-    #   Source: design/scope-hierarchy.md, "Root Scope Choice: FILE"
-    #     "Ruby uses FILE as the root scope -- one FILE scope per source file"
-    #   Should say: "Array of top-level Scope objects (FILE scopes)"
+    # Contains: Array of top-level Scope objects (FILE scopes)
     #
     # Serialized to: JSON via to_json, then GZIP compressed for upload
     #
@@ -61,11 +54,6 @@ module Datadog
         #     Ruby language value: "ruby" (lowercase) -- ACCURATE
         #   Source: specs/json-schema.md, lines 709-719
         #     "Convention is lowercase -- Ruby should send 'ruby'" -- ACCURATE
-        #   CAVEAT: design/json-serialization.md line 107 says
-        #     'Language field: Always "ruby" (uppercase, from spec)'
-        #     The parenthetical "(uppercase, from spec)" is INACCURATE in the
-        #     design doc -- the value "ruby" is lowercase and the spec confirms
-        #     lowercase. The implementation is correct; the design doc text is wrong.
         @scopes = scopes
       end
 

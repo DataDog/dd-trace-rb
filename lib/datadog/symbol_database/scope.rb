@@ -4,15 +4,7 @@ require 'json'
 
 module Datadog
   module SymbolDatabase
-    # Represents a scope in the hierarchical symbol structure (MODULE -> CLASS -> METHOD).
-    #
-    # DESIGN VERIFICATION: Hierarchy description is INCOMPLETE.
-    #   Source: design/scope-hierarchy.md, "Ruby (our implementation)" section
-    #     Actual hierarchy: FILE -> MODULE/CLASS -> METHOD
-    #     FILE is the root scope type (added via backend PR #1989)
-    #   Source: specs/json-schema.md, "Root Scope Types" table (lines 120-127)
-    #     Ruby root scope type is FILE
-    #   The comment omits FILE as root. Should be: FILE -> MODULE/CLASS -> METHOD
+    # Represents a scope in the hierarchical symbol structure (FILE -> MODULE/CLASS -> METHOD).
     #
     # Scopes form a tree structure representing Ruby code organization. Each scope contains:
     # - Metadata: name, source file, line range, scope type (MODULE/CLASS/METHOD/etc.)
@@ -43,15 +35,7 @@ module Datadog
         :language_specifics, :symbols, :scopes
 
       # Initialize a new Scope
-      # @param scope_type [String] Type of scope (MODULE, CLASS, METHOD, LOCAL, CLOSURE)
-      #
-      # DESIGN VERIFICATION: scope_type @param list is INACCURATE for Ruby.
-      #   Source: specs/json-schema.md, lines 110-114
-      #     Ruby scope types: FILE, MODULE, CLASS, METHOD
-      #     LOCAL and CLOSURE are NOT Ruby scope types (they belong to Java/.NET/Go)
-      #   Source: design/scope-hierarchy.md, "Ruby Language Entities" table
-      #     Block/Proc/Lambda -> Skip (no CLOSURE). LOCAL scopes -> deferred.
-      #   Should list: FILE, MODULE, CLASS, METHOD
+      # @param scope_type [String] Type of scope (FILE, MODULE, CLASS, METHOD)
       #
       # @param name [String, nil] Name of the scope (class name, method name, etc.)
       # @param source_file [String, nil] Path to source file
