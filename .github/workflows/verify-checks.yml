@@ -1,0 +1,30 @@
+name: Verify check runs
+
+on: # yamllint disable-line rule:truthy
+  pull_request:
+    types: [opened, synchronize]
+
+permissions: {}
+
+jobs:
+  verify-checks:
+    name: Verify commit check runs
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      checks: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Verify check runs
+        env:
+          APP_ID: 15368 # Github Actions app ID
+          CURRENT_RUN_ID: ${{ github.run_id }}
+          TARGET_SHA: ${{ github.event.pull_request.head.sha }}
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          retries: 3
+          script: |
+            const script = require('./.github/scripts/publish/verify_check_runs.js')
+            await script({github, context, core})

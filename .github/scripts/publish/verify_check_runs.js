@@ -36,6 +36,7 @@
 // Environment variables:
 //   APP_ID          - GitHub App ID to filter check suites (e.g. 15368 for GitHub Actions)
 //   CURRENT_RUN_ID  - (optional) current workflow run ID; enables self-exclusion
+//   TARGET_SHA      - (optional) commit SHA to check; defaults to context.sha
 //
 // API:
 // - https://docs.github.com/en/rest/checks/suites#list-check-suites-for-a-git-reference
@@ -43,10 +44,12 @@
 // - https://docs.github.com/en/rest/actions/workflow-runs#get-a-workflow-run
 // - https://docs.github.com/en/rest/actions/workflow-runs#list-workflow-runs-for-a-workflow
 module.exports = async ({github, context, core}) => {
+  const sha = process.env.TARGET_SHA || context.sha;
+
   const checkSuites = await github.paginate(github.rest.checks.listSuitesForRef, {
     owner: context.repo.owner,
     repo: context.repo.repo,
-    ref: context.sha,
+    ref: sha,
     app_id: parseInt(process.env.APP_ID),
     per_page: 100
   });
@@ -101,7 +104,7 @@ module.exports = async ({github, context, core}) => {
         owner: context.repo.owner,
         repo: context.repo.repo,
         workflow_id: workflowId,
-        head_sha: context.sha,
+        head_sha: sha,
         per_page: 100,
       });
 
