@@ -12,14 +12,22 @@ on: # yamllint disable-line rule:truthy
 jobs:
   compute-stats:
     permissions:
+      id-token: write
       pull-requests: write
     runs-on: ubuntu-24.04
     steps:
+      - name: Get GitHub Token via dd-octo-sts
+        id: generate-token
+        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
+        with:
+          scope: DataDog/dd-trace-rb
+          policy: self.typing-stats
+
       - name: Find existing comment
         id: comment
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
+          github-token: ${{ steps.generate-token.outputs.token }}
           script: |
             const options = github.rest.issues.listComments.endpoint.merge({
               owner: context.repo.owner,
@@ -81,7 +89,7 @@ jobs:
       - name: Write comment
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
+          github-token: ${{ steps.generate-token.outputs.token }}
           script: |
             var fs = require('fs')
 
