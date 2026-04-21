@@ -74,9 +74,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
         end_line: 20
       )
 
-      hash = scope.to_h
-
-      expect(hash).to include(
+      expect(scope.to_h).to include(
         scope_type: 'METHOD',
         name: 'my_method',
         source_file: '/path/file.rb',
