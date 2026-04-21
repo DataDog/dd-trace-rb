@@ -4,7 +4,7 @@ require 'json'
 
 module Datadog
   module SymbolDatabase
-    # Represents a scope in the hierarchical symbol structure (MODULE → CLASS → METHOD).
+    # Represents a scope in the hierarchical symbol structure (FILE → MODULE/CLASS → METHOD).
     #
     # Scopes form a tree structure representing Ruby code organization. Each scope contains:
     # - Metadata: name, source file, line range, scope type (MODULE/CLASS/METHOD/etc.)
