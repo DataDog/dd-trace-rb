@@ -505,17 +505,22 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # So that the below assertions make sense (and are not flaky), we drop these first few samples from our
           # consideration
 
-          found_first_cpu = false
+          # REPRODUCER: Simulate macOS ARM take_while behavior.
+          #
+          # On macOS, per-thread cpu_time is not available (no pthread_getcpuclockid), so
+          # cpu_time_now_ns always returns 0. No sample ever gets state "had cpu" — all
+          # non-GVL samples are "unknown" instead. The original take_while has a boundary
+          # on the first "had cpu", but on macOS that boundary never fires. The take_while
+          # becomes: consume all leading non-"waiting for gvl" samples.
+          #
+          # On Linux, this reproducer consumes 2 extra samples (the "had cpu" that would
+          # normally stop the take_while). On macOS, it faithfully matches the real behavior.
+          # The test should fail on macOS CI when the CPU hog wins the GVL race at profiler
+          # startup, causing ~100ms of "unknown" prefix that the take_while consumes.
           missed_by_profiler_time =
             samples
-              .take_while do |s|
-                if s.labels[:state] == "unknown"
-                  true
-                elsif s.labels[:state] == "had cpu" && !found_first_cpu
-                  found_first_cpu = true
-                  true
-                end
-              end.sum { |sample| sample.values.fetch(:"wall-time") }
+              .take_while { |s| s.labels[:state] != "waiting for gvl" }
+              .sum { |sample| sample.values.fetch(:"wall-time") }
 
           total_time = samples.sum { |sample| sample.values.fetch(:"wall-time") } - missed_by_profiler_time
           waiting_for_gvl_samples = samples.select { |sample| sample.labels[:state] == "waiting for gvl" }
