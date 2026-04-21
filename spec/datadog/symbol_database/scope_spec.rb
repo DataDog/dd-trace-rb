@@ -308,69 +308,6 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
       expect(hash).not_to have_key(:injectible_lines)
     end
 
-    it 'includes injectable lines fields on METHOD scope with ranges' do
-      scope = described_class.new(
-        scope_type: 'METHOD',
-        name: 'my_method',
-        has_injectible_lines: true,
-        injectible_lines: [{start: 10, end: 12}, {start: 15, end: 15}]
-      )
-
-      hash = scope.to_h
-
-      expect(hash[:has_injectible_lines]).to eq(true)
-      expect(hash[:injectible_lines]).to eq([{start: 10, end: 12}, {start: 15, end: 15}])
-    end
-
-    it 'includes has_injectible_lines: false on METHOD scope without ranges' do
-      scope = described_class.new(
-        scope_type: 'METHOD',
-        name: 'native_method',
-        has_injectible_lines: false,
-        injectible_lines: nil
-      )
-
-      hash = scope.to_h
-
-      expect(hash[:has_injectible_lines]).to eq(false)
-      expect(hash).not_to have_key(:injectible_lines)
-    end
-
-    it 'excludes injectable lines fields from CLASS scope' do
-      scope = described_class.new(
-        scope_type: 'CLASS',
-        name: 'MyClass'
-      )
-
-      hash = scope.to_h
-
-      expect(hash).not_to have_key(:has_injectible_lines)
-      expect(hash).not_to have_key(:injectible_lines)
-    end
-
-    it 'excludes injectable lines fields from MODULE scope' do
-      scope = described_class.new(
-        scope_type: 'MODULE',
-        name: 'MyModule'
-      )
-
-      hash = scope.to_h
-
-      expect(hash).not_to have_key(:has_injectible_lines)
-      expect(hash).not_to have_key(:injectible_lines)
-    end
-
-    it 'excludes injectable lines fields from FILE scope' do
-      scope = described_class.new(
-        scope_type: 'FILE',
-        name: '/app/test.rb'
-      )
-
-      hash = scope.to_h
-
-      expect(hash).not_to have_key(:has_injectible_lines)
-      expect(hash).not_to have_key(:injectible_lines)
-    end
   end
 
   describe '#to_json' do
