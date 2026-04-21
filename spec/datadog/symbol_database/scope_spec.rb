@@ -57,9 +57,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
         name: 'MyClass',
       )
 
-      hash = scope.to_h
-
-      expect(hash).to eq({
+      expect(scope.to_h).to eq({
         scope_type: 'CLASS',
         name: 'MyClass'
       })

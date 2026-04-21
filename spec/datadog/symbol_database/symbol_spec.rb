@@ -44,9 +44,7 @@ RSpec.describe Datadog::SymbolDatabase::Symbol do
         line: 5,
       )
 
-      hash = symbol.to_h
-
-      expect(hash).to eq({
+      expect(symbol.to_h).to eq({
         symbol_type: 'STATIC_FIELD',
         name: 'CONSTANT',
         line: 5

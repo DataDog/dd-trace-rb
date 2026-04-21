@@ -73,9 +73,7 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         scopes: [],
       )
 
-      hash = sv.to_h
-
-      expect(hash).to eq({
+      expect(sv.to_h).to eq({
         service: 'my-app',
         env: 'staging',
         version: '2.1.0',
