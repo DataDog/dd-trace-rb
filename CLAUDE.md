@@ -78,6 +78,40 @@ actionlint .github/workflows/your-workflow.yml
   - Exception: constants initialized at load time (before user configuration) may use `::Time.now` directly; add a comment explaining why (see `lib/datadog/profiling/collectors/info.rb` for an example)
   - Exception: Dynamic Instrumentation (DI) probe instrumentation code that runs inside customer application methods must use `::Time.now` directly — the time provider supports runtime overrides (the API exists even if rarely used in production), and DI must never invoke customer-provided code during instrumentation
 
+## Running Tests
+
+Tests MUST be run via rake tasks, not bare `bundle exec rspec`, because most test suites require specific Gemfiles (appraisals) for third-party dependencies. The rake task selects the correct Gemfile for the current Ruby version automatically.
+
+```bash
+bundle exec rake test:TASK_KEY          # Correct - always use this
+bundle exec rspec spec/path/file.rb     # ONLY for specs covered by test:main
+```
+
+### Finding the right rake task
+
+1. **Identify the component**: determine which product or contrib the changed files belong to based on their path under `lib/datadog/` or `spec/datadog/` (e.g. `appsec`, `profiling`, `redis`, `sinatra`)
+2. **Search for a matching task**: `bundle exec rake -T test | grep KEYWORD` using the component name as KEYWORD
+3. **Verify the task**: check the Rakefile `spec:TASK` definition to confirm which spec files are included/excluded, and check the Matrixfile for Ruby version compatibility
+
+The `test:main` task uses the default Gemfile and its specs can also be run individually with `bundle exec rspec`.
+
+### Docker requirement
+
+- Contrib/integration tests need Docker: `docker compose run --rm tracer-3.4 /bin/bash`, then run the rake task inside
+- `test:main` can run locally on any Ruby for quick feedback
+- If Bundler fails inside the container (e.g. after a dependency update), run `bundle install` and retry the rake task once before investigating further
+
+### Verifying across Ruby versions
+
+Before marking a task complete, run the relevant test task on both the earliest and latest supported Ruby versions. Regressions in older Rubies are easy to miss when only testing on the latest. Check the component's entry in `Matrixfile` for the supported range, then:
+
+```bash
+docker compose run --rm tracer-2.5 bundle exec rake test:TASK_KEY
+docker compose run --rm tracer-4.0 bundle exec rake test:TASK_KEY
+```
+
+Skip versions the Matrixfile marks as unsupported for that task. For `test:main`, the same applies — swap in the tracer container matching each end of the supported range.
+
 ## Documentation
 
 - **Dynamic Instrumentation docs**: Never mention telemetry in customer-facing documentation (e.g., `docs/DynamicInstrumentation.md`)
@@ -110,7 +144,7 @@ See `docs/` for:
 bundle exec rake test:main              # Smoke tests
 bundle exec rake standard typecheck     # Lint and type check
 bundle exec steep check [sources]       # Type check (sources = files or dirs, optional)
-bundle exec rspec spec/path/file_spec.rb:123  # Run specific test
+bundle exec rspec spec/path/file_spec.rb:123  # Run specific test (only works for test:main specs; see "Running Tests")
 ```
 
 ## Gotchas
