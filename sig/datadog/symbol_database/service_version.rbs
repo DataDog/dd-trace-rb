@@ -1,0 +1,36 @@
+module Datadog
+  module SymbolDatabase
+    class ServiceVersion
+      @service: String
+
+      @env: String
+
+      @version: String
+
+      @language: String
+
+      @scopes: Array[Scope]
+
+      def initialize: (
+        service: String,
+        env: String?,
+        version: String?,
+        scopes: Array[Scope]
+      ) -> void
+
+      attr_reader service: String
+
+      attr_reader env: String
+
+      attr_reader version: String
+
+      attr_reader language: String
+
+      attr_reader scopes: Array[Scope]
+
+      def to_h: () -> Hash[::Symbol, untyped]
+
+      def to_json: (?untyped _state) -> String
+    end
+  end
+end
