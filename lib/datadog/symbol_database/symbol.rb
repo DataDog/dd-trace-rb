@@ -45,13 +45,15 @@ module Datadog
       # Removes nil values to reduce payload size.
       # @return [Hash] Symbol as hash with symbol keys
       def to_h
-        {
+        h = {
           symbol_type: symbol_type,
           name: name,
           line: line,
           type: type,
           language_specifics: language_specifics,
-        }.compact
+        }
+        h.compact!
+        h
       end
 
       # Serialize symbol to JSON.
