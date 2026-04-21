@@ -31,9 +31,29 @@ alwaysApply: false
 
 ## Running Tests
 
-- Run core library tests: `bundle exec rake test:main`
-- Run a specific test/file from core library tests: `bundle exec rspec <relative path to the file>`
-  - You can't run `shared_examples` directly, run the tests that use it instead.
+Tests MUST be run via rake tasks, not bare `bundle exec rspec`, because most test suites require specific Gemfiles (appraisals). The rake task selects the correct Gemfile automatically.
+
+```bash
+bundle exec rake test:TASK_KEY          # Correct - always use this
+bundle exec rspec spec/path/file.rb     # ONLY for specs covered by test:main
+```
+
+### Finding the right rake task
+
+1. **Identify the component**: determine which product or contrib the changed files belong to based on their path under `lib/datadog/` or `spec/datadog/` (e.g. `appsec`, `profiling`, `redis`, `sinatra`)
+2. **Search for a matching task**: `bundle exec rake -T test | grep KEYWORD` using the component name as KEYWORD
+3. **Verify the task**: check the Rakefile `spec:TASK` definition to confirm which spec files are included/excluded, and check the Matrixfile for Ruby version compatibility
+
+The `test:main` task uses the default Gemfile and its specs can also be run individually with `bundle exec rspec`.
+
+### Docker requirement
+
+- Contrib/integration tests need Docker: `docker compose run --rm tracer-3.4 /bin/bash`, then run the rake task inside
+- `test:main` can run locally on any Ruby for quick feedback
+
+### Other notes
+
+- You can't run `shared_examples` directly; run the tests that use them instead
 - Re-run impacted tests after modifying `lib/` or `ext/`
 
 ## Appraisal Groups
