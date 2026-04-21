@@ -225,35 +225,44 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
       )
     end
 
-    it 'handles nested scope hierarchy' do
-      # DESIGN VERIFICATION: Tests MODULE->CLASS->METHOD nesting.
-      #   Source: specs/json-schema.md Scenarios 3-4 show this pattern.
-      #   ACCURATE for the nesting, but INCOMPLETE -- does not test
-      #   FILE as root (the actual Ruby hierarchy per design/scope-hierarchy.md).
+    it 'handles FILE-rooted Ruby scope hierarchy' do
+      # Mirrors specs/json-schema.md Scenario 3: FILE -> MODULE -> CLASS -> METHOD
       method_scope = described_class.new(
         scope_type: 'METHOD',
-        name: 'my_method',
-        start_line: 10,
-        end_line: 20
+        name: 'subscribed',
+        start_line: 3,
+        end_line: 5,
       )
 
       class_scope = described_class.new(
         scope_type: 'CLASS',
-        name: 'MyClass',
+        name: 'ApplicationCable::Channel',
         scopes: [method_scope],
       )
 
       module_scope = described_class.new(
         scope_type: 'MODULE',
-        name: 'MyModule',
+        name: 'ApplicationCable',
         scopes: [class_scope],
       )
 
-      hash = module_scope.to_h
+      file_scope = described_class.new(
+        scope_type: 'FILE',
+        name: '/app/channels/application_cable/channel.rb',
+        source_file: '/app/channels/application_cable/channel.rb',
+        start_line: 0,
+        end_line: 2147483647,
+        language_specifics: {file_hash: 'abc123'},
+        scopes: [module_scope],
+      )
 
-      expect(hash[:scope_type]).to eq('MODULE')
-      expect(hash[:scopes].first[:scope_type]).to eq('CLASS')
-      expect(hash[:scopes].first[:scopes].first[:scope_type]).to eq('METHOD')
+      hash = file_scope.to_h
+
+      expect(hash[:scope_type]).to eq('FILE')
+      expect(hash[:language_specifics]).to eq({file_hash: 'abc123'})
+      expect(hash[:scopes].first[:scope_type]).to eq('MODULE')
+      expect(hash[:scopes].first[:scopes].first[:scope_type]).to eq('CLASS')
+      expect(hash[:scopes].first[:scopes].first[:scopes].first[:scope_type]).to eq('METHOD')
     end
 
     it 'includes injectable lines fields on METHOD scope with ranges' do

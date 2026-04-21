@@ -167,28 +167,47 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
       )
     end
 
-    it 'produces valid JSON for complete payload' do
-      # DESIGN VERIFICATION: This test uses MODULE as root scope type with file_hash
-      #   in language_specifics. Per specs/json-schema.md:
-      #   - Line 126: Ruby root scope should be FILE, not MODULE
-      #   - Line 228: "Ruby: No language_specifics on MODULE scopes.
-      #     File hash is on the parent FILE scope."
-      #   The test is valid for serialization mechanics but uses INACCURATE
-      #   Ruby protocol data (should be scope_type: 'FILE' with file_hash).
-      scope = Datadog::SymbolDatabase::Scope.new(
-        scope_type: 'MODULE',
-        name: 'MyApp',
-        source_file: '/app/lib/my_app.rb',
+    it 'produces valid JSON for complete Ruby payload' do
+      # Mirrors specs/json-schema.md Scenario 1: FILE root with nested CLASS and METHOD
+      method_scope = Datadog::SymbolDatabase::Scope.new(
+        scope_type: 'METHOD',
+        name: 'remember',
+        source_file: '/app/models/user.rb',
+        start_line: 5,
+        end_line: 7,
+        has_injectible_lines: true,
+        injectible_lines: [{start: 6, end: 7}],
+        language_specifics: {visibility: 'public', method_type: 'instance'},
+        symbols: [
+          Datadog::SymbolDatabase::Symbol.new(symbol_type: 'ARG', name: 'token', line: 5),
+        ],
+      )
+
+      class_scope = Datadog::SymbolDatabase::Scope.new(
+        scope_type: 'CLASS',
+        name: 'User',
+        source_file: '/app/models/user.rb',
         start_line: 1,
-        end_line: 100,
+        end_line: 8,
+        language_specifics: {super_classes: ['ApplicationRecord']},
+        scopes: [method_scope],
+      )
+
+      file_scope = Datadog::SymbolDatabase::Scope.new(
+        scope_type: 'FILE',
+        name: '/app/models/user.rb',
+        source_file: '/app/models/user.rb',
+        start_line: 0,
+        end_line: 2147483647,
         language_specifics: {file_hash: 'abc123'},
+        scopes: [class_scope],
       )
 
       sv = described_class.new(
         service: 'my-app',
         env: 'production',
         version: '1.0.0',
-        scopes: [scope],
+        scopes: [file_scope],
       )
 
       json = sv.to_json
@@ -197,8 +216,24 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
       expect(parsed['service']).to eq('my-app')
       expect(parsed['language']).to eq('ruby')
       expect(parsed['scopes']).to be_an(Array)
-      expect(parsed['scopes'].first['scope_type']).to eq('MODULE')
-      expect(parsed['scopes'].first['language_specifics']['file_hash']).to eq('abc123')
+      expect(parsed['scopes'].size).to eq(1)
+
+      file = parsed['scopes'].first
+      expect(file['scope_type']).to eq('FILE')
+      expect(file['language_specifics']['file_hash']).to eq('abc123')
+
+      klass = file['scopes'].first
+      expect(klass['scope_type']).to eq('CLASS')
+      expect(klass['name']).to eq('User')
+      expect(klass['language_specifics']['super_classes']).to eq(['ApplicationRecord'])
+
+      method = klass['scopes'].first
+      expect(method['scope_type']).to eq('METHOD')
+      expect(method['name']).to eq('remember')
+      expect(method['has_injectible_lines']).to eq(true)
+      expect(method['injectible_lines']).to eq([{'start' => 6, 'end' => 7}])
+      expect(method['symbols'].first['symbol_type']).to eq('ARG')
+      expect(method['symbols'].first['name']).to eq('token')
     end
   end
 end
