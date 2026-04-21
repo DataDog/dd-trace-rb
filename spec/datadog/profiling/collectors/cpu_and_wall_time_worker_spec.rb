@@ -473,7 +473,19 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           background_thread
           ready_queue.pop
 
-          sleep 0.2
+          # Increased from 0.2 to 0.5 to fix flakiness on macOS ARM.
+          #
+          # On macOS, per-thread cpu_time is not available (no pthread_getcpuclockid), so all
+          # non-GVL samples have state "unknown" instead of "had cpu". Between initialize_context
+          # (which sets the GVL profiling state to EMPTY) and the thread's first GVL acquisition
+          # (~100ms at the GVL quantum boundary), ALL samples are "unknown". The take_while below
+          # consumes all leading "unknown" samples — up to ~100ms of profiling data.
+          #
+          # With 200ms sleep, only ~2 GVL quantum cycles occur. The first is consumed by
+          # take_while; the second is a timing race at the sleep boundary. With 500ms, ~5 cycles
+          # occur, ensuring multiple situation-1 events produce non-"waiting for gvl" samples
+          # that survive the take_while prefix.
+          sleep 0.5
 
           threads = Thread.list
 
@@ -508,30 +520,25 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # REPRODUCER: Simulate macOS ARM where cpu_time is always 0.
           # On macOS, pthread_getcpuclockid is not available, so cpu_time_now_ns always
           # returns 0. No sample ever gets state "had cpu" — they get "unknown" instead.
-          # This removes the "had cpu" boundary from the take_while, causing it to consume
-          # ALL leading "unknown" samples without limit — potentially spanning ~100ms of
-          # profiling data on a loaded CI runner.
           samples.each { |s| s.labels[:state] = "unknown" if s.labels[:state] == "had cpu" }
 
-          found_first_cpu = false
-          missed_by_profiler_time =
-            samples
-              .take_while do |s|
-                if s.labels[:state] == "unknown"
-                  true
-                elsif s.labels[:state] == "had cpu" && !found_first_cpu
-                  found_first_cpu = true
-                  true
-                end
-              end.sum { |sample| sample.values.fetch(:"wall-time") }
+          # FIX: Drop samples from before the first "waiting for gvl" sample. These represent
+          # the startup period where the profiler hasn't yet observed the thread in a known
+          # GVL state (gvl_waiting_at is EMPTY until the thread's first GVL acquisition).
+          #
+          # On macOS, cpu_time is not available (no pthread_getcpuclockid), so these startup
+          # samples are all "unknown" (never "had cpu"). On Linux, some may be "had cpu".
+          # Either way, they're startup noise — not steady-state profiling data.
+          first_gvl_index = samples.index { |s| s.labels[:state] == "waiting for gvl" } || 0
+          steady_state_samples = samples[first_gvl_index..]
 
-          total_time = samples.sum { |sample| sample.values.fetch(:"wall-time") } - missed_by_profiler_time
-          waiting_for_gvl_samples = samples.select { |sample| sample.labels[:state] == "waiting for gvl" }
+          total_time = steady_state_samples.sum { |sample| sample.values.fetch(:"wall-time") }
+          waiting_for_gvl_samples = steady_state_samples.select { |sample| sample.labels[:state] == "waiting for gvl" }
           waiting_for_gvl_time = waiting_for_gvl_samples.sum { |sample| sample.values.fetch(:"wall-time") }
 
           debug_failures = {
             thread_activity_time: thread_activity_time,
-            missed_by_profiler_time: missed_by_profiler_time,
+            startup_samples_dropped: first_gvl_index,
             total_time: total_time,
             waiting_for_gvl_time: waiting_for_gvl_time,
             sample_states: samples.map { |s| s.labels[:state] },
@@ -542,7 +549,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # The background thread should spend almost all of its time waiting to run (since when it gets to run
           # it just passes and starts waiting)
 
-          # This test should run for at least 200ms, which is how long we sleep for
+          # This test should run for at least 200ms
           # (unless somehow the missed_by_profiler_time is too big?)
           expect(total_time).to be >= 200_000_000
           expect(waiting_for_gvl_time).to be < total_time
