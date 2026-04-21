@@ -11,7 +11,7 @@ module Datadog
     # The language field identifies the tracer.
     #
     # Created by: Uploader (wraps scopes array before serialization)
-    # Contains: Array of top-level Scope objects (MODULE scopes)
+    # Contains: Array of top-level Scope objects (FILE scopes)
     # Serialized to: JSON via to_json, then GZIP compressed for upload
     #
     # @api private
