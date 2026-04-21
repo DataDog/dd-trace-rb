@@ -508,18 +508,16 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # REPRODUCER: Simulate the macOS ARM failure condition.
           #
           # On macOS, per-thread cpu_time is not available (no pthread_getcpuclockid), so
-          # cpu_time_now_ns always returns 0. This means no sample ever gets state "had cpu" —
-          # all non-GVL samples are "unknown" instead. The take_while below consumes all leading
-          # "unknown" samples without limit.
+          # cpu_time_now_ns always returns 0. All non-GVL samples are "unknown" instead of
+          # "had cpu". When the CPU hog wins the GVL race at profiler startup, the Thread.pass
+          # thread waits ~100ms before its first GVL acquisition. During this time, ALL samples
+          # are "unknown" (gvl_waiting_at is EMPTY). The take_while consumes the entire prefix.
+          # With 200ms of profiling and one situation-1 event at the ~200ms boundary (timing
+          # race), all remaining samples are "waiting for gvl".
           #
-          # Between initialize_context (which sets gvl_waiting_at = GVL_WAITING_ENABLED_EMPTY)
-          # and the thread's first GVL acquisition (~100ms at the quantum boundary), ALL samples
-          # are "unknown" (EMPTY is excluded from GVL waiting detection). The take_while consumes
-          # this entire ~100ms prefix. With only 200ms of profiling, the sole remaining situation-1
-          # event at ~200ms is a timing race at the sleep boundary.
-          #
-          # This reproducer forces the condition by removing ALL non-"waiting for gvl" wall-time,
-          # which is what happens when the take_while consumes every "unknown" sample.
+          # This reproducer forces total_time == waiting_for_gvl_time deterministically by
+          # removing ALL non-"waiting for gvl" wall-time. This exactly matches the macOS
+          # failure where the take_while consumes every "unknown" sample.
           missed_by_profiler_time =
             samples
               .select { |s| s.labels[:state] != "waiting for gvl" }
