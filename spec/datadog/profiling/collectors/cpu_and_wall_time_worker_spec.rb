@@ -505,6 +505,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # So that the below assertions make sense (and are not flaky), we drop these first few samples from our
           # consideration
 
+          # REPRODUCER: Simulate macOS ARM where cpu_time is always 0.
+          # On macOS, pthread_getcpuclockid is not available, so cpu_time_now_ns always
+          # returns 0. No sample ever gets state "had cpu" — they get "unknown" instead.
+          # This removes the "had cpu" boundary from the take_while, causing it to consume
+          # ALL leading "unknown" samples without limit — potentially spanning ~100ms of
+          # profiling data on a loaded CI runner.
+          samples.each { |s| s.labels[:state] = "unknown" if s.labels[:state] == "had cpu" }
+
           found_first_cpu = false
           missed_by_profiler_time =
             samples
