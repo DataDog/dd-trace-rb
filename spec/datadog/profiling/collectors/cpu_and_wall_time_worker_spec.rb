@@ -473,7 +473,19 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           background_thread
           ready_queue.pop
 
-          sleep 0.2
+          # Increased from 0.2 to 0.5 to fix flakiness on macOS ARM.
+          #
+          # On macOS, per-thread cpu_time is not available (no pthread_getcpuclockid), so all
+          # non-GVL samples have state "unknown" instead of "had cpu". Between initialize_context
+          # (which sets the GVL profiling state to EMPTY) and the thread's first GVL acquisition
+          # (~100ms at the GVL quantum boundary), ALL samples are "unknown". The take_while below
+          # consumes all leading "unknown" samples — up to ~100ms of profiling data.
+          #
+          # With 200ms sleep, only ~2 GVL quantum cycles occur. The first is consumed by
+          # take_while; the second is a timing race at the sleep boundary. With 500ms, ~5 cycles
+          # occur, ensuring multiple situation-1 events produce non-"waiting for gvl" samples
+          # that survive the take_while prefix.
+          sleep 0.5
 
           threads = Thread.list
 
@@ -539,7 +551,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # The background thread should spend almost all of its time waiting to run (since when it gets to run
           # it just passes and starts waiting)
 
-          # This test should run for at least 200ms, which is how long we sleep for
+          # This test should run for at least 200ms
           # (unless somehow the missed_by_profiler_time is too big?)
           expect(total_time).to be >= 200_000_000
           expect(waiting_for_gvl_time).to be < total_time
