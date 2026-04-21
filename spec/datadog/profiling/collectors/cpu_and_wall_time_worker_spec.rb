@@ -517,25 +517,23 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # So that the below assertions make sense (and are not flaky), we drop these first few samples from our
           # consideration
 
-          found_first_cpu = false
-          missed_by_profiler_time =
-            samples
-              .take_while do |s|
-                if s.labels[:state] == "unknown"
-                  true
-                elsif s.labels[:state] == "had cpu" && !found_first_cpu
-                  found_first_cpu = true
-                  true
-                end
-              end.sum { |sample| sample.values.fetch(:"wall-time") }
+          # Drop samples from before the first "waiting for gvl" sample. These represent
+          # the startup period where the profiler hasn't yet observed the thread in a known
+          # GVL state (gvl_waiting_at is EMPTY until the thread's first GVL acquisition).
+          #
+          # On macOS, cpu_time is not available (no pthread_getcpuclockid), so these startup
+          # samples are all "unknown" (never "had cpu"). On Linux, some may be "had cpu".
+          # Either way, they're startup noise — not steady-state profiling data.
+          first_gvl_index = samples.index { |s| s.labels[:state] == "waiting for gvl" } || 0
+          steady_state_samples = samples[first_gvl_index..]
 
-          total_time = samples.sum { |sample| sample.values.fetch(:"wall-time") } - missed_by_profiler_time
-          waiting_for_gvl_samples = samples.select { |sample| sample.labels[:state] == "waiting for gvl" }
+          total_time = steady_state_samples.sum { |sample| sample.values.fetch(:"wall-time") }
+          waiting_for_gvl_samples = steady_state_samples.select { |sample| sample.labels[:state] == "waiting for gvl" }
           waiting_for_gvl_time = waiting_for_gvl_samples.sum { |sample| sample.values.fetch(:"wall-time") }
 
           debug_failures = {
             thread_activity_time: thread_activity_time,
-            missed_by_profiler_time: missed_by_profiler_time,
+            startup_samples_dropped: first_gvl_index,
             total_time: total_time,
             waiting_for_gvl_time: waiting_for_gvl_time,
             sample_states: samples.map { |s| s.labels[:state] },
