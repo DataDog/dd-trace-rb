@@ -78,6 +78,8 @@ jobs:
           scope: DataDog/dd-trace-rb
           policy: self.update-system-tests
 
+      # There appers to be a race condition; wait it out a bit
+      # See: https://datadoghq.atlassian.net/browse/APMLP-1305
       - name: Wait for token propagation
         run: sleep 30
 
