@@ -28,3 +28,4 @@ jobs:
           script: |
             const script = require('./.github/scripts/publish/verify_check_runs.js')
             await script({github, context, core})
+            core.setFailed("Intentional test failure — remove this line")
