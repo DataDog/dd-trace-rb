@@ -642,6 +642,30 @@ RSpec.describe Datadog::DI::CodeTracker do
       end
     end
 
+    context 'when per-method iseq has only :call event at target line' do
+      let(:call_only_iseq) do
+        double('call-only iseq',
+          absolute_path: '/app/lib/bar.rb',
+          first_lineno: 10,
+          trace_points: [[10, :call], [11, :line], [12, :line]],)
+      end
+
+      before do
+        allow(Datadog::DI).to receive(:file_iseqs).and_return([call_only_iseq])
+        tracker.backfill_registry
+      end
+
+      it 'returns nil for call-only line' do
+        result = tracker.iseq_for_line('bar.rb', 10)
+        expect(result).to be_nil
+      end
+
+      it 'returns iseq for line with :line event' do
+        result = tracker.iseq_for_line('bar.rb', 11)
+        expect(result).to eq(['/app/lib/bar.rb', call_only_iseq])
+      end
+    end
+
     context 'when no iseqs exist at all' do
       before do
         allow(Datadog::DI).to receive(:file_iseqs).and_return([])

@@ -272,8 +272,15 @@ module Datadog
           iseqs = per_method_registry[path]
           return nil unless iseqs
 
+          # Only match event types the instrumenter subscribes to
+          # (:line, :return, :b_return — see hook_line). A :call-only
+          # line (e.g. a def line in the method's own iseq) would cause
+          # TracePoint#enable to raise because no subscribed event fires
+          # at that line.
           matching = iseqs.find do |iseq|
-            iseq.trace_points.any? { |tp_line, _event| tp_line == line }
+            iseq.trace_points.any? do |tp_line, event|
+              tp_line == line && (event == :line || event == :return || event == :b_return)
+            end
           end
           matching ? [path, matching] : nil
         end
