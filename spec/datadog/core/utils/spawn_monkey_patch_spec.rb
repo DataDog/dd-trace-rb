@@ -31,7 +31,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
   end
 
   describe '::apply!' do
-    subject(:apply!) { described_class.apply!(lineage_envs_provider: -> { lineage_envs }) }
+    subject(:apply!) { described_class.apply!(env_provider: -> { lineage_envs }) }
 
     context 'when Process.spawn is supported' do
       before do
@@ -49,11 +49,11 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
     end
   end
 
-  describe '::inject_lineage_envs' do
-    subject(:inject_lineage_envs) { described_class.inject_lineage_envs(args) }
+  describe '::inject_envs' do
+    subject(:inject_envs) { described_class.inject_envs(args) }
 
     before do
-      described_class.apply!(lineage_envs_provider: -> { lineage_envs })
+      described_class.apply!(env_provider: -> { lineage_envs })
     end
 
     context 'when Process.spawn already has an env hash' do
@@ -61,7 +61,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
       let(:existing_env) { {'BROWSER_PATH' => '/tmp/chrome'} }
 
       it 'merges the lineage envs into the existing env hash' do
-        expect(inject_lineage_envs).to eq(
+        expect(inject_envs).to eq(
           [
             existing_env.merge(lineage_envs),
             '/bin/sh',
@@ -73,7 +73,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
       end
 
       it 'does not mutate the existing env hash' do
-        expect { inject_lineage_envs }.not_to change { existing_env }
+        expect { inject_envs }.not_to change { existing_env }
       end
     end
 
@@ -81,7 +81,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
       let(:args) { ['/bin/sh', '-lc', 'exit 0', {pgroup: true}] }
 
       it 'prepends only the lineage envs' do
-        expect(inject_lineage_envs).to eq(
+        expect(inject_envs).to eq(
           [
             lineage_envs,
             '/bin/sh',
@@ -95,7 +95,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
   end
 
   describe 'patched Process.spawn' do
-    subject(:apply!) { described_class.apply!(lineage_envs_provider: -> { lineage_envs }) }
+    subject(:apply!) { described_class.apply!(env_provider: -> { lineage_envs }) }
 
     before do
       skip 'Fork not supported' unless Process.respond_to?(:fork)
