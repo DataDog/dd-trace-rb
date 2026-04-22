@@ -9,6 +9,7 @@ module Datadog
 
       def initialize: () -> void
 
+      def backfill_registry: () -> void
       def start: () -> void
       def active?: () -> bool
       def iseqs_for_path_suffix: (String suffix) -> untyped

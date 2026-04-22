@@ -17,6 +17,10 @@ module Datadog
   module DI
     LOCK = Mutex.new
 
+    # Initialized eagerly to avoid "instance variable not initialized"
+    # warning on Ruby 2.6/2.7 and to simplify the type to non-nullable.
+    @current_components = []
+
     class << self
       attr_reader :code_tracker
 
@@ -88,7 +92,7 @@ module Datadog
       # Datadog.components from the code tracker.
       def current_component
         LOCK.synchronize do
-          @current_components&.last
+          @current_components.last
         end
       end
 
@@ -100,14 +104,13 @@ module Datadog
       # guaranteed to not end up with no component when one is running.
       def add_current_component(component)
         LOCK.synchronize do
-          @current_components ||= []
           @current_components << component
         end
       end
 
       def remove_current_component(component)
         LOCK.synchronize do
-          @current_components&.delete(component)
+          @current_components.delete(component)
         end
       end
     end
