@@ -77,7 +77,7 @@ jobs:
   test:
     needs:
       - build
-    uses: DataDog/system-tests/.github/workflows/system-tests.yml@affeeeec0dfb4f748da97784fcacae349ad99830  # Automated: This reference is automatically updated.
+    uses: DataDog/system-tests/.github/workflows/system-tests.yml@a850f5637f977464395ad11f46d6c9506e95a56e  # Automated: This reference is automatically updated.
     permissions:
       contents: read
       id-token: write
@@ -88,7 +88,7 @@ jobs:
       desired_execution_time: 300 # 5 minutes
       scenarios_groups: tracer_release
       skip_empty_scenarios: true
-      ref: affeeeec0dfb4f748da97784fcacae349ad99830 # Automated: This reference is automatically updated.
+      ref: a850f5637f977464395ad11f46d6c9506e95a56e # Automated: This reference is automatically updated.
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8
       push_to_test_optimization: true
