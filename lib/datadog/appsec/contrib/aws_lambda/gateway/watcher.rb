@@ -5,7 +5,6 @@ require_relative '../../../trace_keeper'
 require_relative '../../../security_event'
 require_relative '../../../instrumentation/gateway'
 require_relative '../waf_addresses'
-require_relative 'request'
 
 module Datadog
   module AppSec
@@ -26,18 +25,7 @@ module Datadog
                   context = AppSec::Context.active
                   next stack.call(payload) unless context
 
-                  headers = WAFAddresses.parse_headers(payload)
-                  source_ip = payload.dig('requestContext', 'identity', 'sourceIp') ||
-                    payload.dig('requestContext', 'http', 'sourceIp')
-
-                  context.state[:request] = Request.new(
-                    host: headers['host'],
-                    user_agent: headers['user-agent'],
-                    remote_addr: source_ip,
-                    headers: headers,
-                  )
-
-                  persistent_data = WAFAddresses.from_request(payload)
+                  persistent_data = WAFAddresses.from_request(payload.data)
                   result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
                   if result.match? || !result.attributes.empty?
@@ -61,7 +49,7 @@ module Datadog
                   context = AppSec::Context.active
                   next stack.call(payload) unless context
 
-                  persistent_data = WAFAddresses.from_response(payload)
+                  persistent_data = WAFAddresses.from_response(payload.data)
                   result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
                   if result.match?
