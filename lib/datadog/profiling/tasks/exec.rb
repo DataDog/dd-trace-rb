@@ -5,17 +5,20 @@ module Datadog
     module Tasks
       # Wraps command with Datadog profiling
       class Exec
-        attr_reader :args
+        attr_reader :args #: untyped
 
+        #: (untyped) -> void
         def initialize(args)
           @args = args
         end
 
+        #: () -> untyped
         def run
           set_rubyopt!
           exec_with_error_handling(args)
         end
 
+        #: () -> ::Array["-rdatadog/profiling/preload"]
         def rubyopts
           [
             "-rdatadog/profiling/preload"
@@ -24,6 +27,7 @@ module Datadog
 
         private
 
+        #: () -> untyped
         def set_rubyopt!
           existing_rubyopt = ENV["RUBYOPT"] # rubocop:disable CustomCops/EnvUsageCop
 
@@ -35,6 +39,7 @@ module Datadog
         # See also:
         # * https://www.gnu.org/software/bash/manual/html_node/Exit-Status.html
         # * https://github.com/rubygems/rubygems/blob/dd93966cac224532035deda533cba2685dfa30cc/bundler/lib/bundler/cli/exec.rb#L45
+        #: (untyped) -> untyped
         def exec_with_error_handling(args)
           Kernel.exec(*args)
         rescue Errno::ENOENT => e

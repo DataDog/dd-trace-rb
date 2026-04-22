@@ -13,24 +13,35 @@ module Datadog
     # recorders, so I've decided to make it specific until we actually need to support more recorders.
     #
     class Exporter
+      # @rbs @worker: Datadog::Profiling::Collectors::CpuAndWallTimeWorker
+
       # Profiles with duration less than this will not be reported
       PROFILE_DURATION_THRESHOLD_SECONDS = 1
 
       private
 
-      attr_reader \
-        :pprof_recorder,
-        :code_provenance_collector, # The code provenance collector acts both as collector and as a recorder
-        :minimum_duration_seconds,
-        :time_provider,
-        :last_flush_finish_at,
-        :created_at,
-        :internal_metadata,
-        :info_json,
-        :sequence_tracker
+      attr_reader :pprof_recorder #: Datadog::Profiling::StackRecorder
+      # The code provenance collector acts both as collector and as a recorder
+      attr_reader :code_provenance_collector #: Datadog::Profiling::Collectors::CodeProvenance?
+      attr_reader :minimum_duration_seconds #: ::Integer
+      attr_reader :time_provider #: singleton(::Time)
+      attr_reader :last_flush_finish_at #: ::Time?
+      attr_reader :created_at #: ::Time
+      attr_reader :internal_metadata #: ::Hash[::Symbol, untyped]
+      attr_reader :info_json #: ::String
+      attr_reader :sequence_tracker #: singleton(Datadog::Profiling::SequenceTracker)
 
       public
 
+      # @rbs pprof_recorder: Datadog::Profiling::StackRecorder
+      # @rbs worker: Datadog::Profiling::Collectors::CpuAndWallTimeWorker
+      # @rbs info_collector: Datadog::Profiling::Collectors::Info
+      # @rbs code_provenance_collector: Datadog::Profiling::Collectors::CodeProvenance?
+      # @rbs internal_metadata: ::Hash[::Symbol, untyped]
+      # @rbs minimum_duration_seconds: ::Integer
+      # @rbs time_provider: singleton(::Time)
+      # @rbs sequence_tracker: singleton(Datadog::Profiling::SequenceTracker)
+      # @rbs return: void
       def initialize(
         pprof_recorder:,
         worker:,
@@ -55,6 +66,7 @@ module Datadog
         @sequence_tracker = sequence_tracker
       end
 
+      #: () -> Datadog::Profiling::Flush?
       def flush
         worker_stats = @worker.stats_and_reset_not_thread_safe
         serialization_result = pprof_recorder.serialize
@@ -68,7 +80,10 @@ module Datadog
           return
         end
 
-        uncompressed_code_provenance = code_provenance_collector.refresh.generate_json if code_provenance_collector
+        uncompressed_code_provenance =
+          if (collector = code_provenance_collector)
+            collector.refresh.generate_json
+          end
 
         process_tags = Datadog.configuration.experimental_propagate_process_tags_enabled ?
           Core::Environment::Process.serialized : ''
@@ -96,10 +111,12 @@ module Datadog
         )
       end
 
+      #: () -> bool
       def can_flush?
         !duration_below_threshold?(last_flush_finish_at || created_at, time_provider.now.utc)
       end
 
+      #: () -> void
       def reset_after_fork
         @last_flush_finish_at = time_provider.now.utc
         nil
@@ -107,6 +124,7 @@ module Datadog
 
       private
 
+      #: (::Time, ::Time) -> bool
       def duration_below_threshold?(start, finish)
         (finish - start) < minimum_duration_seconds
       end

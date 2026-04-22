@@ -8,15 +8,20 @@ module Datadog
 
       private
 
-      attr_reader :worker, :scheduler
+      attr_reader :worker #: Datadog::Profiling::Collectors::CpuAndWallTimeWorker
+      attr_reader :scheduler #: Datadog::Profiling::Scheduler
 
       public
 
+      # @rbs worker: Datadog::Profiling::Collectors::CpuAndWallTimeWorker
+      # @rbs scheduler: Datadog::Profiling::Scheduler
+      # @rbs return: void
       def initialize(worker:, scheduler:)
         @worker = worker
         @scheduler = scheduler
       end
 
+      #: () -> void
       def start
         after_fork! do
           worker.reset_after_fork
@@ -32,6 +37,8 @@ module Datadog
         scheduler.start(on_failure_proc: proc { component_failed(:scheduler) })
       end
 
+      # @rbs report_last_profile: bool
+      # @rbs return: void
       def shutdown!(report_last_profile: true)
         Datadog.logger.debug("Shutting down profiler")
 
@@ -42,15 +49,20 @@ module Datadog
 
       private
 
+      #: () -> void
       def stop_worker
         worker.stop
       end
 
+      #: () -> void
       def stop_scheduler
         scheduler.enabled = false
         scheduler.stop(true)
       end
 
+      # @rbs failed_component: :worker | :scheduler | ::Symbol
+      # @rbs log_failure: bool
+      # @rbs return: void
       def component_failed(failed_component, log_failure: true)
         if log_failure
           Datadog.logger.warn(
