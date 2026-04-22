@@ -93,9 +93,12 @@ module Datadog
               #
               # On Ruby < 3.1 (no iseq_type), we cannot distinguish
               # these from method iseqs, so they leak into
-              # per_method_registry. In practice this requires someone
-              # to call compile_file and hold the result — extremely
-              # rare outside tooling like bootsnap (which discards it).
+              # per_method_registry. If iseq_for_line selects a leaked
+              # top-level iseq instead of the real method iseq, the
+              # probe installs but silently never fires — same failure
+              # as above. This requires the application to call
+              # compile_file and hold the result, which is rare outside
+              # tooling like bootsnap (which discards it).
               next if have_iseq_type && (type == :top || type == :main)
 
               # Store per-method/block/class iseqs as fallback for files
