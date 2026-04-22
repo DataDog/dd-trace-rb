@@ -66,6 +66,7 @@ appraise 'rails8-mysql2' do
   gem 'rails', '~> 8.0.0'
   gem 'mysql2', '~> 0.5', platform: :ruby
   gem 'lograge', '~> 0.11'
+  gem 'bootsnap', '>= 1.7'
   gem 'net-smtp'
 end
 

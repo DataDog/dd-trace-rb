@@ -27,6 +27,75 @@ module Datadog
         @compiled_trace_point = nil
       end
 
+      # Populates the registry with iseqs for files that were loaded
+      # before code tracking started.
+      #
+      # Uses the all_iseqs C extension to walk the Ruby object space and
+      # find instruction sequences for already-loaded code. Only whole-file
+      # iseqs are stored — per-method iseqs require instrumenter changes
+      # to select the correct iseq for a target line and will be supported
+      # in a follow-up.
+      #
+      # See docs/DynamicInstrumentationDevelopment.md "Iseq Lifecycle and GC"
+      # for which iseq types survive GC and implications for backfill.
+      #
+      # Whole-file detection uses two strategies:
+      # - Ruby 3.1+: DI.iseq_type (wraps rb_iseq_type) returns :top for
+      #   require/load and :main for the entry script. This is precise.
+      # - Ruby < 3.1: falls back to first_lineno == 0, which is true for
+      #   whole-file iseqs from require/load (INT2FIX(0) in Ruby's
+      #   rb_iseq_new_top and rb_iseq_new_main) and false for
+      #   method/block/class definitions (first_lineno >= 1).
+      #   InstructionSequence.compile passes first_lineno = 1 by default,
+      #   so eval'd code is not matched. Both strategies produce the same
+      #   result in practice.
+      #
+      # Does not overwrite iseqs already in the registry (from
+      # :script_compiled), since those are guaranteed to be whole-file
+      # iseqs and are authoritative.
+      #
+      # @return [void]
+      def backfill_registry
+        iseqs = DI.file_iseqs
+        have_iseq_type = DI.respond_to?(:iseq_type)
+        registry_lock.synchronize do
+          iseqs.each do |iseq|
+            path = iseq.absolute_path
+            next unless path
+
+            # Only store whole-file iseqs (:top from require/load,
+            # :main from entry point). Per-method/block/class iseqs
+            # cover only a subset of lines in the file.
+            # Require first_lineno == 0 on all paths to exclude
+            # compile_file/compile iseqs. These are :top type but have
+            # first_lineno == 1. Targeted TracePoints are bound to the
+            # specific iseq object — a probe on a compile_file iseq
+            # silently never fires when the require-produced code runs.
+            if have_iseq_type
+              type = DI.iseq_type(iseq)
+              next if (type != :top && type != :main) || iseq.first_lineno != 0
+            else
+              next unless iseq.first_lineno == 0
+            end
+
+            # Do not overwrite entries from :script_compiled — those are
+            # captured at load time and are authoritative.
+            next if registry.key?(path)
+
+            registry[path] = iseq
+          end
+        end
+        nil
+      rescue => exc
+        # Backfill is best-effort — if it fails, line probes on
+        # pre-loaded code won't work but everything else is unaffected.
+        if component = DI.current_component
+          component.logger.debug { "di: backfill_registry failed: #{exc.class}: #{exc}" }
+          component.telemetry&.report(exc, description: "backfill_registry failed")
+        end
+        nil
+      end
+
       # Starts tracking loaded code.
       #
       # This method should generally be called early in application boot
@@ -104,6 +173,12 @@ module Datadog
               # TODO test this path
             end
           end
+
+          # Backfill the registry with iseqs for files that were loaded
+          # before tracking started. This must happen after the trace
+          # point is enabled so that any files loaded concurrently are
+          # captured by the trace point (backfill won't overwrite them).
+          backfill_registry
         end
       end
 

@@ -455,6 +455,7 @@ namespace :spec do
     # Datadog DI integrations
     [
       :active_record,
+      :bootsnap,
       :rails,
     ].each do |contrib|
       desc '' # "Explicitly hiding from `rake -T`"
@@ -463,6 +464,8 @@ namespace :spec do
         t.rspec_opts = args.to_a.join(' ')
       end
     end
+    # bootsnap tests require the DI C extension (DI::Component.build checks for it).
+    Rake::Task['di:bootsnap'].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
 
     # rubocop:disable Style/MultilineBlockChain
     RSpec::Core::RakeTask.new(:di_with_ext) do |t, args|
