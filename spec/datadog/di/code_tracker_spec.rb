@@ -723,6 +723,23 @@ RSpec.describe Datadog::DI::CodeTracker do
       expect(per_method['/app/lib/foo.rb']).to eq([iseq_a, iseq_b])
     end
 
+    it 'excludes compile_file :top iseqs from per_method_registry' do
+      next skip "iseq_type not available on Ruby < 3.1" unless Datadog::DI.respond_to?(:iseq_type)
+
+      compile_file_iseq = double('compile_file iseq',
+        absolute_path: '/app/lib/foo.rb',
+        first_lineno: 1,)
+      # Override the default iseq_type stub to return :top for this
+      # specific iseq, simulating a compile_file-produced :top iseq.
+      allow(Datadog::DI).to receive(:iseq_type).with(compile_file_iseq).and_return(:top)
+      allow(Datadog::DI).to receive(:file_iseqs).and_return([compile_file_iseq])
+
+      tracker.backfill_registry
+
+      expect(tracker.send(:per_method_registry)).to be_empty
+      expect(tracker.send(:registry)).to be_empty
+    end
+
     it 'clear removes per-method iseqs' do
       method_iseq = double('method iseq',
         absolute_path: '/app/lib/foo.rb',

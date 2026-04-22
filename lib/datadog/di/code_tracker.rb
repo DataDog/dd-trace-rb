@@ -84,6 +84,14 @@ module Datadog
 
               registry[path] = iseq
             else
+              # Skip compile_file/compile :top/:main iseqs — they have
+              # first_lineno != 0 but are not method/block/class iseqs.
+              # Probes on them fail because targeted TracePoints are
+              # bound to the specific iseq object.
+              # On Ruby < 3.1 (no iseq_type), these are indistinguishable
+              # from method iseqs — known limitation.
+              next if have_iseq_type && (type == :top || type == :main)
+
               # Store per-method/block/class iseqs as fallback for files
               # whose whole-file iseq was GC'd. These can be used to
               # target line probes on lines within their range.
