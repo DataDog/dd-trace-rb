@@ -307,7 +307,6 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
       expect(hash).not_to have_key(:has_injectible_lines)
       expect(hash).not_to have_key(:injectible_lines)
     end
-
   end
 
   describe '#to_json' do
