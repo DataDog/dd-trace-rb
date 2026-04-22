@@ -276,7 +276,7 @@ module Datadog
         file_scopes.each do |file_scope|
           file_scope.scopes&.each do |class_or_module|
             class_or_module.scopes&.each do |method_scope|
-              count += 1 if method_scope.scope_type == 'METHOD' && method_scope.has_injectible_lines
+              count += 1 if method_scope.scope_type == 'METHOD' && method_scope.injectible_lines?
             end
           end
         end
