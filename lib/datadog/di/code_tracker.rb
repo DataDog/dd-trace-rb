@@ -85,7 +85,9 @@ module Datadog
               registry[path] = iseq
             else
               # Skip top-level script iseqs (:top/:main) produced by
-              # compile_file/compile. These represent the file body,
+              # RubyVM::InstructionSequence.compile_file and .compile
+              # (compile source to bytecode without executing it).
+              # These represent the file body,
               # not a method or block. They pass the first_lineno check
               # (lineno != 0) but a targeted TracePoint bound to one
               # of these never fires for method-level code — the
