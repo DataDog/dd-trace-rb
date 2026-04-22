@@ -88,7 +88,6 @@ module Datadog
           end
 
           @uploaded_modules.add(scope.name)
-          # steep:ignore:end
 
           # Add the scope
           @scopes << scope
@@ -171,7 +170,6 @@ module Datadog
       # @return [void]
       # @api private
       def reset
-        # steep:ignore:start
         @mutex.synchronize do
           @scopes.clear
           @timer_stopped = true
