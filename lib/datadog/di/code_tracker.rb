@@ -84,12 +84,18 @@ module Datadog
 
               registry[path] = iseq
             else
-              # Skip compile_file/compile :top/:main iseqs — they have
-              # first_lineno != 0 but are not method/block/class iseqs.
-              # Probes on them fail because targeted TracePoints are
-              # bound to the specific iseq object.
-              # On Ruby < 3.1 (no iseq_type), these are indistinguishable
-              # from method iseqs — known limitation.
+              # Skip top-level script iseqs (:top/:main) produced by
+              # compile_file/compile. These represent the file body,
+              # not a method or block. They pass the first_lineno check
+              # (lineno != 0) but a targeted TracePoint bound to one
+              # of these never fires for method-level code — the
+              # user's probe silently produces no snapshots.
+              #
+              # On Ruby < 3.1 (no iseq_type), we cannot distinguish
+              # these from method iseqs, so they leak into
+              # per_method_registry. In practice this requires someone
+              # to call compile_file and hold the result — extremely
+              # rare outside tooling like bootsnap (which discards it).
               next if have_iseq_type && (type == :top || type == :main)
 
               # Store per-method/block/class iseqs as fallback for files
@@ -273,10 +279,11 @@ module Datadog
           return nil unless iseqs
 
           # Only match event types the instrumenter subscribes to
-          # (:line, :return, :b_return — see hook_line). A :call-only
-          # line (e.g. a def line in the method's own iseq) would cause
-          # TracePoint#enable to raise because no subscribed event fires
-          # at that line.
+          # (:line, :return, :b_return — see hook_line). Lines that
+          # only carry :call (e.g. a `def` line within the defined
+          # method's own iseq, not the enclosing scope) have no
+          # subscribed event at that position; TracePoint#enable
+          # raises because it cannot bind an enabled event there.
           matching = iseqs.find do |iseq|
             iseq.trace_points.any? do |tp_line, event|
               tp_line == line && (event == :line || event == :return || event == :b_return)
