@@ -21,7 +21,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
       write_io.close
       Process.wait(pid)
 
-      Hash[read_io.read.lines.map { |line| line.chomp.split('=', 2) }]
+      read_io.read.lines.map { |line| line.chomp.split('=', 2) }.to_h
     end
   end
 
@@ -106,7 +106,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
 
   describe '::inject_envs' do
     subject(:inject_envs) { described_class.inject_envs(args.dup) }
-    let(:args) { [env_argument, '/bin/ls', '.', { pgroup: 0 }] }
+    let(:args) { [env_argument, '/bin/ls', '.', {pgroup: 0}] }
     let(:env_argument) { {'TZ' => 'UTC'} }
 
     before do
