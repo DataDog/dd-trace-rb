@@ -11,7 +11,7 @@ module Datadog
         def finally: (
           hook_context: ::OpenFeature::SDK::Hooks::HookContext,
           evaluation_details: ::OpenFeature::SDK::EvaluationDetails,
-          hints: ::Hash[untyped, untyped]
+          **untyped _opts
         ) -> void
 
         private

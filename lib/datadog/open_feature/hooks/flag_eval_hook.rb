@@ -11,7 +11,7 @@ module Datadog
           @metrics = metrics
         end
 
-        def finally(hook_context:, evaluation_details:, hints:)
+        def finally(hook_context:, evaluation_details:, **_opts)
           metrics = @metrics
           return unless metrics
 
