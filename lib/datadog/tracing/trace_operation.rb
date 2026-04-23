@@ -302,7 +302,7 @@ module Datadog
         end
 
         # Before finish: allow enrichment before the span is finalized, publish events.
-        events.before_finish.subscribe do |span_op|
+        span_events.before_finish.subscribe do |span_op|
           before_finish_span(span_op)
         end
 
