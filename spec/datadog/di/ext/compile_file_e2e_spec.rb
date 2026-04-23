@@ -34,6 +34,9 @@ RubyVM::InstructionSequence.compile_file(
 
 # Step 3: GC everything unreferenced — both the require-produced :top
 # and the compile_file iseqs (top + children).
+# This test intentionally depends on that GC behavior; preconditions are
+# asserted in before(:all) below so we don't get false positives via
+# whole-file matching.
 GC.start
 GC.start
 
@@ -43,8 +46,12 @@ RSpec.describe "compile_file iseq end-to-end probe test" do
   before(:all) do
     skip "Test requires iseq_type (Ruby < 3.1)" unless Datadog::DI.respond_to?(:iseq_type)
 
-    # Verify precondition: no :top iseqs survive, but per-method iseqs
-    # from require survive (held by the class).
+    # Hard precondition: no :top iseqs survive for the target file.
+    # If a :top iseq remains, probe installation can succeed via the
+    # normal whole-file path and would not prove the fallback behavior.
+    #
+    # We also require method iseqs to survive so line probes still have
+    # executable iseqs to target through per-method fallback.
     target = "compile_file_e2e_test_class.rb"
     iseqs = Datadog::DI.all_iseqs.select { |i| i.absolute_path&.end_with?(target) }
     types = iseqs.map { |i| Datadog::DI.iseq_type(i) }

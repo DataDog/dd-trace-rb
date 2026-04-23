@@ -3,9 +3,14 @@
 require "datadog/di/spec_helper"
 require "datadog/di"
 
-# Load the test class BEFORE code tracking starts, then GC the top iseq.
-# This simulates the common case where a gem's whole-file iseq has been
-# garbage collected but per-method iseqs survive.
+# Load the test class BEFORE code tracking starts, then force GC so the
+# require-produced whole-file (:top) iseq can be collected.
+#
+# This is a hard precondition for this spec: if the :top iseq survives,
+# line probe installation can succeed through the normal whole-file path
+# and no longer validates the per-method fallback behavior.
+#
+# The precondition is asserted in before(:all) below.
 require_relative "per_method_iseq_integration_test_class"
 GC.start
 GC.start
@@ -16,7 +21,8 @@ RSpec.describe "Per-method iseq line probe integration" do
   before(:all) do
     skip "Test requires iseq_type (Ruby < 3.1)" unless Datadog::DI.respond_to?(:iseq_type)
 
-    # Verify that the top iseq was actually GC'd and only method iseq survives.
+    # Hard precondition: require-produced :top iseq must be gone; only
+    # method iseqs may remain for this file.
     target = "per_method_iseq_integration_test_class.rb"
     types = Datadog::DI.all_iseqs
       .select { |iseq| iseq.absolute_path&.end_with?(target) }
