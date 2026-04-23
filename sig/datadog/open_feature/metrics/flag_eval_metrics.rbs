@@ -19,7 +19,7 @@ module Datadog
 
         @telemetry: Core::Telemetry::Component
         @logger: Core::Logger
-        @counter: untyped
+        @counter: ::OpenTelemetry::SDK::Metrics::Instrument::Counter?
         @mutex: ::Mutex
 
         def initialize: (telemetry: Core::Telemetry::Component, logger: Core::Logger) -> void
@@ -34,13 +34,13 @@ module Datadog
 
         private
 
-        def get_or_create_counter: () -> untyped
+        def get_or_create_counter: () -> ::OpenTelemetry::SDK::Metrics::Instrument::Counter?
 
         def otel_metrics_enabled?: () -> bool
 
         def ensure_meter_provider_initialized!: () -> void
 
-        def meter_provider_available?: (untyped meter_provider) -> bool
+        def meter_provider_available?: (::OpenTelemetry::SDK::Metrics::MeterProvider? meter_provider) -> bool
 
         def build_attributes: (
           ::String flag_key,
