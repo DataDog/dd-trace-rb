@@ -1,6 +1,11 @@
 require 'English'
 
 module SynchronizationHelpers
+  # Runs the given block in a fork, allowing you to perform RSpec assertions in a fork
+  # and have them be reported in the parent process.
+  #
+  # You can alternatively use `execute_in_fork: true` {ForkableExample}
+  # if your whole example or example group should run in a forked process.
   def expect_in_fork(fork_expectations: nil, timeout_seconds: 10, trigger_stacktrace_on_kill: false, debug: false)
     fork_expectations ||= proc { |status:, stdout:, stderr:|
       expect(status && status.success?).to be(true), "STDOUT:`#{stdout}` STDERR:`#{stderr}"
