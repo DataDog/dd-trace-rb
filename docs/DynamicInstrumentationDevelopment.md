@@ -52,18 +52,67 @@ In practice:
 
 ### Implications for backfill
 
-`backfill_registry` only stores `:top` or `:main` iseqs because they cover
-all lines in the file. Per-method iseqs are filtered out — they cover only
-a subset of lines.
+Prior to per-method fallback, `backfill_registry` only stored whole-file
+(`:top`/`:main`) iseqs. If the `:top` iseq was GC'd before backfill ran,
+the file was completely untargetable — line probes got
+`DITargetNotInRegistry`. In a measured Rails app with 146 gems, this
+affected 86% of pre-loaded files (1987 of 2309).
 
-If the `:top` iseq was collected before backfill runs, no whole-file iseq
-exists for that file. This causes `DITargetNotInRegistry` when installing
-a line probe.
+**Per-method fallback** addresses this by storing per-method/block/class
+iseqs in a separate `per_method_registry` (keyed by path). These iseqs
+survive GC because they're referenced by the class's method table via
+`UnboundMethod`. They cover only their method body's lines, not the whole
+file — but since probes almost always target code inside methods, this
+is sufficient.
 
-**Production:** backfill is best-effort. If the `:top` iseq was already
-collected, line probes on that pre-loaded file won't work via backfill.
-The `:script_compiled` tracepoint (the primary mechanism) is unaffected —
-it captures iseqs at load time before GC can touch them.
+`backfill_registry` now populates two registries:
+
+1. **`registry`** — whole-file iseqs (`:top`/`:main` with
+   `first_lineno == 0`). Require/load produce these via `rb_iseq_new_top`
+   with `first_lineno == 0`; this distinguishes them from compile_file
+   `:top` iseqs which have `first_lineno == 1`.
+2. **`per_method_registry`** — per-method/block/class iseqs, as fallback.
+
+**Lookup:** `iseq_for_line(suffix, line)` checks `registry` first. If no
+whole-file iseq exists, it searches `per_method_registry` for an iseq
+whose `trace_points` include the target line with a subscribable event
+type (`:line`, `:return`, `:b_return` — matching `hook_line`'s event
+subscription). Lines that only carry `:call` are excluded: a `def` line
+in the per-method iseq for the method being defined has only a `:call`
+event (the enclosing scope's iseq has the `:line` event for that line, but
+may be GC'd). TracePoint cannot bind `:line` at that position in that iseq.
+
+If neither registry has a match → `DITargetNotInRegistry` → pending state.
+This affects ~14% of pre-loaded files: setup-only files that define no
+methods and whose `:top` iseq was GC'd.
+
+**`:script_compiled`** (the primary mechanism for files loaded after
+tracking starts) is unaffected — it captures whole-file iseqs at load time
+before GC can touch them.
+
+#### compile_file iseq filtering
+
+`RubyVM::InstructionSequence.compile_file` compiles a file to bytecode
+without executing it. The resulting `:top` iseq is a distinct object from
+the require-produced iseq that the runtime actually executes. A targeted
+TracePoint bound to a compile_file iseq never fires — no error, no log,
+no metric. The probe reports as installed but produces zero snapshots.
+
+The design question: should these iseqs enter `per_method_registry`? No —
+they'd cause silent probe failures. Filtering strategy differs by Ruby
+version:
+
+- **Ruby 3.1+:** `DI.iseq_type` returns `:top`/`:main` for these iseqs.
+  Combined with `first_lineno != 0` (compile_file uses `first_lineno == 1`,
+  require/load uses `first_lineno == 0`), backfill skips them.
+- **Ruby < 3.1:** No `iseq_type` available. compile_file `:top` iseqs
+  have `first_lineno == 1`, making them indistinguishable from method
+  iseqs — they leak into `per_method_registry`. If `iseq_for_line`
+  selects one, the probe installs but silently never fires. This requires
+  the application to call `compile_file` and hold the returned iseq object
+  in memory. Bootsnap calls `compile_file` but does not hold the returned
+  iseq, so it does not trigger this issue. **Accepted limitation** on
+  Ruby < 3.1.
 
 ### Test pattern: keeping iseqs alive for backfill tests
 

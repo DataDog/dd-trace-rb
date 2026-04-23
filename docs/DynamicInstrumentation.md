@@ -216,6 +216,38 @@ generated.
 
 ## Code Loading and Instrumentation
 
+### Pre-Loaded Code (Gems, Standard Library, Early Boot Code)
+
+Code that is loaded before Dynamic Instrumentation starts — such as gems,
+Ruby standard library files, and application code that runs during boot —
+can still be targeted by line probes. DI scans for compiled code still in
+memory when it starts up.
+
+**What works:**
+- Line probes on lines **inside method bodies** work for most pre-loaded
+  files. Ruby keeps compiled method code in memory as long as the class
+  exists, so this is reliable.
+- Method probes work normally on pre-loaded classes.
+
+**What may not work:**
+- Line probes on lines **outside any method** (top-level code that runs
+  once at require time, such as constant assignments or `require`
+  statements) — Ruby typically discards this compiled code from memory
+  after it executes.
+- Files that **only run setup code without defining any methods** cannot
+  be targeted by line probes at all.
+
+**If a line probe shows as installed but never produces snapshots:**
+the most likely cause is that the target line's compiled code was
+discarded from memory. Try moving the probe to a line inside a method
+body in the same file.
+
+**Note:** Ruby 3.1+ provides slightly more reliable detection of
+pre-loaded code. On Ruby 2.6–3.0, in rare edge cases, a line probe on
+a pre-loaded file may appear installed but never fire. This only affects
+applications that call `RubyVM::InstructionSequence.compile_file` and
+hold the result — most applications are not affected.
+
 ### Application Must Be Processing Requests
 - Dynamic Instrumentation is initialized via Rack middleware when
   processing HTTP requests
