@@ -10,18 +10,17 @@ module Datadog
       #
       # @api private
       module Process
-        # This method returns a key/value part of serialized tags in the format of k1:v1,k2:v2,k3:v3
-        # @return [String] comma-separated normalized key:value pairs
+        # Returns a comma-separated string of normalized key:value pairs.
+        # Includes svc.user or svc.auto based on whether the service was explicitly configured.
+        # @return [String]
         def self.serialized
-          return @serialized if defined?(@serialized)
-
-          @serialized = tags.join(',').freeze
+          tags.join(',').freeze
         end
 
-        # This method returns an array in the format ["k1:v1","k2:v2","k3:v3"]
-        # @return [Array<String>] array of normalized key:value pairs
+        # Returns an array of normalized key:value pair strings.
+        # Includes svc.user or svc.auto based on whether the service was explicitly configured.
+        # @return [Array<String>]
         def self.tags
-          return @tags if defined?(@tags)
           tags = []
 
           workdir = TagNormalizer.normalize_process_value(entrypoint_workdir.to_s)
@@ -35,17 +34,44 @@ module Datadog
 
           tags << "#{Environment::Ext::TAG_ENTRYPOINT_TYPE}:#{TagNormalizer.normalize(entrypoint_type, remove_digit_start_char: false)}"
 
-          rails_application_name = TagNormalizer.normalize_process_value(@rails_application_name.to_s)
-          tags << "#{Environment::Ext::TAG_RAILS_APPLICATION}:#{rails_application_name}" unless rails_application_name.empty?
+          rails_name = TagNormalizer.normalize_process_value(@rails_application_name.to_s)
+          tags << "#{Environment::Ext::TAG_RAILS_APPLICATION}:#{rails_name}" unless rails_name.empty?
 
-          @tags = tags.freeze
+          if defined?(@service_user_configured)
+            if @service_user_configured
+              tags << "#{Environment::Ext::TAG_SVC_USER}:true"
+            else
+              svc = TagNormalizer.normalize_process_value(@service_name.to_s)
+              tags << "#{Environment::Ext::TAG_SVC_AUTO}:#{svc}" unless svc.empty?
+            end
+          end
+
+          tags.freeze
+        end
+
+        # Called via after_set on option :service in settings.rb whenever the service value changes.
+        # @param name [String] the service name
+        # @param user_configured [Boolean] whether the service was explicitly set by the user
+        # @return [void]
+        def self.set_service(name, user_configured:)
+          @service_name = name
+          @service_user_configured = user_configured
+        end
+
+        # Sets the rails application name from other places in code
+        # @param name [String] the rails application name
+        # @return [void]
+        def self.rails_application_name=(name)
+          @rails_application_name = name
         end
 
         # Returns the last segment of the working directory of the process
         # Example: /app/myapp -> myapp
         # @return [String] the last segment of the working directory
         def self.entrypoint_workdir
-          File.basename(Dir.pwd)
+          return @entrypoint_workdir if defined?(@entrypoint_workdir)
+
+          @entrypoint_workdir = File.basename(Dir.pwd)
         end
 
         # Returns the entrypoint type of the process
@@ -55,10 +81,10 @@ module Datadog
           Environment::Ext::PROCESS_TYPE
         end
 
-        # Returns the last segment of the base directory of the process
+        # Returns the basename of the script being run
         # Example 1: /bin/mybin -> mybin
-        # Example 2: ruby /test/myapp.rb -> myapp
-        # @return [String] the last segment of base directory of the script
+        # Example 2: ruby /test/myapp.rb -> myapp.rb
+        # @return [String] the basename of the script
         #
         # @note Determining true entrypoint name is rather complicated. This method
         # is the initial implementation but it does not produce optimal output in all cases.
@@ -66,12 +92,14 @@ module Datadog
         # as their entrypoint name.
         # We might improve the behavior in the future if there is customer demand for it.
         def self.entrypoint_name
-          File.basename($0)
+          return @entrypoint_name if defined?(@entrypoint_name)
+
+          @entrypoint_name = File.basename($0)
         end
 
-        # Returns the last segment of the base directory of the process
+        # Returns the last segment of the directory containing the script
         # Example 1: /bin/mybin -> bin
-        # Example 2: ruby /test/myapp.js -> test
+        # Example 2: ruby /test/myapp.rb -> test
         # @return [String] the last segment of the base directory of the script
         #
         # @note As with entrypoint name, determining true entrypoint directory is complicated.
@@ -80,16 +108,9 @@ module Datadog
         # the entrypoint basedir is `bin` which is not very helpful.
         # We might improve this in the future if there is customer demand.
         def self.entrypoint_basedir
-          File.basename(File.expand_path(File.dirname($0)))
-        end
+          return @entrypoint_basedir if defined?(@entrypoint_basedir)
 
-        # Sets the rails application name from other places in code
-        # @param name [String] the rails application name
-        # @return [void]
-        def self.rails_application_name=(name)
-          @rails_application_name = name
-          remove_instance_variable(:@tags) if instance_variable_defined?(:@tags)
-          remove_instance_variable(:@serialized) if instance_variable_defined?(:@serialized)
+          @entrypoint_basedir = File.basename(File.expand_path(File.dirname($0)))
         end
 
         private_class_method :entrypoint_workdir, :entrypoint_type, :entrypoint_name, :entrypoint_basedir
