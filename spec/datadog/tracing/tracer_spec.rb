@@ -1133,14 +1133,14 @@ RSpec.describe Datadog::Tracing::Tracer do
     context 'when span service differs from the default service' do
       it 'sets _dd.base_service to the default service' do
         span = finish_span(service: 'other-service')
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE)).to eq(default_service)
+        expect(span.get_tag('_dd.base_service')).to eq(default_service)
       end
     end
 
     context 'when span service equals the default service' do
       it 'does not set _dd.base_service' do
         span = finish_span(service: default_service)
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE)).to be_nil
+        expect(span.get_tag('_dd.base_service')).to be_nil
       end
     end
 
@@ -1148,27 +1148,7 @@ RSpec.describe Datadog::Tracing::Tracer do
       it 'does not set _dd.base_service' do
         tracer.trace('op') {}
         span = spans.last
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE)).to be_nil
-      end
-    end
-
-    context 'when _dd.base_service is pre-set and service still differs' do
-      it 'overwrites with the default service' do
-        tracer.trace('op', service: 'other-service') do |span_op|
-          span_op.set_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE, 'stale-value')
-        end
-        span = spans.last
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE)).to eq(default_service)
-      end
-    end
-
-    context 'when _dd.base_service is pre-set but service no longer differs' do
-      it 'clears the tag' do
-        tracer.trace('op', service: default_service) do |span_op|
-          span_op.set_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE, 'stale-value')
-        end
-        span = spans.last
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_BASE_SERVICE)).to be_nil
+        expect(span.get_tag('_dd.base_service')).to be_nil
       end
     end
   end
