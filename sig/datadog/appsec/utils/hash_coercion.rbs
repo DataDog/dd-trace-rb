@@ -2,7 +2,7 @@ module Datadog
   module AppSec
     module Utils
       module HashCoercion
-        def self.coerce: (untyped) -> ::Hash[untyped, untyped]?
+        def self.coerce: (any) -> ::Hash[any, any]?
       end
     end
   end
