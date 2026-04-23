@@ -82,7 +82,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
     end
 
     it 'respects array-form command variant' do
-      command = 'printf %s "$0:$ARG:$PARENT1::$ENV1:$ENV2"'
+      command = 'printf %s "$0:$ARG:$PARENT1:$ENV1:$ENV2"'
 
       output = IO.pipe do |read_io, write_io|
         pid = Process.spawn(
