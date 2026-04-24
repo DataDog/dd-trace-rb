@@ -41,6 +41,7 @@ GEM
     ffi (1.17.4-aarch64-linux-gnu)
     ffi (1.17.4-arm-linux-gnu)
     ffi (1.17.4-arm-linux-musl)
+    ffi (1.17.4-x86_64-linux-gnu)
     google-protobuf (3.25.8)
     hashdiff (1.2.1)
     io-console (0.8.2)
@@ -53,9 +54,12 @@ GEM
       addressable (>= 2.4)
     libdatadog (30.0.0.1.0)
     libdatadog (30.0.0.1.0-aarch64-linux)
+    libdatadog (30.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.2)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.2-aarch64-linux)
+      ffi (~> 1.0)
+    libddwaf (1.30.0.0.2-x86_64-linux)
       ffi (~> 1.0)
     logger (1.7.0)
     memory_profiler (0.9.14)
@@ -147,6 +151,7 @@ PLATFORMS
   arm-linux-gnu
   arm-linux-musl
   ruby
+  x86_64-linux
 
 DEPENDENCIES
   base64
