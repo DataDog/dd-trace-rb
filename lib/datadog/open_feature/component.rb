@@ -6,6 +6,7 @@ require_relative 'exposures/buffer'
 require_relative 'exposures/worker'
 require_relative 'exposures/deduplicator'
 require_relative 'exposures/reporter'
+require_relative 'metrics/flag_eval_metrics'
 
 module Datadog
   module OpenFeature
@@ -50,10 +51,38 @@ module Datadog
 
         reporter = Exposures::Reporter.new(@worker, telemetry: telemetry, logger: logger)
         @engine = EvaluationEngine.new(reporter, telemetry: telemetry, logger: logger)
+
+        @telemetry = telemetry
+        @logger = logger
+        @flag_eval_hook = nil
+        @hook_mutex = Mutex.new
+      end
+
+      # Lazy initialization of the flag eval hook.
+      # The hook depends on the OpenFeature SDK gem which may not be loaded when
+      # the component is first initialized (due to Rails initializer ordering).
+      def flag_eval_hook
+        @hook_mutex.synchronize do
+          return @flag_eval_hook if @flag_eval_hook
+
+          @flag_eval_hook = create_flag_eval_hook
+        end
       end
 
       def shutdown!
         @worker.graceful_shutdown
+      end
+
+      private
+
+      def create_flag_eval_hook
+        return nil unless defined?(::OpenFeature::SDK::Hooks::Hook)
+
+        require_relative 'hooks/flag_eval_hook'
+        metrics = Metrics::FlagEvalMetrics.new(telemetry: @telemetry, logger: @logger)
+        Hooks::FlagEvalHook.new(metrics)
+      rescue LoadError, NameError
+        nil
       end
     end
   end
