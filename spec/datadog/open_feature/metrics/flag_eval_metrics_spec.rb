@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+
+# Tests run under the openfeature appraisal which includes the real OTel SDK
+require 'opentelemetry-metrics-sdk'
 require 'datadog/open_feature/metrics/flag_eval_metrics'
 
 RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
@@ -9,21 +12,12 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:logger) { logger_allowing_debug }
 
-  # Create a fake OpenTelemetry module for stubbing
-  let(:otel_module) do
-    mod = Module.new
-    mod.define_singleton_method(:meter_provider) { nil }
-    mod
-  end
-
   # Mock configuration for OTel metrics enabled setting
   let(:otel_metrics_settings) { instance_double('OtelMetricsSettings', enabled: true) }
   let(:otel_settings) { instance_double('OtelSettings', metrics: otel_metrics_settings) }
   let(:configuration) { instance_double('Configuration', opentelemetry: otel_settings) }
 
   before do
-    # Always stub OpenTelemetry to avoid dependency on the actual gem
-    stub_const('OpenTelemetry', otel_module)
     # Stub Datadog.configuration for OTel metrics enabled check
     allow(Datadog).to receive(:configuration).and_return(configuration)
   end
@@ -56,7 +50,7 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
 
     context 'when OTel metrics SDK is not available' do
       before do
-        allow(otel_module).to receive(:meter_provider).and_return(nil)
+        allow(OpenTelemetry).to receive(:meter_provider).and_return(nil)
         # Stub the initialization attempt - it will fail to load the SDK
         allow(metrics).to receive(:require).with('opentelemetry-metrics-sdk').and_raise(LoadError)
       end
@@ -92,7 +86,7 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
         stub_const('Datadog::OpenTelemetry::Metrics', otel_metrics_class)
         # First call returns nil (not initialized), second call returns the provider
         call_count = 0
-        allow(otel_module).to receive(:meter_provider) do
+        allow(OpenTelemetry).to receive(:meter_provider) do
           call_count += 1
           (call_count == 1) ? nil : meter_provider
         end
@@ -131,7 +125,7 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
 
       before do
         stub_const('OpenTelemetry::SDK::Metrics::MeterProvider', meter_provider_class)
-        allow(otel_module).to receive(:meter_provider).and_return(meter_provider)
+        allow(OpenTelemetry).to receive(:meter_provider).and_return(meter_provider)
         allow(meter_provider).to receive(:is_a?).and_return(false)
         allow(meter_provider).to receive(:is_a?)
           .with(meter_provider_class).and_return(true)

@@ -137,9 +137,10 @@ module Datadog
 
       def build_flag_metadata(result)
         metadata = result.flag_metadata || {}
-        if result.allocation_key && !result.allocation_key.empty?
+        allocation_key = result.allocation_key
+        if allocation_key && !allocation_key.empty?
           metadata = metadata.dup
-          metadata['allocation_key'] = result.allocation_key
+          metadata['allocation_key'] = allocation_key
         end
 
         metadata

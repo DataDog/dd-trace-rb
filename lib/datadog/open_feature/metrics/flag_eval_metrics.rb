@@ -75,7 +75,7 @@ module Datadog
 
             ensure_meter_provider_initialized!
             meter_provider = ::OpenTelemetry.meter_provider
-            return nil unless meter_provider_available?(meter_provider)
+            return nil unless meter_provider && meter_provider_available?(meter_provider)
 
             meter = meter_provider.meter(METER_NAME)
             @counter = meter.create_counter(
@@ -112,9 +112,9 @@ module Datadog
 
         def meter_provider_available?(meter_provider)
           return false if meter_provider.nil?
+          return false unless defined?(::OpenTelemetry::SDK::Metrics::MeterProvider)
 
-          defined?(::OpenTelemetry::SDK::Metrics::MeterProvider) &&
-            meter_provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
+          meter_provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
         end
 
         def build_attributes(flag_key, variant:, reason:, error_code:, allocation_key:)

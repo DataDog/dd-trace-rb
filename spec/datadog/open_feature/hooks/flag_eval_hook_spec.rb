@@ -2,16 +2,8 @@
 
 require 'spec_helper'
 
-# Stub the OpenFeature SDK Hook module before loading the hook
-module OpenFeature
-  module SDK
-    module Hooks
-      module Hook
-      end
-    end
-  end
-end
-
+# Tests run under the openfeature appraisal which includes the real OpenFeature SDK
+require 'open_feature/sdk'
 require 'datadog/open_feature/hooks/flag_eval_hook'
 
 RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalHook do
@@ -21,7 +13,6 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalHook do
 
   describe '#finally' do
     let(:hook_context) { instance_double('OpenFeature::SDK::Hooks::HookContext', flag_key: 'test-flag') }
-    let(:hints) { {} }
 
     context 'with successful evaluation' do
       let(:evaluation_details) do
@@ -43,7 +34,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalHook do
           allocation_key: 'my-allocation'
         )
 
-        hook.finally(hook_context: hook_context, evaluation_details: evaluation_details, hints: hints)
+        hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
       end
     end
 
@@ -67,7 +58,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalHook do
           allocation_key: nil
         )
 
-        hook.finally(hook_context: hook_context, evaluation_details: evaluation_details, hints: hints)
+        hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
       end
     end
 
@@ -91,7 +82,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalHook do
           allocation_key: nil
         )
 
-        hook.finally(hook_context: hook_context, evaluation_details: evaluation_details, hints: hints)
+        hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
       end
     end
 
@@ -115,7 +106,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalHook do
           allocation_key: nil
         )
 
-        hook.finally(hook_context: hook_context, evaluation_details: evaluation_details, hints: hints)
+        hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
       end
     end
 
@@ -132,7 +123,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalHook do
       end
 
       it 'does nothing without error' do
-        expect { hook.finally(hook_context: hook_context, evaluation_details: evaluation_details, hints: hints) }
+        expect { hook.finally(hook_context: hook_context, evaluation_details: evaluation_details) }
           .not_to raise_error
       end
     end
