@@ -63,8 +63,8 @@ module Datadog
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def build_flag_metadata: (
-        untyped result
-      ) -> ::Hash[::String, untyped]
+        (ResolutionDetails | Core::FeatureFlags::ResolutionDetails) result
+      ) -> ::Hash[::String, ::String]
     end
   end
 end
