@@ -150,12 +150,7 @@ module Datadog
         end
 
         def normalize_error_type(error_code)
-          return 'general' if error_code.nil?
-
-          error_str = error_code.to_s
-          return 'general' if error_str.empty?
-
-          ERROR_TYPE_MAP[error_str] || 'general'
+          ERROR_TYPE_MAP.fetch(error_code.to_s, 'general')
         end
 
         def exclude_allocation_key?(reason_upcase)
