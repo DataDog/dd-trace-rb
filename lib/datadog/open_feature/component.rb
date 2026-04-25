@@ -81,7 +81,7 @@ module Datadog
         require_relative 'hooks/flag_eval_hook'
         metrics = Metrics::FlagEvalMetrics.new(telemetry: @telemetry, logger: @logger)
         Hooks::FlagEvalHook.new(metrics)
-      rescue LoadError, NameError
+      rescue LoadError
         nil
       end
     end
