@@ -289,12 +289,19 @@ module Datadog
           # method's own iseq, not the enclosing scope) have no
           # subscribed event at that position; TracePoint#enable
           # raises because it cannot bind an enabled event there.
-          matching = iseqs.find do |iseq|
+          matches = iseqs.select do |iseq|
             iseq.trace_points.any? do |tp_line, event|
               tp_line == line && (event == :line || event == :return || event == :b_return)
             end
           end
-          matching ? [path, matching] : nil
+          # When multiple iseqs contain the target line (e.g. a method
+          # and an inline block sharing the same line), picking one
+          # would silently miss executions in the other context.
+          # Raise so the probe is recorded as failed with a clear error.
+          if matches.length > 1
+            raise Error::MultiplePathsMatch, "Multiple code locations match line #{line}"
+          end
+          matches.first ? [path, matches.first] : nil
         end
       end
 
@@ -353,7 +360,7 @@ module Datadog
         suffix = suffix.dup
         loop do
           matches = paths.select { |p| Utils.path_matches_suffix?(p, suffix) }
-          return nil if matches.length > 1
+          raise Error::MultiplePathsMatch, "Multiple paths matched requested suffix" if matches.length > 1
           return matches.first if matches.any?
           return nil unless suffix.include?('/')
           suffix.sub!(%r{.*/+}, '')
