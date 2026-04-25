@@ -100,13 +100,13 @@ module Datadog
         # Initialize the OTel meter provider if not already set up.
         # This ensures metrics work even if the OTel SDK hook mechanism didn't fire.
         def ensure_meter_provider_initialized!
-          return if meter_provider_available?(::OpenTelemetry.meter_provider)
+          return if defined?(::OpenTelemetry) && meter_provider_available?(::OpenTelemetry.meter_provider)
 
           @logger.debug { 'OpenFeature: Initializing OTel meter provider directly' }
           require 'opentelemetry-metrics-sdk'
           require 'datadog/opentelemetry/metrics'
           Datadog::OpenTelemetry::Metrics.initialize!(Datadog.send(:components))
-        rescue LoadError, NameError => e
+        rescue LoadError => e
           @logger.debug { "OpenFeature: Failed to initialize OTel metrics: #{e.class}: #{e}" }
         end
 
