@@ -123,7 +123,7 @@ module Datadog
 
           attrs = {
             ATTR_FLAG_KEY => flag_key,
-            ATTR_VARIANT => variant || '',
+            ATTR_VARIANT => variant.to_s,
             ATTR_REASON => normalized_reason,
           }
 
