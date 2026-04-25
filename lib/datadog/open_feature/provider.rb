@@ -71,7 +71,7 @@ module Datadog
 
       def hooks
         hook = Datadog.send(:components).open_feature&.flag_eval_hook
-        hook ? [hook] : []
+        [hook].compact
       end
 
       def fetch_boolean_value(flag_key:, default_value:, evaluation_context: nil)
