@@ -45,7 +45,7 @@ RSpec.describe 'Symbol Database Integration' do
         allow(uploader).to receive(:upload_scopes) { |scopes| uploaded_scopes.concat(scopes) }
 
         settings = double('settings')
-        symdb_settings = double('symbol_database', internal: double('internal', upload_class_methods: false, injectable_line_events: [:line, :return]))
+        symdb_settings = double('symbol_database', internal: double('internal', upload_class_methods: false))
         allow(settings).to receive(:symbol_database).and_return(symdb_settings)
         logger = instance_double(Logger, debug: nil)
 
