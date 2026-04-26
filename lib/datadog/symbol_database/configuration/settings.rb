@@ -46,29 +46,12 @@ module Datadog
                   o.default false
                 end
 
-                # Controls whether class methods (def self.foo) are included
-                # in symbol database uploads.
-                #
-                # Class methods are NOT uploaded by default because Ruby DI
-                # currently does not support instrumenting class methods —
-                # only instance methods can be probed. Including class methods
-                # would present completions in the UI that cannot be acted on.
-                #
-                # When DI gains singleton class instrumentation support, this
-                # should be switched to default true and moved to a public setting.
-                #
-                # See: docs/class_methods_di_design.md for full analysis.
                 # Enable verbose trace-level logging for symdb operations.
                 # Activated by DD_TRACE_DEBUG (same trigger as DI trace logging).
                 option :trace_logging do |o|
                   o.type :bool
                   o.default false
                   o.env 'DD_TRACE_DEBUG'
-                end
-
-                option :upload_class_methods do |o|
-                  o.type :bool
-                  o.default false
                 end
               end
             end

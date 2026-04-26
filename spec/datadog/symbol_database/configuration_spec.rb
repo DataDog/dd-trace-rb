@@ -36,10 +36,6 @@ RSpec.describe 'Symbol Database Configuration' do
       expect { settings.symbol_database.internal.force_upload }.not_to raise_error
     end
 
-    it 'internal.upload_class_methods is readable' do
-      expect { settings.symbol_database.internal.upload_class_methods }.not_to raise_error
-    end
-
     it 'enabled is writable' do
       expect { settings.symbol_database.enabled = false }.not_to raise_error
     end
