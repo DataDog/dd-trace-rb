@@ -129,13 +129,13 @@ module Datadog
             # Uses fiber-local storage so each fiber tracks independently.
             if Thread.current[:datadog_di_in_probe]
               if args.any?
-                if kwargs.any?
-                  return super(*args, **kwargs, &target_block)
+                if kwargs.any? # steep:ignore FallbackAny
+                  return super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
                 else
                   return super(*args, &target_block)
                 end
-              elsif kwargs.any?
-                return super(**kwargs, &target_block)
+              elsif kwargs.any? # steep:ignore FallbackAny
+                return super(**kwargs, &target_block) # steep:ignore FallbackAny
               else
                 return super(&target_block)
               end
@@ -144,8 +144,9 @@ module Datadog
             begin
             Thread.current[:datadog_di_in_probe] = true # rubocop:disable Layout/IndentationWidth
 
-            # Steep: Unsure why it cannot detect kwargs in this block. Workaround:
-            # @type var kwargs: ::Hash[::Symbol, untyped]
+            # Steep cannot detect the type of **kwargs inside define_method blocks
+            # (Ruby::FallbackAny). All kwargs references below are annotated with
+            # steep:ignore FallbackAny.
             di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
 
             if continue = probe.enabled?
@@ -156,7 +157,7 @@ module Datadog
                   # We do not need the stack for condition evaluation, therefore
                   # stack is not passed to Context here.
                   context = Context.new(
-                    locals: serializer.combine_args(args, kwargs, self),
+                    locals: serializer.combine_args(args, kwargs, self), # steep:ignore FallbackAny
                     target_self: self,
                     probe: probe, settings: settings, serializer: serializer,
                   )
@@ -200,7 +201,7 @@ module Datadog
               # Arguments may be mutated by the method, therefore
               # they need to be serialized prior to method invocation.
               serialized_entry_args = if probe.capture_snapshot?
-                serializer.serialize_args(args, kwargs, self,
+                serializer.serialize_args(args, kwargs, self, # steep:ignore FallbackAny
                   depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
                   attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
               end
@@ -221,13 +222,13 @@ module Datadog
                 # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
                 # for methods defined via method_missing.
                 rv = if args.any?
-                  if kwargs.any?
-                    super(*args, **kwargs, &target_block)
+                  if kwargs.any? # steep:ignore FallbackAny
+                    super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
                   else
                     super(*args, &target_block)
                   end
-                elsif kwargs.any?
-                  super(**kwargs, &target_block)
+                elsif kwargs.any? # steep:ignore FallbackAny
+                  super(**kwargs, &target_block) # steep:ignore FallbackAny
                 else
                   super(&target_block)
                 end
@@ -307,13 +308,13 @@ module Datadog
               # there is actually a legitimate need for the breakdown.
               # TODO figure out how to test this properly.
               if args.any?
-                if kwargs.any?
-                  super(*args, **kwargs, &target_block)
+                if kwargs.any? # steep:ignore FallbackAny
+                  super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
                 else
                   super(*args, &target_block)
                 end
-              elsif kwargs.any?
-                super(**kwargs, &target_block)
+              elsif kwargs.any? # steep:ignore FallbackAny
+                super(**kwargs, &target_block) # steep:ignore FallbackAny
               else
                 super(&target_block)
               end
