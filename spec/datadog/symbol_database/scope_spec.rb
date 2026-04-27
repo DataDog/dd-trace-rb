@@ -50,6 +50,27 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     end
   end
 
+  describe '#injectible_lines?' do
+    it 'returns false when injectible_lines is nil' do
+      scope = described_class.new(scope_type: 'METHOD', name: 'foo')
+      expect(scope.injectible_lines?).to eq(false)
+    end
+
+    it 'returns false when injectible_lines is empty' do
+      scope = described_class.new(scope_type: 'METHOD', name: 'foo', injectible_lines: [])
+      expect(scope.injectible_lines?).to eq(false)
+    end
+
+    it 'returns true when injectible_lines has ranges' do
+      scope = described_class.new(
+        scope_type: 'METHOD',
+        name: 'foo',
+        injectible_lines: [{start: 5, end: 7}],
+      )
+      expect(scope.injectible_lines?).to eq(true)
+    end
+  end
+
   describe '#to_h' do
     it 'converts simple scope to hash' do
       scope = described_class.new(
