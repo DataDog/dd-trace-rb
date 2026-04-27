@@ -77,7 +77,7 @@ module Datadog
             raw = payload['rawQueryString']
             return raw if raw && !raw.empty?
 
-            URI.encode_www_form(payload.fetch('queryStringParameters', {}))
+            URI.encode_www_form(payload['queryStringParameters'] || {})
           end
 
           def extract_method(payload)

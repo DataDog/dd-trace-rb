@@ -133,6 +133,26 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
       it { expect(result['server.request.cookies']).to eq('a' => '1', 'b' => '2', 'c' => 'val=ue') }
     end
 
+    context 'when payload has explicit nil fields' do
+      let(:payload) do
+        {
+          'path' => '/health',
+          'headers' => nil,
+          'queryStringParameters' => nil,
+          'multiValueQueryStringParameters' => nil,
+          'pathParameters' => nil,
+          'requestContext' => {'identity' => {'sourceIp' => '127.0.0.1'}},
+        }
+      end
+
+      it { expect(result['server.request.headers']).to eq({}) }
+      it { expect(result['server.request.headers.no_cookies']).to eq({}) }
+      it { expect(result['server.request.cookies']).to eq({}) }
+      it { expect(result['server.request.query']).to eq({}) }
+      it { expect(result['server.request.uri.raw']).to eq('/health') }
+      it { expect(result).not_to have_key('server.request.path_params') }
+    end
+
     context 'when v1 has multiValueQueryStringParameters' do
       let(:payload) do
         {
