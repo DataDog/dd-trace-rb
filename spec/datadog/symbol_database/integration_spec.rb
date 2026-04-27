@@ -50,7 +50,7 @@ RSpec.describe 'Symbol Database Integration' do
         logger = instance_double(Logger, debug: nil)
 
         context = Datadog::SymbolDatabase::ScopeBatcher.new(uploader, logger: logger)
-        extractor = Datadog::SymbolDatabase::Extractor.new(logger: logger, settings: settings, telemetry: nil)
+        extractor = Datadog::SymbolDatabase::Extractor.new(logger: logger, settings: settings)
 
         # Use extract_all — the production path
         # GC.start cleans up stale modules from other tests in ObjectSpace
