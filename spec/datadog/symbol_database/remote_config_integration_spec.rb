@@ -117,7 +117,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       expect(module_scope).not_to be_nil
       expect(module_scope['scope_type']).to eq('MODULE')
 
-      class_scope = module_scope['scopes'].find { |s| s['name'] == 'RCIntegrationTestClass' }
+      class_scope = module_scope['scopes'].find { |s| s['name'] == 'RCIntegrationTestModule::RCIntegrationTestClass' }
       expect(class_scope).not_to be_nil
       expect(class_scope['scope_type']).to eq('CLASS')
 
