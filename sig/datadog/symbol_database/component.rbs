@@ -7,7 +7,6 @@ module Datadog
       @settings: untyped
       @agent_settings: untyped
       @logger: untyped
-      @telemetry: untyped?
       @extractor: Extractor
       @uploader: Uploader
       @scope_batcher: ScopeBatcher
@@ -18,9 +17,9 @@ module Datadog
       @upload_done_cv: Thread::ConditionVariable
       @shutdown: bool
 
-      def self.build: (untyped settings, untyped agent_settings, untyped logger, ?telemetry: untyped?) -> Component?
+      def self.build: (untyped settings, untyped agent_settings, untyped logger) -> Component?
 
-      def initialize: (untyped settings, untyped agent_settings, untyped logger, ?telemetry: untyped?) -> void
+      def initialize: (untyped settings, untyped agent_settings, untyped logger) -> void
 
       attr_reader settings: untyped
       attr_reader enabled: bool

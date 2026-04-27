@@ -26,8 +26,6 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
     Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil)
   end
   let(:symdb_logger) { Datadog::SymbolDatabase::Logger.new(settings, raw_logger) }
-  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component, inc: nil, distribution: nil) }
-
   let(:mock_transport) { instance_double(Datadog::SymbolDatabase::Transport::Transport) }
   let(:mock_response) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200, internal_error?: false) }
 
@@ -74,8 +72,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       component = Datadog::SymbolDatabase::Component.build(
         settings,
         agent_settings,
-        symdb_logger,
-        telemetry: telemetry,
+        symdb_logger
       )
       expect(component).not_to be_nil
 
@@ -140,8 +137,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       component = Datadog::SymbolDatabase::Component.build(
         settings,
         agent_settings,
-        symdb_logger,
-        telemetry: telemetry,
+        symdb_logger
       )
 
       # Simulate RC change: insert with upload_symbols: true
@@ -162,8 +158,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       component = Datadog::SymbolDatabase::Component.build(
         settings,
         agent_settings,
-        symdb_logger,
-        telemetry: telemetry,
+        symdb_logger
       )
 
       content = instance_double('Datadog::Core::Remote::Configuration::Content', data: JSON.generate('upload_symbols' => false))
@@ -182,8 +177,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       component = Datadog::SymbolDatabase::Component.build(
         settings,
         agent_settings,
-        symdb_logger,
-        telemetry: telemetry,
+        symdb_logger
       )
 
       # First enable
@@ -212,8 +206,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       component = Datadog::SymbolDatabase::Component.build(
         settings,
         agent_settings,
-        symdb_logger,
-        telemetry: telemetry,
+        symdb_logger
       )
 
       GC.start

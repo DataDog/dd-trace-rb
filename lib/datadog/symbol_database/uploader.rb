@@ -24,7 +24,6 @@ module Datadog
     #
     # Called by: ScopeBatcher.perform_upload (when batch ready)
     # Calls: Transport::HTTP for network, Zlib for compression
-    # Tracks: Telemetry metrics for uploads, errors, payload sizes
     #
     # @api private
     class Uploader
@@ -33,12 +32,10 @@ module Datadog
       # Initialize uploader.
       # @param config [Configuration] Tracer configuration (for service, env, version metadata)
       # @param agent_settings [Configuration::AgentSettings] Agent connection settings
-      # @param telemetry [Telemetry, nil] Optional telemetry for metrics
-      def initialize(config, agent_settings, logger:, telemetry: nil)
+      def initialize(config, agent_settings, logger:)
         @config = config
         @agent_settings = agent_settings
         @logger = logger
-        @telemetry = telemetry
 
         # Initialize transport using symbol database transport infrastructure
         @transport = Transport::HTTP.build(
@@ -73,7 +70,6 @@ module Datadog
         perform_http_upload(compressed_data, scopes.size)
       rescue => e
         @logger.debug { "symdb: upload failed: #{e.class}: #{e}" }
-        @telemetry&.inc('tracers', 'symbol_database.upload_scopes_error', 1)
         # Don't propagate
       end
 
@@ -94,7 +90,6 @@ module Datadog
         service_version.to_json
       rescue => e
         @logger.debug { "symdb: serialization failed: #{e.class}: #{e}" }
-        @telemetry&.inc('tracers', 'symbol_database.serialization_error', 1)
         nil
       end
 
@@ -102,14 +97,9 @@ module Datadog
       # @param json_data [String] JSON string to compress
       # @return [String, nil] GZIP compressed data or nil if compression fails
       def compress_payload(json_data)
-        compressed = Zlib.gzip(json_data)
-        # Track compression ratio
-        ratio = json_data.bytesize.to_f / compressed.bytesize
-        @telemetry&.distribution('tracers', 'symbol_database.compression_ratio', ratio)
-        compressed
+        Zlib.gzip(json_data)
       rescue => e
         @logger.debug { "symdb: compression failed: #{e.class}: #{e}" }
-        @telemetry&.inc('tracers', 'symbol_database.compression_error', 1)
         nil
       end
 
@@ -118,9 +108,6 @@ module Datadog
       # @param scope_count [Integer] Number of scopes (for logging)
       # @return [void]
       def perform_http_upload(compressed_data, scope_count)
-        # Track payload size
-        @telemetry&.distribution('tracers', 'symbol_database.payload_size', compressed_data.bytesize)
-
         # Build multipart form
         form = build_multipart_form(compressed_data)
 
@@ -174,26 +161,20 @@ module Datadog
       def handle_response(response, scope_count)
         if response.internal_error?
           @logger.debug { "symdb: upload failed: #{response.error.class}: #{response.error}" }
-          @telemetry&.inc('tracers', 'symbol_database.upload_error', 1, tags: ['error:connection_error'])
           return false
         end
 
         case response.code
         when 200..299
           @logger.debug { "symdb: uploaded #{scope_count} scopes successfully" }
-          @telemetry&.inc('tracers', 'symbol_database.uploaded', 1)
-          @telemetry&.inc('tracers', 'symbol_database.scopes_uploaded', scope_count)
           true
         when 429
-          @telemetry&.inc('tracers', 'symbol_database.upload_error', 1, tags: ['error:rate_limited'])
           @logger.debug { "symdb: upload rejected: rate limited (429)" }
           false
         when 500..599
-          @telemetry&.inc('tracers', 'symbol_database.upload_error', 1, tags: ['error:server_error'])
           @logger.debug { "symdb: upload rejected: server error (#{response.code})" }
           false
         else
-          @telemetry&.inc('tracers', 'symbol_database.upload_error', 1, tags: ['error:client_error'])
           @logger.debug { "symdb: upload rejected: #{response.code}" }
           false
         end

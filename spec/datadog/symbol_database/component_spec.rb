@@ -32,8 +32,6 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
   let(:raw_logger) { instance_double(Logger, debug: nil) }
   let(:logger) { Datadog::SymbolDatabase::Logger.new(settings, raw_logger) }
-  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component, inc: nil, distribution: nil) }
-
   # Reset the class-level OnlyOnce guard between tests
   before do
     described_class::FORCE_UPLOAD_ONCE.send(:reset_ran_once_state_for_tests)
@@ -76,7 +74,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     it 'returns nil when symbol_database is not enabled' do
       allow(settings.symbol_database).to receive(:enabled).and_return(false)
 
-      result = described_class.build(settings, agent_settings, logger, telemetry: telemetry)
+      result = described_class.build(settings, agent_settings, logger)
       expect(result).to be_nil
     end
 
@@ -84,7 +82,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       stub_const('RUBY_ENGINE', 'jruby')
       allow(logger).to receive(:debug)
 
-      result = described_class.build(settings, agent_settings, logger, telemetry: telemetry)
+      result = described_class.build(settings, agent_settings, logger)
       expect(result).to be_nil
     end
 
@@ -92,7 +90,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       stub_const('RUBY_VERSION', '2.5.9')
       allow(logger).to receive(:debug)
 
-      result = described_class.build(settings, agent_settings, logger, telemetry: telemetry)
+      result = described_class.build(settings, agent_settings, logger)
       expect(result).to be_nil
     end
 
@@ -100,19 +98,19 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       allow(settings.remote).to receive(:enabled).and_return(false)
       allow(settings.symbol_database.internal).to receive(:force_upload).and_return(false)
 
-      result = described_class.build(settings, agent_settings, logger, telemetry: telemetry)
+      result = described_class.build(settings, agent_settings, logger)
       expect(result).to be_nil
     end
 
     it 'returns a Component when enabled and remote is enabled' do
-      result = described_class.build(settings, agent_settings, logger, telemetry: telemetry)
+      result = described_class.build(settings, agent_settings, logger)
       expect(result).to be_a(described_class)
     end
 
     it 'returns a Component when DI is disabled (SymDB is independent of DI)' do
       allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(false)
 
-      result = described_class.build(settings, agent_settings, logger, telemetry: telemetry)
+      result = described_class.build(settings, agent_settings, logger)
       expect(result).to be_a(described_class)
     end
 
@@ -120,7 +118,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       allow(settings.remote).to receive(:enabled).and_return(false)
       allow(settings.symbol_database.internal).to receive(:force_upload).and_return(true)
 
-      result = described_class.build(settings, agent_settings, logger, telemetry: telemetry)
+      result = described_class.build(settings, agent_settings, logger)
       expect(result).to be_a(described_class)
     end
 
@@ -133,7 +131,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         expect_any_instance_of(described_class).to receive(:schedule_deferred_upload)
         expect_any_instance_of(described_class).not_to receive(:extract_and_upload)
 
-        described_class.build(settings, agent_settings, logger, telemetry: telemetry)
+        described_class.build(settings, agent_settings, logger)
       end
     end
 
@@ -141,14 +139,14 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       it 'does not call schedule_deferred_upload' do
         expect_any_instance_of(described_class).not_to receive(:schedule_deferred_upload)
 
-        described_class.build(settings, agent_settings, logger, telemetry: telemetry)
+        described_class.build(settings, agent_settings, logger)
       end
     end
   end
 
   describe '#schedule_deferred_upload' do
     let(:component) do
-      described_class.new(settings, agent_settings, logger, telemetry: telemetry)
+      described_class.new(settings, agent_settings, logger)
     end
 
     context 'without Rails (non-Rails context)' do
@@ -172,7 +170,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       end
 
       it 'only triggers extraction once across multiple component instances' do
-        component2 = described_class.new(settings, agent_settings, logger, telemetry: telemetry)
+        component2 = described_class.new(settings, agent_settings, logger)
 
         expect(component).to receive(:start_upload).once
         expect(component2).not_to receive(:start_upload)
@@ -223,7 +221,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         component.shutdown!
 
         # Simulate reconfiguration: component2 is now current
-        component2 = described_class.new(settings, agent_settings, logger, telemetry: telemetry)
+        component2 = described_class.new(settings, agent_settings, logger)
         components = instance_double(Datadog::Core::Configuration::Components, symbol_database: component2)
         allow(Datadog).to receive(:components).and_return(components)
 
@@ -234,7 +232,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       end
 
       it 'only registers the after_initialize callback once across reconfigurations' do
-        component2 = described_class.new(settings, agent_settings, logger, telemetry: telemetry)
+        component2 = described_class.new(settings, agent_settings, logger)
 
         component.schedule_deferred_upload
         component2.schedule_deferred_upload
@@ -246,7 +244,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
   describe '#start_upload' do
     let(:component) do
-      described_class.new(settings, agent_settings, logger, telemetry: telemetry)
+      described_class.new(settings, agent_settings, logger)
     end
 
     it 'triggers extract_and_upload on first call' do
@@ -273,7 +271,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
   describe 'diagnostic accessors' do
     let(:component) do
-      described_class.new(settings, agent_settings, logger, telemetry: telemetry)
+      described_class.new(settings, agent_settings, logger)
     end
 
     describe '#enabled' do
@@ -329,7 +327,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
   describe '#shutdown!' do
     let(:component) do
-      described_class.new(settings, agent_settings, logger, telemetry: telemetry)
+      described_class.new(settings, agent_settings, logger)
     end
 
     it 'sets shutdown flag' do
@@ -360,8 +358,8 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       extraction_count = 0
       allow_any_instance_of(described_class).to receive(:extract_and_upload) { extraction_count += 1 }
 
-      component1 = described_class.build(settings, agent_settings, logger, telemetry: telemetry)
-      described_class.build(settings, agent_settings, logger, telemetry: telemetry)
+      component1 = described_class.build(settings, agent_settings, logger)
+      described_class.build(settings, agent_settings, logger)
       component1.shutdown!
 
       expect(extraction_count).to eq(1)
@@ -372,7 +370,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
   describe 'enable/disable upload (ported from Java SymDBEnablementTest.enableDisableSymDBThroughRC)' do
     let(:component) do
-      described_class.new(settings, agent_settings, logger, telemetry: telemetry)
+      described_class.new(settings, agent_settings, logger)
     end
 
     it 'starts upload and then stops it' do
@@ -399,7 +397,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
   describe 'config removal (ported from Java SymDBEnablementTest.removeSymDBConfig)' do
     let(:component) do
-      described_class.new(settings, agent_settings, logger, telemetry: telemetry)
+      described_class.new(settings, agent_settings, logger)
     end
 
     it 'shutdown prevents any future uploads' do
@@ -416,7 +414,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
   describe 'filtering behavior (ported from Java SymDBEnablementTest.noIncludesFilterOutDatadogClass)' do
     let(:component) do
-      described_class.new(settings, agent_settings, logger, telemetry: telemetry)
+      described_class.new(settings, agent_settings, logger)
     end
 
     it 'extract_and_upload filters out Datadog internal classes' do
