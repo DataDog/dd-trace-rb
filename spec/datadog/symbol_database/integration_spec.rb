@@ -68,8 +68,8 @@ RSpec.describe 'Symbol Database Integration' do
         expect(module_scope).not_to be_nil
         expect(module_scope.scope_type).to eq('MODULE')
 
-        # CLASS nested under MODULE via FQN splitting (short name)
-        class_scope = module_scope.scopes.find { |s| s.name == 'IntegrationTestClass' }
+        # CLASS nested under MODULE via FQN splitting (FQN name)
+        class_scope = module_scope.scopes.find { |s| s.name == 'IntegrationTestModule::IntegrationTestClass' }
         expect(class_scope).not_to be_nil
         expect(class_scope.scope_type).to eq('CLASS')
 
