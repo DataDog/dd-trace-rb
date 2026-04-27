@@ -96,18 +96,19 @@ module Datadog
 
             @cache_limit = cache_limit
             @cache = {}
+            @cache_mutex = Mutex.new
           end
 
           # (see Resolver#resolve)
           def resolve(value)
-            if @cache.key?(value)
-              @cache[value]
-            else
-              if @cache.size >= @cache_limit
-                @cache.shift # Remove the oldest entry if cache is full
-              end
+            @cache_mutex.synchronize do
+              @cache.fetch(value) do
+                if @cache.size >= @cache_limit
+                  @cache.shift # Remove the oldest entry if cache is full
+                end
 
-              @cache[value] = super
+                @cache[value] = super
+              end
             end
           end
 
@@ -119,7 +120,9 @@ module Datadog
 
           # Clears the internal cache.
           def reset_cache
-            @cache.clear
+            @cache_mutex.synchronize do
+              @cache.clear
+            end
           end
         end
       end
