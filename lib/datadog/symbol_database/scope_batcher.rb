@@ -25,7 +25,7 @@ module Datadog
     # Calls: Uploader.upload_scopes when batch full or timer fires
     #
     # @api private
-    class ScopeContext
+    class ScopeBatcher
       # Maximum scopes per batch before triggering immediate upload.
       # This matches the batch size used in Java and Python tracers to ensure
       # consistent upload behavior across languages.
