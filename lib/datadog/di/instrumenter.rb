@@ -419,7 +419,25 @@ module Datadog
 
           # TracePoint#enable returns false when it succeeds.
           rv = if iseq
-            tp.enable(target: iseq, target_line: line_no)
+            begin
+              tp.enable(target: iseq, target_line: line_no)
+            rescue ArgumentError
+              # Whole-file iseqs recovered by backfill_registry may have
+              # stale child-iseq references under rare GC conditions,
+              # causing "can not enable any hooks" when the target line
+              # lives in a child iseq (method/block body). Fall back to
+              # a per-method iseq that directly contains the target line.
+              fallback_ret = code_tracker&.respond_to?(:per_method_iseq_for_line) &&
+                code_tracker.per_method_iseq_for_line(probe.file, line_no) # steep:ignore ArgumentTypeMismatch
+              raise unless fallback_ret
+
+              _, fallback_iseq = fallback_ret
+              tp = TracePoint.new(*types) do |tp|
+                line_trace_point_callback(probe, fallback_iseq, responder, tp)
+              end
+              probe.instrumentation_trace_point = tp
+              tp.enable(target: fallback_iseq, target_line: line_no)
+            end
           else
             tp.enable
           end
