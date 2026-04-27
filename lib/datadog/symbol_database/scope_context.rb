@@ -109,14 +109,6 @@ module Datadog
           @timer_cv.signal
         end
 
-          # Signal the timer thread to reset its inactivity deadline.
-          # If batch was full, this is harmless — the timer will just
-          # re-check and find an empty batch if it fires.
-          ensure_timer_running
-          @timer_signaled = true
-          @timer_cv.signal
-        end
-
         # Upload outside mutex (if batch was full)
         perform_upload(scopes_to_upload) if scopes_to_upload
       rescue => e
@@ -215,47 +207,6 @@ module Datadog
         @timer_thread = Thread.new do
           timer_loop
         end
-      end
-
-      # Timer thread main loop. Waits on the ConditionVariable with a timeout.
-      # Each signal resets the deadline (debounce). When the wait times out
-      # (no signal within INACTIVITY_TIMEOUT), the batch is flushed.
-      #
-      # Uses @timer_signaled flag instead of ConditionVariable#wait return value
-      # because Ruby < 3.2 returns self for both signal and timeout (no way to
-      # distinguish). The flag is set by add_scope before signaling, and cleared
-      # by the timer thread after waking.
-      # @return [void]
-      def timer_loop
-        loop do
-          should_flush = false
-
-          @mutex.synchronize do
-            return if @timer_stopped
-
-            @timer_signaled = false
-            @timer_cv.wait(@mutex, INACTIVITY_TIMEOUT)
-
-            return if @timer_stopped
-
-            if @timer_signaled
-              # Woke up because add_scope signaled — loop back to re-wait with
-              # a fresh timeout. This implements the debounce: the timeout resets
-              # on every scope addition.
-              next # steep:ignore BreakTypeMismatch
-            end
-
-            # Timed out (no signal within INACTIVITY_TIMEOUT). If there are
-            # scopes pending, flush them. Otherwise, loop back and wait again.
-            should_flush = !@scopes.empty?
-          end
-
-          if should_flush
-            flush
-          end
-        end
-      rescue => e
-        @logger.debug { "symdb: timer thread error: #{e.class}: #{e}" }
       end
 
       # Timer thread main loop. Waits on the ConditionVariable with a timeout.
