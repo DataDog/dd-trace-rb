@@ -145,9 +145,9 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       )
 
       # Simulate RC change: insert with upload_symbols: true
-      content = double('content', data: JSON.generate('upload_symbols' => true))
+      content = instance_double('Datadog::Core::Remote::Configuration::Content', data: JSON.generate('upload_symbols' => true))
       allow(content).to receive(:applied)
-      change = double('change', type: :insert, content: content)
+      change = instance_double('Datadog::Core::Remote::Configuration::Repository::Change::Inserted', type: :insert, content: content)
 
       GC.start
       Datadog::SymbolDatabase::Remote.send(:process_change, component, change)
@@ -166,9 +166,9 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
         telemetry: telemetry,
       )
 
-      content = double('content', data: JSON.generate('upload_symbols' => false))
+      content = instance_double('Datadog::Core::Remote::Configuration::Content', data: JSON.generate('upload_symbols' => false))
       allow(content).to receive(:applied)
-      change = double('change', type: :insert, content: content)
+      change = instance_double('Datadog::Core::Remote::Configuration::Repository::Change::Inserted', type: :insert, content: content)
 
       Datadog::SymbolDatabase::Remote.send(:process_change, component, change)
 
@@ -187,19 +187,18 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       )
 
       # First enable
-      content = double('content', data: JSON.generate('upload_symbols' => true))
+      content = instance_double('Datadog::Core::Remote::Configuration::Content', data: JSON.generate('upload_symbols' => true))
       allow(content).to receive(:applied)
-      insert_change = double('change', type: :insert, content: content)
+      insert_change = instance_double('Datadog::Core::Remote::Configuration::Repository::Change::Inserted', type: :insert, content: content)
 
       GC.start
       Datadog::SymbolDatabase::Remote.send(:process_change, component, insert_change)
       expect(captured_forms).not_to be_empty
 
       # Then delete
-      previous = double('previous')
+      previous = instance_double('Datadog::Core::Remote::Configuration::Content')
       allow(previous).to receive(:applied)
-      delete_change = double('change', type: :delete, previous: previous)
-      allow(delete_change).to receive(:content).and_return(nil)
+      delete_change = instance_double('Datadog::Core::Remote::Configuration::Repository::Change::Deleted', type: :delete, previous: previous)
 
       Datadog::SymbolDatabase::Remote.send(:process_change, component, delete_change)
       expect(previous).to have_received(:applied)
