@@ -158,48 +158,6 @@ module Datadog
         nil
       end
 
-      # Extract symbols from all loaded modules and classes.
-      # Returns an array of FILE scopes with proper FQN-based nesting.
-      #
-      # Two-pass algorithm:
-      # Pass 1: Iterate ObjectSpace, collect all extractable modules with methods grouped by file
-      # Pass 2: Build FILE scope trees with nested MODULE/CLASS hierarchy from FQN splitting
-      #
-      # This is the production path used by Component. Methods are split by source file,
-      # so a class reopened across two files produces two FILE scopes, each with only
-      # the methods defined in that file.
-      #
-      # @return [Array<Scope>] Array of FILE scopes
-      def extract_all
-        entries = collect_extractable_modules
-        file_trees = build_file_trees(entries)
-        convert_trees_to_scopes(file_trees)
-      rescue => e
-        @logger.debug { "symdb: error in extract_all: #{e.class}: #{e}" }
-        @telemetry&.inc('tracers', 'symbol_database.extract_all_error', 1)
-        []
-      end
-
-      private
-
-      # Whether to include class methods (def self.foo) in extraction.
-      # Read from settings on each call so it tracks config changes.
-      def upload_class_methods?
-        @settings.symbol_database.internal.upload_class_methods
-      end
-
-      # Safe Module#name lookup — some classes override the singleton `name` method
-      # (e.g. Faker::Travel::Airport defines `def name(size:, region:)` in class << self,
-      # which shadows Module#name and raises ArgumentError when called without args).
-      # @param mod [Module] The module
-      # @return [String, nil] Module name or nil
-      def safe_mod_name(mod)
-        Module.instance_method(:name).bind(mod).call
-      rescue => e
-        @logger.debug { "symdb: safe_mod_name failed: #{e.class}: #{e}" }
-        nil
-      end
-
       # Check if module is from user code (not gems or stdlib)
       # @param mod [Module] The module to check
       # @return [Boolean] true if user code
@@ -323,58 +281,6 @@ module Datadog
               namespace.const_source_location(const_name)
             rescue => e
               @logger.debug { "symdb: const_source_location(#{const_name}) failed: #{e.class}: #{e}" }
-              nil
-            end
-
-            if location && !location.empty?
-              path = location[0]
-              return path if path && !path.empty? && user_code_path?(path)
-              fallback ||= ((path && !path.empty?) ? path : nil)
-            end
-          end
-
-          # Also scan constants defined by mod itself (namespace-only modules).
-          mod.constants(false).each do |child_const_name|
-            location = begin
-              mod.const_source_location(child_const_name)
-            rescue => e
-              @logger.debug { "symdb: const_source_location(#{child_const_name}) failed: #{e.class}: #{e}" }
-              nil
-            end
-            next unless location && !location.empty?
-
-            path = location[0]
-            next unless path && !path.empty?
-
-            return path if user_code_path?(path)
-
-            fallback ||= path
-          end
-        end
-
-        # Try const_source_location (Ruby 2.7+) to find where this class/module is declared.
-        # This handles two cases:
-        #   1. Classes with no user-defined methods (e.g. AR models with only associations) whose
-        #      generated methods point to gem code — we find the `class Foo` declaration instead.
-        #   2. Namespace-only modules (`module Foo; class Bar; end; end`) with no methods at all.
-        if Module.method_defined?(:const_source_location) && mod.name
-          # Look up the class/module by its last name component in its enclosing namespace.
-          parts = mod.name.split('::')
-          const_name = parts.last
-          namespace = if parts.length > 1
-            begin
-              Object.const_get(parts[0..-2].join('::')) # steep:ignore
-            rescue NameError
-              nil
-            end
-          else
-            Object
-          end
-
-          if namespace
-            location = begin
-              namespace.const_source_location(const_name)
-            rescue
               nil
             end
 
@@ -741,19 +647,11 @@ module Datadog
           # See pitfall 37 and specs/json-schema.md "Discovered During Implementation".
           next if param_name.nil?
 
-          # Skip if param_name is nil — normal for generated methods (attr_writer, attr_accessor).
-          # See pitfall 37 and specs/json-schema.md "Discovered During Implementation".
-          next if param_name.nil?
-
           Symbol.new(
             symbol_type: 'ARG',
             name: param_name.to_s,
             line: UNKNOWN_MIN_LINE,  # Parameters available in entire method
           )
-        end
-
-        if result.empty? && !params.empty?
-          Datadog.logger.debug("SymDB: Extracted 0 parameters from singleton #{method_name} (params: #{params.inspect})")
         end
       rescue => e
         @logger.debug { "symdb: failed to extract parameters from #{method_name}: #{e.class}: #{e}" }
