@@ -5,12 +5,12 @@ require "set"
 # Integration tests that set DI probes on standard library methods
 # invoked by DI's own processing pipeline.
 #
-# DI has no explicit re-entrancy guards. When a probe is set on a stdlib
-# method that DI calls internally (e.g., String#length in the serializer),
-# the probe fires during DI's own processing, creating a re-entrant
-# invocation. These tests verify that DI handles this gracefully
-# (via rate limiting, serialization depth limits, or error recovery)
-# and document cases where it does not.
+# Method probes use a fiber-local re-entrancy guard
+# (Thread.current[:datadog_di_in_probe]) that prevents recursive
+# invocations during DI's own snapshot building. The guard is a split
+# design: held during DI pre/post-processing, released during super()
+# so nested probes fire normally in user code. These tests verify
+# the guard works correctly and document remaining edge cases.
 #
 # Key findings:
 #
@@ -18,15 +18,15 @@ require "set"
 #    Ruby self-disables a TracePoint during its callback, preventing
 #    the same trace point from firing while already processing.
 #
-# 2. Method probes (module prepending) ARE vulnerable.
-#    Module prepending has no re-entrancy protection. The vulnerability
-#    manifests when:
+# 2. Method probes (module prepending) are protected by the split
+#    re-entrancy guard. Without the guard, the vulnerability manifests
+#    when:
 #    a) The probed method is called in the always-executed snapshot
 #       building path (e.g., String#length via SecureRandom.uuid), AND
 #    b) The rate limit is high enough to allow nested invocations
 #       (5000/sec for non-capture probes).
-#    Capture probes (1/sec rate limit) are safe because the rate limiter
-#    blocks nested invocations.
+#    Capture probes (1/sec rate limit) are additionally safe because
+#    the rate limiter blocks nested invocations.
 #
 # 3. Methods only called in the capture-only serialization path
 #    (e.g., Set#include? via redactor) are safe for non-capture probes
@@ -490,10 +490,10 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
     # 2. DI-internal invocations can cause re-entrant recursion
     #    (SystemStackError for non-capture probes on hot methods).
     #
-    # The split re-entrancy guard (proposed in the investigation doc)
-    # only prevents re-entrancy during an active probe callback. It does
-    # NOT suppress probes during DI code paths that run outside of any
-    # probe callback: add_probe, flush, shutdown, diagnostics.
+    # The split re-entrancy guard (in instrumenter.rb) only prevents
+    # re-entrancy during an active probe callback. It does NOT suppress
+    # probes during DI code paths that run outside of any probe
+    # callback: add_probe, flush, shutdown, diagnostics.
     #
     # To fully suppress probes during all DI processing, the guard would
     # need to be set around every DI entry point.
