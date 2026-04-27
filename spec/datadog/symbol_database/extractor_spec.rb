@@ -1153,6 +1153,14 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         expect(extractor.extract(Datadog::SymbolDatabase::FileHash)).to be_nil
       end
 
+      it 'returns nil for Ruby core classes' do
+        expect(extractor.extract(Object)).to be_nil
+        expect(extractor.extract(BasicObject)).to be_nil
+        expect(extractor.extract(Kernel)).to be_nil
+        expect(extractor.extract(Module)).to be_nil
+        expect(extractor.extract(Class)).to be_nil
+      end
+
       it 'returns nil for Ruby stdlib classes' do
         expect(extractor.extract(File)).to be_nil
         expect(extractor.extract(Dir)).to be_nil
