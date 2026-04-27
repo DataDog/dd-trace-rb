@@ -81,3 +81,9 @@ require_relative 'contrib/sneakers/integration'
 require_relative 'contrib/stripe/integration'
 require_relative 'contrib/sucker_punch/integration'
 require_relative 'contrib/trilogy/integration'
+
+# This list is used to determine if an integration is a built-in integration,
+# and prevent sending telemetry for custom integrations.
+# .uniq to handle aliases.
+Datadog::Tracing::Contrib::BUILT_IN_INTEGRATIONS =
+  Datadog::Tracing::Contrib::REGISTRY.map { |entry| entry.klass }.uniq.freeze

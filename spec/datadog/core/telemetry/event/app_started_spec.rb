@@ -294,5 +294,62 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
         )
       end
     end
+
+    context 'with a custom integration configured through the config DSL' do
+      let(:custom_integration_name) { :httpx }
+      let(:custom_registry) { Datadog::Tracing::Contrib::Registry.new }
+      let(:custom_integration) { custom_integration_class.new(custom_integration_name) }
+      let(:custom_integration_class) do
+        custom_settings_class = Class.new(Datadog::Tracing::Contrib::Configuration::Settings) do
+          option :split_by_domain, default: false
+        end
+        custom_patcher = Module.new do
+          def self.patch
+            true
+          end
+        end
+
+        Class.new do
+          include Datadog::Tracing::Contrib::Integration
+
+          def self.version
+            Gem::Version.new('1.0.0')
+          end
+
+          define_method(:new_configuration) do
+            custom_settings_class.new
+          end
+
+          define_method(:patcher) do
+            custom_patcher
+          end
+        end
+      end
+
+      before do
+        Datadog.registry.each do |entry|
+          custom_registry.add(entry.name, entry.klass, entry.auto_patch)
+        end
+        custom_registry.add(custom_integration_name, custom_integration)
+        stub_const('Datadog::Tracing::Contrib::REGISTRY', custom_registry)
+
+        Datadog.configure do |c|
+          c.tracing.instrument custom_integration_name, split_by_domain: true
+        end
+      end
+
+      after do
+        Datadog.shutdown!
+        Datadog.configuration.reset!
+      end
+
+      it 'does not report custom integration configuration' do
+        custom_configuration = event.payload[:configuration].select do |entry|
+          entry[:name].start_with?('tracing.httpx.')
+        end
+
+        expect(custom_configuration).to be_empty
+      end
+    end
   end
 end

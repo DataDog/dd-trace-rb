@@ -263,6 +263,8 @@ module Datadog
             return [] unless tracing_settings.respond_to?(:instrumented_integrations)
 
             tracing_settings.instrumented_integrations.each_value.with_object([]) do |integration, entries|
+              next unless Datadog::Tracing::Contrib::BUILT_IN_INTEGRATIONS.include?(integration)
+
               integration.configurations.each_value do |configuration|
                 entries.concat(collect_configuration_options_from(configuration))
               end
