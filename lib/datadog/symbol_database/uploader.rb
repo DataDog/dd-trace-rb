@@ -22,7 +22,7 @@ module Datadog
     # Uses Core::Transport::HTTP infrastructure (consistent with DI, Profiling, DataStreams).
     # Headers: DD-API-KEY, Datadog-Container-ID, Datadog-Entity-ID (automatic from transport)
     #
-    # Called by: ScopeContext.perform_upload (when batch ready)
+    # Called by: ScopeBatcher.perform_upload (when batch ready)
     # Calls: Transport::HTTP for network, Zlib for compression
     # Tracks: Telemetry metrics for uploads, errors, payload sizes
     #

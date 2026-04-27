@@ -2,7 +2,7 @@
 
 require 'datadog/symbol_database/component'
 require 'datadog/symbol_database/extractor'
-require 'datadog/symbol_database/scope_context'
+require 'datadog/symbol_database/scope_batcher'
 require 'datadog/symbol_database/uploader'
 require 'datadog/core/utils/only_once'
 
@@ -39,13 +39,13 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     described_class::FORCE_UPLOAD_ONCE.send(:reset_ran_once_state_for_tests)
   end
 
-  # Stub Uploader and ScopeContext to avoid real HTTP calls
+  # Stub Uploader and ScopeBatcher to avoid real HTTP calls
   before do
     allow(Datadog::SymbolDatabase::Transport::HTTP).to receive(:build).and_return(
       instance_double(Datadog::SymbolDatabase::Transport::Transport)
     )
-    allow(Datadog::SymbolDatabase::ScopeContext).to receive(:new).and_return(
-      instance_double(Datadog::SymbolDatabase::ScopeContext, shutdown: nil, add_scope: nil, flush: nil, reset: nil)
+    allow(Datadog::SymbolDatabase::ScopeBatcher).to receive(:new).and_return(
+      instance_double(Datadog::SymbolDatabase::ScopeBatcher, shutdown: nil, add_scope: nil, flush: nil, reset: nil)
     )
   end
 
@@ -421,11 +421,11 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
     it 'extract_and_upload filters out Datadog internal classes' do
       uploaded_scopes = []
-      mock_scope_context = instance_double(Datadog::SymbolDatabase::ScopeContext)
-      allow(mock_scope_context).to receive(:add_scope) { |scope| uploaded_scopes << scope }
-      allow(mock_scope_context).to receive(:flush)
-      allow(mock_scope_context).to receive(:shutdown)
-      component.instance_variable_set(:@scope_context, mock_scope_context)
+      mock_scope_batcher = instance_double(Datadog::SymbolDatabase::ScopeBatcher)
+      allow(mock_scope_batcher).to receive(:add_scope) { |scope| uploaded_scopes << scope }
+      allow(mock_scope_batcher).to receive(:flush)
+      allow(mock_scope_batcher).to receive(:shutdown)
+      component.instance_variable_set(:@scope_batcher, mock_scope_batcher)
 
       component.send(:extract_and_upload)
 
