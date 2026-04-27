@@ -20,8 +20,12 @@ require_relative "backfill_integration_test_class"
 # Without this, deactivate_tracking! in the after block clears the
 # registry (the only reference), and GC can collect the iseq before
 # the next test's backfill_registry walks object space.
+# Ruby 3.2.9+ creates dummy iseqs (no bytecode, empty trace_points)
+# for profiler frames during require. Filter them out — only the real
+# top-level iseq has trace events and can target child iseq lines.
 BACKFILL_TEST_TOP_ISEQ = Datadog::DI.file_iseqs.find { |i|
   i.absolute_path&.end_with?("backfill_integration_test_class.rb") &&
+    !i.trace_points.empty? &&
     (Datadog::DI.respond_to?(:iseq_type) ? Datadog::DI.iseq_type(i) == :top : i.first_lineno == 0)
 }
 GC.enable
@@ -113,9 +117,10 @@ RSpec.describe "CodeTracker backfill integration" do
     end
 
     context "when whole-file iseq tp.enable fails" do
-      # Simulates the rare CI condition where the backfilled whole-file
-      # iseq's child references become stale (ArgumentError from
-      # tp.enable). The instrumenter should fall back to a per-method
+      # Exercises the per-method iseq fallback in hook_line. Injects a
+      # dummy iseq (like the profiler iseqs Ruby 3.2.9+ creates during
+      # require) into the whole-file registry. The instrumenter should
+      # rescue ArgumentError from tp.enable and retry with a per-method
       # iseq that directly contains the target line.
       it "falls back to per-method iseq and installs the probe" do
         # Replace the whole-file iseq in the registry with a dummy iseq

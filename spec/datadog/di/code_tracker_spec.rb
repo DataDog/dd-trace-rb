@@ -222,19 +222,22 @@ RSpec.describe Datadog::DI::CodeTracker do
     let(:whole_file_iseq) do
       instance_double(RubyVM::InstructionSequence,
         absolute_path: '/app/lib/foo.rb',
-        first_lineno: 0,)
+        first_lineno: 0,
+        trace_points: [[1, :line]],)
     end
 
     let(:per_method_iseq) do
       instance_double(RubyVM::InstructionSequence,
         absolute_path: '/app/lib/foo.rb',
-        first_lineno: 10,)
+        first_lineno: 10,
+        trace_points: [[10, :call], [11, :line]],)
     end
 
     let(:eval_iseq) do
       instance_double(RubyVM::InstructionSequence,
         absolute_path: nil,
-        first_lineno: 1,)
+        first_lineno: 1,
+        trace_points: [[1, :line]],)
     end
 
     # On Ruby 3.1+ iseq_type exists natively; on older Rubies
@@ -298,7 +301,8 @@ RSpec.describe Datadog::DI::CodeTracker do
       # file_iseqs returns an iseq for the same path
       conflicting_iseq = instance_double(RubyVM::InstructionSequence,
         absolute_path: path,
-        first_lineno: 0,)
+        first_lineno: 0,
+        trace_points: [[1, :line]],)
       allow(Datadog::DI).to receive(:file_iseqs).and_return([conflicting_iseq])
 
       tracker.backfill_registry
@@ -307,8 +311,8 @@ RSpec.describe Datadog::DI::CodeTracker do
     end
 
     it 'stores multiple files from a single backfill call' do
-      iseq_a = instance_double(RubyVM::InstructionSequence, absolute_path: '/app/lib/a.rb', first_lineno: 0)
-      iseq_b = instance_double(RubyVM::InstructionSequence, absolute_path: '/app/lib/b.rb', first_lineno: 0)
+      iseq_a = instance_double(RubyVM::InstructionSequence, absolute_path: '/app/lib/a.rb', first_lineno: 0, trace_points: [[1, :line]])
+      iseq_b = instance_double(RubyVM::InstructionSequence, absolute_path: '/app/lib/b.rb', first_lineno: 0, trace_points: [[1, :line]])
       allow(Datadog::DI).to receive(:file_iseqs).and_return([iseq_a, iseq_b])
 
       tracker.backfill_registry
@@ -331,14 +335,14 @@ RSpec.describe Datadog::DI::CodeTracker do
     end
 
     it 'adds new files on second call without overwriting existing entries' do
-      iseq_a = instance_double(RubyVM::InstructionSequence, absolute_path: '/app/lib/a.rb', first_lineno: 0)
+      iseq_a = instance_double(RubyVM::InstructionSequence, absolute_path: '/app/lib/a.rb', first_lineno: 0, trace_points: [[1, :line]])
       allow(Datadog::DI).to receive(:file_iseqs).and_return([iseq_a])
 
       tracker.backfill_registry
 
       # Second call returns the original file plus a new one
-      iseq_a_new = instance_double(RubyVM::InstructionSequence, absolute_path: '/app/lib/a.rb', first_lineno: 0)
-      iseq_b = instance_double(RubyVM::InstructionSequence, absolute_path: '/app/lib/b.rb', first_lineno: 0)
+      iseq_a_new = instance_double(RubyVM::InstructionSequence, absolute_path: '/app/lib/a.rb', first_lineno: 0, trace_points: [[1, :line]])
+      iseq_b = instance_double(RubyVM::InstructionSequence, absolute_path: '/app/lib/b.rb', first_lineno: 0, trace_points: [[1, :line]])
       allow(Datadog::DI).to receive(:file_iseqs).and_return([iseq_a_new, iseq_b])
 
       tracker.backfill_registry
@@ -485,7 +489,7 @@ RSpec.describe Datadog::DI::CodeTracker do
     end
 
     it 'finds backfilled entries by suffix' do
-      iseq = instance_double(RubyVM::InstructionSequence, absolute_path: '/app/lib/datadog/di/foo.rb', first_lineno: 0)
+      iseq = instance_double(RubyVM::InstructionSequence, absolute_path: '/app/lib/datadog/di/foo.rb', first_lineno: 0, trace_points: [[1, :line]])
       allow(Datadog::DI).to receive(:file_iseqs).and_return([iseq])
 
       tracker.backfill_registry
@@ -495,7 +499,7 @@ RSpec.describe Datadog::DI::CodeTracker do
     end
 
     it 'finds backfilled entries by exact path' do
-      iseq = instance_double(RubyVM::InstructionSequence, absolute_path: '/app/lib/datadog/di/foo.rb', first_lineno: 0)
+      iseq = instance_double(RubyVM::InstructionSequence, absolute_path: '/app/lib/datadog/di/foo.rb', first_lineno: 0, trace_points: [[1, :line]])
       allow(Datadog::DI).to receive(:file_iseqs).and_return([iseq])
 
       tracker.backfill_registry
@@ -594,7 +598,8 @@ RSpec.describe Datadog::DI::CodeTracker do
       it 'returns the whole-file iseq' do
         iseq = instance_double(RubyVM::InstructionSequence,
           absolute_path: '/app/lib/foo.rb',
-          first_lineno: 0,)
+          first_lineno: 0,
+          trace_points: [[1, :line]],)
         allow(Datadog::DI).to receive(:file_iseqs).and_return([iseq])
 
         tracker.backfill_registry
