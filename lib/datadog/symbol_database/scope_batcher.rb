@@ -38,13 +38,11 @@ module Datadog
 
       # Initialize batching context.
       # @param uploader [Uploader] Uploader instance for triggering uploads
-      # @param telemetry [Telemetry, nil] Optional telemetry for metrics
       # @param on_upload [Proc, nil] Optional callback called after upload (for testing)
       # @param timer_enabled [Boolean] Enable async timer (default true, false for tests)
-      def initialize(uploader, logger:, telemetry: nil, on_upload: nil, timer_enabled: true)
+      def initialize(uploader, logger:, on_upload: nil, timer_enabled: true)
         @uploader = uploader
         @logger = logger
-        @telemetry = telemetry
         @on_upload = on_upload
         @timer_enabled = timer_enabled
         @scopes = []
@@ -113,7 +111,6 @@ module Datadog
         perform_upload(scopes_to_upload) if scopes_to_upload
       rescue => e
         @logger.debug { "symdb: failed to add scope: #{e.class}: #{e}" }
-        @telemetry&.inc('tracers', 'symbol_database.add_scope_error', 1)
         # Don't propagate, continue operation
       end
 
@@ -260,7 +257,6 @@ module Datadog
         @on_upload&.call(scopes)  # Notify tests after upload
       rescue => e
         @logger.debug { "symdb: upload failed: #{e.class}: #{e}" }
-        @telemetry&.inc('tracers', 'symbol_database.perform_upload_error', 1)
         # Don't propagate, uploader handles retries
       end
     end

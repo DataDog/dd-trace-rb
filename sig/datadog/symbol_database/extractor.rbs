@@ -9,9 +9,7 @@ module Datadog
 
       @logger: untyped
       @settings: untyped
-      @telemetry: untyped?
-
-      def initialize: (logger: untyped, settings: untyped, ?telemetry: untyped?) -> void
+      def initialize: (logger: untyped, settings: untyped) -> void
 
       def extract: (Module mod) -> Scope?
 

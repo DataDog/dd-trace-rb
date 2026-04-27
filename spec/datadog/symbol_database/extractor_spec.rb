@@ -13,7 +13,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
     s
   end
   let(:logger) { instance_double(Logger, debug: nil) }
-  let(:extractor) { described_class.new(logger: logger, settings: settings, telemetry: nil) }
+  let(:extractor) { described_class.new(logger: logger, settings: settings) }
 
   # Temporary directory for user code test files
   around do |example|

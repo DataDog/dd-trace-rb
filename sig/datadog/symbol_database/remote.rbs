@@ -11,7 +11,7 @@ module Datadog
 
       def self.receiver: (?Array[String] products) { (untyped repository, untyped changes) -> void } -> Array[Core::Remote::Dispatcher::Receiver]
 
-      def self.process_change: (Component component, untyped change, ?telemetry: untyped?) -> void
+      def self.process_change: (Component component, untyped change) -> void
 
       def self.enable_upload: (Component component, untyped content) -> void
 
