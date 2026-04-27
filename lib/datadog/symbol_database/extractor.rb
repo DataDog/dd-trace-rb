@@ -60,6 +60,14 @@ module Datadog
       # JSON: JSON serialization module, loaded by many tools
       # Enumerable: Core iteration protocol, extremely common
       # Comparable: Core comparison protocol, extremely common
+      # Sentinel for unknown minimum line number. 0 means "available throughout the scope."
+      # Defined here (the only runtime consumer) so extractor.rb is self-contained.
+      # The parent module (lib/datadog/symbol_database.rb) defines the same values for
+      # documentation and external reference, but is not required by this file.
+      UNKNOWN_MIN_LINE = 0
+      # PostgreSQL signed INT_MAX (2^31 - 1). Means "entire file" or "unknown end."
+      UNKNOWN_MAX_LINE = 2147483647
+
       EXCLUDED_COMMON_MODULES = ['Kernel', 'PP::', 'JSON::', 'Enumerable', 'Comparable'].freeze
 
       # RubyVM::InstructionSequence#trace_points event types included when
@@ -312,8 +320,8 @@ module Datadog
           scope_type: 'FILE',
           name: file_path,
           source_file: file_path,
-          start_line: SymbolDatabase::UNKNOWN_MIN_LINE,
-          end_line: SymbolDatabase::UNKNOWN_MAX_LINE,
+          start_line: UNKNOWN_MIN_LINE,
+          end_line: UNKNOWN_MAX_LINE,
           language_specifics: lang,
           scopes: inner_scopes
         )
@@ -330,8 +338,8 @@ module Datadog
           scope_type: 'MODULE',
           name: mod.name,
           source_file: source_file,
-          start_line: SymbolDatabase::UNKNOWN_MIN_LINE,
-          end_line: SymbolDatabase::UNKNOWN_MAX_LINE,
+          start_line: UNKNOWN_MIN_LINE,
+          end_line: UNKNOWN_MAX_LINE,
           symbols: extract_module_symbols(mod)
         )
       end
@@ -367,12 +375,12 @@ module Datadog
           location[1] if location && location[0]
         end
 
-        return [SymbolDatabase::UNKNOWN_MIN_LINE, SymbolDatabase::UNKNOWN_MAX_LINE] if lines.empty?
+        return [UNKNOWN_MIN_LINE, UNKNOWN_MAX_LINE] if lines.empty?
 
         [lines.min, lines.max]
       rescue => e
         @logger.debug { "symdb: error calculating line range for #{klass.name}: #{e.class}: #{e}" }
-        [SymbolDatabase::UNKNOWN_MIN_LINE, SymbolDatabase::UNKNOWN_MAX_LINE]
+        [UNKNOWN_MIN_LINE, UNKNOWN_MAX_LINE]
       end
 
       # Build language specifics for CLASS
@@ -424,7 +432,7 @@ module Datadog
           symbols << Symbol.new(
             symbol_type: 'STATIC_FIELD',
             name: const_name.to_s,
-            line: SymbolDatabase::UNKNOWN_MIN_LINE,  # Available in entire module
+            line: UNKNOWN_MIN_LINE,  # Available in entire module
             type: const_value.class.name
           )
         rescue => e
@@ -454,7 +462,7 @@ module Datadog
           symbols << Symbol.new(
             symbol_type: 'STATIC_FIELD',
             name: var_name.to_s,
-            line: SymbolDatabase::UNKNOWN_MIN_LINE
+            line: UNKNOWN_MIN_LINE
           )
         end
 
@@ -466,7 +474,7 @@ module Datadog
           symbols << Symbol.new(
             symbol_type: 'STATIC_FIELD',
             name: const_name.to_s,
-            line: SymbolDatabase::UNKNOWN_MIN_LINE,
+            line: UNKNOWN_MIN_LINE,
             type: const_value.class.name
           )
         rescue => e
@@ -630,7 +638,7 @@ module Datadog
           Symbol.new(
             symbol_type: 'ARG',
             name: param_name.to_s,
-            line: SymbolDatabase::UNKNOWN_MIN_LINE,  # Parameters available in entire method
+            line: UNKNOWN_MIN_LINE,  # Parameters available in entire method
           )
         end
       rescue => e
@@ -792,8 +800,8 @@ module Datadog
             scope_type: 'FILE',
             name: file_path,
             source_file: file_path,
-            start_line: SymbolDatabase::UNKNOWN_MIN_LINE,
-            end_line: SymbolDatabase::UNKNOWN_MAX_LINE,
+            start_line: UNKNOWN_MIN_LINE,
+            end_line: UNKNOWN_MAX_LINE,
             language_specifics: lang,
             scopes: root[:children].values.map { |child| convert_node_to_scope(child) }
           )
@@ -813,9 +821,9 @@ module Datadog
         child_scopes = node[:children].values.map { |child| convert_node_to_scope(child) }
 
         # Compute line range from method start lines
-        lines = method_scopes.map(&:start_line).reject { |l| l == SymbolDatabase::UNKNOWN_MIN_LINE } # steep:ignore
-        start_line = lines.empty? ? SymbolDatabase::UNKNOWN_MIN_LINE : lines.min
-        end_line = lines.empty? ? SymbolDatabase::UNKNOWN_MAX_LINE : lines.max
+        lines = method_scopes.map(&:start_line).reject { |l| l == UNKNOWN_MIN_LINE } # steep:ignore
+        start_line = lines.empty? ? UNKNOWN_MIN_LINE : lines.min
+        end_line = lines.empty? ? UNKNOWN_MAX_LINE : lines.max
 
         # Extract symbols (constants, class variables) if we have the actual module object
         symbols = node[:mod] ? extract_scope_symbols(node[:mod]) : []
@@ -886,7 +894,7 @@ module Datadog
             symbols << Symbol.new(
               symbol_type: 'STATIC_FIELD',
               name: var_name.to_s,
-              line: SymbolDatabase::UNKNOWN_MIN_LINE
+              line: UNKNOWN_MIN_LINE
             )
           end
         end
@@ -899,7 +907,7 @@ module Datadog
           symbols << Symbol.new(
             symbol_type: 'STATIC_FIELD',
             name: const_name.to_s,
-            line: SymbolDatabase::UNKNOWN_MIN_LINE,
+            line: UNKNOWN_MIN_LINE,
             type: const_value.class.name
           )
         rescue => e

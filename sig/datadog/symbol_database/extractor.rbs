@@ -1,6 +1,8 @@
 module Datadog
   module SymbolDatabase
     class Extractor
+      UNKNOWN_MIN_LINE: Integer
+      UNKNOWN_MAX_LINE: Integer
       EXCLUDED_COMMON_MODULES: Array[String]
       INJECTABLE_LINE_EVENTS: Array[::Symbol]
 
