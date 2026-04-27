@@ -38,9 +38,8 @@ module Datadog
         end
 
         # Create receivers for remote configuration.
-        # @param telemetry [Telemetry, nil] Optional telemetry
         # @return [Array<Receiver>] Array of receivers
-        def receivers(telemetry)
+        def receivers(_telemetry)
           receiver do |repository, changes|
             component = begin
               Datadog.send(:components)&.symbol_database
@@ -52,7 +51,7 @@ module Datadog
             return unless component # steep:ignore ReturnTypeMismatch
 
             changes.each do |change|
-              process_change(component, change, telemetry: telemetry)
+              process_change(component, change)
             end
           end
         end
@@ -70,10 +69,9 @@ module Datadog
         # Process a single configuration change.
         # @param component [Component] Symbol database component
         # @param change [Change] Configuration change (:insert, :update, :delete)
-        # @param telemetry [Telemetry, nil] Optional telemetry for metrics
         # @return [void]
         # @api private
-        def process_change(component, change, telemetry: nil)
+        def process_change(component, change)
           case change.type
           when :insert
             enable_upload(component, change.content)
@@ -91,7 +89,6 @@ module Datadog
           end
         rescue => e
           Datadog.logger.debug { "symdb: error processing remote config change: #{e.class}: #{e}" }
-          telemetry&.inc('tracers', 'symbol_database.remote_config_error', 1)
           content_obj = change.respond_to?(:content) ? change.content : change.previous
           content_obj&.errored(e.message)
         end

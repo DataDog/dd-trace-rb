@@ -9,9 +9,9 @@ module Datadog
   module SymbolDatabase
     # Extracts symbol metadata from loaded Ruby modules and classes via introspection.
     #
-    # Instance created by Component with injected dependencies (logger, settings,
-    # telemetry). All methods are instance methods accessing @logger, @settings,
-    # @telemetry directly — no parameter threading needed.
+    # Instance created by Component with injected dependencies (logger, settings).
+    # All methods are instance methods accessing @logger, @settings directly —
+    # no parameter threading needed.
     #
     # Uses Ruby's reflection APIs (Module#constants, Class#instance_methods, Method#parameters)
     # to build hierarchical Scope structures representing code organization.
@@ -46,10 +46,9 @@ module Datadog
     #    for post-hoc diagnosis, return nil or empty array. One bad method/module
     #    doesn't kill the entire class extraction.
     #
-    # 3. **Top-level entry rescues** (`rescue => e` with logging + telemetry):
+    # 3. **Top-level entry rescues** (`rescue => e` with logging):
     #    extract() and extract_all() are the error boundaries. Any exception that
-    #    escapes layers 1-2 is caught here, logged, and tracked via telemetry.
-    #    These are the only rescue blocks that increment telemetry counters.
+    #    escapes layers 1-2 is caught here and logged.
     #
     # @api private
     class Extractor
@@ -92,11 +91,9 @@ module Datadog
 
       # @param logger [Logger] Logger instance (SymbolDatabase::Logger facade or compatible)
       # @param settings [Configuration::Settings] Tracer settings
-      # @param telemetry [Telemetry, nil] Optional telemetry for metrics
-      def initialize(logger:, settings:, telemetry: nil)
+      def initialize(logger:, settings:)
         @logger = logger
         @settings = settings
-        @telemetry = telemetry
       end
 
       # Extract symbols from a single module or class.
@@ -129,8 +126,7 @@ module Datadog
 
         wrap_in_file_scope(source_file, [inner_scope])
       rescue => e
-        @logger.debug { "symdb: failed to extract #{mod_name || '<unknown>'}: #{e.class}: #{e.message}" }
-        @telemetry&.inc('tracers', 'symbol_database.extract_error', 1)
+        @logger.debug { "symdb: failed to extract #{mod_name || '<unknown>'}: #{e.class}: #{e}" }
         nil
       end
 
@@ -151,8 +147,7 @@ module Datadog
         file_trees = build_file_trees(entries)
         convert_trees_to_scopes(file_trees)
       rescue => e
-        @logger.debug { "symdb: error in extract_all: #{e.class}: #{e.message}" }
-        @telemetry&.inc('tracers', 'symbol_database.extract_all_error', 1)
+        @logger.debug { "symdb: error in extract_all: #{e.class}: #{e}" }
         []
       end
 

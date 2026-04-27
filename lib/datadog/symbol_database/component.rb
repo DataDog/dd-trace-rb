@@ -39,9 +39,8 @@ module Datadog
       # @param settings [Configuration::Settings] Tracer settings
       # @param agent_settings [Configuration::AgentSettings] Agent configuration
       # @param logger [Logger] Logger instance
-      # @param telemetry [Telemetry, nil] Optional telemetry for metrics
       # @return [Component, nil] Component instance or nil if not enabled/requirements not met
-      def self.build(settings, agent_settings, logger, telemetry: nil)
+      def self.build(settings, agent_settings, logger)
         symdb_logger = SymbolDatabase::Logger.new(settings, logger)
 
         unless settings.respond_to?(:symbol_database) && settings.symbol_database.enabled
@@ -62,7 +61,7 @@ module Datadog
           return nil
         end
 
-        new(settings, agent_settings, symdb_logger, telemetry: telemetry).tap do |component|
+        new(settings, agent_settings, symdb_logger).tap do |component|
           # Defer extraction if force upload mode — wait for app boot to complete
           component.schedule_deferred_upload if settings.symbol_database.internal.force_upload
         end
@@ -74,16 +73,14 @@ module Datadog
       # @param settings [Configuration::Settings] Tracer settings
       # @param agent_settings [Configuration::AgentSettings] Agent configuration
       # @param logger [Logger] Logger instance
-      # @param telemetry [Telemetry, nil] Optional telemetry for metrics
-      def initialize(settings, agent_settings, logger, telemetry: nil)
+      def initialize(settings, agent_settings, logger)
         @settings = settings
         @agent_settings = agent_settings
         @logger = logger
-        @telemetry = telemetry
 
-        @extractor = Extractor.new(logger: logger, settings: settings, telemetry: telemetry)
-        @uploader = Uploader.new(settings, agent_settings, logger: logger, telemetry: telemetry)
-        @scope_batcher = ScopeBatcher.new(@uploader, logger: logger, telemetry: telemetry)
+        @extractor = Extractor.new(logger: logger, settings: settings)
+        @uploader = Uploader.new(settings, agent_settings, logger: logger)
+        @scope_batcher = ScopeBatcher.new(@uploader, logger: logger)
 
         @enabled = false
         @last_upload_time = nil
@@ -163,7 +160,6 @@ module Datadog
         extract_and_upload if should_upload
       rescue => e
         @logger.debug { "symdb: error starting upload: #{e.class}: #{e}" }
-        @telemetry&.inc('tracers', 'symbol_database.start_upload_error', 1)
       end
 
       # Stop symbol upload (disable future uploads).
@@ -245,10 +241,7 @@ module Datadog
             log_scope_tree(scope, 0)
           end
 
-          # Track extraction metrics
           extraction_duration = Datadog::Core::Utils::Time.get_time - start_time
-          @telemetry&.distribution('tracers', 'symbol_database.extraction_time', extraction_duration)
-          @telemetry&.inc('tracers', 'symbol_database.scopes_extracted', extracted_count)
           injectable_count = count_injectable_methods(file_scopes)
           @logger.debug { "symdb: extracted #{extracted_count} scopes (#{injectable_count} methods with injectable lines) in #{'%.2f' % extraction_duration}s" }
 
@@ -256,7 +249,6 @@ module Datadog
           @scope_batcher.flush
         rescue => e
           @logger.debug { "symdb: extraction error: #{e.class}: #{e}" }
-          @telemetry&.inc('tracers', 'symbol_database.extraction_error', 1)
         ensure
           @mutex.synchronize do
             @upload_in_progress = false
