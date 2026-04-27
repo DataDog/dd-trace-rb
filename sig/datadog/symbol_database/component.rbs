@@ -10,7 +10,7 @@ module Datadog
       @telemetry: untyped?
       @extractor: Extractor
       @uploader: Uploader
-      @scope_context: ScopeContext
+      @scope_batcher: ScopeBatcher
       @enabled: bool
       @last_upload_time: Time?
       @mutex: Thread::Mutex

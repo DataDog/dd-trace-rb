@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 require 'datadog/symbol_database/logger'
-require 'datadog/symbol_database/scope_context'
+require 'datadog/symbol_database/scope_batcher'
 require 'datadog/symbol_database/scope'
 
-RSpec.describe Datadog::SymbolDatabase::ScopeContext do
+RSpec.describe Datadog::SymbolDatabase::ScopeBatcher do
   let(:uploader) { instance_double(Datadog::SymbolDatabase::Uploader) }
   let(:raw_logger) { instance_double(Logger, debug: nil) }
   let(:settings) do

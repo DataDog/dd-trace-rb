@@ -3,7 +3,7 @@
 require 'spec_helper'
 require 'datadog/symbol_database/component'
 require 'datadog/symbol_database/uploader'
-require 'datadog/symbol_database/scope_context'
+require 'datadog/symbol_database/scope_batcher'
 require 'datadog/symbol_database/logger'
 require 'datadog/symbol_database/scope'
 
@@ -70,7 +70,7 @@ RSpec.describe 'Symbol Database Telemetry Integration' do
     end
   end
 
-  describe 'ScopeContext telemetry calls' do
+  describe 'ScopeBatcher telemetry calls' do
     let(:mock_uploader) { instance_double(Datadog::SymbolDatabase::Uploader) }
 
     let(:sc_settings) do
@@ -81,16 +81,16 @@ RSpec.describe 'Symbol Database Telemetry Integration' do
     end
     let(:sc_logger) { Datadog::SymbolDatabase::Logger.new(sc_settings, instance_double(Logger, debug: nil)) }
 
-    subject(:scope_context) { Datadog::SymbolDatabase::ScopeContext.new(mock_uploader, logger: sc_logger, telemetry: telemetry, timer_enabled: false) }
+    subject(:scope_batcher) { Datadog::SymbolDatabase::ScopeBatcher.new(mock_uploader, logger: sc_logger, telemetry: telemetry, timer_enabled: false) }
 
-    after { scope_context.reset }
+    after { scope_batcher.reset }
 
     it 'does not raise on add_scope error path' do
       # Force an error by passing nil scope to trigger rescue path
       allow(telemetry).to receive(:inc)
 
       # A nil scope should be handled gracefully
-      expect { scope_context.add_scope(nil) }.not_to raise_error
+      expect { scope_batcher.add_scope(nil) }.not_to raise_error
     end
   end
 end

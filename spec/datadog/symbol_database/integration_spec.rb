@@ -2,7 +2,7 @@
 
 require 'datadog/symbol_database/component'
 require 'datadog/symbol_database/extractor'
-require 'datadog/symbol_database/scope_context'
+require 'datadog/symbol_database/scope_batcher'
 require 'datadog/symbol_database/uploader'
 require 'fileutils'
 
@@ -49,7 +49,7 @@ RSpec.describe 'Symbol Database Integration' do
         allow(settings).to receive(:symbol_database).and_return(symdb_settings)
         logger = instance_double(Logger, debug: nil)
 
-        context = Datadog::SymbolDatabase::ScopeContext.new(uploader, logger: logger)
+        context = Datadog::SymbolDatabase::ScopeBatcher.new(uploader, logger: logger)
         extractor = Datadog::SymbolDatabase::Extractor.new(logger: logger, settings: settings, telemetry: nil)
 
         # Use extract_all — the production path

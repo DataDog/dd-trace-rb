@@ -1,6 +1,6 @@
 module Datadog
   module SymbolDatabase
-    class ScopeContext
+    class ScopeBatcher
       MAX_SCOPES: Integer
 
       INACTIVITY_TIMEOUT: Float
