@@ -5,7 +5,7 @@ require 'datadog/symbol_database/remote'
 require 'datadog/symbol_database/logger'
 require 'fileutils'
 
-# Integration test for the RC → Component → Extractor → ScopeContext → Uploader flow.
+# Integration test for the RC → Component → Extractor → ScopeBatcher → Uploader flow.
 # Mocks at the transport boundary (Transport::HTTP.build) to capture what would be sent
 # to the agent, without multipart parsing or real HTTP.
 RSpec.describe 'Symbol Database Remote Config Integration' do

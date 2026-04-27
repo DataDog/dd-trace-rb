@@ -2,7 +2,7 @@
 
 require_relative 'extractor'
 require_relative 'logger'
-require_relative 'scope_context'
+require_relative 'scope_batcher'
 require_relative 'uploader'
 require_relative '../core/utils/time'
 require_relative '../core/utils/only_once'
@@ -13,15 +13,15 @@ module Datadog
     #
     # Responsibilities:
     # - Lifecycle management: Initialization, shutdown, upload triggering
-    # - Coordination: Connects Extractor → ScopeContext → Uploader
+    # - Coordination: Connects Extractor → ScopeBatcher → Uploader
     # - Remote config handling: start_upload called by Remote module on config changes
     # - Deduplication: cooldown prevents rapid re-uploads (see UPLOAD_COOLDOWN_INTERVAL)
     #
     # Upload flow:
     # 1. Remote config sends upload_symbols: true (or force_upload mode)
     # 2. start_upload called
-    # 3. extract_and_upload: ObjectSpace iteration → Extractor → ScopeContext
-    # 4. ScopeContext batches and triggers Uploader
+    # 3. extract_and_upload: ObjectSpace iteration → Extractor → ScopeBatcher
+    # 4. ScopeBatcher batches and triggers Uploader
     #
     # Created by: Components#initialize (in Core::Configuration::Components)
     # Accessed by: Remote config receiver via Datadog.send(:components).symbol_database
@@ -83,7 +83,7 @@ module Datadog
 
         @extractor = Extractor.new(logger: logger, settings: settings, telemetry: telemetry)
         @uploader = Uploader.new(settings, agent_settings, logger: logger, telemetry: telemetry)
-        @scope_context = ScopeContext.new(@uploader, logger: logger, telemetry: telemetry)
+        @scope_batcher = ScopeBatcher.new(@uploader, logger: logger, telemetry: telemetry)
 
         @enabled = false
         @last_upload_time = nil
@@ -188,7 +188,7 @@ module Datadog
           end
         end
 
-        @scope_context.shutdown
+        @scope_batcher.shutdown
       end
 
       # @api private
@@ -240,7 +240,7 @@ module Datadog
           file_scopes = @extractor.extract_all
           extracted_count = 0
           file_scopes.each do |scope|
-            @scope_context.add_scope(scope)
+            @scope_batcher.add_scope(scope)
             extracted_count += 1
             log_scope_tree(scope, 0)
           end
@@ -253,7 +253,7 @@ module Datadog
           @logger.debug { "symdb: extracted #{extracted_count} scopes (#{injectable_count} methods with injectable lines) in #{'%.2f' % extraction_duration}s" }
 
           # Flush any remaining scopes (triggers upload)
-          @scope_context.flush
+          @scope_batcher.flush
         rescue => e
           @logger.debug { "symdb: extraction error: #{e.class}: #{e}" }
           @telemetry&.inc('tracers', 'symbol_database.extraction_error', 1)
