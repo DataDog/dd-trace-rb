@@ -230,7 +230,6 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
       scope = described_class.new(
         scope_type: 'METHOD',
         name: 'my_method',
-        has_injectible_lines: true,
         injectible_lines: [{start: 10, end: 12}, {start: 15, end: 15}],
       )
 
@@ -240,12 +239,10 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
       expect(hash[:injectible_lines]).to eq([{start: 10, end: 12}, {start: 15, end: 15}])
     end
 
-    it 'includes has_injectible_lines: false on METHOD scope without ranges' do
+    it 'includes injectible_lines?: false on METHOD scope without ranges' do
       scope = described_class.new(
         scope_type: 'METHOD',
         name: 'native_method',
-        has_injectible_lines: false,
-        injectible_lines: nil,
       )
 
       hash = scope.to_h
