@@ -318,7 +318,6 @@ module Datadog
                 super(&target_block)
               end
             end
-
             ensure
               Thread.current[:datadog_di_in_probe] = nil # rubocop:disable Layout/IndentationWidth
             end
