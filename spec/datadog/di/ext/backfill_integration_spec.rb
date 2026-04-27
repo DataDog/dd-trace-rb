@@ -110,6 +110,34 @@ RSpec.describe "CodeTracker backfill integration" do
       expect(BackfillIntegrationTestClass.new.test_method).to eq(42)
     end
 
+    context "when whole-file iseq tp.enable fails" do
+      # Simulates the rare CI condition where the backfilled whole-file
+      # iseq's child references become stale (ArgumentError from
+      # tp.enable). The instrumenter should fall back to a per-method
+      # iseq that directly contains the target line.
+      it "falls back to per-method iseq and installs the probe" do
+        # Replace the whole-file iseq in the registry with a dummy iseq
+        # that does NOT cover line 22. This forces tp.enable to raise
+        # ArgumentError, triggering the per-method iseq fallback.
+        code_tracker = Datadog::DI.code_tracker
+        dummy_iseq = RubyVM::InstructionSequence.compile("nil", "dummy.rb")
+
+        # Find the real path used in the registry
+        real_result = code_tracker.iseqs_for_path_suffix("backfill_integration_test_class.rb")
+        expect(real_result).not_to be_nil
+        real_path = real_result[0]
+
+        # Inject the dummy iseq into the whole-file registry
+        code_tracker.send(:registry)[real_path] = dummy_iseq
+
+        expect(diagnostics_transport).to receive(:send_diagnostics)
+        probe_manager.add_probe(probe)
+        component.probe_notifier_worker.flush
+
+        expect(probe_manager.probe_repository.installed_probes.length).to eq(1)
+      end
+    end
+
     context "with snapshot capture" do
       let(:probe) do
         Datadog::DI::Probe.new(
