@@ -166,59 +166,5 @@ RSpec.describe Datadog::Tracing::Contrib::Configuration::CachingResolver do
         expect { resolver.resolve('second_key') }.to(change { resolver.invocations }.by(1)) # Removes `third_key` from cache
       end
     end
-
-    context 'when a concurrent eviction happens during a hash key lookup' do
-      let(:cache_limit) { 1 }
-      let(:value) { :cached_value }
-      let(:key) { cached_key }
-      let(:cached_key) { comparable_value_class.new }
-      let(:lookup_key) { comparable_value_class.new(lookup_started, continue_lookup) }
-      let(:lookup_started) { Queue.new }
-      let(:continue_lookup) { Queue.new }
-
-      let(:comparable_value_class) do
-        Class.new do
-          def initialize(lookup_started = nil, continue_lookup = nil)
-            @lookup_started = lookup_started
-            @continue_lookup = continue_lookup
-          end
-
-          # Ruby Hash keys use #hash to select a bucket; returning the same
-          # Integer forces Hash#key? to compare keys with #eql?.
-          def hash
-            1
-          end
-
-          def eql?(_other)
-            if @lookup_started
-              # Pause while Hash#key? is comparing the lookup key, so another
-              # thread can try to evict the cache entry at the same time.
-              @lookup_started << true
-              @continue_lookup.pop
-              @lookup_started = nil
-            end
-
-            true
-          end
-        end
-      end
-
-      it 'returns the cached value' do
-        resolver.resolve(cached_key)
-
-        # The lookup key is equivalent to the cached key and should return the
-        # cached value even if a concurrent resolve attempts to evict the entry.
-        lookup_thread = Thread.new { resolver.resolve(lookup_key) }
-        lookup_started.pop
-
-        evicting_thread = Thread.new { resolver.resolve(:evicting_key) }
-        continue_lookup << true
-
-        lookup_result = lookup_thread.value
-        evicting_thread.join
-
-        expect(lookup_result).to eq(:cached_value)
-      end
-    end
   end
 end

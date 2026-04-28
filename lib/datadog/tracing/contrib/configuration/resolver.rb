@@ -95,20 +95,22 @@ module Datadog
             super(*args)
 
             @cache_limit = cache_limit
-            @cache = {}
-            @cache_mutex = Mutex.new
+            # Workaround for Ruby VM < 3.2.8, < 3.3.8 and < 3.4.2 (see https://bugs.ruby-lang.org/issues/21170)
+            # We initialize the hash with 10 dummy entries + clear it to force Ruby to use an
+            # "st_table" representation for the Hash, not an "ar_table" (since Ruby will not
+            # shrink a Hash using an "st_table" back to an "ar_table")
+            @cache = Hash[*1..20]
+            @cache.clear
           end
 
           # (see Resolver#resolve)
           def resolve(value)
-            @cache_mutex.synchronize do
-              @cache.fetch(value) do
-                if @cache.size >= @cache_limit
-                  @cache.shift # Remove the oldest entry if cache is full
-                end
-
-                @cache[value] = super
+            @cache.fetch(value) do
+              if @cache.size >= @cache_limit
+                @cache.shift # Remove the oldest entry if cache is full
               end
+
+              @cache[value] = super
             end
           end
 
@@ -120,9 +122,7 @@ module Datadog
 
           # Clears the internal cache.
           def reset_cache
-            @cache_mutex.synchronize do
-              @cache.clear
-            end
+            @cache.clear
           end
         end
       end
