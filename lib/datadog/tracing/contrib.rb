@@ -84,6 +84,8 @@ require_relative 'contrib/trilogy/integration'
 
 # This list is used to determine if an integration is a built-in integration,
 # and prevent sending telemetry for custom integrations.
+# To do this, we get the list of registered integrations at this point and freeze it.
+# Later, when custom integrations are registered, they will not be included in this list.
 # .uniq to handle aliases, as we can register the same integration multiple times with different names.
 Datadog::Tracing::Contrib::BUILT_IN_INTEGRATIONS =
   Datadog::Tracing::Contrib::REGISTRY.map { |entry| entry.klass }.uniq.freeze
