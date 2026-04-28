@@ -31,7 +31,13 @@ module Datadog
 
             super.tap do
               ONLY_ONCE_PER_APP[self].run do
-                Contrib::Sinatra::Framework.add_middleware(Contrib::Rack::TraceMiddleware, builder)
+                if Datadog.configuration.tracing[:rack][:use_events] &&
+                    Contrib::Rack::Integration.version >= Contrib::Rack::Integration::MINIMUM_EVENTS_VERSION
+                  require_relative '../rack/event_handler'
+                  Contrib::Sinatra::Framework.add_middleware(::Rack::Events, builder, [Contrib::Rack::EventHandler.new])
+                else
+                  Contrib::Sinatra::Framework.add_middleware(Contrib::Rack::TraceMiddleware, builder)
+                end
                 Contrib::Sinatra::Framework.inspect_middlewares(builder)
               end
             end

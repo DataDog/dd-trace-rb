@@ -5,7 +5,13 @@
     c.tracing.instrument :rack
   end
 
-  middleware.use Datadog::Tracing::Contrib::Rack::TraceMiddleware
+  if Datadog.configuration.tracing[:rack][:use_events] &&
+      Datadog::Tracing::Contrib::Rack::Integration.version >= Datadog::Tracing::Contrib::Rack::Integration::MINIMUM_EVENTS_VERSION
+    require 'datadog/tracing/contrib/rack/event_handler'
+    middleware.use ::Rack::Events, [Datadog::Tracing::Contrib::Rack::EventHandler.new]
+  else
+    middleware.use Datadog::Tracing::Contrib::Rack::TraceMiddleware
+  end
 end
 
 ::Hanami::Application.singleton_class.prepend(

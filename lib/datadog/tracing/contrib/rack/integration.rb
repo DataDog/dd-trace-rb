@@ -14,6 +14,7 @@ module Datadog
           include Contrib::Integration
 
           MINIMUM_VERSION = Gem::Version.new('1.1.0')
+          MINIMUM_EVENTS_VERSION = Gem::Version.new('2.0.0')
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :rack, auto_patch: false

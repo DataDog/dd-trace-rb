@@ -4,6 +4,7 @@ require 'securerandom'
 require 'rack'
 require 'datadog'
 require 'datadog/tracing/contrib/rack/middlewares'
+require 'datadog/tracing/contrib/rack/event_handler'
 require 'datadog/tracing/contrib/support/integration/shared_examples'
 require_relative '../support/http'
 
@@ -90,16 +91,7 @@ RSpec.describe 'Rack integration tests' do
     end
   end
 
-  context 'for an application' do
-    let(:app) do
-      app_routes = routes
-
-      Rack::Builder.new do
-        use Datadog::Tracing::Contrib::Rack::TraceMiddleware
-        instance_eval(&app_routes)
-      end.to_app
-    end
-
+  shared_examples 'a rack instrumented application' do
     context 'with remote configuration' do
       before do
         if remote_enabled
@@ -1002,6 +994,7 @@ RSpec.describe 'Rack integration tests' do
         end
 
         before do
+          skip 'strategy does not record non-StandardError exceptions' unless records_non_standard_errors
           expect { response }.to raise_error(NoMemoryError)
           expect(spans).to have(1).items
         end
@@ -1499,6 +1492,36 @@ RSpec.describe 'Rack integration tests' do
         expect(span.get_tag('span.kind')).to eq('server')
       end
     end
+  end
+
+  context 'for an application' do
+    let(:app) do
+      app_routes = routes
+
+      Rack::Builder.new do
+        use Datadog::Tracing::Contrib::Rack::TraceMiddleware
+        instance_eval(&app_routes)
+      end.to_app
+    end
+
+    let(:records_non_standard_errors) { true }
+
+    include_examples 'a rack instrumented application'
+  end
+
+  context 'for an application using Rack::Events with EventHandler' do
+    let(:app) do
+      app_routes = routes
+
+      Rack::Builder.new do
+        use Rack::Events, [Datadog::Tracing::Contrib::Rack::EventHandler.new]
+        instance_eval(&app_routes)
+      end.to_app
+    end
+
+    let(:records_non_standard_errors) { false }
+
+    include_examples 'a rack instrumented application'
   end
 
   context 'for a nested instrumentation' do

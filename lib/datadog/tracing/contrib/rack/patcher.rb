@@ -15,8 +15,23 @@ module Datadog
           end
 
           def patch
-            # Patch middleware
-            require_relative 'middlewares'
+            if get_option(:use_events)
+              if Integration.version >= Integration::MINIMUM_EVENTS_VERSION
+                require_relative 'event_handler'
+              else
+                Datadog.logger.warn(
+                  'Rack :use_events requires Rack >= 2.0.0. ' \
+                  "Falling back to TraceMiddleware. Detected: #{Integration.version}"
+                )
+                require_relative 'middlewares'
+              end
+            else
+              require_relative 'middlewares'
+            end
+          end
+
+          def get_option(option)
+            Datadog.configuration.tracing[:rack].get_option(option)
           end
         end
 
