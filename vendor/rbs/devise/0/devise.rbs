@@ -1,4 +1,6 @@
 module Devise
+  STRATEGIES: ::Hash[::Symbol, ::Symbol]
+
   class Mapping
     def class_name: () -> ::String
 
@@ -6,4 +8,19 @@ module Devise
   end
 
   def self.mappings: () -> ::Hash[::Symbol, Mapping]
+
+  class RegistrationsController
+    def self.descendants: () -> ::Array[Class]
+  end
+
+  module Strategies
+    class Authenticatable
+      attr_accessor authentication_hash: ::Hash[::Symbol, any]
+
+      def validate: (any resource) ?{ () -> any } -> bool
+    end
+
+    class Rememberable < Authenticatable
+    end
+  end
 end
