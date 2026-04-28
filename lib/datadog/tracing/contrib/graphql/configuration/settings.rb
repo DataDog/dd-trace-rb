@@ -32,15 +32,18 @@ module Datadog
 
             option :schemas do |o|
               o.type :array
+              o.env Ext::ENV_SCHEMAS
               o.default []
             end
 
             option :service_name do |o|
               o.type :string, nilable: true
+              o.env Ext::ENV_SERVICE_NAME
             end
 
             option :with_deprecated_tracer do |o|
               o.type :bool
+              o.env Ext::ENV_WITH_DEPRECATED_TRACER
               o.default false
             end
 

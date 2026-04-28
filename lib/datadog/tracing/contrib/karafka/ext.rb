@@ -7,6 +7,7 @@ module Datadog
         module Ext
           ENV_ENABLED = 'DD_TRACE_KARAFKA_ENABLED'
           ENV_DISTRIBUTED_TRACING = 'DD_TRACE_KARAFKA_DISTRIBUTED_TRACING'
+          ENV_SERVICE_NAME = 'DD_TRACE_KARAFKA_SERVICE_NAME'
 
           SPAN_MESSAGE_CONSUME = 'karafka.consume'
           SPAN_WORKER_PROCESS = 'worker.process'

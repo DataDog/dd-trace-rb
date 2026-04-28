@@ -100,13 +100,6 @@
         "default": "true"
       }
     ],
-    "DD_APP_KEY": [
-      {
-        "version": "A",
-        "type": "string",
-        "default": null
-      }
-    ],
     "DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING": [
       {
         "version": "A",
@@ -147,6 +140,20 @@
         "version": "A",
         "type": "string",
         "default": null
+      }
+    ],
+    "DD_APPSEC_IP_DENYLIST": [
+      {
+        "version": "A",
+        "type": "array",
+        "default": ""
+      }
+    ],
+    "DD_APPSEC_IP_PASSLIST": [
+      {
+        "version": "A",
+        "type": "json",
+        "default": "[]"
       }
     ],
     "DD_APPSEC_MAX_STACK_TRACES": [
@@ -220,6 +227,13 @@
         "default": "100"
       }
     ],
+    "DD_APPSEC_USER_ID_DENYLIST": [
+      {
+        "version": "A",
+        "type": "array",
+        "default": ""
+      }
+    ],
     "DD_APPSEC_WAF_DEBUG": [
       {
         "version": "A",
@@ -235,6 +249,13 @@
         "default": "5000"
       }
     ],
+    "DD_APP_KEY": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
     "DD_CRASHTRACKING_ENABLED": [
       {
         "version": "A",
@@ -243,6 +264,13 @@
       }
     ],
     "DD_DATA_STREAMS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_DBM_ALWAYS_APPEND_SQL_COMMENT": [
       {
         "version": "A",
         "type": "boolean",
@@ -267,7 +295,9 @@
       {
         "version": "A",
         "type": "string",
-        "aliases": ["DISABLE_DATADOG_RAILS"],
+        "aliases": [
+          "DISABLE_DATADOG_RAILS"
+        ],
         "default": null
       }
     ],
@@ -276,6 +306,34 @@
         "version": "A",
         "type": "boolean",
         "default": "false"
+      }
+    ],
+    "DD_DYNAMIC_INSTRUMENTATION_MAX_CAPTURE_ATTRIBUTE_COUNT": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "20"
+      }
+    ],
+    "DD_DYNAMIC_INSTRUMENTATION_MAX_CAPTURE_COLLECTION_SIZE": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "100"
+      }
+    ],
+    "DD_DYNAMIC_INSTRUMENTATION_MAX_CAPTURE_DEPTH": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "3"
+      }
+    ],
+    "DD_DYNAMIC_INSTRUMENTATION_MAX_CAPTURE_STRING_LENGTH": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "255"
       }
     ],
     "DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE": [
@@ -313,13 +371,6 @@
         "default": null
       }
     ],
-    "DD_EXTERNAL_ENV": [
-      {
-        "version": "A",
-        "type": "string",
-        "default": null
-      }
-    ],
     "DD_ERROR_TRACKING_HANDLED_ERRORS": [
       {
         "version": "A",
@@ -346,6 +397,13 @@
         "version": "B",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_EXTERNAL_ENV": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
       }
     ],
     "DD_GIT_COMMIT_SHA": [
@@ -383,6 +441,48 @@
         "default": "false"
       }
     ],
+    "DD_INTERNAL_DYNAMIC_INSTRUMENTATION_DEVELOPMENT_ENVIRONMENT": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_INTERNAL_DYNAMIC_INSTRUMENTATION_MAX_PROCESSING_TIME": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "0.5"
+      }
+    ],
+    "DD_INTERNAL_DYNAMIC_INSTRUMENTATION_MIN_SEND_INTERVAL": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "3.0"
+      }
+    ],
+    "DD_INTERNAL_DYNAMIC_INSTRUMENTATION_PROPAGATE_ALL_EXCEPTIONS": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_INTERNAL_DYNAMIC_INSTRUMENTATION_SNAPSHOT_QUEUE_CAPACITY": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "100"
+      }
+    ],
+    "DD_INTERNAL_DYNAMIC_INSTRUMENTATION_UNTARGETED_TRACE_POINTS": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_INSTRUMENTATION_INSTALL_ID": [
       {
         "version": "A",
@@ -404,6 +504,13 @@
         "default": null
       }
     ],
+    "DD_INSTRUMENTATION_TELEMETRY_AGENTLESS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_INSTRUMENTATION_TELEMETRY_ENABLED": [
       {
         "__comment": "Default is false in development mode",
@@ -419,13 +526,6 @@
         "default": "true"
       }
     ],
-    "DD_METRIC_AGENT_PORT": [
-      {
-        "version": "A",
-        "type": "int",
-        "default": "8125"
-      }
-    ],
     "DD_METRICS_OTEL_ENABLED": [
       {
         "version": "A",
@@ -433,11 +533,32 @@
         "default": "false"
       }
     ],
+    "DD_METRIC_AGENT_PORT": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "8125"
+      }
+    ],
     "DD_PROFILING_ALLOCATION_ENABLED": [
       {
         "version": "A",
         "type": "boolean",
         "default": "false"
+      }
+    ],
+    "DD_PROFILING_ALLOCATION_COUNTING_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_PROFILING_CODE_PROVENANCE_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
       }
     ],
     "DD_PROFILING_DIR_INTERRUPTION_WORKAROUND_ENABLED": [
@@ -461,11 +582,11 @@
         "default": "true"
       }
     ],
-    "DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS": [
+    "DD_PROFILING_EXPERIMENTAL_CPU_INTERVAL_MS": [
       {
-        "version": "B",
-        "type": "boolean",
-        "default": "true"
+        "version": "A",
+        "type": "int",
+        "default": "10"
       }
     ],
     "DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED": [
@@ -489,6 +610,13 @@
         "default": "true"
       }
     ],
+    "DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS": [
+      {
+        "version": "B",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_PROFILING_GC_ENABLED": [
       {
         "version": "A",
@@ -501,7 +629,9 @@
         "version": "A",
         "type": "boolean",
         "default": "true",
-        "aliases": ["DD_PROFILING_PREVIEW_GVL_ENABLED"]
+        "aliases": [
+          "DD_PROFILING_PREVIEW_GVL_ENABLED"
+        ]
       }
     ],
     "DD_PROFILING_HEAP_CLEAN_AFTER_GC_ENABLED": [
@@ -591,6 +721,13 @@
         "default": "30.0"
       }
     ],
+    "DD_PROFILING_WAITING_FOR_GVL_THRESHOLD_NS": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "10000000"
+      }
+    ],
     "DD_REDIS_COMMAND_ARGS": [
       {
         "version": "A",
@@ -620,6 +757,13 @@
         "default": "5.0"
       }
     ],
+    "DD_REMOTE_CONFIG_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
     "DD_RODA_ANALYTICS_ENABLED": [
       {
         "version": "A",
@@ -641,12 +785,21 @@
         "default": "false"
       }
     ],
+    "DD_RUNTIME_METRICS_OPTS": [
+      {
+        "version": "A",
+        "type": "json",
+        "default": "{}"
+      }
+    ],
     "DD_RUNTIME_METRICS_RUNTIME_ID_ENABLED": [
       {
         "version": "A",
         "type": "boolean",
         "default": "false",
-        "aliases": ["DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED"]
+        "aliases": [
+          "DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED"
+        ]
       }
     ],
     "DD_SERVICE": [
@@ -654,7 +807,9 @@
         "version": "B",
         "type": "string",
         "default": "ruby",
-        "aliases": ["OTEL_SERVICE_NAME"]
+        "aliases": [
+          "OTEL_SERVICE_NAME"
+        ]
       }
     ],
     "DD_SITE": [
@@ -682,7 +837,9 @@
       {
         "version": "B",
         "type": "map",
-        "aliases": ["OTEL_RESOURCE_ATTRIBUTES"],
+        "aliases": [
+          "OTEL_RESOURCE_ATTRIBUTES"
+        ],
         "default": ""
       }
     ],
@@ -691,6 +848,13 @@
         "version": "A",
         "type": "string",
         "default": null
+      }
+    ],
+    "DD_TELEMETRY_DEBUG": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
       }
     ],
     "DD_TELEMETRY_DEPENDENCY_COLLECTION_ENABLED": [
@@ -735,6 +899,13 @@
         "default": "true"
       }
     ],
+    "DD_TELEMETRY_SHUTDOWN_TIMEOUT_SECONDS": [
+      {
+        "version": "A",
+        "type": "decimal",
+        "default": "1.0"
+      }
+    ],
     "DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED": [
       {
         "version": "A",
@@ -770,6 +941,13 @@
         "default": "true"
       }
     ],
+    "DD_TRACE_ACTION_CABLE_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
     "DD_TRACE_ACTION_MAILER_ANALYTICS_ENABLED": [
       {
         "version": "A",
@@ -789,6 +967,13 @@
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_TRACE_ACTION_MAILER_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
       }
     ],
     "DD_TRACE_ACTION_PACK_ANALYTICS_ENABLED": [
@@ -812,6 +997,13 @@
         "default": "true"
       }
     ],
+    "DD_TRACE_ACTION_PACK_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
     "DD_TRACE_ACTION_VIEW_ANALYTICS_ENABLED": [
       {
         "version": "A",
@@ -833,6 +1025,20 @@
         "default": "true"
       }
     ],
+    "DD_TRACE_ACTION_VIEW_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_ACTION_VIEW_TEMPLATE_BASE_PATH": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "views/"
+      }
+    ],
     "DD_TRACE_ACTIVE_JOB_ANALYTICS_ENABLED": [
       {
         "version": "A",
@@ -852,6 +1058,13 @@
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_TRACE_ACTIVE_JOB_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
       }
     ],
     "DD_TRACE_ACTIVE_MODEL_SERIALIZERS_ANALYTICS_ENABLED": [
@@ -896,6 +1109,13 @@
         "default": "true"
       }
     ],
+    "DD_TRACE_ACTIVE_RECORD_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
     "DD_TRACE_ACTIVE_SUPPORT_ANALYTICS_ENABLED": [
       {
         "version": "A",
@@ -908,6 +1128,27 @@
         "version": "A",
         "type": "decimal",
         "default": "1.0"
+      }
+    ],
+    "DD_TRACE_ACTIVE_SUPPORT_CACHE_KEY_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_ACTIVE_SUPPORT_CACHE_SERVICE": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "active_support-cache"
+      }
+    ],
+    "DD_TRACE_ACTIVE_SUPPORT_CACHE_STORE": [
+      {
+        "version": "A",
+        "type": "array",
+        "default": null
       }
     ],
     "DD_TRACE_ACTIVE_SUPPORT_ENABLED": [
@@ -931,11 +1172,25 @@
         "default": "30"
       }
     ],
+    "DD_TRACE_AGENT_UDS_PATH": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
     "DD_TRACE_AGENT_URL": [
       {
         "version": "B",
         "type": "string",
         "default": null
+      }
+    ],
+    "DD_TRACE_AGENT_USE_SSL": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
       }
     ],
     "DD_TRACE_ANALYTICS_ENABLED": [
@@ -1048,7 +1303,9 @@
         "version": "B",
         "type": "boolean",
         "default": "false",
-        "aliases": ["OTEL_LOG_LEVEL"]
+        "aliases": [
+          "OTEL_LOG_LEVEL"
+        ]
       }
     ],
     "DD_TRACE_DELAYED_JOB_ANALYTICS_ENABLED": [
@@ -1065,11 +1322,25 @@
         "default": "1.0"
       }
     ],
+    "DD_TRACE_DELAYED_JOB_CLIENT_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
     "DD_TRACE_DELAYED_JOB_ENABLED": [
       {
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_TRACE_DELAYED_JOB_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
       }
     ],
     "DD_TRACE_ELASTICSEARCH_ANALYTICS_ENABLED": [
@@ -1100,6 +1371,13 @@
         "default": null
       }
     ],
+    "DD_TRACE_ELASTICSEARCH_QUANTIZE": [
+      {
+        "version": "A",
+        "type": "json",
+        "default": "{}"
+      }
+    ],
     "DD_TRACE_ELASTICSEARCH_SERVICE_NAME": [
       {
         "version": "A",
@@ -1112,7 +1390,9 @@
         "version": "B",
         "type": "boolean",
         "default": "true",
-        "aliases": ["OTEL_TRACES_EXPORTER"]
+        "aliases": [
+          "OTEL_TRACES_EXPORTER"
+        ]
       }
     ],
     "DD_TRACE_ETHON_ANALYTICS_ENABLED": [
@@ -1155,6 +1435,13 @@
         "version": "A",
         "type": "string",
         "default": "ethon"
+      }
+    ],
+    "DD_TRACE_ETHON_SPLIT_BY_DOMAIN": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
       }
     ],
     "DD_TRACE_EXCON_ANALYTICS_ENABLED": [
@@ -1204,6 +1491,13 @@
         "version": "A",
         "type": "string",
         "default": "excon"
+      }
+    ],
+    "DD_TRACE_EXCON_SPLIT_BY_DOMAIN": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
       }
     ],
     "DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED": [
@@ -1262,6 +1556,13 @@
         "default": "faraday"
       }
     ],
+    "DD_TRACE_FARADAY_SPLIT_BY_DOMAIN": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_TRACE_GRAPE_ANALYTICS_ENABLED": [
       {
         "version": "A",
@@ -1288,6 +1589,13 @@
         "version": "A",
         "type": "array",
         "default": "500-599"
+      }
+    ],
+    "DD_TRACE_GRAPE_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
       }
     ],
     "DD_TRACE_GRAPHQL_ANALYTICS_ENABLED": [
@@ -1319,6 +1627,27 @@
       }
     ],
     "DD_TRACE_GRAPHQL_ERROR_TRACKING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_GRAPHQL_SCHEMAS": [
+      {
+        "version": "A",
+        "type": "array",
+        "default": ""
+      }
+    ],
+    "DD_TRACE_GRAPHQL_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_GRAPHQL_WITH_DEPRECATED_TRACER": [
       {
         "version": "A",
         "type": "boolean",
@@ -1381,6 +1710,13 @@
         "default": "true"
       }
     ],
+    "DD_TRACE_HANAMI_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
     "DD_TRACE_HEADER_TAGS": [
       {
         "version": "A",
@@ -1437,6 +1773,13 @@
         "default": "httpclient"
       }
     ],
+    "DD_TRACE_HTTPCLIENT_SPLIT_BY_DOMAIN": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_TRACE_HTTPRB_ANALYTICS_ENABLED": [
       {
         "version": "A",
@@ -1486,6 +1829,13 @@
         "default": "httprb"
       }
     ],
+    "DD_TRACE_HTTPRB_SPLIT_BY_DOMAIN": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_TRACE_HTTP_ANALYTICS_ENABLED": [
       {
         "version": "A",
@@ -1528,6 +1878,13 @@
         "default": "400-599"
       }
     ],
+    "DD_TRACE_HTTP_SPLIT_BY_DOMAIN": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_TRACE_HTTP_SERVER_ERROR_STATUSES": [
       {
         "version": "A",
@@ -1556,6 +1913,13 @@
         "default": "true"
       }
     ],
+    "DD_TRACE_KAFKA_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
     "DD_TRACE_KARAFKA_DISTRIBUTED_TRACING": [
       {
         "version": "A",
@@ -1570,11 +1934,25 @@
         "default": "true"
       }
     ],
+    "DD_TRACE_KARAFKA_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
     "DD_TRACE_LOGRAGE_ENABLED": [
       {
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_TRACE_LOG_LEVEL": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "info"
       }
     ],
     "DD_TRACE_MEMCACHED_COMMAND_ENABLED": [
@@ -1617,6 +1995,13 @@
         "version": "A",
         "type": "string",
         "default": null
+      }
+    ],
+    "DD_TRACE_MONGO_QUANTIZE": [
+      {
+        "version": "A",
+        "type": "json",
+        "default": "{\"show\":[\"collection\",\"database\",\"operation\"]}"
       }
     ],
     "DD_TRACE_MONGO_SERVICE_NAME": [
@@ -1710,6 +2095,13 @@
         "default": null
       }
     ],
+    "DD_TRACE_OPENSEARCH_QUANTIZE": [
+      {
+        "version": "A",
+        "type": "json",
+        "default": "{}"
+      }
+    ],
     "DD_TRACE_OPENSEARCH_RESOURCE_PATTERN": [
       {
         "version": "A",
@@ -1722,6 +2114,20 @@
         "version": "A",
         "type": "string",
         "default": "opensearch"
+      }
+    ],
+    "DD_TRACE_PARTIAL_FLUSH_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_PARTIAL_FLUSH_MIN_SPANS": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "500"
       }
     ],
     "DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED": [
@@ -1820,7 +2226,9 @@
         "version": "B",
         "type": "array",
         "default": "",
-        "aliases": ["OTEL_PROPAGATORS"]
+        "aliases": [
+          "OTEL_PROPAGATORS"
+        ]
       }
     ],
     "DD_TRACE_PROPAGATION_STYLE_EXTRACT": [
@@ -1865,6 +2273,13 @@
         "default": "true"
       }
     ],
+    "DD_TRACE_QUE_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
     "DD_TRACE_QUE_TAG_ARGS_ENABLED": [
       {
         "version": "A",
@@ -1900,6 +2315,13 @@
         "default": "true"
       }
     ],
+    "DD_TRACE_RACECAR_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "racecar"
+      }
+    ],
     "DD_TRACE_RACK_ANALYTICS_ENABLED": [
       {
         "version": "A",
@@ -1926,6 +2348,48 @@
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_TRACE_RACK_HEADERS": [
+      {
+        "version": "A",
+        "type": "json",
+        "default": "{\"response\":[\"Content-Type\",\"X-Request-ID\"]}"
+      }
+    ],
+    "DD_TRACE_RACK_MIDDLEWARE_NAMES": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_RACK_QUANTIZE": [
+      {
+        "version": "A",
+        "type": "json",
+        "default": "{}"
+      }
+    ],
+    "DD_TRACE_RACK_REQUEST_QUEUING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_RACK_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_RACK_WEB_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "web-server"
       }
     ],
     "DD_TRACE_RAILS_ANALYTICS_ENABLED": [
@@ -1956,6 +2420,41 @@
         "default": "true"
       }
     ],
+    "DD_TRACE_RAILS_MIDDLEWARE": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
+    "DD_TRACE_RAILS_MIDDLEWARE_NAMES": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_RAILS_REQUEST_QUEUING": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_RAILS_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_RAILS_TEMPLATE_BASE_PATH": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "views/"
+      }
+    ],
     "DD_TRACE_RAKE_ANALYTICS_ENABLED": [
       {
         "version": "A",
@@ -1975,6 +2474,20 @@
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_TRACE_RAKE_QUANTIZE": [
+      {
+        "version": "A",
+        "type": "json",
+        "default": "{}"
+      }
+    ],
+    "DD_TRACE_RAKE_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
       }
     ],
     "DD_TRACE_RATE_LIMIT": [
@@ -2068,6 +2581,13 @@
         "default": "true"
       }
     ],
+    "DD_TRACE_RESQUE_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
     "DD_TRACE_REST_CLIENT_ANALYTICS_ENABLED": [
       {
         "version": "A",
@@ -2110,6 +2630,13 @@
         "default": "rest_client"
       }
     ],
+    "DD_TRACE_REST_CLIENT_SPLIT_BY_DOMAIN": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_TRACE_RODA_ENABLED": [
       {
         "version": "A",
@@ -2117,11 +2644,20 @@
         "default": "true"
       }
     ],
+    "DD_TRACE_RODA_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
     "DD_TRACE_SAMPLE_RATE": [
       {
         "version": "B",
         "type": "decimal",
-        "aliases": ["OTEL_TRACES_SAMPLER"],
+        "aliases": [
+          "OTEL_TRACES_SAMPLER"
+        ],
         "default": null
       }
     ],
@@ -2160,6 +2696,13 @@
         "default": "true"
       }
     ],
+    "DD_TRACE_SEQUEL_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
     "DD_TRACE_SHORYUKEN_ANALYTICS_ENABLED": [
       {
         "version": "A",
@@ -2181,6 +2724,20 @@
         "default": "true"
       }
     ],
+    "DD_TRACE_SHORYUKEN_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_SHORYUKEN_TAG_BODY": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_TRACE_SIDEKIQ_ANALYTICS_ENABLED": [
       {
         "version": "A",
@@ -2195,6 +2752,13 @@
         "default": "1.0"
       }
     ],
+    "DD_TRACE_SIDEKIQ_CLIENT_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
     "DD_TRACE_SIDEKIQ_DISTRIBUTED_TRACING": [
       {
         "version": "A",
@@ -2207,6 +2771,20 @@
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_TRACE_SIDEKIQ_QUANTIZE": [
+      {
+        "version": "A",
+        "type": "json",
+        "default": "{}"
+      }
+    ],
+    "DD_TRACE_SIDEKIQ_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
       }
     ],
     "DD_TRACE_SINATRA_ANALYTICS_ENABLED": [
@@ -2237,6 +2815,27 @@
         "default": "true"
       }
     ],
+    "DD_TRACE_SINATRA_HEADERS": [
+      {
+        "version": "A",
+        "type": "json",
+        "default": "{\"response\":[\"Content-Type\",\"X-Request-ID\"]}"
+      }
+    ],
+    "DD_TRACE_SINATRA_RESOURCE_SCRIPT_NAMES": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
+    "DD_TRACE_SINATRA_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
     "DD_TRACE_SNEAKERS_ANALYTICS_ENABLED": [
       {
         "version": "A",
@@ -2256,6 +2855,20 @@
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_TRACE_SNEAKERS_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_SNEAKERS_TAG_BODY": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
       }
     ],
     "DD_TRACE_STARTUP_LOGS": [
@@ -2307,11 +2920,32 @@
         "default": "true"
       }
     ],
+    "DD_TRACE_SUCKER_PUNCH_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_TEST_MODE_ASYNC": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_TRACE_TEST_MODE_ENABLED": [
       {
         "version": "A",
         "type": "boolean",
         "default": "false"
+      }
+    ],
+    "DD_TRACE_TEST_MODE_WRITER_OPTIONS": [
+      {
+        "version": "A",
+        "type": "json",
+        "default": "{}"
       }
     ],
     "DD_TRACE_TRILOGY_ANALYTICS_ENABLED": [
@@ -2361,6 +2995,20 @@
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_TRACE_WATERDROP_SERVICE_NAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": null
+      }
+    ],
+    "DD_TRACE_WRITER_OPTIONS": [
+      {
+        "version": "A",
+        "type": "json",
+        "default": "{}"
       }
     ],
     "DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH": [
@@ -2447,6 +3095,13 @@
         "default": "false"
       }
     ],
+    "OTEL_METRICS_EXPORTER": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "otlp"
+      }
+    ],
     "OTEL_METRIC_EXPORT_INTERVAL": [
       {
         "version": "A",
@@ -2459,13 +3114,6 @@
         "version": "A",
         "type": "int",
         "default": "7500"
-      }
-    ],
-    "OTEL_METRICS_EXPORTER": [
-      {
-        "version": "A",
-        "type": "string",
-        "default": "otlp"
       }
     ],
     "OTEL_PROPAGATORS": [

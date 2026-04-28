@@ -11,6 +11,8 @@ module Datadog
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_SHORYUKEN_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_SHORYUKEN_ANALYTICS_SAMPLE_RATE'
+          ENV_SERVICE_NAME = 'DD_TRACE_SHORYUKEN_SERVICE_NAME'
+          ENV_TAG_BODY = 'DD_TRACE_SHORYUKEN_TAG_BODY'
           SERVICE_NAME = 'shoryuken'
           SPAN_JOB = 'shoryuken.job'
           TAG_JOB_ID = 'shoryuken.id'

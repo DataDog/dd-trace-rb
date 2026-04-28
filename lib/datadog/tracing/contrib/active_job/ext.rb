@@ -10,6 +10,7 @@ module Datadog
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTIVE_JOB_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_ACTIVE_JOB_ANALYTICS_SAMPLE_RATE'
+          ENV_SERVICE_NAME = 'DD_TRACE_ACTIVE_JOB_SERVICE_NAME'
 
           SPAN_DISCARD = 'active_job.discard'
           SPAN_ENQUEUE = 'active_job.enqueue'

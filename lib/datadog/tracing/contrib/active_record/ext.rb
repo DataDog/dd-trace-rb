@@ -11,6 +11,7 @@ module Datadog
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTIVE_RECORD_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_ACTIVE_RECORD_ANALYTICS_SAMPLE_RATE'
+          ENV_SERVICE_NAME = 'DD_TRACE_ACTIVE_RECORD_SERVICE_NAME'
           SERVICE_NAME = 'active_record'
           SPAN_INSTANTIATION = 'active_record.instantiation'
           SPAN_SQL = 'active_record.sql'

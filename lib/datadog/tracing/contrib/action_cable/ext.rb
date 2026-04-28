@@ -11,6 +11,7 @@ module Datadog
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTION_CABLE_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_ACTION_CABLE_ANALYTICS_SAMPLE_RATE'
+          ENV_SERVICE_NAME = 'DD_TRACE_ACTION_CABLE_SERVICE_NAME'
           SPAN_ACTION = 'action_cable.action'
           SPAN_BROADCAST = 'action_cable.broadcast'
           SPAN_ON_OPEN = 'action_cable.on_open'

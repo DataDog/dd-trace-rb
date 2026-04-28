@@ -12,6 +12,9 @@ module Datadog
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_SINATRA_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_SINATRA_ANALYTICS_SAMPLE_RATE'
+          ENV_SERVICE_NAME = 'DD_TRACE_SINATRA_SERVICE_NAME'
+          ENV_HEADERS = 'DD_TRACE_SINATRA_HEADERS'
+          ENV_RESOURCE_SCRIPT_NAMES = 'DD_TRACE_SINATRA_RESOURCE_SCRIPT_NAMES'
           RACK_ENV_SINATRA_REQUEST_SPAN = 'datadog.sinatra_request_span'
           SPAN_RENDER_TEMPLATE = 'sinatra.render_template'
           SPAN_REQUEST = 'sinatra.request'

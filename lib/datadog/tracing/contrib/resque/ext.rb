@@ -11,6 +11,7 @@ module Datadog
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_RESQUE_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_RESQUE_ANALYTICS_SAMPLE_RATE'
+          ENV_SERVICE_NAME = 'DD_TRACE_RESQUE_SERVICE_NAME'
           SERVICE_NAME = 'resque'
           SPAN_JOB = 'resque.job'
           TAG_COMPONENT = 'resque'

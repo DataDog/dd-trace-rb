@@ -11,6 +11,7 @@ module Datadog
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTION_PACK_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_ACTION_PACK_ANALYTICS_SAMPLE_RATE'
+          ENV_SERVICE_NAME = 'DD_TRACE_ACTION_PACK_SERVICE_NAME'
           SPAN_ACTION_CONTROLLER = 'rails.action_controller'
           TAG_COMPONENT = 'action_pack'
           TAG_OPERATION_CONTROLLER = 'controller'

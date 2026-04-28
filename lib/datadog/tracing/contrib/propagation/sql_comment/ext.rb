@@ -12,6 +12,8 @@ module Datadog
             # TODO: BASEHASH is confusing as a name, so look into better names that can apply cross tracer in the future
             ENV_DBM_INJECT_SQL_BASEHASH = 'DD_DBM_INJECT_SQL_BASEHASH'
 
+            ENV_DBM_ALWAYS_APPEND_SQL_COMMENT = 'DD_DBM_ALWAYS_APPEND_SQL_COMMENT'
+
             # The default mode for sql comment propagation
             DISABLED = 'disabled'
 

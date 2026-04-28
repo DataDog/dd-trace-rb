@@ -32,7 +32,12 @@ module Datadog
               o.default 1.0
             end
 
-            option :quantize, type: :hash, default: DEFAULT_QUANTIZE
+            option :quantize do |o|
+              o.type :hash
+              o.env Ext::ENV_QUANTIZE
+              o.default DEFAULT_QUANTIZE
+              o.env_parser { |value| parse_quantize_env(value) }
+            end
 
             option :service_name do |o|
               o.type :string, nilable: true

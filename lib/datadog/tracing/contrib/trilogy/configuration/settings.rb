@@ -48,6 +48,7 @@ module Datadog
 
             option :append_comment do |o|
               o.type :bool
+              o.env Contrib::Propagation::SqlComment::Ext::ENV_DBM_ALWAYS_APPEND_SQL_COMMENT
               o.default false
             end
 

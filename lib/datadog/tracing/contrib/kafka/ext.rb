@@ -11,6 +11,7 @@ module Datadog
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_KAFKA_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_KAFKA_ANALYTICS_SAMPLE_RATE'
+          ENV_SERVICE_NAME = 'DD_TRACE_KAFKA_SERVICE_NAME'
           SPAN_CONNECTION_REQUEST = 'kafka.connection.request'
           SPAN_CONSUMER_HEARTBEAT = 'kafka.consumer.heartbeat'
           SPAN_CONSUMER_JOIN_GROUP = 'kafka.consumer.join_group'

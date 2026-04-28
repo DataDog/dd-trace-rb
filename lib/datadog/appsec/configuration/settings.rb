@@ -78,8 +78,25 @@ module Datadog
                 o.default :recommended
               end
 
+              # Can be a Hash with `:pass` and `:monitor` keys, or an Array of strings
+              # Env var accepts both the usual format for arrays (comma-separated) and JSON (array and hash)
+              # @default `DD_APPSEC_IP_PASSLIST` environment variable, otherwise `[]`
+              # @return [Array[String], Hash[Symbol, Array[String]]]
               option :ip_passlist do |o|
+                o.env 'DD_APPSEC_IP_PASSLIST'
                 o.default []
+                o.env_parser do |env_value|
+                  next if env_value.nil?
+
+                  stripped = env_value.strip
+                  next [] if stripped.empty?
+
+                  if stripped.start_with?('{', '[')
+                    Datadog::Core::Configuration::Option.parse_json_env(stripped)
+                  else
+                    stripped.split(',').map(&:strip).reject(&:empty?)
+                  end
+                end
 
                 o.setter do |value|
                   next value if value.nil? || value.empty?
@@ -95,6 +112,7 @@ module Datadog
 
               option :ip_denylist do |o|
                 o.type :array
+                o.env 'DD_APPSEC_IP_DENYLIST'
                 o.default []
 
                 o.setter do |value|
@@ -111,6 +129,7 @@ module Datadog
 
               option :user_id_denylist do |o|
                 o.type :array
+                o.env 'DD_APPSEC_USER_ID_DENYLIST'
                 o.default []
 
                 o.setter do |value|

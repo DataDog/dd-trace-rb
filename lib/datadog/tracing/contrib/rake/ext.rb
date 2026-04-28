@@ -11,6 +11,8 @@ module Datadog
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_RAKE_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_RAKE_ANALYTICS_SAMPLE_RATE'
+          ENV_SERVICE_NAME = 'DD_TRACE_RAKE_SERVICE_NAME'
+          ENV_QUANTIZE = 'DD_TRACE_RAKE_QUANTIZE'
           SERVICE_NAME = 'rake'
           SPAN_INVOKE = 'rake.invoke'
           SPAN_EXECUTE = 'rake.execute'

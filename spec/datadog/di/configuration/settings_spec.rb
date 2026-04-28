@@ -54,27 +54,41 @@ RSpec.describe Datadog::DI::Configuration::Settings do
 
     context "environment variable configuration" do
       [
-        ["DD_DYNAMIC_INSTRUMENTATION_ENABLED", "true", "enabled", true],
-        ["DD_DYNAMIC_INSTRUMENTATION_ENABLED", "false", "enabled", false],
-        ["DD_DYNAMIC_INSTRUMENTATION_ENABLED", nil, "enabled", false],
-        ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS", "foo", "redacted_identifiers", %w[foo]],
-        ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS", "foo,bar", "redacted_identifiers", %w[foo bar]],
-        ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS", "foo, bar", "redacted_identifiers", %w[foo bar]],
-        ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS", "", "redacted_identifiers", %w[]],
-        ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS", ",", "redacted_identifiers", %w[]],
-        ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS", "~?", "redacted_identifiers", %w[~?]],
-        ["DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS", "password", "redaction_excluded_identifiers", %w[password]],
-        ["DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS", "password,token", "redaction_excluded_identifiers", %w[password token]],
-        ["DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS", "password, token", "redaction_excluded_identifiers", %w[password token]],
-        ["DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS", "", "redaction_excluded_identifiers", %w[]],
-        ["DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS", ",", "redaction_excluded_identifiers", %w[]],
-        ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES", "foo", "redacted_type_names", %w[foo]],
-        ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES", "foo,bar", "redacted_type_names", %w[foo bar]],
-        ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES", "foo, bar", "redacted_type_names", %w[foo bar]],
-        ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES", "", "redacted_type_names", %w[]],
-        ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES", ",", "redacted_type_names", %w[]],
-        ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES", ".!", "redacted_type_names", %w[.!]],
-      ].each do |(env_var_name_, env_var_value_, setting_name_, setting_value_)|
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_ENABLED", "true", "enabled", true],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_ENABLED", "false", "enabled", false],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_ENABLED", nil, "enabled", false],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS", "foo", "redacted_identifiers", %w[foo]],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS", "foo,bar", "redacted_identifiers", %w[foo bar]],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS", "foo, bar", "redacted_identifiers", %w[foo bar]],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS", "", "redacted_identifiers", %w[]],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS", ",", "redacted_identifiers", %w[]],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS", "~?", "redacted_identifiers", %w[~?]],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS", "password", "redaction_excluded_identifiers", %w[password]],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS", "password,token", "redaction_excluded_identifiers", %w[password token]],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS", "password, token", "redaction_excluded_identifiers", %w[password token]],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS", "", "redaction_excluded_identifiers", %w[]],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS", ",", "redaction_excluded_identifiers", %w[]],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES", "foo", "redacted_type_names", %w[foo]],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES", "foo,bar", "redacted_type_names", %w[foo bar]],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES", "foo, bar", "redacted_type_names", %w[foo bar]],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES", "", "redacted_type_names", %w[]],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES", ",", "redacted_type_names", %w[]],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES", ".!", "redacted_type_names", %w[.!]],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_MAX_CAPTURE_DEPTH", "5", "max_capture_depth", 5],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_MAX_CAPTURE_COLLECTION_SIZE", "10", "max_capture_collection_size", 10],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_MAX_CAPTURE_STRING_LENGTH", "20", "max_capture_string_length", 20],
+        [nil, "DD_DYNAMIC_INSTRUMENTATION_MAX_CAPTURE_ATTRIBUTE_COUNT", "4", "max_capture_attribute_count", 4],
+        ["internal", "DD_INTERNAL_DYNAMIC_INSTRUMENTATION_UNTARGETED_TRACE_POINTS", "true", "untargeted_trace_points", true],
+        ["internal", "DD_INTERNAL_DYNAMIC_INSTRUMENTATION_UNTARGETED_TRACE_POINTS", "false", "untargeted_trace_points", false],
+        ["internal", "DD_INTERNAL_DYNAMIC_INSTRUMENTATION_PROPAGATE_ALL_EXCEPTIONS", "true", "propagate_all_exceptions", true],
+        ["internal", "DD_INTERNAL_DYNAMIC_INSTRUMENTATION_PROPAGATE_ALL_EXCEPTIONS", "false", "propagate_all_exceptions", false],
+        ["internal", "DD_INTERNAL_DYNAMIC_INSTRUMENTATION_MIN_SEND_INTERVAL", "5.5", "min_send_interval", 5.5],
+        ["internal", "DD_INTERNAL_DYNAMIC_INSTRUMENTATION_SNAPSHOT_QUEUE_CAPACITY", "8", "snapshot_queue_capacity", 8],
+        ["internal", "DD_INTERNAL_DYNAMIC_INSTRUMENTATION_DEVELOPMENT_ENVIRONMENT", "true", "development", true],
+        ["internal", "DD_INTERNAL_DYNAMIC_INSTRUMENTATION_DEVELOPMENT_ENVIRONMENT", "false", "development", false],
+        ["internal", "DD_INTERNAL_DYNAMIC_INSTRUMENTATION_MAX_PROCESSING_TIME", "0.25", "max_processing_time", 0.25],
+      ].each do |(scope_name_, env_var_name_, env_var_value_, setting_name_, setting_value_)|
+        scope_name = scope_name_
         env_var_name = env_var_name_
         env_var_value = env_var_value_
         setting_name = setting_name_
@@ -88,7 +102,13 @@ RSpec.describe Datadog::DI::Configuration::Settings do
           end
 
           it "sets dynamic_instrumentation.#{setting_name}=#{setting_value}" do
-            expect(settings.dynamic_instrumentation.public_send(setting_name)).to eq setting_value
+            scope = if scope_name
+              settings.dynamic_instrumentation.public_send(scope_name)
+            else
+              settings.dynamic_instrumentation
+            end
+
+            expect(scope.public_send(setting_name)).to eq setting_value
           end
         end
       end

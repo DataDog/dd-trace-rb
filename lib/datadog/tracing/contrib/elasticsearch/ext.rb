@@ -13,6 +13,7 @@ module Datadog
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_ELASTICSEARCH_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_ELASTICSEARCH_ANALYTICS_SAMPLE_RATE'
+          ENV_QUANTIZE = 'DD_TRACE_ELASTICSEARCH_QUANTIZE'
           DEFAULT_PEER_SERVICE_NAME = 'elasticsearch'
           SPAN_QUERY = 'elasticsearch.query'
           SPAN_TYPE_QUERY = 'elasticsearch'

@@ -63,6 +63,14 @@ module Datadog
           LIST = [REMOTE_CONFIGURATION, PROGRAMMATIC, FLEET_STABLE, ENVIRONMENT, LOCAL_STABLE, DEFAULT].sort.reverse.freeze
         end
 
+        def self.parse_json_env(value, symbolize_names: true)
+          return if value.nil?
+
+          JSON.parse(value, symbolize_names: symbolize_names)
+        rescue JSON::ParserError => e
+          raise ArgumentError, e.message
+        end
+
         def initialize(definition, context)
           @definition = definition
           @context = context

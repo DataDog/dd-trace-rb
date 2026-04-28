@@ -28,13 +28,20 @@ module Datadog
               o.default 1.0
             end
 
-            option :service_name
+            option :service_name do |o|
+              o.type :string, nilable: true
+              o.env Ext::ENV_SERVICE_NAME
+            end
 
             option :on_error do |o|
               o.type :proc, nilable: true
             end
 
-            option :tag_body, default: false, type: :bool
+            option :tag_body do |o|
+              o.type :bool
+              o.env Ext::ENV_TAG_BODY
+              o.default false
+            end
           end
         end
       end

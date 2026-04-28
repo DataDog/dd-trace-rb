@@ -11,6 +11,7 @@ module Datadog
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_RACECAR_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_RACECAR_ANALYTICS_SAMPLE_RATE'
+          ENV_SERVICE_NAME = 'DD_TRACE_RACECAR_SERVICE_NAME'
           DEFAULT_PEER_SERVICE_NAME = 'racecar'
           SPAN_CONSUME = 'racecar.consume'
           SPAN_BATCH = 'racecar.batch'

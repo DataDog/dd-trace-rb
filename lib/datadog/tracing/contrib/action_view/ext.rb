@@ -11,6 +11,8 @@ module Datadog
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTION_VIEW_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_ACTION_VIEW_ANALYTICS_SAMPLE_RATE'
+          ENV_SERVICE_NAME = 'DD_TRACE_ACTION_VIEW_SERVICE_NAME'
+          ENV_TEMPLATE_BASE_PATH = 'DD_TRACE_ACTION_VIEW_TEMPLATE_BASE_PATH'
           SPAN_RENDER_PARTIAL = 'rails.render_partial'
           SPAN_RENDER_TEMPLATE = 'rails.render_template'
           TAG_COMPONENT = 'action_view'

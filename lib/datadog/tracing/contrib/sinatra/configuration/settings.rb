@@ -38,10 +38,23 @@ module Datadog
               o.env Ext::ENV_DISTRIBUTED_TRACING
               o.default true
             end
-            option :headers, default: DEFAULT_HEADERS, type: :hash
-            option :resource_script_names, default: false, type: :bool
+            option :headers do |o|
+              o.type :hash
+              o.env Ext::ENV_HEADERS
+              o.default DEFAULT_HEADERS
+              o.env_parser { |value| Core::Configuration::Option.parse_json_env(value) }
+            end
 
-            option :service_name
+            option :resource_script_names do |o|
+              o.type :bool
+              o.env Ext::ENV_RESOURCE_SCRIPT_NAMES
+              o.default false
+            end
+
+            option :service_name do |o|
+              o.type :string, nilable: true
+              o.env Ext::ENV_SERVICE_NAME
+            end
           end
         end
       end

@@ -104,6 +104,7 @@ module Datadog
               # will be permitted when serializing captured values.
               option :max_capture_depth do |o|
                 o.type :int
+                o.env "DD_DYNAMIC_INSTRUMENTATION_MAX_CAPTURE_DEPTH"
                 o.default 3
               end
 
@@ -112,6 +113,7 @@ module Datadog
               # elements will be truncated to this many elements.
               option :max_capture_collection_size do |o|
                 o.type :int
+                o.env "DD_DYNAMIC_INSTRUMENTATION_MAX_CAPTURE_COLLECTION_SIZE"
                 o.default 100
               end
 
@@ -123,6 +125,7 @@ module Datadog
               # of the String class are subject to this length limit.
               option :max_capture_string_length do |o|
                 o.type :int
+                o.env "DD_DYNAMIC_INSTRUMENTATION_MAX_CAPTURE_STRING_LENGTH"
                 o.default 255
               end
 
@@ -130,6 +133,7 @@ module Datadog
               # a single non-primitive value.
               option :max_capture_attribute_count do |o|
                 o.type :int
+                o.env "DD_DYNAMIC_INSTRUMENTATION_MAX_CAPTURE_ATTRIBUTE_COUNT"
                 o.default 20
               end
 
@@ -165,6 +169,7 @@ module Datadog
                 # not just the instrumentation target.
                 option :untargeted_trace_points do |o|
                   o.type :bool
+                  o.env "DD_INTERNAL_DYNAMIC_INSTRUMENTATION_UNTARGETED_TRACE_POINTS"
                   o.default false
                 end
 
@@ -176,6 +181,7 @@ module Datadog
                 # performance decreases, etc.
                 option :propagate_all_exceptions do |o|
                   o.type :bool
+                  o.env "DD_INTERNAL_DYNAMIC_INSTRUMENTATION_PROPAGATE_ALL_EXCEPTIONS"
                   o.default false
                 end
 
@@ -189,6 +195,7 @@ module Datadog
                 # possibility of dropping payloads if the queue gets too long.
                 option :min_send_interval do |o|
                   o.type :float
+                  o.env "DD_INTERNAL_DYNAMIC_INSTRUMENTATION_MIN_SEND_INTERVAL"
                   o.default 3
                 end
 
@@ -199,6 +206,7 @@ module Datadog
                 # snapshots.
                 option :snapshot_queue_capacity do |o|
                   o.type :int
+                  o.env "DD_INTERNAL_DYNAMIC_INSTRUMENTATION_SNAPSHOT_QUEUE_CAPACITY"
                   o.default 100
                 end
 
@@ -208,6 +216,7 @@ module Datadog
                 # non-production environments.
                 option :development do |o|
                   o.type :bool
+                  o.env "DD_INTERNAL_DYNAMIC_INSTRUMENTATION_DEVELOPMENT_ENVIRONMENT"
                   o.default false
                 end
 
@@ -231,6 +240,7 @@ module Datadog
                 # Set to zero to disable every probe after it executes once.
                 option :max_processing_time do |o|
                   o.type :float
+                  o.env "DD_INTERNAL_DYNAMIC_INSTRUMENTATION_MAX_PROCESSING_TIME"
                   o.default 0.5
                 end
               end

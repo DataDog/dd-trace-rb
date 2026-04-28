@@ -15,6 +15,11 @@ module Datadog
               o.env Ext::ENV_ENABLED
               o.default true
             end
+
+            option :service_name do |o|
+              o.type :string, nilable: true
+              o.env Ext::ENV_SERVICE_NAME
+            end
           end
         end
       end
