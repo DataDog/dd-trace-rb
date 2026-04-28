@@ -37,7 +37,7 @@ module Datadog
 
         def otel_metrics_enabled?: () -> bool
 
-        def ensure_meter_provider_initialized!: () -> void
+        def fetch_meter_provider: () -> ::OpenTelemetry::SDK::Metrics::MeterProvider?
 
         def meter_provider_available?: (::OpenTelemetry::SDK::Metrics::MeterProvider? meter_provider) -> bool
 

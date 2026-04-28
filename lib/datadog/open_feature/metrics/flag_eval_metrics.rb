@@ -65,9 +65,8 @@ module Datadog
           @mutex.synchronize do
             return @counter if @counter
 
-            ensure_meter_provider_initialized!
-            meter_provider = ::OpenTelemetry.meter_provider
-            return nil unless meter_provider && meter_provider_available?(meter_provider)
+            meter_provider = fetch_meter_provider
+            return nil unless meter_provider
 
             meter = meter_provider.meter(METER_NAME)
             @counter = meter.create_counter(
@@ -89,17 +88,22 @@ module Datadog
           true
         end
 
-        # Initialize the OTel meter provider if not already set up.
-        # This ensures metrics work even if the OTel SDK hook mechanism didn't fire.
-        def ensure_meter_provider_initialized!
-          return if defined?(::OpenTelemetry) && meter_provider_available?(::OpenTelemetry.meter_provider)
+        # Fetch an available OTel meter provider, initializing if needed.
+        # Returns the meter provider if available, nil otherwise.
+        def fetch_meter_provider
+          meter_provider = defined?(::OpenTelemetry) ? ::OpenTelemetry.meter_provider : nil
+          return meter_provider if meter_provider_available?(meter_provider)
 
           @logger.debug { 'OpenFeature: Initializing OTel meter provider directly' }
           require 'opentelemetry-metrics-sdk'
           require 'datadog/opentelemetry/metrics'
           Datadog::OpenTelemetry::Metrics.initialize!(Datadog.send(:components))
+
+          meter_provider = ::OpenTelemetry.meter_provider
+          meter_provider_available?(meter_provider) ? meter_provider : nil
         rescue LoadError => e
           @logger.debug { "OpenFeature: Failed to initialize OTel metrics: #{e.class}: #{e}" }
+          nil
         end
 
         def meter_provider_available?(meter_provider)
