@@ -18,6 +18,7 @@ module Datadog
 
         @telemetry: Core::Telemetry::Component
         @logger: Core::Logger
+        @enabled: bool
         @counter: ::OpenTelemetry::SDK::Metrics::Instrument::Counter?
         @mutex: ::Mutex
 
@@ -34,8 +35,6 @@ module Datadog
         private
 
         def get_or_create_counter: () -> ::OpenTelemetry::SDK::Metrics::Instrument::Counter?
-
-        def otel_metrics_enabled?: () -> bool
 
         def fetch_meter_provider: () -> ::OpenTelemetry::SDK::Metrics::MeterProvider?
 

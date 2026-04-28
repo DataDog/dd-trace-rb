@@ -34,8 +34,13 @@ module Datadog
         def initialize(telemetry:, logger:)
           @telemetry = telemetry
           @logger = logger
+          @enabled = Datadog.configuration.opentelemetry.metrics.enabled
           @counter = nil
           @mutex = Mutex.new
+
+          unless @enabled
+            @logger.debug { 'OpenFeature: OTel metrics not enabled (DD_METRICS_OTEL_ENABLED=false), flag evaluation metrics disabled' }
+          end
         end
 
         def record(flag_key, variant:, reason:, error_code: nil, allocation_key: nil)
@@ -60,7 +65,7 @@ module Datadog
         # Counter is created lazily because OTel SDK may not be initialized
         # when the OpenFeature component is created.
         def get_or_create_counter
-          return nil unless otel_metrics_enabled?
+          return nil unless @enabled
 
           @mutex.synchronize do
             return @counter if @counter
@@ -78,14 +83,6 @@ module Datadog
         rescue => e
           @logger.debug { "OpenFeature: Failed to create metrics counter: #{e.class}: #{e}" }
           nil
-        end
-
-        def otel_metrics_enabled?
-          unless Datadog.configuration.opentelemetry.metrics.enabled
-            @logger.debug { 'OpenFeature: OTel metrics not enabled (DD_METRICS_OTEL_ENABLED=false), flag evaluation metrics disabled' }
-            return false
-          end
-          true
         end
 
         # Fetch an available OTel meter provider, initializing if needed.
