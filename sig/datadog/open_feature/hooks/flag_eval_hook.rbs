@@ -6,6 +6,8 @@ module Datadog
 
         @metrics: Metrics::FlagEvalMetrics?
 
+        def self.available?: () -> bool
+
         def initialize: (Metrics::FlagEvalMetrics? metrics) -> void
 
         def finally: (

@@ -76,9 +76,9 @@ module Datadog
       private
 
       def create_flag_eval_hook
-        return nil unless defined?(::OpenFeature::SDK::Hooks::Hook)
-
         require_relative 'hooks/flag_eval_hook'
+        return nil unless Hooks::FlagEvalHook.available?
+
         metrics = Metrics::FlagEvalMetrics.new(telemetry: @telemetry, logger: @logger)
         Hooks::FlagEvalHook.new(metrics)
       rescue LoadError

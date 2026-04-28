@@ -13,6 +13,11 @@ module Datadog
         # and default implementations of other hook methods (before, after, error)
         include ::OpenFeature::SDK::Hooks::Hook if defined?(::OpenFeature::SDK::Hooks::Hook)
 
+        # Returns true if the OpenFeature SDK supports hooks (>= 0.5.0)
+        def self.available?
+          defined?(::OpenFeature::SDK::Hooks::Hook) ? true : false
+        end
+
         def initialize(metrics)
           @metrics = metrics
         end
