@@ -433,7 +433,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     end
 
     context "when metrics data is available" do
-      let(:metrics_data) { '[["ruby_gvl_wait_time", 50000000]]' }
+      let(:metrics_data) { '[["ruby_global_lock_wait_time_total", 50000000]]' }
 
       it "includes the metrics.json file in the payload" do
         success = http_transport.export(flush)

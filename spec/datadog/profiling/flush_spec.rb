@@ -24,7 +24,7 @@ RSpec.describe Datadog::Profiling::Flush do
       )
     end
 
-    let(:metrics_data) { '[["ruby_gvl_wait_time", 50000000]]' }
+    let(:metrics_data) { '[["ruby_global_lock_wait_time_total", 50000000]]' }
 
     subject(:flush) do
       described_class.new(
