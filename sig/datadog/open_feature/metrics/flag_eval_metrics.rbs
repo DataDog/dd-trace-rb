@@ -14,7 +14,6 @@ module Datadog
         ATTR_ERROR_TYPE: ::String
 
         ERROR_TYPE_MAP: ::Hash[::String, ::String]
-        REASON_MAP: ::Hash[::String, ::String]
         EXCLUDE_ALLOCATION_KEY_REASONS: ::Array[::String]
 
         @telemetry: Core::Telemetry::Component
@@ -50,11 +49,11 @@ module Datadog
           allocation_key: ::String?
         ) -> ::Hash[::String, ::String]
 
-        def normalize_reason_with_upcase: (::String? reason) -> [::String, ::String?]
+        def normalize_reason: (::String? reason) -> ::String
 
         def normalize_error_type: (::String? error_code) -> ::String
 
-        def exclude_allocation_key?: (::String? reason_upcase) -> bool
+        def exclude_allocation_key?: (::String reason_downcase) -> bool
       end
     end
   end

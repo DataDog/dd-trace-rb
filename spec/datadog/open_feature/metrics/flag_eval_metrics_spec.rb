@@ -384,34 +384,4 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
       expect(described_class::ERROR_TYPE_MAP['UNKNOWN_TYPE']).to eq('general')
     end
   end
-
-  describe 'reason mapping' do
-    it 'maps TARGETING_MATCH to targeting_match' do
-      expect(described_class::REASON_MAP['TARGETING_MATCH']).to eq('targeting_match')
-    end
-
-    it 'maps ERROR to error' do
-      expect(described_class::REASON_MAP['ERROR']).to eq('error')
-    end
-
-    it 'maps DEFAULT to default' do
-      expect(described_class::REASON_MAP['DEFAULT']).to eq('default')
-    end
-
-    it 'maps DISABLED to disabled' do
-      expect(described_class::REASON_MAP['DISABLED']).to eq('disabled')
-    end
-
-    it 'maps SPLIT to split' do
-      expect(described_class::REASON_MAP['SPLIT']).to eq('split')
-    end
-
-    it 'maps STATIC to static' do
-      expect(described_class::REASON_MAP['STATIC']).to eq('static')
-    end
-
-    it 'maps UNKNOWN to unknown' do
-      expect(described_class::REASON_MAP['UNKNOWN']).to eq('unknown')
-    end
-  end
 end

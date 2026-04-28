@@ -28,17 +28,8 @@ module Datadog
           'UNKNOWN_TYPE' => 'general',
         }.freeze
 
-        REASON_MAP = {
-          'TARGETING_MATCH' => 'targeting_match',
-          'ERROR' => 'error',
-          'DEFAULT' => 'default',
-          'DISABLED' => 'disabled',
-          'SPLIT' => 'split',
-          'STATIC' => 'static',
-          'UNKNOWN' => 'unknown',
-        }.freeze
-
-        EXCLUDE_ALLOCATION_KEY_REASONS = %w[ERROR DEFAULT DISABLED].freeze
+        # Reasons that should not include allocation_key in metrics
+        EXCLUDE_ALLOCATION_KEY_REASONS = %w[error default disabled].freeze
 
         def initialize(telemetry:, logger:)
           @telemetry = telemetry
@@ -118,16 +109,15 @@ module Datadog
         end
 
         def build_attributes(flag_key, variant:, reason:, error_code:, allocation_key:)
-          # Pre-compute reason string conversions once to avoid repeated allocations
-          normalized_reason, reason_upcase = normalize_reason_with_upcase(reason)
+          reason_downcase = normalize_reason(reason)
 
           attrs = {
             ATTR_FLAG_KEY => flag_key,
             ATTR_VARIANT => variant.to_s,
-            ATTR_REASON => normalized_reason,
+            ATTR_REASON => reason_downcase,
           }
 
-          if allocation_key && !allocation_key.empty? && !exclude_allocation_key?(reason_upcase)
+          if allocation_key && !allocation_key.empty? && !exclude_allocation_key?(reason_downcase)
             attrs[ATTR_ALLOCATION_KEY] = allocation_key
           end
 
@@ -138,25 +128,17 @@ module Datadog
           attrs
         end
 
-        def normalize_reason_with_upcase(reason)
-          return ['unknown', nil] if reason.nil?
-
+        def normalize_reason(reason)
           reason_str = reason.to_s
-          return ['unknown', nil] if reason_str.empty?
-
-          reason_upcase = reason_str.upcase
-          normalized = REASON_MAP[reason_upcase] || reason_str.downcase
-          [normalized, reason_upcase]
+          reason_str.empty? ? 'unknown' : reason_str.downcase
         end
 
         def normalize_error_type(error_code)
           ERROR_TYPE_MAP.fetch(error_code.to_s, 'general')
         end
 
-        def exclude_allocation_key?(reason_upcase)
-          return true if reason_upcase.nil?
-
-          EXCLUDE_ALLOCATION_KEY_REASONS.include?(reason_upcase)
+        def exclude_allocation_key?(reason_downcase)
+          EXCLUDE_ALLOCATION_KEY_REASONS.include?(reason_downcase)
         end
       end
     end
