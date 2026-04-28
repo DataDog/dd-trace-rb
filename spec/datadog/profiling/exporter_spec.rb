@@ -95,6 +95,31 @@ RSpec.describe Datadog::Profiling::Exporter do
       end
     end
 
+    context "when profile_stats includes gvl_wait_time_ns" do
+      let(:profile_stats) { {stat1: 1, gvl_wait_time_ns: 50_000_000} }
+
+      it "returns a flush with metrics_data containing the GVL wait time" do
+        parsed = JSON.parse(flush.metrics_data)
+        expect(parsed).to eq([["ruby_global_lock_wait_time_total", 50_000_000]])
+      end
+    end
+
+    context "when profile_stats has gvl_wait_time_ns of 0" do
+      let(:profile_stats) { {stat1: 1, gvl_wait_time_ns: 0} }
+
+      it "returns a flush with nil metrics_data" do
+        expect(flush.metrics_data).to be nil
+      end
+    end
+
+    context "when profile_stats does not include gvl_wait_time_ns" do
+      let(:profile_stats) { {stat1: 1} }
+
+      it "returns a flush with nil metrics_data" do
+        expect(flush.metrics_data).to be nil
+      end
+    end
+
     context "when duration of profile is below 1s" do
       let(:finish) { start + 0.99 }
 

@@ -204,6 +204,7 @@ static VALUE _native_do_export(
   VALUE internal_metadata_json = rb_funcall(flush, rb_intern("internal_metadata_json"), 0);
   VALUE info_json = rb_funcall(flush, rb_intern("info_json"), 0);
   VALUE process_tags = rb_funcall(flush, rb_intern("process_tags"), 0);
+  VALUE metrics_data = rb_funcall(flush, rb_intern("metrics_data"), 0);
 
   enforce_encoded_profile_instance(encoded_profile);
   ENFORCE_TYPE(code_provenance_file_name, T_STRING);
@@ -216,14 +217,25 @@ static VALUE _native_do_export(
   bool have_code_provenance = !NIL_P(code_provenance_data);
   if (have_code_provenance) ENFORCE_TYPE(code_provenance_data, T_STRING);
 
-  int to_compress_length = have_code_provenance ? 1 : 0;
+  // Metrics data may be nil if there are no metrics to report
+  bool have_metrics = !NIL_P(metrics_data);
+  if (have_metrics) ENFORCE_TYPE(metrics_data, T_STRING);
+
+  int to_compress_length = (have_code_provenance ? 1 : 0) + (have_metrics ? 1 : 0);
   ddog_prof_Exporter_File to_compress[to_compress_length];
   ddog_prof_Exporter_Slice_File files_to_compress_and_export = {.ptr = to_compress, .len = to_compress_length};
 
+  int file_index = 0;
   if (have_code_provenance) {
-    to_compress[0] = (ddog_prof_Exporter_File) {
+    to_compress[file_index++] = (ddog_prof_Exporter_File) {
       .name = char_slice_from_ruby_string(code_provenance_file_name),
       .file = byte_slice_from_ruby_string(code_provenance_data),
+    };
+  }
+  if (have_metrics) {
+    to_compress[file_index++] = (ddog_prof_Exporter_File) {
+      .name = DDOG_CHARSLICE_C("metrics.json"),
+      .file = byte_slice_from_ruby_string(metrics_data),
     };
   }
 

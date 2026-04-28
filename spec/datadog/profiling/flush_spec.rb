@@ -24,6 +24,8 @@ RSpec.describe Datadog::Profiling::Flush do
       )
     end
 
+    let(:metrics_data) { '[["ruby_gvl_wait_time", 50000000]]' }
+
     subject(:flush) do
       described_class.new(
         start: start,
@@ -35,6 +37,7 @@ RSpec.describe Datadog::Profiling::Flush do
         process_tags: process_tags,
         internal_metadata: internal_metadata,
         info_json: info_json,
+        metrics_data: metrics_data,
       )
     end
 
@@ -48,7 +51,8 @@ RSpec.describe Datadog::Profiling::Flush do
         tags_as_array: tags_as_array,
         process_tags: process_tags,
         internal_metadata_json: '{"no_signals_workaround_enabled":false}',
-        info_json: info_json
+        info_json: info_json,
+        metrics_data: metrics_data,
       )
     end
   end

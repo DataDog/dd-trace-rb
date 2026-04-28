@@ -108,6 +108,7 @@ module Datadog
             }
           ),
           info_json: info_json,
+          metrics_data: build_metrics_json(profile_stats),
         )
       end
 
@@ -127,6 +128,14 @@ module Datadog
       #: (::Time, ::Time) -> bool
       def duration_below_threshold?(start, finish)
         (finish - start) < minimum_duration_seconds
+      end
+
+      #: (::Hash[::Symbol, untyped]?) -> ::String?
+      def build_metrics_json(profile_stats)
+        gvl_wait_time_ns = profile_stats&.dig(:gvl_wait_time_ns)
+        return nil if gvl_wait_time_ns.nil? || gvl_wait_time_ns == 0
+
+        JSON.generate([["ruby_global_lock_wait_time_total", gvl_wait_time_ns]])
       end
     end
   end

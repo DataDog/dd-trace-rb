@@ -15,6 +15,7 @@ module Datadog
       attr_reader :process_tags #: ::String
       attr_reader :internal_metadata_json #: ::String
       attr_reader :info_json #: ::String
+      attr_reader :metrics_data #: ::String?
 
       # @rbs start: ::Time
       # @rbs finish: ::Time
@@ -25,6 +26,7 @@ module Datadog
       # @rbs process_tags: ::String
       # @rbs internal_metadata: ::Hash[::Symbol, ::String | bool | ::Numeric]
       # @rbs info_json: ::String
+      # @rbs metrics_data: ::String?
       # @rbs return: void
       def initialize(
         start:,
@@ -35,7 +37,8 @@ module Datadog
         tags_as_array:,
         process_tags:,
         internal_metadata:,
-        info_json:
+        info_json:,
+        metrics_data:
       )
         @start = start
         @finish = finish
@@ -46,6 +49,7 @@ module Datadog
         @process_tags = process_tags
         @internal_metadata_json = JSON.generate(internal_metadata)
         @info_json = info_json
+        @metrics_data = metrics_data
       end
     end
   end

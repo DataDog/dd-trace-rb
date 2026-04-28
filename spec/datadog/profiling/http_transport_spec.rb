@@ -60,6 +60,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       process_tags: process_tags,
       internal_metadata: {no_signals_workaround_enabled: true},
       info_json: info_json,
+      metrics_data: metrics_data,
     )
   end
   let(:serialize_result) { Datadog::Profiling::StackRecorder.for_testing.serialize }
@@ -71,6 +72,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   let(:pprof_file_name) { "profile.pprof" }
   let(:code_provenance_file_name) { "the_code_provenance_file_name.json" }
   let(:code_provenance_data) { "the_code_provenance_data" }
+  let(:metrics_data) { nil }
   let(:tags_as_array) { [%w[tag_a value_a], %w[tag_b value_b]] }
   let(:process_tags) { '' }
   let(:info_json) do
@@ -427,6 +429,38 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         expect(event_data).to match(expected_data_in_payload.merge("attachments" => [pprof_file_name]))
 
         expect(body[code_provenance_file_name]).to be nil
+      end
+    end
+
+    context "when metrics data is available" do
+      let(:metrics_data) { '[["ruby_gvl_wait_time", 50000000]]' }
+
+      it "includes the metrics.json file in the payload" do
+        success = http_transport.export(flush)
+
+        expect(success).to be true
+
+        boundary = request["content-type"][%r{^multipart/form-data; boundary=(.+)}, 1]
+        body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
+        event_data = JSON.parse(body.fetch("event"))
+
+        expect(event_data["attachments"]).to include("metrics.json")
+        expect(Zstd.decompress(body.fetch("metrics.json"))).to eq metrics_data
+      end
+    end
+
+    context "when metrics data is not available" do
+      let(:metrics_data) { nil }
+
+      it "does not include metrics.json in the payload" do
+        success = http_transport.export(flush)
+
+        expect(success).to be true
+
+        boundary = request["content-type"][%r{^multipart/form-data; boundary=(.+)}, 1]
+        body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
+
+        expect(body["metrics.json"]).to be nil
       end
     end
 
