@@ -7,11 +7,9 @@ module Datadog
         WAF_VENDOR_HEADERS_TAGS: ::Array[::String]
 
         class RequestMiddleware
-          def initialize: (untyped app, ?::Hash[untyped, untyped] opt) -> untyped
+          include ::Rack::Middleware
 
           attr_reader logger: untyped
-
-          def call: (untyped env) -> untyped
         end
       end
     end

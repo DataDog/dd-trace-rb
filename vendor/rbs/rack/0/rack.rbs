@@ -1,10 +1,14 @@
 module Rack
+  type env = ::Hash[::String, untyped] # should be `any`
+  type response = [::Integer, ::Hash[::String, ::String], Response::_Body]
+  type app = ^(env) -> response
+
   class Request
-    def initialize: (::Hash[::String, untyped] env) -> void
+    def initialize: (Rack::env env) -> void
 
-    def env: () -> ::Hash[::String, untyped]
+    def env: () -> Rack::env
 
-    def params: () -> ::Hash[::String, untyped]
+    def params: () -> ::Hash[::String, untyped] # should be `any`
 
     def body: () -> untyped
 
@@ -13,6 +17,37 @@ module Rack
     def post?: () -> bool
 
     def path: () -> ::String
+  end
+
+  # A Rack middleware with no configuration.
+  #
+  # The practical arguments provided to a middleware initializer are `new(app, *args, &block)`:
+  # 1. Rack application
+  # 2. Your choice of positional arguments
+  # 3. Your optional block
+  # (https://github.com/rack/rack/blob/v3.2.5/lib/rack/builder.rb#L164)
+  #
+  # The middleware should have the signature to match its arguments,
+  # thus that the signature changes depending on what configuration your middleware wants.
+  # As long as Rack application is the first argument, the signature is valid.
+  #
+  # If your middleware requires configuration, use `MiddlewareWithOptions` instead.
+  module Middleware
+    @app: ::Rack::app
+
+    def initialize: (Rack::app app) -> void
+    def call: (Rack::env env) -> Rack::response
+  end
+
+  # A Rack middleware with one positional configuration argument (T).
+  # A common type for T is `::Hash[::Symbol, untyped]`.
+  # If you would like multiple positional arguments, use a custom signature instead.
+  # See Middleware for an explanation on the contract.
+  module MiddlewareWithOptions[T]
+    @app: ::Rack::app
+
+    def initialize: (Rack::app app, ?T opt) -> void
+    def call: (Rack::env env) -> Rack::response
   end
 
   class Response
