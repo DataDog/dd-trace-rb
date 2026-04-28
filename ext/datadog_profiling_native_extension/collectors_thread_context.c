@@ -1,4 +1,5 @@
 #include <ruby.h>
+#include <stdatomic.h>
 
 #include "datadog_ruby_common.h"
 #include "collectors_thread_context.h"
@@ -113,6 +114,10 @@ static ID otel_fiber_context_storage_id; // id of :@opentelemetry_context in Rub
 // In production this should not be a problem: there should only be one profiler, which is the last one created,
 // and that'll be the one that last wrote this setting.
 static uint32_t global_waiting_for_gvl_threshold_ns = MILLIS_AS_NS(10);
+
+// Accumulates total wall-time (ns) spent by all threads waiting for the GVL.
+// Updated atomically from on_gvl_running (which runs outside the GVL).
+static atomic_uint_fast64_t global_gvl_wait_time_ns_total = 0;
 
 typedef enum { OTEL_CONTEXT_ENABLED_FALSE, OTEL_CONTEXT_ENABLED_ONLY, OTEL_CONTEXT_ENABLED_BOTH } otel_context_enabled;
 typedef enum { OTEL_CONTEXT_SOURCE_UNKNOWN, OTEL_CONTEXT_SOURCE_FIBER_IVAR, OTEL_CONTEXT_SOURCE_FIBER_LOCAL } otel_context_source;
@@ -268,6 +273,7 @@ static void trace_identifiers_for(
 );
 static bool should_collect_resource(VALUE root_span);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
+static VALUE _native_gvl_wait_time_ns_and_reset(DDTRACE_UNUSED VALUE self);
 static VALUE thread_list(thread_context_collector_state *state);
 static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE sample_weight, VALUE new_object);
 static VALUE _native_new_empty_thread(VALUE self);
@@ -328,6 +334,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, -1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_inspect", _native_inspect, 1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
+  rb_define_singleton_method(collectors_thread_context_class, "_native_gvl_wait_time_ns_and_reset", _native_gvl_wait_time_ns_and_reset, 0);
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 3);
   rb_define_singleton_method(testing_module, "_native_sample_allocation", _native_sample_allocation, 3);
   rb_define_singleton_method(testing_module, "_native_on_gc_start", _native_on_gc_start, 1);
@@ -1468,6 +1475,10 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector
   return Qtrue;
 }
 
+static VALUE _native_gvl_wait_time_ns_and_reset(DDTRACE_UNUSED VALUE self) {
+  return ULL2NUM(thread_context_collector_gvl_wait_time_ns_and_reset());
+}
+
 static VALUE thread_list(thread_context_collector_state *state) {
   VALUE result = state->thread_list_buffer;
   rb_ary_clear(result);
@@ -1931,6 +1942,10 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 
     long waiting_for_gvl_duration_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - gvl_waiting_at;
 
+    if (waiting_for_gvl_duration_ns > 0) {
+      atomic_fetch_add(&global_gvl_wait_time_ns_total, waiting_for_gvl_duration_ns);
+    }
+
     bool should_sample = waiting_for_gvl_duration_ns >= waiting_for_gvl_threshold_ns;
 
     if (should_sample) {
@@ -2186,6 +2201,10 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     return Qtrue;
   }
 
+  uint64_t thread_context_collector_gvl_wait_time_ns_and_reset(void) {
+    return atomic_exchange(&global_gvl_wait_time_ns_total, 0);
+  }
+
 #else
   static bool handle_gvl_waiting(
     DDTRACE_UNUSED thread_context_collector_state *state,
@@ -2195,6 +2214,8 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     DDTRACE_UNUSED sampling_buffer* sampling_buffer,
     DDTRACE_UNUSED long current_cpu_time_ns
   ) { return false; }
+
+  uint64_t thread_context_collector_gvl_wait_time_ns_and_reset(void) { return 0; }
 #endif // NO_GVL_INSTRUMENTATION
 
 #define MAX_SAFE_LOOKUP_SIZE 16

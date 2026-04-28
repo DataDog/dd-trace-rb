@@ -163,8 +163,6 @@ static const uint8_t all_value_types_positions[] =
 typedef struct {
   // How many individual samples were recorded into this slot (un-weighted)
   uint64_t recorded_samples;
-  // Total wall-time (ns) of samples recorded while waiting for the GVL
-  uint64_t gvl_wait_time_ns;
 } stats_slot;
 
 typedef struct {
@@ -651,9 +649,6 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   );
 
   active_slot.data->stats.recorded_samples++;
-  if (labels.is_gvl_waiting_state) {
-    active_slot.data->stats.gvl_wait_time_ns += values.wall_time_ns;
-  }
 
   sampler_unlock_active_profile(active_slot);
 
@@ -1021,7 +1016,6 @@ static VALUE build_profile_stats(profile_slot *slot, long serialization_time_ns,
     ID2SYM(rb_intern("serialization_time_ns")), /* => */ LONG2NUM(serialization_time_ns),
     ID2SYM(rb_intern("heap_iteration_prep_time_ns")), /* => */ LONG2NUM(heap_iteration_prep_time_ns),
     ID2SYM(rb_intern("heap_profile_build_time_ns")), /* => */ LONG2NUM(heap_profile_build_time_ns),
-    ID2SYM(rb_intern("gvl_wait_time_ns")), /* => */ ULL2NUM(slot->stats.gvl_wait_time_ns),
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;

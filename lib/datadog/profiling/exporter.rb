@@ -108,7 +108,7 @@ module Datadog
             }
           ),
           info_json: info_json,
-          metrics_data: build_metrics_json(profile_stats),
+          metrics_data: build_metrics_json,
         )
       end
 
@@ -130,10 +130,10 @@ module Datadog
         (finish - start) < minimum_duration_seconds
       end
 
-      #: (::Hash[::Symbol, untyped]?) -> ::String?
-      def build_metrics_json(profile_stats)
-        gvl_wait_time_ns = profile_stats&.dig(:gvl_wait_time_ns)
-        return nil if gvl_wait_time_ns.nil? || gvl_wait_time_ns == 0
+      #: () -> ::String?
+      def build_metrics_json
+        gvl_wait_time_ns = Datadog::Profiling::Collectors::ThreadContext._native_gvl_wait_time_ns_and_reset
+        return nil if gvl_wait_time_ns == 0
 
         JSON.generate([["ruby_global_lock_wait_time_total", gvl_wait_time_ns]])
       end
