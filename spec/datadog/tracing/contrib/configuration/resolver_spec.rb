@@ -167,4 +167,39 @@ RSpec.describe Datadog::Tracing::Contrib::Configuration::CachingResolver do
       end
     end
   end
+
+  # Workaround for Ruby VM < 3.2.8, < 3.3.8 and < 3.4.2 (see https://bugs.ruby-lang.org/issues/21170)
+  context 'with a cache key with a #hash of -1 and a cache promotion to st_table' do
+    let(:cache_limit) { 200 }
+    let(:resolver_class) do
+      Class.new(Datadog::Tracing::Contrib::Configuration::Resolver) do
+        prepend Datadog::Tracing::Contrib::Configuration::CachingResolver
+        attr_reader :cache
+
+        def resolve(input)
+          input.hash
+        end
+      end
+    end
+
+    subject(:cache) do
+      key_class = Class.new do
+        attr_reader :hash
+
+        def initialize(hash_value)
+          @hash = hash_value
+        end
+      end
+
+      # 9 elements guarantees that the @cache hash does not fit in a
+      # ar_table in both 32 and 64-bit MRI builds.
+      0.downto(-8).each { |hash_value| resolver.resolve(key_class.new(hash_value)) }
+
+      resolver.cache
+    end
+
+    it 'does not corrupt the cache' do
+      expect(cache.keys.size).to eq(cache.size)
+    end
+  end
 end
