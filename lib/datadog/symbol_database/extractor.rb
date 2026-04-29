@@ -170,6 +170,14 @@ module Datadog
         # Matches Python: packages.is_user_code() excludes ddtrace.*
         return false if mod_name.start_with?('Datadog::')
 
+        # Exclude Ruby root classes. These are never user code, but
+        # find_source_file can return a user-code path for them via
+        # const_source_location (top-level constants like User are
+        # Object constants, so Object.const_source_location(:User)
+        # points to the user's file).
+        return false if mod.equal?(Object) || mod.equal?(BasicObject) ||
+          mod.equal?(Kernel) || mod.equal?(Module) || mod.equal?(Class)
+
         source_file = find_source_file(mod)
         return false unless source_file
 
