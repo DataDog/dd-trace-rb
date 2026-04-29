@@ -5,12 +5,14 @@ require "set"
 # Integration tests that set DI probes on standard library methods
 # invoked by DI's own processing pipeline.
 #
-# Method probes use a fiber-local re-entrancy guard
-# (Thread.current[:datadog_di_in_probe]) that prevents recursive
-# invocations during DI's own snapshot building. The guard is a split
-# design: held during DI pre/post-processing, released during super()
-# so nested probes fire normally in user code. These tests verify
-# the guard works correctly and document remaining edge cases.
+# Method probes use a fiber-local re-entrancy guard accessed via
+# Datadog::DI.in_probe? / .enter_probe / .leave_probe. Those methods are
+# implemented in C and call rb_thread_local_aref / rb_thread_local_aset
+# directly, bypassing Thread#[] / Thread#[]= method dispatch — so a user
+# probe on those Thread methods cannot intercept guard reads/writes.
+# The guard is a split design: held during DI pre/post-processing, released
+# during super() so nested probes fire normally in user code. These tests
+# verify the guard works correctly and document remaining edge cases.
 #
 # Key findings:
 #
@@ -202,9 +204,9 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
         #   gen_random_urandom calls String#length ->
         #   String#length probe fires again -> ... infinite recursion
         #
-        # The fiber-local guard (Thread.current[:datadog_di_in_probe])
-        # prevents this: DI-internal calls to String#length see the
-        # guard is set and call the original method directly.
+        # The fiber-local guard (DI.in_probe? / .enter_probe / .leave_probe,
+        # implemented in C) prevents this: DI-internal calls to String#length
+        # see the guard is set and call the original method directly.
         payloads = run_stdlib_probe_test(probe) do
           result = StdlibProbeTestClass.new.call_string_length("hello world")
           expect(result).to eq(11)
@@ -570,6 +572,68 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
       # The key assertion is that we reach this point without
       # hanging or crashing. Payloads may or may not be generated
       # depending on rate limiting.
+    end
+  end
+
+  context "method probe on Thread#[]" do
+    # The re-entrancy guard storage is the same fiber-local hashtable that
+    # Thread#[] / Thread#[]= read and write. A naive implementation that
+    # accessed the storage via Thread#[] from Ruby would self-recurse here:
+    #   user calls Thread#[] -> probe wrapper fires -> guard check calls
+    #   Thread#[] -> probe wrapper fires -> ... SystemStackError.
+    #
+    # DI.in_probe? (and enter_probe / leave_probe) are implemented in C
+    # using rb_thread_local_aref / rb_thread_local_aset, which read/write
+    # the same hashtable directly without going through Thread#[] method
+    # dispatch. The probe wrapper's own guard accesses are therefore
+    # invisible to the user-installed Thread#[] probe.
+
+    include_context "permissive settings"
+
+    let(:probe) do
+      Datadog::DI::Probe.new(
+        id: "stdlib-thread-aref",
+        type: :log,
+        type_name: "Thread",
+        method_name: "[]",
+        capture_snapshot: false,
+      )
+    end
+
+    it "does not self-recurse through guard storage" do
+      payloads = run_stdlib_probe_test(probe) do
+        Thread.current[:user_key] = 42
+        expect(Thread.current[:user_key]).to eq(42)
+      end
+
+      expect(payloads.length).to be >= 1
+    end
+  end
+
+  context "method probe on Thread#[]=" do
+    # Same reasoning as Thread#[]: writes to the guard storage from Ruby
+    # via Thread#[]= would self-recurse. DI.enter_probe / DI.leave_probe
+    # bypass Thread#[]= via rb_thread_local_aset.
+
+    include_context "permissive settings"
+
+    let(:probe) do
+      Datadog::DI::Probe.new(
+        id: "stdlib-thread-aset",
+        type: :log,
+        type_name: "Thread",
+        method_name: "[]=",
+        capture_snapshot: false,
+      )
+    end
+
+    it "does not self-recurse through guard storage" do
+      payloads = run_stdlib_probe_test(probe) do
+        Thread.current[:user_key] = 42
+        expect(Thread.current[:user_key]).to eq(42)
+      end
+
+      expect(payloads.length).to be >= 1
     end
   end
 end
