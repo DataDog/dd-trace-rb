@@ -298,7 +298,7 @@ RSpec.describe Datadog::DI::CodeTracker do
         absolute_path: '/app/lib/foo.rb',
         first_lineno: 0,
         trace_points: [],)
-      allow(Datadog::DI).to receive(:file_iseqs).and_return([dummy_iseq])
+      expect(Datadog::DI).to receive(:file_iseqs).and_return([dummy_iseq])
 
       tracker.backfill_registry
 
@@ -315,7 +315,7 @@ RSpec.describe Datadog::DI::CodeTracker do
         first_lineno: 0,
         trace_points: [[1, :line]],)
       # Dummy comes first — simulates the heap ordering that causes the bug
-      allow(Datadog::DI).to receive(:file_iseqs).and_return([dummy_iseq, real_iseq])
+      expect(Datadog::DI).to receive(:file_iseqs).and_return([dummy_iseq, real_iseq])
 
       tracker.backfill_registry
 
