@@ -40,7 +40,7 @@ module Datadog
 
         def get_or_initialize_meter_provider: () -> ::OpenTelemetry::SDK::Metrics::MeterProvider?
 
-        def meter_provider_available?: (::OpenTelemetry::SDK::Metrics::MeterProvider? meter_provider) -> bool
+        def sdk_meter_provider?: (::OpenTelemetry::SDK::Metrics::MeterProvider? meter_provider) -> bool
 
         def build_attributes: (
           ::String flag_key,

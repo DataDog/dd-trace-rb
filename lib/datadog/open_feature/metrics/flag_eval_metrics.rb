@@ -91,7 +91,7 @@ module Datadog
         # Returns the meter provider if available, nil otherwise.
         def get_or_initialize_meter_provider
           meter_provider = defined?(::OpenTelemetry) ? ::OpenTelemetry.meter_provider : nil
-          return meter_provider if meter_provider_available?(meter_provider)
+          return meter_provider if sdk_meter_provider?(meter_provider)
 
           @logger.debug { 'OpenFeature: Initializing OTel meter provider directly' }
           require 'opentelemetry-metrics-sdk'
@@ -99,13 +99,13 @@ module Datadog
           Datadog::OpenTelemetry::Metrics.initialize!(Datadog.send(:components))
 
           meter_provider = ::OpenTelemetry.meter_provider
-          meter_provider_available?(meter_provider) ? meter_provider : nil
+          sdk_meter_provider?(meter_provider) ? meter_provider : nil
         rescue LoadError => e
           @logger.debug { "OpenFeature: Failed to initialize OTel metrics: #{e.class}: #{e}" }
           nil
         end
 
-        def meter_provider_available?(meter_provider)
+        def sdk_meter_provider?(meter_provider)
           return false if meter_provider.nil?
           return false unless defined?(::OpenTelemetry::SDK::Metrics::MeterProvider)
 
