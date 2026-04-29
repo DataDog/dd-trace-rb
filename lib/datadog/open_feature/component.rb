@@ -12,7 +12,7 @@ module Datadog
   module OpenFeature
     # This class is the entry point for the OpenFeature component
     class Component
-      attr_reader :engine
+      attr_reader :engine, :flag_eval_hook
 
       def self.build(settings, agent_settings, logger:, telemetry:)
         return unless settings.respond_to?(:open_feature) && settings.open_feature.enabled
@@ -54,19 +54,7 @@ module Datadog
 
         @telemetry = telemetry
         @logger = logger
-        @flag_eval_hook = nil
-        @hook_mutex = Mutex.new
-      end
-
-      # Lazy initialization of the flag eval hook.
-      # The hook depends on the OpenFeature SDK gem which may not be loaded when
-      # the component is first initialized (due to Rails initializer ordering).
-      def flag_eval_hook
-        @hook_mutex.synchronize do
-          return @flag_eval_hook if @flag_eval_hook
-
-          @flag_eval_hook = create_flag_eval_hook
-        end
+        @flag_eval_hook = create_flag_eval_hook
       end
 
       def shutdown!

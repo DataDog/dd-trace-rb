@@ -15,11 +15,9 @@ module Datadog
 
       @flag_eval_hook: Hooks::FlagEvalHook?
 
-      @hook_mutex: Mutex
-
       attr_reader engine: EvaluationEngine
 
-      def flag_eval_hook: () -> Hooks::FlagEvalHook?
+      attr_reader flag_eval_hook: Hooks::FlagEvalHook?
 
       def self.build: (
         Core::Configuration::Settings settings,
