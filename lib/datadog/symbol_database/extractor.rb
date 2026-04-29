@@ -585,7 +585,7 @@ module Datadog
           source_file: source_file,
           start_line: line,
           end_line: end_line,
-          injectible_lines: injectable_lines,
+          targetable_lines: injectable_lines,
           language_specifics: {
             visibility: method_visibility(klass, method_name),
             method_type: method_type.to_s,
@@ -935,7 +935,7 @@ module Datadog
           source_file: source_file,
           start_line: line,
           end_line: end_line,
-          injectible_lines: injectable_lines,
+          targetable_lines: injectable_lines,
           language_specifics: {
             visibility: klass ? method_visibility(klass, method_name) : 'public', # steep:ignore
             method_type: 'instance',

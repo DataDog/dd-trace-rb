@@ -228,9 +228,9 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         class_scope = extractor.extract(TestUserClass).scopes.first
         method_scope = class_scope.scopes.find { |s| s.name == 'public_method' }
 
-        expect(method_scope.injectible_lines?).to eq(true)
-        expect(method_scope.injectible_lines).to be_an(Array)
-        expect(method_scope.injectible_lines).not_to be_empty
+        expect(method_scope.targetable_lines?).to eq(true)
+        expect(method_scope.targetable_lines).to be_an(Array)
+        expect(method_scope.targetable_lines).not_to be_empty
         expect(method_scope.end_line).to be >= method_scope.start_line
       end
     end
@@ -1718,11 +1718,11 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         class_scope = file_scope.scopes.find { |s| s.name == 'ExtractAllSimpleClass' }
         method_scope = class_scope.scopes.find { |s| s.name == 'remember' }
 
-        expect(method_scope.injectible_lines?).to eq(true).or eq(false)
-        if method_scope.injectible_lines?
-          expect(method_scope.injectible_lines).to be_an(Array)
-          expect(method_scope.injectible_lines).not_to be_empty
-          method_scope.injectible_lines.each do |range|
+        expect(method_scope.targetable_lines?).to eq(true).or eq(false)
+        if method_scope.targetable_lines?
+          expect(method_scope.targetable_lines).to be_an(Array)
+          expect(method_scope.targetable_lines).not_to be_empty
+          method_scope.targetable_lines.each do |range|
             expect(range[:start]).to be <= range[:end]
           end
         end
@@ -1855,7 +1855,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         method_scope = class_scope.scopes.find { |s| s.name == 'multi_line' }
 
         # Ranges should have no overlapping or duplicate entries
-        method_scope.injectible_lines.each_cons(2) do |a, b|
+        method_scope.targetable_lines.each_cons(2) do |a, b|
           expect(a[:end]).to be < b[:start]
         end
       end
@@ -1867,8 +1867,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         init_scope = class_scope.scopes.find { |s| s.name == 'initialize' }
 
         expect(init_scope).not_to be_nil
-        expect(init_scope.injectible_lines?).to eq(true)
-        expect(init_scope.injectible_lines.first[:start]).to eq(init_scope.start_line).or be > init_scope.start_line
+        expect(init_scope.targetable_lines?).to eq(true)
+        expect(init_scope.targetable_lines.first[:start]).to eq(init_scope.start_line).or be > init_scope.start_line
       end
     end
 
