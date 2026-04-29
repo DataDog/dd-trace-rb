@@ -124,7 +124,7 @@ RSpec.describe "CodeTracker backfill integration" do
         # rb_iseq_alloc_with_dummy_path was backported to Ruby 3.2.9
         # and exists natively in 3.3+. On older Rubies, dummy profiler
         # iseqs are never created, so this scenario cannot occur.
-        skip "requires Ruby 3.2.9+ (rb_iseq_alloc_with_dummy_path)" unless RUBY_VERSION >= "3.2.9"
+        skip "requires Ruby 3.2.9+ (rb_iseq_alloc_with_dummy_path)" unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("3.2.9")
       end
 
       it "backfill_registry skips the dummy and stores the real iseq" do
