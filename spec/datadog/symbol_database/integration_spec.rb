@@ -88,10 +88,10 @@ RSpec.describe 'Symbol Database Integration' do
         expect(param_names).not_to include('self')
 
         # Injectable lines on METHOD scope (production path)
-        expect(test_method_scope.injectible_lines?).to eq(true)
-        expect(test_method_scope.injectible_lines).to be_an(Array)
-        expect(test_method_scope.injectible_lines).not_to be_empty
-        test_method_scope.injectible_lines.each do |range|
+        expect(test_method_scope.targetable_lines?).to eq(true)
+        expect(test_method_scope.targetable_lines).to be_an(Array)
+        expect(test_method_scope.targetable_lines).not_to be_empty
+        test_method_scope.targetable_lines.each do |range|
           expect(range[:start]).to be <= range[:end]
           expect(range[:start]).to be >= test_method_scope.start_line
           expect(range[:end]).to be <= test_method_scope.end_line

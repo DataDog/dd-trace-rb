@@ -50,24 +50,24 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     end
   end
 
-  describe '#injectible_lines?' do
-    it 'returns false when injectible_lines is nil' do
+  describe '#targetable_lines?' do
+    it 'returns false when targetable_lines is nil' do
       scope = described_class.new(scope_type: 'METHOD', name: 'foo')
-      expect(scope.injectible_lines?).to eq(false)
+      expect(scope.targetable_lines?).to eq(false)
     end
 
-    it 'returns false when injectible_lines is empty' do
-      scope = described_class.new(scope_type: 'METHOD', name: 'foo', injectible_lines: [])
-      expect(scope.injectible_lines?).to eq(false)
+    it 'returns false when targetable_lines is empty' do
+      scope = described_class.new(scope_type: 'METHOD', name: 'foo', targetable_lines: [])
+      expect(scope.targetable_lines?).to eq(false)
     end
 
-    it 'returns true when injectible_lines has ranges' do
+    it 'returns true when targetable_lines has ranges' do
       scope = described_class.new(
         scope_type: 'METHOD',
         name: 'foo',
-        injectible_lines: [{start: 5, end: 7}],
+        targetable_lines: [{start: 5, end: 7}],
       )
-      expect(scope.injectible_lines?).to eq(true)
+      expect(scope.targetable_lines?).to eq(true)
     end
   end
 
@@ -251,7 +251,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
       scope = described_class.new(
         scope_type: 'METHOD',
         name: 'my_method',
-        injectible_lines: [{start: 10, end: 12}, {start: 15, end: 15}],
+        targetable_lines: [{start: 10, end: 12}, {start: 15, end: 15}],
       )
 
       hash = scope.to_h
@@ -260,7 +260,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
       expect(hash[:injectible_lines]).to eq([{start: 10, end: 12}, {start: 15, end: 15}])
     end
 
-    it 'includes injectible_lines?: false on METHOD scope without ranges' do
+    it 'includes targetable_lines?: false on METHOD scope without ranges' do
       scope = described_class.new(
         scope_type: 'METHOD',
         name: 'native_method',
