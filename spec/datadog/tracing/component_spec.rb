@@ -271,6 +271,39 @@ RSpec.describe Datadog::Tracing::Component do
         end
       end
 
+      context 'with sampling.span_rules_file' do
+        before do
+          allow(settings.tracing.sampling).to receive(:span_rules).and_return(nil)
+          allow(settings.tracing.sampling).to receive(:span_rules_file).and_return(rules)
+        end
+
+        context 'with rules' do
+          let(:rules) { '[{"name":"foo"}]' }
+
+          it_behaves_like 'new tracer' do
+            let(:options) do
+              {
+                span_sampler: be_a(Datadog::Tracing::Sampling::Span::Sampler) & have_attributes(
+                  rules: [
+                    Datadog::Tracing::Sampling::Span::Rule.new(
+                      Datadog::Tracing::Sampling::Span::Matcher.new(name_pattern: 'foo')
+                    )
+                  ]
+                )
+              }
+            end
+          end
+        end
+
+        context 'without rules' do
+          let(:rules) { nil }
+
+          it_behaves_like 'new tracer' do
+            let(:options) { {span_sampler: be_a(Datadog::Tracing::Sampling::Span::Sampler) & have_attributes(rules: [])} }
+          end
+        end
+      end
+
       context 'with :service' do
         let(:service) { double('service') }
 

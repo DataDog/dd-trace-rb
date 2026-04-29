@@ -2,7 +2,7 @@
 
 require_relative 'environment/socket'
 require_relative 'environment/identity'
-require_relative 'environment/git'
+require_relative 'utils/url'
 
 module Datadog
   module Core
@@ -18,8 +18,6 @@ module Datadog
           'runtime_platform' => Environment::Identity.lang_platform,
           'runtime_version' => Environment::Identity.lang_version,
           'library_version' => Environment::Identity.gem_datadog_version,
-          'git.repository_url' => Environment::Git.git_repository_url,
-          'git.commit.sha' => Environment::Git.git_commit_sha,
         }.compact.freeze
       end
 
@@ -38,6 +36,8 @@ module Datadog
           'env' => settings.env,
           'service' => settings.service,
           'version' => settings.version,
+          'git.repository_url' => Utils::Url.filter_basic_auth(settings.git.repository_url),
+          'git.commit.sha' => settings.git.commit_sha,
         }.compact)
       end
 

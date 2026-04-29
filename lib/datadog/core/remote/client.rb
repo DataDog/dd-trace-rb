@@ -4,6 +4,7 @@ require 'securerandom'
 
 require_relative 'configuration'
 require_relative 'dispatcher'
+require_relative '../utils/url'
 
 module Datadog
   module Core
@@ -144,10 +145,10 @@ module Datadog
             "ruby.gem.libdatadog.platform:#{gem_spec("libdatadog").platform}",
           ]
 
-          if (git_repository_url = Core::Environment::Git.git_repository_url)
+          if (git_repository_url = Core::Utils::Url.filter_basic_auth(settings.git.repository_url))
             client_tracer_tags << "git.repository_url:#{git_repository_url}"
           end
-          if (git_commit_sha = Core::Environment::Git.git_commit_sha)
+          if (git_commit_sha = settings.git.commit_sha)
             client_tracer_tags << "git.commit.sha:#{git_commit_sha}"
           end
 

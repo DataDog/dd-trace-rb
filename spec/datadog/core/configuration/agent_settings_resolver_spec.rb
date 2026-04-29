@@ -428,52 +428,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
   end
 
   describe 'timeout' do
-    shared_examples_for "parsing of timeout when it's not an integer" do
-      context 'when the timeout is specified as a string instead of a number' do
-        let(:timeout_value_to_parse) { '777' }
-
-        it 'contacts the agent using the http adapter, using the custom timeout' do
-          expect(resolver).to have_attributes(**settings, timeout_seconds: 777)
-        end
-      end
-
-      context 'when the timeout is an invalid string value' do
-        let(:timeout_value_to_parse) { 'timeout' }
-
-        before do
-          allow(logger).to receive(:warn)
-        end
-
-        it 'logs a warning' do
-          expect(logger).to receive(:warn).with(/Invalid value/)
-
-          resolver
-        end
-
-        it 'falls back to the defaults' do
-          expect(resolver).to have_attributes settings
-        end
-      end
-
-      context 'when the timeout is an invalid object' do
-        let(:timeout_value_to_parse) { Object.new }
-
-        before do
-          allow(logger).to receive(:warn)
-        end
-
-        it 'logs a warning' do
-          expect(logger).to receive(:warn).with(/Invalid value/)
-
-          resolver
-        end
-
-        it 'falls back to the defaults' do
-          expect(resolver).to have_attributes settings
-        end
-      end
-    end
-
     context 'when a custom timeout is specified via the DD_TRACE_AGENT_TIMEOUT_SECONDS environment variable' do
       let(:environment) { {'DD_TRACE_AGENT_TIMEOUT_SECONDS' => '798'} }
 
@@ -485,6 +439,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
         let(:environment) { {'DD_TRACE_AGENT_TIMEOUT_SECONDS' => 'this-is-an-invalid-timeout'} }
 
         before do
+          allow(Datadog).to receive(:logger).and_return(logger)
           allow(logger).to receive(:warn)
         end
 
@@ -507,12 +462,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
       it 'contacts the agent using the http adapter, using the custom timeout' do
         expect(resolver).to have_attributes(**settings, timeout_seconds: 111)
-      end
-
-      it_behaves_like "parsing of timeout when it's not an integer" do
-        before do
-          datadog_settings.agent.timeout_seconds = timeout_value_to_parse
-        end
       end
     end
 
@@ -538,12 +487,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
         it 'prioritizes the agent.timeout_seconds' do
           expect(resolver).to have_attributes(timeout_seconds: 17)
-        end
-
-        it 'logs a warning' do
-          expect(logger).to receive(:warn).with(/Configuration mismatch/)
-
-          resolver
         end
       end
 

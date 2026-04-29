@@ -12,6 +12,7 @@ module Datadog
 
         module Metrics
           ENV_DEFAULT_PORT: "DD_METRIC_AGENT_PORT"
+          DEFAULT_PORT: 8125
         end
 
         module APM

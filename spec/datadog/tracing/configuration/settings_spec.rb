@@ -783,18 +783,31 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
 
           context 'and DD_SPAN_SAMPLING_RULES_FILE is also provided' do
             around do |example|
-              ClimateControl.modify(
-                Datadog::Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE => 'path'
-              ) do
-                example.run
+              Tempfile.open('DD_SPAN_SAMPLING_RULES_FILE') do |f|
+                f.write('{from:"file"}')
+                f.flush
+
+                ClimateControl.modify(
+                  Datadog::Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE => f.path
+                ) do
+                  example.run
+                end
               end
             end
 
             it 'emits a conflict warning and returns DD_SPAN_SAMPLING_RULES' do
-              expect(Datadog.logger).to receive(:warn).with(include('configuration conflict'))
+              expect(Datadog.logger).to receive(:warn).with(include('DD_SPAN_SAMPLING_RULES will be used'))
               is_expected.to eq('{}')
             end
           end
+        end
+      end
+
+      describe '#span_rules_file' do
+        subject(:span_rules_file) { settings.tracing.sampling.span_rules_file }
+
+        context 'default' do
+          it { is_expected.to be nil }
         end
 
         context 'when DD_SPAN_SAMPLING_RULES_FILE is provided' do
@@ -812,6 +825,35 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           end
 
           it { is_expected.to eq('{from:"file"}') }
+        end
+
+        context 'when span_rules_file is configured programmatically' do
+          around do |example|
+            Tempfile.open('DD_SPAN_SAMPLING_RULES_FILE') do |f|
+              f.write('{from:"file"}')
+              f.flush
+
+              settings.tracing.sampling.span_rules_file = f.path
+              example.run
+            end
+          end
+
+          it { is_expected.to eq('{from:"file"}') }
+        end
+
+        context 'when DD_SPAN_SAMPLING_RULES_FILE points to an unreadable file' do
+          around do |example|
+            ClimateControl.modify(
+              Datadog::Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE => 'path'
+            ) do
+              example.run
+            end
+          end
+
+          it 'warns and returns nil' do
+            expect(Datadog.logger).to receive(:warn).with(include('Cannot read span sampling rules file'))
+            is_expected.to be_nil
+          end
         end
       end
     end

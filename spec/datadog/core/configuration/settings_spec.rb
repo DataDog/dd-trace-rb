@@ -2030,6 +2030,74 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
   end
 
+  describe '#git' do
+    describe '#repository_url' do
+      subject(:repository_url) { settings.git.repository_url }
+
+      context "when #{Datadog::Core::Git::Ext::ENV_REPOSITORY_URL}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Core::Git::Ext::ENV_REPOSITORY_URL => repository_url_env) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:repository_url_env) { nil }
+
+          it { is_expected.to be nil }
+        end
+
+        context 'is defined' do
+          let(:repository_url_env) { 'https://github.com/DataDog/dd-trace-rb' }
+
+          it { is_expected.to eq(repository_url_env) }
+        end
+      end
+    end
+
+    describe '#repository_url=' do
+      it 'updates the #repository_url setting' do
+        expect { settings.git.repository_url = 'https://github.com/DataDog/dd-trace-rb' }
+          .to change { settings.git.repository_url }
+          .from(nil)
+          .to('https://github.com/DataDog/dd-trace-rb')
+      end
+    end
+
+    describe '#commit_sha' do
+      subject(:commit_sha) { settings.git.commit_sha }
+
+      context "when #{Datadog::Core::Git::Ext::ENV_COMMIT_SHA}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Core::Git::Ext::ENV_COMMIT_SHA => commit_sha_env) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:commit_sha_env) { nil }
+
+          it { is_expected.to be nil }
+        end
+
+        context 'is defined' do
+          let(:commit_sha_env) { 'b9f0fb3fdbb94c9d24b2c75b49663122a529e123' }
+
+          it { is_expected.to eq(commit_sha_env) }
+        end
+      end
+    end
+
+    describe '#commit_sha=' do
+      it 'updates the #commit_sha setting' do
+        expect { settings.git.commit_sha = 'b9f0fb3fdbb94c9d24b2c75b49663122a529e123' }
+          .to change { settings.git.commit_sha }
+          .from(nil)
+          .to('b9f0fb3fdbb94c9d24b2c75b49663122a529e123')
+      end
+    end
+  end
+
   describe '#crashtracking' do
     describe '#enabled' do
       subject(:crashtracking_enabled) { settings.crashtracking.enabled }

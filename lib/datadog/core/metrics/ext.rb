@@ -6,7 +6,6 @@ module Datadog
       # @public_api
       module Ext
         DEFAULT_HOST = '127.0.0.1'
-        DEFAULT_PORT = 8125
 
         TAG_LANG = 'language'
         TAG_LANG_INTERPRETER = 'language-interpreter'

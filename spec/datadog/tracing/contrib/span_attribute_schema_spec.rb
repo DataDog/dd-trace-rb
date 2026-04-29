@@ -1,51 +1,33 @@
 require 'datadog/tracing/contrib/span_attribute_schema'
 
 RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
-  describe '#fetch_service_name' do
-    context 'when integration service is set' do
-      with_env TEST_DD_INTEGRATION_SERVICE: 'integration-service-name'
+  describe '.default_or_global_service_name' do
+    subject(:service_name) { described_class.default_or_global_service_name(default_service_name) }
 
-      it 'returns the integration specific service name' do
-        expect(
-          described_class
-            .fetch_service_name('TEST_DD_INTEGRATION_SERVICE',
-              'default-integration-service-name')
-        ).to eq('integration-service-name')
+    let(:default_service_name) { 'default-integration-service-name' }
+
+    around do |example|
+      without_warnings { Datadog.configuration.reset! }
+      example.run
+      without_warnings { Datadog.configuration.reset! }
+    end
+
+    context 'when global default service name is disabled' do
+      it 'returns the integration default service name' do
+        expect(service_name).to eq(default_service_name)
       end
     end
 
-    context 'when DD_SERVICE is set' do
-      with_env DD_SERVICE: 'service'
-
-      it 'returns default integration service name' do
-        expect(
-          described_class
-            .fetch_service_name('TEST_DD_INTEGRATION_SERVICE',
-              'default-integration-service-name')
-        ).to eq('default-integration-service-name')
+    context 'when global default service name is enabled' do
+      before do
+        Datadog.configure do |c|
+          c.service = 'service'
+          c.tracing.contrib.global_default_service_name.enabled = true
+        end
       end
-    end
 
-    context 'when DD_SERVICE is not set' do
-      it 'returns default integration service name' do
-        expect(
-          described_class
-            .fetch_service_name('TEST_DD_INTEGRATION_SERVICE',
-              'default-integration-service-name')
-        ).to eq('default-integration-service-name')
-      end
-    end
-
-    context 'when DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED is set' do
-      with_env DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED: 'true',
-        DD_SERVICE: 'service'
-
-      it 'returns DD_SERVICE' do
-        expect(
-          described_class
-            .fetch_service_name('TEST_DD_INTEGRATION_SERVICE',
-              'default-integration-service-name')
-        ).to eq('service')
+      it 'returns the configured global service name' do
+        expect(service_name).to eq('service')
       end
     end
   end
