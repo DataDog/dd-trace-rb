@@ -131,8 +131,8 @@ module Datadog
         end
 
         def normalize_reason(reason)
-          reason_str = reason.to_s
-          reason_str.empty? ? 'unknown' : reason_str.downcase
+          reason = reason.to_s
+          reason.empty? ? 'unknown' : reason.downcase
         end
 
         def normalize_error_type(error_code)
