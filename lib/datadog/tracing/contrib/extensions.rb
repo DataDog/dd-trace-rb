@@ -227,6 +227,15 @@ module Datadog
               end
             end
 
+            # Returns the subset of built-in integrations that are instrumented,
+            # excluding custom integrations registered through the public contrib API.
+            # This method is only for telemetry reporting.
+            # @!visibility private
+            def instrumented_built_in_integrations
+              instrumented = Set.new(instrumented_integrations.each_value)
+              Contrib::BUILT_IN_INTEGRATIONS.select { |integration| instrumented.include?(integration) }.freeze
+            end
+
             # @!visibility private
             def reset!
               INSTRUMENTED_INTEGRATIONS_LOCK.synchronize do
