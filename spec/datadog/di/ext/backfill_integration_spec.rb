@@ -88,9 +88,17 @@ RSpec.describe "CodeTracker backfill integration" do
       dummy_path = File.join(__dir__, "backfill_integration_test_class.rb")
       50.times do |attempt|
         @dummy_iseq = RubyVM::InstructionSequence.compile("nil", "<dummy>", dummy_path, 0)
-        10_000.times { Object.new } if attempt % 3 == 0
-        GC.start if attempt % 5 == 0
-        GC.compact if attempt % 7 == 0
+        10_000.times { Object.new }
+        GC.start
+        # verify_compaction_references(double_heap: true, toward: :empty)
+        # aggressively relocates objects to different heap pages, changing
+        # the order all_iseqs encounters them. Plain GC.compact is too
+        # gentle to shuffle iseqs past the real one inside an RSpec process.
+        if GC.respond_to?(:verify_compaction_references)
+          GC.verify_compaction_references(double_heap: true, toward: :empty)
+        else
+          GC.compact
+        end
 
         Datadog::DI.activate_tracking!
         tracker = Datadog::DI.code_tracker
@@ -99,6 +107,12 @@ RSpec.describe "CodeTracker backfill integration" do
           break
         end
         Datadog::DI.deactivate_tracking!
+      end
+
+      # When the fix's trace_points filter is present (validation branch),
+      # the loop never finds the dummy. Re-activate so existing tests run.
+      unless Datadog::DI.code_tracking_active?
+        Datadog::DI.activate_tracking!
       end
 
       allow(Datadog::DI).to receive(:current_component).and_return(component)
