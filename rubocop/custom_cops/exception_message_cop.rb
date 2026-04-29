@@ -156,7 +156,7 @@ module CustomCops
 
       # e.class.name
       if node.method_name == :name && node.receiver&.send_type? &&
-         node.receiver.method_name == :class && node.receiver.receiver&.lvar_type?
+          node.receiver.method_name == :class && node.receiver.receiver&.lvar_type?
         return rescue_variable?(node.receiver.receiver)
       end
 

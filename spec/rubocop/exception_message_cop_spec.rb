@@ -62,14 +62,14 @@ RSpec.describe CustomCops::ExceptionMessageCop do
     end
 
     it 'does not register an offense outside a rescue block' do
-      expect_no_offenses(<<~'RUBY')
+      expect_no_offenses(<<~RUBY)
         e = SomeObject.new
         log(e.message)
       RUBY
     end
 
     it 'does not register an offense for message with arguments' do
-      expect_no_offenses(<<~'RUBY')
+      expect_no_offenses(<<~RUBY)
         begin
           something
         rescue => e
@@ -100,7 +100,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
     end
 
     it 'registers an offense for e.class.name outside interpolation but does not auto-correct' do
-      expect_offense(<<~'RUBY')
+      expect_offense(<<~RUBY)
         begin
           something
         rescue => e
@@ -113,7 +113,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
     end
 
     it 'does not register an offense outside a rescue block' do
-      expect_no_offenses(<<~'RUBY')
+      expect_no_offenses(<<~RUBY)
         e = SomeObject.new
         log(e.class.name)
       RUBY
@@ -144,7 +144,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
 
   describe 'inline rescue' do
     it 'does not register an offense for inline rescue (no rescue variable)' do
-      expect_no_offenses(<<~'RUBY')
+      expect_no_offenses(<<~RUBY)
         result = something rescue nil
       RUBY
     end
