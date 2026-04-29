@@ -6,6 +6,7 @@ require_relative 'base'
 require_relative 'ext'
 require_relative '../environment/execution'
 require_relative '../environment/ext'
+require_relative '../environment/process'
 require_relative '../runtime/ext'
 require_relative '../telemetry/ext'
 require_relative '../remote/ext'
@@ -680,6 +681,16 @@ module Datadog
           # Note: Alias (OTEL_SERVICE_NAME) defined in supported-configurations.json
           o.env Core::Environment::Ext::ENV_SERVICE
           o.default Core::Environment::Ext::FALLBACK_SERVICE_NAME
+
+          o.after_set do |service_name|
+            # Use object identity rather than equality: FALLBACK_SERVICE_NAME is frozen and
+            # SafeDup.frozen_or_dup returns the same object for the default value. A user who
+            # explicitly sets service to the same string as the fallback would produce a
+            # different object, so .equal? correctly distinguishes "never configured" from
+            # "explicitly set to the same value as the fallback".
+            user_configured = !service_name.equal?(Core::Environment::Ext::FALLBACK_SERVICE_NAME)
+            Core::Environment::Process.set_service(service_name, user_configured: user_configured)
+          end
 
           # There's a few cases where we don't want to use the fallback service name, so this helper allows us to get a
           # nil instead so that one can do
