@@ -290,6 +290,40 @@ RSpec.describe Datadog::DI::CodeTracker do
       expect(tracker.send(:registry)).to be_empty
     end
 
+    it 'skips dummy profiler iseqs (empty trace_points) from whole-file registry' do
+      # Ruby 3.2.9+ creates dummy iseqs (iseq_size == 0, no trace_points)
+      # during require/load for profiler frame safety. These match the
+      # whole-file filter but have no bytecode.
+      dummy_iseq = instance_double(RubyVM::InstructionSequence,
+        absolute_path: '/app/lib/foo.rb',
+        first_lineno: 0,
+        trace_points: [],)
+      allow(Datadog::DI).to receive(:file_iseqs).and_return([dummy_iseq])
+
+      tracker.backfill_registry
+
+      expect(tracker.send(:registry)).to be_empty
+    end
+
+    it 'stores real iseq when both dummy and real exist for same path' do
+      dummy_iseq = instance_double(RubyVM::InstructionSequence,
+        absolute_path: '/app/lib/foo.rb',
+        first_lineno: 0,
+        trace_points: [],)
+      real_iseq = instance_double(RubyVM::InstructionSequence,
+        absolute_path: '/app/lib/foo.rb',
+        first_lineno: 0,
+        trace_points: [[1, :line]],)
+      # Dummy comes first — simulates the heap ordering that causes the bug
+      allow(Datadog::DI).to receive(:file_iseqs).and_return([dummy_iseq, real_iseq])
+
+      tracker.backfill_registry
+
+      registry = tracker.send(:registry)
+      expect(registry.length).to eq(1)
+      expect(registry['/app/lib/foo.rb']).to equal(real_iseq)
+    end
+
     it 'does not overwrite entries from script_compiled' do
       tracker.start
       load File.join(File.dirname(__FILE__), "code_tracker_load_class.rb")

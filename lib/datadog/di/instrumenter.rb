@@ -419,27 +419,7 @@ module Datadog
 
           # TracePoint#enable returns false when it succeeds.
           rv = if iseq
-            begin
-              tp.enable(target: iseq, target_line: line_no)
-            rescue ArgumentError
-              # Ruby 3.2.9+ creates dummy profiler iseqs during require/load
-              # (rb_iseq_alloc_with_dummy_path) with iseq_size == 0. If one
-              # leaks into the whole-file registry despite the trace_points
-              # filter in backfill_registry, tp.enable raises "can not enable
-              # any hooks" because the dummy has no bytecode to traverse.
-              # Fall back to a per-method iseq that directly contains the
-              # target line.
-              fallback_ret = code_tracker&.respond_to?(:per_method_iseq_for_line) &&
-                code_tracker.per_method_iseq_for_line(probe.file, line_no) # steep:ignore ArgumentTypeMismatch
-              raise unless fallback_ret
-
-              _, fallback_iseq = fallback_ret
-              tp = TracePoint.new(*types) do |tp|
-                line_trace_point_callback(probe, fallback_iseq, responder, tp)
-              end
-              probe.instrumentation_trace_point = tp
-              tp.enable(target: fallback_iseq, target_line: line_no)
-            end
+            tp.enable(target: iseq, target_line: line_no)
           else
             tp.enable
           end

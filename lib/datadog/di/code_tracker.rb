@@ -284,21 +284,6 @@ module Datadog
         return result if result
 
         # Fall back to per-method iseqs.
-        per_method_iseq_for_line(suffix, line)
-      end
-
-      # Returns a [path, iseq] pair from the per-method registry only,
-      # bypassing the whole-file registry.
-      #
-      # Used as a fallback when tp.enable on a whole-file iseq fails
-      # (e.g. a Ruby 3.2.9+ dummy profiler iseq with iseq_size == 0
-      # leaked past the trace_points filter — see hook_line rescue
-      # in Instrumenter).
-      #
-      # @param suffix [String] file path or suffix to match
-      # @param line [Integer] target line number
-      # @return [Array(String, RubyVM::InstructionSequence), nil]
-      def per_method_iseq_for_line(suffix, line)
         registry_lock.synchronize do
           # Resolve the path using the per-method registry keys.
           path = resolve_path_suffix(suffix, per_method_registry.keys)
