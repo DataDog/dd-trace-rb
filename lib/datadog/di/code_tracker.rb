@@ -291,8 +291,9 @@ module Datadog
       # bypassing the whole-file registry.
       #
       # Used as a fallback when tp.enable on a whole-file iseq fails
-      # (e.g. when backfilled iseq child references become stale under
-      # GC pressure — see hook_line rescue in Instrumenter).
+      # (e.g. a Ruby 3.2.9+ dummy profiler iseq with iseq_size == 0
+      # leaked past the trace_points filter — see hook_line rescue
+      # in Instrumenter).
       #
       # @param suffix [String] file path or suffix to match
       # @param line [Integer] target line number
