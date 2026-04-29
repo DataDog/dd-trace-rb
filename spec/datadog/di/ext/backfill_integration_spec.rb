@@ -115,26 +115,25 @@ RSpec.describe "CodeTracker backfill integration" do
     end
 
     context "when a dummy profiler iseq exists in object space" do
-      # DI.create_dummy_iseq calls rb_iseq_alloc_with_dummy_path (Ruby
-      # 3.2.9+) to create a real IMEMO iseq with iseq_size == 0 in the
-      # heap. all_iseqs finds it during the object space walk. Without
-      # the trace_points.empty? filter, backfill_registry would store
-      # the dummy instead of the real iseq.
-      before do
-        # rb_iseq_alloc_with_dummy_path was backported to Ruby 3.2.9
-        # and exists natively in 3.3+. On older Rubies, dummy profiler
-        # iseqs are never created, so this scenario cannot occur.
-        skip "requires Ruby 3.2.9+ (rb_iseq_alloc_with_dummy_path)" unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new("3.2.9")
-      end
-
+      # Ruby 3.2.9+ creates dummy iseqs during require/load for profiler
+      # frame safety. These have type :top, first_lineno 0, the same
+      # absolute_path as the real iseq, and empty trace_points.
+      # RubyVM::InstructionSequence.compile with first_lineno=0 produces
+      # an identical signature — all_iseqs finds it during the object
+      # space walk. Without the trace_points.empty? filter in
+      # backfill_registry, the dummy would be stored instead of the real.
       it "backfill_registry skips the dummy and stores the real iseq" do
         # Deactivate tracking so we can inject the dummy before backfill
         Datadog::DI.deactivate_tracking!
 
-        # Create a real dummy iseq with the same path as the test class
+        # Create a dummy iseq: type :top, first_lineno 0, same path,
+        # empty trace_points — identical to what Ruby 3.2.9+ creates
+        # during require via rb_iseq_alloc_with_dummy_path.
         real_path = File.join(__dir__, "backfill_integration_test_class.rb")
-        dummy = Datadog::DI.create_dummy_iseq(real_path)
+        dummy = RubyVM::InstructionSequence.compile("nil", "<dummy>", real_path, 0)
         expect(dummy.trace_points).to be_empty
+        expect(dummy.first_lineno).to eq(0)
+        expect(dummy.absolute_path).to eq(real_path)
 
         # Re-activate tracking — backfill_registry runs, finds both
         # the dummy and real iseq in object space

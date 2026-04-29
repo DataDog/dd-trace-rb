@@ -80,34 +80,6 @@ static VALUE exception_message(DDTRACE_UNUSED VALUE _self, VALUE exception) {
 // function does not exist, so have_func('rb_iseq_type') in extconf.rb
 // gates compilation. When unavailable, backfill_registry falls back to
 // the first_lineno == 0 heuristic.
-// rb_iseq_alloc_with_dummy_path was added in Ruby 3.2.9 (backport of #11036)
-// to create profiler-safe placeholder frames during require/load. These dummy
-// iseqs have iseq_size == 0 (no bytecode). Used by the test helper below.
-#ifdef HAVE_RB_ISEQ_ALLOC_WITH_DUMMY_PATH
-void *rb_iseq_alloc_with_dummy_path(VALUE fname);
-
-/*
- * call-seq:
- *   DI.create_dummy_iseq(path) -> RubyVM::InstructionSequence
- *
- * Creates a dummy profiler iseq (iseq_size == 0) with the given path,
- * identical to what Ruby 3.2.9+ creates during require/load via
- * rb_iseq_alloc_with_dummy_path. The iseq is a real IMEMO object in
- * the Ruby heap — all_iseqs will find it during object space walks.
- *
- * Test-only helper for verifying that backfill_registry filters out
- * dummy iseqs. Not defined on Ruby versions without the underlying
- * function.
- *
- * @param path [String] the absolute path to assign to the dummy iseq
- * @return [RubyVM::InstructionSequence] the dummy iseq wrapper
- */
-static VALUE create_dummy_iseq(DDTRACE_UNUSED VALUE _self, VALUE path) {
-  void *iseq = rb_iseq_alloc_with_dummy_path(path);
-  return rb_iseqw_new(iseq);
-}
-#endif
-
 #ifdef HAVE_RB_ISEQ_TYPE
 VALUE rb_iseq_type(const void *iseq);
 
@@ -149,9 +121,6 @@ void di_init(VALUE datadog_module) {
   VALUE di_module = rb_define_module_under(datadog_module, "DI");
   rb_define_singleton_method(di_module, "all_iseqs", all_iseqs, 0);
   rb_define_singleton_method(di_module, "exception_message", exception_message, 1);
-#ifdef HAVE_RB_ISEQ_ALLOC_WITH_DUMMY_PATH
-  rb_define_singleton_method(di_module, "create_dummy_iseq", create_dummy_iseq, 1);
-#endif
 #ifdef HAVE_RB_ISEQ_TYPE
   rb_define_singleton_method(di_module, "iseq_type", iseq_type, 1);
 #endif
