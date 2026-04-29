@@ -50,7 +50,13 @@ module Datadog
           def add_middleware(app)
             # Add trace middleware at the top of the middleware stack,
             # to ensure we capture the complete execution time.
-            app.middleware.insert_before(0, Contrib::Rack::TraceMiddleware)
+            if Datadog.configuration.tracing[:rack][:use_events] &&
+                Contrib::Rack::Integration.version >= Contrib::Rack::Integration::MINIMUM_EVENTS_VERSION
+              require_relative '../rack/event_handler'
+              app.middleware.insert_before(0, ::Rack::Events, [Contrib::Rack::EventHandler.new])
+            else
+              app.middleware.insert_before(0, Contrib::Rack::TraceMiddleware)
+            end
 
             # Some Rails middleware can swallow an application error, preventing
             # the error propagation to the encompassing Rack span.

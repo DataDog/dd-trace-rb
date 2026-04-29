@@ -50,6 +50,12 @@ module Datadog
               o.default false
             end
 
+            option :use_events do |o|
+              o.type :bool
+              o.env Ext::ENV_USE_EVENTS
+              o.default false
+            end
+
             option :service_name do |o|
               o.type :string, nilable: true
             end
