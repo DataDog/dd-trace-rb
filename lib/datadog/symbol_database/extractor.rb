@@ -183,6 +183,10 @@ module Datadog
         # Only absolute paths are real source files. Pseudo-paths like '<main>',
         # '<internal:...>', '(eval)' are not user code.
         return false unless path.start_with?('/')
+        # Only .rb files are Ruby source. Excludes the Ruby binary
+        # (/usr/local/bin/ruby), C extensions (.so/.bundle), and other
+        # non-source files that appear in method source_location.
+        return false unless path.end_with?('.rb')
         # Exclude gem paths
         return false if path.include?('/gems/')
         # Exclude Ruby stdlib
