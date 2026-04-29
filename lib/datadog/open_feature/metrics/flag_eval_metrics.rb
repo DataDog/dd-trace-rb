@@ -65,7 +65,7 @@ module Datadog
         # Counter is created lazily because OTel SDK may not be initialized
         # when the OpenFeature component is created.
         def get_or_create_counter
-          return nil unless @enabled
+          return unless @enabled
 
           @mutex.synchronize do
             return @counter if @counter
