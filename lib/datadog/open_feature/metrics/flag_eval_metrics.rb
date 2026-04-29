@@ -72,7 +72,7 @@ module Datadog
           @mutex.synchronize do
             return @counter if @counter
 
-            meter_provider = fetch_meter_provider
+            meter_provider = get_or_initialize_meter_provider
             return unless meter_provider
 
             meter = meter_provider.meter(METER_NAME)
@@ -89,7 +89,7 @@ module Datadog
 
         # Fetch an available OTel meter provider, initializing if needed.
         # Returns the meter provider if available, nil otherwise.
-        def fetch_meter_provider
+        def get_or_initialize_meter_provider
           meter_provider = defined?(::OpenTelemetry) ? ::OpenTelemetry.meter_provider : nil
           return meter_provider if meter_provider_available?(meter_provider)
 

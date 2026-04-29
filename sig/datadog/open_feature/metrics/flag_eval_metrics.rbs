@@ -38,7 +38,7 @@ module Datadog
 
         def get_or_create_counter: () -> ::OpenTelemetry::SDK::Metrics::Instrument::Counter?
 
-        def fetch_meter_provider: () -> ::OpenTelemetry::SDK::Metrics::MeterProvider?
+        def get_or_initialize_meter_provider: () -> ::OpenTelemetry::SDK::Metrics::MeterProvider?
 
         def meter_provider_available?: (::OpenTelemetry::SDK::Metrics::MeterProvider? meter_provider) -> bool
 
