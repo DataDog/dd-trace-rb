@@ -115,25 +115,37 @@ RSpec.describe "CodeTracker backfill integration" do
     end
 
     context "when a dummy profiler iseq exists in object space" do
-      # Ruby 3.2.9+ creates dummy iseqs (iseq_size == 0) during
-      # require/load for profiler frame safety. These match the
-      # backfill_registry whole-file filter (type :top, first_lineno 0,
-      # same absolute_path) but have no bytecode. backfill_registry
-      # must filter them out via trace_points.empty? so the real
-      # whole-file iseq is stored instead.
+      # DI.create_dummy_iseq calls rb_iseq_alloc_with_dummy_path (Ruby
+      # 3.2.9+) to create a real IMEMO iseq with iseq_size == 0 in the
+      # heap. all_iseqs finds it during the object space walk. Without
+      # the trace_points.empty? filter, backfill_registry would store
+      # the dummy instead of the real iseq.
+      before do
+        skip "create_dummy_iseq requires Ruby 3.2.9+" unless Datadog::DI.respond_to?(:create_dummy_iseq)
+      end
+
       it "backfill_registry skips the dummy and stores the real iseq" do
+        # Deactivate tracking so we can inject the dummy before backfill
+        Datadog::DI.deactivate_tracking!
+
+        # Create a real dummy iseq with the same path as the test class
+        real_path = File.join(__dir__, "backfill_integration_test_class.rb")
+        dummy = Datadog::DI.create_dummy_iseq(real_path)
+        expect(dummy.trace_points).to be_empty
+
+        # Re-activate tracking — backfill_registry runs, finds both
+        # the dummy and real iseq in object space
+        Datadog::DI.activate_tracking!
+
         code_tracker = Datadog::DI.code_tracker
-        registry = code_tracker.send(:registry)
+        result = code_tracker.iseqs_for_path_suffix("backfill_integration_test_class.rb")
+        expect(result).not_to be_nil
+        _, stored_iseq = result
 
-        real_result = code_tracker.iseqs_for_path_suffix("backfill_integration_test_class.rb")
-        expect(real_result).not_to be_nil
-        real_path, real_iseq = real_result
-
-        # The real iseq has trace_points (lines 4 and 19)
-        expect(real_iseq.trace_points).not_to be_empty
-
-        # Verify the registry contains the real iseq, not a dummy
-        expect(registry[real_path]).to equal(real_iseq)
+        # The stored iseq must be the real one (non-empty trace_points),
+        # not the dummy
+        expect(stored_iseq.trace_points).not_to be_empty
+        expect(stored_iseq).not_to equal(dummy)
       end
     end
 

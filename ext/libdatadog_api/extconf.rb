@@ -90,6 +90,10 @@ Datadog::LibdatadogExtconfHelpers.add_libdatadog_version_define
 EXTENSION_NAME = "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}".freeze
 
 have_func('rb_iseq_type')
+# rb_iseq_alloc_with_dummy_path was added in Ruby 3.2.9 (backport of #11036).
+# Used by DI.create_dummy_iseq test helper to create a real dummy profiler
+# iseq in object space for integration testing of backfill_registry filtering.
+have_func('rb_iseq_alloc_with_dummy_path')
 
 create_makefile(EXTENSION_NAME)
 
