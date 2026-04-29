@@ -301,6 +301,11 @@ module Datadog
           start_span(span_op)
         end
 
+        # Before finish: allow enrichment before the span is finalized, publish events.
+        span_events.before_finish.subscribe do |span_op|
+          before_finish_span(span_op)
+        end
+
         # After finish: deactivate the span, record, publish events.
         span_events.after_finish.subscribe do |span, span_op|
           finish_span(span, span_op, parent)
@@ -449,6 +454,7 @@ module Datadog
         include Tracing::Events
 
         attr_reader \
+          :span_before_finish,
           :span_before_start,
           :span_finished,
           :trace_finished,
@@ -456,11 +462,20 @@ module Datadog
           :trace_resource_change
 
         def initialize
+          @span_before_finish = SpanBeforeFinish.new
           @span_before_start = SpanBeforeStart.new
           @span_finished = SpanFinished.new
           @trace_finished = TraceFinished.new
           @trace_propagated = TracePropagated.new
           @trace_resource_change = TraceResourceChange.new
+        end
+
+        # Triggered just before a span is finalized, mirroring SpanOperation::Events::BeforeFinish.
+        # Subscribers can still mutate tags on the SpanOperation at this point.
+        class SpanBeforeFinish < Tracing::Event
+          def initialize
+            super(:span_before_finish)
+          end
         end
 
         # Triggered before a span starts.
@@ -544,6 +559,13 @@ module Datadog
         events.span_before_start.publish(span_op, self)
       rescue => e
         logger.debug { "Error starting span on trace: #{e} Backtrace: #{e.backtrace.first(3)}" }
+      end
+
+      def before_finish_span(span_op)
+        # Publish :span_before_finish event
+        events.span_before_finish.publish(span_op, self)
+      rescue => e
+        logger.debug { "Error in before_finish_span on trace: #{e} Backtrace: #{e.backtrace.first(3)}" }
       end
 
       # For traces with automatic context management (auto_finish),
