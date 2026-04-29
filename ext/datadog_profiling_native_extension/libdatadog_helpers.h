@@ -3,6 +3,16 @@
 #include <datadog/profiling.h>
 #include "ruby_helpers.h"
 
+// Extracts the error from a ddog_prof_Status, drops the status to prevent a memory leak, and raises
+// a Ruby RuntimeError. Must only be called when s_ptr->err != NULL.
+// Usage: if (s.err != NULL) raise_status_error("Failed to do X", &s);
+#define raise_status_error(prefix, s_ptr) \
+  do { \
+    VALUE _raise_status_msg = rb_str_new_cstr((s_ptr)->err); \
+    ddog_prof_Status_drop(s_ptr); \
+    raise_error(rb_eRuntimeError, prefix ": %"PRIsVALUE, _raise_status_msg); \
+  } while(0)
+
 static inline VALUE ruby_string_from_vec_u8(ddog_Vec_U8 string) {
   return rb_str_new((char *) string.ptr, string.len);
 }
