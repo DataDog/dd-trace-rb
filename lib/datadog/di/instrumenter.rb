@@ -116,8 +116,37 @@ module Datadog
 
         mod = Module.new do
           define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore NoMethod
-            # Steep: Unsure why it cannot detect kwargs in this block. Workaround:
-            # @type var kwargs: ::Hash[::Symbol, untyped]
+            # Re-entrancy guard: if we are already inside a DI probe
+            # callback, skip DI processing and call the original method
+            # directly. This prevents SystemStackError when a probe is
+            # set on a stdlib method that DI itself calls during
+            # snapshot building (e.g., String#length, Hash#each).
+            #
+            # Storage is fiber-local. The DI.in_probe?/enter_probe/leave_probe
+            # methods are implemented in C and access the storage directly via
+            # rb_thread_local_aref / rb_thread_local_aset, bypassing Thread#[]
+            # / Thread#[]= method dispatch — so user method probes on those
+            # Thread methods cannot intercept guard reads/writes and recurse.
+            if DI.in_probe?
+              if args.any?
+                if kwargs.any? # steep:ignore FallbackAny
+                  return super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
+                else
+                  return super(*args, &target_block)
+                end
+              elsif kwargs.any? # steep:ignore FallbackAny
+                return super(**kwargs, &target_block) # steep:ignore FallbackAny
+              else
+                return super(&target_block)
+              end
+            end
+
+            begin
+            DI.enter_probe # rubocop:disable Layout/IndentationWidth
+
+            # Steep cannot detect the type of **kwargs inside define_method blocks
+            # (Ruby::FallbackAny). All kwargs references below are annotated with
+            # steep:ignore FallbackAny.
             di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
 
             if continue = probe.enabled?
@@ -128,7 +157,7 @@ module Datadog
                   # We do not need the stack for condition evaluation, therefore
                   # stack is not passed to Context here.
                   context = Context.new(
-                    locals: serializer.combine_args(args, kwargs, self),
+                    locals: serializer.combine_args(args, kwargs, self), # steep:ignore FallbackAny
                     target_self: self,
                     probe: probe, settings: settings, serializer: serializer,
                   )
@@ -172,7 +201,7 @@ module Datadog
               # Arguments may be mutated by the method, therefore
               # they need to be serialized prior to method invocation.
               serialized_entry_args = if probe.capture_snapshot?
-                serializer.serialize_args(args, kwargs, self,
+                serializer.serialize_args(args, kwargs, self, # steep:ignore FallbackAny
                   depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
                   attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
               end
@@ -183,18 +212,23 @@ module Datadog
 
               di_duration = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID) - di_start_time
 
+              # Release re-entrancy guard for the original method so that
+              # probes on other methods (or recursive calls) fire normally
+              # during user code execution.
+              DI.leave_probe
+
               rv = nil
               begin
                 # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
                 # for methods defined via method_missing.
                 rv = if args.any?
-                  if kwargs.any?
-                    super(*args, **kwargs, &target_block)
+                  if kwargs.any? # steep:ignore FallbackAny
+                    super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
                   else
                     super(*args, &target_block)
                   end
-                elsif kwargs.any?
-                  super(**kwargs, &target_block)
+                elsif kwargs.any? # steep:ignore FallbackAny
+                  super(**kwargs, &target_block) # steep:ignore FallbackAny
                 else
                   super(&target_block)
                 end
@@ -204,6 +238,10 @@ module Datadog
                 # We will raise the exception captured here later, after
                 # the instrumentation callback runs.
               end
+
+              # Re-acquire re-entrancy guard for DI post-processing
+              # (building context, notification callback).
+              DI.enter_probe
 
               end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
               duration = end_time - start_time
@@ -258,6 +296,9 @@ module Datadog
               # stop standard from trying to mess up my code
               _ = 42
 
+              # Release re-entrancy guard for the original method.
+              DI.leave_probe
+
               # The necessity to invoke super in each of these specific
               # ways is very difficult to test.
               # Existing tests, even though I wrote many, still don't
@@ -267,16 +308,19 @@ module Datadog
               # there is actually a legitimate need for the breakdown.
               # TODO figure out how to test this properly.
               if args.any?
-                if kwargs.any?
-                  super(*args, **kwargs, &target_block)
+                if kwargs.any? # steep:ignore FallbackAny
+                  super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
                 else
                   super(*args, &target_block)
                 end
-              elsif kwargs.any?
-                super(**kwargs, &target_block)
+              elsif kwargs.any? # steep:ignore FallbackAny
+                super(**kwargs, &target_block) # steep:ignore FallbackAny
               else
                 super(&target_block)
               end
+            end
+            ensure
+              DI.leave_probe # rubocop:disable Layout/IndentationWidth
             end
           end
         end
