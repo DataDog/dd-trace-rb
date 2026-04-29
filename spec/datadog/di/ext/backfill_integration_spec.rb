@@ -76,6 +76,17 @@ RSpec.describe "CodeTracker backfill integration" do
 
   context "line probe on pre-loaded file" do
     before do
+      # Inject a dummy profiler iseq (iseq_size == 0) into object space
+      # with the same path as the test class. On Ruby 3.2.9+, this is
+      # what rb_iseq_alloc_with_dummy_path creates during require/load.
+      # Without a filter in backfill_registry, the dummy may be stored
+      # instead of the real iseq, causing tp.enable to fail.
+      @dummy_iseq = RubyVM::InstructionSequence.compile(
+        "nil", "<dummy>",
+        File.join(__dir__, "backfill_integration_test_class.rb"),
+        0,
+      )
+
       # Activate tracking AFTER the test class was loaded (at require_relative
       # above). The backfill in CodeTracker#start should recover the iseq
       # for backfill_integration_test_class.rb from the object space.
@@ -94,7 +105,6 @@ RSpec.describe "CodeTracker backfill integration" do
     end
 
     it "backfills the iseq and allows the probe to be installed" do
-      skip "temporarily skipped due to flakiness in ci"
       expect(diagnostics_transport).to receive(:send_diagnostics)
       probe_manager.add_probe(probe)
       component.probe_notifier_worker.flush
@@ -103,7 +113,6 @@ RSpec.describe "CodeTracker backfill integration" do
     end
 
     it "fires the probe when the target line executes" do
-      skip "temporarily skipped due to flakiness in ci"
       expect(diagnostics_transport).to receive(:send_diagnostics)
       probe_manager.add_probe(probe)
       component.probe_notifier_worker.flush
@@ -122,7 +131,6 @@ RSpec.describe "CodeTracker backfill integration" do
       end
 
       it "captures local variables from the backfilled iseq" do
-        skip "temporarily skipped due to flakiness in ci"
         expect(diagnostics_transport).to receive(:send_diagnostics)
         probe_manager.add_probe(probe)
 
