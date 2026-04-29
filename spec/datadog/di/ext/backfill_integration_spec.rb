@@ -34,11 +34,11 @@ RSpec.describe "CodeTracker backfill integration" do
   di_test
 
   let(:diagnostics_transport) do
-    double(Datadog::DI::Transport::Diagnostics::Transport)
+    instance_double(Datadog::DI::Transport::Diagnostics::Transport)
   end
 
   let(:input_transport) do
-    double(Datadog::DI::Transport::Input::Transport)
+    instance_double(Datadog::DI::Transport::Input::Transport)
   end
 
   before do
@@ -121,7 +121,10 @@ RSpec.describe "CodeTracker backfill integration" do
       # the trace_points.empty? filter, backfill_registry would store
       # the dummy instead of the real iseq.
       before do
-        skip "create_dummy_iseq requires Ruby 3.2.9+" unless Datadog::DI.respond_to?(:create_dummy_iseq)
+        # rb_iseq_alloc_with_dummy_path was backported to Ruby 3.2.9
+        # and exists natively in 3.3+. On older Rubies, dummy profiler
+        # iseqs are never created, so this scenario cannot occur.
+        skip "requires Ruby 3.2.9+ (rb_iseq_alloc_with_dummy_path)" unless RUBY_VERSION >= "3.2.9"
       end
 
       it "backfill_registry skips the dummy and stores the real iseq" do
