@@ -77,7 +77,7 @@ module Datadog
 
       def create_flag_eval_hook
         require_relative 'hooks/flag_eval_hook'
-        return nil unless Hooks::FlagEvalHook.available?
+        return unless Hooks::FlagEvalHook.available?
 
         metrics = Metrics::FlagEvalMetrics.new(telemetry: @telemetry, logger: @logger)
         Hooks::FlagEvalHook.new(metrics)
