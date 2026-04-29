@@ -16,6 +16,8 @@ module Datadog
         ATTR_ALLOCATION_KEY = 'feature_flag.result.allocation_key'
         ATTR_ERROR_TYPE = 'error.type'
 
+        DEFAULT_ERROR_TYPE = 'general'
+
         ERROR_TYPE_MAP = {
           'FLAG_NOT_FOUND' => 'flag_not_found',
           'TYPE_MISMATCH' => 'type_mismatch',
@@ -23,9 +25,9 @@ module Datadog
           'PROVIDER_NOT_READY' => 'provider_not_ready',
           'TARGETING_KEY_MISSING' => 'targeting_key_missing',
           'INVALID_CONTEXT' => 'invalid_context',
-          'GENERAL' => 'general',
-          'PROVIDER_FATAL' => 'general',
-          'UNKNOWN_TYPE' => 'general',
+          'GENERAL' => DEFAULT_ERROR_TYPE,
+          'PROVIDER_FATAL' => DEFAULT_ERROR_TYPE,
+          'UNKNOWN_TYPE' => DEFAULT_ERROR_TYPE,
         }.freeze
 
         # Reasons that should not include allocation_key in metrics
@@ -136,7 +138,7 @@ module Datadog
         end
 
         def normalize_error_type(error_code)
-          ERROR_TYPE_MAP.fetch(error_code.to_s, 'general')
+          ERROR_TYPE_MAP.fetch(error_code.to_s, DEFAULT_ERROR_TYPE)
         end
 
         def exclude_allocation_key?(reason_downcase)

@@ -13,6 +13,8 @@ module Datadog
         ATTR_ALLOCATION_KEY: ::String
         ATTR_ERROR_TYPE: ::String
 
+        DEFAULT_ERROR_TYPE: ::String
+
         ERROR_TYPE_MAP: ::Hash[::String, ::String]
         EXCLUDE_ALLOCATION_KEY_REASONS: ::Array[::String]
 
