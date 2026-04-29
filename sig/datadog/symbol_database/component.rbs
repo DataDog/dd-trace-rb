@@ -1,0 +1,52 @@
+module Datadog
+  module SymbolDatabase
+    class Component
+      UPLOAD_COOLDOWN_INTERVAL: Integer
+      FORCE_UPLOAD_ONCE: Core::Utils::OnlyOnce
+
+      @settings: untyped
+      @agent_settings: untyped
+      @logger: untyped
+      @extractor: Extractor
+      @uploader: Uploader
+      @scope_batcher: ScopeBatcher
+      @enabled: bool
+      @last_upload_time: Time?
+      @mutex: Thread::Mutex
+      @upload_in_progress: bool
+      @upload_done_cv: Thread::ConditionVariable
+      @shutdown: bool
+
+      def self.build: (untyped settings, untyped agent_settings, untyped logger) -> Component?
+
+      def initialize: (untyped settings, untyped agent_settings, untyped logger) -> void
+
+      attr_reader settings: untyped
+      attr_reader enabled: bool
+      attr_reader last_upload_time: Time?
+      attr_reader upload_in_progress: bool
+
+      def schedule_deferred_upload: () -> void
+
+      def shutdown?: () -> bool
+
+      def start_upload: () -> void
+
+      def stop_upload: () -> void
+
+      def shutdown!: () -> void
+
+      private
+
+      def self.environment_supported?: (untyped logger) -> bool
+
+      def recently_uploaded?: () -> bool
+
+      def extract_and_upload: () -> void
+
+      def log_scope_tree: (Scope scope, Integer depth) -> void
+
+      def count_injectable_methods: (Array[Scope] file_scopes) -> Integer
+    end
+  end
+end

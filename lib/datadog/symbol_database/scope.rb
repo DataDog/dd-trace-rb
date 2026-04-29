@@ -12,13 +12,19 @@ module Datadog
     # - Nested scopes: Child scopes (e.g., methods within a class)
     #
     # Created by: Extractor (during symbol extraction)
-    # Used by: ScopeContext (batching), ServiceVersion (wrapping for upload)
+    # Used by: ScopeBatcher (batching), ServiceVersion (wrapping for upload)
     # Serialized to: JSON via to_h/to_json for upload to agent
     #
     # @api private
     class Scope
       attr_reader :scope_type, :name, :source_file, :start_line, :end_line,
-        :has_injectible_lines, :injectible_lines,
+        # Ranges of executable lines [{start:, end:}]. Three states:
+        # - nil: not computed (source unreadable, native/C-extension method)
+        # - []: computed but no executable lines found (comments/whitespace only)
+        # - non-empty: computed, contains executable line ranges
+        # nil and [] both serialize as targetable_lines?: false on METHOD
+        # scopes. Key is absent on non-METHOD scopes.
+        :targetable_lines,
         :language_specifics, :symbols, :scopes
 
       # Initialize a new Scope
@@ -27,8 +33,7 @@ module Datadog
       # @param source_file [String, nil] Path to source file
       # @param start_line [Integer, nil] Starting line number (UNKNOWN_MIN_LINE for unknown)
       # @param end_line [Integer, nil] Ending line number (UNKNOWN_MAX_LINE for entire file)
-      # @param has_injectible_lines [Boolean] Whether injectable lines data is present
-      # @param injectible_lines [Array<Hash>, nil] Ranges of executable lines [{start:, end:}]
+      # @param targetable_lines [Array<Hash>, nil] Ranges of executable lines [{start:, end:}]
       # @param language_specifics [Hash, nil] Ruby-specific metadata
       # @param symbols [Array<Symbol>, nil] Symbols defined in this scope
       # @param scopes [Array<Scope>, nil] Nested child scopes
@@ -38,8 +43,7 @@ module Datadog
         source_file: nil,
         start_line: nil,
         end_line: nil,
-        has_injectible_lines: false,
-        injectible_lines: nil,
+        targetable_lines: nil,
         language_specifics: nil,
         symbols: nil,
         scopes: nil
@@ -49,11 +53,15 @@ module Datadog
         @source_file = source_file
         @start_line = start_line
         @end_line = end_line
-        @has_injectible_lines = has_injectible_lines
-        @injectible_lines = injectible_lines
+        @targetable_lines = targetable_lines
         @language_specifics = language_specifics || {}
         @symbols = symbols || []
         @scopes = scopes || []
+      end
+
+      # @return [Boolean] true when targetable_lines is non-nil and non-empty
+      def targetable_lines?
+        !targetable_lines.nil? && !targetable_lines.empty?
       end
 
       # Convert scope to Hash for JSON serialization.
@@ -74,8 +82,8 @@ module Datadog
         # Injectable lines only on METHOD scopes (per spec — not on CLASS/MODULE/FILE).
         # Always emit has_injectible_lines (even when false) on METHOD scopes.
         if scope_type == 'METHOD'
-          h[:has_injectible_lines] = has_injectible_lines # steep:ignore ArgumentTypeMismatch
-          h[:injectible_lines] = injectible_lines if injectible_lines && !injectible_lines.empty?
+          h[:has_injectible_lines] = targetable_lines? # steep:ignore ArgumentTypeMismatch
+          h[:injectible_lines] = targetable_lines if targetable_lines && !targetable_lines.empty?
         end
         h
       end

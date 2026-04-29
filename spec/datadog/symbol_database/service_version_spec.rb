@@ -146,8 +146,7 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         source_file: '/app/models/user.rb',
         start_line: 5,
         end_line: 7,
-        has_injectible_lines: true,
-        injectible_lines: [{start: 6, end: 7}],
+        targetable_lines: [{start: 6, end: 7}],
         language_specifics: {visibility: 'public', method_type: 'instance'},
         symbols: [
           Datadog::SymbolDatabase::Symbol.new(symbol_type: 'ARG', name: 'token', line: 5),

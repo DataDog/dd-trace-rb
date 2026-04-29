@@ -2946,6 +2946,42 @@ Alternatively, set error tracking parameters inside a `Datadog.configure` block 
 - Relative path: For example, for a program running in the `app` directory, use `./lib/mypackage/main.rb` to instrument the `main.rb` file, or`./lib/mypackage/` to instrument every Ruby file in that folder.
 
 
+### Dynamic Instrumentation
+
+Dynamic Instrumentation allows you to add log probes, metric probes, and span probes to running applications without restarts or redeployments. For setup instructions, see [Dynamic Instrumentation](DynamicInstrumentation.md).
+
+#### Configuration
+
+| Environment variable | Type | Description | Default |
+|---|---|---|---|
+| `DD_DYNAMIC_INSTRUMENTATION_ENABLED` | `Boolean` | Enable or disable Dynamic Instrumentation. | `false` |
+| `DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS` | `Array` | Comma-separated list of variable/key names to redact in addition to the built-in list. Names are normalized (underscores, dashes, `@`, `$` removed) and matched case-insensitively. | `[]` |
+| `DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS` | `Array` | Comma-separated list of variable/key names to exclude from the built-in redaction list, allowing their values to be captured. | `[]` |
+| `DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES` | `Array` | Comma-separated list of class names whose values will be redacted. Suffix with `*` for wildcard matching (e.g. `Foo*` redacts `Foo`, `FooBar`, `Foo::Bar`). | `[]` |
+
+Alternatively, set DI parameters inside a `Datadog.configure` block:
+
+| Setting | Type | Description | Default |
+|---|---|---|---|
+| `c.dynamic_instrumentation.enabled` | `Boolean` | Enable or disable Dynamic Instrumentation. | `false` |
+| `c.dynamic_instrumentation.redacted_identifiers` | `Array` | Variable/key names to redact in addition to the built-in list. | `[]` |
+| `c.dynamic_instrumentation.redaction_excluded_identifiers` | `Array` | Variable/key names to exclude from the built-in redaction list. | `[]` |
+| `c.dynamic_instrumentation.redacted_type_names` | `Array` | Class names whose values will be redacted. Suffix with `*` for wildcard. | `[]` |
+
+#### Symbol Database
+
+When Dynamic Instrumentation is enabled, the tracer can extract and upload symbol information (class names, method signatures, parameter names) from your application to enable auto-completion in the DI UI. Symbol Database upload is enabled by default and activates automatically via Remote Configuration.
+
+| Environment variable | Type | Description | Default |
+|---|---|---|---|
+| `DD_SYMBOL_DATABASE_UPLOAD_ENABLED` | `Boolean` | Enable or disable symbol database upload. | `true` |
+
+| Setting | Type | Description | Default |
+|---|---|---|---|
+| `c.symbol_database.enabled` | `Boolean` | Enable or disable symbol database upload. | `true` |
+
+Symbol Database requires MRI Ruby 2.6+ and Remote Configuration (enabled by default). For details on what is extracted, which code is included, and behavior differences across Ruby versions, see [Dynamic Instrumentation — Symbol Database](DynamicInstrumentation.md#symbol-database).
+
 ## Known issues and suggested configurations
 
 ### Payload too large
