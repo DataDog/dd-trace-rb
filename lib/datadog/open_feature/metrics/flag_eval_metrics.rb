@@ -71,7 +71,7 @@ module Datadog
             return @counter if @counter
 
             meter_provider = fetch_meter_provider
-            return nil unless meter_provider
+            return unless meter_provider
 
             meter = meter_provider.meter(METER_NAME)
             @counter = meter.create_counter(
