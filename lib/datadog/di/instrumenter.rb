@@ -126,8 +126,13 @@ module Datadog
             # directly. This prevents SystemStackError when a probe is
             # set on a stdlib method that DI itself calls during
             # snapshot building (e.g., String#length, Hash#each).
-            # Uses fiber-local storage so each fiber tracks independently.
-            if Thread.current[:datadog_di_in_probe]
+            #
+            # Storage is fiber-local. The DI.in_probe?/enter_probe/leave_probe
+            # methods are implemented in C and access the storage directly via
+            # rb_thread_local_aref / rb_thread_local_aset, bypassing Thread#[]
+            # / Thread#[]= method dispatch — so user method probes on those
+            # Thread methods cannot intercept guard reads/writes and recurse.
+            if DI.in_probe?
               if args.any?
                 if kwargs.any? # steep:ignore FallbackAny
                   return super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
@@ -142,7 +147,7 @@ module Datadog
             end
 
             begin
-            Thread.current[:datadog_di_in_probe] = true # rubocop:disable Layout/IndentationWidth
+            DI.enter_probe # rubocop:disable Layout/IndentationWidth
 
             # Steep cannot detect the type of **kwargs inside define_method blocks
             # (Ruby::FallbackAny). All kwargs references below are annotated with
@@ -215,7 +220,7 @@ module Datadog
               # Release re-entrancy guard for the original method so that
               # probes on other methods (or recursive calls) fire normally
               # during user code execution.
-              Thread.current[:datadog_di_in_probe] = nil
+              DI.leave_probe
 
               rv = nil
               begin
@@ -241,7 +246,7 @@ module Datadog
 
               # Re-acquire re-entrancy guard for DI post-processing
               # (building context, notification callback).
-              Thread.current[:datadog_di_in_probe] = true
+              DI.enter_probe
 
               end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
               duration = end_time - start_time
@@ -297,7 +302,7 @@ module Datadog
               _ = 42
 
               # Release re-entrancy guard for the original method.
-              Thread.current[:datadog_di_in_probe] = nil
+              DI.leave_probe
 
               # The necessity to invoke super in each of these specific
               # ways is very difficult to test.
@@ -320,7 +325,7 @@ module Datadog
               end
             end
             ensure
-              Thread.current[:datadog_di_in_probe] = nil # rubocop:disable Layout/IndentationWidth
+              DI.leave_probe # rubocop:disable Layout/IndentationWidth
             end
           end
         end
