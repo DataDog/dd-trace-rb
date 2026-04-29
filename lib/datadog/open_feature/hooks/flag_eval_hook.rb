@@ -15,7 +15,7 @@ module Datadog
 
         # Returns true if the OpenFeature SDK supports hooks (>= 0.5.0)
         def self.available?
-          defined?(::OpenFeature::SDK::Hooks::Hook) ? true : false
+          !!defined?(::OpenFeature::SDK::Hooks::Hook)
         end
 
         def initialize(metrics)
