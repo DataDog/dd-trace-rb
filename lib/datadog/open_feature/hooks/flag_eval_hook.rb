@@ -39,7 +39,7 @@ module Datadog
 
         def extract_allocation_key(evaluation_details)
           metadata = evaluation_details.flag_metadata
-          return nil unless metadata.is_a?(Hash)
+          return unless metadata.is_a?(Hash)
 
           metadata['allocation_key']
         end
