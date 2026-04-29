@@ -168,7 +168,7 @@ RSpec.describe Datadog::Tracing::Contrib::Configuration::CachingResolver do
     end
   end
 
-  # Workaround for Ruby VM < 3.2.8, < 3.3.8 and < 3.4.2 (see https://bugs.ruby-lang.org/issues/21170)
+  # Workaround for Ruby VM < 3.2.8, < 3.3.8 and < 3.4.3 (see https://bugs.ruby-lang.org/issues/21170)
   context 'with a cache key with a #hash of -1 and a cache promotion to st_table' do
     let(:cache_limit) { 200 }
     let(:resolver_class) do

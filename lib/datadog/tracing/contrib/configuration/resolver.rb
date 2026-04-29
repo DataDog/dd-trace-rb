@@ -95,7 +95,7 @@ module Datadog
             super(*args)
 
             @cache_limit = cache_limit
-            # Workaround for Ruby VM < 3.2.8, < 3.3.8 and < 3.4.2 (see https://bugs.ruby-lang.org/issues/21170)
+            # Workaround for Ruby VM < 3.2.8, < 3.3.8 and < 3.4.3 (see https://bugs.ruby-lang.org/issues/21170)
             # We initialize the hash with 10 dummy entries + clear it to force Ruby to use an
             # "st_table" representation for the Hash, not an "ar_table" (since Ruby will not
             # shrink a Hash using an "st_table" back to an "ar_table")
