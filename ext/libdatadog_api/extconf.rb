@@ -90,7 +90,6 @@ Datadog::LibdatadogExtconfHelpers.add_libdatadog_version_define
 EXTENSION_NAME = "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}".freeze
 
 have_func('rb_iseq_type')
-have_func('rb_iseq_alloc_with_dummy_path')
 
 create_makefile(EXTENSION_NAME)
 

@@ -81,11 +81,11 @@ RSpec.describe "CodeTracker backfill integration" do
       # what rb_iseq_alloc_with_dummy_path creates during require/load.
       # Without a filter in backfill_registry, the dummy may be stored
       # instead of the real iseq, causing tp.enable to fail.
-      if Datadog::DI.respond_to?(:create_dummy_iseq)
-        @dummy_iseq = Datadog::DI.create_dummy_iseq(
-          File.join(__dir__, "backfill_integration_test_class.rb"),
-        )
-      end
+      @dummy_iseq = RubyVM::InstructionSequence.compile(
+        "nil", "<dummy>",
+        File.join(__dir__, "backfill_integration_test_class.rb"),
+        0,
+      )
 
       # Activate tracking AFTER the test class was loaded (at require_relative
       # above). The backfill in CodeTracker#start should recover the iseq
