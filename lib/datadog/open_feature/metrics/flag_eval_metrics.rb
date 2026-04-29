@@ -46,6 +46,8 @@ module Datadog
         end
 
         def record(flag_key, variant:, reason:, error_code: nil, allocation_key: nil)
+          return unless @enabled
+
           counter = get_or_create_counter
           return unless counter
 
@@ -67,8 +69,6 @@ module Datadog
         # Counter is created lazily because OTel SDK may not be initialized
         # when the OpenFeature component is created.
         def get_or_create_counter
-          return unless @enabled
-
           @mutex.synchronize do
             return @counter if @counter
 
