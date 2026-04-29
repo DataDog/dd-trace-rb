@@ -76,23 +76,31 @@ RSpec.describe "CodeTracker backfill integration" do
 
   context "line probe on pre-loaded file" do
     before do
-      # Inject a dummy profiler iseq (iseq_size == 0) into object space
-      # with the same path as the test class. On Ruby 3.2.9+, this is
-      # what rb_iseq_alloc_with_dummy_path creates during require/load.
-      # Without a filter in backfill_registry, the dummy may be stored
-      # instead of the real iseq, causing tp.enable to fail.
-      @dummy_iseq = RubyVM::InstructionSequence.compile(
-        "nil", "<dummy>",
-        File.join(__dir__, "backfill_integration_test_class.rb"),
-        0,
-      )
+      # Inject a dummy profiler iseq into object space with the same path
+      # as the test class. ISeq.compile with first_lineno=0 produces an
+      # iseq identical to what Ruby 3.2.9+ creates during require/load:
+      # type :top, first_lineno 0, same absolute_path, empty trace_points.
+      #
+      # backfill_registry stores whichever iseq it encounters first for
+      # a given path (next if registry.key?). The heap walk order depends
+      # on page layout. GC pressure + compact shuffles pages until the
+      # dummy lands before the real iseq. Retry up to 50 times.
+      dummy_path = File.join(__dir__, "backfill_integration_test_class.rb")
+      50.times do |attempt|
+        @dummy_iseq = RubyVM::InstructionSequence.compile("nil", "<dummy>", dummy_path, 0)
+        10_000.times { Object.new } if attempt % 3 == 0
+        GC.start if attempt % 5 == 0
+        GC.compact if attempt % 7 == 0
 
-      # Activate tracking AFTER the test class was loaded (at require_relative
-      # above). The backfill in CodeTracker#start should recover the iseq
-      # for backfill_integration_test_class.rb from the object space.
-      # BACKFILL_TEST_TOP_ISEQ (set above) keeps the top-level iseq alive
-      # so backfill_registry can find it across tests.
-      Datadog::DI.activate_tracking!
+        Datadog::DI.activate_tracking!
+        tracker = Datadog::DI.code_tracker
+        result = tracker.iseqs_for_path_suffix("backfill_integration_test_class.rb")
+        if result && result[1].trace_points.empty?
+          break
+        end
+        Datadog::DI.deactivate_tracking!
+      end
+
       allow(Datadog::DI).to receive(:current_component).and_return(component)
     end
 
