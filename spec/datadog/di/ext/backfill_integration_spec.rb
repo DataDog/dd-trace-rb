@@ -20,8 +20,12 @@ require_relative "backfill_integration_test_class"
 # Without this, deactivate_tracking! in the after block clears the
 # registry (the only reference), and GC can collect the iseq before
 # the next test's backfill_registry walks object space.
+# Ruby 3.2.9+ creates dummy iseqs (no bytecode, empty trace_points)
+# for profiler frames during require. Filter them out — only the real
+# top-level iseq has trace events and can target child iseq lines.
 BACKFILL_TEST_TOP_ISEQ = Datadog::DI.file_iseqs.find { |i|
   i.absolute_path&.end_with?("backfill_integration_test_class.rb") &&
+    !i.trace_points.empty? &&
     (Datadog::DI.respond_to?(:iseq_type) ? Datadog::DI.iseq_type(i) == :top : i.first_lineno == 0)
 }
 GC.enable
@@ -30,11 +34,11 @@ RSpec.describe "CodeTracker backfill integration" do
   di_test
 
   let(:diagnostics_transport) do
-    double(Datadog::DI::Transport::Diagnostics::Transport)
+    instance_double(Datadog::DI::Transport::Diagnostics::Transport)
   end
 
   let(:input_transport) do
-    double(Datadog::DI::Transport::Input::Transport)
+    instance_double(Datadog::DI::Transport::Input::Transport)
   end
 
   before do
@@ -119,6 +123,43 @@ RSpec.describe "CodeTracker backfill integration" do
 
       expect(component.probe_notifier_worker).to receive(:add_snapshot)
       expect(BackfillIntegrationTestClass.new.test_method).to eq(42)
+    end
+
+    context "when a dummy profiler iseq exists in object space" do
+      # Ruby 3.2.9+ creates dummy iseqs during require/load for profiler
+      # frame safety. These have type :top, first_lineno 0, the same
+      # absolute_path as the real iseq, and empty trace_points.
+      # RubyVM::InstructionSequence.compile with first_lineno=0 produces
+      # an identical signature — all_iseqs finds it during the object
+      # space walk. Without the trace_points.empty? filter in
+      # backfill_registry, the dummy would be stored instead of the real.
+      it "backfill_registry skips the dummy and stores the real iseq" do
+        # Deactivate tracking so we can inject the dummy before backfill
+        Datadog::DI.deactivate_tracking!
+
+        # Create a dummy iseq: type :top, first_lineno 0, same path,
+        # empty trace_points — identical to what Ruby 3.2.9+ creates
+        # during require via rb_iseq_alloc_with_dummy_path.
+        real_path = File.join(__dir__, "backfill_integration_test_class.rb")
+        dummy = RubyVM::InstructionSequence.compile("nil", "<dummy>", real_path, 0)
+        expect(dummy.trace_points).to be_empty
+        expect(dummy.first_lineno).to eq(0)
+        expect(dummy.absolute_path).to eq(real_path)
+
+        # Re-activate tracking — backfill_registry runs, finds both
+        # the dummy and real iseq in object space
+        Datadog::DI.activate_tracking!
+
+        code_tracker = Datadog::DI.code_tracker
+        result = code_tracker.iseqs_for_path_suffix("backfill_integration_test_class.rb")
+        expect(result).not_to be_nil
+        _, stored_iseq = result
+
+        # The stored iseq must be the real one (non-empty trace_points),
+        # not the dummy
+        expect(stored_iseq.trace_points).not_to be_empty
+        expect(stored_iseq).not_to equal(dummy)
+      end
     end
 
     context "with snapshot capture" do
