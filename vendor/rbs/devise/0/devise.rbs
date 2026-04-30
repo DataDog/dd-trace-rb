@@ -15,7 +15,7 @@ module Devise
 
   module Strategies
     class Authenticatable
-      attr_accessor authentication_hash: ::Hash[::Symbol, any]
+      attr_accessor authentication_hash: ::Hash[::Symbol, untyped]
 
       def validate: (any resource) ?{ () -> any } -> bool
     end

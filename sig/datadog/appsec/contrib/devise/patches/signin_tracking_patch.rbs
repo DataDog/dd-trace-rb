@@ -12,9 +12,9 @@ module Datadog
 
             private
 
-            def record_successful_signin: (::Datadog::AppSec::Context context, any resource) -> void
+            def record_successful_signin: (::Datadog::AppSec::Context context, untyped resource) -> void
 
-            def record_failed_signin: (::Datadog::AppSec::Context context, any resource) -> void
+            def record_failed_signin: (::Datadog::AppSec::Context context, untyped resource) -> void
           end
         end
       end
