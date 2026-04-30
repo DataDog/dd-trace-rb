@@ -130,6 +130,36 @@ static VALUE leave_probe(DDTRACE_UNUSED VALUE _self) {
   return Qnil;
 }
 
+/*
+ * call-seq:
+ *   DI.array_empty?(arr) -> true | false
+ *
+ * Returns whether the given Array is empty by direct length access via
+ * RARRAY_LEN, bypassing Array#empty? method dispatch. Used in the method
+ * probe wrapper to test args/kwargs shape without giving user-installed
+ * method probes on Array#empty? a chance to recurse.
+ *
+ * @api private
+ */
+static VALUE array_empty_p(DDTRACE_UNUSED VALUE _self, VALUE obj) {
+  return RARRAY_LEN(obj) == 0 ? Qtrue : Qfalse;
+}
+
+/*
+ * call-seq:
+ *   DI.hash_empty?(h) -> true | false
+ *
+ * Returns whether the given Hash is empty by direct size access via
+ * RHASH_SIZE, bypassing Hash#empty? method dispatch. Used in the method
+ * probe wrapper to test args/kwargs shape without giving user-installed
+ * method probes on Hash#empty? a chance to recurse.
+ *
+ * @api private
+ */
+static VALUE hash_empty_p(DDTRACE_UNUSED VALUE _self, VALUE obj) {
+  return RHASH_SIZE(obj) == 0 ? Qtrue : Qfalse;
+}
+
 // rb_iseq_type was added in Ruby 3.1 (commit 89a02d89 by Koichi Sasada,
 // 2021-12-19). It returns the iseq type as a Symbol. On Ruby < 3.1 this
 // function does not exist, so have_func('rb_iseq_type') in extconf.rb
@@ -180,6 +210,8 @@ void di_init(VALUE datadog_module) {
   rb_define_singleton_method(di_module, "in_probe?", in_probe_p, 0);
   rb_define_singleton_method(di_module, "enter_probe", enter_probe, 0);
   rb_define_singleton_method(di_module, "leave_probe", leave_probe, 0);
+  rb_define_singleton_method(di_module, "array_empty?", array_empty_p, 1);
+  rb_define_singleton_method(di_module, "hash_empty?", hash_empty_p, 1);
 #ifdef HAVE_RB_ISEQ_TYPE
   rb_define_singleton_method(di_module, "iseq_type", iseq_type, 1);
 #endif
