@@ -31,6 +31,7 @@ module CustomCops
   class ExceptionMessageCop < RuboCop::Cop::Base
     extend RuboCop::Cop::AutoCorrector
 
+    # rubocop:disable Lint/InterpolationCheck
     MSG_MESSAGE = 'Use the exception directly instead of `.message`. ' \
                   '`to_s` and `message` have different contracts; `#{e}` calls `to_s`, which is the convention.'
 
@@ -39,6 +40,7 @@ module CustomCops
 
     MSG_MISSING_CLASS = 'Include `#{e.class}` when interpolating an exception. ' \
                         'The convention is `"#{e.class}: #{e}"`.'
+    # rubocop:enable Lint/InterpolationCheck
 
     # Detect bare `#{e}` without `#{e.class}` in the same string
     def on_dstr(node)
