@@ -48,6 +48,12 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   let(:upload_timeout_seconds) { 10 }
   let(:use_system_dns) { false }
 
+  let(:metrics) {
+    [
+      ["ruby_global_lock_wait_time_total", 123]
+    ]
+  }
+
   let(:flush) do
     Datadog::Profiling::Flush.new(
       start: start,
@@ -55,6 +61,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       encoded_profile: encoded_profile,
       code_provenance_file_name: code_provenance_file_name,
       code_provenance_data: code_provenance_data,
+      metrics: metrics,
       tags_as_array: tags_as_array,
       process_tags: process_tags,
       internal_metadata: {no_signals_workaround_enabled: true},
@@ -339,7 +346,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     shared_examples "correctly reports profiling data" do
       let(:expected_data_in_payload) {
         {
-          "attachments" => contain_exactly(pprof_file_name, code_provenance_file_name),
+          "attachments" => contain_exactly(pprof_file_name, "metrics.json", code_provenance_file_name),
           "tags_profiler" => start_with("tag_a:value_a,tag_b:value_b,runtime_platform:#{RUBY_PLATFORM.split("-").first.sub("arm", "aarch")}"),
           "start" => start_timestamp,
           "end" => end_timestamp,
@@ -383,6 +390,8 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         expect(body.fetch(pprof_file_name)).to eq encoded_profile_bytes
         # This one needs to be compressed
         expect(Zstd.decompress(body.fetch(code_provenance_file_name))).to eq code_provenance_data
+
+        expect(Zstd.decompress(body.fetch("metrics.json"))).to eq '[["ruby_global_lock_wait_time_total",123]]'
       end
     end
 
@@ -423,7 +432,9 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
         event_data = JSON.parse(body.fetch("event"))
 
-        expect(event_data).to match(expected_data_in_payload.merge("attachments" => [pprof_file_name]))
+        expect(event_data).to match(
+          expected_data_in_payload.merge("attachments" => contain_exactly(pprof_file_name, "metrics.json"))
+        )
 
         expect(body[code_provenance_file_name]).to be nil
       end
