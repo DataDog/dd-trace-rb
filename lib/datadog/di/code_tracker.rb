@@ -78,6 +78,15 @@ module Datadog
             end
 
             if whole_file
+              # Ruby 3.2.9+ creates dummy profiler iseqs during require/load
+              # (rb_iseq_alloc_with_dummy_path in iseq.c). These have type
+              # :top, first_lineno == 0, and the same absolute_path as the
+              # real iseq — but iseq_size == 0 (no bytecode). A targeted
+              # TracePoint on a dummy iseq can't find child iseqs and raises
+              # ArgumentError "can not enable any hooks". Filter them out:
+              # a real top-level iseq always has at least one trace event.
+              next if iseq.trace_points.empty?
+
               # Do not overwrite entries from :script_compiled — those are
               # captured at load time and are authoritative.
               next if registry.key?(path)

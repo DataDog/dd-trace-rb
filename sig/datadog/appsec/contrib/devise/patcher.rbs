@@ -3,15 +3,13 @@ module Datadog
     module Contrib
       module Devise
         module Patcher
-          def self?.patched?: () -> untyped
+          GUARD_ONCE_PER_APP: ::Hash[any, ::Datadog::Core::Utils::OnlyOnce]
 
-          def self?.target_version: () -> untyped
+          def self?.patched?: () -> bool?
 
-          def self?.patch: () -> untyped
+          def self?.target_version: () -> ::Gem::Version?
 
-          def self?.patch_authenticable_strategy: () -> untyped
-
-          def self?.patch_registration_controller: () -> untyped
+          def self?.patch: () -> bool
         end
       end
     end
