@@ -121,7 +121,9 @@ module Datadog
                   result
                 # rubocop:disable Lint/RescueException
                 rescue Exception => e
-                  payload[:exception] = [e.class.name, e.message]
+                  # Rails ActiveSupport::Notifications convention — payload[:exception] is
+                  # an array of [class_name_string, message_string] consumed by subscribers.
+                  payload[:exception] = [e.class.name, e.message] # rubocop:disable CustomCops/ExceptionMessageCop
                   payload[:exception_object] = e
                   raise e
                 ensure
