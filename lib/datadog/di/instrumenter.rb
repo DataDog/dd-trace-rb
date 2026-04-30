@@ -128,13 +128,13 @@ module Datadog
             # / Thread#[]= method dispatch — so user method probes on those
             # Thread methods cannot intercept guard reads/writes and recurse.
             if DI.in_probe?
-              if !args.empty?
-                if !kwargs.empty? # steep:ignore FallbackAny
+              if !DI.array_empty?(args)
+                if !DI.hash_empty?(kwargs) # steep:ignore FallbackAny
                   return super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
                 else
                   return super(*args, &target_block)
                 end
-              elsif !kwargs.empty? # steep:ignore FallbackAny
+              elsif !DI.hash_empty?(kwargs) # steep:ignore FallbackAny
                 return super(**kwargs, &target_block) # steep:ignore FallbackAny
               else
                 return super(&target_block)
@@ -221,13 +221,13 @@ module Datadog
               begin
                 # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
                 # for methods defined via method_missing.
-                rv = if !args.empty?
-                  if !kwargs.empty? # steep:ignore FallbackAny
+                rv = if !DI.array_empty?(args)
+                  if !DI.hash_empty?(kwargs) # steep:ignore FallbackAny
                     super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
                   else
                     super(*args, &target_block)
                   end
-                elsif !kwargs.empty? # steep:ignore FallbackAny
+                elsif !DI.hash_empty?(kwargs) # steep:ignore FallbackAny
                   super(**kwargs, &target_block) # steep:ignore FallbackAny
                 else
                   super(&target_block)
@@ -307,13 +307,13 @@ module Datadog
               # But, let's be safe and go through the motions in case
               # there is actually a legitimate need for the breakdown.
               # TODO figure out how to test this properly.
-              if !args.empty?
-                if !kwargs.empty? # steep:ignore FallbackAny
+              if !DI.array_empty?(args)
+                if !DI.hash_empty?(kwargs) # steep:ignore FallbackAny
                   super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
                 else
                   super(*args, &target_block)
                 end
-              elsif !kwargs.empty? # steep:ignore FallbackAny
+              elsif !DI.hash_empty?(kwargs) # steep:ignore FallbackAny
                 super(**kwargs, &target_block) # steep:ignore FallbackAny
               else
                 super(&target_block)

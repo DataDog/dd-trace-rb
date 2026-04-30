@@ -89,4 +89,58 @@ RSpec.describe "Datadog::DI re-entrancy guard primitives" do
       Thread.current[:datadog_di_in_probe] = nil
     end
   end
+
+  describe ".array_empty?" do
+    # C-level emptiness check that bypasses Array#empty? method dispatch.
+    # Used by the method probe wrapper to test args shape without giving
+    # user-installed probes on Array#empty? a chance to recurse.
+
+    it "returns true for an empty array" do
+      expect(Datadog::DI.array_empty?([])).to be true
+    end
+
+    it "returns false for a non-empty array" do
+      expect(Datadog::DI.array_empty?([1])).to be false
+      expect(Datadog::DI.array_empty?([1, 2, 3])).to be false
+      expect(Datadog::DI.array_empty?([nil])).to be false
+    end
+
+    it "does not dispatch Array#empty?" do
+      # Override Array#empty? on a subclass and confirm the C primitive
+      # does not call the override. This is the contract that protects
+      # against re-entrancy when a user probe instruments Array#empty?.
+      array_class = Class.new(Array) do
+        def empty?
+          raise "Array#empty? was called via method dispatch"
+        end
+      end
+      arr = array_class.new
+      expect { Datadog::DI.array_empty?(arr) }.not_to raise_error
+      expect(Datadog::DI.array_empty?(arr)).to be true
+    end
+  end
+
+  describe ".hash_empty?" do
+    # C-level emptiness check that bypasses Hash#empty? method dispatch.
+
+    it "returns true for an empty hash" do
+      expect(Datadog::DI.hash_empty?({})).to be true
+    end
+
+    it "returns false for a non-empty hash" do
+      expect(Datadog::DI.hash_empty?({a: 1})).to be false
+      expect(Datadog::DI.hash_empty?({a: nil})).to be false
+    end
+
+    it "does not dispatch Hash#empty?" do
+      hash_class = Class.new(Hash) do
+        def empty?
+          raise "Hash#empty? was called via method dispatch"
+        end
+      end
+      h = hash_class.new
+      expect { Datadog::DI.hash_empty?(h) }.not_to raise_error
+      expect(Datadog::DI.hash_empty?(h)).to be true
+    end
+  end
 end
