@@ -127,8 +127,45 @@ module CustomCops
       rescue_node = find_rescue_ancestor(node)
       return false unless rescue_node
 
+      # The lvar is bound to the rescue variable only if no enclosing scope
+      # between this node and the rescue shadows it. A block parameter with
+      # the same name (e.g. `rescue => e; xs.each { |e| ... }`) creates a
+      # new binding for that name. A `def` boundary is a hard scope barrier:
+      # the rescue variable is not visible inside it at all.
+      current = node.parent
+      while current && !current.equal?(rescue_node)
+        case current.type
+        when :def, :defs
+          return false
+        when :block
+          return false if block_args_include?(current, var_name)
+        end
+        current = current.parent
+      end
+
       rescue_node.resbody_branches.any? do |resbody|
         resbody.exception_variable&.name == var_name
+      end
+    end
+
+    # Whether a block node's argument list binds the given name (handles
+    # destructuring like `|(k, v)|` and all arg flavors)
+    def block_args_include?(block_node, var_name)
+      args = block_node.arguments
+      return false unless args
+      collect_arg_names(args).include?(var_name)
+    end
+
+    def collect_arg_names(node)
+      return [] unless node.respond_to?(:type)
+      case node.type
+      when :arg, :optarg, :restarg, :kwarg, :kwoptarg, :kwrestarg, :blockarg, :shadowarg
+        name = node.children.first
+        name ? [name] : []
+      when :args, :mlhs
+        node.children.flat_map { |c| collect_arg_names(c) }
+      else
+        []
       end
     end
 

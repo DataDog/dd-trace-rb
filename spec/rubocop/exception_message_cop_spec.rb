@@ -150,6 +150,62 @@ RSpec.describe CustomCops::ExceptionMessageCop do
     end
   end
 
+  describe 'variable shadowing' do
+    it 'does not register an offense when a block parameter shadows the rescue variable' do
+      expect_no_offenses(<<~'RUBY')
+        begin
+          something
+        rescue => e
+          errors.each { |e| log("#{e.message}") }
+        end
+      RUBY
+    end
+
+    it 'does not register an offense when a destructured block parameter shadows the rescue variable' do
+      expect_no_offenses(<<~'RUBY')
+        begin
+          something
+        rescue => e
+          pairs.each { |(k, e)| log("#{e.message}") }
+        end
+      RUBY
+    end
+
+    it 'does not register an offense for the missing-class check when shadowed' do
+      expect_no_offenses(<<~'RUBY')
+        begin
+          something
+        rescue => e
+          errors.each { |e| log("error: #{e}") }
+        end
+      RUBY
+    end
+
+    it 'does not register an offense when a method definition uses the same parameter name' do
+      expect_no_offenses(<<~'RUBY')
+        begin
+          something
+        rescue => e
+          define_method(:helper) do |e|
+            log("#{e.message}")
+          end
+        end
+      RUBY
+    end
+
+    it 'still registers an offense for the rescue variable used outside the shadowing block' do
+      expect_offense(<<~'RUBY')
+        begin
+          something
+        rescue => e
+          errors.each { |e| log(e) }
+          log("#{e.message}")
+                 ^^^^^^^^^ CustomCops/ExceptionMessageCop: Use the exception directly instead of `.message`. `to_s` and `message` have different contracts; `#{e}` calls `to_s`, which is the convention.
+        end
+      RUBY
+    end
+  end
+
   describe 'different rescue variable names' do
     it 'registers an offense when the rescue variable is named differently' do
       expect_offense(<<~'RUBY')
