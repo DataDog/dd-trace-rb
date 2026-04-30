@@ -61,7 +61,7 @@ module Datadog
                 rescue => e
                   Datadog.logger.warn(
                     "Cannot parse Span Sampling Rule #{hash.inspect}: " \
-                    "#{e.class.name} #{e} at #{Array(e.backtrace).first}"
+                    "#{e.class} #{e} at #{Array(e.backtrace).first}"
                   )
                   return nil
                 end
