@@ -3,42 +3,40 @@
 require "datadog/di/spec_helper"
 require "datadog/di"
 
-# Load the test class BEFORE code tracking starts.
-# This simulates the common case of application/gem code loaded at boot
-# time before DI activates. Without backfill, line probes on this code
-# would fail with DITargetNotDefined because the iseq is not in the
-# CodeTracker registry.
+# Load the test class BEFORE code tracking starts, then force GC so the
+# require-produced whole-file (:top) iseq can be collected.
 #
-# Load the test class with GC disabled so the top-level (:top) iseq
-# survives long enough to be captured below. The top-level iseq is not
-# referenced by any constant or method after loading completes — only
-# class/method child iseqs survive via BackfillIntegrationTestClass.
-GC.disable
-require_relative "backfill_integration_test_class"
+# This is a hard precondition for this spec: if the :top iseq survives,
+# line probe installation can succeed through the normal whole-file path
+# and no longer validates the per-method fallback behavior.
+#
+# The precondition is asserted in before(:all) below.
+require_relative "per_method_iseq_integration_test_class"
+GC.start
+GC.start
 
-# Keep the top-level iseq alive across tests by holding a reference.
-# Without this, deactivate_tracking! in the after block clears the
-# registry (the only reference), and GC can collect the iseq before
-# the next test's backfill_registry walks object space.
-# Ruby 3.2.9+ creates dummy iseqs (no bytecode, empty trace_points)
-# for profiler frames during require. Filter them out — only the real
-# top-level iseq has trace events and can target child iseq lines.
-BACKFILL_TEST_TOP_ISEQ = Datadog::DI.file_iseqs.find { |i|
-  i.absolute_path&.end_with?("backfill_integration_test_class.rb") &&
-    !i.trace_points.empty? &&
-    (Datadog::DI.respond_to?(:iseq_type) ? Datadog::DI.iseq_type(i) == :top : i.first_lineno == 0)
-}
-GC.enable
-
-RSpec.describe "CodeTracker backfill integration" do
+RSpec.describe "Per-method iseq line probe integration" do
   di_test
 
+  before(:all) do
+    skip "Test requires iseq_type (Ruby < 3.1)" unless Datadog::DI.respond_to?(:iseq_type)
+
+    # Hard precondition: require-produced :top iseq must be gone; only
+    # method iseqs may remain for this file.
+    target = "per_method_iseq_integration_test_class.rb"
+    types = Datadog::DI.all_iseqs
+      .select { |iseq| iseq.absolute_path&.end_with?(target) }
+      .map { |iseq| Datadog::DI.iseq_type(iseq) }
+    skip "Top iseq was not GC'd (test precondition failed)" if types.include?(:top)
+    skip "No method iseqs found (test precondition failed)" unless types.include?(:method)
+  end
+
   let(:diagnostics_transport) do
-    instance_double(Datadog::DI::Transport::Diagnostics::Transport)
+    double(Datadog::DI::Transport::Diagnostics::Transport)
   end
 
   let(:input_transport) do
-    instance_double(Datadog::DI::Transport::Input::Transport)
+    double(Datadog::DI::Transport::Input::Transport)
   end
 
   before do
@@ -78,26 +76,21 @@ RSpec.describe "CodeTracker backfill integration" do
     component.probe_manager
   end
 
-  context "line probe on pre-loaded file" do
+  context "line probe on file with only per-method iseqs" do
     before do
-      # Activate tracking AFTER the test class was loaded (at require_relative
-      # above). The backfill in CodeTracker#start should recover the iseq
-      # for backfill_integration_test_class.rb from the object space.
-      # BACKFILL_TEST_TOP_ISEQ (set above) keeps the top-level iseq alive
-      # so backfill_registry can find it across tests.
       Datadog::DI.activate_tracking!
       allow(Datadog::DI).to receive(:current_component).and_return(component)
     end
 
     let(:probe) do
       Datadog::DI::Probe.new(
-        id: "backfill-test-1", type: :log,
-        file: "backfill_integration_test_class.rb", line_no: 22,
+        id: "per-method-test-1", type: :log,
+        file: "per_method_iseq_integration_test_class.rb", line_no: 22,
         capture_snapshot: false,
       )
     end
 
-    it "backfills the iseq and allows the probe to be installed" do
+    it "installs the probe using a per-method iseq" do
       expect(diagnostics_transport).to receive(:send_diagnostics)
       probe_manager.add_probe(probe)
       component.probe_notifier_worker.flush
@@ -111,19 +104,19 @@ RSpec.describe "CodeTracker backfill integration" do
       component.probe_notifier_worker.flush
 
       expect(component.probe_notifier_worker).to receive(:add_snapshot)
-      expect(BackfillIntegrationTestClass.new.test_method).to eq(42)
+      expect(PerMethodIseqIntegrationTestClass.new.test_method).to eq(42)
     end
 
     context "with snapshot capture" do
       let(:probe) do
         Datadog::DI::Probe.new(
-          id: "backfill-test-2", type: :log,
-          file: "backfill_integration_test_class.rb", line_no: 22,
+          id: "per-method-test-2", type: :log,
+          file: "per_method_iseq_integration_test_class.rb", line_no: 22,
           capture_snapshot: true,
         )
       end
 
-      it "captures local variables from the backfilled iseq" do
+      it "captures local variables from the per-method iseq" do
         expect(diagnostics_transport).to receive(:send_diagnostics)
         probe_manager.add_probe(probe)
 
@@ -132,7 +125,7 @@ RSpec.describe "CodeTracker backfill integration" do
           payload = payload_
         end
 
-        expect(BackfillIntegrationTestClass.new.test_method).to eq(42)
+        expect(PerMethodIseqIntegrationTestClass.new.test_method).to eq(42)
         component.probe_notifier_worker.flush
 
         expect(payload).to be_a(Hash)

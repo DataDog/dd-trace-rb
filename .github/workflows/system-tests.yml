@@ -87,7 +87,7 @@ jobs:
       binaries_artifact: dd-trace-rb
       desired_execution_time: 300 # 5 minutes
       scenarios_groups: tracer_release
-      skip_empty_scenarios: true
+      skip_empty_scenarios: ${{ !(github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/master')) }}
       ref: a850f5637f977464395ad11f46d6c9506e95a56e # Automated: This reference is automatically updated.
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8

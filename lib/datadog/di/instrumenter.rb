@@ -337,7 +337,11 @@ module Datadog
           # Steep: Complex type narrowing (before calling hook_line,
           # we check that probe.line? is true which itself checks that probe.file is not nil)
           # Annotation do not work here as `file` is a method on probe, not a local variable.
-          ret = code_tracker.iseqs_for_path_suffix(probe.file) # steep:ignore ArgumentTypeMismatch
+          ret = if code_tracker.respond_to?(:iseq_for_line)
+            code_tracker.iseq_for_line(probe.file, line_no) # steep:ignore ArgumentTypeMismatch
+          else
+            code_tracker.iseqs_for_path_suffix(probe.file) # steep:ignore ArgumentTypeMismatch
+          end
           unless ret
             if permit_untargeted_trace_points
               # Continue withoout targeting the trace point.
@@ -355,16 +359,16 @@ module Datadog
               # to instrument and install the hook when the file in
               # question is loaded (and hopefully, by then code tracking
               # is active, otherwise the line will never be instrumented.)
-              raise_if_probe_in_loaded_features(probe)
-              raise Error::DITargetNotDefined, "File not in code tracker registry: #{probe.file}"
+              raise_if_probe_in_loaded_features(probe, line_no, code_tracker)
+              raise Error::DITargetNotDefined, "File not in code tracker registry: #{probe.file}:#{line_no}"
             end
           end
         elsif !permit_untargeted_trace_points
           # Same as previous comment, if untargeted trace points are not
           # explicitly defined, and we do not have code tracking, do not
           # instrument the method.
-          raise_if_probe_in_loaded_features(probe)
-          raise Error::DITargetNotDefined, "File not in code tracker registry: #{probe.file}"
+          raise_if_probe_in_loaded_features(probe, line_no, nil)
+          raise Error::DITargetNotDefined, "File not in code tracker registry: #{probe.file}:#{line_no}"
         end
 
         if ret
@@ -606,23 +610,34 @@ module Datadog
         end
       end
 
-      def raise_if_probe_in_loaded_features(probe)
+      def raise_if_probe_in_loaded_features(probe, line_no, code_tracker)
         return unless probe.file
 
-        # If the probe file is in the list of loaded files
-        # (as per $LOADED_FEATURES, using either exact or suffix match),
-        # raise an error indicating that
-        # code tracker is missing the loaded file because the file
-        # won't be loaded again (DI only works in production environments
-        # that do not normally reload code).
-        if $LOADED_FEATURES.include?(probe.file)
-          raise Error::DITargetNotInRegistry, "File loaded but is not in code tracker registry: #{probe.file}"
+        # Find the loaded path matching the probe file.
+        loaded_path = if $LOADED_FEATURES.include?(probe.file)
+          probe.file
+        else
+          # Expensive suffix check.
+          $LOADED_FEATURES.find { |path| Utils.path_matches_suffix?(path, probe.file) }
         end
-        # Ths is an expensive check
-        $LOADED_FEATURES.each do |path|
-          if Utils.path_matches_suffix?(path, probe.file)
-            raise Error::DITargetNotInRegistry, "File matching probe path (#{probe.file}) was loaded and is not in code tracker registry: #{path}"
-          end
+
+        return unless loaded_path
+
+        # Distinguish between "no iseqs at all" and "has per-method iseqs
+        # but none cover this line".
+        has_per_method = code_tracker&.send(:instance_variable_defined?, :@per_method_registry) &&
+          code_tracker.send(:per_method_registry).key?(loaded_path)
+
+        if has_per_method
+          raise Error::DITargetNotInRegistry,
+            "File #{loaded_path} is loaded and has per-method iseqs, " \
+            "but none cover line #{line_no}. " \
+            "The line may be in file-level setup code outside any method."
+        else
+          raise Error::DITargetNotInRegistry,
+            "File #{loaded_path} is loaded but has no surviving iseqs " \
+            "(whole-file iseq was garbage collected and no per-method iseqs remain). " \
+            "Line probes cannot target this file."
         end
       end
 

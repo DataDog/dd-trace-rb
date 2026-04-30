@@ -1399,7 +1399,7 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
       // Interesting note: A RUBY_INTERNAL_THREAD_EVENT_RESUMED is guaranteed to be called with the GVL being acquired.
       // (And... I think target_thread will be == rb_thread_current()?)
       //
-      // But we're not sure if we're on the main Ractor yet. The thread context collector actually can actually help here:
+      // But we're not sure if we're on the main Ractor yet. The thread context collector can actually help here:
       // it tags threads it's tracking, so if a thread is tagged then by definition we know that thread belongs to the main
       // Ractor. Thus, if we get a ON_GVL_RUNNING_UNKNOWN result we shouldn't touch any state, but otherwise we're good to go.
 
