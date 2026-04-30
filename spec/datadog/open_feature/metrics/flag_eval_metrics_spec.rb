@@ -356,31 +356,15 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
   end
 
   describe 'error code mapping' do
-    it 'maps FLAG_NOT_FOUND to flag_not_found' do
-      expect(described_class::ERROR_TYPE_MAP['FLAG_NOT_FOUND']).to eq('flag_not_found')
+    it 'maps standard OpenFeature error codes to lowercase' do
+      %w[FLAG_NOT_FOUND TYPE_MISMATCH PARSE_ERROR PROVIDER_NOT_READY
+         TARGETING_KEY_MISSING INVALID_CONTEXT PROVIDER_FATAL].each do |code|
+        expect(described_class::ERROR_TYPE_MAP[code]).to eq(code.downcase)
+      end
     end
 
-    it 'maps TYPE_MISMATCH to type_mismatch' do
-      expect(described_class::ERROR_TYPE_MAP['TYPE_MISMATCH']).to eq('type_mismatch')
-    end
-
-    it 'maps PARSE_ERROR to parse_error' do
-      expect(described_class::ERROR_TYPE_MAP['PARSE_ERROR']).to eq('parse_error')
-    end
-
-    it 'maps PROVIDER_NOT_READY to provider_not_ready' do
-      expect(described_class::ERROR_TYPE_MAP['PROVIDER_NOT_READY']).to eq('provider_not_ready')
-    end
-
-    it 'maps GENERAL to general' do
+    it 'maps GENERAL and UNKNOWN_TYPE to general (default)' do
       expect(described_class::ERROR_TYPE_MAP['GENERAL']).to eq('general')
-    end
-
-    it 'maps PROVIDER_FATAL to general' do
-      expect(described_class::ERROR_TYPE_MAP['PROVIDER_FATAL']).to eq('general')
-    end
-
-    it 'maps UNKNOWN_TYPE to general' do
       expect(described_class::ERROR_TYPE_MAP['UNKNOWN_TYPE']).to eq('general')
     end
   end
