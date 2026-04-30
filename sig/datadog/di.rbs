@@ -17,6 +17,8 @@ module Datadog
     def self.in_probe?: () -> bool
     def self.enter_probe: () -> nil
     def self.leave_probe: () -> nil
+    def self.array_empty?: (Array[untyped]) -> bool
+    def self.hash_empty?: (Hash[untyped, untyped]) -> bool
 
     def self.component: () -> Component
 
