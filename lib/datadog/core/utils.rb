@@ -63,7 +63,7 @@ module Datadog
           str.encode(::Encoding::UTF_8)
         end
       rescue => e
-        Datadog.logger.debug("Error encoding string in UTF-8: #{e}")
+        Datadog.logger.debug("Error encoding string in UTF-8: #{e.class}: #{e}")
 
         placeholder
       end

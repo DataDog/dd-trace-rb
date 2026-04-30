@@ -153,7 +153,7 @@ module Datadog
             active_trace
           end
         rescue => e
-          logger.debug { "Failed to trace: #{e}" }
+          logger.debug { "Failed to trace: #{e.class}: #{e}" }
 
           # Tracing failed: fallback and run code without tracing.
           return skip_trace(name, &block)

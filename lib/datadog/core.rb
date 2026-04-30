@@ -18,7 +18,7 @@ module Datadog
         require "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"
         nil
       rescue LoadError => e
-        e.message
+        "#{e.class}: #{e}"
       end
   end
 
