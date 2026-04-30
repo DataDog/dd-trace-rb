@@ -338,8 +338,6 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
     end
 
     let(:probe) do
-      skip "Cannot determine Set#include? source location" unless set_source_file && set_include_line
-
       Datadog::DI::Probe.new(
         id: "stdlib-set-include-line",
         type: :log,
@@ -351,8 +349,6 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
 
     context "with snapshot capture" do
       it "installs line probe on stdlib and fires" do
-        skip "Cannot determine Set#include? source location" unless set_source_file && set_include_line
-
         payloads = run_stdlib_probe_test(probe) do
           s = Set.new([:a, :b, :c])
           expect(s.include?(:b)).to be true
@@ -374,8 +370,6 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
       # (String#length without capture).
 
       let(:probe) do
-        skip "Cannot determine Set#include? source location" unless set_source_file && set_include_line
-
         Datadog::DI::Probe.new(
           id: "stdlib-set-include-line-no-snap",
           type: :log,
@@ -386,8 +380,6 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
       end
 
       it "does not cause SystemStackError because TracePoint is self-disabling" do
-        skip "Cannot determine Set#include? source location" unless set_source_file && set_include_line
-
         payloads = run_stdlib_probe_test(probe) do
           s = Set.new([:a, :b, :c])
           expect(s.include?(:b)).to be true
