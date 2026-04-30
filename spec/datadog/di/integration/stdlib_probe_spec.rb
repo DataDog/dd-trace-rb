@@ -628,4 +628,60 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
       expect(payloads.length).to be >= 1
     end
   end
+
+  context "method probe on Array#empty?" do
+    # The method probe wrapper tests args shape via DI.array_empty?(args),
+    # implemented in C and called as a singleton method on Datadog::DI.
+    # A naive implementation that called args.empty? from Ruby would
+    # self-recurse here: a probe on Array#empty? would intercept the
+    # wrapper's own emptiness check and re-enter the wrapper indefinitely.
+
+    include_context "permissive settings"
+
+    let(:probe) do
+      Datadog::DI::Probe.new(
+        id: "stdlib-array-empty",
+        type: :log,
+        type_name: "Array",
+        method_name: "empty?",
+        capture_snapshot: false,
+      )
+    end
+
+    it "does not self-recurse through wrapper emptiness check" do
+      payloads = run_stdlib_probe_test(probe) do
+        expect([].empty?).to be true
+        expect([1].empty?).to be false
+      end
+
+      expect(payloads.length).to be >= 1
+    end
+  end
+
+  context "method probe on Hash#empty?" do
+    # Same reasoning as Array#empty?: the wrapper tests kwargs shape via
+    # DI.hash_empty?(kwargs), implemented in C. A probe on Hash#empty?
+    # cannot intercept that check, so no recursion.
+
+    include_context "permissive settings"
+
+    let(:probe) do
+      Datadog::DI::Probe.new(
+        id: "stdlib-hash-empty",
+        type: :log,
+        type_name: "Hash",
+        method_name: "empty?",
+        capture_snapshot: false,
+      )
+    end
+
+    it "does not self-recurse through wrapper emptiness check" do
+      payloads = run_stdlib_probe_test(probe) do
+        expect({}.empty?).to be true
+        expect({a: 1}.empty?).to be false
+      end
+
+      expect(payloads.length).to be >= 1
+    end
+  end
 end
