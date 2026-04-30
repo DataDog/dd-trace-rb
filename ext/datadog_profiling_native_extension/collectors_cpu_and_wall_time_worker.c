@@ -192,6 +192,7 @@ typedef struct {
 static VALUE _native_new(VALUE klass);
 static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
+static void cpu_and_wall_time_worker_typed_data_compact(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance, VALUE worker_thread);
 static VALUE stop(VALUE self_instance, VALUE optional_exception, const char *optional_exception_during_operation);
@@ -319,7 +320,6 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(collectors_cpu_and_wall_time_worker_class, "Testing");
   clock_failure_exception_class = rb_define_class_under(collectors_cpu_and_wall_time_worker_class, "ClockFailure", rb_eRuntimeError);
-  rb_gc_register_mark_object(clock_failure_exception_class);
 
   // Instances of the CpuAndWallTimeWorker class are "TypedData" objects.
   // "TypedData" objects are special objects in the Ruby VM that can wrap C structs.
@@ -355,17 +355,40 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_gvl_profiling_hook_active", _native_gvl_profiling_hook_active, 1);
 }
 
+// On Ruby 3.3+, declarative marking lets the GC read this list directly for marking and compaction.
+// On older Rubies, the manual mark/compact callbacks iterate this same list via ddtrace_gc_mark_refs/compact_refs.
+RUBY_REFERENCES(cpu_and_wall_time_worker_refs) = {
+  RUBY_REF_EDGE(cpu_and_wall_time_worker_state, thread_context_collector_instance),
+  RUBY_REF_EDGE(cpu_and_wall_time_worker_state, idle_sampling_helper_instance),
+  RUBY_REF_EDGE(cpu_and_wall_time_worker_state, owner_thread),
+  RUBY_REF_EDGE(cpu_and_wall_time_worker_state, failure_exception),
+  RUBY_REF_EDGE(cpu_and_wall_time_worker_state, stop_thread),
+  RUBY_REF_EDGE(cpu_and_wall_time_worker_state, gc_tracepoint),
+  RUBY_REF_END
+};
+
+static size_t cpu_and_wall_time_worker_typed_data_size(DDTRACE_UNUSED const void *data) {
+  return sizeof(cpu_and_wall_time_worker_state);
+}
+
 // This structure is used to define a Ruby object that stores a pointer to a cpu_and_wall_time_worker_state
 // See also https://github.com/ruby/ruby/blob/master/doc/extension.rdoc for how this works
 static const rb_data_type_t cpu_and_wall_time_worker_typed_data = {
   .wrap_struct_name = "Datadog::Profiling::Collectors::CpuAndWallTimeWorker",
   .function = {
-    .dmark = cpu_and_wall_time_worker_typed_data_mark,
+    // On Ruby 3.3+, use the declarative reference list; on older Rubies, use manual mark/compact callbacks
+    #ifndef NO_DECL_MARKING
+      .dmark = RUBY_REFS_LIST_PTR(cpu_and_wall_time_worker_refs),
+    #else
+      .dmark = cpu_and_wall_time_worker_typed_data_mark,
+    #endif
     .dfree = RUBY_DEFAULT_FREE,
-    .dsize = NULL, // We don't track memory usage (although it'd be cool if we did!)
-    //.dcompact = NULL, // FIXME: Add support for compaction
+    .dsize = cpu_and_wall_time_worker_typed_data_size,
+    #ifdef NEEDS_DCOMPACT
+      .dcompact = cpu_and_wall_time_worker_typed_data_compact,
+    #endif
   },
-  .flags = RUBY_TYPED_FREE_IMMEDIATELY
+  .flags = RUBY_TYPED_FREE_IMMEDIATELY | RUBY_TYPED_DECL_MARKING
 };
 
 static VALUE _native_new(VALUE klass) {
@@ -473,16 +496,14 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   return Qtrue;
 }
 
-// Since our state contains references to Ruby objects, we need to tell the Ruby GC about them
+// On Ruby < 3.3, these callbacks are used instead of declarative marking.
+// They iterate the same RUBY_REFERENCES list, so the field list is defined once.
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr) {
-  cpu_and_wall_time_worker_state *state = (cpu_and_wall_time_worker_state *) state_ptr;
+  ddtrace_gc_mark_refs(cpu_and_wall_time_worker_refs, sizeof(cpu_and_wall_time_worker_refs), state_ptr);
+}
 
-  rb_gc_mark(state->thread_context_collector_instance);
-  rb_gc_mark(state->idle_sampling_helper_instance);
-  rb_gc_mark(state->owner_thread);
-  rb_gc_mark(state->failure_exception);
-  rb_gc_mark(state->stop_thread);
-  rb_gc_mark(state->gc_tracepoint);
+static void cpu_and_wall_time_worker_typed_data_compact(void *state_ptr) {
+  ddtrace_gc_compact_refs(cpu_and_wall_time_worker_refs, sizeof(cpu_and_wall_time_worker_refs), state_ptr);
 }
 
 // Called in a background thread created in CpuAndWallTimeWorker#start
@@ -1063,7 +1084,6 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
   VALUE allocation_sampler_snapshot = state->allocation_profiling_enabled && state->dynamic_sampling_rate_enabled ?
     discrete_dynamic_sampler_state_snapshot(&state->allocation_sampler) : Qnil;
 
-  VALUE stats_as_hash = rb_hash_new();
   VALUE arguments[] = {
     ID2SYM(rb_intern("trigger_sample_attempts")),                    /* => */ UINT2NUM(state->stats.trigger_sample_attempts),
     ID2SYM(rb_intern("trigger_sample_extra_sleep")),                 /* => */ UINT2NUM(state->stats.trigger_sample_extra_sleep),
@@ -1102,7 +1122,8 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("gvl_sampling_time_ns_total")), /* => */ RUBY_NUM_OR_NIL(state->stats.gvl_sampling_time_ns_total, > 0, ULL2NUM),
     ID2SYM(rb_intern("gvl_sampling_time_ns_avg")),   /* => */ RUBY_AVG_OR_NIL(state->stats.gvl_sampling_time_ns_total, state->stats.after_gvl_running),
   };
-  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
+  VALUE stats_as_hash = rb_hash_new_capa(VALUE_COUNT(arguments) / 2);
+  rb_hash_bulk_insert(VALUE_COUNT(arguments), arguments, stats_as_hash);
   return stats_as_hash;
 }
 

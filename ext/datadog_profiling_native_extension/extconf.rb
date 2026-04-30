@@ -139,6 +139,8 @@ if have_header("dlfcn.h")
     have_func("dladdr")
 end
 
+# NOTE: Feature flags below are ordered by Ruby version (newest first), please keep them sorted.
+
 # On older Rubies, there was no primitive mutex and condition variable implemented in `thread_sync.rb` (internal)
 $defs << "-DNO_PRIMITIVE_MUTEX_AND_CONDITION_VARIABLE" if RUBY_VERSION < "4"
 
@@ -166,6 +168,12 @@ $defs << "-DNO_RACTOR_HEADER_INCLUDE" if RUBY_VERSION < "3.3"
 
 # On older Rubies, some of the Ractor internal APIs were directly accessible
 $defs << "-DUSE_RACTOR_INTERNAL_APIS_DIRECTLY" if RUBY_VERSION < "3.3"
+
+# On older Rubies, declarative marking (RUBY_TYPED_DECL_MARKING / RUBY_REFERENCES) did not exist
+$defs << "-DNO_DECL_MARKING" if RUBY_VERSION < "3.3"
+
+# On older Rubies, rb_hash_new_capa did not exist (we polyfill it in datadog_ruby_common.h)
+$defs << "-DNO_RB_HASH_NEW_CAPA" if RUBY_VERSION < "3.2"
 
 # On older Rubies, there was no GVL instrumentation API and APIs created to support it
 $defs << "-DNO_GVL_INSTRUMENTATION" if RUBY_VERSION < "3.2"
@@ -203,6 +211,9 @@ $defs << "-DNO_IMEMO_NAME" if RUBY_VERSION < "3"
 
 # On older Rubies, objects would not move
 $defs << "-DNO_T_MOVED" if RUBY_VERSION < "2.7"
+
+# On older Rubies, rb_hash_bulk_insert did not exist (we polyfill it in ruby_helpers.h)
+$defs << "-DNO_RB_HASH_BULK_INSERT" if RUBY_VERSION < "2.7"
 
 # On older Rubies, rb_global_vm_lock_struct did not include the owner field
 $defs << "-DNO_GVL_OWNER" if RUBY_VERSION < "2.6"

@@ -308,7 +308,7 @@ static const rb_data_type_t stack_recorder_typed_data = {
   .function = {
     .dmark = stack_recorder_typed_data_mark,
     .dfree = stack_recorder_typed_data_free,
-    .dsize = NULL, // We don't track profile memory usage (although it'd be cool if we did!)
+    .dsize = NULL, // State includes opaque libdatadog types -- libdatadog does not expose their internal sizes
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };
@@ -993,7 +993,6 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
   VALUE heap_recorder_snapshot = state->heap_recorder ?
     heap_recorder_state_snapshot(state->heap_recorder) : Qnil;
 
-  VALUE stats_as_hash = rb_hash_new();
   VALUE arguments[] = {
     ID2SYM(rb_intern("serialization_successes")), /* => */ ULL2NUM(state->stats_lifetime.serialization_successes),
     ID2SYM(rb_intern("serialization_failures")),  /* => */ ULL2NUM(state->stats_lifetime.serialization_failures),
@@ -1005,19 +1004,20 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
 
     ID2SYM(rb_intern("heap_recorder_snapshot")), /* => */ heap_recorder_snapshot,
   };
-  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
+  VALUE stats_as_hash = rb_hash_new_capa(VALUE_COUNT(arguments) / 2);
+  rb_hash_bulk_insert(VALUE_COUNT(arguments), arguments, stats_as_hash);
   return stats_as_hash;
 }
 
 static VALUE build_profile_stats(profile_slot *slot, long serialization_time_ns, long heap_iteration_prep_time_ns, long heap_profile_build_time_ns) {
-  VALUE stats_as_hash = rb_hash_new();
   VALUE arguments[] = {
     ID2SYM(rb_intern("recorded_samples")), /* => */ ULL2NUM(slot->stats.recorded_samples),
     ID2SYM(rb_intern("serialization_time_ns")), /* => */ LONG2NUM(serialization_time_ns),
     ID2SYM(rb_intern("heap_iteration_prep_time_ns")), /* => */ LONG2NUM(heap_iteration_prep_time_ns),
     ID2SYM(rb_intern("heap_profile_build_time_ns")), /* => */ LONG2NUM(heap_profile_build_time_ns),
   };
-  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
+  VALUE stats_as_hash = rb_hash_new_capa(VALUE_COUNT(arguments) / 2);
+  rb_hash_bulk_insert(VALUE_COUNT(arguments), arguments, stats_as_hash);
   return stats_as_hash;
 }
 
