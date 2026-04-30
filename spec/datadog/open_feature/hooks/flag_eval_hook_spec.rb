@@ -21,7 +21,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalHook do
           variant: 'on',
           reason: 'TARGETING_MATCH',
           error_code: nil,
-          flag_metadata: {'allocation_key' => 'my-allocation'}
+          flag_metadata: {'__dd_allocation_key' => 'my-allocation'}
         )
       end
 

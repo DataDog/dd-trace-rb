@@ -358,7 +358,7 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
   describe 'error code mapping' do
     it 'maps standard OpenFeature error codes to lowercase' do
       %w[FLAG_NOT_FOUND TYPE_MISMATCH PARSE_ERROR PROVIDER_NOT_READY
-         TARGETING_KEY_MISSING INVALID_CONTEXT PROVIDER_FATAL].each do |code|
+        TARGETING_KEY_MISSING INVALID_CONTEXT PROVIDER_FATAL].each do |code|
         expect(described_class::ERROR_TYPE_MAP[code]).to eq(code.downcase)
       end
     end

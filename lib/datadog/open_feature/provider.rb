@@ -140,7 +140,7 @@ module Datadog
         allocation_key = result.allocation_key
         if allocation_key && !allocation_key.empty?
           metadata = metadata.dup
-          metadata['allocation_key'] = allocation_key
+          metadata['__dd_allocation_key'] = allocation_key
         end
 
         metadata

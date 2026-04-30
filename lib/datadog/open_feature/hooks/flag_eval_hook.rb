@@ -41,7 +41,7 @@ module Datadog
           metadata = evaluation_details.flag_metadata
           return unless metadata.is_a?(Hash)
 
-          metadata['allocation_key']
+          metadata['__dd_allocation_key']
         end
       end
     end
