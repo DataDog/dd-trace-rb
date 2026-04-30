@@ -20,8 +20,12 @@ require_relative "backfill_integration_test_class"
 # Without this, deactivate_tracking! in the after block clears the
 # registry (the only reference), and GC can collect the iseq before
 # the next test's backfill_registry walks object space.
+# Ruby 3.2.9+ creates dummy iseqs (no bytecode, empty trace_points)
+# for profiler frames during require. Filter them out — only the real
+# top-level iseq has trace events and can target child iseq lines.
 BACKFILL_TEST_TOP_ISEQ = Datadog::DI.file_iseqs.find { |i|
   i.absolute_path&.end_with?("backfill_integration_test_class.rb") &&
+    !i.trace_points.empty? &&
     (Datadog::DI.respond_to?(:iseq_type) ? Datadog::DI.iseq_type(i) == :top : i.first_lineno == 0)
 }
 GC.enable
@@ -30,11 +34,11 @@ RSpec.describe "CodeTracker backfill integration" do
   di_test
 
   let(:diagnostics_transport) do
-    double(Datadog::DI::Transport::Diagnostics::Transport)
+    instance_double(Datadog::DI::Transport::Diagnostics::Transport)
   end
 
   let(:input_transport) do
-    double(Datadog::DI::Transport::Input::Transport)
+    instance_double(Datadog::DI::Transport::Input::Transport)
   end
 
   before do
@@ -94,7 +98,6 @@ RSpec.describe "CodeTracker backfill integration" do
     end
 
     it "backfills the iseq and allows the probe to be installed" do
-      skip "temporarily skipped due to flakiness in ci"
       expect(diagnostics_transport).to receive(:send_diagnostics)
       probe_manager.add_probe(probe)
       component.probe_notifier_worker.flush
@@ -103,7 +106,6 @@ RSpec.describe "CodeTracker backfill integration" do
     end
 
     it "fires the probe when the target line executes" do
-      skip "temporarily skipped due to flakiness in ci"
       expect(diagnostics_transport).to receive(:send_diagnostics)
       probe_manager.add_probe(probe)
       component.probe_notifier_worker.flush
@@ -122,7 +124,6 @@ RSpec.describe "CodeTracker backfill integration" do
       end
 
       it "captures local variables from the backfilled iseq" do
-        skip "temporarily skipped due to flakiness in ci"
         expect(diagnostics_transport).to receive(:send_diagnostics)
         probe_manager.add_probe(probe)
 
