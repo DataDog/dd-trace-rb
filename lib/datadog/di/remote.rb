@@ -88,7 +88,7 @@ module Datadog
             # content as errored but with a somewhat different exception
             # message.
             # TODO assert content state (errored for this example)
-            content.errored("Error applying dynamic instrumentation configuration: #{exc.class} #{exc}")
+            content.errored("Error applying dynamic instrumentation configuration: #{exc.class}: #{exc}")
           rescue => exc
             raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
@@ -106,7 +106,7 @@ module Datadog
             # content as errored but with a somewhat different exception
             # message.
             # TODO assert content state (errored for this example)
-            content.errored("Error applying dynamic instrumentation configuration: #{exc.class} #{exc}")
+            content.errored("Error applying dynamic instrumentation configuration: #{exc.class}: #{exc}")
           end
 
           # Important: even if processing fails for this probe config,
@@ -121,7 +121,7 @@ module Datadog
           component.telemetry&.report(exc, description: "Unhandled exception handling probe in DI remote receiver")
 
           # TODO assert content state (errored for this example)
-          content.errored("Error applying dynamic instrumentation configuration: #{exc.class} #{exc}")
+          content.errored("Error applying dynamic instrumentation configuration: #{exc.class}: #{exc}")
         end
 
         # This method does not mark +previous_content+ as succeeded or errored,

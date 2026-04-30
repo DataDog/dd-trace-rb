@@ -303,7 +303,7 @@ module Datadog
         @sampler.sample!(trace_op) if trace_op.sampling_priority.nil?
       rescue => e
         SAMPLE_TRACE_LOG_ONLY_ONCE.run do
-          logger.warn { "Failed to sample trace: #{e.class} #{e} at #{Array(e.backtrace).first}" }
+          logger.warn { "Failed to sample trace: #{e.class}: #{e} at #{Array(e.backtrace).first}" }
         end
       end
 
@@ -315,7 +315,7 @@ module Datadog
       rescue => e
         RECONSIDER_RESOURCE_SAMPLE_TRACE_LOG_ONLY_ONCE.run do
           logger.warn do
-            "Failed to reconsider trace sampling: #{e.class} #{e} at #{Array(e.backtrace).first}"
+            "Failed to reconsider trace sampling: #{e.class}: #{e} at #{Array(e.backtrace).first}"
           end
         end
       end
@@ -563,7 +563,7 @@ module Datadog
         @span_sampler.sample!(trace_op, span)
       rescue => e
         SAMPLE_SPAN_LOG_ONLY_ONCE.run do
-          logger.warn { "Failed to sample span: #{e.class} #{e} at #{Array(e.backtrace).first}" }
+          logger.warn { "Failed to sample span: #{e.class}: #{e} at #{Array(e.backtrace).first}" }
         end
       end
 
@@ -576,7 +576,7 @@ module Datadog
         write(trace) if trace && !trace.empty?
       rescue => e
         FLUSH_TRACE_LOG_ONLY_ONCE.run do
-          logger.warn { "Failed to flush trace: #{e.class} #{e} at #{Array(e.backtrace).first}" }
+          logger.warn { "Failed to flush trace: #{e.class}: #{e} at #{Array(e.backtrace).first}" }
         end
       end
 
