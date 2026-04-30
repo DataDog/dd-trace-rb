@@ -18,9 +18,10 @@ module Datadog
               return result unless AppSec.enabled?
               return result if @_datadog_appsec_skip_track_login_event
               return result unless Configuration.auto_user_instrumentation_enabled?
-              return result unless AppSec.active_context
 
               context = AppSec.active_context
+              return result unless context
+
               if context.trace.nil? || context.span.nil?
                 Datadog.logger.debug { 'AppSec: unable to track signin events, due to missing trace or span' }
                 return result
