@@ -31,6 +31,7 @@ libdatadog_issue = Datadog::LibdatadogExtconfHelpers.load_libdatadog_or_get_issu
 skip_building_extension!("issue setting up `libdatadog` gem: #{libdatadog_issue}") if libdatadog_issue
 
 require 'mkmf'
+Datadog::LibdatadogExtconfHelpers.dump_mkmf_log_on_failure!
 
 # Because we can't control what compiler versions our customers use, shipping with -Werror by default is a no-go.
 # But we can enable it in CI, so that we quickly spot any new warnings that just got introduced.

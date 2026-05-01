@@ -184,4 +184,58 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
       end
     end
   end
+
+  describe Datadog::LibdatadogExtconfHelpers::DumpMkmfLogOnFailure do
+    describe "#mkmf_failed" do
+      # Hosts the prepended module with a stub `mkmf_failed` for `super` to land in,
+      # so we don't pull in real mkmf or trigger a real abort.
+      let(:host_class) do
+        Class.new do
+          def mkmf_failed(_path)
+          end
+          prepend Datadog::LibdatadogExtconfHelpers::DumpMkmfLogOnFailure
+        end
+      end
+      let(:tmp_dir) { Dir.mktmpdir }
+      let(:log_path) { File.join(tmp_dir, "mkmf.log") }
+      let(:fake_log) do
+        <<~LOG
+          first irrelevant entry
+          --------------------
+          second irrelevant entry
+          --------------------
+          have_header: checking for missing.h... -------------------- no
+          fake gcc invocation; fake fatal error
+          --------------------
+        LOG
+      end
+
+      after { FileUtils.remove_entry(tmp_dir) }
+      around { |example| Dir.chdir(tmp_dir) { example.run } }
+      before { $makefile_created = nil } # rubocop:disable Style/GlobalVars # mkmf usually sets this; suppress uninit warning
+
+      context "when mkmf.log exists and no Makefile was created" do
+        before { File.write(log_path, fake_log) }
+
+        it "prints a banner with the last log entry to stderr" do
+          expect { host_class.new.mkmf_failed("dummy.rb") }.to output(
+            a_string_including("There was an issue setting up extension build")
+              .and(including("Full failure log is at #{log_path}"))
+              .and(including("have_header: checking for missing.h"))
+              .and(including("fake gcc invocation; fake fatal error"))
+          ).to_stderr
+        end
+
+        it "does not include earlier entries from the log" do
+          expect { host_class.new.mkmf_failed("dummy.rb") }.not_to output(/first irrelevant|second irrelevant/).to_stderr
+        end
+      end
+
+      context "when mkmf.log does not exist" do
+        it "prints nothing" do
+          expect { host_class.new.mkmf_failed("dummy.rb") }.not_to output.to_stderr
+        end
+      end
+    end
+  end
 end

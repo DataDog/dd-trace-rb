@@ -69,6 +69,7 @@ $stderr.puts(
 # NOTE: we MUST NOT require 'mkmf' before we check the #skip_building_extension? because the require triggers checks
 # that may fail on an environment not properly setup for building Ruby extensions.
 require "mkmf"
+Datadog::LibdatadogExtconfHelpers.dump_mkmf_log_on_failure!
 
 Logging.message("[datadog] Using compiler:\n")
 xsystem("#{CONFIG["CC"]} -v")
