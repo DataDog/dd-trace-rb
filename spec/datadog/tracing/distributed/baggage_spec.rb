@@ -10,6 +10,9 @@ RSpec.shared_examples 'Baggage distributed format' do
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
+  let(:max_baggage_items) { 64 }
+  let(:max_baggage_bytes) { 8192 }
+
   describe '#inject!' do
     subject(:inject!) { propagation.inject!(digest, data) }
     let(:data) { {} }
@@ -98,26 +101,19 @@ RSpec.shared_examples 'Baggage distributed format' do
 
       context 'when baggage size exceeds maximum items' do
         let(:digest) do
-          Datadog::Tracing::TraceDigest.new(
-            baggage: (1..(Datadog::Tracing::Distributed::Baggage::DD_TRACE_BAGGAGE_MAX_ITEMS + 1)).map do |i|
-              ["key#{i}", "value#{i}"]
-            end.to_h
-          )
+          Datadog::Tracing::TraceDigest.new(baggage: (1..(max_baggage_items + 1)).map { |i| ["key#{i}", "value#{i}"] }.to_h)
         end
 
         it 'logs a warning and stops injecting excess items' do
           expect(Datadog.logger).to receive(:warn).with('Baggage item limit (64) exceeded, dropping excess items')
           inject!
-          expect(data['baggage'].split(',').size).to eq(Datadog::Tracing::Distributed::Baggage::DD_TRACE_BAGGAGE_MAX_ITEMS)
+          expect(data['baggage'].split(',').size).to eq(max_baggage_items)
         end
       end
 
       context 'when baggage size exceeds maximum bytes' do
         let(:digest) do
-          Datadog::Tracing::TraceDigest.new(
-            baggage: {'key1' => 'value1',
-                      'key' => 'a' * (Datadog::Tracing::Distributed::Baggage::DD_TRACE_BAGGAGE_MAX_BYTES + 1)}
-          )
+          Datadog::Tracing::TraceDigest.new(baggage: {'key1' => 'value1', 'key' => 'a' * (max_baggage_bytes + 1)})
         end
 
         it 'logs a warning and stops injecting excess items' do
@@ -178,6 +174,9 @@ end
 RSpec.describe Datadog::Tracing::Distributed::Baggage do
   subject(:propagation) { described_class.new(fetcher: fetcher_class) }
   let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
+
+  let(:max_baggage_items) { 64 }
+  let(:max_baggage_bytes) { 8192 }
 
   it_behaves_like 'Baggage distributed format'
 
@@ -402,6 +401,81 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
           result = propagation.extract(data)
           expect(result).to be_a(Datadog::Tracing::TraceDigest)
           expect(result.baggage).to eq({})
+        end
+      end
+
+      context 'when baggage item count exceeds limit' do
+        let(:data) do
+          {'baggage' => (1..(max_baggage_items + 2)).map { |i| "key#{i}=value#{i}" }.join(',')}
+        end
+
+        before { allow(telemetry).to receive(:inc) }
+
+        it 'extracts baggage up to the item limit' do
+          baggage = propagation.extract(data).baggage
+
+          expect(baggage).to have(max_baggage_items).items
+          expect(baggage).to include('key64' => 'value64')
+
+          expect(baggage).not_to include('key65')
+          expect(baggage).not_to include('value65')
+        end
+
+        it 'records item count truncation telemetry' do
+          expect(telemetry).to receive(:inc).with(
+            'instrumentation_telemetry_data.tracers',
+            'context_header.truncated',
+            1,
+            tags: {'header_style' => 'baggage', 'truncation_reason' => 'baggage_item_count_exceeded'}
+          )
+          expect(telemetry).to receive(:inc).with(
+            'instrumentation_telemetry_data.tracers',
+            'context_header_style.extracted',
+            1,
+            tags: {'header_style' => 'baggage'}
+          )
+
+          propagation.extract(data)
+        end
+
+        context 'with duplicate baggage keys' do
+          let(:data) do
+            {'baggage' => (1..(max_baggage_items + 2)).map { |i| "same_key=value#{i}" }.join(',')}
+          end
+
+          it 'limits extraction by headers ingested, not stored' do
+            expect(telemetry).to receive(:inc).with(
+              'instrumentation_telemetry_data.tracers',
+              'context_header.truncated',
+              1,
+              tags: {'header_style' => 'baggage', 'truncation_reason' => 'baggage_item_count_exceeded'}
+            )
+
+            expect(propagation.extract(data).baggage).to eq("same_key" => "value64"), "Keeps the last entry"
+          end
+        end
+      end
+
+      context 'when baggage header size exceeds limit' do
+        let(:data) { {'baggage' => "27bytes_for_key_and_equals=#{'a' * (max_baggage_bytes - 27 + 1)}"} } # Too big by 1 byte
+
+        before { allow(telemetry).to receive(:inc) }
+
+        it 'extracts empty baggage' do
+          result = propagation.extract(data)
+          expect(result).to be_a(Datadog::Tracing::TraceDigest)
+          expect(result.baggage).to eq({})
+        end
+
+        it 'records byte count truncation telemetry' do
+          expect(telemetry).to receive(:inc).with(
+            'instrumentation_telemetry_data.tracers',
+            'context_header.truncated',
+            1,
+            tags: {'header_style' => 'baggage', 'truncation_reason' => 'baggage_byte_count_exceeded'}
+          )
+
+          propagation.extract(data)
         end
       end
     end

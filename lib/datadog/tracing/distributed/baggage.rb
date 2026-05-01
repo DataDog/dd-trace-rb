@@ -133,12 +133,27 @@ module Datadog
         # - Keys and values are URL-encoded
         # - Returns an empty hash if the baggage header is malformed
         #
+        # For entries with duplicate keys, only last one is preserved:
+        # https://www.w3.org/TR/2024/CR-baggage-20240530/#mutating-baggage
+        #
         # @param baggage_header [String] The W3C Baggage header string to parse
         # @return [Hash<String, String>] A hash of decoded baggage items
         def parse_baggage_header(baggage_header)
+          if baggage_header.bytesize > DD_TRACE_BAGGAGE_MAX_BYTES
+            record_telemetry_metric('context_header.truncated', 1, {'header_style' => 'baggage', 'truncation_reason' => 'baggage_byte_count_exceeded'})
+            return {}
+          end
+
           baggage = {}
-          baggages = baggage_header.split(',')
-          baggages.each do |key_value|
+          # DEV: To avoid unnecessary eager string allocation, replace with
+          # DEV: `split(',') { |s| ... }` when Ruby 2.5 is no longer supported.
+          baggages = baggage_header.split(',', DD_TRACE_BAGGAGE_MAX_ITEMS + 1) # Stop splitting if we've reached max size
+          baggages.each_with_index do |key_value, index|
+            if index >= DD_TRACE_BAGGAGE_MAX_ITEMS
+              record_telemetry_metric('context_header.truncated', 1, {'header_style' => 'baggage', 'truncation_reason' => 'baggage_item_count_exceeded'})
+              break
+            end
+
             key, value = key_value.split('=', 2)
             # If baggage is malformed, return an empty hash
             if key.nil? || value.nil?
@@ -157,6 +172,7 @@ module Datadog
 
             baggage[key] = value
           end
+
           baggage
         end
 
