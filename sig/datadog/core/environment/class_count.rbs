@@ -4,9 +4,9 @@ module Datadog
       module ClassCount
         self.@class_count_available: bool
 
-        def self?.value: () -> untyped
+        def self?.value: () -> ::Integer
 
-        def self?.available?: () -> untyped
+        def self?.available?: () -> bool
       end
     end
   end
