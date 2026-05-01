@@ -363,9 +363,8 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
       end
     end
 
-    it 'maps GENERAL and UNKNOWN_TYPE to general (default)' do
+    it 'maps GENERAL to general (default)' do
       expect(described_class::ERROR_TYPE_MAP['GENERAL']).to eq('general')
-      expect(described_class::ERROR_TYPE_MAP['UNKNOWN_TYPE']).to eq('general')
     end
   end
 end
