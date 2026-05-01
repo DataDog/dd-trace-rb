@@ -196,7 +196,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
           prepend Datadog::LibdatadogExtconfHelpers::DumpMkmfLogOnFailure
         end
       end
-      let(:tmp_dir) { Dir.mktmpdir }
+      let(:tmp_dir) { File.realpath(Dir.mktmpdir) }
       let(:log_path) { File.join(tmp_dir, "mkmf.log") }
       let(:fake_log) do
         <<~LOG
