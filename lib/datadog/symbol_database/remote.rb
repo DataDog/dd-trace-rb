@@ -141,7 +141,7 @@ module Datadog
 
           config
         rescue JSON::ParserError => e
-          Datadog.logger.debug { "symdb: invalid config format: #{e}" }
+          Datadog.logger.debug { "symdb: invalid config format: #{e.class}: #{e}" }
           nil
         end
       end
