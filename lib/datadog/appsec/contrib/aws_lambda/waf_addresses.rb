@@ -36,7 +36,8 @@ module Datadog
           end
 
           def from_response(payload = {})
-            payload ||= {}
+            return {} if payload.nil? || payload.empty?
+
             headers = parse_headers(payload)
 
             data = {

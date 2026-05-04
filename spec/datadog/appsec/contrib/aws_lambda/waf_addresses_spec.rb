@@ -186,8 +186,13 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
     context 'when payload is nil' do
       let(:payload) { nil }
 
-      it { expect(result).not_to have_key('server.response.status') }
-      it { expect(result['server.response.headers']).to eq({}) }
+      it { expect(result).to eq({}) }
+    end
+
+    context 'when payload is empty' do
+      let(:payload) { {} }
+
+      it { expect(result).to eq({}) }
     end
 
     context 'when statusCode is a string' do
