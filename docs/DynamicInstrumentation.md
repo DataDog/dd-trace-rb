@@ -329,6 +329,40 @@ application performance:
   it
 - This threshold can be configured globally
 
+## Probes on Standard Library Methods
+
+Method probes can target standard library methods, including methods
+that the Datadog tracer itself calls during snapshot building (for
+example `String#length`, `Hash#each`, `Array#map`, `Set#include?`,
+`Thread#[]`, `Array#empty?`).
+
+When such a method is probed, the tracer must call the same method
+internally while building the snapshot. Without protection, this would
+recurse: the probe fires, the tracer builds a snapshot, building the
+snapshot calls the probed method again, the probe fires again, and so
+on until the Ruby stack overflows.
+
+The tracer prevents this with a fiber-local re-entrancy guard:
+
+- **During tracer-internal calls** (while the tracer is processing a
+  probe firing), the probed method runs without firing the probe again.
+  These internal invocations do not consume rate limit tokens — they
+  are not user-observable probe firings.
+- **During user code execution**, probes fire normally. This includes
+  user code that runs while the tracer's snapshot building has paused
+  to call the original method via `super` — nested probes on other
+  methods continue to fire as expected.
+
+Line probes are protected by Ruby's TracePoint, which is self-disabling
+during its own callback, so line probes have no equivalent risk.
+
+A small set of methods are intentionally **not** intercepted by the
+tracer's own internals because their stdlib counterparts are called
+during the guard's bookkeeping (`Thread#[]`, `Thread#[]=`,
+`Array#empty?`, `Hash#empty?`). Customer probes on these methods still
+fire on user code; tracer-internal accesses bypass them via direct C
+calls.
+
 ## Getting Help
 
 For the latest updates, known issues, and to provide feedback, please
