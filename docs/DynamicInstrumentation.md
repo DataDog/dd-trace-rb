@@ -332,21 +332,14 @@ application performance:
 ## Probes on Standard Library Methods
 
 Method probes can target standard library methods, including methods
-that the Datadog tracer itself calls (for example `String#length`,
-`Hash#each`, `Array#map`, `Set#include?`, `Thread#[]`,
-`Array#empty?`). Line probes can target any line, including lines in
-standard library files.
+that the Datadog tracer itself calls. Line probes can target any
+line, including lines in standard library files.
 
 The tracer guarantees that probes on such methods do not cause runaway
 recursion or stack overflow. When the tracer calls a probed method
 while processing another probe firing, the probe is suppressed for
 that internal call and no rate-limit token is consumed. Customer code
 calls to the same method fire the probe normally.
-
-Probes on the following methods fire only on customer code, never on
-tracer-internal accesses: `Thread#[]`, `Thread#[]=`, `Array#empty?`,
-`Hash#empty?`. This carve-out is necessary for tracer correctness;
-customer-code firings are not affected.
 
 ## Getting Help
 
