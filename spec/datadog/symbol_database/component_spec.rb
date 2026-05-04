@@ -4,7 +4,6 @@ require 'datadog/symbol_database/component'
 require 'datadog/symbol_database/extractor'
 require 'datadog/symbol_database/scope_batcher'
 require 'datadog/symbol_database/uploader'
-require 'datadog/core/utils/only_once'
 
 RSpec.describe Datadog::SymbolDatabase::Component do
   # Use a real Settings instance — Settings uses dynamic DSL methods (via
@@ -32,12 +31,11 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
   let(:raw_logger) { instance_double(Logger, debug: nil) }
   let(:logger) { Datadog::SymbolDatabase::Logger.new(settings, raw_logger) }
-  # Reset the class-level OnlyOnce guard between tests
-  before do
-    described_class::FORCE_UPLOAD_ONCE.send(:reset_ran_once_state_for_tests)
-  end
 
-  # Stub Uploader and ScopeBatcher to avoid real HTTP calls
+  # Reset the class-level "have we uploaded this process" flag between tests.
+  before { described_class.reset_uploaded_this_process_for_tests! }
+
+  # Stub Uploader and ScopeBatcher to avoid real HTTP calls.
   before do
     allow(Datadog::SymbolDatabase::Transport::HTTP).to receive(:build).and_return(
       instance_double(Datadog::SymbolDatabase::Transport::Transport)
@@ -46,6 +44,10 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       instance_double(Datadog::SymbolDatabase::ScopeBatcher, shutdown: nil, add_scope: nil, flush: nil, reset: nil)
     )
   end
+
+  # Make the debounce window short so tests don't wait 5s.
+  # 0.05s gives the scheduler thread time to enter its wait loop and fire.
+  before { stub_const('Datadog::SymbolDatabase::Component::EXTRACT_DEBOUNCE_INTERVAL', 0.05) }
 
   describe '.environment_supported?', :symdb_supported_platforms do
     it 'returns true on MRI Ruby 2.6+' do
@@ -57,80 +59,59 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     it 'returns false and logs on JRuby' do
       stub_const('RUBY_ENGINE', 'jruby')
       expect(raw_logger).to receive(:debug) { |&block| expect(block.call).to match(/not supported on jruby/) }
-
       expect(described_class.send(:environment_supported?, logger)).to be false
     end
 
     it 'returns false and logs on Ruby < 2.6' do
       stub_const('RUBY_ENGINE', 'ruby')
-      stub_const('RUBY_VERSION', '2.5.9')
-      expect(raw_logger).to receive(:debug) { |&block| expect(block.call).to match(/requires Ruby 2\.6\+/) }
-
+      stub_const('RUBY_VERSION', '2.5.0')
+      expect(raw_logger).to receive(:debug) { |&block| expect(block.call).to match(/requires Ruby 2.6\+/) }
       expect(described_class.send(:environment_supported?, logger)).to be false
     end
   end
 
   describe '.build' do
-    it 'returns nil when symbol_database is not enabled' do
-      allow(settings.symbol_database).to receive(:enabled).and_return(false)
+    context 'when symbol_database is disabled' do
+      before { settings.symbol_database.enabled = false }
 
-      result = described_class.build(settings, agent_settings, logger)
-      expect(result).to be_nil
+      it 'returns nil' do
+        result = described_class.build(settings, agent_settings, logger)
+        expect(result).to be_nil
+      end
     end
 
-    it 'returns nil on unsupported Ruby engine (JRuby)', :symdb_supported_platforms do
-      stub_const('RUBY_ENGINE', 'jruby')
-      allow(logger).to receive(:debug)
-
-      result = described_class.build(settings, agent_settings, logger)
-      expect(result).to be_nil
-    end
-
-    it 'returns nil on Ruby < 2.6', :symdb_supported_platforms do
-      stub_const('RUBY_VERSION', '2.5.9')
-      allow(logger).to receive(:debug)
-
-      result = described_class.build(settings, agent_settings, logger)
-      expect(result).to be_nil
-    end
-
-    it 'returns nil when remote is not enabled and force_upload is false' do
-      allow(settings.remote).to receive(:enabled).and_return(false)
-      allow(settings.symbol_database.internal).to receive(:force_upload).and_return(false)
-
-      result = described_class.build(settings, agent_settings, logger)
-      expect(result).to be_nil
-    end
-
-    it 'returns a Component when enabled and remote is enabled' do
-      result = described_class.build(settings, agent_settings, logger)
-      expect(result).to be_a(described_class)
-    end
-
-    it 'returns a Component when DI is disabled (SymDB is independent of DI)' do
-      allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(false)
-
-      result = described_class.build(settings, agent_settings, logger)
-      expect(result).to be_a(described_class)
-    end
-
-    it 'returns a Component when force_upload is true even without remote' do
-      allow(settings.remote).to receive(:enabled).and_return(false)
-      allow(settings.symbol_database.internal).to receive(:force_upload).and_return(true)
-
-      result = described_class.build(settings, agent_settings, logger)
-      expect(result).to be_a(described_class)
-    end
-
-    context 'with force_upload enabled' do
+    context 'when remote is disabled and force_upload is false' do
       before do
-        allow(settings.symbol_database.internal).to receive(:force_upload).and_return(true)
+        settings.remote.enabled = false
+        settings.symbol_database.internal.force_upload = false
       end
 
-      it 'calls schedule_deferred_upload instead of start_upload directly' do
-        expect_any_instance_of(described_class).to receive(:schedule_deferred_upload)
-        expect_any_instance_of(described_class).not_to receive(:extract_and_upload)
+      it 'returns nil' do
+        result = described_class.build(settings, agent_settings, logger)
+        expect(result).to be_nil
+      end
+    end
 
+    context 'when remote is enabled' do
+      before { settings.remote.enabled = true }
+
+      it 'returns a Component' do
+        result = described_class.build(settings, agent_settings, logger)
+        expect(result).to be_a(described_class)
+      end
+    end
+
+    context 'when force_upload is enabled' do
+      before { settings.symbol_database.internal.force_upload = true }
+
+      it 'returns a Component' do
+        result = described_class.build(settings, agent_settings, logger)
+        expect(result).to be_a(described_class)
+        result.shutdown!
+      end
+
+      it 'calls schedule_deferred_upload' do
+        expect_any_instance_of(described_class).to receive(:schedule_deferred_upload)
         described_class.build(settings, agent_settings, logger)
       end
     end
@@ -138,18 +119,17 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     context 'without force_upload' do
       it 'does not call schedule_deferred_upload' do
         expect_any_instance_of(described_class).not_to receive(:schedule_deferred_upload)
-
         described_class.build(settings, agent_settings, logger)
       end
     end
   end
 
   describe '#schedule_deferred_upload' do
-    let(:component) do
-      described_class.new(settings, agent_settings, logger)
-    end
+    let(:component) { described_class.new(settings, agent_settings, logger) }
 
-    context 'without Rails (non-Rails context)' do
+    after { component.shutdown! }
+
+    context 'without Rails' do
       before do
         hide_const('ActiveSupport')
         hide_const('Rails::Railtie')
@@ -157,26 +137,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
       it 'calls start_upload immediately' do
         expect(component).to receive(:start_upload)
-
         component.schedule_deferred_upload
-      end
-
-      it 'only triggers extraction once across multiple calls (OnlyOnce guard)' do
-        expect(component).to receive(:start_upload).once
-
-        component.schedule_deferred_upload
-        component.schedule_deferred_upload
-        component.schedule_deferred_upload
-      end
-
-      it 'only triggers extraction once across multiple component instances' do
-        component2 = described_class.new(settings, agent_settings, logger)
-
-        expect(component).to receive(:start_upload).once
-        expect(component2).not_to receive(:start_upload)
-
-        component.schedule_deferred_upload
-        component2.schedule_deferred_upload
       end
     end
 
@@ -191,214 +152,214 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         stub_const('ActiveSupport', active_support_mod)
         stub_const('Rails::Railtie', Class.new)
 
+        # Provide Rails.application.config.eager_load so the auto-deferred
+        # upload runs in this test (production-like config). stub_const
+        # replaces the Rails module entirely.
+        rails_config = Struct.new(:eager_load).new(true)
+        rails_app = Struct.new(:config).new(rails_config)
+        rails_module = Module.new
+        rails_module.define_singleton_method(:application) { rails_app }
+        stub_const('Rails', rails_module)
+        stub_const('Rails::Railtie', Class.new)
+
         allow(::ActiveSupport).to receive(:on_load).with(:after_initialize) do |&block|
           after_init_callbacks << block
         end
       end
 
-      it 'defers extraction to ActiveSupport.on_load(:after_initialize)' do
+      it 'defers start_upload to ActiveSupport.on_load(:after_initialize)' do
         expect(component).not_to receive(:start_upload)
-
         component.schedule_deferred_upload
-
         expect(after_init_callbacks.size).to eq(1)
       end
 
-      it 'triggers start_upload on current component when callback fires' do
+      it 'callback triggers start_upload on the registering Component' do
         component.schedule_deferred_upload
-
-        # Callback looks up current component via Datadog.components
-        components = instance_double(Datadog::Core::Configuration::Components, symbol_database: component)
-        allow(Datadog).to receive(:components).and_return(components)
-
         expect(component).to receive(:start_upload)
-
         after_init_callbacks.each(&:call)
       end
 
-      it 'uses current component at callback-fire time, not build-time component' do
-        component.schedule_deferred_upload
-        component.shutdown!
-
-        # Simulate reconfiguration: component2 is now current
-        component2 = described_class.new(settings, agent_settings, logger)
-        components = instance_double(Datadog::Core::Configuration::Components, symbol_database: component2)
-        allow(Datadog).to receive(:components).and_return(components)
-
-        expect(component).not_to receive(:start_upload)
-        expect(component2).to receive(:start_upload)
-
-        after_init_callbacks.each(&:call)
-      end
-
-      it 'only registers the after_initialize callback once across reconfigurations' do
+      it 'each Component registers its own callback (no class-level dedup of registration)' do
+        # Per-instance design: each Component schedules its own deferred upload.
+        # Cross-instance deduplication of the actual upload is handled by the
+        # class-level uploaded_this_process? flag, not by guarding registration.
         component2 = described_class.new(settings, agent_settings, logger)
 
         component.schedule_deferred_upload
         component2.schedule_deferred_upload
 
-        expect(after_init_callbacks.size).to eq(1)
+        expect(after_init_callbacks.size).to eq(2)
+
+        component2.shutdown!
       end
     end
   end
 
-  describe '#start_upload' do
-    let(:component) do
-      described_class.new(settings, agent_settings, logger)
-    end
+  describe '#start_upload (debounced extraction)' do
+    let(:component) { described_class.new(settings, agent_settings, logger) }
 
-    it 'triggers extract_and_upload on first call' do
-      expect(component).to receive(:extract_and_upload)
+    after { component.shutdown! }
 
-      component.start_upload
-    end
-
-    it 'does not trigger extract_and_upload on subsequent calls (enabled guard)' do
-      expect(component).to receive(:extract_and_upload).once
+    it 'eventually triggers extract_and_upload after the debounce window' do
+      expect(component).to receive(:extract_and_upload).and_call_original
+      allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
 
       component.start_upload
-      component.start_upload
+      expect(component.wait_for_idle(timeout: 5)).to be true
     end
 
-    it 'does not trigger extract_and_upload if shutdown' do
-      component.shutdown!
+    it 'coalesces multiple start_upload calls into a single extraction (debounce)' do
+      extraction_count = 0
+      allow(component.instance_variable_get(:@extractor)).to receive(:extract_all) do
+        extraction_count += 1
+        []
+      end
+
+      5.times { component.start_upload }
+      component.wait_for_idle(timeout: 5)
+
+      expect(extraction_count).to eq(1)
+    end
+
+    it 'short-circuits when the process has already uploaded' do
+      described_class.mark_uploaded
 
       expect(component).not_to receive(:extract_and_upload)
+      component.start_upload
+      sleep 0.2 # Give scheduler thread time to fire if it were going to
+    end
 
+    it 'does not extract when shut down' do
+      component.shutdown!
+      expect(component).not_to receive(:extract_and_upload)
       component.start_upload
     end
   end
 
-  describe 'diagnostic accessors' do
-    let(:component) do
-      described_class.new(settings, agent_settings, logger)
+  describe '#wait_for_idle' do
+    let(:component) { described_class.new(settings, agent_settings, logger) }
+
+    after { component.shutdown! }
+
+    it 'returns true when an upload completes within the timeout' do
+      allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
+      component.start_upload
+      expect(component.wait_for_idle(timeout: 5)).to be true
     end
 
-    describe '#enabled' do
-      it 'is false before start_upload' do
-        expect(component.enabled).to be false
-      end
-
-      it 'is true after start_upload' do
-        allow(component).to receive(:extract_and_upload)
-        component.start_upload
-        expect(component.enabled).to be true
-      end
-
-      it 'is false after stop_upload' do
-        allow(component).to receive(:extract_and_upload)
-        component.start_upload
-        component.stop_upload
-        expect(component.enabled).to be false
-      end
-    end
-
-    describe '#last_upload_time' do
-      it 'is nil before start_upload' do
-        expect(component.last_upload_time).to be_nil
-      end
-
-      it 'is a Time after start_upload' do
-        allow(component).to receive(:extract_and_upload)
-        component.start_upload
-        expect(component.last_upload_time).to be_a(Time)
-      end
-    end
-
-    describe '#upload_in_progress' do
-      it 'is false before any upload' do
-        expect(component.upload_in_progress).to be false
-      end
-
-      it 'is true during extract_and_upload and false after' do
-        in_progress_during_extraction = nil
-        extractor = component.instance_variable_get(:@extractor)
-        allow(extractor).to receive(:extract_all) do
-          in_progress_during_extraction = component.upload_in_progress
-          []
-        end
-
-        component.start_upload
-        expect(in_progress_during_extraction).to be true
-        expect(component.upload_in_progress).to be false
-      end
+    it 'returns false when no upload happens within the timeout' do
+      expect(component.wait_for_idle(timeout: 0.1)).to be false
     end
   end
 
   describe '#shutdown!' do
-    let(:component) do
-      described_class.new(settings, agent_settings, logger)
-    end
+    let(:component) { described_class.new(settings, agent_settings, logger) }
 
-    it 'sets shutdown flag' do
-      expect(component.shutdown?).to be false
-
+    it 'sets the shutdown flag' do
       component.shutdown!
-
       expect(component.shutdown?).to be true
     end
 
-    it 'prevents subsequent start_upload from running' do
+    it 'prevents subsequent start_upload from extracting' do
       component.shutdown!
-
       expect(component).not_to receive(:extract_and_upload)
+      component.start_upload
+      sleep 0.2
+    end
+
+    it 'cancels a pending debounced extraction' do
+      extractor = component.instance_variable_get(:@extractor)
+      expect(extractor).not_to receive(:extract_all)
 
       component.start_upload
+      component.shutdown!  # before debounce fires
+      sleep 0.2
     end
   end
 
-  describe 'reconfiguration scenario' do
+  describe 'reconfiguration scenario (regression test for two-uploads-per-extract-run)' do
+    # Bug: reconfiguration via Datadog.configure replaces the Component after
+    # the deferred callback has fired on the old instance. The script's
+    # explicit start_upload then hits the new instance and triggers a second
+    # extraction. The fix lifts upload-done state to a class-level flag so
+    # the new instance's start_upload short-circuits.
     before do
       allow(settings.symbol_database.internal).to receive(:force_upload).and_return(true)
       hide_const('ActiveSupport')
       hide_const('Rails::Railtie')
     end
 
-    it 'only performs one extraction across multiple Component rebuilds' do
+    it 'only performs one extraction across reconfigurations + explicit start_upload' do
       extraction_count = 0
-      allow_any_instance_of(described_class).to receive(:extract_and_upload) { extraction_count += 1 }
+      allow_any_instance_of(described_class).to receive(:extract_and_upload) do |inst|
+        extraction_count += 1
+        described_class.mark_uploaded
+      end
 
-      component1 = described_class.build(settings, agent_settings, logger)
-      described_class.build(settings, agent_settings, logger)
-      component1.shutdown!
+      # First Component: built, schedules upload, fires on its scheduler thread.
+      component_a = described_class.build(settings, agent_settings, logger)
+      component_a.wait_for_idle(timeout: 5)
+
+      # Reconfigure: shut down A, build B (via .build to trigger
+      # schedule_deferred_upload), then call start_upload explicitly on B
+      # (simulating bin/extract_symbols).
+      component_a.shutdown!
+      component_b = described_class.build(settings, agent_settings, logger)
+      component_b.start_upload
+      sleep 0.2 # give scheduler thread a chance to fire
+
+      expect(extraction_count).to eq(1)
+
+      component_b.shutdown!
+    end
+  end
+
+  describe 'enable/disable upload (ported from Java SymDBEnablementTest.enableDisableSymDBThroughRC)' do
+    let(:component) { described_class.new(settings, agent_settings, logger) }
+
+    after { component.shutdown! }
+
+    it 'extracts once when start_upload is called' do
+      extraction_count = 0
+      allow(component.instance_variable_get(:@extractor)).to receive(:extract_all) do
+        extraction_count += 1
+        []
+      end
+
+      component.start_upload
+      component.wait_for_idle(timeout: 5)
+
+      expect(extraction_count).to eq(1)
+    end
+
+    it 'stop_upload cancels a pending debounce so no extraction occurs' do
+      extractor = component.instance_variable_get(:@extractor)
+      expect(extractor).not_to receive(:extract_all)
+
+      component.start_upload
+      component.stop_upload
+      sleep 0.2
+    end
+
+    it 'does not extract again after start, stop, re-start when already uploaded once this process' do
+      extraction_count = 0
+      allow(component.instance_variable_get(:@extractor)).to receive(:extract_all) do
+        extraction_count += 1
+        []
+      end
+
+      component.start_upload
+      component.wait_for_idle(timeout: 5)
+      component.stop_upload
+      component.start_upload
+      sleep 0.2
 
       expect(extraction_count).to eq(1)
     end
   end
 
-  # === Tests ported from Java SymDBEnablementTest ===
-
-  describe 'enable/disable upload (ported from Java SymDBEnablementTest.enableDisableSymDBThroughRC)' do
-    let(:component) do
-      described_class.new(settings, agent_settings, logger)
-    end
-
-    it 'starts upload and then stops it' do
-      expect(component).to receive(:extract_and_upload).once
-
-      component.start_upload
-      expect(component.enabled).to be true
-
-      component.stop_upload
-      expect(component.enabled).to be false
-    end
-
-    it 'does not extract again after stop and re-start (already enabled guard)' do
-      expect(component).to receive(:extract_and_upload).once
-
-      component.start_upload
-      component.stop_upload
-      # Second start_upload should be blocked by recently_uploaded? cooldown
-      component.start_upload
-
-      # Only one extraction expected
-    end
-  end
-
   describe 'config removal (ported from Java SymDBEnablementTest.removeSymDBConfig)' do
-    let(:component) do
-      described_class.new(settings, agent_settings, logger)
-    end
+    let(:component) { described_class.new(settings, agent_settings, logger) }
 
     it 'shutdown prevents any future uploads' do
       allow(component).to receive(:extract_and_upload)
@@ -406,16 +367,16 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       component.start_upload
       component.shutdown!
 
-      # After shutdown, start_upload should be a no-op
       expect(component).not_to receive(:extract_and_upload)
       component.start_upload
+      sleep 0.2
     end
   end
 
   describe 'filtering behavior (ported from Java SymDBEnablementTest.noIncludesFilterOutDatadogClass)' do
-    let(:component) do
-      described_class.new(settings, agent_settings, logger)
-    end
+    let(:component) { described_class.new(settings, agent_settings, logger) }
+
+    after { component.shutdown! }
 
     it 'extract_and_upload filters out Datadog internal classes' do
       uploaded_scopes = []
@@ -427,7 +388,6 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
       component.send(:extract_and_upload)
 
-      # No Datadog:: scopes should have been added
       datadog_scopes = uploaded_scopes.select { |s| s.name&.start_with?('Datadog::') }
       expect(datadog_scopes).to be_empty
     end
