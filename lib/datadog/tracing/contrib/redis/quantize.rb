@@ -34,7 +34,7 @@ module Datadog
             str = Core::Utils.utf8_encode(arg, binary: true, placeholder: PLACEHOLDER)
             Core::Utils.truncate(str, VALUE_MAX_LEN, TOO_LONG_MARK)
           rescue => e
-            Datadog.logger.debug("non formattable Redis arg #{str}: #{e}")
+            Datadog.logger.debug("non formattable Redis arg #{str}: #{e.class}: #{e}")
             PLACEHOLDER
           end
 

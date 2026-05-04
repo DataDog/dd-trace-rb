@@ -548,6 +548,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               gvl_sampling_time_ns_max: be > 0,
               gvl_sampling_time_ns_total: be > 0,
               gvl_sampling_time_ns_avg: be > 0,
+              gvl_waiting_time_ns_total: be > 0,
             )
           )
         end
@@ -584,6 +585,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
                 gvl_sampling_time_ns_max: nil,
                 gvl_sampling_time_ns_total: nil,
                 gvl_sampling_time_ns_avg: nil,
+                gvl_waiting_time_ns_total: be >= 0,
               )
             )
           end
@@ -1376,6 +1378,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           gvl_sampling_time_ns_max: nil,
           gvl_sampling_time_ns_total: nil,
           gvl_sampling_time_ns_avg: nil,
+          gvl_waiting_time_ns_total: nil,
         }
       )
     end

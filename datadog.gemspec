@@ -71,7 +71,7 @@ Gem::Specification.new do |spec|
   # (and yes we have a test for it)
   spec.add_dependency 'libdatadog', '~> 30.0.0.1.0'
 
-  # Will no longer be a default gem on Ruby 3.5, see
+  # Will no longer be a default gem on Ruby 4.0, see
   # https://github.com/ruby/ruby/commit/d7e558e3c48c213d0e8bedca4fb547db55613f7c and
   # https://stdgems.org/ .
   # We support all versions of this gem and don't particularly require any version restriction.

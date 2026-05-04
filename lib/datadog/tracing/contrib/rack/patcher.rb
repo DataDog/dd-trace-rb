@@ -41,7 +41,7 @@ module Datadog
             # context of middleware patching outside a Rails server process (eg. a
             # process that doesn't serve HTTP requests but has Rails environment
             # loaded such as a Resque master process)
-            Datadog.logger.debug("Error patching middleware stack: #{e}")
+            Datadog.logger.debug("Error patching middleware stack: #{e.class}: #{e}")
           end
 
           def retain_middleware_name(middleware)

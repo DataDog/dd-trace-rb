@@ -55,6 +55,26 @@ GEM
     msgpack (1.8.0)
     mutex_m (0.3.0)
     openfeature-sdk (0.3.1)
+    opentelemetry-api (1.9.0)
+      logger
+    opentelemetry-common (0.24.0)
+      opentelemetry-api (~> 1.0)
+    opentelemetry-metrics-api (0.5.0)
+      opentelemetry-api (~> 1.0)
+    opentelemetry-metrics-sdk (0.13.1)
+      opentelemetry-api (~> 1.1)
+      opentelemetry-metrics-api (~> 0.2)
+      opentelemetry-sdk (~> 1.2)
+    opentelemetry-registry (0.5.0)
+      opentelemetry-api (~> 1.1)
+    opentelemetry-sdk (1.11.0)
+      logger
+      opentelemetry-api (~> 1.1)
+      opentelemetry-common (~> 0.20)
+      opentelemetry-registry (~> 0.2)
+      opentelemetry-semantic_conventions
+    opentelemetry-semantic_conventions (1.37.0)
+      opentelemetry-api (~> 1.0)
     os (1.1.4)
     ostruct (0.6.3)
     pry (0.15.2)
@@ -120,6 +140,8 @@ DEPENDENCIES
   memory_profiler (~> 0.9)
   mutex_m
   openfeature-sdk (= 0.3.1)
+  opentelemetry-metrics-sdk (>= 0.8)
+  opentelemetry-sdk (~> 1.1)
   os (~> 1.1)
   ostruct
   pry

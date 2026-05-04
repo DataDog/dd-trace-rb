@@ -142,3 +142,47 @@ logger.debug("Processing DD_CUSTOM_METRIC_NAME") # rubocop:disable CustomCops/En
 ### Additional information
 
 See docs/AccessEnvironmentVariables.md for details.
+
+## ExceptionMessageCop
+
+The `CustomCops::ExceptionMessageCop` enforces consistent exception logging format.
+
+### Purpose
+
+`Exception#to_s` and `Exception#message` have different contracts in Ruby. Subclasses can override them independently, and `to_s` is the method Ruby calls during string interpolation (`"#{e}"`). Using `e.message` directly can produce different output than `#{e}` when a subclass overrides one without the other. The codebase convention is `"#{e.class}: #{e}"`. This cop enforces it by detecting `e.message`, `e.class.name`, and bare `#{e}` without `#{e.class}` inside rescue blocks.
+
+### Examples
+
+#### Bad
+
+```ruby
+rescue => e
+  log("#{e.class.name}: #{e.message}")
+  log("#{e.class.name} #{e.message}")
+  log("error: #{e.message}")
+  log("error: #{e}")           # missing class name
+```
+
+#### Good
+
+```ruby
+rescue => e
+  log("#{e.class}: #{e}")
+```
+
+### Auto-correction
+
+The cop auto-corrects within string interpolation only:
+
+- `#{e.message}` → `#{e}`
+- `#{e.class.name}` → `#{e.class}`
+
+Outside interpolation (e.g., `log(e.message)`), the cop flags the offense but does not auto-correct, since the replacement may change semantics.
+
+### Testing
+
+Run the cop tests with:
+
+```bash
+bundle exec rspec spec/rubocop/exception_message_cop_spec.rb
+```
