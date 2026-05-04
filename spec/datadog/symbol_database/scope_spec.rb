@@ -247,7 +247,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
       expect(hash[:scopes].first[:scopes].first[:scopes].first[:scope_type]).to eq('METHOD')
     end
 
-    it 'includes injectable lines fields on METHOD scope with ranges' do
+    it 'includes targetable lines fields on METHOD scope with ranges' do
       scope = described_class.new(
         scope_type: 'METHOD',
         name: 'my_method',
@@ -272,7 +272,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
       expect(hash).not_to have_key(:injectible_lines)
     end
 
-    it 'excludes injectable lines fields from CLASS scope' do
+    it 'excludes targetable lines fields from CLASS scope' do
       scope = described_class.new(
         scope_type: 'CLASS',
         name: 'MyClass',
@@ -284,7 +284,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
       expect(hash).not_to have_key(:injectible_lines)
     end
 
-    it 'excludes injectable lines fields from MODULE scope' do
+    it 'excludes targetable lines fields from MODULE scope' do
       scope = described_class.new(
         scope_type: 'MODULE',
         name: 'MyModule',
@@ -296,7 +296,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
       expect(hash).not_to have_key(:injectible_lines)
     end
 
-    it 'excludes injectable lines fields from FILE scope' do
+    it 'excludes targetable lines fields from FILE scope' do
       scope = described_class.new(
         scope_type: 'FILE',
         name: '/app/test.rb',
