@@ -116,8 +116,7 @@ module Datadog
 
         wrap_in_file_scope(source_file, [inner_scope])
       rescue => e
-        mod_name = safe_mod_name(mod) || '<unknown>'
-        @logger.debug { "symdb: failed to extract #{mod_name}: #{e.class}: #{e}" }
+        @logger.debug { "symdb: failed to extract #{mod_name || '<unknown>'}: #{e.class}: #{e}" }
         @telemetry&.inc('tracers', 'symbol_database.extract_error', 1)
         nil
       end
@@ -168,7 +167,9 @@ module Datadog
         # CRITICAL: Exclude entire Datadog namespace (prevents circular extraction)
         # Matches Java: className.startsWith("com/datadog/")
         # Matches Python: packages.is_user_code() excludes ddtrace.*
-        return false if mod_name.start_with?('Datadog::')
+        # Note: bare 'Datadog' must be checked separately — start_with?('Datadog::')
+        # doesn't match the root module itself.
+        return false if mod_name == 'Datadog' || mod_name.start_with?('Datadog::')
 
         # Exclude Ruby root classes. These are never user code, but
         # find_source_file can return a user-code path for them via
@@ -352,7 +353,7 @@ module Datadog
           source_file: source_file,
           start_line: UNKNOWN_MIN_LINE,
           end_line: UNKNOWN_MAX_LINE,
-          symbols: extract_module_symbols(mod)
+          symbols: extract_scope_symbols(mod)
         )
       end
 
@@ -372,24 +373,31 @@ module Datadog
           end_line: end_line,
           language_specifics: build_class_language_specifics(klass),
           scopes: extract_method_scopes(klass),
-          symbols: extract_class_symbols(klass)
+          symbols: extract_scope_symbols(klass)
         )
       end
 
-      # Calculate class line range from method locations
+      # Calculate class line range from method locations.
+      # Start from the earliest method start, end at the latest method end (derived
+      # from iseq trace_points so methods spanning multiple lines aren't truncated).
       # @param klass [Class] The class
       # @param methods [Array<Symbol>] Method names
       # @return [Array<Integer, Integer>] [start_line, end_line]
       def calculate_class_line_range(klass, methods)
-        lines = Core::Utils::Array.filter_map(methods) do |method_name|
+        starts = []
+        ends = []
+        methods.each do |method_name|
           method = klass.instance_method(method_name)
           location = method.source_location
-          location[1] if location && location[0]
+          next unless location && location[0]
+          starts << location[1]
+          _ranges, method_end = extract_injectable_lines(method, location[1])
+          ends << method_end
         end
 
-        return [UNKNOWN_MIN_LINE, UNKNOWN_MAX_LINE] if lines.empty?
+        return [UNKNOWN_MIN_LINE, UNKNOWN_MAX_LINE] if starts.empty?
 
-        [lines.min, lines.max]
+        [starts.min, ends.max]
       rescue => e
         @logger.debug { "symdb: error calculating line range for #{klass.name}: #{e.class}: #{e}" }
         [UNKNOWN_MIN_LINE, UNKNOWN_MAX_LINE]
@@ -404,13 +412,16 @@ module Datadog
         # Superclass chain (exclude Object and BasicObject).
         # Emitted as an array named super_classes — consistent with Java, .NET, and Python.
         # Array allows for multiple entries if future Ruby versions or mixins expand the chain.
+        # Anonymous superclasses (class Foo < Class.new { ... }) have nil name; compact to skip.
         if klass.superclass && klass.superclass != Object && klass.superclass != BasicObject
-          # steep:ignore:start
-          specifics[:super_classes] = [klass.superclass.name]
-          # steep:ignore:end
+          super_name = klass.superclass.name # steep:ignore
+          specifics[:super_classes] = [super_name] if super_name
         end
 
-        # Included modules (exclude common ones)
+        # Included modules (exclude common ones).
+        # included_modules returns the entire ancestor chain's mixins, not only directly
+        # included ones. This is intentional: the field reports "modules this class
+        # responds to," which is what the consumer (UI navigation, probe context) needs.
         included = klass.included_modules.map(&:name).reject do |name|
           name.nil? || EXCLUDED_COMMON_MODULES.any? { |prefix| name.start_with?(prefix) }
         end
@@ -433,79 +444,6 @@ module Datadog
       rescue => e
         @logger.debug { "symdb: error building language specifics for #{klass.name}: #{e.class}: #{e}" }
         {}
-      end
-
-      # Extract MODULE-level symbols (constants, module functions)
-      # @param mod [Module] The module
-      # @return [Array<Symbol>] Module symbols
-      def extract_module_symbols(mod)
-        symbols = []
-
-        # Constants (STATIC_FIELD)
-        mod.constants(false).each do |const_name|
-          const_value = mod.const_get(const_name)
-          # Skip classes (they're scopes, not symbols)
-          next if const_value.is_a?(Module)
-
-          symbols << Symbol.new(
-            symbol_type: 'STATIC_FIELD',
-            name: const_name.to_s,
-            line: UNKNOWN_MIN_LINE,  # Available in entire module
-            type: const_value.class.name
-          )
-        rescue NameError, LoadError, NoMethodError => e
-          # Expected: constant removed or not yet defined, autoload failure,
-          # or const value missing #class. Skip silently at debug.
-          @logger.debug { "symdb: skipping constant #{const_name}: #{e.class}: #{e}" }
-        rescue => e
-          # Unexpected: SecurityError, circular-dependency errors, etc. Same
-          # skip behavior, separate log site so unexpected errors are easy
-          # to spot when triaging.
-          @logger.debug { "symdb: unexpected error reading constant #{const_name}: #{e.class}: #{e}" }
-        end
-
-        symbols
-      rescue => e
-        @logger.debug { "symdb: failed to extract module symbols from #{mod.name}: #{e.class}: #{e}" }
-        []
-      end
-
-      # Extract CLASS-level symbols (class variables, constants)
-      # @param klass [Class] The class
-      # @return [Array<Symbol>] Class symbols
-      def extract_class_symbols(klass)
-        symbols = []
-
-        # Class variables (STATIC_FIELD)
-        klass.class_variables(false).each do |var_name|
-          symbols << Symbol.new(
-            symbol_type: 'STATIC_FIELD',
-            name: var_name.to_s,
-            line: UNKNOWN_MIN_LINE
-          )
-        end
-
-        # Constants (STATIC_FIELD) - excluding nested classes
-        klass.constants(false).each do |const_name|
-          const_value = klass.const_get(const_name)
-          next if const_value.is_a?(Module)  # Skip classes/modules
-
-          symbols << Symbol.new(
-            symbol_type: 'STATIC_FIELD',
-            name: const_name.to_s,
-            line: UNKNOWN_MIN_LINE,
-            type: const_value.class.name
-          )
-        rescue NameError, LoadError, NoMethodError => e
-          @logger.debug { "symdb: skipping class constant #{const_name}: #{e.class}: #{e}" }
-        rescue => e
-          @logger.debug { "symdb: unexpected error reading class constant #{const_name}: #{e.class}: #{e}" }
-        end
-
-        symbols
-      rescue => e
-        @logger.debug { "symdb: failed to extract class symbols from #{klass.name}: #{e.class}: #{e}" }
-        []
       end
 
       # Extract method scopes from a class
@@ -559,7 +497,7 @@ module Datadog
             method_type: method_type.to_s,
             arity: method.arity
           },
-          symbols: extract_method_parameters(method, method_type)
+          symbols: extract_method_parameters(method)
         )
       rescue => e
         @logger.debug { "symdb: failed to extract method #{klass.name}##{method_name}: #{e.class}: #{e}" }
@@ -635,9 +573,8 @@ module Datadog
       # Java skips slot 0 (this) for the same reason. .NET uploads `this` but the web-ui
       # filters it for dotnet. Ruby follows Java's approach: don't upload it.
       # @param method [UnboundMethod] The method
-      # @param method_type [Symbol] :instance or :class (unused, kept for API compatibility)
       # @return [Array<Symbol>] Parameter symbols
-      def extract_method_parameters(method, method_type = :instance)
+      def extract_method_parameters(method)
         method_name = begin
           method.name.to_s
         rescue => e
@@ -844,10 +781,13 @@ module Datadog
         # Recurse into child scopes (nested modules/classes)
         child_scopes = node[:children].values.map { |child| convert_node_to_scope(child) }
 
-        # Compute line range from method start lines
-        lines = method_scopes.map(&:start_line).reject { |l| l == UNKNOWN_MIN_LINE } # steep:ignore
-        start_line = lines.empty? ? UNKNOWN_MIN_LINE : lines.min
-        end_line = lines.empty? ? UNKNOWN_MAX_LINE : lines.max
+        # Compute line range: start from the earliest method start, end at the latest
+        # method end. Using max(start_line) would underreport the class's end_line for
+        # classes whose last method spans multiple lines.
+        starts = method_scopes.map(&:start_line).reject { |l| l == UNKNOWN_MIN_LINE } # steep:ignore
+        ends = method_scopes.map(&:end_line).reject { |l| l == UNKNOWN_MAX_LINE } # steep:ignore
+        start_line = starts.empty? ? UNKNOWN_MIN_LINE : starts.min
+        end_line = ends.empty? ? UNKNOWN_MAX_LINE : ends.max
 
         # Extract symbols (constants, class variables) if we have the actual module object
         symbols = node[:mod] ? extract_scope_symbols(node[:mod]) : []
@@ -897,7 +837,7 @@ module Datadog
             method_type: 'instance',
             arity: method.arity
           },
-          symbols: extract_method_parameters(method, :instance)
+          symbols: extract_method_parameters(method)
         )
       rescue => e
         klass_name = klass ? (safe_mod_name(klass) || '<unknown>') : '<unknown>'
@@ -906,7 +846,7 @@ module Datadog
       end
 
       # Extract symbols (constants, class variables) from a module or class.
-      # Unified version of extract_module_symbols and extract_class_symbols.
+      # Class variables are emitted only for classes; constants for both.
       # @param mod [Module] The module or class
       # @return [Array<Symbol>] Symbols
       def extract_scope_symbols(mod)
@@ -923,8 +863,10 @@ module Datadog
           end
         end
 
-        # Constants (excluding nested modules/classes)
+        # Constants (excluding nested modules/classes).
+        # Skip autoloaded constants to avoid triggering loading as a side effect.
         mod.constants(false).each do |const_name|
+          next if mod.autoload?(const_name)
           const_value = mod.const_get(const_name)
           next if const_value.is_a?(Module)
 

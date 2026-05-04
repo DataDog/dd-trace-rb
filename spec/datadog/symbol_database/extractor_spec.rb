@@ -358,6 +358,15 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
 
         expect(class_scope.language_specifics).not_to have_key(:super_classes)
       end
+
+      it 'omits super_classes when superclass.name is nil (anonymous superclass)' do
+        # build_class_language_specifics path: anonymous superclass returns nil from #name.
+        # Result should drop the entry rather than emit [nil].
+        anon_super = Class.new
+        derived = Class.new(anon_super)
+        specifics = extractor.send(:build_class_language_specifics, derived)
+        expect(specifics).not_to have_key(:super_classes)
+      end
     end
 
     context 'with mixins' do
@@ -1247,6 +1256,10 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       expect(extractor.send(:user_code_module?, Datadog::SymbolDatabase::Extractor)).to be false
     end
 
+    it 'returns false for the bare Datadog root module' do
+      expect(extractor.send(:user_code_module?, Datadog)).to be false
+    end
+
     it 'returns false for anonymous modules' do
       expect(extractor.send(:user_code_module?, Module.new)).to be false
     end
@@ -1603,6 +1616,22 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
     end
   end
 
+  describe '.resolve_scope_type' do
+    it 'returns CLASS for a class' do
+      stub_const('ResolveScopeTypeFixtureClass', Class.new)
+      expect(extractor.send(:resolve_scope_type, 'ResolveScopeTypeFixtureClass')).to eq('CLASS')
+    end
+
+    it 'returns MODULE for a module' do
+      stub_const('ResolveScopeTypeFixtureModule', Module.new)
+      expect(extractor.send(:resolve_scope_type, 'ResolveScopeTypeFixtureModule')).to eq('MODULE')
+    end
+
+    it 'returns MODULE as fallback when constant lookup fails' do
+      expect(extractor.send(:resolve_scope_type, 'ResolveScopeTypeAbsolutelyNotDefined')).to eq('MODULE')
+    end
+  end
+
   # ── extract_all tests ──────────────────────────────────────────────
   # These test the production path: two-pass extraction with FQN-based nesting
   # and per-file method grouping.
@@ -1636,6 +1665,20 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
     def extract_all_clean
       GC.start
       extractor.extract_all
+    end
+
+    context 'top-level rescue' do
+      let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component, inc: nil) }
+      let(:extractor_with_telemetry) do
+        described_class.new(logger: logger, settings: settings, telemetry: telemetry)
+      end
+
+      it 'returns [] and increments telemetry when collection raises' do
+        allow(extractor_with_telemetry).to receive(:collect_extractable_modules).and_raise(StandardError, 'boom')
+        result = extractor_with_telemetry.extract_all
+        expect(result).to eq([])
+        expect(telemetry).to have_received(:inc).with('tracers', 'symbol_database.extract_all_error', 1)
+      end
     end
 
     context 'simple class in one file' do
