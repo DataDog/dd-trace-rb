@@ -65,7 +65,7 @@ module Datadog
       rescue Exception => e # rubocop:disable Lint/RescueException
         Datadog.logger.warn(
           "Profiling::Scheduler thread error. " \
-          "Cause: #{e.class}: #{e} Location: #{Array(e.backtrace).first}"
+          "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
         )
         on_failure_proc&.call
         Datadog::Core::Telemetry::Logger.report(e, description: "Profiling::Scheduler thread error")
@@ -136,7 +136,7 @@ module Datadog
           transport.export(flush)
         rescue => e
           Datadog.logger.warn(
-            "Unable to report profile. Cause: #{e.class}: #{e} Location: #{Array(e.backtrace).first}"
+            "Unable to report profile. Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
           )
           Datadog::Core::Telemetry::Logger.report(e, description: "Unable to report profile")
         end
