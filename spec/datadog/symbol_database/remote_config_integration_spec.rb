@@ -42,6 +42,19 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
     # tests don't wait the production 5 seconds.
     Datadog::SymbolDatabase::Component.reset_uploaded_this_process_for_tests!
     stub_const('Datadog::SymbolDatabase::Component::EXTRACT_DEBOUNCE_INTERVAL', 0.05)
+
+    # Limit ObjectSpace.each_object(Module) to the test class hierarchy so
+    # extract_all completes in milliseconds rather than tens of seconds.
+    # Real extraction logic (find_source_file, build_file_trees, etc.) still
+    # runs against the test modules — only the iteration scope is constrained.
+    # Without this stub, full ObjectSpace iteration after thousands of prior
+    # tests in spec:main can exceed any reasonable wait_for_idle timeout
+    # (~30-40s observed in Ruby 2.6 [1] core_old shard CI).
+    test_modules = [RCIntegrationTestModule, RCIntegrationTestModule::RCIntegrationTestClass]
+    allow(ObjectSpace).to receive(:each_object).and_call_original
+    allow(ObjectSpace).to receive(:each_object).with(Module) do |&block|
+      test_modules.each(&block)
+    end
   end
 
   # Load test code in a temp dir (not /spec/) so it passes user_code_path? filter
