@@ -4,50 +4,49 @@ module CustomCops
   # Custom cop that enforces consistent exception logging format.
   #
   # `Exception#to_s` and `Exception#message` have different contracts in Ruby.
-  # Subclasses can override them independently, and `to_s` is the method Ruby
-  # calls during string interpolation (`"#{e}"`). Using `e.message` directly
-  # can produce different output than `#{e}` when a subclass overrides one
-  # without the other.
+  # `Exception#to_s` reads the message ivar directly and returns the class name
+  # when it's nil. `Exception#message` calls `to_s` by default — but exception
+  # subclasses commonly override `message` to compute a string from instance
+  # variables (Bundler, Rails ActionView/ActiveSupport, RubyGems, and several
+  # classes inside this gem do this). When `message` is overridden without a
+  # matching `to_s` override, `e.to_s` (and therefore `"#{e}"`) returns just
+  # the class name, while `e.message` returns the actual error string.
   #
-  # The codebase convention is `"#{e.class}: #{e}"`. This cop enforces it by
-  # detecting `e.message` and `e.class.name` inside rescue blocks.
-  #
-  # @safety
-  #   This cop's autocorrection is unsafe because `e.message` and `e.to_s`
-  #   can differ if a custom exception overrides `to_s` without overriding
-  #   `message`, or vice versa. The convention prefers `to_s` (via interpolation).
+  # The codebase convention is `"#{e.class}: #{e.message}"`. This cop enforces
+  # it by detecting bare `"#{e}"` interpolations and `e.class.name` inside
+  # rescue blocks.
   #
   # @example
   #   # bad
   #   rescue => e
   #     log("#{e.class.name}: #{e.message}")
-  #     log("#{e.class.name} #{e.message}")
-  #     log("error: #{e.message}")
-  #     log("error: #{e}")           # missing class name
+  #     log("#{e.class}: #{e}")            # bare e -- loses overridden message
+  #     log("error: #{e}")                 # also missing class name
   #
   #   # good
   #   rescue => e
-  #     log("#{e.class}: #{e}")
+  #     log("#{e.class}: #{e.message}")
   class ExceptionMessageCop < RuboCop::Cop::Base
     extend RuboCop::Cop::AutoCorrector
 
     # rubocop:disable Lint/InterpolationCheck
-    MSG_MESSAGE = 'Use the exception directly instead of `.message`. ' \
-                  '`to_s` and `message` have different contracts; `#{e}` calls `to_s`, which is the convention.'
+    MSG_BARE_EXCEPTION = 'Use `e.message` instead of bare `#{e}` interpolation. ' \
+                         '`#{e}` calls `to_s`, which bypasses `message` overrides on subclasses.'
 
     MSG_CLASS_NAME = 'Use `.class` instead of `.class.name`. ' \
                      '`Class#to_s` already returns the name; the extra `.name` call is redundant in interpolation.'
 
     MSG_MISSING_CLASS = 'Include `#{e.class}` when interpolating an exception. ' \
-                        'The convention is `"#{e.class}: #{e}"`.'
+                        'The convention is `"#{e.class}: #{e.message}"`.'
     # rubocop:enable Lint/InterpolationCheck
 
-    # Detect bare `#{e}` without `#{e.class}` in the same string
+    # Detect bare `#{e}` (use-message offense) and missing `#{e.class}` in the same string
     def on_dstr(node)
       return unless inside_rescue?(node)
 
-      rescue_vars_in_string = []
-      has_class_call = {}
+      bare_exception_lvars = []
+      message_call_nodes = []
+      class_call_vars = {}
 
       node.children.each do |child|
         next unless child.begin_type?
@@ -56,53 +55,65 @@ module CustomCops
         next unless expr
 
         if expr.lvar_type? && rescue_variable?(expr)
-          rescue_vars_in_string << expr
+          bare_exception_lvars << expr
+        elsif exception_message_call?(expr) && rescue_variable?(expr.receiver)
+          message_call_nodes << expr
         elsif class_reference?(expr)
           var_node = class_reference_variable(expr)
-          has_class_call[var_node.children.first] = true if var_node
+          class_call_vars[var_node.children.first] = true if var_node
         end
       end
 
-      rescue_vars_in_string.each do |var_node|
-        var_name = var_node.children.first
-        next if has_class_call[var_name]
+      bare_exception_lvars.each do |var_node|
+        add_offense(var_node, message: MSG_BARE_EXCEPTION) do |corrector|
+          corrector.replace(var_node, "#{var_node.source}.message")
+        end
+      end
 
-        add_offense(var_node, message: MSG_MISSING_CLASS)
+      # Missing-class check: any exception interpolation (bare or .message) in
+      # this string requires a matching `#{e.class}` somewhere in the string.
+      # Report once per offending variable name; the offense lands on the bare
+      # lvar (when present) or the full `e.message` send (when only that form
+      # appears) so the highlight covers the offending interpolation.
+      reported_names = {}
+      candidates = bare_exception_lvars + message_call_nodes
+      candidates.each do |target|
+        var_name =
+          if target.lvar_type?
+            target.children.first
+          else
+            target.receiver.children.first
+          end
+        next if class_call_vars[var_name]
+        next if reported_names[var_name]
+
+        reported_names[var_name] = true
+        add_offense(target, message: MSG_MISSING_CLASS)
       end
     end
 
-    # Detect `e.message` and `e.class.name` where `e` is a rescue variable
+    # Detect `e.class.name` where `e` is a rescue variable
     # @!method on_send
     def on_send(node)
       return unless inside_rescue?(node)
+      return unless exception_class_name_call?(node)
 
-      if exception_message_call?(node)
-        variable = node.receiver
-        return unless rescue_variable?(variable)
+      class_call = node.receiver
+      variable = class_call.receiver
+      return unless rescue_variable?(variable)
 
-        add_offense(node, message: MSG_MESSAGE) do |corrector|
-          if inside_interpolation?(node)
-            corrector.replace(node, variable.source)
-          end
-        end
-      elsif exception_class_name_call?(node)
-        class_call = node.receiver
-        variable = class_call.receiver
-        return unless rescue_variable?(variable)
-
-        add_offense(node, message: MSG_CLASS_NAME) do |corrector|
-          if inside_interpolation?(node)
-            corrector.replace(node, class_call.source)
-          end
+      add_offense(node, message: MSG_CLASS_NAME) do |corrector|
+        if inside_interpolation?(node)
+          corrector.replace(node, class_call.source)
         end
       end
     end
 
     private
 
-    # Check if this is `e.message`
+    # Check if this is `e.message` (no args) on a local variable
     def exception_message_call?(node)
-      node.send_type? &&
+      node&.send_type? &&
         node.method_name == :message &&
         node.arguments.empty? &&
         node.receiver&.lvar_type?
@@ -121,7 +132,7 @@ module CustomCops
 
     # Check if a variable node is bound by a rescue clause
     def rescue_variable?(node)
-      return false unless node.lvar_type?
+      return false unless node&.lvar_type?
 
       var_name = node.children.first
       rescue_node = find_rescue_ancestor(node)
@@ -216,7 +227,7 @@ module CustomCops
       parent = node.parent
       return false unless parent
 
-      # Direct interpolation: #{e.message}
+      # Direct interpolation: #{e.class.name}
       if parent.begin_type? && parent.parent&.dstr_type?
         return true
       end

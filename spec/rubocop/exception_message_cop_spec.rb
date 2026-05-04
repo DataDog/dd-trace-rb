@@ -9,14 +9,14 @@ require 'rubocop/custom_cops/exception_message_cop'
 RSpec.describe CustomCops::ExceptionMessageCop do
   subject(:cop) { described_class.new }
 
-  describe 'e.message detection' do
-    it 'registers an offense for e.message in string interpolation and auto-corrects' do
+  describe 'bare exception interpolation' do
+    it 'registers an offense for bare #{e} in interpolation and auto-corrects to .message' do
       expect_offense(<<~'RUBY')
         begin
           something
         rescue => e
-          log("#{e.message}")
-                 ^^^^^^^^^ CustomCops/ExceptionMessageCop: Use the exception directly instead of `.message`. `to_s` and `message` have different contracts; `#{e}` calls `to_s`, which is the convention.
+          log("#{e.class}: #{e}")
+                             ^ CustomCops/ExceptionMessageCop: Use `e.message` instead of bare `#{e}` interpolation. `#{e}` calls `to_s`, which bypasses `message` overrides on subclasses.
         end
       RUBY
 
@@ -24,18 +24,18 @@ RSpec.describe CustomCops::ExceptionMessageCop do
         begin
           something
         rescue => e
-          log("#{e}")
+          log("#{e.class}: #{e.message}")
         end
       RUBY
     end
 
-    it 'registers an offense for e.message in a longer interpolated string and auto-corrects' do
+    it 'registers an offense for bare #{e} in a longer interpolated string and auto-corrects' do
       expect_offense(<<~'RUBY')
         begin
           something
         rescue => e
-          log("error: #{e.class}: #{e.message}")
-                                    ^^^^^^^^^ CustomCops/ExceptionMessageCop: Use the exception directly instead of `.message`. `to_s` and `message` have different contracts; `#{e}` calls `to_s`, which is the convention.
+          log("#{e.class} happened: #{e}")
+                                      ^ CustomCops/ExceptionMessageCop: Use `e.message` instead of bare `#{e}` interpolation. `#{e}` calls `to_s`, which bypasses `message` overrides on subclasses.
         end
       RUBY
 
@@ -43,37 +43,35 @@ RSpec.describe CustomCops::ExceptionMessageCop do
         begin
           something
         rescue => e
-          log("error: #{e.class}: #{e}")
+          log("#{e.class} happened: #{e.message}")
         end
       RUBY
-    end
-
-    it 'registers an offense for e.message outside interpolation but does not auto-correct' do
-      expect_offense(<<~'RUBY')
-        begin
-          something
-        rescue => e
-          log(e.message)
-              ^^^^^^^^^ CustomCops/ExceptionMessageCop: Use the exception directly instead of `.message`. `to_s` and `message` have different contracts; `#{e}` calls `to_s`, which is the convention.
-        end
-      RUBY
-
-      expect_no_corrections
     end
 
     it 'does not register an offense outside a rescue block' do
-      expect_no_offenses(<<~RUBY)
+      expect_no_offenses(<<~'RUBY')
         e = SomeObject.new
-        log(e.message)
+        log("#{e}")
       RUBY
     end
 
-    it 'does not register an offense for message with arguments' do
+    it 'does not register an offense for `e.message` (the preferred form)' do
+      expect_no_offenses(<<~'RUBY')
+        begin
+          something
+        rescue => e
+          log("#{e.class}: #{e.message}")
+        end
+      RUBY
+    end
+
+    it 'does not flag bare `e` outside string interpolation' do
+      # `raise e`, `log(e)`, etc. are valid uses of the rescue variable.
       expect_no_offenses(<<~RUBY)
         begin
           something
         rescue => e
-          log(e.message(:detailed))
+          raise e
         end
       RUBY
     end
@@ -85,7 +83,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
         begin
           something
         rescue => e
-          log("#{e.class.name}: #{e}")
+          log("#{e.class.name}: #{e.message}")
                  ^^^^^^^^^^^^ CustomCops/ExceptionMessageCop: Use `.class` instead of `.class.name`. `Class#to_s` already returns the name; the extra `.name` call is redundant in interpolation.
         end
       RUBY
@@ -94,7 +92,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
         begin
           something
         rescue => e
-          log("#{e.class}: #{e}")
+          log("#{e.class}: #{e.message}")
         end
       RUBY
     end
@@ -121,13 +119,13 @@ RSpec.describe CustomCops::ExceptionMessageCop do
   end
 
   describe 'combined patterns' do
-    it 'registers offenses for both e.class.name and e.message in one string' do
+    it 'registers offenses for both e.class.name and bare e and auto-corrects both' do
       expect_offense(<<~'RUBY')
         begin
           something
         rescue => e
-          log("#{e.class.name} #{e.message}")
-                                 ^^^^^^^^^ CustomCops/ExceptionMessageCop: Use the exception directly instead of `.message`. `to_s` and `message` have different contracts; `#{e}` calls `to_s`, which is the convention.
+          log("#{e.class.name} #{e}")
+                                 ^ CustomCops/ExceptionMessageCop: Use `e.message` instead of bare `#{e}` interpolation. `#{e}` calls `to_s`, which bypasses `message` overrides on subclasses.
                  ^^^^^^^^^^^^ CustomCops/ExceptionMessageCop: Use `.class` instead of `.class.name`. `Class#to_s` already returns the name; the extra `.name` call is redundant in interpolation.
         end
       RUBY
@@ -136,7 +134,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
         begin
           something
         rescue => e
-          log("#{e.class} #{e}")
+          log("#{e.class} #{e.message}")
         end
       RUBY
     end
@@ -156,7 +154,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
         begin
           something
         rescue => e
-          errors.each { |e| log("#{e.message}") }
+          errors.each { |e| log("#{e}") }
         end
       RUBY
     end
@@ -166,7 +164,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
         begin
           something
         rescue => e
-          pairs.each { |(k, e)| log("#{e.message}") }
+          pairs.each { |(k, e)| log("#{e}") }
         end
       RUBY
     end
@@ -176,7 +174,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
         begin
           something
         rescue => e
-          errors.each { |e| log("error: #{e}") }
+          errors.each { |e| log("error: #{e.message}") }
         end
       RUBY
     end
@@ -187,7 +185,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
           something
         rescue => e
           define_method(:helper) do |e|
-            log("#{e.message}")
+            log("#{e}")
           end
         end
       RUBY
@@ -199,8 +197,8 @@ RSpec.describe CustomCops::ExceptionMessageCop do
           something
         rescue => e
           errors.each { |e| log(e) }
-          log("#{e.message}")
-                 ^^^^^^^^^ CustomCops/ExceptionMessageCop: Use the exception directly instead of `.message`. `to_s` and `message` have different contracts; `#{e}` calls `to_s`, which is the convention.
+          log("#{e.class}: #{e}")
+                             ^ CustomCops/ExceptionMessageCop: Use `e.message` instead of bare `#{e}` interpolation. `#{e}` calls `to_s`, which bypasses `message` overrides on subclasses.
         end
       RUBY
     end
@@ -212,8 +210,8 @@ RSpec.describe CustomCops::ExceptionMessageCop do
         begin
           something
         rescue => err
-          log("#{err.message}")
-                 ^^^^^^^^^^^ CustomCops/ExceptionMessageCop: Use the exception directly instead of `.message`. `to_s` and `message` have different contracts; `#{e}` calls `to_s`, which is the convention.
+          log("#{err.class}: #{err}")
+                               ^^^ CustomCops/ExceptionMessageCop: Use `e.message` instead of bare `#{e}` interpolation. `#{e}` calls `to_s`, which bypasses `message` overrides on subclasses.
         end
       RUBY
 
@@ -221,7 +219,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
         begin
           something
         rescue => err
-          log("#{err}")
+          log("#{err.class}: #{err.message}")
         end
       RUBY
     end
@@ -231,7 +229,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
         begin
           something
         rescue => err
-          log("#{err.class.name}")
+          log("#{err.class.name}: #{err.message}")
                  ^^^^^^^^^^^^^^ CustomCops/ExceptionMessageCop: Use `.class` instead of `.class.name`. `Class#to_s` already returns the name; the extra `.name` call is redundant in interpolation.
         end
       RUBY
@@ -240,56 +238,67 @@ RSpec.describe CustomCops::ExceptionMessageCop do
         begin
           something
         rescue => err
-          log("#{err.class}")
+          log("#{err.class}: #{err.message}")
         end
       RUBY
     end
   end
 
   describe 'missing class detection' do
-    it 'registers an offense for bare exception without class in interpolation' do
+    it 'flags bare `#{e}` first; the missing-class offense surfaces on a second pass after autocorrect' do
+      # RuboCop deduplicates offenses on the same node, so the first pass shows
+      # only the bare-exception offense. After autocorrect to `e.message`, a
+      # subsequent pass flags the still-missing class — verified in the next test.
       expect_offense(<<~'RUBY')
         begin
           something
         rescue => e
           log("error: #{e}")
-                        ^ CustomCops/ExceptionMessageCop: Include `#{e.class}` when interpolating an exception. The convention is `"#{e.class}: #{e}"`.
+                        ^ CustomCops/ExceptionMessageCop: Use `e.message` instead of bare `#{e}` interpolation. `#{e}` calls `to_s`, which bypasses `message` overrides on subclasses.
+        end
+      RUBY
+
+      expect_correction(<<~'RUBY')
+        begin
+          something
+        rescue => e
+          log("error: #{e.message}")
         end
       RUBY
     end
 
-    it 'registers an offense for bare exception with different variable name' do
+    it 'registers a missing-class offense for `#{e.message}` without class' do
       expect_offense(<<~'RUBY')
         begin
           something
-        rescue => err
-          log("error: #{err}")
-                        ^^^ CustomCops/ExceptionMessageCop: Include `#{e.class}` when interpolating an exception. The convention is `"#{e.class}: #{e}"`.
+        rescue => e
+          log("error: #{e.message}")
+                        ^^^^^^^^^ CustomCops/ExceptionMessageCop: Include `#{e.class}` when interpolating an exception. The convention is `"#{e.class}: #{e.message}"`.
         end
       RUBY
     end
 
-    it 'does not register an offense when class is present in the same string' do
+    it 'does not register a missing-class offense when class is present in the same string' do
       expect_no_offenses(<<~'RUBY')
         begin
           something
         rescue => e
-          log("#{e.class}: #{e}")
+          log("#{e.class}: #{e.message}")
         end
       RUBY
     end
 
-    it 'does not register an offense when class is present elsewhere in the same string' do
+    it 'does not register a missing-class offense when class is present elsewhere in the same string' do
       expect_no_offenses(<<~'RUBY')
         begin
           something
         rescue => e
-          log("#{e.class} happened: #{e}")
+          log("#{e.class} happened: #{e.message}")
         end
       RUBY
     end
 
-    it 'does not register an offense outside a rescue block' do
+    it 'does not register a missing-class offense outside a rescue block' do
       expect_no_offenses(<<~'RUBY')
         e = SomeObject.new
         log("error: #{e}")
@@ -303,7 +312,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
         begin
           something
         rescue => e
-          log("#{e.class}: #{e}")
+          log("#{e.class}: #{e.message}")
         end
       RUBY
     end

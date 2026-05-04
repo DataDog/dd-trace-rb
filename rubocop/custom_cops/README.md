@@ -149,7 +149,9 @@ The `CustomCops::ExceptionMessageCop` enforces consistent exception logging form
 
 ### Purpose
 
-`Exception#to_s` and `Exception#message` have different contracts in Ruby. Subclasses can override them independently, and `to_s` is the method Ruby calls during string interpolation (`"#{e}"`). Using `e.message` directly can produce different output than `#{e}` when a subclass overrides one without the other. The codebase convention is `"#{e.class}: #{e}"`. This cop enforces it by detecting `e.message`, `e.class.name`, and bare `#{e}` without `#{e.class}` inside rescue blocks.
+`Exception#to_s` and `Exception#message` have different contracts in Ruby. `Exception#to_s` reads the message ivar directly and returns the class name when it's nil. `Exception#message` calls `to_s` by default — but exception subclasses commonly override `message` to compute a string from instance variables (Bundler, Rails ActionView/ActiveSupport, RubyGems, and several classes inside this gem do this). When `message` is overridden without a matching `to_s` override, `e.to_s` (and therefore `"#{e}"`) returns just the class name, while `e.message` returns the actual error string.
+
+The codebase convention is `"#{e.class}: #{e.message}"`. This cop enforces it by detecting `e.class.name` and bare `#{e}` interpolations inside rescue blocks, and by requiring `#{e.class}` alongside any exception interpolation.
 
 ### Examples
 
@@ -157,27 +159,29 @@ The `CustomCops::ExceptionMessageCop` enforces consistent exception logging form
 
 ```ruby
 rescue => e
-  log("#{e.class.name}: #{e.message}")
-  log("#{e.class.name} #{e.message}")
-  log("error: #{e.message}")
-  log("error: #{e}")           # missing class name
+  log("#{e.class.name}: #{e.message}")  # e.class.name should be e.class
+  log("#{e.class}: #{e}")               # bare #{e} should be #{e.message}
+  log("error: #{e.message}")            # missing class name
+  log("error: #{e}")                    # both: bare e and missing class
 ```
 
 #### Good
 
 ```ruby
 rescue => e
-  log("#{e.class}: #{e}")
+  log("#{e.class}: #{e.message}")
 ```
 
 ### Auto-correction
 
 The cop auto-corrects within string interpolation only:
 
-- `#{e.message}` → `#{e}`
+- `#{e}` → `#{e.message}`
 - `#{e.class.name}` → `#{e.class}`
 
-Outside interpolation (e.g., `log(e.message)`), the cop flags the offense but does not auto-correct, since the replacement may change semantics.
+The missing-`#{e.class}` rule is not auto-corrected — it requires a human to choose where the class name belongs in the surrounding text.
+
+Outside interpolation (e.g., `log(e.class.name)`), the cop flags the offense but does not auto-correct, since the replacement may change semantics.
 
 ### Testing
 
