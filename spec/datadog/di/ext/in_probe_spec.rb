@@ -118,6 +118,16 @@ RSpec.describe "Datadog::DI re-entrancy guard primitives" do
       expect { Datadog::DI.array_empty?(arr) }.not_to raise_error
       expect(Datadog::DI.array_empty?(arr)).to be true
     end
+
+    it "raises TypeError when the argument is not an Array" do
+      # RARRAY_LEN reads struct fields directly and would return garbage
+      # for any non-Array type. Check_Type guards against passing the
+      # wrong type by raising before the read.
+      expect { Datadog::DI.array_empty?({}) }.to raise_error(TypeError)
+      expect { Datadog::DI.array_empty?("string") }.to raise_error(TypeError)
+      expect { Datadog::DI.array_empty?(nil) }.to raise_error(TypeError)
+      expect { Datadog::DI.array_empty?(42) }.to raise_error(TypeError)
+    end
   end
 
   describe ".hash_empty?" do
@@ -141,6 +151,16 @@ RSpec.describe "Datadog::DI re-entrancy guard primitives" do
       h = hash_class.new
       expect { Datadog::DI.hash_empty?(h) }.not_to raise_error
       expect(Datadog::DI.hash_empty?(h)).to be true
+    end
+
+    it "raises TypeError when the argument is not a Hash" do
+      # RHASH_SIZE reads struct fields directly and would return garbage
+      # for any non-Hash type. Check_Type guards against passing the
+      # wrong type by raising before the read.
+      expect { Datadog::DI.hash_empty?([]) }.to raise_error(TypeError)
+      expect { Datadog::DI.hash_empty?("string") }.to raise_error(TypeError)
+      expect { Datadog::DI.hash_empty?(nil) }.to raise_error(TypeError)
+      expect { Datadog::DI.hash_empty?(42) }.to raise_error(TypeError)
     end
   end
 end
