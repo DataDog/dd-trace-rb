@@ -1,6 +1,7 @@
 require "datadog/di/spec_helper"
 require "datadog/di"
 require "set"
+require "securerandom"
 
 # Integration tests that set DI probes on standard library methods
 # invoked by DI's own processing pipeline.
@@ -307,15 +308,24 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
   end
 
   # ----------------------------------------------------------------
-  # Line probe on Ruby-implemented stdlib file (set.rb)
+  # Line probe on Ruby-implemented stdlib file (SecureRandom.uuid)
   # ----------------------------------------------------------------
 
-  context "line probe on Set#include? (set.rb)" do
-    # Set#include? is called by DI's redactor during serialization
-    # (redactor.rb: `redacted_identifiers.include?(normalize(name))`).
-    # set.rb is Ruby-implemented, so line probes can target it.
-    # Since set.rb is loaded before code tracking starts, we must use
-    # untargeted trace points.
+  context "line probe on SecureRandom.uuid" do
+    # SecureRandom.uuid is called by DI's probe notification builder
+    # during every snapshot generation
+    # (probe_notification_builder.rb: `id: SecureRandom.uuid`).
+    #
+    # The host file moves between Ruby versions: on 2.6/3.0 the method
+    # is defined in lib/securerandom.rb; on 3.2+ it lives in
+    # lib/random/formatter.rb and is extended into SecureRandom. The
+    # test discovers the file dynamically via source_location, so the
+    # move is invisible to the spec.
+    #
+    # Both files are Ruby-implemented across the supported Ruby
+    # version range, so line probes can target them. Since they are
+    # loaded before code tracking starts, we must use untargeted trace
+    # points.
 
     let(:settings) do
       Datadog::Core::Configuration::Settings.new.tap do |settings|
@@ -327,29 +337,30 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
       end
     end
 
-    let(:set_include_source_location) do
-      loc = Set.instance_method(:include?).source_location
+    let(:uuid_source_location) do
+      loc = SecureRandom.method(:uuid).source_location
       unless loc
-        raise "Set#include? has no Ruby source location on Ruby #{RUBY_VERSION} " \
-          "(likely reimplemented in C). This test verifies line probes on a " \
-          "Ruby-implemented stdlib file called by DI's redactor; the target must " \
-          "be Ruby-implemented in the current Ruby version. Either pick a " \
-          "different Ruby-implemented target or replace this test."
+        raise "SecureRandom.uuid has no Ruby source location on Ruby " \
+          "#{RUBY_VERSION} (likely reimplemented in C). This test verifies " \
+          "line probes on a Ruby-implemented stdlib file called by DI's " \
+          "snapshot pipeline; the target must be Ruby-implemented in the " \
+          "current Ruby version. Either pick a different Ruby-implemented " \
+          "target or replace this test."
       end
       loc
     end
 
-    let(:set_source_file) { set_include_source_location.first }
+    let(:source_file) { uuid_source_location.first }
 
-    # The body of Set#include? — the @hash[o] line, one after `def`
-    let(:set_include_line) { set_include_source_location.last + 1 }
+    # First executable line of SecureRandom.uuid, one after `def`
+    let(:source_line) { uuid_source_location.last + 1 }
 
     let(:probe) do
       Datadog::DI::Probe.new(
-        id: "stdlib-set-include-line",
+        id: "stdlib-securerandom-uuid-line",
         type: :log,
-        file: set_source_file,
-        line_no: set_include_line,
+        file: source_file,
+        line_no: source_line,
         capture_snapshot: true,
       )
     end
@@ -357,9 +368,8 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
     context "with snapshot capture" do
       it "installs line probe on stdlib and fires" do
         payloads = run_stdlib_probe_test(probe) do
-          s = Set.new([:a, :b, :c])
-          expect(s.include?(:b)).to be true
-          expect(s.include?(:d)).to be false
+          SecureRandom.uuid
+          SecureRandom.uuid
         end
 
         expect(payloads.length).to be >= 1
@@ -378,19 +388,18 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
 
       let(:probe) do
         Datadog::DI::Probe.new(
-          id: "stdlib-set-include-line-no-snap",
+          id: "stdlib-securerandom-uuid-line-no-snap",
           type: :log,
-          file: set_source_file,
-          line_no: set_include_line,
+          file: source_file,
+          line_no: source_line,
           capture_snapshot: false,
         )
       end
 
       it "does not cause SystemStackError because TracePoint is self-disabling" do
         payloads = run_stdlib_probe_test(probe) do
-          s = Set.new([:a, :b, :c])
-          expect(s.include?(:b)).to be true
-          expect(s.include?(:d)).to be false
+          SecureRandom.uuid
+          SecureRandom.uuid
         end
 
         # Unlike the method probe on String#length (no capture) which
