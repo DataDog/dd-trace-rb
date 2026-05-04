@@ -40,7 +40,7 @@ module Datadog
         @logger = logger
         @telemetry = telemetry
 
-        @transport = Transport::HTTP.build(
+        @transport = Transport::HTTP.symbols(
           agent_settings: agent_settings,
           logger: @logger,
         )
@@ -94,7 +94,7 @@ module Datadog
       # @return [void]
       def perform_http_upload(compressed_data, scope_count)
         form = build_multipart_form(compressed_data)
-        response = @transport.send_symdb_payload(form)
+        response = @transport.send_symbols(form)
         handle_response(response, scope_count)
       end
 

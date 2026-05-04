@@ -4,11 +4,12 @@ require 'datadog/symbol_database/transport/http'
 require 'datadog/core/vendor/multipart-post/multipart/post/composite_read_io'
 
 # Exercises the real symbol database transport stack against a stubbed agent.
-# Verifies that Transport::HTTP.build, Transport::Request, Transport::Client,
-# Transport::Transport, and Transport::HTTP::API::Endpoint construct and dispatch
-# the multipart request correctly. Per dd-trace-rb convention, transport classes
-# get direct unit tests with the network boundary stubbed (webmock), not by
-# mocking the transport stack itself.
+# Verifies that Transport::HTTP.symbols, Transport::Symbols::Request,
+# Transport::Symbols::Client, Transport::Symbols::Transport, and
+# Transport::HTTP::API::Endpoint construct and dispatch the multipart request
+# correctly. Per dd-trace-rb convention, transport classes get direct unit
+# tests with the network boundary stubbed (webmock), not by mocking the
+# transport stack itself.
 RSpec.describe Datadog::SymbolDatabase::Transport::HTTP do
   let(:logger) { instance_double(Logger, debug: nil) }
 
@@ -41,24 +42,23 @@ RSpec.describe Datadog::SymbolDatabase::Transport::HTTP do
 
   let(:form) { {'event' => event_part, 'file' => file_part} }
 
-  describe '.build' do
+  describe '.symbols' do
     subject(:transport) do
-      described_class.build(agent_settings: agent_settings, logger: logger)
+      described_class.symbols(agent_settings: agent_settings, logger: logger)
     end
 
-    it 'returns a SymbolDatabase::Transport::Transport instance' do
-      expect(transport).to be_a(Datadog::SymbolDatabase::Transport::Transport)
+    it 'returns a Transport::Symbols::Transport instance' do
+      expect(transport).to be_a(Datadog::SymbolDatabase::Transport::Symbols::Transport)
     end
 
-    it 'configures the symdb endpoint as default' do
-      # The custom Client subclass is wired so send_request triggers multipart via env.form.
-      expect(transport.client).to be_a(Datadog::SymbolDatabase::Transport::Client)
+    it 'wires the multipart Client subclass' do
+      expect(transport.client).to be_a(Datadog::SymbolDatabase::Transport::Symbols::Client)
     end
   end
 
   describe 'request dispatch' do
     subject(:transport) do
-      described_class.build(agent_settings: agent_settings, logger: logger)
+      described_class.symbols(agent_settings: agent_settings, logger: logger)
     end
 
     let(:agent_url) { 'http://127.0.0.1:8126/symdb/v1/input' }
@@ -69,14 +69,14 @@ RSpec.describe Datadog::SymbolDatabase::Transport::HTTP do
       end
 
       it 'sends a POST to /symdb/v1/input via the real transport stack' do
-        response = transport.send_symdb_payload(form)
+        response = transport.send_symbols(form)
 
         expect(response.code).to eq(200)
         expect(WebMock).to have_requested(:post, agent_url).once
       end
 
       it 'sends multipart/form-data (Content-Type set by the multipart library)' do
-        transport.send_symdb_payload(form)
+        transport.send_symbols(form)
 
         expect(WebMock).to have_requested(:post, agent_url)
           .with { |req| req.headers['Content-Type'].to_s.start_with?('multipart/form-data') }
@@ -89,7 +89,7 @@ RSpec.describe Datadog::SymbolDatabase::Transport::HTTP do
       end
 
       it 'returns a non-error response with the agent status code' do
-        response = transport.send_symdb_payload(form)
+        response = transport.send_symbols(form)
 
         expect(response.internal_error?).to be_falsey
         expect(response.code).to eq(400)
@@ -103,7 +103,7 @@ RSpec.describe Datadog::SymbolDatabase::Transport::HTTP do
 
       it 'returns an internal error response without raising' do
         response = nil
-        expect { response = transport.send_symdb_payload(form) }.not_to raise_error
+        expect { response = transport.send_symbols(form) }.not_to raise_error
 
         expect(response.internal_error?).to be true
       end

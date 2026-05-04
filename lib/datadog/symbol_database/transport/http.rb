@@ -9,20 +9,21 @@ module Datadog
     module Transport
       # Namespace for HTTP transport components
       module HTTP
-        # Symbol database upload endpoint
-        # Uses multipart form-data for uploading compressed symbol data
-        SYMDB_ENDPOINT = API::Endpoint.new(
+        # POST endpoint for the agent's symbol database intake.
+        # Multipart form-data is dispatched via `env.form` from the
+        # `Symbols::Client` subclass.
+        SYMBOLS_ENDPOINT = API::Endpoint.new(
           '/symdb/v1/input',
           Datadog::Core::Encoding::JSONEncoder,
         )
 
-        # Builds a new Transport::HTTP::Client for symbol database uploads
+        # Builds a transport for the symbols upload endpoint.
         # @param agent_settings [Core::Configuration::AgentSettingsResolver::AgentSettings]
         #   Agent connection settings (host, port, timeout, etc.)
         # @param logger [Logger] Logger instance
         # @param headers [Hash, nil] Optional additional headers
-        # @return [Transport::Client] Transport client configured for symbol database
-        def self.build(
+        # @return [Symbols::Transport] Transport for the symbols endpoint
+        def self.symbols(
           agent_settings:,
           logger:,
           headers: nil
@@ -32,10 +33,10 @@ module Datadog
             agent_settings: agent_settings,
             headers: headers,
           ) do |transport|
-            transport.api 'symdb', SYMDB_ENDPOINT, default: true
+            transport.api 'symbols', SYMBOLS_ENDPOINT, default: true
 
             yield(transport) if block_given?
-          end.to_transport(SymbolDatabase::Transport::Transport)
+          end.to_transport(SymbolDatabase::Transport::Symbols::Transport)
         end
       end
     end

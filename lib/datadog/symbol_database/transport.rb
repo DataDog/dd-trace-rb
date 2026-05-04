@@ -8,45 +8,46 @@ require_relative '../core/transport/http/env'
 module Datadog
   module SymbolDatabase
     module Transport
-      # Request wrapper for symbol database multipart uploads
-      class Request < Core::Transport::Request
-        attr_reader :form
+      # Transport classes for the symbols upload endpoint.
+      # Mirrors the per-purpose split used by DI (`DI::Transport::Input::*`).
+      module Symbols
+        # Request wrapper carrying the multipart form for a symbols upload.
+        class Request < Core::Transport::Request
+          attr_reader :form
 
-        # Initialize request with multipart form data
-        # @param form [Hash] Multipart form data with UploadIO objects
-        def initialize(form)
-          @form = form
-          super(nil)  # No parcel - using form data instead
+          # @param form [Hash] Multipart form data with UploadIO objects
+          def initialize(form)
+            @form = form
+            # Multipart upload — no parcel; the Net adapter reads form data
+            # off the env directly.
+            super(nil)
+          end
         end
-      end
 
-      # HTTP client for symbol database uploads
-      # Extends Core::Transport::HTTP::Client to support multipart form-data
-      class Client < Core::Transport::HTTP::Client
-        # Build environment from request, setting form data for multipart
-        # @param request [Request] Symbol database request with form data
-        # @return [Core::Transport::HTTP::Env] HTTP environment
-        def build_env(request)
-          # Create Env with form data to trigger multipart in Net adapter
-          # The form parameter triggers multipart handling in Core::Transport::HTTP::Adapters::Net (lines 65-74)
-          Core::Transport::HTTP::Env.new(request, form: request.form)
+        # HTTP client for symbol database uploads.
+        # Extends Core::Transport::HTTP::Client to set `env.form`, which the
+        # Net adapter (lib/datadog/core/transport/http/adapters/net.rb) detects
+        # and dispatches as multipart/form-data.
+        class Client < Core::Transport::HTTP::Client
+          # @param request [Request] Symbols upload request
+          # @return [Core::Transport::HTTP::Env] Env with form data set
+          def build_env(request)
+            Core::Transport::HTTP::Env.new(request, form: request.form)
+          end
         end
-      end
 
-      # Transport wrapper for symbol database
-      class Transport < Core::Transport::Transport
-        # Custom HTTP client class that supports multipart
-        self.http_client_class = Client
+        # Transport for the symbols upload endpoint.
+        class Transport < Core::Transport::Transport
+          self.http_client_class = Client
 
-        # Send a symbol database upload request
-        # @param form [Hash] Multipart form data with UploadIO objects
-        # @return [Core::Transport::Response] Response from agent
-        # steep:ignore:start
-        def send_symdb_payload(form)
-          request = Request.new(form)
-          client.send_request(:symdb, request)
+          # Send a symbols upload to the agent.
+          # @param form [Hash] Multipart form data with UploadIO objects
+          # @return [Core::Transport::Response] Response from agent
+          def send_symbols(form)
+            request = Request.new(form)
+            client.send_request(:symbols, request)
+          end
         end
-        # steep:ignore:end
       end
     end
   end

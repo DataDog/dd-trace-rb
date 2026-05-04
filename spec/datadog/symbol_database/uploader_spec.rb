@@ -28,11 +28,11 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
   let(:logger) { instance_double(Logger, debug: nil) }
   let(:telemetry) { nil }
 
-  let(:mock_transport) { instance_double(Datadog::SymbolDatabase::Transport::Transport) }
+  let(:mock_transport) { instance_double(Datadog::SymbolDatabase::Transport::Symbols::Transport) }
   let(:mock_response) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200, internal_error?: false) }
 
   before do
-    allow(Datadog::SymbolDatabase::Transport::HTTP).to receive(:build).and_return(mock_transport)
+    allow(Datadog::SymbolDatabase::Transport::HTTP).to receive(:symbols).and_return(mock_transport)
   end
 
   subject(:uploader) do
@@ -41,25 +41,25 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
 
   describe '#upload_scopes' do
     it 'returns early if scopes is empty' do
-      expect(mock_transport).not_to receive(:send_symdb_payload)
+      expect(mock_transport).not_to receive(:send_symbols)
       uploader.upload_scopes([])
     end
 
     context 'with valid scopes' do
       before do
-        allow(mock_transport).to receive(:send_symdb_payload).and_return(mock_response)
+        allow(mock_transport).to receive(:send_symbols).and_return(mock_response)
       end
 
       it 'uploads successfully' do
         uploader.upload_scopes([test_scope])
 
-        expect(mock_transport).to have_received(:send_symdb_payload)
+        expect(mock_transport).to have_received(:send_symbols)
       end
 
       it 'sends multipart form with event and file parts' do
         uploader.upload_scopes([test_scope])
 
-        expect(mock_transport).to have_received(:send_symdb_payload) do |form|
+        expect(mock_transport).to have_received(:send_symbols) do |form|
           expect(form).to be_a(Hash)
           expect(form).to have_key('event')
           expect(form).to have_key('file')
@@ -82,7 +82,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
 
       it 'is caught by the outer rescue, logs at debug, and does not raise' do
         expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/upload failed.*Serialization error/) }
-        expect(mock_transport).not_to receive(:send_symdb_payload)
+        expect(mock_transport).not_to receive(:send_symbols)
 
         expect { uploader.upload_scopes([test_scope]) }.not_to raise_error
       end
@@ -105,7 +105,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
         allow(Zlib).to receive(:gzip).and_return('x' * (described_class::MAX_PAYLOAD_SIZE + 1))
 
         expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/payload too large/i) }
-        expect(mock_transport).not_to receive(:send_symdb_payload)
+        expect(mock_transport).not_to receive(:send_symbols)
 
         uploader.upload_scopes([test_scope])
       end
@@ -113,9 +113,9 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
 
     context 'with network errors' do
       it 'does not retry on connection errors — single attempt, logs and continues' do
-        allow(mock_transport).to receive(:send_symdb_payload).and_raise(Errno::ECONNREFUSED, 'Connection refused')
+        allow(mock_transport).to receive(:send_symbols).and_raise(Errno::ECONNREFUSED, 'Connection refused')
 
-        expect(mock_transport).to receive(:send_symdb_payload).once
+        expect(mock_transport).to receive(:send_symbols).once
         expect { uploader.upload_scopes([test_scope]) }.not_to raise_error
       end
 
@@ -123,32 +123,32 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
         connection_error = Errno::ECONNREFUSED.new('Connection refused')
         internal_error_response = Datadog::Core::Transport::InternalErrorResponse.new(connection_error)
 
-        allow(mock_transport).to receive(:send_symdb_payload).and_return(internal_error_response)
+        allow(mock_transport).to receive(:send_symbols).and_return(internal_error_response)
 
-        expect(mock_transport).to receive(:send_symdb_payload).once
+        expect(mock_transport).to receive(:send_symbols).once
         expect { uploader.upload_scopes([test_scope]) }.not_to raise_error
       end
     end
 
     context 'with HTTP errors' do
       it 'does not retry on 500 errors' do
-        allow(mock_transport).to receive(:send_symdb_payload)
+        allow(mock_transport).to receive(:send_symbols)
           .and_return(instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 500, internal_error?: false))
 
-        expect(mock_transport).to receive(:send_symdb_payload).once
+        expect(mock_transport).to receive(:send_symbols).once
         uploader.upload_scopes([test_scope])
       end
 
       it 'does not retry on 429 rate limit' do
-        allow(mock_transport).to receive(:send_symdb_payload)
+        allow(mock_transport).to receive(:send_symbols)
           .and_return(instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 429, internal_error?: false))
 
-        expect(mock_transport).to receive(:send_symdb_payload).once
+        expect(mock_transport).to receive(:send_symbols).once
         uploader.upload_scopes([test_scope])
       end
 
       it 'does not retry on 400 errors' do
-        allow(mock_transport).to receive(:send_symdb_payload)
+        allow(mock_transport).to receive(:send_symbols)
           .and_return(instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 400, internal_error?: false))
 
         expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/rejected/i) }
@@ -160,13 +160,13 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
 
   describe 'event metadata structure' do
     before do
-      allow(mock_transport).to receive(:send_symdb_payload).and_return(mock_response)
+      allow(mock_transport).to receive(:send_symbols).and_return(mock_response)
     end
 
     it 'includes correct metadata fields' do
       # Capture the form passed to transport
       captured_form = nil
-      allow(mock_transport).to receive(:send_symdb_payload) do |form|
+      allow(mock_transport).to receive(:send_symbols) do |form|
         captured_form = form
         mock_response
       end
@@ -186,12 +186,12 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
 
   describe 'file part structure' do
     before do
-      allow(mock_transport).to receive(:send_symdb_payload).and_return(mock_response)
+      allow(mock_transport).to receive(:send_symbols).and_return(mock_response)
     end
 
     it 'creates compressed file with correct naming' do
       captured_form = nil
-      allow(mock_transport).to receive(:send_symdb_payload) do |form|
+      allow(mock_transport).to receive(:send_symbols) do |form|
         captured_form = form
         mock_response
       end
@@ -208,12 +208,12 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
 
   describe 'multipart upload structure (ported from Java BatchUploaderTest.testUploadMultiPart)' do
     before do
-      allow(mock_transport).to receive(:send_symdb_payload).and_return(mock_response)
+      allow(mock_transport).to receive(:send_symbols).and_return(mock_response)
     end
 
     it 'event part contains ddsource, service, and type fields' do
       captured_form = nil
-      allow(mock_transport).to receive(:send_symdb_payload) do |form|
+      allow(mock_transport).to receive(:send_symbols) do |form|
         captured_form = form
         mock_response
       end
@@ -230,7 +230,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
 
     it 'file part is gzip compressed' do
       captured_form = nil
-      allow(mock_transport).to receive(:send_symdb_payload) do |form|
+      allow(mock_transport).to receive(:send_symbols) do |form|
         captured_form = form
         mock_response
       end
@@ -254,12 +254,12 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
 
   describe 'upload with multiple scopes (ported from Java SymbolSinkTest.testMultiScopeFlush)' do
     before do
-      allow(mock_transport).to receive(:send_symdb_payload).and_return(mock_response)
+      allow(mock_transport).to receive(:send_symbols).and_return(mock_response)
     end
 
     it 'includes all scopes in a single upload' do
       captured_form = nil
-      allow(mock_transport).to receive(:send_symdb_payload) do |form|
+      allow(mock_transport).to receive(:send_symbols) do |form|
         captured_form = form
         mock_response
       end

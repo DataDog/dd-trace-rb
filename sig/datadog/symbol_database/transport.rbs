@@ -1,20 +1,22 @@
 module Datadog
   module SymbolDatabase
     module Transport
-      class Request < Core::Transport::Request
-        @form: Hash[untyped, untyped]
+      module Symbols
+        class Request < Core::Transport::Request
+          @form: Hash[untyped, untyped]
 
-        attr_reader form: Hash[untyped, untyped]
+          attr_reader form: Hash[untyped, untyped]
 
-        def initialize: (Hash[untyped, untyped] form) -> void
-      end
+          def initialize: (Hash[untyped, untyped] form) -> void
+        end
 
-      class Client < Core::Transport::HTTP::Client
-        def build_env: (Request request) -> Core::Transport::HTTP::Env
-      end
+        class Client < Core::Transport::HTTP::Client
+          def build_env: (Request request) -> Core::Transport::HTTP::Env
+        end
 
-      class Transport < Core::Transport::Transport
-        def send_symdb_payload: (Hash[untyped, untyped] form) -> Core::Transport::Response
+        class Transport < Core::Transport::Transport
+          def send_symbols: (Hash[untyped, untyped] form) -> Core::Transport::Response
+        end
       end
     end
   end

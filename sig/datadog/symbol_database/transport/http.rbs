@@ -2,13 +2,13 @@ module Datadog
   module SymbolDatabase
     module Transport
       module HTTP
-        SYMDB_ENDPOINT: API::Endpoint
+        SYMBOLS_ENDPOINT: API::Endpoint
 
-        def self.build: (
+        def self.symbols: (
           agent_settings: ::Datadog::Core::Configuration::AgentSettings,
           logger: untyped,
           ?headers: Hash[String, String]?
-        ) ?{ (untyped) -> void } -> SymbolDatabase::Transport::Transport
+        ) ?{ (untyped) -> void } -> SymbolDatabase::Transport::Symbols::Transport
       end
     end
   end
