@@ -124,6 +124,10 @@ module Datadog
             # prepended-on class's method. The four splat shapes are
             # centralized here; #run_method_probe receives this lambda
             # and calls it instead of using super directly.
+            #
+            # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
+            # for methods defined via method_missing — kwargs forwarding
+            # requires the explicit shape match below.
             do_super = lambda do |a, k, blk|
               if !DI.array_empty?(a)
                 if !DI.hash_empty?(k)
@@ -450,8 +454,6 @@ module Datadog
 
             rv = nil
             begin
-              # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
-              # for methods defined via method_missing.
               rv = do_super.call(args, kwargs, target_block)
             rescue NoMemoryError, Interrupt, SystemExit
               raise
