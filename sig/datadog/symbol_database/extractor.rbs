@@ -6,6 +6,7 @@ module Datadog
       EXCLUDED_COMMON_MODULES: Array[String]
       INJECTABLE_LINE_EVENTS: Array[::Symbol]
       MODULE_SINGLETON_CLASS_PRED: UnboundMethod
+      MODULE_NAME: UnboundMethod
 
       @logger: untyped
       @settings: untyped
