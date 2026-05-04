@@ -224,7 +224,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         expect(arg2.symbol_type).to eq('ARG')
       end
 
-      it 'includes injectable lines on instance METHOD scopes via extract() path' do
+      it 'includes targetable lines on instance METHOD scopes via extract() path' do
         class_scope = extractor.extract(TestUserClass).scopes.first
         method_scope = class_scope.scopes.find { |s| s.name == 'public_method' }
 
@@ -1698,7 +1698,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         expect(method_scope.scope_type).to eq('METHOD')
       end
 
-      it 'includes injectable lines on instance METHOD scopes' do
+      it 'includes targetable lines on instance METHOD scopes' do
         scopes = extract_all_clean
         file_scope = find_file_scope(scopes, 'ExtractAllSimpleClass')
         class_scope = file_scope.scopes.find { |s| s.name == 'ExtractAllSimpleClass' }
@@ -1776,36 +1776,36 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
 
     # ── Injectable lines unit tests ──────────────────────────────────────
 
-    describe 'build_injectable_ranges' do
+    describe 'build_targetable_ranges' do
       it 'compresses consecutive lines into ranges' do
-        ranges = extractor.send(:build_injectable_ranges, [4, 5, 6, 8, 10, 11])
+        ranges = extractor.send(:build_targetable_ranges, [4, 5, 6, 8, 10, 11])
         expect(ranges).to eq([{start: 4, end: 6}, {start: 8, end: 8}, {start: 10, end: 11}])
       end
 
       it 'returns a single range for all-consecutive input' do
-        ranges = extractor.send(:build_injectable_ranges, [1, 2, 3, 4, 5])
+        ranges = extractor.send(:build_targetable_ranges, [1, 2, 3, 4, 5])
         expect(ranges).to eq([{start: 1, end: 5}])
       end
 
       it 'returns individual ranges for non-consecutive input' do
-        ranges = extractor.send(:build_injectable_ranges, [1, 3, 5, 7])
+        ranges = extractor.send(:build_targetable_ranges, [1, 3, 5, 7])
         expect(ranges).to eq([{start: 1, end: 1}, {start: 3, end: 3}, {start: 5, end: 5}, {start: 7, end: 7}])
       end
 
       it 'returns a single-element range for one line' do
-        ranges = extractor.send(:build_injectable_ranges, [10])
+        ranges = extractor.send(:build_targetable_ranges, [10])
         expect(ranges).to eq([{start: 10, end: 10}])
       end
 
       it 'returns empty for empty input' do
-        ranges = extractor.send(:build_injectable_ranges, [])
+        ranges = extractor.send(:build_targetable_ranges, [])
         expect(ranges).to eq([])
       end
     end
 
-    describe 'extract_injectable_lines' do
+    describe 'extract_targetable_lines' do
       before do
-        @file = create_test_file('injectable_test.rb', <<~RUBY)
+        @file = create_test_file('targetable_test.rb', <<~RUBY)
           class ExtractAllInjectableTest
             def multi_line(a, b)
               x = a + b
@@ -1829,7 +1829,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       it 'returns nil for C-extension methods (iseq nil)' do
         # String#length is a C method with no iseq
         method = String.instance_method(:length)
-        ranges, end_line = extractor.send(:extract_injectable_lines, method, 1)
+        ranges, end_line = extractor.send(:extract_targetable_lines, method, 1)
         expect(ranges).to be_nil
         expect(end_line).to eq(1)
       end
@@ -1846,7 +1846,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         end
       end
 
-      it 'includes initialize method first line as injectable' do
+      it 'includes initialize method first line as targetable' do
         scopes = extract_all_clean
         file_scope = find_file_scope(scopes, 'ExtractAllInjectableTest')
         class_scope = file_scope.scopes.find { |s| s.name == 'ExtractAllInjectableTest' }

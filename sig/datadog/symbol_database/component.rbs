@@ -62,7 +62,7 @@ module Datadog
 
       def log_scope_tree: (Scope scope, Integer depth) -> void
 
-      def count_injectable_methods: (Array[Scope] file_scopes) -> Integer
+      def count_targetable_methods: (Array[Scope] file_scopes) -> Integer
     end
   end
 end
