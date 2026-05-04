@@ -116,7 +116,7 @@ module Datadog
 
         wrap_in_file_scope(source_file, [inner_scope])
       rescue => e
-        @logger.debug { "symdb: failed to extract #{mod_name || '<unknown>'}: #{e.class}: #{e}" }
+        @logger.debug { "symdb: failed to extract #{mod_name || '<unknown>'}: #{e.class}: #{e.message}" }
         @telemetry&.inc('tracers', 'symbol_database.extract_error', 1)
         nil
       end
@@ -138,7 +138,7 @@ module Datadog
         file_trees = build_file_trees(entries)
         convert_trees_to_scopes(file_trees)
       rescue => e
-        @logger.debug { "symdb: error in extract_all: #{e.class}: #{e}" }
+        @logger.debug { "symdb: error in extract_all: #{e.class}: #{e.message}" }
         @telemetry&.inc('tracers', 'symbol_database.extract_all_error', 1)
         []
       end
@@ -153,7 +153,7 @@ module Datadog
       def safe_mod_name(mod)
         Module.instance_method(:name).bind(mod).call
       rescue => e
-        @logger.debug { "symdb: safe_mod_name failed: #{e.class}: #{e}" }
+        @logger.debug { "symdb: safe_mod_name failed: #{e.class}: #{e.message}" }
         nil
       end
 
@@ -281,7 +281,7 @@ module Datadog
             location = begin
               namespace.const_source_location(const_name)
             rescue => e
-              @logger.debug { "symdb: const_source_location(#{const_name}) failed: #{e.class}: #{e}" }
+              @logger.debug { "symdb: const_source_location(#{const_name}) failed: #{e.class}: #{e.message}" }
               nil
             end
 
@@ -297,7 +297,7 @@ module Datadog
             location = begin
               mod.const_source_location(child_const_name)
             rescue => e
-              @logger.debug { "symdb: const_source_location(#{child_const_name}) failed: #{e.class}: #{e}" }
+              @logger.debug { "symdb: const_source_location(#{child_const_name}) failed: #{e.class}: #{e.message}" }
               nil
             end
             next unless location && !location.empty?
@@ -313,7 +313,7 @@ module Datadog
 
         fallback
       rescue => e
-        @logger.debug { "symdb: error finding source file for #{safe_mod_name(mod) || '<unknown>'}: #{e.class}: #{e}" }
+        @logger.debug { "symdb: error finding source file for #{safe_mod_name(mod) || '<unknown>'}: #{e.class}: #{e.message}" }
         nil
       end
 
@@ -399,7 +399,7 @@ module Datadog
 
         [starts.min, ends.max]
       rescue => e
-        @logger.debug { "symdb: error calculating line range for #{klass.name}: #{e.class}: #{e}" }
+        @logger.debug { "symdb: error calculating line range for #{klass.name}: #{e.class}: #{e.message}" }
         [UNKNOWN_MIN_LINE, UNKNOWN_MAX_LINE]
       end
 
@@ -442,7 +442,7 @@ module Datadog
 
         specifics
       rescue => e
-        @logger.debug { "symdb: error building language specifics for #{klass.name}: #{e.class}: #{e}" }
+        @logger.debug { "symdb: error building language specifics for #{klass.name}: #{e.class}: #{e.message}" }
         {}
       end
 
@@ -465,7 +465,7 @@ module Datadog
 
         scopes
       rescue => e
-        @logger.debug { "symdb: failed to extract methods from #{klass.name}: #{e.class}: #{e}" }
+        @logger.debug { "symdb: failed to extract methods from #{klass.name}: #{e.class}: #{e.message}" }
         []
       end
 
@@ -500,7 +500,7 @@ module Datadog
           symbols: extract_method_parameters(method)
         )
       rescue => e
-        @logger.debug { "symdb: failed to extract method #{klass.name}##{method_name}: #{e.class}: #{e}" }
+        @logger.debug { "symdb: failed to extract method #{klass.name}##{method_name}: #{e.class}: #{e.message}" }
         nil
       end
 
@@ -578,7 +578,7 @@ module Datadog
         method_name = begin
           method.name.to_s
         rescue => e
-          @logger.debug { "symdb: method.name failed: #{e.class}: #{e}" }
+          @logger.debug { "symdb: method.name failed: #{e.class}: #{e.message}" }
           'unknown'
         end
         params = method.parameters
@@ -600,7 +600,7 @@ module Datadog
           )
         end
       rescue => e
-        @logger.debug { "symdb: failed to extract parameters from #{method_name}: #{e.class}: #{e}" }
+        @logger.debug { "symdb: failed to extract parameters from #{method_name}: #{e.class}: #{e.message}" }
         []
       end
 
@@ -629,7 +629,7 @@ module Datadog
 
           entries[mod_name] = {mod: mod, methods_by_file: methods_by_file}
         rescue => e
-          @logger.debug { "symdb: error collecting #{mod_name || '<unknown>'}: #{e.class}: #{e}" }
+          @logger.debug { "symdb: error collecting #{mod_name || '<unknown>'}: #{e.class}: #{e.message}" }
         end
 
         entries
@@ -655,12 +655,12 @@ module Datadog
 
           result[loc[0]] << {name: method_name, method: method, type: :instance}
         rescue => e
-          @logger.debug { "symdb: error grouping method #{method_name}: #{e.class}: #{e}" }
+          @logger.debug { "symdb: error grouping method #{method_name}: #{e.class}: #{e.message}" }
         end
 
         result
       rescue => e
-        @logger.debug { "symdb: error grouping methods: #{e.class}: #{e}" }
+        @logger.debug { "symdb: error grouping methods: #{e.class}: #{e.message}" }
         {}
       end
 
@@ -688,7 +688,7 @@ module Datadog
             place_in_tree(root, parts, entry[:mod], mod_name, methods, file_path)
           end
         rescue => e
-          @logger.debug { "symdb: error building tree for #{mod_name}: #{e.class}: #{e}" }
+          @logger.debug { "symdb: error building tree for #{mod_name}: #{e.class}: #{e.message}" }
         end
 
         file_trees
@@ -744,7 +744,7 @@ module Datadog
         const = Object.const_get(fqn)
         const.is_a?(Class) ? 'CLASS' : 'MODULE'
       rescue => e
-        @logger.debug { "symdb: resolve_scope_type(#{fqn}) failed: #{e.class}: #{e}, defaulting to MODULE" }
+        @logger.debug { "symdb: resolve_scope_type(#{fqn}) failed: #{e.class}: #{e.message}, defaulting to MODULE" }
         'MODULE'
       end
 
@@ -841,7 +841,7 @@ module Datadog
         )
       rescue => e
         klass_name = klass ? (safe_mod_name(klass) || '<unknown>') : '<unknown>'
-        @logger.debug { "symdb: failed to build method scope #{klass_name}##{method_name}: #{e.class}: #{e}" }
+        @logger.debug { "symdb: failed to build method scope #{klass_name}##{method_name}: #{e.class}: #{e.message}" }
         nil
       end
 
@@ -882,15 +882,15 @@ module Datadog
           # Lint/ShadowedException disabled: NameError/NoMethodError do descend from
           # StandardError, but Ruby's rescue-clause-order semantics ensure the bare rescue
           # below only catches exceptions not matched here.
-          @logger.debug { "symdb: skipping module constant #{const_name}: #{e.class}: #{e}" }
+          @logger.debug { "symdb: skipping module constant #{const_name}: #{e.class}: #{e.message}" }
         rescue => e
-          @logger.debug { "symdb: unexpected error reading module constant #{const_name}: #{e.class}: #{e}" }
+          @logger.debug { "symdb: unexpected error reading module constant #{const_name}: #{e.class}: #{e.message}" }
         end
 
         symbols
       rescue => e
         mod_name = safe_mod_name(mod) || '<unknown>'
-        @logger.debug { "symdb: failed to extract symbols from #{mod_name}: #{e.class}: #{e}" }
+        @logger.debug { "symdb: failed to extract symbols from #{mod_name}: #{e.class}: #{e.message}" }
         []
       end
     end

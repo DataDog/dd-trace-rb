@@ -181,7 +181,7 @@ module Datadog
 
         events.trace_resource_change.publish(self)
       rescue => e
-        logger.debug { "Error updating trace resource: #{e.class}: #{e} Backtrace: #{e.backtrace.first(3)}" }
+        logger.debug { "Error updating trace resource: #{e.class}: #{e.message} Backtrace: #{e.backtrace.first(3)}" }
       end
 
       def name
@@ -322,7 +322,7 @@ module Datadog
           id: id
         )
       rescue => e
-        logger.debug { "Failed to build new span: #{e.class}: #{e}" }
+        logger.debug { "Failed to build new span: #{e.class}: #{e.message}" }
 
         # Return dummy span
         SpanOperation.new(op_name, logger: logger)
@@ -543,7 +543,7 @@ module Datadog
         # Publish :span_before_start event
         events.span_before_start.publish(span_op, self)
       rescue => e
-        logger.debug { "Error starting span on trace: #{e.class}: #{e} Backtrace: #{e.backtrace.first(3)}" }
+        logger.debug { "Error starting span on trace: #{e.class}: #{e.message} Backtrace: #{e.backtrace.first(3)}" }
       end
 
       # For traces with automatic context management (auto_finish),
@@ -572,7 +572,7 @@ module Datadog
         # Publish :trace_finished event
         events.trace_finished.publish(self) if finished?
       rescue => e
-        logger.debug { "Error finishing span on trace: #{e.class}: #{e} Backtrace: #{e.backtrace.first(3)}" }
+        logger.debug { "Error finishing span on trace: #{e.class}: #{e.message} Backtrace: #{e.backtrace.first(3)}" }
       end
 
       # Track the root {SpanOperation} object from the current execution context.
