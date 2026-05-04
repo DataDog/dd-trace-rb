@@ -3,35 +3,71 @@ module Datadog
     module Contrib
       module Rack
         module Ext
-          ENV_ENABLED: "DD_TRACE_RACK_ENABLED"
+          ENV_ENABLED: ::String
 
-          ENV_DISTRIBUTED_TRACING: "DD_TRACE_RACK_DISTRIBUTED_TRACING"
+          ENV_DISTRIBUTED_TRACING: ::String
 
-          ENV_ANALYTICS_ENABLED: "DD_TRACE_RACK_ANALYTICS_ENABLED"
+          ENV_ANALYTICS_ENABLED: ::String
 
-          ENV_ANALYTICS_SAMPLE_RATE: "DD_TRACE_RACK_ANALYTICS_SAMPLE_RATE"
+          ENV_ANALYTICS_SAMPLE_RATE: ::String
 
-          RACK_ENV_REQUEST_SPAN: "datadog.rack_request_span"
+          RACK_ENV_REQUEST_SPAN: ::String
 
-          SPAN_HTTP_PROXY_REQUEST: "http.proxy.request"
+          SPAN_HTTP_PROXY_REQUEST: ::String
 
-          SPAN_HTTP_PROXY_QUEUE: "http.proxy.queue"
+          SPAN_HTTP_PROXY_QUEUE: ::String
 
-          SPAN_REQUEST: "rack.request"
+          SPAN_REQUEST: ::String
 
-          TAG_COMPONENT: "rack"
+          TAG_COMPONENT: ::String
 
-          TAG_COMPONENT_HTTP_PROXY: "http_proxy"
+          TAG_COMPONENT_HTTP_PROXY: ::String
 
-          TAG_OPERATION_REQUEST: "request"
+          TAG_OPERATION_REQUEST: ::String
 
-          TAG_OPERATION_HTTP_PROXY_REQUEST: "request"
+          TAG_OPERATION_HTTP_PROXY_REQUEST: ::String
 
-          TAG_OPERATION_HTTP_PROXY_QUEUE: "queue"
+          TAG_OPERATION_HTTP_PROXY_QUEUE: ::String
 
-          WEBSERVER_APP: "webserver"
+          TAG_OPERATION_HTTP_SERVER_QUEUE: ::String
 
-          DEFAULT_PEER_WEBSERVER_SERVICE_NAME: "web-server"
+          WEBSERVER_APP: ::String
+
+          DEFAULT_PEER_WEBSERVER_SERVICE_NAME: ::String
+
+          HEADER_X_DD_PROXY: ::String
+
+          HEADER_X_DD_PROXY_REQUEST_TIME_MS: ::String
+
+          HEADER_X_DD_PROXY_PATH: ::String
+
+          HEADER_X_DD_PROXY_RESOURCE_PATH: ::String
+
+          HEADER_X_DD_PROXY_HTTPMETHOD: ::String
+
+          HEADER_X_DD_PROXY_DOMAIN_NAME: ::String
+
+          HEADER_X_DD_PROXY_STAGE: ::String
+
+          HEADER_X_DD_PROXY_ACCOUNT_ID: ::String
+
+          HEADER_X_DD_PROXY_API_ID: ::String
+
+          HEADER_X_DD_PROXY_REGION: ::String
+
+          HEADER_X_DD_PROXY_USER: ::String
+
+          PROXY_AWS_APIGATEWAY: ::String
+
+          PROXY_AWS_HTTPAPI: ::String
+
+          SPAN_AWS_APIGATEWAY: ::String
+
+          SPAN_AWS_HTTPAPI: ::String
+
+          PROXY_SPAN_NAMES: Hash[::String, ::String]
+
+          TAG_INFERRED_SPAN: ::String
         end
       end
     end
