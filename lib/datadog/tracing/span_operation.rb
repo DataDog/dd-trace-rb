@@ -158,7 +158,7 @@ module Datadog
           begin
             start
           rescue => e
-            logger.debug { "Failed to start span: #{e}" }
+            logger.debug { "Failed to start span: #{e.class}: #{e}" }
           ensure
             # We should yield to the provided block when possible, as this
             # block is application code that we don't want to hinder.

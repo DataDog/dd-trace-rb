@@ -97,7 +97,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
 
         expect(result.value).to eq('fallback')
         expect(result.error_code).to eq('GENERAL')
-        expect(result.error_message).to eq('Crash')
+        expect(result.error_message).to eq('RuntimeError: Crash')
         expect(result.reason).to eq('ERROR')
       end
     end
@@ -172,7 +172,7 @@ RSpec.describe Datadog::OpenFeature::EvaluationEngine do
         expect(telemetry).to receive(:report)
           .with(error, description: match(/OpenFeature: Failed to reconfigure/))
 
-        expect { engine.reconfigure!('{}') }.to raise_error(described_class::ReconfigurationError, 'Ooops')
+        expect { engine.reconfigure!('{}') }.to raise_error(described_class::ReconfigurationError, 'StandardError: Ooops')
       end
     end
   end

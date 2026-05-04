@@ -130,7 +130,7 @@ module Datadog
         ::OpenFeature::SDK::Provider::ResolutionDetails.new(
           value: default_value,
           error_code: Ext::GENERAL,
-          error_message: "#{e.class}: #{e.message}",
+          error_message: "#{e.class}: #{e}",
           reason: Ext::ERROR
         )
       end

@@ -12,6 +12,14 @@ CustomCops/EnvUsageCop:
     - "lib/datadog/core/configuration/config_helper.rb"
     - "lib/datadog/core/configuration/deprecations.rb"
 
+# Custom cop to enforce consistent exception logging format
+CustomCops/ExceptionMessageCop:
+  Enabled: true
+  Description: 'Enforces consistent exception logging format: use `e` instead of `e.message`, `e.class` instead of `e.class.name`'
+  SafeAutoCorrect: false
+  Include:
+    - "lib/**/*"
+
 # Custom cop to validate environment variable strings
 CustomCops/EnvStringValidationCop:
   Enabled: true
