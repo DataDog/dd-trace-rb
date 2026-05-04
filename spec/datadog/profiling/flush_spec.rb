@@ -11,6 +11,7 @@ RSpec.describe Datadog::Profiling::Flush do
     let(:tags_as_array) { [%w[tag_a value_a], %w[tag_b value_b]] }
     let(:process_tags) { 'process_tag_a:value_a,process_tag_b:value_b' }
     let(:internal_metadata) { {no_signals_workaround_enabled: false} }
+    let(:metrics) { [["ruby_global_lock_wait_time_total", 12_345]] }
     let(:info_json) do
       JSON.generate(
         {
@@ -31,6 +32,7 @@ RSpec.describe Datadog::Profiling::Flush do
         encoded_profile: encoded_profile,
         code_provenance_file_name: code_provenance_file_name,
         code_provenance_data: code_provenance_data,
+        metrics: metrics,
         tags_as_array: tags_as_array,
         process_tags: process_tags,
         internal_metadata: internal_metadata,
@@ -45,6 +47,7 @@ RSpec.describe Datadog::Profiling::Flush do
         encoded_profile: encoded_profile,
         code_provenance_file_name: code_provenance_file_name,
         code_provenance_data: code_provenance_data,
+        metrics: '[["ruby_global_lock_wait_time_total",12345]]',
         tags_as_array: tags_as_array,
         process_tags: process_tags,
         internal_metadata_json: '{"no_signals_workaround_enabled":false}',

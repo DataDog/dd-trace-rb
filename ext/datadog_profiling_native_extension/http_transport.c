@@ -200,6 +200,7 @@ static VALUE _native_do_export(
   VALUE encoded_profile = rb_funcall(flush, rb_intern("encoded_profile"), 0);
   VALUE code_provenance_file_name = rb_funcall(flush, rb_intern("code_provenance_file_name"), 0);
   VALUE code_provenance_data = rb_funcall(flush, rb_intern("code_provenance_data"), 0);
+  VALUE metrics_json = rb_funcall(flush, rb_intern("metrics"), 0);
   VALUE tags_as_array = rb_funcall(flush, rb_intern("tags_as_array"), 0);
   VALUE internal_metadata_json = rb_funcall(flush, rb_intern("internal_metadata_json"), 0);
   VALUE info_json = rb_funcall(flush, rb_intern("info_json"), 0);
@@ -207,6 +208,7 @@ static VALUE _native_do_export(
 
   enforce_encoded_profile_instance(encoded_profile);
   ENFORCE_TYPE(code_provenance_file_name, T_STRING);
+  ENFORCE_TYPE(metrics_json, T_STRING);
   ENFORCE_TYPE(tags_as_array, T_ARRAY);
   ENFORCE_TYPE(internal_metadata_json, T_STRING);
   ENFORCE_TYPE(info_json, T_STRING);
@@ -216,12 +218,17 @@ static VALUE _native_do_export(
   bool have_code_provenance = !NIL_P(code_provenance_data);
   if (have_code_provenance) ENFORCE_TYPE(code_provenance_data, T_STRING);
 
-  int to_compress_length = have_code_provenance ? 1 : 0;
+  int to_compress_length = 1 + (have_code_provenance ? 1 : 0);
   ddog_prof_Exporter_File to_compress[to_compress_length];
   ddog_prof_Exporter_Slice_File files_to_compress_and_export = {.ptr = to_compress, .len = to_compress_length};
 
+  to_compress[0] = (ddog_prof_Exporter_File) {
+    .name = DDOG_CHARSLICE_C("metrics.json"),
+    .file = byte_slice_from_ruby_string(metrics_json),
+  };
+
   if (have_code_provenance) {
-    to_compress[0] = (ddog_prof_Exporter_File) {
+    to_compress[1] = (ddog_prof_Exporter_File) {
       .name = char_slice_from_ruby_string(code_provenance_file_name),
       .file = byte_slice_from_ruby_string(code_provenance_data),
     };
