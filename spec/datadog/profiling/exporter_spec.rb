@@ -64,7 +64,6 @@ RSpec.describe Datadog::Profiling::Exporter do
         start: start,
         finish: finish,
         encoded_profile: encoded_profile,
-        code_provenance_file_name: "code-provenance.json",
         code_provenance_data: code_provenance_data,
         tags_as_array: array_including(%w[language ruby], ["process_id", Process.pid.to_s]),
         metrics: "[]",

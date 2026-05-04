@@ -198,7 +198,6 @@ static VALUE _native_do_export(
   VALUE flush
 ) {
   VALUE encoded_profile = rb_funcall(flush, rb_intern("encoded_profile"), 0);
-  VALUE code_provenance_file_name = rb_funcall(flush, rb_intern("code_provenance_file_name"), 0);
   VALUE code_provenance_data = rb_funcall(flush, rb_intern("code_provenance_data"), 0);
   VALUE metrics_json = rb_funcall(flush, rb_intern("metrics"), 0);
   VALUE tags_as_array = rb_funcall(flush, rb_intern("tags_as_array"), 0);
@@ -207,7 +206,6 @@ static VALUE _native_do_export(
   VALUE process_tags = rb_funcall(flush, rb_intern("process_tags"), 0);
 
   enforce_encoded_profile_instance(encoded_profile);
-  ENFORCE_TYPE(code_provenance_file_name, T_STRING);
   ENFORCE_TYPE(metrics_json, T_STRING);
   ENFORCE_TYPE(tags_as_array, T_ARRAY);
   ENFORCE_TYPE(internal_metadata_json, T_STRING);
@@ -229,7 +227,7 @@ static VALUE _native_do_export(
 
   if (have_code_provenance) {
     to_compress[1] = (ddog_prof_Exporter_File) {
-      .name = char_slice_from_ruby_string(code_provenance_file_name),
+      .name = DDOG_CHARSLICE_C("code-provenance.json"),
       .file = byte_slice_from_ruby_string(code_provenance_data),
     };
   }
