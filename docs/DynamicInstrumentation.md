@@ -102,6 +102,10 @@ the entire method execution.
 - Local variables defined within the method are not captured
 - **Workaround:** Use line probes inside the method if you need to
   capture local variables at specific points during execution
+- Method probes can only target instance methods. Class/singleton methods
+  (defined via `def self.method_name`, `class << self`, or `module_function`)
+  cannot be instrumented with method probes. Line probes inside class
+  methods still work since line probes are not method-bound.
 
 **Additional considerations:**
 - Stack traces are always captured, but methods defined via

@@ -89,6 +89,11 @@ module Datadog
       # from the method but from outside of the method).
       Location = Struct.new(:path, :lineno, :label)
 
+      # Method probes can only target instance methods. The implementation uses
+      # Module#prepend with a module that defines an instance method matching the
+      # probe's target — class/singleton methods (def self.foo, module_function)
+      # are not reachable via prepend on the class itself. Line probes are
+      # unaffected since they install via TracePoint, not method dispatch.
       def hook_method(probe, responder)
         lock.synchronize do
           if probe.instrumentation_module
