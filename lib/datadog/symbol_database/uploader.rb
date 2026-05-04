@@ -58,6 +58,11 @@ module Datadog
         json_data = build_symbol_payload(scopes)
         compressed_data = Zlib.gzip(json_data)
 
+        # Symbols for very large applications (>50MB after gzip) are dropped:
+        # the upload is skipped and the customer sees no autocomplete /
+        # symbol probe results for those classes. Java handles the same case
+        # by splitting the payload across multiple requests; we have not
+        # implemented splitting here. Deferred for a post-MVP follow-up.
         if compressed_data.bytesize > MAX_PAYLOAD_SIZE
           @logger.debug { "symdb: payload too large: #{compressed_data.bytesize}/#{MAX_PAYLOAD_SIZE} bytes, skipping" }
           return
