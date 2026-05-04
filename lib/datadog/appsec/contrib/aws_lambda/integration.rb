@@ -21,7 +21,7 @@ module Datadog
           end
 
           def self.compatible?
-            true
+            super
           end
 
           def self.auto_instrument?

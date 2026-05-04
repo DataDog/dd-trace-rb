@@ -16,13 +16,13 @@ module Datadog
               def watch
                 gateway = Instrumentation.gateway
 
-                handle_request(gateway)
-                handle_response(gateway)
+                watch_request(gateway)
+                watch_response(gateway)
               end
 
-              def handle_request(gateway = Instrumentation.gateway)
+              def watch_request(gateway = Instrumentation.gateway)
                 gateway.watch('aws_lambda.request.start') do |stack, payload|
-                  context = AppSec::Context.active
+                  context = payload.context
                   next stack.call(payload) unless context
 
                   persistent_data = WAFAddresses.from_request(payload.data)
@@ -44,9 +44,9 @@ module Datadog
                 end
               end
 
-              def handle_response(gateway = Instrumentation.gateway)
+              def watch_response(gateway = Instrumentation.gateway)
                 gateway.watch('aws_lambda.response.start') do |stack, payload|
-                  context = AppSec::Context.active
+                  context = payload.context
                   next stack.call(payload) unless context
 
                   persistent_data = WAFAddresses.from_response(payload.data)

@@ -36,7 +36,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
     double('waf_result', match?: false, attributes: [], actions: {}, keep?: false)
   end
 
-  describe '.handle_request' do
+  describe '.watch_request' do
     subject(:push_request) do
       gateway.push(
         'aws_lambda.request.start',
@@ -44,17 +44,15 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
       )
     end
 
-    before { described_class.handle_request(gateway) }
+    before { described_class.watch_request(gateway) }
 
-    context 'when AppSec context is not active' do
-      before { allow(Datadog::AppSec::Context).to receive(:active).and_return(nil) }
+    context 'when AppSec context is not set' do
+      let(:appsec_context) { nil }
 
       it { expect { push_request }.not_to raise_error }
     end
 
-    context 'when AppSec context is active' do
-      before { allow(Datadog::AppSec::Context).to receive(:active).and_return(appsec_context) }
-
+    context 'when AppSec context is set' do
       it 'runs WAF with request addresses' do
         push_request
 
@@ -135,7 +133,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
     end
   end
 
-  describe '.handle_response' do
+  describe '.watch_response' do
     subject(:push_response) do
       gateway.push(
         'aws_lambda.response.start',
@@ -143,17 +141,15 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
       )
     end
 
-    before { described_class.handle_response(gateway) }
+    before { described_class.watch_response(gateway) }
 
-    context 'when AppSec context is not active' do
-      before { allow(Datadog::AppSec::Context).to receive(:active).and_return(nil) }
+    context 'when AppSec context is not set' do
+      let(:appsec_context) { nil }
 
       it { expect { push_response }.not_to raise_error }
     end
 
-    context 'when AppSec context is active' do
-      before { allow(Datadog::AppSec::Context).to receive(:active).and_return(appsec_context) }
-
+    context 'when AppSec context is set' do
       it 'runs WAF with response addresses' do
         push_response
 
@@ -192,7 +188,6 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
   describe '.watch' do
     before do
       allow(Datadog::AppSec::Instrumentation).to receive(:gateway).and_return(gateway)
-      allow(Datadog::AppSec::Context).to receive(:active).and_return(appsec_context)
       described_class.watch
     end
 

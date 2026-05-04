@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'uri'
 require 'base64'
 
 require_relative '../../utils/http/media_type'
@@ -34,8 +35,8 @@ module Datadog
             data
           end
 
-          def from_response(payload)
-            payload = payload || {}
+          def from_response(payload = {})
+            payload ||= {}
             headers = parse_headers(payload)
 
             {
@@ -77,7 +78,11 @@ module Datadog
             raw = payload['rawQueryString']
             return raw if raw && !raw.empty?
 
-            URI.encode_www_form(payload['queryStringParameters'] || {})
+            URI.encode_www_form(
+              payload['multiValueQueryStringParameters'] ||
+                payload['queryStringParameters'] ||
+                {}
+            )
           end
 
           def extract_method(payload)
