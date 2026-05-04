@@ -70,11 +70,11 @@ module Datadog
       EXCLUDED_COMMON_MODULES = ['Kernel', 'PP::', 'JSON::', 'Enumerable', 'Comparable'].freeze
 
       # RubyVM::InstructionSequence#trace_points event types included when
-      # computing injectable lines on METHOD scopes.
+      # computing targetable lines on METHOD scopes.
       # :line — any line with executable bytecode (primary line probe target)
       # :return — last expression before method returns (DI instruments return events)
       # :call excluded — method entry is handled by method probes, not line probes
-      INJECTABLE_LINE_EVENTS = [:line, :return].freeze
+      TARGETABLE_LINE_EVENTS = [:line, :return].freeze
 
       # Cached UnboundMethod for Module#name — avoids resolving it on every
       # safe_mod_name call. Some classes override .name (e.g. Faker::Travel::Airport),
@@ -391,7 +391,7 @@ module Datadog
           location = method.source_location
           next unless location && location[0]
           starts << location[1]
-          _ranges, method_end = extract_injectable_lines(method, location[1])
+          _ranges, method_end = extract_targetable_lines(method, location[1])
           ends << method_end
         end
 
@@ -483,7 +483,7 @@ module Datadog
         source_file, line = location
         return nil unless user_code_path?(source_file)  # Skip gem/stdlib methods
 
-        injectable_lines, end_line = extract_injectable_lines(method, line)
+        targetable_lines, end_line = extract_targetable_lines(method, line)
 
         Scope.new(
           scope_type: 'METHOD',
@@ -491,7 +491,7 @@ module Datadog
           source_file: source_file,
           start_line: line,
           end_line: end_line,
-          targetable_lines: injectable_lines,
+          targetable_lines: targetable_lines,
           language_specifics: {
             visibility: method_visibility(klass, method_name),
             method_type: method_type.to_s,
@@ -518,29 +518,29 @@ module Datadog
         end
       end
 
-      # Extract injectable lines and end_line from a method's bytecode.
+      # Extract targetable lines and end_line from a method's bytecode.
       # Returns [ranges, end_line] where ranges is an array of {start:, end:} hashes
       # or nil if iseq is unavailable (C-extension methods).
       # @param method [Method, UnboundMethod] The method
       # @param start_line [Integer] Fallback end_line if iseq unavailable
       # @return [Array(Array<Hash>, Integer), Array(nil, Integer)]
-      def extract_injectable_lines(method, start_line)
+      def extract_targetable_lines(method, start_line)
         iseq = RubyVM::InstructionSequence.of(method) # steep:ignore
         unless iseq
-          @logger.debug { "symdb: no iseq for #{method.name} (C extension or native), skipping injectable lines" }
+          @logger.debug { "symdb: no iseq for #{method.name} (C extension or native), skipping targetable lines" }
           return [nil, start_line]
         end
 
         lines = iseq.trace_points
-          .select { |_, event| INJECTABLE_LINE_EVENTS.include?(event) }
+          .select { |_, event| TARGETABLE_LINE_EVENTS.include?(event) }
           .map(&:first)
           .uniq
           .sort
 
         end_line = lines.max || start_line
-        ranges = build_injectable_ranges(lines)
+        ranges = build_targetable_ranges(lines)
         result = ranges.empty? ? nil : ranges
-        @logger.debug { "symdb: #{method.name} injectable lines: #{result ? "#{ranges.size} range(s), lines #{lines.first}..#{lines.last}" : 'none (no matching events)'}" }
+        @logger.debug { "symdb: #{method.name} targetable lines: #{result ? "#{ranges.size} range(s), lines #{lines.first}..#{lines.last}" : 'none (no matching events)'}" }
         [result, end_line]
       end
 
@@ -548,7 +548,7 @@ module Datadog
       # [4, 5, 6, 8, 10, 11] => [{start: 4, end: 6}, {start: 8, end: 8}, {start: 10, end: 11}]
       # @param lines [Array<Integer>] Sorted, deduplicated line numbers
       # @return [Array<Hash>] Array of {start:, end:} range hashes
-      def build_injectable_ranges(lines)
+      def build_targetable_ranges(lines)
         return [] if lines.empty?
 
         ranges = []
@@ -823,7 +823,7 @@ module Datadog
 
         source_file, line = location
 
-        injectable_lines, end_line = extract_injectable_lines(method, line)
+        targetable_lines, end_line = extract_targetable_lines(method, line)
 
         Scope.new(
           scope_type: 'METHOD',
@@ -831,7 +831,7 @@ module Datadog
           source_file: source_file,
           start_line: line,
           end_line: end_line,
-          targetable_lines: injectable_lines,
+          targetable_lines: targetable_lines,
           language_specifics: {
             visibility: klass ? method_visibility(klass, method_name) : 'public', # steep:ignore
             method_type: 'instance',

@@ -343,8 +343,8 @@ module Datadog
           end
 
           extraction_duration = Datadog::Core::Utils::Time.get_time - start_time
-          injectable_count = count_injectable_methods(file_scopes)
-          @logger.debug { "symdb: extracted #{extracted_count} scopes (#{injectable_count} methods with injectable lines) in #{'%.2f' % extraction_duration}s" }
+          targetable_count = count_targetable_methods(file_scopes)
+          @logger.debug { "symdb: extracted #{extracted_count} scopes (#{targetable_count} methods with targetable lines) in #{'%.2f' % extraction_duration}s" }
 
           # Flush any remaining scopes (triggers upload)
           @scope_batcher.flush
@@ -366,7 +366,7 @@ module Datadog
         scope.scopes&.each { |child| log_scope_tree(child, depth + 1) }
       end
 
-      def count_injectable_methods(file_scopes)
+      def count_targetable_methods(file_scopes)
         count = 0
         file_scopes.each do |file_scope|
           file_scope.scopes&.each do |class_or_module|
