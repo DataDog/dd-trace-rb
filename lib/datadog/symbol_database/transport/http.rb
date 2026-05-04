@@ -13,7 +13,7 @@ module Datadog
         # Uses multipart form-data for uploading compressed symbol data
         SYMDB_ENDPOINT = API::Endpoint.new(
           '/symdb/v1/input',
-          Datadog::Core::Encoding::JSONEncoder
+          Datadog::Core::Encoding::JSONEncoder,
         )
 
         # Builds a new Transport::HTTP::Client for symbol database uploads
@@ -30,11 +30,10 @@ module Datadog
           Core::Transport::HTTP.build(
             logger: logger,
             agent_settings: agent_settings,
-            headers: headers
+            headers: headers,
           ) do |transport|
             transport.api 'symdb', SYMDB_ENDPOINT, default: true
 
-            # Call block to apply any customization, if provided
             yield(transport) if block_given?
           end.to_transport(SymbolDatabase::Transport::Transport)
         end

@@ -4,7 +4,7 @@ require 'datadog/symbol_database/uploader'
 require 'datadog/symbol_database/scope'
 
 RSpec.describe Datadog::SymbolDatabase::Uploader do
-  let(:config) do
+  let(:settings) do
     instance_double(
       Datadog::Core::Configuration::Settings,
       service: 'test-service',
@@ -26,25 +26,23 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
   let(:test_scope) { Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'TestClass') }
 
   let(:logger) { instance_double(Logger, debug: nil) }
+  let(:telemetry) { nil }
 
-  # Mock transport infrastructure
   let(:mock_transport) { instance_double(Datadog::SymbolDatabase::Transport::Transport) }
   let(:mock_response) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200, internal_error?: false) }
 
   before do
-    # Mock Transport::HTTP.build to return our mock transport
     allow(Datadog::SymbolDatabase::Transport::HTTP).to receive(:build).and_return(mock_transport)
   end
 
-  subject(:uploader) { described_class.new(config, agent_settings, logger: logger) }
+  subject(:uploader) do
+    described_class.new(settings: settings, agent_settings: agent_settings, logger: logger, telemetry: telemetry)
+  end
 
   describe '#upload_scopes' do
-    it 'returns early if scopes is nil' do
-      expect(uploader.upload_scopes(nil)).to be_nil
-    end
-
     it 'returns early if scopes is empty' do
-      expect(uploader.upload_scopes([])).to be_nil
+      expect(mock_transport).not_to receive(:send_symdb_payload)
+      uploader.upload_scopes([])
     end
 
     context 'with valid scopes' do
@@ -77,38 +75,27 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       end
     end
 
-    context 'with serialization error' do
+    context 'when payload construction raises' do
       before do
         allow_any_instance_of(Datadog::SymbolDatabase::ServiceVersion).to receive(:to_json).and_raise('Serialization error')
       end
 
-      it 'logs error and returns nil' do
-        expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/serialization failed/i) }
-
-        result = uploader.upload_scopes([test_scope])
-
-        expect(result).to be_nil
-      end
-
-      it 'does not attempt HTTP request' do
-        allow(logger).to receive(:debug)
+      it 'is caught by the outer rescue, logs at debug, and does not raise' do
+        expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/upload failed.*Serialization error/) }
         expect(mock_transport).not_to receive(:send_symdb_payload)
 
-        uploader.upload_scopes([test_scope])
-      end
-    end
-
-    context 'with compression error' do
-      before do
-        allow(Zlib).to receive(:gzip).and_raise('Compression error')
+        expect { uploader.upload_scopes([test_scope]) }.not_to raise_error
       end
 
-      it 'logs error and returns nil' do
-        expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/compression failed/i) }
+      context 'when telemetry is provided' do
+        let(:telemetry) { instance_double('Datadog::Core::Telemetry::Component', report: nil) }
 
-        result = uploader.upload_scopes([test_scope])
+        it 'reports the error via telemetry' do
+          allow(logger).to receive(:debug)
+          expect(telemetry).to receive(:report).with(an_instance_of(RuntimeError), description: 'symdb: upload failed')
 
-        expect(result).to be_nil
+          uploader.upload_scopes([test_scope])
+        end
       end
     end
 
@@ -293,16 +280,6 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
 
       scope_names = parsed['scopes'].map { |s| s['name'] }
       expect(scope_names).to include('Class1', 'Class2', 'Class3')
-    end
-  end
-
-  describe 'shutdown behavior (ported from Java BatchUploaderTest.testShutdown)' do
-    it 'handles nil scopes gracefully after construction' do
-      expect(uploader.upload_scopes(nil)).to be_nil
-    end
-
-    it 'handles empty scopes gracefully' do
-      expect(uploader.upload_scopes([])).to be_nil
     end
   end
 end

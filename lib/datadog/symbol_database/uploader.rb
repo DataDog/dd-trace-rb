@@ -30,14 +30,16 @@ module Datadog
       MAX_PAYLOAD_SIZE = 50 * 1024 * 1024  # 50MB
 
       # Initialize uploader.
-      # @param config [Configuration] Tracer configuration (for service, env, version metadata)
+      # @param settings [Configuration::Settings] Tracer settings (for service, env, version metadata)
       # @param agent_settings [Configuration::AgentSettings] Agent connection settings
-      def initialize(config, agent_settings, logger:)
-        @config = config
+      # @param logger [Logger] Logger instance
+      # @param telemetry [Telemetry, nil] Optional telemetry component for error reporting
+      def initialize(settings:, agent_settings:, logger:, telemetry: nil)
+        @settings = settings
         @agent_settings = agent_settings
         @logger = logger
+        @telemetry = telemetry
 
-        # Initialize transport using symbol database transport infrastructure
         @transport = Transport::HTTP.build(
           agent_settings: agent_settings,
           logger: @logger,
@@ -51,17 +53,11 @@ module Datadog
       # @param scopes [Array<Scope>] Scopes to upload
       # @return [void]
       def upload_scopes(scopes)
-        return if scopes.nil? || scopes.empty?
+        return if scopes.empty?
 
-        # Build and serialize payload
         json_data = build_symbol_payload(scopes)
-        return unless json_data
+        compressed_data = Zlib.gzip(json_data)
 
-        # Compress
-        compressed_data = compress_payload(json_data)
-        return unless compressed_data
-
-        # Check size
         if compressed_data.bytesize > MAX_PAYLOAD_SIZE
           @logger.debug { "symdb: payload too large: #{compressed_data.bytesize}/#{MAX_PAYLOAD_SIZE} bytes, skipping" }
           return
@@ -70,7 +66,7 @@ module Datadog
         perform_http_upload(compressed_data, scopes.size)
       rescue => e
         @logger.debug { "symdb: upload failed: #{e.class}: #{e}" }
-        # Don't propagate
+        @telemetry&.report(e, description: 'symdb: upload failed')
       end
 
       # @api private
@@ -78,29 +74,14 @@ module Datadog
 
       # Build JSON payload from scopes.
       # @param scopes [Array<Scope>] Scopes to serialize
-      # @return [String, nil] JSON string or nil if serialization fails
+      # @return [String] JSON string
       def build_symbol_payload(scopes)
-        service_version = ServiceVersion.new(
-          service: @config.service,
-          env: @config.env,
-          version: @config.version,
-          scopes: scopes
-        )
-
-        service_version.to_json
-      rescue => e
-        @logger.debug { "symdb: serialization failed: #{e.class}: #{e}" }
-        nil
-      end
-
-      # Compress JSON with GZIP.
-      # @param json_data [String] JSON string to compress
-      # @return [String, nil] GZIP compressed data or nil if compression fails
-      def compress_payload(json_data)
-        Zlib.gzip(json_data)
-      rescue => e
-        @logger.debug { "symdb: compression failed: #{e.class}: #{e}" }
-        nil
+        ServiceVersion.new(
+          service: @settings.service,
+          env: @settings.env,
+          version: @settings.version,
+          scopes: scopes,
+        ).to_json
       end
 
       # Perform HTTP POST with multipart form-data via transport layer.
@@ -108,12 +89,8 @@ module Datadog
       # @param scope_count [Integer] Number of scopes (for logging)
       # @return [void]
       def perform_http_upload(compressed_data, scope_count)
-        # Build multipart form
         form = build_multipart_form(compressed_data)
-
-        # Send via transport (uses Core::Transport::HTTP infrastructure)
         response = @transport.send_symdb_payload(form)
-
         handle_response(response, scope_count)
       end
 
@@ -127,18 +104,18 @@ module Datadog
         event_upload = Datadog::Core::Vendor::Multipart::Post::UploadIO.new(
           event_io,
           'application/json',
-          'event.json'
+          'event.json',
         )
 
         file_upload = Datadog::Core::Vendor::Multipart::Post::UploadIO.new(
           file_io,
           'application/gzip',
-          "symbols_#{Process.pid}.json.gz"
+          "symbols_#{Process.pid}.json.gz",
         )
 
         {
           'event' => event_upload,
-          'file' => file_upload
+          'file' => file_upload,
         }
       end
 
@@ -147,10 +124,10 @@ module Datadog
       def build_event_metadata
         JSON.generate(
           ddsource: 'ruby',
-          service: @config.service,
+          service: @settings.service,
           runtimeId: Datadog::Core::Environment::Identity.id,
           parentId: nil,  # Fork tracking deferred for MVP
-          type: 'symdb'
+          type: 'symdb',
         )
       end
 

@@ -7,8 +7,10 @@ module Datadog
     module Transport
       module HTTP
         module API
-          # Endpoint for symbol database uploads
-          # Supports multipart form-data via env.form parameter
+          # POST endpoint for symbol database uploads. Multipart form-data
+          # is triggered by setting `env.form` on the request (handled in
+          # `Core::Transport::HTTP::Adapters::Net`); the multipart library
+          # sets Content-Type itself.
           class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
             attr_reader :encoder
 
@@ -17,17 +19,6 @@ module Datadog
             def initialize(path, encoder)
               super(:post, path)
               @encoder = encoder
-            end
-
-            def call(env, &block)
-              # For symbol database, we use multipart form-data
-              # The env.form parameter triggers multipart in Net adapter
-              # No need to set Content-Type - multipart library handles it
-
-              # Note: env.form is set by the uploader when creating the request
-              # It should contain the UploadIO objects for event.json and symbols file
-
-              super
             end
           end
         end
