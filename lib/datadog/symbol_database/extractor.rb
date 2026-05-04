@@ -419,8 +419,14 @@ module Datadog
         # Prepended modules
         # Take all ancestors before the class itself (prepending inserts modules before the class in ancestor chain).
         # This code path is taken when a class has prepended modules (e.g., class Foo; prepend Bar; end).
+        # Single-pass collection avoids the intermediate arrays from take_while.map.compact.
         # Test coverage: spec/datadog/symbol_database/extractor_spec.rb tests prepend behavior.
-        prepended = klass.ancestors.take_while { |a| a != klass }.map(&:name).compact
+        prepended = []
+        klass.ancestors.each do |a|
+          break if a == klass
+          name = a.name
+          prepended << name if name
+        end
         specifics[:prepended_modules] = prepended unless prepended.empty?
 
         specifics
