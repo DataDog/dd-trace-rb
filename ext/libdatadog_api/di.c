@@ -96,6 +96,8 @@ static VALUE exception_message(DDTRACE_UNUSED VALUE _self, VALUE exception) {
  * Reads the same fiber-local storage as Thread.current[:datadog_di_in_probe]
  * but bypasses Thread#[] method dispatch — a user method probe on Thread#[]
  * cannot observe or intercept this call.
+ *
+ * @api private
  */
 static VALUE in_probe_p(DDTRACE_UNUSED VALUE _self) {
   VALUE v = rb_thread_local_aref(rb_thread_current(), id_datadog_di_in_probe);
@@ -110,6 +112,8 @@ static VALUE in_probe_p(DDTRACE_UNUSED VALUE _self) {
  * fiber-local storage as Thread.current[:datadog_di_in_probe] = true, but
  * bypasses Thread#[]= method dispatch — a user method probe on Thread#[]=
  * cannot observe or intercept this call.
+ *
+ * @api private
  */
 static VALUE enter_probe(DDTRACE_UNUSED VALUE _self) {
   rb_thread_local_aset(rb_thread_current(), id_datadog_di_in_probe, Qtrue);
@@ -124,6 +128,8 @@ static VALUE enter_probe(DDTRACE_UNUSED VALUE _self) {
  * the same fiber-local storage as Thread.current[:datadog_di_in_probe] = nil,
  * but bypasses Thread#[]= method dispatch — a user method probe on Thread#[]=
  * cannot observe or intercept this call.
+ *
+ * @api private
  */
 static VALUE leave_probe(DDTRACE_UNUSED VALUE _self) {
   rb_thread_local_aset(rb_thread_current(), id_datadog_di_in_probe, Qnil);

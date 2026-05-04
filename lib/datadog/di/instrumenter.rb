@@ -387,6 +387,18 @@ module Datadog
       # do_super lambda — that lambda captures super's binding from inside
       # the define_method block, the only place super resolves to the
       # prepended-on class's method.
+      #
+      # @param args [Array] positional arguments passed to the probed method
+      # @param kwargs [Hash{Symbol => Object}] keyword arguments passed to the probed method
+      # @param target_block [Proc, nil] block argument passed to the probed method
+      # @param target_self [Object] the receiver of the probed method invocation
+      # @param do_super [Proc] lambda that invokes the original method via super; takes (args, kwargs, block) and dispatches the four splat shapes
+      # @param probe [Datadog::DI::Probe] the probe whose callback this invocation runs
+      # @param responder [#probe_executed_callback, #probe_condition_evaluation_failed_callback] callback target invoked with the built Context
+      # @param loc [Array(String, Integer), nil] source location of the probed method, or nil for virtual/lazily-defined methods
+      # @param method_name [String, Symbol] name of the probed method, used as the synthetic top stack frame label
+      # @param user_caller_locations [Proc] zero-arg lambda returning Array<Thread::Backtrace::Location> for the user's call stack; deferred so disabled/rate-limited invocations skip frame allocation
+      # @return [Object] the original method's return value, or re-raises its exception
       def run_method_probe(args:, kwargs:, target_block:, target_self:, do_super:,
         probe:, responder:, loc:, method_name:, user_caller_locations:)
         DI.enter_probe
