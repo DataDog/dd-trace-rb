@@ -282,6 +282,8 @@ module Datadog
       # @return [void]
       def scheduler_loop
         loop do
+          should_fire = false
+
           # steep:ignore:start
           @scheduler_mutex.synchronize do
             return if @shutdown
@@ -289,25 +291,29 @@ module Datadog
 
             if @scheduled_at.nil?
               # Nothing scheduled (e.g. stop_upload cleared it). Wait
-              # indefinitely for a signal, then re-evaluate.
+              # indefinitely for a signal, then re-evaluate on next loop.
               @scheduler_signaled = false
               @scheduler_cv.wait(@scheduler_mutex)
-              next
+            else
+              remaining = @scheduled_at - Datadog::Core::Utils::Time.get_time
+              if remaining > 0
+                # Wait until the debounce deadline. Any signal (start_upload,
+                # stop_upload, shutdown!) wakes us early; we always re-loop
+                # and recompute rather than firing immediately on wake.
+                @scheduler_signaled = false
+                @scheduler_cv.wait(@scheduler_mutex, remaining)
+              else
+                # Deadline elapsed without further signal — fire after releasing the mutex.
+                should_fire = true
+              end
             end
-
-            remaining = @scheduled_at - Datadog::Core::Utils::Time.get_time
-            if remaining > 0
-              # Wait until the debounce deadline. Any signal (start_upload,
-              # stop_upload, shutdown!) wakes us early; we always re-loop
-              # and recompute rather than firing immediately on wake.
-              @scheduler_signaled = false
-              @scheduler_cv.wait(@scheduler_mutex, remaining)
-              next
-            end
-
-            # Deadline elapsed without further signal — fall through and fire.
           end
           # steep:ignore:end
+
+          # `next` inside `synchronize` only exits the synchronize block — not the
+          # surrounding loop. Use an explicit flag so the loop only fires
+          # extract_and_upload when the debounce deadline has actually elapsed.
+          next unless should_fire
 
           # Outside the mutex.
           return if @shutdown
