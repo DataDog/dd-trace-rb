@@ -5,7 +5,6 @@ require_relative 'logger'
 require_relative 'scope_batcher'
 require_relative 'uploader'
 require_relative '../core/utils/time'
-require_relative '../core/utils/only_once'
 
 module Datadog
   module SymbolDatabase
@@ -15,13 +14,19 @@ module Datadog
     # - Lifecycle management: Initialization, shutdown, upload triggering
     # - Coordination: Connects Extractor → ScopeBatcher → Uploader
     # - Remote config handling: start_upload called by Remote module on config changes
-    # - Deduplication: cooldown prevents rapid re-uploads (see UPLOAD_COOLDOWN_INTERVAL)
+    # - Debounce: extraction is deferred by EXTRACT_DEBOUNCE_INTERVAL seconds so
+    #   reconfigurations during boot coalesce into a single extraction on the
+    #   final Component instance.
     #
     # Upload flow:
     # 1. Remote config sends upload_symbols: true (or force_upload mode)
-    # 2. start_upload called
-    # 3. extract_and_upload: ObjectSpace iteration → Extractor → ScopeBatcher
-    # 4. ScopeBatcher batches and triggers Uploader
+    # 2. start_upload called — schedules extraction EXTRACT_DEBOUNCE_INTERVAL
+    #    seconds in the future on a per-instance scheduler thread.
+    # 3. When the timer fires (no further start_upload calls reset it),
+    #    extract_and_upload runs: ObjectSpace iteration → Extractor → ScopeBatcher.
+    # 4. ScopeBatcher batches and triggers Uploader.
+    # 5. A class-level flag is set so subsequent Component instances created via
+    #    Datadog reconfiguration do not re-upload.
     #
     # Created by: Components#initialize (in Core::Configuration::Components)
     # Accessed by: Remote config receiver via Datadog.send(:components).symbol_database
@@ -29,11 +34,38 @@ module Datadog
     #
     # @api private
     class Component
-      UPLOAD_COOLDOWN_INTERVAL = 60  # seconds
+      # Debounce window for extraction. Multiple start_upload calls within this
+      # window coalesce; the timer fires once after the window of inactivity.
+      # Long enough to absorb reconfiguration cascades during Rails boot.
+      EXTRACT_DEBOUNCE_INTERVAL = 5  # seconds
 
-      # Class-level guard: force_upload extraction should only happen once per process,
-      # even if Components is rebuilt multiple times during startup (reconfigurations).
-      FORCE_UPLOAD_ONCE = Core::Utils::OnlyOnce.new
+      # Class-level state: tracks whether any Component instance in this process
+      # has performed an extract+upload. Survives Component replacement during
+      # Datadog reconfiguration so duplicate uploads are prevented.
+      @uploaded_this_process = false
+      @upload_done_mutex = Mutex.new
+      @upload_done_cv = ConditionVariable.new
+
+      class << self
+        attr_reader :upload_done_mutex, :upload_done_cv
+
+        def uploaded_this_process?
+          @upload_done_mutex.synchronize { @uploaded_this_process }
+        end
+
+        def mark_uploaded
+          @upload_done_mutex.synchronize do
+            @uploaded_this_process = true
+            @upload_done_cv.broadcast
+          end
+        end
+
+        # Reset class-level upload state. Test-only.
+        # @api private
+        def reset_uploaded_this_process_for_tests!
+          @upload_done_mutex.synchronize { @uploaded_this_process = false }
+        end
+      end
 
       # Build a new Component if feature is enabled and dependencies met.
       # @param settings [Configuration::Settings] Tracer settings
@@ -67,7 +99,7 @@ module Datadog
         end
       end
 
-      attr_reader :settings, :enabled, :last_upload_time, :upload_in_progress
+      attr_reader :settings, :last_upload_time, :upload_in_progress
 
       # Initialize component.
       # @param settings [Configuration::Settings] Tracer settings
@@ -82,51 +114,56 @@ module Datadog
         @uploader = Uploader.new(settings, agent_settings, logger: logger)
         @scope_batcher = ScopeBatcher.new(@uploader, logger: logger)
 
-        @enabled = false
         @last_upload_time = nil
         @mutex = Mutex.new
         @upload_in_progress = false
-        @upload_done_cv = ConditionVariable.new
+        @upload_in_progress_cv = ConditionVariable.new
         @shutdown = false
+
+        # Per-instance scheduler state. The scheduler thread is started lazily
+        # on the first start_upload call.
+        @scheduler_mutex = Mutex.new
+        @scheduler_cv = ConditionVariable.new
+        @scheduled_at = nil
+        @scheduler_signaled = false
+        @scheduler_thread = nil
       end
 
       # Schedule a deferred upload that waits for app boot to complete.
       #
-      # In Rails: uses ActiveSupport.on_load(:after_initialize) to wait for
-      # Zeitwerk eager loading to finish before extracting symbols.
+      # In Rails: registers ActiveSupport.on_load(:after_initialize). When the
+      # hook has already fired (e.g., this Component was built by a reconfigure
+      # after Rails finished initializing), the callback runs immediately.
       #
-      # In non-Rails: runs extraction immediately since there is no deferred
-      # class loading to wait for.
+      # In non-Rails: triggers start_upload immediately.
       #
-      # Uses FORCE_UPLOAD_ONCE to ensure only one extraction happens per process,
-      # even when Components is rebuilt multiple times during startup.
+      # Each Component registers its own callback. Old Components that have
+      # been shut down short-circuit in start_upload via @shutdown.
+      # Cross-process deduplication is handled by the class-level
+      # uploaded_this_process? flag, not by guarding registration.
       #
       # @return [void]
       def schedule_deferred_upload
         if defined?(::ActiveSupport) && defined?(::Rails::Railtie)
-          # Rails detected: defer until after_initialize when Zeitwerk has
-          # eager-loaded all application classes.
-          #
-          # Look up the current component at callback-fire time (not build time),
-          # because reconfigurations during startup may shut down and replace the
-          # component that originally registered this callback.
-          FORCE_UPLOAD_ONCE.run do
-            ::ActiveSupport.on_load(:after_initialize) do
-              current = begin
-                Datadog.send(:components).symbol_database
-              rescue => e
-                Datadog.logger.debug { "symdb: failed to look up component in deferred upload: #{e.class}: #{e}" }
-                nil
-              end
-              current&.start_upload
+          # Capture self — on_load runs the block via instance_exec on the
+          # loaded object (Rails::Application), so a bare `start_upload`
+          # would resolve against it.
+          component = self
+          logger = @logger
+          ::ActiveSupport.on_load(:after_initialize) do
+            # Only auto-trigger when Rails has eager-loaded application
+            # classes during initialization. In dev (eager_load=false)
+            # there is nothing complete to extract; the auto-deferred
+            # upload would race with explicit triggers and produce
+            # under-extracted uploads.
+            if defined?(::Rails) && ::Rails.application&.config&.eager_load
+              component.start_upload
+            else
+              logger.debug { "symdb: skipping auto-deferred upload (eager_load disabled)" }
             end
           end
         else
-          # Non-Rails: no deferred loading, extract immediately.
-          # Still guarded by OnlyOnce to handle reconfigurations.
-          FORCE_UPLOAD_ONCE.run do
-            start_upload
-          end
+          start_upload
         end
       end
 
@@ -136,51 +173,73 @@ module Datadog
         @mutex.synchronize { @shutdown }
       end
 
-      # Start symbol upload (triggered by remote config or force mode).
-      # Extracts symbols from all loaded modules and triggers upload.
+      # Schedule symbol upload (triggered by remote config or force mode).
+      # The actual extraction is debounced by EXTRACT_DEBOUNCE_INTERVAL seconds —
+      # subsequent calls within the window restart the timer.
       # Thread-safe: can be called concurrently from multiple remote config updates.
       # @return [void]
       def start_upload
-        should_upload = false
+        return if Component.uploaded_this_process?
 
-        @mutex.synchronize do
+        @scheduler_mutex.synchronize do
           return if @shutdown
-          return if @enabled
-          if recently_uploaded?
-            @logger.trace { "symdb: cooldown active, skipping upload" }
-            return
-          end
 
-          @enabled = true
-          @last_upload_time = Datadog::Core::Utils::Time.now
-          should_upload = true
+          @scheduled_at = Datadog::Core::Utils::Time.get_time + EXTRACT_DEBOUNCE_INTERVAL
+          @scheduler_signaled = true
+          @scheduler_cv.signal
+          ensure_scheduler_thread
         end
-
-        # Trigger extraction and upload outside mutex (long-running operation)
-        extract_and_upload if should_upload
       rescue => e
-        @logger.debug { "symdb: error starting upload: #{e.class}: #{e}" }
+        @logger.debug { "symdb: error scheduling upload: #{e.class}: #{e}" }
       end
 
-      # Stop symbol upload (disable future uploads).
+      # Stop symbol upload (cancel the scheduler).
       # Thread-safe: can be called concurrently from multiple remote config updates.
       # @return [void]
       def stop_upload
-        @mutex.synchronize { @enabled = false }
+        @scheduler_mutex.synchronize do
+          @scheduled_at = nil
+          @scheduler_signaled = true
+          @scheduler_cv.signal
+        end
+      end
+
+      # Block until any Component in this process has finished an extract+upload,
+      # or until the timeout elapses. Used by short-lived scripts that trigger
+      # an upload via force_upload and need to wait before exiting.
+      # @param timeout [Numeric] Maximum seconds to wait
+      # @return [Boolean] true if an upload completed; false on timeout
+      def wait_for_idle(timeout: 30)
+        deadline = Datadog::Core::Utils::Time.get_time + timeout
+        Component.upload_done_mutex.synchronize do
+          until Component.send(:instance_variable_get, :@uploaded_this_process)
+            remaining = deadline - Datadog::Core::Utils::Time.get_time
+            return false if remaining <= 0
+            Component.upload_done_cv.wait(Component.upload_done_mutex, remaining)
+          end
+        end
+        true
       end
 
       # Shutdown component and cleanup resources.
-      # Marks component as shut down so deferred uploads are cancelled.
-      # Waits for any in-flight upload to complete before shutting down.
+      # Cancels the per-instance scheduler so any pending debounced extraction
+      # is dropped. Waits for an in-flight extraction to complete before
+      # returning. Does not touch class-level state, so a sibling Component
+      # built after shutdown can still upload.
       # @return [void]
       def shutdown!
+        @scheduler_mutex.synchronize do
+          @shutdown = true
+          @scheduler_signaled = true
+          @scheduler_cv.signal
+        end
+        @scheduler_thread&.join(5)
+        @scheduler_thread = nil
+
         @mutex.synchronize do
           @shutdown = true
-
-          # Wait for in-flight upload to complete (max 5 seconds).
-          # extract_and_upload signals @upload_done_cv when it finishes.
           if @upload_in_progress
-            @upload_done_cv.wait(@mutex, 5)
+            @upload_in_progress_cv.wait(@mutex, 5)
           end
         end
 
@@ -210,16 +269,56 @@ module Datadog
       end
       private_class_method :environment_supported?
 
-      # Check if upload was recent (within cooldown period).
-      # Must be called from within @mutex.synchronize.
-      # @return [Boolean] true if uploaded within last UPLOAD_COOLDOWN_INTERVAL seconds
-      def recently_uploaded?
-        return false if @last_upload_time.nil?
+      # Start the scheduler thread if not already running.
+      # Must be called from within @scheduler_mutex.synchronize.
+      # @return [void]
+      def ensure_scheduler_thread
+        return if @scheduler_thread&.alive?
+        @scheduler_thread = Thread.new { scheduler_loop }
+      end
 
-        # Don't upload if last upload was within cooldown period
-        # steep:ignore:start
-        (Datadog::Core::Utils::Time.now - @last_upload_time) < UPLOAD_COOLDOWN_INTERVAL
-        # steep:ignore:end
+      # Scheduler thread main loop. Waits for the debounce window to elapse,
+      # then runs extract_and_upload exactly once for this Component.
+      # @return [void]
+      def scheduler_loop
+        loop do
+          @scheduler_mutex.synchronize do
+            return if @shutdown
+            return if Component.uploaded_this_process?
+
+            if @scheduled_at.nil?
+              # Nothing scheduled (e.g. stop_upload cleared it). Wait
+              # indefinitely for a signal, then re-evaluate.
+              @scheduler_signaled = false
+              @scheduler_cv.wait(@scheduler_mutex)
+              next
+            end
+
+            remaining = @scheduled_at - Datadog::Core::Utils::Time.get_time
+            if remaining > 0
+              # Wait until the debounce deadline. Any signal (start_upload,
+              # stop_upload, shutdown!) wakes us early; we always re-loop
+              # and recompute rather than firing immediately on wake.
+              @scheduler_signaled = false
+              @scheduler_cv.wait(@scheduler_mutex, remaining)
+              next
+            end
+
+            # Deadline elapsed without further signal — fall through and fire.
+          end
+
+          # Outside the mutex.
+          return if @shutdown
+          if Component.uploaded_this_process?
+            return
+          end
+
+          extract_and_upload
+          Component.mark_uploaded
+          return
+        end
+      rescue => e
+        @logger.debug { "symdb: scheduler error: #{e.class}: #{e}" }
       end
 
       # Extract symbols from all loaded modules and upload.
@@ -247,12 +346,14 @@ module Datadog
 
           # Flush any remaining scopes (triggers upload)
           @scope_batcher.flush
+
+          @last_upload_time = Datadog::Core::Utils::Time.now
         rescue => e
           @logger.debug { "symdb: extraction error: #{e.class}: #{e}" }
         ensure
           @mutex.synchronize do
             @upload_in_progress = false
-            @upload_done_cv.signal
+            @upload_in_progress_cv.signal
           end
         end
       end

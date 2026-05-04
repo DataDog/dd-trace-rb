@@ -37,6 +37,11 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       captured_forms << form
       mock_response
     end
+
+    # Reset cross-test class-level state and shorten the debounce window so
+    # tests don't wait the production 5 seconds.
+    Datadog::SymbolDatabase::Component.reset_uploaded_this_process_for_tests!
+    stub_const('Datadog::SymbolDatabase::Component::EXTRACT_DEBOUNCE_INTERVAL', 0.05)
   end
 
   # Load test code in a temp dir (not /spec/) so it passes user_code_path? filter
@@ -78,6 +83,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
 
       GC.start
       component.start_upload
+      component.wait_for_idle(timeout: 5)
 
       # Transport should have been called with a multipart form
       expect(captured_forms).not_to be_empty
@@ -147,6 +153,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
 
       GC.start
       Datadog::SymbolDatabase::Remote.send(:process_change, component, change)
+      component.wait_for_idle(timeout: 5)
 
       expect(captured_forms).not_to be_empty
       expect(content).to have_received(:applied)
@@ -187,6 +194,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
 
       GC.start
       Datadog::SymbolDatabase::Remote.send(:process_change, component, insert_change)
+      component.wait_for_idle(timeout: 5)
       expect(captured_forms).not_to be_empty
 
       # Then delete
@@ -201,8 +209,8 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
     end
   end
 
-  describe 'cooldown prevents rapid re-upload' do
-    it 'does not extract again within cooldown period' do
+  describe 'class-level dedup prevents re-upload' do
+    it 'does not extract again after a successful upload in this process' do
       component = Datadog::SymbolDatabase::Component.build(
         settings,
         agent_settings,
@@ -211,11 +219,13 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
 
       GC.start
       component.start_upload
+      component.wait_for_idle(timeout: 5)
       upload_count_after_first = captured_forms.size
 
-      # Second call should be blocked by cooldown
+      # Second call should be a no-op (uploaded_this_process? is true).
       component.stop_upload
       component.start_upload
+      sleep 0.2
       expect(captured_forms.size).to eq(upload_count_after_first)
 
       component.shutdown!
