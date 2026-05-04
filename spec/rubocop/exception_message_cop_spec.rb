@@ -10,7 +10,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
   subject(:cop) { described_class.new }
 
   describe 'bare exception interpolation' do
-    it 'registers an offense for bare #{e} in interpolation and auto-corrects to .message' do
+    it 'registers an offense for bare #{e} in interpolation and auto-corrects to .message' do # rubocop:disable Lint/InterpolationCheck
       expect_offense(<<~'RUBY')
         begin
           something
@@ -29,7 +29,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
       RUBY
     end
 
-    it 'registers an offense for bare #{e} in a longer interpolated string and auto-corrects' do
+    it 'registers an offense for bare #{e} in a longer interpolated string and auto-corrects' do # rubocop:disable Lint/InterpolationCheck
       expect_offense(<<~'RUBY')
         begin
           something
@@ -245,7 +245,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
   end
 
   describe 'missing class detection' do
-    it 'flags bare `#{e}` first; the missing-class offense surfaces on a second pass after autocorrect' do
+    it 'flags bare `#{e}` first; the missing-class offense surfaces on a second pass after autocorrect' do # rubocop:disable Lint/InterpolationCheck
       # RuboCop deduplicates offenses on the same node, so the first pass shows
       # only the bare-exception offense. After autocorrect to `e.message`, a
       # subsequent pass flags the still-missing class — verified in the next test.
@@ -267,7 +267,7 @@ RSpec.describe CustomCops::ExceptionMessageCop do
       RUBY
     end
 
-    it 'registers a missing-class offense for `#{e.message}` without class' do
+    it 'registers a missing-class offense for `#{e.message}` without class' do # rubocop:disable Lint/InterpolationCheck
       expect_offense(<<~'RUBY')
         begin
           something
