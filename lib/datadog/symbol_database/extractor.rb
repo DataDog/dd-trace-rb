@@ -453,14 +453,15 @@ module Datadog
             line: UNKNOWN_MIN_LINE,  # Available in entire module
             type: const_value.class.name
           )
-        rescue => e
-          # Skip constants that can't be accessed due to:
-          # - NameError: constant removed or not yet defined (race condition during loading)
-          # - LoadError: constant triggers autoload that fails
-          # - NoMethodError: constant value doesn't respond to expected methods
+        rescue NameError, LoadError, NoMethodError => e
+          # Expected: constant removed or not yet defined, autoload failure,
+          # or const value missing #class. Skip silently at debug.
           @logger.debug { "symdb: skipping constant #{const_name}: #{e.class}: #{e}" }
-          # - SecurityError: restricted access in safe mode
-          # - Circular dependency errors during const_get
+        rescue => e
+          # Unexpected: SecurityError, circular-dependency errors, etc. Same
+          # skip behavior, separate log site so unexpected errors are easy
+          # to spot when triaging.
+          @logger.debug { "symdb: unexpected error reading constant #{const_name}: #{e.class}: #{e}" }
         end
 
         symbols
@@ -495,8 +496,10 @@ module Datadog
             line: UNKNOWN_MIN_LINE,
             type: const_value.class.name
           )
-        rescue => e
+        rescue NameError, LoadError, NoMethodError => e
           @logger.debug { "symdb: skipping class constant #{const_name}: #{e.class}: #{e}" }
+        rescue => e
+          @logger.debug { "symdb: unexpected error reading class constant #{const_name}: #{e.class}: #{e}" }
         end
 
         symbols
@@ -931,8 +934,10 @@ module Datadog
             line: UNKNOWN_MIN_LINE,
             type: const_value.class.name
           )
-        rescue => e
+        rescue NameError, LoadError, NoMethodError => e
           @logger.debug { "symdb: skipping module constant #{const_name}: #{e.class}: #{e}" }
+        rescue => e
+          @logger.debug { "symdb: unexpected error reading module constant #{const_name}: #{e.class}: #{e}" }
         end
 
         symbols
