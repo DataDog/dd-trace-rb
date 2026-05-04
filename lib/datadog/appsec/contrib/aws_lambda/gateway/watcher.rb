@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
+require_relative '../waf_addresses'
 require_relative '../../../event'
 require_relative '../../../trace_keeper'
 require_relative '../../../security_event'
 require_relative '../../../instrumentation/gateway'
-require_relative '../waf_addresses'
 
 module Datadog
   module AppSec

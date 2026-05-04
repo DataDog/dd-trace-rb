@@ -63,20 +63,20 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
     context 'when payload has no path' do
       let(:payload) { {'headers' => {}, 'requestContext' => {'identity' => {}}} }
 
-      it { expect(result['server.request.uri.raw']).to eq('/') }
+      it { expect(result).not_to have_key('server.request.uri.raw') }
     end
 
     context 'when payload has no method' do
       let(:payload) { {'headers' => {}, 'requestContext' => {'identity' => {}}} }
 
-      it { expect(result['server.request.method']).to eq('GET') }
+      it { expect(result).not_to have_key('server.request.method') }
     end
 
     context 'when payload has base64-encoded JSON body' do
       let(:payload) do
         {
           'headers' => {'Content-Type' => 'application/json'},
-          'body' => Base64.encode64('{"key":"value"}'),
+          'body' => 'eyJrZXkiOiJ2YWx1ZSJ9',
           'isBase64Encoded' => true,
           'requestContext' => {'identity' => {}},
         }
@@ -186,7 +186,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
     context 'when payload is nil' do
       let(:payload) { nil }
 
-      it { expect(result['server.response.status']).to eq('200') }
+      it { expect(result).not_to have_key('server.response.status') }
       it { expect(result['server.response.headers']).to eq({}) }
     end
 
@@ -199,7 +199,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
     context 'when statusCode is missing' do
       let(:payload) { {'headers' => {}} }
 
-      it { expect(result['server.response.status']).to eq('200') }
+      it { expect(result).not_to have_key('server.response.status') }
     end
   end
 end

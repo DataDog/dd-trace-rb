@@ -8,11 +8,11 @@ module Datadog
 
           def self.version: () -> nil
 
-          def self.loaded?: () -> true
+          def self.loaded?: () -> bool
 
           def self.compatible?: () -> bool
 
-          def self.auto_instrument?: () -> false
+          def self.auto_instrument?: () -> bool
 
           def patcher: () -> singleton(Patcher)
         end

@@ -39,11 +39,13 @@ module Datadog
             payload ||= {}
             headers = parse_headers(payload)
 
-            {
-              'server.response.status' => (payload['statusCode'] || 200).to_s,
+            data = {
+              'server.response.status' => payload['statusCode']&.to_s,
               'server.response.headers' => headers,
               'server.response.headers.no_cookies' => headers.dup.tap { |h| h.delete('set-cookie') },
             }
+            data.compact!
+            data
           end
 
           def parse_headers(payload)
@@ -69,7 +71,9 @@ module Datadog
           end
 
           def build_fullpath(payload)
-            path = payload['path'] || payload['rawPath'] || '/'
+            path = payload['path'] || payload['rawPath']
+            return unless path
+
             qs = build_query_string(payload)
             qs.empty? ? path : "#{path}?#{qs}"
           end
@@ -87,8 +91,7 @@ module Datadog
 
           def extract_method(payload)
             payload['httpMethod'] ||
-              payload.dig('requestContext', 'http', 'method') ||
-              'GET'
+              payload.dig('requestContext', 'http', 'method')
           end
 
           def extract_client_ip(remote_ip, headers)
@@ -97,18 +100,18 @@ module Datadog
           end
 
           def parse_body(payload, headers)
-            raw = payload['body']
-            return nil if raw.nil?
+            body = payload['body']
+            return unless body
 
-            raw = payload['isBase64Encoded'] ? Base64.decode64(raw) : raw
+            body = Base64.decode64(body) if payload['isBase64Encoded']
 
             content_type = headers['content-type']
-            return nil unless content_type
+            return unless content_type
 
             media_type = AppSec::Utils::HTTP::MediaType.parse(content_type)
-            return nil unless media_type
+            return unless media_type
 
-            AppSec::Utils::HTTP::Body.parse(raw, media_type: media_type)
+            AppSec::Utils::HTTP::Body.parse(body, media_type: media_type)
           end
         end
       end
