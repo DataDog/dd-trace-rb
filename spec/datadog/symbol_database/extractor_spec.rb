@@ -1687,6 +1687,35 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
     end
 
+    context 'class with overridden singleton name method' do
+      before do
+        @file = create_test_file('name_override.rb', <<~RUBY)
+          class ExtractAllNameOverride
+            def self.name(size:, region:)
+              "\#{size}-\#{region}"
+            end
+
+            def regular_method; end
+          end
+        RUBY
+        load @file
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllNameOverride) if defined?(ExtractAllNameOverride)
+      end
+
+      it 'still appears in extract_all output via safe_mod_name' do
+        scopes = extract_all_clean
+        file_scope = find_file_scope(scopes, 'ExtractAllNameOverride')
+
+        expect(file_scope).not_to be_nil
+        class_scope = file_scope.scopes.find { |s| s.name == 'ExtractAllNameOverride' }
+        expect(class_scope).not_to be_nil
+        expect(class_scope.scope_type).to eq('CLASS')
+      end
+    end
+
     context 'end_line correctness via extract_all' do
       before do
         @file = create_test_file('multiline.rb', <<~RUBY)

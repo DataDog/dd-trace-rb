@@ -745,7 +745,7 @@ module Datadog
               methods: [], mod: nil, source_file: file_path, fqn: nil
             }
             parts = mod_name.split('::')
-            place_in_tree(root, parts, entry[:mod], methods, file_path)
+            place_in_tree(root, parts, entry[:mod], mod_name, methods, file_path)
           end
         rescue => e
           @logger.debug { "symdb: error building tree for #{mod_name}: #{e.class}: #{e}" }
@@ -756,7 +756,10 @@ module Datadog
 
       # Place a module/class in the file tree at the correct nesting depth.
       # Creates intermediate namespace nodes as needed.
-      def place_in_tree(root, name_parts, mod, methods, file_path)
+      # mod_name is the safe name (resolved via Module#instance_method bind) —
+      # callers must not pass raw mod.name, since classes that override singleton
+      # name (e.g. Faker::Travel::Airport) will raise.
+      def place_in_tree(root, name_parts, mod, mod_name, methods, file_path)
         current = root
 
         # Create/find intermediate nodes for each namespace segment except the last
@@ -780,11 +783,11 @@ module Datadog
           leaf[:mod] = mod
         else
           leaf = {
-            name: mod.name,
+            name: mod_name,
             type: mod.is_a?(Class) ? 'CLASS' : 'MODULE',
             children: {}, methods: [],
             mod: mod, source_file: file_path,
-            fqn: mod.name
+            fqn: mod_name
           }
           current[:children][leaf_name] = leaf
         end
