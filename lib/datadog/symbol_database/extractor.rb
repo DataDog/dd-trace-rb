@@ -657,12 +657,6 @@ module Datadog
           # Skip block parameters for MVP
           next if param_type == :block
 
-          # Skip if param_name is nil (defensive)
-          if param_name.nil?
-            Datadog.logger.trace { "symdb: param_name is nil for #{method_name}, param_type: #{param_type}" } if Datadog.logger.respond_to?(:trace)
-            next
-          end
-
           # Skip if param_name is nil — normal for generated methods (attr_writer, attr_accessor).
           # See pitfall 37 and specs/json-schema.md "Discovered During Implementation".
           next if param_name.nil?
@@ -672,10 +666,6 @@ module Datadog
             name: param_name.to_s,
             line: UNKNOWN_MIN_LINE,  # Parameters available in entire method
           )
-        end
-
-        if result.empty? && !params.empty?
-          Datadog.logger.debug("SymDB: Extracted 0 parameters from singleton #{method_name} (params: #{params.inspect})")
         end
       rescue => e
         @logger.debug { "symdb: failed to extract parameters from #{method_name}: #{e.class}: #{e.message}" }
