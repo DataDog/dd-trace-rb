@@ -27,27 +27,38 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
       Datadog::AppSec::Context,
       run_waf: waf_result,
       events: events,
-      trace: double('trace'),
-      span: double('span')
+      trace: instance_double(Datadog::Tracing::TraceOperation),
+      span: instance_double(Datadog::Tracing::SpanOperation),
     )
   end
   let(:events) { [] }
   let(:waf_result) do
-    double('waf_result', match?: false, attributes: [], actions: {}, keep?: false)
+    instance_double(
+      Datadog::AppSec::SecurityEngine::Result::Ok,
+      match?: false,
+      attributes: [],
+      actions: {},
+      keep?: false,
+    )
   end
 
   describe '.watch_request' do
     subject(:push_request) do
       gateway.push(
         'aws_lambda.request.start',
-        Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(event, context: appsec_context)
+        Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(event, context: appsec_context),
       )
     end
 
     before { described_class.watch_request(gateway) }
 
     context 'when AppSec context is not set' do
-      let(:appsec_context) { nil }
+      subject(:push_request) do
+        gateway.push(
+          'aws_lambda.request.start',
+          Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(event, context: nil),
+        )
+      end
 
       it { expect { push_request }.not_to raise_error }
     end
@@ -59,7 +70,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
         expect(appsec_context).to have_received(:run_waf).with(
           hash_including('server.request.method' => 'GET', 'server.request.uri.raw' => '/test'),
           {},
-          anything
+          anything,
         )
       end
 
@@ -70,7 +81,13 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
         end
 
         let(:waf_result) do
-          double('waf_result', match?: true, attributes: [], actions: {}, keep?: false)
+          instance_double(
+            Datadog::AppSec::SecurityEngine::Result::Match,
+            match?: true,
+            attributes: [],
+            actions: {},
+            keep?: false,
+          )
         end
 
         it 'pushes a security event' do
@@ -95,7 +112,13 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
 
       context 'when WAF result has attributes but no match' do
         let(:waf_result) do
-          double('waf_result', match?: false, attributes: ['something'], actions: {}, keep?: false)
+          instance_double(
+            Datadog::AppSec::SecurityEngine::Result::Ok,
+            match?: false,
+            attributes: ['something'],
+            actions: {},
+            keep?: false,
+          )
         end
 
         it 'pushes a security event' do
@@ -106,14 +129,10 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
       end
 
       context 'when WAF does not match and has no attributes' do
-        it 'does not push events' do
-          push_request
-
-          expect(events).to be_empty
-        end
+        it { expect { push_request }.not_to(change { events.size }) }
       end
 
-      context 'when WAF match has keep? true' do
+      context 'when WAF match keeps the trace' do
         before do
           allow(Datadog::AppSec::Event).to receive(:tag)
           allow(Datadog::AppSec::ActionsHandler).to receive(:handle)
@@ -121,7 +140,13 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
         end
 
         let(:waf_result) do
-          double('waf_result', match?: true, attributes: [], actions: {}, keep?: true)
+          instance_double(
+            Datadog::AppSec::SecurityEngine::Result::Match,
+            match?: true,
+            attributes: [],
+            actions: {},
+            keep?: true,
+          )
         end
 
         it 'keeps the trace' do
@@ -137,14 +162,19 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
     subject(:push_response) do
       gateway.push(
         'aws_lambda.response.start',
-        Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(response, context: appsec_context)
+        Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(response, context: appsec_context),
       )
     end
 
     before { described_class.watch_response(gateway) }
 
     context 'when AppSec context is not set' do
-      let(:appsec_context) { nil }
+      subject(:push_response) do
+        gateway.push(
+          'aws_lambda.response.start',
+          Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(response, context: nil),
+        )
+      end
 
       it { expect { push_response }.not_to raise_error }
     end
@@ -156,7 +186,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
         expect(appsec_context).to have_received(:run_waf).with(
           hash_including('server.response.status' => '200'),
           {},
-          anything
+          anything,
         )
       end
 
@@ -167,7 +197,13 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
         end
 
         let(:waf_result) do
-          double('waf_result', match?: true, attributes: [], actions: {}, keep?: false)
+          instance_double(
+            Datadog::AppSec::SecurityEngine::Result::Match,
+            match?: true,
+            attributes: [],
+            actions: {},
+            keep?: false,
+          )
         end
 
         it 'pushes a security event' do
@@ -191,10 +227,14 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
       described_class.watch
     end
 
-    it 'registers request and response watchers' do
-      request_payload = Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(event, context: appsec_context)
-      response_payload = Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(response, context: appsec_context)
+    let(:request_payload) do
+      Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(event, context: appsec_context)
+    end
+    let(:response_payload) do
+      Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(response, context: appsec_context)
+    end
 
+    it 'registers request and response watchers' do
       gateway.push('aws_lambda.request.start', request_payload)
       gateway.push('aws_lambda.response.start', response_payload)
 
