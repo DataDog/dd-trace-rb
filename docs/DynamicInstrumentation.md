@@ -2,7 +2,7 @@
 
 ## Overview
 
-Dynamic Instrumentation for Ruby is currently in **limited preview**.
+Dynamic Instrumentation for Ruby is in **limited preview**.
 While the core functionality is stable, some features available in other
 languages (Java, Python, .NET) are not yet available for Ruby.
 
@@ -20,12 +20,12 @@ practices for using Dynamic Instrumentation.
 
 - Datadog Agent 7.49.0 or higher
 - Ruby 2.6 or higher
-  - Only MRI (CRuby) is supported; JRuby and other Ruby implementations are not currently supported
+  - Only MRI (CRuby) is supported; JRuby and other Ruby implementations are not supported
   - The `libdatadog_api` C extension must be compiled; DI will not
     activate without it
 - Rack-based applications only
   - Includes Rails, Sinatra, and other Rack-compatible frameworks
-  - Non-Rack applications are not currently supported
+  - Non-Rack applications are not supported
   - Background processes and jobs (including Sidekiq, Resque, etc.) are not yet supported
 - [Remote Configuration Management](https://docs.datadoghq.com/remote_configuration/) enabled
   - Remote Configuration is enabled by default.
@@ -67,7 +67,7 @@ For detailed instructions on creating and configuring probes, see the
 
 ### Currently Supported
 
-Ruby Dynamic Instrumentation currently supports **log probes**, which can be
+Ruby Dynamic Instrumentation supports **log probes**, which can be
 created as either line probes or method probes.
 
 #### Line Probes
@@ -99,7 +99,7 @@ the entire method execution.
 - Exceptions raised
 
 **Limitations:**
-- Local variables defined within the method are not currently captured
+- Local variables defined within the method are not captured
 - **Workaround:** Use line probes inside the method if you need to
   capture local variables at specific points during execution
 
@@ -208,7 +208,7 @@ can be targeted if you wish to instrument the method definition itself,
 but if you want to instrument the defined method's execution, you must
 set the line probe on a line inside of the method.
 
-**Important:** Dynamic instrumentation cannot currently report when line
+**Important:** Dynamic instrumentation cannot report when line
 probes target non-executable lines. Setting line probes on non-executable
 lines will succeed (the UI will report that the code is instrumented, if
 the referenced file is loaded and tracked), but no snapshots will be
@@ -270,7 +270,7 @@ per-probe in the probe definition.
 #### Custom Serializers
 
 Custom serializers allow you to define how specific objects are serialized
-in Dynamic Instrumentation snapshots. The API is currently internal and
+in Dynamic Instrumentation snapshots. The API is internal and
 subject to change.
 
 **Exception Handling:** If a custom serializer's condition lambda raises
