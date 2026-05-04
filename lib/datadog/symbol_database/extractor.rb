@@ -165,40 +165,6 @@ module Datadog
         nil
       end
 
-      # Extract symbols from all loaded modules and classes.
-      # Returns an array of FILE scopes with proper FQN-based nesting.
-      #
-      # Two-pass algorithm:
-      # Pass 1: Iterate ObjectSpace, collect all extractable modules with methods grouped by file
-      # Pass 2: Build FILE scope trees with nested MODULE/CLASS hierarchy from FQN splitting
-      #
-      # This is the production path used by Component. Methods are split by source file,
-      # so a class reopened across two files produces two FILE scopes, each with only
-      # the methods defined in that file.
-      #
-      # @param upload_class_methods [Boolean] Whether to include singleton methods
-      # @return [Array<Scope>] Array of FILE scopes
-      def self.extract_all(logger: Datadog.logger, upload_class_methods: false)
-        entries = collect_extractable_modules(logger: logger, upload_class_methods: upload_class_methods)
-        file_trees = build_file_trees(entries, logger: logger)
-        convert_trees_to_scopes(file_trees)
-      rescue => e
-        logger.debug { "symdb: error in extract_all: #{e.class}: #{e}" }
-        []
-      end
-
-      # Safe Module#name lookup — some classes override the singleton `name` method
-      # (e.g. Faker::Travel::Airport defines `def name(size:, region:)` in class << self,
-      # which shadows Module#name and raises ArgumentError when called without args).
-      # @param mod [Module] The module
-      # @return [String, nil] Module name or nil
-      def self.safe_mod_name(mod)
-        Module.instance_method(:name).bind(mod).call
-      rescue => e
-        @logger.debug { "symdb: safe_mod_name failed: #{e.class}: #{e}" }
-        nil
-      end
-
       # Check if module is from user code (not gems or stdlib)
       # @param mod [Module] The module to check
       # @return [Boolean] true if user code
