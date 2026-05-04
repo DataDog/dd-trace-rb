@@ -1022,6 +1022,36 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
+    # The wrapper passes caller_locations to run_method_probe so the
+    # snapshot's stack reflects the user's call site, not the wrapper's
+    # internal call chain. This regression test pins the contract: the
+    # frame immediately following the synthetic method_frame must be
+    # this spec's call site. Any change to the wrapper's call chain
+    # (extracting helpers, lambda thunks, etc.) that breaks this stack
+    # capture will fail this test.
+    context 'caller_locations capture' do
+      let(:probe_args) do
+        {type_name: 'HookTestClass', method_name: 'hook_test_method'}
+      end
+
+      it 'captures the test call site as the frame after the synthetic method frame' do
+        hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        HookTestClass.new.hook_test_method
+
+        expect(observed_calls.length).to eq 1
+        caller_locs = observed_calls.first.caller_locations
+        # caller_locs[0] is the synthetic Location for the probed method
+        # (added by run_method_probe). caller_locs[1] is the first real
+        # frame from the user's stack — i.e., this spec.
+        expect(caller_locs[0].path).to end_with('hook_method.rb')
+        expect(caller_locs[0].label).to include('hook_test_method')
+        expect(caller_locs[1].path).to end_with('instrumenter_spec.rb')
+      end
+    end
+
     # Cover each branch of the re-entrancy guard's early-return splat.
     # When DI.in_probe? is true, the wrapper must call super with the
     # exact arg/kwarg shape it received and skip all DI processing.
