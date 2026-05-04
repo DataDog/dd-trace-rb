@@ -187,14 +187,6 @@ module Datadog
         return false if mod.equal?(Object) || mod.equal?(BasicObject) ||
           mod.equal?(Kernel) || mod.equal?(Module) || mod.equal?(Class)
 
-        # Exclude Ruby root classes. These are never user code, but
-        # find_source_file can return a user-code path for them via
-        # const_source_location (top-level constants like User are
-        # Object constants, so Object.const_source_location(:User)
-        # points to the user's file).
-        return false if mod.equal?(Object) || mod.equal?(BasicObject) ||
-          mod.equal?(Kernel) || mod.equal?(Module) || mod.equal?(Class)
-
         source_file = find_source_file(mod)
         return false unless source_file
 
@@ -314,58 +306,6 @@ module Datadog
               mod.const_source_location(child_const_name)
             rescue => e
               @logger.debug { "symdb: const_source_location(#{child_const_name}) failed: #{e.class}: #{e.message}" }
-              nil
-            end
-            next unless location && !location.empty?
-
-            path = location[0]
-            next unless path && !path.empty?
-
-            return path if user_code_path?(path)
-
-            fallback ||= path
-          end
-        end
-
-        # Try const_source_location (Ruby 2.7+) to find where this class/module is declared.
-        # This handles two cases:
-        #   1. Classes with no user-defined methods (e.g. AR models with only associations) whose
-        #      generated methods point to gem code — we find the `class Foo` declaration instead.
-        #   2. Namespace-only modules (`module Foo; class Bar; end; end`) with no methods at all.
-        if Module.method_defined?(:const_source_location) && mod.name
-          # Look up the class/module by its last name component in its enclosing namespace.
-          parts = mod.name.split('::')
-          const_name = parts.last
-          namespace = if parts.length > 1
-            begin
-              Object.const_get(parts[0..-2].join('::')) # steep:ignore
-            rescue NameError
-              nil
-            end
-          else
-            Object
-          end
-
-          if namespace
-            location = begin
-              namespace.const_source_location(const_name)
-            rescue
-              nil
-            end
-
-            if location && !location.empty?
-              path = location[0]
-              return path if path && !path.empty? && user_code_path?(path)
-              fallback ||= ((path && !path.empty?) ? path : nil)
-            end
-          end
-
-          # Also scan constants defined by mod itself (namespace-only modules).
-          mod.constants(false).each do |child_const_name|
-            location = begin
-              mod.const_source_location(child_const_name)
-            rescue => e
-              @logger.debug { "symdb: const_source_location(#{child_const_name}) failed: #{e.class}: #{e}" }
               nil
             end
             next unless location && !location.empty?
