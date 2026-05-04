@@ -156,7 +156,7 @@ module Datadog
             # there is nothing complete to extract; the auto-deferred
             # upload would race with explicit triggers and produce
             # under-extracted uploads.
-            if defined?(::Rails) && ::Rails.application&.config&.eager_load
+            if defined?(::Rails) && ::Rails.application&.config&.eager_load # steep:ignore NoMethod
               component.start_upload
             else
               logger.debug { "symdb: skipping auto-deferred upload (eager_load disabled)" }
@@ -282,6 +282,7 @@ module Datadog
       # @return [void]
       def scheduler_loop
         loop do
+          # steep:ignore:start
           @scheduler_mutex.synchronize do
             return if @shutdown
             return if Component.uploaded_this_process?
@@ -306,6 +307,7 @@ module Datadog
 
             # Deadline elapsed without further signal — fall through and fire.
           end
+          # steep:ignore:end
 
           # Outside the mutex.
           return if @shutdown
