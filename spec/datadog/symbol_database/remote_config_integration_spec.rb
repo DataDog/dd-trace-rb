@@ -42,6 +42,15 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
     # tests don't wait the production 5 seconds.
     Datadog::SymbolDatabase::Component.reset_uploaded_this_process_for_tests!
     stub_const('Datadog::SymbolDatabase::Component::EXTRACT_DEBOUNCE_INTERVAL', 0.05)
+
+    # REPRODUCER: simulate slow extract_all (heavily-loaded ObjectSpace in CI)
+    # to exceed the wait_for_idle(timeout: 5) window. Mirrors the Ruby 2.6 [1]
+    # core_old shard failure mode where extraction takes >5s due to thousands
+    # of modules loaded after ~5000 prior tests in the same process.
+    allow_any_instance_of(Datadog::SymbolDatabase::Extractor).to receive(:extract_all).and_wrap_original do |original|
+      sleep 6
+      original.call
+    end
   end
 
   # Load test code in a temp dir (not /spec/) so it passes user_code_path? filter
