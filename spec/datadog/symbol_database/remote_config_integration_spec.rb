@@ -43,10 +43,19 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
     Datadog::SymbolDatabase::Component.reset_uploaded_this_process_for_tests!
     stub_const('Datadog::SymbolDatabase::Component::EXTRACT_DEBOUNCE_INTERVAL', 0.05)
 
-    # REPRODUCER: simulate slow extract_all (heavily-loaded ObjectSpace in CI)
-    # to exceed the wait_for_idle(timeout: 5) window. Mirrors the Ruby 2.6 [1]
-    # core_old shard failure mode where extraction takes >5s due to thousands
-    # of modules loaded after ~5000 prior tests in the same process.
+    # FIX: Limit ObjectSpace.each_object(Module) to the test class hierarchy
+    # so extract_all completes in milliseconds rather than tens of seconds.
+    # Real extraction logic (find_source_file, build_file_trees, etc.) still
+    # runs against the test modules — only the iteration scope is constrained.
+    test_modules = [RCIntegrationTestModule, RCIntegrationTestModule::RCIntegrationTestClass]
+    allow(ObjectSpace).to receive(:each_object).and_call_original
+    allow(ObjectSpace).to receive(:each_object).with(Module) do |&block|
+      test_modules.each(&block)
+    end
+
+    # REPRODUCER: simulate slow extract_all on top of the fix. The 30s
+    # wait_for_idle window in the fix tolerates this 6s delay; without the
+    # fix's timeout bump, the original 5s would still time out.
     allow_any_instance_of(Datadog::SymbolDatabase::Extractor).to receive(:extract_all).and_wrap_original do |original|
       sleep 6
       original.call
