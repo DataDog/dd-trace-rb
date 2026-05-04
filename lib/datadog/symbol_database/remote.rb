@@ -90,7 +90,7 @@ module Datadog
         rescue => e
           Datadog.logger.debug { "symdb: error processing remote config change: #{e.class}: #{e}" }
           content_obj = change.respond_to?(:content) ? change.content : change.previous
-          content_obj&.errored(e.message)
+          content_obj&.errored(e.to_s)
         end
 
         # Enable upload if config has upload_symbols: true.
@@ -141,7 +141,7 @@ module Datadog
 
           config
         rescue JSON::ParserError => e
-          Datadog.logger.debug { "symdb: invalid config format: #{e.message}" }
+          Datadog.logger.debug { "symdb: invalid config format: #{e}" }
           nil
         end
       end
