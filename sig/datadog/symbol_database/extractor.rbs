@@ -36,10 +36,6 @@ module Datadog
 
       def build_class_language_specifics: (Class klass) -> Hash[::Symbol, untyped]
 
-      def extract_module_symbols: (Module mod) -> Array[Symbol]
-
-      def extract_class_symbols: (Class klass) -> Array[Symbol]
-
       def extract_method_scopes: (Class klass) -> Array[Scope]
 
       def extract_method_scope: (Class klass, ::Symbol method_name, ::Symbol method_type) -> Scope?
@@ -50,7 +46,7 @@ module Datadog
 
       def build_injectable_ranges: (Array[Integer] lines) -> Array[Hash[::Symbol, Integer]]
 
-      def extract_method_parameters: (UnboundMethod method, ?::Symbol method_type) -> Array[Symbol]
+      def extract_method_parameters: (UnboundMethod method) -> Array[Symbol]
 
       def collect_extractable_modules: () -> Hash[String, untyped]
 
@@ -58,7 +54,7 @@ module Datadog
 
       def build_file_trees: (Hash[String, untyped] entries) -> Hash[String, untyped]
 
-      def place_in_tree: (untyped root, Array[String] name_parts, Module mod, Array[untyped] methods, String file_path) -> void
+      def place_in_tree: (untyped root, Array[String] name_parts, Module mod, String mod_name, Array[untyped] methods, String file_path) -> void
 
       def resolve_scope_type: (String fqn) -> String
 
