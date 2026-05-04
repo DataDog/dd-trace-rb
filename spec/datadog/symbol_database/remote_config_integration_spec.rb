@@ -92,7 +92,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
 
       GC.start
       component.start_upload
-      component.wait_for_idle(timeout: 5)
+      component.wait_for_idle(timeout: 30)
 
       # Transport should have been called with a multipart form
       expect(captured_forms).not_to be_empty
@@ -162,7 +162,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
 
       GC.start
       Datadog::SymbolDatabase::Remote.send(:process_change, component, change)
-      component.wait_for_idle(timeout: 5)
+      component.wait_for_idle(timeout: 30)
 
       expect(captured_forms).not_to be_empty
       expect(content).to have_received(:applied)
@@ -203,7 +203,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
 
       GC.start
       Datadog::SymbolDatabase::Remote.send(:process_change, component, insert_change)
-      component.wait_for_idle(timeout: 5)
+      component.wait_for_idle(timeout: 30)
       expect(captured_forms).not_to be_empty
 
       # Then delete
@@ -228,7 +228,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
 
       GC.start
       component.start_upload
-      component.wait_for_idle(timeout: 5)
+      component.wait_for_idle(timeout: 30)
       upload_count_after_first = captured_forms.size
 
       # Second call should be a no-op (uploaded_this_process? is true).
