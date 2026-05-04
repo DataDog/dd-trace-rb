@@ -327,15 +327,22 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
       end
     end
 
-    let(:set_source_file) do
-      Set.instance_method(:include?).source_location&.first
+    let(:set_include_source_location) do
+      loc = Set.instance_method(:include?).source_location
+      unless loc
+        raise "Set#include? has no Ruby source location on Ruby #{RUBY_VERSION} " \
+          "(likely reimplemented in C). This test verifies line probes on a " \
+          "Ruby-implemented stdlib file called by DI's redactor; the target must " \
+          "be Ruby-implemented in the current Ruby version. Either pick a " \
+          "different Ruby-implemented target or replace this test."
+      end
+      loc
     end
 
-    let(:set_include_line) do
-      # The body of Set#include? (the @hash[o] line, one after `def`)
-      loc = Set.instance_method(:include?).source_location
-      loc ? loc.last + 1 : nil
-    end
+    let(:set_source_file) { set_include_source_location.first }
+
+    # The body of Set#include? — the @hash[o] line, one after `def`
+    let(:set_include_line) { set_include_source_location.last + 1 }
 
     let(:probe) do
       Datadog::DI::Probe.new(
