@@ -155,12 +155,25 @@ module Datadog
             # Thread methods cannot intercept guard reads/writes and recurse.
             return do_super.call(args, kwargs, target_block) if DI.in_probe? # steep:ignore FallbackAny
 
+            # Lazy caller_locations: only the FIRES path uses the stack,
+            # so defer the frame-array allocation. Disabled probes and
+            # rate-limited invocations skip it entirely.
+            #
+            # Depth 3 skips: lambda body, run_method_probe (caller of
+            # the lambda), and this wrapper (caller of run_method_probe).
+            # The first returned frame is the user's call site. The
+            # depth is pinned by the regression test
+            # "caller_locations capture > captures the test call site as
+            # the frame after the synthetic method frame" — any change
+            # to the call chain that shifts the depth fails that test.
+            user_caller_locations = -> { caller_locations(3) }
+
             instrumenter.send(:run_method_probe,
               args: args, kwargs: kwargs, target_block: target_block, # steep:ignore FallbackAny
               target_self: self, do_super: do_super,
               probe: probe, responder: responder,
               loc: loc, method_name: method_name,
-              user_caller_locations: caller_locations)
+              user_caller_locations: user_caller_locations)
           end
         end
 
@@ -485,7 +498,7 @@ module Datadog
               # that location here.
               []
             end
-            caller_locs = method_frame + user_caller_locations
+            caller_locs = method_frame + user_caller_locations.call
             # TODO capture arguments at exit
 
             context = Context.new(locals: nil, target_self: target_self,
