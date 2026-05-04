@@ -139,9 +139,13 @@ static VALUE leave_probe(DDTRACE_UNUSED VALUE _self) {
  * probe wrapper to test args/kwargs shape without giving user-installed
  * method probes on Array#empty? a chance to recurse.
  *
+ * Raises TypeError if the argument is not an Array — RARRAY_LEN reads
+ * struct fields directly and would return garbage for any other type.
+ *
  * @api private
  */
 static VALUE array_empty_p(DDTRACE_UNUSED VALUE _self, VALUE obj) {
+  Check_Type(obj, T_ARRAY);
   return RARRAY_LEN(obj) == 0 ? Qtrue : Qfalse;
 }
 
@@ -154,9 +158,13 @@ static VALUE array_empty_p(DDTRACE_UNUSED VALUE _self, VALUE obj) {
  * probe wrapper to test args/kwargs shape without giving user-installed
  * method probes on Hash#empty? a chance to recurse.
  *
+ * Raises TypeError if the argument is not a Hash — RHASH_SIZE reads
+ * struct fields directly and would return garbage for any other type.
+ *
  * @api private
  */
 static VALUE hash_empty_p(DDTRACE_UNUSED VALUE _self, VALUE obj) {
+  Check_Type(obj, T_HASH);
   return RHASH_SIZE(obj) == 0 ? Qtrue : Qfalse;
 }
 
