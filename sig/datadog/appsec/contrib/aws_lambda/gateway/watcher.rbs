@@ -6,15 +6,9 @@ module Datadog
           module Watcher
             def self.watch: () -> void
 
-            def self.activate_context: (?Instrumentation::Gateway gateway) -> void
+            def self.watch_request: (?Instrumentation::Gateway gateway) -> void
 
-            def self.handle_request: (?Instrumentation::Gateway gateway) -> void
-
-            def self.handle_response: (?Instrumentation::Gateway gateway) -> void
-
-            private
-
-            def self.finalize: (Context context) -> void
+            def self.watch_response: (?Instrumentation::Gateway gateway) -> void
           end
         end
       end

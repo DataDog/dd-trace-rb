@@ -10,7 +10,7 @@ module Datadog
 
           def self.loaded?: () -> true
 
-          def self.compatible?: () -> true
+          def self.compatible?: () -> bool
 
           def self.auto_instrument?: () -> false
 
