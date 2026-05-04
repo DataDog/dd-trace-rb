@@ -110,6 +110,12 @@ module ProfileHelpers
       testcase.skip "GVL profiling is only supported on Ruby >= 3.2"
     end
   end
+
+  def asan_build?
+    %w[CFLAGS LDFLAGS configure_args].any? do |key|
+      RbConfig::CONFIG[key].to_s.include?("sanitize=address")
+    end
+  end
 end
 
 RSpec.configure do |config|

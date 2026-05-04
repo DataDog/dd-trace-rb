@@ -662,6 +662,13 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           let(:heap_sample_every) { 2 }
 
           it "only keeps track of some allocations" do
+            # Under ASAN-built Ruby, conservative GC walks ASAN's "fake stacks" (heap-backed regions kept
+            # alive for use-after-return detection) — see gc.c:gc_mark_machine_stack_location_maybe under
+            # RUBY_ASAN_ENABLED. Locals from the `before` block can stay reachable for many GC cycles after
+            # the block returns, so the dangling allocations the test relies on being freed sometimes
+            # survive — producing extra heap samples and failing the strict `eq(1)` assertion below.
+            skip "Strict heap_samples count is not deterministic under ASAN's fake-stack retention" if asan_build?
+
             # By only sampling every 2nd allocation we only track the odd objects which means our array
             # should be the only heap sample captured (string is index 0, array is index 1, hash is 4)
             expect(heap_samples.size)
