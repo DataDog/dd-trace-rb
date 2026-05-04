@@ -541,7 +541,19 @@ module Datadog
               rv
             end
           else
-            # Release re-entrancy guard for the original method.
+            # Disabled or rate-limited: skip DI processing and call super.
+            #
+            # The guard must be released here (not relied on the ensure)
+            # because do_super invokes the customer's method, which may
+            # call other probed methods. Those nested probes should fire
+            # normally — they would not if the guard were still set,
+            # because the wrapper's early-return short-circuits when
+            # DI.in_probe? is true.
+            #
+            # No post-processing in this branch, so we don't re-acquire
+            # the guard after super. The ensure's leave_probe below is
+            # a no-op here (guard already cleared) and serves the
+            # firing branch above, where post-processing re-enters.
             DI.leave_probe
             do_super.call(args, kwargs, target_block)
           end
