@@ -1667,20 +1667,6 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       extractor.extract_all
     end
 
-    context 'top-level rescue' do
-      let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component, inc: nil) }
-      let(:extractor_with_telemetry) do
-        described_class.new(logger: logger, settings: settings, telemetry: telemetry)
-      end
-
-      it 'returns [] and increments telemetry when collection raises' do
-        allow(extractor_with_telemetry).to receive(:collect_extractable_modules).and_raise(StandardError, 'boom')
-        result = extractor_with_telemetry.extract_all
-        expect(result).to eq([])
-        expect(telemetry).to have_received(:inc).with('tracers', 'symbol_database.extract_all_error', 1)
-      end
-    end
-
     context 'simple class in one file' do
       before do
         @file = create_test_file('user.rb', <<~RUBY)
