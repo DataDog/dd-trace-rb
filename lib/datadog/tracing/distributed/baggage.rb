@@ -141,7 +141,15 @@ module Datadog
         def parse_baggage_header(baggage_header)
           if baggage_header.bytesize > DD_TRACE_BAGGAGE_MAX_BYTES
             record_telemetry_metric('context_header.truncated', 1, {'header_style' => 'baggage', 'truncation_reason' => 'baggage_byte_count_exceeded'})
-            return {}
+
+            # We MUST NOT propagate partial entries, but we SHOULD try
+            # to parse as much of the baggage as possible:
+            # https://www.w3.org/TR/2024/CR-baggage-20240530/#limits
+            #
+            # We parse 1 byte over the limit to detect if the last entry
+            # is a partial entry (toss) or ends exactly at the limit (keep).
+            remove_last_entry = baggage_header.byteslice(DD_TRACE_BAGGAGE_MAX_BYTES, 1) != ','
+            baggage_header = baggage_header.byteslice(0, DD_TRACE_BAGGAGE_MAX_BYTES) #: String
           end
 
           baggage = {}
@@ -153,6 +161,12 @@ module Datadog
               record_telemetry_metric('context_header.truncated', 1, {'header_style' => 'baggage', 'truncation_reason' => 'baggage_item_count_exceeded'})
               break
             end
+
+            # On truncation, remove incomplete trailing partial entry
+            next if remove_last_entry && index == baggages.size - 1
+
+            # Empty items are skipped
+            next if key_value.strip.empty?
 
             key, value = key_value.split('=', 2)
             # If baggage is malformed, return an empty hash

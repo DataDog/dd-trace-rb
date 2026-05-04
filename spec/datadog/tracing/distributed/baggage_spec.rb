@@ -404,6 +404,24 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
         end
       end
 
+      context 'with an empty list member' do
+        let(:data) { {'baggage' => 'key=value,'} }
+
+        it 'skips the empty item' do
+          expect(telemetry).to receive(:inc).with(
+            'instrumentation_telemetry_data.tracers',
+            'context_header_style.extracted',
+            1,
+            tags: {'header_style' => 'baggage'}
+          )
+
+          result = propagation.extract(data)
+
+          expect(result).to be_a(Datadog::Tracing::TraceDigest)
+          expect(result.baggage).to eq('key' => 'value')
+        end
+      end
+
       context 'when baggage item count exceeds limit' do
         let(:data) do
           {'baggage' => (1..(max_baggage_items + 2)).map { |i| "key#{i}=value#{i}" }.join(',')}
@@ -457,25 +475,65 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
       end
 
       context 'when baggage header size exceeds limit' do
-        let(:data) { {'baggage' => "27bytes_for_key_and_equals=#{'a' * (max_baggage_bytes - 27 + 1)}"} } # Too big by 1 byte
-
         before { allow(telemetry).to receive(:inc) }
 
-        it 'extracts empty baggage' do
-          result = propagation.extract(data)
-          expect(result).to be_a(Datadog::Tracing::TraceDigest)
-          expect(result.baggage).to eq({})
+        context 'with a single item that is too large' do
+          let(:key) { 'key=' }
+          let(:value) { 'a' * (max_baggage_bytes - key.bytesize + 1) }
+          let(:data) { {'baggage' => "#{key}#{value}"} }
+
+          it 'extracts empty baggage' do
+            result = propagation.extract(data)
+            expect(result).to be_a(Datadog::Tracing::TraceDigest)
+            expect(result.baggage).to eq({})
+          end
+
+          it 'records byte count truncation telemetry' do
+            expect(telemetry).to receive(:inc).with(
+              'instrumentation_telemetry_data.tracers',
+              'context_header.truncated',
+              1,
+              tags: {'header_style' => 'baggage', 'truncation_reason' => 'baggage_byte_count_exceeded'}
+            )
+
+            propagation.extract(data)
+          end
         end
 
-        it 'records byte count truncation telemetry' do
-          expect(telemetry).to receive(:inc).with(
-            'instrumentation_telemetry_data.tracers',
-            'context_header.truncated',
-            1,
-            tags: {'header_style' => 'baggage', 'truncation_reason' => 'baggage_byte_count_exceeded'}
-          )
+        context 'with a complete entry before the byte limit' do
+          let(:data) do
+            {
+              'baggage' => "key1=#{'a' * (max_baggage_bytes / 2)},key2=#{'b' * (max_baggage_bytes / 2)}"
+            }
+          end
 
-          propagation.extract(data)
+          it 'extracts complete entry only' do
+            result = propagation.extract(data)
+
+            expect(result.baggage.keys).to contain_exactly('key1')
+          end
+        end
+
+        context 'when a complete entry fits exactly the byte limit' do
+          let(:key) { 'key1=' }
+          let(:value) { 'a' * (max_baggage_bytes - key.bytesize) }
+          let(:data) { {'baggage' => "#{key}#{value},next=value"} }
+
+          it 'extracts complete entry' do
+            result = propagation.extract(data)
+
+            expect(result.baggage.keys).to contain_exactly('key1')
+          end
+
+          context 'with spec-allowed whitespace before the next separator' do
+            let(:data) { {'baggage' => "#{key}#{value} ,next=value"} }
+
+            it 'drops entry to avoid unbounded whitespace parsing beyond byte limit' do
+              result = propagation.extract(data)
+
+              expect(result.baggage).to eq({})
+            end
+          end
         end
       end
     end
