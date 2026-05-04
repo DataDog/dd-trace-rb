@@ -23,9 +23,12 @@ module Datadog
       end
 
       attr_reader :settings
-      attr_reader :target
 
-      def_delegators :target, :debug, :warn
+      # Only debug and warn are delegated by design — symbol database
+      # extraction logs only at debug (high-volume diagnostics) and warn
+      # (user-actionable problems). Adding info/error would invite
+      # log-level drift; explicit additions can be made if needed.
+      def_delegators :@target, :debug, :warn
 
       # Log at trace level (sub-debug). No-op unless DD_TRACE_DEBUG is set.
       # @yield Block that returns the log message string
