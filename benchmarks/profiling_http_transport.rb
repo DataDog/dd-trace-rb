@@ -55,7 +55,6 @@ class ProfilerHttpTransportBenchmark
       start: @flush_finish - 60,
       finish: @flush_finish,
       encoded_profile: @stack_recorder.serialize!,
-      code_provenance_file_name: 'example_code_provenance_file_name.json',
       code_provenance_data: '',
       metrics: [],
       tags_as_array: [],

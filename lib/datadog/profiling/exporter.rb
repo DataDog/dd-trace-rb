@@ -99,7 +99,6 @@ module Datadog
           start: start,
           finish: finish,
           encoded_profile: encoded_profile,
-          code_provenance_file_name: Datadog::Profiling::Ext::Transport::HTTP::CODE_PROVENANCE_FILENAME,
           code_provenance_data: uncompressed_code_provenance,
           metrics: metrics,
           tags_as_array: Datadog::Profiling::TagBuilder.call(
