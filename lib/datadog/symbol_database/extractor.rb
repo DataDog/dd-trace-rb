@@ -876,7 +876,12 @@ module Datadog
             line: UNKNOWN_MIN_LINE,
             type: const_value.class.name
           )
-        rescue NameError, LoadError, NoMethodError => e
+        rescue NameError, LoadError, NoMethodError => e # standard:disable Lint/ShadowedException
+          # Expected: constant removed/undefined, autoload failure, or const value missing
+          # #class. Logged separately from unexpected errors so the latter stand out in triage.
+          # Lint/ShadowedException disabled: NameError/NoMethodError do descend from
+          # StandardError, but Ruby's rescue-clause-order semantics ensure the bare rescue
+          # below only catches exceptions not matched here.
           @logger.debug { "symdb: skipping module constant #{const_name}: #{e.class}: #{e}" }
         rescue => e
           @logger.debug { "symdb: unexpected error reading module constant #{const_name}: #{e.class}: #{e}" }
