@@ -122,6 +122,11 @@ module Datadog
             # set on a stdlib method that DI itself calls during
             # snapshot building (e.g., String#length, Hash#each).
             #
+            # Nested invocations during DI processing bypass the rate
+            # limiter entirely — they are not user-observable probe
+            # firings, just internal calls that happen to land on a
+            # probed method, so they must not consume rate limit tokens.
+            #
             # Storage is fiber-local. The DI.in_probe?/enter_probe/leave_probe
             # methods are implemented in C and access the storage directly via
             # rb_thread_local_aref / rb_thread_local_aset, bypassing Thread#[]

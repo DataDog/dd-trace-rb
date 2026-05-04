@@ -569,17 +569,20 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
       )
     end
 
-    it "installs without infinite recursion" do
-      run_stdlib_probe_test(probe) do
-        # The probe on Module#prepend fired during its own installation.
-        # Trigger an additional prepend to verify the system is stable.
-        mod = Module.new
-        Class.new.prepend(mod)
-      end
+    it "installs without infinite recursion and the system is stable" do
+      expect {
+        run_stdlib_probe_test(probe) do
+          # The probe on Module#prepend fired during its own installation.
+          # Trigger an additional prepend to verify the system is stable.
+          mod = Module.new
+          Class.new.prepend(mod)
+        end
+      }.not_to raise_error
 
-      # The key assertion is that we reach this point without
-      # hanging or crashing. Payloads may or may not be generated
-      # depending on rate limiting.
+      # Probe is installed and the wrapper module is recorded on the probe.
+      # Payloads may or may not be generated depending on rate limiting,
+      # so the assertion is on installation state rather than payload count.
+      expect(probe.instrumentation_module).not_to be_nil
     end
   end
 

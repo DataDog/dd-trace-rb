@@ -1021,6 +1021,84 @@ RSpec.describe Datadog::DI::Instrumenter do
         include_examples 'does not report the call and reports evaluation failure'
       end
     end
+
+    # Cover each branch of the re-entrancy guard's early-return splat.
+    # When DI.in_probe? is true, the wrapper must call super with the
+    # exact arg/kwarg shape it received and skip all DI processing.
+    context 'when DI.in_probe? is true (re-entrant call from within DI processing)' do
+      after do
+        # Always clear the guard so leftover state cannot affect the next test.
+        Datadog::DI.leave_probe
+      end
+
+      context 'method takes no args' do
+        let(:probe_args) do
+          {type_name: 'HookTestClass', method_name: 'hook_test_method'}
+        end
+
+        it 'calls super with no args and does not invoke the callback' do
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          Datadog::DI.enter_probe
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(observed_calls).to be_empty
+        end
+      end
+
+      context 'method takes a positional arg' do
+        let(:probe_args) do
+          {type_name: 'HookTestClass', method_name: 'hook_test_method_with_arg'}
+        end
+
+        it 'calls super with the positional arg and does not invoke the callback' do
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          Datadog::DI.enter_probe
+          expect(HookTestClass.new.hook_test_method_with_arg(7)).to eq 7
+
+          expect(observed_calls).to be_empty
+        end
+      end
+
+      context 'method takes a keyword arg' do
+        let(:probe_args) do
+          {type_name: 'HookTestClass', method_name: 'hook_test_method_with_kwarg'}
+        end
+
+        it 'calls super with the keyword arg and does not invoke the callback' do
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          Datadog::DI.enter_probe
+          expect(HookTestClass.new.hook_test_method_with_kwarg(kwarg: 9)).to eq 9
+
+          expect(observed_calls).to be_empty
+        end
+      end
+
+      context 'method takes both positional and keyword args' do
+        let(:probe_args) do
+          {type_name: 'HookTestClass', method_name: 'hook_test_method_with_pos_and_kwarg'}
+        end
+
+        it 'calls super with both shapes and does not invoke the callback' do
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          Datadog::DI.enter_probe
+          expect(HookTestClass.new.hook_test_method_with_pos_and_kwarg(1, kwarg: 2)).to eq [1, 2]
+
+          expect(observed_calls).to be_empty
+        end
+      end
+    end
   end
 
   describe '.hook_line' do
