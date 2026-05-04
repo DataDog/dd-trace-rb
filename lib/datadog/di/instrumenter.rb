@@ -98,7 +98,6 @@ module Datadog
         end
 
         cls = symbolize_class_name(probe.type_name)
-        serializer = self.serializer
         method_name = probe.method_name
         loc = begin
           cls.instance_method(method_name).source_location
@@ -110,12 +109,30 @@ module Datadog
           # In these cases we do not have a source location for the
           # target method here.
         end
-        rate_limiter = probe.rate_limiter
-        settings = self.settings
         instrumenter = self
 
         mod = Module.new do
           define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore NoMethod
+            # do_super invokes the original method via super. The lambda
+            # captures super's binding from inside this define_method
+            # block — that's the only place super resolves to the
+            # prepended-on class's method. The four splat shapes are
+            # centralized here; #run_method_probe receives this lambda
+            # and calls it instead of using super directly.
+            do_super = lambda do |a, k, blk|
+              if !DI.array_empty?(a)
+                if !DI.hash_empty?(k)
+                  super(*a, **k, &blk)
+                else
+                  super(*a, &blk)
+                end
+              elsif !DI.hash_empty?(k)
+                super(**k, &blk)
+              else
+                super(&blk)
+              end
+            end
+
             # Re-entrancy guard: if we are already inside a DI probe
             # callback, skip DI processing and call the original method
             # directly. This prevents SystemStackError when a probe is
@@ -132,201 +149,14 @@ module Datadog
             # rb_thread_local_aref / rb_thread_local_aset, bypassing Thread#[]
             # / Thread#[]= method dispatch — so user method probes on those
             # Thread methods cannot intercept guard reads/writes and recurse.
-            if DI.in_probe?
-              if !DI.array_empty?(args)
-                if !DI.hash_empty?(kwargs) # steep:ignore FallbackAny
-                  return super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
-                else
-                  return super(*args, &target_block)
-                end
-              elsif !DI.hash_empty?(kwargs) # steep:ignore FallbackAny
-                return super(**kwargs, &target_block) # steep:ignore FallbackAny
-              else
-                return super(&target_block)
-              end
-            end
+            return do_super.call(args, kwargs, target_block) if DI.in_probe? # steep:ignore FallbackAny
 
-            begin
-            DI.enter_probe # rubocop:disable Layout/IndentationWidth
-
-            # Steep cannot detect the type of **kwargs inside define_method blocks
-            # (Ruby::FallbackAny). All kwargs references below are annotated with
-            # steep:ignore FallbackAny.
-            di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
-
-            if continue = probe.enabled?
-              if condition = probe.condition
-                begin
-                  # This context will be recreated later, unlike for line probes.
-                  #
-                  # We do not need the stack for condition evaluation, therefore
-                  # stack is not passed to Context here.
-                  context = Context.new(
-                    locals: serializer.combine_args(args, kwargs, self), # steep:ignore FallbackAny
-                    target_self: self,
-                    probe: probe, settings: settings, serializer: serializer,
-                  )
-                  continue = condition.satisfied?(context)
-                rescue => exc
-                  # Evaluation error exception can be raised for "expected"
-                  # errors, we probably need another setting to control whether
-                  # these exceptions are propagated.
-                  raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
-                    !exc.is_a?(DI::Error::ExpressionEvaluationError)
-
-                  if context
-                    # We want to report evaluation errors for conditions
-                    # as probe snapshots. However, if we failed to create
-                    # the context, we won't be able to report anything as
-                    # the probe notifier builder requires a context.
-                    begin
-                      responder.probe_condition_evaluation_failed_callback(context, exc)
-                    rescue => nested_exc
-                      raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-
-                      instrumenter.logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc}" }
-                      instrumenter.telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
-                    end
-                  else
-                    _ = 42 # stop standard from wrecking this code
-
-                    raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-
-                    instrumenter.logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc}" }
-                    instrumenter.telemetry&.report(exc, description: "Error evaluating condition without context")
-                    # If execution gets here, there is probably a bug in the tracer.
-                  end
-
-                  continue = false
-                end
-              end
-            end
-
-            if continue and rate_limiter.nil? || rate_limiter.allow?
-              # Arguments may be mutated by the method, therefore
-              # they need to be serialized prior to method invocation.
-              serialized_entry_args = if probe.capture_snapshot?
-                serializer.serialize_args(args, kwargs, self, # steep:ignore FallbackAny
-                  depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-                  attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
-              end
-              # We intentionally do not use Core::Utils::Time.get_time
-              # here because the time provider may be overridden by the
-              # customer, and DI is not allowed to invoke customer code.
-              start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-
-              di_duration = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID) - di_start_time
-
-              # Release re-entrancy guard for the original method so that
-              # probes on other methods (or recursive calls) fire normally
-              # during user code execution.
-              DI.leave_probe
-
-              rv = nil
-              begin
-                # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
-                # for methods defined via method_missing.
-                rv = if !DI.array_empty?(args)
-                  if !DI.hash_empty?(kwargs) # steep:ignore FallbackAny
-                    super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
-                  else
-                    super(*args, &target_block)
-                  end
-                elsif !DI.hash_empty?(kwargs) # steep:ignore FallbackAny
-                  super(**kwargs, &target_block) # steep:ignore FallbackAny
-                else
-                  super(&target_block)
-                end
-              rescue NoMemoryError, Interrupt, SystemExit
-                raise
-              rescue Exception => exc # standard:disable Lint/RescueException
-                # We will raise the exception captured here later, after
-                # the instrumentation callback runs.
-              end
-
-              # Re-acquire re-entrancy guard for DI post-processing
-              # (building context, notification callback).
-              DI.enter_probe
-
-              end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-              duration = end_time - start_time
-
-              # Restart DI timer.
-              # The DI execution duration covers time spent in DI code before
-              # the customer method is invoked and time spent in DI code
-              # after the customer method finishes.
-              di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
-
-              # The method itself is not part of the stack trace because
-              # we are getting the stack trace from outside of the method.
-              # Add the method in manually as the top frame.
-              method_frame = if loc
-                [Location.new(loc.first, loc.last, method_name)]
-              else
-                # For virtual and lazily-defined methods, we do not have
-                # the original source location here, and they won't be
-                # included in the stack trace currently.
-                # TODO when begin/end trace points are added for local
-                # variable capture in method probes, we should be able
-                # to obtain actual method execution location and use
-                # that location here.
-                []
-              end
-              caller_locs = method_frame + caller_locations
-              # TODO capture arguments at exit
-
-              context = Context.new(locals: nil, target_self: self,
-                probe: probe, settings: settings, serializer: serializer,
-                serialized_entry_args: serialized_entry_args,
-                caller_locations: caller_locs,
-                return_value: rv, duration: duration, exception: exc,)
-
-              begin
-                responder.probe_executed_callback(context)
-
-                instrumenter.send(:check_and_disable_if_exceeded, probe, responder, di_start_time, di_duration)
-              rescue => di_exc
-                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-
-                instrumenter.logger.debug { "di: unhandled exception in method probe: #{di_exc.class}: #{di_exc}" }
-                instrumenter.telemetry&.report(di_exc, description: "Unhandled exception in method probe")
-              end
-
-              if exc
-                raise exc
-              else
-                rv
-              end
-            else
-              # stop standard from trying to mess up my code
-              _ = 42
-
-              # Release re-entrancy guard for the original method.
-              DI.leave_probe
-
-              # The necessity to invoke super in each of these specific
-              # ways is very difficult to test.
-              # Existing tests, even though I wrote many, still don't
-              # cause a failure if I replace all of the below with a
-              # simple super(*args, **kwargs, &target_block).
-              # But, let's be safe and go through the motions in case
-              # there is actually a legitimate need for the breakdown.
-              # TODO figure out how to test this properly.
-              if !DI.array_empty?(args)
-                if !DI.hash_empty?(kwargs) # steep:ignore FallbackAny
-                  super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
-                else
-                  super(*args, &target_block)
-                end
-              elsif !DI.hash_empty?(kwargs) # steep:ignore FallbackAny
-                super(**kwargs, &target_block) # steep:ignore FallbackAny
-              else
-                super(&target_block)
-              end
-            end
-            ensure
-              DI.leave_probe # rubocop:disable Layout/IndentationWidth
-            end
+            instrumenter.send(:run_method_probe,
+              args: args, kwargs: kwargs, target_block: target_block, # steep:ignore FallbackAny
+              target_self: self, do_super: do_super,
+              probe: probe, responder: responder,
+              loc: loc, method_name: method_name,
+              user_caller_locations: caller_locations)
           end
         end
 
@@ -533,6 +363,160 @@ module Datadog
       private
 
       attr_reader :lock
+
+      # Body of the method probe wrapper. Extracted from the define_method
+      # block in #hook_method so the begin/ensure structure can use normal
+      # indentation. The wrapper invokes the original method via the
+      # do_super lambda — that lambda captures super's binding from inside
+      # the define_method block, the only place super resolves to the
+      # prepended-on class's method.
+      def run_method_probe(args:, kwargs:, target_block:, target_self:, do_super:,
+        probe:, responder:, loc:, method_name:, user_caller_locations:)
+        DI.enter_probe
+        begin
+          di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
+
+          if continue = probe.enabled?
+            if condition = probe.condition
+              begin
+                # This context will be recreated later, unlike for line probes.
+                #
+                # We do not need the stack for condition evaluation, therefore
+                # stack is not passed to Context here.
+                context = Context.new(
+                  locals: serializer.combine_args(args, kwargs, target_self),
+                  target_self: target_self,
+                  probe: probe, settings: settings, serializer: serializer,
+                )
+                continue = condition.satisfied?(context)
+              rescue => exc
+                # Evaluation error exception can be raised for "expected"
+                # errors, we probably need another setting to control whether
+                # these exceptions are propagated.
+                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
+                  !exc.is_a?(DI::Error::ExpressionEvaluationError)
+
+                if context
+                  # We want to report evaluation errors for conditions
+                  # as probe snapshots. However, if we failed to create
+                  # the context, we won't be able to report anything as
+                  # the probe notifier builder requires a context.
+                  begin
+                    responder.probe_condition_evaluation_failed_callback(context, exc)
+                  rescue => nested_exc
+                    raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                    logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc}" }
+                    telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
+                  end
+                else
+                  raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                  logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc}" }
+                  telemetry&.report(exc, description: "Error evaluating condition without context")
+                  # If execution gets here, there is probably a bug in the tracer.
+                end
+
+                continue = false
+              end
+            end
+          end
+
+          rate_limiter = probe.rate_limiter
+          if continue and rate_limiter.nil? || rate_limiter.allow?
+            # Arguments may be mutated by the method, therefore
+            # they need to be serialized prior to method invocation.
+            serialized_entry_args = if probe.capture_snapshot?
+              serializer.serialize_args(args, kwargs, target_self,
+                depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
+                attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
+            end
+            # We intentionally do not use Core::Utils::Time.get_time
+            # here because the time provider may be overridden by the
+            # customer, and DI is not allowed to invoke customer code.
+            start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+            di_duration = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID) - di_start_time
+
+            # Release re-entrancy guard for the original method so that
+            # probes on other methods (or recursive calls) fire normally
+            # during user code execution.
+            DI.leave_probe
+
+            rv = nil
+            begin
+              # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
+              # for methods defined via method_missing.
+              rv = do_super.call(args, kwargs, target_block)
+            rescue NoMemoryError, Interrupt, SystemExit
+              raise
+            rescue Exception => exc # standard:disable Lint/RescueException
+              # We will raise the exception captured here later, after
+              # the instrumentation callback runs.
+            end
+
+            # Re-acquire re-entrancy guard for DI post-processing
+            # (building context, notification callback).
+            DI.enter_probe
+
+            end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+            duration = end_time - start_time
+
+            # Restart DI timer.
+            # The DI execution duration covers time spent in DI code before
+            # the customer method is invoked and time spent in DI code
+            # after the customer method finishes.
+            di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
+
+            # The method itself is not part of the stack trace because
+            # we are getting the stack trace from outside of the method.
+            # Add the method in manually as the top frame.
+            method_frame = if loc
+              [Location.new(loc.first, loc.last, method_name)]
+            else
+              # For virtual and lazily-defined methods, we do not have
+              # the original source location here, and they won't be
+              # included in the stack trace currently.
+              # TODO when begin/end trace points are added for local
+              # variable capture in method probes, we should be able
+              # to obtain actual method execution location and use
+              # that location here.
+              []
+            end
+            caller_locs = method_frame + user_caller_locations
+            # TODO capture arguments at exit
+
+            context = Context.new(locals: nil, target_self: target_self,
+              probe: probe, settings: settings, serializer: serializer,
+              serialized_entry_args: serialized_entry_args,
+              caller_locations: caller_locs,
+              return_value: rv, duration: duration, exception: exc,)
+
+            begin
+              responder.probe_executed_callback(context)
+
+              check_and_disable_if_exceeded(probe, responder, di_start_time, di_duration)
+            rescue => di_exc
+              raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+              logger.debug { "di: unhandled exception in method probe: #{di_exc.class}: #{di_exc}" }
+              telemetry&.report(di_exc, description: "Unhandled exception in method probe")
+            end
+
+            if exc
+              raise exc
+            else
+              rv
+            end
+          else
+            # Release re-entrancy guard for the original method.
+            DI.leave_probe
+            do_super.call(args, kwargs, target_block)
+          end
+        ensure
+          DI.leave_probe
+        end
+      end
 
       def line_trace_point_callback(probe, iseq, responder, tp)
         di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
