@@ -70,11 +70,11 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
   di_test
 
   let(:diagnostics_transport) do
-    double(Datadog::DI::Transport::Diagnostics::Transport)
+    instance_double(Datadog::DI::Transport::Diagnostics::Transport)
   end
 
   let(:input_transport) do
-    double(Datadog::DI::Transport::Input::Transport)
+    instance_double(Datadog::DI::Transport::Input::Transport)
   end
 
   before do
@@ -520,7 +520,7 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
       )
     end
 
-    it "currently fires probe for DI-internal invocations during snapshot building" do
+    it "fires probe for both user code and DI-internal invocations (current behavior)" do
       payloads = run_stdlib_probe_test(probe) do
         # This single user-code call to String#length triggers the probe.
         # During DI's snapshot building for this invocation, DI calls
