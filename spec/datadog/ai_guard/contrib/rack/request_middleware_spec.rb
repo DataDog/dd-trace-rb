@@ -21,7 +21,7 @@ RSpec.describe Datadog::AIGuard::Contrib::Rack::RequestMiddleware do
 
   before do
     Datadog.configure do |c|
-      c.ai_guard.enabled = ai_guard_enabled
+      c.ai_guard.enabled = true
     end
   end
 
@@ -29,10 +29,15 @@ RSpec.describe Datadog::AIGuard::Contrib::Rack::RequestMiddleware do
     Datadog.configuration.reset!
   end
 
-  context "when AI Guard is enabled" do
-    let(:ai_guard_enabled) { true }
+  context "when an AI Guard span fired during the request" do
+    let(:app) do
+      lambda do |_env|
+        Datadog::Tracing.trace(Datadog::AIGuard::Ext::SPAN_NAME) { |_s| nil }
+        [200, {}, ["ok"]]
+      end
+    end
 
-    it "tags http.client_ip and network.client.ip on the active span" do
+    it "tags http.client_ip and network.client.ip on the request span" do
       Datadog::Tracing.trace("rack.request") do |span|
         middleware.call(env)
 
@@ -41,7 +46,7 @@ RSpec.describe Datadog::AIGuard::Contrib::Rack::RequestMiddleware do
       end
     end
 
-    it "passes the request to the inner app" do
+    it "passes the request through" do
       response = nil
       Datadog::Tracing.trace("rack.request") do
         response = middleware.call(env)
@@ -50,9 +55,18 @@ RSpec.describe Datadog::AIGuard::Contrib::Rack::RequestMiddleware do
       expect(response).to eq([200, {}, ["ok"]])
     end
 
-    context "when there is no active span" do
-      it "does not raise" do
-        expect { middleware.call(env) }.not_to raise_error
+    it "still tags on the way out when the inner app raises" do
+      raising_app = ->(_env) {
+        Datadog::Tracing.trace(Datadog::AIGuard::Ext::SPAN_NAME) { |_s| nil }
+        raise "boom"
+      }
+      mw = described_class.new(raising_app)
+
+      Datadog::Tracing.trace("rack.request") do |span|
+        expect { mw.call(env) }.to raise_error(RuntimeError, "boom")
+
+        expect(span.get_tag("http.client_ip")).to eq("198.51.100.42")
+        expect(span.get_tag("network.client.ip")).to eq("203.0.113.5")
       end
     end
 
@@ -107,10 +121,8 @@ RSpec.describe Datadog::AIGuard::Contrib::Rack::RequestMiddleware do
     end
   end
 
-  context "when AI Guard is disabled" do
-    let(:ai_guard_enabled) { false }
-
-    it "does not tag the span" do
+  context "when no AI Guard span fired during the request" do
+    it "does not tag the request span" do
       Datadog::Tracing.trace("rack.request") do |span|
         middleware.call(env)
 
@@ -120,7 +132,22 @@ RSpec.describe Datadog::AIGuard::Contrib::Rack::RequestMiddleware do
     end
 
     it "still passes the request through" do
-      expect(middleware.call(env)).to eq([200, {}, ["ok"]])
+      Datadog::Tracing.trace("rack.request") do
+        expect(middleware.call(env)).to eq([200, {}, ["ok"]])
+      end
+    end
+  end
+
+  context "when there is no active trace" do
+    let(:app) do
+      lambda do |_env|
+        Datadog::Tracing.trace(Datadog::AIGuard::Ext::SPAN_NAME) { |_s| nil }
+        [200, {}, ["ok"]]
+      end
+    end
+
+    it "does not raise" do
+      expect { middleware.call(env) }.not_to raise_error
     end
   end
 end

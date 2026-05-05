@@ -17,6 +17,8 @@ module Datadog
 
           private
 
+          def ai_guard_span_recorded?: () -> bool
+
           def tag_client_ip: (rack_env env) -> void
         end
       end

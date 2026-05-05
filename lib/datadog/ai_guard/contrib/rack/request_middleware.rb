@@ -3,16 +3,17 @@
 require_relative "../../../tracing/client_ip"
 require_relative "../../../tracing/contrib/rack/header_collection"
 require_relative "../../../tracing/metadata/ext"
+require_relative "../../ext"
 
 module Datadog
   module AIGuard
     module Contrib
       module Rack
-        # Topmost AI Guard Rack middleware. Inserted just below
-        # Datadog::Tracing::Contrib::Rack::TraceMiddleware, it tags the
-        # local root (request) span with client IP information whenever
-        # AI Guard is enabled, so any AI Guard span fired during the request
-        # has these tags reachable from the service entry span.
+        # AI Guard Rack middleware. Inserted just after
+        # Datadog::Tracing::Contrib::Rack::TraceMiddleware so that, on the
+        # way out of the request, the active span is the local root (request)
+        # span. Tags `http.client_ip` and `network.client.ip` on that span
+        # only when an AI Guard span was actually recorded during the request.
         class RequestMiddleware
           NETWORK_CLIENT_IP_TAG = "network.client.ip"
 
@@ -21,16 +22,24 @@ module Datadog
           end
 
           def call(env)
-            tag_client_ip(env)
-
             @app.call(env)
+          ensure
+            tag_client_ip(env) if ai_guard_span_recorded?
           end
 
           private
 
-          def tag_client_ip(env)
-            return unless Datadog::AIGuard.enabled?
+          def ai_guard_span_recorded?
+            trace = Datadog::Tracing.active_trace
+            return false unless trace
 
+            # `TraceOperation#@spans` has no reader; reaching for the ivar
+            # avoids expanding the public API of tracing for one consumer.
+            spans = trace.instance_variable_get(:@spans) || []
+            spans.any? { |span| span.name == Datadog::AIGuard::Ext::SPAN_NAME }
+          end
+
+          def tag_client_ip(env)
             span = Datadog::Tracing.active_span
             return unless span
 
