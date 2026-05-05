@@ -20,8 +20,8 @@ module Datadog
 
       # Initialize a new ServiceVersion
       # @param service [String] Service name (required, from DD_SERVICE)
-      # @param env [String] Environment (from DD_ENV, defaults to "none")
-      # @param version [String] Version (from DD_VERSION, defaults to "none")
+      # @param env [String, nil] Environment (from DD_ENV, passed through unchanged)
+      # @param version [String, nil] Version (from DD_VERSION, passed through unchanged)
       # @param scopes [Array<Scope>] Top-level scopes (required)
       # @raise [ArgumentError] if service empty or scopes not an array
       def initialize(service:, env:, version:, scopes:)
