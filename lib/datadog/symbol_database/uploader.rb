@@ -141,8 +141,8 @@ module Datadog
       # @param scope_count [Integer] Number of scopes uploaded
       # @return [Boolean] true if successful, false otherwise
       def handle_response(response, scope_count)
-        if response.is_a?(Datadog::Core::Transport::InternalErrorResponse)
-          @logger.debug { "symdb: upload failed: #{response.error.class}: #{response.error}" }
+        if response.internal_error?
+          @logger.debug { "symdb: upload failed: #{response.error.class}: #{response.error}" } # steep:ignore NoMethod
           return false
         end
 
