@@ -25,6 +25,7 @@ module Datadog
           WEBSERVER_APP = 'webserver'
           DEFAULT_PEER_WEBSERVER_SERVICE_NAME = 'web-server'
 
+          # @!visibility private
           HEADER_X_DD_PROXY = 'HTTP_X_DD_PROXY'
           HEADER_X_DD_PROXY_REQUEST_TIME_MS = 'HTTP_X_DD_PROXY_REQUEST_TIME_MS'
           HEADER_X_DD_PROXY_PATH = 'HTTP_X_DD_PROXY_PATH'
