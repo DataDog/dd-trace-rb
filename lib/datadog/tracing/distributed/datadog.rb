@@ -132,7 +132,7 @@ module Datadog
           encoded_tags = DatadogTagsCodec.encode(tags)
 
           return set_tags_propagation_error(reason: 'inject_max_size') if tags_too_large?(
-            encoded_tags.size,
+            encoded_tags.bytesize,
             scenario: 'inject'
           )
 
@@ -156,7 +156,10 @@ module Datadog
 
           return if !tags || tags.empty?
           return set_tags_propagation_error(reason: 'disabled') if tags_disabled?
-          return set_tags_propagation_error(reason: 'extract_max_size') if tags_too_large?(tags.size, scenario: 'extract')
+          return set_tags_propagation_error(reason: 'extract_max_size') if tags_too_large?(
+            tags.bytesize,
+            scenario: 'extract'
+          )
 
           tags_hash = DatadogTagsCodec.decode(tags)
           # Only extract keys with the expected Datadog prefix
