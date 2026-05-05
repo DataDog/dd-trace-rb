@@ -173,12 +173,13 @@ module Datadog
             # to the call chain that shifts the depth fails that test.
             user_caller_locations = -> { caller_locations(3) }
 
-            instrumenter.send(:run_method_probe,
+            instrumenter.run_method_probe(
               args: args, kwargs: kwargs, target_block: target_block, # steep:ignore FallbackAny
               target_self: self, do_super: do_super,
               probe: probe, responder: responder,
               loc: loc, method_name: method_name,
-              user_caller_locations: user_caller_locations)
+              user_caller_locations: user_caller_locations
+            )
           end
         end
 
@@ -561,6 +562,14 @@ module Datadog
           DI.leave_probe
         end
       end
+      # `run_method_probe` is documentation-private (`# @api private`) but must
+      # be lexically public so that the prepended wrapper can call it without
+      # `.send`. The wrapper hot path is reached when a probed customer method
+      # is invoked, and a customer probe on `Object#send` / `Kernel#send`
+      # would intercept any `.send` call before the wrapper had a chance to
+      # set the re-entrancy guard, causing infinite recursion. Calling the
+      # method directly avoids `Object#send` dispatch entirely.
+      public :run_method_probe
 
       def line_trace_point_callback(probe, iseq, responder, tp)
         di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
