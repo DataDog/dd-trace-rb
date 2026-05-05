@@ -2289,5 +2289,41 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         expect(host.scopes.map(&:name)).to include('host_method')
       end
     end
+
+    context 'with a class overriding singleton_class?' do
+      # Some libraries define class methods that shadow Module#singleton_class?
+      # (typically with required arguments). The singleton-class skip in
+      # collect_extractable_modules dispatches via the unbound Module#singleton_class?
+      # so user overrides cannot intercept the predicate. Without that dispatch,
+      # calling the user method without its required argument would raise and the
+      # class would be silently dropped by the per-module rescue.
+      before do
+        @file = create_test_file('singleton_class_pred_override.rb', <<~RUBY)
+          class ExtractAllSingletonPredOverride
+            def self.singleton_class?(required_kwarg:)
+              required_kwarg
+            end
+
+            def host_method; end
+          end
+        RUBY
+        load @file
+      end
+
+      after do
+        if defined?(ExtractAllSingletonPredOverride)
+          Object.send(:remove_const, :ExtractAllSingletonPredOverride)
+        end
+      end
+
+      it 'still extracts the class despite the overridden predicate' do
+        scopes = extract_all_clean
+        file_scope = find_file_scope(scopes, 'ExtractAllSingletonPredOverride')
+        expect(file_scope).not_to be_nil
+        host = file_scope.scopes.find { |s| s.name == 'ExtractAllSingletonPredOverride' }
+        expect(host).not_to be_nil
+        expect(host.scopes.map(&:name)).to include('host_method')
+      end
+    end
   end
 end
