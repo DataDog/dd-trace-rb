@@ -2250,5 +2250,80 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         expect(derived.language_specifics[:included_modules]).to include('ExtractAllMixin')
       end
     end
+
+    context 'with singleton classes in ObjectSpace' do
+      before do
+        @file = create_test_file('singleton_skip.rb', <<~RUBY)
+          class ExtractAllSingletonHost
+            def host_method; end
+          end
+        RUBY
+        load @file
+        # Force singleton classes to materialize so ObjectSpace contains them.
+        # On Ruby 2.6, asking Module#name on these takes ~20ms each — extract_all
+        # must skip them to avoid O(singleton_count) wall-clock cost.
+        @objs = Array.new(10) { Object.new.tap { |o| o.singleton_class } }
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllSingletonHost) if defined?(ExtractAllSingletonHost)
+        @objs = nil
+        GC.start
+      end
+
+      it 'does not include singleton classes in extracted scopes' do
+        scopes = extract_all_clean
+        all_names = scopes.flat_map { |s| [s.name] + (s.scopes || []).map(&:name) }
+        # Singleton classes return nil from Module#name; if any were extracted they
+        # would appear with empty/nil names (or as anonymous CLASS scopes).
+        expect(all_names).not_to include(nil)
+        expect(all_names).not_to include('')
+      end
+
+      it 'still extracts the user-code class hosting the singleton objects' do
+        scopes = extract_all_clean
+        file_scope = find_file_scope(scopes, 'ExtractAllSingletonHost')
+        expect(file_scope).not_to be_nil
+        host = file_scope.scopes.find { |s| s.name == 'ExtractAllSingletonHost' }
+        expect(host).not_to be_nil
+        expect(host.scopes.map(&:name)).to include('host_method')
+      end
+    end
+
+    context 'with a class overriding singleton_class?' do
+      # Some libraries define class methods that shadow Module#singleton_class?
+      # (typically with required arguments). The singleton-class skip in
+      # collect_extractable_modules dispatches via the unbound Module#singleton_class?
+      # so user overrides cannot intercept the predicate. Without that dispatch,
+      # calling the user method without its required argument would raise and the
+      # class would be silently dropped by the per-module rescue.
+      before do
+        @file = create_test_file('singleton_class_pred_override.rb', <<~RUBY)
+          class ExtractAllSingletonPredOverride
+            def self.singleton_class?(required_kwarg:)
+              required_kwarg
+            end
+
+            def host_method; end
+          end
+        RUBY
+        load @file
+      end
+
+      after do
+        if defined?(ExtractAllSingletonPredOverride)
+          Object.send(:remove_const, :ExtractAllSingletonPredOverride)
+        end
+      end
+
+      it 'still extracts the class despite the overridden predicate' do
+        scopes = extract_all_clean
+        file_scope = find_file_scope(scopes, 'ExtractAllSingletonPredOverride')
+        expect(file_scope).not_to be_nil
+        host = file_scope.scopes.find { |s| s.name == 'ExtractAllSingletonPredOverride' }
+        expect(host).not_to be_nil
+        expect(host.scopes.map(&:name)).to include('host_method')
+      end
+    end
   end
 end

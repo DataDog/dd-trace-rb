@@ -23,6 +23,8 @@ class DeterministicJunitFormatter < RspecJunitFormatter
     [/\b[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/i, '<UUID>'],
     # ISO 8601 timestamp: "2026-04-02 14:19:20.830733764 +0000" → <timestamp>
     [/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}[\d. +-]*/, '<timestamp>'],
+    # Time.now.to_i → <time>
+    [/\d{10}/, '<time>']
   ]
 
   private
