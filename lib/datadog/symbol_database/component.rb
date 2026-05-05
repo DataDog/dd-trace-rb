@@ -111,7 +111,7 @@ module Datadog
         @logger = logger
 
         @extractor = Extractor.new(logger: logger, settings: settings)
-        @uploader = Uploader.new(settings, agent_settings, logger: logger)
+        @uploader = Uploader.new(settings: settings, agent_settings: agent_settings, logger: logger)
         @scope_batcher = ScopeBatcher.new(@uploader, logger: logger)
 
         @last_upload_time = nil

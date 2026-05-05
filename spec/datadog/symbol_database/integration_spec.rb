@@ -139,7 +139,7 @@ RSpec.describe 'Symbol Database Integration' do
       transport = instance_double(Datadog::SymbolDatabase::Transport::Symbols::Transport)
       allow(Datadog::SymbolDatabase::Transport::HTTP).to receive(:build).and_return(transport)
 
-      uploader = Datadog::SymbolDatabase::Uploader.new(config, agent_settings, logger: logger)
+      uploader = Datadog::SymbolDatabase::Uploader.new(settings: config, agent_settings: agent_settings, logger: logger)
 
       scope = Datadog::SymbolDatabase::Scope.new(
         scope_type: 'FILE',
