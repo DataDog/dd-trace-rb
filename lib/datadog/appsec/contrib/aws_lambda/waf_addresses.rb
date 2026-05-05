@@ -16,8 +16,9 @@ module Datadog
           module_function
 
           def from_request(payload)
-            headers = parse_headers(payload)
+            return {} if payload.nil? || payload.empty?
 
+            headers = parse_headers(payload)
             data = {
               'server.request.cookies' => parse_cookies(payload, headers),
               'server.request.query' => payload['query'],
@@ -27,22 +28,23 @@ module Datadog
               'http.client_ip' => extract_client_ip(payload['source_ip'], headers),
               'server.request.method' => payload['method'],
               'server.request.body' => parse_body(payload, headers),
-              'server.request.path_params' => payload['path_params'],
+              'server.request.path_params' => payload['path_params']
             }
+
             data.compact!
             data
           end
 
-          def from_response(payload = {})
+          def from_response(payload)
             return {} if payload.nil? || payload.empty?
 
             headers = parse_headers(payload)
-
             data = {
               'server.response.status' => payload['statusCode']&.to_s,
               'server.response.headers' => headers,
-              'server.response.headers.no_cookies' => headers.dup.tap { |h| h.delete('set-cookie') },
+              'server.response.headers.no_cookies' => headers.dup.tap { |h| h.delete('set-cookie') }
             }
+
             data.compact!
             data
           end
