@@ -145,11 +145,17 @@ module Datadog
             # We MUST NOT propagate partial entries, but we SHOULD try
             # to parse as much of the baggage as possible:
             # https://www.w3.org/TR/2024/CR-baggage-20240530/#limits
-            #
+
             # We parse 1 byte over the limit to detect if the last entry
             # is a partial entry (toss) or ends exactly at the limit (keep).
             remove_last_entry = baggage_header.byteslice(DD_TRACE_BAGGAGE_MAX_BYTES, 1) != ','
-            baggage_header = baggage_header.byteslice(0, DD_TRACE_BAGGAGE_MAX_BYTES) #: String
+
+            # To ensure we don't have a trailing partial UTF-8 codepoint, we keep one extra byte
+            # and safely remove it with `#chop`.
+            # `#chops` walks back the string until it finds a valid character boundary and deletes
+            # from there.
+            baggage_header = baggage_header.byteslice(0, DD_TRACE_BAGGAGE_MAX_BYTES + 1) #: String
+            baggage_header = baggage_header.chop
           end
 
           baggage = {}

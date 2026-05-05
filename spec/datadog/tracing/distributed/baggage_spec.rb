@@ -514,6 +514,21 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
           end
         end
 
+        context 'with a trailing entry truncated inside a multibyte character' do
+          let(:complete_entry) { 'key1=value1' }
+          let(:partial_key) { 'key2=' }
+          let(:partial_value) do
+            'a' * (max_baggage_bytes - complete_entry.bytesize - 1 - partial_key.bytesize - 1) + '🍀' # A 4-leaf clover, 4-byte character
+          end
+          let(:data) { {'baggage' => "#{complete_entry},#{partial_key}#{partial_value}"} }
+
+          it 'extracts complete entries before the partial multibyte tail' do
+            result = propagation.extract(data)
+
+            expect(result.baggage).to eq('key1' => 'value1')
+          end
+        end
+
         context 'when a complete entry fits exactly the byte limit' do
           let(:key) { 'key1=' }
           let(:value) { 'a' * (max_baggage_bytes - key.bytesize) }
