@@ -13,7 +13,7 @@ require_relative '../../profiling/ext'
 
 require_relative '../../tracing/configuration/settings'
 require_relative '../../opentelemetry/configuration/settings'
-require_relative '../../symbol_database/configuration/settings'
+require_relative '../../symbol_database/configuration'
 
 module Datadog
   module Core
