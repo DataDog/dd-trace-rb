@@ -124,7 +124,7 @@ module Datadog
         # Backfill is best-effort — if it fails, line probes on
         # pre-loaded code won't work but everything else is unaffected.
         if component = DI.current_component
-          component.logger.debug { "di: backfill_registry failed: #{exc.class}: #{exc}" }
+          component.logger.debug { "di: backfill_registry failed: #{exc.class}: #{exc.message}" }
           component.telemetry&.report(exc, description: "backfill_registry failed")
         end
         nil
@@ -197,7 +197,7 @@ module Datadog
             # but we will have DI.current_component (set to nil).
             if component = DI.current_component
               raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
-              component.logger.debug { "di: unhandled exception in script_compiled trace point: #{exc.class}: #{exc}" }
+              component.logger.debug { "di: unhandled exception in script_compiled trace point: #{exc.class}: #{exc.message}" }
               component.telemetry&.report(exc, description: "Unhandled exception in script_compiled trace point")
               # TODO test this path
             else

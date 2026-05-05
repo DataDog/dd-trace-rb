@@ -38,7 +38,7 @@ module Datadog
         # to match against Git objects, not using SHA-1 for authentication/integrity.
         Digest::SHA1.hexdigest(git_blob)  # nosemgrep: ruby.lang.security.weak-hashes-sha1.weak-hashes-sha1
       rescue => e
-        logger.debug { "symdb: file hash failed for #{file_path}: #{e.class}: #{e}" }
+        logger.debug { "symdb: file hash failed for #{file_path}: #{e.class}: #{e.message}" }
         nil
       end
     end
