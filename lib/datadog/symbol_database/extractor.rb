@@ -135,9 +135,23 @@ module Datadog
       #
       # @return [Array<Scope>] Array of FILE scopes
       def extract_all
+        t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        os_total = 0
+        ObjectSpace.each_object(Module) { os_total += 1 }
+        t_os = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         entries = collect_extractable_modules
+        t_collect = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         file_trees = build_file_trees(entries)
-        convert_trees_to_scopes(file_trees)
+        t_build = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        result = convert_trees_to_scopes(file_trees)
+        t_end = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        warn format(
+          "SYMDB-MEASURE total=%.3fs os_count_only=%.3fs(%d mods) collect=%.3fs(%d entries) build=%.3fs convert=%.3fs",
+          t_end - t0, t_os - t0, os_total,
+          t_collect - t_os, entries.size,
+          t_build - t_collect, t_end - t_build
+        )
+        result
       rescue => e
         @logger.debug { "symdb: error in extract_all: #{e.class}: #{e}" }
         []
