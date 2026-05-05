@@ -440,13 +440,13 @@ module Datadog
                   rescue => nested_exc
                     raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                    logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc}" }
+                    logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
                     telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
                   end
                 else
                   raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                  logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc}" }
+                  logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc.message}" }
                   telemetry&.report(exc, description: "Error evaluating condition without context")
                   # If execution gets here, there is probably a bug in the tracer.
                 end
@@ -531,7 +531,7 @@ module Datadog
             rescue => di_exc
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-              logger.debug { "di: unhandled exception in method probe: #{di_exc.class}: #{di_exc}" }
+              logger.debug { "di: unhandled exception in method probe: #{di_exc.class}: #{di_exc.message}" }
               telemetry&.report(di_exc, description: "Unhandled exception in method probe")
             end
 
