@@ -104,6 +104,19 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
         }
       end
 
+      it 'returns the block result' do
+        expect(described_class.call(env, request_queuing: false, web_service_name: service) { :success }).to eq(:success)
+      end
+
+      it 'finishes the span even when an exception is raised' do
+        expect do
+          described_class.call(env, request_queuing: false, web_service_name: service) { raise 'error' }
+        end.to raise_error('error')
+
+        expect(spans).to have(1).item
+        expect(spans.first).to be_finished
+      end
+
       context 'when proxy type is aws-apigateway' do
         before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
 
@@ -122,13 +135,11 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
         it { expect(inferred_span.get_tag('http.url')).to eq('https://example.execute-api.us-east-1.amazonaws.com/api/test') }
         it { expect(inferred_span.get_tag('http.route')).to eq('/api/{proxy+}') }
         it { expect(inferred_span.get_metric('_dd.inferred_span')).to eq(1) }
-
-        it 'returns the block result' do
-          expect(described_class.call(env, request_queuing: false, web_service_name: service) { :success }).to eq(:success)
-        end
       end
 
       context 'when proxy type is aws-httpapi' do
+        before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
+
         let(:env) do
           {
             'HTTP_X_DD_PROXY' => 'aws-httpapi',
@@ -140,16 +151,42 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
             'HTTP_X_DD_PROXY_STAGE' => 'dev',
           }
         end
-
-        before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
-
         let(:inferred_span) { spans.first }
 
         it { expect(inferred_span.name).to eq('aws.httpapi') }
         it { expect(inferred_span.get_tag('component')).to eq('aws-httpapi') }
       end
 
+      context 'when proxy type is unknown' do
+        let(:env) { {'HTTP_X_DD_PROXY' => 'aws-unknown'} }
+
+        it 'creates no spans and yields' do
+          result = described_class.call(env, request_queuing: false, web_service_name: service) { :success }
+          expect(result).to eq(:success)
+          expect(spans).to be_empty
+        end
+      end
+
+      context 'when x-dd-proxy-httpmethod is absent' do
+        before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
+
+        let(:env) do
+          {
+            'HTTP_X_DD_PROXY' => 'aws-apigateway',
+            'HTTP_X_DD_PROXY_REQUEST_TIME_MS' => '1757000000000',
+            'HTTP_X_DD_PROXY_PATH' => '/api/test',
+            'HTTP_X_DD_PROXY_DOMAIN_NAME' => 'example.execute-api.us-east-1.amazonaws.com',
+          }
+        end
+        let(:inferred_span) { spans.first }
+
+        it { expect(spans).to have(1).item }
+        it { expect(inferred_span.resource).to eq('aws.apigateway') }
+      end
+
       context 'when x-dd-proxy-resource-path is absent' do
+        before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
+
         let(:env) do
           {
             'HTTP_X_DD_PROXY' => 'aws-apigateway',
@@ -160,16 +197,34 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
             'HTTP_X_DD_PROXY_STAGE' => 'dev',
           }
         end
-
-        before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
-
         let(:inferred_span) { spans.first }
 
         it { expect(inferred_span.resource).to eq('GET /api/test') }
         it { expect(inferred_span.get_tag('http.route')).to be_nil }
       end
 
+      context 'when x-dd-proxy-request-time-ms is absent' do
+        before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
+
+        let(:env) do
+          {
+            'HTTP_X_DD_PROXY' => 'aws-apigateway',
+            'HTTP_X_DD_PROXY_PATH' => '/api/test',
+            'HTTP_X_DD_PROXY_RESOURCE_PATH' => '/api/{proxy+}',
+            'HTTP_X_DD_PROXY_HTTPMETHOD' => 'GET',
+            'HTTP_X_DD_PROXY_DOMAIN_NAME' => 'example.execute-api.us-east-1.amazonaws.com',
+            'HTTP_X_DD_PROXY_STAGE' => 'dev',
+          }
+        end
+        let(:inferred_span) { spans.first }
+
+        it { expect(spans).to have(1).item }
+        it { expect(inferred_span.resource).to eq('GET /api/{proxy+}') }
+      end
+
       context 'when optional headers are present' do
+        before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
+
         let(:env) do
           {
             'HTTP_X_DD_PROXY' => 'aws-apigateway',
@@ -185,9 +240,6 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
             'HTTP_X_DD_PROXY_USER' => 'test-user',
           }
         end
-
-        before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
-
         let(:inferred_span) { spans.first }
 
         it { expect(inferred_span.get_tag('account_id')).to eq('123456789') }
@@ -213,11 +265,60 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
             }
           end
 
-          before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
-
-          let(:inferred_span) { spans.first }
-
           it { expect(inferred_span.get_tag('dd_resource_key')).to eq('arn:aws:apigateway:us-east-1::/apis/abc123') }
+        end
+
+        context 'when region is absent' do
+          let(:env) do
+            {
+              'HTTP_X_DD_PROXY' => 'aws-apigateway',
+              'HTTP_X_DD_PROXY_REQUEST_TIME_MS' => '1757000000000',
+              'HTTP_X_DD_PROXY_PATH' => '/api/test',
+              'HTTP_X_DD_PROXY_HTTPMETHOD' => 'GET',
+              'HTTP_X_DD_PROXY_DOMAIN_NAME' => 'example.execute-api.us-east-1.amazonaws.com',
+              'HTTP_X_DD_PROXY_STAGE' => 'dev',
+              'HTTP_X_DD_PROXY_ACCOUNT_ID' => '123456789',
+              'HTTP_X_DD_PROXY_API_ID' => 'abc123',
+            }
+          end
+
+          it { expect(inferred_span.get_tag('dd_resource_key')).to be_nil }
+        end
+
+        context 'when api_id is absent' do
+          let(:env) do
+            {
+              'HTTP_X_DD_PROXY' => 'aws-apigateway',
+              'HTTP_X_DD_PROXY_REQUEST_TIME_MS' => '1757000000000',
+              'HTTP_X_DD_PROXY_PATH' => '/api/test',
+              'HTTP_X_DD_PROXY_HTTPMETHOD' => 'GET',
+              'HTTP_X_DD_PROXY_DOMAIN_NAME' => 'example.execute-api.us-east-1.amazonaws.com',
+              'HTTP_X_DD_PROXY_STAGE' => 'dev',
+              'HTTP_X_DD_PROXY_ACCOUNT_ID' => '123456789',
+              'HTTP_X_DD_PROXY_REGION' => 'us-east-1',
+            }
+          end
+
+          it { expect(inferred_span.get_tag('dd_resource_key')).to be_nil }
+        end
+
+        context 'when region has single quotes from API Gateway v1' do
+          let(:env) do
+            {
+              'HTTP_X_DD_PROXY' => 'aws-apigateway',
+              'HTTP_X_DD_PROXY_REQUEST_TIME_MS' => '1757000000000',
+              'HTTP_X_DD_PROXY_PATH' => '/api/test',
+              'HTTP_X_DD_PROXY_HTTPMETHOD' => 'GET',
+              'HTTP_X_DD_PROXY_DOMAIN_NAME' => 'example.execute-api.us-east-1.amazonaws.com',
+              'HTTP_X_DD_PROXY_STAGE' => 'dev',
+              'HTTP_X_DD_PROXY_ACCOUNT_ID' => '123456789',
+              'HTTP_X_DD_PROXY_API_ID' => 'abc123',
+              'HTTP_X_DD_PROXY_REGION' => "'us-east-1'",
+            }
+          end
+
+          it { expect(inferred_span.get_tag('region')).to eq('us-east-1') }
+          it { expect(inferred_span.get_tag('dd_resource_key')).to eq('arn:aws:apigateway:us-east-1::/restapis/abc123') }
         end
       end
 
@@ -253,7 +354,23 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
         it { expect(inferred_span.status).to eq(0) }
       end
 
-      context 'when AppSec tags are present on rack.request span' do
+      context 'when user_agent is present on rack.request span' do
+        before do
+          described_class.call(env, request_queuing: false, web_service_name: service) do
+            rack_span = Datadog::Tracing.trace('rack.request')
+            rack_span.set_tag('http.status_code', '200')
+            rack_span.set_tag('http.useragent', 'Mozilla/5.0')
+            env[Datadog::Tracing::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN] = rack_span
+            rack_span.finish
+          end
+        end
+
+        let(:inferred_span) { spans.find { |s| s.name == 'aws.apigateway' } }
+
+        it { expect(inferred_span.get_tag('http.useragent')).to eq('Mozilla/5.0') }
+      end
+
+      context 'when appsec tags are present on rack.request span' do
         before do
           described_class.call(env, request_queuing: false, web_service_name: service) do
             rack_span = Datadog::Tracing.trace('rack.request')
@@ -271,16 +388,9 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
         it { expect(inferred_span.get_tag('_dd.appsec.json')).to eq('{"triggers":[]}') }
       end
 
-      it 'finishes the span even when an exception is raised' do
-        expect do
-          described_class.call(env, request_queuing: false, web_service_name: service) { raise 'error' }
-        end.to raise_error('error')
-
-        expect(spans).to have(1).item
-        expect(spans.first).to be_finished
-      end
-
       context 'when request_queuing is true and x-request-start is also present' do
+        before { described_class.call(env, request_queuing: true, web_service_name: service) { :success } }
+
         let(:env) do
           {
             'HTTP_X_DD_PROXY' => 'aws-apigateway',
@@ -294,11 +404,9 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
           }
         end
 
-        before { described_class.call(env, request_queuing: true, web_service_name: service) { :success } }
-
         it 'creates inferred proxy span instead of request_queuing spans' do
-          expect(spans.any? { |s| s.name == 'aws.apigateway' }).to be(true)
-          expect(spans.none? { |s| s.name == 'http.proxy.request' }).to be(true)
+          expect(spans).to have(1).item
+          expect(spans.first.name).to eq('aws.apigateway')
         end
       end
     end
