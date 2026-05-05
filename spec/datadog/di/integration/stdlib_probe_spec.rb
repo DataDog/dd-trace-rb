@@ -703,4 +703,40 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
       expect(payloads.length).to be >= 1
     end
   end
+
+  context "method probe on Object#send" do
+    # The wrapper used to call `instrumenter.send(:run_method_probe, ...)`
+    # because run_method_probe was private. With Object#send probed, that .send
+    # would be intercepted by the wrapper before DI.enter_probe ran (the guard
+    # was set inside run_method_probe), so DI.in_probe? was false on the
+    # recursive entry and the wrapper recursed indefinitely.
+    #
+    # Fix: run_method_probe is now public; the wrapper calls it directly. No
+    # `.send` on the hot path means an Object#send / Kernel#send probe cannot
+    # intercept the call into run_method_probe.
+
+    include_context "permissive settings"
+
+    let(:probe) do
+      Datadog::DI::Probe.new(
+        id: "stdlib-object-send",
+        type: :log,
+        type_name: "Object",
+        method_name: "send",
+        capture_snapshot: false,
+      )
+    end
+
+    it "does not self-recurse through wrapper send call" do
+      payloads = run_stdlib_probe_test(probe) do
+        target = Object.new
+        def target.greet(name)
+          "hello, #{name}"
+        end
+        expect(target.send(:greet, "world")).to eq("hello, world")
+      end
+
+      expect(payloads.length).to be >= 1
+    end
+  end
 end
