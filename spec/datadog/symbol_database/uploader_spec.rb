@@ -111,6 +111,54 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       end
     end
 
+    context 'with telemetry payload size metric' do
+      let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component, distribution: nil, report: nil) }
+
+      it 'emits payload_size distribution on successful upload with compressed bytesize' do
+        allow(mock_transport).to receive(:send_symbols).and_return(mock_response)
+
+        captured_size = nil
+        allow(Zlib).to receive(:gzip).and_wrap_original do |orig, *args|
+          result = orig.call(*args)
+          captured_size = result.bytesize
+          result
+        end
+
+        uploader.upload_scopes([test_scope])
+
+        expect(telemetry).to have_received(:distribution)
+          .with('tracers', 'symbol_database.payload_size', captured_size)
+      end
+
+      it 'emits payload_size distribution on the oversized-skip path' do
+        oversized = 'x' * (described_class::MAX_PAYLOAD_SIZE + 1)
+        allow(Zlib).to receive(:gzip).and_return(oversized)
+        expect(mock_transport).not_to receive(:send_symbols)
+
+        uploader.upload_scopes([test_scope])
+
+        expect(telemetry).to have_received(:distribution)
+          .with('tracers', 'symbol_database.payload_size', oversized.bytesize)
+      end
+
+      it 'does not emit payload_size when serialization raises before compression' do
+        allow_any_instance_of(Datadog::SymbolDatabase::ServiceVersion)
+          .to receive(:to_json).and_raise('Serialization error')
+
+        uploader.upload_scopes([test_scope])
+
+        expect(telemetry).not_to have_received(:distribution)
+      end
+
+      it 'does not emit payload_size when compression itself raises' do
+        allow(Zlib).to receive(:gzip).and_raise(Zlib::Error, 'compress failed')
+
+        uploader.upload_scopes([test_scope])
+
+        expect(telemetry).not_to have_received(:distribution)
+      end
+    end
+
     context 'with network errors' do
       it 'does not retry on connection errors — single attempt, logs and continues' do
         allow(mock_transport).to receive(:send_symbols).and_raise(Errno::ECONNREFUSED, 'Connection refused')

@@ -59,6 +59,9 @@ module Datadog
         json_data = build_symbol_payload(scopes)
         compressed_data = Zlib.gzip(json_data)
 
+        # Emitted unconditionally so the rare oversized case is observable.
+        @telemetry&.distribution('tracers', 'symbol_database.payload_size', compressed_data.bytesize)
+
         # Symbols for very large applications (>50MB after gzip) are dropped:
         # the upload is skipped and the customer sees no autocomplete /
         # symbol probe results for those classes. Java handles the same case
