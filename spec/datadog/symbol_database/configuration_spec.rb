@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'datadog/symbol_database/configuration/settings'
+require 'datadog/symbol_database/configuration'
 
 # Configuration accessors must be safe on all platforms — the platform guard lives in
 # Component.build, not in the settings layer. Reading these settings must never raise
