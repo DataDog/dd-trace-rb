@@ -70,6 +70,13 @@ RSpec.describe Datadog::SymbolDatabase::Transport::HTTP do
 
     let(:agent_url) { 'http://127.0.0.1:8126/symdb/v1/input' }
 
+    # WebMock is disabled by default in spec_helper.rb (line 63). Tests that
+    # call stub_request must enable WebMock first or the stubs become no-ops
+    # and the transport falls through to a real Net::HTTP connection. Pattern
+    # matches spec/datadog/ai_guard_spec.rb and tracing/integration_spec.rb.
+    before { WebMock.enable! }
+    after { WebMock.disable! }
+
     context 'on a 200 response' do
       before do
         stub_request(:post, agent_url).to_return(status: 200, body: '')
