@@ -163,4 +163,61 @@ RSpec.describe "Datadog::DI re-entrancy guard primitives" do
       expect { Datadog::DI.hash_empty?(42) }.to raise_error(TypeError)
     end
   end
+
+  describe ".invoke_proc" do
+    # C-level Proc invocation that bypasses Proc#call method dispatch.
+    # Used by the method probe wrapper to invoke the do_super lambda (and
+    # other internal lambdas) without giving user-installed probes on
+    # Proc#call a chance to recurse.
+
+    it "invokes a lambda with positional arguments" do
+      sum = ->(a, b, c) { a + b + c }
+      expect(Datadog::DI.invoke_proc(sum, 1, 2, 3)).to eq(6)
+    end
+
+    it "invokes a 0-arg lambda" do
+      get_42 = -> { 42 }
+      expect(Datadog::DI.invoke_proc(get_42)).to eq(42)
+    end
+
+    it "invokes a non-lambda Proc" do
+      doubler = proc { |x| x * 2 }
+      expect(Datadog::DI.invoke_proc(doubler, 21)).to eq(42)
+    end
+
+    it "propagates the proc's return value" do
+      string_proc = ->(s) { s.upcase }
+      expect(Datadog::DI.invoke_proc(string_proc, "hi")).to eq("HI")
+    end
+
+    it "propagates exceptions raised inside the proc" do
+      raiser = -> { raise ArgumentError, "from proc" }
+      expect { Datadog::DI.invoke_proc(raiser) }.to raise_error(ArgumentError, "from proc")
+    end
+
+    it "does not dispatch Proc#call" do
+      # Override Proc#call on a subclass and confirm the C primitive does
+      # not call the override. This is the contract that protects against
+      # re-entrancy when a user probe instruments Proc#call.
+      proc_class = Class.new(Proc) do
+        def call(*)
+          raise "Proc#call was called via method dispatch"
+        end
+      end
+      p = proc_class.new { |x| x * 3 }
+      expect { Datadog::DI.invoke_proc(p, 7) }.not_to raise_error
+      expect(Datadog::DI.invoke_proc(p, 7)).to eq(21)
+    end
+
+    it "raises TypeError when the first argument is not a Proc" do
+      expect { Datadog::DI.invoke_proc("not a proc") }.to raise_error(TypeError)
+      expect { Datadog::DI.invoke_proc(nil) }.to raise_error(TypeError)
+      expect { Datadog::DI.invoke_proc(42) }.to raise_error(TypeError)
+      expect { Datadog::DI.invoke_proc([]) }.to raise_error(TypeError)
+    end
+
+    it "raises ArgumentError when no arguments are given" do
+      expect { Datadog::DI.invoke_proc }.to raise_error(ArgumentError)
+    end
+  end
 end

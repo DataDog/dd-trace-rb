@@ -704,6 +704,42 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
     end
   end
 
+  context "method probe on Proc#call" do
+    # The wrapper used to invoke `do_super` via `do_super.call(args, kwargs, blk)`.
+    # `do_super` is a lambda (Proc), so `.call` dispatches through Proc#call.
+    # With Proc#call probed, that dispatch is intercepted by the wrapper.
+    # The early-return at the top of the wrapper would itself call
+    # `do_super.call`, so even with the guard set, recursion through Proc#call
+    # could not terminate — every wrapper invocation creates a fresh do_super
+    # lambda and re-enters Proc#call until SystemStackError.
+    #
+    # Fix: DI.invoke_proc(proc, *args), implemented in C via
+    # rb_proc_call_with_block, invokes the Proc directly without going through
+    # Proc#call dispatch. All do_super.call sites and user_caller_locations.call
+    # in the wrapper / run_method_probe use DI.invoke_proc.
+
+    include_context "permissive settings"
+
+    let(:probe) do
+      Datadog::DI::Probe.new(
+        id: "stdlib-proc-call",
+        type: :log,
+        type_name: "Proc",
+        method_name: "call",
+        capture_snapshot: false,
+      )
+    end
+
+    it "does not self-recurse through wrapper trampoline" do
+      payloads = run_stdlib_probe_test(probe) do
+        adder = ->(a, b) { a + b }
+        expect(adder.call(2, 3)).to eq(5)
+      end
+
+      expect(payloads.length).to be >= 1
+    end
+  end
+
   context "method probe on Object#send" do
     # The wrapper used to call `instrumenter.send(:run_method_probe, ...)`
     # because run_method_probe was private. With Object#send probed, that .send
