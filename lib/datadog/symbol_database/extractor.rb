@@ -77,6 +77,14 @@ module Datadog
       # :call excluded — method entry is handled by method probes, not line probes
       INJECTABLE_LINE_EVENTS = [:line, :return].freeze
 
+      # Cached unbound Module#singleton_class? — dispatched explicitly so user classes
+      # that define their own `singleton_class?` (e.g. with required arguments) cannot
+      # intercept the predicate and cause the module to be silently dropped from
+      # extract_all. Cached at load time because collect_extractable_modules iterates
+      # ObjectSpace.each_object(Module) over tens of thousands of modules.
+      MODULE_SINGLETON_CLASS_PRED = Module.instance_method(:singleton_class?)
+      private_constant :MODULE_SINGLETON_CLASS_PRED
+
       # @param logger [Logger] Logger instance (SymbolDatabase::Logger facade or compatible)
       # @param settings [Configuration::Settings] Tracer settings
       # @param telemetry [Telemetry, nil] Optional telemetry for metrics
@@ -612,6 +620,15 @@ module Datadog
         entries = {}
 
         ObjectSpace.each_object(Module) do |mod|
+          # Singleton classes (per-object metaclasses) are never user-code classes.
+          # They're not const-referenced, DI cannot instrument methods on a singular
+          # object instance, and on Ruby 2.6 specifically, Module#name on unnamed
+          # singleton classes with long ancestor chains (e.g. through monkey-patches
+          # prepended into Kernel, common in dd-trace-rb test processes) is O(ancestors)
+          # — measured ~20ms per call, which dominates extract_all on heavily-loaded
+          # processes. Ruby 2.7+ optimized this path; the skip is a no-op there.
+          next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
+
           mod_name = safe_mod_name(mod)
           next unless mod_name
           next unless user_code_module?(mod)
