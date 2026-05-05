@@ -71,7 +71,7 @@ module Datadog
 
         perform_http_upload(compressed_data, scopes.size)
       rescue => e
-        @logger.debug { "symdb: upload failed: #{e.class}: #{e}" }
+        @logger.debug { "symdb: upload failed: #{e.class}: #{e.message}" }
         @telemetry&.report(e, description: 'symdb: upload failed')
       end
 

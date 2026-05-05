@@ -11,6 +11,13 @@ require 'datadog/core/vendor/multipart-post/multipart/post/composite_read_io'
 # tests with the network boundary stubbed (webmock), not by mocking the
 # transport stack itself.
 RSpec.describe Datadog::SymbolDatabase::Transport::HTTP do
+  # Defensively enable WebMock. Other specs in spec:main (notably
+  # tracing/integration_spec.rb) call WebMock.disable! in `after` blocks
+  # without restoring prior state, leaving WebMock disabled for any later
+  # spec that uses stub_request. Without this, our stubs would be no-ops
+  # and the transport would hit the real 127.0.0.1:8126 and return ECONNREFUSED.
+  before { WebMock.enable! }
+
   let(:logger) { instance_double(Logger, debug: nil) }
 
   let(:settings) do
