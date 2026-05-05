@@ -81,14 +81,14 @@ module Datadog
               # Serialization failed for this snapshot - report via callback
               # This catches JSON::GeneratorError, Encoding errors, TypeError, etc.
               probe_id = snapshot.dig(:debugger, :snapshot, :probe, :id)
-              logger.debug { "di: JSON encoding failed for snapshot (probe #{probe_id}): #{exc.class}: #{exc}" }
+              logger.debug { "di: JSON encoding failed for snapshot (probe #{probe_id}): #{exc.class}: #{exc.message}" }
               telemetry&.report(exc, description: "JSON encoding failed for snapshot")
 
               if probe_id
                 begin
                   on_serialization_error.call(probe_id, exc)
                 rescue => callback_exc
-                  logger.debug { "di: error in serialization error callback for probe #{probe_id}: #{callback_exc.class}: #{callback_exc}" }
+                  logger.debug { "di: error in serialization error callback for probe #{probe_id}: #{callback_exc.class}: #{callback_exc.message}" }
                   telemetry&.report(callback_exc, description: "Error in serialization error callback")
                 end
               end
@@ -110,7 +110,7 @@ module Datadog
               begin
                 send_input_chunk(chunked_payload, serialized_tags)
               rescue => exc
-                logger.debug { "di: failed to send snapshot chunk: #{exc.class}: #{exc} (at #{exc.backtrace.first})" }
+                logger.debug { "di: failed to send snapshot chunk: #{exc.class}: #{exc.message} (at #{exc.backtrace.first})" }
                 telemetry&.report(exc, description: "Error sending snapshot chunk")
               end
             end

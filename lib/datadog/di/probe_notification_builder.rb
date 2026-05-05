@@ -368,7 +368,7 @@ module Datadog
           end
         rescue => exc
           evaluation_errors << {
-            message: "#{exc.class}: #{exc}",
+            message: "#{exc.class}: #{exc.message}",
             expr: segment.dsl_expr,
           }
           '[evaluation error]'

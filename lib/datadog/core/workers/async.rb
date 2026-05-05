@@ -168,7 +168,7 @@ module Datadog
             rescue Exception => e
               @error = e
               Datadog.logger.debug(
-                "Worker thread error. Cause: #{e.class}: #{e} Location: #{Array(e.backtrace).first}"
+                "Worker thread error. Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
               )
               raise
 

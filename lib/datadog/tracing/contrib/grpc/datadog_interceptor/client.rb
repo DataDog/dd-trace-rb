@@ -90,7 +90,7 @@ module Datadog
               end
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             rescue => e
-              Datadog.logger.debug("GRPC client trace failed: #{e.class}: #{e}")
+              Datadog.logger.debug("GRPC client trace failed: #{e.class}: #{e.message}")
             end
 
             def find_deadline(call)
@@ -112,7 +112,7 @@ module Datadog
 
               Core::Utils.extract_host_port(peer_address)
             rescue => e
-              Datadog.logger.debug { "Could not parse host:port from #{call}: #{e.class}: #{e}" }
+              Datadog.logger.debug { "Could not parse host:port from #{call}: #{e.class}: #{e.message}" }
               nil
             end
           end

@@ -77,7 +77,7 @@ module Datadog
             # Record telemetry for successful injection
             record_telemetry_metric('context_header_style.injected', 1, {'header_style' => 'baggage'})
           rescue => e
-            ::Datadog.logger.warn("Failed to encode and inject baggage header: #{e.class}: #{e}")
+            ::Datadog.logger.warn("Failed to encode and inject baggage header: #{e.class}: #{e.message}")
           end
         end
 

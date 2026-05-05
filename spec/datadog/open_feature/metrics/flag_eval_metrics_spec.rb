@@ -259,6 +259,36 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
         end
       end
 
+      context 'with unmapped error code' do
+        it 'defaults UNKNOWN_TYPE to general' do
+          expect(counter).to receive(:add).with(
+            1,
+            attributes: hash_including('error.type' => 'general')
+          )
+
+          metrics.record(
+            'flag',
+            variant: nil,
+            reason: 'ERROR',
+            error_code: 'UNKNOWN_TYPE'
+          )
+        end
+
+        it 'defaults arbitrary unmapped codes to general' do
+          expect(counter).to receive(:add).with(
+            1,
+            attributes: hash_including('error.type' => 'general')
+          )
+
+          metrics.record(
+            'flag',
+            variant: nil,
+            reason: 'ERROR',
+            error_code: 'SOME_FUTURE_ERROR_CODE'
+          )
+        end
+      end
+
       context 'with disabled flag' do
         it 'does not include allocation_key for disabled reason' do
           expect(counter).to receive(:add).with(
@@ -363,9 +393,8 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
       end
     end
 
-    it 'maps GENERAL and UNKNOWN_TYPE to general (default)' do
+    it 'maps GENERAL to general (default)' do
       expect(described_class::ERROR_TYPE_MAP['GENERAL']).to eq('general')
-      expect(described_class::ERROR_TYPE_MAP['UNKNOWN_TYPE']).to eq('general')
     end
   end
 end

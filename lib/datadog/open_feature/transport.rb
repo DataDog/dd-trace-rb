@@ -55,7 +55,7 @@ module Datadog
             @api.call(env)
           end
         rescue => e
-          message = "Internal error during request. Cause: #{e.class}: #{e} " \
+          message = "Internal error during request. Cause: #{e.class}: #{e.message} " \
                     "Location: #{Array(e.backtrace).first}"
           @logger.debug(message)
 

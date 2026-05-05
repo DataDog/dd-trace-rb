@@ -42,7 +42,7 @@ module Datadog
         @telemetry.report(e, description: 'OpenFeature: Failed to fetch flag value')
 
         ResolutionDetails.build_error(
-          value: default_value, error_code: Ext::GENERAL, error_message: "#{e.class}: #{e}"
+          value: default_value, error_code: Ext::GENERAL, error_message: "#{e.class}: #{e.message}"
         )
       end
 
@@ -60,10 +60,10 @@ module Datadog
       rescue => e
         message = 'OpenFeature: Failed to reconfigure, reverting to the previous configuration'
 
-        @logger.error("#{message}, #{e.class}: #{e}")
+        @logger.error("#{message}, #{e.class}: #{e.message}")
         @telemetry.report(e, description: "#{message} (#{e.class})")
 
-        raise ReconfigurationError, "#{e.class}: #{e}"
+        raise ReconfigurationError, "#{e.class}: #{e.message}"
       end
     end
   end

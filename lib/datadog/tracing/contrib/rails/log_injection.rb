@@ -18,7 +18,7 @@ module Datadog
             app_config.log_tags << proc { Tracing.log_correlation if Datadog.configuration.tracing.log_injection }
           rescue => e
             Datadog.logger.warn(
-              "Unable to add Datadog Trace context to ActiveSupport::TaggedLogging: #{e.class}: #{e}"
+              "Unable to add Datadog Trace context to ActiveSupport::TaggedLogging: #{e.class}: #{e.message}"
             )
             false
           end
