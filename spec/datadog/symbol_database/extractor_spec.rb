@@ -2250,5 +2250,44 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         expect(derived.language_specifics[:included_modules]).to include('ExtractAllMixin')
       end
     end
+
+    context 'with singleton classes in ObjectSpace' do
+      before do
+        @file = create_test_file('singleton_skip.rb', <<~RUBY)
+          class ExtractAllSingletonHost
+            def host_method; end
+          end
+        RUBY
+        load @file
+        # Force singleton classes to materialize so ObjectSpace contains them.
+        # On Ruby 2.6, asking Module#name on these takes ~20ms each — extract_all
+        # must skip them to avoid O(singleton_count) wall-clock cost.
+        @objs = Array.new(10) { Object.new.tap { |o| o.singleton_class } }
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllSingletonHost) if defined?(ExtractAllSingletonHost)
+        @objs = nil
+        GC.start
+      end
+
+      it 'does not include singleton classes in extracted scopes' do
+        scopes = extract_all_clean
+        all_names = scopes.flat_map { |s| [s.name] + (s.scopes || []).map(&:name) }
+        # Singleton classes return nil from Module#name; if any were extracted they
+        # would appear with empty/nil names (or as anonymous CLASS scopes).
+        expect(all_names).not_to include(nil)
+        expect(all_names).not_to include('')
+      end
+
+      it 'still extracts the user-code class hosting the singleton objects' do
+        scopes = extract_all_clean
+        file_scope = find_file_scope(scopes, 'ExtractAllSingletonHost')
+        expect(file_scope).not_to be_nil
+        host = file_scope.scopes.find { |s| s.name == 'ExtractAllSingletonHost' }
+        expect(host).not_to be_nil
+        expect(host.scopes.map(&:name)).to include('host_method')
+      end
+    end
   end
 end
