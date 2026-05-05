@@ -35,7 +35,7 @@ module Datadog
       # @param agent_settings [Configuration::AgentSettings] Agent connection settings
       # @param logger [Logger] Logger instance
       # @param telemetry [Telemetry, nil] Optional telemetry component for error reporting
-            def initialize(settings:, agent_settings:, logger:, telemetry: nil)
+      def initialize(settings:, agent_settings:, logger:, telemetry: nil)
         @settings = settings
         @agent_settings = agent_settings
         @logger = logger
