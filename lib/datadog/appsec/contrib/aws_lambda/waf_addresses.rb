@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 require 'uri'
-require 'base64'
 
 require_relative '../../utils/http/media_type'
 require_relative '../../utils/http/body'
+require_relative '../../../core/utils/base64'
 require_relative '../../../core/header_collection'
 require_relative '../../../tracing/client_ip'
 
@@ -90,7 +90,7 @@ module Datadog
             body = payload['body']
             return unless body
 
-            body = Base64.decode64(body) if payload['base64_encoded']
+            body = Core::Utils::Base64.strict_decode64(body) if payload['base64_encoded']
 
             content_type = headers['content-type']
             return unless content_type
