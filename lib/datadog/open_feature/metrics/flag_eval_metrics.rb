@@ -26,9 +26,7 @@ module Datadog
           'TARGETING_KEY_MISSING' => 'targeting_key_missing',
           'INVALID_CONTEXT' => 'invalid_context',
           'PROVIDER_FATAL' => 'provider_fatal',
-          # Default cases - map to 'general'
           'GENERAL' => DEFAULT_ERROR_TYPE,
-          'UNKNOWN_TYPE' => DEFAULT_ERROR_TYPE, # Datadog-specific error code
         }.freeze
 
         # Reasons that should not include allocation_key in metrics
