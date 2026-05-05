@@ -85,6 +85,13 @@ module Datadog
             collector.refresh.generate_json
           end
 
+        metrics = [] #: Array[[::String, ::Numeric]]
+
+        # The key is always there, but the value might be nil if GVL profiling is disabled.
+        # We delete it to avoid reporting the same data point twice.
+        gvl_waiting_time_ns_total = worker_stats.delete(:gvl_waiting_time_ns_total)
+        metrics << ["ruby_global_lock_wait_time_total", gvl_waiting_time_ns_total] if gvl_waiting_time_ns_total
+
         process_tags = Datadog.configuration.experimental_propagate_process_tags_enabled ?
           Core::Environment::Process.serialized : ''
 
@@ -92,8 +99,8 @@ module Datadog
           start: start,
           finish: finish,
           encoded_profile: encoded_profile,
-          code_provenance_file_name: Datadog::Profiling::Ext::Transport::HTTP::CODE_PROVENANCE_FILENAME,
           code_provenance_data: uncompressed_code_provenance,
+          metrics: metrics,
           tags_as_array: Datadog::Profiling::TagBuilder.call(
             settings: Datadog.configuration,
             profile_seq: sequence_tracker.get_next,

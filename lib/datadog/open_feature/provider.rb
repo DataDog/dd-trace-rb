@@ -7,6 +7,8 @@ module Datadog
   module OpenFeature
     # OpenFeature feature flagging provider backed by Datadog Remote Configuration.
     #
+    # Requires openfeature-sdk >= 0.5.1 for flag evaluation metrics support.
+    #
     # Implementation follows the OpenFeature contract of Provider SDK.
     # For details see:
     #   - https://github.com/open-feature/ruby-sdk/blob/v0.4.1/README.md#develop-a-provider
@@ -67,6 +69,11 @@ module Datadog
         # no-op
       end
 
+      def hooks
+        hook = Datadog.send(:components).open_feature&.flag_eval_hook
+        [hook].compact
+      end
+
       def fetch_boolean_value(flag_key:, default_value:, evaluation_context: nil)
         evaluate(flag_key, default_value: default_value, expected_type: :boolean, evaluation_context: evaluation_context)
       end
@@ -117,15 +124,26 @@ module Datadog
           value: result.value,
           variant: result.variant,
           reason: result.reason,
-          flag_metadata: result.flag_metadata
+          flag_metadata: build_flag_metadata(result),
         )
       rescue => e
         ::OpenFeature::SDK::Provider::ResolutionDetails.new(
           value: default_value,
           error_code: Ext::GENERAL,
-          error_message: "#{e.class}: #{e.message}",
+          error_message: "#{e.class}: #{e}",
           reason: Ext::ERROR
         )
+      end
+
+      def build_flag_metadata(result)
+        metadata = result.flag_metadata || {}
+        allocation_key = result.allocation_key
+        if allocation_key && !allocation_key.empty?
+          metadata = metadata.dup
+          metadata['__dd_allocation_key'] = allocation_key
+        end
+
+        metadata
       end
 
       def component_not_configured_default(value)

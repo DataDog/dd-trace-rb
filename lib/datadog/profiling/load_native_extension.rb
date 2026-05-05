@@ -5,5 +5,5 @@ begin
 rescue LoadError => e
   raise LoadError,
     "Failed to load the profiling native extension. To fix this, please remove and then reinstall datadog " \
-    "(Details: #{e.message})"
+    "(Details: #{e.class}: #{e})"
 end

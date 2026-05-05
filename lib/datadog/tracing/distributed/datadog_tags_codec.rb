@@ -41,7 +41,7 @@ module Datadog
             "#{key}=#{value.strip}"
           end.join(',')
         rescue => e
-          raise EncodingError, "Error encoding tags `#{tags}`: `#{e}`"
+          raise EncodingError, "Error encoding tags `#{tags}`: `#{e.class}: #{e}`"
         end
 
         # Deserializes a `x-datadog-tags`-formatted String into a {Hash<String,String>}.

@@ -76,7 +76,7 @@ module Datadog
           rescue => e
             result = nil
             ::Datadog.logger.error(
-              "Error injecting distributed trace data. Cause: #{e} Location: #{Array(e.backtrace).first}"
+              "Error injecting distributed trace data. Cause: #{e.class}: #{e} Location: #{Array(e.backtrace).first}"
             )
             ::Datadog::Core::Telemetry::Logger.report(
               e,
@@ -139,7 +139,7 @@ module Datadog
           rescue => e
             # TODO: Not to report Telemetry logs for now
             ::Datadog.logger.error(
-              "Error extracting distributed trace data. Cause: #{e} Location: #{Array(e.backtrace).first}"
+              "Error extracting distributed trace data. Cause: #{e.class}: #{e} Location: #{Array(e.backtrace).first}"
             )
           end
           # Handle baggage after all other styles if present
