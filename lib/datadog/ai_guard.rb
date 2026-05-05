@@ -3,6 +3,8 @@
 require_relative "core/configuration"
 require_relative "ai_guard/configuration"
 
+require_relative "ai_guard/contrib/rack/integration"
+require_relative "ai_guard/contrib/rails/integration"
 require_relative "ai_guard/contrib/ruby_llm/integration"
 
 module Datadog
@@ -48,6 +50,10 @@ module Datadog
 
       def logger
         Datadog.send(:components).ai_guard&.logger
+      end
+
+      def telemetry
+        Datadog.send(:components).ai_guard&.telemetry
       end
 
       # Evaluates one or more messages using AI Guard API.
@@ -171,3 +177,5 @@ module Datadog
     end
   end
 end
+
+require_relative "ai_guard/autoload"

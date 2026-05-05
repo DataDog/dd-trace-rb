@@ -1,0 +1,25 @@
+module Datadog
+  module AIGuard
+    module Contrib
+      module Rack
+        type rack_env = ::Hash[::String, any]
+        type rack_response = [::Integer, ::Hash[::String, ::String], ::Array[::String]]
+        type rack_app = ^(rack_env) -> rack_response
+
+        class RequestMiddleware
+          NETWORK_CLIENT_IP_TAG: ::String
+
+          @app: rack_app
+
+          def initialize: (rack_app app, ?::Hash[::Symbol, any] opt) -> void
+
+          def call: (rack_env env) -> rack_response
+
+          private
+
+          def tag_client_ip: (rack_env env) -> void
+        end
+      end
+    end
+  end
+end
