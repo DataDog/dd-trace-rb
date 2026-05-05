@@ -50,6 +50,20 @@ RSpec.describe Datadog::DI::Component do
           expect(component).to be nil
         end
       end
+
+      context 'when C extension is not available' do
+        before do
+          settings.remote.enabled = true
+          allow(Datadog::DI).to receive(:respond_to?).and_call_original
+          allow(Datadog::DI).to receive(:respond_to?).with(:exception_message).and_return(false)
+        end
+
+        it 'returns nil' do
+          expect(logger).to receive(:warn).with(/C extension is not available/)
+          component = described_class.build(settings, agent_settings, logger)
+          expect(component).to be nil
+        end
+      end
     end
 
     context 'when dynamic instrumentation is disabled' do

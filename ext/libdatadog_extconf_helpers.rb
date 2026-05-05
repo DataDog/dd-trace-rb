@@ -10,7 +10,7 @@ module Datadog
   module LibdatadogExtconfHelpers
     # Used to make sure the correct gem version gets loaded, as extconf.rb does not get run with "bundle exec" and thus
     # may see multiple libdatadog versions. See https://github.com/DataDog/dd-trace-rb/pull/2531 for the horror story.
-    LIBDATADOG_VERSION = '~> 29.0.0.1.0'
+    LIBDATADOG_VERSION = '~> 30.0.0.1.0'
 
     # Used as an workaround for a limitation with how dynamic linking works in environments where the datadog gem and
     # libdatadog are moved after the extension gets compiled.
@@ -161,6 +161,14 @@ module Datadog
         e
       end
     end
+
+    # Adds a C preprocessor define with the libdatadog version used at compile time.
+    # This allows runtime verification that the loaded libdatadog matches what was compiled against.
+    # rubocop:disable Style/GlobalVars
+    def self.add_libdatadog_version_define
+      $defs << %(-DEXPECTED_LIBDATADOG_VERSION=\\"#{Libdatadog::VERSION}\\")
+    end
+    # rubocop:enable Style/GlobalVars
 
     # Note: This helper is currently only used in the `libdatadog_api/extconf.rb` BUT still lives here to enable testing.
     def self.load_libdatadog_or_get_issue

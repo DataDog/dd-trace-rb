@@ -135,7 +135,7 @@ module Datadog
         rescue Exception => e # rubocop:disable Lint/RescueException
           Datadog.logger.debug(
             "CodeProvenance#bundler_bin_path failed. " \
-            "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+            "Cause: #{e.class}: #{e} Location: #{Array(e.backtrace).first}"
           )
           nil
         end
@@ -161,8 +161,7 @@ module Datadog
           end
 
           def to_json(arg = nil)
-            # Steep: https://github.com/ruby/rbs/pull/2691 (remove after RBS 4.0 release)
-            {kind: @kind, name: @name, version: @version, paths: @paths}.to_json(arg) # steep:ignore ArgumentTypeMismatch
+            {kind: @kind, name: @name, version: @version, paths: @paths}.to_json(arg)
           end
 
           def path

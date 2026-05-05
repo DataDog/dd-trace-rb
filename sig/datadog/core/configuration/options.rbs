@@ -10,7 +10,13 @@ module Datadog
         interface _ClassMethods
           def options: () -> Hash[Symbol, OptionDefinition]
 
-          def option: (Symbol name, ?OptionDefinition::meta meta) ?{ (OptionDefinition::Builder) -> void } -> OptionDefinition
+          def settings_children: () -> Hash[Symbol, _SettingsClass]
+
+          def settings_path: () -> ::String?
+
+          def settings_path=: (::String? path) -> void
+
+          def option: (Symbol name, ?OptionDefinition::attributes attributes) ?{ (OptionDefinition::Builder) -> void } -> OptionDefinition
         end
 
         interface _InstanceMethods
@@ -53,7 +59,8 @@ module Datadog
           include _ClassMethods
 
           @options: Hash[Symbol, OptionDefinition]
-          @settings_name: String?
+          @settings_children: Hash[Symbol, _SettingsClass]
+          @settings_path: ::String?
 
           private
 
