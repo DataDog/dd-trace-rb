@@ -20,7 +20,10 @@ module Datadog
 
         def []: (String name) -> String?
 
-        def fetch: (String name, ?Object? default_value) { (?String name) -> Object? } -> Object?
+        def fetch: (::String name) -> ::String
+                 | [T < ::Object?] (::String name, T default_value) -> (::String | T)
+                 | [T < ::Object?] (::String name) { (?::String name) -> T } -> (::String | T)
+                 | (::String name, ?::Object default_value) ?{ (?::String name) -> ::Object? } -> ::Object?
 
         def key?: (String name) -> bool
 

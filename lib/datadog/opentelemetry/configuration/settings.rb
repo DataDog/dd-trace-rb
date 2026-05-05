@@ -61,6 +61,22 @@ module Datadog
         def self.add_settings!(base)
           base.class_eval do
             settings :opentelemetry do
+              settings :traces do
+                # Sampling ratio used when `OTEL_TRACES_SAMPLER` is configured with
+                # `traceidratio` or `parentbased_traceidratio`.
+                #
+                # OpenTelemetry expresses this value independently from the sampler
+                # selection, so we keep it under the OpenTelemetry settings namespace.
+                #
+                # @default `OTEL_TRACES_SAMPLER_ARG` environment variable, otherwise `1.0`
+                # @return [Float]
+                option :sampler_arg do |o|
+                  o.type :float
+                  o.env 'OTEL_TRACES_SAMPLER_ARG'
+                  o.default 1.0
+                end
+              end
+
               settings :exporter do
                 option :protocol do |o|
                   o.type :string

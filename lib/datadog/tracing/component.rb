@@ -143,7 +143,7 @@ module Datadog
       end
 
       def build_span_sampler(settings)
-        rules = Tracing::Sampling::Span::RuleParser.parse_json(settings.tracing.sampling.span_rules)
+        rules = Tracing::Sampling::Span::RuleParser.parse_json(settings.tracing.sampling.span_rules || settings.tracing.sampling.span_rules_file)
         Tracing::Sampling::Span::Sampler.new(rules || [])
       end
 

@@ -2,7 +2,6 @@
 
 require 'date'
 
-require_relative '../../../core/environment/variable_helpers'
 require_relative '../../../core/remote/tie/tracing'
 require_relative '../../client_ip'
 require_relative '../../metadata/ext'

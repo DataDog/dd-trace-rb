@@ -103,6 +103,7 @@ module Datadog
       end
     end
   end
+
   unless const_defined?(:DATADOG_ENV, false)
     DATADOG_ENV = Core::Configuration::ConfigHelper.new
   end

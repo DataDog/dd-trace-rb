@@ -37,11 +37,10 @@ module Datadog
 
         class << self
           def build_health_metrics(settings, logger, telemetry)
-            settings = settings.health_metrics
-            options = {enabled: settings.enabled}
-            options[:statsd] = settings.statsd unless settings.statsd.nil?
+            options = {enabled: settings.health_metrics.enabled}
+            options[:statsd] = settings.health_metrics.statsd unless settings.health_metrics.statsd.nil?
 
-            Core::Diagnostics::Health::Metrics.new(telemetry: telemetry, logger: logger, **options)
+            Core::Diagnostics::Health::Metrics.new(telemetry: telemetry, port: settings.agent.statsd.port, logger: logger, **options)
           end
 
           def build_logger(settings)
@@ -58,7 +57,7 @@ module Datadog
             options[:experimental_runtime_id_enabled] = settings.runtime_metrics.experimental_runtime_id_enabled
             options[:experimental_propagate_process_tags_enabled] = settings.experimental_propagate_process_tags_enabled
 
-            Core::Runtime::Metrics.new(logger: logger, telemetry: telemetry, **options)
+            Core::Runtime::Metrics.new(telemetry: telemetry, port: settings.agent.statsd.port, logger: logger, **options)
           end
 
           def build_runtime_metrics_worker(settings, logger, telemetry)
@@ -69,7 +68,7 @@ module Datadog
               logger: logger,
             )
 
-            Core::Workers::RuntimeMetrics.new(telemetry: telemetry, **options)
+            Core::Workers::RuntimeMetrics.new(telemetry: telemetry, port: settings.agent.statsd.port, **options)
           end
 
           def build_telemetry(settings, agent_settings, logger)

@@ -3,9 +3,9 @@
 require_relative '../../core/environment/identity'
 require_relative '../../core/environment/process'
 require_relative '../../core/environment/socket'
-require_relative '../../core/environment/git'
 require_relative '../../core/git/ext'
 require_relative '../../core/runtime/ext'
+require_relative '../../core/utils/url'
 require_relative '../metadata/ext'
 require_relative '../trace_segment'
 
@@ -257,11 +257,11 @@ module Datadog
         end
 
         def git_repository_url
-          Core::Environment::Git.git_repository_url
+          Core::Utils::Url.filter_basic_auth(Datadog.configuration.git.repository_url)
         end
 
         def git_commit_sha
-          Core::Environment::Git.git_commit_sha
+          Datadog.configuration.git.commit_sha
         end
       end
     end

@@ -87,12 +87,8 @@ RSpec.describe Datadog::Profiling::TagBuilder do
     describe "source code integration" do
       context "when git environment is available" do
         before do
-          Datadog::Core::TagBuilder.reset_for_tests
-
-          expect(Datadog::Core::Environment::Git).to receive(:git_repository_url).and_return(
-            "git_repository_url"
-          )
-          expect(Datadog::Core::Environment::Git).to receive(:git_commit_sha).and_return("git_commit_sha")
+          settings.git.repository_url = "git_repository_url"
+          settings.git.commit_sha = "git_commit_sha"
         end
 
         it "includes the git repository URL and commit SHA" do
@@ -104,10 +100,8 @@ RSpec.describe Datadog::Profiling::TagBuilder do
 
       context "when git environment is not available" do
         before do
-          Datadog::Core::TagBuilder.reset_for_tests
-
-          expect(Datadog::Core::Environment::Git).to receive(:git_repository_url).and_return(nil)
-          expect(Datadog::Core::Environment::Git).to receive(:git_commit_sha).and_return(nil)
+          settings.git.repository_url = nil
+          settings.git.commit_sha = nil
         end
 
         it "includes the git repository URL and commit SHA" do

@@ -6,6 +6,7 @@ require_relative 'base'
 require_relative 'ext'
 require_relative '../environment/execution'
 require_relative '../environment/ext'
+require_relative '../git/ext'
 require_relative '../runtime/ext'
 require_relative '../telemetry/ext'
 require_relative '../remote/ext'
@@ -53,6 +54,14 @@ module Datadog
         # {https://docs.datadoghq.com/agent/ Datadog Agent} configuration.
         # @public_api
         settings :agent do
+          # Agent URL.
+          # @default `DD_TRACE_AGENT_URL` environment variable, otherwise `nil`
+          # @return [String,nil]
+          option :url do |o|
+            o.type :string, nilable: true
+            o.env Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL
+          end
+
           # Agent hostname or IP.
           # @default `DD_AGENT_HOST` environment variable, otherwise `127.0.0.1`
           # @return [String,nil]
@@ -75,7 +84,20 @@ module Datadog
           # @see https://docs.datadoghq.com/getting_started/tracing/#datadog-apm
           # @default `DD_TRACE_AGENT_TIMEOUT_SECONDS` environment variable, otherwise `30` for http, '1' for UDS
           # @return [Integer,nil]
-          option :timeout_seconds
+          option :timeout_seconds do |o|
+            o.type :int, nilable: true
+            o.env Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS
+            o.env_parser do |value|
+              if value
+                begin
+                  Integer(value)
+                rescue ArgumentError
+                  Datadog.logger.warn("Invalid value for #{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS} (#{value.inspect}). Ignoring this configuration.")
+                  nil
+                end
+              end
+            end
+          end
 
           # Agent unix domain socket path.
           # @default defined in `DD_TRACE_AGENT_URL` environment variable, otherwise '/var/run/datadog/apm.socket'
@@ -84,16 +106,20 @@ module Datadog
           # @return [String,nil]
           option :uds_path
 
-          # TODO: add declarative statsd configuration. Currently only usable via an environment variable.
+          # TODO: add more declarative statsd configuration.
           # Statsd configuration for agent access.
           # @public_api
-          # settings :statsd do
-          #   # Agent Statsd UDP port.
-          #   # @configure_with {Datadog::Statsd}
-          #   # @default `DD_AGENT_HOST` environment variable, otherwise `8125`
-          #   # @return [String,nil]
-          #   option :port
-          # end
+          settings :statsd do
+            # Agent Statsd UDP port.
+            # @configure_with {Datadog::Statsd}
+            # @default `DD_METRIC_AGENT_PORT` environment variable, otherwise `8125`
+            # @return [Integer,nil]
+            option :port do |o|
+              o.type :int
+              o.env Datadog::Core::Configuration::Ext::Metrics::ENV_DEFAULT_PORT
+              o.default Datadog::Core::Configuration::Ext::Metrics::DEFAULT_PORT
+            end
+          end
         end
 
         # Datadog API key.
@@ -1002,6 +1028,31 @@ module Datadog
           option :debug do |o|
             o.type :bool
             o.default false
+          end
+        end
+
+        # Git repository configuration.
+        # These settings allow configuring git repository information programmatically,
+        # via stable config, or through environment variables.
+        # @public_api
+        settings :git do
+          # The URL of the git repository.
+          # @default `DD_GIT_REPOSITORY_URL` environment variable, otherwise `nil`
+          # @return [String,nil]
+          option :repository_url do |o|
+            o.type :string, nilable: true
+            o.env Core::Git::Ext::ENV_REPOSITORY_URL
+            # Sensitive informations are filtered before being manually sent through telemetry
+            # in core/telemetry/event/app_started.rb
+            o.skip_telemetry true
+          end
+
+          # The SHA of the git commit.
+          # @default `DD_GIT_COMMIT_SHA` environment variable, otherwise `nil`
+          # @return [String,nil]
+          option :commit_sha do |o|
+            o.type :string, nilable: true
+            o.env Core::Git::Ext::ENV_COMMIT_SHA
           end
         end
 

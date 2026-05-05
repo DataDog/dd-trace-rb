@@ -4,13 +4,14 @@ require 'datadog'
 require 'datadog/core/workers/runtime_metrics'
 
 RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
-  subject(:worker) { described_class.new(telemetry: telemetry, **options) }
+  subject(:worker) { described_class.new(telemetry: telemetry, port: port, **options) }
 
   let(:metrics) { instance_double(Datadog::Core::Runtime::Metrics, close: nil) }
   let(:options) { {metrics: metrics, enabled: true} }
 
   let(:logger) { logger_allowing_debug }
   let(:telemetry) { double(Datadog::Core::Telemetry::Component) }
+  let(:port) { 8125 }
 
   before { allow(metrics).to receive(:flush) }
 
@@ -24,6 +25,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
         described_class.new(
           logger: logger,
           telemetry: telemetry,
+          port: port,
           experimental_propagate_process_tags_enabled: true
         )
       end
@@ -36,6 +38,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
         expect(Datadog::Core::Runtime::Metrics).to receive(:new).with(
           logger: logger,
           telemetry: telemetry,
+          port: port,
           experimental_propagate_process_tags_enabled: true,
         ).and_call_original
 

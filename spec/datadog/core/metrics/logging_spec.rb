@@ -11,6 +11,7 @@ RSpec.describe Datadog::Core::Metrics::Logging::Adapter do
 
   let(:logger) { instance_double(Logger) }
   let(:telemetry) { double(Datadog::Core::Telemetry::Component) }
+  let(:port) { Datadog::Core::Configuration::Ext::Metrics::DEFAULT_PORT }
 
   def have_received_json_metric(expected_hash)
     have_received(:info) do |msg|
@@ -122,7 +123,7 @@ RSpec.describe Datadog::Core::Metrics::Logging::Adapter do
   end
 
   context 'when used in Datadog::Metrics' do
-    subject(:metrics) { Datadog::Core::Metrics::Client.new(statsd: adapter, logger: logger, telemetry: telemetry) }
+    subject(:metrics) { Datadog::Core::Metrics::Client.new(statsd: adapter, logger: logger, telemetry: telemetry, port: port) }
 
     describe 'and #count is sent' do
       subject(:count) { metrics.count(stat, value, options) }

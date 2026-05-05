@@ -6,8 +6,9 @@ require 'datadog/core/runtime/metrics'
 RSpec.describe Datadog::Core::Runtime::Metrics do
   let(:logger) { logger_allowing_debug }
   let(:telemetry) { double(Datadog::Core::Telemetry::Component) }
+  let(:port) { 8125 }
   let(:options) { {experimental_propagate_process_tags_enabled: true} }
-  subject(:runtime_metrics) { described_class.new(logger: logger, telemetry: telemetry, **options) }
+  subject(:runtime_metrics) { described_class.new(telemetry: telemetry, port: port, logger: logger, **options) }
 
   describe '::new' do
     context 'given :services' do
