@@ -775,4 +775,39 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
       expect(payloads.length).to be >= 1
     end
   end
+
+  context "method probe on Kernel#lambda" do
+    # The wrapper used to construct do_super via `lambda do |a, k, blk| ... end`,
+    # which dispatches through Kernel#lambda (method call, not syntax). With
+    # Kernel#lambda probed, that dispatch was intercepted by the wrapper itself,
+    # which again tried to construct do_super via lambda, recursing until
+    # SystemStackError. The guard set inside run_method_probe was reached only
+    # after do_super construction, so the early-return at the top of the wrapper
+    # could not break the cycle.
+    #
+    # Fix: lambda literal `->(a, k, blk) { ... }` is syntax — no method dispatch —
+    # so a probe on Kernel#lambda cannot intercept do_super construction. The same
+    # `->` form is already used on the user_caller_locations site in the wrapper.
+
+    include_context "permissive settings"
+
+    let(:probe) do
+      Datadog::DI::Probe.new(
+        id: "stdlib-kernel-lambda",
+        type: :log,
+        type_name: "Kernel",
+        method_name: "lambda",
+        capture_snapshot: false,
+      )
+    end
+
+    it "does not self-recurse through wrapper trampoline construction" do
+      payloads = run_stdlib_probe_test(probe) do
+        f = lambda { |x| x * 2 }
+        expect(f.call(3)).to eq(6)
+      end
+
+      expect(payloads.length).to be >= 1
+    end
+  end
 end

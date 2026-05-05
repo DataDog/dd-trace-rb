@@ -128,7 +128,7 @@ module Datadog
             # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
             # for methods defined via method_missing — kwargs forwarding
             # requires the explicit shape match below.
-            do_super = lambda do |a, k, blk|
+            do_super = ->(a, k, blk) {
               if !DI.array_empty?(a)
                 if !DI.hash_empty?(k)
                   super(*a, **k, &blk)
@@ -140,7 +140,7 @@ module Datadog
               else
                 super(&blk)
               end
-            end
+            }
 
             # Re-entrancy guard: if we are already inside a DI probe
             # callback, skip DI processing and call the original method
