@@ -136,7 +136,7 @@ RSpec.describe 'Symbol Database Integration' do
       )
       logger = instance_double(Logger, debug: nil)
 
-      transport = instance_double(Datadog::SymbolDatabase::Transport::Transport)
+      transport = instance_double(Datadog::SymbolDatabase::Transport::Symbols::Transport)
       allow(Datadog::SymbolDatabase::Transport::HTTP).to receive(:build).and_return(transport)
 
       uploader = Datadog::SymbolDatabase::Uploader.new(config, agent_settings, logger: logger)
@@ -151,7 +151,7 @@ RSpec.describe 'Symbol Database Integration' do
       )
 
       captured_form = nil
-      allow(transport).to receive(:send_symdb_payload) do |form|
+      allow(transport).to receive(:send_symbols) do |form|
         captured_form = form
         instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, ok?: true, code: 200, internal_error?: false)
       end
