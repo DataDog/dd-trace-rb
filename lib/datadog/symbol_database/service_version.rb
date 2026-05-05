@@ -29,8 +29,8 @@ module Datadog
         raise ArgumentError, 'scopes must be an array' unless scopes.is_a?(Array)
 
         @service = service
-        @env = env.to_s.empty? ? 'none' : env.to_s
-        @version = version.to_s.empty? ? 'none' : version.to_s
+        @env = env
+        @version = version
         @language = 'ruby'
         @scopes = scopes
       end
