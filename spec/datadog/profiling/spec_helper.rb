@@ -116,6 +116,15 @@ module ProfileHelpers
       RbConfig::CONFIG[key].to_s.include?("sanitize=address")
     end
   end
+
+  # Under ASAN-built Ruby, conservative GC walks ASAN's "fake stacks" (heap-backed regions kept
+  # alive for use-after-return detection) — see gc.c:gc_mark_machine_stack_location_maybe under
+  # RUBY_ASAN_ENABLED. Locals from a `before` block can stay reachable for many GC cycles after
+  # the block returns, so dangling allocations the test relies on being freed sometimes survive —
+  # producing extra heap samples and breaking strict heap_samples assertions.
+  def skip_if_asan_could_keep_dangling_allocations_alive
+    skip "Heap-state assertions are not deterministic under ASAN's fake-stack retention" if asan_build?
+  end
 end
 
 RSpec.configure do |config|

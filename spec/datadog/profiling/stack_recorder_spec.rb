@@ -486,6 +486,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it "include the stack and sample counts for the objects still left alive" do
+          skip_if_asan_could_keep_dangling_allocations_alive
+
           # There should be 3 different allocation class labels so we expect 3 different heap samples
           expect(heap_samples.size).to eq(3)
 
@@ -494,6 +496,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it "include accurate object sizes" do
+          skip_if_asan_could_keep_dangling_allocations_alive
+
           string_sample = heap_samples.find { |s| s.labels[:"allocation class"] == "String" }
           expect(string_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_string) * sample_rate)
 
@@ -617,6 +621,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it "contribute to recorded samples stats" do
+          skip_if_asan_could_keep_dangling_allocations_alive
+
           test_num_allocated_object = 123
           live_objects = Array.new(test_num_allocated_object)
 
@@ -662,12 +668,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           let(:heap_sample_every) { 2 }
 
           it "only keeps track of some allocations" do
-            # Under ASAN-built Ruby, conservative GC walks ASAN's "fake stacks" (heap-backed regions kept
-            # alive for use-after-return detection) — see gc.c:gc_mark_machine_stack_location_maybe under
-            # RUBY_ASAN_ENABLED. Locals from the `before` block can stay reachable for many GC cycles after
-            # the block returns, so the dangling allocations the test relies on being freed sometimes
-            # survive — producing extra heap samples and failing the strict `eq(1)` assertion below.
-            skip "Strict heap_samples count is not deterministic under ASAN's fake-stack retention" if asan_build?
+            skip_if_asan_could_keep_dangling_allocations_alive
 
             # By only sampling every 2nd allocation we only track the odd objects which means our array
             # should be the only heap sample captured (string is index 0, array is index 1, hash is 4)
