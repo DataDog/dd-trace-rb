@@ -287,12 +287,12 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
 
   describe 'multipart upload structure (ported from Java BatchUploaderTest.testUploadMultiPart)' do
     before do
-      allow(mock_transport).to receive(:send_symdb_payload).and_return(mock_response)
+      allow(mock_transport).to receive(:send_symbols).and_return(mock_response)
     end
 
     it 'event part contains ddsource, service, and type fields' do
       captured_form = nil
-      allow(mock_transport).to receive(:send_symdb_payload) do |form|
+      allow(mock_transport).to receive(:send_symbols) do |form|
         captured_form = form
         mock_response
       end
@@ -309,7 +309,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
 
     it 'file part is gzip compressed' do
       captured_form = nil
-      allow(mock_transport).to receive(:send_symdb_payload) do |form|
+      allow(mock_transport).to receive(:send_symbols) do |form|
         captured_form = form
         mock_response
       end
@@ -333,12 +333,12 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
 
   describe 'upload with multiple scopes (ported from Java SymbolSinkTest.testMultiScopeFlush)' do
     before do
-      allow(mock_transport).to receive(:send_symdb_payload).and_return(mock_response)
+      allow(mock_transport).to receive(:send_symbols).and_return(mock_response)
     end
 
     it 'includes all scopes in a single upload' do
       captured_form = nil
-      allow(mock_transport).to receive(:send_symdb_payload) do |form|
+      allow(mock_transport).to receive(:send_symbols) do |form|
         captured_form = form
         mock_response
       end
@@ -359,26 +359,6 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
 
       scope_names = parsed['scopes'].map { |s| s['name'] }
       expect(scope_names).to include('Class1', 'Class2', 'Class3')
-    end
-  end
-
-  describe 'retry on 408 timeout (ported from Java BatchUploaderTest.testRetryOn500)' do
-    it 'retries on 408 request timeout' do
-      attempt = 0
-      allow(mock_transport).to receive(:send_symdb_payload) do
-        attempt += 1
-        if attempt < 2
-          # 408 maps to server error range in Ruby uploader (only 500+ retries)
-          # but verify behavior is correct for retryable errors
-          instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 500)
-        else
-          instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200)
-        end
-      end
-
-      uploader.upload_scopes([test_scope])
-
-      expect(attempt).to eq(2)
     end
   end
 

@@ -6,7 +6,7 @@ require 'datadog/symbol_database/logger'
 require 'fileutils'
 
 # Integration test for the RC → Component → Extractor → ScopeBatcher → Uploader flow.
-# Mocks at the transport boundary (Transport::HTTP.build) to capture what would be sent
+# Mocks at the transport boundary (Transport::HTTP.symbols) to capture what would be sent
 # to the agent, without multipart parsing or real HTTP.
 RSpec.describe 'Symbol Database Remote Config Integration' do
   let(:raw_logger) { instance_double(Logger, debug: nil) }
@@ -26,14 +26,14 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
     Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil)
   end
   let(:symdb_logger) { Datadog::SymbolDatabase::Logger.new(settings, raw_logger) }
-  let(:mock_transport) { instance_double(Datadog::SymbolDatabase::Transport::Transport) }
+  let(:mock_transport) { instance_double(Datadog::SymbolDatabase::Transport::Symbols::Transport) }
   let(:mock_response) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, code: 200, internal_error?: false) }
 
   let(:captured_forms) { [] }
 
   before do
     allow(Datadog::SymbolDatabase::Transport::HTTP).to receive(:build).and_return(mock_transport)
-    allow(mock_transport).to receive(:send_symdb_payload) do |form|
+    allow(mock_transport).to receive(:send_symbols) do |form|
       captured_forms << form
       mock_response
     end
