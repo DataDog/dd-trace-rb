@@ -476,6 +476,18 @@ application performance:
   it
 - This threshold can be configured globally
 
+## Probes on Standard Library Methods
+
+Method probes can target standard library methods, including methods
+that the Datadog tracer itself calls. Line probes can target any
+line, including lines in standard library files.
+
+The tracer guarantees that probes on such methods do not cause runaway
+recursion or stack overflow. When the tracer calls a probed method
+while processing another probe firing, the probe is suppressed for
+that internal call and no rate-limit token is consumed. Customer code
+calls to the same method fire the probe normally.
+
 ## Getting Help
 
 For the latest updates, known issues, and to provide feedback, please

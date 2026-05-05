@@ -51,6 +51,8 @@ module Datadog
 
       attr_reader lock: untyped
 
+      def run_method_probe: (args: ::Array[untyped], kwargs: ::Hash[::Symbol, untyped], target_block: ::Proc?, target_self: untyped, do_super: ::Proc, probe: Probe, responder: untyped, loc: ::Array[untyped]?, method_name: ::String, user_caller_locations: ^() -> ::Array[::Thread::Backtrace::Location]) -> untyped
+
       def line_trace_point_callback: (Probe probe, RubyVM::InstructionSequence? iseq, untyped responder, TracePoint tp) -> void
 
       def build_trace_point_context: (Probe probe, TracePoint tp) -> Context
