@@ -21,6 +21,7 @@ module Datadog
         def build_traceparent_string: (untyped trace_id, untyped parent_id, untyped trace_flags) -> ::String
         def build_trace_flags: (untyped digest) -> untyped
         def build_tracestate: (untyped digest) -> untyped
+        def append_dd: (untyped tracestate, untyped field) -> bool
         def serialize_origin: (untyped value) -> untyped
         def serialize_tag_key: (untyped name) -> untyped
         def serialize_tag_value: (untyped value) -> untyped
@@ -37,6 +38,9 @@ module Datadog
         def parse_priority_sampling: (untyped sampled, untyped sampling_priority) -> untyped
 
         def split_tracestate: (untyped tracestate) -> untyped
+        TRACEPARENT_MAX_SIZE_LIMIT: 512
+        TRACESTATE_MAX_SIZE_LIMIT: 512
+        TRACESTATE_MAX_LIST_MEMBERS: 32
         INVALID_VERSION: "ff"
         DEFAULT_TRACE_FLAGS: 0
         TRACE_FLAGS_SAMPLED: 1
