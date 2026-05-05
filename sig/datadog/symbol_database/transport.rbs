@@ -15,7 +15,7 @@ module Datadog
         end
 
         class Transport < Core::Transport::Transport
-          def send_symbols: (Hash[untyped, untyped] form) -> Core::Transport::Response
+          def send_symbols: (Hash[untyped, untyped] form) -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
         end
       end
     end
