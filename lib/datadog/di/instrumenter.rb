@@ -158,27 +158,33 @@ module Datadog
             # rb_thread_local_aref / rb_thread_local_aset, bypassing Thread#[]
             # / Thread#[]= method dispatch — so user method probes on those
             # Thread methods cannot intercept guard reads/writes and recurse.
-            return do_super.call(args, kwargs, target_block) if DI.in_probe? # steep:ignore FallbackAny
+            # Use DI.invoke_proc instead of do_super.call to bypass Proc#call
+            # method dispatch — a user method probe on Proc#call would
+            # otherwise intercept this call (do_super is a lambda) and
+            # recurse through this same early-return path indefinitely.
+            return DI.invoke_proc(do_super, args, kwargs, target_block) if DI.in_probe? # steep:ignore FallbackAny
 
             # Lazy caller_locations: only the FIRES path uses the stack,
             # so defer the frame-array allocation. Disabled probes and
             # rate-limited invocations skip it entirely.
             #
-            # Depth 3 skips: lambda body, run_method_probe (caller of
-            # the lambda), and this wrapper (caller of run_method_probe).
-            # The first returned frame is the user's call site. The
-            # depth is pinned by the regression test
-            # "caller_locations capture > captures the test call site as
-            # the frame after the synthetic method frame" — any change
-            # to the call chain that shifts the depth fails that test.
-            user_caller_locations = -> { caller_locations(3) }
+            # Depth 4 skips: lambda body, DI.invoke_proc (C method that
+            # invokes this lambda — appears in caller_locations as a
+            # frame), run_method_probe (caller of DI.invoke_proc), and
+            # this wrapper (caller of run_method_probe). The first
+            # returned frame is the user's call site. The depth is pinned
+            # by the regression test "caller_locations capture > captures
+            # the test call site as the frame after the synthetic method
+            # frame" — any change to the call chain that shifts the depth
+            # fails that test.
+            user_caller_locations = -> { caller_locations(4) }
 
             instrumenter.run_method_probe(
               args: args, kwargs: kwargs, target_block: target_block, # steep:ignore FallbackAny
               target_self: self, do_super: do_super,
               probe: probe, responder: responder,
-              loc: loc, method_name: method_name,
-              user_caller_locations: user_caller_locations
+              loc: loc, method_name: method_name, # steep:ignore ArgumentTypeMismatch
+              user_caller_locations: user_caller_locations # steep:ignore ArgumentTypeMismatch
             )
           end
         end
@@ -480,7 +486,14 @@ module Datadog
 
             rv = nil
             begin
-              rv = do_super.call(args, kwargs, target_block)
+              # DI.invoke_proc instead of do_super.call: bypasses Proc#call
+              # method dispatch so a user probe on Proc#call cannot
+              # intercept the trampoline. The guard was just released
+              # above so nested probes on the customer method body fire
+              # normally — but Proc#call must remain bypassed regardless,
+              # because the early-return path at the top of the wrapper
+              # also relies on invoking do_super without recursion.
+              rv = DI.invoke_proc(do_super, args, kwargs, target_block)
             rescue NoMemoryError, Interrupt, SystemExit
               raise
             rescue Exception => exc # standard:disable Lint/RescueException
@@ -516,7 +529,11 @@ module Datadog
               # that location here.
               []
             end
-            caller_locs = method_frame + user_caller_locations.call
+            # DI.invoke_proc bypasses Proc#call dispatch on the lambda —
+            # at this point in_probe? is true, so a user probe on Proc#call
+            # would intercept and the early-return would itself need to
+            # invoke a Proc, recursing.
+            caller_locs = method_frame + DI.invoke_proc(user_caller_locations)
             # TODO capture arguments at exit
 
             context = Context.new(locals: nil, target_self: target_self,
@@ -556,7 +573,9 @@ module Datadog
             # a no-op here (guard already cleared) and serves the
             # firing branch above, where post-processing re-enters.
             DI.leave_probe
-            do_super.call(args, kwargs, target_block)
+            # DI.invoke_proc bypasses Proc#call dispatch — see the firing
+            # branch above for the same rationale.
+            DI.invoke_proc(do_super, args, kwargs, target_block)
           end
         ensure
           DI.leave_probe

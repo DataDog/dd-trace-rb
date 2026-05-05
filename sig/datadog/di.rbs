@@ -19,6 +19,7 @@ module Datadog
     def self.leave_probe: () -> nil
     def self.array_empty?: (::Array[untyped]) -> bool
     def self.hash_empty?: (::Hash[untyped, untyped]) -> bool
+    def self.invoke_proc: (Proc proc, *untyped args) -> untyped
 
     def self.component: () -> Component
 

@@ -34,6 +34,11 @@ static ID id_datadog_di_in_probe;
 VALUE rb_thread_local_aref(VALUE thread, ID id);
 VALUE rb_thread_local_aset(VALUE thread, ID id, VALUE val);
 
+// rb_proc_call_with_block is a public Ruby C API function that invokes a Proc
+// directly without going through Proc#call method dispatch. Used by
+// DI.invoke_proc to bypass user-installed Proc#call probes.
+VALUE rb_proc_call_with_block(VALUE recv, int argc, const VALUE *argv, VALUE proc);
+
 // Returns whether the argument is an IMEMO of type ISEQ.
 static bool ddtrace_imemo_iseq_p(VALUE v) {
   return rb_objspace_internal_object_p(v) && RB_TYPE_P(v, T_IMEMO) && ddtrace_imemo_type(v) == IMEMO_TYPE_ISEQ;
@@ -174,6 +179,35 @@ static VALUE hash_empty_p(DDTRACE_UNUSED VALUE _self, VALUE obj) {
   return RHASH_SIZE(obj) == 0 ? Qtrue : Qfalse;
 }
 
+/*
+ * call-seq:
+ *   DI.invoke_proc(proc, *args) -> Object
+ *
+ * Invokes a Proc with the given positional arguments, bypassing Proc#call
+ * method dispatch. Used in the method probe wrapper to call the do_super
+ * lambda (and other internal lambdas) without giving user-installed method
+ * probes on Proc#call a chance to recurse.
+ *
+ * Implemented via rb_proc_call_with_block, which invokes the Proc's
+ * underlying block directly without going through Ruby method lookup. A user
+ * probe on Proc#call is therefore not intercepted, even if the Proc passed
+ * here is itself a lambda (and thus a Proc instance).
+ *
+ * Raises TypeError if the first argument is not a Proc.
+ *
+ * @api private
+ */
+static VALUE invoke_proc(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
+  if (argc < 1) {
+    rb_raise(rb_eArgError, "wrong number of arguments (given 0, expected 1+)");
+  }
+  VALUE proc = argv[0];
+  if (!rb_obj_is_proc(proc)) {
+    rb_raise(rb_eTypeError, "wrong argument type (expected Proc)");
+  }
+  return rb_proc_call_with_block(proc, argc - 1, argv + 1, Qnil);
+}
+
 // rb_iseq_type was added in Ruby 3.1 (commit 89a02d89 by Koichi Sasada,
 // 2021-12-19). It returns the iseq type as a Symbol. On Ruby < 3.1 this
 // function does not exist, so have_func('rb_iseq_type') in extconf.rb
@@ -226,6 +260,7 @@ void di_init(VALUE datadog_module) {
   rb_define_singleton_method(di_module, "leave_probe", leave_probe, 0);
   rb_define_singleton_method(di_module, "array_empty?", array_empty_p, 1);
   rb_define_singleton_method(di_module, "hash_empty?", hash_empty_p, 1);
+  rb_define_singleton_method(di_module, "invoke_proc", invoke_proc, -1);
 #ifdef HAVE_RB_ISEQ_TYPE
   rb_define_singleton_method(di_module, "iseq_type", iseq_type, 1);
 #endif
