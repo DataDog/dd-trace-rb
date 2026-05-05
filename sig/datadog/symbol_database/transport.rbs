@@ -3,11 +3,11 @@ module Datadog
     module Transport
       module Symbols
         class Request < Core::Transport::Request
-          @form: Hash[untyped, untyped]
+          @form: Hash[String, Datadog::Core::Vendor::Multipart::Post::UploadIO]
 
-          attr_reader form: Hash[untyped, untyped]
+          attr_reader form: Hash[String, Datadog::Core::Vendor::Multipart::Post::UploadIO]
 
-          def initialize: (Hash[untyped, untyped] form) -> void
+          def initialize: (Hash[String, Datadog::Core::Vendor::Multipart::Post::UploadIO] form) -> void
         end
 
         class Client < Core::Transport::HTTP::Client
@@ -15,7 +15,7 @@ module Datadog
         end
 
         class Transport < Core::Transport::Transport
-          def send_symbols: (Hash[untyped, untyped] form) -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
+          def send_symbols: (Hash[String, Datadog::Core::Vendor::Multipart::Post::UploadIO] form) -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
         end
       end
     end

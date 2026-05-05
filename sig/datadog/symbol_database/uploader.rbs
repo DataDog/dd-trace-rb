@@ -3,17 +3,22 @@ module Datadog
     class Uploader
       MAX_PAYLOAD_SIZE: Integer
 
-      @settings: untyped
+      @settings: Datadog::Core::Configuration::Settings
 
-      @agent_settings: untyped
+      @agent_settings: Datadog::Core::Configuration::AgentSettings
 
-      @logger: untyped
+      @logger: Datadog::Core::Logger
 
-      @telemetry: untyped
+      @telemetry: Datadog::Core::Telemetry::Component?
 
-      @transport: untyped
+      @transport: Datadog::SymbolDatabase::Transport::Symbols::Transport
 
-      def initialize: (settings: untyped, agent_settings: untyped, logger: untyped, ?telemetry: untyped) -> void
+      def initialize: (
+        settings: Datadog::Core::Configuration::Settings,
+        agent_settings: Datadog::Core::Configuration::AgentSettings,
+        logger: Datadog::Core::Logger,
+        ?telemetry: Datadog::Core::Telemetry::Component?
+      ) -> void
 
       def upload_scopes: (Array[Scope] scopes) -> void
 
@@ -25,9 +30,12 @@ module Datadog
 
       def build_event_metadata: () -> String
 
-      def build_multipart_form: (String compressed_data) -> Hash[String, Core::Vendor::Multipart::Post::UploadIO]
+      def build_multipart_form: (String compressed_data) -> Hash[String, Datadog::Core::Vendor::Multipart::Post::UploadIO]
 
-      def handle_response: (untyped response, Integer scope_count) -> bool
+      def handle_response: (
+        Datadog::Core::Transport::HTTP::Response | Datadog::Core::Transport::InternalErrorResponse response,
+        Integer scope_count
+      ) -> bool
     end
   end
 end

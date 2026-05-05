@@ -6,9 +6,9 @@ module Datadog
 
         def self.symbols: (
           agent_settings: ::Datadog::Core::Configuration::AgentSettings,
-          logger: untyped,
+          logger: ::Datadog::Core::Logger,
           ?headers: Hash[String, String]?
-        ) ?{ (untyped) -> void } -> SymbolDatabase::Transport::Symbols::Transport
+        ) ?{ (Datadog::Core::Transport::HTTP::Builder) -> void } -> SymbolDatabase::Transport::Symbols::Transport
       end
     end
   end
