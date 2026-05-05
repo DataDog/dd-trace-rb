@@ -134,6 +134,25 @@ RSpec.configure do |config|
     skip "Test requires Ruby #{example.metadata[:ruby]}"
   end
 
+  # Skip all symbol_database specs on unsupported platforms. Symbol database requires MRI Ruby 2.6+.
+  # Tests that explicitly validate behavior on unsupported platforms (e.g. the platform guard
+  # itself) can opt out by tagging with `symdb_supported_platforms: true`.
+  if PlatformHelpers.jruby?
+    config.before(:each) do |example|
+      if example.file_path.include?('/symbol_database/') && !example.metadata[:symdb_supported_platforms]
+        skip 'Symbol database not supported on JRuby'
+      end
+    end
+  end
+
+  if RUBY_VERSION < '2.6'
+    config.before(:each) do |example|
+      if example.file_path.include?('/symbol_database/') && !example.metadata[:symdb_supported_platforms]
+        skip 'Symbol database requires Ruby 2.6+'
+      end
+    end
+  end
+
   config.before(:example, ractors: true) do
     unless config.filter_manager.inclusions[:ractors]
       skip 'Skipping ractor tests. Use rake spec:profiling:ractors or pass -t ractors to rspec to run.'

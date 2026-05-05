@@ -1,0 +1,19 @@
+module Datadog
+  module SymbolDatabase
+    module Transport
+      module HTTP
+        module API
+          class Endpoint < Core::Transport::HTTP::API::Endpoint
+            @encoder: untyped
+
+            attr_reader encoder: untyped
+
+            def initialize: (String path, untyped encoder) -> void
+
+            def call: (untyped env) ?{ (untyped) -> untyped } -> untyped
+          end
+        end
+      end
+    end
+  end
+end

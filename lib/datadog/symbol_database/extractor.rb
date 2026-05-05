@@ -9,9 +9,9 @@ module Datadog
   module SymbolDatabase
     # Extracts symbol metadata from loaded Ruby modules and classes via introspection.
     #
-    # Instance created by Component with injected dependencies (logger, settings,
-    # telemetry). All methods are instance methods accessing @logger, @settings,
-    # @telemetry directly — no parameter threading needed.
+    # Instance created by Component with injected dependencies (logger, settings).
+    # All methods are instance methods accessing @logger, @settings directly —
+    # no parameter threading needed.
     #
     # Uses Ruby's reflection APIs (Module#constants, Class#instance_methods, Method#parameters)
     # to build hierarchical Scope structures representing code organization.
@@ -46,10 +46,9 @@ module Datadog
     #    for post-hoc diagnosis, return nil or empty array. One bad method/module
     #    doesn't kill the entire class extraction.
     #
-    # 3. **Top-level entry rescues** (`rescue => e` with logging + telemetry):
+    # 3. **Top-level entry rescues** (`rescue => e` with logging):
     #    extract() and extract_all() are the error boundaries. Any exception that
-    #    escapes layers 1-2 is caught here, logged, and tracked via telemetry.
-    #    These are the only rescue blocks that increment telemetry counters.
+    #    escapes layers 1-2 is caught here and logged.
     #
     # @api private
     class Extractor
@@ -71,19 +70,22 @@ module Datadog
       EXCLUDED_COMMON_MODULES = ['Kernel', 'PP::', 'JSON::', 'Enumerable', 'Comparable'].freeze
 
       # RubyVM::InstructionSequence#trace_points event types included when
-      # computing injectable lines on METHOD scopes.
+      # computing targetable lines on METHOD scopes.
       # :line — any line with executable bytecode (primary line probe target)
       # :return — last expression before method returns (DI instruments return events)
       # :call excluded — method entry is handled by method probes, not line probes
-      INJECTABLE_LINE_EVENTS = [:line, :return].freeze
+      TARGETABLE_LINE_EVENTS = [:line, :return].freeze
+
+      # Cached UnboundMethod for Module#name — avoids resolving it on every
+      # safe_mod_name call. Some classes override .name (e.g. Faker::Travel::Airport),
+      # so we bind the original Module#name to get the real module name safely.
+      MODULE_NAME = Module.instance_method(:name)
 
       # @param logger [Logger] Logger instance (SymbolDatabase::Logger facade or compatible)
       # @param settings [Configuration::Settings] Tracer settings
-      # @param telemetry [Telemetry, nil] Optional telemetry for metrics
-      def initialize(logger:, settings:, telemetry: nil)
+      def initialize(logger:, settings:)
         @logger = logger
         @settings = settings
-        @telemetry = telemetry
       end
 
       # Extract symbols from a single module or class.
@@ -117,7 +119,6 @@ module Datadog
         wrap_in_file_scope(source_file, [inner_scope])
       rescue => e
         @logger.debug { "symdb: failed to extract #{mod_name || '<unknown>'}: #{e.class}: #{e}" }
-        @telemetry&.inc('tracers', 'symbol_database.extract_error', 1)
         nil
       end
 
@@ -139,7 +140,6 @@ module Datadog
         convert_trees_to_scopes(file_trees)
       rescue => e
         @logger.debug { "symdb: error in extract_all: #{e.class}: #{e}" }
-        @telemetry&.inc('tracers', 'symbol_database.extract_all_error', 1)
         []
       end
 
@@ -151,7 +151,7 @@ module Datadog
       # @param mod [Module] The module
       # @return [String, nil] Module name or nil
       def safe_mod_name(mod)
-        Module.instance_method(:name).bind(mod).call
+        MODULE_NAME.bind(mod).call
       rescue => e
         @logger.debug { "symdb: safe_mod_name failed: #{e.class}: #{e}" }
         nil
@@ -391,7 +391,7 @@ module Datadog
           location = method.source_location
           next unless location && location[0]
           starts << location[1]
-          _ranges, method_end = extract_injectable_lines(method, location[1])
+          _ranges, method_end = extract_targetable_lines(method, location[1])
           ends << method_end
         end
 
@@ -483,7 +483,7 @@ module Datadog
         source_file, line = location
         return nil unless user_code_path?(source_file)  # Skip gem/stdlib methods
 
-        injectable_lines, end_line = extract_injectable_lines(method, line)
+        targetable_lines, end_line = extract_targetable_lines(method, line)
 
         Scope.new(
           scope_type: 'METHOD',
@@ -491,7 +491,7 @@ module Datadog
           source_file: source_file,
           start_line: line,
           end_line: end_line,
-          injectible_lines: injectable_lines,
+          targetable_lines: targetable_lines,
           language_specifics: {
             visibility: method_visibility(klass, method_name),
             method_type: method_type.to_s,
@@ -518,29 +518,29 @@ module Datadog
         end
       end
 
-      # Extract injectable lines and end_line from a method's bytecode.
+      # Extract targetable lines and end_line from a method's bytecode.
       # Returns [ranges, end_line] where ranges is an array of {start:, end:} hashes
       # or nil if iseq is unavailable (C-extension methods).
       # @param method [Method, UnboundMethod] The method
       # @param start_line [Integer] Fallback end_line if iseq unavailable
       # @return [Array(Array<Hash>, Integer), Array(nil, Integer)]
-      def extract_injectable_lines(method, start_line)
+      def extract_targetable_lines(method, start_line)
         iseq = RubyVM::InstructionSequence.of(method) # steep:ignore
         unless iseq
-          @logger.debug { "symdb: no iseq for #{method.name} (C extension or native), skipping injectable lines" }
+          @logger.debug { "symdb: no iseq for #{method.name} (C extension or native), skipping targetable lines" }
           return [nil, start_line]
         end
 
         lines = iseq.trace_points
-          .select { |_, event| INJECTABLE_LINE_EVENTS.include?(event) }
+          .select { |_, event| TARGETABLE_LINE_EVENTS.include?(event) }
           .map(&:first)
           .uniq
           .sort
 
         end_line = lines.max || start_line
-        ranges = build_injectable_ranges(lines)
+        ranges = build_targetable_ranges(lines)
         result = ranges.empty? ? nil : ranges
-        @logger.debug { "symdb: #{method.name} injectable lines: #{result ? "#{ranges.size} range(s), lines #{lines.first}..#{lines.last}" : 'none (no matching events)'}" }
+        @logger.debug { "symdb: #{method.name} targetable lines: #{result ? "#{ranges.size} range(s), lines #{lines.first}..#{lines.last}" : 'none (no matching events)'}" }
         [result, end_line]
       end
 
@@ -548,7 +548,7 @@ module Datadog
       # [4, 5, 6, 8, 10, 11] => [{start: 4, end: 6}, {start: 8, end: 8}, {start: 10, end: 11}]
       # @param lines [Array<Integer>] Sorted, deduplicated line numbers
       # @return [Array<Hash>] Array of {start:, end:} range hashes
-      def build_injectable_ranges(lines)
+      def build_targetable_ranges(lines)
         return [] if lines.empty?
 
         ranges = []
@@ -823,7 +823,7 @@ module Datadog
 
         source_file, line = location
 
-        injectable_lines, end_line = extract_injectable_lines(method, line)
+        targetable_lines, end_line = extract_targetable_lines(method, line)
 
         Scope.new(
           scope_type: 'METHOD',
@@ -831,7 +831,7 @@ module Datadog
           source_file: source_file,
           start_line: line,
           end_line: end_line,
-          injectible_lines: injectable_lines,
+          targetable_lines: targetable_lines,
           language_specifics: {
             visibility: klass ? method_visibility(klass, method_name) : 'public', # steep:ignore
             method_type: 'instance',
