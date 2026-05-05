@@ -62,15 +62,8 @@ RSpec.describe Datadog::SymbolDatabase::Transport::HTTP do
       expect(transport.client).to be_a(Datadog::SymbolDatabase::Transport::Symbols::Client)
     end
 
-    context 'request dispatch' do
+    context 'request dispatch', webmock: true do
       let(:agent_url) { 'http://127.0.0.1:8126/symdb/v1/input' }
-
-      # WebMock is enabled by the outer `before` block, but spec_helper.rb
-      # leaves it disabled by default and other specs in spec:main (notably
-      # tracing/integration_spec.rb) call WebMock.disable! in `after` blocks
-      # without restoring prior state. Disable WebMock after these dispatch
-      # tests to avoid leaking the enabled state into later specs.
-      after { WebMock.disable! }
 
       context 'on a 200 response' do
         before do
