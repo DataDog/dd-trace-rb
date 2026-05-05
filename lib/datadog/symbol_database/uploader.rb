@@ -3,6 +3,7 @@
 require 'json'
 require 'zlib'
 require 'stringio'
+require_relative '../core/environment/identity'
 require_relative '../core/vendor/multipart-post/multipart/post/composite_read_io'
 require_relative 'service_version'
 require_relative 'transport/http'
