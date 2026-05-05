@@ -2,6 +2,7 @@
 
 require_relative "../../../core/utils/only_once"
 require_relative "../rack/request_middleware"
+require_relative "../../../tracing/contrib"
 require_relative "../../../tracing/contrib/rack/middlewares"
 
 module Datadog
