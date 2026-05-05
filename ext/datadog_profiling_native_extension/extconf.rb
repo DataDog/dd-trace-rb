@@ -69,10 +69,15 @@ $stderr.puts(
 # NOTE: we MUST NOT require 'mkmf' before we check the #skip_building_extension? because the require triggers checks
 # that may fail on an environment not properly setup for building Ruby extensions.
 require "mkmf"
+Datadog::LibdatadogExtconfHelpers.dump_mkmf_log_on_failure!
 
 Logging.message("[datadog] Using compiler:\n")
 xsystem("#{CONFIG["CC"]} -v")
 Logging.message("[datadog] End of compiler information\n")
+
+# We must *never* `append_cflags "-Wall"` or `append_cflags "-Wextra"`, because those add the flag at the end,
+# which then overrides earlier -Wno-* flags from RbConfig::CONFIG["warnflags"], and causes errors if -Werror is added.
+# There is no need to add them anyway, Ruby since 1.9 has RbConfig::CONFIG["warnflags"] starting with "-Wall -Wextra ".
 
 # Because we can't control what compiler versions our customers use, shipping with -Werror by default is a no-go.
 # But we can enable it in CI, so that we quickly spot any new warnings that just got introduced.
@@ -105,10 +110,6 @@ append_cflags "-fvisibility=hidden"
 
 # Avoid legacy C definitions
 append_cflags "-Wold-style-definition"
-
-# Enable all other compiler warnings
-append_cflags "-Wall"
-append_cflags "-Wextra"
 
 if ENV["DDTRACE_DEBUG"] == "true"
   $defs << "-DDD_DEBUG"

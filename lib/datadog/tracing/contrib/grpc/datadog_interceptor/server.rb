@@ -54,7 +54,7 @@ module Datadog
               Tracing.continue_trace!(GRPC.extract(metadata))
             rescue => e
               Datadog.logger.debug(
-                "unable to propagate GRPC metadata to context: #{e.class}: #{e}"
+                "unable to propagate GRPC metadata to context: #{e.class}: #{e.message}"
               )
             end
 
@@ -86,7 +86,7 @@ module Datadog
               # Measure service stats
               Contrib::Analytics.set_measured(span)
             rescue => e
-              Datadog.logger.debug("GRPC server trace failed: #{e.class}: #{e}")
+              Datadog.logger.debug("GRPC server trace failed: #{e.class}: #{e.message}")
             end
           end
         end

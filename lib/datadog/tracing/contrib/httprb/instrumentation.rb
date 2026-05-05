@@ -41,7 +41,7 @@ module Datadog
                   # Add additional request specific tags to the span.
                   annotate_span_with_request!(span, req, request_options)
                 rescue => e
-                  logger.error("error preparing span for http.rb request: #{e.class}: #{e}, Source: #{e.backtrace}")
+                  logger.error("error preparing span for http.rb request: #{e.class}: #{e.message}, Source: #{e.backtrace}")
                   Datadog::Core::Telemetry::Logger.report(e)
                 ensure
                   res = super(req, options)
@@ -117,7 +117,7 @@ module Datadog
                 Datadog.configuration.tracing.header_tags.response_tags(response.headers)
               )
             rescue => e
-              logger.error("error preparing span from http.rb response: #{e.class}: #{e}, Source: #{e.backtrace}")
+              logger.error("error preparing span from http.rb response: #{e.class}: #{e.message}, Source: #{e.backtrace}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 

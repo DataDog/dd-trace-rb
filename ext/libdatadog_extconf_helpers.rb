@@ -170,6 +170,43 @@ module Datadog
     end
     # rubocop:enable Style/GlobalVars
 
+    # When setting up the extension build fails (e.g. a missing header), the actual failure ends up in mkmf.log
+    # and is not printed, which is confusing and complicates debugging. To fix that, this monkey patch actually
+    # prints the failure.
+    def self.dump_mkmf_log_on_failure!
+      # Doesn't work on 2.5/2.6 and not worth extra complexity to support
+      return if RUBY_VERSION < '2.7'
+
+      MakeMakefile.prepend(DumpMkmfLogOnFailure)
+    end
+
+    # rubocop:disable Style/GlobalVars,Style/StderrPuts
+    # See `dump_mkmf_log_on_failure!` for details.
+    module DumpMkmfLogOnFailure
+      def mkmf_failed(path)
+        unless $makefile_created || File.exist?('Makefile')
+          log_path = File.expand_path('mkmf.log')
+          if File.exist?(log_path)
+            # The full log is very verbose so let's grab only the last check which should be the one that failed
+            entries = File.read(log_path).split(/^-{20}$\n?/)
+            last_entry = entries.reverse.find { |e| !e.strip.empty? } || ''
+
+            $stderr.puts(
+              "+------------------------------------------------------------------------------+\n" \
+              "| There was an issue setting up extension build:                               |\n" \
+              "+------------------------------------------------------------------------------+" \
+              "#{last_entry.chomp}" \
+              "+------------------------------------------------------------------------------+\n" \
+              "| Full failure log is at #{log_path}\n" \
+              "+------------------------------------------------------------------------------+\n" \
+            )
+          end
+        end
+        super
+      end
+    end
+    # rubocop:enable Style/GlobalVars,Style/StderrPuts
+
     # Note: This helper is currently only used in the `libdatadog_api/extconf.rb` BUT still lives here to enable testing.
     def self.load_libdatadog_or_get_issue
       try_loading_libdatadog do |exception|

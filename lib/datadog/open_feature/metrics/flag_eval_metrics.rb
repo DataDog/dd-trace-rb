@@ -61,7 +61,7 @@ module Datadog
           )
           counter.add(1, attributes: attributes)
         rescue => e
-          @logger.debug { "OpenFeature: Failed to record evaluation metric: #{e.class}: #{e}" }
+          @logger.debug { "OpenFeature: Failed to record evaluation metric: #{e.class}: #{e.message}" }
           @telemetry.report(e, description: 'OpenFeature: Failed to record evaluation metric')
         end
 
@@ -84,7 +84,7 @@ module Datadog
             )
           end
         rescue => e
-          @logger.debug { "OpenFeature: Failed to create metrics counter: #{e.class}: #{e}" }
+          @logger.debug { "OpenFeature: Failed to create metrics counter: #{e.class}: #{e.message}" }
           nil
         end
 
@@ -102,7 +102,7 @@ module Datadog
           meter_provider = ::OpenTelemetry.meter_provider
           sdk_meter_provider?(meter_provider) ? meter_provider : nil
         rescue LoadError => e
-          @logger.debug { "OpenFeature: Failed to initialize OTel metrics: #{e.class}: #{e}" }
+          @logger.debug { "OpenFeature: Failed to initialize OTel metrics: #{e.class}: #{e.message}" }
           nil
         end
 

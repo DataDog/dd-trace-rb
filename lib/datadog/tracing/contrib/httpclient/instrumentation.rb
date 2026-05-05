@@ -42,7 +42,7 @@ module Datadog
                   annotate_span_with_request!(span, req, request_options)
                 rescue => e
                   Datadog.logger.error(
-                    "error preparing span for httpclient request: #{e.class}: #{e}, Source: #{e.backtrace}"
+                    "error preparing span for httpclient request: #{e.class}: #{e.message}, Source: #{e.backtrace}"
                   )
                   Datadog::Core::Telemetry::Logger.report(e)
                 ensure
@@ -110,7 +110,7 @@ module Datadog
               )
             rescue => e
               Datadog.logger.error(
-                "error preparing span from httpclient response: #{e.class}: #{e}, Source: #{e.backtrace}"
+                "error preparing span from httpclient response: #{e.class}: #{e.message}, Source: #{e.backtrace}"
               )
               Datadog::Core::Telemetry::Logger.report(e)
             end
