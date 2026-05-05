@@ -9,15 +9,11 @@ module Datadog
 
           def self?.parse_headers: (::Hash[::String, untyped] payload) -> ::Hash[::String, ::String]
 
-          def self?.parse_cookies: (::Hash[::String, ::String] headers) -> ::Hash[::String, ::String?]
-
-          def self?.parse_query: (::Hash[::String, untyped] payload) -> ::Hash[::String, untyped]
+          def self?.parse_cookies: (::Hash[::String, untyped] payload, ::Hash[::String, ::String] headers) -> ::Hash[::String, ::String?]?
 
           def self?.build_fullpath: (::Hash[::String, untyped] payload) -> ::String?
 
-          def self?.build_query_string: (::Hash[::String, untyped] payload) -> ::String
-
-          def self?.extract_method: (::Hash[::String, untyped] payload) -> ::String?
+          def self?.build_query_string: (::Hash[::String, untyped] payload) -> ::String?
 
           def self?.extract_client_ip: (::String? remote_ip, ::Hash[::String, ::String] headers) -> ::String?
 

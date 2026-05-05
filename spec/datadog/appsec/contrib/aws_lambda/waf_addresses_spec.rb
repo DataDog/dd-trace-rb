@@ -7,18 +7,17 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
   describe '.from_request' do
     subject(:result) { described_class.from_request(payload) }
 
-    context 'when payload is API Gateway v1 event' do
+    context 'when payload has all standard keys' do
       let(:payload) do
         {
-          'httpMethod' => 'POST',
+          'method' => 'POST',
           'path' => '/users/123',
           'headers' => {'Host' => 'example.com', 'User-Agent' => 'WebKit', 'Cookie' => 'session=abc'},
-          'queryStringParameters' => {'page' => '1'},
-          'multiValueQueryStringParameters' => {'page' => ['1']},
-          'pathParameters' => {'id' => '123'},
+          'query' => {'page' => ['1']},
+          'path_params' => {'id' => '123'},
           'body' => '{"name":"john"}',
-          'isBase64Encoded' => false,
-          'requestContext' => {'identity' => {'sourceIp' => '10.0.0.1'}},
+          'base64_encoded' => false,
+          'source_ip' => '10.0.0.1',
         }
       end
 
@@ -32,42 +31,58 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
       it { expect(result['http.client_ip']).to eq('10.0.0.1') }
     end
 
-    context 'when payload is API Gateway v2 event' do
+    context 'when payload has query_string instead of query' do
       let(:payload) do
         {
-          'rawPath' => '/users/123',
-          'rawQueryString' => 'page=1&sort=asc',
+          'path' => '/users/123',
+          'query_string' => 'page=1&sort=asc',
           'headers' => {'host' => 'example.com'},
-          'requestContext' => {'http' => {'method' => 'GET', 'sourceIp' => '10.0.0.2'}},
+          'source_ip' => '10.0.0.2',
+          'method' => 'GET',
         }
       end
 
       it { expect(result['server.request.method']).to eq('GET') }
       it { expect(result['server.request.uri.raw']).to eq('/users/123?page=1&sort=asc') }
       it { expect(result['http.client_ip']).to eq('10.0.0.2') }
+      it { expect(result).not_to have_key('server.request.query') }
     end
 
-    context 'when payload has no query string' do
+    context 'when query_string is empty and query hash is present' do
+      let(:payload) do
+        {
+          'path' => '/search',
+          'query_string' => '',
+          'query' => {'q' => ['ruby']},
+          'headers' => {},
+        }
+      end
+
+      it { expect(result['server.request.uri.raw']).to eq('/search?q=ruby') }
+      it { expect(result['server.request.query']).to eq('q' => ['ruby']) }
+    end
+
+    context 'when payload has no query data' do
       let(:payload) do
         {
           'path' => '/health',
           'headers' => {},
-          'requestContext' => {'identity' => {'sourceIp' => '127.0.0.1'}},
+          'source_ip' => '127.0.0.1',
         }
       end
 
       it { expect(result['server.request.uri.raw']).to eq('/health') }
-      it { expect(result['server.request.query']).to eq({}) }
+      it { expect(result).not_to have_key('server.request.query') }
     end
 
     context 'when payload has no path' do
-      let(:payload) { {'headers' => {}, 'requestContext' => {'identity' => {}}} }
+      let(:payload) { {'headers' => {}} }
 
       it { expect(result).not_to have_key('server.request.uri.raw') }
     end
 
     context 'when payload has no method' do
-      let(:payload) { {'headers' => {}, 'requestContext' => {'identity' => {}}} }
+      let(:payload) { {'headers' => {}} }
 
       it { expect(result).not_to have_key('server.request.method') }
     end
@@ -77,8 +92,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
         {
           'headers' => {'Content-Type' => 'application/json'},
           'body' => 'eyJrZXkiOiJ2YWx1ZSJ9',
-          'isBase64Encoded' => true,
-          'requestContext' => {'identity' => {}},
+          'base64_encoded' => true,
         }
       end
 
@@ -90,8 +104,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
         {
           'headers' => {'Content-Type' => 'application/json'},
           'body' => '{"key":"value"}',
-          'isBase64Encoded' => false,
-          'requestContext' => {'identity' => {}},
+          'base64_encoded' => false,
         }
       end
 
@@ -99,7 +112,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
     end
 
     context 'when payload has no body' do
-      let(:payload) { {'headers' => {}, 'requestContext' => {'identity' => {}}} }
+      let(:payload) { {'headers' => {}} }
 
       it { expect(result).not_to have_key('server.request.body') }
     end
@@ -109,7 +122,6 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
         {
           'headers' => {},
           'body' => 'some data',
-          'requestContext' => {'identity' => {}},
         }
       end
 
@@ -117,20 +129,47 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
     end
 
     context 'when payload has no path params' do
-      let(:payload) { {'headers' => {}, 'requestContext' => {'identity' => {}}} }
+      let(:payload) { {'headers' => {}} }
 
       it { expect(result).not_to have_key('server.request.path_params') }
     end
 
-    context 'when cookies have multiple pairs' do
+    context 'when cookies come from Cookie header' do
       let(:payload) do
         {
           'headers' => {'Cookie' => 'a=1; b=2; c=val=ue'},
-          'requestContext' => {'identity' => {}},
         }
       end
 
       it { expect(result['server.request.cookies']).to eq('a' => '1', 'b' => '2', 'c' => 'val=ue') }
+    end
+
+    context 'when cookies come from cookies array' do
+      let(:payload) do
+        {
+          'headers' => {},
+          'cookies' => ['session=abc', 'theme=dark'],
+        }
+      end
+
+      it { expect(result['server.request.cookies']).to eq('session' => 'abc', 'theme' => 'dark') }
+    end
+
+    context 'when cookies array takes precedence over Cookie header' do
+      let(:payload) do
+        {
+          'headers' => {'Cookie' => 'old=stale'},
+          'cookies' => ['new=fresh'],
+        }
+      end
+
+      it { expect(result['server.request.cookies']).to eq('new' => 'fresh') }
+    end
+
+    context 'when payload has no cookies' do
+      let(:payload) { {'headers' => {}} }
+
+      it { expect(result).not_to have_key('server.request.cookies') }
     end
 
     context 'when payload has explicit nil fields' do
@@ -138,32 +177,18 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
         {
           'path' => '/health',
           'headers' => nil,
-          'queryStringParameters' => nil,
-          'multiValueQueryStringParameters' => nil,
-          'pathParameters' => nil,
-          'requestContext' => {'identity' => {'sourceIp' => '127.0.0.1'}},
+          'query' => nil,
+          'path_params' => nil,
+          'source_ip' => '127.0.0.1',
         }
       end
 
       it { expect(result['server.request.headers']).to eq({}) }
       it { expect(result['server.request.headers.no_cookies']).to eq({}) }
-      it { expect(result['server.request.cookies']).to eq({}) }
-      it { expect(result['server.request.query']).to eq({}) }
+      it { expect(result).not_to have_key('server.request.cookies') }
+      it { expect(result).not_to have_key('server.request.query') }
       it { expect(result['server.request.uri.raw']).to eq('/health') }
       it { expect(result).not_to have_key('server.request.path_params') }
-    end
-
-    context 'when v1 has multiValueQueryStringParameters' do
-      let(:payload) do
-        {
-          'headers' => {},
-          'queryStringParameters' => {'a' => '2'},
-          'multiValueQueryStringParameters' => {'a' => ['1', '2']},
-          'requestContext' => {'identity' => {}},
-        }
-      end
-
-      it { expect(result['server.request.query']).to eq('a' => ['1', '2']) }
     end
   end
 

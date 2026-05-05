@@ -8,10 +8,10 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
 
   let(:event) do
     {
-      'httpMethod' => 'GET',
+      'method' => 'GET',
       'path' => '/test',
       'headers' => {'Host' => 'example.com', 'User-Agent' => 'TestBot'},
-      'requestContext' => {'identity' => {'sourceIp' => '10.0.0.1'}},
+      'source_ip' => '10.0.0.1',
     }
   end
 
