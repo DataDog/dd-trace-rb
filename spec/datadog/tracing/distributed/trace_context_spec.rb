@@ -600,6 +600,19 @@ RSpec.shared_examples 'Trace Context distributed format' do
         it { expect(digest.trace_state).to eq('v=1') }
       end
 
+      context 'with a trailing tracestate member truncated inside a multibyte character' do
+        let(:complete_member) { 'v=1' }
+        let(:partial_key) { 'w=' }
+        let(:partial_value) do
+          'a' * (512 - complete_member.bytesize - 1 - partial_key.bytesize - 1) + '🍀' # A 4-leaf clover, 4-byte character
+        end
+        let(:tracestate) { "#{complete_member},#{partial_key}#{partial_value}" }
+
+        it 'extracts complete members before the partial multibyte tail' do
+          expect(digest.trace_state).to eq(complete_member)
+        end
+      end
+
       context 'trailing whitespace' do
         let(:traceparent) { '00-00000000000000000000000000c0ffee-0000000000000bee-00 ' }
 

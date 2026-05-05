@@ -414,7 +414,13 @@ module Datadog
             # We parse 1 byte over the limit to detect if the last member
             # is a partial member (toss) or ends exactly at the limit (keep).
             remove_last_member = tracestate.byteslice(TRACESTATE_MAX_SIZE_LIMIT, 1) != ','
-            tracestate = tracestate.byteslice(0, TRACESTATE_MAX_SIZE_LIMIT)
+
+            # To ensure we don't have a trailing partial UTF-8 codepoint, we keep one extra byte
+            # and safely remove it with `#chop`.
+            # `#chop` walks back the string until it finds a valid character boundary and deletes
+            # from there.
+            tracestate = tracestate.byteslice(0, TRACESTATE_MAX_SIZE_LIMIT + 1) #: String
+            tracestate = tracestate.chop
           end
 
           vendors = tracestate.split(',', TRACESTATE_MAX_LIST_MEMBERS + 1)
