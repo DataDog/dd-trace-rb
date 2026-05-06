@@ -549,7 +549,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
 
           expect(auth_span).to have_error
           expect(auth_span).to have_error_type('Mongo::Monitoring::Event::CommandFailed')
-          expect(auth_span).to have_error_message(/Unsupported mechanism PLAIN/)
+          expect(auth_span).to have_error_message(/Unsupported mechanism 'PLAIN'/)
         end
       end
     end
