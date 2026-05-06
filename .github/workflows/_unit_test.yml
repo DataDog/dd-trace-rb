@@ -232,7 +232,7 @@ jobs:
       memcached:
         image: ghcr.io/datadog/images-rb/services/memcached:1.6-alpine
       mongodb:
-        image: ghcr.io/datadog/images-rb/services/mongo:3.6
+        image: ghcr.io/datadog/images-rb/services/mongo:4.2
       opensearch:
         image: ghcr.io/datadog/images-rb/services/opensearchproject/opensearch:2.8.0
         env:
