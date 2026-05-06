@@ -133,12 +133,47 @@ module Datadog
         # - Keys and values are URL-encoded
         # - Returns an empty hash if the baggage header is malformed
         #
+        # For entries with duplicate keys, only last one is preserved:
+        # https://www.w3.org/TR/2024/CR-baggage-20240530/#mutating-baggage
+        #
         # @param baggage_header [String] The W3C Baggage header string to parse
         # @return [Hash<String, String>] A hash of decoded baggage items
         def parse_baggage_header(baggage_header)
+          if baggage_header.bytesize > DD_TRACE_BAGGAGE_MAX_BYTES
+            record_telemetry_metric('context_header.truncated', 1, {'header_style' => 'baggage', 'truncation_reason' => 'baggage_byte_count_exceeded'})
+
+            # We MUST NOT propagate partial entries, but we SHOULD try
+            # to parse as much of the baggage as possible:
+            # https://www.w3.org/TR/2024/CR-baggage-20240530/#limits
+
+            # We parse 1 byte over the limit to detect if the last entry
+            # is a partial entry (toss) or ends exactly at the limit (keep).
+            remove_last_entry = baggage_header.byteslice(DD_TRACE_BAGGAGE_MAX_BYTES, 1) != ','
+
+            # To ensure we don't have a trailing partial UTF-8 codepoint, we keep one extra byte
+            # and safely remove it with `#chop`.
+            # `#chops` walks back the string until it finds a valid character boundary and deletes
+            # from there.
+            baggage_header = baggage_header.byteslice(0, DD_TRACE_BAGGAGE_MAX_BYTES + 1) #: String
+            baggage_header = baggage_header.chop
+          end
+
           baggage = {}
-          baggages = baggage_header.split(',')
-          baggages.each do |key_value|
+          # DEV: To avoid unnecessary eager string allocation, replace with
+          # DEV: `split(',') { |s| ... }` when Ruby 2.5 is no longer supported.
+          baggages = baggage_header.split(',', DD_TRACE_BAGGAGE_MAX_ITEMS + 1) # Stop splitting if we've reached max size
+          baggages.each_with_index do |key_value, index|
+            if index >= DD_TRACE_BAGGAGE_MAX_ITEMS
+              record_telemetry_metric('context_header.truncated', 1, {'header_style' => 'baggage', 'truncation_reason' => 'baggage_item_count_exceeded'})
+              break
+            end
+
+            # On truncation, remove incomplete trailing partial entry
+            next if remove_last_entry && index == baggages.size - 1
+
+            # Empty items are skipped
+            next if key_value.strip.empty?
+
             key, value = key_value.split('=', 2)
             # If baggage is malformed, return an empty hash
             if key.nil? || value.nil?
@@ -157,6 +192,7 @@ module Datadog
 
             baggage[key] = value
           end
+
           baggage
         end
 
