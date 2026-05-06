@@ -24,10 +24,21 @@ module Datadog
           def call(env)
             @app.call(env)
           ensure
-            tag_client_ip(env) if ai_guard_span_recorded?
+            tag_client_ip(env) if client_ip_tags_missing? && ai_guard_span_recorded?
           end
 
           private
+
+          # Cheap pre-check: skip the finished-span scan entirely when both
+          # tags are already on the request span (e.g. set by the tracing
+          # client_ip middleware or by AppSec).
+          def client_ip_tags_missing?
+            span = Datadog::Tracing.active_span
+            return false unless span
+
+            span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP).nil? ||
+              span.get_tag(NETWORK_CLIENT_IP_TAG).nil?
+          end
 
           def ai_guard_span_recorded?
             trace = Datadog::Tracing.active_trace

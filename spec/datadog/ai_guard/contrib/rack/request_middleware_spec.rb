@@ -138,6 +138,30 @@ RSpec.describe Datadog::AIGuard::Contrib::Rack::RequestMiddleware do
     end
   end
 
+  context "when both client IP tags are already set" do
+    let(:app) do
+      lambda do |_env|
+        Datadog::Tracing.trace(Datadog::AIGuard::Ext::SPAN_NAME) { |_s| nil }
+        [200, {}, ["ok"]]
+      end
+    end
+
+    it "skips the span scan as a fast path" do
+      Datadog::Tracing.trace("rack.request") do |span|
+        span.set_tag("http.client_ip", "10.0.0.1")
+        span.set_tag("network.client.ip", "10.0.0.2")
+
+        active_trace = Datadog::Tracing.active_trace
+        expect(active_trace).not_to receive(:instance_variable_get).with(:@spans)
+
+        middleware.call(env)
+
+        expect(span.get_tag("http.client_ip")).to eq("10.0.0.1")
+        expect(span.get_tag("network.client.ip")).to eq("10.0.0.2")
+      end
+    end
+  end
+
   context "when there is no active trace" do
     let(:app) do
       lambda do |_env|
