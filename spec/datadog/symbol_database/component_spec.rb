@@ -292,6 +292,35 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       component.shutdown!  # before debounce fires
       sleep 0.2
     end
+
+    it 'waits for an in-flight extraction to complete' do
+      events = Queue.new
+      extract_started = Queue.new
+      release_extract = Queue.new
+
+      allow(component.instance_variable_get(:@extractor)).to receive(:extract_all) do
+        extract_started.push(:started)
+        release_extract.pop
+        events.push(:extract_returned)
+        []
+      end
+
+      component.start_upload
+      extract_started.pop  # extraction is in flight; @upload_in_progress is true
+
+      shutdown_thread = Thread.new do
+        component.shutdown!
+        events.push(:shutdown_returned)
+      end
+
+      release_extract.push(:go)
+      shutdown_thread.join(10)
+
+      # shutdown! must not return until the in-flight extraction completes
+      expect(events.pop).to eq(:extract_returned)
+      expect(events.pop).to eq(:shutdown_returned)
+      expect(component.upload_in_progress).to be false
+    end
   end
 
   describe 'reconfiguration scenario (regression test for two-uploads-per-extract-run)' do
