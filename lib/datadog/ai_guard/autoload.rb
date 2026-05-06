@@ -5,6 +5,6 @@ if %w[1 true].include?((Datadog::DATADOG_ENV["DD_AI_GUARD_ENABLED"] || "").downc
     require_relative "contrib/auto_instrument"
     Datadog::AIGuard::Contrib::AutoInstrument.patch_all
   rescue => e
-    Kernel.warn("[datadog] AI Guard failed to auto-instrument. error: #{e.class}: #{e}")
+    Kernel.warn("[datadog] AI Guard failed to auto-instrument. error: #{e.class}: #{e.message}")
   end
 end
