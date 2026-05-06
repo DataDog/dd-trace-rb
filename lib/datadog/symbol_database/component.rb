@@ -190,7 +190,7 @@ module Datadog
           ensure_scheduler_thread
         end
       rescue => e
-        @logger.debug { "symdb: error scheduling upload: #{e.class}: #{e}" }
+        @logger.debug { "symdb: error scheduling upload: #{e.class}: #{e.message}" }
       end
 
       # Stop symbol upload (cancel the scheduler).
@@ -326,7 +326,7 @@ module Datadog
           return
         end
       rescue => e
-        @logger.debug { "symdb: scheduler error: #{e.class}: #{e}" }
+        @logger.debug { "symdb: scheduler error: #{e.class}: #{e.message}" }
       end
 
       # Extract symbols from all loaded modules and upload.
@@ -357,7 +357,7 @@ module Datadog
 
           @last_upload_time = Datadog::Core::Utils::Time.now
         rescue => e
-          @logger.debug { "symdb: extraction error: #{e.class}: #{e}" }
+          @logger.debug { "symdb: extraction error: #{e.class}: #{e.message}" }
         ensure
           @mutex.synchronize do
             @upload_in_progress = false

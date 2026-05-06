@@ -126,7 +126,7 @@ module Datadog
 
         wrap_in_file_scope(source_file, [inner_scope])
       rescue => e
-        @logger.debug { "symdb: failed to extract #{mod_name || '<unknown>'}: #{e.class}: #{e}" }
+        @logger.debug { "symdb: failed to extract #{mod_name || '<unknown>'}: #{e.class}: #{e.message}" }
         nil
       end
 
@@ -147,7 +147,7 @@ module Datadog
         file_trees = build_file_trees(entries)
         convert_trees_to_scopes(file_trees)
       rescue => e
-        @logger.debug { "symdb: error in extract_all: #{e.class}: #{e}" }
+        @logger.debug { "symdb: error in extract_all: #{e.class}: #{e.message}" }
         []
       end
 
