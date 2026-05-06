@@ -136,6 +136,15 @@ module Datadog
         # @param baggage_header [String] The W3C Baggage header string to parse
         # @return [Hash<String, String>] A hash of decoded baggage items
         def parse_baggage_header(baggage_header)
+          # Reject inputs that would cause String operations below to raise.
+          # `valid_encoding?` is true for ASCII-8BIT regardless of byte values, so
+          # the typical Rack path is unaffected; only UTF-8-tagged-but-actually-invalid
+          # input (e.g. headers re-encoded upstream) is short-circuited here.
+          unless baggage_header.valid_encoding?
+            record_telemetry_metric('context_header_style.malformed', 1, {'header_style' => 'baggage'})
+            return {}
+          end
+
           baggage = {}
           baggages = baggage_header.split(',')
           baggages.each do |key_value|
@@ -147,8 +156,17 @@ module Datadog
               return {}
             end
 
-            key = URI.decode_www_form_component(key.strip)
-            value = URI.decode_www_form_component(value.strip)
+            begin
+              key = URI.decode_www_form_component(key.strip)
+              value = URI.decode_www_form_component(value.strip)
+            rescue ArgumentError
+              # `URI.decode_www_form_component` raises on malformed percent encoding
+              # (e.g. `%XX`, lone `%`). Treat as malformed rather than letting it
+              # propagate to `Propagation#extract`'s caller.
+              record_telemetry_metric('context_header_style.malformed', 1, {'header_style' => 'baggage'})
+              return {}
+            end
+
             if key.empty? || value.empty?
               # Record telemetry for malformed header
               record_telemetry_metric('context_header_style.malformed', 1, {'header_style' => 'baggage'})
