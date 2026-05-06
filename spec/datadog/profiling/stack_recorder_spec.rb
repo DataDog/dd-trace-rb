@@ -621,7 +621,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it "contribute to recorded samples stats" do
-          skip_if_asan_could_keep_dangling_allocations_alive
+          skip_asan_flaky
 
           test_num_allocated_object = 123
           live_objects = Array.new(test_num_allocated_object)
