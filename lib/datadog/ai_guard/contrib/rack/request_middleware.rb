@@ -73,7 +73,7 @@ module Datadog
             if env["REMOTE_ADDR"] && span.get_tag(NETWORK_CLIENT_IP_TAG).nil?
               span.set_tag(NETWORK_CLIENT_IP_TAG, env["REMOTE_ADDR"])
             end
-          rescue StandardError => e # standard:disable Style/RescueStandardError
+          rescue => e
             Datadog::AIGuard.telemetry&.report(e, description: "AI Guard: failed to tag client IP on root span")
           end
         end
