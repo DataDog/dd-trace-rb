@@ -4,10 +4,17 @@ stages:
   - shared-pipeline
   - macrobenchmarks
   - microbenchmarks
+  # These benchmarks should ultimately replace the old macrobenchmarks setup
+  # For now they will run in parallel with the macrobenchmarks setup
+  - ruby-acme-parallel
+  - ruby-acme-parallel-slo
 
 include:
   - local: ".gitlab/one-pipeline.locked.yml"
   - local: ".gitlab/benchmarks.yml"
+  - project: 'DataDog/apm-reliability/apm-sdks-benchmarks'
+    file: '.gitlab/ci-ruby-acme-parallel.yml'
+    ref: 'main'
 
 variables:
   RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby
@@ -29,10 +36,10 @@ workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push"
       changes:
-        - .gitlab/Dockerfile-*   # these are direct dependencies
-        - .gitlab-ci.yml         # list of images is here so it is a dependency too
+        - .gitlab/Dockerfile-* # these are direct dependencies
+        - .gitlab-ci.yml # list of images is here so it is a dependency too
       allow_failure: true
-  image: $DOCKER_REGISTRY/docker:20.10.13
+  image: $DOCKER_REGISTRY/docker:29.4.0-noble
   id_tokens:
     DDSIGN_ID_TOKEN:
       aud: image-integrity
@@ -63,15 +70,15 @@ build-image-arm64:
 
 promote-image:
   stage: manual-images
-  rules:                         # same as build-image
+  rules: # same as build-image
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push"
       changes:
-        - .gitlab/Dockerfile-*   # these are direct dependencies
-        - .gitlab-ci.yml         # list of images is here so it is a dependency too
-      when: manual               # this one is manual, but it means that install-dependencies may be hitting the wrong <base>:current til this is run
+        - .gitlab/Dockerfile-* # these are direct dependencies
+        - .gitlab-ci.yml # list of images is here so it is a dependency too
+      when: manual # this one is manual, but it means that install-dependencies may be hitting the wrong <base>:current til this is run
       allow_failure: true
   tags: ["docker-in-docker:amd64"]
-  image: $DOCKER_REGISTRY/docker:20.10.13
+  image: $DOCKER_REGISTRY/docker:29.4.0-noble
   parallel:
     matrix:
       # ADD NEW RUBIES HERE
@@ -147,7 +154,7 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: b38df18ddc8aa6af24e3838cfd91e4232404471b # Automated: This reference is automatically updated.
+    SYSTEM_TESTS_REF: 719baee0abcf58298b0adad609fcd07fd1e99bce # Automated: This reference is automatically updated.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,simple_onboarding_appsec,lib-injection,docker_ssi"
     SYSTEM_TEST_BUILD_ATTEMPTS: 3
 

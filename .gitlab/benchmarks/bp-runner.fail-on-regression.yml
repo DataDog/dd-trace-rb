@@ -1,0 +1,6 @@
+experiments:
+  - name: Check for big regressions
+    steps:
+      - name: Fail on regression
+        run: fail_on_regression
+        regression_threshold: 20.0

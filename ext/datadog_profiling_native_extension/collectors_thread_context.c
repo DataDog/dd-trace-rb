@@ -1924,10 +1924,14 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     intptr_t gvl_waiting_at = gvl_profiling_state_get(thread);
 
     // Thread was not being profiled / not waiting on gvl
-    if (gvl_waiting_at == 0 || gvl_waiting_at == GVL_WAITING_ENABLED_EMPTY) return ON_GVL_RUNNING_UNKNOWN;
+    if (gvl_waiting_at == 0 || gvl_waiting_at == GVL_WAITING_ENABLED_EMPTY) {
+      return (on_gvl_running_result) {.action = ON_GVL_RUNNING_UNKNOWN, .waiting_for_gvl_duration_ns = 0};
+    }
 
     // @ivoanjo: I'm not sure if this can happen -- It means we should've sampled already but haven't gotten the chance yet?
-    if (gvl_waiting_at < 0) return ON_GVL_RUNNING_SAMPLE;
+    if (gvl_waiting_at < 0) {
+      return (on_gvl_running_result) {.action = ON_GVL_RUNNING_SAMPLE, .waiting_for_gvl_duration_ns = 0};
+    }
 
     long waiting_for_gvl_duration_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - gvl_waiting_at;
 
@@ -1943,7 +1947,10 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
       gvl_profiling_state_set(thread, GVL_WAITING_ENABLED_EMPTY);
     }
 
-    return should_sample ? ON_GVL_RUNNING_SAMPLE : ON_GVL_RUNNING_DONT_SAMPLE;
+    return (on_gvl_running_result) {
+      .action = should_sample ? ON_GVL_RUNNING_SAMPLE : ON_GVL_RUNNING_DONT_SAMPLE,
+      .waiting_for_gvl_duration_ns = waiting_for_gvl_duration_ns,
+    };
   }
 
   __attribute__((warn_unused_result))
@@ -2146,7 +2153,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 
     debug_enter_unsafe_context();
 
-    VALUE result = thread_context_collector_on_gvl_running(thread_from_thread_object(thread)) == ON_GVL_RUNNING_SAMPLE ? Qtrue : Qfalse;
+    VALUE result = thread_context_collector_on_gvl_running(thread_from_thread_object(thread)).action == ON_GVL_RUNNING_SAMPLE ? Qtrue : Qfalse;
 
     debug_leave_unsafe_context();
 

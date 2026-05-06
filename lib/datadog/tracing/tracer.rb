@@ -153,7 +153,7 @@ module Datadog
             active_trace
           end
         rescue => e
-          logger.debug { "Failed to trace: #{e}" }
+          logger.debug { "Failed to trace: #{e.class}: #{e.message}" }
 
           # Tracing failed: fallback and run code without tracing.
           return skip_trace(name, &block)
@@ -303,7 +303,20 @@ module Datadog
         @sampler.sample!(trace_op) if trace_op.sampling_priority.nil?
       rescue => e
         SAMPLE_TRACE_LOG_ONLY_ONCE.run do
-          logger.warn { "Failed to sample trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+          logger.warn { "Failed to sample trace: #{e.class}: #{e.message} at #{Array(e.backtrace).first}" }
+        end
+      end
+
+      def reconsider_trace_sampling_on_resource(trace_op)
+        return unless trace_op.reconsider_resource_sample?
+        return unless @sampler.respond_to?(:reconsider_sample_resource!)
+
+        @sampler.reconsider_sample_resource!(trace_op)
+      rescue => e
+        RECONSIDER_RESOURCE_SAMPLE_TRACE_LOG_ONLY_ONCE.run do
+          logger.warn do
+            "Failed to reconsider trace sampling: #{e.class}: #{e.message} at #{Array(e.backtrace).first}"
+          end
         end
       end
 
@@ -414,6 +427,15 @@ module Datadog
           sample_trace(trace_op) if event_trace_op.sampling_priority.nil?
           sample_span(event_trace_op, event_span)
           flush_trace(event_trace_op)
+        end
+
+        # Conditionally subscribe to the less common sampling rules below, to avoid
+        # measurable unnecessary performance overhead when they are not present.
+
+        if @sampler.respond_to?(:resource_sampling?) && @sampler.resource_sampling?
+          events.trace_resource_change.subscribe do |event_trace_op|
+            reconsider_trace_sampling_on_resource(event_trace_op)
+          end
         end
       end
 
@@ -534,11 +556,14 @@ module Datadog
       SAMPLE_TRACE_LOG_ONLY_ONCE = Core::Utils::OnlyOnce.new
       private_constant :SAMPLE_TRACE_LOG_ONLY_ONCE
 
+      RECONSIDER_RESOURCE_SAMPLE_TRACE_LOG_ONLY_ONCE = Core::Utils::OnlyOnce.new
+      private_constant :RECONSIDER_RESOURCE_SAMPLE_TRACE_LOG_ONLY_ONCE
+
       def sample_span(trace_op, span)
         @span_sampler.sample!(trace_op, span)
       rescue => e
         SAMPLE_SPAN_LOG_ONLY_ONCE.run do
-          logger.warn { "Failed to sample span: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+          logger.warn { "Failed to sample span: #{e.class}: #{e.message} at #{Array(e.backtrace).first}" }
         end
       end
 
@@ -551,7 +576,7 @@ module Datadog
         write(trace) if trace && !trace.empty?
       rescue => e
         FLUSH_TRACE_LOG_ONLY_ONCE.run do
-          logger.warn { "Failed to flush trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+          logger.warn { "Failed to flush trace: #{e.class}: #{e.message} at #{Array(e.backtrace).first}" }
         end
       end
 

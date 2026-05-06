@@ -8,6 +8,7 @@ jobs:
   add_milestone:
     permissions:
       contents: read
+      id-token: write
       issues: write
       pull-requests: write
     runs-on: ubuntu-22.04
@@ -27,11 +28,18 @@ jobs:
           VERSION=$(ruby -e "puts Gem::Specification.load(Dir.glob('*.gemspec').first).version.to_s.split('.').first")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
+      - name: Get GitHub Token via dd-octo-sts
+        id: generate-token
+        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
+        with:
+          scope: DataDog/dd-trace-rb
+          policy: self.add-milestone-to-pull-requests
+
       - name: Get project milestones
         id: milestones
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
+          github-token: ${{ steps.generate-token.outputs.token }}
           script: |
             const milestones = await github.rest.issues.listMilestones({
               owner: context.repo.owner,
@@ -42,9 +50,9 @@ jobs:
 
       - name: Update Pull Request
         # Update the merged pull request with the milestone starts with the major version
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
+          github-token: ${{ steps.generate-token.outputs.token }}
           script: |
             const milestones = ${{steps.milestones.outputs.result}}
             const majorVersion = ${{steps.version.outputs.version}}

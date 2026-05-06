@@ -63,6 +63,17 @@ RSpec.describe Datadog::AIGuard::Evaluation do
       expect(trace.send(:sampling_decision_maker)).to eq('-13')
     end
 
+    it "sets ai_guard.event tag on the trace with AI Guard evaluations" do
+      Datadog::Tracing.trace("root") do
+        described_class.perform([
+          Datadog::AIGuard.message(role: :user, content: "Some content")
+        ])
+      end
+
+      trace = traces.first
+      expect(trace.send(:meta).fetch("ai_guard.event")).to eq("true")
+    end
+
     it "sets target tag to 'prompt' when last message is a prompt" do
       described_class.perform([
         Datadog::AIGuard.message(role: :system, content: "Some content"),
@@ -153,6 +164,21 @@ RSpec.describe Datadog::AIGuard::Evaluation do
         expect(ai_guard_span.get_metastruct_tag("ai_guard").fetch(:messages)).to eq(
           [{content: "Do something", role: :user}]
         )
+      end
+
+      it "truncates metastruct messages to max_messages_length" do
+        allow(Datadog.configuration.ai_guard).to receive(:max_messages_length).and_return(2)
+
+        described_class.perform([
+          Datadog::AIGuard.message(role: :system, content: "System prompt"),
+          Datadog::AIGuard.message(role: :user, content: "User message"),
+          Datadog::AIGuard.message(role: :assistant, content: "Assistant reply"),
+        ])
+
+        expect(ai_guard_span.get_metastruct_tag("ai_guard").fetch(:messages)).to eq([
+          {content: "System prompt", role: :system},
+          {content: "User message", role: :user},
+        ])
       end
 
       it "truncates metastruct messages content" do

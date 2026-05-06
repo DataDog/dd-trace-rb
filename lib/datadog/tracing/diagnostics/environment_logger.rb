@@ -24,7 +24,9 @@ module Datadog
             end
           end
         rescue => e
-          logger.warn("Failed to collect tracing environment information: #{e} Location: #{Array(e.backtrace).first}")
+          logger.warn(
+            "Failed to collect tracing environment information: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
+          )
         end
       end
 

@@ -1,0 +1,4 @@
+module Warden
+  class Manager
+  end
+end

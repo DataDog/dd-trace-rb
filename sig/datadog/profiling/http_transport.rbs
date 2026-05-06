@@ -1,25 +1,9 @@
 module Datadog
   module Profiling
+    # Type alias and native (C-only) method declarations for this class.
+    # Instance-level types live inline in the `.rb` file.
     class HttpTransport
       type exporter_configuration_array = [:agentless, Integer, bool, String, String] | [:agent, Integer, bool, String]
-
-      attr_reader exporter_configuration: exporter_configuration_array
-
-      @exporter_configuration: exporter_configuration_array
-
-      def initialize: (
-        agent_settings: Datadog::Core::Configuration::AgentSettings,
-        site: ::String?,
-        api_key: ::String?,
-        upload_timeout_seconds: ::Integer,
-        use_system_dns: bool,
-      ) -> void
-
-      def export: (Datadog::Profiling::Flush flush) -> bool
-
-      private
-
-      def agentless?: (::String? site, ::String? api_key) -> bool?
 
       def self._native_validate_exporter: (exporter_configuration_array exporter_configuration) -> [:ok | :error, ::String?]
 
@@ -27,8 +11,6 @@ module Datadog
         exporter_configuration_array exporter_configuration,
         Datadog::Profiling::Flush flush,
       ) -> [:ok | :error, ::Integer | ::String]
-
-      def config_without_api_key: () -> ::String
     end
   end
 end

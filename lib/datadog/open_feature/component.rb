@@ -6,12 +6,13 @@ require_relative 'exposures/buffer'
 require_relative 'exposures/worker'
 require_relative 'exposures/deduplicator'
 require_relative 'exposures/reporter'
+require_relative 'metrics/flag_eval_metrics'
 
 module Datadog
   module OpenFeature
     # This class is the entry point for the OpenFeature component
     class Component
-      attr_reader :engine
+      attr_reader :engine, :flag_eval_hook
 
       def self.build(settings, agent_settings, logger:, telemetry:)
         return unless settings.respond_to?(:open_feature) && settings.open_feature.enabled
@@ -50,10 +51,26 @@ module Datadog
 
         reporter = Exposures::Reporter.new(@worker, telemetry: telemetry, logger: logger)
         @engine = EvaluationEngine.new(reporter, telemetry: telemetry, logger: logger)
+
+        @telemetry = telemetry
+        @logger = logger
+        @flag_eval_hook = create_flag_eval_hook
       end
 
       def shutdown!
         @worker.graceful_shutdown
+      end
+
+      private
+
+      def create_flag_eval_hook
+        require_relative 'hooks/flag_eval_hook'
+        return unless Hooks::FlagEvalHook.available?
+
+        metrics = Metrics::FlagEvalMetrics.new(telemetry: @telemetry, logger: @logger)
+        Hooks::FlagEvalHook.new(metrics)
+      rescue LoadError
+        nil
       end
     end
   end

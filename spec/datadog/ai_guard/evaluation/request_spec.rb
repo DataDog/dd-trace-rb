@@ -116,7 +116,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
       ])
     end
 
-    it "limits the maximum amount of messages" do
+    it "serializes all messages without truncation" do
       allow(Datadog.configuration.ai_guard).to receive(:max_messages_length).and_return(2)
 
       request = described_class.new([
@@ -127,7 +127,8 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
 
       expect(request.serialized_messages).to eq([
         {role: :user, content: "Message 1"},
-        {role: :user, content: "Message 2"}
+        {role: :user, content: "Message 2"},
+        {role: :user, content: "Message 3"}
       ])
     end
   end
