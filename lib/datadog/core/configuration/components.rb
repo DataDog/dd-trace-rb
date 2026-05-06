@@ -133,7 +133,7 @@ module Datadog
           self.class::PATCH_ONLY_ONCE.run do
             Utils::AtForkMonkeyPatch.apply!
             Utils::SpawnMonkeyPatch.apply!(
-              lineage_envs_provider: Core::Environment::Identity.method(:runtime_propagation_envs),
+              env_provider: Core::Environment::Identity.method(:runtime_propagation_envs),
             )
 
             # Register callback that calls Components.after_fork
