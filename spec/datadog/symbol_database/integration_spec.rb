@@ -137,7 +137,7 @@ RSpec.describe 'Symbol Database Integration' do
       logger = instance_double(Logger, debug: nil)
 
       transport = instance_double(Datadog::SymbolDatabase::Transport::Symbols::Transport)
-      allow(Datadog::SymbolDatabase::Transport::HTTP).to receive(:build).and_return(transport)
+      allow(Datadog::SymbolDatabase::Transport::HTTP).to receive(:symbols).and_return(transport)
 
       uploader = Datadog::SymbolDatabase::Uploader.new(settings: config, agent_settings: agent_settings, logger: logger)
 

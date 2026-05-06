@@ -32,7 +32,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
   let(:captured_forms) { [] }
 
   before do
-    allow(Datadog::SymbolDatabase::Transport::HTTP).to receive(:build).and_return(mock_transport)
+    allow(Datadog::SymbolDatabase::Transport::HTTP).to receive(:symbols).and_return(mock_transport)
     allow(mock_transport).to receive(:send_symbols) do |form|
       captured_forms << form
       mock_response
