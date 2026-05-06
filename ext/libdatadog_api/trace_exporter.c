@@ -17,8 +17,15 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span);
 /* TracerSpan methods */
 static VALUE _native_from_span(VALUE klass, VALUE span);
 
+/* TraceExporter methods */
+static VALUE _native_exporter_new(VALUE klass, VALUE rb_url,
+  VALUE rb_tracer_version, VALUE rb_language, VALUE rb_language_version,
+  VALUE rb_language_interpreter, VALUE rb_hostname, VALUE rb_env,
+  VALUE rb_service, VALUE rb_version);
+
 /* GC / TypedData */
 static void tracer_span_dfree(void *ptr);
+static void trace_exporter_dfree(void *ptr);
 
 /* ========================================================================
  * Cached Ruby intern IDs
@@ -49,7 +56,8 @@ static ID id_rshift;
  * Ruby class references (marked as GC roots)
  * ======================================================================== */
 
-static VALUE tracer_span_class = Qnil;
+static VALUE tracer_span_class    = Qnil;
+static VALUE trace_exporter_class = Qnil;
 
 /* ========================================================================
  * TypedData definitions
@@ -68,6 +76,22 @@ static const rb_data_type_t tracer_span_typed_data = {
 static void tracer_span_dfree(void *ptr) {
   if (ptr != NULL) {
     ddog_tracer_span_free((ddog_TracerSpan *)ptr);
+  }
+}
+
+static const rb_data_type_t trace_exporter_typed_data = {
+  .wrap_struct_name = "Datadog::Tracing::Transport::Native::TraceExporter",
+  .function = {
+    .dmark = NULL,
+    .dfree = trace_exporter_dfree,
+    .dsize = NULL,
+  },
+  .flags = RUBY_TYPED_FREE_IMMEDIATELY
+};
+
+static void trace_exporter_dfree(void *ptr) {
+  if (ptr != NULL) {
+    ddog_trace_exporter_free((ddog_TraceExporter *)ptr);
   }
 }
 
@@ -283,6 +307,86 @@ static VALUE _native_from_span(DDTRACE_UNUSED VALUE klass, VALUE span) {
 }
 
 /* ========================================================================
+ * TraceExporter._native_new
+ *
+ * Creates a Rust TraceExporter with the given configuration.
+ *
+ * Ruby signature:
+ *   TraceExporter._native_new(url, tracer_version, language,
+ *     language_version, language_interpreter, hostname, env,
+ *     service, version) -> TraceExporter
+ *
+ * +url+ is required (String).  All other arguments may be nil.
+ * ======================================================================== */
+
+static VALUE _native_exporter_new(
+    DDTRACE_UNUSED VALUE klass,
+    VALUE rb_url,
+    VALUE rb_tracer_version,
+    VALUE rb_language,
+    VALUE rb_language_version,
+    VALUE rb_language_interpreter,
+    VALUE rb_hostname,
+    VALUE rb_env,
+    VALUE rb_service,
+    VALUE rb_version
+) {
+  /* Phase 1: validate types (may raise, no Rust resources yet) */
+  ENFORCE_TYPE(rb_url, T_STRING);
+  if (rb_tracer_version       != Qnil) ENFORCE_TYPE(rb_tracer_version,       T_STRING);
+  if (rb_language             != Qnil) ENFORCE_TYPE(rb_language,             T_STRING);
+  if (rb_language_version     != Qnil) ENFORCE_TYPE(rb_language_version,     T_STRING);
+  if (rb_language_interpreter != Qnil) ENFORCE_TYPE(rb_language_interpreter, T_STRING);
+  if (rb_hostname             != Qnil) ENFORCE_TYPE(rb_hostname,             T_STRING);
+  if (rb_env                  != Qnil) ENFORCE_TYPE(rb_env,                  T_STRING);
+  if (rb_service              != Qnil) ENFORCE_TYPE(rb_service,              T_STRING);
+  if (rb_version              != Qnil) ENFORCE_TYPE(rb_version,              T_STRING);
+
+  /* Phase 2: create config (cleanup on error) */
+  ddog_TraceExporterConfig *config = NULL;
+  ddog_trace_exporter_config_new(&config);
+
+  ddog_TraceExporterError *err;
+
+#define SET_CONFIG(setter, rb_val, label)                                    \
+  do {                                                                       \
+    if (rb_val != Qnil) {                                                    \
+      err = setter(config, char_slice_from_ruby_string(rb_val));             \
+      if (err) {                                                             \
+        ddog_trace_exporter_config_free(config);                             \
+        check_exporter_error("TraceExporter config: failed to set " label,  \
+                             err);                                           \
+      }                                                                      \
+    }                                                                        \
+  } while (0)
+
+  SET_CONFIG(ddog_trace_exporter_config_set_url,               rb_url,                   "url");
+  SET_CONFIG(ddog_trace_exporter_config_set_tracer_version,    rb_tracer_version,        "tracer_version");
+  SET_CONFIG(ddog_trace_exporter_config_set_language,          rb_language,              "language");
+  SET_CONFIG(ddog_trace_exporter_config_set_lang_version,      rb_language_version,      "language_version");
+  SET_CONFIG(ddog_trace_exporter_config_set_lang_interpreter,  rb_language_interpreter,  "language_interpreter");
+  SET_CONFIG(ddog_trace_exporter_config_set_hostname,          rb_hostname,              "hostname");
+  SET_CONFIG(ddog_trace_exporter_config_set_env,               rb_env,                   "env");
+  SET_CONFIG(ddog_trace_exporter_config_set_service,           rb_service,               "service");
+  SET_CONFIG(ddog_trace_exporter_config_set_version,           rb_version,               "version");
+
+#undef SET_CONFIG
+
+  /* Phase 3: build the exporter from the config */
+  ddog_TraceExporter *exporter = NULL;
+  err = ddog_trace_exporter_new(&exporter, config);
+  ddog_trace_exporter_config_free(config);
+  config = NULL;
+
+  if (err) {
+    check_exporter_error("Failed to create TraceExporter", err);
+  }
+
+  return TypedData_Wrap_Struct(trace_exporter_class, &trace_exporter_typed_data,
+                               exporter);
+}
+
+/* ========================================================================
  * Initialization
  * ======================================================================== */
 
@@ -303,6 +407,20 @@ void trace_exporter_init(VALUE tracing_module) {
   /* Factory */
   rb_define_singleton_method(tracer_span_class, "_native_from_span",
                              _native_from_span, 1);
+
+  /* ----------------------------------------------------------------
+   * TraceExporter class
+   * ---------------------------------------------------------------- */
+  trace_exporter_class =
+      rb_define_class_under(native_module, "TraceExporter", rb_cObject);
+  rb_global_variable(&trace_exporter_class);
+  rb_undef_alloc_func(trace_exporter_class);
+
+  /* Factory: _native_new(url, tracer_version, language, language_version,
+   *                       language_interpreter, hostname, env, service,
+   *                       version) */
+  rb_define_singleton_method(trace_exporter_class, "_native_new",
+                             _native_exporter_new, 9);
 
   /* ----------------------------------------------------------------
    * Cache Ruby intern IDs
