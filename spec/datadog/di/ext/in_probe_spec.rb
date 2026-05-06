@@ -115,7 +115,6 @@ RSpec.describe "Datadog::DI re-entrancy guard primitives" do
         end
       end
       arr = array_class.new
-      expect { Datadog::DI.array_empty?(arr) }.not_to raise_error
       expect(Datadog::DI.array_empty?(arr)).to be true
     end
 
@@ -149,7 +148,6 @@ RSpec.describe "Datadog::DI re-entrancy guard primitives" do
         end
       end
       h = hash_class.new
-      expect { Datadog::DI.hash_empty?(h) }.not_to raise_error
       expect(Datadog::DI.hash_empty?(h)).to be true
     end
 
@@ -205,7 +203,6 @@ RSpec.describe "Datadog::DI re-entrancy guard primitives" do
         end
       end
       p = proc_class.new { |x| x * 3 }
-      expect { Datadog::DI.invoke_proc(p, 7) }.not_to raise_error
       expect(Datadog::DI.invoke_proc(p, 7)).to eq(21)
     end
 
