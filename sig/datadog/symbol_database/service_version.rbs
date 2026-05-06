@@ -12,7 +12,7 @@ module Datadog
       @scopes: Array[Scope]
 
       def initialize: (
-        service: String,
+        service: String?,
         env: String?,
         version: String?,
         scopes: Array[Scope]
