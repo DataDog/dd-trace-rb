@@ -53,6 +53,10 @@ module Datadog
         TAG_RAILS_APPLICATION: ::String
 
         TAG_PROCESS_TAGS: ::String
+
+        TAG_SVC_AUTO: ::String
+
+        TAG_SVC_USER: ::String
       end
     end
   end

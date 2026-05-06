@@ -44,6 +44,8 @@ module Datadog
         TAG_RAILS_APPLICATION = "rails.application"
         TAG_PROCESS_TAGS = "_dd.tags.process"
         TAG_SERVICE = 'service'
+        TAG_SVC_AUTO = 'svc.auto'
+        TAG_SVC_USER = 'svc.user'
         TAG_VERSION = 'version'
 
         GEM_DATADOG_VERSION = Datadog::VERSION::STRING
