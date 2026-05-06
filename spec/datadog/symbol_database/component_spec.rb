@@ -234,6 +234,23 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(component).not_to receive(:extract_and_upload)
       component.start_upload
     end
+
+    it 'sets last_upload_time and last_upload_scope_count after a successful upload' do
+      file_scope1 = instance_double(Datadog::SymbolDatabase::Scope, scope_type: 'FILE', name: 'a.rb', scopes: [])
+      file_scope2 = instance_double(Datadog::SymbolDatabase::Scope, scope_type: 'FILE', name: 'b.rb', scopes: [])
+      allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([file_scope1, file_scope2])
+      allow(component.instance_variable_get(:@scope_batcher)).to receive(:add_scope)
+      allow(component.instance_variable_get(:@scope_batcher)).to receive(:flush)
+
+      expect(component.last_upload_time).to be_nil
+      expect(component.last_upload_scope_count).to be_nil
+
+      component.start_upload
+      component.wait_for_idle(timeout: 5)
+
+      expect(component.last_upload_time).to be_a(Time)
+      expect(component.last_upload_scope_count).to eq(2)
+    end
   end
 
   describe '#wait_for_idle' do
