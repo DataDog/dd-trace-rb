@@ -75,21 +75,22 @@ module Datadog
         scopes_to_upload = nil
 
         @mutex.synchronize do
-          # Check file limit
+          # Check file limit (counts only unique accepted files; duplicates are
+          # filtered by the dedup check below and do not consume the budget).
           if @file_count >= MAX_FILES
             @logger.debug { "symdb: file limit (#{MAX_FILES}) reached, ignoring scope: #{scope.name}" }
             return
           end
 
-          @file_count += 1
-
-          # Check if already uploaded
+          # Check if already uploaded — duplicates do not count toward MAX_FILES
+          # so a re-extraction scenario does not exhaust the budget for unique scopes.
           if @uploaded_modules.include?(scope.name)
             @logger.trace { "symdb: skipping #{scope.name}: already uploaded" }
             return
           end
 
           @uploaded_modules.add(scope.name)
+          @file_count += 1
 
           # Add the scope
           @scopes << scope

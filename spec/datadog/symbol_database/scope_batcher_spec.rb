@@ -150,6 +150,23 @@ RSpec.describe Datadog::SymbolDatabase::ScopeBatcher do
         # Should not be in batch
         expect(context.size).to be < described_class::MAX_FILES
       end
+
+      it 'does not count duplicates toward the file limit' do
+        allow(uploader).to receive(:upload_scopes)
+
+        # Offer the same scope MAX_FILES + 1 times. The dedup check should drop
+        # all duplicate offerings so they do not consume the file budget.
+        (described_class::MAX_FILES + 1).times do
+          context.add_scope(test_scope)
+        end
+
+        # The unique file budget has barely been touched — only one accepted file.
+        # A subsequent unique scope must still be accepted (not dropped at the limit).
+        next_unique = Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'AfterDuplicates')
+        context.add_scope(next_unique)
+
+        expect(context.size).to eq(2)  # original test_scope + next_unique
+      end
     end
   end
 
