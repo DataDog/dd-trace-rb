@@ -524,26 +524,11 @@ RSpec.describe Datadog::Profiling::Component do
           build_profiler_component
         end
 
-        context "when on Linux" do
-          before { stub_const("RUBY_PLATFORM", "some-linux-based-platform") }
+        it "sets up the StackRecorder with cpu_time_enabled: true" do
+          expect(Datadog::Profiling::StackRecorder)
+            .to receive(:new).with(hash_including(cpu_time_enabled: true)).and_call_original
 
-          it "sets up the StackRecorder with cpu_time_enabled: true" do
-            expect(Datadog::Profiling::StackRecorder)
-              .to receive(:new).with(hash_including(cpu_time_enabled: true)).and_call_original
-
-            build_profiler_component
-          end
-        end
-
-        context "when not on Linux" do
-          before { stub_const("RUBY_PLATFORM", "some-other-os") }
-
-          it "sets up the StackRecorder with cpu_time_enabled: false" do
-            expect(Datadog::Profiling::StackRecorder)
-              .to receive(:new).with(hash_including(cpu_time_enabled: false)).and_call_original
-
-            build_profiler_component
-          end
+          build_profiler_component
         end
       end
 
