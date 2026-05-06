@@ -22,6 +22,7 @@ static VALUE _native_exporter_new(VALUE klass, VALUE rb_url,
   VALUE rb_tracer_version, VALUE rb_language, VALUE rb_language_version,
   VALUE rb_language_interpreter, VALUE rb_hostname, VALUE rb_env,
   VALUE rb_service, VALUE rb_version);
+static VALUE _native_send_traces(VALUE self, VALUE traces);
 
 /* Response helpers */
 static VALUE create_ok_response(long trace_count, VALUE payload);
@@ -505,6 +506,222 @@ static VALUE _native_exporter_new(
 }
 
 /* ========================================================================
+ * GVL-release helper for ddog_trace_exporter_send_trace_chunks
+ *
+ * The send call performs blocking network I/O.  Releasing the GVL lets
+ * other Ruby threads (application code, test mock servers, etc.) run
+ * while we wait for the agent's response.
+ * ======================================================================== */
+
+typedef struct {
+  const ddog_TraceExporter     *exporter;
+  ddog_TracerTraceChunks       *chunks;
+  ddog_TraceExporterResponse  **response_out;
+  ddog_TraceExporterError      *error;
+  bool                          send_ran;
+} send_chunks_args_t;
+
+static void *send_chunks_without_gvl(void *data) {
+  send_chunks_args_t *a = (send_chunks_args_t *)data;
+  a->error = ddog_trace_exporter_send_trace_chunks(
+      a->exporter, a->chunks, a->response_out);
+  a->send_ran = true;
+  return NULL;
+}
+
+/* Helper: check for a pending Ruby interrupt without raising it. */
+static VALUE call_thread_check_ints(DDTRACE_UNUSED VALUE ignored) {
+  rb_thread_check_ints();
+  return Qnil;
+}
+
+/* ========================================================================
+ * TraceExporter#_native_send_traces
+ *
+ * Ruby signature:
+ *   exporter._native_send_traces(traces) -> Array[Response]
+ *
+ * +traces+ is an Array of Arrays of Spans:
+ *   [[span, span, ...], [span, ...], ...]
+ *
+ * Each inner array maps to one trace chunk (Vec<Span> in Rust).
+ *
+ * On success returns [Response(ok: true, trace_count: N)].
+ * On error returns [Response(ok: false, ...)].
+ *
+ * The chunk-building loop calls into Ruby (ENFORCE_TYPE,
+ * convert_ruby_span_to_rust) which may raise.  We use rb_ensure so
+ * that the Rust-allocated chunks are freed if an exception fires
+ * before the send consumes them.
+ * ======================================================================== */
+
+/* Context shared between the body and ensure callbacks. */
+typedef struct {
+  const ddog_TraceExporter *exporter;
+  VALUE                     traces;
+  long                      trace_count;
+  ddog_TracerTraceChunks   *chunks;  /* NULL after send consumes it */
+} send_traces_ctx;
+
+/*
+ * Body: build trace chunks from Ruby spans, then send them.
+ * Passed to rb_ensure as the "try" block.
+ */
+static VALUE build_and_send_traces(VALUE arg) {
+  send_traces_ctx *ctx = (send_traces_ctx *)arg;
+
+  for (long i = 0; i < ctx->trace_count; i++) {
+    VALUE chunk_spans = rb_ary_entry(ctx->traces, i);
+    ENFORCE_TYPE(chunk_spans, T_ARRAY);
+
+    ddog_tracer_trace_chunks_begin_chunk(ctx->chunks);
+
+    long span_count = RARRAY_LEN(chunk_spans);
+    for (long j = 0; j < span_count; j++) {
+      VALUE rb_span = rb_ary_entry(chunk_spans, j);
+
+      /* convert_ruby_span_to_rust may raise (type errors, etc.).
+       * rb_ensure guarantees chunks is freed in that case. */
+      ddog_TracerSpan *rust_span = convert_ruby_span_to_rust(rb_span);
+
+      /* push_span consumes rust_span (ownership transferred to chunks).
+       * The error path is unreachable in practice: push only fails if no
+       * chunk was started (we always call begin_chunk above) or if the
+       * handle is NULL.  Free defensively just in case. */
+      ddog_TraceExporterError *push_err =
+          ddog_tracer_trace_chunks_push_span(ctx->chunks, rust_span);
+      if (push_err != NULL) {
+        ddog_trace_exporter_error_free(push_err);
+      }
+    }
+  }
+
+  /*
+   * Send -- consumes chunks regardless of outcome.
+   *
+   * Release the GVL so other Ruby threads can run during network I/O.
+   *
+   * We use rb_thread_call_without_gvl2 (not the plain variant) because
+   * the "2" variant does NOT automatically raise pending interrupts
+   * after the call returns.  This matters because chunks has already
+   * been consumed by the Rust side, and we must inspect send_err /
+   * response before any Ruby exception propagates -- otherwise we
+   * would leak those Rust-allocated objects.
+   *
+   * An interrupt (e.g. Thread#kill) may cause gvl2 to return before
+   * our function runs, so we loop until it does.
+   */
+  ddog_TraceExporterResponse *response = NULL;
+  send_chunks_args_t args = {
+    .exporter     = ctx->exporter,
+    .chunks       = ctx->chunks,
+    .response_out = &response,
+    .error        = NULL,
+    .send_ran     = false,
+  };
+
+  int pending_exception = 0;
+  while (!args.send_ran && !pending_exception) {
+    rb_thread_call_without_gvl2(
+        send_chunks_without_gvl, &args,
+        RUBY_UBF_IO, NULL);
+
+    if (!args.send_ran) {
+      rb_protect(call_thread_check_ints, Qnil, &pending_exception);
+    }
+  }
+  /* Only null chunks when the send actually ran and consumed them.
+   * If an interrupt fired before the send executed, chunks are still
+   * live and the ensure handler must free them. */
+  if (args.send_ran) {
+    ctx->chunks = NULL;
+  }
+
+  ddog_TraceExporterError *send_err = args.error;
+
+  /* Extract the response body as a Ruby string before freeing. */
+  VALUE payload = Qnil;
+  if (response != NULL) {
+    uintptr_t body_len = 0;
+    const uint8_t *body_ptr =
+        ddog_trace_exporter_response_get_body(response, &body_len);
+    if (body_ptr != NULL && body_len > 0) {
+      payload = rb_str_new((const char *)body_ptr, (long)body_len);
+    }
+    ddog_trace_exporter_response_free(response);
+    response = NULL;
+  }
+
+  if (pending_exception) {
+    if (send_err != NULL) ddog_trace_exporter_error_free(send_err);
+    rb_jump_tag(pending_exception);
+  }
+
+  if (send_err != NULL) {
+    ddog_TraceExporterErrorCode code = send_err->code;
+    ddog_trace_exporter_error_free(send_err);
+
+    VALUE err_resp = create_error_response(code, ctx->trace_count);
+    return rb_ary_new_from_args(1, err_resp);
+  }
+
+  VALUE ok_resp = create_ok_response(ctx->trace_count, payload);
+  return rb_ary_new_from_args(1, ok_resp);
+}
+
+/*
+ * Ensure: free chunks if they haven't been consumed by the send yet.
+ * This runs whether build_and_send_traces returned normally or raised.
+ */
+static VALUE free_chunks_if_needed(VALUE arg) {
+  send_traces_ctx *ctx = (send_traces_ctx *)arg;
+  if (ctx->chunks != NULL) {
+    ddog_tracer_trace_chunks_free(ctx->chunks);
+    ctx->chunks = NULL;
+  }
+  return Qnil;
+}
+
+static VALUE _native_send_traces(VALUE self, VALUE traces) {
+  ENFORCE_TYPE(traces, T_ARRAY);
+
+  ddog_TraceExporter *exporter;
+  TypedData_Get_Struct(self, ddog_TraceExporter, &trace_exporter_typed_data,
+                       exporter);
+  if (exporter == NULL) {
+    raise_error(rb_eRuntimeError,
+                "TraceExporter has not been initialized or was already freed");
+  }
+
+  long trace_count = RARRAY_LEN(traces);
+
+  /* Empty batch -> empty response (matches existing transport behaviour) */
+  if (trace_count == 0) {
+    return rb_ary_new();
+  }
+
+  /* Allocate trace chunks */
+  ddog_TracerTraceChunks *chunks = NULL;
+  ddog_TraceExporterError *chunks_err =
+      ddog_tracer_trace_chunks_new((size_t)trace_count, &chunks);
+  if (chunks_err != NULL) {
+    ddog_trace_exporter_error_free(chunks_err);
+    raise_error(rb_eRuntimeError, "Failed to allocate trace chunks");
+  }
+
+  send_traces_ctx ctx = {
+    .exporter    = exporter,
+    .traces      = traces,
+    .trace_count = trace_count,
+    .chunks      = chunks,
+  };
+
+  return rb_ensure(
+      build_and_send_traces, (VALUE)&ctx,
+      free_chunks_if_needed, (VALUE)&ctx);
+}
+
+/* ========================================================================
  * Initialization
  * ======================================================================== */
 
@@ -539,6 +756,10 @@ void trace_exporter_init(VALUE tracing_module) {
    *                       version) */
   rb_define_singleton_method(trace_exporter_class, "_native_new",
                              _native_exporter_new, 9);
+
+  /* Instance: _native_send_traces(traces) -> Array[Response] */
+  rb_define_method(trace_exporter_class, "_native_send_traces",
+                   _native_send_traces, 1);
 
   /* ----------------------------------------------------------------
    * Response class
