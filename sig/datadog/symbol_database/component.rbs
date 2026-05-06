@@ -3,16 +3,6 @@ module Datadog
     class Component
       EXTRACT_DEBOUNCE_INTERVAL: Integer
 
-      self.@uploaded_this_process: bool
-      self.@upload_done_mutex: Thread::Mutex
-      self.@upload_done_cv: Thread::ConditionVariable
-
-      def self.upload_done_mutex: () -> Thread::Mutex
-      def self.upload_done_cv: () -> Thread::ConditionVariable
-      def self.uploaded_this_process?: () -> bool
-      def self.mark_uploaded: () -> void
-      def self.reset_uploaded_this_process_for_tests!: () -> void
-
       @settings: untyped
       @agent_settings: untyped
       @logger: untyped
@@ -21,6 +11,7 @@ module Datadog
       @scope_batcher: ScopeBatcher
       @last_upload_time: Time?
       @last_upload_scope_count: Integer?
+      @last_upload_time_cv: Thread::ConditionVariable
       @mutex: Thread::Mutex
       @upload_in_progress: bool
       @upload_in_progress_cv: Thread::ConditionVariable
@@ -30,6 +21,10 @@ module Datadog
       @scheduled_at: Float?
       @scheduler_signaled: bool
       @scheduler_thread: Thread?
+      @hot_load_buffer: Array[Module]
+      @hot_load_buffer_mutex: Thread::Mutex
+      @hot_load_tracepoint: TracePoint?
+      @initial_extraction_done: bool
 
       def self.build: (untyped settings, untyped agent_settings, untyped logger) -> Component?
 
@@ -61,6 +56,12 @@ module Datadog
       def scheduler_loop: () -> void
 
       def extract_and_upload: () -> void
+
+      def extract_hot_load_buffer: () -> Array[Scope]
+
+      def install_hot_load_hook: () -> void
+
+      def enqueue_hot_load: (Module mod) -> void
 
       def log_scope_tree: (Scope scope, Integer depth) -> void
 
