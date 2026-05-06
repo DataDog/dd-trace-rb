@@ -118,6 +118,42 @@ module Datadog
 
         mod = Module.new do
           define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore NoMethod
+            # Re-entrancy guard: if we are already inside a DI probe
+            # callback, skip DI processing and call the original method
+            # directly. This prevents SystemStackError when a probe is
+            # set on a stdlib method that DI itself calls during
+            # snapshot building (e.g., String#length, Hash#each).
+            #
+            # Inline the splat dispatch directly here so the guarded
+            # path allocates no Proc and makes no Proc#call dispatch.
+            # super in this branch resolves to the prepended class's
+            # original method without going through Proc#call, so a
+            # user probe on Proc#call cannot intercept it.
+            #
+            # Nested invocations during DI processing bypass the rate
+            # limiter entirely — they are not user-observable probe
+            # firings, just internal calls that happen to land on a
+            # probed method, so they must not consume rate limit tokens.
+            #
+            # Storage is fiber-local. The DI.in_probe?/enter_probe/leave_probe
+            # methods are implemented in C and access the storage directly via
+            # rb_thread_local_aref / rb_thread_local_aset, bypassing Thread#[]
+            # / Thread#[]= method dispatch — so user method probes on those
+            # Thread methods cannot intercept guard reads/writes and recurse.
+            if DI.in_probe?
+              if !DI.array_empty?(args)
+                if !DI.hash_empty?(kwargs) # steep:ignore FallbackAny
+                  return super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
+                else
+                  return super(*args, &target_block)
+                end
+              elsif !DI.hash_empty?(kwargs) # steep:ignore FallbackAny
+                return super(**kwargs, &target_block) # steep:ignore FallbackAny
+              else
+                return super(&target_block)
+              end
+            end
+
             # do_super invokes the original method via super. The lambda
             # captures super's binding from inside this define_method
             # block — that's the only place super resolves to the
@@ -128,6 +164,9 @@ module Datadog
             # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
             # for methods defined via method_missing — kwargs forwarding
             # requires the explicit shape match below.
+            #
+            # Allocated only after the guard check above so the guarded
+            # path skips this allocation entirely.
             do_super = ->(a, k, blk) {
               if !DI.array_empty?(a)
                 if !DI.hash_empty?(k)
@@ -142,49 +181,11 @@ module Datadog
               end
             }
 
-            # Re-entrancy guard: if we are already inside a DI probe
-            # callback, skip DI processing and call the original method
-            # directly. This prevents SystemStackError when a probe is
-            # set on a stdlib method that DI itself calls during
-            # snapshot building (e.g., String#length, Hash#each).
-            #
-            # Nested invocations during DI processing bypass the rate
-            # limiter entirely — they are not user-observable probe
-            # firings, just internal calls that happen to land on a
-            # probed method, so they must not consume rate limit tokens.
-            #
-            # Storage is fiber-local. The DI.in_probe?/enter_probe/leave_probe
-            # methods are implemented in C and access the storage directly via
-            # rb_thread_local_aref / rb_thread_local_aset, bypassing Thread#[]
-            # / Thread#[]= method dispatch — so user method probes on those
-            # Thread methods cannot intercept guard reads/writes and recurse.
-            # Use DI.invoke_proc instead of do_super.call to bypass Proc#call
-            # method dispatch — a user method probe on Proc#call would
-            # otherwise intercept this call (do_super is a lambda) and
-            # recurse through this same early-return path indefinitely.
-            return DI.invoke_proc(do_super, args, kwargs, target_block) if DI.in_probe? # steep:ignore FallbackAny
-
-            # Lazy caller_locations: only the FIRES path uses the stack,
-            # so defer the frame-array allocation. Disabled probes and
-            # rate-limited invocations skip it entirely.
-            #
-            # Depth 4 skips: lambda body, DI.invoke_proc (C method that
-            # invokes this lambda — appears in caller_locations as a
-            # frame), run_method_probe (caller of DI.invoke_proc), and
-            # this wrapper (caller of run_method_probe). The first
-            # returned frame is the user's call site. The depth is pinned
-            # by the regression test "caller_locations capture > captures
-            # the test call site as the frame after the synthetic method
-            # frame" — any change to the call chain that shifts the depth
-            # fails that test.
-            user_caller_locations = -> { caller_locations(4) }
-
             instrumenter.run_method_probe(
-              args: args, kwargs: kwargs, target_block: target_block, # steep:ignore FallbackAny
-              target_self: self, do_super: do_super,
-              probe: probe, responder: responder,
-              loc: loc, method_name: method_name, # steep:ignore ArgumentTypeMismatch
-              user_caller_locations: user_caller_locations, # steep:ignore ArgumentTypeMismatch
+              args, kwargs, target_block, # steep:ignore FallbackAny
+              self, do_super,
+              probe, responder,
+              loc, method_name, # steep:ignore ArgumentTypeMismatch
             )
           end
         end
@@ -400,6 +401,19 @@ module Datadog
       # the define_method block, the only place super resolves to the
       # prepended-on class's method.
       #
+      # Performance: this method takes nine positional parameters, not
+      # keyword parameters, deliberately. Every probed method invocation
+      # passes through here on the firing/disabled/rate-limited paths.
+      # Keyword-argument calls in Ruby allocate a fresh Hash on every call
+      # to materialize the keyword bindings; with nine keyword arguments
+      # (~300-1000 ns of allocation per invocation), that hash dominated
+      # the wrapper's per-call overhead. Positional parameters skip the
+      # allocation entirely. The cost is a long unlabeled signature and
+      # an unlabeled call site in #hook_method — both small price for
+      # eliminating per-call allocation on the hot path. The argument
+      # order matches #hook_method's call site exactly; do not reorder
+      # without updating both sides.
+      #
       # @param args [Array] positional arguments passed to the probed method
       # @param kwargs [Hash{Symbol => Object}] keyword arguments passed to the probed method
       # @param target_block [Proc, nil] block argument passed to the probed method
@@ -409,57 +423,61 @@ module Datadog
       # @param responder [#probe_executed_callback, #probe_condition_evaluation_failed_callback] callback target invoked with the built Context
       # @param loc [Array(String, Integer), nil] source location of the probed method, or nil for virtual/lazily-defined methods
       # @param method_name [String, Symbol] name of the probed method, used as the synthetic top stack frame label
-      # @param user_caller_locations [Proc] zero-arg lambda returning Array<Thread::Backtrace::Location> for the user's call stack; deferred so disabled/rate-limited invocations skip frame allocation
       # @return [Object] the original method's return value, or re-raises its exception
-      def run_method_probe(args:, kwargs:, target_block:, target_self:, do_super:,
-        probe:, responder:, loc:, method_name:, user_caller_locations:)
+      def run_method_probe(args, kwargs, target_block, target_self, do_super,
+        probe, responder, loc, method_name)
+        # Disabled probe: skip DI processing entirely. enter_probe is not
+        # called on this path so the guard is never set — there is no DI
+        # work to guard, and any nested probed methods invoked by the
+        # original method should fire normally without short-circuit.
+        return DI.invoke_proc(do_super, args, kwargs, target_block) unless probe.enabled?
+
         DI.enter_probe
         begin
           di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
 
-          if continue = probe.enabled?
-            if condition = probe.condition
-              begin
-                # This context will be recreated later, unlike for line probes.
-                #
-                # We do not need the stack for condition evaluation, therefore
-                # stack is not passed to Context here.
-                context = Context.new(
-                  locals: serializer.combine_args(args, kwargs, target_self),
-                  target_self: target_self,
-                  probe: probe, settings: settings, serializer: serializer,
-                )
-                continue = condition.satisfied?(context)
-              rescue => exc
-                # Evaluation error exception can be raised for "expected"
-                # errors, we probably need another setting to control whether
-                # these exceptions are propagated.
-                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
-                  !exc.is_a?(DI::Error::ExpressionEvaluationError)
+          continue = true
+          if condition = probe.condition
+            begin
+              # This context will be recreated later, unlike for line probes.
+              #
+              # We do not need the stack for condition evaluation, therefore
+              # stack is not passed to Context here.
+              context = Context.new(
+                locals: serializer.combine_args(args, kwargs, target_self),
+                target_self: target_self,
+                probe: probe, settings: settings, serializer: serializer,
+              )
+              continue = condition.satisfied?(context)
+            rescue => exc
+              # Evaluation error exception can be raised for "expected"
+              # errors, we probably need another setting to control whether
+              # these exceptions are propagated.
+              raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
+                !exc.is_a?(DI::Error::ExpressionEvaluationError)
 
-                if context
-                  # We want to report evaluation errors for conditions
-                  # as probe snapshots. However, if we failed to create
-                  # the context, we won't be able to report anything as
-                  # the probe notifier builder requires a context.
-                  begin
-                    responder.probe_condition_evaluation_failed_callback(context, exc)
-                  rescue => nested_exc
-                    raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-
-                    logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
-                    telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
-                  end
-                else
+              if context
+                # We want to report evaluation errors for conditions
+                # as probe snapshots. However, if we failed to create
+                # the context, we won't be able to report anything as
+                # the probe notifier builder requires a context.
+                begin
+                  responder.probe_condition_evaluation_failed_callback(context, exc)
+                rescue => nested_exc
                   raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                  logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc.message}" }
-                  telemetry&.report(exc, description: "Error evaluating condition without context")
-                  # If execution gets here, there is probably a bug in the tracer.
+                  logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
+                  telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
                 end
+              else
+                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                continue = false
+                logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc.message}" }
+                telemetry&.report(exc, description: "Error evaluating condition without context")
+                # If execution gets here, there is probably a bug in the tracer.
               end
+
+              continue = false
             end
           end
 
@@ -529,11 +547,14 @@ module Datadog
               # that location here.
               []
             end
-            # DI.invoke_proc bypasses Proc#call dispatch on the lambda —
-            # at this point in_probe? is true, so a user probe on Proc#call
-            # would intercept and the early-return would itself need to
-            # invoke a Proc, recursing.
-            caller_locs = method_frame + DI.invoke_proc(user_caller_locations)
+            # Depth 2 skips: this method (run_method_probe) and the
+            # wrapper define_method block. The first returned frame is
+            # the user's call site. Pinned by the regression test
+            # "caller_locations capture > captures the test call site
+            # as the frame after the synthetic method frame". The `|| []`
+            # guards Steep — caller_locations is typed as nilable, but at
+            # depth 2 with two known callers above us it never returns nil.
+            caller_locs = method_frame + (caller_locations(2) || [])
             # TODO capture arguments at exit
 
             context = Context.new(locals: nil, target_self: target_self,
