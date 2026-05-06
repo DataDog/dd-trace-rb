@@ -774,7 +774,7 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
     end
   end
 
-  context "method probe on Kernel#lambda" do
+  context "method probe on Kernel#lambda combined with another probed method" do
     # The wrapper used to construct do_super via `lambda do |a, k, blk| ... end`,
     # which dispatches through Kernel#lambda (method call, not syntax). With
     # Kernel#lambda probed, that dispatch was intercepted by the wrapper itself,
@@ -783,19 +783,26 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
     # after do_super construction, so the early-return at the top of the wrapper
     # could not break the cycle.
     #
-    # Fix: lambda literal `->(a, k, blk) { ... }` is syntax — no method dispatch —
-    # so a probe on Kernel#lambda cannot intercept do_super construction. The same
-    # `->` form is already used on the user_caller_locations site in the wrapper.
+    # Fix: lambda literal `->(a, k, blk) { ... }` is syntax that compiles to a
+    # VM-level operation (putspecialobject VMCORE + idLambda). The lambda
+    # literal does not walk Kernel's prepend chain, so a probe on Kernel#lambda
+    # cannot intercept do_super construction.
     #
-    # Skip on Ruby < 3.0: prepending a `lambda` method onto Kernel does not
-    # intercept `lambda { ... }` calls on Ruby 2.7 — empirically the wrapper
-    # is never entered, so the recursion bug being tested is not reachable
-    # there. The fix is only relevant on Ruby versions where the prepend
-    # intercepts (verified on 3.2+).
+    # Test strategy: install the Kernel#lambda probe AND a probe on a regular
+    # method (String#size). Invoking the regular probed method exercises the
+    # do_super construction line. With the buggy `lambda do |...|` form, that
+    # line dispatches through Kernel#lambda, the prepended wrapper intercepts,
+    # builds another do_super via lambda, and recurses to SystemStackError.
+    # With the lambda-literal form, no dispatch and no recursion.
+    #
+    # Why not invoke `lambda { |x| x * 2 }` directly: Ruby 3.3+ raises
+    # ArgumentError when the original Kernel#lambda is invoked with a
+    # non-literal block (via super(&blk)), which would surface as a test
+    # error on 3.3+. Using a non-lambda trigger sidesteps that quirk.
 
     include_context "permissive settings"
 
-    let(:probe) do
+    let(:lambda_probe) do
       Datadog::DI::Probe.new(
         id: "stdlib-kernel-lambda",
         type: :log,
@@ -805,14 +812,29 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
       )
     end
 
-    it "does not self-recurse through wrapper trampoline construction" do
-      skip "Kernel#lambda prepend interception requires Ruby 3.0+" if RUBY_VERSION < "3.0"
+    let(:size_probe) do
+      Datadog::DI::Probe.new(
+        id: "stdlib-string-size",
+        type: :log,
+        type_name: "String",
+        method_name: "size",
+        capture_snapshot: false,
+      )
+    end
 
-      payloads = run_stdlib_probe_test(probe) do
-        f = lambda { |x| x * 2 }
-        expect(f.call(3)).to eq(6)
+    it "does not self-recurse during do_super construction in another probed method" do
+      payloads = []
+      allow(component.probe_notifier_worker).to receive(:add_snapshot) do |payload|
+        payloads << payload
       end
 
+      expect(diagnostics_transport).to receive(:send_diagnostics).at_least(:once)
+      probe_manager.add_probe(lambda_probe)
+      probe_manager.add_probe(size_probe)
+
+      expect("abc".size).to eq(3)
+
+      component.probe_notifier_worker.flush
       expect(payloads.length).to be >= 1
     end
   end
