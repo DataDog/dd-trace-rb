@@ -49,7 +49,6 @@ module Datadog
           valid_cpu_sampling_interval(settings.profiling.advanced.experimental_cpu_sampling_interval_ms, logger)
 
         recorder = Datadog::Profiling::StackRecorder.new(
-          cpu_time_enabled: true,
           alloc_samples_enabled: allocation_profiling_enabled,
           heap_samples_enabled: heap_profiling_enabled,
           heap_size_enabled: heap_size_profiling_enabled,

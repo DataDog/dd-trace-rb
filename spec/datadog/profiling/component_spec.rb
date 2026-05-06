@@ -523,13 +523,6 @@ RSpec.describe Datadog::Profiling::Component do
 
           build_profiler_component
         end
-
-        it "sets up the StackRecorder with cpu_time_enabled: true" do
-          expect(Datadog::Profiling::StackRecorder)
-            .to receive(:new).with(hash_including(cpu_time_enabled: true)).and_call_original
-
-          build_profiler_component
-        end
       end
 
       it "runs the setup task to set up any needed extensions for profiling" do

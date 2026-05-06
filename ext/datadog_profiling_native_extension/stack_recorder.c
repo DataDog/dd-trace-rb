@@ -416,7 +416,6 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   if (options == Qnil) options = rb_hash_new();
 
   VALUE recorder_instance = rb_hash_fetch(options, ID2SYM(rb_intern("self_instance")));
-  VALUE cpu_time_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("cpu_time_enabled")));
   VALUE alloc_samples_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("alloc_samples_enabled")));
   VALUE heap_samples_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("heap_samples_enabled")));
   VALUE heap_size_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("heap_size_enabled")));
@@ -424,7 +423,6 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   VALUE timeline_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("timeline_enabled")));
   VALUE heap_clean_after_gc_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("heap_clean_after_gc_enabled")));
 
-  ENFORCE_BOOLEAN(cpu_time_enabled);
   ENFORCE_BOOLEAN(alloc_samples_enabled);
   ENFORCE_BOOLEAN(heap_samples_enabled);
   ENFORCE_BOOLEAN(heap_size_enabled);
@@ -440,7 +438,6 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   heap_recorder_set_sample_rate(state->heap_recorder, NUM2INT(heap_sample_every));
 
   uint8_t requested_values_count = ALL_VALUE_TYPES_COUNT -
-    (cpu_time_enabled == Qtrue ? 0 : 1) -
     (alloc_samples_enabled == Qtrue? 0 : 2) -
     (heap_samples_enabled == Qtrue ? 0 : 1) -
     (heap_size_enabled == Qtrue ? 0 : 1) -
@@ -466,12 +463,9 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_WALL_TIME;
   state->position_for[WALL_TIME_VALUE_ID] = next_enabled_pos++;
 
-  if (cpu_time_enabled == Qtrue) {
-    enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_CPU_TIME;
-    state->position_for[CPU_TIME_VALUE_ID] = next_enabled_pos++;
-  } else {
-    state->position_for[CPU_TIME_VALUE_ID] = next_disabled_pos++;
-  }
+  // CPU_TIME is always enabled
+  enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_CPU_TIME;
+  state->position_for[CPU_TIME_VALUE_ID] = next_enabled_pos++;
 
   if (alloc_samples_enabled == Qtrue) {
     enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_ALLOC_SAMPLES;
