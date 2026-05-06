@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../integration'
 require_relative 'patcher'
+require_relative '../integration'
 
 module Datadog
   module AppSec
@@ -12,6 +12,7 @@ module Datadog
 
           register_as :aws_lambda, auto_patch: false
 
+          # NOTE: AWS Lambda is a runtime environment, not an installable gem
           def self.version
             nil
           end

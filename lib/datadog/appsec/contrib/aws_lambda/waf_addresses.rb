@@ -12,6 +12,8 @@ module Datadog
   module AppSec
     module Contrib
       module AwsLambda
+        # Extracts WAF input addresses from normalized AWS Lambda API Gateway event payloads.
+        # @api private
         module WAFAddresses
           module_function
 
