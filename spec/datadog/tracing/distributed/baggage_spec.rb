@@ -509,7 +509,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
           it 'extracts complete entry only' do
             result = propagation.extract(data)
 
-            expect(result.baggage.keys).to contain_exactly('key1')
+            expect(result.baggage).to eq('key1' => 'a' * (max_baggage_bytes / 2))
           end
         end
 
@@ -536,7 +536,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
           it 'extracts complete entry' do
             result = propagation.extract(data)
 
-            expect(result.baggage.keys).to contain_exactly('key1')
+            expect(result.baggage).to eq('key1' => value)
           end
 
           context 'with spec-allowed whitespace before the next separator' do
