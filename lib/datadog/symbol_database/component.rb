@@ -17,16 +17,24 @@ module Datadog
     # - Debounce: extraction is deferred by EXTRACT_DEBOUNCE_INTERVAL seconds so
     #   reconfigurations during boot coalesce into a single extraction on the
     #   final Component instance.
+    # - Hot-load coverage: TracePoint :class hook captures classes loaded after
+    #   initial extraction, enqueues them on a per-instance buffer; the scheduler
+    #   drains the buffer on debounce and extracts each one via Extractor#extract,
+    #   matching Java/Python/.NET continuous coverage.
     #
     # Upload flow:
     # 1. Remote config sends upload_symbols: true (or force_upload mode)
     # 2. start_upload called — schedules extraction EXTRACT_DEBOUNCE_INTERVAL
-    #    seconds in the future on a per-instance scheduler thread.
+    #    seconds in the future on a per-instance scheduler thread, and lazily
+    #    installs the TracePoint :class hook if not already installed.
     # 3. When the timer fires (no further start_upload calls reset it),
-    #    extract_and_upload runs: ObjectSpace iteration → Extractor → ScopeBatcher.
+    #    extract_and_upload runs. On the first call: ObjectSpace iteration →
+    #    Extractor#extract_all. On subsequent calls: drain the hot-load buffer →
+    #    Extractor#extract per module.
     # 4. ScopeBatcher batches and triggers Uploader.
-    # 5. A class-level flag is set so subsequent Component instances created via
-    #    Datadog reconfiguration do not re-upload.
+    # 5. As new classes load throughout the process lifetime, the TracePoint hook
+    #    fires and signals the scheduler — the next debounce window produces an
+    #    incremental upload of just the new classes.
     #
     # Created by: Components#initialize (in Core::Configuration::Components)
     # Accessed by: Remote config receiver via Datadog.send(:components).symbol_database
@@ -38,34 +46,6 @@ module Datadog
       # window coalesce; the timer fires once after the window of inactivity.
       # Long enough to absorb reconfiguration cascades during Rails boot.
       EXTRACT_DEBOUNCE_INTERVAL = 5  # seconds
-
-      # Class-level state: tracks whether any Component instance in this process
-      # has performed an extract+upload. Survives Component replacement during
-      # Datadog reconfiguration so duplicate uploads are prevented.
-      @uploaded_this_process = false
-      @upload_done_mutex = Mutex.new
-      @upload_done_cv = ConditionVariable.new
-
-      class << self
-        attr_reader :upload_done_mutex, :upload_done_cv
-
-        def uploaded_this_process?
-          @upload_done_mutex.synchronize { @uploaded_this_process }
-        end
-
-        def mark_uploaded
-          @upload_done_mutex.synchronize do
-            @uploaded_this_process = true
-            @upload_done_cv.broadcast
-          end
-        end
-
-        # Reset class-level upload state. Test-only.
-        # @api private
-        def reset_uploaded_this_process_for_tests!
-          @upload_done_mutex.synchronize { @uploaded_this_process = false }
-        end
-      end
 
       # Build a new Component if feature is enabled and dependencies met.
       # @param settings [Configuration::Settings] Tracer settings
@@ -121,6 +101,11 @@ module Datadog
         @upload_in_progress_cv = ConditionVariable.new
         @shutdown = false
 
+        # Signalled when @last_upload_time advances. wait_for_idle blocks on this
+        # so short-lived scripts (e.g. gobo's bin/extract_symbols) can wait for
+        # an upload attempt to complete without depending on a one-shot flag.
+        @last_upload_time_cv = ConditionVariable.new
+
         # Per-instance scheduler state. The scheduler thread is started lazily
         # on the first start_upload call.
         @scheduler_mutex = Mutex.new
@@ -128,6 +113,15 @@ module Datadog
         @scheduled_at = nil
         @scheduler_signaled = false
         @scheduler_thread = nil
+
+        # Hot-load coverage state. TracePoint :class hook is installed lazily on
+        # the first start_upload call; classes defined after that point are
+        # enqueued here and drained by the scheduler on debounce. Distinguishes
+        # initial extraction (extract_all) from incremental (per-module extract).
+        @hot_load_buffer = []
+        @hot_load_buffer_mutex = Mutex.new
+        @hot_load_tracepoint = nil
+        @initial_extraction_done = false
       end
 
       # Schedule a deferred upload that waits for app boot to complete.
@@ -139,9 +133,10 @@ module Datadog
       # In non-Rails: triggers start_upload immediately.
       #
       # Each Component registers its own callback. Old Components that have
-      # been shut down short-circuit in start_upload via @shutdown.
-      # Cross-process deduplication is handled by the class-level
-      # uploaded_this_process? flag, not by guarding registration.
+      # been shut down short-circuit in start_upload via @shutdown. The hot-load
+      # hook handles classes loaded after this initial trigger, so under
+      # eager_load=false an under-extracted initial upload self-corrects as the
+      # app exercises code.
       #
       # @return [void]
       def schedule_deferred_upload
@@ -150,18 +145,8 @@ module Datadog
           # loaded object (Rails::Application), so a bare `start_upload`
           # would resolve against it.
           component = self
-          logger = @logger
           ::ActiveSupport.on_load(:after_initialize) do
-            # Only auto-trigger when Rails has eager-loaded application
-            # classes during initialization. In dev (eager_load=false)
-            # there is nothing complete to extract; the auto-deferred
-            # upload would race with explicit triggers and produce
-            # under-extracted uploads.
-            if defined?(::Rails) && ::Rails.application&.config&.eager_load # steep:ignore NoMethod
-              component.start_upload
-            else
-              logger.debug { "symdb: skipping auto-deferred upload (eager_load disabled)" }
-            end
+            component.start_upload
           end
         else
           start_upload
@@ -180,11 +165,10 @@ module Datadog
       # Thread-safe: can be called concurrently from multiple remote config updates.
       # @return [void]
       def start_upload
-        return if Component.uploaded_this_process?
-
         @scheduler_mutex.synchronize do
           return if @shutdown
 
+          install_hot_load_hook
           @scheduled_at = Datadog::Core::Utils::Time.get_time + EXTRACT_DEBOUNCE_INTERVAL
           @scheduler_signaled = true
           @scheduler_cv.signal
@@ -205,30 +189,37 @@ module Datadog
         end
       end
 
-      # Block until any Component in this process has finished an extract+upload,
+      # Block until this Component finishes an extract+upload after this call,
       # or until the timeout elapses. Used by short-lived scripts that trigger
       # an upload via force_upload and need to wait before exiting.
+      # Tracks @last_upload_time advance — returns true once any upload attempt
+      # completes (success or failure), false on timeout.
       # @param timeout [Numeric] Maximum seconds to wait
       # @return [Boolean] true if an upload completed; false on timeout
       def wait_for_idle(timeout: 30)
         deadline = Datadog::Core::Utils::Time.get_time + timeout
-        Component.upload_done_mutex.synchronize do
-          until Component.send(:instance_variable_get, :@uploaded_this_process)
+        @mutex.synchronize do
+          start_time = @last_upload_time
+          while @last_upload_time == start_time
             remaining = deadline - Datadog::Core::Utils::Time.get_time
             return false if remaining <= 0
-            Component.upload_done_cv.wait(Component.upload_done_mutex, remaining)
+            @last_upload_time_cv.wait(@mutex, remaining)
           end
         end
         true
       end
 
       # Shutdown component and cleanup resources.
-      # Cancels the per-instance scheduler so any pending debounced extraction
-      # is dropped. Waits for an in-flight extraction to complete before
-      # returning. Does not touch class-level state, so a sibling Component
-      # built after shutdown can still upload.
+      # Disables the hot-load TracePoint so no events queue for a dead
+      # scheduler. Cancels the per-instance scheduler so any pending debounced
+      # extraction is dropped. Waits for an in-flight extraction to complete
+      # before returning. Does not touch any sibling Components, so a sibling
+      # Component built after shutdown can still upload.
       # @return [void]
       def shutdown!
+        @hot_load_tracepoint&.disable
+        @hot_load_tracepoint = nil
+
         @scheduler_mutex.synchronize do
           @shutdown = true
           @scheduler_signaled = true
@@ -279,7 +270,9 @@ module Datadog
       end
 
       # Scheduler thread main loop. Waits for the debounce window to elapse,
-      # then runs extract_and_upload exactly once for this Component.
+      # then runs extract_and_upload. Loops indefinitely so that hot-load
+      # signals fired after the initial upload trigger subsequent incremental
+      # uploads.
       # @return [void]
       def scheduler_loop
         loop do
@@ -288,24 +281,28 @@ module Datadog
           # steep:ignore:start
           @scheduler_mutex.synchronize do
             return if @shutdown
-            return if Component.uploaded_this_process?
 
             if @scheduled_at.nil?
-              # Nothing scheduled (e.g. stop_upload cleared it). Wait
-              # indefinitely for a signal, then re-evaluate on next loop.
+              # Nothing scheduled (e.g. stop_upload cleared it, or no hot-load
+              # events since the last upload). Wait indefinitely for a signal,
+              # then re-evaluate on next loop.
               @scheduler_signaled = false
               @scheduler_cv.wait(@scheduler_mutex)
             else
               remaining = @scheduled_at - Datadog::Core::Utils::Time.get_time
               if remaining > 0
                 # Wait until the debounce deadline. Any signal (start_upload,
-                # stop_upload, shutdown!) wakes us early; we always re-loop
-                # and recompute rather than firing immediately on wake.
+                # stop_upload, shutdown!, hot-load event) wakes us early; we
+                # always re-loop and recompute rather than firing immediately
+                # on wake.
                 @scheduler_signaled = false
                 @scheduler_cv.wait(@scheduler_mutex, remaining)
               else
-                # Deadline elapsed without further signal — fire after releasing the mutex.
+                # Deadline elapsed without further signal — fire after releasing
+                # the mutex. Clear @scheduled_at so the next loop iteration
+                # waits for the next start_upload or hot-load signal.
                 should_fire = true
+                @scheduled_at = nil
               end
             end
           end
@@ -318,19 +315,16 @@ module Datadog
 
           # Outside the mutex.
           return if @shutdown
-          if Component.uploaded_this_process?
-            return
-          end
 
           extract_and_upload
-          Component.mark_uploaded
-          return
         end
       rescue => e
         @logger.debug { "symdb: scheduler error: #{e.class}: #{e.message}" }
       end
 
-      # Extract symbols from all loaded modules and upload.
+      # Extract symbols and upload. First call runs extract_all (full ObjectSpace
+      # walk); subsequent calls drain the hot-load buffer and extract just the
+      # newly-loaded modules via Extractor#extract.
       # @return [void]
       def extract_and_upload
         @mutex.synchronize { @upload_in_progress = true }
@@ -339,9 +333,21 @@ module Datadog
           @logger.trace { "symdb: starting extraction and upload" }
           start_time = Datadog::Core::Utils::Time.get_time
 
-          # Extract symbols from all loaded modules grouped by source file.
-          # extract_all handles ObjectSpace iteration, filtering, and FQN-based nesting.
-          file_scopes = @extractor.extract_all
+          if @initial_extraction_done
+            file_scopes = extract_hot_load_buffer
+            mode_label = "hot-load"
+          else
+            # Discard any TracePoint events captured between hook install and
+            # this initial scan — extract_all walks ObjectSpace which already
+            # covers everything loaded at this moment. Anything loaded during
+            # or after extract_all stays buffered for the next drain.
+            @hot_load_buffer_mutex.synchronize { @hot_load_buffer.clear }
+            # extract_all handles ObjectSpace iteration, filtering, and FQN-based nesting.
+            file_scopes = @extractor.extract_all
+            @initial_extraction_done = true
+            mode_label = "initial"
+          end
+
           extracted_count = 0
           file_scopes.each do |scope|
             @scope_batcher.add_scope(scope)
@@ -351,20 +357,72 @@ module Datadog
 
           extraction_duration = Datadog::Core::Utils::Time.get_time - start_time
           targetable_count = count_targetable_methods(file_scopes)
-          @logger.debug { "symdb: extracted #{extracted_count} scopes (#{targetable_count} methods with targetable lines) in #{'%.2f' % extraction_duration}s" }
+          @logger.debug { "symdb: #{mode_label} extracted #{extracted_count} scopes (#{targetable_count} methods with targetable lines) in #{'%.2f' % extraction_duration}s" }
 
           # Flush any remaining scopes (triggers upload)
           @scope_batcher.flush
 
-          @last_upload_time = Datadog::Core::Utils::Time.now
-          @last_upload_scope_count = extracted_count
+          @mutex.synchronize do
+            @last_upload_time = Datadog::Core::Utils::Time.now
+            @last_upload_scope_count = extracted_count
+            @last_upload_time_cv.broadcast
+          end
         rescue => e
           @logger.debug { "symdb: extraction error: #{e.class}: #{e.message}" }
+          @mutex.synchronize do
+            @last_upload_time = Datadog::Core::Utils::Time.now
+            @last_upload_time_cv.broadcast
+          end
         ensure
           @mutex.synchronize do
             @upload_in_progress = false
             @upload_in_progress_cv.signal
           end
+        end
+      end
+
+      # Drain the hot-load buffer, dedup by object_id, return the array of
+      # FILE scopes from per-module extraction.
+      # @return [Array<Scope>]
+      def extract_hot_load_buffer
+        modules = @hot_load_buffer_mutex.synchronize { @hot_load_buffer.shift(@hot_load_buffer.length) }
+        return [] if modules.empty?
+
+        seen = {}
+        modules.each { |mod| seen[mod.object_id] = mod }
+        seen.values.map { |mod| @extractor.extract(mod) }.compact
+      end
+
+      # Install the TracePoint :class hook (lazy — only on first start_upload).
+      # Hook fires for every class/module body open including reopens; pushes
+      # the module onto @hot_load_buffer and signals the scheduler. Singleton
+      # classes are filtered for the same reason as in Extractor#extract_all.
+      # Must be called from within @scheduler_mutex.synchronize.
+      # @return [void]
+      def install_hot_load_hook
+        return if @hot_load_tracepoint
+        component = self
+        @hot_load_tracepoint = TracePoint.new(:class) do |tp|
+          mod = tp.self
+          # steep:ignore:start
+          next if mod.singleton_class?
+          component.send(:enqueue_hot_load, mod)
+          # steep:ignore:end
+        end
+        @hot_load_tracepoint.enable
+      end
+
+      # Enqueue a hot-loaded module and signal the scheduler.
+      # Called from the TracePoint :class block — must be cheap.
+      # @param mod [Module]
+      # @return [void]
+      def enqueue_hot_load(mod)
+        @hot_load_buffer_mutex.synchronize { @hot_load_buffer << mod }
+        @scheduler_mutex.synchronize do
+          return if @shutdown
+          @scheduled_at = Datadog::Core::Utils::Time.get_time + EXTRACT_DEBOUNCE_INTERVAL
+          @scheduler_signaled = true
+          @scheduler_cv.signal
         end
       end
 

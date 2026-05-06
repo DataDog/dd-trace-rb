@@ -38,9 +38,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       mock_response
     end
 
-    # Reset cross-test class-level state and shorten the debounce window so
-    # tests don't wait the production 5 seconds.
-    Datadog::SymbolDatabase::Component.reset_uploaded_this_process_for_tests!
+    # Shorten the debounce window so tests don't wait the production 5 seconds.
     stub_const('Datadog::SymbolDatabase::Component::EXTRACT_DEBOUNCE_INTERVAL', 0.05)
   end
 
@@ -209,8 +207,12 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
     end
   end
 
-  describe 'class-level dedup prevents re-upload' do
-    it 'does not extract again after a successful upload in this process' do
+  describe 'incremental extraction after initial upload' do
+    it 'a second start_upload with no new class loads produces no extra upload' do
+      # With hot-load coverage, a second start_upload runs the hot-load path
+      # which drains the TracePoint buffer. If no new classes loaded since the
+      # initial extraction, the drain is empty and ScopeBatcher.flush has
+      # nothing to send — captured_forms stays the same.
       component = Datadog::SymbolDatabase::Component.build(
         settings,
         agent_settings,
@@ -222,7 +224,6 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       component.wait_for_idle(timeout: 30)
       upload_count_after_first = captured_forms.size
 
-      # Second call should be a no-op (uploaded_this_process? is true).
       component.stop_upload
       component.start_upload
       sleep 0.2

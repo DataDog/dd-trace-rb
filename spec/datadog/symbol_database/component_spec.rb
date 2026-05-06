@@ -32,9 +32,6 @@ RSpec.describe Datadog::SymbolDatabase::Component do
   let(:raw_logger) { instance_double(Logger, debug: nil) }
   let(:logger) { Datadog::SymbolDatabase::Logger.new(settings, raw_logger) }
 
-  # Reset the class-level "have we uploaded this process" flag between tests.
-  before { described_class.reset_uploaded_this_process_for_tests! }
-
   # Stub Uploader and ScopeBatcher to avoid real HTTP calls.
   before do
     allow(Datadog::SymbolDatabase::Transport::HTTP).to receive(:symbols).and_return(
@@ -181,8 +178,8 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
       it 'each Component registers its own callback (no class-level dedup of registration)' do
         # Per-instance design: each Component schedules its own deferred upload.
-        # Cross-instance deduplication of the actual upload is handled by the
-        # class-level uploaded_this_process? flag, not by guarding registration.
+        # Old shut-down Components short-circuit their start_upload via @shutdown,
+        # so the surviving Component is the one that actually triggers extraction.
         component2 = described_class.new(settings, agent_settings, logger)
 
         component.schedule_deferred_upload
@@ -219,14 +216,6 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       component.wait_for_idle(timeout: 5)
 
       expect(extraction_count).to eq(1)
-    end
-
-    it 'short-circuits when the process has already uploaded' do
-      described_class.mark_uploaded
-
-      expect(component).not_to receive(:extract_and_upload)
-      component.start_upload
-      sleep 0.2 # Give scheduler thread time to fire if it were going to
     end
 
     it 'does not extract when shut down' do
@@ -323,40 +312,91 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
   end
 
-  describe 'reconfiguration scenario (regression test for two-uploads-per-extract-run)' do
-    # Bug: reconfiguration via Datadog.configure replaces the Component after
-    # the deferred callback has fired on the old instance. The script's
-    # explicit start_upload then hits the new instance and triggers a second
-    # extraction. The fix lifts upload-done state to a class-level flag so
-    # the new instance's start_upload short-circuits.
+  describe 'debounce regression (collapses bursts of start_upload calls)' do
+    # The two-uploads bug was that a burst of start_upload triggers — auto-deferred
+    # callback then explicit script call — produced two extractions. The fix is
+    # the per-instance debounce scheduler: multiple start_upload calls within
+    # EXTRACT_DEBOUNCE_INTERVAL coalesce into a single extraction.
     before do
       allow(settings.symbol_database.internal).to receive(:force_upload).and_return(true)
       hide_const('ActiveSupport')
       hide_const('Rails::Railtie')
     end
 
-    it 'only performs one extraction across reconfigurations + explicit start_upload' do
+    it 'multiple start_upload calls within the debounce window produce one extraction' do
       extraction_count = 0
-      allow_any_instance_of(described_class).to receive(:extract_and_upload) do |inst|
+      allow_any_instance_of(described_class).to receive(:extract_and_upload) do |_inst|
         extraction_count += 1
-        described_class.mark_uploaded
       end
 
-      # First Component: built, schedules upload, fires on its scheduler thread.
-      component_a = described_class.build(settings, agent_settings, logger)
-      component_a.wait_for_idle(timeout: 5)
-
-      # Reconfigure: shut down A, build B (via .build to trigger
-      # schedule_deferred_upload), then call start_upload explicitly on B
-      # (simulating bin/extract_symbols).
-      component_a.shutdown!
-      component_b = described_class.build(settings, agent_settings, logger)
-      component_b.start_upload
-      sleep 0.2 # give scheduler thread a chance to fire
+      component = described_class.new(settings, agent_settings, logger)
+      component.start_upload
+      component.start_upload
+      component.start_upload
+      sleep 0.2 # > EXTRACT_DEBOUNCE_INTERVAL (0.05s), give scheduler time to fire
 
       expect(extraction_count).to eq(1)
 
+      component.shutdown!
+    end
+
+    it 'each Component built across reconfigurations extracts independently' do
+      # With hot-load coverage, dedup across Components is intentionally removed.
+      # Each Component is responsible for its own initial extraction (which the
+      # new Component needs in order to have a hot-load baseline) plus any
+      # incremental extractions driven by the TracePoint :class hook.
+      extraction_count = 0
+      allow_any_instance_of(described_class).to receive(:extract_and_upload) do |_inst|
+        extraction_count += 1
+      end
+
+      component_a = described_class.build(settings, agent_settings, logger)
+      component_a.wait_for_idle(timeout: 5)
+      component_a.shutdown!
+
+      component_b = described_class.build(settings, agent_settings, logger)
+      component_b.wait_for_idle(timeout: 5)
+
+      expect(extraction_count).to eq(2)
+
       component_b.shutdown!
+    end
+  end
+
+  describe 'hot-load coverage (TracePoint :class)' do
+    # Verifies the cross-tracer parity goal (Java ClassFileTransformer,
+    # Python BaseModuleWatchdog#after_import, .NET AppDomain.AssemblyLoad):
+    # classes defined after initial extraction reach the symbol DB via
+    # incremental uploads driven by the TracePoint :class hook.
+    before do
+      allow(settings.symbol_database.internal).to receive(:force_upload).and_return(true)
+      hide_const('ActiveSupport')
+      hide_const('Rails::Railtie')
+    end
+
+    it 'extracts a class defined after the initial upload completes' do
+      extracted_modules = []
+      allow_any_instance_of(Datadog::SymbolDatabase::Extractor).to receive(:extract) do |_inst, mod|
+        extracted_modules << mod
+        nil
+      end
+
+      component = described_class.build(settings, agent_settings, logger)
+      component.wait_for_idle(timeout: 5)
+
+      begin
+        # Define a class — `class Foo` opens a class body, which fires
+        # TracePoint :class. The hook buffers the class; the scheduler
+        # drains and calls Extractor#extract.
+        eval('class SymdbHotLoadSpecNewClass; def hello; end; end', binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
+
+        component.wait_for_idle(timeout: 5)
+
+        expect(extracted_modules.map(&:name)).to include('SymdbHotLoadSpecNewClass')
+      ensure
+        Object.send(:remove_const, :SymdbHotLoadSpecNewClass) if Object.const_defined?(:SymdbHotLoadSpecNewClass)
+        component.shutdown!
+      end
     end
   end
 
