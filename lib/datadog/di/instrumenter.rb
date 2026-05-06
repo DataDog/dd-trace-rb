@@ -184,7 +184,7 @@ module Datadog
               target_self: self, do_super: do_super,
               probe: probe, responder: responder,
               loc: loc, method_name: method_name, # steep:ignore ArgumentTypeMismatch
-              user_caller_locations: user_caller_locations # steep:ignore ArgumentTypeMismatch
+              user_caller_locations: user_caller_locations, # steep:ignore ArgumentTypeMismatch
             )
           end
         end
