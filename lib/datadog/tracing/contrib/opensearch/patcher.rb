@@ -62,11 +62,6 @@ module Datadog
                   )
                 end
 
-                # Tag original global service name if not used
-                if span.service != Datadog.configuration.service
-                  span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
-                end
-
                 # Set url tags
                 span.set_tag(OpenSearch::Ext::TAG_URL, url)
                 span.set_tag(OpenSearch::Ext::TAG_HOST, host)
