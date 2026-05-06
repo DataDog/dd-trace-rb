@@ -23,6 +23,19 @@ static VALUE _native_exporter_new(VALUE klass, VALUE rb_url,
   VALUE rb_language_interpreter, VALUE rb_hostname, VALUE rb_env,
   VALUE rb_service, VALUE rb_version);
 
+/* Response helpers */
+static VALUE create_ok_response(long trace_count, VALUE payload);
+static VALUE create_error_response(ddog_TraceExporterErrorCode code,
+                                    long trace_count);
+static VALUE response_ok_p(VALUE self);
+static VALUE response_internal_error_p(VALUE self);
+static VALUE response_server_error_p(VALUE self);
+static VALUE response_client_error_p(VALUE self);
+static VALUE response_not_found_p(VALUE self);
+static VALUE response_unsupported_p(VALUE self);
+static VALUE response_trace_count_m(VALUE self);
+static VALUE response_payload(VALUE self);
+
 /* GC / TypedData */
 static void tracer_span_dfree(void *ptr);
 static void trace_exporter_dfree(void *ptr);
@@ -52,12 +65,23 @@ static ID id_duration_method;
 static ID id_bitand;
 static ID id_rshift;
 
+/* Response ivar IDs */
+static ID at_ok_id;
+static ID at_int_error_id;
+static ID at_srv_error_id;
+static ID at_cli_error_id;
+static ID at_not_found_id;
+static ID at_unsupported_id;
+static ID at_trace_count_id;
+static ID at_payload_id;
+
 /* ========================================================================
  * Ruby class references (marked as GC roots)
  * ======================================================================== */
 
 static VALUE tracer_span_class    = Qnil;
 static VALUE trace_exporter_class = Qnil;
+static VALUE response_class       = Qnil;
 
 /* ========================================================================
  * TypedData definitions
@@ -307,6 +331,100 @@ static VALUE _native_from_span(DDTRACE_UNUSED VALUE klass, VALUE span) {
 }
 
 /* ========================================================================
+ * Response class helpers
+ * ======================================================================== */
+
+/*
+ * Build an error response, classifying the error code into the
+ * Transport::Response categories:
+ *
+ *   HTTP_CLIENT  -> client_error? (4xx family)
+ *   HTTP_SERVER  -> server_error? (5xx family)
+ *   everything else -> internal_error?
+ */
+static VALUE create_error_response(ddog_TraceExporterErrorCode code,
+                                    long trace_count) {
+  bool client_err = (code == DDOG_TRACE_EXPORTER_ERROR_CODE_HTTP_CLIENT);
+  bool server_err = (code == DDOG_TRACE_EXPORTER_ERROR_CODE_HTTP_SERVER);
+  bool internal   = !client_err && !server_err;
+
+  VALUE resp = rb_obj_alloc(response_class);
+  rb_ivar_set(resp, at_ok_id,           Qfalse);
+  rb_ivar_set(resp, at_int_error_id,    internal   ? Qtrue : Qfalse);
+  rb_ivar_set(resp, at_srv_error_id,    server_err ? Qtrue : Qfalse);
+  rb_ivar_set(resp, at_cli_error_id,    client_err ? Qtrue : Qfalse);
+  rb_ivar_set(resp, at_not_found_id,    Qfalse);
+  rb_ivar_set(resp, at_unsupported_id,  Qfalse);
+  rb_ivar_set(resp, at_trace_count_id,  LONG2NUM(trace_count));
+  rb_ivar_set(resp, at_payload_id,      Qnil);
+  return resp;
+}
+
+/*
+ * Build a success response, optionally carrying the agent's response body
+ * as +payload+.
+ *
+ * +payload+ is the raw HTTP response body returned by the Datadog Agent
+ * (typically JSON containing +rate_by_service+).  It is surfaced here so
+ * that callers matching the +Datadog::Core::Transport::Response+ interface
+ * can parse service sampling rates, just as the Net::HTTP transport does.
+ */
+static VALUE create_ok_response(long trace_count, VALUE payload) {
+  VALUE resp = rb_obj_alloc(response_class);
+  rb_ivar_set(resp, at_ok_id,           Qtrue);
+  rb_ivar_set(resp, at_int_error_id,    Qfalse);
+  rb_ivar_set(resp, at_srv_error_id,    Qfalse);
+  rb_ivar_set(resp, at_cli_error_id,    Qfalse);
+  rb_ivar_set(resp, at_not_found_id,    Qfalse);
+  rb_ivar_set(resp, at_unsupported_id,  Qfalse);
+  rb_ivar_set(resp, at_trace_count_id,  LONG2NUM(trace_count));
+  rb_ivar_set(resp, at_payload_id,      payload);
+  return resp;
+}
+
+static VALUE response_ok_p(VALUE self) {
+  return rb_ivar_get(self, at_ok_id);
+}
+
+static VALUE response_internal_error_p(VALUE self) {
+  return rb_ivar_get(self, at_int_error_id);
+}
+
+static VALUE response_server_error_p(VALUE self) {
+  return rb_ivar_get(self, at_srv_error_id);
+}
+
+static VALUE response_client_error_p(VALUE self) {
+  return rb_ivar_get(self, at_cli_error_id);
+}
+
+static VALUE response_not_found_p(VALUE self) {
+  return rb_ivar_get(self, at_not_found_id);
+}
+
+static VALUE response_unsupported_p(VALUE self) {
+  return rb_ivar_get(self, at_unsupported_id);
+}
+
+static VALUE response_trace_count_m(VALUE self) {
+  return rb_ivar_get(self, at_trace_count_id);
+}
+
+/*
+ * The raw HTTP response body from the Datadog Agent (typically JSON).
+ *
+ * The HTTP-based trace transport uses this to parse the
+ * +rate_by_service+ map that the agent returns after accepting
+ * traces, which feeds back into client-side sampling rate
+ * decisions.  For the native transport this body is extracted
+ * from +ddog_trace_exporter_response_get_body+ on success, and is
+ * +nil+ on error or when the agent returned an empty body.
+ */
+static VALUE response_payload(VALUE self) {
+  return rb_ivar_get(self, at_payload_id);
+}
+
+/* ========================================================================
  * TraceExporter._native_new
  *
  * Creates a Rust TraceExporter with the given configuration.
@@ -423,6 +541,22 @@ void trace_exporter_init(VALUE tracing_module) {
                              _native_exporter_new, 9);
 
   /* ----------------------------------------------------------------
+   * Response class
+   * ---------------------------------------------------------------- */
+  response_class =
+      rb_define_class_under(native_module, "Response", rb_cObject);
+  rb_global_variable(&response_class);
+
+  rb_define_method(response_class, "ok?",              response_ok_p,              0);
+  rb_define_method(response_class, "internal_error?",  response_internal_error_p,  0);
+  rb_define_method(response_class, "server_error?",    response_server_error_p,    0);
+  rb_define_method(response_class, "client_error?",    response_client_error_p,    0);
+  rb_define_method(response_class, "not_found?",       response_not_found_p,       0);
+  rb_define_method(response_class, "unsupported?",     response_unsupported_p,     0);
+  rb_define_method(response_class, "trace_count",      response_trace_count_m,     0);
+  rb_define_method(response_class, "payload",          response_payload,           0);
+
+  /* ----------------------------------------------------------------
    * Cache Ruby intern IDs
    * ---------------------------------------------------------------- */
 
@@ -446,4 +580,14 @@ void trace_exporter_init(VALUE tracing_module) {
   id_duration_method = rb_intern("duration");
   id_bitand          = rb_intern("&");
   id_rshift          = rb_intern(">>");
+
+  /* Response ivars */
+  at_ok_id          = rb_intern("@ok");
+  at_int_error_id   = rb_intern("@internal_error");
+  at_srv_error_id   = rb_intern("@server_error");
+  at_cli_error_id   = rb_intern("@client_error");
+  at_not_found_id   = rb_intern("@not_found");
+  at_unsupported_id = rb_intern("@unsupported");
+  at_trace_count_id = rb_intern("@trace_count");
+  at_payload_id     = rb_intern("@payload");
 }
