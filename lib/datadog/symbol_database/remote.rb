@@ -44,7 +44,7 @@ module Datadog
             component = begin
               Datadog.send(:components)&.symbol_database
             rescue => e
-              Datadog.logger.debug { "symdb: failed to look up component in RC receiver: #{e.class}: #{e}" }
+              Datadog.logger.debug { "symdb: failed to look up component in RC receiver: #{e.class}: #{e.message}" }
               nil
             end
 
@@ -88,7 +88,7 @@ module Datadog
             change.content.errored("Unrecognized change type: #{change.type}") if change.respond_to?(:content)
           end
         rescue => e
-          Datadog.logger.debug { "symdb: error processing remote config change: #{e.class}: #{e}" }
+          Datadog.logger.debug { "symdb: error processing remote config change: #{e.class}: #{e.message}" }
           content_obj = change.respond_to?(:content) ? change.content : change.previous
           content_obj&.errored(e.to_s)
         end
@@ -141,7 +141,7 @@ module Datadog
 
           config
         rescue JSON::ParserError => e
-          Datadog.logger.debug { "symdb: invalid config format: #{e.class}: #{e}" }
+          Datadog.logger.debug { "symdb: invalid config format: #{e.class}: #{e.message}" }
           nil
         end
       end

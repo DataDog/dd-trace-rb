@@ -110,7 +110,7 @@ module Datadog
         # Upload outside mutex (if batch was full)
         perform_upload(scopes_to_upload) if scopes_to_upload
       rescue => e
-        @logger.debug { "symdb: failed to add scope: #{e.class}: #{e}" }
+        @logger.debug { "symdb: failed to add scope: #{e.class}: #{e.message}" }
         # Don't propagate, continue operation
       end
 
@@ -244,7 +244,7 @@ module Datadog
           end
         end
       rescue => e
-        @logger.debug { "symdb: timer thread error: #{e.class}: #{e}" }
+        @logger.debug { "symdb: timer thread error: #{e.class}: #{e.message}" }
       end
 
       # Perform upload via uploader.
@@ -256,7 +256,7 @@ module Datadog
         @uploader.upload_scopes(scopes)
         @on_upload&.call(scopes)  # Notify tests after upload
       rescue => e
-        @logger.debug { "symdb: upload failed: #{e.class}: #{e}" }
+        @logger.debug { "symdb: upload failed: #{e.class}: #{e.message}" }
         # Don't propagate, uploader handles retries
       end
     end
