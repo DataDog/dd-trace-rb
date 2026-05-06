@@ -496,7 +496,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it "include accurate object sizes" do
-          skip_if_asan_could_keep_dangling_allocations_alive
+          skip_asan_flaky
 
           string_sample = heap_samples.find { |s| s.labels[:"allocation class"] == "String" }
           expect(string_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_string) * sample_rate)
