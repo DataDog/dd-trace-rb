@@ -570,19 +570,17 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
     end
 
     it "installs without infinite recursion and the system is stable" do
-      expect {
-        run_stdlib_probe_test(probe) do
-          # The probe on Module#prepend fired during its own installation.
-          # Trigger an additional prepend to verify the system is stable.
-          mod = Module.new
-          Class.new.prepend(mod)
-        end
-      }.not_to raise_error
+      run_stdlib_probe_test(probe) do
+        # The probe on Module#prepend fired during its own installation.
+        # Trigger an additional prepend to verify the system is stable.
+        mod = Module.new
+        Class.new.prepend(mod)
+      end
 
       # Probe is installed and the wrapper module is recorded on the probe.
       # Payloads may or may not be generated depending on rate limiting,
       # so the assertion is on installation state rather than payload count.
-      expect(probe.instrumentation_module).not_to be_nil
+      expect(probe.instrumentation_module).to be_a(Module)
     end
   end
 
@@ -788,6 +786,12 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
     # Fix: lambda literal `->(a, k, blk) { ... }` is syntax — no method dispatch —
     # so a probe on Kernel#lambda cannot intercept do_super construction. The same
     # `->` form is already used on the user_caller_locations site in the wrapper.
+    #
+    # Skip on Ruby < 3.0: prepending a `lambda` method onto Kernel does not
+    # intercept `lambda { ... }` calls on Ruby 2.7 — empirically the wrapper
+    # is never entered, so the recursion bug being tested is not reachable
+    # there. The fix is only relevant on Ruby versions where the prepend
+    # intercepts (verified on 3.2+).
 
     include_context "permissive settings"
 
@@ -802,6 +806,8 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
     end
 
     it "does not self-recurse through wrapper trampoline construction" do
+      skip "Kernel#lambda prepend interception requires Ruby 3.0+" if RUBY_VERSION < "3.0"
+
       payloads = run_stdlib_probe_test(probe) do
         f = lambda { |x| x * 2 }
         expect(f.call(3)).to eq(6)
