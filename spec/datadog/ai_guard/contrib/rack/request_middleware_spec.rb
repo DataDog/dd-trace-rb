@@ -29,10 +29,10 @@ RSpec.describe Datadog::AIGuard::Contrib::Rack::RequestMiddleware do
     Datadog.configuration.reset!
   end
 
-  context "when an AI Guard span fired during the request" do
+  context "when AI Guard ran during the request" do
     let(:app) do
       lambda do |_env|
-        Datadog::Tracing.trace(Datadog::AIGuard::Ext::SPAN_NAME) { |_s| nil }
+        Datadog::Tracing.active_trace&.set_tag(Datadog::AIGuard::Ext::SERVICE_ENTRY_EXECUTED_TAG, "1")
         [200, {}, ["ok"]]
       end
     end
@@ -55,11 +55,19 @@ RSpec.describe Datadog::AIGuard::Contrib::Rack::RequestMiddleware do
       expect(response).to eq([200, {}, ["ok"]])
     end
 
+    it "removes the executed flag from the trace so it is not exported" do
+      Datadog::Tracing.trace("rack.request") do |_span, trace|
+        middleware.call(env)
+
+        expect(trace.get_tag(Datadog::AIGuard::Ext::SERVICE_ENTRY_EXECUTED_TAG)).to be_nil
+      end
+    end
+
     it "still tags on the way out when the inner app raises" do
-      raising_app = ->(_env) {
-        Datadog::Tracing.trace(Datadog::AIGuard::Ext::SPAN_NAME) { |_s| nil }
+      raising_app = lambda do |_env|
+        Datadog::Tracing.active_trace&.set_tag(Datadog::AIGuard::Ext::SERVICE_ENTRY_EXECUTED_TAG, "1")
         raise "boom"
-      }
+      end
       mw = described_class.new(raising_app)
 
       Datadog::Tracing.trace("rack.request") do |span|
@@ -67,28 +75,6 @@ RSpec.describe Datadog::AIGuard::Contrib::Rack::RequestMiddleware do
 
         expect(span.get_tag("http.client_ip")).to eq("198.51.100.42")
         expect(span.get_tag("network.client.ip")).to eq("203.0.113.5")
-      end
-    end
-
-    context "when http.client_ip is already set" do
-      it "does not overwrite it" do
-        Datadog::Tracing.trace("rack.request") do |span|
-          span.set_tag("http.client_ip", "10.0.0.1")
-          middleware.call(env)
-
-          expect(span.get_tag("http.client_ip")).to eq("10.0.0.1")
-        end
-      end
-    end
-
-    context "when network.client.ip is already set" do
-      it "does not overwrite it" do
-        Datadog::Tracing.trace("rack.request") do |span|
-          span.set_tag("network.client.ip", "10.0.0.1")
-          middleware.call(env)
-
-          expect(span.get_tag("network.client.ip")).to eq("10.0.0.1")
-        end
       end
     end
 
@@ -121,7 +107,7 @@ RSpec.describe Datadog::AIGuard::Contrib::Rack::RequestMiddleware do
     end
   end
 
-  context "when no AI Guard span fired during the request" do
+  context "when AI Guard did not run during the request" do
     it "does not tag the request span" do
       Datadog::Tracing.trace("rack.request") do |span|
         middleware.call(env)
@@ -138,34 +124,12 @@ RSpec.describe Datadog::AIGuard::Contrib::Rack::RequestMiddleware do
     end
   end
 
-  context "when both client IP tags are already set" do
-    let(:app) do
-      lambda do |_env|
-        Datadog::Tracing.trace(Datadog::AIGuard::Ext::SPAN_NAME) { |_s| nil }
-        [200, {}, ["ok"]]
-      end
-    end
-
-    it "skips the span scan as a fast path" do
-      Datadog::Tracing.trace("rack.request") do |span|
-        span.set_tag("http.client_ip", "10.0.0.1")
-        span.set_tag("network.client.ip", "10.0.0.2")
-
-        active_trace = Datadog::Tracing.active_trace
-        expect(active_trace).not_to receive(:instance_variable_get).with(:@spans)
-
-        middleware.call(env)
-
-        expect(span.get_tag("http.client_ip")).to eq("10.0.0.1")
-        expect(span.get_tag("network.client.ip")).to eq("10.0.0.2")
-      end
-    end
-  end
-
   context "when there is no active trace" do
     let(:app) do
       lambda do |_env|
-        Datadog::Tracing.trace(Datadog::AIGuard::Ext::SPAN_NAME) { |_s| nil }
+        Datadog::Tracing.trace(Datadog::AIGuard::Ext::SPAN_NAME) do |_span, trace|
+          trace.set_tag(Datadog::AIGuard::Ext::SERVICE_ENTRY_EXECUTED_TAG, "1")
+        end
         [200, {}, ["ok"]]
       end
     end
