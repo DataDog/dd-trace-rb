@@ -105,12 +105,15 @@ module Datadog
 
           # (see Resolver#resolve)
           def resolve(value)
-            @cache.fetch(value) do
+            cache_key = value.object_id
+            @cache.fetch(cache_key) do
               if @cache.size >= @cache_limit
                 @cache.shift # Remove the oldest entry if cache is full
               end
 
-              @cache[value] = super
+              # Register finalizer to clean up cache entry when object is garbage collected
+              ObjectSpace.define_finalizer(value) { @cache.delete(cache_key) }
+              @cache[cache_key] = super
             end
           end
 
