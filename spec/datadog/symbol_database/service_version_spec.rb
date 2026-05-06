@@ -38,24 +38,24 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
       }.to raise_error(ArgumentError, /scopes must be an array/)
     end
 
-    it 'converts empty env to "none"' do
+    it 'passes empty env through unchanged' do
       sv = described_class.new(service: 'svc', env: '', version: '1.0', scopes: [])
-      expect(sv.env).to eq('none')
+      expect(sv.env).to eq('')
     end
 
-    it 'converts nil env to "none"' do
+    it 'passes nil env through unchanged' do
       sv = described_class.new(service: 'svc', env: nil, version: '1.0', scopes: [])
-      expect(sv.env).to eq('none')
+      expect(sv.env).to be_nil
     end
 
-    it 'converts empty version to "none"' do
+    it 'passes empty version through unchanged' do
       sv = described_class.new(service: 'svc', env: 'prod', version: '', scopes: [])
-      expect(sv.version).to eq('none')
+      expect(sv.version).to eq('')
     end
 
-    it 'converts nil version to "none"' do
+    it 'passes nil version through unchanged' do
       sv = described_class.new(service: 'svc', env: 'prod', version: nil, scopes: [])
-      expect(sv.version).to eq('none')
+      expect(sv.version).to be_nil
     end
 
     it 'sets language' do
@@ -105,14 +105,14 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
       )
     end
 
-    it 'handles empty env as "none"' do
+    it 'passes empty env through to the hash' do
       sv = described_class.new(service: 'svc', env: '', version: '1.0', scopes: [])
-      expect(sv.to_h[:env]).to eq('none')
+      expect(sv.to_h[:env]).to eq('')
     end
 
-    it 'handles empty version as "none"' do
-      sv = described_class.new(service: 'svc', env: 'prod', version: '', scopes: [])
-      expect(sv.to_h[:version]).to eq('none')
+    it 'passes nil version through to the hash' do
+      sv = described_class.new(service: 'svc', env: 'prod', version: nil, scopes: [])
+      expect(sv.to_h[:version]).to be_nil
     end
   end
 
