@@ -486,7 +486,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it "include the stack and sample counts for the objects still left alive" do
-          skip_if_asan_could_keep_dangling_allocations_alive
+          skip_asan_flaky
 
           # There should be 3 different allocation class labels so we expect 3 different heap samples
           expect(heap_samples.size).to eq(3)
