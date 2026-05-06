@@ -99,7 +99,7 @@ module Datadog
         end
       end
 
-      attr_reader :settings, :last_upload_time, :upload_in_progress
+      attr_reader :settings, :last_upload_time, :last_upload_scope_count, :upload_in_progress
 
       # Initialize component.
       # @param settings [Configuration::Settings] Tracer settings
@@ -115,6 +115,7 @@ module Datadog
         @scope_batcher = ScopeBatcher.new(@uploader, logger: logger)
 
         @last_upload_time = nil
+        @last_upload_scope_count = nil
         @mutex = Mutex.new
         @upload_in_progress = false
         @upload_in_progress_cv = ConditionVariable.new
@@ -356,6 +357,7 @@ module Datadog
           @scope_batcher.flush
 
           @last_upload_time = Datadog::Core::Utils::Time.now
+          @last_upload_scope_count = extracted_count
         rescue => e
           @logger.debug { "symdb: extraction error: #{e.class}: #{e.message}" }
         ensure

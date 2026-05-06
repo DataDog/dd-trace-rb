@@ -20,6 +20,7 @@ module Datadog
       @uploader: Uploader
       @scope_batcher: ScopeBatcher
       @last_upload_time: Time?
+      @last_upload_scope_count: Integer?
       @mutex: Thread::Mutex
       @upload_in_progress: bool
       @upload_in_progress_cv: Thread::ConditionVariable
@@ -36,6 +37,7 @@ module Datadog
 
       attr_reader settings: untyped
       attr_reader last_upload_time: Time?
+      attr_reader last_upload_scope_count: Integer?
       attr_reader upload_in_progress: bool
 
       def schedule_deferred_upload: () -> void
