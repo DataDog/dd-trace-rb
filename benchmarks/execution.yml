@@ -30,6 +30,7 @@
       tracing_trace.rb
       di_instrument.rb
       library_gem_loading.rb
+      symbol_database_extraction.rb
 
 .execution:
   variables:
