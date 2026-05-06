@@ -668,7 +668,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           let(:heap_sample_every) { 2 }
 
           it "only keeps track of some allocations" do
-            skip_if_asan_could_keep_dangling_allocations_alive
+            skip_asan_flaky
 
             # By only sampling every 2nd allocation we only track the odd objects which means our array
             # should be the only heap sample captured (string is index 0, array is index 1, hash is 4)
