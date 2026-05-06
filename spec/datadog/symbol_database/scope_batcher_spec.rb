@@ -20,8 +20,8 @@ RSpec.describe Datadog::SymbolDatabase::ScopeBatcher do
   subject(:context) { described_class.new(uploader, logger: logger) }
 
   after do
-    # Cleanup any running timers
-    context.reset
+    # Cleanup any running timers (reset is private)
+    context.send(:reset)
   end
 
   describe '#initialize' do
@@ -208,12 +208,12 @@ RSpec.describe Datadog::SymbolDatabase::ScopeBatcher do
     end
   end
 
-  describe '#reset' do
+  describe 'reset (private, test-only)' do
     it 'clears all state' do
       allow(uploader).to receive(:upload_scopes)
 
       context.add_scope(test_scope)
-      context.reset
+      context.send(:reset)
 
       expect(context.size).to eq(0)
       expect(context.scopes_pending?).to be false
@@ -223,7 +223,7 @@ RSpec.describe Datadog::SymbolDatabase::ScopeBatcher do
       allow(uploader).to receive(:upload_scopes)
 
       context.add_scope(test_scope)
-      context.reset
+      context.send(:reset)
 
       # Reset clears scopes and kills timer
       expect(context.size).to eq(0)
@@ -360,6 +360,75 @@ RSpec.describe Datadog::SymbolDatabase::ScopeBatcher do
 
       # Should not have triggered a second upload (empty batch)
       expect(upload_calls.size).to eq(1)
+    end
+  end
+
+  describe 'error handling' do
+    let(:telemetry) { instance_double('Datadog::Core::Telemetry::Component', report: nil) }
+
+    subject(:context) { described_class.new(uploader, logger: logger, telemetry: telemetry, timer_enabled: false) }
+
+    context 'when add_scope raises unexpectedly' do
+      it 'logs and reports telemetry without propagating' do
+        # Force the dedup Set lookup to raise — exercises the outer rescue in add_scope
+        broken_set = Set.new
+        def broken_set.include?(_)
+          raise StandardError, 'set blew up'
+        end
+        context.instance_variable_set(:@uploaded_modules, broken_set)
+
+        expect(raw_logger).to receive(:debug) { |&block| expect(block.call).to match(/failed to add scope.*StandardError.*set blew up/i) }
+        expect(telemetry).to receive(:report).with(an_instance_of(StandardError), description: 'symdb: failed to add scope')
+
+        expect { context.add_scope(test_scope) }.not_to raise_error
+      end
+    end
+
+    context 'when uploader raises during perform_upload' do
+      it 'logs and reports telemetry without propagating' do
+        allow(uploader).to receive(:upload_scopes).and_raise(StandardError, 'upload blew up')
+
+        expect(raw_logger).to receive(:debug) { |&block| expect(block.call).to match(/upload failed.*StandardError.*upload blew up/i) }
+        expect(telemetry).to receive(:report).with(an_instance_of(StandardError), description: 'symdb: upload failed')
+
+        context.add_scope(test_scope)
+        expect { context.flush }.not_to raise_error
+      end
+    end
+
+    context 'when timer thread raises unexpectedly' do
+      let(:timer_telemetry) { instance_double('Datadog::Core::Telemetry::Component', report: nil) }
+      let(:timer_logger) { Datadog::SymbolDatabase::Logger.new(settings, raw_logger) }
+
+      # Use a real timer for this test to exercise the rescue in timer_loop.
+      subject(:timer_context) { described_class.new(uploader, logger: timer_logger, telemetry: timer_telemetry) }
+
+      it 'logs and reports telemetry without crashing the process' do
+        # Stub @scopes.empty? to raise inside the timer loop's mutex section.
+        broken_scopes = []
+        def broken_scopes.empty?
+          raise StandardError, 'scope check blew up'
+        end
+
+        captured = Queue.new
+        allow(timer_telemetry).to receive(:report) do |error, description:|
+          captured.push([error.message, description])
+        end
+
+        timer_context.instance_variable_set(:@scopes, broken_scopes)
+        # Trigger the timer loop by sending a signal so the wait returns and the
+        # timed-out branch runs against the broken @scopes.
+        timer_context.instance_variable_get(:@mutex).synchronize do
+          timer_context.send(:ensure_timer_running)
+        end
+
+        # The timer waits 1s then probes @scopes.empty? — wait for the report.
+        message, description = Timeout.timeout(5) { captured.pop }
+        expect(message).to match(/scope check blew up/)
+        expect(description).to eq('symdb: timer thread error')
+
+        timer_context.shutdown
+      end
     end
   end
 end

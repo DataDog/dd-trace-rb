@@ -38,11 +38,14 @@ module Datadog
 
       # Initialize batching context.
       # @param uploader [Uploader] Uploader instance for triggering uploads
+      # @param logger [Logger] Logger for diagnostics
+      # @param telemetry [Core::Telemetry::Component, nil] Telemetry for error reporting
       # @param on_upload [Proc, nil] Optional callback called after upload (for testing)
       # @param timer_enabled [Boolean] Enable async timer (default true, false for tests)
-      def initialize(uploader, logger:, on_upload: nil, timer_enabled: true)
+      def initialize(uploader, logger:, telemetry: nil, on_upload: nil, timer_enabled: true)
         @uploader = uploader
         @logger = logger
+        @telemetry = telemetry
         @on_upload = on_upload
         @timer_enabled = timer_enabled
         @scopes = []
@@ -68,6 +71,7 @@ module Datadog
       # @param scope [Scope] The scope to add
       # @return [void]
       def add_scope(scope)
+        # @type var scopes_to_upload: ::Array[Scope]?
         scopes_to_upload = nil
 
         @mutex.synchronize do
@@ -93,10 +97,8 @@ module Datadog
           # Check if batch size reached (AFTER adding)
           if @scopes.size >= MAX_SCOPES
             # Prepare for upload (clear within mutex)
-            # steep:ignore:start
             scopes_to_upload = @scopes.dup
             @scopes.clear
-            # steep:ignore:end
           end
 
           # Signal the timer thread to reset its inactivity deadline.
@@ -111,15 +113,16 @@ module Datadog
         perform_upload(scopes_to_upload) if scopes_to_upload
       rescue => e
         @logger.debug { "symdb: failed to add scope: #{e.class}: #{e.message}" }
+        @telemetry&.report(e, description: 'symdb: failed to add scope')
         # Don't propagate, continue operation
       end
 
       # Force upload of current batch immediately.
       # @return [void]
       def flush
+        # @type var scopes_to_upload: ::Array[Scope]?
         scopes_to_upload = nil
 
-        # steep:ignore:start
         @mutex.synchronize do
           return if @scopes.empty?
 
@@ -128,18 +131,25 @@ module Datadog
         end
 
         perform_upload(scopes_to_upload)
-        # steep:ignore:end
       end
 
       # Shutdown and upload remaining scopes.
       # @return [void]
       def shutdown
+        # @type var scopes_to_upload: ::Array[Scope]?
         scopes_to_upload = nil
+        # @type var thread_to_join: ::Thread?
+        thread_to_join = nil
 
-        # steep:ignore:start
         @mutex.synchronize do
           @timer_stopped = true
           @timer_cv.signal  # Wake the timer thread so it exits
+
+          # Capture the timer thread under the mutex so a concurrent add_scope
+          # cannot create a new thread that we'd accidentally orphan when we
+          # nil the field below.
+          thread_to_join = @timer_thread
+          @timer_thread = nil
 
           scopes_to_upload = @scopes.dup
           @scopes.clear
@@ -147,34 +157,10 @@ module Datadog
 
         # Join the timer thread outside the mutex.
         # The thread checks @timer_stopped and exits when signaled.
-        @timer_thread&.join(5)  # 5-second timeout to avoid hanging
-        @timer_thread = nil
+        thread_to_join&.join(5)  # 5-second timeout to avoid hanging
 
         # Upload outside mutex
-        perform_upload(scopes_to_upload) unless scopes_to_upload.empty?
-        # steep:ignore:end
-      end
-
-      # Reset state (for testing).
-      # @return [void]
-      # @api private
-      def reset
-        @mutex.synchronize do
-          @scopes.clear
-          @timer_stopped = true
-          @timer_cv.signal
-          @file_count = 0
-          @uploaded_modules.clear
-        end
-
-        @timer_thread&.join(5)
-        @timer_thread = nil
-
-        # Allow timer to be restarted after reset
-        @mutex.synchronize do
-          @timer_stopped = false
-          @timer_signaled = false
-        end
+        perform_upload(scopes_to_upload) unless scopes_to_upload.nil? || scopes_to_upload.empty?
       end
 
       # Check if scopes are pending upload.
@@ -190,6 +176,34 @@ module Datadog
       end
 
       private
+
+      # Reset state. Private so production code cannot accidentally invoke it;
+      # tests call via +send(:reset)+.
+      # @return [void]
+      def reset
+        # @type var thread_to_join: ::Thread?
+        thread_to_join = nil
+
+        @mutex.synchronize do
+          @scopes.clear
+          @timer_stopped = true
+          @timer_cv.signal
+          @file_count = 0
+          @uploaded_modules.clear
+
+          # Capture under the mutex (see shutdown for rationale).
+          thread_to_join = @timer_thread
+          @timer_thread = nil
+        end
+
+        thread_to_join&.join(5)
+
+        # Allow timer to be restarted after reset
+        @mutex.synchronize do
+          @timer_stopped = false
+          @timer_signaled = false
+        end
+      end
 
       # Start the timer thread if not already running.
       # Must be called from within @mutex.synchronize.
@@ -245,6 +259,7 @@ module Datadog
         end
       rescue => e
         @logger.debug { "symdb: timer thread error: #{e.class}: #{e.message}" }
+        @telemetry&.report(e, description: 'symdb: timer thread error')
       end
 
       # Perform upload via uploader.
@@ -257,6 +272,7 @@ module Datadog
         @on_upload&.call(scopes)  # Notify tests after upload
       rescue => e
         @logger.debug { "symdb: upload failed: #{e.class}: #{e.message}" }
+        @telemetry&.report(e, description: 'symdb: upload failed')
         # Don't propagate, uploader handles retries
       end
     end
