@@ -9,6 +9,7 @@ module Datadog
         TAG_KIND: ::String
         TAG_TOP_LEVEL: ::String
         TAG_APM_ENABLED: ::String
+        TAG_BASE_SERVICE: ::String
 
         module Analytics
           DEFAULT_SAMPLE_RATE: ::Float

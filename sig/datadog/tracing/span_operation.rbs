@@ -157,6 +157,8 @@ module Datadog
       module RefineNil
       end
 
+      def set_base_service_tag: () -> void
+
       def build_span: () -> untyped
 
       def parent=: (untyped parent) -> untyped

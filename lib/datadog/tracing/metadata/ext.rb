@@ -33,6 +33,12 @@ module Datadog
 
         TAG_APM_ENABLED = '_dd.apm.enabled'
 
+        # Set to the global (root) service name when a span's service is overridden.
+        # This allows the APM backend to associate spans from sub-services back to the
+        # top-level service they belong to, enabling correct service catalog correlation
+        # and service-level aggregations.
+        TAG_BASE_SERVICE = '_dd.base_service'
+
         # Defines constants for trace analytics
         # @public_api
         module Analytics
