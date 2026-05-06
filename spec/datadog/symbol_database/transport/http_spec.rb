@@ -61,65 +61,61 @@ RSpec.describe Datadog::SymbolDatabase::Transport::HTTP do
     it 'wires the multipart Client subclass' do
       expect(transport.client).to be_a(Datadog::SymbolDatabase::Transport::Symbols::Client)
     end
-  end
 
-  describe 'request dispatch' do
-    subject(:transport) do
-      described_class.symbols(agent_settings: agent_settings, logger: logger)
-    end
+    context 'request dispatch' do
+      let(:agent_url) { 'http://127.0.0.1:8126/symdb/v1/input' }
 
-    let(:agent_url) { 'http://127.0.0.1:8126/symdb/v1/input' }
+      # WebMock is enabled by the outer `before` block, but spec_helper.rb
+      # leaves it disabled by default and other specs in spec:main (notably
+      # tracing/integration_spec.rb) call WebMock.disable! in `after` blocks
+      # without restoring prior state. Disable WebMock after these dispatch
+      # tests to avoid leaking the enabled state into later specs.
+      after { WebMock.disable! }
 
-    # WebMock is disabled by default in spec_helper.rb (line 63). Tests that
-    # call stub_request must enable WebMock first or the stubs become no-ops
-    # and the transport falls through to a real Net::HTTP connection. Pattern
-    # matches spec/datadog/ai_guard_spec.rb and tracing/integration_spec.rb.
-    before { WebMock.enable! }
-    after { WebMock.disable! }
+      context 'on a 200 response' do
+        before do
+          stub_request(:post, agent_url).to_return(status: 200, body: '')
+        end
 
-    context 'on a 200 response' do
-      before do
-        stub_request(:post, agent_url).to_return(status: 200, body: '')
+        it 'sends a POST to /symdb/v1/input via the real transport stack' do
+          response = transport.send_symbols(form)
+
+          expect(response.code).to eq(200)
+          expect(WebMock).to have_requested(:post, agent_url).once
+        end
+
+        it 'sends multipart/form-data (Content-Type set by the multipart library)' do
+          transport.send_symbols(form)
+
+          expect(WebMock).to have_requested(:post, agent_url)
+            .with { |req| req.headers['Content-Type'].to_s.start_with?('multipart/form-data') }
+        end
       end
 
-      it 'sends a POST to /symdb/v1/input via the real transport stack' do
-        response = transport.send_symbols(form)
+      context 'on a 4xx response' do
+        before do
+          stub_request(:post, agent_url).to_return(status: 400, body: 'bad request')
+        end
 
-        expect(response.code).to eq(200)
-        expect(WebMock).to have_requested(:post, agent_url).once
+        it 'returns a non-error response with the agent status code' do
+          response = transport.send_symbols(form)
+
+          expect(response.internal_error?).to be_falsey
+          expect(response.code).to eq(400)
+        end
       end
 
-      it 'sends multipart/form-data (Content-Type set by the multipart library)' do
-        transport.send_symbols(form)
+      context 'when the agent is unreachable' do
+        before do
+          stub_request(:post, agent_url).to_raise(Errno::ECONNREFUSED)
+        end
 
-        expect(WebMock).to have_requested(:post, agent_url)
-          .with { |req| req.headers['Content-Type'].to_s.start_with?('multipart/form-data') }
-      end
-    end
+        it 'returns an internal error response without raising' do
+          response = nil
+          expect { response = transport.send_symbols(form) }.not_to raise_error
 
-    context 'on a 4xx response' do
-      before do
-        stub_request(:post, agent_url).to_return(status: 400, body: 'bad request')
-      end
-
-      it 'returns a non-error response with the agent status code' do
-        response = transport.send_symbols(form)
-
-        expect(response.internal_error?).to be_falsey
-        expect(response.code).to eq(400)
-      end
-    end
-
-    context 'when the agent is unreachable' do
-      before do
-        stub_request(:post, agent_url).to_raise(Errno::ECONNREFUSED)
-      end
-
-      it 'returns an internal error response without raising' do
-        response = nil
-        expect { response = transport.send_symbols(form) }.not_to raise_error
-
-        expect(response.internal_error?).to be true
+          expect(response.internal_error?).to be true
+        end
       end
     end
   end
