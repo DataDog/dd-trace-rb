@@ -117,13 +117,11 @@ module ProfileHelpers
     end
   end
 
-  # Under ASAN-built Ruby, conservative GC walks ASAN's "fake stacks" (heap-backed regions kept
-  # alive for use-after-return detection) — see gc.c:gc_mark_machine_stack_location_maybe under
-  # RUBY_ASAN_ENABLED. Locals from a `before` block can stay reachable for many GC cycles after
-  # the block returns, so dangling allocations the test relies on being freed sometimes survive —
-  # producing extra heap samples and breaking strict heap_samples assertions.
-  def skip_if_asan_could_keep_dangling_allocations_alive
-    skip "Heap-state assertions are not deterministic under ASAN's fake-stack retention" if asan_build?
+  # Under ASAN-built Ruby, we've seen flakiness in some of our tests.
+  # We suspect this may be the ASAN fake stack keeping things alive, although we're not entirely sure...
+  # For now let's skip these tests when testing with ASAN to avoid impacting CI
+  def skip_asan_flaky
+    skip "Skipped test to avoid flakiness in ASAN builds" if asan_build?
   end
 end
 
