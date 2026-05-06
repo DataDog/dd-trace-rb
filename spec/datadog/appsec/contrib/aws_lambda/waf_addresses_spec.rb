@@ -31,10 +31,11 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
       it { expect(result['http.client_ip']).to eq('10.0.0.1') }
     end
 
-    context 'when payload has query_string instead of query' do
+    context 'when payload is API Gateway v2 style' do
       let(:payload) do
         {
           'path' => '/users/123',
+          'query' => {'page' => '1', 'sort' => 'asc'},
           'query_string' => 'page=1&sort=asc',
           'headers' => {'host' => 'example.com'},
           'source_ip' => '10.0.0.2',
@@ -44,7 +45,21 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
 
       it { expect(result['server.request.method']).to eq('GET') }
       it { expect(result['server.request.uri.raw']).to eq('/users/123?page=1&sort=asc') }
+      it { expect(result['server.request.query']).to eq('page' => '1', 'sort' => 'asc') }
       it { expect(result['http.client_ip']).to eq('10.0.0.2') }
+    end
+
+    context 'when payload has query_string but no query' do
+      let(:payload) do
+        {
+          'path' => '/users/123',
+          'query_string' => 'page=1&sort=asc',
+          'headers' => {'host' => 'example.com'},
+          'method' => 'GET',
+        }
+      end
+
+      it { expect(result['server.request.uri.raw']).to eq('/users/123?page=1&sort=asc') }
       it { expect(result).not_to have_key('server.request.query') }
     end
 
