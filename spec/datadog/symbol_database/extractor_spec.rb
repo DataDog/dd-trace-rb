@@ -1788,7 +1788,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
     end
 
-    # ── Injectable lines unit tests ──────────────────────────────────────
+    # ── Targetable lines unit tests ──────────────────────────────────────
 
     describe 'build_targetable_ranges' do
       it 'compresses consecutive lines into ranges' do
@@ -1820,7 +1820,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
     describe 'extract_targetable_lines' do
       before do
         @file = create_test_file('targetable_test.rb', <<~RUBY)
-          class ExtractAllInjectableTest
+          class ExtractAllTargetableTest
             def multi_line(a, b)
               x = a + b
               y = x * 2
@@ -1837,7 +1837,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       after do
-        Object.send(:remove_const, :ExtractAllInjectableTest) if defined?(ExtractAllInjectableTest)
+        Object.send(:remove_const, :ExtractAllTargetableTest) if defined?(ExtractAllTargetableTest)
       end
 
       it 'returns nil for C-extension methods (iseq nil)' do
@@ -1850,8 +1850,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
 
       it 'deduplicates line numbers before range compression' do
         scopes = extract_all_clean
-        file_scope = find_file_scope(scopes, 'ExtractAllInjectableTest')
-        class_scope = file_scope.scopes.find { |s| s.name == 'ExtractAllInjectableTest' }
+        file_scope = find_file_scope(scopes, 'ExtractAllTargetableTest')
+        class_scope = file_scope.scopes.find { |s| s.name == 'ExtractAllTargetableTest' }
         method_scope = class_scope.scopes.find { |s| s.name == 'multi_line' }
 
         # Ranges should have no overlapping or duplicate entries
@@ -1862,8 +1862,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
 
       it 'includes initialize method first line as targetable' do
         scopes = extract_all_clean
-        file_scope = find_file_scope(scopes, 'ExtractAllInjectableTest')
-        class_scope = file_scope.scopes.find { |s| s.name == 'ExtractAllInjectableTest' }
+        file_scope = find_file_scope(scopes, 'ExtractAllTargetableTest')
+        class_scope = file_scope.scopes.find { |s| s.name == 'ExtractAllTargetableTest' }
         init_scope = class_scope.scopes.find { |s| s.name == 'initialize' }
 
         expect(init_scope).not_to be_nil
