@@ -404,6 +404,67 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
         end
       end
 
+      context 'with invalid UTF-8 bytes in the header' do
+        # `String#split` and `String#strip` raise `ArgumentError: invalid byte
+        # sequence in UTF-8` when the receiver is UTF-8-tagged but contains an
+        # invalid byte sequence. That exception escapes `Propagation#extract`
+        # because the baggage propagator runs outside its rescue block, despite
+        # the `extract` docstring's "never raises" promise.
+        let(:data) { {'baggage' => (+"key=value\xC0\xC0").force_encoding('UTF-8')} }
+
+        it 'returns empty baggage and records malformed telemetry, never raises' do
+          expect(telemetry).to receive(:inc).with(
+            'instrumentation_telemetry_data.tracers',
+            'context_header_style.malformed',
+            1,
+            tags: {'header_style' => 'baggage'}
+          )
+
+          result = nil
+          expect { result = propagation.extract(data) }.not_to raise_error
+          expect(result.baggage).to eq({})
+        end
+      end
+
+      context 'with malformed percent-encoding in a value' do
+        # `URI.decode_www_form_component` raises `ArgumentError: invalid
+        # %-encoding (%XX)` on malformed percent sequences. Same escape route
+        # as the invalid-UTF-8 case above.
+        let(:data) { {'baggage' => 'key=%XX'} }
+
+        it 'returns empty baggage and records malformed telemetry, never raises' do
+          expect(telemetry).to receive(:inc).with(
+            'instrumentation_telemetry_data.tracers',
+            'context_header_style.malformed',
+            1,
+            tags: {'header_style' => 'baggage'}
+          )
+
+          result = nil
+          expect { result = propagation.extract(data) }.not_to raise_error
+          expect(result.baggage).to eq({})
+        end
+      end
+
+      context 'with ASCII-8BIT-encoded header (typical Rack input)' do
+        # Rack delivers HTTP header values as ASCII-8BIT (binary). Every byte
+        # sequence is "valid" in that encoding, so `valid_encoding?` is true
+        # and parsing proceeds normally.
+        let(:data) { {'baggage' => (+'key=value').force_encoding('ASCII-8BIT')} }
+
+        it 'parses normally' do
+          expect(telemetry).to receive(:inc).with(
+            'instrumentation_telemetry_data.tracers',
+            'context_header_style.extracted',
+            1,
+            tags: {'header_style' => 'baggage'}
+          )
+
+          result = propagation.extract(data)
+          expect(result.baggage).to eq('key' => 'value')
+        end
+      end
+
       context 'with an empty list member' do
         let(:data) { {'baggage' => 'key=value,'} }
 
