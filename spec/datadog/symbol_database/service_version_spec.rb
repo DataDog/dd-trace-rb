@@ -2,6 +2,7 @@
 
 require 'datadog/symbol_database/service_version'
 require 'datadog/symbol_database/scope'
+require 'datadog/symbol_database/symbol'
 
 RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
   describe '#initialize' do
