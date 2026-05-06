@@ -95,7 +95,7 @@ module Datadog
             rescue => exc
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-              logger.debug { "di: error in probe notifier worker: #{exc.class}: #{exc} (at #{exc.backtrace.first})" }
+              logger.debug { "di: error in probe notifier worker: #{exc.class}: #{exc.message} (at #{exc.backtrace.first})" }
               telemetry&.report(exc, description: "Error in probe notifier worker")
             end
             @lock.synchronize do
@@ -320,7 +320,7 @@ module Datadog
               end
             rescue => exc
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-              logger.debug { "di: failed to send #{event_name}: #{exc.class}: #{exc} (at #{exc.backtrace.first})" }
+              logger.debug { "di: failed to send #{event_name}: #{exc.class}: #{exc.message} (at #{exc.backtrace.first})" }
               telemetry&.report(exc, description: "Error sending #{event_type}")
             end
           end

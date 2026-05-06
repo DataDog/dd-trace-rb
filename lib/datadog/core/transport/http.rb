@@ -4,6 +4,8 @@ require_relative 'http/builder'
 require_relative 'http/adapters/net'
 require_relative 'http/adapters/unix_socket'
 require_relative 'http/adapters/test'
+require_relative '../environment/container'
+require_relative '../environment/ext'
 
 module Datadog
   module Core

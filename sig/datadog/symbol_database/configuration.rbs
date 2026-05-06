@@ -1,8 +1,8 @@
 module Datadog
-  module AIGuard
+  module SymbolDatabase
     module Configuration
       module Settings
-        def self.extended: (::Class | ::Module base) -> void
+        def self.extended: (untyped base) -> void
 
         def self.add_settings!: (untyped base) -> void
       end

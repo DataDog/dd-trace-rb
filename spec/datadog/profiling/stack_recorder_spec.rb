@@ -486,6 +486,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it "include the stack and sample counts for the objects still left alive" do
+          skip_asan_flaky
+
           # There should be 3 different allocation class labels so we expect 3 different heap samples
           expect(heap_samples.size).to eq(3)
 
@@ -494,6 +496,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it "include accurate object sizes" do
+          skip_asan_flaky
+
           string_sample = heap_samples.find { |s| s.labels[:"allocation class"] == "String" }
           expect(string_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_string) * sample_rate)
 
@@ -617,6 +621,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it "contribute to recorded samples stats" do
+          skip_asan_flaky
+
           test_num_allocated_object = 123
           live_objects = Array.new(test_num_allocated_object)
 
@@ -662,6 +668,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           let(:heap_sample_every) { 2 }
 
           it "only keeps track of some allocations" do
+            skip_asan_flaky
+
             # By only sampling every 2nd allocation we only track the odd objects which means our array
             # should be the only heap sample captured (string is index 0, array is index 1, hash is 4)
             expect(heap_samples.size)

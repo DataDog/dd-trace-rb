@@ -28,7 +28,7 @@ module Datadog
                     span.type = Tracing::Metadata::Ext::SQL::TYPE
                     span.set_tag(Ext::TAG_QUERY_ASYNC, false)
                   rescue => e
-                    Datadog.logger.debug("error preparing span for presto: #{e.class}: #{e}")
+                    Datadog.logger.debug("error preparing span for presto: #{e.class}: #{e.message}")
                   end
 
                   super(query)
@@ -46,7 +46,7 @@ module Datadog
                     span.type = Tracing::Metadata::Ext::SQL::TYPE
                     span.set_tag(Ext::TAG_QUERY_ASYNC, !blk.nil?)
                   rescue => e
-                    Datadog.logger.debug("error preparing span for presto: #{e.class}: #{e}")
+                    Datadog.logger.debug("error preparing span for presto: #{e.class}: #{e.message}")
                   end
 
                   super(query, &blk)
@@ -65,7 +65,7 @@ module Datadog
                     # ^ not an SQL type span, since there's no SQL query
                     span.set_tag(Ext::TAG_QUERY_ID, query_id)
                   rescue => e
-                    Datadog.logger.debug("error preparing span for presto: #{e.class}: #{e}")
+                    Datadog.logger.debug("error preparing span for presto: #{e.class}: #{e.message}")
                   end
 
                   super(query_id)

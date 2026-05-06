@@ -5,6 +5,7 @@ module Datadog
       UNKNOWN_MAX_LINE: Integer
       EXCLUDED_COMMON_MODULES: Array[String]
       INJECTABLE_LINE_EVENTS: Array[::Symbol]
+      MODULE_SINGLETON_CLASS_PRED: UnboundMethod
 
       @logger: untyped
       @settings: untyped

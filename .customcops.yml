@@ -15,7 +15,7 @@ CustomCops/EnvUsageCop:
 # Custom cop to enforce consistent exception logging format
 CustomCops/ExceptionMessageCop:
   Enabled: true
-  Description: 'Enforces consistent exception logging format: use `e` instead of `e.message`, `e.class` instead of `e.class.name`'
+  Description: 'Enforces consistent exception logging format: use `e.message` instead of bare `#{e}` interpolation, `e.class` instead of `e.class.name`, and require `#{e.class}` alongside any exception interpolation'
   SafeAutoCorrect: false
   Include:
     - "lib/**/*"
