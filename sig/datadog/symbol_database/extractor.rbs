@@ -4,14 +4,13 @@ module Datadog
       UNKNOWN_MIN_LINE: Integer
       UNKNOWN_MAX_LINE: Integer
       EXCLUDED_COMMON_MODULES: Array[String]
-      INJECTABLE_LINE_EVENTS: Array[::Symbol]
+      TARGETABLE_LINE_EVENTS: Array[::Symbol]
       MODULE_SINGLETON_CLASS_PRED: UnboundMethod
+      MODULE_NAME: UnboundMethod
 
       @logger: untyped
       @settings: untyped
-      @telemetry: untyped?
-
-      def initialize: (logger: untyped, settings: untyped, ?telemetry: untyped?) -> void
+      def initialize: (logger: untyped, settings: untyped) -> void
 
       def extract: (Module mod) -> Scope?
 
@@ -43,9 +42,9 @@ module Datadog
 
       def method_visibility: (Class klass, ::Symbol method_name) -> String
 
-      def extract_injectable_lines: (Method | UnboundMethod method, Integer start_line) -> [Array[Hash[::Symbol, Integer]]?, Integer]
+      def extract_targetable_lines: (Method | UnboundMethod method, Integer start_line) -> [Array[Hash[::Symbol, Integer]]?, Integer]
 
-      def build_injectable_ranges: (Array[Integer] lines) -> Array[Hash[::Symbol, Integer]]
+      def build_targetable_ranges: (Array[Integer] lines) -> Array[Hash[::Symbol, Integer]]
 
       def extract_method_parameters: (UnboundMethod method) -> Array[Symbol]
 
