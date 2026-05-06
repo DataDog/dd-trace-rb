@@ -436,7 +436,6 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
           expect(baggage).to include('key64' => 'value64')
 
           expect(baggage).not_to include('key65')
-          expect(baggage).not_to include('value65')
         end
 
         it 'records item count truncation telemetry' do
