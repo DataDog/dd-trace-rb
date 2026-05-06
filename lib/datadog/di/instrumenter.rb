@@ -89,6 +89,11 @@ module Datadog
       # from the method but from outside of the method).
       Location = Struct.new(:path, :lineno, :label)
 
+      # Method probes can only target instance methods. The implementation uses
+      # Module#prepend with a module that defines an instance method matching the
+      # probe's target — class/singleton methods (def self.foo, module_function)
+      # are not reachable via prepend on the class itself. Line probes are
+      # unaffected since they install via TracePoint, not method dispatch.
       def hook_method(probe, responder)
         lock.synchronize do
           if probe.instrumentation_module
@@ -150,7 +155,7 @@ module Datadog
                     rescue => nested_exc
                       raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                      instrumenter.logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc}" }
+                      instrumenter.logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
                       instrumenter.telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
                     end
                   else
@@ -158,7 +163,7 @@ module Datadog
 
                     raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                    instrumenter.logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc}" }
+                    instrumenter.logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc.message}" }
                     instrumenter.telemetry&.report(exc, description: "Error evaluating condition without context")
                     # If execution gets here, there is probably a bug in the tracer.
                   end
@@ -245,7 +250,7 @@ module Datadog
               rescue => di_exc
                 raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                instrumenter.logger.debug { "di: unhandled exception in method probe: #{di_exc.class}: #{di_exc}" }
+                instrumenter.logger.debug { "di: unhandled exception in method probe: #{di_exc.class}: #{di_exc.message}" }
                 instrumenter.telemetry&.report(di_exc, description: "Unhandled exception in method probe")
               end
 
@@ -540,7 +545,7 @@ module Datadog
               rescue => nested_exc
                 raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc}" }
+                logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
                 telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
               end
 
@@ -550,7 +555,7 @@ module Datadog
 
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-              logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc}" }
+              logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc.message}" }
               telemetry&.report(exc, description: "Error evaluating condition without context")
               # If execution gets here, there is probably a bug in the tracer.
             end
@@ -572,7 +577,7 @@ module Datadog
         check_and_disable_if_exceeded(probe, responder, di_start_time)
       rescue => exc
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-        logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc}" }
+        logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc.message}" }
         telemetry&.report(exc, description: "Unhandled exception in line trace point")
         # TODO test this path
       end
@@ -645,7 +650,7 @@ module Datadog
       def symbolize_class_name(cls_name)
         Object.const_get(cls_name)
       rescue NameError => exc
-        raise Error::DITargetNotDefined, "Class not defined: #{cls_name}: #{exc.class}: #{exc}"
+        raise Error::DITargetNotDefined, "Class not defined: #{cls_name}: #{exc.class}: #{exc.message}"
       end
     end
   end

@@ -1,0 +1,71 @@
+module Datadog
+  module SymbolDatabase
+    class Extractor
+      UNKNOWN_MIN_LINE: Integer
+      UNKNOWN_MAX_LINE: Integer
+      EXCLUDED_COMMON_MODULES: Array[String]
+      INJECTABLE_LINE_EVENTS: Array[::Symbol]
+      MODULE_SINGLETON_CLASS_PRED: UnboundMethod
+
+      @logger: untyped
+      @settings: untyped
+      @telemetry: untyped?
+
+      def initialize: (logger: untyped, settings: untyped, ?telemetry: untyped?) -> void
+
+      def extract: (Module mod) -> Scope?
+
+      def extract_all: () -> Array[Scope]
+
+      private
+
+      def safe_mod_name: (Module mod) -> String?
+
+      def user_code_module?: (Module mod) -> bool
+
+      def user_code_path?: (String path) -> bool
+
+      def find_source_file: (Module mod) -> String?
+
+      def wrap_in_file_scope: (String file_path, Array[Scope] inner_scopes) -> Scope
+
+      def extract_module_scope: (Module mod) -> Scope
+
+      def extract_class_scope: (Class klass) -> Scope
+
+      def calculate_class_line_range: (Class klass, Array[::Symbol] methods) -> [Integer, Integer]
+
+      def build_class_language_specifics: (Class klass) -> Hash[::Symbol, untyped]
+
+      def extract_method_scopes: (Class klass) -> Array[Scope]
+
+      def extract_method_scope: (Class klass, ::Symbol method_name, ::Symbol method_type) -> Scope?
+
+      def method_visibility: (Class klass, ::Symbol method_name) -> String
+
+      def extract_injectable_lines: (Method | UnboundMethod method, Integer start_line) -> [Array[Hash[::Symbol, Integer]]?, Integer]
+
+      def build_injectable_ranges: (Array[Integer] lines) -> Array[Hash[::Symbol, Integer]]
+
+      def extract_method_parameters: (UnboundMethod method) -> Array[Symbol]
+
+      def collect_extractable_modules: () -> Hash[String, untyped]
+
+      def group_methods_by_file: (Module mod) -> Hash[String, Array[untyped]]
+
+      def build_file_trees: (Hash[String, untyped] entries) -> Hash[String, untyped]
+
+      def place_in_tree: (untyped root, Array[String] name_parts, Module mod, String mod_name, Array[untyped] methods, String file_path) -> void
+
+      def resolve_scope_type: (String fqn) -> String
+
+      def convert_trees_to_scopes: (Hash[String, untyped] file_trees) -> Array[Scope]
+
+      def convert_node_to_scope: (untyped node) -> Scope
+
+      def build_instance_method_scope: (Module? klass, ::Symbol method_name, UnboundMethod method) -> Scope?
+
+      def extract_scope_symbols: (Module mod) -> Array[Symbol]
+    end
+  end
+end

@@ -1,0 +1,9 @@
+module Datadog
+  module SymbolDatabase
+    module FileHash
+      def self.compute: (String? file_path, logger: untyped) -> String?
+
+      def compute: (String? file_path, logger: untyped) -> String?
+    end
+  end
+end

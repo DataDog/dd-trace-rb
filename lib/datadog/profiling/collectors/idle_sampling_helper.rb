@@ -44,7 +44,7 @@ module Datadog
               @failure_exception = e
               Datadog.logger.warn(
                 "IdleSamplingHelper thread error. " \
-                "Cause: #{e.class}: #{e} Location: #{Array(e.backtrace).first}"
+                "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
               )
               Datadog::Core::Telemetry::Logger.report(e, description: "IdleSamplingHelper thread error")
             end

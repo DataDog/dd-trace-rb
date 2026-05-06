@@ -108,7 +108,7 @@ module Datadog
             end
           rescue => e
             Datadog.logger.debug(
-              "Error while checking cgroup namespace. Cause: #{e.class}: #{e} Location: #{Array(e.backtrace).first}"
+              "Error while checking cgroup namespace. Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
             )
             false
           end
@@ -172,7 +172,7 @@ module Datadog
           @entry = Entry.new # Empty entry if no valid cgroup entry is found
         rescue => e
           Datadog.logger.debug(
-            "Error while reading container entry. Cause: #{e.class}: #{e} Location: #{Array(e.backtrace).first}"
+            "Error while reading container entry. Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
           )
           @entry = Entry.new unless defined?(@entry)
           @entry
