@@ -158,7 +158,7 @@ module Datadog
           begin
             start
           rescue => e
-            logger.debug { "Failed to start span: #{e}" }
+            logger.debug { "Failed to start span: #{e.class}: #{e.message}" }
           ensure
             # We should yield to the provided block when possible, as this
             # block is application code that we don't want to hinder.
@@ -459,7 +459,7 @@ module Datadog
             rescue => e
               logger.debug do
                 "Custom on_error handler #{@handler} failed, using fallback behavior. \
-                  Cause: #{e.class}: #{e} Location: #{Array(e.backtrace).first}"
+                  Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
               end
 
               original&.call(op, error)
@@ -471,7 +471,7 @@ module Datadog
               @handler.call(*args)
             rescue => e
               logger.debug do
-                "Error in on_error handler '#{@handler}': #{e.class}: #{e} at #{Array(e.backtrace).first}"
+                "Error in on_error handler '#{@handler}': #{e.class}: #{e.message} at #{Array(e.backtrace).first}"
               end
             end
 

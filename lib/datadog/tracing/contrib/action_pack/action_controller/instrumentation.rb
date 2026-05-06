@@ -43,7 +43,7 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CONTROLLER)
             rescue => e
-              Datadog.logger.error("#{e.class}: #{e}")
+              Datadog.logger.error("#{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
@@ -88,7 +88,7 @@ module Datadog
                 span.finish
               end
             rescue => e
-              Datadog.logger.error("#{e.class}: #{e}")
+              Datadog.logger.error("#{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
@@ -121,7 +121,9 @@ module Datadog
                   result
                 # rubocop:disable Lint/RescueException
                 rescue Exception => e
-                  payload[:exception] = [e.class.name, e.message]
+                  # Rails ActiveSupport::Notifications convention — payload[:exception] is
+                  # an array of [class_name_string, message_string] consumed by subscribers.
+                  payload[:exception] = [e.class.name, e.message] # rubocop:disable CustomCops/ExceptionMessageCop
                   payload[:exception_object] = e
                   raise e
                 ensure

@@ -2,7 +2,7 @@
 
 require_relative 'data_streams/processor'
 require_relative 'data_streams/pathway_context'
-require_relative 'data_streams/configuration/settings'
+require_relative 'data_streams/configuration'
 require_relative 'data_streams/extensions'
 require_relative 'core/utils/time'
 

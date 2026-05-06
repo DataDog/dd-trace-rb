@@ -9,7 +9,6 @@ module Datadog
       attr_reader :start #: ::Time
       attr_reader :finish #: ::Time
       attr_reader :encoded_profile #: Datadog::Profiling::EncodedProfile
-      attr_reader :code_provenance_file_name #: ::String
       attr_reader :code_provenance_data #: ::String?
       attr_reader :metrics #: ::String
       attr_reader :tags_as_array #: Array[[::String, ::String]]
@@ -20,7 +19,6 @@ module Datadog
       # @rbs start: ::Time
       # @rbs finish: ::Time
       # @rbs encoded_profile: Datadog::Profiling::EncodedProfile
-      # @rbs code_provenance_file_name: ::String
       # @rbs code_provenance_data: ::String?
       # @rbs metrics: Array[[::String, ::Numeric]]
       # @rbs tags_as_array: Array[[::String, ::String]]
@@ -32,7 +30,6 @@ module Datadog
         start:,
         finish:,
         encoded_profile:,
-        code_provenance_file_name:,
         code_provenance_data:,
         metrics:,
         tags_as_array:,
@@ -43,7 +40,6 @@ module Datadog
         @start = start
         @finish = finish
         @encoded_profile = encoded_profile
-        @code_provenance_file_name = code_provenance_file_name
         @code_provenance_data = code_provenance_data
         @metrics = JSON.generate(metrics)
         @tags_as_array = tags_as_array

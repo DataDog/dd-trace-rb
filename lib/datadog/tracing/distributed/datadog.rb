@@ -140,7 +140,7 @@ module Datadog
         rescue => e
           set_tags_propagation_error(reason: 'encoding_error')
           ::Datadog.logger.warn(
-            "Failed to inject x-datadog-tags: #{e.class}: #{e} at #{Array(e.backtrace).first}"
+            "Failed to inject x-datadog-tags: #{e.class}: #{e.message} at #{Array(e.backtrace).first}"
           )
           nil
         end
@@ -167,7 +167,7 @@ module Datadog
         rescue => e
           set_tags_propagation_error(reason: 'decoding_error')
           ::Datadog.logger.warn(
-            "Failed to extract x-datadog-tags: #{e.class}: #{e} at #{Array(e.backtrace).first}"
+            "Failed to extract x-datadog-tags: #{e.class}: #{e.message} at #{Array(e.backtrace).first}"
           )
           nil
         end
