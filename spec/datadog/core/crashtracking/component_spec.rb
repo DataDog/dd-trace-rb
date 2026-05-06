@@ -122,7 +122,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           crashtracker = build_crashtracker(logger: logger)
 
           expect(described_class).to receive(:_native_start_or_update_on_fork) { raise 'Test failure' }
-          expect(logger).to receive(:error).with(/Failed to start crash tracking: Test failure/)
+          expect(logger).to receive(:error).with(/Failed to start crash tracking: RuntimeError: Test failure/)
 
           crashtracker.start
         end
@@ -135,7 +135,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           crashtracker = build_crashtracker(logger: logger)
 
           expect(described_class).to receive(:_native_stop) { raise 'Test failure' }
-          expect(logger).to receive(:error).with(/Failed to stop crash tracking: Test failure/)
+          expect(logger).to receive(:error).with(/Failed to stop crash tracking: RuntimeError: Test failure/)
 
           crashtracker.stop
         end
@@ -215,7 +215,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           crashtracker = build_crashtracker(logger: logger)
 
           expect(described_class).to receive(:_native_start_or_update_on_fork) { raise 'Test failure' }
-          expect(logger).to receive(:error).with(/Failed to update_on_fork crash tracking: Test failure/)
+          expect(logger).to receive(:error).with(/Failed to update_on_fork crash tracking: RuntimeError: Test failure/)
 
           crashtracker.update_on_fork
         end

@@ -77,7 +77,7 @@ module Datadog
 
               Thread.current[KEY_RUN] = true
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
@@ -121,7 +121,7 @@ module Datadog
                 span.finish(finish)
               end
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
@@ -165,7 +165,7 @@ module Datadog
 
               Thread.current[KEY_RENDER] = true
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
@@ -190,7 +190,7 @@ module Datadog
                 span.finish(finish)
               end
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
@@ -229,7 +229,7 @@ module Datadog
                 span.finish(finish)
               end
             rescue => e
-              Datadog.logger.error(e.message)
+              Datadog.logger.error("#{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 

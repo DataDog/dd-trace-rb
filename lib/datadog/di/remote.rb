@@ -77,23 +77,22 @@ module Datadog
             component.probe_manager.add_probe(probe)
             content.applied
           rescue DI::Error::DITargetNotInRegistry => exc
-            component.telemetry&.report(exc, description: "Line probe is targeting a loaded file that is not in code tracker")
-
-            payload = component.probe_notification_builder.build_errored(probe, exc)
-            component.probe_notifier_worker.add_status(payload, probe: probe)
-
+            # Error status is already reported by probe_manager.add_probe,
+            # so we don't need to send another error payload here.
+            # Just mark the remote config content as errored.
+            #
             # If a probe fails to install, we will mark the content
             # as errored. On subsequent remote configuration application
-            # attemps, probe manager will raise the "previously errored"
+            # attempts, probe manager will raise the "previously errored"
             # exception and we'll rescue it here, again marking the
             # content as errored but with a somewhat different exception
             # message.
             # TODO assert content state (errored for this example)
-            content.errored("Error applying dynamic instrumentation configuration: #{exc.class.name} #{exc.message}")
+            content.errored("Error applying dynamic instrumentation configuration: #{exc.class}: #{exc.message}")
           rescue => exc
             raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-            component.logger.debug { "di: unhandled exception adding #{probe.type} probe at #{probe.location} (#{probe.id}) in DI remote receiver: #{exc.class}: #{exc}" }
+            component.logger.debug { "di: unhandled exception adding #{probe.type} probe at #{probe.location} (#{probe.id}) in DI remote receiver: #{exc.class}: #{exc.message}" }
             component.telemetry&.report(exc, description: "Unhandled exception adding probe in DI remote receiver")
 
             # TODO test this path
@@ -107,7 +106,7 @@ module Datadog
             # content as errored but with a somewhat different exception
             # message.
             # TODO assert content state (errored for this example)
-            content.errored("Error applying dynamic instrumentation configuration: #{exc.class.name} #{exc.message}")
+            content.errored("Error applying dynamic instrumentation configuration: #{exc.class}: #{exc.message}")
           end
 
           # Important: even if processing fails for this probe config,
@@ -118,11 +117,11 @@ module Datadog
         rescue => exc
           raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-          component.logger.debug { "di: unhandled exception handling a probe in DI remote receiver: #{exc.class}: #{exc}" }
+          component.logger.debug { "di: unhandled exception handling a probe in DI remote receiver: #{exc.class}: #{exc.message}" }
           component.telemetry&.report(exc, description: "Unhandled exception handling probe in DI remote receiver")
 
           # TODO assert content state (errored for this example)
-          content.errored("Error applying dynamic instrumentation configuration: #{exc.class.name} #{exc.message}")
+          content.errored("Error applying dynamic instrumentation configuration: #{exc.class}: #{exc.message}")
         end
 
         # This method does not mark +previous_content+ as succeeded or errored,
@@ -137,7 +136,7 @@ module Datadog
         rescue => exc
           raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-          component.logger.debug { "di: unhandled exception removing probes in DI remote receiver: #{exc.class}: #{exc}" }
+          component.logger.debug { "di: unhandled exception removing probes in DI remote receiver: #{exc.class}: #{exc.message}" }
           component.telemetry&.report(exc, description: "Unhandled exception removing probes in DI remote receiver")
         end
 

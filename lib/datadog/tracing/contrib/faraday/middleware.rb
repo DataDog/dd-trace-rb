@@ -83,7 +83,7 @@ module Datadog
 
             Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
           rescue => e
-            Datadog.logger.error(e.message)
+            Datadog.logger.error("#{e.class}: #{e.message}")
             Datadog::Core::Telemetry::Logger.report(e)
           end
           # rubocop:enable Metrics/AbcSize
@@ -98,7 +98,7 @@ module Datadog
               Datadog.configuration.tracing.header_tags.response_tags(env[:response_headers])
             )
           rescue => e
-            Datadog.logger.error(e.message)
+            Datadog.logger.error("#{e.class}: #{e.message}")
             Datadog::Core::Telemetry::Logger.report(e)
           end
           # rubocop:enable Metrics/AbcSize

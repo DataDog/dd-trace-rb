@@ -1,0 +1,15 @@
+module Datadog
+  module AIGuard
+    module Evaluation
+      class ContentBuilder
+        attr_reader parts: ::Array[Message::content_part]
+
+        def initialize: () -> void
+
+        def text: (::String text) -> void
+
+        def image_url: (::String url) -> void
+      end
+    end
+  end
+end

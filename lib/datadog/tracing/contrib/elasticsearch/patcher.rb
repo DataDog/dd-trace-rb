@@ -98,7 +98,7 @@ module Datadog
                 Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
               rescue => e
                 # TODO: Refactor the code to streamline the execution without ensure
-                Datadog.logger.error(e.message)
+                Datadog.logger.error("#{e.class}: #{e.message}")
                 Datadog::Core::Telemetry::Logger.report(e)
               ensure
                 # the call is still executed

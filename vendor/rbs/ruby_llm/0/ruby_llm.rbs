@@ -5,10 +5,22 @@ module RubyLLM
     def handle_tool_calls: (Message response) ?{ () -> untyped } -> (Message | Tool::Halt)
   end
 
+  class Content
+    def text: () -> ::String?
+
+    def attachments: () -> ::Array[Attachment]
+  end
+
+  class Attachment
+    def type: () -> ::Symbol
+
+    def for_llm: () -> ::String
+  end
+
   class Message
     def role: () -> ::String
 
-    def content: () -> ::String
+    def content: () -> (::String | Content)
 
     def tool_calls: () -> ::Hash[::String, ToolCall]
 

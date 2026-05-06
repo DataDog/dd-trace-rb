@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../core/telemetry/logger"
+
 module Datadog
   module Profiling
     # Responsible for wiring up the Profiler for execution
@@ -8,8 +10,6 @@ module Datadog
       # * Profiling in the trace viewer, as well as scoping a profile down to a span
       # * Endpoint aggregation in the profiler UX, including normalization (resource per endpoint call)
       def self.build_profiler_component(settings:, agent_settings:, optional_tracer:, logger:) # rubocop:disable Metrics/MethodLength
-        return [nil, {profiling_enabled: false}] unless settings.profiling.enabled
-
         # Workaround for weird dependency direction: the Core::Configuration::Components class currently has a
         # dependency on individual products, in this case the Profiler.
         # (Note "currently": in the future we want to change this so core classes don't depend on specific products)
@@ -29,7 +29,7 @@ module Datadog
         # no-op if profiling is already loaded).
         require_relative "../profiling"
 
-        return [nil, {profiling_enabled: false}] unless Profiling.supported?
+        return [nil, {profiling_enabled: false}] unless settings.profiling.enabled && Profiling.supported?
 
         # Activate forking extensions
         Profiling::Tasks::Setup.new.run
@@ -90,6 +90,14 @@ module Datadog
         end
 
         [profiler, {profiling_enabled: true}]
+      rescue Exception => e # rubocop:disable Lint/RescueException
+        logger.warn do
+          "Failed to initialize profiling: #{e.class}: #{e.message} " \
+          "Location: #{Array(e.backtrace).first}"
+        end
+        Datadog::Core::Telemetry::Logger.report(e, description: "Failed to initialize profiling")
+
+        [nil, {profiling_enabled: false}]
       end
 
       private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
@@ -368,7 +376,7 @@ module Datadog
         rescue StandardError, LoadError => e
           logger.warn(
             "Failed to probe `mysql2` gem information. " \
-            "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+            "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
           )
 
           true

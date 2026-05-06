@@ -17,6 +17,10 @@ module Datadog
   module DI
     LOCK = Mutex.new
 
+    # Initialized eagerly to avoid "instance variable not initialized"
+    # warning on Ruby 2.6/2.7 and to simplify the type to non-nullable.
+    @current_components = []
+
     class << self
       attr_reader :code_tracker
 
@@ -48,12 +52,12 @@ module Datadog
           Datadog::DI.activate_tracking!
         rescue => exc
           if defined?(Datadog.logger)
-            Datadog.logger.warn { "di: Failed to activate code tracking for DI: #{exc.class}: #{exc}" }
+            Datadog.logger.warn { "di: Failed to activate code tracking for DI: #{exc.class}: #{exc.message}" }
           else
             # We do not have Datadog logger potentially because DI code tracker is
             # being loaded early in application boot process and the rest of datadog
             # wasn't loaded yet. Output to standard error.
-            warn("datadog: di: Failed to activate code tracking for DI: #{exc.class}: #{exc}")
+            warn("datadog: di: Failed to activate code tracking for DI: #{exc.class}: #{exc.message}")
           end
         end
       end
@@ -88,7 +92,7 @@ module Datadog
       # Datadog.components from the code tracker.
       def current_component
         LOCK.synchronize do
-          @current_components&.last
+          @current_components.last
         end
       end
 
@@ -100,14 +104,13 @@ module Datadog
       # guaranteed to not end up with no component when one is running.
       def add_current_component(component)
         LOCK.synchronize do
-          @current_components ||= []
           @current_components << component
         end
       end
 
       def remove_current_component(component)
         LOCK.synchronize do
-          @current_components&.delete(component)
+          @current_components.delete(component)
         end
       end
     end

@@ -89,6 +89,11 @@ module Datadog
       # from the method but from outside of the method).
       Location = Struct.new(:path, :lineno, :label)
 
+      # Method probes can only target instance methods. The implementation uses
+      # Module#prepend with a module that defines an instance method matching the
+      # probe's target — class/singleton methods (def self.foo, module_function)
+      # are not reachable via prepend on the class itself. Line probes are
+      # unaffected since they install via TracePoint, not method dispatch.
       def hook_method(probe, responder)
         lock.synchronize do
           if probe.instrumentation_module
@@ -150,7 +155,7 @@ module Datadog
                     rescue => nested_exc
                       raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                      instrumenter.logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc}" }
+                      instrumenter.logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
                       instrumenter.telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
                     end
                   else
@@ -158,7 +163,7 @@ module Datadog
 
                     raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                    instrumenter.logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc}" }
+                    instrumenter.logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc.message}" }
                     instrumenter.telemetry&.report(exc, description: "Error evaluating condition without context")
                     # If execution gets here, there is probably a bug in the tracer.
                   end
@@ -229,8 +234,7 @@ module Datadog
                 # that location here.
                 []
               end
-              # Steep: https://github.com/ruby/rbs/pull/2745
-              caller_locs = method_frame + caller_locations # steep:ignore ArgumentTypeMismatch
+              caller_locs = method_frame + caller_locations
               # TODO capture arguments at exit
 
               context = Context.new(locals: nil, target_self: self,
@@ -239,9 +243,16 @@ module Datadog
                 caller_locations: caller_locs,
                 return_value: rv, duration: duration, exception: exc,)
 
-              responder.probe_executed_callback(context)
+              begin
+                responder.probe_executed_callback(context)
 
-              instrumenter.send(:check_and_disable_if_exceeded, probe, responder, di_start_time, di_duration)
+                instrumenter.send(:check_and_disable_if_exceeded, probe, responder, di_start_time, di_duration)
+              rescue => di_exc
+                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                instrumenter.logger.debug { "di: unhandled exception in method probe: #{di_exc.class}: #{di_exc.message}" }
+                instrumenter.telemetry&.report(di_exc, description: "Unhandled exception in method probe")
+              end
 
               if exc
                 raise exc
@@ -331,7 +342,11 @@ module Datadog
           # Steep: Complex type narrowing (before calling hook_line,
           # we check that probe.line? is true which itself checks that probe.file is not nil)
           # Annotation do not work here as `file` is a method on probe, not a local variable.
-          ret = code_tracker.iseqs_for_path_suffix(probe.file) # steep:ignore ArgumentTypeMismatch
+          ret = if code_tracker.respond_to?(:iseq_for_line)
+            code_tracker.iseq_for_line(probe.file, line_no) # steep:ignore ArgumentTypeMismatch
+          else
+            code_tracker.iseqs_for_path_suffix(probe.file) # steep:ignore ArgumentTypeMismatch
+          end
           unless ret
             if permit_untargeted_trace_points
               # Continue withoout targeting the trace point.
@@ -349,16 +364,16 @@ module Datadog
               # to instrument and install the hook when the file in
               # question is loaded (and hopefully, by then code tracking
               # is active, otherwise the line will never be instrumented.)
-              raise_if_probe_in_loaded_features(probe)
-              raise Error::DITargetNotDefined, "File not in code tracker registry: #{probe.file}"
+              raise_if_probe_in_loaded_features(probe, line_no, code_tracker)
+              raise Error::DITargetNotDefined, "File not in code tracker registry: #{probe.file}:#{line_no}"
             end
           end
         elsif !permit_untargeted_trace_points
           # Same as previous comment, if untargeted trace points are not
           # explicitly defined, and we do not have code tracking, do not
           # instrument the method.
-          raise_if_probe_in_loaded_features(probe)
-          raise Error::DITargetNotDefined, "File not in code tracker registry: #{probe.file}"
+          raise_if_probe_in_loaded_features(probe, line_no, nil)
+          raise Error::DITargetNotDefined, "File not in code tracker registry: #{probe.file}:#{line_no}"
         end
 
         if ret
@@ -530,7 +545,7 @@ module Datadog
               rescue => nested_exc
                 raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc}" }
+                logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
                 telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
               end
 
@@ -540,7 +555,7 @@ module Datadog
 
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-              logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc}" }
+              logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc.message}" }
               telemetry&.report(exc, description: "Error evaluating condition without context")
               # If execution gets here, there is probably a bug in the tracer.
             end
@@ -562,7 +577,7 @@ module Datadog
         check_and_disable_if_exceeded(probe, responder, di_start_time)
       rescue => exc
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-        logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc}" }
+        logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc.message}" }
         telemetry&.report(exc, description: "Unhandled exception in line trace point")
         # TODO test this path
       end
@@ -600,23 +615,34 @@ module Datadog
         end
       end
 
-      def raise_if_probe_in_loaded_features(probe)
+      def raise_if_probe_in_loaded_features(probe, line_no, code_tracker)
         return unless probe.file
 
-        # If the probe file is in the list of loaded files
-        # (as per $LOADED_FEATURES, using either exact or suffix match),
-        # raise an error indicating that
-        # code tracker is missing the loaded file because the file
-        # won't be loaded again (DI only works in production environments
-        # that do not normally reload code).
-        if $LOADED_FEATURES.include?(probe.file)
-          raise Error::DITargetNotInRegistry, "File loaded but is not in code tracker registry: #{probe.file}"
+        # Find the loaded path matching the probe file.
+        loaded_path = if $LOADED_FEATURES.include?(probe.file)
+          probe.file
+        else
+          # Expensive suffix check.
+          $LOADED_FEATURES.find { |path| Utils.path_matches_suffix?(path, probe.file) }
         end
-        # Ths is an expensive check
-        $LOADED_FEATURES.each do |path|
-          if Utils.path_matches_suffix?(path, probe.file)
-            raise Error::DITargetNotInRegistry, "File matching probe path (#{probe.file}) was loaded and is not in code tracker registry: #{path}"
-          end
+
+        return unless loaded_path
+
+        # Distinguish between "no iseqs at all" and "has per-method iseqs
+        # but none cover this line".
+        has_per_method = code_tracker&.send(:instance_variable_defined?, :@per_method_registry) &&
+          code_tracker.send(:per_method_registry).key?(loaded_path)
+
+        if has_per_method
+          raise Error::DITargetNotInRegistry,
+            "File #{loaded_path} is loaded and has per-method iseqs, " \
+            "but none cover line #{line_no}. " \
+            "The line may be in file-level setup code outside any method."
+        else
+          raise Error::DITargetNotInRegistry,
+            "File #{loaded_path} is loaded but has no surviving iseqs " \
+            "(whole-file iseq was garbage collected and no per-method iseqs remain). " \
+            "Line probes cannot target this file."
         end
       end
 
@@ -624,7 +650,7 @@ module Datadog
       def symbolize_class_name(cls_name)
         Object.const_get(cls_name)
       rescue NameError => exc
-        raise Error::DITargetNotDefined, "Class not defined: #{cls_name}: #{exc.class}: #{exc}"
+        raise Error::DITargetNotDefined, "Class not defined: #{cls_name}: #{exc.class}: #{exc.message}"
       end
     end
   end

@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.30.0)
+    datadog (2.32.0)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
-      libdatadog (~> 29.0.0.1.0)
+      libdatadog (~> 30.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
@@ -91,6 +91,8 @@ GEM
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
     bigdecimal (3.1.9)
+    bootsnap (1.23.0)
+      msgpack (~> 1.2)
     builder (3.3.0)
     byebug (12.0.0)
     cgi (0.5.1)
@@ -137,10 +139,10 @@ GEM
       reline (>= 0.4.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (29.0.0.1.0)
-    libdatadog (29.0.0.1.0-aarch64-linux)
-    libdatadog (29.0.0.1.0-arm64-darwin)
-    libdatadog (29.0.0.1.0-x86_64-linux)
+    libdatadog (30.0.0.1.0)
+    libdatadog (30.0.0.1.0-aarch64-linux)
+    libdatadog (30.0.0.1.0-arm64-darwin)
+    libdatadog (30.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.0)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.0-aarch64-linux)
@@ -318,6 +320,7 @@ PLATFORMS
 DEPENDENCIES
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
+  bootsnap (>= 1.7)
   byebug
   climate_control (~> 1.2.0)
   concurrent-ruby

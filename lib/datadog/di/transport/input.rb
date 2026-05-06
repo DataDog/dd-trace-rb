@@ -50,21 +50,51 @@ module Datadog
           # max chunk size, it will still get sent out.
           DEFAULT_CHUNK_SIZE = 2 * 1024 * 1024
 
-          def send_input(payload, tags)
-            # Tags are the same for all chunks, serialize them one time.
+          # Sends snapshot payloads to the agent.
+          #
+          # Each snapshot is serialized individually. If serialization fails
+          # for a snapshot (e.g., due to binary data from custom serializers),
+          # the on_serialization_error callback is invoked with the probe ID
+          # and exception, allowing the caller to disable the affected probe.
+          # Successfully serialized snapshots are still sent.
+          #
+          # Large snapshots (> 1MB) are dropped. Batches are split into chunks
+          # of ~2MB each to avoid large network requests.
+          #
+          # @param payload [Array<Hash>] Array of snapshot payloads
+          # @param tags [Hash] Tags to send with the snapshots
+          # @param on_serialization_error [Proc] Called with (probe_id, exception)
+          #   when a snapshot fails to serialize.
+          def send_input(payload, tags, on_serialization_error:)
             serialized_tags = Core::TagBuilder.serialize_tags(tags)
 
-            encoded_snapshots = Core::Utils::Array.filter_map(payload) do |snapshot|
+            # Serialize each snapshot individually to isolate failures
+            encoded_snapshots = []
+            payload.each do |snapshot|
               encoded = encoder.encode(snapshot)
               if encoded.length > MAX_SERIALIZED_SNAPSHOT_SIZE
-                # Drop the snapshot.
-                # TODO report via telemetry metric?
                 logger.debug { "di: dropping too big snapshot" }
-                nil
-              else
-                encoded
+                next
+              end
+              encoded_snapshots << encoded
+            rescue => exc
+              # Serialization failed for this snapshot - report via callback
+              # This catches JSON::GeneratorError, Encoding errors, TypeError, etc.
+              probe_id = snapshot.dig(:debugger, :snapshot, :probe, :id)
+              logger.debug { "di: JSON encoding failed for snapshot (probe #{probe_id}): #{exc.class}: #{exc.message}" }
+              telemetry&.report(exc, description: "JSON encoding failed for snapshot")
+
+              if probe_id
+                begin
+                  on_serialization_error.call(probe_id, exc)
+                rescue => callback_exc
+                  logger.debug { "di: error in serialization error callback for probe #{probe_id}: #{callback_exc.class}: #{callback_exc.message}" }
+                  telemetry&.report(callback_exc, description: "Error in serialization error callback")
+                end
               end
             end
+
+            return payload if encoded_snapshots.empty?
 
             Datadog::Core::Chunker.chunk_by_size(
               encoded_snapshots, DEFAULT_CHUNK_SIZE,
@@ -80,7 +110,7 @@ module Datadog
               begin
                 send_input_chunk(chunked_payload, serialized_tags)
               rescue => exc
-                logger.debug { "di: failed to send snapshot chunk: #{exc.class}: #{exc} (at #{exc.backtrace.first})" }
+                logger.debug { "di: failed to send snapshot chunk: #{exc.class}: #{exc.message} (at #{exc.backtrace.first})" }
                 telemetry&.report(exc, description: "Error sending snapshot chunk")
               end
             end

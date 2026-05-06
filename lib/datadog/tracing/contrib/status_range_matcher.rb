@@ -27,6 +27,10 @@ module Datadog
             end
           end
         end
+
+        def to_s
+          @ranges.map { |range| range.is_a?(Range) ? "#{range.begin}-#{range.end}" : range.to_s }.join(',')
+        end
       end
     end
   end

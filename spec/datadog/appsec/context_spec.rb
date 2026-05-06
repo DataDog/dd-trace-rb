@@ -37,7 +37,9 @@ RSpec.describe Datadog::AppSec::Context do
     context 'when active context is set' do
       before { described_class.activate(context) }
 
-      it { expect(described_class.active).to eq(context) }
+      it 'returns the active context' do
+        expect(described_class.active).to eq(context)
+      end
     end
   end
 
@@ -45,7 +47,9 @@ RSpec.describe Datadog::AppSec::Context do
     it { expect { described_class.activate(double) }.to raise_error(ArgumentError) }
 
     context 'when no active context is set' do
-      it { expect { described_class.activate(context) }.to change { described_class.active }.from(nil).to(context) }
+      it 'sets the active context' do
+        expect { described_class.activate(context) }.to change { described_class.active }.from(nil).to(context)
+      end
     end
 
     context 'when active context is already set' do

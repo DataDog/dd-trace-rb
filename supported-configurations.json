@@ -412,6 +412,13 @@
         "default": "true"
       }
     ],
+    "DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_LOGS_INJECTION": [
       {
         "version": "B",
@@ -678,6 +685,13 @@
         "default": null
       }
     ],
+    "DD_SYMBOL_DATABASE_UPLOAD_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_TAGS": [
       {
         "version": "B",
@@ -698,6 +712,13 @@
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_TELEMETRY_EXTENDED_HEARTBEAT_INTERVAL": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "86400"
       }
     ],
     "DD_TELEMETRY_HEARTBEAT_INTERVAL": [

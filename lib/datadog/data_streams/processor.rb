@@ -329,7 +329,7 @@ module Datadog
         # Send to agent outside mutex to avoid blocking customer code if agent is slow/hung.
         send_stats_to_agent(payload)
       rescue => e
-        @logger.debug("Failed to flush DSM stats to agent: #{e.class}: #{e}")
+        @logger.debug("Failed to flush DSM stats to agent: #{e.class}: #{e.message}")
       end
 
       def get_current_pathway
