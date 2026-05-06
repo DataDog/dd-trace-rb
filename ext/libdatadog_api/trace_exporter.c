@@ -1,0 +1,331 @@
+#include <ruby.h>
+#include <ruby/thread.h>
+#include <stdbool.h>
+#include <datadog/data-pipeline.h>
+
+#include "datadog_ruby_common.h"
+#include "helpers.h"
+#include "trace_exporter.h"
+
+/* ========================================================================
+ * Forward declarations
+ * ======================================================================== */
+
+/* Internal: convert a Ruby Span to a Rust ddog_TracerSpan* (caller owns) */
+static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span);
+
+/* TracerSpan methods */
+static VALUE _native_from_span(VALUE klass, VALUE span);
+
+/* GC / TypedData */
+static void tracer_span_dfree(void *ptr);
+
+/* ========================================================================
+ * Cached Ruby intern IDs
+ * ======================================================================== */
+
+/* Instance variable IDs on Datadog::Tracing::Span */
+static ID at_name_id;
+static ID at_service_id;
+static ID at_resource_id;
+static ID at_type_id;
+static ID at_id_id;
+static ID at_parent_id_id;
+static ID at_trace_id_id;
+static ID at_start_time_id;
+static ID at_duration_id;
+static ID at_status_id;
+static ID at_meta_id;
+static ID at_metrics_id;
+
+/* Method IDs for time / integer operations */
+static ID id_to_i;
+static ID id_nsec;
+static ID id_duration_method;
+static ID id_bitand;
+static ID id_rshift;
+
+/* ========================================================================
+ * Ruby class references (marked as GC roots)
+ * ======================================================================== */
+
+static VALUE tracer_span_class = Qnil;
+
+/* ========================================================================
+ * TypedData definitions
+ * ======================================================================== */
+
+static const rb_data_type_t tracer_span_typed_data = {
+  .wrap_struct_name = "Datadog::Tracing::Transport::Native::TracerSpan",
+  .function = {
+    .dmark = NULL,
+    .dfree = tracer_span_dfree,
+    .dsize = NULL,
+  },
+  .flags = RUBY_TYPED_FREE_IMMEDIATELY
+};
+
+static void tracer_span_dfree(void *ptr) {
+  if (ptr != NULL) {
+    ddog_tracer_span_free((ddog_TracerSpan *)ptr);
+  }
+}
+
+/* ========================================================================
+ * Error handling
+ * ======================================================================== */
+
+/*
+ * If +err+ is non-NULL, copies the message, frees the error struct, and
+ * raises a Ruby RuntimeError.  Does not return on error.
+ */
+static inline void check_exporter_error(const char *context,
+                                        ddog_TraceExporterError *err) {
+  if (err == NULL) return;
+
+  char buf[MAX_RAISE_MESSAGE_SIZE];
+  if (err->msg != NULL) {
+    snprintf(buf, sizeof(buf), "%s: %s", context, err->msg);
+  } else {
+    snprintf(buf, sizeof(buf), "%s: (unknown error)", context);
+  }
+  ddog_trace_exporter_error_free(err);
+  raise_error(rb_eRuntimeError, "%s", buf);
+}
+
+/* ========================================================================
+ * Conversion helpers (Ruby -> C, require the GVL)
+ * ======================================================================== */
+
+/* Nullable Ruby String -> ddog_CharSlice (nil -> empty slice) */
+static inline ddog_CharSlice nullable_char_slice(VALUE str) {
+  if (str == Qnil) {
+    return (ddog_CharSlice){.ptr = "", .len = 0};
+  }
+  ENFORCE_TYPE(str, T_STRING);
+  return (ddog_CharSlice){.ptr = RSTRING_PTR(str), .len = RSTRING_LEN(str)};
+}
+
+/* Ruby Time -> int64_t nanoseconds since Unix epoch */
+static inline int64_t time_to_nanos(VALUE time) {
+  VALUE secs = rb_funcall(time, id_to_i, 0);
+  VALUE nsec = rb_funcall(time, id_nsec, 0);
+  return (int64_t)NUM2LL(secs) * 1000000000LL + (int64_t)NUM2LL(nsec);
+}
+
+/* 128-bit trace ID split into two 64-bit halves */
+typedef struct {
+  uint64_t low;
+  uint64_t high;
+} trace_id_t;
+
+/* Ruby 128-bit Integer -> trace_id_t */
+static inline trace_id_t split_trace_id(VALUE trace_id) {
+  VALUE mask = ULL2NUM(0xFFFFFFFFFFFFFFFF);
+  return (trace_id_t){
+    .low  = NUM2ULL(rb_funcall(trace_id, id_bitand, 1, mask)),
+    .high = NUM2ULL(rb_funcall(trace_id, id_rshift, 1, INT2FIX(64))),
+  };
+}
+
+/* ========================================================================
+ * Hash iteration callbacks for meta / metrics
+ *
+ * We cannot raise Ruby exceptions from inside rb_hash_foreach callbacks
+ * (longjmp would corrupt the hash iteration state).  Instead, the first
+ * error is stashed in a context struct and iteration is stopped with
+ * ST_STOP.  The caller checks for the error after rb_hash_foreach
+ * returns.
+ * ======================================================================== */
+
+typedef struct {
+  ddog_TracerSpan        *span;
+  ddog_TraceExporterError *error;  /* first error, if any */
+} hash_iter_ctx;
+
+static int meta_iter_cb(VALUE key, VALUE value, VALUE arg) {
+  hash_iter_ctx *ctx = (hash_iter_ctx *)arg;
+
+  /*
+   * We intentionally use direct struct initialization instead of
+   * char_slice_from_ruby_string() here: that helper contains
+   * ENFORCE_TYPE which can raise, and raising inside an
+   * rb_hash_foreach callback would longjmp out of the hash
+   * iteration and corrupt internal VM state.
+   */
+  if (!RB_TYPE_P(key, T_STRING) || !RB_TYPE_P(value, T_STRING))
+    return ST_CONTINUE;
+
+  ddog_CharSlice ks = {.ptr = RSTRING_PTR(key),   .len = RSTRING_LEN(key)};
+  ddog_CharSlice vs = {.ptr = RSTRING_PTR(value), .len = RSTRING_LEN(value)};
+
+  ddog_TraceExporterError *err = ddog_tracer_span_set_meta(ctx->span, ks, vs);
+  if (err != NULL) {
+    ctx->error = err;
+    return ST_STOP;
+  }
+
+  return ST_CONTINUE;
+}
+
+static int metrics_iter_cb(VALUE key, VALUE value, VALUE arg) {
+  hash_iter_ctx *ctx = (hash_iter_ctx *)arg;
+
+  if (!RB_TYPE_P(key, T_STRING)) return ST_CONTINUE;
+  if (!RB_TYPE_P(value, T_FLOAT) && !RB_TYPE_P(value, T_FIXNUM) &&
+      !RB_TYPE_P(value, T_BIGNUM))
+    return ST_CONTINUE;
+
+  /* See meta_iter_cb for why we avoid char_slice_from_ruby_string() here. */
+  ddog_CharSlice ks = {.ptr = RSTRING_PTR(key), .len = RSTRING_LEN(key)};
+
+  ddog_TraceExporterError *err =
+      ddog_tracer_span_set_metric(ctx->span, ks, NUM2DBL(value));
+  if (err != NULL) {
+    ctx->error = err;
+    return ST_STOP;
+  }
+
+  return ST_CONTINUE;
+}
+
+/* ========================================================================
+ * Internal: convert a Ruby Span -> ddog_TracerSpan*
+ *
+ * The returned pointer is Rust-heap-allocated.  Ownership is transferred
+ * to the caller (either wrap it in TypedData or push it into trace chunks).
+ * ======================================================================== */
+
+static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
+  /* 1. Read Ruby ivars */
+  VALUE rb_name      = rb_ivar_get(span, at_name_id);
+  VALUE rb_service   = rb_ivar_get(span, at_service_id);
+  VALUE rb_resource  = rb_ivar_get(span, at_resource_id);
+  VALUE rb_type      = rb_ivar_get(span, at_type_id);
+  VALUE rb_span_id   = rb_ivar_get(span, at_id_id);
+  VALUE rb_parent_id = rb_ivar_get(span, at_parent_id_id);
+  VALUE rb_trace_id  = rb_ivar_get(span, at_trace_id_id);
+  VALUE rb_status    = rb_ivar_get(span, at_status_id);
+
+  /* 2. Convert scalars */
+  ddog_CharSlice name_s     = char_slice_from_ruby_string(rb_name);
+  ddog_CharSlice service_s  = nullable_char_slice(rb_service);
+  ddog_CharSlice resource_s = char_slice_from_ruby_string(rb_resource);
+  ddog_CharSlice type_s     = nullable_char_slice(rb_type);
+
+  uint64_t span_id   = NUM2ULL(rb_span_id);
+  uint64_t parent_id = NUM2ULL(rb_parent_id);
+  int32_t  error_val = NUM2INT(rb_status);
+
+  trace_id_t trace_id = split_trace_id(rb_trace_id);
+
+  /* start (ns) */
+  int64_t start_ns = 0;
+  VALUE rb_start_time = rb_ivar_get(span, at_start_time_id);
+  if (rb_start_time != Qnil) {
+    start_ns = time_to_nanos(rb_start_time);
+  }
+
+  /* duration (ns) */
+  int64_t duration_ns = 0;
+  VALUE rb_duration_ivar = rb_ivar_get(span, at_duration_id);
+  if (rb_duration_ivar != Qnil) {
+    duration_ns = (int64_t)(NUM2DBL(rb_duration_ivar) * 1e9);
+  } else {
+    VALUE dur = rb_funcall(span, id_duration_method, 0);
+    if (dur != Qnil) duration_ns = (int64_t)(NUM2DBL(dur) * 1e9);
+  }
+
+  /* 3. Create Rust span */
+  ddog_TracerSpan *rust_span = NULL;
+
+  ddog_TraceExporterError *err = ddog_tracer_span_new(
+      &rust_span,
+      service_s, name_s, resource_s, type_s,
+      trace_id.low, trace_id.high,
+      span_id, parent_id,
+      start_ns, duration_ns,
+      error_val);
+  check_exporter_error("Failed to create TracerSpan", err);
+
+  /* 4. Populate meta and metrics */
+  hash_iter_ctx ctx = {.span = rust_span, .error = NULL};
+
+  VALUE rb_meta = rb_ivar_get(span, at_meta_id);
+  if (RB_TYPE_P(rb_meta, T_HASH) && RHASH_SIZE(rb_meta) > 0) {
+    rb_hash_foreach(rb_meta, meta_iter_cb, (VALUE)&ctx);
+    if (ctx.error != NULL) {
+      ddog_tracer_span_free(rust_span);
+      check_exporter_error("Failed to set span meta", ctx.error);
+    }
+  }
+
+  VALUE rb_metrics = rb_ivar_get(span, at_metrics_id);
+  if (RB_TYPE_P(rb_metrics, T_HASH) && RHASH_SIZE(rb_metrics) > 0) {
+    rb_hash_foreach(rb_metrics, metrics_iter_cb, (VALUE)&ctx);
+    if (ctx.error != NULL) {
+      ddog_tracer_span_free(rust_span);
+      check_exporter_error("Failed to set span metric", ctx.error);
+    }
+  }
+
+  return rust_span;
+}
+
+/* ========================================================================
+ * TracerSpan._native_from_span
+ * ======================================================================== */
+
+static VALUE _native_from_span(DDTRACE_UNUSED VALUE klass, VALUE span) {
+  ddog_TracerSpan *rust_span = convert_ruby_span_to_rust(span);
+  return TypedData_Wrap_Struct(tracer_span_class, &tracer_span_typed_data,
+                               rust_span);
+}
+
+/* ========================================================================
+ * Initialization
+ * ======================================================================== */
+
+void trace_exporter_init(VALUE tracing_module) {
+  /* -- Module hierarchy -- */
+  VALUE transport_module = rb_define_module_under(tracing_module, "Transport");
+  VALUE native_module =
+      rb_define_module_under(transport_module, "Native");
+
+  /* ----------------------------------------------------------------
+   * TracerSpan class
+   * ---------------------------------------------------------------- */
+  tracer_span_class =
+      rb_define_class_under(native_module, "TracerSpan", rb_cObject);
+  rb_global_variable(&tracer_span_class);
+  rb_undef_alloc_func(tracer_span_class);
+
+  /* Factory */
+  rb_define_singleton_method(tracer_span_class, "_native_from_span",
+                             _native_from_span, 1);
+
+  /* ----------------------------------------------------------------
+   * Cache Ruby intern IDs
+   * ---------------------------------------------------------------- */
+
+  /* Span ivars */
+  at_name_id       = rb_intern("@name");
+  at_service_id    = rb_intern("@service");
+  at_resource_id   = rb_intern("@resource");
+  at_type_id       = rb_intern("@type");
+  at_id_id         = rb_intern("@id");
+  at_parent_id_id  = rb_intern("@parent_id");
+  at_trace_id_id   = rb_intern("@trace_id");
+  at_start_time_id = rb_intern("@start_time");
+  at_duration_id   = rb_intern("@duration");
+  at_status_id     = rb_intern("@status");
+  at_meta_id       = rb_intern("@meta");
+  at_metrics_id    = rb_intern("@metrics");
+
+  /* Methods */
+  id_to_i            = rb_intern("to_i");
+  id_nsec            = rb_intern("nsec");
+  id_duration_method = rb_intern("duration");
+  id_bitand          = rb_intern("&");
+  id_rshift          = rb_intern(">>");
+}
