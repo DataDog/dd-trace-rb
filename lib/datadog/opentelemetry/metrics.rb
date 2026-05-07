@@ -42,7 +42,9 @@ module Datadog
 
       def create_resource
         resource_attributes = {}
-        resource_attributes['host.name'] = Datadog::Core::Environment::Socket.hostname if @settings.tracing.report_hostname
+        if @settings.tracing.report_hostname
+          resource_attributes['host.name'] = @settings.hostname || Datadog::Core::Environment::Socket.hostname
+        end
 
         @settings.tags&.each do |key, value|
           otel_key = case key

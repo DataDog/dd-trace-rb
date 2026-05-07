@@ -369,6 +369,13 @@
         "default": "false"
       }
     ],
+    "DD_HOSTNAME": [
+      {
+        "version": "A",
+        "type": "string",
+        "default": "null"
+      }
+    ],
     "DD_INJECTION_ENABLED": [
       {
         "version": "B",
