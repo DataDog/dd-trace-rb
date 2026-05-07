@@ -11,7 +11,7 @@ module Datadog
         new(components).configure_logs_sdk
         true
       rescue => exc
-        components.logger.error("Failed to initialize OpenTelemetry logs: #{exc.class}: #{exc}: #{exc.backtrace.join("\n")}")
+        components.logger.error("Failed to initialize OpenTelemetry logs: #{exc.class}: #{exc.message}: #{exc.backtrace.join("\n")}")
         false
       end
 
@@ -73,7 +73,7 @@ module Datadog
 
         configure_otlp_exporter(provider)
       rescue => e
-        @logger.warn("Failed to configure OTLP logs exporter: #{e.class}: #{e}")
+        @logger.warn("Failed to configure OTLP logs exporter: #{e.class}: #{e.message}")
       end
 
       def default_logs_endpoint(protocol)
@@ -113,7 +113,7 @@ module Datadog
         )
         provider.add_log_record_processor(processor)
       rescue LoadError => e
-        @logger.warn("Could not load OTLP logs exporter: #{e.class}: #{e}")
+        @logger.warn("Could not load OTLP logs exporter: #{e.class}: #{e.message}")
       end
 
       # Returns logs config value if explicitly set, otherwise falls back to exporter config or computed default value.

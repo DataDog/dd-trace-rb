@@ -63,7 +63,7 @@ module Datadog
           begin
             require 'opentelemetry-logs-sdk'
           rescue LoadError => exc
-            components.logger.warn("Failed to load OpenTelemetry logs gems: #{exc.class}: #{exc}")
+            components.logger.warn("Failed to load OpenTelemetry logs gems: #{exc.class}: #{exc.message}")
             return super
           end
 
