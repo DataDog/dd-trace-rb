@@ -1,0 +1,27 @@
+# LogsExporter subclasses OpenTelemetry::Exporter::OTLP::Logs::LogsExporter at runtime;
+# that type is not in our RBS dependencies, so we declare the class without inheritance.
+module Datadog
+  module OpenTelemetry
+    module SDK
+      class LogsExporter
+        @telemetry_tags: ::Hash[::String, ::String]
+
+        METRIC_EXPORT_ATTEMPTS: "otel.logs_export_attempts"
+        METRIC_EXPORT_SUCCESSES: "otel.logs_export_successes"
+        METRIC_EXPORT_FAILURES: "otel.logs_export_failures"
+        METRIC_LOG_RECORDS: "otel.log_records"
+        TELEMETRY_NAMESPACE: "tracers"
+
+        def initialize: (?protocol: ::String?, **untyped) -> void
+
+        def export: (untyped log_records, ?timeout: ::Float?) -> Integer
+
+        private
+
+        def compute_telemetry_tags: (::String? protocol) -> ::Hash[::String, ::String]
+
+        def telemetry: () -> Core::Telemetry::Component?
+      end
+    end
+  end
+end

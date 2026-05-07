@@ -24,6 +24,8 @@ module Datadog
 
         ENV_EXTERNAL_ENV: String
 
+        ENV_HOSTNAME: String
+
         ENV_SERVICE: String
 
         ENV_SITE: String
