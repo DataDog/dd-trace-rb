@@ -144,6 +144,20 @@ RSpec.describe 'OpenTelemetry Logs Integration', ruby: '>= 3.1' do
       expect(attributes['host.name']).to eq(Datadog::Core::Environment::Socket.hostname)
     end
 
+    it 'DD_HOSTNAME takes precedence over host.name set via tags when report_hostname is true' do
+      setup_logs('DD_TRACE_REPORT_HOSTNAME' => 'true', 'DD_HOSTNAME' => 'explicit-host') do |c|
+        c.tags = {'host.name' => 'tag-host'}
+      end
+      expect(attributes['host.name']).to eq('explicit-host')
+    end
+
+    it 'preserves host.name from tags when DD_HOSTNAME is not set and report_hostname is true' do
+      setup_logs('DD_TRACE_REPORT_HOSTNAME' => 'true') do |c|
+        c.tags = {'host.name' => 'tag-host'}
+      end
+      expect(attributes['host.name']).to eq('tag-host')
+    end
+
     it 'includes custom tags as resource attributes' do
       setup_logs('DD_SERVICE' => 'unused-name', 'DD_ENV' => 'unused-env', 'DD_VERSION' => 'x.y.z') do |c|
         c.service = 'test-service'
