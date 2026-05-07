@@ -527,10 +527,10 @@ typedef struct {
 } send_chunks_args_t;
 
 static void *send_chunks_without_gvl(void *data) {
-  send_chunks_args_t *a = (send_chunks_args_t *)data;
-  a->error = ddog_trace_exporter_send_trace_chunks(
-      a->exporter, a->chunks, &a->response);
-  a->send_ran = true;
+  send_chunks_args_t *args = (send_chunks_args_t *)data;
+  args->error = ddog_trace_exporter_send_trace_chunks(
+      args->exporter, args->chunks, &args->response);
+  args->send_ran = true;
   return NULL;
 }
 
