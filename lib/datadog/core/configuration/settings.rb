@@ -170,7 +170,9 @@ module Datadog
           o.env Core::Environment::Ext::ENV_ENVIRONMENT
         end
 
-        # Override the hostname reported by this process. Used as the `host.name` resource attribute in OpenTelemetry.
+        # Override the hostname reported by this process.
+        # Used as the `host.name` tag in traces (when `report_hostname` is enabled)
+        # and as the `host.name` resource attribute in OpenTelemetry.
         # @default `DD_HOSTNAME` environment variable, otherwise `nil`
         # @return [String,nil]
         option :hostname do |o|
