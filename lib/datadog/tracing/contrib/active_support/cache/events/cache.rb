@@ -94,7 +94,7 @@ module Datadog
                   set_cache_key(span, key, mapping[:multi_key])
                 end
               rescue => e
-                Datadog.logger.error(e.message)
+                Datadog.logger.error("#{e.class}: #{e.message}")
                 Datadog::Core::Telemetry::Logger.report(e)
               end
 

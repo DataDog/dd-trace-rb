@@ -116,17 +116,16 @@ module Datadog
                 gateway.watch('rack.request.finish') do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
 
-                  if context.span.nil? || !gateway.pushed?('appsec.events.user_lifecycle')
-                    next stack.call(gateway_request.request)
-                  end
+                  next stack.call(gateway_request.request) if context.span.nil?
 
                   gateway_request.headers.each do |name, value|
-                    if !Ext::COLLECTABLE_REQUEST_HEADERS.include?(name) &&
-                        !Ext::IDENTITY_COLLECTABLE_REQUEST_HEADERS.include?(name)
-                      next
+                    if Ext::COLLECTABLE_REQUEST_HEADERS.include?(name)
+                      context.span["http.request.headers.#{name}"] ||= value
                     end
 
-                    context.span["http.request.headers.#{name}"] ||= value
+                    if context.state[:has_identity_event] && Ext::IDENTITY_COLLECTABLE_REQUEST_HEADERS.include?(name)
+                      context.span["http.request.headers.#{name}"] ||= value
+                    end
                   end
 
                   stack.call(gateway_request.request)

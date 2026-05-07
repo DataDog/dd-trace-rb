@@ -52,7 +52,7 @@ RSpec.describe Datadog::Profiling::Component do
 
     context "with :enabled true" do
       before do
-        skip_if_profiling_not_supported(self)
+        skip_if_profiling_not_supported
 
         settings.profiling.enabled = true
         # Disabled to avoid warnings on Rubies where it's not supported; there's separate specs that test it when enabled
@@ -62,6 +62,24 @@ RSpec.describe Datadog::Profiling::Component do
 
       it "builds a profiler instance" do
         expect(build_profiler_component).to match([instance_of(Datadog::Profiling::Profiler), {profiling_enabled: true}])
+      end
+
+      context "when an exception is raised during initialization" do
+        before do
+          expect(Datadog::Profiling::HttpTransport).to receive(:new).and_raise(
+            ArgumentError.new("Failed to initialize transport: something went wrong")
+          )
+        end
+
+        it "logs a warning, reports via telemetry, and returns nil" do
+          expect(logger).to receive(:warn) do |&block|
+            expect(block.call).to match(/Failed to initialize profiling.*ArgumentError/)
+          end
+          expect(Datadog::Core::Telemetry::Logger).to receive(:report)
+            .with(instance_of(ArgumentError), hash_including(description: "Failed to initialize profiling"))
+
+          is_expected.to eq [nil, {profiling_enabled: false}]
+        end
       end
 
       context "when using the new CPU Profiling 2.0 profiler" do
@@ -867,7 +885,7 @@ RSpec.describe Datadog::Profiling::Component do
   describe ".no_signals_workaround_enabled?" do
     subject(:no_signals_workaround_enabled?) { described_class.send(:no_signals_workaround_enabled?, settings, logger) }
 
-    before { skip_if_profiling_not_supported(self) }
+    before { skip_if_profiling_not_supported }
 
     context "when no_signals_workaround_enabled is false" do
       before do

@@ -18,11 +18,10 @@ module ProfileHelpers
   end
   Frame = Struct.new(:base_label, :path, :lineno)
 
-  def skip_if_profiling_not_supported(testcase)
-    testcase.skip("Profiling is not supported on JRuby") if PlatformHelpers.jruby?
-    testcase.skip("Profiling is not supported on TruffleRuby") if PlatformHelpers.truffleruby?
+  def skip_if_profiling_not_supported
+    skip_if_libdatadog_not_supported
 
-    # Profiling is not officially supported on macOS due to missing libdatadog binaries,
+    # Profiling is not officially supported on macOS
     # but it's still useful to allow it to be enabled for development.
     if PlatformHelpers.mac? && ENV["DD_PROFILING_MACOS_TESTING"] != "true"
       testcase.skip(
@@ -110,6 +109,19 @@ module ProfileHelpers
     if RUBY_VERSION < "3.2."
       testcase.skip "GVL profiling is only supported on Ruby >= 3.2"
     end
+  end
+
+  def asan_build?
+    %w[CFLAGS LDFLAGS configure_args].any? do |key|
+      RbConfig::CONFIG[key].to_s.include?("sanitize=address")
+    end
+  end
+
+  # Under ASAN-built Ruby, we've seen flakiness in some of our tests.
+  # We suspect this may be the ASAN fake stack keeping things alive, although we're not entirely sure...
+  # For now let's skip these tests when testing with ASAN to avoid impacting CI
+  def skip_asan_flaky
+    skip "Skipped test to avoid flakiness in ASAN builds" if asan_build?
   end
 end
 

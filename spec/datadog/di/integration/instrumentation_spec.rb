@@ -211,8 +211,8 @@ RSpec.describe 'Instrumentation integration' do
             expect(probe_manager.add_probe(probe)).to be false
 
             # Probe should be pending
-            expect(probe_manager.pending_probes).to eq(probe.id => probe)
-            expect(probe_manager.installed_probes).to be_empty
+            expect(probe_manager.probe_repository.pending_probes).to eq(probe.id => probe)
+            expect(probe_manager.probe_repository.installed_probes).to be_empty
 
             class InstrumentationDelayedTestClass # rubocop:disable Lint/ConstantDefinitionInBlock
               def test_method
@@ -222,8 +222,8 @@ RSpec.describe 'Instrumentation integration' do
 
             # Probe should now be installed, verify it was moved in the
             # accounting collections correctly.
-            expect(probe_manager.pending_probes).to be_empty
-            expect(probe_manager.installed_probes).to eq(probe.id => probe)
+            expect(probe_manager.probe_repository.pending_probes).to be_empty
+            expect(probe_manager.probe_repository.installed_probes).to eq(probe.id => probe)
 
             payload = nil
             expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
@@ -484,6 +484,37 @@ RSpec.describe 'Instrumentation integration' do
             run_test do
               expect(InstrumentationSpecTestClass.new.mutating_method('hello world')).to eq('bye world')
             end
+          end
+        end
+
+        context 'when method raises an exception' do
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "1234", type: :log,
+              type_name: 'InstrumentationSpecTestClass', method_name: 'exception_method',
+              capture_snapshot: true,)
+          end
+
+          it 'populates throwable in captures' do
+            expect(diagnostics_transport).to receive(:send_diagnostics)
+            probe_manager.add_probe(probe)
+            payload = nil
+            expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+              payload = payload_
+            end
+
+            expect do
+              InstrumentationSpecTestClass.new.exception_method
+            end.to raise_error(InstrumentationSpecTestClass::TestException, /Test exception/)
+
+            component.probe_notifier_worker.flush
+
+            expect(payload).to be_a(Hash)
+            captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
+            throwable = captures.fetch(:return).fetch(:throwable)
+            expect(throwable[:type]).to eq('InstrumentationSpecTestClass::TestException')
+            expect(throwable[:message]).to eq('Test exception')
+            expect(throwable[:stacktrace]).to be_an(Array)
+            expect(throwable[:stacktrace]).not_to be_empty
           end
         end
 
@@ -809,7 +840,7 @@ RSpec.describe 'Instrumentation integration' do
             # add_snapshot expectation replaces assertion on send_input
             probe_manager.add_probe(probe)
             component.probe_notifier_worker.flush
-            expect(probe_manager.installed_probes.length).to eq 1
+            expect(probe_manager.probe_repository.installed_probes.length).to eq 1
             expect(component.probe_notifier_worker).to receive(:add_snapshot)
             expect(InstrumentationIntegrationTestClass.new.test_method).to eq(42)
           end
@@ -877,7 +908,7 @@ RSpec.describe 'Instrumentation integration' do
             expect(input_transport).to receive(:send_input)
             probe_manager.add_probe(probe)
             component.probe_notifier_worker.flush
-            expect(probe_manager.installed_probes.length).to eq 1
+            expect(probe_manager.probe_repository.installed_probes.length).to eq 1
             expect(component.probe_notifier_worker).to receive(:add_snapshot).once.and_call_original
             expect(InstrumentationIntegrationTestClass.new.test_method_with_block).to eq([1])
             component.probe_notifier_worker.flush
@@ -928,7 +959,7 @@ RSpec.describe 'Instrumentation integration' do
             expect(input_transport).not_to receive(:send_input)
             probe_manager.add_probe(probe)
             component.probe_notifier_worker.flush
-            expect(probe_manager.installed_probes.length).to eq 1
+            expect(probe_manager.probe_repository.installed_probes.length).to eq 1
             expect(component.probe_notifier_worker).not_to receive(:add_snapshot)
             call_target
             component.probe_notifier_worker.flush
@@ -973,7 +1004,7 @@ RSpec.describe 'Instrumentation integration' do
           # We currently are not told that the line is not executable.
           it 'installs probe' do
             expect(probe_manager.add_probe(probe)).to be true
-            expect(probe_manager.installed_probes.length).to eq 1
+            expect(probe_manager.probe_repository.installed_probes.length).to eq 1
           end
         end
 
@@ -1002,11 +1033,11 @@ RSpec.describe 'Instrumentation integration' do
           end
 
           it 'does not install the probe' do
-            expect_lazy_log(probe_manager.logger, :debug, /File matching probe path.*was loaded and is not in code tracker registry/)
+            expect_lazy_log(probe_manager.logger, :debug, /no surviving iseqs|no per-method iseqs/)
             expect do
               probe_manager.add_probe(probe)
-            end.to raise_error(Datadog::DI::Error::DITargetNotInRegistry, /File matching probe path.*was loaded and is not in code tracker registry/)
-            expect(probe_manager.installed_probes.length).to eq 0
+            end.to raise_error(Datadog::DI::Error::DITargetNotInRegistry, /no surviving iseqs|no per-method iseqs/)
+            expect(probe_manager.probe_repository.installed_probes.length).to eq 0
           end
         end
       end
@@ -1115,8 +1146,8 @@ RSpec.describe 'Instrumentation integration' do
           it 'instruments file when it is loaded' do
             probe_manager.add_probe(probe)
 
-            expect(probe_manager.pending_probes.length).to eq 1
-            expect(probe_manager.installed_probes.length).to eq 0
+            expect(probe_manager.probe_repository.pending_probes.length).to eq 1
+            expect(probe_manager.probe_repository.installed_probes.length).to eq 0
 
             expect(component.probe_notification_builder).to receive(:build_installed).and_call_original
             expect(diagnostics_transport).to receive(:send_diagnostics)
@@ -1124,8 +1155,8 @@ RSpec.describe 'Instrumentation integration' do
 
             require_relative 'instrumentation_integration_test_class_2'
 
-            expect(probe_manager.pending_probes.length).to eq 0
-            expect(probe_manager.installed_probes.length).to eq 1
+            expect(probe_manager.probe_repository.pending_probes.length).to eq 0
+            expect(probe_manager.probe_repository.installed_probes.length).to eq 1
 
             expect(component.probe_notification_builder).to receive(:build_executed).and_call_original
 
@@ -1158,14 +1189,14 @@ RSpec.describe 'Instrumentation integration' do
 
               probe_manager.add_probe(probe)
 
-              expect(probe_manager.pending_probes.length).to eq 0
-              expect(probe_manager.installed_probes.length).to eq 1
+              expect(probe_manager.probe_repository.pending_probes.length).to eq 0
+              expect(probe_manager.probe_repository.installed_probes.length).to eq 1
 
               # This require does not change instrumentation
               require_relative 'instrumentation_integration_test_class_3'
 
-              expect(probe_manager.pending_probes.length).to eq 0
-              expect(probe_manager.installed_probes.length).to eq 1
+              expect(probe_manager.probe_repository.pending_probes.length).to eq 0
+              expect(probe_manager.probe_repository.installed_probes.length).to eq 1
 
               expect(component.probe_notification_builder).to receive(:build_executed).and_call_original
 
@@ -1188,13 +1219,13 @@ RSpec.describe 'Instrumentation integration' do
             it 'does not instrument file when it is loaded' do
               probe_manager.add_probe(probe)
 
-              expect(probe_manager.pending_probes.length).to eq 1
-              expect(probe_manager.installed_probes.length).to eq 0
+              expect(probe_manager.probe_repository.pending_probes.length).to eq 1
+              expect(probe_manager.probe_repository.installed_probes.length).to eq 0
 
               require_relative 'instrumentation_integration_test_class_4'
 
-              expect(probe_manager.pending_probes.length).to eq 1
-              expect(probe_manager.installed_probes.length).to eq 0
+              expect(probe_manager.probe_repository.pending_probes.length).to eq 1
+              expect(probe_manager.probe_repository.installed_probes.length).to eq 0
 
               expect(component.probe_notification_builder).not_to receive(:build_executed).and_call_original
 

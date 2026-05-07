@@ -41,7 +41,7 @@ module Datadog
                   engine.reconfigure!(read_content(content))
                   content.applied
                 rescue EvaluationEngine::ReconfigurationError => e
-                  content.errored("Error applying OpenFeature configuration: #{e.message}")
+                  content.errored("Error applying OpenFeature configuration: #{e.class}: #{e.message}")
                 end
               when :delete
                 # NOTE: For now, we treat deletion as clearing the configuration

@@ -45,7 +45,7 @@ module Datadog
             rescue Client::SyncError => e
               # Transient errors due to network or agent. Logged the error but not via telemetry
               logger.error do
-                "remote worker client sync error: #{e.message} location: #{Array(e.backtrace).first}. skipping sync"
+                "remote worker client sync error: #{e.class}: #{e.message} location: #{Array(e.backtrace).first}. skipping sync"
               end
             rescue => e
               # In case of unexpected errors, reset the negotiation object
@@ -55,7 +55,7 @@ module Datadog
 
               # Transient errors due to network or agent. Logged the error but not via telemetry
               logger.error do
-                "remote worker error: #{e.class.name} #{e.message} location: #{Array(e.backtrace).first}. " \
+                "remote worker error: #{e.class}: #{e.message} location: #{Array(e.backtrace).first}. " \
                 'resetting client state'
               end
 
@@ -105,6 +105,7 @@ module Datadog
         class Barrier
           def initialize(timeout = nil)
             @once = false
+            @waited = false
             @timeout = timeout
 
             @mutex = Mutex.new
@@ -112,28 +113,46 @@ module Datadog
           end
 
           # Wait for first lift to happen, otherwise don't wait
+          #
+          # Returns:
+          # - :lift if the barrier was lifted (worker completed a cycle)
+          # - :timeout if the wait timed out before the barrier was lifted
+          # - :pass if wait_once was already called previously
+          #
+          # Uses a separate @waited flag to distinguish "already waited" (:pass)
+          # from "worker lifted before we could wait" (:lift). Without this,
+          # a race between Worker#start and wait_once can cause the first call
+          # to return :pass if the worker completes before wait_once runs.
           def wait_once(timeout = nil)
-            # TTAS (Test and Test-And-Set) optimisation
-            # Since @once only ever goes from false to true, this is semantically valid
-            return :pass if @once
+            # TTAS (Test and Test-And-Set) optimisation for subsequent calls.
+            # @waited is only set inside the mutex and only transitions false -> true,
+            # so an unsynchronized read is safe: a stale `false` just falls through
+            # to the synchronized path which re-checks.
+            return :pass if @waited
 
-            begin
-              @mutex.lock
+            @mutex.synchronize do
+              return :pass if @waited
 
-              return :pass if @once
-
-              timeout ||= @timeout
-
-              # - starting with Ruby 3.2, ConditionVariable#wait returns nil on
-              #   timeout and an integer otherwise
-              # - before Ruby 3.2, ConditionVariable returns itself
-              # so we have to rely on @once having been set
-              if RUBY_VERSION >= '3.2'
-                lifted = @condition.wait(@mutex, timeout)
+              if @once
+                # Worker lifted the barrier before we could wait.
+                # This is still the first call, so return :lift not :pass.
+                lifted = true
               else
-                @condition.wait(@mutex, timeout)
-                lifted = @once
+                timeout ||= @timeout
+
+                # - starting with Ruby 3.2, ConditionVariable#wait returns nil on
+                #   timeout and an integer otherwise
+                # - before Ruby 3.2, ConditionVariable returns itself
+                # so we have to rely on @once having been set
+                if RUBY_VERSION >= '3.2'
+                  lifted = @condition.wait(@mutex, timeout)
+                else
+                  @condition.wait(@mutex, timeout)
+                  lifted = @once
+                end
               end
+
+              @waited = true
 
               if lifted
                 :lift
@@ -141,8 +160,6 @@ module Datadog
                 @once = true
                 :timeout
               end
-            ensure
-              @mutex.unlock
             end
           end
 

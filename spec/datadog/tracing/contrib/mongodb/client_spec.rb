@@ -9,6 +9,15 @@ require 'datadog'
 require 'mongo'
 
 RSpec.describe 'Mongo::Client instrumentation' do
+  # Skip reason: On JRuby 9.2, tests are failing with the following exception:
+  #   Mongo::Error::NoServerAvailable: No primary_preferred server is available in cluster:
+  #   #<Cluster topology=Unknown[mongodb:27017] servers=[#<Server address=mongodb:27017 UNKNOWN NO-MONITORING>]>
+  #   with timeout=30, LT=0.015. The following servers have dead monitor threads:
+  #   #<Server address=mongodb:27017 UNKNOWN NO-MONITORING>
+  # This is most likely a JRuby bug or issue because JRuby does not implement fork and should therefore
+  # never have dead monitor threads. MongoDB Ruby driver 2.21.0 deprecated JRuby 9.2 support.
+  before { skip if PlatformHelpers.jruby? && !PlatformHelpers.ruby_version_matches?('>= 2.6') }
+
   let(:configuration_options) { {} }
   # Clear data between tests
   let(:drop_database?) { true }
@@ -540,7 +549,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
 
           expect(auth_span).to have_error
           expect(auth_span).to have_error_type('Mongo::Monitoring::Event::CommandFailed')
-          expect(auth_span).to have_error_message(/Unsupported mechanism PLAIN/)
+          expect(auth_span).to have_error_message(/Unsupported mechanism 'PLAIN'/)
         end
       end
     end

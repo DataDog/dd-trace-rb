@@ -18,11 +18,10 @@ module Datadog
         require "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"
         nil
       rescue LoadError => e
-        e.message
+        "#{e.class}: #{e.message}"
       end
   end
 
-  DATADOG_ENV = Core::Configuration::ConfigHelper.new
   extend Core::Extensions
 
   # Add shutdown hook:

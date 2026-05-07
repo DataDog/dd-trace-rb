@@ -298,6 +298,7 @@ RSpec.shared_context 'minimal agent' do
       try_wait_until { Process.wait(@agent_runner, Process::WNOHANG) }
     else
       @agent_runner.kill
+      @agent_runner.join
     end
   end
 

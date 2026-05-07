@@ -19,7 +19,15 @@ RSpec.describe Datadog::Core::Configuration::Base do
           let(:block) { proc { option :enabled } }
 
           context 'settings name' do
-            it { expect(settings.instance_variable_get(:@settings_name)).to eq :debug }
+            it { expect(settings.settings_path).to eq 'debug' }
+          end
+
+          describe 'settings registry' do
+            it 'registers the nested settings class as a child setting' do
+              expect { settings }.to change { base_class.settings_children.size }.from(0).to(1)
+
+              expect(base_class.settings_children[:debug]).to be(settings)
+            end
           end
 
           describe 'defines a settings option' do
@@ -31,6 +39,7 @@ RSpec.describe Datadog::Core::Configuration::Base do
 
             it 'sets default properties' do
               is_expected.to have_attributes(
+                is_settings: true,
                 default: kind_of(Proc),
                 resetter: kind_of(Proc)
               )
@@ -43,6 +52,25 @@ RSpec.describe Datadog::Core::Configuration::Base do
               it { expect(settings_object).to be_a_kind_of(described_class) }
               it { expect(settings_object.option_defined?(:enabled)).to be true }
             end
+          end
+        end
+
+        context 'given nested settings' do
+          let(:name) { :debug }
+          let(:block) do
+            proc do
+              settings :http do
+                option :enabled
+              end
+            end
+          end
+
+          it 'injects the full settings path into nested settings classes' do
+            settings
+
+            http_settings = base_class.new.debug.http.class
+
+            expect(http_settings.settings_path).to eq('debug.http')
           end
         end
       end

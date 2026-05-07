@@ -11,7 +11,7 @@ This repository is the source code of a Ruby gem created by Datadog to provide D
 - Smoke verification: `bundle exec rake test:main`. Baseline general testing (no native or integration testing).
 - Lint and type check: `bundle exec rake standard typecheck`.
 - Discover tasks: `bundle exec rake -T`.
-- Targeted test runs: `bundle exec rspec spec/path/to/file_spec.rb[:line]` or `BUNDLE_GEMFILE=$(pwd)/gemfiles/<name>.gemfile bundle exec rspec spec/path/to/file_spec.rb[:line]`.
+- Targeted test runs (only for `test:main` specs): `bundle exec rspec spec/path/to/file_spec.rb[:line]`. For contrib/integration tests, always use `bundle exec rake test:TASK_KEY` (see "Testing matrix" below).
 - Native extension compilation: `bundle exec rake compile` or `bundle exec rake clean compile`. See `docs/ProfilingDevelopment.md` & `docs/LibdatadogDevelopment.md`.
 
 # Project Structure
@@ -59,6 +59,40 @@ Each framework integration (@lib/datadog/*/contrib/) follows a common pattern:
 ## Testing matrix
 
 - `Matrixfile` defines testing combinations, and `appraisal/` files declare respective gemsets. `gemfiles/` are tool generated files.
+- **The Matrixfile and Rakefile are the authoritative sources of truth.**
+
+### Always use rake tasks
+
+Tests MUST be run via `bundle exec rake test:TASK_KEY`, not bare `bundle exec rspec`. Contrib/integration tests require specific Gemfiles managed by appraisals; running them with `bundle exec rspec` will fail due to missing dependencies. The only exception: specs under `test:main` can also be run individually with `bundle exec rspec`.
+
+### Finding the right rake task
+
+1. **Identify the component**: determine which product or contrib the changed files belong to based on their path under `lib/datadog/` or `spec/datadog/` (e.g. `appsec`, `profiling`, `redis`, `sinatra`)
+2. **Search for a matching task**: `bundle exec rake -T test | grep KEYWORD` using the component name as KEYWORD
+3. **Verify the task**: check the Rakefile `spec:TASK` definition to confirm which spec files are included/excluded, and check the Matrixfile for Ruby version compatibility
+
+The `test:main` task uses the default Gemfile and its specs can also be run individually with `bundle exec rspec`.
+
+## One-Pipeline (GitLab CI)
+
+The GitLab CI configuration (`.gitlab-ci.yml`) includes a remote template called
+"one-pipeline" via `.gitlab/one-pipeline.locked.yml`. This template defines OCI
+packaging, lib-injection image building, and promotion jobs shared across all Datadog
+tracing libraries.
+
+- **Source repo**: `DataDog/libdatadog-build` on GitHub (`templates/one-pipeline.yml`)
+- **Distribution**: A GitLab CI job publishes the template to
+  `gitlab-templates.ddbuild.io` under a content-addressed hash. A campaigner tool then
+  opens PRs (titled "chore(ci) update one-pipeline") in all consuming repos to update
+  the locked URL in `.gitlab/one-pipeline.locked.yml`.
+- **Local overrides**: `.gitlab-ci.yml` overrides template variables like
+  `OCI_PACKAGE_MAX_SIZE_BYTES` and `LIB_INJECTION_IMAGE_MAX_SIZE_BYTES`. When
+  `package-oci` jobs fail with size limit errors, check the local override values in
+  `.gitlab-ci.yml` — the template's error messages hardcode the default limit, not the
+  actual override value.
+- **Consuming repos**: dd-trace-rb, dd-trace-java, dd-trace-py, dd-trace-dotnet,
+  dd-trace-js, dd-trace-php, auto_inject, httpd-datadog, nginx-datadog,
+  inject-browser-sdk (listed in `libdatadog-build/campaigner-config.yml`).
 
 # Guidelines
 
@@ -90,4 +124,4 @@ Each framework integration (@lib/datadog/*/contrib/) follows a common pattern:
   - Writing code: `.cursor/rules/code-style.mdc`.
   - Writing tests: `.cursor/rules/testing.mdc`.
 - `docs/GettingStarted.md` is the public documentation of this repo (2900+ lines). All user-facing product documentation lives there.
-- This AGENTS.md is a living document: update it when rake tasks, CI, or scripts evolve. Update specialized personas as well.
+- This AGENTS.md is a living document: update it when CI or scripts evolve. Update specialized personas as well.

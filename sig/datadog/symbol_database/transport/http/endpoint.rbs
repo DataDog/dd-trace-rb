@@ -1,0 +1,17 @@
+module Datadog
+  module SymbolDatabase
+    module Transport
+      module HTTP
+        module API
+          class Endpoint < Core::Transport::HTTP::API::Endpoint
+            @encoder: singleton(Datadog::Core::Encoding::JSONEncoder)
+
+            attr_reader encoder: singleton(Datadog::Core::Encoding::JSONEncoder)
+
+            def initialize: (String path, singleton(Datadog::Core::Encoding::JSONEncoder) encoder) -> void
+          end
+        end
+      end
+    end
+  end
+end

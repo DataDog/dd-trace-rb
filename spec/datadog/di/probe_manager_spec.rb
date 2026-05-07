@@ -27,8 +27,12 @@ RSpec.describe Datadog::DI::ProbeManager do
 
   di_logger_double
 
+  let(:probe_repository) do
+    Datadog::DI::ProbeRepository.new
+  end
+
   let(:manager) do
-    described_class.new(settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger)
+    described_class.new(settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, probe_repository)
   end
 
   describe '.new' do
@@ -65,11 +69,11 @@ RSpec.describe Datadog::DI::ProbeManager do
 
           expect(manager.add_probe(probe)).to be true
 
-          expect(manager.pending_probes.length).to eq 0
-          expect(manager.failed_probes.length).to eq 0
+          expect(probe_repository.pending_probes.length).to eq 0
+          expect(probe_repository.failed_probes.length).to eq 0
 
-          expect(manager.installed_probes.length).to eq 1
-          expect(manager.installed_probes["3ecfd456-2d7c-4359-a51f-d4cc44141ffe"]).to be(probe)
+          expect(probe_repository.installed_probes.length).to eq 1
+          expect(probe_repository.installed_probes["3ecfd456-2d7c-4359-a51f-d4cc44141ffe"]).to be(probe)
         end
       end
 
@@ -85,16 +89,16 @@ RSpec.describe Datadog::DI::ProbeManager do
 
           expect(manager.add_probe(probe)).to be false
 
-          expect(manager.pending_probes.length).to eq 1
-          expect(manager.pending_probes["3ecfd456-2d7c-4359-a51f-d4cc44141ffe"]).to be(probe)
+          expect(probe_repository.pending_probes.length).to eq 1
+          expect(probe_repository.pending_probes["3ecfd456-2d7c-4359-a51f-d4cc44141ffe"]).to be(probe)
 
-          expect(manager.installed_probes.length).to eq 0
-          expect(manager.failed_probes.length).to eq 0
+          expect(probe_repository.installed_probes.length).to eq 0
+          expect(probe_repository.failed_probes.length).to eq 0
         end
       end
 
       context 'when there is an exception during instrumentation' do
-        it 'logs warning, drops probe and reraises the exception' do
+        it 'logs warning, reports ERROR status, drops probe and reraises the exception' do
           expect_lazy_log(logger, :debug, /error processing probe configuration.*Instrumentation error/)
 
           expect(instrumenter).to receive(:hook) do |probe_|
@@ -103,24 +107,25 @@ RSpec.describe Datadog::DI::ProbeManager do
           end
 
           expect(probe_notification_builder).not_to receive(:build_installed)
-          expect(probe_notifier_worker).not_to receive(:add_status)
+          expect(probe_notification_builder).to receive(:build_errored).with(probe, instance_of(RuntimeError)).and_return({status: 'ERROR'})
+          expect(probe_notifier_worker).to receive(:add_status).with({status: 'ERROR'}, probe: probe)
 
           expect do
             manager.add_probe(probe)
           end.to raise_error(RuntimeError, 'Instrumentation error')
 
-          expect(manager.pending_probes.length).to eq 0
+          expect(probe_repository.pending_probes.length).to eq 0
 
-          expect(manager.installed_probes.length).to eq 0
+          expect(probe_repository.installed_probes.length).to eq 0
 
-          expect(manager.failed_probes.length).to eq 1
-          expect(manager.failed_probes[probe.id]).to match(/Instrumentation error/)
+          expect(probe_repository.failed_probes.length).to eq 1
+          expect(probe_repository.failed_probes[probe.id]).to match(/Instrumentation error/)
         end
       end
 
       context 'when the probe is requested to be added the second time' do
-        it 'does not instrument the second time' do
-          expect(manager.installed_probes).to be_empty
+        it 'does not instrument the second time and reports ERROR status' do
+          expect(probe_repository.installed_probes).to be_empty
 
           # First call
           expect(instrumenter).to receive(:hook)
@@ -128,14 +133,40 @@ RSpec.describe Datadog::DI::ProbeManager do
           expect(probe_notifier_worker).to receive(:add_status)
           manager.add_probe(probe)
 
-          # Second call
+          # Second call - reports ERROR status
           expect(instrumenter).not_to receive(:hook)
           expect(probe_notification_builder).not_to receive(:build_installed)
-          expect(probe_notifier_worker).not_to receive(:add_status)
+          expect(probe_notification_builder).to receive(:build_errored).with(probe, instance_of(Datadog::DI::Error::AlreadyInstrumented)).and_return({status: 'ERROR'})
+          expect(probe_notifier_worker).to receive(:add_status).with({status: 'ERROR'}, probe: probe)
           expect_lazy_log(logger, :debug, /AlreadyInstrumented: Probe with id .* is already in installed probes/)
           expect do
             manager.add_probe(probe)
           end.to raise_error(Datadog::DI::Error::AlreadyInstrumented, /Probe with id .* is already in installed probes/)
+        end
+      end
+
+      context 'when probe previously failed to install' do
+        before do
+          probe_repository.add_failed(probe.id, 'RuntimeError: original installation error')
+        end
+
+        it 'does not attempt instrumentation again and reports ERROR status' do
+          expect_lazy_log(logger, :debug, /error processing probe configuration.*ProbePreviouslyFailed.*original installation error/)
+
+          expect(instrumenter).not_to receive(:hook)
+          expect(probe_notification_builder).not_to receive(:build_installed)
+          expect(probe_notification_builder).to receive(:build_errored)
+            .with(probe, instance_of(Datadog::DI::Error::ProbePreviouslyFailed))
+            .and_return({status: 'ERROR'})
+          expect(probe_notifier_worker).to receive(:add_status).with({status: 'ERROR'}, probe: probe)
+
+          expect do
+            manager.add_probe(probe)
+          end.to raise_error(Datadog::DI::Error::ProbePreviouslyFailed, /original installation error/)
+
+          expect(probe_repository.failed_probes.length).to eq 1
+          expect(probe_repository.installed_probes).to be_empty
+          expect(probe_repository.pending_probes).to be_empty
         end
       end
     end
@@ -150,14 +181,14 @@ RSpec.describe Datadog::DI::ProbeManager do
 
     context 'when there are pending probes' do
       before do
-        manager.pending_probes[probe.id] = probe
+        probe_repository.pending_probes[probe.id] = probe
       end
 
       context 'when id matches a pending probe' do
         it 'removes pending probe' do
           manager.remove_probe('123')
 
-          expect(manager.pending_probes).to eq({})
+          expect(probe_repository.pending_probes).to eq({})
         end
       end
 
@@ -165,14 +196,14 @@ RSpec.describe Datadog::DI::ProbeManager do
         it 'does not remove the pending probe' do
           manager.remove_probe('555')
 
-          expect(manager.pending_probes).to eq(probe.id => probe)
+          expect(probe_repository.pending_probes).to eq(probe.id => probe)
         end
       end
     end
 
     context 'when there are installed probes' do
       before do
-        manager.installed_probes[probe.id] = probe
+        probe_repository.installed_probes[probe.id] = probe
       end
 
       context 'when id matches an installed probe' do
@@ -181,7 +212,7 @@ RSpec.describe Datadog::DI::ProbeManager do
 
           manager.remove_probe('123')
 
-          expect(manager.installed_probes).to eq({})
+          expect(probe_repository.installed_probes).to eq({})
         end
       end
 
@@ -191,7 +222,7 @@ RSpec.describe Datadog::DI::ProbeManager do
 
           manager.remove_probe('555')
 
-          expect(manager.installed_probes).to eq(probe.id => probe)
+          expect(probe_repository.installed_probes).to eq(probe.id => probe)
         end
       end
 
@@ -203,9 +234,9 @@ RSpec.describe Datadog::DI::ProbeManager do
 
           manager.remove_probe('123')
 
-          expect(manager.pending_probes.length).to eq 0
+          expect(probe_repository.pending_probes.length).to eq 0
 
-          expect(manager.installed_probes.length).to eq 1
+          expect(probe_repository.installed_probes.length).to eq 1
         end
       end
 
@@ -217,8 +248,8 @@ RSpec.describe Datadog::DI::ProbeManager do
         end
 
         before do
-          manager.installed_probes[probe2.id] = probe2
-          expect(manager.installed_probes.length).to eq 2
+          probe_repository.installed_probes[probe2.id] = probe2
+          expect(probe_repository.installed_probes.length).to eq 2
         end
 
         it 'leaves the second probe installed' do
@@ -226,9 +257,9 @@ RSpec.describe Datadog::DI::ProbeManager do
 
           manager.remove_probe('123')
 
-          expect(manager.pending_probes.length).to eq 0
+          expect(probe_repository.pending_probes.length).to eq 0
 
-          expect(manager.installed_probes).to eq('456' => probe2)
+          expect(probe_repository.installed_probes).to eq('456' => probe2)
         end
       end
     end
@@ -262,7 +293,7 @@ RSpec.describe Datadog::DI::ProbeManager do
       end
 
       before do
-        manager.pending_probes[probe.id] = probe
+        probe_repository.pending_probes[probe.id] = probe
       end
 
       it 'does not unhook' do
@@ -276,7 +307,7 @@ RSpec.describe Datadog::DI::ProbeManager do
 
         manager.clear_hooks
 
-        expect(manager.pending_probes).to be_empty
+        expect(probe_repository.pending_probes).to be_empty
       end
     end
 
@@ -287,7 +318,7 @@ RSpec.describe Datadog::DI::ProbeManager do
       end
 
       before do
-        manager.installed_probes[probe.id] = probe
+        probe_repository.installed_probes[probe.id] = probe
       end
 
       it 'unhooks' do
@@ -301,7 +332,7 @@ RSpec.describe Datadog::DI::ProbeManager do
 
         manager.clear_hooks
 
-        expect(manager.installed_probes).to be_empty
+        expect(probe_repository.installed_probes).to be_empty
       end
     end
   end
@@ -320,6 +351,36 @@ RSpec.describe Datadog::DI::ProbeManager do
 
         class ProbeManagerSpecTestClass; end # rubocop:disable Lint/ConstantDefinitionInBlock
       end
+    end
+  end
+
+  describe '#probe_executed_callback' do
+    let(:probe) do
+      instance_double(
+        Datadog::DI::Probe,
+        :id => 'test-probe',
+        :type => 'log',
+        :location => 'test.rb:42',
+        :emitting_notified? => false,
+        :emitting_notified= => nil,
+      )
+    end
+
+    let(:context) do
+      instance_double(Datadog::DI::Context, probe: probe)
+    end
+
+    it 'queues the snapshot as a Hash' do
+      allow(probe_notification_builder).to receive(:build_emitting).and_return({status: 'EMITTING'})
+      allow(probe_notification_builder).to receive(:build_executed).and_return({snapshot: 'data'})
+      allow(probe_notifier_worker).to receive(:add_status)
+
+      expect(probe_notifier_worker).to receive(:add_snapshot) do |payload|
+        expect(payload).to be_a(Hash)
+        expect(payload).to eq({snapshot: 'data'})
+      end
+
+      manager.probe_executed_callback(context)
     end
   end
 end

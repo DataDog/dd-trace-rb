@@ -2,10 +2,11 @@
 
 # rubocop:disable Lint/AssignmentInCondition
 
-require 'monitor'
-
 module Datadog
   module DI
+    # Orchestrates probe lifecycle: installation, removal, and execution callbacks.
+    # Delegates probe storage to ProbeRepository.
+    #
     # Stores probes received from remote config (that we can parse, in other
     # words, whose type/attributes we support), requests needed instrumentation
     # for the probes via Instrumenter, and stores pending probes (those which
@@ -16,23 +17,20 @@ module Datadog
     # @api private
     class ProbeManager
       def initialize(settings, instrumenter, probe_notification_builder,
-        probe_notifier_worker, logger, telemetry: nil)
+        probe_notifier_worker, logger, probe_repository, telemetry: nil)
         @settings = settings
         @instrumenter = instrumenter
         @probe_notification_builder = probe_notification_builder
         @probe_notifier_worker = probe_notifier_worker
         @logger = logger
         @telemetry = telemetry
-        @installed_probes = {}
-        @pending_probes = {}
-        @failed_probes = {}
-        @lock = Monitor.new
+        @probe_repository = probe_repository
 
         @definition_trace_point = TracePoint.trace(:end) do |tp|
           install_pending_method_probes(tp.self)
         rescue => exc
           raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-          logger.debug { "di: unhandled exception in definition trace point: #{exc.class}: #{exc}" }
+          logger.debug { "di: unhandled exception in definition trace point: #{exc.class}: #{exc.message}" }
           telemetry&.report(exc, description: "Unhandled exception in definition trace point")
           # TODO test this path
         end
@@ -40,7 +38,15 @@ module Datadog
 
       attr_reader :logger
       attr_reader :telemetry
+      attr_reader :probe_repository
 
+      # Shuts down the probe manager and releases all resources.
+      #
+      # Disables the class definition trace point and removes all installed
+      # probe instrumentation. Called during component teardown.
+      #
+      # @return [void]
+      #
       # TODO test that close is called during component teardown and
       # the trace point is cleared
       def close
@@ -48,13 +54,16 @@ module Datadog
         clear_hooks
       end
 
+      # Removes all installed probe instrumentation and clears the probe repository.
+      #
+      # Iterates through all installed probes, unhooks their instrumentation,
+      # and clears all probe collections (installed, pending, failed).
+      # Called during component shutdown to clean up resources.
+      #
+      # @return [void]
       def clear_hooks
-        @lock.synchronize do
-          @pending_probes.clear
-          @installed_probes.each do |probe_id, probe|
-            instrumenter.unhook(probe)
-          end
-          @installed_probes.clear
+        probe_repository.clear_all do |probe|
+          instrumenter.unhook(probe)
         end
       end
 
@@ -62,27 +71,6 @@ module Datadog
       attr_reader :instrumenter
       attr_reader :probe_notification_builder
       attr_reader :probe_notifier_worker
-
-      def installed_probes
-        @lock.synchronize do
-          @installed_probes
-        end
-      end
-
-      def pending_probes
-        @lock.synchronize do
-          @pending_probes
-        end
-      end
-
-      # Probes that failed to instrument for reasons other than the target is
-      # not yet loaded are added to this collection, so that we do not try
-      # to instrument them every time remote configuration is processed.
-      def failed_probes
-        @lock.synchronize do
-          @failed_probes
-        end
-      end
 
       # Requests to install the specified probe.
       #
@@ -92,9 +80,18 @@ module Datadog
       # defined, or files loaded, the probe will be checked against the
       # newly defined classes/loaded files, and will be installed if it
       # matches.
+      #
+      # On successful installation, sends INSTALLED status to the backend.
+      # On failure, sends ERROR status to the backend before re-raising.
+      #
+      # @param probe [Probe] the probe to install
+      # @return [Boolean] true if installed, false if pending
+      # @raise [Error::AlreadyInstrumented] if a probe with the same ID is already installed
+      # @raise [Error::ProbePreviouslyFailed] if a probe with the same ID previously failed
+      # @raise [StandardError] re-raises any other instrumentation error after recording failure
       def add_probe(probe)
-        @lock.synchronize do
-          if @installed_probes[probe.id]
+        probe_repository.synchronize do
+          if probe_repository.find_installed(probe.id)
             # Either this probe was already installed, or another probe was
             # installed with the same id (previous version perhaps?).
             # Since our state tracking is keyed by probe id, we cannot
@@ -108,7 +105,7 @@ module Datadog
           end
 
           # Probe failed to install previously, do not try to install it again.
-          if msg = @failed_probes[probe.id]
+          if msg = probe_repository.find_failed(probe.id)
             # TODO test this path
             raise Error::ProbePreviouslyFailed, msg
           end
@@ -116,43 +113,41 @@ module Datadog
           begin
             instrumenter.hook(probe, self)
 
-            @installed_probes[probe.id] = probe
+            probe_repository.add_installed(probe)
             payload = probe_notification_builder.build_installed(probe)
             probe_notifier_worker.add_status(payload, probe: probe)
             # The probe would only be in the pending probes list if it was
             # previously attempted to be installed and the target was not loaded.
             # Always remove from pending list here because it makes the
             # API smaller and shouldn't cause any actual problems.
-            @pending_probes.delete(probe.id)
+            probe_repository.remove_pending(probe.id)
             logger.trace { "di: installed #{probe.type} probe at #{probe.location} (#{probe.id})" }
             true
           rescue Error::DITargetNotDefined
-            @pending_probes[probe.id] = probe
+            probe_repository.add_pending(probe)
             logger.trace { "di: could not install #{probe.type} probe at #{probe.location} (#{probe.id}) because its target is not defined, adding it to pending list" }
             false
           end
-        rescue => exc
-          # In "propagate all exceptions" mode we will try to instrument again.
-          raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-
-          logger.debug { "di: error processing probe configuration: #{exc.class}: #{exc}" }
-          telemetry&.report(exc, description: "Error processing probe configuration")
-          # TODO report probe as failed to agent since we won't attempt to
-          # install it again.
-
-          # TODO add top stack frame to message
-          @failed_probes[probe.id] = "#{exc.class}: #{exc}"
-
-          raise
         end
+      rescue => exc
+        # In "propagate all exceptions" mode we will try to instrument again.
+        raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+        logger.debug { "di: error processing probe configuration: #{exc.class}: #{exc.message}" }
+        telemetry&.report(exc, description: "Error processing probe configuration")
+
+        payload = probe_notification_builder.build_errored(probe, exc)
+        probe_notifier_worker.add_status(payload, probe: probe)
+
+        probe_repository.add_failed(probe.id, "#{exc.class}: #{exc.message}")
+
+        raise
       end
 
       # Removes probe with specified id. The probe could be pending or
       # installed. Does nothing if there is no probe with the specified id.
       def remove_probe(probe_id)
-        @lock.synchronize do
-          @pending_probes.delete(probe_id)
-        end
+        probe_repository.remove_pending(probe_id)
 
         # Do not delete the probe from the registry here in case
         # deinstrumentation fails - though I don't know why deinstrumentation
@@ -161,15 +156,15 @@ module Datadog
         # in the future, and if deinstrumentation fails I would want to
         # keep that probe as "installed" for the count, so that we can
         # investigate the situation.
-        if probe = @installed_probes[probe_id]
+        if probe = probe_repository.find_installed(probe_id)
           begin
             instrumenter.unhook(probe)
-            @installed_probes.delete(probe_id)
+            probe_repository.remove_installed(probe_id)
           rescue => exc
             raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
             # Silence all exceptions?
             # TODO should we propagate here and rescue upstream?
-            logger.debug { "di: error removing #{probe.type} probe at #{probe.location} (#{probe.id}): #{exc.class}: #{exc}" }
+            logger.debug { "di: error removing #{probe.type} probe at #{probe.location} (#{probe.id}): #{exc.class}: #{exc.message}" }
             telemetry&.report(exc, description: "Error removing probe")
           end
         end
@@ -180,9 +175,9 @@ module Datadog
       # This method is meant to be called from the "end" trace point,
       # which is invoked for each class definition.
       private def install_pending_method_probes(cls)
-        @lock.synchronize do
+        probe_repository.synchronize do
           # TODO search more efficiently than linearly
-          @pending_probes.each do |probe_id, probe|
+          probe_repository.pending_probes.each do |probe_id, probe|
             if probe.method?
               # TODO move this stringification elsewhere
               if probe.type_name == cls.name
@@ -190,16 +185,21 @@ module Datadog
                   # TODO is it OK to hook from trace point handler?
                   # TODO the class is now defined, but can hooking still fail?
                   instrumenter.hook(probe, self)
-                  @installed_probes[probe.id] = probe
-                  @pending_probes.delete(probe.id)
+                  probe_repository.add_installed(probe)
+                  probe_repository.remove_pending(probe.id)
                   break
                 rescue Error::DITargetNotDefined
                   # This should not happen... try installing again later?
                 rescue => exc
                   raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                  logger.debug { "di: error installing #{probe.type} probe at #{probe.location} (#{probe.id}) after class is defined: #{exc.class}: #{exc}" }
+                  logger.debug { "di: error installing #{probe.type} probe at #{probe.location} (#{probe.id}) after class is defined: #{exc.class}: #{exc.message}" }
                   telemetry&.report(exc, description: "Error installing probe after class is defined")
+
+                  payload = probe_notification_builder.build_errored(probe, exc)
+                  probe_notifier_worker.add_status(payload, probe: probe)
+
+                  probe_repository.add_failed(probe.id, "#{exc.class}: #{exc.message}")
                 end
               end
             end
@@ -217,8 +217,8 @@ module Datadog
         if path.nil?
           raise ArgumentError, "path must not be nil"
         end
-        @lock.synchronize do
-          @pending_probes.values.each do |probe|
+        probe_repository.synchronize do
+          probe_repository.pending_probes.values.each do |probe|
             if probe.line?
               if probe.file_matches?(path)
                 add_probe(probe)
@@ -248,6 +248,16 @@ module Datadog
         probe_notifier_worker.add_snapshot(payload)
       end
 
+      # Callback invoked when a probe's condition expression fails to evaluate.
+      #
+      # This can happen when the expression references undefined variables,
+      # has type mismatches, or encounters runtime errors during evaluation.
+      # Rate-limited to 1 notification per second per probe to avoid
+      # flooding the backend when conditions fail repeatedly.
+      #
+      # @param context [Context] The execution context containing probe and captured data
+      # @param expr [String] The condition expression that failed
+      # @param exc [Exception] The exception raised during condition evaluation
       def probe_condition_evaluation_failed_callback(context, expr, exc)
         probe = context.probe
         if probe.condition_evaluation_failed_rate_limiter&.allow?
@@ -256,6 +266,13 @@ module Datadog
         end
       end
 
+      # Callback invoked when a probe is disabled, for example due to
+      # exceeding the CPU consumption limit in DI processing.
+      #
+      # Sends ERROR status notification to the backend.
+      #
+      # @param probe [Probe] The probe that was disabled
+      # @param duration [Numeric] The CPU time consumed by probe processing, in seconds
       def probe_disabled_callback(probe, duration)
         payload = probe_notification_builder.build_disabled(probe, duration)
         probe_notifier_worker.add_status(payload, probe: probe)

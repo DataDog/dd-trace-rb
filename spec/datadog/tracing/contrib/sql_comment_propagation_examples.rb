@@ -124,7 +124,7 @@ end
 
 RSpec.shared_examples_for 'with sql comment base hash injection' do |span_op_name:|
   let(:agent_info) { instance_double(Datadog::Core::Environment::AgentInfo, propagation_checksum: 1234567890, fetch: nil) }
-  let(:profiler) { double(enabled?: false) }
+  let(:profiler) { nil }
 
   before do
     allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info, tracer: tracer, profiler: profiler))
@@ -132,13 +132,7 @@ RSpec.shared_examples_for 'with sql comment base hash injection' do |span_op_nam
 
   context 'when inject_sql_basehash is enabled and experimental_propagate_process_tags_enabled is true' do
     before do
-      Datadog.configure do |c|
-        c.experimental_propagate_process_tags_enabled = true
-      end
-    end
-
-    after do
-      without_warnings { Datadog.configuration.reset! }
+      allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
     end
 
     let(:configuration_options) do
@@ -155,13 +149,8 @@ RSpec.shared_examples_for 'with sql comment base hash injection' do |span_op_nam
   end
 
   context 'when inject_sql_basehash is enabled but experimental_propagate_process_tags_enabled is false' do
-    around do |example|
-      without_warnings { Datadog.configuration.reset! }
-      Datadog.configure do |c|
-        c.experimental_propagate_process_tags_enabled = false
-      end
-      example.run
-      without_warnings { Datadog.configuration.reset! }
+    before do
+      allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(false)
     end
 
     let(:configuration_options) do
@@ -178,13 +167,8 @@ RSpec.shared_examples_for 'with sql comment base hash injection' do |span_op_nam
   end
 
   context 'when inject_sql_basehash is disabled but experimental_propagate_process_tags_enabled is true' do
-    around do |example|
-      without_warnings { Datadog.configuration.reset! }
-      Datadog.configure do |c|
-        c.experimental_propagate_process_tags_enabled = true
-      end
-      example.run
-      without_warnings { Datadog.configuration.reset! }
+    before do
+      allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
     end
 
     let(:configuration_options) do

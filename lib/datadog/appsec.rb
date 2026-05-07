@@ -11,25 +11,21 @@ module Datadog
   module AppSec
     class << self
       def enabled?
-        Datadog.configuration.appsec.enabled
+        !!components.appsec
       end
 
       def rasp_enabled?
-        Datadog.configuration.appsec.rasp_enabled
+        # TODO this should take rasp_enabled flag from the settings in
+        # the appsec component rather than reading global configuration.
+        enabled? && Datadog.configuration.appsec.rasp_enabled
       end
 
       def active_context
         Datadog::AppSec::Context.active
       end
 
-      # NOTE:  This is a temporary workaround for type checking.
-      #
-      #        We want to move from possible nil-component to the disabled-component
-      #        on an initialization error. Technically, telemetry will be never
-      #        used if AppSec was not able to initialize, so it's safe to assume
-      #        that telemetry will never be used and will be nil at the same time.
       def telemetry
-        components.appsec&.telemetry || components.telemetry
+        components.telemetry
       end
 
       def security_engine

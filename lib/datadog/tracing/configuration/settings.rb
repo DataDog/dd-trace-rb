@@ -430,7 +430,7 @@ module Datadog
                       rescue => e
                         # `File#read` errors have clear and actionable messages, no need to add extra exception info.
                         Datadog.logger.warn(
-                          "Cannot read span sampling rules file `#{rules_file}`: #{e.message}." \
+                          "Cannot read span sampling rules file `#{rules_file}`: #{e.class}: #{e.message}." \
                           'No span sampling rules will be applied.'
                         )
                         nil
@@ -481,6 +481,7 @@ module Datadog
               # @default `{}`
               # @return [Hash]
               option :writer_options do |o|
+                o.skip_telemetry true
                 o.type :hash
                 o.default({})
               end

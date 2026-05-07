@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.30.0)
+    datadog (2.32.0)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
-      libdatadog (~> 28.0.2.1.0)
+      libdatadog (~> 30.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
@@ -35,9 +35,9 @@ GEM
     domain_name (0.6.20240107)
     ethon (0.15.0)
       ffi (>= 1.15.0)
-    ffi (1.17.3)
-    ffi (1.17.3-aarch64-linux-gnu)
-    ffi (1.17.3-x86_64-linux-gnu)
+    ffi (1.17.4)
+    ffi (1.17.4-aarch64-linux-gnu)
+    ffi (1.17.4-x86_64-linux-gnu)
     ffi-compiler (1.3.2)
       ffi (>= 1.15.5)
       rake
@@ -56,14 +56,14 @@ GEM
       mutex_m
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (28.0.2.1.0)
-    libdatadog (28.0.2.1.0-aarch64-linux)
-    libdatadog (28.0.2.1.0-x86_64-linux)
-    libddwaf (1.30.0.0.0)
+    libdatadog (30.0.0.1.0)
+    libdatadog (30.0.0.1.0-aarch64-linux)
+    libdatadog (30.0.0.1.0-x86_64-linux)
+    libddwaf (1.30.0.0.2)
       ffi (~> 1.0)
-    libddwaf (1.30.0.0.0-aarch64-linux)
+    libddwaf (1.30.0.0.2-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.30.0.0.0-x86_64-linux)
+    libddwaf (1.30.0.0.2-x86_64-linux)
       ffi (~> 1.0)
     llhttp-ffi (0.5.1)
       ffi-compiler (~> 1.0)

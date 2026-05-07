@@ -12,7 +12,7 @@ RSpec.describe Datadog::Tracing::Contrib::Redis::Tags do
     context 'when an error occurs' do
       it 'logs the error' do
         allow(client).to receive(:host).and_raise(StandardError.new('Oops...'))
-        expect(Datadog.logger).to receive(:error).with('Oops...')
+        expect(Datadog.logger).to receive(:error).with('StandardError: Oops...')
         expect(Datadog::Core::Telemetry::Logger).to receive(:report).with(a_kind_of(StandardError))
 
         expect do

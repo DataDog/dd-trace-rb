@@ -457,7 +457,7 @@ RSpec.describe 'Tracer integration tests' do
     end
   end
 
-  describe 'single span sampling' do
+  describe 'single span sampling', webmock: true do
     subject(:trace) do
       tracer.trace('unrelated.top_level', service: 'other-service') do
         tracer.trace('single.sampled_span', service: 'my-service') do
@@ -476,8 +476,6 @@ RSpec.describe 'Tracer integration tests' do
         # Test setup
         c.tracing.sampler = custom_sampler if custom_sampler
       end
-
-      WebMock.enable!
 
       trace # Run test subject
       wait_for_flush
@@ -509,7 +507,6 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     after do
-      WebMock.disable!
       Datadog.configuration.tracing.sampling.reset!
     end
 
@@ -600,6 +597,11 @@ RSpec.describe 'Tracer integration tests' do
         end
 
         threads.each(&:join)
+
+        # The worker thread may still be completing an HTTP call after
+        # shutdown!'s join(DEFAULT_SHUTDOWN_TIMEOUT) timed out. Wait for
+        # the flush to finish so the assertion sees the final stats.
+        try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
       end
 
       let(:stats) { tracer.writer.stats }
@@ -717,13 +719,10 @@ RSpec.describe 'Tracer integration tests' do
       end
     end
 
-    context 'with agent rates' do
+    context 'with agent rates', webmock: true do
       before do
-        WebMock.enable!
         stub_request(:post, %r{/v0.4/traces}).to_return(status: 200, body: service_rates.to_json)
       end
-
-      after { WebMock.disable! }
 
       let(:service_rates) { {rate_by_service: {'service:kept,env:' => 1.0, 'service:dropped,env:' => Float::MIN}} }
 

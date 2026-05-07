@@ -125,7 +125,7 @@ module Datadog
                 @block&.call(span, name, id, payload)
               rescue => e
                 Datadog.logger.debug(
-                  "ActiveSupport::Notifications handler for '#{name}' failed: #{e.class.name} #{e.message}"
+                  "ActiveSupport::Notifications handler for '#{name}' failed: #{e.class}: #{e.message}"
                 )
               end
             end
@@ -147,7 +147,7 @@ module Datadog
                   callback.call(event, key, *args)
                 rescue => e
                   Datadog.logger.debug(
-                    "ActiveSupport::Notifications '#{key}' callback for '#{event}' failed: #{e.class.name} #{e.message}"
+                    "ActiveSupport::Notifications '#{key}' callback for '#{event}' failed: #{e.class}: #{e.message}"
                   )
                 end
               end

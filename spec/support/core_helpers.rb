@@ -74,6 +74,16 @@ module CoreHelpers
     end
   end
 
+  def skip_if_libdatadog_not_supported
+    skip("Testcase requires libdatadog and it is not supported on JRuby") if PlatformHelpers.jruby?
+    skip("Testcase requires libdatadog and it is not supported on TruffleRuby") if PlatformHelpers.truffleruby?
+
+    return if Datadog::Core::LIBDATADOG_API_FAILURE.nil?
+
+    raise "Libdatadog does not seem to be available: #{Datadog::Core::LIBDATADOG_API_FAILURE}. " \
+      "Try running `bundle exec rake compile` before running this test."
+  end
+
   module ClassMethods
     def skip_unless_integration_testing_enabled
       unless ENV['TEST_DATADOG_INTEGRATION']
@@ -135,7 +145,7 @@ module CoreHelpers
         # because normally it would be added during library initialization
         # and after the fork monkey patch test runs, the handler would get
         # cleared out.
-        Datadog::Core::Configuration::Components.const_get(:AT_FORK_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
+        Datadog::Core::Configuration::Components.const_get(:PATCH_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
 
         # We also need to clear out the handlers because we could have
         # the handlers registered from the library initialization time,

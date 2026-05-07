@@ -57,7 +57,7 @@ module Datadog
 
             contents = Configuration::ContentList.parse(response.target_files)
           rescue Remote::Configuration::Path::ParseError => e
-            raise SyncError, e.message
+            raise SyncError, "#{e.class}: #{e.message}"
           end
 
           # To make sure steep does not complain

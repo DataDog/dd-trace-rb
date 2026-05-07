@@ -13,6 +13,7 @@ require_relative '../../profiling/ext'
 
 require_relative '../../tracing/configuration/settings'
 require_relative '../../opentelemetry/configuration/settings'
+require_relative '../../symbol_database/configuration'
 
 module Datadog
   module Core
@@ -221,6 +222,8 @@ module Datadog
           #
           # @return Logger::Severity
           option :instance do |o|
+            # Telemetry for this option is manually modified and added in the AppStarted event.
+            o.skip_telemetry true
             o.after_set { |value| set_option(:level, value.level) unless value.nil? }
           end
 
@@ -622,11 +625,11 @@ module Datadog
 
             # Fallback to system dns instead of using libdatadog built-in resolver.
             #
-            # @default `DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS` environment variable as a boolean, otherwise `false`
+            # @default `DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS` environment variable as a boolean, otherwise `true`
             option :experimental_use_system_dns do |o|
               o.type :bool
               o.env 'DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS'
-              o.default false
+              o.default true
             end
           end
 
@@ -912,6 +915,19 @@ module Datadog
             o.default 60.0
           end
 
+          # The interval in seconds when extended heartbeat must be sent.
+          #
+          # This method is used internally, for testing purposes only.
+          #
+          # @default `DD_TELEMETRY_EXTENDED_HEARTBEAT_INTERVAL` environment variable, otherwise `86400`.
+          # @return [Integer]
+          # @!visibility private
+          option :extended_heartbeat_interval_seconds do |o|
+            o.type :int
+            o.env Core::Telemetry::Ext::ENV_EXTENDED_HEARTBEAT_INTERVAL
+            o.default 86400
+          end
+
           # The interval in seconds when telemetry metrics are aggregated.
           # Should be a denominator of `heartbeat_interval_seconds`.
           #
@@ -1057,13 +1073,13 @@ module Datadog
           end
         end
 
-        # Enable experimental process tags propagation such that payloads like spans contain the process tag.
+        # Enable process tags propagation such that payloads like spans contain the process tag.
         #
-        # @default `DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED` environment variable, otherwise `false`
+        # @default `DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED` environment variable, otherwise `true`
         # @return [Boolean]
         option :experimental_propagate_process_tags_enabled do |o|
           o.env 'DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED'
-          o.default false
+          o.default true
           o.type :bool
         end
 
@@ -1096,6 +1112,8 @@ module Datadog
         extend Datadog::Tracing::Configuration::Settings
 
         extend Datadog::OpenTelemetry::Configuration::Settings
+
+        extend Datadog::SymbolDatabase::Configuration::Settings
       end
       # standard:enable Metrics/BlockLength
     end

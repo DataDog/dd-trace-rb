@@ -66,6 +66,10 @@ module Datadog
           TAG_DD_PARENT_ID = '_dd.parent_id'
           DD_PARENT_ID_DEFAULT = '0000000000000000'
 
+          # Knuth Sampling Rate: the sampling rate applied by agent-based or rule-based sampling.
+          # This is a propagated tag (prefixed with `_dd.p.`) that is included in `x-datadog-tags`.
+          TAG_KNUTH_SAMPLING_RATE = '_dd.p.ksr'
+
           # Trace tags with this prefix will propagate from a trace through distributed tracing.
           # Distributed headers tags with this prefix will be injected into the active trace.
           TAGS_PREFIX = '_dd.p.'

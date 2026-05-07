@@ -27,11 +27,11 @@ on: # yamllint disable-line rule:truthy
   workflow_dispatch:
     inputs:
       engine:
-        description: "`ruby` or `jruby`"
+        description: "`ruby`"
         required: true
         type: string
       version:
-        description: "The version of the engine (2.x or 3.x for Ruby, 9.x or 10.x for JRuby)"
+        description: "The version of the engine (e.g. 2.x, 3.x, 4.x)"
         required: true
         type: string
       alias:
@@ -135,7 +135,6 @@ jobs:
         OTLP_HTTP_PORT: "4318"
         DATADOG_GEM_CI: "true"
         TEST_DATADOG_INTEGRATION: "1"
-        JRUBY_OPTS: "--dev" # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
     services:
       agent:
         image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.37.0
@@ -206,7 +205,6 @@ jobs:
         DD_TRACE_AGENT_PORT: "9126"
         DATADOG_GEM_CI: "true"
         TEST_DATADOG_INTEGRATION: "1"
-        JRUBY_OPTS: "--dev" # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
       options: --link mongodb:mongodb_secondary
     services:
       agent:
@@ -232,9 +230,9 @@ jobs:
           --health-timeout 5s
           --health-retries 10
       memcached:
-        image: ghcr.io/datadog/images-rb/services/memcached:1.5-alpine
+        image: ghcr.io/datadog/images-rb/services/memcached:1.6-alpine
       mongodb:
-        image: ghcr.io/datadog/images-rb/services/mongo:3.6
+        image: ghcr.io/datadog/images-rb/services/mongo:4.2
       opensearch:
         image: ghcr.io/datadog/images-rb/services/opensearchproject/opensearch:2.8.0
         env:

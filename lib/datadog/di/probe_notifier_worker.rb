@@ -23,7 +23,12 @@ module Datadog
     #
     # @api private
     class ProbeNotifierWorker
-      def initialize(settings, logger, agent_settings:, telemetry: nil)
+      # @param probe_repository [ProbeRepository] Repository for looking up probes.
+      #   Used for handling serialization errors (disabling affected probes).
+      # @param probe_notification_builder [ProbeNotificationBuilder] Builder for
+      #   creating status notifications. Used for reporting ERROR status.
+      def initialize(settings, logger, agent_settings:,
+        probe_repository:, probe_notification_builder:, telemetry: nil)
         @settings = settings
         @telemetry = telemetry
         @status_queue = []
@@ -38,13 +43,23 @@ module Datadog
         @thread = nil
         @pid = nil
         @flush = 0
+        @probe_repository = probe_repository
+        @probe_notification_builder = probe_notification_builder
       end
 
       attr_reader :settings
       attr_reader :logger
       attr_reader :telemetry
       attr_reader :agent_settings
+      attr_reader :probe_repository
+      attr_reader :probe_notification_builder
 
+      # Starts the background worker thread.
+      #
+      # The thread batches and sends probe statuses and snapshots to the agent.
+      # If the process forks, the thread is automatically restarted in the child.
+      #
+      # @return [void]
       def start
         return if @thread && @pid == Process.pid
         logger.trace { "di: starting probe notifier: pid #{$$}" }
@@ -80,7 +95,7 @@ module Datadog
             rescue => exc
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-              logger.debug { "di: error in probe notifier worker: #{exc.class}: #{exc} (at #{exc.backtrace.first})" }
+              logger.debug { "di: error in probe notifier worker: #{exc.class}: #{exc.message} (at #{exc.backtrace.first})" }
               telemetry&.report(exc, description: "Error in probe notifier worker")
             end
             @lock.synchronize do
@@ -182,8 +197,41 @@ module Datadog
         @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger, telemetry: telemetry)
       end
 
+      # Sends a batch of snapshot payloads to the agent.
+      #
+      # The transport serializes each snapshot individually and reports
+      # serialization failures via callback. This allows healthy probes
+      # to continue working even when one probe produces un-serializable data.
+      #
+      # @param batch [Array<Hash>] Array of snapshot payload hashes
       def do_send_snapshot(batch)
-        snapshot_transport.send_input(batch, tags)
+        snapshot_transport.send_input(batch, tags, on_serialization_error: method(:handle_serialization_error))
+      end
+
+      # Handles serialization errors reported by the transport.
+      #
+      # Disables the affected probe and sends ERROR status to the backend.
+      # Called by transport when a snapshot fails to serialize.
+      #
+      # @param probe_id [String] ID of the probe that produced bad data
+      # @param exception [Exception] The serialization exception
+      def handle_serialization_error(probe_id, exception)
+        # Only installed probes produce snapshots, so a serialization
+        # error can only come from an installed probe.
+        probe = probe_repository.find_installed(probe_id)
+        return unless probe
+
+        logger.debug { "di: disabling probe #{probe_id} due to serialization error: #{exception.class}: #{exception}" }
+
+        probe.disable!
+
+        payload = probe_notification_builder.build_status(
+          probe,
+          message: "Probe #{probe.id} disabled: snapshot JSON encoding failed (#{exception.class}: #{exception})",
+          status: 'ERROR',
+          exception: exception,
+        )
+        add_status(payload, probe: probe)
       end
 
       def tags
@@ -272,7 +320,7 @@ module Datadog
               end
             rescue => exc
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-              logger.debug { "di: failed to send #{event_name}: #{exc.class}: #{exc} (at #{exc.backtrace.first})" }
+              logger.debug { "di: failed to send #{event_name}: #{exc.class}: #{exc.message} (at #{exc.backtrace.first})" }
               telemetry&.report(exc, description: "Error sending #{event_type}")
             end
           end

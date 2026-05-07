@@ -131,17 +131,15 @@ module Datadog
 
           encoded_tags = DatadogTagsCodec.encode(tags)
 
-          return set_tags_propagation_error(reason: 'inject_max_size') if tags_too_large?(
-            encoded_tags.size,
-            scenario: 'inject'
-          )
+          return set_tags_propagation_error(reason: 'inject_max_size') if tags_too_large?(encoded_tags, scenario: 'inject')
 
           data[@tags_key] = encoded_tags
         rescue => e
           set_tags_propagation_error(reason: 'encoding_error')
           ::Datadog.logger.warn(
-            "Failed to inject x-datadog-tags: #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
+            "Failed to inject x-datadog-tags: #{e.class}: #{e.message} at #{Array(e.backtrace).first}"
           )
+          nil
         end
 
         # Import `x-datadog-tags` tags as trace distributed tags.
@@ -155,7 +153,7 @@ module Datadog
 
           return if !tags || tags.empty?
           return set_tags_propagation_error(reason: 'disabled') if tags_disabled?
-          return set_tags_propagation_error(reason: 'extract_max_size') if tags_too_large?(tags.size, scenario: 'extract')
+          return set_tags_propagation_error(reason: 'extract_max_size') if tags_too_large?(tags, scenario: 'extract')
 
           tags_hash = DatadogTagsCodec.decode(tags)
           # Only extract keys with the expected Datadog prefix
@@ -166,8 +164,9 @@ module Datadog
         rescue => e
           set_tags_propagation_error(reason: 'decoding_error')
           ::Datadog.logger.warn(
-            "Failed to extract x-datadog-tags: #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
+            "Failed to extract x-datadog-tags: #{e.class}: #{e.message} at #{Array(e.backtrace).first}"
           )
+          nil
         end
 
         def set_tags_propagation_error(reason:)
@@ -180,12 +179,15 @@ module Datadog
           ::Datadog.configuration.tracing.x_datadog_tags_max_length <= 0
         end
 
-        def tags_too_large?(size, scenario:)
-          return false if size <= ::Datadog.configuration.tracing.x_datadog_tags_max_length
+        def tags_too_large?(tags, scenario:)
+          size = tags.bytesize
+          max_length = ::Datadog.configuration.tracing.x_datadog_tags_max_length
+
+          return false if size <= max_length
 
           ::Datadog.logger.warn(
-            "Failed to #{scenario} x-datadog-tags: tags are too large for configured limit (size:#{size} >= " \
-              "limit:#{::Datadog.configuration.tracing.x_datadog_tags_max_length}). This limit can be configured " \
+            "Failed to #{scenario} x-datadog-tags: tags are too large for configured limit (bytesize:#{size} >= " \
+              "limit:#{max_length}). This limit can be configured " \
               'through the DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH environment variable.'
           )
 

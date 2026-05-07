@@ -186,6 +186,11 @@ typedef struct {
     uint64_t gvl_sampling_time_ns_min;
     uint64_t gvl_sampling_time_ns_max;
     uint64_t gvl_sampling_time_ns_total;
+
+    struct vm_metrics {
+      // Total time spent waiting for the GVL
+      uint64_t gvl_waiting_time_ns_total;
+    } vm_metrics;
   } stats;
 } cpu_and_wall_time_worker_state;
 
@@ -240,16 +245,16 @@ static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VA
 static VALUE _native_hold_signals(DDTRACE_UNUSED VALUE self);
 static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self);
 #ifndef NO_GVL_INSTRUMENTATION
-static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused);
-static void after_gvl_running_from_postponed_job(DDTRACE_UNUSED void *_unused);
+  static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused);
+  static void after_gvl_running_from_postponed_job(DDTRACE_UNUSED void *_unused);
+  static VALUE rescued_after_gvl_running_from_postponed_job(VALUE self_instance);
+  static VALUE handle_sampling_failure_rescued_after_gvl_running_from_postponed_job(VALUE self_instance, VALUE exception);
 #endif
-static VALUE rescued_after_gvl_running_from_postponed_job(VALUE self_instance);
 static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, VALUE instance);
 static VALUE handle_sampling_failure_rescued_sample_from_postponed_job(VALUE self_instance, VALUE exception);
 static VALUE handle_sampling_failure_thread_context_collector_sample_after_gc(VALUE self_instance, VALUE exception);
 static VALUE handle_sampling_failure_rescued_sample_allocation(VALUE self_instance, VALUE exception);
 static VALUE handle_sampling_failure_rescued_after_allocation(VALUE self_instance, VALUE exception);
-static VALUE handle_sampling_failure_rescued_after_gvl_running_from_postponed_job(VALUE self_instance, VALUE exception);
 static inline void during_sample_enter(cpu_and_wall_time_worker_state* state);
 static inline void during_sample_exit(cpu_and_wall_time_worker_state* state);
 static void after_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused);
@@ -1101,6 +1106,7 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("gvl_sampling_time_ns_max")),   /* => */ RUBY_NUM_OR_NIL(state->stats.gvl_sampling_time_ns_max, > 0, ULL2NUM),
     ID2SYM(rb_intern("gvl_sampling_time_ns_total")), /* => */ RUBY_NUM_OR_NIL(state->stats.gvl_sampling_time_ns_total, > 0, ULL2NUM),
     ID2SYM(rb_intern("gvl_sampling_time_ns_avg")),   /* => */ RUBY_AVG_OR_NIL(state->stats.gvl_sampling_time_ns_total, state->stats.after_gvl_running),
+    ID2SYM(rb_intern("gvl_waiting_time_ns_total")),  /* => */ state->gvl_profiling_enabled ? ULL2NUM(state->stats.vm_metrics.gvl_waiting_time_ns_total) : Qnil,
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;
@@ -1141,6 +1147,7 @@ static void reset_stats_not_thread_safe(cpu_and_wall_time_worker_state *state) {
     .cpu_sampling_time_ns_min        = UINT64_MAX,
     .allocation_sampling_time_ns_min = UINT64_MAX,
     .gvl_sampling_time_ns_min        = UINT64_MAX,
+    // Other fields are reset to 0
   };
 }
 
@@ -1399,7 +1406,7 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
       // Interesting note: A RUBY_INTERNAL_THREAD_EVENT_RESUMED is guaranteed to be called with the GVL being acquired.
       // (And... I think target_thread will be == rb_thread_current()?)
       //
-      // But we're not sure if we're on the main Ractor yet. The thread context collector actually can actually help here:
+      // But we're not sure if we're on the main Ractor yet. The thread context collector can actually help here:
       // it tags threads it's tracking, so if a thread is tagged then by definition we know that thread belongs to the main
       // Ractor. Thus, if we get a ON_GVL_RUNNING_UNKNOWN result we shouldn't touch any state, but otherwise we're good to go.
 
@@ -1407,19 +1414,22 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
         target_thread = gvl_profiling_state_maybe_initialize();
       #endif
 
+      cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
+      if (state == NULL) return; // This should not happen, but just in case...
+
       on_gvl_running_result result = thread_context_collector_on_gvl_running(target_thread);
 
-      if (result == ON_GVL_RUNNING_SAMPLE) {
+      if (result.waiting_for_gvl_duration_ns > 0) {
+        state->stats.vm_metrics.gvl_waiting_time_ns_total += (uint64_t) result.waiting_for_gvl_duration_ns;
+      }
+
+      if (result.action == ON_GVL_RUNNING_SAMPLE) {
         #ifndef NO_POSTPONED_TRIGGER
           rb_postponed_job_trigger(after_gvl_running_from_postponed_job_handle);
         #else
           rb_postponed_job_register_one(0, after_gvl_running_from_postponed_job, NULL);
         #endif
-      } else if (result == ON_GVL_RUNNING_DONT_SAMPLE) {
-        cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
-
-        if (state == NULL) return; // This should not happen, but just in case...
-
+      } else if (result.action == ON_GVL_RUNNING_DONT_SAMPLE) {
         state->stats.gvl_dont_sample++;
       }
     } else {
@@ -1475,6 +1485,11 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
 
     return state->gvl_profiling_hook != NULL ? Qtrue : Qfalse;
   }
+
+  static VALUE handle_sampling_failure_rescued_after_gvl_running_from_postponed_job(VALUE self_instance, VALUE exception) {
+    stop(self_instance, exception, "rescued_after_gvl_running_from_postponed_job");
+    return Qnil;
+  }
 #else
   static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, DDTRACE_UNUSED VALUE instance) {
     return Qfalse;
@@ -1501,11 +1516,6 @@ static VALUE handle_sampling_failure_rescued_after_allocation(VALUE self_instanc
   return Qnil;
 }
 
-static VALUE handle_sampling_failure_rescued_after_gvl_running_from_postponed_job(VALUE self_instance, VALUE exception) {
-  stop(self_instance, exception, "rescued_after_gvl_running_from_postponed_job");
-  return Qnil;
-}
-
 static VALUE rescued_after_allocation(VALUE self_instance) {
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
@@ -1519,6 +1529,8 @@ static VALUE rescued_after_allocation(VALUE self_instance) {
 // This postponed job callback is used to finalize heap allocation recordings on Ruby 4+.
 // During on_newobj_event, calling rb_obj_id() is unsafe because it mutates the object.
 // So we defer getting the object_id until after the event completes.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function" // This is only used for some Rubies, but we want to build on all to make it easier to dev
 static void after_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   cpu_and_wall_time_worker_state *state = active_sampler_instance_state;
 
@@ -1541,6 +1553,7 @@ static void after_allocation_from_postponed_job(DDTRACE_UNUSED void *_unused) {
 
   during_sample_exit(state);
 }
+#pragma GCC diagnostic pop
 
 static inline void during_sample_enter(cpu_and_wall_time_worker_state* state) {
   // Tell the compiler it's not allowed to reorder the `during_sample` flag with anything that happens after.

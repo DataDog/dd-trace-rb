@@ -13,9 +13,11 @@ module Datadog
 
       @worker: Exposures::Worker
 
-      attr_reader telemetry: Core::Telemetry::Component
+      @flag_eval_hook: Hooks::FlagEvalHook?
 
       attr_reader engine: EvaluationEngine
+
+      attr_reader flag_eval_hook: Hooks::FlagEvalHook?
 
       def self.build: (
         Core::Configuration::Settings settings,
@@ -34,6 +36,10 @@ module Datadog
       def flush: () -> void
 
       def shutdown!: () -> void
+
+      private
+
+      def create_flag_eval_hook: () -> Hooks::FlagEvalHook?
     end
   end
 end
