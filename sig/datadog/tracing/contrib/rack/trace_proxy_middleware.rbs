@@ -7,9 +7,9 @@ module Datadog
 
           def self?.call_with_inferred_proxy: (::Hash[::String, untyped] env, ::String proxy_type) { () -> untyped } -> untyped
 
-          def self?.set_optional_tags: (::Hash[::String, untyped] env, SpanOperation span, ::String proxy_type) -> void
+          def self?.set_optional_tags: (SpanOperation span, env: ::Hash[::String, untyped], proxy_type: ::String) -> void
 
-          def self?.propagate_tags_from_request_span: (::Hash[::String, untyped] env, SpanOperation inferred_span) -> void
+          def self?.propagate_request_span_tags: (SpanOperation span, env: ::Hash[::String, untyped]) -> void
         end
       end
     end

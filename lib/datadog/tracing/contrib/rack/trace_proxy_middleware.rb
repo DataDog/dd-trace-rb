@@ -13,9 +13,10 @@ module Datadog
         module TraceProxyMiddleware
           module_function
 
-          def call(env, configuration)
-            proxy_type = env[Ext::HEADER_X_DD_PROXY]
-            return call_with_inferred_proxy(env, proxy_type) { yield } if proxy_type
+          def call(env, configuration, &block)
+            if (proxy_type = env[Ext::HEADER_X_DD_PROXY])
+              return call_with_inferred_proxy(env, proxy_type, &block)
+            end
 
             return yield unless configuration[:request_queuing]
 
@@ -55,27 +56,25 @@ module Datadog
             request_span&.finish
           end
 
+          # Creates a virtual parent span representing the upstream proxy
+          # that wraps the actual request processing.
           def call_with_inferred_proxy(env, proxy_type)
             span_name = Ext::PROXY_SPAN_NAMES[proxy_type]
             return yield unless span_name
 
-            domain = env[Ext::HEADER_X_DD_PROXY_DOMAIN_NAME]
             path = env[Ext::HEADER_X_DD_PROXY_PATH]
-            resource_path = env[Ext::HEADER_X_DD_PROXY_RESOURCE_PATH]
-            method = env[Ext::HEADER_X_DD_PROXY_HTTPMETHOD]
             stage = env[Ext::HEADER_X_DD_PROXY_STAGE]
+            domain = env[Ext::HEADER_X_DD_PROXY_DOMAIN_NAME]
+            method = env[Ext::HEADER_X_DD_PROXY_HTTPMETHOD]
+            resource_path = env[Ext::HEADER_X_DD_PROXY_RESOURCE_PATH]
             request_time_ms = env[Ext::HEADER_X_DD_PROXY_REQUEST_TIME_MS]
 
-            start_time = Time.at(request_time_ms.to_f / 1000) if request_time_ms
-
+            # NOTE: resource_path is the parameterized route (e.g. /users/{id}) vs literal path
             route = resource_path
             resource = "#{method} #{route || path}" if method
 
-            options = {
-              service: domain,
-              type: Tracing::Metadata::Ext::AppTypes::TYPE_WEB,
-            }
-            options[:start_time] = start_time if start_time
+            options = { service: domain, type: Tracing::Metadata::Ext::AppTypes::TYPE_WEB }
+            options[:start_time] = Time.at(request_time_ms.to_f / 1000) if request_time_ms
 
             inferred_span = Tracing.trace(span_name, **options)
             inferred_span.resource = resource if resource
@@ -87,21 +86,20 @@ module Datadog
             inferred_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, route) if route
             inferred_span.set_metric(Ext::TAG_INFERRED_SPAN, 1)
 
-            set_optional_tags(env, inferred_span, proxy_type)
+            set_optional_tags(inferred_span, env: env, proxy_type: proxy_type)
 
             yield
           ensure
             if inferred_span
-              if resource
-                inferred_span.resource = resource
-                Tracing.active_trace&.resource = resource
-              end
-              propagate_tags_from_request_span(env, inferred_span)
+              Tracing.active_trace&.resource = resource if resource
+              propagate_request_span_tags(inferred_span, env: env)
+
               inferred_span.finish
             end
           end
 
-          def set_optional_tags(env, span, proxy_type)
+          # Sets cloud provider metadata and constructs the resource ARN.
+          def set_optional_tags(span, env:, proxy_type:)
             account_id = env[Ext::HEADER_X_DD_PROXY_ACCOUNT_ID]
             api_id = env[Ext::HEADER_X_DD_PROXY_API_ID]
             region = env[Ext::HEADER_X_DD_PROXY_REGION]
@@ -116,29 +114,35 @@ module Datadog
             span.set_tag('aws_user', user) if user
 
             if api_id && region
-              restapi_prefix = (proxy_type == Ext::PROXY_AWS_APIGATEWAY) ? 'restapis' : 'apis'
+              restapi_prefix = proxy_type == Ext::PROXY_AWS_APIGATEWAY ? 'restapis' : 'apis'
               span.set_tag('dd_resource_key', "arn:aws:apigateway:#{region}::/#{restapi_prefix}/#{api_id}")
             end
           end
 
-          def propagate_tags_from_request_span(env, inferred_span)
+          # Propagates response-level and security tags from the request span to
+          # the inferred parent.
+          def propagate_request_span_tags(span, env:)
             rack_span = env[Ext::RACK_ENV_REQUEST_SPAN]
             return unless rack_span
 
-            status_code = rack_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)
-            if status_code
-              inferred_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, status_code)
-              inferred_span.status = Tracing::Metadata::Ext::Errors::STATUS if status_code.to_i >= 500
+            if (status_code = rack_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE))
+              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, status_code)
+              span.status = Tracing::Metadata::Ext::Errors::STATUS if status_code.to_i >= 500
             end
 
-            user_agent = rack_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_USER_AGENT)
-            inferred_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_USER_AGENT, user_agent) if user_agent
+            if (user_agent = rack_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_USER_AGENT))
+              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_USER_AGENT, user_agent)
+            end
 
-            appsec_enabled = rack_span.get_metric('_dd.appsec.enabled')
-            inferred_span.set_metric('_dd.appsec.enabled', appsec_enabled) if appsec_enabled
+            # NOTE: Tracing shouldn't know about AppSec tags.
+            if (appsec_enabled = rack_span.get_metric('_dd.appsec.enabled'))
+              span.set_metric('_dd.appsec.enabled', appsec_enabled)
+            end
 
-            appsec_json = rack_span.get_tag('_dd.appsec.json')
-            inferred_span.set_tag('_dd.appsec.json', appsec_json) if appsec_json
+            # NOTE: Tracing shouldn't know about AppSec tags.
+            if (appsec_json = rack_span.get_tag('_dd.appsec.json'))
+              span.set_tag('_dd.appsec.json', appsec_json)
+            end
           end
         end
       end
