@@ -50,8 +50,6 @@ static ID at_metrics_id;
 
 /* Method IDs for time / integer operations */
 static ID id_duration_method;
-static ID id_bitand;
-static ID id_rshift;
 
 /* Response class (loaded from Ruby) */
 static VALUE response_class       = Qnil;
@@ -170,10 +168,20 @@ typedef struct {
 
 /* Ruby 128-bit Integer -> trace_id_t */
 static inline trace_id_t split_trace_id(VALUE trace_id) {
-  VALUE mask = ULL2NUM(0xFFFFFFFFFFFFFFFF);
+  /* Fast path: Fixnum fits in 63 bits, no high half */
+  if (FIXNUM_P(trace_id)) {
+    return (trace_id_t){
+      .low  = (uint64_t)FIX2LONG(trace_id),
+      .high = 0,
+    };
+  }
+
+  /* Bignum path: extract raw bytes into two 64-bit words */
+  unsigned long words[2] = {0, 0};
+  rb_big_pack(trace_id, words, 2);
   return (trace_id_t){
-    .low  = NUM2ULL(rb_funcall(trace_id, id_bitand, 1, mask)),
-    .high = NUM2ULL(rb_funcall(trace_id, id_rshift, 1, INT2FIX(64))),
+    .low  = (uint64_t)words[0],
+    .high = (uint64_t)words[1],
   };
 }
 
@@ -750,8 +758,6 @@ void trace_exporter_init(VALUE tracing_module) {
 
   /* Methods */
   id_duration_method = rb_intern("duration");
-  id_bitand          = rb_intern("&");
-  id_rshift          = rb_intern(">>");
 
   /* Response.new */
   id_new = rb_intern("new");
