@@ -16,6 +16,7 @@ module Datadog
               Tracing::Sampling::Ext::Decision::AI_GUARD
             )
             trace.set_tag(Ext::EVENT_TAG, true)
+            trace.set_tag(Ext::SERVICE_ENTRY_EXECUTED_TAG, "1")
 
             if (last_message = messages.last)
               if last_message.tool_call
