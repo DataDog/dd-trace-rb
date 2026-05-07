@@ -3,7 +3,13 @@ module Datadog
     module Contrib
       module Rack
         module TraceProxyMiddleware
-          def self?.call: (untyped env, untyped configuration) { () -> untyped } -> untyped
+          def self?.call: (::Hash[::String, untyped] env, ::Hash[::Symbol, untyped] configuration) { () -> untyped } -> untyped
+
+          def self?.call_with_inferred_proxy: (::Hash[::String, untyped] env, ::String proxy_type) { () -> untyped } -> untyped
+
+          def self?.set_optional_tags: (SpanOperation span, env: ::Hash[::String, untyped], proxy_type: ::String) -> void
+
+          def self?.propagate_request_span_tags: (SpanOperation span, env: ::Hash[::String, untyped]) -> void
         end
       end
     end
