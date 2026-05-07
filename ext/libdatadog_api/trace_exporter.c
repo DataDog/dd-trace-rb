@@ -49,8 +49,6 @@ static ID at_meta_id;
 static ID at_metrics_id;
 
 /* Method IDs for time / integer operations */
-static ID id_to_i;
-static ID id_nsec;
 static ID id_duration_method;
 static ID id_bitand;
 static ID id_rshift;
@@ -160,9 +158,8 @@ static inline ddog_CharSlice nullable_char_slice(VALUE str) {
 
 /* Ruby Time -> int64_t nanoseconds since Unix epoch */
 static inline int64_t time_to_nanos(VALUE time) {
-  VALUE secs = rb_funcall(time, id_to_i, 0);
-  VALUE nsec = rb_funcall(time, id_nsec, 0);
-  return (int64_t)NUM2LL(secs) * 1000000000LL + (int64_t)NUM2LL(nsec);
+  struct timespec ts = rb_time_timespec(time);
+  return (int64_t)ts.tv_sec * 1000000000LL + (int64_t)ts.tv_nsec;
 }
 
 /* 128-bit trace ID split into two 64-bit halves */
@@ -752,8 +749,6 @@ void trace_exporter_init(VALUE tracing_module) {
   at_metrics_id    = rb_intern("@metrics");
 
   /* Methods */
-  id_to_i            = rb_intern("to_i");
-  id_nsec            = rb_intern("nsec");
   id_duration_method = rb_intern("duration");
   id_bitand          = rb_intern("&");
   id_rshift          = rb_intern(">>");
