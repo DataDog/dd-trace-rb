@@ -534,10 +534,20 @@ static void *send_chunks_without_gvl(void *data) {
   return NULL;
 }
 
-/* Helper: check for a pending Ruby interrupt without raising it. */
-static VALUE call_thread_check_ints(DDTRACE_UNUSED VALUE ignored) {
+/*
+ * Check for a pending Ruby exception without raising it.
+ * Mirrors the profiling extension's check_if_pending_exception().
+ */
+static VALUE process_pending_interruptions(DDTRACE_UNUSED VALUE _) {
   rb_thread_check_ints();
   return Qnil;
+}
+
+__attribute__((warn_unused_result))
+static int check_if_pending_exception(void) {
+  int pending_exception;
+  rb_protect(process_pending_interruptions, Qnil, &pending_exception);
+  return pending_exception;
 }
 
 /* ========================================================================
@@ -632,7 +642,7 @@ static VALUE build_and_send_traces(VALUE arg) {
         RUBY_UBF_IO, NULL);
 
     if (!args.send_ran) {
-      rb_protect(call_thread_check_ints, Qnil, &pending_exception);
+      pending_exception = check_if_pending_exception();
     }
   }
   /* Only null chunks when the send actually ran and consumed them.
