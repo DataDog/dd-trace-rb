@@ -87,15 +87,15 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
 
   let(:exporter) do
     trace_exporter_class._native_new(
-      "http://127.0.0.1:#{mock_agent.port}",
-      '1.0.0-test',
-      'ruby',
-      RUBY_VERSION,
-      RUBY_ENGINE,
-      'test-host',
-      'test-env',
-      'test-service',
-      '0.0.1',
+      url: "http://127.0.0.1:#{mock_agent.port}",
+      tracer_version: '1.0.0-test',
+      language: 'ruby',
+      language_version: RUBY_VERSION,
+      language_interpreter: RUBY_ENGINE,
+      hostname: 'test-host',
+      env: 'test-env',
+      service: 'test-service',
+      version: '0.0.1',
     )
   end
 
