@@ -519,17 +519,23 @@ static VALUE _native_exporter_new(
  * ======================================================================== */
 
 typedef struct {
-  const ddog_TraceExporter     *exporter;
-  ddog_TracerTraceChunks       *chunks;
-  ddog_TraceExporterResponse   *response;
-  ddog_TraceExporterError      *error;
-  bool                          send_ran;
+  const ddog_TraceExporter       *exporter;
+  ddog_TracerTraceChunks         *chunks;
+  ddog_TraceExporterResponse     *response;
+  ddog_TraceExporterErrorCode     error_code;
+  bool                            failed;
+  bool                            send_ran;
 } send_chunks_args_t;
 
 static void *send_chunks_without_gvl(void *data) {
   send_chunks_args_t *args = (send_chunks_args_t *)data;
-  args->error = ddog_trace_exporter_send_trace_chunks(
+  ddog_TraceExporterError *err = ddog_trace_exporter_send_trace_chunks(
       args->exporter, args->chunks, &args->response);
+  if (err != NULL) {
+    args->error_code = err->code;
+    args->failed = true;
+    ddog_trace_exporter_error_free(err);
+  }
   args->send_ran = true;
   return NULL;
 }
@@ -630,7 +636,7 @@ static VALUE build_and_send_traces(VALUE arg) {
     .exporter     = ctx->exporter,
     .chunks       = ctx->chunks,
     .response     = NULL,
-    .error        = NULL,
+    .failed       = false,
     .send_ran     = false,
   };
 
@@ -651,8 +657,6 @@ static VALUE build_and_send_traces(VALUE arg) {
     ctx->chunks = NULL;
   }
 
-  ddog_TraceExporterError *send_err = args.error;
-
   /* Extract the response body as a Ruby string before freeing. */
   VALUE payload = Qnil;
   if (args.response != NULL) {
@@ -667,15 +671,11 @@ static VALUE build_and_send_traces(VALUE arg) {
   }
 
   if (pending_exception) {
-    if (send_err != NULL) ddog_trace_exporter_error_free(send_err);
     rb_jump_tag(pending_exception);
   }
 
-  if (send_err != NULL) {
-    ddog_TraceExporterErrorCode code = send_err->code;
-    ddog_trace_exporter_error_free(send_err);
-
-    VALUE err_resp = create_error_response(code, ctx->trace_count);
+  if (args.failed) {
+    VALUE err_resp = create_error_response(args.error_code, ctx->trace_count);
     return rb_ary_new_from_args(1, err_resp);
   }
 
