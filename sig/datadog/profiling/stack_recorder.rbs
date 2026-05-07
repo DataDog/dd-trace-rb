@@ -4,7 +4,6 @@ module Datadog
       @no_concurrent_serialize_mutex: ::Thread::Mutex
 
       def initialize: (
-        cpu_time_enabled: bool,
         alloc_samples_enabled: bool,
         heap_samples_enabled: bool,
         heap_size_enabled: bool,
@@ -15,7 +14,6 @@ module Datadog
 
       def self._native_initialize: (
         self_instance: Datadog::Profiling::StackRecorder,
-        cpu_time_enabled: bool,
         alloc_samples_enabled: bool,
         heap_samples_enabled: bool,
         heap_size_enabled: bool,
@@ -25,7 +23,6 @@ module Datadog
       ) -> true
 
       def self.for_testing: (
-        ?cpu_time_enabled: bool,
         ?alloc_samples_enabled: bool,
         ?heap_samples_enabled: bool,
         ?heap_size_enabled: bool,

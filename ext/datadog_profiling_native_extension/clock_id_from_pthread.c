@@ -1,7 +1,7 @@
 #include "extconf.h"
 
 // This file is only compiled on systems where pthread_getcpuclockid() is available;
-// Otherwise we compile clock_id_noop.c
+// Otherwise we compile clock_id_from_mach.c (macOS)
 #ifdef HAVE_PTHREAD_GETCPUCLOCKID
 
 #include <pthread.h>
