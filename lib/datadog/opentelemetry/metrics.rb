@@ -42,9 +42,6 @@ module Datadog
 
       def create_resource
         resource_attributes = {}
-        if @settings.tracing.report_hostname
-          resource_attributes['host.name'] = @settings.hostname || Datadog::Core::Environment::Socket.hostname
-        end
 
         @settings.tags&.each do |key, value|
           otel_key = case key
@@ -59,6 +56,14 @@ module Datadog
         resource_attributes['service.name'] = @settings.service_without_fallback || resource_attributes['service.name'] || Datadog::Core::Environment::Ext::FALLBACK_SERVICE_NAME
         resource_attributes['deployment.environment'] = @settings.env if @settings.env
         resource_attributes['service.version'] = @settings.version if @settings.version
+
+        if @settings.tracing.report_hostname
+          if @settings.hostname
+            resource_attributes['host.name'] = @settings.hostname
+          else
+            resource_attributes['host.name'] ||= Datadog::Core::Environment::Socket.hostname
+          end
+        end
 
         ::OpenTelemetry::SDK::Resources::Resource.create(resource_attributes)
       end
