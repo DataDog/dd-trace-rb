@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'json'
 require_relative 'trace_formatter'
 require_relative 'statistics'
 
@@ -38,6 +39,28 @@ module Datadog
         #   Datadog::Tracing::Transport::Native::TraceExporter
         #   Datadog::Tracing::Transport::Native::TracerSpan
         #   Datadog::Tracing::Transport::Native::Response
+
+        # Reopen the C-defined Response class to add `service_rates`,
+        # which the Writer's after_send callback needs for sampling
+        # rate feedback from the agent.
+        if supported?
+          class Response
+            SERVICE_RATE_KEY = 'rate_by_service'
+
+            # Parse the agent's JSON response body and extract the
+            # +rate_by_service+ map.  Returns +nil+ when the payload
+            # is absent or does not contain sampling rates.
+            def service_rates
+              body = payload
+              return nil if body.nil? || body.empty?
+
+              parsed = JSON.parse(body)
+              parsed[SERVICE_RATE_KEY] if parsed.is_a?(Hash)
+            rescue JSON::ParserError
+              nil
+            end
+          end
+        end
 
         # Drop-in transport that delegates to the native trace exporter.
         class Transport
@@ -131,6 +154,7 @@ module Datadog
           def unsupported?;    false; end
           def payload;         nil;   end
           def trace_count;     0;     end
+          def service_rates;   nil;   end
 
           def inspect
             "#<#{self.class} error=#{error.inspect}>"
