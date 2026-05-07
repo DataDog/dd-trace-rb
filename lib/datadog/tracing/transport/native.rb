@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'json'
 require_relative 'trace_formatter'
 require_relative 'statistics'
 
@@ -131,6 +132,7 @@ module Datadog
           def unsupported?;    false; end
           def payload;         nil;   end
           def trace_count;     0;     end
+          def service_rates;   nil;   end
 
           def inspect
             "#<#{self.class} error=#{error.inspect}>"

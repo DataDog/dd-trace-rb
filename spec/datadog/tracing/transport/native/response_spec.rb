@@ -77,3 +77,63 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::Response' do
     it { expect(response.payload).to be_nil }
   end
 end
+
+RSpec.describe 'Datadog::Tracing::Transport::Native::Response#service_rates' do
+  before do
+    skip_if_libdatadog_not_supported
+    require 'datadog/tracing/transport/native'
+  end
+
+  let(:response_class) { Datadog::Tracing::Transport::Native::Response }
+
+  def make_response(payload:)
+    resp = response_class.allocate
+    resp.instance_variable_set(:@ok, true)
+    resp.instance_variable_set(:@payload, payload)
+    resp
+  end
+
+  context 'with a valid rate_by_service payload' do
+    let(:payload) { '{"rate_by_service":{"service:web,env:prod":0.5}}' }
+
+    it 'returns the parsed rates hash' do
+      resp = make_response(payload: payload)
+      expect(resp.service_rates).to eq({'service:web,env:prod' => 0.5})
+    end
+  end
+
+  context 'with nil payload' do
+    it 'returns nil' do
+      resp = make_response(payload: nil)
+      expect(resp.service_rates).to be_nil
+    end
+  end
+
+  context 'with empty payload' do
+    it 'returns nil' do
+      resp = make_response(payload: '')
+      expect(resp.service_rates).to be_nil
+    end
+  end
+
+  context 'with invalid JSON' do
+    it 'returns nil' do
+      resp = make_response(payload: 'not json')
+      expect(resp.service_rates).to be_nil
+    end
+  end
+
+  context 'with JSON missing rate_by_service key' do
+    it 'returns nil' do
+      resp = make_response(payload: '{"other":"data"}')
+      expect(resp.service_rates).to be_nil
+    end
+  end
+end
+
+RSpec.describe 'Datadog::Tracing::Transport::Native::InternalErrorResponse#service_rates' do
+  it 'returns nil' do
+    resp = Datadog::Tracing::Transport::Native::InternalErrorResponse.new(RuntimeError.new('test'))
+    expect(resp.service_rates).to be_nil
+  end
+end

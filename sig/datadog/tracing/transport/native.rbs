@@ -6,6 +6,12 @@ module Datadog
 
         def self?.supported?: () -> bool
 
+        class Response
+          SERVICE_RATE_KEY: String
+
+          def service_rates: () -> (Hash[String, Float] | nil)
+        end
+
         class Transport
           include Statistics
 
@@ -36,6 +42,7 @@ module Datadog
           def unsupported?: () -> false
           def payload: () -> nil
           def trace_count: () -> 0
+          def service_rates: () -> nil
           def inspect: () -> String
         end
       end
