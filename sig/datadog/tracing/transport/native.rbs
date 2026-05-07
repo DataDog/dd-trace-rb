@@ -1,0 +1,51 @@
+module Datadog
+  module Tracing
+    module Transport
+      module Native
+        UNSUPPORTED_REASON: String?
+
+        def self?.supported?: () -> bool
+
+        class Response
+          SERVICE_RATE_KEY: String
+
+          def service_rates: () -> (Hash[String, Float] | nil)
+        end
+
+        class Transport
+          include Statistics
+
+          @logger: untyped
+          @exporter: untyped
+
+          attr_reader logger: untyped
+
+          def initialize: (agent_settings: untyped, ?logger: untyped) -> void
+          def send_traces: (Array[untyped] traces) -> Array[untyped]
+
+          private
+
+          def tracer_version_string: () -> String
+        end
+
+        class InternalErrorResponse
+          @error: untyped
+
+          attr_reader error: untyped
+
+          def initialize: (untyped error) -> void
+          def ok?: () -> false
+          def internal_error?: () -> true
+          def server_error?: () -> false
+          def client_error?: () -> false
+          def not_found?: () -> false
+          def unsupported?: () -> false
+          def payload: () -> nil
+          def trace_count: () -> 0
+          def service_rates: () -> nil
+          def inspect: () -> String
+        end
+      end
+    end
+  end
+end

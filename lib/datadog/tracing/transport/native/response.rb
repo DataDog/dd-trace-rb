@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'json'
+
 module Datadog
   module Tracing
     module Transport
@@ -46,6 +48,21 @@ module Datadog
 
           def unsupported?
             @unsupported
+          end
+
+          SERVICE_RATE_KEY = 'rate_by_service'
+
+          # Parse the agent's JSON response body and extract the
+          # +rate_by_service+ map.  Returns +nil+ when the payload
+          # is absent or does not contain sampling rates.
+          def service_rates
+            body = payload
+            return nil if body.nil? || body.empty?
+
+            parsed = JSON.parse(body)
+            parsed[SERVICE_RATE_KEY] if parsed.is_a?(Hash)
+          rescue JSON::ParserError
+            nil
           end
         end
       end
