@@ -362,7 +362,7 @@ module Datadog
         # Resolve hostname if configured; DD_HOSTNAME takes precedence over the system hostname
         if Datadog.configuration.tracing.report_hostname
           hostname = Datadog.configuration.hostname || Core::Environment::Socket.hostname
-          hostname = hostname && !hostname.empty? ? hostname : nil
+          hostname = (hostname && !hostname.empty?) ? hostname : nil
         end
 
         if digest
