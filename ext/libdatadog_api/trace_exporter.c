@@ -18,10 +18,7 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span);
 static VALUE _native_from_span(VALUE klass, VALUE span);
 
 /* TraceExporter methods */
-static VALUE _native_exporter_new(VALUE klass, VALUE rb_url,
-  VALUE rb_tracer_version, VALUE rb_language, VALUE rb_language_version,
-  VALUE rb_language_interpreter, VALUE rb_hostname, VALUE rb_env,
-  VALUE rb_service, VALUE rb_version);
+static VALUE _native_exporter_new(int argc, VALUE *argv, VALUE klass);
 static VALUE _native_send_traces(VALUE self, VALUE traces);
 
 /* Response helpers */
@@ -452,25 +449,31 @@ static VALUE response_payload(VALUE self) {
  * Creates a Rust TraceExporter with the given configuration.
  *
  * Ruby signature:
- *   TraceExporter._native_new(url, tracer_version, language,
- *     language_version, language_interpreter, hostname, env,
- *     service, version) -> TraceExporter
+ *   TraceExporter._native_new(
+ *     url:, tracer_version: nil, language: nil, language_version: nil,
+ *     language_interpreter: nil, hostname: nil, env: nil,
+ *     service: nil, version: nil) -> TraceExporter
  *
  * +url+ is required (String).  All other arguments may be nil.
  * ======================================================================== */
 
 static VALUE _native_exporter_new(
-    DDTRACE_UNUSED VALUE klass,
-    VALUE rb_url,
-    VALUE rb_tracer_version,
-    VALUE rb_language,
-    VALUE rb_language_version,
-    VALUE rb_language_interpreter,
-    VALUE rb_hostname,
-    VALUE rb_env,
-    VALUE rb_service,
-    VALUE rb_version
+    int argc, VALUE *argv, DDTRACE_UNUSED VALUE klass
 ) {
+  VALUE options;
+  rb_scan_args(argc, argv, "0:", &options);
+  if (options == Qnil) options = rb_hash_new();
+
+  VALUE rb_url                  = rb_hash_fetch(options, ID2SYM(rb_intern("url")));
+  VALUE rb_tracer_version       = rb_hash_fetch(options, ID2SYM(rb_intern("tracer_version")));
+  VALUE rb_language             = rb_hash_fetch(options, ID2SYM(rb_intern("language")));
+  VALUE rb_language_version     = rb_hash_fetch(options, ID2SYM(rb_intern("language_version")));
+  VALUE rb_language_interpreter = rb_hash_fetch(options, ID2SYM(rb_intern("language_interpreter")));
+  VALUE rb_hostname             = rb_hash_fetch(options, ID2SYM(rb_intern("hostname")));
+  VALUE rb_env                  = rb_hash_fetch(options, ID2SYM(rb_intern("env")));
+  VALUE rb_service              = rb_hash_fetch(options, ID2SYM(rb_intern("service")));
+  VALUE rb_version              = rb_hash_fetch(options, ID2SYM(rb_intern("version")));
+
   /* Phase 1: validate types (may raise, no Rust resources yet) */
   ENFORCE_TYPE(rb_url, T_STRING);
   if (rb_tracer_version       != Qnil) ENFORCE_TYPE(rb_tracer_version,       T_STRING);
@@ -763,11 +766,9 @@ void trace_exporter_init(VALUE tracing_module) {
       rb_define_class_under(native_module, "TraceExporter", rb_cObject);
   rb_undef_alloc_func(trace_exporter_class);
 
-  /* Factory: _native_new(url, tracer_version, language, language_version,
-   *                       language_interpreter, hostname, env, service,
-   *                       version) */
+  /* Factory: _native_new(url:, tracer_version:, ...) */
   rb_define_singleton_method(trace_exporter_class, "_native_new",
-                             _native_exporter_new, 9);
+                             _native_exporter_new, -1);
 
   /* Instance: _native_send_traces(traces) -> Array[Response] */
   rb_define_method(trace_exporter_class, "_native_send_traces",

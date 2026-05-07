@@ -14,15 +14,15 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TraceExporter' do
     context 'with all string arguments' do
       it 'creates an exporter' do
         exporter = trace_exporter_class._native_new(
-          'http://127.0.0.1:8126',
-          '1.0.0',      # tracer_version
-          'ruby',       # language
-          RUBY_VERSION, # language_version
-          RUBY_ENGINE,  # language_interpreter
-          'testhost',   # hostname
-          'test',       # env
-          'testsvc',    # service
-          '1.0',        # version
+          url: 'http://127.0.0.1:8126',
+          tracer_version: '1.0.0',
+          language: 'ruby',
+          language_version: RUBY_VERSION,
+          language_interpreter: RUBY_ENGINE,
+          hostname: 'testhost',
+          env: 'test',
+          service: 'testsvc',
+          version: '1.0',
         )
         expect(exporter).to be_a(trace_exporter_class)
       end
@@ -31,8 +31,10 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TraceExporter' do
     context 'with nil for all optional arguments' do
       it 'creates an exporter' do
         exporter = trace_exporter_class._native_new(
-          'http://127.0.0.1:8126',
-          nil, nil, nil, nil, nil, nil, nil, nil,
+          url: 'http://127.0.0.1:8126',
+          tracer_version: nil, language: nil, language_version: nil,
+          language_interpreter: nil, hostname: nil, env: nil,
+          service: nil, version: nil,
         )
         expect(exporter).to be_a(trace_exporter_class)
       end
@@ -42,7 +44,10 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TraceExporter' do
       it 'raises TypeError' do
         expect {
           trace_exporter_class._native_new(
-            12345, nil, nil, nil, nil, nil, nil, nil, nil,
+            url: 12345,
+            tracer_version: nil, language: nil, language_version: nil,
+            language_interpreter: nil, hostname: nil, env: nil,
+            service: nil, version: nil,
           )
         }.to raise_error(TypeError)
       end
@@ -52,9 +57,11 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TraceExporter' do
       it 'raises TypeError' do
         expect {
           trace_exporter_class._native_new(
-            'http://127.0.0.1:8126',
-            123, # tracer_version should be String or nil
-            nil, nil, nil, nil, nil, nil, nil,
+            url: 'http://127.0.0.1:8126',
+            tracer_version: 123, # should be String or nil
+            language: nil, language_version: nil,
+            language_interpreter: nil, hostname: nil, env: nil,
+            service: nil, version: nil,
           )
         }.to raise_error(TypeError)
       end
@@ -68,8 +75,10 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TraceExporter' do
       it 'does not crash when instances are garbage collected' do
         5.times do
           trace_exporter_class._native_new(
-            'http://127.0.0.1:8126',
-            nil, nil, nil, nil, nil, nil, nil, nil,
+            url: 'http://127.0.0.1:8126',
+            tracer_version: nil, language: nil, language_version: nil,
+            language_interpreter: nil, hostname: nil, env: nil,
+            service: nil, version: nil,
           )
         end
         GC.start
