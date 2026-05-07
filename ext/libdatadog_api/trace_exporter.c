@@ -521,7 +521,7 @@ static VALUE _native_exporter_new(
 typedef struct {
   const ddog_TraceExporter     *exporter;
   ddog_TracerTraceChunks       *chunks;
-  ddog_TraceExporterResponse  **response_out;
+  ddog_TraceExporterResponse   *response;
   ddog_TraceExporterError      *error;
   bool                          send_ran;
 } send_chunks_args_t;
@@ -529,7 +529,7 @@ typedef struct {
 static void *send_chunks_without_gvl(void *data) {
   send_chunks_args_t *a = (send_chunks_args_t *)data;
   a->error = ddog_trace_exporter_send_trace_chunks(
-      a->exporter, a->chunks, a->response_out);
+      a->exporter, a->chunks, &a->response);
   a->send_ran = true;
   return NULL;
 }
@@ -626,11 +626,10 @@ static VALUE build_and_send_traces(VALUE arg) {
    * An interrupt (e.g. Thread#kill) may cause gvl2 to return before
    * our function runs, so we loop until it does.
    */
-  ddog_TraceExporterResponse *response = NULL;
   send_chunks_args_t args = {
     .exporter     = ctx->exporter,
     .chunks       = ctx->chunks,
-    .response_out = &response,
+    .response     = NULL,
     .error        = NULL,
     .send_ran     = false,
   };
@@ -656,15 +655,15 @@ static VALUE build_and_send_traces(VALUE arg) {
 
   /* Extract the response body as a Ruby string before freeing. */
   VALUE payload = Qnil;
-  if (response != NULL) {
+  if (args.response != NULL) {
     uintptr_t body_len = 0;
     const uint8_t *body_ptr =
-        ddog_trace_exporter_response_get_body(response, &body_len);
+        ddog_trace_exporter_response_get_body(args.response, &body_len);
     if (body_ptr != NULL && body_len > 0) {
       payload = rb_str_new((const char *)body_ptr, (long)body_len);
     }
-    ddog_trace_exporter_response_free(response);
-    response = NULL;
+    ddog_trace_exporter_response_free(args.response);
+    args.response = NULL;
   }
 
   if (pending_exception) {
