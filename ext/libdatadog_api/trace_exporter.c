@@ -151,8 +151,7 @@ static inline ddog_CharSlice nullable_char_slice(VALUE str) {
   if (str == Qnil) {
     return (ddog_CharSlice){.ptr = "", .len = 0};
   }
-  ENFORCE_TYPE(str, T_STRING);
-  return (ddog_CharSlice){.ptr = RSTRING_PTR(str), .len = RSTRING_LEN(str)};
+  return char_slice_from_ruby_string(str);
 }
 
 /* Ruby Time -> int64_t nanoseconds since Unix epoch */
