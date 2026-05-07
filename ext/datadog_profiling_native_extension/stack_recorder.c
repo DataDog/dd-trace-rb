@@ -10,6 +10,10 @@
 #include "heap_recorder.h"
 #include "encoded_profile.h"
 
+_Static_assert(
+  sizeof(ddog_prof_FunctionId2) == sizeof(uintptr_t),
+  "ddog_prof_FunctionId2 must fit in uintptr_t to be stored as a Ruby Integer");
+
 // Used to wrap a ddog_prof_Profile in a Ruby object and expose Ruby-level serialization APIs
 // This file implements the native bits of the Datadog::Profiling::StackRecorder class
 
@@ -182,9 +186,27 @@ typedef struct {
   pthread_mutex_t mutex_slot_two;
   profile_slot profile_slot_two;
 
-  ddog_prof_ManagedStringStorage string_storage;
-  ddog_prof_ManagedStringId label_key_allocation_class;
-  ddog_prof_ManagedStringId label_key_gc_gen_age;
+  ddog_prof_ProfilesDictionaryHandle dict_handle;
+  ddog_prof_StringId2 label_key_allocation_class;
+  ddog_prof_StringId2 label_key_gc_gen_age;
+
+  // Caches mapping frame identity -> FunctionId2.
+  // iseq_cache: st_table* (pointer-comparison hash). Keys are raw iseq VALUEs (T_IMEMO objects);
+  //   values are raw ddog_prof_FunctionId2 pointers, both stored as st_data_t (uintptr_t).
+  //   Using st_table avoids calling Ruby's #hash on keys (T_IMEMO doesn't implement it) and
+  //   avoids any Ruby allocation on lookup/insert (safe inside NEWOBJ tracepoint hooks).
+  //   The GC mark function marks each key via rb_gc_mark, which also pins iseqs in place so
+  //   the compactor cannot move them (which would silently invalidate our st_table keys).
+  // native_id_cache: st_table* (integer-keyed). Keys are Ruby IDs (method_id); values are
+  //   raw ddog_prof_FunctionId2 pointers stored as st_data_t. Native frames always use
+  //   file_name="" so a single FunctionId2 per method_id is sufficient.
+  st_table *iseq_cache;
+  st_table *native_id_cache;
+
+  // Pre-allocated FunctionId2 for the synthetic "Truncated Frames" placeholder injected at the
+  // bottom of stacks that exceeded max_frames. Matches the entry that
+  // add_truncated_frames_placeholder injects into buffer->locations[0].
+  ddog_prof_FunctionId2 truncated_frames_function_id;
 
   short active_slot; // MUST NEVER BE ACCESSED FROM record_sample; this is NOT for the sampler thread to use.
 
@@ -202,6 +224,10 @@ typedef struct {
     long serialization_time_ns_max;
     uint64_t serialization_time_ns_total;
   } stats_lifetime;
+
+  // When non-zero, rotate the ProfilesDictionary (and caches) every this many successful serializations.
+  // Intended for testing only — not for production use.
+  uint64_t dictionary_rotation_period;
 } stack_recorder_state;
 
 // Used to group mutex and the corresponding profile slot for easy unlocking after work is done.
@@ -220,7 +246,6 @@ typedef struct {
   ddog_prof_Profile_SerializeResult result;
   long heap_profile_build_time_ns;
   long serialize_no_gvl_time_ns;
-  ddog_prof_MaybeError advance_gen_result;
 
   // Set by both
   bool serialize_ran;
@@ -257,8 +282,10 @@ static VALUE _native_is_object_recorded(DDTRACE_UNUSED VALUE _self, VALUE record
 static VALUE _native_heap_recorder_reset_last_update(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_recorder_after_gc_step(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_benchmark_intern(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE string, VALUE times, VALUE use_all);
-static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE_UNUSED VALUE _self);
 static VALUE _native_finalize_pending_heap_recordings(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static VALUE _native_benchmark_reset_frame_caches(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static VALUE _native_benchmark_reset_heap_records(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static void rotate_profiles_dictionary(stack_recorder_state *state);
 
 void stack_recorder_init(VALUE profiling_module) {
   VALUE stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
@@ -294,8 +321,9 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_heap_recorder_reset_last_update", _native_heap_recorder_reset_last_update, 1);
   rb_define_singleton_method(testing_module, "_native_recorder_after_gc_step", _native_recorder_after_gc_step, 1);
   rb_define_singleton_method(testing_module, "_native_benchmark_intern", _native_benchmark_intern, 4);
-  rb_define_singleton_method(testing_module, "_native_test_managed_string_storage_produces_valid_profiles", _native_test_managed_string_storage_produces_valid_profiles, 0);
   rb_define_singleton_method(testing_module, "_native_finalize_pending_heap_recordings", _native_finalize_pending_heap_recordings, 1);
+  rb_define_singleton_method(testing_module, "_native_benchmark_reset_frame_caches", _native_benchmark_reset_frame_caches, 1);
+  rb_define_singleton_method(testing_module, "_native_benchmark_reset_heap_records", _native_benchmark_reset_heap_records, 1);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -330,27 +358,49 @@ static VALUE _native_new(VALUE klass) {
     .serialization_time_ns_min = INT64_MAX,
   };
 
-  // Note: At this point, slot_one_profile/slot_two_profile/string_storage contain null pointers. Libdatadog validates pointers
+  // Note: At this point, slot_one_profile/slot_two_profile/dict_handle contain null pointers. Libdatadog validates pointers
   // before using them so it's ok for us to go ahead and create the StackRecorder object.
 
   VALUE stack_recorder = TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, state);
 
-  ddog_prof_ManagedStringStorageNewResult string_storage = ddog_prof_ManagedStringStorage_new();
+  ddog_prof_Status s = ddog_prof_ProfilesDictionary_new(&state->dict_handle);
+  if (s.err != NULL) raise_status_error("Failed to create ProfilesDictionary", &s);
 
-  if (string_storage.tag == DDOG_PROF_MANAGED_STRING_STORAGE_NEW_RESULT_ERR) {
-    raise_error(rb_eRuntimeError, "Failed to initialize string storage: %"PRIsVALUE, get_error_details_and_drop(&string_storage.err));
+  s = ddog_prof_ProfilesDictionary_insert_str(
+      &state->label_key_allocation_class, state->dict_handle,
+      DDOG_CHARSLICE_C("allocation class"), DDOG_PROF_UTF8_OPTION_ASSUME);
+  if (s.err != NULL) raise_status_error("Failed to insert allocation class key", &s);
+
+  s = ddog_prof_ProfilesDictionary_insert_str(
+      &state->label_key_gc_gen_age, state->dict_handle,
+      DDOG_CHARSLICE_C("gc gen age"), DDOG_PROF_UTF8_OPTION_ASSUME);
+  if (s.err != NULL) raise_status_error("Failed to insert gc gen age key", &s);
+
+  // Pre-populate the "Truncated Frames" function so that stacks exceeding max_frames get the same
+  // placeholder in the heap profile as in the CPU/wall profile (where add_truncated_frames_placeholder
+  // patches buffer->locations[0] with this name).
+  {
+    ddog_prof_StringId2 truncated_name_sid = NULL, empty_sid = NULL;
+    s = ddog_prof_ProfilesDictionary_insert_str(&truncated_name_sid, state->dict_handle, DDOG_CHARSLICE_C("Truncated Frames"), DDOG_PROF_UTF8_OPTION_ASSUME);
+    if (s.err != NULL) raise_status_error("Failed to insert Truncated Frames name", &s);
+
+    s = ddog_prof_ProfilesDictionary_insert_str(&empty_sid, state->dict_handle, DDOG_CHARSLICE_C(""), DDOG_PROF_UTF8_OPTION_ASSUME);
+    if (s.err != NULL) raise_status_error("Failed to insert empty string", &s);
+
+    ddog_prof_Function2 truncated_func = { .name = truncated_name_sid, .system_name = NULL, .file_name = empty_sid };
+    s = ddog_prof_ProfilesDictionary_insert_function(&state->truncated_frames_function_id, state->dict_handle, &truncated_func);
+    if (s.err != NULL) raise_status_error("Failed to insert Truncated Frames function", &s);
   }
 
-  state->string_storage = string_storage.ok;
-  state->label_key_allocation_class = intern_or_raise(state->string_storage, DDOG_CHARSLICE_C("allocation class"));
-  state->label_key_gc_gen_age = intern_or_raise(state->string_storage, DDOG_CHARSLICE_C("gc gen age"));
-
   initialize_profiles(state, sample_types);
+
+  state->iseq_cache = st_init_numtable();        // pointer-comparison; keys are iseq VALUEs
+  state->native_id_cache = st_init_numtable();  // integer-keyed; keys are Ruby method IDs
 
   // NOTE: We initialize this because we want a new recorder to be operational even before #initialize runs and our
   //       default is everything enabled. However, if during recording initialization it turns out we don't want
   //       heap samples, we will free and reset heap_recorder back to NULL.
-  state->heap_recorder = heap_recorder_new(state->string_storage);
+  state->heap_recorder = heap_recorder_new();
 
   return stack_recorder;
 }
@@ -367,31 +417,32 @@ static void initialize_slot_concurrency_control(stack_recorder_state *state) {
 
 static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_SampleType sample_types) {
   ddog_Timespec start_timestamp = system_epoch_now_timespec();
+  ddog_prof_Status s;
 
-  ddog_prof_Profile_NewResult slot_one_profile_result =
-    ddog_prof_Profile_with_string_storage(sample_types, NULL /* period is optional */, state->string_storage);
+  // Use ddog_prof_Profile_with_dictionary so that profiles support both ddog_prof_Profile_add (for
+  // cpu/wall-time/allocation samples) and ddog_prof_Profile_add2 (for heap serialization).
+  s = ddog_prof_Profile_with_dictionary(&state->profile_slot_one.profile, &state->dict_handle, sample_types, NULL /* period is optional */);
+  if (s.err != NULL) raise_status_error("Failed to initialize slot one profile", &s);
+  state->profile_slot_one.start_timestamp = start_timestamp;
 
-  if (slot_one_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
-    raise_error(rb_eRuntimeError, "Failed to initialize slot one profile: %"PRIsVALUE, get_error_details_and_drop(&slot_one_profile_result.err));
-  }
+  // Note: No need to take any special care of slot one on error; it'll get cleaned up by stack_recorder_typed_data_free
+  s = ddog_prof_Profile_with_dictionary(&state->profile_slot_two.profile, &state->dict_handle, sample_types, NULL /* period is optional */);
+  if (s.err != NULL) raise_status_error("Failed to initialize slot two profile", &s);
+  state->profile_slot_two.start_timestamp = start_timestamp;
+}
 
-  state->profile_slot_one = (profile_slot) { .profile = slot_one_profile_result.ok, .start_timestamp = start_timestamp };
-
-  ddog_prof_Profile_NewResult slot_two_profile_result =
-    ddog_prof_Profile_with_string_storage(sample_types, NULL /* period is optional */, state->string_storage);
-
-  if (slot_two_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
-    // Note: No need to take any special care of slot one, it'll get cleaned up by stack_recorder_typed_data_free
-    raise_error(rb_eRuntimeError, "Failed to initialize slot two profile: %"PRIsVALUE, get_error_details_and_drop(&slot_two_profile_result.err));
-  }
-
-  state->profile_slot_two = (profile_slot) { .profile = slot_two_profile_result.ok, .start_timestamp = start_timestamp };
+static int mark_iseq_cache_key(st_data_t key, DDTRACE_UNUSED st_data_t value, DDTRACE_UNUSED st_data_t extra) {
+  // rb_gc_mark (not rb_gc_mark_movable) pins the iseq at its current address, preventing the
+  // compactor from moving it and silently invalidating our st_table key.
+  rb_gc_mark((VALUE) key);
+  return ST_CONTINUE;
 }
 
 static void stack_recorder_typed_data_mark(void *state_ptr) {
   stack_recorder_state *state = (stack_recorder_state *) state_ptr;
 
   heap_recorder_mark_pending_recordings(state->heap_recorder);
+  st_foreach(state->iseq_cache, mark_iseq_cache_key, 0);
 }
 
 static void stack_recorder_typed_data_free(void *state_ptr) {
@@ -405,7 +456,10 @@ static void stack_recorder_typed_data_free(void *state_ptr) {
 
   heap_recorder_free(state->heap_recorder);
 
-  ddog_prof_ManagedStringStorage_drop(state->string_storage);
+  ddog_prof_ProfilesDictionary_drop(&state->dict_handle);
+
+  st_free_table(state->iseq_cache);
+  st_free_table(state->native_id_cache);
 
   ruby_xfree(state);
 }
@@ -423,6 +477,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   VALUE heap_sample_every = rb_hash_fetch(options, ID2SYM(rb_intern("heap_sample_every")));
   VALUE timeline_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("timeline_enabled")));
   VALUE heap_clean_after_gc_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("heap_clean_after_gc_enabled")));
+  VALUE dictionary_rotation_period = rb_hash_fetch(options, ID2SYM(rb_intern("dictionary_rotation_period")));
 
   ENFORCE_BOOLEAN(cpu_time_enabled);
   ENFORCE_BOOLEAN(alloc_samples_enabled);
@@ -431,11 +486,13 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   ENFORCE_TYPE(heap_sample_every, T_FIXNUM);
   ENFORCE_BOOLEAN(timeline_enabled);
   ENFORCE_BOOLEAN(heap_clean_after_gc_enabled);
+  ENFORCE_TYPE(dictionary_rotation_period, T_FIXNUM);
 
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
   state->heap_clean_after_gc_enabled = (heap_clean_after_gc_enabled == Qtrue);
+  state->dictionary_rotation_period = (uint64_t) NUM2ULONG(dictionary_rotation_period);
 
   heap_recorder_set_sample_rate(state->heap_recorder, NUM2INT(heap_sample_every));
 
@@ -582,12 +639,14 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   // Once we wrap this into a Ruby object, our `EncodedProfile` class will automatically manage memory for it and we
   // can raise exceptions without worrying about leaking the profile.
   state->stats_lifetime.serialization_successes++;
-  VALUE encoded_profile = from_ddog_prof_EncodedProfile(serialized_profile.ok);
 
-  ddog_prof_MaybeError result = args.advance_gen_result;
-  if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
-    raise_error(rb_eRuntimeError, "Failed to advance string storage gen: %"PRIsVALUE, get_error_details_and_drop(&result.some));
+  // Rotate the ProfilesDictionary every N exports — for testing only, not for production.
+  if (state->dictionary_rotation_period > 0 &&
+      state->stats_lifetime.serialization_successes % state->dictionary_rotation_period == 0) {
+    rotate_profiles_dictionary(state);
   }
+
+  VALUE encoded_profile = from_ddog_prof_EncodedProfile(serialized_profile.ok);
 
   VALUE start = ruby_time_from(args.slot->start_timestamp);
   VALUE finish = ruby_time_from(finish_timestamp);
@@ -602,7 +661,131 @@ static VALUE ruby_time_from(ddog_Timespec ddprof_time) {
   return rb_time_timespec_new(&time, utc);
 }
 
-void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, sample_labels labels) {
+// Populate locations2 from the frame_info entries in stack_buffer, looking up or creating
+// FunctionId2 handles in state->dict_handle via two caches:
+//   state->iseq_cache      – st_table* keyed by iseq VALUE (pointer comparison)
+//   state->native_id_cache – st_table* keyed by Ruby method ID (integer)
+// Native frames use file_name="" and line=0 (we don't have definition-site info from Ruby).
+// Returns true on success, false if any ProfilesDictionary insertion fails.
+// Must be called with the GVL held (record_sample already guarantees this).
+static bool build_location2_from_iseqs(
+    ddog_prof_Location2 *locations2,
+    uint16_t count,
+    const frame_info *stack_buffer,
+    stack_recorder_state *state,
+    bool truncated  // true when captured_frames == buffer->max_frames (stack was cut short)
+) {
+  // ddtrace_rb_profile_frames iterates OLDEST first: stack_buffer[0] = bottom of call stack
+  // (oldest/deepest), stack_buffer[count-1] = top of call stack (newest, currently executing).
+  // libdatadog uses newest-first: locations2[0] = top of stack (newest), locations2[count-1] = oldest.
+  // We process stack_buffer from OLDEST (sb=0) to NEWEST (sb=count-1) and write to
+  // locations2[count-1-sb].
+  //
+  // When truncated (captured_frames == max_frames), add_truncated_frames_placeholder sets
+  // locations[0] (the newest slot) to a "Truncated Frames" placeholder representing missing
+  // top-of-stack frames. We mirror that here and skip stack_buffer[count-1] (the newest captured
+  // frame), whose slot locations2[0] is already occupied by the placeholder.
+
+  if (truncated) {
+    locations2[0] = (ddog_prof_Location2) {
+      .mapping  = NULL,
+      .function = state->truncated_frames_function_id,
+      .address  = 0,
+      .line     = 0,
+    };
+  }
+
+  // When truncated, skip the newest frame -- its slot (locations2[0]) holds the placeholder.
+  uint16_t frames_to_process = truncated ? count - 1 : count;
+
+  for (uint16_t sb = 0; sb < frames_to_process; sb++) {
+    uint16_t l2_idx = count - 1 - sb;
+    ddog_prof_FunctionId2 function_id = NULL;
+
+    if (stack_buffer[sb].is_ruby_frame) {
+      VALUE iseq = stack_buffer[sb].as.ruby_frame.iseq;
+
+      st_data_t cached_id;
+      if (st_lookup(state->iseq_cache, (st_data_t) iseq, &cached_id)) {
+        function_id = (ddog_prof_FunctionId2) cached_id;
+      } else {
+        // Cache miss: resolve name/filename and insert a new Function into the ProfilesDictionary.
+        VALUE name_val     = ddtrace_iseq_base_label((const void *) iseq);
+        VALUE filename_val = ddtrace_iseq_path((const void *) iseq);
+
+        ddog_CharSlice name_slice     = NIL_P(name_val)     ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name_val);
+        ddog_CharSlice filename_slice = NIL_P(filename_val) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(filename_val);
+
+        ddog_prof_StringId2 name_sid = NULL, filename_sid = NULL;
+        ddog_prof_Status s;
+
+        s = ddog_prof_ProfilesDictionary_insert_str(&name_sid, state->dict_handle, name_slice, DDOG_PROF_UTF8_OPTION_ASSUME);
+        if (s.err != NULL) { ddog_prof_Status_drop(&s); return false; }
+        ddog_prof_Status_drop(&s);
+
+        s = ddog_prof_ProfilesDictionary_insert_str(&filename_sid, state->dict_handle, filename_slice, DDOG_PROF_UTF8_OPTION_ASSUME);
+        if (s.err != NULL) { ddog_prof_Status_drop(&s); return false; }
+        ddog_prof_Status_drop(&s);
+
+        ddog_prof_Function2 func = { .name = name_sid, .system_name = NULL, .file_name = filename_sid };
+        s = ddog_prof_ProfilesDictionary_insert_function(&function_id, state->dict_handle, &func);
+        if (s.err != NULL) { ddog_prof_Status_drop(&s); return false; }
+        ddog_prof_Status_drop(&s);
+
+        // st_insert is pure C (no Ruby allocation), safe inside NEWOBJ tracepoint hooks.
+        st_insert(state->iseq_cache, (st_data_t) iseq, (st_data_t) function_id);
+      }
+
+      locations2[l2_idx] = (ddog_prof_Location2) {
+        .mapping  = NULL,
+        .function = function_id,
+        .address  = 0,
+        .line     = stack_buffer[sb].as.ruby_frame.line,
+      };
+    } else {
+      ID method_id = stack_buffer[sb].as.native_frame.method_id;
+
+      st_data_t cached_id;
+      if (st_lookup(state->native_id_cache, (st_data_t) method_id, &cached_id)) {
+        function_id = (ddog_prof_FunctionId2) cached_id;
+      } else {
+        // Cache miss: look up the method name and insert a Function with file_name="".
+        // We don't have a definition-site location for native (C) frames.
+        // rb_id2name returns a const char* (no Ruby allocation), safe inside NEWOBJ tracepoint hooks.
+        const char *name_cstr = rb_id2name(method_id);
+        ddog_CharSlice name_slice = name_cstr != NULL ? (ddog_CharSlice) { .ptr = name_cstr, .len = strlen(name_cstr) } : DDOG_CHARSLICE_C("");
+
+        ddog_prof_StringId2 name_sid = NULL, filename_sid = NULL;
+        ddog_prof_Status s;
+
+        s = ddog_prof_ProfilesDictionary_insert_str(&name_sid, state->dict_handle, name_slice, DDOG_PROF_UTF8_OPTION_ASSUME);
+        if (s.err != NULL) { ddog_prof_Status_drop(&s); return false; }
+        ddog_prof_Status_drop(&s);
+
+        s = ddog_prof_ProfilesDictionary_insert_str(&filename_sid, state->dict_handle, DDOG_CHARSLICE_C(""), DDOG_PROF_UTF8_OPTION_ASSUME);
+        if (s.err != NULL) { ddog_prof_Status_drop(&s); return false; }
+        ddog_prof_Status_drop(&s);
+
+        ddog_prof_Function2 func = { .name = name_sid, .system_name = NULL, .file_name = filename_sid };
+        s = ddog_prof_ProfilesDictionary_insert_function(&function_id, state->dict_handle, &func);
+        if (s.err != NULL) { ddog_prof_Status_drop(&s); return false; }
+        ddog_prof_Status_drop(&s);
+
+        st_insert(state->native_id_cache, (st_data_t) method_id, (st_data_t) function_id);
+      }
+
+      locations2[l2_idx] = (ddog_prof_Location2) {
+        .mapping  = NULL,
+        .function = function_id,
+        .address  = 0,
+        .line     = 0,
+      };
+    }
+  }
+  return true;
+}
+
+void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, sample_labels labels, sampling_buffer *buffer) {
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
@@ -631,10 +814,41 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
     // NOTE: The heap recorder is allowed to raise exceptions if something's wrong. But we also need to handle it
     // on this side to make sure we properly unlock the active slot mutex on our way out. Otherwise, this would
     // later lead to deadlocks (since the active slot mutex is not expected to be locked forever).
-    int exception_state = end_heap_allocation_recording_with_rb_protect(state->heap_recorder, locations);
-    if (exception_state) {
-      sampler_unlock_active_profile(active_slot);
-      rb_jump_tag(exception_state);
+    //
+    // NOTE: heap_sample is only set when sampling via trigger_sample_for_thread (the allocation tracepoint path),
+    // which always provides a valid buffer. Callers that pass buffer=NULL (e.g. record_placeholder_stack for GC
+    // frames) always have heap_sample=false, so this branch is never reached with a NULL buffer.
+    if (buffer == NULL) rb_bug("[ddtrace] record_sample: heap_sample=true but buffer is NULL");
+
+    if (state->heap_recorder != NULL) {
+      if (buffer->locations2 == NULL) {
+        buffer->locations2 = calloc(buffer->max_frames, sizeof(ddog_prof_Location2));
+        if (buffer->locations2 == NULL) {
+          sampler_unlock_active_profile(active_slot);
+          rb_raise(rb_eNoMemError, "Failed to allocate locations2 for heap sample");
+        }
+      }
+
+      uint16_t frame_count = (uint16_t) locations.len;
+      // Detect stack truncation: add_truncated_frames_placeholder runs when captured_frames == max_frames,
+      // replacing locations[0] with a synthetic "Truncated Frames" entry. We mirror that in locations2.
+      bool truncated = (frame_count == buffer->max_frames);
+      if (!build_location2_from_iseqs(buffer->locations2, frame_count, buffer->stack_buffer, state, truncated)) {
+        // ProfilesDictionary insertion failed for this heap sample. Discard the in-progress
+        // recording and skip this sample rather than stopping the entire profiler.
+        heap_recorder_discard_active_recording(state->heap_recorder);
+        sampler_unlock_active_profile(active_slot);
+        return;
+      }
+
+      int exception_state = end_heap_allocation_recording_with_rb_protect(
+        state->heap_recorder,
+        (ddog_prof_Slice_Location2) {.ptr = buffer->locations2, .len = frame_count}
+      );
+      if (exception_state) {
+        sampler_unlock_active_profile(active_slot);
+        rb_jump_tag(exception_state);
+      }
     }
   }
 
@@ -665,6 +879,12 @@ bool track_object(VALUE recorder_instance, VALUE new_object, unsigned int sample
   //        very late in the allocation-sampling path (which is shared with the cpu sampling path). This can
   //        be fixed with some refactoring but for now this leads to a less impactful change.
   return start_heap_allocation_recording(state->heap_recorder, new_object, sample_weight, alloc_class);
+}
+
+void discard_heap_sample(VALUE recorder_instance) {
+  stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
+  heap_recorder_discard_active_recording(state->heap_recorder);
 }
 
 void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_CharSlice endpoint) {
@@ -719,42 +939,41 @@ static bool add_heap_sample_to_active_profile_without_gvl(heap_recorder_iteratio
   metric_values[position_for[HEAP_SAMPLES_VALUE_ID]] = object_data->weight;
   metric_values[position_for[HEAP_SIZE_VALUE_ID]] = object_data->size * object_data->weight;
 
-  ddog_prof_Label labels[2];
+  ddog_prof_Label2 labels[2];
   size_t label_offset = 0;
 
-  if (object_data->class.value > 0) {
-    labels[label_offset++] = (ddog_prof_Label) {
-      .key_id = context->state->label_key_allocation_class,
-      .str_id = object_data->class,
-      .num = 0, // This shouldn't be needed but the tracer-2.7 docker image ships a buggy gcc that complains about this
+  if (object_data->class_name != NULL) {
+    labels[label_offset++] = (ddog_prof_Label2) {
+      .key = context->state->label_key_allocation_class,
+      .str = (ddog_CharSlice){ .ptr = object_data->class_name, .len = object_data->class_len },
+      .num = 0,
     };
   }
-  labels[label_offset++] = (ddog_prof_Label) {
-    .key_id = context->state->label_key_gc_gen_age,
-    .num = object_data->gen_age,
+  labels[label_offset++] = (ddog_prof_Label2) {
+    .key = context->state->label_key_gc_gen_age,
+    .num = (int64_t) object_data->gen_age,
   };
 
-  ddog_prof_Profile_Result result = ddog_prof_Profile_add(
+  ddog_prof_Status result = ddog_prof_Profile_add2(
     &context->slot->profile,
-    (ddog_prof_Sample) {
+    (ddog_prof_Sample2) {
       .locations = iteration_data.locations,
       .values = (ddog_Slice_I64) {.ptr = metric_values, .len = context->state->enabled_values_count},
-      .labels = (ddog_prof_Slice_Label) {
-        .ptr = labels,
-        .len = label_offset,
-      }
+      .labels = (ddog_prof_Slice_Label2) {.ptr = labels, .len = label_offset},
     },
     0
   );
 
   context->slot->stats.recorded_samples++;
 
-  if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
-    read_ddogerr_string_and_drop(&result.err, context->error_msg, MAX_LEN_HEAP_ITERATION_ERROR_MSG);
+  if (result.err != NULL) {
+    snprintf(context->error_msg, MAX_LEN_HEAP_ITERATION_ERROR_MSG, "%s", result.err);
+    ddog_prof_Status_drop(&result);
     context->error = true;
     // By returning false we cancel the iteration
     return false;
   }
+  ddog_prof_Status_drop(&result);
 
   // Keep on iterating to next item!
   return true;
@@ -780,6 +999,81 @@ static void build_heap_profile_without_gvl(stack_recorder_state *state, profile_
   }
 }
 
+static void rotate_profiles_dictionary(stack_recorder_state *state) {
+  // Step 1: Create a new ProfilesDictionary.
+  ddog_prof_ProfilesDictionaryHandle new_dict = {0};
+  ddog_prof_Status s = ddog_prof_ProfilesDictionary_new(&new_dict);
+  if (s.err != NULL) raise_status_error("rotate_profiles_dictionary: failed to create new dict", &s);
+
+  // Step 2: Re-insert the well-known strings and functions that stack_recorder_state caches.
+  // This mirrors the initialization code in _native_new.
+  ddog_prof_StringId2 new_alloc_class_key = NULL, new_gc_gen_age_key = NULL;
+
+  s = ddog_prof_ProfilesDictionary_insert_str(
+      &new_alloc_class_key, new_dict,
+      DDOG_CHARSLICE_C("allocation class"), DDOG_PROF_UTF8_OPTION_ASSUME);
+  if (s.err != NULL) raise_status_error("rotate_profiles_dictionary: failed to insert allocation class key", &s);
+
+  s = ddog_prof_ProfilesDictionary_insert_str(
+      &new_gc_gen_age_key, new_dict,
+      DDOG_CHARSLICE_C("gc gen age"), DDOG_PROF_UTF8_OPTION_ASSUME);
+  if (s.err != NULL) raise_status_error("rotate_profiles_dictionary: failed to insert gc gen age key", &s);
+
+  ddog_prof_FunctionId2 new_truncated_frames_function_id = NULL;
+  {
+    ddog_prof_StringId2 truncated_name_sid = NULL, empty_sid = NULL;
+
+    s = ddog_prof_ProfilesDictionary_insert_str(&truncated_name_sid, new_dict, DDOG_CHARSLICE_C("Truncated Frames"), DDOG_PROF_UTF8_OPTION_ASSUME);
+    if (s.err != NULL) raise_status_error("rotate_profiles_dictionary: failed to insert Truncated Frames", &s);
+
+    s = ddog_prof_ProfilesDictionary_insert_str(&empty_sid, new_dict, DDOG_CHARSLICE_C(""), DDOG_PROF_UTF8_OPTION_ASSUME);
+    if (s.err != NULL) raise_status_error("rotate_profiles_dictionary: failed to insert empty string", &s);
+
+    ddog_prof_Function2 truncated_func = { .name = truncated_name_sid, .system_name = NULL, .file_name = empty_sid };
+    s = ddog_prof_ProfilesDictionary_insert_function(&new_truncated_frames_function_id, new_dict, &truncated_func);
+    if (s.err != NULL) raise_status_error("rotate_profiles_dictionary: failed to insert Truncated Frames function", &s);
+  }
+
+  // Step 3: Migrate all live heap_record frame function_ids to the new dict, then rebuild
+  // the heap_records st_table (whose hash/cmp depends on function_id pointer values).
+  // Must be called before we drop the old dict (old FunctionId2 pointers must still be live).
+  heap_recorder_migrate_dictionary(state->heap_recorder, state->dict_handle, new_dict);
+
+  // Step 4: Clear the iseq and native caches — their FunctionId2 values point into the old dict.
+  st_free_table(state->iseq_cache);
+  state->iseq_cache = st_init_numtable();
+  st_free_table(state->native_id_cache);
+  state->native_id_cache = st_init_numtable();
+
+  // Step 5: Drop the old dict handle. The existing profile slots each hold their own refcount on
+  // the old dict, so it stays alive until those profiles are naturally reset — no samples are lost.
+  ddog_prof_ProfilesDictionary_drop(&state->dict_handle);
+
+  // Step 6: Install the new dict and well-known IDs.
+  state->dict_handle = new_dict;
+  state->label_key_allocation_class = new_alloc_class_key;
+  state->label_key_gc_gen_age = new_gc_gen_age_key;
+  state->truncated_frames_function_id = new_truncated_frames_function_id;
+
+  // Step 7: Reinitialize the inactive slot (just serialized and empty) with the new dict.
+  // The active slot keeps the old dict via its own refcount and continues collecting samples;
+  // it will be reinitialized on the next rotation after it is serialized.
+  profile_slot *inactive = (state->active_slot == 1) ? &state->profile_slot_two : &state->profile_slot_one;
+  ddog_prof_Profile_drop(&inactive->profile);
+
+  ddog_prof_SampleType enabled_sample_types[ALL_VALUE_TYPES_COUNT];
+  for (uint8_t i = 0; i < ALL_VALUE_TYPES_COUNT; i++) {
+    if (state->position_for[i] < state->enabled_values_count) {
+      enabled_sample_types[state->position_for[i]] = all_sample_types[i];
+    }
+  }
+  ddog_prof_Slice_SampleType sample_types = {.ptr = enabled_sample_types, .len = state->enabled_values_count};
+  s = ddog_prof_Profile_with_dictionary(&inactive->profile, &state->dict_handle, sample_types, NULL);
+  if (s.err != NULL) raise_status_error("rotate_profiles_dictionary: failed to reinitialize inactive slot", &s);
+  inactive->start_timestamp = system_epoch_now_timespec();
+  inactive->stats = (stats_slot) {};
+}
+
 static void *call_serialize_without_gvl(void *call_args) {
   call_serialize_without_gvl_arguments *args = (call_serialize_without_gvl_arguments *) call_args;
 
@@ -795,7 +1089,6 @@ static void *call_serialize_without_gvl(void *call_args) {
 
   // Note: The profile gets reset by the serialize call
   args->result = ddog_prof_Profile_serialize(&args->slot->profile, &args->slot->start_timestamp, &args->finish_timestamp);
-  args->advance_gen_result = ddog_prof_ManagedStringStorage_advance_gen(args->state->string_storage);
   args->serialize_ran = true;
   args->serialize_no_gvl_time_ns = long_max_of(0, monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - serialize_no_gvl_start_time_ns);
 
@@ -1057,104 +1350,38 @@ static VALUE _native_benchmark_intern(DDTRACE_UNUSED VALUE _self, VALUE recorder
   return Qtrue;
 }
 
-// See comments in rspec test for details on what we're testing here.
-static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE_UNUSED VALUE _self) {
-  ddog_prof_ManagedStringStorageNewResult string_storage = ddog_prof_ManagedStringStorage_new();
-
-  if (string_storage.tag == DDOG_PROF_MANAGED_STRING_STORAGE_NEW_RESULT_ERR) {
-    raise_error(rb_eRuntimeError, "Failed to initialize string storage: %"PRIsVALUE, get_error_details_and_drop(&string_storage.err));
-  }
-
-  ddog_prof_Slice_SampleType sample_types = {.ptr = all_sample_types, .len = ALL_VALUE_TYPES_COUNT};
-  ddog_prof_Profile_NewResult profile = ddog_prof_Profile_with_string_storage(sample_types, NULL, string_storage.ok);
-
-  if (profile.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
-    raise_error(rb_eRuntimeError, "Failed to initialize profile: %"PRIsVALUE, get_error_details_and_drop(&profile.err));
-  }
-
-  ddog_prof_ManagedStringId hello = intern_or_raise(string_storage.ok, DDOG_CHARSLICE_C("hello"));
-  ddog_prof_ManagedStringId world = intern_or_raise(string_storage.ok, DDOG_CHARSLICE_C("world"));
-  ddog_prof_ManagedStringId key   = intern_or_raise(string_storage.ok, DDOG_CHARSLICE_C("key"));
-
-  int64_t metric_values[] = {1, 2, 3, 4, 5, 6, 7, 8};
-  ddog_prof_Label labels[] = {{.key_id = key, .str_id = key}};
-
-  ddog_prof_Location locations[] = {
-    (ddog_prof_Location) {
-      .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
-      .function = {
-        .name = DDOG_CHARSLICE_C(""),
-        .name_id = hello,
-        .filename = DDOG_CHARSLICE_C(""),
-        .filename_id = world,
-      },
-      .line = 1,
-    }
-  };
-
-  ddog_prof_Profile_Result result = ddog_prof_Profile_add(
-    &profile.ok,
-    (ddog_prof_Sample) {
-      .locations = (ddog_prof_Slice_Location) { .ptr = locations, .len = 1},
-      .values = (ddog_Slice_I64) {.ptr = metric_values, .len = 8},
-      .labels = (ddog_prof_Slice_Label) { .ptr = labels, .len = 1 }
-    },
-    0
-  );
-
-  if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
-    raise_error(rb_eArgError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
-  }
-
-  ddog_Timespec finish_timestamp = system_epoch_now_timespec();
-  ddog_Timespec start_timestamp = {.seconds = finish_timestamp.seconds - 60};
-  ddog_prof_Profile_SerializeResult serialize_result = ddog_prof_Profile_serialize(&profile.ok, &start_timestamp, &finish_timestamp);
-
-  if (serialize_result.tag == DDOG_PROF_PROFILE_SERIALIZE_RESULT_ERR) {
-    raise_error(rb_eRuntimeError, "Failed to serialize: %"PRIsVALUE, get_error_details_and_drop(&serialize_result.err));
-  }
-
-  ddog_prof_MaybeError advance_gen_result = ddog_prof_ManagedStringStorage_advance_gen(string_storage.ok);
-
-  if (advance_gen_result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
-    raise_error(rb_eRuntimeError, "Failed to advance string storage gen: %"PRIsVALUE, get_error_details_and_drop(&advance_gen_result.some));
-  }
-
-  VALUE encoded_pprof_1 = from_ddog_prof_EncodedProfile(serialize_result.ok);
-
-  result = ddog_prof_Profile_add(
-    &profile.ok,
-    (ddog_prof_Sample) {
-      .locations = (ddog_prof_Slice_Location) { .ptr = locations, .len = 1},
-      .values = (ddog_Slice_I64) {.ptr = metric_values, .len = 8},
-      .labels = (ddog_prof_Slice_Label) { .ptr = labels, .len = 1 }
-    },
-    0
-  );
-
-  if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
-    raise_error(rb_eArgError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
-  }
-
-  serialize_result = ddog_prof_Profile_serialize(&profile.ok, &start_timestamp, &finish_timestamp);
-
-  if (serialize_result.tag == DDOG_PROF_PROFILE_SERIALIZE_RESULT_ERR) {
-    raise_error(rb_eArgError, "Failed to serialize: %"PRIsVALUE, get_error_details_and_drop(&serialize_result.err));
-  }
-
-  VALUE encoded_pprof_2 = from_ddog_prof_EncodedProfile(serialize_result.ok);
-
-  ddog_prof_Profile_drop(&profile.ok);
-  ddog_prof_ManagedStringStorage_drop(string_storage.ok);
-
-  return rb_ary_new_from_args(2, encoded_pprof_1, encoded_pprof_2);
-}
 
 static VALUE _native_finalize_pending_heap_recordings(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
   heap_recorder_finalize_pending_recordings(state->heap_recorder);
+
+  return Qtrue;
+}
+
+// Benchmark-only: drop iseq_cache and native_id_cache so the next sample takes the cache-miss path.
+// The ProfilesDictionary is left untouched — its insert_str/insert_function calls will still find
+// existing entries, measuring the cost of rebuilding the per-recorder frame caches.
+static VALUE _native_benchmark_reset_frame_caches(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+  stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
+
+  st_free_table(state->iseq_cache);
+  state->iseq_cache = st_init_numtable();
+  st_free_table(state->native_id_cache);
+  state->native_id_cache = st_init_numtable();
+
+  return Qtrue;
+}
+
+// Benchmark-only: drop all tracked object_records and heap_records from the heap recorder without
+// going through GC/iteration. Used to reset the heap recorder between benchmark batches.
+static VALUE _native_benchmark_reset_heap_records(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+  stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
+
+  heap_recorder_testonly_reset_records(state->heap_recorder);
 
   return Qtrue;
 }

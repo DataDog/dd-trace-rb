@@ -11,6 +11,7 @@ module Datadog
         heap_sample_every: Integer,
         timeline_enabled: bool,
         heap_clean_after_gc_enabled: bool,
+        ?dictionary_rotation_period: Integer,
       ) -> void
 
       def self._native_initialize: (
@@ -22,6 +23,7 @@ module Datadog
         heap_sample_every: Integer,
         timeline_enabled: bool,
         heap_clean_after_gc_enabled: bool,
+        dictionary_rotation_period: Integer,
       ) -> true
 
       def self.for_testing: (
@@ -32,6 +34,7 @@ module Datadog
         ?heap_sample_every: Integer,
         ?timeline_enabled: bool,
         ?heap_clean_after_gc_enabled: bool,
+        ?dictionary_rotation_period: Integer,
         **untyped
       ) -> Datadog::Profiling::StackRecorder
 

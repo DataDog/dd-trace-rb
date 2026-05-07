@@ -256,6 +256,11 @@ void sample_thread(
   int captured_frames = buffer->pending_sample_result;
 
   if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
+    // No real stack to associate with a heap sample. Discard any in-progress heap recording
+    // (started by track_object before trigger_sample_for_thread) so the heap recorder doesn't
+    // see a "consecutive starts without end" error on the next allocation.
+    if (values.heap_sample) discard_heap_sample(recorder_instance);
+    values.heap_sample = false;
     record_placeholder_stack_in_native_code(recorder_instance, values, labels);
     return;
   }
@@ -406,7 +411,8 @@ void sample_thread(
     recorder_instance,
     (ddog_prof_Slice_Location) {.ptr = buffer->locations, .len = captured_frames},
     values,
-    labels
+    labels,
+    buffer
   );
 }
 
@@ -598,7 +604,8 @@ void record_placeholder_stack(
     recorder_instance,
     (ddog_prof_Slice_Location) {.ptr = &placeholder_location, .len = 1},
     values,
-    labels
+    labels,
+    NULL
   );
 }
 
@@ -623,6 +630,7 @@ void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames, dd
 
   buffer->max_frames = max_frames;
   buffer->locations = locations;
+  buffer->locations2 = NULL;  // lazily allocated on first heap sample; must be NULL until then
   buffer->stack_buffer = ruby_xcalloc(max_frames, sizeof(frame_info));
   buffer->pending_sample = false;
   buffer->is_marking = false;
@@ -635,10 +643,12 @@ void sampling_buffer_free(sampling_buffer *buffer) {
   }
 
   ruby_xfree(buffer->stack_buffer);
+  free(buffer->locations2);  // calloc-allocated in record_sample; free(NULL) is safe
   // Note: buffer->locations are owned by whoever called sampling_buffer_initialize, not by the buffer itself
 
   buffer->max_frames = 0;
   buffer->locations = NULL;
+  buffer->locations2 = NULL;
   buffer->stack_buffer = NULL;
   buffer->pending_sample = false;
   buffer->is_marking = false;
