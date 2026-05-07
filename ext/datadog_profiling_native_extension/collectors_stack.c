@@ -134,16 +134,16 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
   ENFORCE_BOOLEAN(native_filenames_enabled);
 
   VALUE zero = INT2NUM(0);
-  VALUE heap_sample = rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("heap_sample"), Qfalse);
+  VALUE heap_sample = rb_hash_lookup2(metric_values_hash, rb_str_new_lit("heap_sample"), Qfalse);
   ENFORCE_BOOLEAN(heap_sample);
   sample_values values = {
-    .cpu_time_ns   = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("cpu-time"),      zero)),
-    .cpu_or_wall_samples = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("cpu-samples"), zero)),
-    .wall_time_ns  = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("wall-time"),     zero)),
-    .alloc_samples = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("alloc-samples"), zero)),
-    .alloc_samples_unscaled = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("alloc-samples-unscaled"), zero)),
-    .timeline_wall_time_ns = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("timeline"), zero)),
-    .heap_sample = heap_sample == Qtrue,
+    .cpu_time_ns            = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_lit("cpu-time"), zero)),
+    .cpu_or_wall_samples    = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_lit("cpu-samples"), zero)),
+    .wall_time_ns           = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_lit("wall-time"), zero)),
+    .alloc_samples          = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_lit("alloc-samples"), zero)),
+    .alloc_samples_unscaled = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_lit("alloc-samples-unscaled"), zero)),
+    .timeline_wall_time_ns  = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_lit("timeline"), zero)),
+    .heap_sample            = heap_sample == Qtrue,
   };
 
   long labels_count = RARRAY_LEN(labels_array) + RARRAY_LEN(numeric_labels_array);
@@ -158,7 +158,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
       .str = char_slice_from_ruby_string(rb_ary_entry(key_str_pair, 1))
     };
 
-    if (rb_str_equal(rb_ary_entry(key_str_pair, 0), rb_str_new_cstr("state"))) {
+    if (rb_str_equal(rb_ary_entry(key_str_pair, 0), rb_str_new_lit("state"))) {
       state_label = &labels[i];
     }
   }

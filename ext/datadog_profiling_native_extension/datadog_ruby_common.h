@@ -112,3 +112,15 @@ size_t read_ddogerr_string_and_drop(ddog_Error *error, char *string, size_t capa
 static inline int ddtrace_imemo_type(VALUE imemo) {
   return (RBASIC(imemo)->flags >> FL_USHIFT) & IMEMO_MASK;
 }
+
+// ---
+// Modern Ruby C API compatibility
+//
+// These polyfill newer Ruby C APIs on older Rubies. See extconf.rb for feature detection.
+// ---
+
+// rb_hash_new_capa was added in Ruby 3.2 to pre-size a hash and avoid resizing.
+// On older Rubies we polyfill it with a plain rb_hash_new() -- it still works, just may resize.
+#ifdef NO_RB_HASH_NEW_CAPA
+static inline VALUE rb_hash_new_capa(long capa) { (void)capa; return rb_hash_new(); }
+#endif

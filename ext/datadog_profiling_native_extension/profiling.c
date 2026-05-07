@@ -257,7 +257,7 @@ static VALUE _native_trigger_holding_the_gvl_signal_handler_on(DDTRACE_UNUSED VA
 
   if (holding_the_gvl_signal_handler_result[0] == Qfalse) raise_error(rb_eRuntimeError, "Could not signal background_thread");
 
-  VALUE result = rb_hash_new();
+  VALUE result = rb_hash_new_capa(2);
   rb_hash_aset(result, ID2SYM(rb_intern("ruby_thread_has_gvl_p")), holding_the_gvl_signal_handler_result[1]);
   rb_hash_aset(result, ID2SYM(rb_intern("is_current_thread_holding_the_gvl")), holding_the_gvl_signal_handler_result[2]);
   return result;
