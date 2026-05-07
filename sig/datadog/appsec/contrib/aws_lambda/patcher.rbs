@@ -1,0 +1,15 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module AwsLambda
+        module Patcher
+          def self?.patched?: () -> bool
+
+          def self?.target_version: () -> nil
+
+          def self?.patch: () -> bool
+        end
+      end
+    end
+  end
+end
