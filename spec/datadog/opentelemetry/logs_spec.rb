@@ -134,6 +134,16 @@ RSpec.describe 'OpenTelemetry Logs Integration', ruby: '>= 3.1' do
       expect(attributes['host.name']).to be_nil
     end
 
+    it 'uses DD_HOSTNAME as host.name when report_hostname is true' do
+      setup_logs('DD_TRACE_REPORT_HOSTNAME' => 'true', 'DD_HOSTNAME' => 'custom-host')
+      expect(attributes['host.name']).to eq('custom-host')
+    end
+
+    it 'falls back to Socket.hostname when DD_HOSTNAME is not set and report_hostname is true' do
+      setup_logs('DD_TRACE_REPORT_HOSTNAME' => 'true')
+      expect(attributes['host.name']).to eq(Datadog::Core::Environment::Socket.hostname)
+    end
+
     it 'includes custom tags as resource attributes' do
       setup_logs('DD_SERVICE' => 'unused-name', 'DD_ENV' => 'unused-env', 'DD_VERSION' => 'x.y.z') do |c|
         c.service = 'test-service'

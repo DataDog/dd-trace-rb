@@ -18,6 +18,7 @@ module Datadog
         ENV_API_KEY = 'DD_API_KEY'
         ENV_ENVIRONMENT = 'DD_ENV'
         ENV_EXTERNAL_ENV = 'DD_EXTERNAL_ENV'
+        ENV_HOSTNAME = 'DD_HOSTNAME'
         ENV_SERVICE = 'DD_SERVICE'
         ENV_SITE = 'DD_SITE'
         ENV_TAGS = 'DD_TAGS'
