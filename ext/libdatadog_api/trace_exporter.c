@@ -143,6 +143,28 @@ static inline void check_exporter_error(const char *context,
 }
 
 /* ========================================================================
+ * Config helpers
+ * ======================================================================== */
+
+typedef ddog_TraceExporterError *(*config_setter_fn)(
+    ddog_TraceExporterConfig *, ddog_CharSlice);
+
+static inline void set_config_field(
+    ddog_TraceExporterConfig *config,
+    config_setter_fn setter,
+    VALUE rb_val,
+    const char *label) {
+  if (rb_val == Qnil) return;
+
+  ddog_TraceExporterError *err =
+      setter(config, char_slice_from_ruby_string(rb_val));
+  if (err) {
+    ddog_trace_exporter_config_free(config);
+    check_exporter_error(label, err);
+  }
+}
+
+/* ========================================================================
  * Conversion helpers (Ruby -> C, require the GVL)
  * ======================================================================== */
 
@@ -464,35 +486,19 @@ static VALUE _native_exporter_new(
   ddog_TraceExporterConfig *config = NULL;
   ddog_trace_exporter_config_new(&config);
 
-  ddog_TraceExporterError *err;
-
-#define SET_CONFIG(setter, rb_val, label)                                    \
-  do {                                                                       \
-    if (rb_val != Qnil) {                                                    \
-      err = setter(config, char_slice_from_ruby_string(rb_val));             \
-      if (err) {                                                             \
-        ddog_trace_exporter_config_free(config);                             \
-        check_exporter_error("TraceExporter config: failed to set " label,  \
-                             err);                                           \
-      }                                                                      \
-    }                                                                        \
-  } while (0)
-
-  SET_CONFIG(ddog_trace_exporter_config_set_url,               rb_url,                   "url");
-  SET_CONFIG(ddog_trace_exporter_config_set_tracer_version,    rb_tracer_version,        "tracer_version");
-  SET_CONFIG(ddog_trace_exporter_config_set_language,          rb_language,              "language");
-  SET_CONFIG(ddog_trace_exporter_config_set_lang_version,      rb_language_version,      "language_version");
-  SET_CONFIG(ddog_trace_exporter_config_set_lang_interpreter,  rb_language_interpreter,  "language_interpreter");
-  SET_CONFIG(ddog_trace_exporter_config_set_hostname,          rb_hostname,              "hostname");
-  SET_CONFIG(ddog_trace_exporter_config_set_env,               rb_env,                   "env");
-  SET_CONFIG(ddog_trace_exporter_config_set_service,           rb_service,               "service");
-  SET_CONFIG(ddog_trace_exporter_config_set_version,           rb_version,               "version");
-
-#undef SET_CONFIG
+  set_config_field(config, ddog_trace_exporter_config_set_url,               rb_url,                   "url");
+  set_config_field(config, ddog_trace_exporter_config_set_tracer_version,    rb_tracer_version,        "tracer_version");
+  set_config_field(config, ddog_trace_exporter_config_set_language,          rb_language,              "language");
+  set_config_field(config, ddog_trace_exporter_config_set_lang_version,      rb_language_version,      "language_version");
+  set_config_field(config, ddog_trace_exporter_config_set_lang_interpreter,  rb_language_interpreter,  "language_interpreter");
+  set_config_field(config, ddog_trace_exporter_config_set_hostname,          rb_hostname,              "hostname");
+  set_config_field(config, ddog_trace_exporter_config_set_env,               rb_env,                   "env");
+  set_config_field(config, ddog_trace_exporter_config_set_service,           rb_service,               "service");
+  set_config_field(config, ddog_trace_exporter_config_set_version,           rb_version,               "version");
 
   /* Phase 3: build the exporter from the config */
   ddog_TraceExporter *exporter = NULL;
-  err = ddog_trace_exporter_new(&exporter, config);
+  ddog_TraceExporterError *err = ddog_trace_exporter_new(&exporter, config);
   ddog_trace_exporter_config_free(config);
   config = NULL;
 
