@@ -193,6 +193,7 @@ static inline trace_id_t split_trace_id(VALUE trace_id) {
 typedef struct {
   ddog_TracerSpan        *span;
   ddog_TraceExporterError *error;  /* first error, if any */
+  long                    skipped; /* entries skipped due to wrong type */
 } hash_iter_ctx;
 
 static int meta_iter_cb(VALUE key, VALUE value, VALUE arg) {
@@ -205,8 +206,10 @@ static int meta_iter_cb(VALUE key, VALUE value, VALUE arg) {
    * rb_hash_foreach callback would longjmp out of the hash
    * iteration and corrupt internal VM state.
    */
-  if (!RB_TYPE_P(key, T_STRING) || !RB_TYPE_P(value, T_STRING))
+  if (!RB_TYPE_P(key, T_STRING) || !RB_TYPE_P(value, T_STRING)) {
+    ctx->skipped++;
     return ST_CONTINUE;
+  }
 
   ddog_CharSlice ks = {.ptr = RSTRING_PTR(key),   .len = RSTRING_LEN(key)};
   ddog_CharSlice vs = {.ptr = RSTRING_PTR(value), .len = RSTRING_LEN(value)};
@@ -223,10 +226,12 @@ static int meta_iter_cb(VALUE key, VALUE value, VALUE arg) {
 static int metrics_iter_cb(VALUE key, VALUE value, VALUE arg) {
   hash_iter_ctx *ctx = (hash_iter_ctx *)arg;
 
-  if (!RB_TYPE_P(key, T_STRING)) return ST_CONTINUE;
-  if (!RB_TYPE_P(value, T_FLOAT) && !RB_TYPE_P(value, T_FIXNUM) &&
-      !RB_TYPE_P(value, T_BIGNUM))
+  if (!RB_TYPE_P(key, T_STRING) ||
+      (!RB_TYPE_P(value, T_FLOAT) && !RB_TYPE_P(value, T_FIXNUM) &&
+       !RB_TYPE_P(value, T_BIGNUM))) {
+    ctx->skipped++;
     return ST_CONTINUE;
+  }
 
   /* See meta_iter_cb for why we avoid char_slice_from_ruby_string() here. */
   ddog_CharSlice ks = {.ptr = RSTRING_PTR(key), .len = RSTRING_LEN(key)};
@@ -301,7 +306,7 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
   check_exporter_error("Failed to create TracerSpan", err);
 
   /* 4. Populate meta and metrics */
-  hash_iter_ctx ctx = {.span = rust_span, .error = NULL};
+  hash_iter_ctx ctx = {.span = rust_span, .error = NULL, .skipped = 0};
 
   VALUE rb_meta = rb_ivar_get(span, at_meta_id);
   if (RB_TYPE_P(rb_meta, T_HASH) && RHASH_SIZE(rb_meta) > 0) {
@@ -309,6 +314,12 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
     if (ctx.error != NULL) {
       ddog_tracer_span_free(rust_span);
       check_exporter_error("Failed to set span meta", ctx.error);
+    }
+    if (ctx.skipped > 0) {
+      log_warning(rb_sprintf(
+          "Native trace exporter: skipped %ld non-string meta entries",
+          ctx.skipped));
+      ctx.skipped = 0;
     }
   }
 
@@ -318,6 +329,11 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
     if (ctx.error != NULL) {
       ddog_tracer_span_free(rust_span);
       check_exporter_error("Failed to set span metric", ctx.error);
+    }
+    if (ctx.skipped > 0) {
+      log_warning(rb_sprintf(
+          "Native trace exporter: skipped %ld non-numeric metrics entries",
+          ctx.skipped));
     }
   }
 
