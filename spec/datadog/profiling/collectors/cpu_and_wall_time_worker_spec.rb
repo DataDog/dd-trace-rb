@@ -537,7 +537,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # This test should run for at least 200ms, which is how long we sleep for
           # (unless somehow the missed_by_profiler_time is too big?)
           expect(total_time).to be >= 200_000_000
-          expect(waiting_for_gvl_time).to be < total_time
+          expect(waiting_for_gvl_time).to be < total_time,
+            "Expected #{waiting_for_gvl_time} to be < #{total_time}, debug_failures: #{debug_failures}"
           expect(waiting_for_gvl_time).to be_within(5).percent_of(total_time),
             "Expected waiting_for_gvl_time to be close to total_time, debug_failures: #{debug_failures}"
 
