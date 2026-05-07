@@ -736,7 +736,6 @@ void trace_exporter_init(VALUE tracing_module) {
    * ---------------------------------------------------------------- */
   tracer_span_class =
       rb_define_class_under(native_module, "TracerSpan", rb_cObject);
-  rb_global_variable(&tracer_span_class);
   rb_undef_alloc_func(tracer_span_class);
 
   /* Factory */
@@ -748,7 +747,6 @@ void trace_exporter_init(VALUE tracing_module) {
    * ---------------------------------------------------------------- */
   trace_exporter_class =
       rb_define_class_under(native_module, "TraceExporter", rb_cObject);
-  rb_global_variable(&trace_exporter_class);
   rb_undef_alloc_func(trace_exporter_class);
 
   /* Factory: _native_new(url, tracer_version, language, language_version,
@@ -766,7 +764,6 @@ void trace_exporter_init(VALUE tracing_module) {
    * ---------------------------------------------------------------- */
   response_class =
       rb_define_class_under(native_module, "Response", rb_cObject);
-  rb_global_variable(&response_class);
 
   rb_define_method(response_class, "ok?",              response_ok_p,              0);
   rb_define_method(response_class, "internal_error?",  response_internal_error_p,  0);
