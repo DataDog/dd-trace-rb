@@ -537,6 +537,7 @@ target :datadog do
   ignore 'lib/datadog/tracing/trace_operation.rb'
   ignore 'lib/datadog/tracing/tracer.rb'
   ignore 'lib/datadog/tracing/transport/http.rb'
+  ignore 'lib/datadog/tracing/transport/native.rb'
   ignore 'lib/datadog/tracing/transport/http/api.rb'
   ignore 'lib/datadog/tracing/transport/http/client.rb'
   ignore 'lib/datadog/tracing/transport/http/traces.rb'
