@@ -149,9 +149,9 @@ module Datadog
         # @see https://www.w3.org/TR/trace-context/#tracestate-header
         def build_tracestate(digest)
           tracestate = +'dd='
-          tracestate << last_dd_parent_id(digest)
-          tracestate << "s:#{digest.trace_sampling_priority};" if digest.trace_sampling_priority
-          tracestate << "o:#{serialize_origin(digest.trace_origin)};" if digest.trace_origin
+          append_dd(tracestate, last_dd_parent_id(digest))
+          append_dd(tracestate, "s:#{digest.trace_sampling_priority};") if digest.trace_sampling_priority
+          append_dd(tracestate, "o:#{serialize_origin(digest.trace_origin)};") if digest.trace_origin
 
           # Replacing this by safe navigation seems to have a different behaviour on Rubies <= 3.0.
           # It cause a LocalJumpError in the CI.
@@ -159,43 +159,48 @@ module Datadog
             digest.trace_distributed_tags.each do |name, value|
               tag = "t.#{serialize_tag_key(name)}:#{serialize_tag_value(value)};"
 
-              # If tracestate size limit is exceed, drop the remaining data.
-              # String#bytesize is used because only ASCII characters are allowed.
-              #
-              # We add 1 to the limit because of the trailing comma, which will be removed before returning.
-              break if tracestate.bytesize + tag.bytesize > (TRACESTATE_VALUE_SIZE_LIMIT + 1)
-
-              tracestate << tag
+              # If tracestate size limit is exceeded, drop the remaining data.
+              break unless append_dd(tracestate, tag)
             end
           end
 
-          tracestate << digest.trace_state_unknown_fields if digest.trace_state_unknown_fields
+          append_dd(tracestate, digest.trace_state_unknown_fields) if digest.trace_state_unknown_fields
+          vendors = split_tracestate(digest.trace_state)
 
           # Is there any Datadog-specific information to propagate.
           # Check for > 3 size because the empty prefix `dd=` has 3 characters.
-          if tracestate.size > 3
+          if tracestate.bytesize > 3
             # Propagate upstream tracestate with `dd=...` appended to the list
             tracestate.chop! # Removes trailing `;` from Datadog trace state string.
 
-            if digest.trace_state
-              trace_state = digest.trace_state.strip
-
-              # Delete existing `dd=` tracestate fields, if present.
-              vendors = split_tracestate(trace_state)
-              vendors.reject! { |v| v.start_with?('dd=') }
-            end
-
             if vendors && !vendors.empty?
+              # Delete existing `dd=` tracestate fields, if present.
+              vendors.reject! { |v| v.start_with?('dd=') }
+
               # Ensure the list has at most 31 elements, as we need to prepend Datadog's
               # entry and the limit is 32 elements total.
-              vendors = vendors[0..30]
-              "#{tracestate},#{vendors.join(",")}"
-            else
-              tracestate.to_s
+              vendors.first(TRACESTATE_MAX_LIST_MEMBERS - 1).each do |vendor|
+                break if tracestate.bytesize + vendor.bytesize + 1 > TRACESTATE_MAX_SIZE_LIMIT
+
+                tracestate << ',' << vendor
+              end
             end
-          else
-            digest.trace_state # Propagate upstream tracestate with no Datadog changes
+
+            tracestate.to_s
+          elsif vendors && !vendors.empty?
+            vendors.join(',')
           end
+        end
+
+        # Appends a Datadog tracestate field when it fits.
+        def append_dd(tracestate, field)
+          return true if field.empty?
+
+          # We add 1 to the limit because of the trailing semicolon, which will be removed before returning.
+          return false if tracestate.bytesize + field.bytesize > (TRACESTATE_VALUE_SIZE_LIMIT + 1)
+
+          tracestate << field
+          true
         end
 
         def last_dd_parent_id(digest)
@@ -281,18 +286,20 @@ module Datadog
 
         def parse_traceparent_string(traceparent)
           return unless traceparent
+          return if traceparent.bytesize > TRACEPARENT_MAX_SIZE_LIMIT
 
-          version, trace_id, parent_id, trace_flags, extra = traceparent.strip.split('-')
+          traceparent = traceparent.strip
 
-          return if version.size != 2 || version[0] < '0' || version[0] > 'f' || version[1] < '0' || version[1] > 'f'
+          version, trace_id, parent_id, trace_flags, extra = traceparent.split('-', 5)
+
+          return unless version && trace_id && parent_id && trace_flags
+          return if version.size != 2 || trace_id.size != 32 || parent_id.size != 16 || trace_flags.size != 2
+          return if version[0] < '0' || version[0] > 'f' || version[1] < '0' || version[1] > 'f'
 
           return if version == INVALID_VERSION
 
           # Extra fields are not allowed in version 00, but we have to be lenient for future versions.
           return if version == SPEC_VERSION && extra
-
-          # Invalid field sizes
-          return if trace_id.size != 32 || parent_id.size != 16 || trace_flags.size != 2
 
           [Integer(trace_id, 16), Integer(parent_id, 16), Integer(trace_flags, 16)]
         rescue ArgumentError # Conversion to integer failed
@@ -306,9 +313,10 @@ module Datadog
         # @return [Array<String,Integer,String,String,Hash>] returns 4 values:
         # tracestate, sampling_priority, ts_parent_id, origin, tags.
         def extract_tracestate(tracestate)
-          return unless tracestate
-
           vendors = split_tracestate(tracestate)
+          return unless vendors && !vendors.empty?
+
+          tracestate = vendors.join(',')
 
           # Find Datadog's `dd=` tracestate field.
           idx = vendors.index { |v| v.start_with?('dd=') }
@@ -396,9 +404,43 @@ module Datadog
           end
         end
 
+        # We MUST NOT propagate partial members, but we SHOULD try
+        # to parse as much of the tracestate as possible.
         def split_tracestate(tracestate)
-          tracestate.split(/[ \t]*+,[ \t]*+/)[0..31]
+          return unless tracestate
+
+          remove_last_member = false
+          if tracestate.bytesize > TRACESTATE_MAX_SIZE_LIMIT
+            # We parse 1 byte over the limit to detect if the last member
+            # is a partial member (toss) or ends exactly at the limit (keep).
+            remove_last_member = tracestate.byteslice(TRACESTATE_MAX_SIZE_LIMIT, 1) != ','
+
+            # To ensure we don't have a trailing partial UTF-8 codepoint, we keep one extra byte
+            # and safely remove it with `#chop`.
+            # `#chop` walks back the string until it finds a valid character boundary and deletes
+            # from there.
+            tracestate = tracestate.byteslice(0, TRACESTATE_MAX_SIZE_LIMIT + 1) #: String
+            tracestate = tracestate.chop
+          end
+
+          vendors = tracestate.split(',', TRACESTATE_MAX_LIST_MEMBERS + 1)
+          if vendors.length > TRACESTATE_MAX_LIST_MEMBERS || remove_last_member
+            vendors.pop
+          end
+
+          vendors.each(&:strip!)
+          vendors.pop while vendors.last == ''
+          vendors
         end
+
+        TRACEPARENT_MAX_SIZE_LIMIT = 512
+        private_constant :TRACEPARENT_MAX_SIZE_LIMIT
+
+        TRACESTATE_MAX_SIZE_LIMIT = 512
+        private_constant :TRACESTATE_MAX_SIZE_LIMIT
+
+        TRACESTATE_MAX_LIST_MEMBERS = 32
+        private_constant :TRACESTATE_MAX_LIST_MEMBERS
 
         # Version 0xFF is invalid as per spec
         # @see https://www.w3.org/TR/trace-context/#version
