@@ -103,7 +103,8 @@ module Datadog
             raise
           ensure
             if inferred_span
-              Tracing.active_trace&.resource = resource if resource
+              trace = Tracing.active_trace
+              trace.resource = resource if resource && trace && !trace.resource_override?
               propagate_request_span_tags(inferred_span, env: env)
 
               inferred_span.finish

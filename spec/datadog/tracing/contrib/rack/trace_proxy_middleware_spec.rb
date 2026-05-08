@@ -455,6 +455,22 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
         it { expect(inferred_span.get_tag('_dd.appsec.json')).to eq('{"triggers":[]}') }
       end
 
+      context 'when framework has already set trace resource' do
+        before do
+          described_class.call(env, request_queuing: false, web_service_name: service) do
+            Datadog::Tracing.active_trace.resource = 'UsersController#show'
+          end
+        end
+
+        it { expect(traces.first.resource).to eq('UsersController#show') }
+      end
+
+      context 'when no framework sets trace resource' do
+        before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
+
+        it { expect(traces.first.resource).to eq('GET /api/{proxy+}') }
+      end
+
       context 'when request_queuing is true and x-request-start is also present' do
         before { described_class.call(env, request_queuing: true, web_service_name: service) { :success } }
 
