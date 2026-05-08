@@ -9,10 +9,6 @@ module Datadog
   module SymbolDatabase
     # Extracts symbol metadata from loaded Ruby modules and classes via introspection.
     #
-    # Instance created by Component with injected dependencies (logger, settings).
-    # All methods are instance methods accessing @logger, @settings directly —
-    # no parameter threading needed.
-    #
     # Uses Ruby's reflection APIs (Module#constants, Class#instance_methods, Method#parameters)
     # to build hierarchical Scope structures representing code organization.
     # Filters to user code only (excludes gems, stdlib, test files).
