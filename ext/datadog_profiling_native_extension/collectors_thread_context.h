@@ -2,6 +2,7 @@
 
 #include <ruby.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "gvl_profiling_helper.h"
 
@@ -25,6 +26,11 @@ VALUE enforce_thread_context_collector_instance(VALUE object);
     ON_GVL_RUNNING_UNKNOWN, // Thread is not known, it may not even be from the current Ractor
     ON_GVL_RUNNING_DONT_SAMPLE, // Thread is known, but "Waiting for GVL" period was too small to be sampled
     ON_GVL_RUNNING_SAMPLE, // Thread is known, and "Waiting for GVL" period should be sampled
+  } on_gvl_running_enum;
+
+  typedef struct {
+    on_gvl_running_enum action;
+    long waiting_for_gvl_duration_ns;
   } on_gvl_running_result;
 
   void thread_context_collector_on_gvl_waiting(gvl_profiling_thread thread);

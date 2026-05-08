@@ -20,6 +20,7 @@ jobs:
     name: Verify commit status checks
     runs-on: ubuntu-24.04
     permissions:
+      actions: read
       checks: read
       contents: write
     outputs:
@@ -28,7 +29,7 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - uses: ruby/setup-ruby@90be1154f987f4dc0fe0dd0feedac9e473aa4ba8 # v1.286.0
+      - uses: ruby/setup-ruby@c4e5b1316158f92e3d49443a9d58b31d25ac0f8f # v1.306.0
         with:
           ruby-version: "3.3.7"
 
@@ -54,7 +55,7 @@ jobs:
         continue-on-error: ${{ inputs.force }}
         env:
           GEM_VERSION: ${{ steps.version.outputs.version }}
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const { data: releases } = await github.rest.repos.listReleases({
@@ -82,7 +83,7 @@ jobs:
         continue-on-error: ${{ inputs.force }}
         env:
           GEM_VERSION: ${{ steps.version.outputs.version }}
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const { data: milestones } = await github.rest.issues.listMilestones({
@@ -109,7 +110,8 @@ jobs:
         continue-on-error: ${{ inputs.force }}
         env:
           APP_ID: 15368 # Github Actions app ID
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+          CURRENT_RUN_ID: ${{ github.run_id }}
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           retries: 3
           script: |
@@ -119,7 +121,7 @@ jobs:
       # Check if the commit has passed external CI checks
       - name: Verify commit status
         continue-on-error: ${{ inputs.force }}
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           retries: 3
           script: |
@@ -165,13 +167,13 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false # `rubygems/release-gem` action handles credentials itself
-      - uses: DataDog/dd-octo-sts-action@acaa02eee7e3bb0839e4272dacb37b8f3b58ba80 # v1.0.3
+      - uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
         id: octo-sts
         with:
           scope: DataDog/dd-trace-rb
           policy: self.publish
       - name: Set up Ruby
-        uses: ruby/setup-ruby@90be1154f987f4dc0fe0dd0feedac9e473aa4ba8 # v1.286.0
+        uses: ruby/setup-ruby@c4e5b1316158f92e3d49443a9d58b31d25ac0f8f # v1.306.0
         with:
           ruby-version: "3.3.7"
       - run: bundle install
@@ -186,16 +188,24 @@ jobs:
       - verify-checks
       - rubygems-release
     env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_REPO: ${{ github.repository }}
       GEM_VERSION: ${{ needs.verify-checks.outputs.version }}
     permissions:
       contents: write
+      id-token: write
     steps:
+      - name: Get GitHub Token via dd-octo-sts
+        id: generate-token
+        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
+        with:
+          scope: DataDog/dd-trace-rb
+          policy: self.publish-github-release
       - name: Download from RubyGems
         run: |
           gem fetch datadog --version "${GEM_VERSION}" --verbose
       - name: Attach to existing release draft
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: |
           gh release upload "v${GEM_VERSION}" datadog-*.gem --clobber
           gh release edit "v${GEM_VERSION}" --draft=false
@@ -217,7 +227,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - name: Set up Ruby
-        uses: ruby/setup-ruby@90be1154f987f4dc0fe0dd0feedac9e473aa4ba8 # v1.286.0
+        uses: ruby/setup-ruby@c4e5b1316158f92e3d49443a9d58b31d25ac0f8f # v1.306.0
         with:
           ruby-version: "3.3.7"
       - run: bundle install
@@ -249,17 +259,24 @@ jobs:
       - rubygems-release
       - update-gem-version
     env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GEM_VERSION: ${{ needs.verify-checks.outputs.version }}
       NEXT_VERSION: ${{ needs.update-gem-version.outputs.next_version }}
     permissions:
       issues: write
       pull-requests: write
+      id-token: write
     steps:
+      - name: Get GitHub Token via dd-octo-sts
+        id: generate-token
+        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
+        with:
+          scope: DataDog/dd-trace-rb
+          policy: self.publish-milestone
       - name: list milestones
         id: milestones
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
+          github-token: ${{ steps.generate-token.outputs.token }}
           script: |
             // https://octokit.github.io/rest.js/v21/#issues-list-milestones
             // https://docs.github.com/en/rest/issues/milestones?apiVersion=2022-11-28#list-milestones
@@ -271,8 +288,9 @@ jobs:
             return milestones.data;
 
       - name: Close milestone
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
+          github-token: ${{ steps.generate-token.outputs.token }}
           script: |
             const milestones = ${{steps.milestones.outputs.result}}
 
@@ -300,8 +318,9 @@ jobs:
             }
 
       - name: Create milestone
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
+          github-token: ${{ steps.generate-token.outputs.token }}
           script: |
             const milestones = ${{steps.milestones.outputs.result}}
 
@@ -341,7 +360,7 @@ jobs:
     env:
       GEM_VERSION: ${{ needs.verify-checks.outputs.version }}
     steps:
-      - uses: DataDog/dd-octo-sts-action@acaa02eee7e3bb0839e4272dacb37b8f3b58ba80 # v1.0.3
+      - uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
         id: generate-token
         with:
           scope: DataDog/dd-trace-rb

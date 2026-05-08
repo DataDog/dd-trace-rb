@@ -4,10 +4,17 @@ stages:
   - shared-pipeline
   - macrobenchmarks
   - microbenchmarks
+  # These benchmarks should ultimately replace the old macrobenchmarks setup
+  # For now they will run in parallel with the macrobenchmarks setup
+  - ruby-acme-parallel
+  - ruby-acme-parallel-slo
 
 include:
   - local: ".gitlab/one-pipeline.locked.yml"
   - local: ".gitlab/benchmarks.yml"
+  - project: 'DataDog/apm-reliability/apm-sdks-benchmarks'
+    file: '.gitlab/ci-ruby-acme-parallel.yml'
+    ref: 'main'
 
 variables:
   RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby
@@ -147,7 +154,7 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: 335edb089e8c1310e39cb0b06dbd745ac562c8b9 # Automated: This reference is automatically updated.
+    SYSTEM_TESTS_REF: 943b4ecad72d48c55716211f2b01f1f5d97d6de2 # Automated: This reference is automatically updated.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,simple_onboarding_appsec,lib-injection,docker_ssi"
     SYSTEM_TEST_BUILD_ATTEMPTS: 3
 

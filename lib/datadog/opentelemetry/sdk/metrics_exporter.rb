@@ -19,7 +19,7 @@ module Datadog
           telemetry&.inc(TELEMETRY_NAMESPACE, metric_name, 1, tags: TELEMETRY_TAGS)
           result
         rescue => e
-          Datadog.logger.error("Failed to export OpenTelemetry Metrics:  #{e.class}: #{e}")
+          Datadog.logger.error("Failed to export OpenTelemetry Metrics:  #{e.class}: #{e.message}")
           telemetry&.inc(TELEMETRY_NAMESPACE, METRIC_EXPORT_FAILURES, 1, tags: TELEMETRY_TAGS)
           raise
         end

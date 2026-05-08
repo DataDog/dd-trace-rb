@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.31.0)
+    datadog (2.32.0)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
       libdatadog (~> 30.0.0.1.0)
@@ -41,11 +41,11 @@ GEM
     ethon (0.18.0)
       ffi (>= 1.15.0)
       logger
-    ffi (1.17.3)
-    ffi (1.17.3-aarch64-linux-gnu)
-    ffi (1.17.3-arm-linux-gnu)
-    ffi (1.17.3-arm-linux-musl)
-    ffi (1.17.3-x86_64-linux-gnu)
+    ffi (1.17.4)
+    ffi (1.17.4-aarch64-linux-gnu)
+    ffi (1.17.4-arm-linux-gnu)
+    ffi (1.17.4-arm-linux-musl)
+    ffi (1.17.4-x86_64-linux-gnu)
     google-protobuf (3.25.8)
     hashdiff (1.2.1)
     http (6.0.2)

@@ -11,7 +11,7 @@ This repository is the source code of a Ruby gem created by Datadog to provide D
 - Smoke verification: `bundle exec rake test:main`. Baseline general testing (no native or integration testing).
 - Lint and type check: `bundle exec rake standard typecheck`.
 - Discover tasks: `bundle exec rake -T`.
-- Targeted test runs: `bundle exec rspec spec/path/to/file_spec.rb[:line]` or `BUNDLE_GEMFILE=$(pwd)/gemfiles/<name>.gemfile bundle exec rspec spec/path/to/file_spec.rb[:line]`.
+- Targeted test runs (only for `test:main` specs): `bundle exec rspec spec/path/to/file_spec.rb[:line]`. For contrib/integration tests, always use `bundle exec rake test:TASK_KEY` (see "Testing matrix" below).
 - Native extension compilation: `bundle exec rake compile` or `bundle exec rake clean compile`. See `docs/ProfilingDevelopment.md` & `docs/LibdatadogDevelopment.md`.
 
 # Project Structure
@@ -59,6 +59,19 @@ Each framework integration (@lib/datadog/*/contrib/) follows a common pattern:
 ## Testing matrix
 
 - `Matrixfile` defines testing combinations, and `appraisal/` files declare respective gemsets. `gemfiles/` are tool generated files.
+- **The Matrixfile and Rakefile are the authoritative sources of truth.**
+
+### Always use rake tasks
+
+Tests MUST be run via `bundle exec rake test:TASK_KEY`, not bare `bundle exec rspec`. Contrib/integration tests require specific Gemfiles managed by appraisals; running them with `bundle exec rspec` will fail due to missing dependencies. The only exception: specs under `test:main` can also be run individually with `bundle exec rspec`.
+
+### Finding the right rake task
+
+1. **Identify the component**: determine which product or contrib the changed files belong to based on their path under `lib/datadog/` or `spec/datadog/` (e.g. `appsec`, `profiling`, `redis`, `sinatra`)
+2. **Search for a matching task**: `bundle exec rake -T test | grep KEYWORD` using the component name as KEYWORD
+3. **Verify the task**: check the Rakefile `spec:TASK` definition to confirm which spec files are included/excluded, and check the Matrixfile for Ruby version compatibility
+
+The `test:main` task uses the default Gemfile and its specs can also be run individually with `bundle exec rspec`.
 
 ## One-Pipeline (GitLab CI)
 
@@ -111,4 +124,4 @@ tracing libraries.
   - Writing code: `.cursor/rules/code-style.mdc`.
   - Writing tests: `.cursor/rules/testing.mdc`.
 - `docs/GettingStarted.md` is the public documentation of this repo (2900+ lines). All user-facing product documentation lives there.
-- This AGENTS.md is a living document: update it when rake tasks, CI, or scripts evolve. Update specialized personas as well.
+- This AGENTS.md is a living document: update it when CI or scripts evolve. Update specialized personas as well.

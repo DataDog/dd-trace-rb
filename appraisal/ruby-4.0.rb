@@ -14,6 +14,7 @@ appraise 'rails8-mysql2' do
   gem 'rails', '~> 8.0.0'
   gem 'mysql2', '~> 0.5', platform: :ruby
   gem 'lograge', '~> 0.11'
+  gem 'bootsnap', '>= 1.7'
   gem 'net-smtp'
 end
 
@@ -106,7 +107,10 @@ build_coverage_matrix('dalli', [2])
 build_coverage_matrix('karafka', min: '2.3.0')
 build_coverage_matrix('waterdrop', min: '2.8.8.rc1')
 build_coverage_matrix('devise', min: '3.2.1')
-build_coverage_matrix('openfeature', min: '0.3.1', gem: 'openfeature-sdk')
+build_coverage_matrix('openfeature', min: '0.3.1', gem: 'openfeature-sdk', meta: {
+  'opentelemetry-sdk' => '~> 1.1',
+  'opentelemetry-metrics-sdk' => '>= 0.8',
+})
 build_coverage_matrix('ruby-llm', gem: 'ruby_llm')
 build_coverage_matrix('kicks', min: '3.0.0')
 

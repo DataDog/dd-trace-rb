@@ -7,7 +7,6 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 
 ### Supported Ruby interpreters
 
-<!-- Ensure that all "# TODO: Ruby 3.5 - " comments are addressed before including 3.5 in our public support docs -->
 | Type  | Documentation              | Version   | Support type              | Gem version support |
 |-------|----------------------------|-----------|---------------------------|---------------------|
 | MRI   | https://www.ruby-lang.org/ | 4.0       | [latest](#support-latest) | Latest              |
@@ -25,9 +24,9 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 |       |                            | 2.1       | [EOL](#support-eol)       | < 2.0.0             |
 |       |                            | 2.0       | [EOL](#support-eol)       | < 0.50.0            |
 |       |                            | 1.9       | [EOL](#support-eol)       | < 0.27.0            |
-| JRuby | https://www.jruby.org      | 9.4       | [latest](#support-latest) | Latest              |
-|       |                            | 9.3       | [latest](#support-latest) | Latest              |
-|       |                            | 9.2.21.0+ | [latest](#support-latest) | Latest              |
+| JRuby | https://www.jruby.org      | 9.4       | [EOL](#support-eol)       | < 2.31.0            |
+|       |                            | 9.3       | [EOL](#support-eol)       | < 2.31.0            |
+|       |                            | 9.2.21.0+ | [EOL](#support-eol)       | < 2.31.0            |
 
 ### Supported web servers
 

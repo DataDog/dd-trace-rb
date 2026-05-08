@@ -1,0 +1,59 @@
+module Datadog
+  module SymbolDatabase
+    class Scope
+      @scope_type: String
+
+      @name: String?
+
+      @source_file: String?
+
+      @start_line: Integer?
+
+      @end_line: Integer?
+
+      @injectible_lines: Array[Hash[::Symbol, Integer]]?
+
+      @language_specifics: Hash[::Symbol, untyped]
+
+      @symbols: Array[Datadog::SymbolDatabase::Symbol]
+
+      @scopes: Array[Scope]
+
+      def initialize: (
+        scope_type: String,
+        ?name: String?,
+        ?source_file: String?,
+        ?start_line: Integer?,
+        ?end_line: Integer?,
+        ?injectible_lines: Array[Hash[::Symbol, Integer]]?,
+        ?language_specifics: Hash[::Symbol, untyped]?,
+        ?symbols: Array[Datadog::SymbolDatabase::Symbol]?,
+        ?scopes: Array[Scope]?
+      ) -> void
+
+      attr_reader scope_type: String
+
+      attr_reader name: String?
+
+      attr_reader source_file: String?
+
+      attr_reader start_line: Integer?
+
+      attr_reader end_line: Integer?
+
+      def injectible_lines?: () -> bool
+
+      attr_reader injectible_lines: Array[Hash[::Symbol, Integer]]?
+
+      attr_reader language_specifics: Hash[::Symbol, untyped]
+
+      attr_reader symbols: Array[Datadog::SymbolDatabase::Symbol]
+
+      attr_reader scopes: Array[Scope]
+
+      def to_h: () -> Hash[::Symbol, untyped]
+
+      def to_json: (?untyped _state) -> String
+    end
+  end
+end

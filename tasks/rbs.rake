@@ -1,6 +1,7 @@
 require 'fileutils'
 
 namespace :rbs do
+  desc 'Report sig/*.rbs files whose matching lib/*.rb no longer exists'
   task :stale do |_task, args|
     glob = args.to_a.map { |g| /\.rbs$/.match?(g) ? g : "#{g}/**/*.rbs" }
     glob = ['sig/**/*.rbs'] if glob.empty?
@@ -43,13 +44,20 @@ namespace :rbs do
     end
   end
 
+  desc 'Report lib/*.rb files with no matching sig/*.rbs (inline-checked files in Steepfile are exempt)'
   task :missing do |_task, args|
     glob = args.to_a.map { |g| /\.rb$/.match?(g) ? g : "#{g}/**/*.rb" }
     glob = ['lib/**/*.rb'] if glob.empty?
 
+    # Files checked with inline RBS annotations (Steep 2.0+ `check ..., inline: true`
+    # entries in the Steepfile) declare their types in the `.rb` file itself, so they
+    # don't need a matching `sig/*.rbs`.
+    inline_checked = File.read('Steepfile').scan(/check ['"](?<path>.+?)['"], inline: true/).flatten
+
     missing = Dir[*glob].reject do |lib|
       next if !/^lib\//.match?(lib)
       next if !/\.rb$/.match?(lib)
+      next true if inline_checked.include?(lib)
 
       sig = lib.sub(/^lib/, 'sig').sub(/\.rb$/, '.rbs')
 
@@ -82,6 +90,7 @@ namespace :rbs do
     end
   end
 
+  desc 'Delete stale sig/*.rbs files whose matching lib/*.rb no longer exists'
   task :clean do |_task, args|
     glob = args.to_a.map { |g| /\.rbs$/.match?(g) ? g : "#{g}/**/*.rbs" }
     glob = ['sig/**/*.rbs'] if glob.empty?
@@ -108,6 +117,7 @@ namespace :rbs do
     end
   end
 
+  desc 'Generate sig/*.rbs stubs from lib/*.rb via `rbs prototype rb` (pass "force" to overwrite)'
   task :prototype do |_task, args|
     a = args.to_a
 
