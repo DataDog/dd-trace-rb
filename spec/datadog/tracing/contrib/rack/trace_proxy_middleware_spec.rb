@@ -232,8 +232,6 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
       end
 
       context 'when x-dd-proxy-request-time-ms is absent' do
-        before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
-
         let(:env) do
           {
             'HTTP_X_DD_PROXY' => 'aws-apigateway',
@@ -244,15 +242,15 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
             'HTTP_X_DD_PROXY_STAGE' => 'dev',
           }
         end
-        let(:inferred_span) { spans.first }
 
-        it { expect(spans).to have(1).item }
-        it { expect(inferred_span.resource).to eq('GET /api/{proxy+}') }
+        it 'creates no span and yields' do
+          result = described_class.call(env, request_queuing: false, web_service_name: service) { :success }
+          expect(result).to eq(:success)
+          expect(spans).to be_empty
+        end
       end
 
       context 'when x-dd-proxy-request-time-ms is non-numeric' do
-        before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
-
         let(:env) do
           {
             'HTTP_X_DD_PROXY' => 'aws-apigateway',
@@ -263,10 +261,10 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
           }
         end
 
-        let(:inferred_span) { spans.first }
-
-        it 'ignores the malformed timestamp and defaults to current time' do
-          expect(inferred_span.start_time).to be_within(1).of(Time.now)
+        it 'creates no span and yields' do
+          result = described_class.call(env, request_queuing: false, web_service_name: service) { :success }
+          expect(result).to eq(:success)
+          expect(spans).to be_empty
         end
       end
 

@@ -73,12 +73,14 @@ module Datadog
             route = resource_path
             resource = "#{method} #{route || path}" if method
 
-            options = { service: domain, type: Tracing::Metadata::Ext::AppTypes::TYPE_WEB }
+            request_time_ms = env[Ext::HEADER_X_DD_PROXY_REQUEST_TIME_MS].to_f
+            return yield unless request_time_ms && request_time_ms > 0
 
-            if (request_time_ms = env[Ext::HEADER_X_DD_PROXY_REQUEST_TIME_MS])
-              milliseconds = request_time_ms.to_f
-              options[:start_time] = Time.at(milliseconds / 1_000) if milliseconds > 0
-            end
+            options = {
+              service: domain,
+              type: Tracing::Metadata::Ext::AppTypes::TYPE_WEB,
+              start_time: Time.at(request_time_ms / 1_000),
+            }
 
             inferred_span = Tracing.trace(span_name, **options)
             inferred_span.resource = resource if resource
