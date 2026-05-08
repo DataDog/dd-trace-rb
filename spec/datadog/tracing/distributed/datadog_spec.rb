@@ -165,6 +165,28 @@ RSpec.shared_examples 'Datadog distributed format' do
             end
           end
 
+          context 'with encoded tags too large in bytes' do
+            let(:tags) { {key: 'value'} }
+            let(:encoded_tags) { 'é' * 300 }
+
+            before do
+              allow(Datadog::Tracing::Distributed::DatadogTagsCodec)
+                .to receive(:encode)
+                .and_return(encoded_tags)
+            end
+
+            it do
+              inject!
+              expect(data).to_not include('x-datadog-tags')
+            end
+
+            it 'sets error tag' do
+              expect(active_trace).to receive(:set_tag).with('_dd.propagation_error', 'inject_max_size')
+              expect(Datadog.logger).to receive(:warn).with(/size:600/)
+              inject!
+            end
+          end
+
           context 'with configuration x_datadog_tags_max_length zero' do
             before do
               Datadog.configure { |c| c.tracing.x_datadog_tags_max_length = 0 }
@@ -360,6 +382,18 @@ RSpec.shared_examples 'Datadog distributed format' do
             it 'sets error tag' do
               expect(active_trace).to receive(:set_tag).with('_dd.propagation_error', 'extract_max_size')
               expect(Datadog.logger).to receive(:warn).with(/tags are too large/)
+              extract
+            end
+          end
+
+          context 'with tags too large in bytes' do
+            let(:tags) { "_dd.p.key=#{'é' * 252}" }
+
+            it { is_expected.to be_nil }
+
+            it 'sets error tag before decoding' do
+              expect(active_trace).to receive(:set_tag).with('_dd.propagation_error', 'extract_max_size')
+              expect(Datadog.logger).to receive(:warn).with(/size:514/)
               extract
             end
           end
