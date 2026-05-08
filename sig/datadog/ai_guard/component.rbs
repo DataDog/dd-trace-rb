@@ -3,8 +3,7 @@ module Datadog
     class Component
       attr_reader api_client: AIGuard::APIClient
       attr_reader logger: Core::Logger
-
-      @telemetry: Core::Telemetry::Component
+      attr_reader telemetry: Core::Telemetry::Component
 
       def self.build: (
         Core::Configuration::Settings settings,
