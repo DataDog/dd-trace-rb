@@ -13,8 +13,8 @@ module Datadog
       def self.mark_uploaded: () -> void
       def self.reset_uploaded_this_process_for_tests!: () -> void
 
-      @settings: untyped
-      @agent_settings: untyped
+      @settings: Datadog::Core::Configuration::Settings
+      @agent_settings: Datadog::Core::Configuration::AgentSettings
       @logger: untyped
       @extractor: Extractor
       @uploader: Uploader
@@ -31,11 +31,11 @@ module Datadog
       @scheduler_signaled: bool
       @scheduler_thread: Thread?
 
-      def self.build: (untyped settings, untyped agent_settings, untyped logger) -> Component?
+      def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, untyped logger) -> Component?
 
-      def initialize: (untyped settings, untyped agent_settings, untyped logger) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, untyped logger) -> void
 
-      attr_reader settings: untyped
+      attr_reader settings: Datadog::Core::Configuration::Settings
       attr_reader last_upload_time: Time?
       attr_reader last_upload_scope_count: Integer?
       attr_reader upload_in_progress: bool
