@@ -79,7 +79,10 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         env: 'staging',
         version: '2.1.0',
         language: 'ruby',
-        scopes: []
+        scopes: [],
+        upload_id: nil,
+        batch_num: nil,
+        final: nil,
       })
     end
 

@@ -179,8 +179,14 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
 
       expect(event_json['ddsource']).to eq('ruby')
       expect(event_json['service']).to eq('test-service')
-      expect(event_json['type']).to eq('symdb')
+      expect(event_json['language']).to eq('ruby')
+      expect(event_json).to have_key('version')
       expect(event_json).to have_key('runtimeId')
+      expect(event_json['type']).to eq('symdb')
+      expect(event_json).to have_key('uploadId')
+      expect(event_json['batchNum']).to eq(1)
+      expect(event_json['final']).to eq(false)
+      expect(event_json['attachmentSize']).to be > 0
     end
   end
 

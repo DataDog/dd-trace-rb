@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'json'
+require 'securerandom'
 require 'zlib'
 require 'stringio'
 require_relative '../core/environment/identity'
@@ -45,6 +46,12 @@ module Datadog
           agent_settings: agent_settings,
           logger: @logger,
         )
+
+        # Protects the lazy initialization of @upload_pid/@upload_id and the
+        # @batch_num increment in next_upload_metadata. ScopeBatcher calls
+        # upload_scopes outside its own mutex, so two threads (e.g. a size-
+        # triggered flush and the timer/shutdown path) can race here.
+        @metadata_mutex = Mutex.new
       end
 
       # Upload a batch of scopes to the agent.
@@ -56,7 +63,8 @@ module Datadog
       def upload_scopes(scopes)
         return if scopes.empty?
 
-        json_data = build_symbol_payload(scopes)
+        upload_id, batch_num = next_upload_metadata
+        json_data = build_symbol_payload(scopes, upload_id: upload_id, batch_num: batch_num)
         compressed_data = Zlib.gzip(json_data)
 
         # Symbols for very large applications (>50MB after gzip) are dropped:
@@ -69,7 +77,7 @@ module Datadog
           return
         end
 
-        perform_http_upload(compressed_data, scopes.size)
+        perform_http_upload(compressed_data, scopes.size, upload_id: upload_id, batch_num: batch_num)
       rescue => e
         @logger.debug { "symdb: upload failed: #{e.class}: #{e.message}" }
         @telemetry&.report(e, description: 'symdb: upload failed')
@@ -79,31 +87,44 @@ module Datadog
 
       # Build JSON payload from scopes.
       # @param scopes [Array<Scope>] Scopes to serialize
+      # @param upload_id [String] UUID identifying the logical upload
+      # @param batch_num [Integer] 1-indexed batch number within the upload
       # @return [String] JSON string
-      def build_symbol_payload(scopes)
+      def build_symbol_payload(scopes, upload_id:, batch_num:)
         ServiceVersion.new(
           service: @settings.service,
           env: @settings.env,
           version: @settings.version,
           scopes: scopes,
+          upload_id: upload_id,
+          batch_num: batch_num,
+          # Always false: the Ruby tracer continuously uploads new code
+          # as files are loaded; there is no defined end-of-upload point.
+          final: false,
         ).to_json
       end
 
       # Perform HTTP POST with multipart form-data via transport layer.
       # @param compressed_data [String] GZIP compressed JSON payload
       # @param scope_count [Integer] Number of scopes (for logging)
+      # @param upload_id [String] UUID identifying the logical upload
+      # @param batch_num [Integer] 1-indexed batch number within the upload
       # @return [void]
-      def perform_http_upload(compressed_data, scope_count)
-        form = build_multipart_form(compressed_data)
+      def perform_http_upload(compressed_data, scope_count, upload_id:, batch_num:)
+        form = build_multipart_form(compressed_data, upload_id: upload_id, batch_num: batch_num)
         response = @transport.send_symbols(form)
         handle_response(response, scope_count)
       end
 
       # Build multipart form-data with event metadata and compressed symbols.
       # @param compressed_data [String] GZIP compressed JSON payload
+      # @param upload_id [String] UUID identifying the logical upload
+      # @param batch_num [Integer] 1-indexed batch number within the upload
       # @return [Hash] Form data hash with UploadIO objects
-      def build_multipart_form(compressed_data)
-        event_io = StringIO.new(build_event_metadata)
+      def build_multipart_form(compressed_data, upload_id:, batch_num:)
+        event_io = StringIO.new(
+          build_event_metadata(compressed_data.bytesize, upload_id: upload_id, batch_num: batch_num)
+        )
         file_io = StringIO.new(compressed_data)
 
         event_upload = Datadog::Core::Vendor::Multipart::Post::UploadIO.new(
@@ -125,15 +146,47 @@ module Datadog
       end
 
       # Build event.json metadata part.
+      # @param attachment_size [Integer] Size of the compressed attachment in bytes
+      # @param upload_id [String] UUID identifying the logical upload
+      # @param batch_num [Integer] 1-indexed batch number within the upload
       # @return [String] JSON string for event metadata
-      def build_event_metadata
+      def build_event_metadata(attachment_size, upload_id:, batch_num:)
         JSON.generate(
           ddsource: 'ruby',
           service: @settings.service,
+          version: @settings.version,
+          language: 'ruby',
           runtimeId: Datadog::Core::Environment::Identity.id,
           parentId: nil,  # Fork tracking deferred for MVP
           type: 'symdb',
+          uploadId: upload_id,
+          batchNum: batch_num,
+          # Always false: the Ruby tracer continuously uploads new code
+          # as files are loaded; there is no defined end-of-upload point.
+          final: false,
+          attachmentSize: attachment_size,
         )
+      end
+
+      # Return [upload_id, batch_num] for the current process. upload_id is
+      # generated lazily on first use and shared by all batches uploaded from
+      # the process. A forked child observes a different Process.pid and
+      # therefore gets a fresh upload_id and batch counter.
+      # Synchronized: ScopeBatcher releases its mutex before calling
+      # upload_scopes, so this can be entered concurrently.
+      # @return [Array<(String, Integer)>]
+      def next_upload_metadata
+        @metadata_mutex.synchronize do
+          if @upload_pid != Process.pid
+            @upload_pid = Process.pid
+            @upload_id = SecureRandom.uuid.freeze
+            @batch_num = 0
+          end
+          @batch_num += 1
+          # @upload_id is non-nil after the branch above; refine for Steep.
+          upload_id = @upload_id or raise('unreachable: @upload_id should be set')
+          [upload_id, @batch_num]
+        end
       end
 
       # Handle HTTP response and track metrics.
