@@ -231,6 +231,23 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
         it { expect(inferred_span.get_tag('http.route')).to be_nil }
       end
 
+      context 'when x-dd-proxy-domain-name is absent' do
+        before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
+
+        let(:env) do
+          {
+            'HTTP_X_DD_PROXY' => 'aws-apigateway',
+            'HTTP_X_DD_PROXY_REQUEST_TIME_MS' => '1757000000000',
+            'HTTP_X_DD_PROXY_PATH' => '/api/test',
+            'HTTP_X_DD_PROXY_HTTPMETHOD' => 'GET',
+          }
+        end
+
+        let(:inferred_span) { spans.first }
+
+        it { expect(inferred_span.get_tag('http.url')).to be_nil }
+      end
+
       context 'when x-dd-proxy-request-time-ms is absent' do
         let(:env) do
           {
