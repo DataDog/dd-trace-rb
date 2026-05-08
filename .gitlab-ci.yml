@@ -95,6 +95,7 @@ build-gem:
   script:
     - mkdir -p pkg tmp
     - |
+      set -eo pipefail
       if [ -n "$CI_COMMIT_TAG" ]; then
         .gitlab/check_gem_presence.sh
         VERSION=${CI_COMMIT_TAG#v}
@@ -106,7 +107,19 @@ build-gem:
         echo CI_COMMIT_REF_NAME=$CI_COMMIT_REF_NAME
         echo CI_COMMIT_SHA=$CI_COMMIT_SHA
         .gitlab/patch_gem_version.sh glci $CI_JOB_ID $CI_COMMIT_REF_NAME $CI_COMMIT_SHA
-        bundle install && chmod go-w -R . && bundle exec rake build
+        for attempt in 1 2 3 4; do
+          if bundle install; then
+            break
+          fi
+          if [ "$attempt" -eq 4 ]; then
+            echo "bundle install failed after 4 attempts" >&2
+            exit 1
+          fi
+          echo "bundle install attempt $attempt failed; sleeping 10s before retry" >&2
+          sleep 10
+        done
+        chmod go-w -R .
+        bundle exec rake build
         ruby -Ilib -rdatadog/version -e 'puts Gem::Version.new(Datadog::VERSION::STRING).to_s' >> tmp/version
       fi
   artifacts:
