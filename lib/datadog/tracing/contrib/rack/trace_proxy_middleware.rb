@@ -66,12 +66,12 @@ module Datadog
             path = env[Ext::HEADER_X_DD_PROXY_PATH]
             stage = env[Ext::HEADER_X_DD_PROXY_STAGE]
             domain = env[Ext::HEADER_X_DD_PROXY_DOMAIN_NAME]
-            method = env[Ext::HEADER_X_DD_PROXY_HTTPMETHOD]
+            http_method = env[Ext::HEADER_X_DD_PROXY_HTTPMETHOD]
             resource_path = env[Ext::HEADER_X_DD_PROXY_RESOURCE_PATH]
 
             # NOTE: resource_path is the parameterized route (e.g. /users/{id}) vs literal path
             route = resource_path
-            resource = "#{method} #{route || path}" if method
+            resource = "#{http_method} #{route || path}" if http_method
 
             request_time_ms = env[Ext::HEADER_X_DD_PROXY_REQUEST_TIME_MS].to_f
             return yield unless request_time_ms && request_time_ms > 0
@@ -87,7 +87,7 @@ module Datadog
             inferred_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, proxy_type)
             inferred_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)
             inferred_span.set_tag('stage', stage) if stage
-            inferred_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, method) if method
+            inferred_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, http_method) if http_method
             inferred_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, "https://#{domain}#{path}") if domain && path
             inferred_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, route) if route
             inferred_span.set_metric(Ext::TAG_INFERRED_SPAN, 1)
