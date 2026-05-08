@@ -341,6 +341,17 @@ RSpec.describe Datadog::DataStreams::Processor do
     let(:sent_payload) { @sent_payload }
 
     before do
+      # Stop the auto-spawned background worker thread before exercising
+      # flush_stats synchronously. Otherwise the worker can race with the
+      # test thread: its first perform_loop iteration runs immediately
+      # (loop_wait_before_first_iteration? is false), and if the OS
+      # schedules it after set_produce_checkpoint pushes its event, the
+      # worker drains @event_buffer and runs flush_stats — which clears
+      # @buckets via serialize_buckets and calls the unmocked
+      # send_stats_to_agent. The test's later flush_stats then early-returns
+      # at processor.rb:307 (empty @buckets) and @sent_payload stays nil.
+      flush_processor.stop(true)
+
       flush_processor.set_produce_checkpoint(type: 'kafka', destination: 'orders')
       flush_processor.send(:process_events)
 
