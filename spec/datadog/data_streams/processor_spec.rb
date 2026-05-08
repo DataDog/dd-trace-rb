@@ -342,6 +342,15 @@ RSpec.describe Datadog::DataStreams::Processor do
 
     before do
       flush_processor.set_produce_checkpoint(type: 'kafka', destination: 'orders')
+
+      # REPRODUCER: yield the GVL long enough for the auto-spawned worker
+      # thread's first perform_loop iteration (delayed by the matching sleep
+      # in Processor#perform) to drain @event_buffer and run flush_stats,
+      # which serialize_buckets clears and which calls the unmocked
+      # send_stats_to_agent. By the time the test resumes, @buckets is empty
+      # and the test's flush_stats hits the early-return at processor.rb:307.
+      sleep 0.5
+
       flush_processor.send(:process_events)
 
       @sent_payload = nil
