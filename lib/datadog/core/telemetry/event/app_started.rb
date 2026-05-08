@@ -167,6 +167,16 @@ module Datadog
               )
             end
 
+            otel_logs_headers_option = resolve_option(settings, 'opentelemetry.logs.headers')
+            otel_logs_headers_option.values_per_precedence.each do |precedence, value|
+              list << conf_value(
+                option_telemetry_name(otel_logs_headers_option),
+                # Steep: Value is always a hash for opentelemetry.logs.headers (ensured by o.type :hash)
+                value&.map { |key, header_value| "#{key}=#{header_value}" }&.join(','), # steep:ignore NoMethod
+                precedence
+              )
+            end
+
             # Add some more custom additional payload values here
             if settings.logger.instance
               logger_instance_option = resolve_option(settings, 'logger.instance')

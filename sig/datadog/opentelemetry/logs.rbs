@@ -1,0 +1,30 @@
+module Datadog
+  module OpenTelemetry
+    class Logs
+      EXPORTER_NONE: ::String
+
+      @logger: Core::Logger
+      @settings: Core::Configuration::Settings
+      @agent_host: ::String?
+      @agent_ssl: bool
+
+      def self.initialize!: (Core::Configuration::Components components) -> bool
+
+      def initialize: (Core::Configuration::Components components) -> void
+
+      def configure_logs_sdk: () -> void
+
+      private
+
+      def create_resource: () -> ::OpenTelemetry::SDK::Resources::Resource
+
+      def configure_log_record_processor: (untyped provider) -> void
+
+      def default_logs_endpoint: (::String protocol) -> ::String
+
+      def configure_otlp_exporter: (untyped provider) -> void
+
+      def get_logs_config_with_fallback: (option_name: ::Symbol, ?computed_default: any) -> any
+    end
+  end
+end
