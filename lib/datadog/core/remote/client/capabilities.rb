@@ -3,6 +3,8 @@
 require_relative '../../utils/base64'
 require_relative '../../../appsec/remote'
 require_relative '../../../tracing/remote'
+require_relative '../../../di/remote'
+require_relative '../../../symbol_database/remote'
 require_relative '../../../open_feature/remote'
 
 module Datadog
@@ -37,6 +39,13 @@ module Datadog
               register_capabilities(Datadog::DI::Remote.capabilities)
               register_products(Datadog::DI::Remote.products)
               register_receivers(Datadog::DI::Remote.receivers(@telemetry))
+
+              # Symbol Database
+              if settings.respond_to?(:symbol_database) && settings.symbol_database.enabled
+                register_capabilities(Datadog::SymbolDatabase::Remote.capabilities)
+                register_products(Datadog::SymbolDatabase::Remote.products)
+                register_receivers(Datadog::SymbolDatabase::Remote.receivers(@telemetry))
+              end
             end
 
             if settings.respond_to?(:open_feature) && settings.open_feature.enabled

@@ -6,10 +6,10 @@ module Datadog
       EXCLUDED_COMMON_MODULES: Array[String]
       TARGETABLE_LINE_EVENTS: Array[::Symbol]
       MODULE_SINGLETON_CLASS_PRED: UnboundMethod
+      MODULE_NAME: UnboundMethod
 
       @logger: untyped
       @settings: untyped
-
       def initialize: (logger: untyped, settings: untyped) -> void
 
       def extract: (Module mod) -> Scope?

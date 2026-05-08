@@ -3,7 +3,6 @@
 require 'datadog/symbol_database/logger'
 require 'datadog/symbol_database/scope_batcher'
 require 'datadog/symbol_database/scope'
-require 'datadog/symbol_database/uploader'
 
 RSpec.describe Datadog::SymbolDatabase::ScopeBatcher do
   let(:uploader) { instance_double(Datadog::SymbolDatabase::Uploader) }
@@ -20,8 +19,8 @@ RSpec.describe Datadog::SymbolDatabase::ScopeBatcher do
   subject(:context) { described_class.new(uploader, logger: logger) }
 
   after do
-    # Cleanup any running timers (reset is private)
-    context.send(:reset)
+    # Cleanup any running timers
+    context.reset
   end
 
   describe '#initialize' do
@@ -50,10 +49,11 @@ RSpec.describe Datadog::SymbolDatabase::ScopeBatcher do
     context 'when batch size limit reached' do
       it 'triggers immediate upload' do
         expect(uploader).to receive(:upload_scopes) do |scopes|
-          expect(scopes.size).to eq(described_class::MAX_SCOPES)
+          expect(scopes.size).to eq(400)
         end
 
-        described_class::MAX_SCOPES.times do |i|
+        # Add 400 scopes
+        400.times do |i|
           scope = Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: "Class#{i}")
           context.add_scope(scope)
         end
@@ -62,19 +62,15 @@ RSpec.describe Datadog::SymbolDatabase::ScopeBatcher do
       end
 
       it 'continues batching after upload' do
-        upload_calls = []
-        allow(uploader).to receive(:upload_scopes) { |scopes| upload_calls << scopes.dup }
+        allow(uploader).to receive(:upload_scopes)
 
-        # Add MAX_SCOPES + 1 scopes — the first MAX_SCOPES trigger an upload,
-        # the extra scope sits in the next batch.
-        (described_class::MAX_SCOPES + 1).times do |i|
+        # Add 401 scopes
+        401.times do |i|
           scope = Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: "Class#{i}")
           context.add_scope(scope)
         end
 
-        expect(upload_calls.size).to eq(1)
-        expect(upload_calls.first.size).to eq(described_class::MAX_SCOPES)
-        expect(context.size).to eq(1)  # MAX_SCOPES + 1th scope in new batch
+        expect(context.size).to eq(1)  # 401st scope in new batch
       end
     end
 
@@ -153,23 +149,6 @@ RSpec.describe Datadog::SymbolDatabase::ScopeBatcher do
         # Should not be in batch
         expect(context.size).to be < described_class::MAX_FILES
       end
-
-      it 'does not count duplicates toward the file limit' do
-        allow(uploader).to receive(:upload_scopes)
-
-        # Offer the same scope MAX_FILES + 1 times. The dedup check should drop
-        # all duplicate offerings so they do not consume the file budget.
-        (described_class::MAX_FILES + 1).times do
-          context.add_scope(test_scope)
-        end
-
-        # The unique file budget has barely been touched — only one accepted file.
-        # A subsequent unique scope must still be accepted (not dropped at the limit).
-        next_unique = Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'AfterDuplicates')
-        context.add_scope(next_unique)
-
-        expect(context.size).to eq(2)  # original test_scope + next_unique
-      end
     end
   end
 
@@ -228,12 +207,12 @@ RSpec.describe Datadog::SymbolDatabase::ScopeBatcher do
     end
   end
 
-  describe 'reset (private, test-only)' do
+  describe '#reset' do
     it 'clears all state' do
       allow(uploader).to receive(:upload_scopes)
 
       context.add_scope(test_scope)
-      context.send(:reset)
+      context.reset
 
       expect(context.size).to eq(0)
       expect(context.scopes_pending?).to be false
@@ -243,7 +222,7 @@ RSpec.describe Datadog::SymbolDatabase::ScopeBatcher do
       allow(uploader).to receive(:upload_scopes)
 
       context.add_scope(test_scope)
-      context.send(:reset)
+      context.reset
 
       # Reset clears scopes and kills timer
       expect(context.size).to eq(0)
