@@ -14,7 +14,7 @@ module Datadog
           module_function
 
           def call(env, configuration, &block)
-            if (proxy_type = env[Ext::HEADER_X_DD_PROXY])
+            if (proxy_type = env[Ext::HEADER_X_DD_PROXY]) && !proxy_type.empty?
               return call_with_inferred_proxy(env, proxy_type, &block)
             end
 

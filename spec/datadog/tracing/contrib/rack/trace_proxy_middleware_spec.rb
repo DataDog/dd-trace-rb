@@ -184,6 +184,17 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
         end
       end
 
+      context 'when proxy header is empty string' do
+        before { described_class.call(env, request_queuing: true, web_service_name: service) { :success } }
+
+        let(:env) do
+          {'HTTP_X_DD_PROXY' => '', 'HTTP_X_REQUEST_START' => '1757000000000'}
+        end
+
+        it { expect(spans).to have(2).items }
+        it { expect(spans.last.name).to eq('http.proxy.request') }
+      end
+
       context 'when x-dd-proxy-httpmethod is absent' do
         before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
 
