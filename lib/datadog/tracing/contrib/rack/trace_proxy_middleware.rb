@@ -17,7 +17,6 @@ module Datadog
             if (proxy_type = env[Ext::HEADER_X_DD_PROXY]) && !proxy_type.empty?
               return call_with_inferred_proxy(env, proxy_type, &block)
             end
-
             return yield unless configuration[:request_queuing]
 
             # parse the request queue time
@@ -133,7 +132,7 @@ module Datadog
 
             if (status_code = rack_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE))
               span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, status_code)
-              span.status = Tracing::Metadata::Ext::Errors::STATUS if status_code.to_i >= 500
+              span.status = rack_span.status
             end
 
             if (user_agent = rack_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_USER_AGENT))

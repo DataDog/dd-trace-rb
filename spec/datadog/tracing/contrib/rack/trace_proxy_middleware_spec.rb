@@ -355,7 +355,9 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
           described_class.call(env, request_queuing: false, web_service_name: service) do
             rack_span = Datadog::Tracing.trace('rack.request')
             rack_span.set_tag('http.status_code', '500')
+            rack_span.status = Datadog::Tracing::Metadata::Ext::Errors::STATUS
             env[Datadog::Tracing::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN] = rack_span
+
             rack_span.finish
           end
         end
@@ -366,12 +368,31 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
         it { expect(inferred_span.status).to eq(1) }
       end
 
+      context 'when rack span has error status from custom http_error_statuses' do
+        before do
+          described_class.call(env, request_queuing: false, web_service_name: service) do
+            rack_span = Datadog::Tracing.trace('rack.request')
+            rack_span.set_tag('http.status_code', '403')
+            rack_span.status = Datadog::Tracing::Metadata::Ext::Errors::STATUS
+            env[Datadog::Tracing::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN] = rack_span
+
+            rack_span.finish
+          end
+        end
+
+        let(:inferred_span) { spans.find { |s| s.name == 'aws.apigateway' } }
+
+        it { expect(inferred_span.get_tag('http.status_code')).to eq('403') }
+        it { expect(inferred_span.status).to eq(1) }
+      end
+
       context 'when response status is 200' do
         before do
           described_class.call(env, request_queuing: false, web_service_name: service) do
             rack_span = Datadog::Tracing.trace('rack.request')
             rack_span.set_tag('http.status_code', '200')
             env[Datadog::Tracing::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN] = rack_span
+
             rack_span.finish
           end
         end
