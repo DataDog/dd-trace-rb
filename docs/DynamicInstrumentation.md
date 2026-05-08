@@ -4,7 +4,7 @@
 
 Dynamic Instrumentation for Ruby is in **limited preview**.
 While the core functionality is stable, some features available in other
-languages (Java, Python, .NET) are not yet available for Ruby.
+languages (Java, Python, .NET) are not available for Ruby.
 
 > **New to Dynamic Instrumentation?**
 > This document covers Ruby-specific setup and limitations. For an
@@ -26,7 +26,7 @@ practices for using Dynamic Instrumentation.
 - Rack-based applications only
   - Includes Rails, Sinatra, and other Rack-compatible frameworks
   - Non-Rack applications are not supported
-  - Background processes and jobs (including Sidekiq, Resque, etc.) are not yet supported
+  - Background processes and jobs (including Sidekiq, Resque, etc.) are not supported
 - [Remote Configuration Management](https://docs.datadoghq.com/remote_configuration/) enabled
   - Remote Configuration is enabled by default.
   - If it's disabled, follow the [instructions to enable it](https://docs.datadoghq.com/remote_configuration/#enable-remote-configuration).
@@ -118,9 +118,9 @@ the entire method execution.
 - You're debugging method-level behavior
 - You need to track method execution time
 
-### Not Yet Supported
+### Not Supported
 
-The following probe types available in other languages are not yet
+The following probe types available in other languages are not
 supported for Ruby:
 
 - Metric probes
@@ -223,7 +223,7 @@ generated.
 ### Application Must Be Processing Requests
 - Dynamic Instrumentation is initialized via Rack middleware when
   processing HTTP requests
-- An application that has just booted but has not yet served any requests
+- An application that has just booted but has not served any requests
   will not have Dynamic Instrumentation activated
 - Dynamic Instrumentation will be automatically activated when the first
   HTTP request is processed
@@ -267,7 +267,7 @@ per-probe in the probe definition.
   data at the default depth of 3
 - Their attributes are often nested deeper than 3 levels
 - Custom serializers are available for internal Datadog use but the API
-  is not yet finalized for customer use
+  is not finalized for customer use
 - **Workaround:** Increase the capture depth for probes targeting code
   that works with complex objects
 
@@ -419,38 +419,18 @@ to force-include specific libraries. Ruby uses path-based filtering
 (`/gems/`, `/ruby/`) instead, which is effective for Ruby's gem
 ecosystem but does not support overrides. The
 `DD_THIRD_PARTY_DETECTION_INCLUDES` and `DD_THIRD_PARTY_DETECTION_EXCLUDES`
-environment variables are not yet implemented for Ruby.
+environment variables are not implemented for Ruby.
 
-#### Deferred features
+#### Limitations
 
-The following features available in other tracers are not yet
+The following features available in other tracers are not
 implemented for Ruby:
 
-- **Instance variable extraction** (FIELD symbols) — Java and .NET
-  extract class fields; Ruby would require runtime introspection or
-  source parsing
-- **Local variable extraction** (LOCAL scopes) — Java and .NET extract
-  local variables from bytecode/PDB debug info; not available via Ruby
-  introspection
 - **Closure/block scopes** — .NET extracts lambda and async closure
-  scopes; Ruby blocks, procs, and lambdas are not yet extracted
+  scopes; Ruby blocks, procs, and lambdas are not extracted
 - **Payload splitting** — Java splits uploads exceeding 50 MB into
   smaller chunks; Ruby skips the upload entirely if it exceeds 50 MB
   (unlikely for typical applications)
-- **Fork deduplication** — Python coordinates uploads across forked
-  workers (Gunicorn, uWSGI); Ruby does not yet deduplicate uploads in
-  preforking servers (Puma clustered mode, Unicorn, Passenger), meaning
-  each worker uploads independently
-- **Injectable line information** — Go and .NET report which lines
-  within a method can accept probes; Ruby does not include this metadata
-
-#### Class methods
-
-Class methods (`def self.foo`) are extracted but **not uploaded** by
-default. Ruby's Dynamic Instrumentation can only instrument instance
-methods (via `prepend`), so including class methods would present
-completions for methods that cannot be probed. This may change when DI
-gains singleton class instrumentation support.
 
 ## Rate Limiting and Performance
 
