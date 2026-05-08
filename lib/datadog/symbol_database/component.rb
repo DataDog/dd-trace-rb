@@ -49,10 +49,18 @@ module Datadog
       class << self
         attr_reader :upload_done_mutex, :upload_done_cv
 
+        # Whether any Component instance in this process has completed an
+        # upload. Cross-instance flag — used to dedupe uploads across
+        # Component rebuilds within a single Ruby process.
+        # @return [Boolean]
         def uploaded_this_process?
           @upload_done_mutex.synchronize { @uploaded_this_process }
         end
 
+        # Mark the current process as having completed a symbol upload.
+        # Called by the Component instance that successfully completes an
+        # upload; subsequent start_upload calls on any instance short-circuit.
+        # @return [void]
         def mark_uploaded
           @upload_done_mutex.synchronize do
             @uploaded_this_process = true

@@ -1806,7 +1806,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
     describe 'extract_targetable_lines' do
       before do
         @file = create_test_file('targetable_test.rb', <<~RUBY)
-          class ExtractAllInjectableTest
+          class ExtractAllTargetableTest
             def multi_line(a, b)
               x = a + b
               y = x * 2

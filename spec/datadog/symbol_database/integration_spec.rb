@@ -87,7 +87,7 @@ RSpec.describe 'Symbol Database Integration' do
         expect(param_names).to include('arg1', 'arg2')
         expect(param_names).not_to include('self')
 
-        # Injectable lines on METHOD scope (production path)
+        # Targetable lines on METHOD scope (production path)
         expect(test_method_scope.targetable_lines?).to eq(true)
         expect(test_method_scope.targetable_lines).to be_an(Array)
         expect(test_method_scope.targetable_lines).not_to be_empty
@@ -112,7 +112,7 @@ RSpec.describe 'Symbol Database Integration' do
         expect(parsed['scope_type']).to eq('FILE')
         expect(parsed['scopes']).to be_an(Array)
 
-        # Injectable lines survive JSON round-trip
+        # Targetable lines survive JSON round-trip
         parsed_method = parsed['scopes']
           .flat_map { |s| s['scopes'] || [] }
           .flat_map { |s| s['scopes'] || [] }
