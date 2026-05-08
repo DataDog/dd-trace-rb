@@ -63,6 +63,9 @@ module Datadog
             span_name = Ext::PROXY_SPAN_NAMES[proxy_type]
             return yield unless span_name
 
+            request_time_ms = env[Ext::HEADER_X_DD_PROXY_REQUEST_TIME_MS].to_f
+            return yield unless request_time_ms && request_time_ms > 0
+
             path = env[Ext::HEADER_X_DD_PROXY_PATH]
             stage = env[Ext::HEADER_X_DD_PROXY_STAGE]
             domain = env[Ext::HEADER_X_DD_PROXY_DOMAIN_NAME]
@@ -70,11 +73,7 @@ module Datadog
             resource_path = env[Ext::HEADER_X_DD_PROXY_RESOURCE_PATH]
 
             # NOTE: resource_path is the parameterized route (e.g. /users/{id}) vs literal path
-            route = resource_path
-            resource = "#{http_method} #{route || path}" if http_method
-
-            request_time_ms = env[Ext::HEADER_X_DD_PROXY_REQUEST_TIME_MS].to_f
-            return yield unless request_time_ms && request_time_ms > 0
+            resource = "#{http_method} #{resource_path || path}" if http_method
 
             options = {
               service: domain,
@@ -89,7 +88,7 @@ module Datadog
             inferred_span.set_tag('stage', stage) if stage
             inferred_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, http_method) if http_method
             inferred_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, "https://#{domain}#{path}") if domain && path
-            inferred_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, route) if route
+            inferred_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, resource_path) if resource_path
             inferred_span.set_metric(Ext::TAG_INFERRED_SPAN, 1)
 
             set_optional_tags(inferred_span, env: env, proxy_type: proxy_type)
@@ -113,26 +112,33 @@ module Datadog
           # rubocop:enable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
 
           # Sets cloud provider metadata and constructs the resource ARN.
+          #
+          # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
           def set_optional_tags(span, env:, proxy_type:)
-            account_id = env[Ext::HEADER_X_DD_PROXY_ACCOUNT_ID]
             api_id = env[Ext::HEADER_X_DD_PROXY_API_ID]
             region = env[Ext::HEADER_X_DD_PROXY_REGION]
-            user = env[Ext::HEADER_X_DD_PROXY_USER]
 
             # API Gateway v1 sends region as a single-quoted string
             region = region.delete("'") if region
 
-            span.set_tag('account_id', account_id) if account_id
             span.set_tag('apiid', api_id) if api_id
             span.set_tag('region', region) if region
-            span.set_tag('aws_user', user) if user
+
+            if (account_id = env[Ext::HEADER_X_DD_PROXY_ACCOUNT_ID])
+              span.set_tag('account_id', account_id)
+            end
+
+            if (user = env[Ext::HEADER_X_DD_PROXY_USER])
+              span.set_tag('aws_user', user)
+            end
 
             if api_id && region
               # NOTE: Update this when adding non-AWS proxy types.
-              restapi_prefix = proxy_type == Ext::PROXY_AWS_APIGATEWAY ? 'restapis' : 'apis'
+              restapi_prefix = (proxy_type == Ext::PROXY_AWS_APIGATEWAY) ? 'restapis' : 'apis'
               span.set_tag('dd_resource_key', "arn:aws:apigateway:#{region}::/#{restapi_prefix}/#{api_id}")
             end
           end
+          # rubocop:enable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
 
           # Propagates response-level and security tags from the request span to
           # the inferred parent.
