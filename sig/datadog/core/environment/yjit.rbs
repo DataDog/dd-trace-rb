@@ -13,7 +13,7 @@ module Datadog
         def self?.yjit_alloc_size: () -> untyped
         def self?.ratio_in_yjit: () -> untyped
 
-        def self?.available?: () -> untyped
+        def self?.available?: () -> bool?
       end
     end
   end

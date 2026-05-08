@@ -7,7 +7,7 @@ module Datadog
         def self?.constant_cache_invalidations: () -> untyped
         def self?.constant_cache_misses: () -> untyped
 
-        def self?.available?: () -> untyped
+        def self?.available?: () -> bool?
       end
     end
   end
