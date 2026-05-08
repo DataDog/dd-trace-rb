@@ -426,6 +426,8 @@ environment variables are not implemented for Ruby.
 The following features available in other tracers are not
 implemented for Ruby:
 
+- **Instance variable extraction**
+- **Local variable extraction**
 - **Closure/block scopes** — .NET extracts lambda and async closure
   scopes; Ruby blocks, procs, and lambdas are not extracted
 - **Payload splitting** — Java splits uploads exceeding 50 MB into
