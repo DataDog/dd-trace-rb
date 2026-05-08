@@ -250,6 +250,26 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
         it { expect(inferred_span.resource).to eq('GET /api/{proxy+}') }
       end
 
+      context 'when x-dd-proxy-request-time-ms is non-numeric' do
+        before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
+
+        let(:env) do
+          {
+            'HTTP_X_DD_PROXY' => 'aws-apigateway',
+            'HTTP_X_DD_PROXY_REQUEST_TIME_MS' => 'abc',
+            'HTTP_X_DD_PROXY_PATH' => '/api/test',
+            'HTTP_X_DD_PROXY_HTTPMETHOD' => 'GET',
+            'HTTP_X_DD_PROXY_DOMAIN_NAME' => 'example.execute-api.us-east-1.amazonaws.com',
+          }
+        end
+
+        let(:inferred_span) { spans.first }
+
+        it 'ignores the malformed timestamp and defaults to current time' do
+          expect(inferred_span.start_time).to be_within(1).of(Time.now)
+        end
+      end
+
       context 'when optional headers are present' do
         before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
 

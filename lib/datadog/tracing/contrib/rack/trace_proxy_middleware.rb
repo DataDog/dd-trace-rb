@@ -57,6 +57,8 @@ module Datadog
 
           # Creates a virtual parent span representing the upstream proxy
           # that wraps the actual request processing.
+          #
+          # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
           def call_with_inferred_proxy(env, proxy_type)
             span_name = Ext::PROXY_SPAN_NAMES[proxy_type]
             return yield unless span_name
@@ -66,14 +68,17 @@ module Datadog
             domain = env[Ext::HEADER_X_DD_PROXY_DOMAIN_NAME]
             method = env[Ext::HEADER_X_DD_PROXY_HTTPMETHOD]
             resource_path = env[Ext::HEADER_X_DD_PROXY_RESOURCE_PATH]
-            request_time_ms = env[Ext::HEADER_X_DD_PROXY_REQUEST_TIME_MS]
 
             # NOTE: resource_path is the parameterized route (e.g. /users/{id}) vs literal path
             route = resource_path
             resource = "#{method} #{route || path}" if method
 
             options = { service: domain, type: Tracing::Metadata::Ext::AppTypes::TYPE_WEB }
-            options[:start_time] = Time.at(request_time_ms.to_f / 1000) if request_time_ms
+
+            if (request_time_ms = env[Ext::HEADER_X_DD_PROXY_REQUEST_TIME_MS])
+              milliseconds = request_time_ms.to_f
+              options[:start_time] = Time.at(milliseconds / 1_000) if milliseconds > 0
+            end
 
             inferred_span = Tracing.trace(span_name, **options)
             inferred_span.resource = resource if resource
@@ -102,6 +107,7 @@ module Datadog
               inferred_span.finish
             end
           end
+          # rubocop:enable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
 
           # Sets cloud provider metadata and constructs the resource ARN.
           def set_optional_tags(span, env:, proxy_type:)
