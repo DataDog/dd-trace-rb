@@ -35,6 +35,10 @@ module Datadog
       # This prevents runaway memory usage in applications with very large
       # numbers of loaded classes (e.g., heavily modularized Rails apps).
       MAX_FILES = 10_000
+      # Seconds to wait for the timer thread to exit when joining during
+      # shutdown or reset. Bounded so a misbehaving thread cannot hang the
+      # caller indefinitely.
+      TIMER_JOIN_TIMEOUT = 5
 
       # Initialize batching context.
       # @param uploader [Uploader] Uploader instance for triggering uploads
@@ -158,7 +162,7 @@ module Datadog
 
         # Join the timer thread outside the mutex.
         # The thread checks @timer_stopped and exits when signaled.
-        thread_to_join&.join(5)  # 5-second timeout to avoid hanging
+        thread_to_join&.join(TIMER_JOIN_TIMEOUT)
 
         # Upload outside mutex
         perform_upload(scopes_to_upload) unless scopes_to_upload.nil? || scopes_to_upload.empty?
@@ -197,7 +201,7 @@ module Datadog
           @timer_thread = nil
         end
 
-        thread_to_join&.join(5)
+        thread_to_join&.join(TIMER_JOIN_TIMEOUT)
 
         # Allow timer to be restarted after reset
         @mutex.synchronize do

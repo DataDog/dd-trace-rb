@@ -7,6 +7,8 @@ module Datadog
 
       MAX_FILES: ::Integer
 
+      TIMER_JOIN_TIMEOUT: ::Integer
+
       @uploader: Uploader
 
       @logger: Logger
