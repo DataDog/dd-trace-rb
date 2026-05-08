@@ -150,6 +150,11 @@ module Datadog
 
       # Called periodically by the worker to flush stats to the agent
       def perform
+        # REPRODUCER for flaky DSM #flush_stats test: delay the worker thread's
+        # first perform_loop iteration so it runs AFTER the test thread has
+        # called set_produce_checkpoint. Simulates OS scheduling delays observed
+        # on macOS arm64 in CI. Should be reverted once the flake is fixed.
+        sleep(0.1) if Thread.current != Thread.main
         process_events
         flush_stats
         true
