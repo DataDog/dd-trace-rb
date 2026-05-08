@@ -117,6 +117,23 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
         expect(spans.first).to be_finished
       end
 
+      context 'when the block raises an exception' do
+        let(:error) { RuntimeError.new('something went wrong') }
+
+        before do
+          described_class.call(env, request_queuing: false, web_service_name: service) { raise error }
+        rescue RuntimeError
+          nil
+        end
+
+        let(:inferred_span) { spans.find { |s| s.name == 'aws.apigateway' } }
+
+        it { expect(inferred_span.status).to eq(1) }
+        it { expect(inferred_span.get_tag('error.type')).to eq('RuntimeError') }
+        it { expect(inferred_span.get_tag('error.message')).to eq('something went wrong') }
+        it { expect(inferred_span.get_tag('error.stack')).to_not be_nil }
+      end
+
       context 'when proxy type is aws-apigateway' do
         before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
 

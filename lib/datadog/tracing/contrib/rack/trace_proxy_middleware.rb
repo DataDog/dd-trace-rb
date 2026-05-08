@@ -89,6 +89,12 @@ module Datadog
             set_optional_tags(inferred_span, env: env, proxy_type: proxy_type)
 
             yield
+          # NOTE: The underlying {Rack::TraceMiddleware} rescues {Exception}
+          #       to tag the request span with error details.
+          #       We must propagate errors to the inferred proxy parent span.
+          rescue Exception => e # rubocop:disable Lint/RescueException
+            inferred_span&.set_error(e)
+            raise
           ensure
             if inferred_span
               Tracing.active_trace&.resource = resource if resource
