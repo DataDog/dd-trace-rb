@@ -13,7 +13,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
     s
   end
   let(:logger) { instance_double(Logger, debug: nil) }
-  let(:extractor) { described_class.new(logger: logger, settings: settings, telemetry: nil) }
+  let(:extractor) { described_class.new(logger: logger, settings: settings) }
 
   # Temporary directory for user code test files
   around do |example|
@@ -1668,16 +1668,13 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
     end
 
     context 'top-level rescue' do
-      let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component, inc: nil) }
-      let(:extractor_with_telemetry) do
-        described_class.new(logger: logger, settings: settings, telemetry: telemetry)
-      end
+      it 'returns [] and logs when collection raises' do
+        allow(extractor).to receive(:collect_extractable_modules).and_raise(StandardError, 'boom')
+        expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/extract_all.*StandardError.*boom/i) }
 
-      it 'returns [] and increments telemetry when collection raises' do
-        allow(extractor_with_telemetry).to receive(:collect_extractable_modules).and_raise(StandardError, 'boom')
-        result = extractor_with_telemetry.extract_all
+        result = extractor.extract_all
+
         expect(result).to eq([])
-        expect(telemetry).to have_received(:inc).with('tracers', 'symbol_database.extract_all_error', 1)
       end
     end
 
