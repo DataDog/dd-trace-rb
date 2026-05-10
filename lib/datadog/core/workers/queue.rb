@@ -130,10 +130,6 @@ module Datadog
           # they all override +perform+ and the correct behavior depends on
           # placing IntervalLoop after Queue.
           #
-          # The TraceWriter worker then defines +work_pending?+ to be the
-          # same as Queue implementation here... Essentially, it demands
-          # the behavior that perhaps should be applied to all workers.
-          #
           # Until this mess is untangled, call +buffer.empty?+ here.
           buffer.empty? && !in_iteration?
         end

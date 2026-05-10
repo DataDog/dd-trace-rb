@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../core/telemetry/logger"
+
 module Datadog
   module Profiling
     # Responsible for wiring up the Profiler for execution
@@ -8,8 +10,6 @@ module Datadog
       # * Profiling in the trace viewer, as well as scoping a profile down to a span
       # * Endpoint aggregation in the profiler UX, including normalization (resource per endpoint call)
       def self.build_profiler_component(settings:, agent_settings:, optional_tracer:, logger:) # rubocop:disable Metrics/MethodLength
-        return [nil, {profiling_enabled: false}] unless settings.profiling.enabled
-
         # Workaround for weird dependency direction: the Core::Configuration::Components class currently has a
         # dependency on individual products, in this case the Profiler.
         # (Note "currently": in the future we want to change this so core classes don't depend on specific products)
@@ -29,7 +29,7 @@ module Datadog
         # no-op if profiling is already loaded).
         require_relative "../profiling"
 
-        return [nil, {profiling_enabled: false}] unless Profiling.supported?
+        return [nil, {profiling_enabled: false}] unless settings.profiling.enabled && Profiling.supported?
 
         # Activate forking extensions
         Profiling::Tasks::Setup.new.run
@@ -45,9 +45,10 @@ module Datadog
 
         overhead_target_percentage = valid_overhead_target(settings.profiling.advanced.overhead_target_percentage, logger)
         upload_period_seconds = [60, settings.profiling.advanced.upload_period_seconds].max
+        cpu_sampling_interval_ms =
+          valid_cpu_sampling_interval(settings.profiling.advanced.experimental_cpu_sampling_interval_ms, logger)
 
         recorder = Datadog::Profiling::StackRecorder.new(
-          cpu_time_enabled: RUBY_PLATFORM.include?("linux"), # Only supported on Linux currently
           alloc_samples_enabled: allocation_profiling_enabled,
           heap_samples_enabled: heap_profiling_enabled,
           heap_size_enabled: heap_size_profiling_enabled,
@@ -65,6 +66,7 @@ module Datadog
           allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
           gvl_profiling_enabled: enable_gvl_profiling?(settings, logger),
           sighandler_sampling_enabled: settings.profiling.advanced.sighandler_sampling_enabled,
+          cpu_sampling_interval_ms: cpu_sampling_interval_ms,
         )
 
         internal_metadata = {
@@ -87,6 +89,14 @@ module Datadog
         end
 
         [profiler, {profiling_enabled: true}]
+      rescue Exception => e # rubocop:disable Lint/RescueException
+        logger.warn do
+          "Failed to initialize profiling: #{e.class}: #{e.message} " \
+          "Location: #{Array(e.backtrace).first}"
+        end
+        Datadog::Core::Telemetry::Logger.report(e, description: "Failed to initialize profiling")
+
+        [nil, {profiling_enabled: false}]
       end
 
       private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
@@ -123,6 +133,7 @@ module Datadog
             site: settings.site,
             api_key: settings.api_key,
             upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
+            use_system_dns: settings.profiling.advanced.experimental_use_system_dns,
           )
       end
 
@@ -364,7 +375,7 @@ module Datadog
         rescue StandardError, LoadError => e
           logger.warn(
             "Failed to probe `mysql2` gem information. " \
-            "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+            "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
           )
 
           true
@@ -394,6 +405,22 @@ module Datadog
           )
 
           2.0
+        end
+      end
+
+      private_class_method def self.valid_cpu_sampling_interval(cpu_sampling_interval_ms, logger)
+        if cpu_sampling_interval_ms > 10
+          logger.warn(
+            "Profiling cpu_sampling_interval_ms is set to #{cpu_sampling_interval_ms}ms, but values above 10ms are " \
+            "not supported. Using 10ms instead. To reduce profiler overhead, consider adjusting the " \
+            "overhead_target_percentage setting."
+          )
+          10
+        elsif cpu_sampling_interval_ms < 10
+          logger.debug { "Profiling cpu_sampling_interval_ms set to #{cpu_sampling_interval_ms}ms" }
+          cpu_sampling_interval_ms
+        else
+          cpu_sampling_interval_ms
         end
       end
 

@@ -23,8 +23,8 @@ class GemfileProcessor
     end  
     @directory = directory
     @contrib_dir = contrib_dir
-    @min_gems = { 'ruby' => {}, 'jruby' => {} }
-    @max_gems = { 'ruby' => {}, 'jruby' => {} }
+    @min_gems = { 'ruby' => {} }
+    @max_gems = { 'ruby' => {} }
     @integration_json_mapping = {}
   end
 
@@ -41,8 +41,8 @@ class GemfileProcessor
   def parse_gemfiles(directory = 'gemfiles/')
     gemfiles = Dir.glob(File.join(@directory, '*'))
     gemfiles.each do |gemfile_name|
-      runtime = File.basename(gemfile_name).split('_').first # ruby or jruby
-      next unless %w[ruby jruby].include?(runtime)
+      runtime = File.basename(gemfile_name).split('_').first
+      next unless runtime == 'ruby'
       # parse the gemfile
       if gemfile_name.end_with?('.gemfile.lock')
         process_lockfile(gemfile_name, runtime)
@@ -104,8 +104,6 @@ class GemfileProcessor
       @integration_json_mapping[integration] = [
         @min_gems['ruby'][integration_name],
         @max_gems['ruby'][integration_name],
-        @min_gems['jruby'][integration_name],
-        @max_gems['jruby'][integration_name]
       ]
     end
   end
@@ -113,18 +111,14 @@ class GemfileProcessor
   def include_hardcoded_versions
       # `httpx` is maintained externally
     @integration_json_mapping['httpx'] = [
-      '[3rd-party support](https://honeyryderchuck.gitlab.io/httpx/)',         # Min version Ruby
-      '[3rd-party support](https://honeyryderchuck.gitlab.io/httpx/)',     # Max version Ruby
-      '[3rd-party support](https://honeyryderchuck.gitlab.io/httpx/)',         # Min version JRuby
-      '[3rd-party support](https://honeyryderchuck.gitlab.io/httpx/)',      # Max version JRuby
+      '[3rd-party support](https://honeyryderchuck.gitlab.io/httpx/)',
+      '[3rd-party support](https://honeyryderchuck.gitlab.io/httpx/)',
     ]
 
     # `makara` is part of `activerecord`
     @integration_json_mapping['makara'] = [
-      '0.5.1',        # Min version Ruby
-      '0.5.1',     # Max version Ruby
-      '0.5.1',        # Min version JRuby
-      '0.5.1'      # Max version JRuby
+      '0.5.1',
+      '0.5.1',
     ]
   end
 
@@ -155,15 +149,11 @@ class GemfileProcessor
       integration: 24,
       ruby_min: 19,
       ruby_max: 19,
-      jruby_min: 19,
-      jruby_max: 19
     }
     columns = {
       integration: "Integration",
       ruby_min: "Ruby Min",
       ruby_max: "Ruby Max",
-      jruby_min: "JRuby Min",
-      jruby_max: "JRuby Max"
     }
 
     adjusted_widths = columns.transform_values.with_index do |title, index|
@@ -178,10 +168,8 @@ class GemfileProcessor
       integration_name = name.ljust(column_widths[:integration])
       ruby_min = (versions[0] || "None").ljust(column_widths[:ruby_min])
       ruby_max = (versions[1] == 'infinity' ? 'latest' : versions[1] || 'None').ljust(column_widths[:ruby_max])
-      jruby_min = (versions[2] || "None").ljust(column_widths[:jruby_min])
-      jruby_max = (versions[3] == 'infinity' ? 'latest' : versions[3] || 'None').ljust(column_widths[:jruby_max])
-  
-      "| #{integration_name} | #{ruby_min} | #{ruby_max} | #{jruby_min} | #{jruby_max} |"
+
+      "| #{integration_name} | #{ruby_min} | #{ruby_max} |"
     end
   
     File.open(output_file, 'w') do |file|

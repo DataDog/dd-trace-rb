@@ -52,9 +52,10 @@ module Datadog
         def self.input(
           agent_settings:,
           logger:,
-          headers: nil
+          headers: nil,
+          telemetry: nil
         )
-          Core::Transport::HTTP.build(
+          builder = Core::Transport::HTTP.build(
             logger: logger,
             agent_settings: agent_settings,
             headers: headers,
@@ -64,7 +65,15 @@ module Datadog
 
             # Call block to apply any customization, if provided
             yield(transport) if block_given?
-          end.to_transport(DI::Transport::Input::Transport)
+          end
+
+          # Create transport with telemetry
+          DI::Transport::Input::Transport.new(
+            builder.to_api_instances,
+            builder.default_api,
+            logger: logger,
+            telemetry: telemetry
+          )
         end
       end
     end

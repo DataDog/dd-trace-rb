@@ -12,6 +12,7 @@ require_relative '../telemetry/component'
 require_relative '../workers/runtime_metrics'
 require_relative '../remote/component'
 require_relative '../utils/at_fork_monkey_patch'
+require_relative '../utils/spawn_monkey_patch'
 require_relative '../utils/only_once'
 require_relative '../../tracing/component'
 require_relative '../../profiling/component'
@@ -22,6 +23,7 @@ require_relative '../../open_feature/component'
 require_relative '../../error_tracking/component'
 require_relative '../crashtracking/component'
 require_relative '../environment/agent_info'
+require_relative '../environment/identity'
 require_relative '../process_discovery'
 require_relative '../../data_streams/processor'
 
@@ -31,7 +33,7 @@ module Datadog
       # Global components for the trace library.
       class Components
         # Class-level constant to ensure fork patch is applied only once
-        AT_FORK_ONLY_ONCE = Utils::OnlyOnce.new
+        PATCH_ONLY_ONCE = Utils::OnlyOnce.new
 
         class << self
           def build_health_metrics(settings, logger, telemetry)
@@ -85,17 +87,18 @@ module Datadog
             Datadog::Core::Crashtracking::Component.build(settings, agent_settings, logger: logger)
           end
 
-          def build_data_streams(settings, agent_settings, logger)
+          def build_data_streams(settings, agent_settings, logger, agent_info)
             return unless settings.data_streams.enabled
 
             Datadog::DataStreams::Processor.new(
               interval: settings.data_streams.interval,
               logger: logger,
               settings: settings,
-              agent_settings: agent_settings
+              agent_settings: agent_settings,
+              agent_info: agent_info
             )
           rescue => e
-            logger.warn("Failed to initialize Data Streams Monitoring: #{e.class}: #{e}")
+            logger.warn("Failed to initialize Data Streams Monitoring: #{e.class}: #{e.message}")
             nil
           end
         end
@@ -127,8 +130,11 @@ module Datadog
           Deprecations.log_deprecations_from_all_sources(@logger)
 
           # Register fork handling once globally
-          self.class::AT_FORK_ONLY_ONCE.run do
+          self.class::PATCH_ONLY_ONCE.run do
             Utils::AtForkMonkeyPatch.apply!
+            Utils::SpawnMonkeyPatch.apply!(
+              lineage_envs_provider: Core::Environment::Identity.method(:runtime_propagation_envs),
+            )
 
             # Register callback that calls Components.after_fork
             Utils::AtForkMonkeyPatch.at_fork(:child) do
@@ -166,11 +172,16 @@ module Datadog
           @open_feature = OpenFeature::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
-          @data_streams = self.class.build_data_streams(settings, agent_settings, @logger)
+          @data_streams = self.class.build_data_streams(settings, agent_settings, @logger, @agent_info)
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
 
           # Configure non-privileged components.
           Datadog::Tracing::Contrib::Component.configure(settings)
+
+          # Load the core Rails Railtie when Rails is present so all products benefit from Rails-specific setup.
+          if defined?(::Rails::Railtie)
+            require_relative '../contrib/rails/railtie'
+          end
         end
 
         # Called when a fork is detected
@@ -203,14 +214,13 @@ module Datadog
             end
           end
 
-          if settings.remote.enabled && old_state&.remote_started?
+          if remote && old_state&.remote_started?
             # The library was reconfigured and previously it already started
             # the remote component (i.e., it received at least one request
             # through the installed Rack middleware which started the remote).
             # If the new configuration also has remote enabled, start the
             # new remote right away.
-            # remote should always be not nil here but steep doesn't know this.
-            remote&.start
+            remote.start
           end
 
           # This should stay here, not in initialize. During reconfiguration, the order of the calls is:
@@ -278,11 +288,15 @@ module Datadog
           unused_statsd = (old_statsd - (old_statsd & new_statsd))
           unused_statsd.each(&:close)
 
-          # enqueue closing event before stopping telemetry so it will be sent out on shutdown
+          Core::ProcessDiscovery.shutdown!
+
+          # Shut down telemetry last so that all other components may
+          # report shutdown errors.
+          #
+          # Enqueue closing event before stopping telemetry so it will be
+          # sent out on shutdown.
           telemetry.emit_closing! unless replacement&.telemetry&.enabled
           telemetry.shutdown!
-
-          Core::ProcessDiscovery.shutdown!
         end
 
         # Returns the current state of various components.

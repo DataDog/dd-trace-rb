@@ -7,6 +7,13 @@ module Datadog
 
     def self.enabled?: () -> bool
 
+    def self.all_iseqs: () -> Array[RubyVM::InstructionSequence]
+    def self.file_iseqs: () -> Array[RubyVM::InstructionSequence]
+    def self.exception_message: (Exception exception) -> untyped
+    EXCEPTION_BACKTRACE_LOCATIONS: UnboundMethod
+    EXCEPTION_BACKTRACE: UnboundMethod
+    def self.iseq_type: (RubyVM::InstructionSequence iseq) -> Symbol?
+
     def self.component: () -> Component
 
     def self.instrumented_count: (?instrumentation_kind? kind) -> Integer

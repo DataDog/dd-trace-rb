@@ -133,6 +133,37 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
       end
     end
 
+    context 'with class methods' do
+      let(:dummy_class) do
+        Class.new do
+          class << self
+            def foo
+              @called ||= 0
+
+              @called += 1
+            end
+
+            def called
+              @called ||= 0
+            end
+          end
+        end
+      end
+
+      it 'traces a method' do
+        Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy.singleton_class, :foo, span_name: 'Dummy.foo')
+
+        result = Datadog::Tracing.trace('wrapper') do
+          Dummy.foo
+        end
+
+        expect(Dummy.called).to eq(1)
+        expect(result).to eq(1)
+        expect(spans.count { |s| s.name == 'Dummy.foo' }).to eq(1)
+        expect(spans.find { |s| s.name == 'Dummy.foo' }).to be_a Datadog::Tracing::Span
+      end
+    end
+
     it 'raises when method is not defined' do
       expect { Datadog::Kit::Tracing::MethodTracer.trace_method(Dummy, :bar) }.to raise_error(
         NoMethodError,
@@ -652,6 +683,39 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
   end
 
   describe '#trace_method' do
+    context 'with class methods' do
+      let(:dummy_class) do
+        Class.new do
+          class << self
+            extend Datadog::Kit::Tracing::MethodTracer
+
+            def foo
+              @called ||= 0
+
+              @called += 1
+            end
+
+            def called
+              @called ||= 0
+            end
+
+            trace_method :foo, span_name: 'Dummy.foo'
+          end
+        end
+      end
+
+      it 'traces a method' do
+        result = Datadog::Tracing.trace('wrapper') do
+          Dummy.foo
+        end
+
+        expect(Dummy.called).to eq(1)
+        expect(result).to eq(1)
+        expect(spans.count { |s| s.name == 'Dummy.foo' }).to eq(1)
+        expect(spans.find { |s| s.name == 'Dummy.foo' }).to be_a Datadog::Tracing::Span
+      end
+    end
+
     context 'with dynamic: true for method_missing-handled methods' do
       let(:dummy_class) do
         Class.new do
@@ -753,6 +817,43 @@ RSpec.describe Datadog::Kit::Tracing::MethodTracer do
         # The span name should be the literal evil string, properly escaped
         expect(spans.count { |s| s.name == evil_span_name }).to eq(1)
         expect(spans.find { |s| s.name == evil_span_name }).to be_a Datadog::Tracing::Span
+      end
+    end
+  end
+
+  describe '#trace_singleton_class_method' do
+    context 'with class methods' do
+      let(:dummy_class) do
+        Class.new do
+          class << self
+            def foo
+              @called ||= 0
+
+              @called += 1
+            end
+
+            def called
+              @called ||= 0
+            end
+          end
+        end
+      end
+
+      it 'traces a method' do
+        dummy_class.instance_eval do
+          extend Datadog::Kit::Tracing::MethodTracer
+
+          trace_singleton_class_method :foo
+        end
+
+        result = Datadog::Tracing.trace('wrapper') do
+          Dummy.foo
+        end
+
+        expect(Dummy.called).to eq(1)
+        expect(result).to eq(1)
+        expect(spans.count { |s| s.name == 'Dummy.foo' }).to eq(1)
+        expect(spans.find { |s| s.name == 'Dummy.foo' }).to be_a Datadog::Tracing::Span
       end
     end
   end

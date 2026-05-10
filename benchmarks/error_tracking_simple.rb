@@ -40,7 +40,7 @@ class ErrorTrackingSimpleBenchmark
         end
       end
 
-      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end
@@ -61,7 +61,7 @@ class ErrorTrackingSimpleBenchmark
         end
       end
 
-      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end
@@ -82,7 +82,7 @@ class ErrorTrackingSimpleBenchmark
         end
       end
 
-      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end
@@ -103,7 +103,7 @@ class ErrorTrackingSimpleBenchmark
         end
       end
 
-      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end
@@ -112,11 +112,15 @@ end
 puts "Current pid is #{Process.pid}"
 
 def run_benchmark(&block)
-  # Forking to avoid monkey-patching leaking between benchmarks
-  pid = fork(&block)
-  _, status = Process.wait2(pid)
+  if VALIDATE_BENCHMARK_MODE
+    block.call
+  else
+    # Forking to avoid monkey-patching leaking between benchmarks
+    pid = fork(&block)
+    _, status = Process.wait2(pid)
 
-  raise "Benchmark failed with status #{status}" unless status.success?
+    raise "Benchmark failed with status #{status}" unless status.success?
+  end
 end
 
 ErrorTrackingSimpleBenchmark.new.instance_exec do

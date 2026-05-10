@@ -21,6 +21,7 @@ module Datadog
           TRACE_SAMPLING_RULE: ::String
           MANUAL: ::String
           ASM: ::String
+          AI_GUARD: ::String
         end
       end
     end

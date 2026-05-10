@@ -44,15 +44,7 @@ module Datadog
         end
 
         def serialize_messages(messages)
-          serialized_messages = []
-
-          messages.each do |message|
-            serialized_messages << serialize_message(message)
-
-            break if serialized_messages.count == Datadog.configuration.ai_guard.max_messages_length
-          end
-
-          serialized_messages
+          messages.map { |message| serialize_message(message) }
         end
 
         def serialize_message(message)
@@ -69,10 +61,23 @@ module Datadog
                 }
               ]
             }
+          elsif message.content.is_a?(::Array)
+            {role: message.role, content: serialize_content_parts(message.content)}
           elsif message.tool_call_id
             {role: message.role, tool_call_id: message.tool_call_id, content: message.content}
           else
             {role: message.role, content: message.content}
+          end
+        end
+
+        def serialize_content_parts(parts)
+          parts.map do |part|
+            case part
+            when ContentPart::Text
+              {type: "text", text: part.text}
+            when ContentPart::ImageURL
+              {type: "image_url", image_url: {url: part.url}}
+            end
           end
         end
       end

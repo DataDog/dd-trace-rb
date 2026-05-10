@@ -41,6 +41,7 @@ module Datadog
         TAG_ENTRYPOINT_NAME = "entrypoint.name"
         TAG_ENTRYPOINT_WORKDIR = "entrypoint.workdir"
         TAG_ENTRYPOINT_TYPE = "entrypoint.type"
+        TAG_RAILS_APPLICATION = "rails.application"
         TAG_PROCESS_TAGS = "_dd.tags.process"
         TAG_SERVICE = 'service'
         TAG_VERSION = 'version'

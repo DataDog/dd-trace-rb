@@ -211,6 +211,20 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
           it 'propagates the trace id header' do
             expect(http_response.headers['x-datadog-trace-id']).to eq(low_order_trace_id(span.trace_id).to_s)
           end
+
+          it 'injects into request headers, not the request object' do
+            expect(Datadog::Tracing::Contrib::HTTP).to receive(:inject) do |_trace, data|
+              expect(data).to be_a(HTTP::Headers)
+            end.and_call_original
+
+            response
+          end
+
+          it 'does not log an error during distributed tracing injection' do
+            expect(Datadog.logger).to_not receive(:error)
+
+            response
+          end
         end
 
         context 'distributed tracing disabled' do

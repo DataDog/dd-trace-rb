@@ -181,7 +181,9 @@ RSpec.shared_examples 'thread-safe buffer' do
       items.each { |i| buffer.push(i) }
     end
 
-    it { is_expected.to eq(items) }
+    it 'returns all pushed items' do
+      is_expected.to eq(items)
+    end
   end
 end
 

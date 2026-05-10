@@ -156,6 +156,24 @@ module Datadog
           def enabled: () -> bool
         end
 
+        interface _SymbolDatabase
+          def enabled: () -> bool
+
+          def enabled=: (bool) -> void
+
+          def internal: () -> _SymbolDatabaseInternal
+        end
+
+        interface _SymbolDatabaseInternal
+          def force_upload: () -> bool
+
+          def force_upload=: (bool) -> void
+
+          def trace_logging: () -> bool
+
+          def trace_logging=: (bool) -> void
+        end
+
         def initialize: (*untyped _) -> untyped
 
         def env: -> String?
@@ -195,6 +213,8 @@ module Datadog
         def tracing: () -> untyped
 
         def opentelemetry: () -> OpenTelemetry::Configuration::Settings::_OpenTelemetry
+
+        def symbol_database: (?untyped? options) -> _SymbolDatabase
       end
     end
   end

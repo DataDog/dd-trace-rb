@@ -23,6 +23,24 @@ module Datadog
             }
           )
         end
+
+        def export_api_security_metrics(context)
+          web_framework = context.state[:web_framework]
+          return unless web_framework
+
+          if context.span&.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE).nil?
+            AppSec.telemetry.inc(
+              AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, 'api_security.missing_route', 1,
+              tags: {framework: web_framework}
+            )
+          end
+
+          metric_name = context.state[:schema_extracted] ? 'schema' : 'no_schema'
+          AppSec.telemetry.inc(
+            AppSec::Ext::TELEMETRY_METRICS_NAMESPACE, "api_security.request.#{metric_name}", 1,
+            tags: {framework: web_framework}
+          )
+        end
       end
     end
   end

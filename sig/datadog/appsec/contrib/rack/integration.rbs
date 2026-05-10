@@ -4,22 +4,19 @@ module Datadog
       module Rack
         class Integration
           include Datadog::AppSec::Contrib::Integration
-
           extend Datadog::AppSec::Contrib::Integration::ClassMethods
 
-          MINIMUM_VERSION: untyped
+          MINIMUM_VERSION: ::Gem::Version
 
-          def self.version: () -> untyped
+          def self.version: () -> Gem::Version?
 
           def self.loaded?: () -> bool
 
           def self.compatible?: () -> bool
 
-          def auto_instrument?: () -> bool
+          def self.auto_instrument?: () -> false
 
-          def default_configuration: () -> untyped
-
-          def patcher: () -> untyped
+          def patcher: () -> singleton(Patcher)
         end
       end
     end

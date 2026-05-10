@@ -43,27 +43,5 @@ with:
 
 ## Native development on macOS
 
-As of this writing (November 2025), the libdatadog builds on rubygems.org only support Linux.
-
-We don't officially support using libdatadog for Ruby on other platforms yet, but it is possible to use it for local development on macOS.
-(**Note that you don't need these instructions if you develop inside docker.**)
-
-Here's how you can do so:
-
-1. [Install rust](https://www.rust-lang.org/tools/install)
-2. Install `cbindgen`: `cargo install cbindgen`
-3. Clone [libdatadog](https://github.com/datadog/libdatadog)
-4. Create a folder for building into based on your ruby platform:
-
-```bash
-export DD_RUBY_PLATFORM=`ruby -e 'puts Gem::Platform.local.to_s'`
-mkdir -p my-libdatadog-build/$DD_RUBY_PLATFORM
-```
-
-5. From inside of the libdatadog repo, follow the [instructions to build libdatadog](https://github.com/datadog/libdatadog?tab=readme-ov-file#builder-crate)
-   and build libdatadog into this folder: `cargo run --bin release (...see libdatadog readme for details...) -- --out my-libdatadog-build/$DD_RUBY_PLATFORM`
-6. Tell Ruby where to find libdatadog: `export LIBDATADOG_VENDOR_OVERRIDE=/adjust/this/to/be/the/full/path/to/my-libdatadog-build/` (Notice no platform here)
-7. From dd-trace-rb, run `bundle exec rake clean compile`
-8. For incremental builds, usually `bundle exec rake compile` is faster and `clean` is not needed
-
-If you additionally want to run the profiler test suite, also remember to `export DD_PROFILING_MACOS_TESTING=true` and re-run `rake clean compile`.
+For profiling in particular, you'll need to set `export DD_PROFILING_MACOS_TESTING=true` and re-run `bundle exec rake clean compile`
+as we don't build/enable profiling on macOS by default.

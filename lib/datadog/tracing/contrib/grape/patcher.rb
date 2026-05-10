@@ -21,7 +21,12 @@ module Datadog
 
           def patch
             # Patch endpoints
-            ::Grape::Endpoint.include(Instrumentation)
+            ::Grape::Endpoint.prepend(Instrumentation::InstanceMethods)
+            if target_version < Gem::Version.new('3.0.0')
+              ::Grape::Endpoint.singleton_class.prepend(Instrumentation::GenerateApiMethodPatch)
+            else
+              ::Grape::Endpoint.prepend(Instrumentation::ExecutePatch)
+            end
 
             # Subscribe to ActiveSupport events
             Endpoint.subscribe

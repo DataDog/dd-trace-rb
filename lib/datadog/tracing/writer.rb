@@ -9,7 +9,6 @@ require_relative 'transport/http'
 module Datadog
   module Tracing
     # Processor that sends traces and metadata to the agent
-    # DEV: Our goal is for {Datadog::Tracing::Workers::TraceWriter} to replace this class in the future
     # @public_api
     class Writer
       attr_reader \

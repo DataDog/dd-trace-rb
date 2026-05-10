@@ -1,0 +1,7 @@
+module Datadog
+  module SymbolDatabase
+    UNKNOWN_MIN_LINE: Integer
+
+    UNKNOWN_MAX_LINE: Integer
+  end
+end

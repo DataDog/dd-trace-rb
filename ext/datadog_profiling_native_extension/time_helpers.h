@@ -9,6 +9,7 @@
 
 #define SECONDS_AS_NS(value) (value * 1000 * 1000 * 1000L)
 #define MILLIS_AS_NS(value) (value * 1000 * 1000L)
+#define MICROS_AS_NS(value) (value * 1000L)
 
 typedef enum { RAISE_ON_FAILURE, DO_NOT_RAISE_ON_FAILURE } raise_on_failure_setting;
 

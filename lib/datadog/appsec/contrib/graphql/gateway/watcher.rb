@@ -22,7 +22,7 @@ module Datadog
               end
 
               def watch_multiplex(gateway = Instrumentation.gateway)
-                gateway.watch('graphql.multiplex', :appsec) do |stack, gateway_multiplex|
+                gateway.watch('graphql.multiplex') do |stack, gateway_multiplex|
                   context = AppSec::Context.active
 
                   if context

@@ -3,6 +3,8 @@ module Datadog
     module Contrib
       module Rack
         class RequestBodyMiddleware
+          @app: untyped
+
           def initialize: (untyped app, ?::Hash[untyped, untyped] opt) -> void
 
           def call: (untyped env) -> untyped

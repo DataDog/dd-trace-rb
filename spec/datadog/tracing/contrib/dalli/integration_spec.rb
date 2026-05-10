@@ -70,13 +70,23 @@ RSpec.describe Datadog::Tracing::Contrib::Dalli::Integration do
         end
       end
 
-      context 'that meets the dalli protocol version' do
+      context 'that meets the dalli protocol binary version' do
         it 'Loads the Dalli::Protocol::Binary class' do
-          if Gem.loaded_specs['dalli'].version < described_class::DALLI_PROTOCOL_BINARY_VERSION
-            skip 'running on dalli below min'
-          end
+          version = Gem.loaded_specs['dalli'].version
+          binary_range = described_class::DALLI_PROTOCOL_BINARY_VERSION...described_class::DALLI_PROTOCOL_META_VERSION
+          skip 'not running on dalli 3.x/4.x' unless binary_range.cover?(version)
 
           expect(dalli_class).to eq ::Dalli::Protocol::Binary
+        end
+      end
+
+      context 'that meets the dalli protocol meta version' do
+        it 'Loads the Dalli::Protocol::Meta class' do
+          if Gem.loaded_specs['dalli'].version < described_class::DALLI_PROTOCOL_META_VERSION
+            skip 'running on dalli below 5.0'
+          end
+
+          expect(dalli_class).to eq ::Dalli::Protocol::Meta
         end
       end
     end

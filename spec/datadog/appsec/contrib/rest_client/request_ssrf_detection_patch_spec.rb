@@ -400,6 +400,68 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
     end
   end
 
+  context 'when execute is called with a custom block returning non-Response' do
+    before do
+      stub_request(:get, 'http://example.com/custom-block')
+        .to_return(status: 200, body: 'OK', headers: {'Content-Type' => 'text/plain'})
+    end
+
+    let(:result) do
+      RestClient::Request.execute(method: :get, url: 'http://example.com/custom-block') do |response, _req, _rez|
+        response.body.upcase
+      end
+    end
+
+    it 'does not crash and returns the block result' do
+      expect(result).to eq('OK')
+    end
+  end
+
+  context 'when request uses raw_response and raises an exception' do
+    before do
+      stub_request(:post, 'http://example.com/raw-redirect')
+        .to_return(
+          status: 301,
+          body: 'redirecting',
+          headers: {'Content-Type' => 'text/plain', 'Location' => 'http://example.com/other'}
+        )
+    end
+
+    it 'does not crash on RawResponse' do
+      expect {
+        RestClient::Request.execute(method: :post, url: 'http://example.com/raw-redirect', raw_response: true)
+      }.to raise_error(RestClient::MovedPermanently)
+    end
+
+    it 'calls response-phase RASP for RawResponse' do
+      expect(context).to receive(:run_rasp)
+        .with('ssrf', {}, anything, anything, phase: 'request')
+
+      expect(context).to receive(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.status' => '301'), anything, phase: 'response')
+
+      expect { RestClient::Request.execute(method: :post, url: 'http://example.com/raw-redirect', raw_response: true) }
+        .to raise_error(RestClient::MovedPermanently)
+    end
+  end
+
+  context 'when request uses raw_response with successful response' do
+    before do
+      stub_request(:get, 'http://example.com/raw-ok')
+        .to_return(status: 200, body: 'raw body', headers: {'Content-Type' => 'text/plain'})
+
+      RestClient::Request.execute(method: :get, url: 'http://example.com/raw-ok', raw_response: true)
+    end
+
+    it 'calls response-phase RASP for RawResponse' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, anything, anything, phase: 'request')
+
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.response.status' => '200'), anything, phase: 'response')
+    end
+  end
+
   context 'when manually following redirect after POST exception' do
     before do
       Datadog.configuration.appsec.api_security.downstream_body_analysis.max_requests = 10

@@ -96,6 +96,7 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
   after do
     Datadog.configuration.reset!
     ::Excon.defaults[:middlewares].delete(Datadog::AppSec::Contrib::Excon::SSRFDetectionMiddleware)
+    Datadog::AppSec::Contrib::Excon::Patcher.instance_variable_set(:@patched, false)
   end
 
   context 'when RASP is disabled' do
@@ -164,6 +165,29 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
 
       expect(response.status).to eq(200)
       expect(response.body).to eq('{"response":"OK"}')
+    end
+  end
+
+  context 'when request targets a non-standard port' do
+    let(:client) do
+      ::Excon.new('http://example.com:8080', mock: true).tap do
+        ::Excon.stub(
+          {method: :get, path: '/admin'},
+          body: 'OK',
+          status: 200,
+          headers: {'Content-Type' => 'text/plain'}
+        )
+      end
+    end
+
+    it 'includes port in the URL sent to WAF' do
+      expect(context).to receive(:run_rasp)
+        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com:8080/admin'), anything, phase: 'request')
+
+      expect(context).to receive(:run_rasp)
+        .with('ssrf', {}, anything, anything, phase: 'response')
+
+      client.get(path: '/admin')
     end
   end
 

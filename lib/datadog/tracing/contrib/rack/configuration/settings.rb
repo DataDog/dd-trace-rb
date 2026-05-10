@@ -37,7 +37,11 @@ module Datadog
             end
 
             option :application
-            option :distributed_tracing, default: true, type: :bool
+            option :distributed_tracing do |o|
+              o.type :bool
+              o.env Ext::ENV_DISTRIBUTED_TRACING
+              o.default true
+            end
             option :headers, default: DEFAULT_HEADERS, type: :hash
             option :middleware_names, default: false, type: :bool
             option :quantize, default: {}, type: :hash

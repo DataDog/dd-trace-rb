@@ -46,8 +46,8 @@ gem 'webmock', '>= 3.10.0'
 gem 'webrick', '>= 1.8.2'
 
 group :check do
-  gem 'rbs', '~> 3.7', require: false
-  gem 'steep', '~> 1.10', require: false
+  gem 'rbs', '~> 4.0', require: false
+  gem 'steep', '~> 2.0', require: false
   gem 'ruby_memcheck', '>= 3'
   gem 'standard', require: false
 

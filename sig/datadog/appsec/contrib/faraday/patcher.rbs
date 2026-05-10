@@ -5,9 +5,9 @@ module Datadog
         module Patcher
           def self?.patched?: () -> bool
 
-          def self?.target_version: () -> ::Gem::Version
+          def self?.target_version: () -> ::Gem::Version?
 
-          def self?.patch: () -> bool
+          def self?.patch: () -> void
 
           def self?.configure_default_faraday_connection: () -> void
         end

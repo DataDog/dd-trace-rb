@@ -74,6 +74,23 @@ RSpec.describe Datadog::Core::Environment::Process do
         expect(described_class.serialized).to include('entrypoint.type:script')
       end
     end
+
+    context 'when Rails application name is available' do
+      include_context 'with mocked process environment'
+      let(:program_name) { 'bin/rails' }
+
+      before do
+        described_class.rails_application_name = 'Test::App'
+      end
+
+      after do
+        described_class.rails_application_name = nil
+      end
+
+      it 'includes rails.application in serialized tags' do
+        expect(serialized).to include('rails.application:test_app')
+      end
+    end
   end
 
   describe 'Scenario: Real applications' do
@@ -98,8 +115,9 @@ RSpec.describe Datadog::Core::Environment::Process do
               file.puts "gem 'datadog', path: '#{project_root_directory}', require: false"
             end
             File.write("test@_app/config/initializers/process_initializer.rb", <<-RUBY)
-                        Rails.application.config.after_initialize do
-                            require 'datadog/core/environment/process'
+                        require 'datadog'
+                        Datadog.configure { }
+                        ActiveSupport.on_load(:after_initialize) do
                             STDERR.puts "_dd.tags.process:\#{Datadog::Core::Environment::Process.serialized}"
                             STDERR.flush
                             Thread.new { Process.kill('TERM', Process.pid) }
@@ -114,6 +132,7 @@ RSpec.describe Datadog::Core::Environment::Process do
                 expect(err).to include('entrypoint.type:script')
                 expect(err).to include('entrypoint.name:rails')
                 expect(err).to include('entrypoint.basedir:bin')
+                expect(err).to include('rails.application:test_app')
               end
             end
           end
@@ -200,6 +219,44 @@ RSpec.describe Datadog::Core::Environment::Process do
         expect(described_class.tags).to include('entrypoint.basedir:bin')
         expect(described_class.tags).to include('entrypoint.type:script')
       end
+    end
+
+    context 'when Rails application name is available' do
+      include_context 'with mocked process environment'
+      let(:program_name) { 'bin/rails' }
+
+      before { described_class.rails_application_name = 'test_app' }
+      after { described_class.rails_application_name = nil }
+
+      it 'includes rails.application in tag array' do
+        expect(tags.length).to eq(5)
+        expect(tags).to include('rails.application:test_app')
+      end
+    end
+  end
+  describe '::rails_application_name=' do
+    include_context 'with mocked process environment'
+    let(:program_name) { 'bin/rails' }
+
+    after do
+      described_class.rails_application_name = nil
+    end
+
+    it 'includes the rails app name in the tags' do
+      described_class.rails_application_name = "Test::App"
+      expect(described_class.tags).to include('rails.application:test_app')
+    end
+
+    it 'invalidates the cached tags' do
+      described_class.tags
+      described_class.rails_application_name = "Test::App"
+      expect(described_class.tags).to include('rails.application:test_app')
+    end
+
+    it 'invalidates the serialized cache' do
+      described_class.serialized
+      described_class.rails_application_name = "Test::App"
+      expect(described_class.serialized).to include('rails.application:test_app')
     end
   end
 end

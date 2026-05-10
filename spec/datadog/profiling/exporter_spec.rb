@@ -5,7 +5,7 @@ require "datadog/profiling/collectors/code_provenance"
 require "datadog/core/logger"
 
 RSpec.describe Datadog::Profiling::Exporter do
-  before { skip_if_profiling_not_supported(self) }
+  before { skip_if_profiling_not_supported }
 
   subject(:exporter) do
     described_class.new(
@@ -64,9 +64,9 @@ RSpec.describe Datadog::Profiling::Exporter do
         start: start,
         finish: finish,
         encoded_profile: encoded_profile,
-        code_provenance_file_name: "code-provenance.json",
         code_provenance_data: code_provenance_data,
         tags_as_array: array_including(%w[language ruby], ["process_id", Process.pid.to_s]),
+        metrics: "[]",
       )
       expect(JSON.parse(flush.internal_metadata_json, symbolize_names: true)).to match(
         {

@@ -11,6 +11,7 @@ require 'datadog/tracing/sampling/ext'
 require 'datadog/tracing/span_operation'
 require 'datadog/tracing/trace_operation'
 require 'datadog/tracing/trace_segment'
+require 'datadog/tracing/tracer'
 require 'datadog/tracing/utils'
 
 RSpec.describe Datadog::Tracing::TraceOperation do
@@ -847,6 +848,149 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
         expect(published_traces).to be_empty
       end
+    end
+  end
+
+  describe '#resource=' do
+    subject(:set_resource) { trace_op.resource = resource }
+
+    let(:resource) { 'Rails::HealthController#show' }
+    let(:initial_resource) { nil }
+    let(:options) { {resource: initial_resource} }
+
+    it 'updates the resource' do
+      expect { set_resource }.to change { trace_op.resource }.from(nil).to(resource)
+    end
+
+    it 'notifies the tracer when the resource is first resolved' do
+      trace_resource_change_calls = 0
+      trace_op.send(:events).trace_resource_change.subscribe { trace_resource_change_calls += 1 }
+
+      set_resource
+
+      expect(trace_resource_change_calls).to eq(1)
+    end
+
+    context 'when the trace already has a resource' do
+      let(:initial_resource) { 'GET 200' }
+
+      it 'does not notify the tracer again' do
+        trace_resource_change_calls = 0
+        trace_op.send(:events).trace_resource_change.subscribe { trace_resource_change_calls += 1 }
+
+        set_resource
+
+        expect(trace_resource_change_calls).to eq(0)
+      end
+    end
+  end
+
+  describe 'sampling after resource resolution' do
+    let(:tracer) do
+      Datadog::Tracing::Tracer.new(
+        sampler: Datadog::Tracing::Sampling::PrioritySampler.new(
+          base_sampler: Datadog::Tracing::Sampling::AllSampler.new,
+          post_sampler: Datadog::Tracing::Sampling::RuleSampler.new(
+            [
+              Datadog::Tracing::Sampling::SimpleRule.new(
+                resource: 'Rails::HealthController#show',
+                sample_rate: 0.0
+              )
+            ],
+            rate_limit: nil
+          )
+        ),
+        writer: nil
+      )
+    end
+
+    after { tracer.shutdown! }
+
+    it 'resamples a trace that was already sampled before the resource was resolved' do
+      trace = tracer.send(:start_trace)
+      request_span = trace.build_span('rack.request').start
+      request_span.resource = nil
+
+      db_span = trace.build_span('sqlite.query').start
+      db_span.finish
+
+      expect(trace.resource).to be_nil
+      expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP)
+      expect(trace.get_tag(Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER))
+        .to eq(Datadog::Tracing::Sampling::Ext::Decision::DEFAULT)
+
+      trace.resource = 'Rails::HealthController#show'
+
+      expect(trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT)
+      expect(trace.get_tag(Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)).to be_nil
+    ensure
+      request_span.finish unless request_span.nil? || request_span.finished?
+    end
+  end
+
+  describe '#reconsider_resource_sample?' do
+    subject(:reconsider_resource_sample?) { trace_op.reconsider_resource_sample? }
+
+    let(:options) do
+      {
+        resource: 'Rails::HealthController#show',
+        sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP
+      }
+    end
+
+    before do
+      trace_op.set_tag(
+        Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+        Datadog::Tracing::Sampling::Ext::Decision::DEFAULT
+      )
+    end
+
+    it { is_expected.to be true }
+
+    context 'when the trace came from a remote parent' do
+      let(:options) do
+        {
+          resource: 'Rails::HealthController#show',
+          sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP,
+          remote_parent: true
+        }
+      end
+
+      it { is_expected.to be false }
+    end
+
+    context 'when the trace has already been propagated' do
+      before { trace_op.to_digest }
+
+      it { is_expected.to be false }
+    end
+
+    context 'when the trace has already been flushed' do
+      before { trace_op.flush! }
+
+      it { is_expected.to be false }
+    end
+
+    context 'when the current decision is not default or agent based' do
+      before do
+        trace_op.set_tag(
+          Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+          Datadog::Tracing::Sampling::Ext::Decision::MANUAL
+        )
+      end
+
+      it { is_expected.to be false }
+    end
+
+    context 'when the priority is already a user decision' do
+      let(:options) do
+        {
+          resource: 'Rails::HealthController#show',
+          sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
+        }
+      end
+
+      it { is_expected.to be false }
     end
   end
 
@@ -2457,6 +2601,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               :span_finished,
               :trace_finished,
               :trace_propagated,
+              :trace_resource_change,
             ].each do |event|
               expect(new_events.send(event).subscriptions).to eq(old_events.send(event).subscriptions)
             end

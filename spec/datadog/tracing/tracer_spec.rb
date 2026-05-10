@@ -643,6 +643,36 @@ RSpec.describe Datadog::Tracing::Tracer do
     end
   end
 
+  describe '#start_trace' do
+    subject(:trace_op) { tracer.send(:start_trace) }
+
+    let(:trace_events) { trace_op.send(:events) }
+    let(:sampler) { double('sampler') }
+    let(:tracer_options) { super().merge(sampler: sampler) }
+
+    before do
+      allow(sampler).to receive(:resource_sampling?).and_return(false)
+    end
+
+    describe 'with resource sampling' do
+      context 'when the sampler does not use resource sampling' do
+        it 'does not subscribe resource sampling reconsideration callbacks' do
+          expect(trace_events.trace_resource_change.subscriptions.length).to eq(0)
+        end
+      end
+
+      context 'when the sampler uses resource sampling' do
+        before do
+          allow(sampler).to receive(:resource_sampling?).and_return(true)
+        end
+
+        it 'subscribes resource sampling reconsideration callbacks' do
+          expect(trace_events.trace_resource_change.subscriptions.length).to eq(1)
+        end
+      end
+    end
+  end
+
   describe '#call_context' do
     subject(:call_context) { tracer.send(:call_context) }
 

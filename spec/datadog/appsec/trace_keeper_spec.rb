@@ -17,6 +17,26 @@ RSpec.describe Datadog::AppSec::TraceKeeper do
         expect { described_class.keep!(trace) }
           .to change { trace.get_tag('_dd.p.dm') }.from(nil).to('-5')
       end
+
+      context 'when another product has already set the decision maker' do
+        before do
+          trace.keep!
+          trace.set_tag(
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+            Datadog::Tracing::Sampling::Ext::Decision::AI_GUARD,
+          )
+        end
+
+        it 'preserves the existing decision maker' do
+          expect { described_class.keep!(trace) }
+            .not_to change { trace.get_tag('_dd.p.dm') }.from('-13')
+        end
+
+        it 'still sets trace source tag' do
+          expect { described_class.keep!(trace) }
+            .to change { trace.get_tag('_dd.p.ts') }.from(nil).to('02')
+        end
+      end
     end
 
     context 'when trace is not given' do

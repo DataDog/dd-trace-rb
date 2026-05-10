@@ -50,6 +50,7 @@ module Datadog
             # TODO: Simplify .tags access, as `Tracer#tags` can't be arbitrarily changed anymore
             RateByServiceSampler.new(1.0, env: -> { Tracing.send(:tracer).tags['env'] })
           end
+          @reconsider_sample_resource_enabled = @rules.any? { |rule| resource_rule?(rule) }
         end
 
         def self.parse(rules, rate_limit, default_sample_rate)
@@ -84,7 +85,7 @@ module Datadog
           new(parsed_rules, rate_limit: rate_limit, default_sample_rate: default_sample_rate)
         rescue => e
           Datadog.logger.warn do
-            "Could not parse trace sampling rules '#{rules}': #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
+            "Could not parse trace sampling rules '#{rules}': #{e.class}: #{e.message} at #{Array(e.backtrace).first}"
           end
 
           nil
@@ -103,6 +104,18 @@ module Datadog
           trace.sampled = sampled
         end
 
+        def reconsider_sample_resource!(trace)
+          rule = @rules.find { |r| resource_rule?(r) && r.match?(trace) }
+          return if rule.nil?
+
+          reconsider_matching_rule!(trace, rule)
+        end
+
+        # Do any rules match on the resource name?
+        def resource_sampling?
+          @reconsider_sample_resource_enabled
+        end
+
         # @!visibility private
         def update(*args, **kwargs)
           return false unless @default_sampler.respond_to?(:update)
@@ -117,32 +130,10 @@ module Datadog
 
           return yield(trace) if rule.nil?
 
-          sampled = rule.sample!(trace)
-          sample_rate = rule.sample_rate(trace)
-
-          set_priority(trace, sampled)
-          set_rule_metrics(trace, sample_rate)
-
-          return false unless sampled
-
-          rate_limiter.allow?.tap do |allowed|
-            set_priority(trace, allowed)
-            set_limiter_metrics(trace, rate_limiter.effective_rate)
-
-            provenance = case rule.provenance
-            when Rule::PROVENANCE_REMOTE_USER
-              Ext::Decision::REMOTE_USER_RULE
-            when Rule::PROVENANCE_REMOTE_DYNAMIC
-              Ext::Decision::REMOTE_DYNAMIC_RULE
-            else
-              Ext::Decision::TRACE_SAMPLING_RULE
-            end
-
-            trace.set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, provenance)
-          end
+          apply_rule!(trace, rule)
         rescue => e
           Datadog.logger.error(
-            "Rule sampling failed. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
+            "Rule sampling failed. Cause: #{e.class}: #{e.message} Source: #{Array(e.backtrace).first}"
           )
           Datadog::Core::Telemetry::Logger.report(e, description: 'Rule sampling failed')
 
@@ -165,6 +156,44 @@ module Datadog
 
         def set_limiter_metrics(trace, limiter_rate)
           trace.rate_limiter_rate = limiter_rate
+        end
+
+        def apply_rule!(trace, rule)
+          sampled = rule.sample!(trace)
+          sample_rate = rule.sample_rate(trace)
+
+          set_priority(trace, sampled)
+          set_rule_metrics(trace, sample_rate)
+
+          return false unless sampled
+
+          rate_limiter.allow?.tap do |allowed|
+            set_priority(trace, allowed)
+            set_limiter_metrics(trace, rate_limiter.effective_rate)
+            trace.set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, provenance_for(rule))
+          end
+        end
+
+        def provenance_for(rule)
+          case rule.provenance
+          when Rule::PROVENANCE_REMOTE_USER
+            Ext::Decision::REMOTE_USER_RULE
+          when Rule::PROVENANCE_REMOTE_DYNAMIC
+            Ext::Decision::REMOTE_DYNAMIC_RULE
+          else
+            Ext::Decision::TRACE_SAMPLING_RULE
+          end
+        end
+
+        def resource_rule?(rule)
+          matcher = rule.matcher
+          matcher.respond_to?(:resource) && matcher.resource != Matcher::MATCH_ALL
+        end
+
+        def reconsider_matching_rule!(trace, rule)
+          trace.agent_sample_rate = nil
+          trace.clear_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)
+          apply_rule!(trace, rule)
         end
       end
     end

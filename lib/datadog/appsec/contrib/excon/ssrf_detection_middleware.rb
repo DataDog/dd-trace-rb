@@ -98,7 +98,7 @@ module Datadog
 
           def request_url(data)
             klass = (data[:scheme] == 'https') ? URI::HTTPS : URI::HTTP
-            klass.build(host: data[:host], path: data[:path], query: data[:query]).to_s
+            klass.build(host: data[:host], port: data[:port], path: data[:path], query: data[:query]).to_s
           end
 
           def normalize_headers(headers)

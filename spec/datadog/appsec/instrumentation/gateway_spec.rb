@@ -11,33 +11,19 @@ RSpec.describe Datadog::AppSec::Instrumentation::Gateway do
     it 'stores middleware' do
       expect(middlewares['hello']).to be_empty
 
-      gateway.watch('hello', 'world') do
+      gateway.watch('hello') do
         1 + 1
       end
 
       expect(middlewares['hello']).to_not be_empty
     end
 
-    it 'does not store middleware for previously registered name/key combination' do
-      gateway.watch('hello', 'world') do
+    it 'stores multiple middlewares for the same event name' do
+      gateway.watch('hello') do
         1 + 1
       end
 
-      stored_event = middlewares['hello']
-
-      gateway.watch('hello', 'world') do
-        2 + 2
-      end
-
-      expect(middlewares['hello']).to eq(stored_event)
-    end
-
-    it 'stores multiple middlewares for distinct name/key combination' do
-      gateway.watch('hello', 'world') do
-        1 + 1
-      end
-
-      gateway.watch('hello', 'world2') do
+      gateway.watch('hello') do
         2 + 2
       end
 
@@ -59,14 +45,14 @@ RSpec.describe Datadog::AppSec::Instrumentation::Gateway do
       env_1 = nil
       env_2 = nil
 
-      gateway.watch('hello', 'world') do |next_, env|
+      gateway.watch('hello') do |next_, env|
         env_dup = env.dup
         env_1 = env_dup
         env[:c] = :d
         next_.call(env)
       end
 
-      gateway.watch('hello', 'world2') do |next_, env|
+      gateway.watch('hello') do |next_, env|
         env_2 = env
         next_.call(env)
       end
@@ -79,21 +65,6 @@ RSpec.describe Datadog::AppSec::Instrumentation::Gateway do
       expect(result[0][1]).to eq(:done)
       expect(env_1).to eq({a: :b})
       expect(env_2).to eq({a: :b, c: :d})
-    end
-  end
-
-  describe '#pushed?' do
-    it { expect(gateway.pushed?('event.0')).to be(false) }
-
-    it 'returns true if event was pushed' do
-      expect { gateway.push('event.1', {}) }.to change { gateway.pushed?('event.1') }
-        .from(false).to(true)
-
-      expect { gateway.push('event.2', {}) }.to change { gateway.pushed?('event.2') }
-        .from(false).to(true)
-
-      expect { gateway.push('event.2', {}) }.not_to change { gateway.pushed?('event.2') }
-        .from(true)
     end
   end
 end

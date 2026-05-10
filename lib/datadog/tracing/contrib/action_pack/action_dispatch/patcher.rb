@@ -19,7 +19,9 @@ module Datadog
             end
 
             def patch
-              if ::ActionPack.gem_version >= Gem::Version.new('7.1')
+              if ::ActionPack.gem_version >= Gem::Version.new('8.1')
+                ::ActionDispatch::Journey::Router.prepend(ActionDispatch::Instrumentation::Journey::RecognizeRouter)
+              elsif ::ActionPack.gem_version >= Gem::Version.new('7.1')
                 ::ActionDispatch::Journey::Router.prepend(ActionDispatch::Instrumentation::Journey::LazyRouter)
               else
                 ::ActionDispatch::Journey::Router.prepend(ActionDispatch::Instrumentation::Journey::Router)

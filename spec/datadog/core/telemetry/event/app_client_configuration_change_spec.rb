@@ -3,7 +3,6 @@ require 'spec_helper'
 require 'datadog/core/telemetry/event/app_client_configuration_change'
 
 RSpec.describe Datadog::Core::Telemetry::Event::AppClientConfigurationChange do
-  let(:id) { double('seq_id') }
   let(:event) { described_class.new }
 
   let(:event) { described_class.new(changes, origin) }
@@ -11,10 +10,6 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppClientConfigurationChange do
   let(:origin) { double('origin') }
   let(:name) { 'key' }
   let(:value) { 'value' }
-
-  before do
-    allow_any_instance_of(Datadog::Core::Utils::Sequence).to receive(:next).and_return(id)
-  end
 
   describe '.payload' do
     subject(:payload) { event.payload }
@@ -25,7 +20,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppClientConfigurationChange do
           name: name,
           value: value,
           origin: origin,
-          seq_id: id
+          seq_id: 6
         }]
       )
     end
@@ -45,8 +40,8 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppClientConfigurationChange do
         is_expected.to eq(
           configuration:
           [
-            {name: name, value: value, origin: origin, seq_id: id},
-            {name: 'appsec.sca_enabled', value: false, origin: 'code', seq_id: id}
+            {name: name, value: value, origin: origin, seq_id: 6},
+            {name: 'appsec.sca_enabled', value: false, origin: 'code', seq_id: 5}
           ]
         )
       end

@@ -693,7 +693,7 @@ VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder) {
 
 typedef struct {
   heap_recorder *recorder;
-  VALUE debug_str;
+  VALUE debug_ary;
 } debug_context;
 
 VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder) {
@@ -701,12 +701,12 @@ VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder) {
     raise_error(rb_eArgError, "heap_recorder is NULL");
   }
 
-  VALUE debug_str = rb_str_new2("");
-  debug_context context = (debug_context) {.recorder = heap_recorder, .debug_str = debug_str};
+  VALUE debug_ary = rb_ary_new();
+  debug_context context = (debug_context) {.recorder = heap_recorder, .debug_ary = debug_ary};
   st_foreach(heap_recorder->object_records, st_object_records_debug, (st_data_t) &context);
 
   return rb_ary_new_from_args(2,
-    rb_ary_new_from_args(2, ID2SYM(rb_intern("records")), debug_str),
+    rb_ary_new_from_args(2, ID2SYM(rb_intern("records")), debug_ary),
     rb_ary_new_from_args(2, ID2SYM(rb_intern("state")), heap_recorder_state_snapshot(heap_recorder))
   );
 }
@@ -828,11 +828,10 @@ static int st_object_records_iterate(DDTRACE_UNUSED st_data_t key, st_data_t val
 
 static int st_object_records_debug(DDTRACE_UNUSED st_data_t key, st_data_t value, st_data_t extra) {
   debug_context *context = (debug_context*) extra;
-  VALUE debug_str = context->debug_str;
 
   object_record *record = (object_record*) value;
 
-  rb_str_catf(debug_str, "%"PRIsVALUE"\n", object_record_inspect(context->recorder, record));
+  rb_ary_push(context->debug_ary, object_record_inspect(context->recorder, record));
 
   return ST_CONTINUE;
 }

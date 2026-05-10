@@ -45,10 +45,15 @@ module Datadog
           settings.appsec.instrument(:devise) unless devise_integration.patcher.patched?
 
           security_engine = SecurityEngine::Engine.new(appsec_settings: settings.appsec, telemetry: telemetry)
-          new(security_engine: security_engine, telemetry: telemetry)
-        rescue
-          Datadog.logger.warn('AppSec is disabled, see logged errors above')
+          new(security_engine: security_engine)
+        rescue => e
+          Datadog.logger.warn("AppSec is disabled: #{e.class}: #{e.message}; there may be additional logged errors above")
 
+          # Not reporting to telemetry here because some of the rescued exceptions
+          # have already been reported by the code that raised them
+          # (e.g. SecurityEngine::Engine.new reports WAF init failures).
+          # TODO: reconsider whether telemetry reporting belongs here
+          # (single catch-all) or in the downstream code (as it is now).
           nil
         end
 
@@ -70,11 +75,10 @@ module Datadog
         end
       end
 
-      attr_reader :security_engine, :telemetry
+      attr_reader :security_engine
 
-      def initialize(security_engine:, telemetry:)
+      def initialize(security_engine:)
         @security_engine = security_engine
-        @telemetry = telemetry
       end
 
       def reconfigure!

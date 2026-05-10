@@ -10,13 +10,6 @@ module Datadog
       #
       # @api private
       module Event
-        extend Core::Utils::Forking
-
-        # returns sequence that increments every time the configuration changes
-        def self.configuration_sequence
-          after_fork! { @sequence = Datadog::Core::Utils::Sequence.new(1) }
-          @sequence ||= Datadog::Core::Utils::Sequence.new(1)
-        end
       end
     end
   end
@@ -25,6 +18,7 @@ end
 require_relative 'event/base'
 require_relative 'event/app_client_configuration_change'
 require_relative 'event/app_closing'
+require_relative 'event/app_extended_heartbeat'
 require_relative 'event/app_dependencies_loaded'
 require_relative 'event/app_endpoints_loaded'
 require_relative 'event/app_heartbeat'

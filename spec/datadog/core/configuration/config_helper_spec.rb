@@ -68,6 +68,19 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
     end
   end
 
+  describe '#to_h' do
+    subject do
+      described_class.new(
+        source_env: {'DD_SERVICE' => 'my-app', 'PATH' => '/usr/bin'},
+        supported_configurations: ['DD_SERVICE']
+      )
+    end
+
+    it 'returns the source environment as a Hash' do
+      expect(subject.to_h).to eq('DD_SERVICE' => 'my-app', 'PATH' => '/usr/bin')
+    end
+  end
+
   describe '#get_environment_variable' do
     context 'when using default source_env' do
       subject do

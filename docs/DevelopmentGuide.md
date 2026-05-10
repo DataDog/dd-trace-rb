@@ -19,7 +19,7 @@ This guide covers some of the common how-tos and technical reference material fo
 
 The trace library uses Docker Compose to create a Ruby environment to develop and test within, as well as containers for any dependencies that might be necessary for certain kinds of tests.
 
-To start a development environment, choose a target Ruby or JRuby version.
+To start a development environment, choose a target Ruby version.
 Some of the development tooling is only defined for the recent MRI versions,
 therefore we suggest using Ruby 3.4 unless you specifically need a different
 version. Run the following:
@@ -30,9 +30,6 @@ cd ~/dd-trace-rb
 
 # Create and start a Ruby 3.4 test environment with its dependencies
 docker compose run --rm tracer-3.4 /bin/bash
-
-# or a JRuby test environment with its dependencies
-docker compose run --rm tracer-jruby-9.4 /bin/bash
 
 # Then inside the container (e.g. `root@2a73c6d8673e:/app`)...
 # Install the library dependencies
@@ -104,9 +101,9 @@ Take `bundle exec rake test:redis` as example: multiple versions of `redis` from
 ```ruby
 {
   'redis' => {
-    'redis-3' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby',
-    'redis-4' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby',
-    'redis-5' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby'
+    'redis-3' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4',
+    'redis-4' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4',
+    'redis-5' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4'
   }
 }
 ```
@@ -123,7 +120,7 @@ You can find them by running the following command:
 bundle exec rake -T dependency:
 ```
 
-Dependency group definitions are located under the `appraisal/` directory using the same DSL provided by [Appraisal](https://github.com/thoughtbot/appraisal). These definitions are used to generate `gemfiles/*.gemfile` and then `gemfiles/*.lock`. All the files are underscored and prefixed with the Ruby or JRuby runtime version.
+Dependency group definitions are located under the `appraisal/` directory using the same DSL provided by [Appraisal](https://github.com/thoughtbot/appraisal). These definitions are used to generate `gemfiles/*.gemfile` and then `gemfiles/*.lock`. All the files are underscored and prefixed with the Ruby runtime version.
 
 > [!IMPORTANT]
 > Do NOT manually edit `gemfiles/*.gemfile` or `gemfiles/*.lock`. Instead, make changes to `appraisal/*.rb` and propagate your changes programmatically.
@@ -168,11 +165,11 @@ For example, if you want tests to run only on Ruby 3.3 for tracing, you can defi
 {
   'tracing:ruby_on_rails' => {
     # With default dependencies for each Ruby runtime
-    '' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4 / ❌ jruby'
+    '' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4'
     # or with dependency group definition `ruby-on-rails`, that includes additional gems or specific versions
-    'rails-1' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4 / ❌ jruby'
+    'rails-1' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4'
     # ...
-    'rails-edge' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4 / ❌ jruby'
+    'rails-edge' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ✅ 3.3 / ❌ 3.4'
   }
 }
 ```

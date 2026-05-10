@@ -46,7 +46,6 @@ class ProfilerMemorySampleSerializeBenchmark
     @skip_end_gc = ENV['SKIP_END_GC'] == 'true'
     @recorder_factory = proc {
       Datadog::Profiling::StackRecorder.for_testing(
-        cpu_time_enabled: false,
         alloc_samples_enabled: true,
         heap_samples_enabled: @heap_samples_enabled,
         heap_size_enabled: @heap_size_enabled,
@@ -87,7 +86,7 @@ class ProfilerMemorySampleSerializeBenchmark
         retained_objs.size # Dummy action to make sure this is still alive
       end
 
-      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end

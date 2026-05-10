@@ -2,7 +2,7 @@ require "datadog/profiling/spec_helper"
 require "datadog/profiling/native_extension"
 
 RSpec.describe Datadog::Profiling::NativeExtension do
-  before { skip_if_profiling_not_supported(self) }
+  before { skip_if_profiling_not_supported }
 
   describe ".working?" do
     subject(:working?) { described_class.send(:working?) }

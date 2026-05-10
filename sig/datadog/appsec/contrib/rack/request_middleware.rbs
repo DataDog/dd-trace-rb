@@ -2,6 +2,10 @@ module Datadog
   module AppSec
     module Contrib
       module Rack
+        RESPONSE_HEADERS_TAGS: ::Array[::String]
+
+        WAF_VENDOR_HEADERS_TAGS: ::Array[::String]
+
         class RequestMiddleware
           def initialize: (untyped app, ?::Hash[untyped, untyped] opt) -> untyped
 

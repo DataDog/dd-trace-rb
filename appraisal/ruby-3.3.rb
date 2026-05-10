@@ -58,10 +58,15 @@ appraise 'rails71' do
   gem 'rails', '~> 7.1.0'
 end
 
+appraise 'rails81' do
+  gem 'rails', '~> 8.1.0'
+end
+
 appraise 'rails8-mysql2' do
   gem 'rails', '~> 8.0.0'
   gem 'mysql2', '~> 0.5', platform: :ruby
   gem 'lograge', '~> 0.11'
+  gem 'bootsnap', '>= 1.7'
   gem 'net-smtp'
 end
 
@@ -136,6 +141,13 @@ appraise 'http' do
   gem 'typhoeus'
 end
 
+appraise 'http6' do
+  gem 'ethon'
+  gem 'http', '~> 6'
+  gem 'httpclient'
+  gem 'typhoeus'
+end
+
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
 build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
@@ -147,7 +159,10 @@ build_coverage_matrix('dalli', [2])
 build_coverage_matrix('karafka', min: '2.3.0')
 build_coverage_matrix('waterdrop', min: '2.8.8.rc1')
 build_coverage_matrix('devise', min: '3.2.1')
-build_coverage_matrix('openfeature', min: '0.3.1', gem: 'openfeature-sdk')
+build_coverage_matrix('openfeature', min: '0.3.1', gem: 'openfeature-sdk', meta: {
+  'opentelemetry-sdk' => '~> 1.1',
+  'opentelemetry-metrics-sdk' => '>= 0.8',
+})
 build_coverage_matrix('ruby-llm', gem: 'ruby_llm')
 build_coverage_matrix('kicks', min: '3.0.0')
 

@@ -156,10 +156,10 @@ RSpec.describe 'Telemetry full integration tests' do
 
       event = events[0]
       expect(event.payload.fetch(:configuration)).to include(
-        name: 'dynamic_instrumentation.enabled',
+        name: 'DD_DYNAMIC_INSTRUMENTATION_ENABLED',
         value: false,
         origin: 'default',
-        seq_id: Integer,
+        seq_id: 1,
       )
 
       events = []
@@ -189,10 +189,10 @@ RSpec.describe 'Telemetry full integration tests' do
 
       event = events[0]
       expect(event.payload.fetch(:configuration)).to include(
-        name: 'dynamic_instrumentation.enabled',
+        name: 'DD_DYNAMIC_INSTRUMENTATION_ENABLED',
         value: true,
         origin: 'code',
-        seq_id: Integer,
+        seq_id: 5,
       )
     end
 
