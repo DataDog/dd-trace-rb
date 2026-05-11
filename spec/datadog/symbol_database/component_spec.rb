@@ -312,6 +312,112 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
   end
 
+  describe '#after_fork!' do
+    let(:component) { described_class.new(settings, agent_settings, logger) }
+
+    # Simulate fork: call after_fork! on the same Component to model the
+    # state a child process inherits. Real fork specs are awkward in
+    # rspec — the unit-level guarantees are about mutex/CV/thread reinit
+    # and force-upload re-trigger, which are observable without forking.
+
+    it 'reinitializes scheduler mutex and condition variable' do
+      old_mutex = component.instance_variable_get(:@scheduler_mutex)
+      old_cv = component.instance_variable_get(:@scheduler_cv)
+
+      component.after_fork!
+
+      expect(component.instance_variable_get(:@scheduler_mutex)).not_to equal(old_mutex)
+      expect(component.instance_variable_get(:@scheduler_cv)).not_to equal(old_cv)
+    end
+
+    it 'reinitializes the upload mutex, condition variables, and hot-load buffer mutex' do
+      old_mutex = component.instance_variable_get(:@mutex)
+      old_progress_cv = component.instance_variable_get(:@upload_in_progress_cv)
+      old_last_upload_cv = component.instance_variable_get(:@last_upload_time_cv)
+      old_buffer_mutex = component.instance_variable_get(:@hot_load_buffer_mutex)
+
+      component.after_fork!
+
+      expect(component.instance_variable_get(:@mutex)).not_to equal(old_mutex)
+      expect(component.instance_variable_get(:@upload_in_progress_cv)).not_to equal(old_progress_cv)
+      expect(component.instance_variable_get(:@last_upload_time_cv)).not_to equal(old_last_upload_cv)
+      expect(component.instance_variable_get(:@hot_load_buffer_mutex)).not_to equal(old_buffer_mutex)
+    end
+
+    it 'clears scheduler thread reference and pending schedule' do
+      component.start_upload
+      sleep 0.01 # let scheduler thread enter wait
+      expect(component.instance_variable_get(:@scheduler_thread)).not_to be_nil
+
+      component.after_fork!
+
+      expect(component.instance_variable_get(:@scheduler_thread)).to be_nil
+      expect(component.instance_variable_get(:@scheduled_at)).to be_nil
+      expect(component.instance_variable_get(:@scheduler_signaled)).to be false
+    end
+
+    it 'clears the hot-load buffer and the initial-extraction flag' do
+      component.instance_variable_get(:@hot_load_buffer) << Object
+      component.instance_variable_set(:@initial_extraction_done, true)
+
+      component.after_fork!
+
+      expect(component.instance_variable_get(:@hot_load_buffer)).to be_empty
+      expect(component.instance_variable_get(:@initial_extraction_done)).to be false
+    end
+
+    it 'clears the hot-load tracepoint reference so start_upload installs a fresh one' do
+      tracepoint = TracePoint.new(:class) {}
+      component.instance_variable_set(:@hot_load_tracepoint, tracepoint)
+
+      component.after_fork!
+
+      expect(component.instance_variable_get(:@hot_load_tracepoint)).to be_nil
+    end
+
+    it 'resets @upload_in_progress to false' do
+      component.instance_variable_set(:@upload_in_progress, true)
+
+      component.after_fork!
+
+      expect(component.upload_in_progress).to be false
+    end
+
+    context 'when force_upload is enabled' do
+      before do
+        allow(settings.symbol_database.internal).to receive(:force_upload).and_return(true)
+        hide_const('ActiveSupport')
+        hide_const('Rails::Railtie')
+      end
+
+      it 're-registers the deferred upload in the child' do
+        expect(component).to receive(:schedule_deferred_upload)
+        component.after_fork!
+      end
+    end
+
+    context 'when force_upload is not enabled' do
+      it 'does not re-trigger an upload — relies on remote config re-subscription' do
+        expect(component).not_to receive(:schedule_deferred_upload)
+        component.after_fork!
+      end
+    end
+
+    it 'leaves a child Component able to start_upload normally after fork-state reset' do
+      # Simulate parent upload completing, then fork.
+      component.instance_variable_set(:@last_upload_time, Datadog::Core::Utils::Time.now)
+      component.after_fork!
+
+      extractor = component.instance_variable_get(:@extractor)
+      expect(extractor).to receive(:extract_all).at_least(:once).and_return([])
+
+      component.start_upload
+      sleep 0.2 # > EXTRACT_DEBOUNCE_INTERVAL
+
+      component.shutdown!
+    end
+  end
+
   describe 'debounce regression (collapses bursts of start_upload calls)' do
     # The two-uploads bug was that a burst of start_upload triggers — auto-deferred
     # callback then explicit script call — produced two extractions. The fix is
