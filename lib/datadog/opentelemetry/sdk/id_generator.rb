@@ -19,14 +19,11 @@ module Datadog
 
           # @return [String] a valid 16-byte trace ID.
           def generate_trace_id
-            loop do
-              trace_id = Tracing::Utils::TraceId.next_id
-              id = [
-                Tracing::Utils::TraceId.to_high_order(trace_id),
-                Tracing::Utils::TraceId.to_low_order(trace_id),
-              ].pack('Q>Q>')
-              return id unless id == INVALID_TRACE_ID
-            end
+            trace_id = Tracing::Utils::TraceId.next_id
+            [
+              Tracing::Utils::TraceId.to_high_order(trace_id),
+              Tracing::Utils::TraceId.to_low_order(trace_id),
+            ].pack('Q>Q>')
           end
         end
       end
