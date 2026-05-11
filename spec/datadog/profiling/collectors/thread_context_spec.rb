@@ -1484,12 +1484,21 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         let(:context_tracking) { [] }
 
         before do
-          5.times do
-            on_gc_start
-            on_gc_finish
-
-            context_tracking << gc_tracking
-          end
+          # REPRODUCER for flaky failure on macOS:
+          #
+          # The Mach-API CPU clock (clock_id_from_mach.c) has microsecond resolution.
+          # When 5 fast GC cycles all complete within a single microsecond on macOS,
+          # every accumulated_cpu_time_ns snapshot is identical (first == last), and
+          # the strict `<` assertion on the test below fails with
+          # "expected: < 2000, got: 2000".
+          #
+          # This reproducer forces the failure deterministically on every platform by
+          # running a single cycle and replicating its snapshot 5 times. CI should
+          # show the test failing with the same error message seen on macOS in CI.
+          on_gc_start
+          on_gc_finish
+          snapshot = gc_tracking
+          5.times { context_tracking << snapshot }
         end
 
         it "accumulates the cpu-time and wall-time from the multiple GCs" do
