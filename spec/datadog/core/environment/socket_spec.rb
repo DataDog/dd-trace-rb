@@ -50,10 +50,7 @@ RSpec.describe Datadog::Core::Environment::Socket do
     context 'when both configured and system hostname are empty' do
       let(:configured_hostname) { '' }
 
-      before do
-        described_class.instance_variable_set(:@hostname, nil)
-        allow(::Socket).to receive(:gethostname).and_return('')
-      end
+      before { allow(described_class).to receive(:hostname).and_return('') }
 
       it 'returns nil' do
         expect(resolved).to be_nil
