@@ -1486,6 +1486,14 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         before do
           5.times do
             on_gc_start
+            # Burn enough CPU per cycle to guarantee a measurable delta even when the
+            # underlying CPU clock has microsecond resolution (macOS Mach `thread_info`).
+            # Without this, fast cycles may all land in the same microsecond bucket,
+            # making `accumulated_cpu_time_ns` constant across snapshots and failing the
+            # strict `<` assertion below.
+            burn = 0
+            10_000.times { |i| burn ^= i }
+            burn
             on_gc_finish
 
             context_tracking << gc_tracking
