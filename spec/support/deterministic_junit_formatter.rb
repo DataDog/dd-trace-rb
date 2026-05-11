@@ -26,7 +26,7 @@ class DeterministicJunitFormatter < RspecJunitFormatter
     # Time.now.to_i → <time>
     [/\b\d{10}\b/, '<time>'],
     # hostname=>"15c5f63b0f37" → hostname=>"<hostname>"
-    [/hostname=>"[abcdef\d]{12}"/, 'hostname=>"<hostname>"']
+    [/hostname=>"[0-9a-f]{12}"/, 'hostname=>"<hostname>"'],
   ]
 
   private
