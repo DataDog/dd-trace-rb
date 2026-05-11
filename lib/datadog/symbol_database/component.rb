@@ -340,18 +340,16 @@ module Datadog
           @scheduler_mutex.synchronize do
             return if @shutdown
 
-            if @scheduled_at.nil?
-              # Nothing scheduled (e.g. stop_upload cleared it, or no hot-load
-              # events since the last upload). Wait indefinitely for a signal,
-              # then re-evaluate on next loop.
+            # Copy to local so Steep narrows `Float?` to `Float` in the else branch.
+            # Steep does not track narrowing on instance variables across nil checks.
+            scheduled_at = @scheduled_at
+            if scheduled_at.nil?
+              # Nothing scheduled (e.g. stop_upload cleared it). Wait
+              # indefinitely for a signal, then re-evaluate on next loop.
               @scheduler_signaled = false
               @scheduler_cv.wait(@scheduler_mutex)
             else
-              # steep:ignore NoMethod — Steep does not narrow @scheduled_at from `Float?`
-              # to `Float` across the `if @scheduled_at.nil?` check above (instance-variable
-              # narrowing is not tracked). Runtime is safe: the else branch only runs when
-              # the variable is non-nil.
-              remaining = @scheduled_at - Datadog::Core::Utils::Time.get_time # steep:ignore NoMethod
+              remaining = scheduled_at - Datadog::Core::Utils::Time.get_time
               if remaining > 0
                 # Wait until the debounce deadline. Any signal (start_upload,
                 # stop_upload, shutdown!, hot-load event) wakes us early; we

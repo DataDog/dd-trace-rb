@@ -7,7 +7,7 @@ module Datadog
 
       @agent_settings: Datadog::Core::Configuration::AgentSettings
 
-      @logger: Datadog::Core::Logger
+      @logger: SymbolDatabase::Logger
 
       @telemetry: Datadog::Core::Telemetry::Component?
 
@@ -16,7 +16,7 @@ module Datadog
       def initialize: (
         settings: Datadog::Core::Configuration::Settings,
         agent_settings: Datadog::Core::Configuration::AgentSettings,
-        logger: Datadog::Core::Logger,
+        logger: SymbolDatabase::Logger,
         ?telemetry: Datadog::Core::Telemetry::Component?
       ) -> void
 
