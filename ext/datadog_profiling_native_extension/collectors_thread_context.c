@@ -2095,7 +2095,12 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     long gvl_waiting_started_wall_time_ns = labs(gvl_waiting_at);
 
     if (thread_context->wall_time_at_previous_sample_ns < gvl_waiting_started_wall_time_ns) { // situation 1 above
-      long cpu_time_elapsed_ns = update_time_since_previous_sample(
+      // Advance the cpu-time marker so the next regular sample does not over-count CPU. We discard the returned
+      // elapsed value: on platforms where cpu_time is measured at microsecond granularity (macOS via Mach
+      // thread_info), a thread that briefly held the GVL before parking can accrue a single-digit-microsecond
+      // reading. The extra sample's wall-time spans tens of milliseconds, so any cpu_time_ns > 0 trips the
+      // "had cpu" classifier in collectors_stack.c — which mislabels a sample that was overwhelmingly wall-only.
+      update_time_since_previous_sample(
         &thread_context->cpu_time_at_previous_sample_ns,
         current_cpu_time_ns,
         thread_context->gc_tracking.cpu_time_at_start_ns,
@@ -2116,7 +2121,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
         stack_from_thread,
         thread_context,
         sampling_buffer,
-        (sample_values) {.cpu_time_ns = cpu_time_elapsed_ns, .cpu_or_wall_samples = 1, .wall_time_ns = duration_until_start_of_gvl_waiting_ns},
+        (sample_values) {.cpu_time_ns = 0, .cpu_or_wall_samples = 1, .wall_time_ns = duration_until_start_of_gvl_waiting_ns},
         gvl_waiting_started_wall_time_ns,
         NULL,
         NULL,
