@@ -4,7 +4,7 @@ PATH
     datadog (2.33.0)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
-      libdatadog (~> 30.0.0.1.0)
+      libdatadog (~> 33.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
@@ -34,10 +34,10 @@ GEM
     elastic-transport (8.5.1)
       faraday (< 3)
       multi_json
-    elasticsearch (9.3.1)
+    elasticsearch (9.4.0)
       elastic-transport (~> 8.3)
-      elasticsearch-api (= 9.3.1)
-    elasticsearch-api (9.3.1)
+      elasticsearch-api (= 9.4.0)
+    elasticsearch-api (9.4.0)
       base64
       multi_json
     faraday (2.14.1)
@@ -51,11 +51,11 @@ GEM
     google-protobuf (3.25.4-aarch64-linux)
     google-protobuf (3.25.4-x86_64-linux)
     hashdiff (1.1.1)
-    json (2.19.4)
+    json (2.19.5)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (30.0.0.1.0-aarch64-linux)
-    libdatadog (30.0.0.1.0-x86_64-linux)
+    libdatadog (33.0.0.1.0-aarch64-linux)
+    libdatadog (33.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.2-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.2-x86_64-linux)
