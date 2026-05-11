@@ -297,13 +297,16 @@ module Datadog
             return if @shutdown
             return if Component.uploaded_this_process?
 
-            if @scheduled_at.nil?
+            # Copy to local so Steep narrows `Float?` to `Float` in the else branch.
+            # Steep does not track narrowing on instance variables across nil checks.
+            scheduled_at = @scheduled_at
+            if scheduled_at.nil?
               # Nothing scheduled (e.g. stop_upload cleared it). Wait
               # indefinitely for a signal, then re-evaluate on next loop.
               @scheduler_signaled = false
               @scheduler_cv.wait(@scheduler_mutex)
             else
-              remaining = @scheduled_at - Datadog::Core::Utils::Time.get_time
+              remaining = scheduled_at - Datadog::Core::Utils::Time.get_time
               if remaining > 0
                 # Wait until the debounce deadline. Any signal (start_upload,
                 # stop_upload, shutdown!) wakes us early; we always re-loop

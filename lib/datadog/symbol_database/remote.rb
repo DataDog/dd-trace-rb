@@ -74,22 +74,27 @@ module Datadog
         def process_change(component, change)
           case change.type
           when :insert
+            # @type var change: ::Datadog::Core::Remote::Configuration::Repository::Change::Inserted
             enable_upload(component, change.content)
             change.content.applied
           when :update
+            # @type var change: ::Datadog::Core::Remote::Configuration::Repository::Change::Updated
             disable_upload(component)
             enable_upload(component, change.content)
             change.content.applied
           when :delete
+            # @type var change: ::Datadog::Core::Remote::Configuration::Repository::Change::Deleted
             disable_upload(component)
             change.previous&.applied
           else
             Datadog.logger.debug { "symdb: unrecognized change type: #{change.type}" }
-            change.content.errored("Unrecognized change type: #{change.type}") if change.respond_to?(:content)
+            change.content.errored("Unrecognized change type: #{change.type}") if change.respond_to?(:content) # steep:ignore NoMethod
           end
         rescue => e
           Datadog.logger.debug { "symdb: error processing remote config change: #{e.class}: #{e.message}" }
-          content_obj = change.respond_to?(:content) ? change.content : change.previous
+          # Rescue runs regardless of which branch raised — Steep cannot narrow the
+          # union type from a respond_to? check.
+          content_obj = change.respond_to?(:content) ? change.content : change.previous # steep:ignore NoMethod
           content_obj&.errored(e.to_s)
         end
 
