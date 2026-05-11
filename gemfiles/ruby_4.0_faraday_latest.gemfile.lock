@@ -46,7 +46,7 @@ GEM
     fiddle (1.1.8)
     google-protobuf (3.25.8)
     hashdiff (1.2.1)
-    json (2.19.4)
+    json (2.19.5)
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (30.0.0.1.0)

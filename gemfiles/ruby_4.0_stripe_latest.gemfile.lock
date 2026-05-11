@@ -19,7 +19,7 @@ GEM
     benchmark-ips (2.14.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
-    bigdecimal (3.2.3)
+    bigdecimal (4.1.2)
     byebug (12.0.0)
     cgi (0.5.1)
     climate_control (1.2.0)
