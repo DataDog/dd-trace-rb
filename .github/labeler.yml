@@ -1,6 +1,13 @@
 # Configuration for GitHub Action `.github/workflows/pull-request-labeler.yml`.
 # See https://github.com/marketplace/actions/labeler for more information.
 
+# Changes to AI Guard
+ai-guard:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'lib/datadog/ai_guard.rb'
+    - 'lib/datadog/ai_guard/**'
+
 core:
 - changed-files:
   - any-glob-to-any-file:
