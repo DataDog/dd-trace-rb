@@ -208,7 +208,7 @@ void idle_sampling_helper_request_action(VALUE self_instance, void (*run_action_
   if (!rb_typeddata_is_kind_of(self_instance, &idle_sampling_helper_typed_data)) {
     grab_gvl_and_raise(rb_eTypeError, "Wrong argument for idle_sampling_helper_request_action");
   }
-  // This should never fail the the above check passes
+  // This should never fail when the above check passes
   TypedData_Get_Struct(self_instance, idle_sampling_loop_state, &idle_sampling_helper_typed_data, state);
 
   ENFORCE_SUCCESS_NO_GVL(pthread_mutex_lock(&state->wakeup_mutex));
