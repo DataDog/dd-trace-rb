@@ -47,6 +47,8 @@ module Datadog
       def self.get_local_variables: (TracePoint trace_point) -> Hash[untyped, untyped]
       def self.get_instance_variables: (Object self) -> Hash[untyped, untyped]
 
+      def run_method_probe: (::Array[untyped] args, ::Hash[::Symbol, untyped] kwargs, ::Proc? target_block, untyped target_self, ::Proc do_super, Probe probe, untyped responder, ::Array[untyped]? loc, ::String method_name) -> untyped
+
       private
 
       attr_reader lock: untyped
