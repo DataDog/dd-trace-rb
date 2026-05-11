@@ -1500,7 +1500,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             # strict `<` assertion below.
             burn = 0
             10_000.times { |i| burn ^= i }
-            burn
             on_gc_finish
 
             context_tracking << gc_tracking
