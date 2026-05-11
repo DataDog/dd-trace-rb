@@ -2,13 +2,19 @@ stages:
   - manual-images
   - package
   - shared-pipeline
-  - vaccine
   - macrobenchmarks
   - microbenchmarks
+  # These benchmarks should ultimately replace the old macrobenchmarks setup
+  # For now they will run in parallel with the macrobenchmarks setup
+  - ruby-acme-parallel
+  - ruby-acme-parallel-slo
 
 include:
   - local: ".gitlab/one-pipeline.locked.yml"
   - local: ".gitlab/benchmarks.yml"
+  - project: 'DataDog/apm-reliability/apm-sdks-benchmarks'
+    file: '.gitlab/ci-ruby-acme-parallel.yml'
+    ref: 'main'
 
 variables:
   RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby
@@ -30,10 +36,10 @@ workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push"
       changes:
-        - .gitlab/Dockerfile-*   # these are direct dependencies
-        - .gitlab-ci.yml         # list of images is here so it is a dependency too
+        - .gitlab/Dockerfile-* # these are direct dependencies
+        - .gitlab-ci.yml # list of images is here so it is a dependency too
       allow_failure: true
-  image: $DOCKER_REGISTRY/docker:20.10.13
+  image: $DOCKER_REGISTRY/docker:29.4.0-noble
   id_tokens:
     DDSIGN_ID_TOKEN:
       aud: image-integrity
@@ -64,15 +70,15 @@ build-image-arm64:
 
 promote-image:
   stage: manual-images
-  rules:                         # same as build-image
+  rules: # same as build-image
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push"
       changes:
-        - .gitlab/Dockerfile-*   # these are direct dependencies
-        - .gitlab-ci.yml         # list of images is here so it is a dependency too
-      when: manual               # this one is manual, but it means that install-dependencies may be hitting the wrong <base>:current til this is run
+        - .gitlab/Dockerfile-* # these are direct dependencies
+        - .gitlab-ci.yml # list of images is here so it is a dependency too
+      when: manual # this one is manual, but it means that install-dependencies may be hitting the wrong <base>:current til this is run
       allow_failure: true
   tags: ["docker-in-docker:amd64"]
-  image: $DOCKER_REGISTRY/docker:20.10.13
+  image: $DOCKER_REGISTRY/docker:29.4.0-noble
   parallel:
     matrix:
       # ADD NEW RUBIES HERE
@@ -89,6 +95,7 @@ build-gem:
   script:
     - mkdir -p pkg tmp
     - |
+      set -eo pipefail
       if [ -n "$CI_COMMIT_TAG" ]; then
         .gitlab/check_gem_presence.sh
         VERSION=${CI_COMMIT_TAG#v}
@@ -100,7 +107,19 @@ build-gem:
         echo CI_COMMIT_REF_NAME=$CI_COMMIT_REF_NAME
         echo CI_COMMIT_SHA=$CI_COMMIT_SHA
         .gitlab/patch_gem_version.sh glci $CI_JOB_ID $CI_COMMIT_REF_NAME $CI_COMMIT_SHA
-        bundle install && chmod go-w -R . && bundle exec rake build
+        for attempt in 1 2 3 4; do
+          if bundle install; then
+            break
+          fi
+          if [ "$attempt" -eq 4 ]; then
+            echo "bundle install failed after 4 attempts" >&2
+            exit 1
+          fi
+          echo "bundle install attempt $attempt failed; sleeping 10s before retry" >&2
+          sleep 10
+        done
+        chmod go-w -R .
+        bundle exec rake build
         ruby -Ilib -rdatadog/version -e 'puts Gem::Version.new(Datadog::VERSION::STRING).to_s' >> tmp/version
       fi
   artifacts:
@@ -148,7 +167,7 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: faabbe56b8148a9ac11583cfe92ebd015e2c7a7e # Automated: This reference is automatically updated.
+    SYSTEM_TESTS_REF: 362df5d2e632e2f64a7368191ab9500e5d566c7e # Automated: Updated by .github/workflows/update-system-tests.yml.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,simple_onboarding_appsec,lib-injection,docker_ssi"
     SYSTEM_TEST_BUILD_ATTEMPTS: 3
 
@@ -167,37 +186,6 @@ save_versions:
 deploy_to_reliability_env:
   needs:
     - save_versions
-
-# Currently, the job is implemented with polling mechanism.
-#
-# Due to the constraints of Github workflow dispatch endpoint, it does not return the workflow run id.
-# https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#create-a-workflow-dispatch-event
-#
-# We fetch the latest workflow runs from vaccine then match against the run name, polling until we find it.
-vaccine:
-  image: registry.ddbuild.io/images/dd-octo-sts-ci-base:v68058725-73f34e7-2025.06-1
-  tags: ["arch:amd64"]
-  stage: vaccine
-  needs:
-    - create-multiarch-lib-injection-image
-    - kubernetes-injection-test-ecr-publish
-  id_tokens:
-    DDOCTOSTS_ID_TOKEN:
-      aud: dd-octo-sts
-
-  before_script:
-    # Get a token
-    - dd-octo-sts version
-    # - dd-octo-sts debug --scope DataDog/vaccine --policy dd-trace-rb.dispatch # Uncomment to debug
-    - dd-octo-sts token --scope DataDog/vaccine --policy dd-trace-rb.dispatch > token.txt
-
-  script:
-    - export GITHUB_TOKEN=$(cat token.txt)
-    - .gitlab/scripts/vaccine.sh master "${CI_COMMIT_SHA}" "glci:${CI_PIPELINE_ID}"
-
-  after_script:
-    # Revoke the token after usage
-    - dd-octo-sts revoke -t $(cat token.txt)
 
 # Config inversion CI steps
 validate_supported_configurations_v2_local_file:

@@ -75,7 +75,7 @@ RSpec.describe 'Excon SSRF Injection' do
             end
             response = client.get(path: '/success')
 
-            [200, {'Content-Type' => 'application/json'}, [response.status]]
+            [200, {'Content-Type' => 'application/json'}, [response.status.to_s]]
           end
         )
       end

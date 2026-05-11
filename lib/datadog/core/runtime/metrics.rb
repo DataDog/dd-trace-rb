@@ -26,8 +26,7 @@ module Datadog
           # Initialize the collection of runtime-id
           @runtime_id_enabled = options.fetch(:experimental_runtime_id_enabled, false)
 
-          # Initialized process tags support
-          @process_tags_enabled = options.fetch(:experimental_propagate_process_tags_enabled, false)
+          @process_tags_enabled = options.fetch(:experimental_propagate_process_tags_enabled)
         end
 
         # Associate service with runtime metrics
@@ -101,7 +100,7 @@ module Datadog
         def try_flush
           yield
         rescue => e
-          Datadog.logger.warn("Error while sending runtime metric. Cause: #{e.class.name} #{e.message}")
+          Datadog.logger.warn("Error while sending runtime metric. Cause: #{e.class}: #{e.message}")
         end
 
         def default_metric_options

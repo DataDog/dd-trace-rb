@@ -18,7 +18,11 @@ module Datadog
 
             option :service_name
 
-            option :distributed_tracing, default: false, type: :bool
+            option :distributed_tracing do |o|
+              o.type :bool
+              o.env Ext::ENV_DISTRIBUTED_TRACING
+              o.default false
+            end
           end
         end
       end

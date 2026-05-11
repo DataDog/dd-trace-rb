@@ -105,19 +105,6 @@ module Datadog
         )
 
         # Validation for this check is done in extconf.rb because it relies on mkmf
-        PKG_CONFIG_IS_MISSING = explain_issue(
-          # ----------------------------------------------------------------------------+
-          "the `pkg-config` system tool is missing.",
-          "This issue can usually be fixed by installing one of the following:",
-          "the `pkg-config` package on Homebrew and Debian/Ubuntu-based Linux;",
-          "the `pkgconf` package on Arch and Alpine-based Linux;",
-          "the `pkgconf-pkg-config` package on Fedora/Red Hat-based Linux.",
-          "(Tip: When fixing this, ensure `pkg-config` is installed **before**",
-          "running `bundle install`, and remember to clear any installed gems cache).",
-          suggested: CONTACT_SUPPORT,
-        )
-
-        # Validation for this check is done in extconf.rb because it relies on mkmf
         COMPILER_ATOMIC_MISSING = explain_issue(
           "your C compiler is missing support for the <stdatomic.h> header.",
           "This issue can usually be fixed by upgrading to a later version of your",

@@ -7,6 +7,8 @@ module Datadog
 
       private
 
+      def self.truncate_messages: (::Array[Request::serialized_message]) -> ::Array[Request::serialized_message]
+
       def self.truncate_content: (::Array[Request::serialized_message]) -> ::Array[Request::serialized_message]
     end
   end

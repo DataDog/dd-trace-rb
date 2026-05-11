@@ -1,9 +1,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/mongodb/integration'
 
-# TODO: JRuby 10.0 - Remove this skip after MongoDB adds support for JRuby 10.0: https://github.com/mongodb/mongo-ruby-driver#mongodb-ruby-driver
-# The tests fail on an error related to the bson_ruby gem's NativeService.
-RSpec.describe Datadog::Tracing::Contrib::MongoDB::Integration, skip: PlatformHelpers.jruby_100? do
+RSpec.describe Datadog::Tracing::Contrib::MongoDB::Integration do
   let(:integration) { described_class.new(:mongodb) }
 
   describe '.version' do

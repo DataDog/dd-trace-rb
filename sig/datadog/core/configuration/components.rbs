@@ -14,6 +14,8 @@ module Datadog
 
         def self.build_telemetry: (untyped settings) -> untyped
 
+        def self.build_data_streams: (untyped settings, untyped agent_settings, Core::Logger logger, Environment::AgentInfo agent_info) -> DataStreams::Processor?
+
         private
 
         def self.build_tracer_tags: (untyped settings) -> untyped
@@ -34,7 +36,9 @@ module Datadog
 
         attr_reader profiler: untyped
 
-        attr_reader dynamic_instrumentation: untyped
+        attr_reader dynamic_instrumentation: Datadog::DI::Component?
+
+        attr_reader appsec: Datadog::AppSec::Component?
 
         attr_reader runtime_metrics: untyped
 
@@ -49,8 +53,6 @@ module Datadog
         attr_reader data_streams: Datadog::DataStreams::Processor?
 
         attr_reader open_feature: Datadog::OpenFeature::Component?
-
-        attr_reader appsec: AppSec::Component?
 
         def initialize: (untyped settings) -> untyped
 

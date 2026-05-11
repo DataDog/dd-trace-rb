@@ -3,8 +3,6 @@ module Datadog
     class Component
       @security_engine: SecurityEngine::Engine?
 
-      @telemetry: Core::Telemetry::Component
-
       def self.build_appsec_component: (Core::Configuration::Settings settings, telemetry: Core::Telemetry::Component) -> Component?
 
       private
@@ -15,9 +13,7 @@ module Datadog
 
       attr_reader security_engine: AppSec::SecurityEngine::Engine?
 
-      attr_reader telemetry: Core::Telemetry::Component
-
-      def initialize: (security_engine: AppSec::SecurityEngine::Engine, telemetry: Core::Telemetry::Component) -> void
+      def initialize: (security_engine: AppSec::SecurityEngine::Engine) -> void
 
       def reconfigure!: () -> void
 

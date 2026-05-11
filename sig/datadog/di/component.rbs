@@ -19,6 +19,8 @@ module Datadog
 
       @transport: untyped
 
+      @probe_repository: ProbeRepository
+
       @probe_notifier_worker: ProbeNotifierWorker
 
       @probe_notification_builder: ProbeNotificationBuilder
@@ -44,6 +46,8 @@ module Datadog
       attr_reader instrumenter: Instrumenter
 
       attr_reader transport: untyped
+
+      attr_reader probe_repository: ProbeRepository
 
       attr_reader probe_notifier_worker: ProbeNotifierWorker
 

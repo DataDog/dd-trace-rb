@@ -26,14 +26,13 @@ module Datadog
 
           def configuration
             config = Datadog.configuration
-            seq_id = Event.configuration_sequence.next
 
             res = @changes.map do |name, value|
               {
                 name: name,
                 value: value,
                 origin: @origin,
-                seq_id: seq_id,
+                seq_id: Configuration::Option::Precedence::REMOTE_CONFIGURATION.numeric.next,
               }
             end
 
@@ -43,7 +42,7 @@ module Datadog
                 name: 'appsec.sca_enabled',
                 value: config.appsec.sca_enabled,
                 origin: 'code',
-                seq_id: seq_id,
+                seq_id: Configuration::Option::Precedence::PROGRAMMATIC.numeric.next,
               }
             end
 

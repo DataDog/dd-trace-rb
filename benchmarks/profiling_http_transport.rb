@@ -44,6 +44,7 @@ class ProfilerHttpTransportBenchmark
       site: nil,
       api_key: nil,
       upload_timeout_seconds: 10,
+      use_system_dns: false,
     )
     @flush_finish = Time.now.utc
     @stack_recorder = Datadog::Profiling::StackRecorder.for_testing
@@ -54,8 +55,8 @@ class ProfilerHttpTransportBenchmark
       start: @flush_finish - 60,
       finish: @flush_finish,
       encoded_profile: @stack_recorder.serialize!,
-      code_provenance_file_name: 'example_code_provenance_file_name.json',
       code_provenance_data: '',
+      metrics: [],
       tags_as_array: [],
       internal_metadata: {no_signals_workaround_enabled: false},
       info_json: JSON.generate({profiler: {benchmarking: true}}),
@@ -102,7 +103,7 @@ class ProfilerHttpTransportBenchmark
         run_once
       end
 
-      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end

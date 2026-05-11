@@ -14,6 +14,7 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('2.0.0')
           DALLI_PROTOCOL_BINARY_VERSION = Gem::Version.new('3.0.0')
+          DALLI_PROTOCOL_META_VERSION = Gem::Version.new('5.0.0')
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :dalli, auto_patch: true
@@ -31,7 +32,9 @@ module Datadog
           end
 
           def self.dalli_class
-            if version >= DALLI_PROTOCOL_BINARY_VERSION
+            if version >= DALLI_PROTOCOL_META_VERSION
+              ::Dalli::Protocol::Meta
+            elsif version >= DALLI_PROTOCOL_BINARY_VERSION
               ::Dalli::Protocol::Binary
             else
               ::Dalli::Server

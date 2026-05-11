@@ -46,7 +46,7 @@ module Datadog
           decode(binary_data)
         rescue ArgumentError => e
           # Invalid base64 encoding - may indicate version mismatch or corruption
-          Datadog.logger.debug("Failed to decode DSM pathway context: #{e.message}")
+          Datadog.logger.debug { "Failed to decode DSM pathway context: #{e.class}: #{e.message}" }
           nil
         end
       end

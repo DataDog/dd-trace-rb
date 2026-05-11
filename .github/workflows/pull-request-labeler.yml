@@ -1,15 +1,22 @@
 name: "Pull Request Labeler"
 
 on: # yamllint disable-line rule:truthy
-  - pull_request_target # zizmor: ignore[dangerous-triggers]
+  pull_request:
 
 jobs:
   triage:
     permissions:
       contents: read
+      id-token: write
       pull-requests: write
     runs-on: ubuntu-22.04
     steps:
+      - name: Get GitHub Token via dd-octo-sts
+        id: generate-token
+        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
+        with:
+          scope: DataDog/dd-trace-rb
+          policy: self.pull-request-labeler
       - uses: actions/labeler@634933edcd8ababfe52f92936142cc22ac488b1b # v6.0.1
         with:
-          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          repo-token: "${{ steps.generate-token.outputs.token }}"

@@ -8,13 +8,21 @@ jobs:
   check:
     permissions:
       pull-requests: write
+      id-token: write
     runs-on: ubuntu-22.04
     steps:
+      - name: Get GitHub Token via dd-octo-sts
+        id: generate-token
+        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
+        with:
+          scope: DataDog/dd-trace-rb
+          policy: self.ensure-changelog-entry
+
       - name: Check membership
         id: membership
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
+          github-token: ${{ steps.generate-token.outputs.token }}
           script: |
             // Is author of the PR a member of the DataDog Org.
             // NOTE: https://docs.github.com/en/rest/orgs/members?apiVersion=2022-11-28#check-organization-membership-for-a-user
@@ -36,9 +44,9 @@ jobs:
 
       - name: Find existing comment
         id: comment
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
+          github-token: ${{ steps.generate-token.outputs.token }}
           script: |
             const options = github.rest.issues.listComments.endpoint.merge({
               owner: context.repo.owner,
@@ -54,9 +62,9 @@ jobs:
 
       - name: Check change log entry
         id: condition
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
+          github-token: ${{ steps.generate-token.outputs.token }}
           script: |
             const regex = /\*\*Change log entry\*\*\s+(?:<!--.*?-->\s*)?(?:(?<answer_yes>yes|yep|yeah)(?:\s?[.,:-]\s?(?<yes_message>[^\r\n<!-]+))?|(?<answer_no>no|nope|none)\.?.*?)/ims
             const entry = context.payload.pull_request.body.match(regex)
@@ -71,9 +79,9 @@ jobs:
             return isWriteComment
 
       - name: Write comment
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
+          github-token: ${{ steps.generate-token.outputs.token }}
           script: |
             const isMember = ${{steps.membership.outputs.result}}
             const username = !isMember ? "@DataDog/ruby-guild" : `@${context.payload.sender.login}`

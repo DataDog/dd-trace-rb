@@ -30,7 +30,7 @@ module Datadog
                       end
                     end
                   rescue => e
-                    Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e}")
+                    Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e.message}")
                   end
                 end
 
@@ -51,7 +51,7 @@ module Datadog
                       end
                     end
                   rescue => e
-                    Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e}")
+                    Datadog.logger.debug("Error setting DSM checkpoint: #{e.class}: #{e.message}")
                   end
                 end
 

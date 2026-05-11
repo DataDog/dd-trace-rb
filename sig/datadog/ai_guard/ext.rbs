@@ -7,6 +7,8 @@ module Datadog
       ACTION_TAG: ::String
       REASON_TAG: ::String
       BLOCKED_TAG: ::String
+      EVENT_TAG: ::String
+      SERVICE_ENTRY_EXECUTED_TAG: ::String
       METASTRUCT_TAG: ::String
     end
   end

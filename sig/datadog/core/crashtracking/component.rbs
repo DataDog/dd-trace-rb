@@ -36,7 +36,7 @@ module Datadog
 
         def start_or_update_on_fork: (action: :start | :update_on_fork, tags: ::Hash[::String, ::String]) -> void
 
-        def report_unhandled_exception: (::Exception, ?settings: Datadog::Core::Configuration::Settings) -> void
+        def report_unhandled_exception: (::Exception) -> void
 
         def self._native_start_or_update_on_fork: (
           action: :start | :update_on_fork,
@@ -50,11 +50,9 @@ module Datadog
         def self._native_stop: -> void
 
         def self._native_report_ruby_exception: (
-          ::String agent_base_url,
+          ::String exception_type,
           ::String message,
           ::Array[[::String, ::String, ::Integer]] frames_data,
-          ::Array[[::String, ::String]] tags_as_array,
-          ::String library_version
         ) -> bool
       end
     end

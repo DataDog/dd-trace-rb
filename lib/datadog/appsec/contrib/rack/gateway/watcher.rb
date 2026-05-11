@@ -24,7 +24,7 @@ module Datadog
               end
 
               def watch_request(gateway = Instrumentation.gateway)
-                gateway.watch('rack.request', :appsec) do |stack, gateway_request|
+                gateway.watch('rack.request') do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
 
                   persistent_data = {
@@ -57,7 +57,7 @@ module Datadog
               end
 
               def watch_response(gateway = Instrumentation.gateway)
-                gateway.watch('rack.response', :appsec) do |stack, gateway_response|
+                gateway.watch('rack.response') do |stack, gateway_response|
                   context = gateway_response.context
 
                   persistent_data = {
@@ -84,7 +84,7 @@ module Datadog
               end
 
               def watch_request_body(gateway = Instrumentation.gateway)
-                gateway.watch('rack.request.body', :appsec) do |stack, gateway_request|
+                gateway.watch('rack.request.body') do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
 
                   persistent_data = {
@@ -113,20 +113,19 @@ module Datadog
               #       somewhere closer to identity related monitor.
               # WARNING: The Gateway is a subject of refactoring
               def watch_request_finish(gateway = Instrumentation.gateway)
-                gateway.watch('rack.request.finish', :appsec) do |stack, gateway_request|
+                gateway.watch('rack.request.finish') do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
 
-                  if context.span.nil? || !gateway.pushed?('appsec.events.user_lifecycle')
-                    next stack.call(gateway_request.request)
-                  end
+                  next stack.call(gateway_request.request) if context.span.nil?
 
                   gateway_request.headers.each do |name, value|
-                    if !Ext::COLLECTABLE_REQUEST_HEADERS.include?(name) &&
-                        !Ext::IDENTITY_COLLECTABLE_REQUEST_HEADERS.include?(name)
-                      next
+                    if Ext::COLLECTABLE_REQUEST_HEADERS.include?(name)
+                      context.span["http.request.headers.#{name}"] ||= value
                     end
 
-                    context.span["http.request.headers.#{name}"] ||= value
+                    if context.state[:has_identity_event] && Ext::IDENTITY_COLLECTABLE_REQUEST_HEADERS.include?(name)
+                      context.span["http.request.headers.#{name}"] ||= value
+                    end
                   end
 
                   stack.call(gateway_request.request)

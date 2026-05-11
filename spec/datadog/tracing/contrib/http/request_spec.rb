@@ -419,6 +419,25 @@ RSpec.describe 'net/http requests' do
         expect_request_without_distributed_headers
       end
     end
+
+    context 'when disabled via a per-host describes: override' do
+      before do
+        Datadog.configure do |c|
+          c.tracing.instrument :http
+          c.tracing.instrument :http, describes: /127\.0\.0\.1/ do |http|
+            http.distributed_tracing = false
+          end
+        end
+        client.get(path)
+      end
+
+      let(:span) { spans.last }
+
+      it 'does not add distributed tracing headers for the matched host' do
+        expect(span.name).to eq('http.request')
+        expect_request_without_distributed_headers
+      end
+    end
   end
 
   describe 'request exceptions' do

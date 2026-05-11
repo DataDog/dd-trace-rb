@@ -22,7 +22,7 @@ class ProfilerStringStorageIntern
         Datadog::Profiling::StackRecorder::Testing._native_benchmark_intern(@recorder, "hello, world!", 1000, true)
       end
 
-      x.save! "#{File.basename(__FILE__)}-1-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, '.rb')}-1-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -48,7 +48,7 @@ class ProfilerStringStorageIntern
         end
       end
 
-      x.save! "#{File.basename(__FILE__)}-2-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__, '.rb')}-2-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end

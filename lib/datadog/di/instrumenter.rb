@@ -89,6 +89,11 @@ module Datadog
       # from the method but from outside of the method).
       Location = Struct.new(:path, :lineno, :label)
 
+      # Method probes can only target instance methods. The implementation uses
+      # Module#prepend with a module that defines an instance method matching the
+      # probe's target — class/singleton methods (def self.foo, module_function)
+      # are not reachable via prepend on the class itself. Line probes are
+      # unaffected since they install via TracePoint, not method dispatch.
       def hook_method(probe, responder)
         lock.synchronize do
           if probe.instrumentation_module
@@ -112,51 +117,59 @@ module Datadog
         end
         rate_limiter = probe.rate_limiter
         settings = self.settings
+        instrumenter = self
 
         mod = Module.new do
           define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore NoMethod
             # Steep: Unsure why it cannot detect kwargs in this block. Workaround:
             # @type var kwargs: ::Hash[::Symbol, untyped]
-            continue = true
-            if condition = probe.condition
-              begin
-                # This context will be recreated later, unlike for line probes.
-                context = Context.new(
-                  locals: serializer.combine_args(args, kwargs, self),
-                  target_self: self,
-                  probe: probe, settings: settings, serializer: serializer,
-                  caller_locations: caller_locations,
-                )
-                continue = condition.satisfied?(context)
-              rescue => exc
-                # Evaluation error exception can be raised for "expected"
-                # errors, we probably need another setting to control whether
-                # these exceptions are propagated.
-                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
-                  !exc.is_a?(DI::Error::ExpressionEvaluationError)
+            di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
 
-                if context
-                  # We want to report evaluation errors for conditions
-                  # as probe snapshots. However, if we failed to create
-                  # the context, we won't be able to report anything as
-                  # the probe notifier builder requires a context.
-                  begin
-                    responder.probe_condition_evaluation_failed_callback(context, exc)
-                  rescue
+            if continue = probe.enabled?
+              if condition = probe.condition
+                begin
+                  # This context will be recreated later, unlike for line probes.
+                  #
+                  # We do not need the stack for condition evaluation, therefore
+                  # stack is not passed to Context here.
+                  context = Context.new(
+                    locals: serializer.combine_args(args, kwargs, self),
+                    target_self: self,
+                    probe: probe, settings: settings, serializer: serializer,
+                  )
+                  continue = condition.satisfied?(context)
+                rescue => exc
+                  # Evaluation error exception can be raised for "expected"
+                  # errors, we probably need another setting to control whether
+                  # these exceptions are propagated.
+                  raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
+                    !exc.is_a?(DI::Error::ExpressionEvaluationError)
+
+                  if context
+                    # We want to report evaluation errors for conditions
+                    # as probe snapshots. However, if we failed to create
+                    # the context, we won't be able to report anything as
+                    # the probe notifier builder requires a context.
+                    begin
+                      responder.probe_condition_evaluation_failed_callback(context, exc)
+                    rescue => nested_exc
+                      raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                      instrumenter.logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
+                      instrumenter.telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
+                    end
+                  else
+                    _ = 42 # stop standard from wrecking this code
+
                     raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                    # TODO log / report via telemetry?
+                    instrumenter.logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc.message}" }
+                    instrumenter.telemetry&.report(exc, description: "Error evaluating condition without context")
+                    # If execution gets here, there is probably a bug in the tracer.
                   end
-                else
-                  _ = 42 # stop standard from wrecking this code
 
-                  raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-
-                  # TODO log / report via telemetry?
-                  # If execution gets here, there is probably a bug in the tracer.
+                  continue = false
                 end
-
-                continue = false
               end
             end
 
@@ -172,6 +185,8 @@ module Datadog
               # here because the time provider may be overridden by the
               # customer, and DI is not allowed to invoke customer code.
               start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+              di_duration = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID) - di_start_time
 
               rv = nil
               begin
@@ -195,7 +210,15 @@ module Datadog
                 # the instrumentation callback runs.
               end
 
-              duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+              end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+              duration = end_time - start_time
+
+              # Restart DI timer.
+              # The DI execution duration covers time spent in DI code before
+              # the customer method is invoked and time spent in DI code
+              # after the customer method finishes.
+              di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
+
               # The method itself is not part of the stack trace because
               # we are getting the stack trace from outside of the method.
               # Add the method in manually as the top frame.
@@ -211,8 +234,7 @@ module Datadog
                 # that location here.
                 []
               end
-              # Steep: https://github.com/ruby/rbs/pull/2745
-              caller_locs = method_frame + caller_locations # steep:ignore ArgumentTypeMismatch
+              caller_locs = method_frame + caller_locations
               # TODO capture arguments at exit
 
               context = Context.new(locals: nil, target_self: self,
@@ -221,7 +243,17 @@ module Datadog
                 caller_locations: caller_locs,
                 return_value: rv, duration: duration, exception: exc,)
 
-              responder.probe_executed_callback(context)
+              begin
+                responder.probe_executed_callback(context)
+
+                instrumenter.send(:check_and_disable_if_exceeded, probe, responder, di_start_time, di_duration)
+              rescue => di_exc
+                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                instrumenter.logger.debug { "di: unhandled exception in method probe: #{di_exc.class}: #{di_exc.message}" }
+                instrumenter.telemetry&.report(di_exc, description: "Unhandled exception in method probe")
+              end
+
               if exc
                 raise exc
               else
@@ -296,7 +328,6 @@ module Datadog
         end
 
         line_no = probe.line_no!
-        rate_limiter = probe.rate_limiter
 
         # Memoize the value to ensure this method always uses the same
         # value for the setting.
@@ -311,7 +342,11 @@ module Datadog
           # Steep: Complex type narrowing (before calling hook_line,
           # we check that probe.line? is true which itself checks that probe.file is not nil)
           # Annotation do not work here as `file` is a method on probe, not a local variable.
-          ret = code_tracker.iseqs_for_path_suffix(probe.file) # steep:ignore ArgumentTypeMismatch
+          ret = if code_tracker.respond_to?(:iseq_for_line)
+            code_tracker.iseq_for_line(probe.file, line_no) # steep:ignore ArgumentTypeMismatch
+          else
+            code_tracker.iseqs_for_path_suffix(probe.file) # steep:ignore ArgumentTypeMismatch
+          end
           unless ret
             if permit_untargeted_trace_points
               # Continue withoout targeting the trace point.
@@ -329,16 +364,16 @@ module Datadog
               # to instrument and install the hook when the file in
               # question is loaded (and hopefully, by then code tracking
               # is active, otherwise the line will never be instrumented.)
-              raise_if_probe_in_loaded_features(probe)
-              raise Error::DITargetNotDefined, "File not in code tracker registry: #{probe.file}"
+              raise_if_probe_in_loaded_features(probe, line_no, code_tracker)
+              raise Error::DITargetNotDefined, "File not in code tracker registry: #{probe.file}:#{line_no}"
             end
           end
         elsif !permit_untargeted_trace_points
           # Same as previous comment, if untargeted trace points are not
           # explicitly defined, and we do not have code tracking, do not
           # instrument the method.
-          raise_if_probe_in_loaded_features(probe)
-          raise Error::DITargetNotDefined, "File not in code tracker registry: #{probe.file}"
+          raise_if_probe_in_loaded_features(probe, line_no, nil)
+          raise Error::DITargetNotDefined, "File not in code tracker registry: #{probe.file}:#{line_no}"
         end
 
         if ret
@@ -367,103 +402,7 @@ module Datadog
           [:line]
         end
         tp = TracePoint.new(*types) do |tp|
-          begin
-            # If trace point is not targeted, we must verify that the invocation
-            # is the file & line that we want, because untargeted trace points
-            # are invoked for *each* line of Ruby executed.
-            # TODO find out exactly when the path in trace point is relative.
-            # Looks like this is the case when line trace point is not targeted?
-            continue = iseq || tp.lineno == probe.line_no && (
-              probe.file == tp.path || probe.file_matches?(tp.path)
-            )
-
-            # We set the trace point on :return to be able to instrument
-            # 'end' lines. This also causes the trace point to be invoked on
-            # non-'end' lines when a line raises an exception, since the
-            # exception causes the method to stop executing and stack unwends.
-            # We do not want two invocations of the trace point.
-            # Therefore, if a trace point is invoked with a :line event,
-            # mark it as such and ignore subsequent :return events.
-            continue &&= if probe.executed_on_line?
-              tp.event == :line
-            else
-              if tp.event == :line
-                probe.executed_on_line!
-              end
-              true
-            end
-
-            if continue
-              if condition = probe.condition
-                begin
-                  context = Context.new(
-                    locals: Instrumenter.get_local_variables(tp),
-                    target_self: tp.self,
-                    probe: probe, settings: settings, serializer: serializer,
-                    path: tp.path,
-                    caller_locations: caller_locations,
-                  )
-                  continue = condition.satisfied?(context)
-                rescue => exc
-                  # Evaluation error exception can be raised for "expected"
-                  # errors, we probably need another setting to control whether
-                  # these exceptions are propagated.
-                  raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
-                    !exc.is_a?(DI::Error::ExpressionEvaluationError)
-
-                  continue = false
-                  if context
-                    # We want to report evaluation errors for conditions
-                    # as probe snapshots. However, if we failed to create
-                    # the context, we won't be able to report anything as
-                    # the probe notifier builder requires a context.
-                    begin
-                      responder.probe_condition_evaluation_failed_callback(context, condition, exc)
-                    rescue
-                      raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-
-                      # TODO log / report via telemetry?
-                    end
-                  else
-                    _ = 42 # stop standard from wrecking this code
-
-                    raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-
-                    # TODO log / report via telemetry?
-                    # If execution gets here, there is probably a bug in the tracer.
-                  end
-                end
-              end
-            end
-
-            continue &&= rate_limiter.nil? || rate_limiter.allow? # standard:disable Style/AndOr
-
-            if continue
-              # The context creation is relatively expensive and we don't
-              # want to run it if the callback won't be executed due to the
-              # rate limit.
-              # Thus the copy-paste of the creation call here.
-              context ||= Context.new(
-                locals: Instrumenter.get_local_variables(tp),
-                target_self: tp.self,
-                probe: probe, settings: settings, serializer: serializer,
-                path: tp.path,
-                caller_locations: caller_locations,
-              )
-
-              responder.probe_executed_callback(context)
-            end
-          rescue => exc
-            raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-            logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc}" }
-            telemetry&.report(exc, description: "Unhandled exception in line trace point")
-            # TODO test this path
-          end
-        rescue => exc
-          raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-          logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc}" }
-          telemetry&.report(exc, description: "Unhandled exception in line trace point")
-          # TODO test this path
+          line_trace_point_callback(probe, iseq, responder, tp)
         end
 
         # Internal sanity check - untargeted trace points create a huge
@@ -551,23 +490,159 @@ module Datadog
 
       attr_reader :lock
 
-      def raise_if_probe_in_loaded_features(probe)
+      def line_trace_point_callback(probe, iseq, responder, tp)
+        di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
+
+        # Check if probe is enabled before doing any processing
+        return unless probe.enabled?
+
+        # If trace point is not targeted, we must verify that the invocation
+        # is the file & line that we want, because untargeted trace points
+        # are invoked for *each* line of Ruby executed.
+        # TODO find out exactly when the path in trace point is relative.
+        # Looks like this is the case when line trace point is not targeted?
+        unless iseq
+          return unless tp.lineno == probe.line_no && ( # standard:disable Style/UnlessLogicalOperators
+            probe.file == tp.path || probe.file_matches?(tp.path)
+          )
+        end
+
+        # We set the trace point on :return to be able to instrument
+        # 'end' lines. This also causes the trace point to be invoked on
+        # non-'end' lines when a line raises an exception, since the
+        # exception causes the method to stop executing and stack unwends.
+        # We do not want two invocations of the trace point.
+        # Therefore, if a trace point is invoked with a :line event,
+        # mark it as such and ignore subsequent :return events.
+        if probe.executed_on_line?
+          return unless tp.event == :line
+        else
+          _ = 42 # stop standard from changing this code
+
+          if tp.event == :line
+            probe.executed_on_line!
+          end
+        end
+
+        if condition = probe.condition
+          begin
+            context = build_trace_point_context(probe, tp)
+            return unless condition.satisfied?(context)
+          rescue => exc
+            # Evaluation error exception can be raised for "expected"
+            # errors, we probably need another setting to control whether
+            # these exceptions are propagated.
+            raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions &&
+              !exc.is_a?(DI::Error::ExpressionEvaluationError)
+
+            if context
+              # We want to report evaluation errors for conditions
+              # as probe snapshots. However, if we failed to create
+              # the context, we won't be able to report anything as
+              # the probe notifier builder requires a context.
+              begin
+                responder.probe_condition_evaluation_failed_callback(context, condition, exc)
+              rescue => nested_exc
+                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
+                telemetry&.report(nested_exc, description: "Error in probe condition evaluation failed callback")
+              end
+
+              return
+            else
+              _ = 42 # stop standard from wrecking this code
+
+              raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+              logger.debug { "di: error evaluating condition without context (tracer bug?): #{exc.class}: #{exc.message}" }
+              telemetry&.report(exc, description: "Error evaluating condition without context")
+              # If execution gets here, there is probably a bug in the tracer.
+            end
+          end
+        end
+
+        # In practice we should always have a rate limiter, but be safe
+        # and check that it is in fact set.
+        return if probe.rate_limiter && !probe.rate_limiter.allow?
+
+        # The context creation is relatively expensive and we don't
+        # want to run it if the callback won't be executed due to the
+        # rate limit.
+        # Thus the copy-paste of the creation call here.
+        context ||= build_trace_point_context(probe, tp)
+
+        responder.probe_executed_callback(context)
+
+        check_and_disable_if_exceeded(probe, responder, di_start_time)
+      rescue => exc
+        raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+        logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc.message}" }
+        telemetry&.report(exc, description: "Unhandled exception in line trace point")
+        # TODO test this path
+      end
+
+      def build_trace_point_context(probe, tp)
+        stack = caller_locations
+        # We have two helper methods being invoked from the trace point
+        # handler block, remove them from the stack.
+        #
+        # According to steep stack may be nil.
+        stack&.shift(2)
+        Context.new(
+          locals: Instrumenter.get_local_variables(tp),
+          target_self: tp.self,
+          probe: probe,
+          settings: settings,
+          serializer: serializer,
+          path: tp.path,
+          caller_locations: stack,
+        )
+      end
+
+      # Circuit breaker: disables the probe if total CPU time consumed by
+      # DI processing exceeds the configured threshold.
+      def check_and_disable_if_exceeded(probe, responder, di_start_time, accumulated_duration = 0.0)
+        return unless max_processing_time = settings.dynamic_instrumentation.internal.max_processing_time
+
+        di_duration = accumulated_duration + Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID) - di_start_time
+        if di_duration > max_processing_time
+          logger.debug { "di: disabling probe: consumed #{di_duration}: #{probe}" }
+          # We disable the probe here rather than remove it to
+          # avoid a dependency on ProbeManager from Instrumenter.
+          probe.disable!
+          responder.probe_disabled_callback(probe, di_duration)
+        end
+      end
+
+      def raise_if_probe_in_loaded_features(probe, line_no, code_tracker)
         return unless probe.file
 
-        # If the probe file is in the list of loaded files
-        # (as per $LOADED_FEATURES, using either exact or suffix match),
-        # raise an error indicating that
-        # code tracker is missing the loaded file because the file
-        # won't be loaded again (DI only works in production environments
-        # that do not normally reload code).
-        if $LOADED_FEATURES.include?(probe.file)
-          raise Error::DITargetNotInRegistry, "File loaded but is not in code tracker registry: #{probe.file}"
+        # Find the loaded path matching the probe file.
+        loaded_path = if $LOADED_FEATURES.include?(probe.file)
+          probe.file
+        else
+          # Expensive suffix check.
+          $LOADED_FEATURES.find { |path| Utils.path_matches_suffix?(path, probe.file) }
         end
-        # Ths is an expensive check
-        $LOADED_FEATURES.each do |path|
-          if Utils.path_matches_suffix?(path, probe.file)
-            raise Error::DITargetNotInRegistry, "File matching probe path (#{probe.file}) was loaded and is not in code tracker registry: #{path}"
-          end
+
+        return unless loaded_path
+
+        # Distinguish between "no iseqs at all" and "has per-method iseqs
+        # but none cover this line".
+        has_per_method = code_tracker&.send(:instance_variable_defined?, :@per_method_registry) &&
+          code_tracker.send(:per_method_registry).key?(loaded_path)
+
+        if has_per_method
+          raise Error::DITargetNotInRegistry,
+            "File #{loaded_path} is loaded and has per-method iseqs, " \
+            "but none cover line #{line_no}. " \
+            "The line may be in file-level setup code outside any method."
+        else
+          raise Error::DITargetNotInRegistry,
+            "File #{loaded_path} is loaded but has no surviving iseqs " \
+            "(whole-file iseq was garbage collected and no per-method iseqs remain). " \
+            "Line probes cannot target this file."
         end
       end
 
@@ -575,7 +650,7 @@ module Datadog
       def symbolize_class_name(cls_name)
         Object.const_get(cls_name)
       rescue NameError => exc
-        raise Error::DITargetNotDefined, "Class not defined: #{cls_name}: #{exc.class}: #{exc}"
+        raise Error::DITargetNotDefined, "Class not defined: #{cls_name}: #{exc.class}: #{exc.message}"
       end
     end
   end

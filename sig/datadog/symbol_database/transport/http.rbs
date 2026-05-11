@@ -1,0 +1,15 @@
+module Datadog
+  module SymbolDatabase
+    module Transport
+      module HTTP
+        SYMBOLS_ENDPOINT: API::Endpoint
+
+        def self.symbols: (
+          agent_settings: Datadog::Core::Configuration::AgentSettings,
+          logger: Datadog::Core::Logger,
+          ?headers: Hash[String, String]?
+        ) ?{ (Datadog::Core::Transport::HTTP::Builder) -> void } -> SymbolDatabase::Transport::Symbols::Transport
+      end
+    end
+  end
+end

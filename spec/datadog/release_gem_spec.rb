@@ -30,6 +30,9 @@ RSpec.describe 'gem release process' do
            |CONTRIBUTING.md
            |SECURITY.md
            |Gemfile
+           |AGENTS\.md
+           |AGENTS_TODO\.md
+           |CLAUDE\.md
            |(ruby|jruby)-\d+.\d+.gemfile
            |Rakefile
            |Matrixfile
@@ -45,6 +48,7 @@ RSpec.describe 'gem release process' do
            |.rspec-local.example
            |\.customcops\.yml
            |supported-configurations\.json
+           |.projections\.json
           )
           $
         }x

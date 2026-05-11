@@ -5,6 +5,12 @@ module Datadog
         module Patches
           module SignupTrackingPatch
             def create: () -> untyped
+
+            private
+
+            def record_successful_signup: (AppSec::Context context, untyped resource) -> void
+
+            def resource_params: () -> untyped
           end
         end
       end

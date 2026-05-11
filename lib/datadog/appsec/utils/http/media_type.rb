@@ -68,8 +68,7 @@ module Datadog
                 name.downcase! # steep:ignore NoMethod
                 value.downcase!
 
-                # See https://github.com/soutaro/steep/issues/2051
-                parameters[name] = value # steep:ignore ArgumentTypeMismatch
+                parameters[name] = value
               end
             end
 

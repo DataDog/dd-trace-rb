@@ -8,19 +8,12 @@ module PlatformHelpers
 
   module_function
 
-  # Ruby runtime engines
-
   def mri?
     RUBY_ENGINE == 'ruby'
   end
 
   def jruby?
     RUBY_ENGINE == 'jruby'
-  end
-
-  # After we resolve all "# TODO: JRuby 10.0 - " comments, remove this method and update docs/Compatibility.md
-  def jruby_100?
-    RUBY_ENGINE == 'jruby' && RUBY_ENGINE_VERSION.start_with?('10.0')
   end
 
   def truffleruby?
@@ -54,8 +47,6 @@ module PlatformHelpers
     end
   end
 
-  # Operating systems
-
   def linux?
     OS.linux?
   end
@@ -64,13 +55,9 @@ module PlatformHelpers
     OS.mac?
   end
 
-  # Environment
-
   def ci?
     ENV.key?('CI')
   end
-
-  # Feature support
 
   def supports_fork?
     Process.respond_to?(:fork)

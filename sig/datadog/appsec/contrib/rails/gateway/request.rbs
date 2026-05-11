@@ -8,19 +8,19 @@ module Datadog
 
             def initialize: (untyped request) -> void
 
-            def env: () -> untyped
+            def env: () -> ::Hash[::String, untyped]
 
-            def headers: () -> untyped
+            def headers: () -> ::Hash[::String, ::String]
 
-            def host: () -> untyped
+            def host: () -> ::String
 
-            def user_agent: () -> untyped
+            def user_agent: () -> ::String
 
-            def remote_addr: () -> untyped
+            def remote_addr: () -> ::String
 
-            def parsed_body: () -> (nil | untyped)
+            def parsed_body: () -> ::Hash[::String, untyped]?
 
-            def route_params: () -> untyped
+            def route_params: () -> ::Hash[::Symbol, untyped]
           end
         end
       end

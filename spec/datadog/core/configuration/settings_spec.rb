@@ -36,7 +36,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       context 'is defined' do
         let(:api_key_env) { SecureRandom.uuid.delete('-') }
 
-        it { is_expected.to eq(api_key_env) }
+        it 'returns the api key from the environment' do
+          is_expected.to eq(api_key_env)
+        end
       end
     end
   end
@@ -49,7 +51,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       before { set_api_key }
 
-      it { expect(settings.api_key).to eq(api_key) }
+      it 'sets the api key' do
+        expect(settings.api_key).to eq(api_key)
+      end
     end
   end
 
@@ -938,6 +942,38 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to(!default)
         end
       end
+
+      describe '#experimental_cpu_sampling_interval_ms' do
+        subject(:experimental_cpu_sampling_interval_ms) { settings.profiling.advanced.experimental_cpu_sampling_interval_ms }
+
+        it { is_expected.to eq 10 }
+      end
+
+      describe '#experimental_cpu_sampling_interval_ms=' do
+        it 'updates the #experimental_cpu_sampling_interval_ms setting' do
+          expect { settings.profiling.advanced.experimental_cpu_sampling_interval_ms = 5 }
+            .to change { settings.profiling.advanced.experimental_cpu_sampling_interval_ms }
+            .from(10)
+            .to(5)
+        end
+      end
+
+      describe '#experimental_use_system_dns' do
+        subject(:experimental_use_system_dns) { settings.profiling.advanced.experimental_use_system_dns }
+
+        it_behaves_like 'a binary setting with',
+          env_variable: 'DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS',
+          default: true
+      end
+
+      describe '#experimental_use_system_dns=' do
+        it 'updates the #experimental_use_system_dns setting' do
+          expect { settings.profiling.advanced.experimental_use_system_dns = false }
+            .to change { settings.profiling.advanced.experimental_use_system_dns }
+            .from(true)
+            .to(false)
+        end
+      end
     end
 
     describe '#upload' do
@@ -1375,39 +1411,17 @@ RSpec.describe Datadog::Core::Configuration::Settings do
   describe '#experimental_propagate_process_tags_enabled' do
     subject(:experimental_propagate_process_tags_enabled) { settings.experimental_propagate_process_tags_enabled }
 
-    context "when #{Datadog::Core::Environment::Ext::ENV_VERSION}" do
-      around do |example|
-        ClimateControl.modify('DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED' => environment) do
-          example.run
-        end
-      end
-
-      context 'by default' do
-        let(:environment) { nil }
-
-        it { is_expected.to be false }
-      end
-
-      context 'when set to true' do
-        let(:environment) { 'true' }
-
-        it { is_expected.to be true }
-      end
-
-      context 'when set to false' do
-        let(:environment) { 'false' }
-
-        it { is_expected.to be false }
-      end
-    end
+    it_behaves_like 'a binary setting with',
+      env_variable: 'DD_EXPERIMENTAL_PROPAGATE_PROCESS_TAGS_ENABLED',
+      default: true
   end
 
   describe '#experimental_propagate_process_tags_enabled=' do
     it 'updates the #experimental_propagate_process_tags_enabled setting' do
-      expect { settings.experimental_propagate_process_tags_enabled = true }
+      expect { settings.experimental_propagate_process_tags_enabled = false }
         .to change { settings.experimental_propagate_process_tags_enabled }
-        .from(false)
-        .to(true)
+        .from(true)
+        .to(false)
     end
   end
 

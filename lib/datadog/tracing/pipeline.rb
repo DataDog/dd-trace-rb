@@ -51,7 +51,7 @@ module Datadog
         end
       rescue => e
         Datadog.logger.debug(
-          "trace dropped entirely due to `Pipeline.before_flush` error: #{e}"
+          "trace dropped entirely due to `Pipeline.before_flush` error: #{e.class}: #{e.message}"
         )
 
         nil

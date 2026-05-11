@@ -13,13 +13,23 @@ module Datadog
       #       def foo; 'hello'; end
       #
       #       trace_method :foo, span_name: 'optional_span_name'
+      #
+      #       def self.bar; 'hi'; end
+      #
+      #       trace_singleton_class_method :bar, span_name: 'optional_span_name'
       #     end
       #
       # Or directly:
       #
       #     Datadog::Kit::Tracing::MethodTracer.trace_method(MyClass, :foo, span_name: 'optional_span_name')
+      #     Datadog::Kit::Tracing::MethodTracer.trace_method(MyClass.singleton_class, :bar, span_name: 'optional_span_name')
       #
-      # Span name is optional and defaults to 'Class#method'.
+      # Class argument is implicit via DSL usage; it is required otherwise, and
+      # can accept dynamic classes or modules.
+      #
+      # Span name is optional and defaults to 'Class#method' (or `Class.method`
+      # for singleton class methods) but is required if the class or module
+      # name is `nil`.
       #
       # Traced methods are only traced if already within a trace (i.e they do
       # not create traces by themselves).
@@ -29,8 +39,8 @@ module Datadog
       # traced via `dynamic: true`, which relaxes method existence sanity
       # checks, but will prevent preserving method visibility.
       #
-      # Note that this uses Module#prepend, so do not use on methods that have been
-      # alias method chained or you risk an infinite recusion crash.
+      # Note that this uses `Module#prepend`, so do not use on methods that
+      # have been alias method chained or you risk an infinite recusion crash.
       #
       # @public_api
       module MethodTracer
@@ -103,6 +113,18 @@ module Datadog
         # @return [void]
         def trace_method(method_name, span_name: nil, dynamic: false)
           MethodTracer.trace_method(self, method_name, span_name: span_name, dynamic: dynamic)
+        end
+
+        # Trace a method by name in a module's singleton context (a.k.a "class method")
+        #
+        # @param method_name [Symbol] name of the method to trace
+        # @param span_name [String, nil] optional span name (defaults to "Module.method")
+        # @param dynamic [Boolean] if true, skip method existence check (for method_missing-handled methods)
+        # @return [void]
+        def trace_singleton_class_method(method_name, span_name: nil, dynamic: false)
+          span_name ||= "#{name}.#{method_name}" if respond_to?(:name)
+
+          MethodTracer.trace_method(singleton_class, method_name, span_name: span_name, dynamic: dynamic)
         end
       end
     end

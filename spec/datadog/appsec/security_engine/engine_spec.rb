@@ -513,7 +513,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
           expect do
             engine.add_or_update_config(invalid_config, path: 'datadog/603646/ASM_DD/latest/config')
             engine.reconfigure!
-          end.not_to change { engine.new_runner.waf_addresses }
+          end.not_to change { engine.new_runner.waf_addresses.sort }
         end
 
         it 'does not change ruleset_version' do
@@ -705,7 +705,7 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Engine do
       end
 
       it 'does not change waf_addresses' do
-        expect { engine.reconfigure! }.not_to(change { engine.new_runner.waf_addresses })
+        expect { engine.reconfigure! }.not_to(change { engine.new_runner.waf_addresses.sort })
       end
 
       it 'reports error through telemetry' do

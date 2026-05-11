@@ -35,7 +35,7 @@ ENV BUNDLE_SILENCE_ROOT_WARNING 1
 
 # Reinstall a recent version of the trace to help Docker cache dependencies.
 # Bump this version periodically.
-RUN gem install datadog -v 1.20.0
+RUN gem install datadog -v 2.28.0
 
 WORKDIR /app
 

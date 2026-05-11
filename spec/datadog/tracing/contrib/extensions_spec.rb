@@ -278,6 +278,31 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
 
           it { is_expected.to be_frozen }
         end
+
+        describe '#instrumented_built_in_integrations' do
+          subject(:instrumented_built_in_integrations) { settings.instrumented_built_in_integrations }
+
+          include_context 'registry with integration'
+
+          let(:alias_name) { :example_alias }
+          let(:custom_integration_name) { :custom }
+          let(:custom_integration) { integration_class.new(custom_integration_name) }
+
+          before do
+            stub_const('Datadog::Tracing::Contrib::BUILT_IN_INTEGRATIONS', [integration])
+            registry.add(alias_name, integration)
+            registry.add(custom_integration_name, custom_integration)
+
+            settings.send(:instrument, integration_name)
+            settings.send(:instrument, alias_name)
+            settings.send(:instrument, custom_integration_name)
+          end
+
+          it 'returns instrumented built-in integrations only once' do
+            expect(instrumented_built_in_integrations).to contain_exactly(integration)
+            expect(instrumented_built_in_integrations).to be_frozen
+          end
+        end
       end
     end
   end

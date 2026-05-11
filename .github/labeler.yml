@@ -65,7 +65,11 @@ single-step:
 - changed-files:
   - any-glob-to-any-file: ['lib-injection/**']
 
-# Changes to Debugging
-debugging:
+# Changes to Dynamic Instrumentation or Symbol Database
+debugger:
 - changed-files:
-  - any-glob-to-any-file: ['lib/datadog/debugging/**']
+  - any-glob-to-any-file:
+    - 'lib/datadog/di.rb'
+    - 'lib/datadog/di/**'
+    - 'lib/datadog/symbol_database.rb'
+    - 'lib/datadog/symbol_database/**'

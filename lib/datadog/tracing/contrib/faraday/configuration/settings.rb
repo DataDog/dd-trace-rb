@@ -32,8 +32,11 @@ module Datadog
               o.default 1.0
             end
 
-            option :distributed_tracing, default: true, type: :bool
-
+            option :distributed_tracing do |o|
+              o.type :bool
+              o.env Ext::ENV_DISTRIBUTED_TRACING
+              o.default true
+            end
             option :on_error do |o|
               o.type :proc, nilable: true
             end

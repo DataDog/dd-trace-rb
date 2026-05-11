@@ -3,6 +3,8 @@ module Datadog
     module Contrib
       module Devise
         module Configuration
+          TRACK_USER_EVENTS_CONVERSION_RULES: ::Hash[::String, ::String]
+
           def self?.auto_user_instrumentation_enabled?: () -> bool
 
           def self?.auto_user_instrumentation_mode: () -> ::String

@@ -17,14 +17,18 @@ RSpec.describe Datadog::Core::Environment::Platform do
 
     context 'when Ruby version >= 2.2', if: Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2' do
       it { is_expected.to be_a_kind_of(String) }
-      it { is_expected.to eql(`uname -n`.strip) }
+      it 'returns the system hostname' do
+        is_expected.to eql(`uname -n`.strip)
+      end
     end
   end
 
   describe '::kernel_name' do
     subject(:kernel_name) { described_class.kernel_name }
     it { is_expected.to be_a_kind_of(String) }
-    it { is_expected.to eql(`uname -s`.strip) }
+    it 'returns the system kernel name' do
+      is_expected.to eql(`uname -s`.strip)
+    end
   end
 
   describe '::kernel_release' do
@@ -36,7 +40,9 @@ RSpec.describe Datadog::Core::Environment::Platform do
 
     context 'when Ruby version >= 2.2', if: Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2' do
       it { is_expected.to be_a_kind_of(String) }
-      it { is_expected.to eql(`uname -r`.strip) }
+      it 'returns the system kernel release' do
+        is_expected.to eql(`uname -r`.strip)
+      end
     end
   end
 
@@ -54,7 +60,9 @@ RSpec.describe Datadog::Core::Environment::Platform do
 
       context 'when Ruby version >= 2.2', if: Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2' do
         it { is_expected.to be_a_kind_of(String) }
-        it { is_expected.to eql(`uname -v`.strip) }
+        it 'returns the system kernel version' do
+          is_expected.to eql(`uname -v`.strip)
+        end
       end
     end
   end

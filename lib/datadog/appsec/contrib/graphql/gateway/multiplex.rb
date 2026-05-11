@@ -47,9 +47,10 @@ module Datadog
             # Note that the `comments` "include" directive is included in the arguments list
             def build_arguments_hash
               queries.each_with_object({}) do |query, args_hash|
-                next unless query.selected_operation
+                selected_operation = query.selected_operation
+                next unless selected_operation
 
-                arguments_from_selections(query.selected_operation.selections, query.variables, args_hash)
+                arguments_from_selections(selected_operation.selections, query.variables, args_hash)
               end
             end
 
@@ -90,15 +91,19 @@ module Datadog
             end
 
             def argument_value(argument, query_variables)
-              case argument.value.class.name
+              value = argument.value
+
+              case value.class.name
               when Integration::AST_NODE_CLASS_NAMES[:variable_identifier]
+                # @type var value: GraphQL::Language::Nodes::VariableIdentifier
                 # we need to pass query.variables here instead of query.provided_variables,
                 # since #provided_variables don't know anything about variable default value
-                query_variables[argument.value.name]
+                query_variables[value.name]
               when Integration::AST_NODE_CLASS_NAMES[:input_object]
-                arguments_hash(argument.value.arguments, query_variables)
+                # @type var value: GraphQL::Language::Nodes::InputObject
+                arguments_hash(value.arguments, query_variables)
               else
-                argument.value
+                value
               end
             end
           end

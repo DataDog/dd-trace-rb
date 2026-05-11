@@ -46,16 +46,16 @@ module Datadog
               component.telemetry&.report(exc, description: "Line probe is targeting a loaded file that is not in code tracker")
 
               payload = component.probe_notification_builder.build_errored(probe, exc)
-              component.probe_notifier_worker.add_status(payload)
+              component.probe_notifier_worker.add_status(payload, probe: probe)
             rescue => exc
               raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-              component.logger.debug { "di: unhandled exception adding #{probe.type} probe at #{probe.location} (#{probe.id}) in DI probe file loader: #{exc.class}: #{exc}" }
+              component.logger.debug { "di: unhandled exception adding #{probe.type} probe at #{probe.location} (#{probe.id}) in DI probe file loader: #{exc.class}: #{exc.message}" }
               component.telemetry&.report(exc, description: "Unhandled exception adding probe in DI probe file loader")
 
               # TODO test this path
               payload = component.probe_notification_builder.build_errored(probe, exc)
-              component.probe_notifier_worker.add_status(payload)
+              component.probe_notifier_worker.add_status(payload, probe: probe)
             end
           end
         rescue => exc
@@ -64,7 +64,7 @@ module Datadog
             raise
           end
 
-          component.logger.debug { "di: unhandled exception handling a probe in DI probe file loader: #{exc.class}: #{exc}" }
+          component.logger.debug { "di: unhandled exception handling a probe in DI probe file loader: #{exc.class}: #{exc.message}" }
           component.telemetry&.report(exc, description: "Unhandled exception handling probe in DI probe file loader")
         end
       rescue

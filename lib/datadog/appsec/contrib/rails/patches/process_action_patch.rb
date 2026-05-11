@@ -11,6 +11,8 @@ module Datadog
               context = request.env[Datadog::AppSec::Ext::CONTEXT_KEY]
               return super unless context
 
+              context.state[:web_framework] = 'rails'
+
               # TODO: handle exceptions, except for super
               gateway_request = Gateway::Request.new(request)
               http_response, _gateway_request = Instrumentation.gateway.push('rails.request.action', gateway_request) do

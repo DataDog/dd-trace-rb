@@ -4,23 +4,29 @@ module Datadog
       module GraphQL
         module Gateway
           class Multiplex < Instrumentation::Gateway::Argument
-            @multiplex: GraphQL::Execution::Multiplex
+            @multiplex: ::GraphQL::Execution::Multiplex
 
-            @arguments: Hash[String, Array[Hash[String, String]]]
+            @arguments: ::Hash[::String, ::Array[::Hash[::String, any]]]
 
-            attr_reader multiplex: GraphQL::Execution::Multiplex
+            attr_reader multiplex: ::GraphQL::Execution::Multiplex
 
-            def initialize: (GraphQL::Execution::Multiplex multiplex) -> void
+            def initialize: (::GraphQL::Execution::Multiplex multiplex) -> void
 
-            def arguments: () -> Hash[String, Array[Hash[String, String]]]
+            def arguments: () -> ::Hash[::String, ::Array[::Hash[::String, any]]]
 
-            def queries: () -> Array[GraphQL::Query]
+            def queries: () -> ::Array[::GraphQL::Query]
 
             private
 
-            def create_arguments_hash: () -> Hash[String, Array[Hash[String, String]]]
+            def build_arguments_hash: () -> ::Hash[::String, ::Array[::Hash[::String, any]]]
 
-            def set_hash_with_variables: (Hash[String, String] resolver_hash, Array[GraphQL::Language::Nodes::Argument] arguments, Hash[String, String|Integer] provided_variables) -> void
+            def arguments_from_selections: (::Array[::GraphQL::Language::Nodes::Field] selections, any query_variables, ::Hash[::String, ::Array[::Hash[::String, any]]] args_hash) -> void
+
+            def arguments_from_directives: (::Array[::GraphQL::Language::Nodes::Directive] directives, any query_variables) -> ::Hash[::String, ::Hash[::String, any]]
+
+            def arguments_hash: (::Array[::GraphQL::Language::Nodes::Argument] arguments, any query_variables) -> ::Hash[::String, any]
+
+            def argument_value: (::GraphQL::Language::Nodes::Argument argument, any query_variables) -> any
           end
         end
       end

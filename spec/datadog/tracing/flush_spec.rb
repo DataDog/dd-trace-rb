@@ -21,7 +21,9 @@ RSpec.shared_examples_for 'a trace flusher' do
   context 'given a finished trace operation' do
     let(:finished) { true }
 
-    it { is_expected.to eq(trace) }
+    it 'returns the flushed trace' do
+      is_expected.to eq(trace)
+    end
   end
 
   context 'with a single sampled span' do
@@ -94,7 +96,9 @@ RSpec.describe Datadog::Tracing::Flush::Partial do
 
       context 'containing at least the minimum required spans' do
         let(:finished_span_count) { min_spans_for_partial }
-        it { is_expected.to eq(trace) }
+        it 'returns the flushed trace' do
+          is_expected.to eq(trace)
+        end
       end
     end
   end

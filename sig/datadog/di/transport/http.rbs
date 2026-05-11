@@ -6,7 +6,7 @@ module Datadog
         INPUT: Input::API::Endpoint
         LEGACY_INPUT: Input::API::Endpoint
         def self.diagnostics: (agent_settings: untyped, logger: untyped, ?headers: untyped?) ?{ (untyped) -> untyped } -> untyped
-        def self.input: (agent_settings: untyped, logger: untyped, ?headers: untyped?) ?{ (untyped) -> untyped } -> untyped
+        def self.input: (agent_settings: untyped, logger: untyped, ?headers: untyped?, ?telemetry: Datadog::Core::Telemetry::Component?) ?{ (untyped) -> untyped } -> untyped
       end
     end
   end
