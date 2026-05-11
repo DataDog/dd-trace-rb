@@ -492,6 +492,18 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
         it { expect(inferred_span.get_tag('_dd.appsec.json')).to eq('{"triggers":[]}') }
       end
 
+      context 'when framework sets trace resource inside yield' do
+        before do
+          described_class.call(env, inferred_proxy_enabled: true, request_queuing: false, web_service_name: service) do
+            Datadog::Tracing.active_trace.resource = 'FrameworkController#action'
+          end
+        end
+
+        it 'restores inferred proxy resource after framework overwrite' do
+          expect(traces.first.resource).to eq('GET /api/{proxy+}')
+        end
+      end
+
       context 'when request_queuing is true and x-request-start is also present' do
         before do
           described_class.call(

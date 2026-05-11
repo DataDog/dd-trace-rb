@@ -65,7 +65,7 @@ module Datadog
             return yield unless span_name
 
             request_time_ms = env[Ext::HEADER_X_DD_PROXY_REQUEST_TIME_MS].to_f
-            return yield unless request_time_ms && request_time_ms > 0
+            return yield unless request_time_ms.positive?
 
             path = env[Ext::HEADER_X_DD_PROXY_PATH]
             stage = env[Ext::HEADER_X_DD_PROXY_STAGE]
@@ -104,6 +104,11 @@ module Datadog
           ensure
             if inferred_span
               propagate_request_span_tags(inferred_span, env: env)
+
+              if (trace = Tracing.active_trace) && resource
+                trace.resource = resource
+              end
+
               inferred_span.finish
             end
           end
