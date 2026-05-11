@@ -1,11 +1,11 @@
 module Datadog
   module SymbolDatabase
     class ScopeBatcher
-      MAX_SCOPES: Integer
+      MAX_SCOPES: ::Integer
 
-      INACTIVITY_TIMEOUT: Float
+      INACTIVITY_TIMEOUT: ::Float
 
-      MAX_FILES: Integer
+      MAX_FILES: ::Integer
 
       @uploader: Uploader
 
@@ -15,21 +15,21 @@ module Datadog
 
       @timer_enabled: bool
 
-      @scopes: Array[Scope]
+      @scopes: ::Array[Scope]
 
-      @mutex: Mutex
+      @mutex: ::Thread::Mutex
 
-      @timer_cv: Thread::ConditionVariable
+      @timer_cv: ::Thread::ConditionVariable
 
-      @timer_thread: Thread?
+      @timer_thread: ::Thread?
 
       @timer_stopped: bool
 
       @timer_signaled: bool
 
-      @file_count: Integer
+      @file_count: ::Integer
 
-      @uploaded_modules: Set[String?]
+      @uploaded_modules: ::Set[::String?]
 
       def initialize: (Uploader uploader, logger: Logger, ?on_upload: ::Proc?, ?timer_enabled: bool) -> void
 
@@ -41,11 +41,11 @@ module Datadog
 
       def reset: () -> void
 
-      def perform_upload: (Array[Scope]? scopes) -> void
+      def perform_upload: (::Array[Scope]? scopes) -> void
 
       def scopes_pending?: () -> bool
 
-      def size: () -> Integer
+      def size: () -> ::Integer
 
       private
 

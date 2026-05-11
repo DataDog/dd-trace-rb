@@ -69,6 +69,7 @@ module Datadog
       # @param scope [Scope] The scope to add
       # @return [void]
       def add_scope(scope)
+        # @type var scopes_to_upload: ::Array[Scope]?
         scopes_to_upload = nil
 
         @mutex.synchronize do
@@ -94,10 +95,8 @@ module Datadog
           # Check if batch size reached (AFTER adding)
           if @scopes.size >= MAX_SCOPES
             # Prepare for upload (clear within mutex)
-            # steep:ignore:start
             scopes_to_upload = @scopes.dup
             @scopes.clear
-            # steep:ignore:end
           end
 
           # Signal the timer thread to reset its inactivity deadline.
@@ -118,9 +117,9 @@ module Datadog
       # Force upload of current batch immediately.
       # @return [void]
       def flush
+        # @type var scopes_to_upload: ::Array[Scope]?
         scopes_to_upload = nil
 
-        # steep:ignore:start
         @mutex.synchronize do
           return if @scopes.empty?
 
@@ -129,15 +128,14 @@ module Datadog
         end
 
         perform_upload(scopes_to_upload)
-        # steep:ignore:end
       end
 
       # Shutdown and upload remaining scopes.
       # @return [void]
       def shutdown
+        # @type var scopes_to_upload: ::Array[Scope]?
         scopes_to_upload = nil
 
-        # steep:ignore:start
         @mutex.synchronize do
           @timer_stopped = true
           @timer_cv.signal  # Wake the timer thread so it exits
@@ -152,8 +150,7 @@ module Datadog
         @timer_thread = nil
 
         # Upload outside mutex
-        perform_upload(scopes_to_upload) unless scopes_to_upload.empty?
-        # steep:ignore:end
+        perform_upload(scopes_to_upload) unless scopes_to_upload.nil? || scopes_to_upload.empty?
       end
 
       # Reset state (for testing).
