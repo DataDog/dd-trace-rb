@@ -194,6 +194,26 @@ ddprof-benchmark:
 include:
   - local: benchmarks/execution.yml
 
+.microbenchmark-rules: &microbenchmark-rules
+  # On master: always run, never auto-cancel (interruptible: false is the default on master anyway,
+  # but stated explicitly here for clarity)
+  - if: $CI_COMMIT_REF_NAME == "master"
+    interruptible: false
+  # On PR branches: only run when files that affect benchmark results are changed.
+  # Without this, benchmarks run on every PR regardless of what changed (e.g. docs, specs, CI config).
+  # Note: on the first push of a new branch (no diff base), GitLab evaluates changes: as true,
+  # so benchmarks run once — conservative/safe behavior.
+  - changes:
+      - lib/**/*
+      - ext/**/*
+      - benchmarks/**/*
+      - datadog.gemspec
+      - .gitlab/**/*
+    interruptible: true
+  # Terminating rule: if no rule above matched, skip the job.
+  # Without this, GitLab falls through to its default (run the job), making the changes: rule above pointless.
+  - when: never
+
 microbenchmarks:
   extends: .execution  # From benchmarks/execution.yml
   stage: microbenchmarks
@@ -201,25 +221,7 @@ microbenchmarks:
   needs: []
   tags: ["runner:apm-k8s-tweaked-metal"]
   image: $BASE_CI_IMAGE
-  rules:
-    # On master: always run, never auto-cancel (interruptible: false is the default on master anyway,
-    # but stated explicitly here for clarity)
-    - if: $CI_COMMIT_REF_NAME == "master"
-      interruptible: false
-    # On PR branches: only run when files that affect benchmark results are changed.
-    # Without this, benchmarks run on every PR regardless of what changed (e.g. docs, specs, CI config).
-    # Note: on the first push of a new branch (no diff base), GitLab evaluates changes: as true,
-    # so benchmarks run once — conservative/safe behavior.
-    - changes:
-        - lib/**/*
-        - ext/**/*
-        - benchmarks/**/*
-        - datadog.gemspec
-        - .gitlab/**/*
-      interruptible: true
-    # Terminating rule: if no rule above matched, skip the job.
-    # Without this, GitLab falls through to its default (run the job), making the changes: rule above pointless.
-    - when: never
+  rules: *microbenchmark-rules
   timeout: 1h
   variables:
     # GitLab CI variables passed to bp-runner
@@ -269,7 +271,7 @@ microbenchmarks:
 
 microbenchmarks-pr-comment:
   stage: microbenchmarks
-  when: on_success
+  rules: *microbenchmark-rules
   allow_failure: true
   needs:
     - job: microbenchmarks
@@ -318,12 +320,7 @@ microbenchmarks-check-big-regressions:
   image: $BASE_CI_IMAGE
   timeout: 30m
   allow_failure: false
-  rules:
-    - if: $CI_COMMIT_REF_NAME == "master"
-      when: always
-      interruptible: false
-    - when: always
-      interruptible: true
+  rules: *microbenchmark-rules
   script:
     - export ARTIFACTS_DIR="$(pwd)/artifacts"
     - bp-runner .gitlab/benchmarks/bp-runner.fail-on-regression.yml --debug
