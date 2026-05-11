@@ -4,7 +4,7 @@
 //
 // Specifically, when the profiler is sampling, we're never supposed to call into Ruby code (e.g. methods
 // implemented using Ruby code) or allocate Ruby objects.
-// That's because those events introduce thread switch points, and really we don't the VM switching between threads
+// That's because those events introduce thread switch points, and really we don't want the VM switching between threads
 // in the middle of the profiler sampling. This includes raising exceptions.
 //
 // Raising exceptions as the very last operation, to stop the profiler is ok, but comes a caveat: raising exceptions
@@ -22,6 +22,8 @@
 //
 // If, however, we have a bug and there's a thread switch point, our postponed job will see the flag and immediately
 // stop the Ruby VM before further damage happens (and hopefully giving us a stack trace clearly pointing to the culprit).
+//
+// Note that this check currently does not detect Ruby object allocations, as those do not check for interrupts.
 
 void unsafe_api_calls_check_init(void);
 
