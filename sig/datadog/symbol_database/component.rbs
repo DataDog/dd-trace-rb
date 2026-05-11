@@ -15,7 +15,7 @@ module Datadog
 
       @settings: Datadog::Core::Configuration::Settings
       @agent_settings: Datadog::Core::Configuration::AgentSettings
-      @logger: untyped
+      @logger: SymbolDatabase::Logger
       @extractor: Extractor
       @uploader: Uploader
       @scope_batcher: ScopeBatcher
@@ -33,7 +33,7 @@ module Datadog
 
       def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, untyped logger) -> Component?
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, untyped logger) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, SymbolDatabase::Logger logger) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
       attr_reader last_upload_time: Time?
@@ -54,7 +54,7 @@ module Datadog
 
       private
 
-      def self.environment_supported?: (untyped logger) -> bool
+      def self.environment_supported?: (SymbolDatabase::Logger logger) -> bool
 
       def ensure_scheduler_thread: () -> void
 
