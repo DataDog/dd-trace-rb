@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.32.0)
+    datadog (2.33.0)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
       libdatadog (~> 30.0.0.1.0)
@@ -96,7 +96,7 @@ GEM
       psych (>= 4.0.0)
     redis (5.4.1)
       redis-client (>= 0.22.0)
-    redis-client (0.28.0)
+    redis-client (0.29.0)
       connection_pool
     reline (0.6.0)
       io-console (~> 0.5)

@@ -129,6 +129,9 @@ if RUBY_PLATFORM.include?("linux")
 
   # Not available on macOS
   $defs << "-DHAVE_CLOCK_MONOTONIC_COARSE"
+elsif RUBY_PLATFORM.include?("darwin")
+  # On macOS, we use Mach thread APIs to get per-thread CPU time
+  $defs << "-DHAVE_MACH_THREAD_INFO"
 end
 
 have_func "malloc_stats"
