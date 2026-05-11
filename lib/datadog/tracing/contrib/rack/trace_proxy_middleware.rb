@@ -14,7 +14,8 @@ module Datadog
           module_function
 
           def call(env, configuration, &block)
-            if (proxy_type = env[Ext::HEADER_X_DD_PROXY]) && !proxy_type.empty?
+            if configuration[:inferred_proxy_enabled] &&
+                (proxy_type = env[Ext::HEADER_X_DD_PROXY]) && !proxy_type.empty?
               return call_with_inferred_proxy(env, proxy_type, &block)
             end
             return yield unless configuration[:request_queuing]

@@ -91,7 +91,33 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
       end
     end
 
+    context 'when inferred proxy is not enabled' do
+      before do
+        described_class.call(
+          env, inferred_proxy_enabled: false, request_queuing: false, web_service_name: service
+        ) { :success }
+      end
+
+      let(:env) do
+        {
+          'HTTP_X_DD_PROXY' => 'aws-apigateway',
+          'HTTP_X_DD_PROXY_REQUEST_TIME_MS' => '1757000000000',
+          'HTTP_X_DD_PROXY_PATH' => '/api/test',
+          'HTTP_X_DD_PROXY_HTTPMETHOD' => 'GET',
+          'HTTP_X_DD_PROXY_DOMAIN_NAME' => 'example.execute-api.us-east-1.amazonaws.com',
+        }
+      end
+
+      it { expect(spans).to be_empty }
+    end
+
     context 'when x-dd-proxy header is present' do
+      subject(:trace_proxy) do
+        described_class.call(
+          env, inferred_proxy_enabled: true, request_queuing: false, web_service_name: service
+        ) { :success }
+      end
+
       let(:env) do
         {
           'HTTP_X_DD_PROXY' => 'aws-apigateway',
@@ -104,38 +130,29 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
         }
       end
 
-      it 'returns the block result' do
-        expect(described_class.call(env, request_queuing: false, web_service_name: service) { :success }).to eq(:success)
-      end
-
-      it 'finishes the span even when an exception is raised' do
-        expect do
-          described_class.call(env, request_queuing: false, web_service_name: service) { raise 'error' }
-        end.to raise_error('error')
-
-        expect(spans).to have(1).item
-        expect(spans.first).to be_finished
-      end
+      it { expect(trace_proxy).to eq(:success) }
 
       context 'when the block raises an exception' do
-        let(:error) { RuntimeError.new('something went wrong') }
-
         before do
-          described_class.call(env, request_queuing: false, web_service_name: service) { raise error }
+          described_class.call(
+            env, inferred_proxy_enabled: true, request_queuing: false, web_service_name: service
+          ) { raise error }
         rescue RuntimeError
           nil
         end
 
+        let(:error) { RuntimeError.new('something went wrong') }
         let(:inferred_span) { spans.find { |s| s.name == 'aws.apigateway' } }
 
+        it { expect(inferred_span).to be_finished }
         it { expect(inferred_span.status).to eq(1) }
         it { expect(inferred_span.get_tag('error.type')).to eq('RuntimeError') }
         it { expect(inferred_span.get_tag('error.message')).to eq('something went wrong') }
-        it { expect(inferred_span.get_tag('error.stack')).to_not be_nil }
+        it { expect(inferred_span.get_tag('error.stack')).not_to be_nil }
       end
 
       context 'when proxy type is aws-apigateway' do
-        before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
+        before { trace_proxy }
 
         let(:inferred_span) { spans.first }
 
@@ -155,7 +172,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
       end
 
       context 'when proxy type is aws-httpapi' do
-        before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
+        before { trace_proxy }
 
         let(:env) do
           {
@@ -177,11 +194,8 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
       context 'when proxy type is unknown' do
         let(:env) { {'HTTP_X_DD_PROXY' => 'aws-unknown'} }
 
-        it 'creates no spans and yields' do
-          result = described_class.call(env, request_queuing: false, web_service_name: service) { :success }
-          expect(result).to eq(:success)
-          expect(spans).to be_empty
-        end
+        it { expect(trace_proxy).to eq(:success) }
+        it { expect { trace_proxy }.not_to change { spans.count } }
       end
 
       context 'when proxy header is empty string' do
@@ -196,7 +210,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
       end
 
       context 'when x-dd-proxy-httpmethod is absent' do
-        before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
+        before { trace_proxy }
 
         let(:env) do
           {
@@ -213,7 +227,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
       end
 
       context 'when x-dd-proxy-resource-path is absent' do
-        before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
+        before { trace_proxy }
 
         let(:env) do
           {
@@ -232,7 +246,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
       end
 
       context 'when x-dd-proxy-domain-name is absent' do
-        before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
+        before { trace_proxy }
 
         let(:env) do
           {
@@ -260,11 +274,8 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
           }
         end
 
-        it 'creates no span and yields' do
-          result = described_class.call(env, request_queuing: false, web_service_name: service) { :success }
-          expect(result).to eq(:success)
-          expect(spans).to be_empty
-        end
+        it { expect(trace_proxy).to eq(:success) }
+        it { expect { trace_proxy }.not_to change { spans.count } }
       end
 
       context 'when x-dd-proxy-request-time-ms is non-numeric' do
@@ -278,15 +289,12 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
           }
         end
 
-        it 'creates no span and yields' do
-          result = described_class.call(env, request_queuing: false, web_service_name: service) { :success }
-          expect(result).to eq(:success)
-          expect(spans).to be_empty
-        end
+        it { expect(trace_proxy).to eq(:success) }
+        it { expect { trace_proxy }.not_to change { spans.count } }
       end
 
       context 'when optional headers are present' do
-        before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
+        before { trace_proxy }
 
         let(:env) do
           {
@@ -310,84 +318,96 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
         it { expect(inferred_span.get_tag('region')).to eq('us-east-1') }
         it { expect(inferred_span.get_tag('dd_resource_key')).to eq('arn:aws:apigateway:us-east-1::/restapis/abc123') }
         it { expect(inferred_span.get_tag('aws_user')).to eq('test-user') }
+      end
 
-        context 'when proxy type is aws-httpapi' do
-          let(:env) do
-            {
-              'HTTP_X_DD_PROXY' => 'aws-httpapi',
-              'HTTP_X_DD_PROXY_REQUEST_TIME_MS' => '1757000000000',
-              'HTTP_X_DD_PROXY_PATH' => '/api/test',
-              'HTTP_X_DD_PROXY_RESOURCE_PATH' => '/api/{proxy+}',
-              'HTTP_X_DD_PROXY_HTTPMETHOD' => 'GET',
-              'HTTP_X_DD_PROXY_DOMAIN_NAME' => 'example.execute-api.us-east-1.amazonaws.com',
-              'HTTP_X_DD_PROXY_STAGE' => 'dev',
-              'HTTP_X_DD_PROXY_ACCOUNT_ID' => '123456789',
-              'HTTP_X_DD_PROXY_API_ID' => 'abc123',
-              'HTTP_X_DD_PROXY_REGION' => 'us-east-1',
-              'HTTP_X_DD_PROXY_USER' => 'test-user',
-            }
-          end
+      context 'when optional headers are present with aws-httpapi' do
+        before { trace_proxy }
 
-          it { expect(inferred_span.get_tag('dd_resource_key')).to eq('arn:aws:apigateway:us-east-1::/apis/abc123') }
+        let(:env) do
+          {
+            'HTTP_X_DD_PROXY' => 'aws-httpapi',
+            'HTTP_X_DD_PROXY_REQUEST_TIME_MS' => '1757000000000',
+            'HTTP_X_DD_PROXY_PATH' => '/api/test',
+            'HTTP_X_DD_PROXY_RESOURCE_PATH' => '/api/{proxy+}',
+            'HTTP_X_DD_PROXY_HTTPMETHOD' => 'GET',
+            'HTTP_X_DD_PROXY_DOMAIN_NAME' => 'example.execute-api.us-east-1.amazonaws.com',
+            'HTTP_X_DD_PROXY_STAGE' => 'dev',
+            'HTTP_X_DD_PROXY_ACCOUNT_ID' => '123456789',
+            'HTTP_X_DD_PROXY_API_ID' => 'abc123',
+            'HTTP_X_DD_PROXY_REGION' => 'us-east-1',
+            'HTTP_X_DD_PROXY_USER' => 'test-user',
+          }
         end
+        let(:inferred_span) { spans.first }
 
-        context 'when region is absent' do
-          let(:env) do
-            {
-              'HTTP_X_DD_PROXY' => 'aws-apigateway',
-              'HTTP_X_DD_PROXY_REQUEST_TIME_MS' => '1757000000000',
-              'HTTP_X_DD_PROXY_PATH' => '/api/test',
-              'HTTP_X_DD_PROXY_HTTPMETHOD' => 'GET',
-              'HTTP_X_DD_PROXY_DOMAIN_NAME' => 'example.execute-api.us-east-1.amazonaws.com',
-              'HTTP_X_DD_PROXY_STAGE' => 'dev',
-              'HTTP_X_DD_PROXY_ACCOUNT_ID' => '123456789',
-              'HTTP_X_DD_PROXY_API_ID' => 'abc123',
-            }
-          end
+        it { expect(inferred_span.get_tag('dd_resource_key')).to eq('arn:aws:apigateway:us-east-1::/apis/abc123') }
+      end
 
-          it { expect(inferred_span.get_tag('dd_resource_key')).to be_nil }
+      context 'when region is absent' do
+        before { trace_proxy }
+
+        let(:env) do
+          {
+            'HTTP_X_DD_PROXY' => 'aws-apigateway',
+            'HTTP_X_DD_PROXY_REQUEST_TIME_MS' => '1757000000000',
+            'HTTP_X_DD_PROXY_PATH' => '/api/test',
+            'HTTP_X_DD_PROXY_HTTPMETHOD' => 'GET',
+            'HTTP_X_DD_PROXY_DOMAIN_NAME' => 'example.execute-api.us-east-1.amazonaws.com',
+            'HTTP_X_DD_PROXY_STAGE' => 'dev',
+            'HTTP_X_DD_PROXY_ACCOUNT_ID' => '123456789',
+            'HTTP_X_DD_PROXY_API_ID' => 'abc123',
+          }
         end
+        let(:inferred_span) { spans.first }
 
-        context 'when api_id is absent' do
-          let(:env) do
-            {
-              'HTTP_X_DD_PROXY' => 'aws-apigateway',
-              'HTTP_X_DD_PROXY_REQUEST_TIME_MS' => '1757000000000',
-              'HTTP_X_DD_PROXY_PATH' => '/api/test',
-              'HTTP_X_DD_PROXY_HTTPMETHOD' => 'GET',
-              'HTTP_X_DD_PROXY_DOMAIN_NAME' => 'example.execute-api.us-east-1.amazonaws.com',
-              'HTTP_X_DD_PROXY_STAGE' => 'dev',
-              'HTTP_X_DD_PROXY_ACCOUNT_ID' => '123456789',
-              'HTTP_X_DD_PROXY_REGION' => 'us-east-1',
-            }
-          end
+        it { expect(inferred_span.get_tag('dd_resource_key')).to be_nil }
+      end
 
-          it { expect(inferred_span.get_tag('dd_resource_key')).to be_nil }
+      context 'when api_id is absent' do
+        before { trace_proxy }
+
+        let(:env) do
+          {
+            'HTTP_X_DD_PROXY' => 'aws-apigateway',
+            'HTTP_X_DD_PROXY_REQUEST_TIME_MS' => '1757000000000',
+            'HTTP_X_DD_PROXY_PATH' => '/api/test',
+            'HTTP_X_DD_PROXY_HTTPMETHOD' => 'GET',
+            'HTTP_X_DD_PROXY_DOMAIN_NAME' => 'example.execute-api.us-east-1.amazonaws.com',
+            'HTTP_X_DD_PROXY_STAGE' => 'dev',
+            'HTTP_X_DD_PROXY_ACCOUNT_ID' => '123456789',
+            'HTTP_X_DD_PROXY_REGION' => 'us-east-1',
+          }
         end
+        let(:inferred_span) { spans.first }
 
-        context 'when region has single quotes from API Gateway v1' do
-          let(:env) do
-            {
-              'HTTP_X_DD_PROXY' => 'aws-apigateway',
-              'HTTP_X_DD_PROXY_REQUEST_TIME_MS' => '1757000000000',
-              'HTTP_X_DD_PROXY_PATH' => '/api/test',
-              'HTTP_X_DD_PROXY_HTTPMETHOD' => 'GET',
-              'HTTP_X_DD_PROXY_DOMAIN_NAME' => 'example.execute-api.us-east-1.amazonaws.com',
-              'HTTP_X_DD_PROXY_STAGE' => 'dev',
-              'HTTP_X_DD_PROXY_ACCOUNT_ID' => '123456789',
-              'HTTP_X_DD_PROXY_API_ID' => 'abc123',
-              'HTTP_X_DD_PROXY_REGION' => "'us-east-1'",
-            }
-          end
+        it { expect(inferred_span.get_tag('dd_resource_key')).to be_nil }
+      end
 
-          it { expect(inferred_span.get_tag('region')).to eq('us-east-1') }
-          it { expect(inferred_span.get_tag('dd_resource_key')).to eq('arn:aws:apigateway:us-east-1::/restapis/abc123') }
+      context 'when region has single quotes from API Gateway v1' do
+        before { trace_proxy }
+
+        let(:env) do
+          {
+            'HTTP_X_DD_PROXY' => 'aws-apigateway',
+            'HTTP_X_DD_PROXY_REQUEST_TIME_MS' => '1757000000000',
+            'HTTP_X_DD_PROXY_PATH' => '/api/test',
+            'HTTP_X_DD_PROXY_HTTPMETHOD' => 'GET',
+            'HTTP_X_DD_PROXY_DOMAIN_NAME' => 'example.execute-api.us-east-1.amazonaws.com',
+            'HTTP_X_DD_PROXY_STAGE' => 'dev',
+            'HTTP_X_DD_PROXY_ACCOUNT_ID' => '123456789',
+            'HTTP_X_DD_PROXY_API_ID' => 'abc123',
+            'HTTP_X_DD_PROXY_REGION' => "'us-east-1'",
+          }
         end
+        let(:inferred_span) { spans.first }
+
+        it { expect(inferred_span.get_tag('region')).to eq('us-east-1') }
+        it { expect(inferred_span.get_tag('dd_resource_key')).to eq('arn:aws:apigateway:us-east-1::/restapis/abc123') }
       end
 
       context 'when response status is 500' do
         before do
-          described_class.call(env, request_queuing: false, web_service_name: service) do
+          described_class.call(env, inferred_proxy_enabled: true, request_queuing: false, web_service_name: service) do
             rack_span = Datadog::Tracing.trace('rack.request')
             rack_span.set_tag('http.status_code', '500')
             rack_span.status = Datadog::Tracing::Metadata::Ext::Errors::STATUS
@@ -405,7 +425,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
 
       context 'when rack span has error status from custom http_error_statuses' do
         before do
-          described_class.call(env, request_queuing: false, web_service_name: service) do
+          described_class.call(env, inferred_proxy_enabled: true, request_queuing: false, web_service_name: service) do
             rack_span = Datadog::Tracing.trace('rack.request')
             rack_span.set_tag('http.status_code', '403')
             rack_span.status = Datadog::Tracing::Metadata::Ext::Errors::STATUS
@@ -423,7 +443,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
 
       context 'when response status is 200' do
         before do
-          described_class.call(env, request_queuing: false, web_service_name: service) do
+          described_class.call(env, inferred_proxy_enabled: true, request_queuing: false, web_service_name: service) do
             rack_span = Datadog::Tracing.trace('rack.request')
             rack_span.set_tag('http.status_code', '200')
             env[Datadog::Tracing::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN] = rack_span
@@ -440,7 +460,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
 
       context 'when user_agent is present on rack.request span' do
         before do
-          described_class.call(env, request_queuing: false, web_service_name: service) do
+          described_class.call(env, inferred_proxy_enabled: true, request_queuing: false, web_service_name: service) do
             rack_span = Datadog::Tracing.trace('rack.request')
             rack_span.set_tag('http.status_code', '200')
             rack_span.set_tag('http.useragent', 'Mozilla/5.0')
@@ -456,7 +476,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
 
       context 'when appsec tags are present on rack.request span' do
         before do
-          described_class.call(env, request_queuing: false, web_service_name: service) do
+          described_class.call(env, inferred_proxy_enabled: true, request_queuing: false, web_service_name: service) do
             rack_span = Datadog::Tracing.trace('rack.request')
             rack_span.set_metric('_dd.appsec.enabled', 1.0)
             rack_span.set_tag('_dd.appsec.json', '{"triggers":[]}')
@@ -474,7 +494,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
 
       context 'when framework has already set trace resource' do
         before do
-          described_class.call(env, request_queuing: false, web_service_name: service) do
+          described_class.call(env, inferred_proxy_enabled: true, request_queuing: false, web_service_name: service) do
             Datadog::Tracing.active_trace.resource = 'UsersController#show'
           end
         end
@@ -483,13 +503,17 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
       end
 
       context 'when no framework sets trace resource' do
-        before { described_class.call(env, request_queuing: false, web_service_name: service) { :success } }
+        before { trace_proxy }
 
         it { expect(traces.first.resource).to eq('GET /api/{proxy+}') }
       end
 
       context 'when request_queuing is true and x-request-start is also present' do
-        before { described_class.call(env, request_queuing: true, web_service_name: service) { :success } }
+        before do
+          described_class.call(
+            env, inferred_proxy_enabled: true, request_queuing: true, web_service_name: service
+          ) { :success }
+        end
 
         let(:env) do
           {
