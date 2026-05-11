@@ -60,6 +60,8 @@ module Datadog
 
       def shutdown!: () -> void
 
+      def after_fork!: () -> void
+
       private
 
       def self.environment_supported?: (untyped logger) -> bool

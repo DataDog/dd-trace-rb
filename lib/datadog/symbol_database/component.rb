@@ -271,6 +271,65 @@ module Datadog
         @scope_batcher.shutdown
       end
 
+      # Reinitialize per-instance state in a forked child process.
+      #
+      # `Process.fork` copies the parent's memory but only the forking thread
+      # survives in the child. Background threads (`@scheduler_thread`) are
+      # dead, mutexes and condition variables are copied without owner
+      # tracking (orphan-lock risk if the parent held a mutex at the fork
+      # instant), and the TracePoint hook is bound to the dead scheduler.
+      #
+      # State reset (the child does its own initial extraction, then hot-load
+      # continues from there):
+      # - Hot-load buffer cleared — the child will rediscover via extract_all.
+      # - `@initial_extraction_done = false` — child has not extracted yet.
+      # - `@hot_load_tracepoint = nil` — `start_upload` reinstalls a fresh one
+      #   bound to the child's component.
+      # - `@scheduler_thread = nil`, `@scheduled_at = nil`,
+      #   `@scheduler_signaled = false` — scheduler restarts on next
+      #   `start_upload`.
+      # - `@upload_in_progress = false` — parent may have been mid-upload at
+      #   the fork instant; the child has no upload in flight.
+      #
+      # Mutex/CV reinit (orphan-lock guard):
+      # - `@scheduler_mutex`, `@scheduler_cv`, `@mutex`,
+      #   `@upload_in_progress_cv`, `@last_upload_time_cv`,
+      #   `@hot_load_buffer_mutex`.
+      #
+      # Force-upload mode: the parent's scheduled extraction is dead in the
+      # child, so re-register the deferred-upload callback. In Rails the
+      # `:after_initialize` hook has already fired (initialization happened
+      # in the parent), so the on_load block runs immediately and the child
+      # schedules its own upload. In non-Rails, this calls `start_upload`
+      # directly.
+      #
+      # Cross-process upload deduplication is intentionally not handled here.
+      # Each forked Component does its own initial extraction. Workers in
+      # `preload_app! + eager_load=true` deployments hold identical code to
+      # the parent — backend dedup of identical-content uploads is tracked
+      # separately in `backlog/impl.md §Fork/child dedup`.
+      #
+      # @return [void]
+      def after_fork!
+        @hot_load_buffer = []
+        @hot_load_buffer_mutex = Mutex.new
+        @hot_load_tracepoint = nil
+        @initial_extraction_done = false
+
+        @scheduler_mutex = Mutex.new
+        @scheduler_cv = ConditionVariable.new
+        @scheduled_at = nil
+        @scheduler_signaled = false
+        @scheduler_thread = nil
+
+        @mutex = Mutex.new
+        @upload_in_progress = false
+        @upload_in_progress_cv = ConditionVariable.new
+        @last_upload_time_cv = ConditionVariable.new
+
+        schedule_deferred_upload if @settings.symbol_database.internal.force_upload
+      end
+
       private
 
       # Check whether the runtime environment supports symbol database upload.
