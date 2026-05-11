@@ -91,12 +91,11 @@ module Datadog
         # Symbol database requires MRI Ruby 2.6+.
         # Configuration accessors (settings.symbol_database.*) remain available on all
         # platforms — only the component (upload) is disabled on unsupported engines/versions.
-        unless environment_supported?(symdb_logger)
-          return nil
-        end
+        # environment_supported? logs the specific reason (engine or version) internally.
+        return nil unless environment_supported?(symdb_logger)
 
         # Requires remote config (unless force mode)
-        unless settings.remote&.enabled || settings.symbol_database.internal.force_upload
+        if !settings.remote&.enabled && !settings.symbol_database.internal.force_upload
           symdb_logger.debug("symdb: remote config not available and force_upload not set, skipping")
           return nil
         end
@@ -255,7 +254,6 @@ module Datadog
         @scope_batcher.shutdown
       end
 
-      # @api private
       private
 
       # Check whether the runtime environment supports symbol database upload.
@@ -291,9 +289,10 @@ module Datadog
       # @return [void]
       def scheduler_loop
         loop do
+          # should_fire = true means the debounce deadline elapsed without further
+          # signals; extract_and_upload runs once after the mutex is released.
           should_fire = false
 
-          # steep:ignore:start
           @scheduler_mutex.synchronize do
             return if @shutdown
             return if Component.uploaded_this_process?
@@ -317,7 +316,6 @@ module Datadog
               end
             end
           end
-          # steep:ignore:end
 
           # `next` inside `synchronize` only exits the synchronize block — not the
           # surrounding loop. Use an explicit flag so the loop only fires
@@ -357,9 +355,11 @@ module Datadog
             log_scope_tree(scope, 0)
           end
 
-          extraction_duration = Datadog::Core::Utils::Time.get_time - start_time
-          targetable_count = count_targetable_methods(file_scopes)
-          @logger.debug { "symdb: extracted #{extracted_count} scopes (#{targetable_count} methods with targetable lines) in #{'%.2f' % extraction_duration}s" }
+          @logger.debug do
+            extraction_duration = Datadog::Core::Utils::Time.get_time - start_time
+            targetable_count = count_targetable_methods(file_scopes)
+            "symdb: extracted #{extracted_count} scopes (#{targetable_count} methods with targetable lines) in #{'%.2f' % extraction_duration}s"
+          end
 
           # Flush any remaining scopes (triggers upload)
           @scope_batcher.flush
