@@ -9,9 +9,9 @@ module Datadog
 
       def self.receivers: (Datadog::Core::Telemetry::Component telemetry) -> Array[Core::Remote::Dispatcher::Receiver]
 
-      def self.receiver: (?Array[String] products) { (Datadog::Core::Remote::Configuration::Repository repository, Array[Datadog::Core::Remote::Configuration::Repository::change] changes) -> void } -> Array[Core::Remote::Dispatcher::Receiver]
+      def self.receiver: (?Array[String] products) { (Datadog::Core::Remote::Configuration::Repository repository, ::Array[untyped] changes) -> void } -> Array[Core::Remote::Dispatcher::Receiver]
 
-      def self.process_change: (Component component, Datadog::Core::Remote::Configuration::Repository::change change) -> void
+      def self.process_change: (Component component, untyped change) -> void
 
       def self.enable_upload: (Component component, Datadog::Core::Remote::Configuration::Content content) -> void
 

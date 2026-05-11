@@ -303,7 +303,11 @@ module Datadog
               @scheduler_signaled = false
               @scheduler_cv.wait(@scheduler_mutex)
             else
-              remaining = @scheduled_at - Datadog::Core::Utils::Time.get_time
+              # steep:ignore NoMethod — Steep does not narrow @scheduled_at from `Float?`
+              # to `Float` across the `if @scheduled_at.nil?` check above (instance-variable
+              # narrowing is not tracked). Runtime is safe: the else branch only runs when
+              # the variable is non-nil.
+              remaining = @scheduled_at - Datadog::Core::Utils::Time.get_time # steep:ignore NoMethod
               if remaining > 0
                 # Wait until the debounce deadline. Any signal (start_upload,
                 # stop_upload, shutdown!) wakes us early; we always re-loop
