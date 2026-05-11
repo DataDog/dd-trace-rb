@@ -9,6 +9,7 @@
    - `tracing_` (spec in `./spec/datadog/tracing/validate_benchmarks_spec.rb`)
    - `di_` (spec in `./spec/datadog/di/validate_benchmarks_spec.rb`)
    - `error_tracking` (spec in `./spec/datadog/error_tracing/validate_benchmarks_spec.rb`)
+   - `symbol_database_` (spec in `./spec/datadog/symbol_database/validate_benchmarks_spec.rb`)
 
 2. Ensure the benchmark outputs results to `<filename>-results.json` (or `<filename>-<variant>-results.json` for multiple outputs).
 
