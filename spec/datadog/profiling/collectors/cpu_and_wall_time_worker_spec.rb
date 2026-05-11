@@ -539,7 +539,12 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           expect(total_time).to be >= 200_000_000
           expect(waiting_for_gvl_time).to be < total_time,
             "Expected #{waiting_for_gvl_time} to be < #{total_time}, debug_failures: #{debug_failures}"
-          expect(waiting_for_gvl_time).to be_within(5).percent_of(total_time),
+          # REPRODUCER: tighten the assertion on macOS to make the existing scheduler-variance flake
+          # (mid-stream "had cpu" extra samples from handle_gvl_waiting, now classified as "had cpu" post-#5664
+          # because of Mach's microsecond-granularity CPU reading) deterministic. Non-macOS platforms keep
+          # the original 5% margin so this reproducer does not affect Linux CI.
+          margin = PlatformHelpers.mac? ? 1 : 5
+          expect(waiting_for_gvl_time).to be_within(margin).percent_of(total_time),
             "Expected waiting_for_gvl_time to be close to total_time, debug_failures: #{debug_failures}"
 
           expect(cpu_and_wall_time_worker.stats).to match(
