@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../core/configuration/ext'
+require_relative '../core/environment/socket'
 
 module Datadog
   module OpenTelemetry
@@ -57,11 +58,12 @@ module Datadog
         resource_attributes['deployment.environment'] = @settings.env if @settings.env
         resource_attributes['service.version'] = @settings.version if @settings.version
 
-        if @settings.tracing.report_hostname
-          if @settings.hostname
-            resource_attributes['host.name'] = @settings.hostname
-          else
-            resource_attributes['host.name'] ||= Datadog::Core::Environment::Socket.hostname
+        hostname = Datadog::Core::Environment::Socket.resolved_hostname(@settings)
+        if hostname
+          if hostname == @settings.hostname
+            resource_attributes['host.name'] = hostname
+          elsif !resource_attributes.key?('host.name')
+            resource_attributes['host.name'] = hostname
           end
         end
 
