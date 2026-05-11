@@ -1484,21 +1484,27 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         let(:context_tracking) { [] }
 
         before do
-          # REPRODUCER for flaky failure on macOS:
-          #
-          # The Mach-API CPU clock (clock_id_from_mach.c) has microsecond resolution.
-          # When 5 fast GC cycles all complete within a single microsecond on macOS,
-          # every accumulated_cpu_time_ns snapshot is identical (first == last), and
-          # the strict `<` assertion on the test below fails with
-          # "expected: < 2000, got: 2000".
-          #
-          # This reproducer forces the failure deterministically on every platform by
-          # running a single cycle and replicating its snapshot 5 times. CI should
-          # show the test failing with the same error message seen on macOS in CI.
-          on_gc_start
-          on_gc_finish
-          snapshot = gc_tracking
-          5.times { context_tracking << snapshot }
+          # Conflict resolution: both reproducer and fix branches modify this `before`
+          # block. The reproducer replaces the 5-cycle loop with 1 cycle replicated 5
+          # times (forces first == last to deterministically fire the strict `<`
+          # assertion). The fix keeps 5 real cycles and inserts per-cycle CPU workload
+          # so each cycle's delta is reliably non-zero. Validation takes the fix's
+          # version: if CI passes here, it shows that the fix's per-cycle workload
+          # prevents the failure mode the reproducer demonstrates.
+          5.times do
+            on_gc_start
+            # Burn enough CPU per cycle to guarantee a measurable delta even when the
+            # underlying CPU clock has microsecond resolution (macOS Mach `thread_info`).
+            # Without this, fast cycles may all land in the same microsecond bucket,
+            # making `accumulated_cpu_time_ns` constant across snapshots and failing the
+            # strict `<` assertion below.
+            burn = 0
+            10_000.times { |i| burn ^= i }
+            burn
+            on_gc_finish
+
+            context_tracking << gc_tracking
+          end
         end
 
         it "accumulates the cpu-time and wall-time from the multiple GCs" do
