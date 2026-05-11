@@ -541,13 +541,17 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           expect(total_time).to be >= 200_000_000
           expect(waiting_for_gvl_time).to be < total_time,
             "Expected #{waiting_for_gvl_time} to be < #{total_time}, debug_failures: #{debug_failures}"
-          # REPRODUCER: tighten the assertion on macOS to make the existing scheduler-variance flake
-          # (mid-stream "had cpu" extra samples from handle_gvl_waiting, now classified as "had cpu" post-#5664
-          # because of Mach's microsecond-granularity CPU reading) deterministic. Non-macOS platforms keep
-          # the original 5% margin so this reproducer does not affect Linux CI.
-          margin = PlatformHelpers.mac? ? 1 : 5
-          expect(waiting_for_gvl_time).to be_within(margin).percent_of(total_time),
-            "Expected waiting_for_gvl_time to be close to total_time, debug_failures: #{debug_failures}"
+          # REPRODUCER: on macOS, require strict equality between waiting_for_gvl_time and total_time.
+          # Since the assertion above already established waiting_for_gvl_time < total_time, requiring
+          # equality here always fails on macOS — surfacing the mid-stream "had cpu" leak deterministically.
+          # On non-macOS platforms the original 5% margin is unchanged so Linux CI is unaffected.
+          if PlatformHelpers.mac?
+            expect(waiting_for_gvl_time).to eq(total_time),
+              "REPRODUCER: macOS strict-equality assertion — debug_failures: #{debug_failures}"
+          else
+            expect(waiting_for_gvl_time).to be_within(5).percent_of(total_time),
+              "Expected waiting_for_gvl_time to be close to total_time, debug_failures: #{debug_failures}"
+          end
 
           expect(cpu_and_wall_time_worker.stats).to match(
             hash_including(
