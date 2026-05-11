@@ -15,7 +15,7 @@ module Datadog
 
       @settings: Datadog::Core::Configuration::Settings
       @agent_settings: Datadog::Core::Configuration::AgentSettings
-      @logger: SymbolDatabase::Logger
+      @logger: untyped
       @telemetry: Datadog::Core::Telemetry::Component?
       @extractor: Extractor
       @uploader: Uploader
@@ -35,7 +35,7 @@ module Datadog
 
       def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, ::Logger logger, ?telemetry: Datadog::Core::Telemetry::Component?) -> Component?
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, SymbolDatabase::Logger logger, ?telemetry: Datadog::Core::Telemetry::Component?) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, untyped logger, ?telemetry: Datadog::Core::Telemetry::Component?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
       attr_reader logger: SymbolDatabase::Logger
@@ -57,7 +57,7 @@ module Datadog
 
       private
 
-      def self.environment_supported?: (SymbolDatabase::Logger logger) -> bool
+      def self.environment_supported?: (untyped logger) -> bool
 
       def ensure_scheduler_thread: () -> void
 
