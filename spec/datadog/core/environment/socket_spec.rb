@@ -21,7 +21,7 @@ RSpec.describe Datadog::Core::Environment::Socket do
       it { expect(resolved).to be_nil }
     end
 
-    context 'when DD_HOSTNAME is set' do
+    context 'when hostname was set via settings' do
       let(:configured_hostname) { 'custom-host' }
 
       it 'returns the configured hostname' do
