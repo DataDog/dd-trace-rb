@@ -1,3 +1,14 @@
+if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('4.0')
+  lint_task_requested = ARGV.any? do |argument|
+    task_name = argument.split('[', 2).first
+
+    task_name.start_with?('lint:', 'standard:', 'rubocop:', 'yamllint:', 'actionlint:') ||
+      %w[lint standard rubocop yamllint actionlint].include?(task_name)
+  end
+
+  abort 'Lint tasks are supported on Ruby 4.0 or newer' if lint_task_requested
+end
+
 require 'bundler/gem_tasks'
 require 'datadog/version'
 require 'rubocop/rake_task' if Gem.loaded_specs.key? 'rubocop'
@@ -546,6 +557,20 @@ end
 
 if defined?(RuboCop::RakeTask)
   RuboCop::RakeTask.new(:rubocop) do |_t|
+  end
+end
+
+if defined?(DatadogLintTasks)
+  %w[
+    standard
+    standard:fix
+    standard:fix_unsafely
+    rubocop
+    rubocop:auto_correct
+    rubocop:autocorrect
+    rubocop:autocorrect_all
+  ].each do |task_name|
+    Rake::Task[task_name].enhance([:"lint:supported_ruby"]) if Rake::Task.task_defined?(task_name)
   end
 end
 
