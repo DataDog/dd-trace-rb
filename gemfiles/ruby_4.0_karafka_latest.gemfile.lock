@@ -4,7 +4,7 @@ PATH
     datadog (2.33.0)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
-      libdatadog (~> 30.0.0.1.0)
+      libdatadog (~> 33.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
@@ -38,7 +38,7 @@ GEM
     fiddle (1.1.8)
     google-protobuf (3.25.8)
     hashdiff (1.2.1)
-    json (2.19.4)
+    json (2.19.5)
     json-schema (2.8.1)
       addressable (>= 2.4)
     karafka (2.5.9)
@@ -67,9 +67,9 @@ GEM
       logger
       mini_portile2 (~> 2.6)
       rake (> 12)
-    libdatadog (30.0.0.1.0)
-    libdatadog (30.0.0.1.0-aarch64-linux)
-    libdatadog (30.0.0.1.0-x86_64-linux)
+    libdatadog (33.0.0.1.0)
+    libdatadog (33.0.0.1.0-aarch64-linux)
+    libdatadog (33.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.2)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.2-aarch64-linux)
@@ -118,7 +118,7 @@ GEM
     simplecov-html (0.13.2)
     simplecov_json_formatter (0.1.4)
     warning (1.5.0)
-    waterdrop (2.9.0)
+    waterdrop (2.10.0)
       karafka-core (>= 2.5.12, < 3.0.0)
       karafka-rdkafka (>= 0.24.0)
       zeitwerk (~> 2.3)

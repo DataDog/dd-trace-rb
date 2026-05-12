@@ -373,7 +373,7 @@
       {
         "version": "A",
         "type": "string",
-        "default": "null"
+        "default": null
       }
     ],
     "DD_INJECTION_ENABLED": [
