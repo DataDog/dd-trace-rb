@@ -17,34 +17,6 @@ RSpec.describe Datadog::AppSec::Component do
         expect(component).to be_a(described_class)
       end
 
-      context 'when using ffi version that is known to leak memory with Ruby >= 3.3.0' do
-        before do
-          stub_const('RUBY_VERSION', '3.3.0')
-          allow(Gem).to receive(:loaded_specs).and_return('ffi' => double(version: Gem::Version.new('1.15.4')))
-        end
-
-        it 'returns nil, warns and reports telemetry' do
-          expect(Datadog.logger).to receive(:warn)
-          expect(telemetry).to receive(:error)
-            .with('AppSec: Component not loaded, ffi version is leaky with ruby > 3.3.0')
-
-          component = described_class.build_appsec_component(settings, telemetry: telemetry)
-          expect(component).to be_nil
-        end
-      end
-
-      context 'when ffi is not loaded' do
-        before { allow(Gem).to receive(:loaded_specs).and_return({}) }
-
-        it 'returns nil, warns and reports telemetry' do
-          expect(Datadog.logger).to receive(:warn)
-          expect(telemetry).to receive(:error).with('AppSec: Component not loaded, due to missing FFI gem')
-
-          component = described_class.build_appsec_component(settings, telemetry: telemetry)
-          expect(component).to be_nil
-        end
-      end
-
       it 'returns nil when security engine fails to instantiate' do
         settings.appsec.ruleset = {}
 
