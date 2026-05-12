@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../core/configuration/ext'
+require_relative '../core/environment/socket'
 
 module Datadog
   module OpenTelemetry
@@ -58,11 +59,12 @@ module Datadog
         resource_attributes['deployment.environment'] = @settings.env if @settings.env
         resource_attributes['service.version'] = @settings.version if @settings.version
 
-        if @settings.tracing.report_hostname
-          if @settings.hostname
-            resource_attributes['host.name'] = @settings.hostname
-          else
-            resource_attributes['host.name'] ||= Datadog::Core::Environment::Socket.hostname
+        hostname = Datadog::Core::Environment::Socket.resolved_hostname(@settings)
+        if hostname
+          if hostname == @settings.hostname
+            resource_attributes['host.name'] = hostname
+          elsif !resource_attributes.key?('host.name')
+            resource_attributes['host.name'] = hostname
           end
         end
 
@@ -87,7 +89,6 @@ module Datadog
       end
 
       def configure_otlp_exporter(provider)
-        require 'opentelemetry/exporter/otlp_logs'
         require_relative 'sdk/logs_exporter'
 
         logs_config = @settings.opentelemetry.logs
@@ -96,7 +97,7 @@ module Datadog
           option_name: :endpoint,
           computed_default: default_logs_endpoint(protocol)
         )
-        timeout = get_logs_config_with_fallback(option_name: :timeout_millis) || 10_000
+        timeout = get_logs_config_with_fallback(option_name: :timeout_millis)
         headers = get_logs_config_with_fallback(option_name: :headers)
 
         exporter = Datadog::OpenTelemetry::SDK::LogsExporter.new(

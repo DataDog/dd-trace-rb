@@ -14,10 +14,7 @@ module Datadog
 
         def initialize(protocol: nil, **kwargs)
           @telemetry_tags = compute_telemetry_tags(protocol)
-          # OTLP LogsExporter doesn't take protocol; callers may duplicate it alongside endpoint/timeout.
-          forward = kwargs.dup
-          forward.delete(:protocol)
-          super(**forward)
+          super(**kwargs)
         end
 
         def export(log_records, timeout: nil)

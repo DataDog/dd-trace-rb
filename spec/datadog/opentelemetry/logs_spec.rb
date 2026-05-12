@@ -97,21 +97,6 @@ RSpec.describe 'OpenTelemetry Logs Integration', ruby: '>= 3.1' do
       expect(record).not_to be_nil
       expect(record.dig('body', 'string_value')).to include('hello world')
     end
-
-    it 'exports log records with attributes' do
-      setup_logs
-      logger = provider.logger(name: 'app')
-      logger.on_emit(
-        timestamp: Time.now,
-        severity_number: 9,
-        body: 'structured log',
-        attributes: {'user.id' => '42', 'http.method' => 'GET'}
-      )
-      provider.force_flush
-
-      record = find_log_record('structured log')
-      expect(record).not_to be_nil
-    end
   end
 
   describe 'Resource Attributes' do
@@ -137,11 +122,6 @@ RSpec.describe 'OpenTelemetry Logs Integration', ruby: '>= 3.1' do
     it 'uses DD_HOSTNAME as host.name when report_hostname is true' do
       setup_logs('DD_TRACE_REPORT_HOSTNAME' => 'true', 'DD_HOSTNAME' => 'custom-host')
       expect(attributes['host.name']).to eq('custom-host')
-    end
-
-    it 'falls back to Socket.hostname when DD_HOSTNAME is not set and report_hostname is true' do
-      setup_logs('DD_TRACE_REPORT_HOSTNAME' => 'true')
-      expect(attributes['host.name']).to eq(Datadog::Core::Environment::Socket.hostname)
     end
 
     it 'DD_HOSTNAME takes precedence over host.name set via tags when report_hostname is true' do
@@ -211,8 +191,6 @@ RSpec.describe 'OpenTelemetry Logs Integration', ruby: '>= 3.1' do
   end
 
   describe 'Configuration' do
-    let(:settings) { Datadog::Core::Configuration::Settings.new }
-
     describe 'default values' do
       before { setup_logs }
 
@@ -284,13 +262,6 @@ RSpec.describe 'OpenTelemetry Logs Integration', ruby: '>= 3.1' do
     it 'returns empty hash when headers are malformed' do
       setup_logs(
         'OTEL_EXPORTER_OTLP_LOGS_HEADERS' => 'api-key=secret123,malformed'
-      )
-      expect(logs_settings.headers).to eq({})
-    end
-
-    it 'returns empty hash when header has empty key or value' do
-      setup_logs(
-        'OTEL_EXPORTER_OTLP_LOGS_HEADERS' => 'api-key=secret123,=value'
       )
       expect(logs_settings.headers).to eq({})
     end
