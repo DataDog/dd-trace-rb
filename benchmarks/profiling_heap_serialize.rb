@@ -57,7 +57,6 @@ end
 
 def build_recorder
   base_args = {
-    cpu_time_enabled: false,
     alloc_samples_enabled: false,
     heap_samples_enabled: true,
     heap_size_enabled: true,
