@@ -29,7 +29,7 @@ RSpec.describe Datadog::OpenFeature::NativeEvaluator do
           expect(result.value).to eq(expected.fetch('value'))
           expect(result.reason).to eq(expected.fetch('reason'))
           expect(result.variant).to eq(expected['variant'])
-          expect(result.error_code).to eq(expected['errorCode']) if expected.key?('errorCode')
+          expect(result.error_code).to eq(expected['errorCode'])
         end
       end
     end
