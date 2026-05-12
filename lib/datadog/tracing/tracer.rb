@@ -372,9 +372,7 @@ module Datadog
       end
 
       def build_trace(digest, auto_finish)
-        # Resolve hostname if configured
-        hostname = Core::Environment::Socket.hostname if Datadog.configuration.tracing.report_hostname
-        hostname = (hostname && !hostname.empty?) ? hostname : nil
+        hostname = Core::Environment::Socket.resolved_hostname(Datadog.configuration)
 
         if digest
           sampling_priority = if propagate_sampling_priority?(upstream_tags: digest.trace_distributed_tags)

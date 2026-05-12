@@ -1,23 +1,29 @@
 # frozen_string_literal: true
 
+require_relative '../../tracing/utils'
+
 module Datadog
   module OpenTelemetry
     module SDK
-      # Generates Datadog-compatible IDs for OpenTelemetry traces.
-      # OpenTelemetry traces already produce Datadog-compatible IDs.
+      # Generates Datadog-compatible trace IDs for OpenTelemetry spans.
+      #
+      # Reuses the same 128-bit ID format as non-OTel Datadog tracing:
+      #   [32-bit seconds since Epoch | 32 zero bits | 64 random bits]
+      #
+      # When DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED is false the high 64
+      # bits are zero, preserving the OTel 16-byte wire format while keeping
+      # backward compatibility with 64-bit Datadog trace IDs.
       class IdGenerator
         class << self
           include ::OpenTelemetry::Trace
 
-          # Generates a valid trace identifier, a 16-byte string with at least one
-          # non-zero byte.
-          #
-          # @return [String] a valid trace ID.
+          # @return [String] a valid 16-byte trace ID.
           def generate_trace_id
-            loop do
-              id = Random.bytes(8) # DEV: Change to 16 (16*8-byte) when 128-bit trace_id is supported.
-              return id unless id == ::OpenTelemetry::Trace::INVALID_SPAN_ID
-            end
+            trace_id = Tracing::Utils::TraceId.next_id
+            [
+              Tracing::Utils::TraceId.to_high_order(trace_id),
+              Tracing::Utils::TraceId.to_low_order(trace_id),
+            ].pack('Q>Q>')
           end
         end
       end
