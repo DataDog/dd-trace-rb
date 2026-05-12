@@ -7,8 +7,6 @@ module Datadog
 
       MAX_FILES: ::Integer
 
-      TIMER_JOIN_TIMEOUT: ::Integer
-
       @uploader: Uploader
 
       @logger: Logger
@@ -41,6 +39,8 @@ module Datadog
 
       def shutdown: () -> void
 
+      def reset: () -> void
+
       def perform_upload: (::Array[Scope]? scopes) -> void
 
       def scopes_pending?: () -> bool
@@ -48,8 +48,6 @@ module Datadog
       def size: () -> ::Integer
 
       private
-
-      def reset: () -> void
 
       def ensure_timer_running: () -> void
 
