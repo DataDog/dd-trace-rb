@@ -76,13 +76,12 @@ module Datadog
             # NOTE: resource_path is the parameterized route (e.g. /users/{id}) vs literal path
             resource = "#{http_method} #{resource_path || path}" if http_method
 
-            options = {
-              service: domain,
-              type: Tracing::Metadata::Ext::AppTypes::TYPE_WEB,
-              start_time: Time.at(request_time_ms / 1_000),
-            }
-
-            inferred_span = Tracing.trace(span_name, **options)
+            inferred_span = Tracing.trace(
+            	span_name,
+            	service: domain,
+              	type: Tracing::Metadata::Ext::AppTypes::TYPE_WEB,
+              	start_time: Time.at(request_time_ms / 1_000),
+            )
             inferred_span.resource = resource if resource
             inferred_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, proxy_type)
             inferred_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)
