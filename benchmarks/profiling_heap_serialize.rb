@@ -44,7 +44,7 @@ class DeepStackBuilder
           " else; deep_stack_#{d + 1}(target, &block);" \
           " end;" \
         "end",
-        binding, __FILE__, __LINE__
+        binding, __FILE__, __LINE__ - 5
       )
       # rubocop:enable Security/Eval
     end
