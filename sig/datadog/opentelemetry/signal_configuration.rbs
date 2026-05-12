@@ -1,0 +1,11 @@
+module Datadog
+  module OpenTelemetry
+    module SignalConfiguration
+      private
+
+      def create_resource: () -> ::OpenTelemetry::SDK::Resources::Resource
+
+      def config_with_fallback: (signal: ::Symbol, option_name: ::Symbol, ?computed_default: untyped) -> untyped
+    end
+  end
+end

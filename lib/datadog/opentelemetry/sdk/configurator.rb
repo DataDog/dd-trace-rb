@@ -68,7 +68,10 @@ module Datadog
           end
 
           success = Datadog::OpenTelemetry::Logs.initialize!(components)
-          super unless success
+          unless success
+            components.logger.warn('Falling back to OpenTelemetry default logs configuration')
+            super
+          end
         end
 
         # Prepend to ConfiguratorPatch (not Configurator) so our hook runs first.

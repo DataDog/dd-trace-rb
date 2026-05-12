@@ -68,11 +68,6 @@ RSpec.describe 'OpenTelemetry Logs Integration', ruby: '>= 3.1' do
     nil
   end
 
-  def find_attribute_by_key(attributes, key)
-    attr = attributes&.find { |a| a['key'] == key }
-    attr&.dig('value', 'string_value') || attr&.dig('value', 'int_value') || attr&.dig('value', 'double_value')
-  end
-
   def setup_logs(env_overrides = {}, &config_block)
     ClimateControl.modify({
       'DD_LOGS_OTEL_ENABLED' => 'true',
@@ -158,28 +153,6 @@ RSpec.describe 'OpenTelemetry Logs Integration', ruby: '>= 3.1' do
     it 'applies fallback service name when neither DD_SERVICE nor service tag is set' do
       setup_logs
       expect(attributes['service.name']).to eq(Datadog::Core::Environment::Ext::FALLBACK_SERVICE_NAME)
-    end
-  end
-
-  describe 'Trace Context' do
-    # OpenTelemetry logs read trace context from OpenTelemetry::Context; Datadog uses its own
-    # context. A bridge to set OTel context from the active Datadog span is not yet implemented.
-    it 'includes trace_id and span_id when emitting inside an active Datadog span', pending: 'OTel logs use OpenTelemetry::Context; Datadog span context bridge not implemented' do
-      setup_logs
-      trace_id = nil
-      span_id = nil
-
-      Datadog::Tracing.trace('test.op') do |span|
-        trace_id = format('%032x', span.trace_id)
-        span_id = format('%016x', span.id)
-        provider.logger(name: 'app').on_emit(timestamp: Time.now, severity_number: 9, body: 'inside-span')
-        provider.force_flush
-      end
-
-      record = find_log_record('inside-span')
-      expect(record).not_to be_nil
-      expect(record['trace_id']).to eq(trace_id)
-      expect(record['span_id']).to eq(span_id)
     end
   end
 
