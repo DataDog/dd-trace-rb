@@ -634,6 +634,10 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   // can raise exceptions without worrying about leaking the profile.
   state->stats_lifetime.serialization_successes++;
 
+  // Must read start before rotate_profiles_dictionary: it reinitializes the just-serialized slot
+  // and overwrites args.slot->start_timestamp with the current time.
+  VALUE start = ruby_time_from(args.slot->start_timestamp);
+
   // Rotate the ProfilesDictionary every N exports — for testing only, not for production.
   if (state->dictionary_rotation_period > 0 &&
       state->stats_lifetime.serialization_successes % state->dictionary_rotation_period == 0) {
@@ -642,7 +646,6 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
 
   VALUE encoded_profile = from_ddog_prof_EncodedProfile(serialized_profile.ok);
 
-  VALUE start = ruby_time_from(args.slot->start_timestamp);
   VALUE finish = ruby_time_from(finish_timestamp);
   VALUE profile_stats = build_profile_stats(args.slot, args.serialize_no_gvl_time_ns, heap_iteration_prep_time_ns, args.heap_profile_build_time_ns);
 
