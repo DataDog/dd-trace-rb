@@ -8,8 +8,11 @@ module Datadog
       EXTERNAL_MAX_ID: untyped
 
       self.@id_rng: Random
+      self.@secure_random: bool?
 
       def self.next_id: () -> untyped
+
+      def self.secure_random?: () -> bool
 
       def self.id_rng: () -> untyped
 

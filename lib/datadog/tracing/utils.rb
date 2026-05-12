@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'securerandom'
+require_relative '../core/configuration/config_helper'
 require_relative '../core/utils/forking'
 require_relative '../core/utils/time'
 
@@ -39,7 +40,9 @@ module Datadog
       end
 
       def self.secure_random?
-        @secure_random ||= (ENV['DD_TRACE_SECURE_RANDOM'] == 'true')
+        return @secure_random unless @secure_random.nil?
+
+        @secure_random = (DATADOG_ENV['DD_TRACE_SECURE_RANDOM'] == 'true')
       end
 
       def self.id_rng

@@ -70,6 +70,24 @@ RSpec.describe Datadog::Tracing::Utils do
         described_class.next_id
       end
     end
+
+    context 'when DD_TRACE_SECURE_RANDOM is false' do
+      around do |example|
+        described_class.instance_variable_set(:@secure_random, nil)
+        ClimateControl.modify('DD_TRACE_SECURE_RANDOM' => 'false') { example.run }
+        described_class.instance_variable_set(:@secure_random, nil)
+      end
+
+      it 'does not delegate to SecureRandom.random_number' do
+        expect(SecureRandom).not_to receive(:random_number)
+        described_class.next_id
+      end
+
+      it 'only reads the environment variable once across multiple calls' do
+        expect(DATADOG_ENV).to receive(:[]).with('DD_TRACE_SECURE_RANDOM').once.and_call_original
+        3.times { described_class.next_id }
+      end
+    end
   end
 end
 
