@@ -61,6 +61,7 @@ module Datadog
           "DD_GIT_COMMIT_SHA",
           "DD_GIT_REPOSITORY_URL",
           "DD_HEALTH_METRICS_ENABLED",
+          "DD_HOSTNAME",
           "DD_INJECTION_ENABLED",
           "DD_INJECT_FORCE",
           "DD_INSTRUMENTATION_INSTALL_ID",
