@@ -28,8 +28,8 @@ module Datadog
           configured = settings.hostname
           return configured if configured && !configured.empty?
 
-          hn = hostname
-          hn if hn && !hn.empty?
+          resolved_hostname = hostname
+          resolved_hostname if resolved_hostname && !resolved_hostname.empty?
         end
       end
     end

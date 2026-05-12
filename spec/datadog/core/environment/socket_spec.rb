@@ -18,9 +18,7 @@ RSpec.describe Datadog::Core::Environment::Socket do
       let(:configured_hostname) { 'custom-host' }
       let(:tracing) { double('tracing', report_hostname: false) }
 
-      it 'returns nil' do
-        expect(resolved).to be_nil
-      end
+      it { expect(resolved).to be_nil }
     end
 
     context 'when DD_HOSTNAME is set' do
