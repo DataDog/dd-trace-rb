@@ -84,7 +84,7 @@ RSpec.describe Datadog::Tracing::Utils do
       end
 
       it 'only reads the environment variable once across multiple calls' do
-        expect(DATADOG_ENV).to receive(:[]).with('DD_TRACE_SECURE_RANDOM').once.and_call_original
+        expect(Datadog::DATADOG_ENV).to receive(:[]).with('DD_TRACE_SECURE_RANDOM').once.and_call_original
         3.times { described_class.next_id }
       end
     end
