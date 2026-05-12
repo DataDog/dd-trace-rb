@@ -2498,7 +2498,7 @@
     ],
     "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL": [
       {
-        "version": "A",
+        "version": "E",
         "type": "string",
         "default": null
       }
