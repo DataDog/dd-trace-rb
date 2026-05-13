@@ -12,13 +12,11 @@ module Datadog
         METRIC_LOG_RECORDS: "otel.log_records"
         TELEMETRY_NAMESPACE: "tracers"
 
-        def initialize: (?protocol: ::String?, **untyped) -> void
+        def initialize: (**untyped) -> void
 
         def export: (untyped log_records, ?timeout: ::Float?) -> Integer
 
         private
-
-        def compute_telemetry_tags: (::String? protocol) -> ::Hash[::String, ::String]
 
         def telemetry: () -> Core::Telemetry::Component?
       end

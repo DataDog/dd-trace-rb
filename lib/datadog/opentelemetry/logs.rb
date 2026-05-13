@@ -52,30 +52,26 @@ module Datadog
         @logger.warn("Failed to configure OTLP logs exporter: #{e.class}: #{e.message}")
       end
 
-      def default_logs_endpoint(protocol)
-        # gRPC uses bare host:port (no path); HTTP uses /v1/logs per the OTLP spec.
-        if protocol == 'grpc'
-          "#{@agent_ssl ? 'https' : 'http'}://#{@agent_host}:4317"
-        else
-          "#{@agent_ssl ? 'https' : 'http'}://#{@agent_host}:4318/v1/logs"
-        end
+      def default_logs_endpoint
+        "#{@agent_ssl ? 'https' : 'http'}://#{@agent_host}:4318/v1/logs"
       end
 
       def configure_otlp_exporter(provider)
         require_relative 'sdk/logs_exporter'
 
         logs_config = @settings.opentelemetry.logs
-        protocol = config_with_fallback(signal: :logs, option_name: :protocol)
+        # OpenTelemetry SDK only supports http/protobuf protocol.
+        # TODO: Add support for http/json and grpc.
+        # protocol = config_with_fallback(signal: :logs, option_name: :protocol)
         endpoint = config_with_fallback(
           signal: :logs,
           option_name: :endpoint,
-          computed_default: default_logs_endpoint(protocol)
+          computed_default: default_logs_endpoint
         )
         timeout = config_with_fallback(signal: :logs, option_name: :timeout_millis) || 10_000
         headers = config_with_fallback(signal: :logs, option_name: :headers)
 
         exporter = Datadog::OpenTelemetry::SDK::LogsExporter.new(
-          protocol: protocol,
           endpoint: endpoint,
           timeout: timeout / 1000.0,
           headers: headers

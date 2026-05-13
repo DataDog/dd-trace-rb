@@ -12,9 +12,9 @@ module Datadog
         METRIC_LOG_RECORDS = 'otel.log_records'
         TELEMETRY_NAMESPACE = 'tracers'
 
-        def initialize(protocol: nil, **kwargs)
-          @telemetry_tags = compute_telemetry_tags(protocol)
-          super(**kwargs)
+        def initialize(**kwargs)
+          @telemetry_tags = {'protocol' => 'http', 'encoding' => 'protobuf'}
+          super
         end
 
         def export(log_records, timeout: nil)
@@ -31,17 +31,6 @@ module Datadog
         end
 
         private
-
-        def compute_telemetry_tags(protocol)
-          case protocol
-          when 'grpc'
-            {'protocol' => 'grpc', 'encoding' => 'protobuf'}
-          when 'http/json'
-            {'protocol' => 'http', 'encoding' => 'json'}
-          else
-            {'protocol' => 'http', 'encoding' => 'protobuf'}
-          end
-        end
 
         def telemetry
           Datadog.send(:components).telemetry

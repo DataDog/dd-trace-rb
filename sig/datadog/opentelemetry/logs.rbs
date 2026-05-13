@@ -20,7 +20,7 @@ module Datadog
 
       def configure_log_record_processor: (untyped provider) -> void
 
-      def default_logs_endpoint: (::String protocol) -> ::String
+      def default_logs_endpoint: () -> ::String
 
       def configure_otlp_exporter: (untyped provider) -> void
     end
