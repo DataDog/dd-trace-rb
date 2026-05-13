@@ -559,7 +559,11 @@ static VALUE build_and_send_traces(VALUE arg) {
     ENFORCE_TYPE(chunk_spans, T_ARRAY);
 
     long span_count = RARRAY_LEN(chunk_spans);
-    ddog_tracer_trace_chunks_begin_chunk(ctx->chunks, (size_t)span_count);
+    ddog_TraceExporterError *begin_err =
+        ddog_tracer_trace_chunks_begin_chunk(ctx->chunks, (size_t)span_count);
+    if (begin_err != NULL) {
+      ddog_trace_exporter_error_free(begin_err);
+    }
     for (long j = 0; j < span_count; j++) {
       VALUE rb_span = rb_ary_entry(chunk_spans, j);
 
