@@ -13,7 +13,10 @@ RSpec.describe Datadog::Core::Transport::HTTP::Response do
 
     describe 'Datadog::Core::Transport::Response methods' do
       it 'are forwarded to the HTTP response' do
-        (Datadog::Core::Transport::Response.instance_methods - [:inspect]).each do |method|
+        # :inspect is overridden, :json_content_type? is a computed predicate that
+        # calls #content_type internally rather than forwarding directly.
+        non_forwarded = [:inspect, :json_content_type?]
+        (Datadog::Core::Transport::Response.instance_methods - non_forwarded).each do |method|
           expect(http_response).to receive(method)
           response.send(method)
         end

@@ -39,6 +39,17 @@ module Datadog
           nil
         end
 
+        # True if the response declares its body as JSON via the Content-Type header.
+        # Matches "application/json" and "application/<sub>+json" (e.g. application/vnd.api+json),
+        # case-insensitively, ignoring any media-type parameters such as ";charset=utf-8".
+        def json_content_type?
+          ct = content_type
+          return false unless ct.is_a?(String)
+
+          normalized = ct.downcase
+          normalized == 'application/json' || normalized.end_with?('+json')
+        end
+
         def inspect
           maybe_code = if respond_to?(:code)
             # Steep: `code` method may be defined by classes extending this module.

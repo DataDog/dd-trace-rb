@@ -11,6 +11,10 @@ module Datadog
         # Used by endpoints to wrap responses from adapters with
         # fields or behavior that's specific to that endpoint.
         module Response
+          # Inherit the abstract transport response interface so includers pick up the
+          # shared default methods (e.g. json_content_type?) without re-declaring them here.
+          include Datadog::Core::Transport::Response
+
           def initialize(http_response)
             @http_response = http_response
           end
@@ -62,17 +66,6 @@ module Datadog
           def content_type
             @http_response.respond_to?(:content_type) ? @http_response.content_type : nil
           end
-
-          # True if the response declares its body as JSON via the Content-Type header.
-          # Matches "application/json" and "application/<sub>+json" (e.g. application/vnd.api+json),
-          # case-insensitively, ignoring any media-type parameters such as ";charset=utf-8".
-          def json_content_type?
-            ct = content_type
-            return false unless ct.is_a?(String)
-
-            normalized = ct.downcase
-            normalized == 'application/json' || normalized.end_with?('+json')
-          end
         end
 
         # Raised when a response that was expected to contain JSON did not declare a
@@ -85,7 +78,7 @@ module Datadog
           def initialize(http_response)
             @http_response = http_response
             payload = http_response.payload.to_s
-            truncated_payload = payload.length > 1000 ? "#{payload[0, 1000]}... (truncated)" : payload
+            truncated_payload = (payload.length > 1000) ? "#{payload[0, 1000]}... (truncated)" : payload
             super(
               "Response is not declared as JSON " \
               "(Content-Type: #{http_response.content_type.inspect}, " \

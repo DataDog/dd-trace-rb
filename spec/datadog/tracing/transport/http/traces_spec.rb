@@ -168,7 +168,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Traces::API::Endpoint do
         it 'raises NotJsonResponseError' do
           expect { call }.to raise_error(Datadog::Core::Transport::HTTP::NotJsonResponseError) do |error|
             expect(error.message).to include('Content-Type: "text/html"')
-            expect(error.message).to include(json_payload[0, 50])
+            expect(error.message).to include('rate_by_service')
           end
         end
       end
