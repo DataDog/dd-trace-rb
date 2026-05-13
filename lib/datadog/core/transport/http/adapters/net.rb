@@ -132,6 +132,15 @@ module Datadog
                 http_response.code.to_i
               end
 
+              def content_type
+                return super if http_response.nil?
+
+                # Net::HTTPResponse#content_type returns the media type without parameters
+                # (e.g. "application/json" from "application/json; charset=utf-8") and nil
+                # when the Content-Type header is absent.
+                http_response.content_type
+              end
+
               def ok?
                 return super if http_response.nil?
 

@@ -144,11 +144,33 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Traces::API::Endpoint do
       let(:sampling_response) { {described_class::SERVICE_RATE_KEY => service_rates} }
       let(:service_rates) { {'service:a,env:test' => 0.1, 'service:b,env:test' => 0.5} }
 
-      before { allow(http_response).to receive(:payload).and_return(json_payload) }
+      before do
+        allow(http_response).to receive(:payload).and_return(json_payload)
+        allow(http_response).to receive(:json_content_type?).and_return(true)
+      end
 
       it_behaves_like 'traces request'
       it 'includes service rates' do
         expect(call.service_rates).to eq(service_rates)
+      end
+
+      context 'when the response is not declared as JSON' do
+        before { allow(http_response).to receive(:json_content_type?).and_return(false) }
+
+        let(:logger) { logger_allowing_debug }
+        let(:code) { 200 }
+
+        before do
+          allow(http_response).to receive(:content_type).and_return('text/html')
+          allow(http_response).to receive(:code).and_return(code)
+        end
+
+        it 'raises NotJsonResponseError' do
+          expect { call }.to raise_error(Datadog::Core::Transport::HTTP::NotJsonResponseError) do |error|
+            expect(error.message).to include('Content-Type: "text/html"')
+            expect(error.message).to include(json_payload[0, 50])
+          end
+        end
       end
     end
   end

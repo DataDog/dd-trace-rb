@@ -28,7 +28,12 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
 
       allow(http_connection).to receive(:start).and_yield(http_connection)
 
-      http_response = instance_double(::Net::HTTPResponse, body: response_body, code: response_code)
+      http_response = instance_double(
+        ::Net::HTTPResponse,
+        body: response_body,
+        code: response_code,
+        content_type: response_content_type,
+      )
       allow(http_connection).to receive(:request).with(http_request).and_return(http_response)
     end
   end
@@ -51,6 +56,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
       let(:request_verb) { :get }
 
       let(:response_code) { 200 }
+      let(:response_content_type) { 'application/json' }
       let(:response_body) do
         JSON.dump(
           {
@@ -153,6 +159,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
       let(:request_verb) { :post }
 
       let(:response_code) { 200 }
+      let(:response_content_type) { 'application/json' }
       let(:response_body) do
         encode = proc do |obj|
           Datadog::Core::Utils::Base64.strict_encode64(obj).chomp

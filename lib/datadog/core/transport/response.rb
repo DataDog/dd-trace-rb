@@ -33,6 +33,12 @@ module Datadog
           nil
         end
 
+        # Content-Type of the response body, without parameters (e.g. "application/json").
+        # Returns nil if the transport does not expose response headers.
+        def content_type
+          nil
+        end
+
         def inspect
           maybe_code = if respond_to?(:code)
             # Steep: `code` method may be defined by classes extending this module.

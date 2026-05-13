@@ -22,7 +22,12 @@ RSpec.describe Datadog::Core::Remote::Negotiation do
       if respond_to?(:request_exception)
         allow(http_connection).to receive(:request).with(http_request).and_raise(request_exception)
       else
-        http_response = instance_double(::Net::HTTPResponse, body: response_body, code: response_code)
+        http_response = instance_double(
+          ::Net::HTTPResponse,
+          body: response_body,
+          code: response_code,
+          content_type: respond_to?(:response_content_type) ? response_content_type : 'application/json',
+        )
         allow(http_connection).to receive(:request).with(http_request).and_return(http_response)
       end
     end

@@ -47,11 +47,13 @@ module Datadog
 
               attr_reader \
                 :body,
-                :code
+                :code,
+                :content_type
 
-              def initialize(code, body = nil)
+              def initialize(code, body = nil, content_type: nil)
                 @code = code
                 @body = body
+                @content_type = content_type
               end
 
               def payload

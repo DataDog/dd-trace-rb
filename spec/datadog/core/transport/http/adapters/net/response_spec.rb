@@ -160,4 +160,22 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net::Response do
       expect(response.inspect).to match(/code:202/)
     end
   end
+
+  describe '#content_type' do
+    subject(:content_type) { response.content_type }
+
+    let(:http_response) { instance_double(::Net::HTTPResponse, content_type: header_value) }
+
+    context 'when the HTTP response declares a content type' do
+      let(:header_value) { 'application/json' }
+
+      it { is_expected.to eq('application/json') }
+    end
+
+    context 'when the HTTP response has no Content-Type header' do
+      let(:header_value) { nil }
+
+      it { is_expected.to be nil }
+    end
+  end
 end

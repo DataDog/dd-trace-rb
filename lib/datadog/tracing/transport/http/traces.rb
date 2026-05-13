@@ -56,6 +56,10 @@ module Datadog
                 response_options = {trace_count: env.request.parcel.trace_count}.tap do |options|
                   # Parse service rates, if configured to do so.
                   if service_rates? && !http_response.payload.to_s.empty?
+                    unless http_response.json_content_type?
+                      raise Datadog::Core::Transport::HTTP::NotJsonResponseError, http_response
+                    end
+
                     body = JSON.parse(http_response.payload)
                     options[:service_rates] = body[SERVICE_RATE_KEY] if body.is_a?(Hash) && body.key?(SERVICE_RATE_KEY)
                   end

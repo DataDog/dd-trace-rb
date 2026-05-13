@@ -57,6 +57,42 @@ module Datadog
           def headers
             @http_response.respond_to?(:headers) ? @http_response.headers : {}
           end
+
+          # (see Datadog::Core::Transport::Response#content_type)
+          def content_type
+            @http_response.respond_to?(:content_type) ? @http_response.content_type : nil
+          end
+
+          # True if the response declares its body as JSON via the Content-Type header.
+          # Matches "application/json" and "application/<sub>+json" (e.g. application/vnd.api+json),
+          # case-insensitively, ignoring any media-type parameters such as ";charset=utf-8".
+          def json_content_type?
+            ct = content_type
+            return false unless ct.is_a?(String)
+
+            normalized = ct.downcase
+            normalized == 'application/json' || normalized.end_with?('+json')
+          end
+        end
+
+        # Raised when a response that was expected to contain JSON did not declare a
+        # JSON Content-Type. Carries the offending response so callers (and the
+        # transport client's exception logger) can include status, content type, and
+        # payload in their diagnostics.
+        class NotJsonResponseError < StandardError
+          attr_reader :http_response
+
+          def initialize(http_response)
+            @http_response = http_response
+            payload = http_response.payload.to_s
+            truncated_payload = payload.length > 1000 ? "#{payload[0, 1000]}... (truncated)" : payload
+            super(
+              "Response is not declared as JSON " \
+              "(Content-Type: #{http_response.content_type.inspect}, " \
+              "status: #{http_response.code.inspect}, " \
+              "payload: #{truncated_payload.inspect})"
+            )
+          end
         end
       end
     end

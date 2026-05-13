@@ -23,6 +23,10 @@ module Datadog
 
                 raise AgentErrorResponse.new(http_response.code, http_response.payload) if http_response.code != 200
 
+                unless http_response.json_content_type?
+                  raise Datadog::Core::Transport::HTTP::NotJsonResponseError, http_response
+                end
+
                 begin
                   payload = JSON.parse(http_response.payload, symbolize_names: true)
                 rescue JSON::ParserError => e

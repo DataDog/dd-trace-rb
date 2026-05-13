@@ -20,7 +20,12 @@ RSpec.describe Datadog::Core::Remote::Client do
       allow(http_connection).to receive(:use_ssl=)
 
       allow(http_connection).to receive(:start).and_yield(http_connection)
-      http_response = instance_double(::Net::HTTPResponse, body: response_body, code: response_code)
+      http_response = instance_double(
+        ::Net::HTTPResponse,
+        body: response_body,
+        code: response_code,
+        content_type: respond_to?(:response_content_type) ? response_content_type : 'application/json',
+      )
       allow(http_connection).to receive(:request).with(http_request).and_return(http_response)
     end
   end
