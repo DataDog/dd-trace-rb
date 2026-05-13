@@ -5,7 +5,7 @@ module Datadog
 
       def create_resource: () -> ::OpenTelemetry::SDK::Resources::Resource
 
-      def config_with_fallback: (signal: ::Symbol, option_name: ::Symbol, ?computed_default: untyped) -> untyped
+      def config_or_exporter_fallback: (signal: ::Symbol, option_name: ::Symbol, ?computed_default: any) -> any
     end
   end
 end

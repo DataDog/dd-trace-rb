@@ -40,7 +40,7 @@ module Datadog
 
       # Returns the signal-specific option value when explicitly set,
       # otherwise falls back to the general OTLP exporter config or computed_default.
-      def config_with_fallback(signal:, option_name:, computed_default: nil)
+      def config_or_exporter_fallback(signal:, option_name:, computed_default: nil)
         signal_settings = @settings.opentelemetry.public_send(signal)
         if signal_settings.using_default?(option_name)
           @settings.opentelemetry.exporter.public_send(option_name) || computed_default

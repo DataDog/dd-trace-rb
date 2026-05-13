@@ -2496,13 +2496,6 @@
         "default": null
       }
     ],
-    "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL": [
-      {
-        "version": "E",
-        "type": "string",
-        "default": null
-      }
-    ],
     "OTEL_EXPORTER_OTLP_LOGS_TIMEOUT": [
       {
         "version": "A",

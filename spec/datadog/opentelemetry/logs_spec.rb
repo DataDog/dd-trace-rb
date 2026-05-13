@@ -239,20 +239,6 @@ RSpec.describe 'OpenTelemetry Logs Integration', ruby: '>= 3.1' do
       expect(logs_settings.headers).to eq({})
     end
 
-    it 'normalizes invalid protocol to http/protobuf' do
-      setup_logs(
-        'OTEL_EXPORTER_OTLP_LOGS_PROTOCOL' => 'invalid'
-      )
-      expect(logs_settings.protocol).to eq('http/protobuf')
-    end
-
-    it 'accepts http/json protocol' do
-      setup_logs(
-        'OTEL_EXPORTER_OTLP_LOGS_PROTOCOL' => 'http/json'
-      )
-      expect(logs_settings.protocol).to eq('http/json')
-    end
-
     it 'does not add a processor when OTEL_LOGS_EXPORTER is none' do
       setup_logs('OTEL_LOGS_EXPORTER' => 'none')
       expect(processor).to be_nil

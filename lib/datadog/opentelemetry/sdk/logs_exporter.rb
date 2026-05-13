@@ -11,7 +11,7 @@ module Datadog
         METRIC_EXPORT_FAILURES = 'otel.logs_export_failures'
         METRIC_LOG_RECORDS = 'otel.log_records'
         TELEMETRY_NAMESPACE = 'tracers'
-        TELEMETRY_TAGS = {'protocol' => 'http', 'encoding' => 'protobuf'}
+        TELEMETRY_TAGS = {'protocol' => 'http', 'encoding' => 'protobuf'}.freeze
 
         def export(log_records, timeout: nil)
           telemetry&.inc(TELEMETRY_NAMESPACE, METRIC_EXPORT_ATTEMPTS, 1, tags: TELEMETRY_TAGS)

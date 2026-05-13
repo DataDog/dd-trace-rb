@@ -3,8 +3,6 @@ module Datadog
     class Metrics
       include SignalConfiguration
 
-      EXPORTER_NONE: ::String
-
       @logger: Core::Logger
       @settings: Core::Configuration::Settings
       @agent_host: ::String?

@@ -22,18 +22,6 @@ module Datadog
           end
         end
 
-        def self.normalize_logs_protocol(env_var_name)
-          proc do |value|
-            normalized = value&.to_s&.downcase
-            if normalized.nil? || %w[http/protobuf http/json grpc].include?(normalized)
-              normalized
-            else
-              Datadog.logger.warn("#{env_var_name}=#{value} is not supported. Using http/protobuf instead.")
-              'http/protobuf'
-            end
-          end
-        end
-
         def self.normalize_protocol(env_var_name)
           proc do |value|
             if value && value.to_s.downcase != 'http/protobuf'
@@ -196,13 +184,6 @@ module Datadog
                   o.type :int, nilable: true
                   o.env 'OTEL_EXPORTER_OTLP_LOGS_TIMEOUT'
                   o.default 10_000
-                end
-
-                option :protocol do |o|
-                  o.type :string, nilable: true
-                  o.env 'OTEL_EXPORTER_OTLP_LOGS_PROTOCOL'
-                  o.default nil
-                  o.setter(&Settings.normalize_logs_protocol('OTEL_EXPORTER_OTLP_LOGS_PROTOCOL'))
                 end
 
                 option :max_queue_size do |o|

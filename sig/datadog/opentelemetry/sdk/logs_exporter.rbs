@@ -11,7 +11,9 @@ module Datadog
         TELEMETRY_NAMESPACE: "tracers"
         TELEMETRY_TAGS: ::Hash[::String, ::String]
 
-        def export: (untyped log_records, ?timeout: ::Float?) -> Integer
+        def initialize: (endpoint: ::String, timeout: ::Float, headers: ::Hash[untyped, untyped]) -> void
+
+        def export: (::Array[::OpenTelemetry::SDK::Logs::LogRecordData] log_records, ?timeout: ::Float?) -> Integer
 
         private
 

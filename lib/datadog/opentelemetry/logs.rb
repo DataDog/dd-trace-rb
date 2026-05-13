@@ -1,13 +1,12 @@
 # frozen_string_literal: true
 
+require_relative 'ext'
 require_relative 'signal_configuration'
 
 module Datadog
   module OpenTelemetry
     class Logs
       include SignalConfiguration
-
-      EXPORTER_NONE = 'none'
 
       def self.initialize!(components)
         new(components).configure_logs_sdk
@@ -45,7 +44,7 @@ module Datadog
 
       def configure_log_record_processor(provider)
         exporter_name = @settings.opentelemetry.logs.exporter
-        return if exporter_name == EXPORTER_NONE
+        return if exporter_name == Ext::EXPORTER_NONE
 
         configure_otlp_exporter(provider)
       rescue => e
@@ -60,16 +59,13 @@ module Datadog
         require_relative 'sdk/logs_exporter'
 
         logs_config = @settings.opentelemetry.logs
-        # OpenTelemetry SDK only supports http/protobuf protocol.
-        # TODO: Add support for http/json and grpc.
-        # protocol = config_with_fallback(signal: :logs, option_name: :protocol)
-        endpoint = config_with_fallback(
+        endpoint = config_or_exporter_fallback(
           signal: :logs,
           option_name: :endpoint,
           computed_default: default_logs_endpoint
         )
-        timeout = config_with_fallback(signal: :logs, option_name: :timeout_millis)
-        headers = config_with_fallback(signal: :logs, option_name: :headers)
+        timeout = config_or_exporter_fallback(signal: :logs, option_name: :timeout_millis)
+        headers = config_or_exporter_fallback(signal: :logs, option_name: :headers)
 
         exporter = Datadog::OpenTelemetry::SDK::LogsExporter.new(
           endpoint: endpoint,

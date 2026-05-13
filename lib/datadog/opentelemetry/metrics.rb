@@ -1,14 +1,13 @@
 # frozen_string_literal: true
 
 require_relative '../core/configuration/ext'
+require_relative 'ext'
 require_relative 'signal_configuration'
 
 module Datadog
   module OpenTelemetry
     class Metrics
       include SignalConfiguration
-
-      EXPORTER_NONE = 'none'
 
       def self.initialize!(components)
         new(components).configure_metrics_sdk
@@ -45,7 +44,7 @@ module Datadog
 
       def configure_metric_reader(provider)
         exporter_name = @settings.opentelemetry.metrics.exporter
-        return if exporter_name == EXPORTER_NONE
+        return if exporter_name == Ext::EXPORTER_NONE
 
         configure_otlp_exporter(provider)
       rescue => e
@@ -61,16 +60,16 @@ module Datadog
         require_relative 'sdk/metrics_exporter'
 
         metrics_config = @settings.opentelemetry.metrics
-        endpoint = config_with_fallback(
+        endpoint = config_or_exporter_fallback(
           signal: :metrics,
           option_name: :endpoint,
           computed_default: default_metrics_endpoint
         )
-        timeout = config_with_fallback(signal: :metrics, option_name: :timeout_millis)
-        headers = config_with_fallback(signal: :metrics, option_name: :headers)
+        timeout = config_or_exporter_fallback(signal: :metrics, option_name: :timeout_millis)
+        headers = config_or_exporter_fallback(signal: :metrics, option_name: :headers)
         # OpenTelemetry SDK only supports http/protobuf protocol.
         # TODO: Add support for http/json and grpc.
-        # protocol = config_with_fallback(signal: :metrics, option_name: :protocol)
+        # protocol = config_or_exporter_fallback(signal: :metrics, option_name: :protocol)
         exporter = Datadog::OpenTelemetry::SDK::MetricsExporter.new(
           endpoint: endpoint,
           timeout: timeout / 1000.0,

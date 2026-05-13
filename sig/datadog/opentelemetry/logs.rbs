@@ -3,8 +3,6 @@ module Datadog
     class Logs
       include SignalConfiguration
 
-      EXPORTER_NONE: ::String
-
       @logger: Core::Logger
       @settings: Core::Configuration::Settings
       @agent_host: ::String?
@@ -18,11 +16,11 @@ module Datadog
 
       private
 
-      def configure_log_record_processor: (untyped provider) -> void
+      def configure_log_record_processor: (::OpenTelemetry::SDK::Logs::LoggerProvider provider) -> void
 
       def default_logs_endpoint: () -> ::String
 
-      def configure_otlp_exporter: (untyped provider) -> void
+      def configure_otlp_exporter: (::OpenTelemetry::SDK::Logs::LoggerProvider provider) -> void
     end
   end
 end

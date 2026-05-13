@@ -116,9 +116,9 @@ target :datadog do
   ignore 'lib/datadog/opentelemetry/sdk/configurator.rb'
   ignore 'lib/datadog/opentelemetry/sdk/id_generator.rb'
   ignore 'lib/datadog/opentelemetry/sdk/propagator.rb'
-  ignore 'lib/datadog/opentelemetry/logs.rb' # references OpenTelemetry::SDK::Logs (external gem)
-  ignore 'lib/datadog/opentelemetry/signal_configuration.rb' # references OpenTelemetry::SDK::Resources (external gem)
-  ignore 'lib/datadog/opentelemetry/sdk/logs_exporter.rb' # references OpenTelemetry::Exporter::OTLP::Logs (external gem)
+  ignore 'lib/datadog/opentelemetry/logs.rb' # Datadog.configure block arg is untyped (same as opentelemetry.rb)
+  ignore 'lib/datadog/opentelemetry/signal_configuration.rb' # FallbackAny from @settings methods; Core::Configuration::Settings is ignored
+  ignore 'lib/datadog/opentelemetry/sdk/logs_exporter.rb' # subclasses external gem class without inheritance in RBS
   ignore 'lib/datadog/opentelemetry/sdk/span_processor.rb'
   ignore 'lib/datadog/opentelemetry/sdk/trace/span.rb'
   ignore 'lib/datadog/profiling/scheduler.rb'

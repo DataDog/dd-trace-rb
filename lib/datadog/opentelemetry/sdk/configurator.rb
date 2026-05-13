@@ -45,13 +45,6 @@ module Datadog
           super unless success
         end
 
-        # OpenTelemetry base SDK configure() does not call logs_configuration_hook;
-        # only metrics_configuration_hook is invoked. Invoke the logs hook after super.
-        def configure
-          super
-          logs_configuration_hook if respond_to?(:logs_configuration_hook, true)
-        end
-
         def logs_configuration_hook
           components = Datadog.send(:components)
           unless components.settings.opentelemetry.logs.enabled
