@@ -13,6 +13,7 @@
 
   typedef struct { VALUE thread; } gvl_profiling_thread;
   extern rb_internal_thread_specific_key_t gvl_waiting_tls_key;
+  extern rb_internal_thread_specific_key_t gvl_suspended_at_tls_key;
 
   void gvl_profiling_init(void);
 
@@ -30,6 +31,14 @@
 
   static inline void gvl_profiling_state_set(gvl_profiling_thread thread, intptr_t value) {
     rb_internal_thread_specific_set(thread.thread, gvl_waiting_tls_key, (void *) value);
+  }
+
+  static inline long gvl_suspended_at_get(gvl_profiling_thread thread) {
+    return (long) (intptr_t) rb_internal_thread_specific_get(thread.thread, gvl_suspended_at_tls_key);
+  }
+
+  static inline void gvl_suspended_at_set(gvl_profiling_thread thread, long value) {
+    rb_internal_thread_specific_set(thread.thread, gvl_suspended_at_tls_key, (void *) (intptr_t) value);
   }
 #endif
 
@@ -63,5 +72,15 @@
 
   static inline void gvl_profiling_state_thread_object_set(VALUE thread, intptr_t value) {
     gvl_profiling_state_set(thread_from_thread_object(thread), value);
+  }
+#endif
+
+#if !defined(NO_GVL_INSTRUMENTATION) && !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS) // Ruby 3.3+
+  static inline long gvl_suspended_at_thread_object_get(VALUE thread) {
+    return gvl_suspended_at_get(thread_from_thread_object(thread));
+  }
+
+  static inline void gvl_suspended_at_thread_object_set(VALUE thread, long value) {
+    gvl_suspended_at_set(thread_from_thread_object(thread), value);
   }
 #endif

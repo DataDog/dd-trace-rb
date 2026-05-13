@@ -6,9 +6,11 @@
 
 #if !defined(NO_GVL_INSTRUMENTATION) && !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS) // Ruby 3.3+
   rb_internal_thread_specific_key_t gvl_waiting_tls_key;
+  rb_internal_thread_specific_key_t gvl_suspended_at_tls_key;
 
   void gvl_profiling_init(void) {
     gvl_waiting_tls_key = rb_internal_thread_specific_key_create();
+    gvl_suspended_at_tls_key = rb_internal_thread_specific_key_create();
   }
 
 #endif

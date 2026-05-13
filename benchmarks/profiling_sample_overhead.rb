@@ -33,6 +33,7 @@ duration_ns = duration * 1e9
 samples = data.dig("worker_stats", "cpu_sampled")
 cpu_sampling_time_ns_total = data.dig("worker_stats", "cpu_sampling_time_ns_total")
 serialization_time_ns_total = data.dig("recorder_stats", "serialization_time_ns_total")
+inactive_thread_samples_skipped = data.dig("worker_stats", "inactive_thread_samples_skipped")
 
 overhead = -> total {
   "%.2f%%" % ((total / duration_ns) * 100.0)
@@ -49,6 +50,7 @@ pp({
   serialization_overhead: overhead[serialization_time_ns_total],
   sampling_rate: samples / duration,
   sample_every_n_ms: (duration / samples) * 1000,
+  inactive_thread_samples_skipped: inactive_thread_samples_skipped,
 })
 
 

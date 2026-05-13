@@ -36,4 +36,8 @@ VALUE enforce_thread_context_collector_instance(VALUE object);
   void thread_context_collector_on_gvl_waiting(gvl_profiling_thread thread);
   __attribute__((warn_unused_result)) on_gvl_running_result thread_context_collector_on_gvl_running(gvl_profiling_thread thread);
   VALUE thread_context_collector_sample_after_gvl_running(VALUE self_instance, VALUE current_thread, long current_monotonic_wall_time_ns);
+  #if !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS) // Ruby 3.3+
+    void thread_context_collector_on_gvl_suspended(gvl_profiling_thread thread);
+    unsigned int thread_context_collector_inactive_thread_samples_skipped(VALUE self_instance);
+  #endif
 #endif

@@ -856,6 +856,14 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
           // (e.g. check docs or gvl-tracing gem)
           RUBY_INTERNAL_THREAD_EVENT_READY /* waiting for gvl */ |
           RUBY_INTERNAL_THREAD_EVENT_RESUMED /* running/runnable */
+          #if !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
+            // Track when threads release the GVL (sleep, IO, Thread.pass) so we can:
+            //   (a) skip per-tick samples for threads that have been continuously suspended
+            //       (collectors_thread_context.c:update_metrics_and_sample), and
+            //   (b) trigger an after-resume sample so accumulated wall-time lands on a
+            //       near-idle stack (collectors_thread_context.c:on_gvl_running_with_threshold).
+            | RUBY_INTERNAL_THREAD_EVENT_SUSPENDED /* released gvl */
+          #endif
         ),
         NULL
       );
@@ -1107,6 +1115,15 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("gvl_sampling_time_ns_total")), /* => */ RUBY_NUM_OR_NIL(state->stats.gvl_sampling_time_ns_total, > 0, ULL2NUM),
     ID2SYM(rb_intern("gvl_sampling_time_ns_avg")),   /* => */ RUBY_AVG_OR_NIL(state->stats.gvl_sampling_time_ns_total, state->stats.after_gvl_running),
     ID2SYM(rb_intern("gvl_waiting_time_ns_total")),  /* => */ state->gvl_profiling_enabled ? ULL2NUM(state->stats.vm_metrics.gvl_waiting_time_ns_total) : Qnil,
+
+    // Counter lives on the thread-context collector (where the skip decision is made); surface
+    // it here so it shows up alongside the other cpu/wall sampling stats in worker_stats.
+    ID2SYM(rb_intern("inactive_thread_samples_skipped")),
+    #if !defined(NO_GVL_INSTRUMENTATION) && !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
+      /* => */ UINT2NUM(thread_context_collector_inactive_thread_samples_skipped(state->thread_context_collector_instance)),
+    #else
+      /* => */ Qnil,
+    #endif
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;
@@ -1402,6 +1419,10 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
 
     if (event_id == RUBY_INTERNAL_THREAD_EVENT_READY) { /* waiting for gvl */
       thread_context_collector_on_gvl_waiting(target_thread);
+    #if !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
+      } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_SUSPENDED) { /* released gvl */
+        thread_context_collector_on_gvl_suspended(target_thread);
+    #endif
     } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_RESUMED) { /* running/runnable */
       // Interesting note: A RUBY_INTERNAL_THREAD_EVENT_RESUMED is guaranteed to be called with the GVL being acquired.
       // (And... I think target_thread will be == rb_thread_current()?)
