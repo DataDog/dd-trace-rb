@@ -36,3 +36,10 @@ Lint/UnusedMethodArgument:
   AllowUnusedKeywordArguments: true  # kwargs often unused for interface compliance
   Include:
     - "lib/datadog/open_feature/**/*"
+
+# Enforce `return` over `return nil` for implicit nil returns
+Style/ReturnNil:
+  Enabled: true
+  EnforcedStyle: return
+  Include:
+    - "lib/datadog/open_feature/**/*"
