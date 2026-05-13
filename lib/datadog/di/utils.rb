@@ -85,9 +85,13 @@ module Datadog
       # Returns whether the provided +path+ matches the user-designated
       # file suffix (of a line probe).
       #
-      # Matching is case-insensitive (DEBUG-5107) and tolerates Windows-style
-      # backslash separators in +suffix+ (DEBUG-5111), since probe source paths
-      # often originate from IDE tooling that does not normalize either.
+      # Backslash separators in +suffix+ are translated to forward slashes
+      # (DEBUG-5111) so paths typed by IDE tooling on Windows can match.
+      # Case-insensitive matching (DEBUG-5107) is opt-in via
+      # +case_insensitive: true+; callers that orchestrate matching against a
+      # set of known paths perform case-sensitive comparisons first and only
+      # fall back to case-insensitive when no case-sensitive match is found
+      # (see the design comment above, steps 5-8).
       #
       # If suffix is an absolute path (i.e., it starts with a slash, possibly
       # after backslash normalization), the path must be identical for it to
@@ -95,7 +99,7 @@ module Datadog
       #
       # If suffix is not an absolute path, the path matches if its suffix is
       # the provided suffix, at a path component boundary.
-      module_function def path_matches_suffix?(path, suffix)
+      module_function def path_matches_suffix?(path, suffix, case_insensitive: false)
         if path.nil?
           raise ArgumentError, "nil path passed"
         end
@@ -103,8 +107,11 @@ module Datadog
           raise ArgumentError, "nil suffix passed"
         end
 
-        path = path.downcase
-        suffix = suffix.tr('\\', '/').downcase
+        suffix = suffix.tr('\\', '/')
+        if case_insensitive
+          path = path.downcase
+          suffix = suffix.downcase
+        end
 
         if suffix.start_with?('/')
           path == suffix
@@ -128,18 +135,26 @@ module Datadog
       # +spec+. Attempts all of the fuzzy matches by stripping directories
       # from the front of +spec+. Does not consider othr known paths to
       # identify the case of (potentially) multiple matching paths for +spec+.
+      #
+      # Matching is attempted case-sensitively first (steps 5-6 in the design
+      # comment above) and only falls back to case-insensitive (steps 7-8)
+      # when no case-sensitive match is found.
       module_function def path_can_match_spec?(path, spec)
         # Normalize Windows-style backslash separators (DEBUG-5111) so the
         # suffix-shortening loop's "/+" regex can strip leading components.
         spec = spec.tr('\\', '/')
 
-        return true if path_matches_suffix?(path, spec)
+        [false, true].each do |case_insensitive|
+          working_spec = spec.dup
+          return true if path_matches_suffix?(path, working_spec, case_insensitive: case_insensitive)
 
-        loop do
-          return false unless spec.include?('/')
-          spec.sub!(%r{.*/+}, '')
-          return true if path_matches_suffix?(path, spec)
+          loop do
+            break unless working_spec.include?('/')
+            working_spec.sub!(%r{.*/+}, '')
+            return true if path_matches_suffix?(path, working_spec, case_insensitive: case_insensitive)
+          end
         end
+        false
       end
     end
   end

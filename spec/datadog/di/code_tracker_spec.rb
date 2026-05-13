@@ -608,6 +608,50 @@ RSpec.describe Datadog::DI::CodeTracker do
     end
   end
 
+  describe "#iseqs_for_path_suffix with case-different known paths" do
+    # Verifies the case-sensitive-first / case-insensitive-fallback ordering
+    # described in the design comment in utils.rb (steps 5-8). When two
+    # registry paths differ only in case, a correctly-cased probe path must
+    # uniquely match the corresponding entry; the case-insensitive fallback
+    # is only consulted when no case-sensitive match was found.
+    around do |example|
+      tracker.define_singleton_method(:backfill_registry) {}
+      tracker.start
+
+      registry = tracker.send(:registry)
+      registry["/app/foo.rb"] = "/app/foo.rb"
+      registry["/app/FOO.rb"] = "/app/FOO.rb"
+
+      example.run
+
+      tracker.stop
+    end
+
+    it "uniquely matches a lowercase probe path" do
+      expect(tracker.iseqs_for_path_suffix("foo.rb")).to eq(["/app/foo.rb", "/app/foo.rb"])
+    end
+
+    it "uniquely matches an uppercase probe path" do
+      expect(tracker.iseqs_for_path_suffix("FOO.rb")).to eq(["/app/FOO.rb", "/app/FOO.rb"])
+    end
+
+    it "falls back to case-insensitive when no case-sensitive match exists" do
+      tracker.send(:registry).delete("/app/foo.rb")
+      expect(tracker.iseqs_for_path_suffix("foo.rb")).to eq(["/app/FOO.rb", "/app/FOO.rb"])
+    end
+
+    it "raises when the case-insensitive fallback is ambiguous" do
+      tracker.send(:registry).clear
+      tracker.send(:registry)["/app/foo.rb"] = "/app/foo.rb"
+      tracker.send(:registry)["/app/bar/foo.rb"] = "/app/bar/foo.rb"
+      # "FOO.RB" matches nothing case-sensitively at any suffix; the
+      # case-insensitive pass matches both registry entries.
+      expect do
+        tracker.iseqs_for_path_suffix("FOO.RB")
+      end.to raise_error(Datadog::DI::Error::MultiplePathsMatch)
+    end
+  end
+
   describe '#iseq_for_line' do
     before do
       allow(Datadog::DI).to receive(:respond_to?).and_call_original
