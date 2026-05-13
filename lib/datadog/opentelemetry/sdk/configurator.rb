@@ -30,6 +30,15 @@ module Datadog
           [SpanProcessor.new]
         end
 
+        # SDK >= 1.9.0 calls logs_configuration_hook from configure at line 152.
+        # Older SDK versions do not, so we call it explicitly as a fallback.
+        # The flag prevents double-calling on newer SDK versions.
+        def configure
+          @datadog_logs_hook_called = false
+          super
+          logs_configuration_hook unless @datadog_logs_hook_called
+        end
+
         def metrics_configuration_hook
           components = Datadog.send(:components)
           return super unless components.settings.opentelemetry.metrics.enabled
@@ -46,6 +55,7 @@ module Datadog
         end
 
         def logs_configuration_hook
+          @datadog_logs_hook_called = true
           components = Datadog.send(:components)
           unless components.settings.opentelemetry.logs.enabled
             # Reset to default so a previous test/run does not leave our LoggerProvider set
