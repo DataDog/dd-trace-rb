@@ -309,9 +309,6 @@ static bool handle_gvl_waiting(
   static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread);
   static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE allow_exception);
   static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE delta_ns);
-  #if !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
-    static VALUE _native_on_gvl_suspended(DDTRACE_UNUSED VALUE self, VALUE thread);
-  #endif
 #endif
 static void otel_without_ddtrace_trace_identifiers_for(
   thread_context_collector_state *state,
@@ -363,9 +360,6 @@ void collectors_thread_context_init(VALUE profiling_module) {
     rb_define_singleton_method(testing_module, "_native_on_gvl_running", _native_on_gvl_running, 1);
     rb_define_singleton_method(testing_module, "_native_sample_after_gvl_running", _native_sample_after_gvl_running, 3);
     rb_define_singleton_method(testing_module, "_native_apply_delta_to_cpu_time_at_previous_sample_ns", _native_apply_delta_to_cpu_time_at_previous_sample_ns, 3);
-    #if !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
-      rb_define_singleton_method(testing_module, "_native_on_gvl_suspended", _native_on_gvl_suspended, 1);
-    #endif
   #endif
 
   at_active_span_id = rb_intern_const("@active_span");
@@ -1191,6 +1185,14 @@ static void initialize_context(VALUE thread, per_thread_context *thread_context,
     // if this gets set concurrently with context initialization, then such a value will belong
     // to the current profiler instance, so that's OK)
     gvl_profiling_state_thread_object_set(thread, GVL_WAITING_ENABLED_EMPTY);
+    #if !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
+      // Same rationale for the state-change counter slot: clear any stale value from a previous
+      // profiler instance (e.g. across rspec test invocations on the same process). Without this,
+      // a thread that ended a previous run with an odd counter (= "suspended" low bit) would have
+      // the sampler in the new run mistakenly skip it whenever count == per_thread_context's
+      // freshly-zeroed snapshot.
+      gvl_state_change_count_thread_object_set(thread, 0);
+    #endif
   #endif
 }
 
@@ -1985,13 +1987,13 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     intptr_t gvl_waiting_at = gvl_profiling_state_get(thread);
 
     #if !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
-      // Bump the GVL state-change counter so the sampler can detect that a transition happened
-      // since its snapshot. SUSPENDED bumps it too; the two hooks alternate, so the counter's
-      // low bit ends up encoding the current state (1 after SUSPENDED, 0 after RESUMED).
-      // Only bump for tracked threads: untracked threads (gvl_waiting_at == 0) shouldn't
+      // Mark this thread as "running" in the GVL state-change counter slot (low bit = 0) and bump
+      // the event counter so the sampler can detect that a transition happened since its snapshot.
+      // SUSPENDED does the same with the bit set (see thread_context_collector_on_gvl_suspended).
+      // We only mark for tracked threads: untracked threads (gvl_waiting_at == 0) shouldn't
       // accumulate state in our slot.
       if (gvl_waiting_at != 0) {
-        gvl_state_change_count_bump(thread);
+        gvl_state_change_count_mark_resumed(thread);
       }
     #endif
 
@@ -2035,7 +2037,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
       intptr_t thread_being_profiled = gvl_profiling_state_get(thread);
       if (!thread_being_profiled) return;
 
-      gvl_state_change_count_bump(thread);
+      gvl_state_change_count_mark_suspended(thread);
     }
 
     unsigned int thread_context_collector_inactive_thread_samples_skipped(VALUE self_instance) {
@@ -2270,20 +2272,6 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 
     return Qnil;
   }
-
-  #if !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
-    static VALUE _native_on_gvl_suspended(DDTRACE_UNUSED VALUE self, VALUE thread) {
-      ENFORCE_THREAD(thread);
-
-      debug_enter_unsafe_context();
-
-      thread_context_collector_on_gvl_suspended(thread_from_thread_object(thread));
-
-      debug_leave_unsafe_context();
-
-      return Qnil;
-    }
-  #endif
 
   static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread) {
     ENFORCE_THREAD(thread);

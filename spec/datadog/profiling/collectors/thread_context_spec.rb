@@ -119,17 +119,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_on_gvl_running(thread)
   end
 
-  # In reality SUSPENDED always fires before RESUMED (a thread can't be RESUMED without first
-  # having released the GVL via SUSPENDED, and vice-versa). The skip optimization relies on this
-  # invariant — see gvl_profiling_helper.h — so tests that simulate `on_gvl_running` should call
-  # `on_gvl_suspended` first to match the real lifecycle.
-  #
-  # No-op on Rubies where the SUSPENDED-skip optimization isn't compiled in (the parity invariant
-  # only matters there).
-  def on_gvl_suspended(thread)
-    return unless described_class::Testing.respond_to?(:_native_on_gvl_suspended)
-    described_class::Testing._native_on_gvl_suspended(thread)
-  end
 
   def sample_after_gvl_running(thread, allow_exception: false)
     described_class::Testing._native_sample_after_gvl_running(thread_context_collector, thread, allow_exception)
@@ -1321,13 +1310,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           end
 
           context "when thread is ready to run again" do
-            before do
-              # The outer before sets up the "waiting for GVL" state via on_gvl_waiting (which
-              # happens only after a SUSPENDED in the real lifecycle), so emit the SUSPENDED that
-              # would have preceded it before we now simulate the RESUMED.
-              on_gvl_suspended(t1)
-              on_gvl_running(t1)
-            end
+            before { on_gvl_running(t1) }
 
             context "when Waiting for GVL duration >= the threshold" do
               let(:waiting_for_gvl_threshold_ns) { 0 }
