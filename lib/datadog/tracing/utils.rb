@@ -40,7 +40,7 @@ module Datadog
       end
 
       def self.secure_random?
-        return @secure_random unless @secure_random.nil?
+        return !!@secure_random unless @secure_random.nil?
 
         @secure_random = (DATADOG_ENV['DD_TRACE_SECURE_RANDOM'] == 'true')
       end
