@@ -85,8 +85,13 @@ module Datadog
       # Returns whether the provided +path+ matches the user-designated
       # file suffix (of a line probe).
       #
-      # If suffix is an absolute path (i.e., it starts with a slash), the path
-      # must be identical for it to match.
+      # Matching is case-insensitive (DEBUG-5107) and tolerates Windows-style
+      # backslash separators in +suffix+ (DEBUG-5111), since probe source paths
+      # often originate from IDE tooling that does not normalize either.
+      #
+      # If suffix is an absolute path (i.e., it starts with a slash, possibly
+      # after backslash normalization), the path must be identical for it to
+      # match.
       #
       # If suffix is not an absolute path, the path matches if its suffix is
       # the provided suffix, at a path component boundary.
@@ -98,6 +103,9 @@ module Datadog
           raise ArgumentError, "nil suffix passed"
         end
 
+        path = path.downcase
+        suffix = suffix.tr('\\', '/').downcase
+
         if suffix.start_with?('/')
           path == suffix
         else
@@ -105,11 +113,6 @@ module Datadog
           # has to be longer than the suffix. Require full component matches,
           # meaning either the first character of the suffix is a slash
           # or the previous character in the path is a slash.
-          # For now only check for forward slashes for Unix-like OSes;
-          # backslash is a legitimate character of a file name in Unix
-          # therefore simply permitting forward or back slash is not
-          # sufficient, we need to perform an OS check to know which
-          # path separator to use.
           !!
           if path.length > suffix.length && path.end_with?(suffix)
             previous_char = path[path.length - suffix.length - 1]
@@ -126,9 +129,12 @@ module Datadog
       # from the front of +spec+. Does not consider othr known paths to
       # identify the case of (potentially) multiple matching paths for +spec+.
       module_function def path_can_match_spec?(path, spec)
+        # Normalize Windows-style backslash separators (DEBUG-5111) so the
+        # suffix-shortening loop's "/+" regex can strip leading components.
+        spec = spec.tr('\\', '/')
+
         return true if path_matches_suffix?(path, spec)
 
-        spec = spec.dup
         loop do
           return false unless spec.include?('/')
           spec.sub!(%r{.*/+}, '')
