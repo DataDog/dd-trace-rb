@@ -2491,7 +2491,7 @@
     ],
     "OTEL_EXPORTER_OTLP_LOGS_HEADERS": [
       {
-        "version": "A",
+        "version": "B",
         "type": "map",
         "default": null
       }
@@ -2554,7 +2554,7 @@
     ],
     "OTEL_LOGS_EXPORTER": [
       {
-        "version": "A",
+        "version": "B",
         "type": "string",
         "default": "otlp"
       }
