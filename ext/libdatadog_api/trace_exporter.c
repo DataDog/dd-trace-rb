@@ -299,15 +299,22 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
   }
 
   /* 3. Create Rust span */
-  ddog_TracerSpan *rust_span = NULL;
+  ddog_TracerSpanFields fields = {
+    .service        = service_s,
+    .name           = name_s,
+    .resource       = resource_s,
+    .span_type      = type_s,
+    .trace_id_low   = trace_id.low,
+    .trace_id_high  = trace_id.high,
+    .span_id        = span_id,
+    .parent_id      = parent_id,
+    .start          = start_ns,
+    .duration       = duration_ns,
+    .error          = error_val,
+  };
 
-  ddog_TraceExporterError *err = ddog_tracer_span_new(
-      &rust_span,
-      service_s, name_s, resource_s, type_s,
-      trace_id.low, trace_id.high,
-      span_id, parent_id,
-      start_ns, duration_ns,
-      error_val);
+  ddog_TracerSpan *rust_span = NULL;
+  ddog_TraceExporterError *err = ddog_tracer_span_new(&rust_span, &fields);
   check_exporter_error("Failed to create TracerSpan", err);
 
   /* 4. Populate meta and metrics */
