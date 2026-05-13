@@ -229,7 +229,7 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance)
 static VALUE _native_is_sigprof_blocked_in_current_thread(DDTRACE_UNUSED VALUE self);
 static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance);
 static VALUE _native_stats_reset_not_thread_safe(DDTRACE_UNUSED VALUE self, VALUE instance);
-static VALUE _native_flush_inactive_threads(DDTRACE_UNUSED VALUE self, VALUE instance);
+static VALUE _native_flush_inactive_threads(DDTRACE_UNUSED VALUE self, DDTRACE_UNUSED VALUE instance);
 void *simulate_sampling_signal_delivery(DDTRACE_UNUSED void *_unused);
 static void grab_gvl_and_sample(void);
 static void reset_stats_not_thread_safe(cpu_and_wall_time_worker_state *state);
@@ -1142,7 +1142,7 @@ static VALUE _native_stats_reset_not_thread_safe(DDTRACE_UNUSED VALUE self, VALU
 // across the whole profile period get a sample recorded for it. Without this, a long sleep would
 // emit no samples because (a) per-tick samples are skipped and (b) the after-resume sample only
 // fires once RESUMED actually happens — which may be in a future period.
-static VALUE _native_flush_inactive_threads(DDTRACE_UNUSED VALUE self, VALUE instance) {
+static VALUE _native_flush_inactive_threads(DDTRACE_UNUSED VALUE self, DDTRACE_UNUSED VALUE instance) {
   #if !defined(NO_GVL_INSTRUMENTATION) && !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
     cpu_and_wall_time_worker_state *state;
     TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
