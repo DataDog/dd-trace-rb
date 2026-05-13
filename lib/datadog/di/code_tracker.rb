@@ -249,6 +249,11 @@ module Datadog
           exact = registry[suffix]
           return [suffix, exact] if exact
 
+          # Normalize Windows-style backslash separators (DEBUG-5111) upfront
+          # so the suffix-shortening loop's "/+" regex can strip leading
+          # components on probes whose sourceFile uses backslashes.
+          suffix = Utils.normalize_windows_separators(suffix)
+
           # Per the design comment in utils.rb, attempt case-sensitive
           # matching first (steps 5-6) and only fall back to case-insensitive
           # matching (steps 7-8) when no case-sensitive match is found.
@@ -370,6 +375,11 @@ module Datadog
       def resolve_path_suffix(suffix, paths)
         # Exact match.
         return suffix if paths.include?(suffix)
+
+        # Normalize Windows-style backslash separators (DEBUG-5111) upfront
+        # so the suffix-shortening loop's "/+" regex can strip leading
+        # components on probes whose sourceFile uses backslashes.
+        suffix = Utils.normalize_windows_separators(suffix)
 
         # Suffix match. Per the design comment in utils.rb, attempt
         # case-sensitive matching first (steps 5-6) and only fall back to

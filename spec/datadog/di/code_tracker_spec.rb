@@ -652,6 +652,44 @@ RSpec.describe Datadog::DI::CodeTracker do
     end
   end
 
+  describe "#iseqs_for_path_suffix with Windows backslash suffix" do
+    # Verifies that backslash separators (DEBUG-5111) are normalized upfront so
+    # the suffix-shortening loop can strip leading components. Probe paths from
+    # IDE tooling on Windows arrive with backslashes; the runtime registry path
+    # has forward slashes and typically lacks the leading directory components
+    # of the source repository path.
+    around do |example|
+      tracker.define_singleton_method(:backfill_registry) {}
+      tracker.start
+
+      registry = tracker.send(:registry)
+      # Runtime path on the deployed weblog — no shared/rails/ prefix.
+      registry["/app/controllers/debugger_controller.rb"] = "/app/controllers/debugger_controller.rb"
+
+      example.run
+
+      tracker.stop
+    end
+
+    it "matches when the probe path uses backslashes and needs prefix stripping" do
+      expect(
+        tracker.iseqs_for_path_suffix('shared\rails\app\controllers\debugger_controller.rb'),
+      ).to eq(["/app/controllers/debugger_controller.rb", "/app/controllers/debugger_controller.rb"])
+    end
+
+    it "matches when the probe path uses backslashes and uppercase, needing both fallbacks" do
+      expect(
+        tracker.iseqs_for_path_suffix('SHARED\RAILS\APP\CONTROLLERS\DEBUGGER_CONTROLLER.RB'),
+      ).to eq(["/app/controllers/debugger_controller.rb", "/app/controllers/debugger_controller.rb"])
+    end
+
+    it "matches when the probe path is an absolute Windows-style path" do
+      expect(
+        tracker.iseqs_for_path_suffix('\app\controllers\debugger_controller.rb'),
+      ).to eq(["/app/controllers/debugger_controller.rb", "/app/controllers/debugger_controller.rb"])
+    end
+  end
+
   describe '#iseq_for_line' do
     before do
       allow(Datadog::DI).to receive(:respond_to?).and_call_original
