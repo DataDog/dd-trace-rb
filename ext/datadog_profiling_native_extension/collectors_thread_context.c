@@ -191,11 +191,15 @@ typedef struct {
   long cpu_time_at_previous_sample_ns;  // Can be INVALID_TIME until initialized or if getting it fails for another reason
   long wall_time_at_previous_sample_ns; // Can be INVALID_TIME until initialized
 
-  // Value of the thread's gvl_suspended_at TLS slot at the moment we last sampled it. Used to
-  // detect a thread that has been continuously suspended (released GVL) since its previous
-  // sample and skip the redundant resample. 0 means the thread was not suspended at last sample.
-  // Only used on Ruby 3.3+ (NO_GVL_INSTRUMENTATION / USE_GVL_PROFILING_3_2_WORKAROUNDS undefined).
-  long gvl_suspended_at_at_previous_sample;
+  // Snapshot of the thread's gvl_state_change_count TLS slot at the moment we last sampled it.
+  // The counter is incremented on every GVL state change (SUSPENDED or RESUMED); equality with
+  // this snapshot means no transition since, and the snapshot's low bit (1=suspended, 0=running)
+  // tells us the state at the last sample. Only used on Ruby 3.3+.
+  long gvl_state_change_count_at_previous_sample;
+  // True when the previous per-tick sample was skipped by the SUSPENDED-skip optimization, so the
+  // flush-before-serialize pass knows this thread has accumulated wall-time to emit even if it
+  // has since RESUMED (and would no longer be in skip state). Only used on Ruby 3.3+.
+  bool was_skipped_at_last_sample;
 
   struct {
     // Both of these fields are set by on_gc_start and kept until on_gc_finish is called.
@@ -666,11 +670,12 @@ static void update_metrics_and_sample(
   long current_monotonic_wall_time_ns
 ) {
   #if !defined(NO_GVL_INSTRUMENTATION) && !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
-    // Read the thread's current "suspended at" timestamp once. The TLS slot is updated from the
-    // SUSPENDED/RESUMED internal thread event hooks (which run without the GVL); a single read
-    // is consistent enough for our purposes — losing a race here at worst defers a skip by one
-    // tick or causes one unnecessary sample.
-    long current_gvl_suspended_at = gvl_suspended_at_thread_object_get(thread_being_sampled);
+    // Read the thread's GVL state-change counter once. The TLS slot is updated from the
+    // SUSPENDED/RESUMED internal thread event hooks (which run without the GVL); a single read is
+    // consistent enough for our purposes — losing a race here at worst defers a skip by one tick
+    // or causes one unnecessary sample. The counter's low bit is the current suspended/running
+    // state (1/0); equality with the per-thread snapshot means no transitions since last sample.
+    long current_gvl_state_change_count = gvl_state_change_count_thread_object_get(thread_being_sampled);
   #endif
 
   bool is_gvl_waiting_state =
@@ -678,18 +683,20 @@ static void update_metrics_and_sample(
 
   #if !defined(NO_GVL_INSTRUMENTATION) && !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
     // Skip this per-tick sample entirely when the thread has been continuously suspended (no GVL)
-    // since its previous sample: nothing it could observe has changed. The accumulated wall-time
-    // will be picked up by either the next after-resume sample (triggered when RESUMED fires for
-    // a long-suspended thread) or the next regular sample after the thread becomes active again.
+    // since its previous sample: nothing it could observe has changed. The skipped wall-time will
+    // be picked up by either the next regular sample after the thread RESUMES, or by
+    // flush_inactive_threads before serialization (using was_skipped_at_last_sample).
     // The check is gated by `!is_gvl_waiting_state` so the existing "Waiting for GVL" machinery
     // in handle_gvl_waiting (situation 1 extra sample, situation 2 regular sample) keeps running.
     if (!is_gvl_waiting_state &&
-        current_gvl_suspended_at > 0 &&
-        current_gvl_suspended_at == thread_context->gvl_suspended_at_at_previous_sample) {
+        (current_gvl_state_change_count & 1L) /* currently suspended */ &&
+        current_gvl_state_change_count == thread_context->gvl_state_change_count_at_previous_sample) {
       state->stats.inactive_thread_samples_skipped++;
+      thread_context->was_skipped_at_last_sample = true;
       return; // Do NOT update wall_time_at_previous_sample_ns or cpu_time_at_previous_sample_ns
     }
-    thread_context->gvl_suspended_at_at_previous_sample = current_gvl_suspended_at;
+    thread_context->gvl_state_change_count_at_previous_sample = current_gvl_state_change_count;
+    thread_context->was_skipped_at_last_sample = false;
   #endif
 
   // Don't assign/update cpu during "Waiting for GVL"
@@ -1249,8 +1256,9 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
       ID2SYM(rb_intern("gvl_waiting_at")), /* => */ LONG2NUM(gvl_profiling_state_thread_object_get(thread)),
     #endif
     #if !defined(NO_GVL_INSTRUMENTATION) && !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
-      ID2SYM(rb_intern("gvl_suspended_at")), /* => */ LONG2NUM(gvl_suspended_at_thread_object_get(thread)),
-      ID2SYM(rb_intern("gvl_suspended_at_at_previous_sample")), /* => */ LONG2NUM(thread_context->gvl_suspended_at_at_previous_sample),
+      ID2SYM(rb_intern("gvl_state_change_count")), /* => */ LONG2NUM(gvl_state_change_count_thread_object_get(thread)),
+      ID2SYM(rb_intern("gvl_state_change_count_at_previous_sample")), /* => */ LONG2NUM(thread_context->gvl_state_change_count_at_previous_sample),
+      ID2SYM(rb_intern("was_skipped_at_last_sample")), /* => */ thread_context->was_skipped_at_last_sample ? Qtrue : Qfalse,
     #endif
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(context_as_hash, arguments[i], arguments[i+1]);
@@ -1960,32 +1968,27 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     gvl_profiling_state_set(thread, current_monotonic_wall_time_ns);
   }
 
-  // This function can get called from outside the GVL and even on non-main Ractors
-  // It is also where the SUSPENDED→RESUMED idle period gets observed: on Ruby 3.3+ we read
-  // gvl_suspended_at (set by thread_context_collector_on_gvl_suspended) and, if the thread was
-  // suspended long enough (≥ waiting_for_gvl_threshold_ns), return ON_GVL_RUNNING_SAMPLE so the
-  // existing after-resume postponed-job machinery emits a sample on a near-idle stack covering
-  // the accumulated wall-time.
+  // This function can get called from outside the GVL and even on non-main Ractors. It also
+  // increments the per-thread gvl_state_change_count counter (so the sampler can detect "did the
+  // thread acquire the GVL since the last sample" with just a counter equality check, no wall-time
+  // read in the hot SUSPENDED path).
   __attribute__((warn_unused_result))
   on_gvl_running_result thread_context_collector_on_gvl_running_with_threshold(gvl_profiling_thread thread, uint32_t waiting_for_gvl_threshold_ns) {
     intptr_t gvl_waiting_at = gvl_profiling_state_get(thread);
-    long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
 
     #if !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
-      long gvl_suspended_at = gvl_suspended_at_get(thread);
-      bool suspended_long_enough =
-        gvl_suspended_at > 0 && (now - gvl_suspended_at) >= waiting_for_gvl_threshold_ns;
-      // Always clear the suspended marker on resume: the thread now holds the GVL.
-      if (gvl_suspended_at > 0) gvl_suspended_at_set(thread, 0);
-    #else
-      bool suspended_long_enough = false;
+      // Mark this thread as "running" in the GVL state-change counter slot (low bit = 0) and bump
+      // the event counter so the sampler can detect that a transition happened since its last
+      // snapshot. SUSPENDED does the same with the bit set (see thread_context_collector_on_gvl_suspended).
+      // We only bump for tracked threads: untracked threads (gvl_waiting_at == 0) shouldn't
+      // accumulate state in our slot.
+      if (gvl_waiting_at != 0) {
+        gvl_state_change_count_mark_resumed(thread);
+      }
     #endif
 
     // Thread was not being profiled / not waiting on gvl
     if (gvl_waiting_at == 0 || gvl_waiting_at == GVL_WAITING_ENABLED_EMPTY) {
-      if (suspended_long_enough) {
-        return (on_gvl_running_result) {.action = ON_GVL_RUNNING_SAMPLE, .waiting_for_gvl_duration_ns = 0};
-      }
       return (on_gvl_running_result) {.action = ON_GVL_RUNNING_UNKNOWN, .waiting_for_gvl_duration_ns = 0};
     }
 
@@ -1994,11 +1997,9 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
       return (on_gvl_running_result) {.action = ON_GVL_RUNNING_SAMPLE, .waiting_for_gvl_duration_ns = 0};
     }
 
-    long waiting_for_gvl_duration_ns = now - gvl_waiting_at;
+    long waiting_for_gvl_duration_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - gvl_waiting_at;
 
-    // The thread may have been suspended (sleep/IO) before becoming READY: count the combined
-    // idle period so a long sleep + brief GVL wait still crosses the threshold.
-    bool should_sample = waiting_for_gvl_duration_ns >= waiting_for_gvl_threshold_ns || suspended_long_enough;
+    bool should_sample = waiting_for_gvl_duration_ns >= waiting_for_gvl_threshold_ns;
 
     if (should_sample) {
       // We flip the gvl_waiting_at to negative to mark that the thread is now running and no longer waiting
@@ -2017,17 +2018,16 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
   }
 
   #if !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
-    // This function can get called from outside the GVL and even on non-main Ractors. Mirrors
-    // thread_context_collector_on_gvl_waiting: only touch Ruby's per-thread TLS, never the
-    // per_thread_context (which is owned by the sampler thread).
+    // Called from the SUSPENDED internal-thread-event hook, outside the GVL and possibly on
+    // non-main Ractors. SUSPENDED can fire very frequently (every GVL release: sleep, IO,
+    // Thread.pass, ...), so we deliberately avoid `monotonic_wall_time_now_ns` here. Instead we
+    // just bump the per-thread state-change counter; the sampler compares it against its snapshot
+    // to decide whether the thread has been continuously suspended.
     void thread_context_collector_on_gvl_suspended(gvl_profiling_thread thread) {
       intptr_t thread_being_profiled = gvl_profiling_state_get(thread);
       if (!thread_being_profiled) return;
 
-      long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
-      if (current_monotonic_wall_time_ns <= 0) return;
-
-      gvl_suspended_at_set(thread, current_monotonic_wall_time_ns);
+      gvl_state_change_count_mark_suspended(thread);
     }
 
     unsigned int thread_context_collector_inactive_thread_samples_skipped(VALUE self_instance) {
@@ -2036,11 +2036,15 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
       return state->stats.inactive_thread_samples_skipped;
     }
 
-    // Called by the exporter just before pprof_recorder.serialize, so that threads which have
-    // been continuously suspended across the whole profile period still get a sample for it.
-    // Without this, a long sleep that doesn't end inside the period emits no RESUMED event,
-    // the after-resume sample never fires, and the accumulated wall-time would be entirely
-    // missing from that period's profile.
+    // Called by the exporter just before pprof_recorder.serialize, so that threads whose last
+    // per-tick sample was skipped by the SUSPENDED-skip optimization still get their accumulated
+    // wall-time recorded in this period. Without this, a thread that sleeps across the whole
+    // period (or wakes up just before serialization, before another per-tick fires) would emit
+    // only the very first idle sample and lose the rest of its wall-time.
+    //
+    // Triggers on `was_skipped_at_last_sample` rather than the current GVL state: this also
+    // catches threads that have since RESUMED but haven't been per-tick-sampled yet, which the
+    // counter equality alone wouldn't detect.
     void thread_context_collector_flush_inactive_threads(VALUE self_instance) {
       thread_context_collector_state *state;
       TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
@@ -2054,17 +2058,13 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
         per_thread_context *thread_context = get_context_for(thread, state);
         // No context => never sampled => nothing to flush.
         if (thread_context == NULL) continue;
+        if (!thread_context->was_skipped_at_last_sample) continue;
 
-        long gvl_suspended_at = gvl_suspended_at_thread_object_get(thread);
-        // Not currently suspended => normal per-tick sampling already took care of it.
-        if (gvl_suspended_at == 0) continue;
-        // Suspended but with a different timestamp than last sample => the per-tick path will
-        // sample it on its next visit (or already did). Only catch the would-be-skipped case.
-        if (gvl_suspended_at != thread_context->gvl_suspended_at_at_previous_sample) continue;
-
-        // Invalidate the stored value so the skip block in update_metrics_and_sample sees a
-        // mismatch and emits a sample.
-        thread_context->gvl_suspended_at_at_previous_sample = 0;
+        // Force update_metrics_and_sample's skip check to fail by toggling the parity of the
+        // stored snapshot — the current counter still has the suspended low-bit set if the thread
+        // is still suspended, so flipping the stored value makes them differ. For threads that
+        // have since RESUMED, the counter will have changed anyway, so this is harmless.
+        thread_context->gvl_state_change_count_at_previous_sample ^= 1L;
 
         long current_cpu_time_ns = cpu_time_now_ns(thread_context);
         update_metrics_and_sample(
