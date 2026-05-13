@@ -24,7 +24,7 @@ RSpec.describe Datadog::Core::Remote::Client do
         ::Net::HTTPResponse,
         body: response_body,
         code: response_code,
-        content_type: respond_to?(:response_content_type) ? response_content_type : 'application/json',
+        content_type: response_content_type,
       )
       allow(http_connection).to receive(:request).with(http_request).and_return(http_response)
     end
@@ -44,6 +44,7 @@ RSpec.describe Datadog::Core::Remote::Client do
 
   let(:http_connection) { instance_double(::Net::HTTP) }
   let(:logger) { logger_allowing_debug }
+  let(:response_content_type) { 'application/json' }
   let(:transport) do
     Datadog::Core::Remote::Transport::HTTP.v7(
       agent_settings: test_agent_settings, logger: logger,

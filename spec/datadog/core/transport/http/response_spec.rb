@@ -85,6 +85,24 @@ RSpec.describe Datadog::Core::Transport::HTTP::Response do
         it { is_expected.to be true }
       end
 
+      context 'when Content-Type has a charset parameter' do
+        let(:header_value) { 'application/json; charset=utf-8' }
+
+        it { is_expected.to be true }
+      end
+
+      context 'when Content-Type has a charset parameter without surrounding space' do
+        let(:header_value) { 'application/json;charset=utf-8' }
+
+        it { is_expected.to be true }
+      end
+
+      context 'when Content-Type is "+json" with a parameter' do
+        let(:header_value) { 'application/vnd.api+json; charset=utf-8' }
+
+        it { is_expected.to be true }
+      end
+
       context 'when Content-Type is text/plain' do
         let(:header_value) { 'text/plain' }
 

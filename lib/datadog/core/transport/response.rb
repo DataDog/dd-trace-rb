@@ -46,7 +46,7 @@ module Datadog
           ct = content_type
           return false unless ct.is_a?(String)
 
-          normalized = ct.downcase
+          normalized = ct.split(';', 2).first.to_s.strip.downcase
           normalized == 'application/json' || normalized.end_with?('+json')
         end
 

@@ -26,7 +26,7 @@ RSpec.describe Datadog::Core::Remote::Negotiation do
           ::Net::HTTPResponse,
           body: response_body,
           code: response_code,
-          content_type: respond_to?(:response_content_type) ? response_content_type : 'application/json',
+          content_type: response_content_type,
         )
         allow(http_connection).to receive(:request).with(http_request).and_return(http_response)
       end
@@ -36,6 +36,7 @@ RSpec.describe Datadog::Core::Remote::Negotiation do
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:logger) { logger_allowing_debug }
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
+  let(:response_content_type) { 'application/json' }
 
   describe '#initialize' do
     context 'when instantiated without logger parameter like datadog-ci gem does' do

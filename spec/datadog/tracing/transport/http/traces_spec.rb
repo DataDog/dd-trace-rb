@@ -155,14 +155,10 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Traces::API::Endpoint do
       end
 
       context 'when the response is not declared as JSON' do
-        before { allow(http_response).to receive(:json_content_type?).and_return(false) }
-
-        let(:logger) { logger_allowing_debug }
-        let(:code) { 200 }
-
         before do
+          allow(http_response).to receive(:json_content_type?).and_return(false)
           allow(http_response).to receive(:content_type).and_return('text/html')
-          allow(http_response).to receive(:code).and_return(code)
+          allow(http_response).to receive(:code).and_return(200)
         end
 
         it 'raises NotJsonResponseError' do
