@@ -29,3 +29,10 @@ CustomCops/EnvStringValidationCop:
     - "lib/**/*"
   Exclude:
     - "lib/datadog/core/configuration/supported_configurations.rb"
+
+# Enforce underscore prefix for unused positional arguments
+Lint/UnusedMethodArgument:
+  Enabled: true
+  AllowUnusedKeywordArguments: true  # kwargs often unused for interface compliance
+  Include:
+    - "lib/datadog/open_feature/**/*"
