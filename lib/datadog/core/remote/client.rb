@@ -34,7 +34,7 @@ module Datadog
           if response.ok?
             process_response(response)
           elsif response.internal_error?
-            raise TransportError, response.inspect
+            raise TransportError, response.to_s
           end
         end
 
