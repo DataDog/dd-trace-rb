@@ -106,6 +106,11 @@ RSpec.describe Datadog::Tracing::Configuration::Dynamic::TracingSamplingRules do
         # Match the shape Remote Config delivers: JSON.parse produces string keys
         # throughout, which is what TracingSamplingRules#call reads via rule['tags'].
         let(:new_value) { [{'sample_rate' => 1, 'tags' => [{'key' => 'k', 'value_glob' => 'v'}]}] }
+
+        # Regression guard for DataDog/ruby-guild#282: if the array-to-hash tag
+        # conversion in TracingSamplingRules#call regresses, the resulting JSON is
+        # unparseable by RuleSampler.parse and emits a WARN. Fail loudly if so.
+        before { expect(Datadog.logger).not_to receive(:warn) }
       end
   end
 
