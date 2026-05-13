@@ -82,6 +82,13 @@ module Datadog
       # we just strip leading directory components from the "probe path"
       # until we get a match via a "suffix of the suffix".
 
+      # Returns +path+ with Windows-style backslash separators translated to
+      # forward slashes (DEBUG-5111). Used to normalize probe source paths
+      # that originate from IDE tooling running on Windows.
+      module_function def normalize_windows_separators(path)
+        path.tr('\\', '/')
+      end
+
       # Returns whether the provided +path+ matches the user-designated
       # file suffix (of a line probe).
       #
@@ -107,7 +114,7 @@ module Datadog
           raise ArgumentError, "nil suffix passed"
         end
 
-        suffix = suffix.tr('\\', '/')
+        suffix = normalize_windows_separators(suffix)
         if case_insensitive
           path = path.downcase
           suffix = suffix.downcase
@@ -142,7 +149,7 @@ module Datadog
       module_function def path_can_match_spec?(path, spec)
         # Normalize Windows-style backslash separators (DEBUG-5111) so the
         # suffix-shortening loop's "/+" regex can strip leading components.
-        spec = spec.tr('\\', '/')
+        spec = normalize_windows_separators(spec)
 
         [false, true].each do |case_insensitive|
           working_spec = spec.dup
