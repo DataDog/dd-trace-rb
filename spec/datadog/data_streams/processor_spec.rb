@@ -292,6 +292,17 @@ RSpec.describe Datadog::DataStreams::Processor do
       end
 
       it 'serializes consumer backlogs with type:kafka_commit tag' do
+        # Stop the auto-spawned background worker thread before exercising
+        # process_events synchronously. Otherwise the worker can race with the
+        # test thread: its first perform_loop iteration runs immediately
+        # (loop_wait_before_first_iteration? is false), and if the OS schedules
+        # it after the first track_kafka_consume but before the second, the
+        # worker drains @event_buffer (consuming event1 into @consumer_stats)
+        # and flush_stats then clears @consumer_stats — so the test's later
+        # process_events only sees event2 and serialize_consumer_backlogs
+        # returns one entry instead of two. See ruby-guild#281.
+        processor.stop(true)
+
         processor.track_kafka_consume('orders', 0, 100, base_time)
         # Reproducer for ruby-guild#281: give the auto-spawned background worker
         # time to run its first iteration between the two pushes. The worker's
