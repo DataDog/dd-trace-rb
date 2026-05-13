@@ -388,6 +388,14 @@ Then [open a pull request](../CONTRIBUTING.md#have-a-patch) and be sure to add t
  - Screenshots showing a sample trace
  - Any additional code snippets, sample apps, benchmarks, or other resources that demonstrate its implementation are a huge plus!
 
+### Testing the Symbol Database without Remote Configuration
+
+Symbol Database upload normally activates via Remote Configuration when the DI
+UI is opened for the service. For local development, bypass RC and trigger the
+upload directly on tracer startup with:
+
+    export DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD=true
+
 ### Generating GRPC proto stubs for tests
 
 If you modify any of the `.proto` files under `./spec/datadog/tracing/contrib/grpc/support/proto` used for

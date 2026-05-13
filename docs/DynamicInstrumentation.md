@@ -332,10 +332,6 @@ To explicitly disable it:
 
     export DD_SYMBOL_DATABASE_UPLOAD_ENABLED=false
 
-For testing without Remote Configuration:
-
-    export DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD=true
-
 ## Rate Limiting and Performance
 
 ### Default Rate Limits
