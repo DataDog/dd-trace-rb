@@ -478,19 +478,21 @@ RSpec.describe Datadog::Core::Remote::Client do
         let(:response_code) { 500 }
         let(:response_body) { 'unimplemented' }
 
-        it 'raises a transport error' do
+        it 'raises a transport error with response details' do
           expect { client.sync }.to raise_error(
-            Datadog::Core::Remote::Client::TransportError, /Agent returned an error response: 500: unimplemented/
+            Datadog::Core::Remote::Client::TransportError,
+            /internal_error\?:true.*Agent returned an error response: 500: unimplemented/m,
           )
         end
       end
 
       context 'with a network error' do
-        it 'raises a transport error' do
+        it 'raises a transport error with response details' do
           expect(http_connection).to receive(:request).and_raise(IOError)
 
           expect { client.sync }.to raise_error(
-            Datadog::Core::Remote::Client::TransportError, /error_type:IOError error:IOError/
+            Datadog::Core::Remote::Client::TransportError,
+            /internal_error\?:true.*error_type:IOError error:IOError/m,
           )
         end
       end
