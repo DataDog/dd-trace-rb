@@ -68,6 +68,10 @@ module Datadog
 
       #: () -> Datadog::Profiling::Flush?
       def flush
+        # Emit a sample for any thread that has been continuously suspended across this whole
+        # period before flipping slots; otherwise their accumulated wall-time would be missing
+        # from the profile.
+        @worker.flush_inactive_threads
         worker_stats = @worker.stats_and_reset_not_thread_safe
         serialization_result = pprof_recorder.serialize
         return if serialization_result.nil?

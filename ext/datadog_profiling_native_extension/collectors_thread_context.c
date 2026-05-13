@@ -2035,6 +2035,49 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
       TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
       return state->stats.inactive_thread_samples_skipped;
     }
+
+    // Called by the exporter just before pprof_recorder.serialize, so that threads which have
+    // been continuously suspended across the whole profile period still get a sample for it.
+    // Without this, a long sleep that doesn't end inside the period emits no RESUMED event,
+    // the after-resume sample never fires, and the accumulated wall-time would be entirely
+    // missing from that period's profile.
+    void thread_context_collector_flush_inactive_threads(VALUE self_instance) {
+      thread_context_collector_state *state;
+      TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
+
+      long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+      VALUE threads = thread_list(state);
+      const long thread_count = RARRAY_LEN(threads);
+
+      for (long i = 0; i < thread_count; i++) {
+        VALUE thread = RARRAY_AREF(threads, i);
+        per_thread_context *thread_context = get_context_for(thread, state);
+        // No context => never sampled => nothing to flush.
+        if (thread_context == NULL) continue;
+
+        long gvl_suspended_at = gvl_suspended_at_thread_object_get(thread);
+        // Not currently suspended => normal per-tick sampling already took care of it.
+        if (gvl_suspended_at == 0) continue;
+        // Suspended but with a different timestamp than last sample => the per-tick path will
+        // sample it on its next visit (or already did). Only catch the would-be-skipped case.
+        if (gvl_suspended_at != thread_context->gvl_suspended_at_at_previous_sample) continue;
+
+        // Invalidate the stored value so the skip block in update_metrics_and_sample sees a
+        // mismatch and emits a sample.
+        thread_context->gvl_suspended_at_at_previous_sample = 0;
+
+        long current_cpu_time_ns = cpu_time_now_ns(thread_context);
+        update_metrics_and_sample(
+          state,
+          /* thread_being_sampled: */ thread,
+          /* stack_from_thread: */ thread,
+          thread_context,
+          &thread_context->sampling_buffer,
+          current_cpu_time_ns,
+          current_monotonic_wall_time_ns
+        );
+      }
+    }
   #endif
 
   __attribute__((warn_unused_result))

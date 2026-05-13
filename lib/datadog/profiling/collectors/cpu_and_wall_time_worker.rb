@@ -161,6 +161,13 @@ module Datadog
           stats
         end
 
+        # Called before serialization so threads continuously suspended across the whole profile
+        # period still get a sample recorded for it. A no-op on Rubies older than 3.3.
+        #: () -> void
+        def flush_inactive_threads
+          self.class._native_flush_inactive_threads(self)
+        end
+
         # Useful for testing, to e.g. make sure the profiler is running before we start running some code we want to observe
         # @rbs timeout_seconds: ::Integer?
         # @rbs return: true

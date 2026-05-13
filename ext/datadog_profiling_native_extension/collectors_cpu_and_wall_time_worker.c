@@ -229,6 +229,7 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance)
 static VALUE _native_is_sigprof_blocked_in_current_thread(DDTRACE_UNUSED VALUE self);
 static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance);
 static VALUE _native_stats_reset_not_thread_safe(DDTRACE_UNUSED VALUE self, VALUE instance);
+static VALUE _native_flush_inactive_threads(DDTRACE_UNUSED VALUE self, VALUE instance);
 void *simulate_sampling_signal_delivery(DDTRACE_UNUSED void *_unused);
 static void grab_gvl_and_sample(void);
 static void reset_stats_not_thread_safe(cpu_and_wall_time_worker_state *state);
@@ -342,6 +343,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stats", _native_stats, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stats_reset_not_thread_safe", _native_stats_reset_not_thread_safe, 1);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_flush_inactive_threads", _native_flush_inactive_threads, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_allocation_count", _native_allocation_count, 0);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_is_running?", _native_is_running, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_failure_exception_during_operation", _native_failure_exception_during_operation, 1);
@@ -1133,6 +1135,19 @@ static VALUE _native_stats_reset_not_thread_safe(DDTRACE_UNUSED VALUE self, VALU
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
   reset_stats_not_thread_safe(state);
+  return Qnil;
+}
+
+// Called from the exporter before pprof_recorder.serialize so that threads continuously suspended
+// across the whole profile period get a sample recorded for it. Without this, a long sleep would
+// emit no samples because (a) per-tick samples are skipped and (b) the after-resume sample only
+// fires once RESUMED actually happens — which may be in a future period.
+static VALUE _native_flush_inactive_threads(DDTRACE_UNUSED VALUE self, VALUE instance) {
+  #if !defined(NO_GVL_INSTRUMENTATION) && !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
+    cpu_and_wall_time_worker_state *state;
+    TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+    thread_context_collector_flush_inactive_threads(state->thread_context_collector_instance);
+  #endif
   return Qnil;
 }
 
