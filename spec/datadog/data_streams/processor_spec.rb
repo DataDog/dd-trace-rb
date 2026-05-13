@@ -293,6 +293,12 @@ RSpec.describe Datadog::DataStreams::Processor do
 
       it 'serializes consumer backlogs with type:kafka_commit tag' do
         processor.track_kafka_consume('orders', 0, 100, base_time)
+        # Reproducer for ruby-guild#281: give the auto-spawned background worker
+        # time to run its first iteration between the two pushes. The worker's
+        # process_events drains event1 into @consumer_stats, then flush_stats
+        # clears @consumer_stats — losing event1 before event2 is added.
+        # DO NOT MERGE — this branch deliberately forces the race condition.
+        sleep 0.5
         processor.track_kafka_consume('payments', 1, 50, base_time + 1)
 
         # Process events and trigger flush
