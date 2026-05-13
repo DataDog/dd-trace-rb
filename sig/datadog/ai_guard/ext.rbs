@@ -10,6 +10,11 @@ module Datadog
       EVENT_TAG: ::String
       SERVICE_ENTRY_EXECUTED_TAG: ::String
       METASTRUCT_TAG: ::String
+      HTTP_USERAGENT_TAG: ::String
+      HTTP_CLIENT_IP_TAG: ::String
+      NETWORK_CLIENT_IP_TAG: ::String
+      SERVICE_ENTRY_ATTRIBUTE_KEYS: ::Array[::String]
+      STASH_TAG_PREFIX: ::String
     end
   end
 end

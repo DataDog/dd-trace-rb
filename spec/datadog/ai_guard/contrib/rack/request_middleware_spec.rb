@@ -63,6 +63,22 @@ RSpec.describe Datadog::AIGuard::Contrib::Rack::RequestMiddleware do
       end
     end
 
+    it "clears the request-attribute stash on exit" do
+      noop_app = ->(_) { [200, {}, ["ok"]] }
+
+      Datadog::Tracing.trace("rack.request") do |_span, trace|
+        Datadog::AIGuard::Ext::SERVICE_ENTRY_ATTRIBUTE_KEYS.each do |tag|
+          trace.set_tag("#{Datadog::AIGuard::Ext::STASH_TAG_PREFIX}#{tag}", "sentinel")
+        end
+
+        described_class.new(noop_app).call(env)
+
+        Datadog::AIGuard::Ext::SERVICE_ENTRY_ATTRIBUTE_KEYS.each do |tag|
+          expect(trace.get_tag("#{Datadog::AIGuard::Ext::STASH_TAG_PREFIX}#{tag}")).to be_nil
+        end
+      end
+    end
+
     it "still tags on the way out when the inner app raises" do
       raising_app = lambda do |_env|
         Datadog::Tracing.active_trace&.set_tag(Datadog::AIGuard::Ext::SERVICE_ENTRY_EXECUTED_TAG, "1")
@@ -90,9 +106,9 @@ RSpec.describe Datadog::AIGuard::Contrib::Rack::RequestMiddleware do
       end
     end
 
-    context "when tagging raises" do
+    context "when stashing raises" do
       before do
-        allow(Datadog::Tracing::ClientIp).to receive(:set_client_ip_tag!).and_raise(StandardError, "boom")
+        allow(Datadog::Tracing::ClientIp).to receive(:extract_client_ip).and_raise(StandardError, "boom")
       end
 
       it "reports to telemetry instead of raising" do
