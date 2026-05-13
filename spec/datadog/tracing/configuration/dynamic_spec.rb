@@ -99,11 +99,13 @@ RSpec.describe Datadog::Tracing::Configuration::Dynamic::TracingSamplingRules do
       config_key: :rules,
       value: RSpec::Matchers::BuiltIn::Match.new(
         lambda do |rules|
-          rules == '[{"sample_rate":1,"tags":[{"key":"k","value_glob":"v"}]}]'
+          rules == '[{"sample_rate":1,"tags":{"k":"v"}}]'
         end
       ),
       config_object: Datadog.configuration.tracing.sampling do
-        let(:new_value) { [{sample_rate: 1, tags: [{key: 'k', value_glob: 'v'}]}] }
+        # Match the shape Remote Config delivers: JSON.parse produces string keys
+        # throughout, which is what TracingSamplingRules#call reads via rule['tags'].
+        let(:new_value) { [{'sample_rate' => 1, 'tags' => [{'key' => 'k', 'value_glob' => 'v'}]}] }
       end
   end
 
