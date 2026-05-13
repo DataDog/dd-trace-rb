@@ -15,6 +15,7 @@ module Datadog
         RAILS_ROUTES_KEY = 'action_dispatch.routes'
         RAILS_PATH_PARAMS_KEY = 'action_dispatch.request.path_parameters'
         RAILS_FORMAT_SUFFIX = '(.:format)'
+        DATADOG_RAILS_ROUTE_KEY = 'datadog.action_dispatch.route'
 
         # HACK: We rely on the fact that each contrib will modify `request.env`
         #       and store information sufficient to compute the canonical
@@ -30,16 +31,19 @@ module Datadog
         #         uses `sinatra.route` with a string like "GET /users/:id"
         #       Grape
         #         uses `grape.routing_args` with a hash with a `:route_info` key
-        #         that contains a `Grape::Router::Route` object that contains
-        #         `Grape::Router::Pattern` object with an `origin` method
+        #         that contains a {Grape::Router::Route} object that contains
+        #         {Grape::Router::Pattern} object with an `origin` method
+        #       Rails with `action_pack` tracing contrib (fast path)
+        #         `datadog.action_dispatch.route` stores the {Journey::Route}
+        #         object set by the tracer at routing time
         #       Rails < 7.1 (slow path)
-        #         uses `action_dispatch.routes` to store `ActionDispatch::Routing::RouteSet`
+        #         uses `action_dispatch.routes` to store {ActionDispatch::Routing::RouteSet}
         #         which can recognize requests
         #       Rails > 7.1 (fast path)
         #         uses `action_dispatch.route_uri_pattern` with a string like
         #         "/users/:id(.:format)"
         #       Rails > 8.1.1 (fast path)
-        #         uses `action_dispatch.route` to store the ActionDispatch::Journey::Route
+        #         uses `action_dispatch.route` to store the {ActionDispatch::Journey::Route}
         #         that matched when the request was routed
         #
         # WARNING: This method works only *after* the request has been routed.
@@ -55,6 +59,8 @@ module Datadog
           elsif request.env.key?(SINATRA_ROUTE_KEY)
             pattern = request.env[SINATRA_ROUTE_KEY].split(SINATRA_ROUTE_SEPARATOR, 2)[1]
             "#{request.script_name}#{pattern}"
+          elsif request.env.key?(DATADOG_RAILS_ROUTE_KEY)
+            request.env[DATADOG_RAILS_ROUTE_KEY].path.spec.to_s.delete_suffix(RAILS_FORMAT_SUFFIX)
           elsif request.env.key?(RAILS_ROUTE_KEY)
             request.env[RAILS_ROUTE_KEY].path.spec.to_s.delete_suffix(RAILS_FORMAT_SUFFIX)
           elsif request.env.key?(RAILS_ROUTE_URI_PATTERN_KEY)
