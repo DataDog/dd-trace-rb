@@ -91,6 +91,14 @@ module Datadog
             return
           end
 
+          # Marked uploaded before perform_upload runs. This is intentional:
+          # symdb extraction is a one-shot operation per process — extract_all
+          # walks ObjectSpace once and never revisits a module within the same
+          # process. The Set deduplicates within a single extraction run, not
+          # across upload attempts. Failed uploads are not retried; symbols
+          # from a failed batch are lost until the next process restart, by
+          # design (matches Python and Go; Java retries via OkHttp, .NET via
+          # exponential backoff — Ruby does neither).
           @uploaded_modules.add(scope.name)
           @file_count += 1
 
