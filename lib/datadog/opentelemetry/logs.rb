@@ -44,7 +44,7 @@ module Datadog
 
       def configure_log_record_processor(provider)
         exporter_name = @settings.opentelemetry.logs.exporter
-        return if exporter_name == Ext::EXPORTER_NONE
+        return if exporter_name == Datadog::OpenTelemetry::Ext::EXPORTER_NONE
 
         configure_otlp_exporter(provider)
       rescue => e
