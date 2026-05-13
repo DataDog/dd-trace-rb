@@ -68,7 +68,7 @@ module Datadog
           option_name: :endpoint,
           computed_default: default_logs_endpoint
         )
-        timeout = config_with_fallback(signal: :logs, option_name: :timeout_millis) || 10_000
+        timeout = config_with_fallback(signal: :logs, option_name: :timeout_millis)
         headers = config_with_fallback(signal: :logs, option_name: :headers)
 
         exporter = Datadog::OpenTelemetry::SDK::LogsExporter.new(

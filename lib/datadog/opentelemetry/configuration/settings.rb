@@ -24,6 +24,8 @@ module Datadog
 
         def self.normalize_logs_protocol(env_var_name)
           proc do |value|
+            return value if value.nil?
+
             normalized = value.to_s.downcase
             if %w[http/protobuf http/json grpc].include?(normalized)
               normalized

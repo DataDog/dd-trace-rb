@@ -253,6 +253,11 @@ RSpec.describe 'OpenTelemetry Logs Integration', ruby: '>= 3.1' do
       expect(logs_settings.protocol).to eq('http/json')
     end
 
+    it 'does not add a processor when OTEL_LOGS_EXPORTER is none' do
+      setup_logs('OTEL_LOGS_EXPORTER' => 'none')
+      expect(processor).to be_nil
+    end
+
     it 'does not initialize when DD_LOGS_OTEL_ENABLED is false' do
       setup_logs('DD_LOGS_OTEL_ENABLED' => 'false', 'DD_SERVICE' => 'dd-service')
       # When disabled, our LoggerProvider is not set; global remains ProxyLoggerProvider
