@@ -112,6 +112,57 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
     end
   end
 
+  describe '.receivers' do
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
+    it 'returns one Dispatcher::Receiver' do
+      receivers = described_class.receivers(telemetry)
+      expect(receivers.size).to eq(1)
+      expect(receivers.first).to be_a(Datadog::Core::Remote::Dispatcher::Receiver)
+    end
+
+    describe 'receiver block' do
+      let(:receiver) { described_class.receivers(telemetry).first }
+      let(:repository) { instance_double(Datadog::Core::Remote::Configuration::Repository) }
+      let(:change) { mock_change(type: :insert, data: '{"upload_symbols": true}') }
+
+      context 'when symbol_database component is not built' do
+        # Component.build returns nil on JRuby, Ruby 2.5, when symbol_database
+        # is disabled, or when RC is disabled without force_upload. The receiver
+        # block must not raise — it is stored and invoked later via
+        # Dispatcher::Receiver#call, so a `return` would raise LocalJumpError.
+        before do
+          components = instance_double(
+            Datadog::Core::Configuration::Components,
+            symbol_database: nil,
+            telemetry: telemetry,
+          )
+          allow(Datadog).to receive(:send).with(:components).and_return(components)
+        end
+
+        it 'does not raise LocalJumpError' do
+          expect { receiver.call(repository, [change]) }.not_to raise_error
+        end
+      end
+
+      context 'when symbol_database component is present' do
+        before do
+          components = instance_double(
+            Datadog::Core::Configuration::Components,
+            symbol_database: component,
+            telemetry: telemetry,
+          )
+          allow(Datadog).to receive(:send).with(:components).and_return(components)
+        end
+
+        it 'processes each change against the component' do
+          expect(component).to receive(:start_upload)
+          receiver.call(repository, [change])
+        end
+      end
+    end
+  end
+
   describe '.parse_config' do
     it 'parses valid upload_symbols config' do
       content = instance_double('Content', data: '{"upload_symbols": true}')
