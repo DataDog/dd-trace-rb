@@ -239,6 +239,14 @@ RSpec.describe 'OpenTelemetry Logs Integration', ruby: '>= 3.1' do
       expect(logs_settings.headers).to eq({})
     end
 
+    it 'defaults to HTTP when protocol is set to grpc' do
+      setup_logs(
+        'OTEL_EXPORTER_OTLP_LOGS_PROTOCOL' => 'grpc'
+      )
+      expect(logs_settings.protocol).to eq('http/protobuf')
+      expect(exporter.instance_variable_get(:@uri).to_s).to eq("http://#{agent_host}:4318/v1/logs")
+    end
+
     it 'does not add a processor when OTEL_LOGS_EXPORTER is none' do
       setup_logs('OTEL_LOGS_EXPORTER' => 'none')
       expect(processor).to be_nil

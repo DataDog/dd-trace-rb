@@ -66,6 +66,8 @@ module Datadog
         )
         timeout = config_or_exporter_fallback(signal: :logs, option_name: :timeout_millis)
         headers = config_or_exporter_fallback(signal: :logs, option_name: :headers)
+        # opentelemetry-logs-sdk only supports http/protobuf protocol as of 0.5.0.
+        config_or_exporter_fallback(signal: :logs, option_name: :protocol)
 
         exporter = Datadog::OpenTelemetry::SDK::LogsExporter.new(
           endpoint: endpoint,

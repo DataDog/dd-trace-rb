@@ -2496,6 +2496,13 @@
         "default": null
       }
     ],
+    "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL": [
+      {
+        "version": "B",
+        "type": "string",
+        "default": "http/protobuf"
+      }
+    ],
     "OTEL_EXPORTER_OTLP_LOGS_TIMEOUT": [
       {
         "version": "A",

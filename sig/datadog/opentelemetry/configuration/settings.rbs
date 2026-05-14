@@ -72,6 +72,8 @@ module Datadog
 
           def timeout_millis: () -> ::Integer?
 
+          def protocol: () -> ::String?
+
           def max_queue_size: () -> ::Integer
 
           def schedule_delay_millis: () -> ::Integer

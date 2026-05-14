@@ -186,6 +186,13 @@ module Datadog
                   o.default 10_000
                 end
 
+                option :protocol do |o|
+                  o.type :string, nilable: true
+                  o.env 'OTEL_EXPORTER_OTLP_LOGS_PROTOCOL'
+                  o.default "http/protobuf"
+                  o.setter(&Settings.normalize_protocol('OTEL_EXPORTER_OTLP_LOGS_PROTOCOL'))
+                end
+
                 option :max_queue_size do |o|
                   o.type :int
                   o.env 'OTEL_BLRP_MAX_QUEUE_SIZE'
