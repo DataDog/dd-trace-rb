@@ -2498,7 +2498,7 @@
     ],
     "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL": [
       {
-        "version": "B",
+        "version": "D",
         "type": "string",
         "default": "http/protobuf"
       }
