@@ -43,7 +43,7 @@ module Datadog
           receiver do |repository, changes|
             telemetry = lookup_telemetry
             component = begin
-              Datadog.send(:components)&.symbol_database
+              Datadog.send(:components, allow_initialization: false)&.symbol_database
             rescue => e
               Datadog.logger.debug { "symdb: failed to look up component in RC receiver: #{e.class}: #{e.message}" }
               telemetry&.report(e, description: 'symdb: failed to look up component in RC receiver')
@@ -70,10 +70,12 @@ module Datadog
 
         # Look up the telemetry component for error reporting. Returns nil if the
         # component tree isn't built yet (very early boot) or the lookup raises.
+        # `allow_initialization: false` avoids triggering component-tree construction
+        # from inside an RC receiver callback.
         # @return [Core::Telemetry::Component, nil]
         # @api private
         def lookup_telemetry
-          Datadog.send(:components)&.telemetry
+          Datadog.send(:components, allow_initialization: false)&.telemetry
         rescue
           nil
         end

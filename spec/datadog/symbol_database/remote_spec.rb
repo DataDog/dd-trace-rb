@@ -137,7 +137,7 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
             symbol_database: nil,
             telemetry: telemetry,
           )
-          allow(Datadog).to receive(:send).with(:components).and_return(components)
+          allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(components)
         end
 
         it 'does not raise LocalJumpError' do
@@ -152,7 +152,7 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
             symbol_database: component,
             telemetry: telemetry,
           )
-          allow(Datadog).to receive(:send).with(:components).and_return(components)
+          allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(components)
         end
 
         it 'processes each change against the component' do
