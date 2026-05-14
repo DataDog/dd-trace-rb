@@ -252,10 +252,15 @@ RSpec.describe 'OpenTelemetry Logs Integration', ruby: '>= 3.1' do
       expect(processor).to be_nil
     end
 
-    it 'does not initialize when DD_LOGS_OTEL_ENABLED is false' do
-      setup_logs('DD_LOGS_OTEL_ENABLED' => 'false', 'DD_SERVICE' => 'dd-service')
-      # When disabled, our LoggerProvider is not set; global remains ProxyLoggerProvider
-      expect(provider).not_to be_a(::OpenTelemetry::SDK::Logs::LoggerProvider)
+    it 'lets the upstream OpenTelemetry logs SDK configure logs when DD_LOGS_OTEL_ENABLED is false' do
+      setup_logs(
+        'DD_LOGS_OTEL_ENABLED' => 'false',
+        'OTEL_LOGS_EXPORTER' => 'console'
+      )
+
+      expect(provider).to be_a(::OpenTelemetry::SDK::Logs::LoggerProvider)
+      expect(processor).to be_a(::OpenTelemetry::SDK::Logs::Export::SimpleLogRecordProcessor)
+      expect(Datadog.configuration.tracing.log_injection).to be(true)
     end
   end
 

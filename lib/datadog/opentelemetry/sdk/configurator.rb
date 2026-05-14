@@ -59,8 +59,7 @@ module Datadog
           @datadog_logs_hook_called = true
           components = Datadog.send(:components)
           unless components.settings.opentelemetry.logs.enabled
-            # Reset to default so a previous test/run does not leave our LoggerProvider set
-            ::OpenTelemetry.logger_provider = ::OpenTelemetry::Internal::ProxyLoggerProvider.new
+            super if defined?(super)
             return
           end
 
@@ -74,7 +73,7 @@ module Datadog
           success = Datadog::OpenTelemetry::Logs.initialize!(components)
           unless success
             components.logger.warn('Falling back to OpenTelemetry default logs configuration')
-            super
+            super if defined?(super)
           end
         end
 
