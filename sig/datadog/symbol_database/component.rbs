@@ -16,6 +16,7 @@ module Datadog
       @settings: Datadog::Core::Configuration::Settings
       @agent_settings: Datadog::Core::Configuration::AgentSettings
       @logger: SymbolDatabase::Logger
+      @telemetry: Datadog::Core::Telemetry::Component?
       @extractor: Extractor
       @uploader: Uploader
       @scope_batcher: ScopeBatcher
@@ -31,9 +32,9 @@ module Datadog
       @scheduler_signaled: bool
       @scheduler_thread: Thread?
 
-      def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, untyped logger) -> Component?
+      def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, untyped logger, ?telemetry: Datadog::Core::Telemetry::Component?) -> Component?
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, SymbolDatabase::Logger logger) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, SymbolDatabase::Logger logger, ?telemetry: Datadog::Core::Telemetry::Component?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
       attr_reader last_upload_time: Time?

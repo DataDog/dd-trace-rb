@@ -226,7 +226,9 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
       expect(component).not_to receive(:extract_and_upload)
       component.start_upload
-      sleep 0.2 # Give scheduler thread time to fire if it were going to
+      # start_upload returns immediately because uploaded_this_process? is true —
+      # no scheduler thread is started, so there is nothing to wait on.
+      expect(component.instance_variable_get(:@scheduler_thread)).to be_nil
     end
 
     it 'does not extract when shut down' do
@@ -281,7 +283,9 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       component.shutdown!
       expect(component).not_to receive(:extract_and_upload)
       component.start_upload
-      sleep 0.2
+      # start_upload enters the scheduler mutex, sees @shutdown=true, and returns
+      # without starting a scheduler thread. Nothing to wait on.
+      expect(component.instance_variable_get(:@scheduler_thread)).to be_nil
     end
 
     it 'cancels a pending debounced extraction' do
@@ -289,8 +293,11 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(extractor).not_to receive(:extract_all)
 
       component.start_upload
-      component.shutdown!  # before debounce fires
-      sleep 0.2
+      # shutdown! sets @shutdown=true, signals the scheduler CV, and joins the
+      # thread. By the time shutdown! returns, the scheduler thread has woken,
+      # seen @shutdown=true, and exited without calling extract_all.
+      component.shutdown!
+      expect(component.instance_variable_get(:@scheduler_thread)).to be_nil
     end
 
     it 'waits for an in-flight extraction to complete' do
@@ -352,7 +359,9 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       component_a.shutdown!
       component_b = described_class.build(settings, agent_settings, logger)
       component_b.start_upload
-      sleep 0.2 # give scheduler thread a chance to fire
+      # component_b.start_upload short-circuits because uploaded_this_process?
+      # is true from component_a. No scheduler thread is started.
+      expect(component_b.instance_variable_get(:@scheduler_thread)).to be_nil
 
       expect(extraction_count).to eq(1)
 
@@ -384,7 +393,12 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
       component.start_upload
       component.stop_upload
-      sleep 0.2
+      # stop_upload clears @scheduled_at and signals the scheduler CV.
+      # The scheduler thread (if started) wakes, sees @scheduled_at=nil, and
+      # returns to indefinite wait. extract_all is not called. The `after`
+      # block's shutdown! will join the thread before RSpec verifies the
+      # `not_to receive` expectation.
+      expect(component.instance_variable_get(:@scheduled_at)).to be_nil
     end
 
     it 'does not extract again after start, stop, re-start when already uploaded once this process' do
@@ -397,8 +411,9 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       component.start_upload
       component.wait_for_idle(timeout: 5)
       component.stop_upload
+      # wait_for_idle returned, so uploaded_this_process? is true. The second
+      # start_upload short-circuits without scheduling another extraction.
       component.start_upload
-      sleep 0.2
 
       expect(extraction_count).to eq(1)
     end
@@ -415,7 +430,9 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
       expect(component).not_to receive(:extract_and_upload)
       component.start_upload
-      sleep 0.2
+      # start_upload enters the scheduler mutex, sees @shutdown=true, and returns.
+      # No new scheduler thread is started; shutdown! already joined the previous one.
+      expect(component.instance_variable_get(:@scheduler_thread)).to be_nil
     end
   end
 

@@ -79,8 +79,9 @@ module Datadog
       # @param settings [Configuration::Settings] Tracer settings
       # @param agent_settings [Configuration::AgentSettings] Agent configuration
       # @param logger [Logger] Logger instance
+      # @param telemetry [Core::Telemetry::Component, nil] Telemetry component for error reporting
       # @return [Component, nil] Component instance or nil if not enabled/requirements not met
-      def self.build(settings, agent_settings, logger)
+      def self.build(settings, agent_settings, logger, telemetry: nil)
         symdb_logger = SymbolDatabase::Logger.new(settings, logger)
 
         unless settings.respond_to?(:symbol_database) && settings.symbol_database.enabled
@@ -100,7 +101,7 @@ module Datadog
           return nil
         end
 
-        new(settings, agent_settings, symdb_logger).tap do |component|
+        new(settings, agent_settings, symdb_logger, telemetry: telemetry).tap do |component|
           # Defer extraction if force upload mode — wait for app boot to complete
           component.schedule_deferred_upload if settings.symbol_database.internal.force_upload
         end
@@ -112,13 +113,15 @@ module Datadog
       # @param settings [Configuration::Settings] Tracer settings
       # @param agent_settings [Configuration::AgentSettings] Agent configuration
       # @param logger [Logger] Logger instance
-      def initialize(settings, agent_settings, logger)
+      # @param telemetry [Core::Telemetry::Component, nil] Telemetry component for error reporting
+      def initialize(settings, agent_settings, logger, telemetry: nil)
         @settings = settings
         @agent_settings = agent_settings
         @logger = logger
+        @telemetry = telemetry
 
         @extractor = Extractor.new(logger: logger, settings: settings)
-        @uploader = Uploader.new(settings: settings, agent_settings: agent_settings, logger: logger)
+        @uploader = Uploader.new(settings: settings, agent_settings: agent_settings, logger: logger, telemetry: telemetry)
         @scope_batcher = ScopeBatcher.new(@uploader, logger: logger)
 
         @last_upload_time = nil
@@ -199,6 +202,7 @@ module Datadog
         end
       rescue => e
         @logger.debug { "symdb: error scheduling upload: #{e.class}: #{e.message}" }
+        @telemetry&.report(e, description: 'symdb: error scheduling upload')
       end
 
       # Stop symbol upload (cancel the scheduler).
@@ -337,6 +341,7 @@ module Datadog
         end
       rescue => e
         @logger.debug { "symdb: scheduler error: #{e.class}: #{e.message}" }
+        @telemetry&.report(e, description: 'symdb: scheduler error')
       end
 
       # Extract symbols from all loaded modules and upload.
@@ -371,6 +376,7 @@ module Datadog
           @last_upload_scope_count = extracted_count
         rescue => e
           @logger.debug { "symdb: extraction error: #{e.class}: #{e.message}" }
+          @telemetry&.report(e, description: 'symdb: extraction error')
         ensure
           @mutex.synchronize do
             @upload_in_progress = false

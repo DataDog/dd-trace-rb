@@ -152,7 +152,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       change = instance_double('Datadog::Core::Remote::Configuration::Repository::Change::Inserted', type: :insert, content: content)
 
       GC.start
-      Datadog::SymbolDatabase::Remote.send(:process_change, component, change)
+      Datadog::SymbolDatabase::Remote.send(:process_change, component, change, nil)
       component.wait_for_idle(timeout: 30)
 
       expect(captured_forms).not_to be_empty
@@ -172,7 +172,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       allow(content).to receive(:applied)
       change = instance_double('Datadog::Core::Remote::Configuration::Repository::Change::Inserted', type: :insert, content: content)
 
-      Datadog::SymbolDatabase::Remote.send(:process_change, component, change)
+      Datadog::SymbolDatabase::Remote.send(:process_change, component, change, nil)
 
       expect(captured_forms).to be_empty
       expect(content).to have_received(:applied)
@@ -193,7 +193,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       insert_change = instance_double('Datadog::Core::Remote::Configuration::Repository::Change::Inserted', type: :insert, content: content)
 
       GC.start
-      Datadog::SymbolDatabase::Remote.send(:process_change, component, insert_change)
+      Datadog::SymbolDatabase::Remote.send(:process_change, component, insert_change, nil)
       component.wait_for_idle(timeout: 30)
       expect(captured_forms).not_to be_empty
 
@@ -202,7 +202,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       allow(previous).to receive(:applied)
       delete_change = instance_double('Datadog::Core::Remote::Configuration::Repository::Change::Deleted', type: :delete, previous: previous)
 
-      Datadog::SymbolDatabase::Remote.send(:process_change, component, delete_change)
+      Datadog::SymbolDatabase::Remote.send(:process_change, component, delete_change, nil)
       expect(previous).to have_received(:applied)
 
       component.shutdown!
@@ -223,9 +223,10 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       upload_count_after_first = captured_forms.size
 
       # Second call should be a no-op (uploaded_this_process? is true).
+      # start_upload short-circuits before starting a scheduler thread —
+      # no need to sleep; the assertion below proves no second upload happened.
       component.stop_upload
       component.start_upload
-      sleep 0.2
       expect(captured_forms.size).to eq(upload_count_after_first)
 
       component.shutdown!

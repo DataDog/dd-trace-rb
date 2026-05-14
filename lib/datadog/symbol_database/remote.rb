@@ -41,17 +41,19 @@ module Datadog
         # @return [Array<Receiver>] Array of receivers
         def receivers(_telemetry)
           receiver do |repository, changes|
+            telemetry = lookup_telemetry
             component = begin
               Datadog.send(:components)&.symbol_database
             rescue => e
               Datadog.logger.debug { "symdb: failed to look up component in RC receiver: #{e.class}: #{e.message}" }
+              telemetry&.report(e, description: 'symdb: failed to look up component in RC receiver')
               nil
             end
 
             return unless component # steep:ignore ReturnTypeMismatch
 
             changes.each do |change|
-              process_change(component, change)
+              process_change(component, change, telemetry)
             end
           end
         end
@@ -66,12 +68,23 @@ module Datadog
 
         private
 
+        # Look up the telemetry component for error reporting. Returns nil if the
+        # component tree isn't built yet (very early boot) or the lookup raises.
+        # @return [Core::Telemetry::Component, nil]
+        # @api private
+        def lookup_telemetry
+          Datadog.send(:components)&.telemetry
+        rescue
+          nil
+        end
+
         # Process a single configuration change.
         # @param component [Component] Symbol database component
         # @param change [Change] Configuration change (:insert, :update, :delete)
+        # @param telemetry [Core::Telemetry::Component, nil] Telemetry for error reporting
         # @return [void]
         # @api private
-        def process_change(component, change)
+        def process_change(component, change, telemetry)
           case change.type
           when :insert
             # @type var change: ::Datadog::Core::Remote::Configuration::Repository::Change::Inserted
@@ -92,6 +105,7 @@ module Datadog
           end
         rescue => e
           Datadog.logger.debug { "symdb: error processing remote config change: #{e.class}: #{e.message}" }
+          telemetry&.report(e, description: 'symdb: error processing remote config change')
           # Rescue runs regardless of which branch raised — Steep cannot narrow the
           # union type from a respond_to? check.
           content_obj = change.respond_to?(:content) ? change.content : change.previous # steep:ignore NoMethod
@@ -131,6 +145,10 @@ module Datadog
         # @param content [Content] Remote config content
         # @return [Hash, nil] Parsed config or nil if invalid
         # @api private
+        #
+        # JSON::ParserError is intentionally NOT rescued here — it propagates to
+        # process_change's rescue, which logs and reports to telemetry. Catching
+        # it locally would swallow the error from telemetry observability.
         def parse_config(content)
           config = JSON.parse(content.data)
 
@@ -145,9 +163,6 @@ module Datadog
           end
 
           config
-        rescue JSON::ParserError => e
-          Datadog.logger.debug { "symdb: invalid config format: #{e.class}: #{e.message}" }
-          nil
         end
       end
     end

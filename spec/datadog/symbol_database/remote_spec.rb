@@ -33,7 +33,7 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
 
         expect(component).to receive(:start_upload)
 
-        described_class.send(:process_change, component, change)
+        described_class.send(:process_change, component, change, nil)
       end
     end
 
@@ -43,7 +43,7 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
 
         expect(component).not_to receive(:start_upload)
 
-        described_class.send(:process_change, component, change)
+        described_class.send(:process_change, component, change, nil)
       end
     end
 
@@ -54,7 +54,7 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
         expect(component).to receive(:stop_upload).ordered
         expect(component).to receive(:start_upload).ordered
 
-        described_class.send(:process_change, component, change)
+        described_class.send(:process_change, component, change, nil)
       end
 
       it 'calls stop_upload for upload_symbols: false' do
@@ -63,7 +63,7 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
         expect(component).to receive(:stop_upload)
         expect(component).not_to receive(:start_upload)
 
-        described_class.send(:process_change, component, change)
+        described_class.send(:process_change, component, change, nil)
       end
     end
 
@@ -75,7 +75,7 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
 
         expect(component).to receive(:stop_upload)
 
-        described_class.send(:process_change, component, change)
+        described_class.send(:process_change, component, change, nil)
       end
     end
 
@@ -85,7 +85,7 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
 
         expect(component).not_to receive(:start_upload)
 
-        described_class.send(:process_change, component, change)
+        described_class.send(:process_change, component, change, nil)
       end
 
       it 'handles invalid JSON gracefully' do
@@ -93,7 +93,7 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
 
         expect(component).not_to receive(:start_upload)
 
-        described_class.send(:process_change, component, change)
+        described_class.send(:process_change, component, change, nil)
       end
 
       it 'handles non-Hash JSON gracefully' do
@@ -101,7 +101,7 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
 
         expect(component).not_to receive(:start_upload)
 
-        described_class.send(:process_change, component, change)
+        described_class.send(:process_change, component, change, nil)
       end
     end
   end
@@ -125,10 +125,11 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
       expect(result).to be_nil
     end
 
-    it 'returns nil for invalid JSON' do
+    it 'raises JSON::ParserError for invalid JSON (caller process_change rescues + reports)' do
       content = instance_double('Content', data: 'bad json')
-      result = described_class.send(:parse_config, content)
-      expect(result).to be_nil
+      expect {
+        described_class.send(:parse_config, content)
+      }.to raise_error(JSON::ParserError)
     end
 
     it 'returns nil for non-Hash JSON' do
@@ -147,12 +148,12 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
       # First: insert with upload_symbols: true
       insert_change = mock_change(type: :insert, data: '{"upload_symbols": true}')
       expect(component).to receive(:start_upload)
-      described_class.send(:process_change, component, insert_change)
+      described_class.send(:process_change, component, insert_change, nil)
 
       # Then: update with upload_symbols: false
       update_change = mock_change(type: :update, data: '{"upload_symbols": false}')
       expect(component).to receive(:stop_upload)
-      described_class.send(:process_change, component, update_change)
+      described_class.send(:process_change, component, update_change, nil)
     end
 
     it 'handles multiple enable signals without duplicate start_upload calls' do
@@ -162,8 +163,8 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
 
       expect(component).to receive(:start_upload).twice
 
-      described_class.send(:process_change, component, change1)
-      described_class.send(:process_change, component, change2)
+      described_class.send(:process_change, component, change1, nil)
+      described_class.send(:process_change, component, change2, nil)
     end
   end
 end
