@@ -29,13 +29,17 @@ module Datadog
 
               @body: untyped
 
+              @content_type: untyped
+
               include Datadog::Core::Transport::Response
 
               attr_reader body: untyped
 
               attr_reader code: untyped
 
-              def initialize: (untyped code, ?untyped? body) -> void
+              attr_reader content_type: untyped
+
+              def initialize: (untyped code, ?untyped? body, ?content_type: untyped) -> void
 
               def payload: () -> untyped
 

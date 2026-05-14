@@ -16,6 +16,15 @@ module Datadog
 
           def code: () -> (untyped | nil)
           def headers: () -> ::Hash[::String, ::String]
+          def content_type: () -> (::String | nil)
+        end
+
+        class NotJsonResponseError < StandardError
+          @http_response: untyped
+
+          attr_reader http_response: untyped
+
+          def initialize: (untyped http_response) -> void
         end
       end
     end

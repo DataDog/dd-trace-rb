@@ -16,6 +16,10 @@ module Datadog
 
         def internal_error?: () -> nil
 
+        def content_type: () -> (::String | nil)
+
+        def json_content_type?: () -> bool
+
         def inspect: () -> ::String
       end
 
