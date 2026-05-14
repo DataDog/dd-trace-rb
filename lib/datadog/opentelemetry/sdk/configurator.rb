@@ -30,9 +30,9 @@ module Datadog
           [SpanProcessor.new]
         end
 
-        # SDK >= 1.9.0 calls logs_configuration_hook from configure.
-        # https://github.com/open-telemetry/opentelemetry-ruby/blob/opentelemetry-sdk/v1.9.0/sdk/lib/opentelemetry/sdk/configurator.rb#L152
-        # Older SDK versions do not, so we call it explicitly as a fallback.
+        # SDK 1.6.0+ calls logs_configuration_hook from configure.
+        # https://github.com/open-telemetry/opentelemetry-ruby/blob/opentelemetry-sdk/v1.6.0/sdk/lib/opentelemetry/sdk/configurator.rb#L152
+        # Older supported SDK versions do not, so we call it explicitly as a fallback.
         # The flag prevents double-calling on newer SDK versions.
         def configure
           @datadog_logs_hook_called = false
