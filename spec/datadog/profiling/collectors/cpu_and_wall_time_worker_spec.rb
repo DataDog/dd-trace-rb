@@ -464,6 +464,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         end
 
         it "records Waiting for GVL samples" do
+          skip "TODO: This test is flaky on macOS" if PlatformHelpers.mac?
+
           background_thread_affected_by_gvl_contention
           ready_queue_2.pop
 

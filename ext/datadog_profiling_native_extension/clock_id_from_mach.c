@@ -5,6 +5,7 @@
 #ifdef HAVE_MACH_THREAD_INFO
 
 #include <pthread.h>
+#include <time.h>
 #include <mach/mach.h>
 #include <mach/thread_info.h>
 
@@ -45,6 +46,17 @@ thread_cpu_time thread_cpu_time_for(thread_cpu_time_id time_id) {
   thread_cpu_time error = (thread_cpu_time) {.valid = false};
 
   if (!time_id.valid) return error;
+
+  // Fast path: clock_gettime(CLOCK_THREAD_CPUTIME_ID) is ~5x cheaper than thread_info()
+  // and gives sub-microsecond precision (vs microsecond), but only measures the calling
+  // thread on macOS (there is no pthread_getcpuclockid() equivalent).
+  if (time_id.clock_id == pthread_mach_thread_np(pthread_self())) {
+    struct timespec ts;
+    if (clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts) == 0) {
+      return (thread_cpu_time) {.valid = true, .result_ns = SECONDS_AS_NS(ts.tv_sec) + ts.tv_nsec};
+    }
+    // Fall through to thread_info on the unlikely failure case.
+  }
 
   struct thread_basic_info info;
   mach_msg_type_number_t count = THREAD_BASIC_INFO_COUNT;
