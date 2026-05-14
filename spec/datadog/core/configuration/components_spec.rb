@@ -558,8 +558,16 @@ RSpec.describe Datadog::Core::Configuration::Components do
       shared_context 'stub remote configuration agent response' do
         before do
           WebMock.enable!
-          stub_request(:get, %r{/info}).to_return(body: info_response, status: 200)
-          stub_request(:post, %r{/v0\.7/config}).to_return(body: '{}', status: 200)
+          stub_request(:get, %r{/info}).to_return(
+            body: info_response,
+            status: 200,
+            headers: {'Content-Type' => 'application/json'},
+          )
+          stub_request(:post, %r{/v0\.7/config}).to_return(
+            body: '{}',
+            status: 200,
+            headers: {'Content-Type' => 'application/json'},
+          )
         end
 
         after { WebMock.disable! }

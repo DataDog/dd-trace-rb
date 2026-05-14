@@ -36,8 +36,16 @@ RSpec.describe 'contrib integration testing', :integration do
     before do
       WebMock.enable!
 
-      stub_request(:get, %r{/info}).to_return(body: info_response, status: 200)
-      stub_request(:post, %r{/v0\.7/config}).to_return(body: '{}', status: 200)
+      stub_request(:get, %r{/info}).to_return(
+        body: info_response,
+        status: 200,
+        headers: {'Content-Type' => 'application/json'},
+      )
+      stub_request(:post, %r{/v0\.7/config}).to_return(
+        body: '{}',
+        status: 200,
+        headers: {'Content-Type' => 'application/json'},
+      )
 
       Datadog.configure { |c| c.remote.poll_interval_seconds = 0.001 }
     end
@@ -54,7 +62,11 @@ RSpec.describe 'contrib integration testing', :integration do
     end
 
     def stub_dynamic_configuration_request(*dynamic_configurations)
-      stub_request(:post, %r{/v0\.7/config}).to_return(body: build(*dynamic_configurations), status: 200)
+      stub_request(:post, %r{/v0\.7/config}).to_return(
+        body: build(*dynamic_configurations),
+        status: 200,
+        headers: {'Content-Type' => 'application/json'},
+      )
     end
 
     def build(*dynamic_configurations)

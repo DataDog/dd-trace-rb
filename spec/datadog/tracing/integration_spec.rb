@@ -721,7 +721,11 @@ RSpec.describe 'Tracer integration tests' do
 
     context 'with agent rates', webmock: true do
       before do
-        stub_request(:post, %r{/v0.4/traces}).to_return(status: 200, body: service_rates.to_json)
+        stub_request(:post, %r{/v0.4/traces}).to_return(
+          status: 200,
+          body: service_rates.to_json,
+          headers: {'Content-Type' => 'application/json'},
+        )
       end
 
       let(:service_rates) { {rate_by_service: {'service:kept,env:' => 1.0, 'service:dropped,env:' => Float::MIN}} }

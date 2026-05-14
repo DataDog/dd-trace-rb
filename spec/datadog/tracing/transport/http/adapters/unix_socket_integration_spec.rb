@@ -27,6 +27,7 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
     let(:server_proc) do
       proc do |req, res|
         messages << req
+        res['Content-Type'] = 'application/json'
         res.body = '{}'
       end
     end
