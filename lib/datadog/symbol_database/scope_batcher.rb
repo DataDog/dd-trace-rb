@@ -35,6 +35,10 @@ module Datadog
       # This prevents runaway memory usage in applications with very large
       # numbers of loaded classes (e.g., heavily modularized Rails apps).
       MAX_FILES = 10_000
+      # Seconds to wait for the timer thread to exit when joining during
+      # shutdown or reset. Bounded so a misbehaving thread cannot hang the
+      # caller indefinitely.
+      TIMER_JOIN_TIMEOUT = 5
 
       # Initialize batching context.
       # @param uploader [Uploader] Uploader instance for triggering uploads
@@ -136,10 +140,18 @@ module Datadog
       def shutdown
         # @type var scopes_to_upload: ::Array[Scope]?
         scopes_to_upload = nil
+        # @type var thread_to_join: ::Thread?
+        thread_to_join = nil
 
         @mutex.synchronize do
           @timer_stopped = true
           @timer_cv.signal  # Wake the timer thread so it exits
+
+          # Capture the timer thread under the mutex so a concurrent add_scope
+          # cannot create a new thread that we'd accidentally orphan when we
+          # nil the field below.
+          thread_to_join = @timer_thread
+          @timer_thread = nil
 
           scopes_to_upload = @scopes.dup
           @scopes.clear
@@ -147,33 +159,10 @@ module Datadog
 
         # Join the timer thread outside the mutex.
         # The thread checks @timer_stopped and exits when signaled.
-        @timer_thread&.join(5)  # 5-second timeout to avoid hanging
-        @timer_thread = nil
+        thread_to_join&.join(TIMER_JOIN_TIMEOUT)
 
         # Upload outside mutex
         perform_upload(scopes_to_upload) unless scopes_to_upload.nil? || scopes_to_upload.empty?
-      end
-
-      # Reset state (for testing).
-      # @return [void]
-      # @api private
-      def reset
-        @mutex.synchronize do
-          @scopes.clear
-          @timer_stopped = true
-          @timer_cv.signal
-          @file_count = 0
-          @uploaded_modules.clear
-        end
-
-        @timer_thread&.join(5)
-        @timer_thread = nil
-
-        # Allow timer to be restarted after reset
-        @mutex.synchronize do
-          @timer_stopped = false
-          @timer_signaled = false
-        end
       end
 
       # Check if scopes are pending upload.
@@ -189,6 +178,34 @@ module Datadog
       end
 
       private
+
+      # Reset state. Private so production code cannot accidentally invoke it;
+      # tests call via +send(:reset)+.
+      # @return [void]
+      def reset
+        # @type var thread_to_join: ::Thread?
+        thread_to_join = nil
+
+        @mutex.synchronize do
+          @scopes.clear
+          @timer_stopped = true
+          @timer_cv.signal
+          @file_count = 0
+          @uploaded_modules.clear
+
+          # Capture under the mutex (see shutdown for rationale).
+          thread_to_join = @timer_thread
+          @timer_thread = nil
+        end
+
+        thread_to_join&.join(TIMER_JOIN_TIMEOUT)
+
+        # Allow timer to be restarted after reset
+        @mutex.synchronize do
+          @timer_stopped = false
+          @timer_signaled = false
+        end
+      end
 
       # Start the timer thread if not already running.
       # Must be called from within @mutex.synchronize.

@@ -19,8 +19,8 @@ RSpec.describe Datadog::SymbolDatabase::ScopeBatcher do
   subject(:context) { described_class.new(uploader, logger: logger) }
 
   after do
-    # Cleanup any running timers
-    context.reset
+    # Cleanup any running timers (reset is private)
+    context.send(:reset)
   end
 
   describe '#initialize' do
@@ -227,12 +227,12 @@ RSpec.describe Datadog::SymbolDatabase::ScopeBatcher do
     end
   end
 
-  describe '#reset' do
+  describe 'reset (private, test-only)' do
     it 'clears all state' do
       allow(uploader).to receive(:upload_scopes)
 
       context.add_scope(test_scope)
-      context.reset
+      context.send(:reset)
 
       expect(context.size).to eq(0)
       expect(context.scopes_pending?).to be false
@@ -242,7 +242,7 @@ RSpec.describe Datadog::SymbolDatabase::ScopeBatcher do
       allow(uploader).to receive(:upload_scopes)
 
       context.add_scope(test_scope)
-      context.reset
+      context.send(:reset)
 
       # Reset clears scopes and kills timer
       expect(context.size).to eq(0)
