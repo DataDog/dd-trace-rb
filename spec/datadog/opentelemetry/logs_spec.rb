@@ -250,6 +250,14 @@ RSpec.describe 'OpenTelemetry Logs Integration', ruby: '>= 3.1' do
     it 'does not add a processor when OTEL_LOGS_EXPORTER is none' do
       setup_logs('OTEL_LOGS_EXPORTER' => 'none')
       expect(processor).to be_nil
+      expect(Datadog.configuration.tracing.log_injection).to be(true)
+    end
+
+    it 'keeps Datadog log injection enabled when invalid configuration prevents OTLP logs initialization' do
+      setup_logs('OTEL_EXPORTER_OTLP_LOGS_ENDPOINT' => 'not a url')
+      expect(provider).to be_a(::OpenTelemetry::SDK::Logs::LoggerProvider)
+      expect(processor).to be_nil
+      expect(Datadog.configuration.tracing.log_injection).to be(true)
     end
 
     it 'lets the upstream OpenTelemetry logs SDK configure logs when DD_LOGS_OTEL_ENABLED is false' do

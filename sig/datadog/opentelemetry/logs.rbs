@@ -16,11 +16,13 @@ module Datadog
 
       private
 
-      def configure_log_record_processor: (::OpenTelemetry::SDK::Logs::LoggerProvider provider) -> void
+      def disable_log_injection: () -> void
+
+      def configure_log_record_processor: (::OpenTelemetry::SDK::Logs::LoggerProvider provider) -> bool
 
       def default_logs_endpoint: () -> ::String
 
-      def configure_otlp_exporter: (::OpenTelemetry::SDK::Logs::LoggerProvider provider) -> void
+      def configure_otlp_exporter: (::OpenTelemetry::SDK::Logs::LoggerProvider provider) -> bool
     end
   end
 end
