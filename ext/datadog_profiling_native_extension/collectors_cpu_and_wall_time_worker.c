@@ -630,7 +630,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 
   if (
     !ruby_native_thread_p() || // Not a Ruby thread
-    !is_current_thread_holding_the_gvl() || // Not safe to enqueue a sample from this thread
+    !is_current_thread_holding_the_gvl() || // Not safe to enqueue a sample from this thread; TODO why not? rb_postponed_job_trigger() is safe to call without GVL at least
     !ddtrace_rb_ractor_main_p() // We're not on the main Ractor; we currently don't support profiling non-main Ractors
   ) {
     state->stats.signal_handler_wrong_thread++;
