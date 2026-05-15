@@ -20,6 +20,9 @@ void thread_context_collector_on_gc_start(VALUE self_instance);
 __attribute__((warn_unused_result)) bool thread_context_collector_on_gc_finish(VALUE self_instance);
 VALUE enforce_thread_context_collector_instance(VALUE object);
 
+void thread_context_collector_register_profiler_internal_thread(VALUE self_instance, VALUE thread);
+unsigned int thread_context_collector_profiler_thread_samples_skipped(VALUE self_instance);
+void thread_context_collector_flush_inactive_threads(VALUE self_instance);
 
 #ifndef NO_GVL_INSTRUMENTATION
   typedef enum {
@@ -39,6 +42,5 @@ VALUE enforce_thread_context_collector_instance(VALUE object);
   #if !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS) // Ruby 3.3+
     void thread_context_collector_on_gvl_suspended(gvl_profiling_thread thread);
     unsigned int thread_context_collector_inactive_thread_samples_skipped(VALUE self_instance);
-    void thread_context_collector_flush_inactive_threads(VALUE self_instance);
   #endif
 #endif

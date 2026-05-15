@@ -149,6 +149,14 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_prepare_sample_inside_signal_handler(thread_context_collector)
   end
 
+  def register_profiler_internal_thread(thread)
+    described_class::Testing._native_register_profiler_internal_thread(thread_context_collector, thread)
+  end
+
+  def flush_inactive_threads
+    described_class::Testing._native_flush_inactive_threads(thread_context_collector)
+  end
+
   # What's the deal with the `profiler_system_epoch_time_now_ns`? Internally the profiler uses a monotonic clock
   # when measuring wall-time, and then needs to turn it into system time.
   #
@@ -2256,6 +2264,47 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       expect(recorder).to receive(:reset_after_fork)
 
       reset_after_fork
+    end
+  end
+
+  describe "registering a profiler-internal thread" do
+    it "skips the registered thread in per-tick samples and increments profiler_thread_samples_skipped" do
+      # Each `sample` call hits two skip paths for Thread.current: once in the iteration loop
+      # (because it appears in the thread list) and once in the overhead-attribution step (which
+      # samples `current_thread` separately).
+      register_profiler_internal_thread(Thread.current)
+
+      expect { sample }.to change { stats.fetch(:profiler_thread_samples_skipped) }.from(0).to(2)
+      expect(samples_for_thread(samples, Thread.current)).to be_empty
+    end
+
+    it "does not affect threads that were not registered" do
+      ready = Queue.new
+      done = Queue.new
+      other = Thread.new do
+        ready << true
+        done.pop
+      end
+      ready.pop
+
+      register_profiler_internal_thread(Thread.current)
+      sample
+
+      expect(samples_for_thread(samples, Thread.current)).to be_empty
+      expect(samples_for_thread(samples, other)).to_not be_empty
+
+      done << true
+      other.join
+    end
+
+    it "emits a sample for the registered thread when flush_inactive_threads runs" do
+      register_profiler_internal_thread(Thread.current)
+      5.times { sample }
+      flush_inactive_threads
+
+      flushed = samples_for_thread(samples, Thread.current)
+      expect(flushed.size).to eq 1
+      expect(flushed.first.values.fetch(:"wall-time")).to be >= 0
     end
   end
 end

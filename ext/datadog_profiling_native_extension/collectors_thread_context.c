@@ -169,6 +169,10 @@ typedef struct {
     // How many per-thread samples were skipped because the thread has been continuously suspended
     // (no GVL) since its previous sample, so its stack and CPU usage cannot have changed.
     unsigned int inactive_thread_samples_skipped;
+    // How many per-thread samples were skipped because the thread is one of the profiler's own
+    // background threads. Accumulated wall/CPU time is still recorded once per reporting period
+    // via flush_inactive_threads.
+    unsigned int profiler_thread_samples_skipped;
   } stats;
 
   struct {
@@ -200,6 +204,12 @@ typedef struct {
   // flush-before-serialize pass knows this thread has accumulated wall-time to emit even if it
   // has since RESUMED (and would no longer be in skip state). Only used on Ruby 3.3+.
   bool was_skipped_at_last_sample;
+
+  // True for the profiler's own background threads (CpuAndWallTimeWorker, IdleSamplingHelper).
+  // When set, the per-tick iteration loop skips this thread entirely (no stack walk, no overhead
+  // attribution); its accumulated wall/CPU time is emitted as a single sample per reporting period
+  // by flush_inactive_threads, via the same was_skipped_at_last_sample mechanism.
+  bool is_profiler_internal_thread;
 
   struct {
     // Both of these fields are set by on_gc_start and kept until on_gc_finish is called.
@@ -321,6 +331,8 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id);
 static VALUE safely_lookup_hash_without_going_into_ruby_code(VALUE hash, VALUE key);
 static VALUE _native_system_epoch_time_now_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 static VALUE _native_prepare_sample_inside_signal_handler(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
+static VALUE _native_register_profiler_internal_thread(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread);
+static VALUE _native_flush_inactive_threads(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -354,6 +366,8 @@ void collectors_thread_context_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_sample_skipped_allocation_samples", _native_sample_skipped_allocation_samples, 2);
   rb_define_singleton_method(testing_module, "_native_system_epoch_time_now_ns", _native_system_epoch_time_now_ns, 1);
   rb_define_singleton_method(testing_module, "_native_prepare_sample_inside_signal_handler", _native_prepare_sample_inside_signal_handler, 1);
+  rb_define_singleton_method(testing_module, "_native_register_profiler_internal_thread", _native_register_profiler_internal_thread, 2);
+  rb_define_singleton_method(testing_module, "_native_flush_inactive_threads", _native_flush_inactive_threads, 1);
   #ifndef NO_GVL_INSTRUMENTATION
     rb_define_singleton_method(testing_module, "_native_on_gvl_waiting", _native_on_gvl_waiting, 1);
     rb_define_singleton_method(testing_module, "_native_gvl_waiting_at_for", _native_gvl_waiting_at_for, 1);
@@ -627,6 +641,15 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
     VALUE thread = RARRAY_AREF(threads, i);
     per_thread_context *thread_context = get_or_create_context_for(thread, state);
 
+    // Skip profiler-internal threads: their accumulated wall/CPU time is flushed once per
+    // reporting period by flush_inactive_threads (using was_skipped_at_last_sample), so we
+    // don't pay the per-tick stack walk / overhead-attribution cost for them here.
+    if (thread_context->is_profiler_internal_thread) {
+      state->stats.profiler_thread_samples_skipped++;
+      thread_context->was_skipped_at_last_sample = true;
+      continue;
+    }
+
     // We account for cpu-time for the current thread in a different way -- we use the cpu-time at sampling start, to avoid
     // blaming the time the profiler took on whatever's running on the thread right now
     long current_cpu_time_ns = thread != current_thread ? cpu_time_now_ns(thread_context) : cpu_time_at_sample_start_for_current_thread;
@@ -647,6 +670,15 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
   // TODO: This seems somewhat overkill and inefficient to do often; right now we just do it every few samples
   // but there's probably a better way to do this if we actually track when threads finish
   if (state->sample_count % 100 == 0) remove_context_for_dead_threads(state);
+
+  // Skip overhead attribution when the current thread is a profiler-internal thread (the
+  // sampler thread itself in production): its accumulated CPU/wall time is flushed once per
+  // reporting period by flush_inactive_threads. Mark it skipped so flush picks it up.
+  if (current_thread_context->is_profiler_internal_thread) {
+    state->stats.profiler_thread_samples_skipped++;
+    current_thread_context->was_skipped_at_last_sample = true;
+    return;
+  }
 
   // TODO: we should have a clearer synthesized stack for this, the current [start, _native_sampling_loop] is not clear or helpful
   update_metrics_and_sample(
@@ -1269,8 +1301,9 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
     #if !defined(NO_GVL_INSTRUMENTATION) && !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
       ID2SYM(rb_intern("gvl_state_change_count")), /* => */ LONG2NUM(gvl_state_change_count_thread_object_get(thread)),
       ID2SYM(rb_intern("gvl_state_change_count_at_previous_sample")), /* => */ LONG2NUM(thread_context->gvl_state_change_count_at_previous_sample),
-      ID2SYM(rb_intern("was_skipped_at_last_sample")), /* => */ thread_context->was_skipped_at_last_sample ? Qtrue : Qfalse,
     #endif
+    ID2SYM(rb_intern("was_skipped_at_last_sample")),     /* => */ thread_context->was_skipped_at_last_sample ? Qtrue : Qfalse,
+    ID2SYM(rb_intern("is_profiler_internal_thread")),    /* => */ thread_context->is_profiler_internal_thread ? Qtrue : Qfalse,
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(context_as_hash, arguments[i], arguments[i+1]);
 
@@ -1284,6 +1317,7 @@ static VALUE stats_as_ruby_hash(thread_context_collector_state *state) {
     ID2SYM(rb_intern("gc_samples")),                               /* => */ UINT2NUM(state->stats.gc_samples),
     ID2SYM(rb_intern("gc_samples_missed_due_to_missing_context")), /* => */ UINT2NUM(state->stats.gc_samples_missed_due_to_missing_context),
     ID2SYM(rb_intern("inactive_thread_samples_skipped")),          /* => */ UINT2NUM(state->stats.inactive_thread_samples_skipped),
+    ID2SYM(rb_intern("profiler_thread_samples_skipped")),          /* => */ UINT2NUM(state->stats.profiler_thread_samples_skipped),
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;
@@ -2046,49 +2080,6 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
       TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
       return state->stats.inactive_thread_samples_skipped;
     }
-
-    // Called by the exporter just before pprof_recorder.serialize, so that threads whose last
-    // per-tick sample was skipped by the SUSPENDED-skip optimization still get their accumulated
-    // wall-time recorded in this period. Without this, a thread that sleeps across the whole
-    // period (or wakes up just before serialization, before another per-tick fires) would emit
-    // only the very first idle sample and lose the rest of its wall-time.
-    //
-    // Triggers on `was_skipped_at_last_sample` rather than the current GVL state: this also
-    // catches threads that have since RESUMED but haven't been per-tick-sampled yet, which the
-    // counter equality alone wouldn't detect.
-    void thread_context_collector_flush_inactive_threads(VALUE self_instance) {
-      thread_context_collector_state *state;
-      TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
-
-      long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
-      VALUE threads = thread_list(state);
-      const long thread_count = RARRAY_LEN(threads);
-
-      for (long i = 0; i < thread_count; i++) {
-        VALUE thread = RARRAY_AREF(threads, i);
-        per_thread_context *thread_context = get_context_for(thread, state);
-        // No context => never sampled => nothing to flush.
-        if (thread_context == NULL) continue;
-        if (!thread_context->was_skipped_at_last_sample) continue;
-
-        // Force update_metrics_and_sample's skip check to fail by toggling the parity of the
-        // stored snapshot — the current counter still has the suspended low-bit set if the thread
-        // is still suspended, so flipping the stored value makes them differ. For threads that
-        // have since RESUMED, the counter will have changed anyway, so this is harmless.
-        thread_context->gvl_state_change_count_at_previous_sample ^= 1L;
-
-        long current_cpu_time_ns = cpu_time_now_ns(thread_context);
-        update_metrics_and_sample(
-          state,
-          /* thread_being_sampled: */ thread,
-          /* stack_from_thread: */ thread,
-          thread_context,
-          &thread_context->sampling_buffer,
-          current_cpu_time_ns,
-          current_monotonic_wall_time_ns
-        );
-      }
-    }
   #endif
 
   __attribute__((warn_unused_result))
@@ -2342,6 +2333,82 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
   ) { return false; }
 #endif // NO_GVL_INSTRUMENTATION
 
+// Marks `thread` as a profiler-internal background thread, so the per-tick iteration loop in
+// thread_context_collector_sample will skip it (its accumulated wall/CPU time is still emitted
+// once per reporting period by flush_inactive_threads). Idempotent.
+//
+// We also seed the previous-sample wall/CPU snapshots here, because per-tick samples are skipped
+// before reaching update_metrics_and_sample for this thread — without this, the very first flush
+// would have nothing to subtract from and report zero elapsed time.
+void thread_context_collector_register_profiler_internal_thread(VALUE self_instance, VALUE thread) {
+  thread_context_collector_state *state;
+  TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
+
+  per_thread_context *thread_context = get_or_create_context_for(thread, state);
+  thread_context->is_profiler_internal_thread = true;
+
+  if (thread_context->wall_time_at_previous_sample_ns == INVALID_TIME) {
+    thread_context->wall_time_at_previous_sample_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+  }
+  if (thread_context->cpu_time_at_previous_sample_ns == INVALID_TIME) {
+    thread_context->cpu_time_at_previous_sample_ns = cpu_time_now_ns(thread_context);
+  }
+}
+
+unsigned int thread_context_collector_profiler_thread_samples_skipped(VALUE self_instance) {
+  thread_context_collector_state *state;
+  TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
+  return state->stats.profiler_thread_samples_skipped;
+}
+
+// Called by the exporter just before pprof_recorder.serialize, so that threads whose last
+// per-tick sample was skipped (either by the SUSPENDED-skip optimization on Ruby 3.3+, or by
+// the profiler-internal-thread skip) still get their accumulated wall-time recorded in this
+// period. Without this, a thread skipped across the whole period would emit only the very
+// first idle sample and lose the rest of its wall-time.
+//
+// Triggers on `was_skipped_at_last_sample` rather than the current GVL state: this also catches
+// threads that have since RESUMED but haven't been per-tick-sampled yet (counter equality alone
+// wouldn't detect that), and is the natural hook for profiler-internal threads, which are
+// always skipped per-tick but still consume CPU/wall time.
+void thread_context_collector_flush_inactive_threads(VALUE self_instance) {
+  thread_context_collector_state *state;
+  TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
+
+  long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+  VALUE threads = thread_list(state);
+  const long thread_count = RARRAY_LEN(threads);
+
+  for (long i = 0; i < thread_count; i++) {
+    VALUE thread = RARRAY_AREF(threads, i);
+    per_thread_context *thread_context = get_context_for(thread, state);
+    // No context => never sampled => nothing to flush.
+    if (thread_context == NULL) continue;
+    if (!thread_context->was_skipped_at_last_sample) continue;
+
+    #if !defined(NO_GVL_INSTRUMENTATION) && !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
+      // Force update_metrics_and_sample's GVL-skip check to fail by toggling the parity of the
+      // stored snapshot — the current counter still has the suspended low-bit set if the thread
+      // is still suspended, so flipping the stored value makes them differ. For threads that
+      // have since RESUMED, the counter will have changed anyway, so this is harmless. Not
+      // needed for profiler-internal threads (their skip lives outside update_metrics_and_sample),
+      // but applying it unconditionally is harmless for them too.
+      thread_context->gvl_state_change_count_at_previous_sample ^= 1L;
+    #endif
+
+    long current_cpu_time_ns = cpu_time_now_ns(thread_context);
+    update_metrics_and_sample(
+      state,
+      /* thread_being_sampled: */ thread,
+      /* stack_from_thread: */ thread,
+      thread_context,
+      &thread_context->sampling_buffer,
+      current_cpu_time_ns,
+      current_monotonic_wall_time_ns
+    );
+  }
+}
+
 #define MAX_SAFE_LOOKUP_SIZE 16
 
 typedef struct { VALUE lookup_key; VALUE result; } safe_lookup_hash_state;
@@ -2388,4 +2455,15 @@ static VALUE _native_system_epoch_time_now_ns(DDTRACE_UNUSED VALUE self, VALUE c
 
 static VALUE _native_prepare_sample_inside_signal_handler(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
   return thread_context_collector_prepare_sample_inside_signal_handler(collector_instance) ? Qtrue : Qfalse;
+}
+
+static VALUE _native_register_profiler_internal_thread(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread) {
+  ENFORCE_THREAD(thread);
+  thread_context_collector_register_profiler_internal_thread(collector_instance, thread);
+  return Qnil;
+}
+
+static VALUE _native_flush_inactive_threads(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
+  thread_context_collector_flush_inactive_threads(collector_instance);
+  return Qnil;
 }

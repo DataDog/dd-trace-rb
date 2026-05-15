@@ -544,6 +544,16 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   active_sampler_instance = instance;
   state->owner_thread = rb_thread_current();
 
+  // Mark both profiler-internal threads so the sampler skips them in the per-tick iteration loop.
+  // Accumulated wall/CPU time is still emitted once per reporting period by flush_inactive_threads.
+  // The idle helper's @worker_thread is already assigned by IdleSamplingHelper#start, which
+  // CpuAndWallTimeWorker#start calls before spawning the worker thread that runs us.
+  thread_context_collector_register_profiler_internal_thread(state->thread_context_collector_instance, state->owner_thread);
+  VALUE idle_helper_thread = rb_ivar_get(state->idle_sampling_helper_instance, rb_intern("@worker_thread"));
+  if (!NIL_P(idle_helper_thread)) {
+    thread_context_collector_register_profiler_internal_thread(state->thread_context_collector_instance, idle_helper_thread);
+  }
+
   atomic_store(&state->should_run, true);
 
   block_sigprof_signal_handler_from_running_in_current_thread(); // We want to interrupt the thread with the global VM lock, never this one
@@ -1150,6 +1160,12 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     #else
       /* => */ Qnil,
     #endif
+
+    // Counter for per-tick samples skipped because the thread is one of the profiler's own
+    // background threads (CpuAndWallTimeWorker, IdleSamplingHelper). Their accumulated time is
+    // still recorded once per reporting period via flush_inactive_threads.
+    ID2SYM(rb_intern("profiler_thread_samples_skipped")),
+    /* => */ UINT2NUM(thread_context_collector_profiler_thread_samples_skipped(state->thread_context_collector_instance)),
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;
@@ -1162,16 +1178,14 @@ static VALUE _native_stats_reset_not_thread_safe(DDTRACE_UNUSED VALUE self, VALU
   return Qnil;
 }
 
-// Called from the exporter before pprof_recorder.serialize so that threads continuously suspended
-// across the whole profile period get a sample recorded for it. Without this, a long sleep would
-// emit no samples because (a) per-tick samples are skipped and (b) the after-resume sample only
-// fires once RESUMED actually happens — which may be in a future period.
-static VALUE _native_flush_inactive_threads(DDTRACE_UNUSED VALUE self, DDTRACE_UNUSED VALUE instance) {
-  #if !defined(NO_GVL_INSTRUMENTATION) && !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
-    cpu_and_wall_time_worker_state *state;
-    TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
-    thread_context_collector_flush_inactive_threads(state->thread_context_collector_instance);
-  #endif
+// Called from the exporter before pprof_recorder.serialize so that threads whose per-tick
+// samples were skipped (either by the SUSPENDED-skip optimization on Ruby 3.3+, or by the
+// profiler-internal-thread skip) still emit one sample per reporting period carrying their
+// accumulated wall/CPU time.
+static VALUE _native_flush_inactive_threads(DDTRACE_UNUSED VALUE self, VALUE instance) {
+  cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+  thread_context_collector_flush_inactive_threads(state->thread_context_collector_instance);
   return Qnil;
 }
 
