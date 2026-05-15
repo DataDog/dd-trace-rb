@@ -2361,6 +2361,51 @@ unsigned int thread_context_collector_profiler_thread_samples_skipped(VALUE self
   return state->stats.profiler_thread_samples_skipped;
 }
 
+typedef struct {
+  thread_context_collector_state *state;
+  long current_monotonic_wall_time_ns;
+} flush_inactive_thread_iter_data;
+
+static int flush_inactive_thread_iter(st_data_t key_thread, st_data_t value_thread_context, st_data_t arg) {
+  VALUE thread = (VALUE) key_thread;
+  per_thread_context *thread_context = (per_thread_context *) value_thread_context;
+  flush_inactive_thread_iter_data *iter = (flush_inactive_thread_iter_data *) arg;
+
+  if (!thread_context->was_skipped_at_last_sample) return ST_CONTINUE;
+  // Walking a dead thread's stack returns whatever the current thread happens to be running
+  // (the stack of the flush caller), producing a misattributed sample. Skip dead threads here;
+  // alive-thread flush before shutdown (see CpuAndWallTimeWorker#stop) handles profiler-internal
+  // threads while they're still walkable.
+  if (!is_thread_alive(thread)) return ST_CONTINUE;
+
+  #if !defined(NO_GVL_INSTRUMENTATION) && !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
+    // Force update_metrics_and_sample's GVL-skip check to fail by toggling the parity of the
+    // stored snapshot — the current counter still has the suspended low-bit set if the thread
+    // is still suspended, so flipping the stored value makes them differ. For threads that
+    // have since RESUMED, the counter will have changed anyway, so this is harmless. Not
+    // needed for profiler-internal threads (their skip lives outside update_metrics_and_sample),
+    // but applying it unconditionally is harmless for them too.
+    thread_context->gvl_state_change_count_at_previous_sample ^= 1L;
+  #endif
+
+  // For dead threads (e.g. the profiler-internal threads after Datadog.shutdown! joined them),
+  // cpu_time_now_ns returns 0 and resets cpu_time_at_previous_sample_ns to INVALID_TIME, so the
+  // CPU-time delta computed by update_metrics_and_sample comes out as 0. Wall-time still works
+  // because wall_time_at_previous_sample_ns was anchored at registration / last real sample.
+  long current_cpu_time_ns = cpu_time_now_ns(thread_context);
+  update_metrics_and_sample(
+    iter->state,
+    /* thread_being_sampled: */ thread,
+    /* stack_from_thread: */ thread,
+    thread_context,
+    &thread_context->sampling_buffer,
+    current_cpu_time_ns,
+    iter->current_monotonic_wall_time_ns
+  );
+
+  return ST_CONTINUE;
+}
+
 // Called by the exporter just before pprof_recorder.serialize, so that threads whose last
 // per-tick sample was skipped (either by the SUSPENDED-skip optimization on Ruby 3.3+, or by
 // the profiler-internal-thread skip) still get their accumulated wall-time recorded in this
@@ -2371,42 +2416,21 @@ unsigned int thread_context_collector_profiler_thread_samples_skipped(VALUE self
 // threads that have since RESUMED but haven't been per-tick-sampled yet (counter equality alone
 // wouldn't detect that), and is the natural hook for profiler-internal threads, which are
 // always skipped per-tick but still consume CPU/wall time.
+//
+// We iterate the per-thread context hash map (not thread_list) so that the final flush at
+// Datadog.shutdown! still emits one sample for each profiler-internal thread even though the
+// shutdown sequence has already joined those threads — their contexts remain in the hash map
+// until remove_context_for_dead_threads cleanup runs, which only happens inside the per-tick
+// sampling path that has stopped by then.
 void thread_context_collector_flush_inactive_threads(VALUE self_instance) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-  long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
-  VALUE threads = thread_list(state);
-  const long thread_count = RARRAY_LEN(threads);
-
-  for (long i = 0; i < thread_count; i++) {
-    VALUE thread = RARRAY_AREF(threads, i);
-    per_thread_context *thread_context = get_context_for(thread, state);
-    // No context => never sampled => nothing to flush.
-    if (thread_context == NULL) continue;
-    if (!thread_context->was_skipped_at_last_sample) continue;
-
-    #if !defined(NO_GVL_INSTRUMENTATION) && !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
-      // Force update_metrics_and_sample's GVL-skip check to fail by toggling the parity of the
-      // stored snapshot — the current counter still has the suspended low-bit set if the thread
-      // is still suspended, so flipping the stored value makes them differ. For threads that
-      // have since RESUMED, the counter will have changed anyway, so this is harmless. Not
-      // needed for profiler-internal threads (their skip lives outside update_metrics_and_sample),
-      // but applying it unconditionally is harmless for them too.
-      thread_context->gvl_state_change_count_at_previous_sample ^= 1L;
-    #endif
-
-    long current_cpu_time_ns = cpu_time_now_ns(thread_context);
-    update_metrics_and_sample(
-      state,
-      /* thread_being_sampled: */ thread,
-      /* stack_from_thread: */ thread,
-      thread_context,
-      &thread_context->sampling_buffer,
-      current_cpu_time_ns,
-      current_monotonic_wall_time_ns
-    );
-  }
+  flush_inactive_thread_iter_data iter = {
+    .state = state,
+    .current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE),
+  };
+  st_foreach(state->hash_map_per_thread_context, flush_inactive_thread_iter, (st_data_t) &iter);
 }
 
 #define MAX_SAFE_LOOKUP_SIZE 16

@@ -132,6 +132,12 @@ module Datadog
           @start_stop_mutex.synchronize do
             Datadog.logger.debug("Requesting CpuAndWallTimeWorker thread shut down")
 
+            # Emit one sample for each per-tick-skipped thread (including the profiler-internal
+            # threads themselves) while they're still alive. The scheduler's final flush during
+            # shutdown happens after both threads are joined, at which point stack walks for
+            # those dead threads return misleading frames.
+            flush_inactive_threads
+
             @idle_sampling_helper.stop
 
             return unless @worker_thread

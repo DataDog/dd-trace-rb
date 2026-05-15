@@ -2306,5 +2306,18 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       expect(flushed.size).to eq 1
       expect(flushed.first.values.fetch(:"wall-time")).to be >= 0
     end
+
+    it "does not emit a sample for a registered thread that has died" do
+      done = Queue.new
+      registered = Thread.new { done.pop }
+      register_profiler_internal_thread(registered)
+      sample
+      done << true
+      registered.join
+
+      flush_inactive_threads
+
+      expect(samples_for_thread(samples, registered)).to be_empty
+    end
   end
 end
