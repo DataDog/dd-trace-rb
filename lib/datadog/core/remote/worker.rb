@@ -66,6 +66,20 @@ module Datadog
           logger.debug { 'remote worker stopped' }
         end
 
+        # Resets state after a fork. The worker thread does not survive
+        # `fork` (Ruby kills all non-calling threads in the child), so we
+        # must drop the dead thread reference and clear `@started` /
+        # `@stopped` so `start` can create a fresh thread in the child.
+        # Does not touch `@block`, `@interval`, `@logger`.
+        def reset_after_fork!
+          @mutex.synchronize do
+            @thr = nil
+            @started = false
+            @starting = false
+            @stopped = false
+          end
+        end
+
         def started?
           @started
         end

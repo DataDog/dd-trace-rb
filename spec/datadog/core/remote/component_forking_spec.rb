@@ -93,6 +93,25 @@ RSpec.describe Datadog::Core::Remote::Component do
         end
       end
 
+      it 'restarts the worker thread in the forked child' do
+        # In the parent, the worker thread exists and is alive.
+        expect(component.worker.started?).to be true
+        parent_thread = component.worker.instance_variable_get(:@thr)
+        expect(parent_thread).to be_alive
+
+        expect_in_fork do
+          child_component = components.remote
+
+          # The parent's thread is gone in the child.
+          # after_fork must have called reset_after_fork! + start.
+          expect(child_component.worker.started?).to be true
+
+          child_thread = child_component.worker.instance_variable_get(:@thr)
+          expect(child_thread).not_to be_nil
+          expect(child_thread).to be_alive
+        end
+      end
+
       it 'resets healthy flag after fork' do
         # Make the component healthy in the parent
         component.instance_variable_set(:@healthy, true)
@@ -243,13 +262,14 @@ RSpec.describe Datadog::Core::Remote::Component do
         expect(child_runtime_id).not_to eq(parent_runtime_id)
         expect(child_runtime_id).to be_valid_uuid
 
-        # Start the worker in the child process (after_fork recreates the client but doesn't restart the worker).
-        # The barrier call starts the worker via `start`, though `wait_once` immediately returns :pass
-        # because the barrier state was inherited from the parent with @once = true.
+        # after_fork recreates the client, restarts the worker, and resets the
+        # barrier so the child performs its own first sync independently of the
+        # parent.
         result = child_component.barrier(:once)
 
-        # In the child, barrier returns :pass because the barrier was already lifted in the parent before fork
-        expect(result).to eq(:pass)
+        # The child gets a fresh Barrier on fork, so it waits for its own
+        # first sync and returns :lift (or :timeout if the agent is slow).
+        expect(result).to eq(:lift).or eq(:timeout)
 
         # Check if child made requests (server runs in parent, receives requests from child)
         # Note: received_requests is modified by the parent process's HTTP server

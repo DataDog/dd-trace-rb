@@ -19,6 +19,8 @@ module Datadog
 
         def stop: () -> void
 
+        def reset_after_fork!: () -> void
+
         def started?: () -> bool
 
         private

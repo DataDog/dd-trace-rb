@@ -93,12 +93,25 @@ module Datadog
           @worker.stop
         end
 
-        # Recreates the remote configuration client after a fork.
-        # This ensures each forked process has a unique client ID and fresh state.
+        # Recreates the remote configuration client and restarts the worker after a fork.
+        #
+        # Each forked process gets a unique client ID and fresh worker thread.
+        # The worker thread does not survive `fork` (Ruby kills all non-calling
+        # threads in the child), so we explicitly reset and restart it if the
+        # parent had already started the worker.
         def after_fork
+          was_started = @worker.started?
+
           @client = Client.new(@transport, @capabilities, settings: @settings, logger: @logger)
           @healthy = false
+          @barrier = Barrier.new(@settings.remote.boot_timeout_seconds)
+          @worker.reset_after_fork!
+
           logger.debug { "remote configuration client recreated after fork: #{@client.id} products: #{@capabilities.products.sort.join(', ')}" }
+
+          # Only restart the worker if the parent had it running, so we don't
+          # eagerly start RC in children of processes that hadn't booted it.
+          @worker.start if was_started
         end
 
         # Barrier provides a mechanism to fence execution until a condition happens

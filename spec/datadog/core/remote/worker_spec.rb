@@ -87,4 +87,35 @@ RSpec.describe Datadog::Core::Remote::Worker do
       worker.stop
     end
   end
+
+  describe '#reset_after_fork!' do
+    subject(:worker) do
+      described_class.new(interval: 0.1, logger: Logger.new(IO::NULL)) { :noop }
+    end
+
+    after { worker.stop }
+
+    it 'wipes started/thread state without invoking the (already dead) thread' do
+      worker.start
+      expect(worker.started?).to be true
+
+      # Simulate post-fork state: thread reference exists but is dead.
+      # We don't actually fork here; we just verify the state machine.
+      worker.instance_variable_get(:@thr).kill
+      worker.reset_after_fork!
+
+      expect(worker.started?).to be false
+      expect(worker.instance_variable_get(:@thr)).to be_nil
+      expect(worker.instance_variable_get(:@stopped)).to be false
+    end
+
+    it 'allows the worker to be started again after reset' do
+      worker.start
+      worker.instance_variable_get(:@thr).kill
+      worker.reset_after_fork!
+
+      worker.start
+      expect(worker.started?).to be true
+    end
+  end
 end
