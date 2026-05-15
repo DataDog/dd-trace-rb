@@ -1,6 +1,6 @@
 module Datadog
   module OpenTelemetry
-    class Metrics
+    class Logs
       include SignalConfiguration
 
       @logger: Core::Logger
@@ -12,15 +12,17 @@ module Datadog
 
       def initialize: (Core::Configuration::Components components) -> void
 
-      def configure_metrics_sdk: () -> void
+      def configure_logs_sdk: () -> void
 
       private
 
-      def configure_metric_reader: (::OpenTelemetry::SDK::Metrics::MeterProvider provider) -> void
+      def disable_log_injection: () -> void
 
-      def default_metrics_endpoint: () -> ::String
+      def configure_log_record_processor: (::OpenTelemetry::SDK::Logs::LoggerProvider provider) -> bool
 
-      def configure_otlp_exporter: (::OpenTelemetry::SDK::Metrics::MeterProvider provider) -> void
+      def default_logs_endpoint: () -> ::String
+
+      def configure_otlp_exporter: (::OpenTelemetry::SDK::Logs::LoggerProvider provider) -> bool
     end
   end
 end
