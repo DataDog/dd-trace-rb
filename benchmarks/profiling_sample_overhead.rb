@@ -27,6 +27,10 @@ sleep DURATION
 Datadog.shutdown!
 
 flush = CaptureFlush::INSTANCE.flush
+
+require "zstd-ruby"
+File.write("profiler-sample-overhead.pprof", Zstd.decompress(flush.encoded_profile._native_bytes))
+
 data = JSON.load(flush.internal_metadata_json)
 duration = flush.finish - flush.start
 duration_ns = duration * 1e9
@@ -39,11 +43,12 @@ overhead = -> total {
   "%.2f%%" % ((total / duration_ns) * 100.0)
 }
 
-# pp data
+pp data
 
 pp({
   duration: duration,
   samples: samples,
+  trigger_simulated_signal_delivery_attempts: data.dig("worker_stats", "trigger_simulated_signal_delivery_attempts"),
   cpu_sampling_time_ns_total: cpu_sampling_time_ns_total,
   cpu_sampling_overhead: overhead[cpu_sampling_time_ns_total],
   serialization_time_ns_total: serialization_time_ns_total,
