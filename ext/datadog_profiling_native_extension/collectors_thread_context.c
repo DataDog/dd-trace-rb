@@ -648,6 +648,7 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
   // but there's probably a better way to do this if we actually track when threads finish
   if (state->sample_count % 100 == 0) remove_context_for_dead_threads(state);
 
+  // TODO: we should have a clearer synthesized stack for this, the current [start, _native_sampling_loop] is not clear or helpful
   update_metrics_and_sample(
     state,
     /* thread_being_sampled: */ current_thread,
