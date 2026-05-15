@@ -2,6 +2,12 @@ module Datadog
   module Core
     module Remote
       module Tie
+        PASS: Boot
+
+        @mutex: ::Thread::Mutex
+        @booted_in_pid: ::Integer?
+        @booted_remote_id: ::Integer?
+
         class Boot < ::Struct[[Component::Barrier, Numeric]]
           def initialize: (Component::Barrier? barrier, Numeric? time) -> void
 
@@ -10,6 +16,8 @@ module Datadog
         end
 
         def self.boot: () -> Boot?
+
+        def self.reset_for_tests!: () -> void
       end
     end
   end
