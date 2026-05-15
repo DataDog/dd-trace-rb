@@ -741,9 +741,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
           // for an uncontrolled amount of time. (This can still happen to the IdleSamplingHelper, but the
           // CpuAndWallTimeWorker will still be free to interrupt the Ruby VM and keep sampling for the entire blocking period).
           state->stats.trigger_simulated_signal_delivery_attempts++;
-          // TODO: Maybe we can skip self sampling here, or check if GVL not acquired since last time to optimize too
-          // idle_sampling_helper_request_action(state->idle_sampling_helper_instance, grab_gvl_and_sample);
-          grab_gvl_and_sample();
+          idle_sampling_helper_request_action(state->idle_sampling_helper_instance, grab_gvl_and_sample);
         }
       }
     }
