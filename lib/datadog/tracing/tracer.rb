@@ -2,6 +2,7 @@
 
 require_relative '../core/environment/ext'
 require_relative '../core/environment/socket'
+require_relative '../core/remote/tie'
 
 require_relative 'correlation'
 require_relative 'event'
@@ -141,6 +142,15 @@ module Datadog
         id: nil,
         &block
       )
+        # Bootstrap Remote Configuration the first time any span is created
+        # in this process. After the first call, this is a guarded no-op.
+        # Wrapped in rescue to ensure tracing never fails due to RC startup.
+        begin
+          Datadog::Core::Remote::Tie.boot
+        rescue => e
+          logger.debug { "Remote::Tie.boot failed: #{e.class}: #{e.message}" }
+        end
+
         return skip_trace(name, &block) unless enabled
 
         # Resolve the trace

@@ -88,6 +88,28 @@ RSpec.describe Datadog::Tracing::Tracer do
     let(:name) { 'span.name' }
     let(:options) { {} }
 
+    context 'remote configuration bootstrap' do
+      before { Datadog::Core::Remote::Tie.send(:reset_for_tests!) }
+
+      it 'boots Remote Configuration on first trace call' do
+        expect(Datadog::Core::Remote::Tie).to receive(:boot).and_call_original
+
+        tracer.trace('op.test') { :noop }
+      end
+
+      it 'is idempotent across many trace calls' do
+        expect(Datadog::Core::Remote::Tie).to receive(:boot).at_least(:once).and_call_original
+
+        10.times { tracer.trace('op.test') { :noop } }
+      end
+
+      it 'does not raise if Tie.boot errors' do
+        allow(Datadog::Core::Remote::Tie).to receive(:boot).and_raise(StandardError, 'boom')
+
+        expect { tracer.trace('op.test') { :noop } }.not_to raise_error
+      end
+    end
+
     shared_examples 'shared #trace behavior' do
       context 'with options to be forwarded to the span' do
         context 'service:' do
