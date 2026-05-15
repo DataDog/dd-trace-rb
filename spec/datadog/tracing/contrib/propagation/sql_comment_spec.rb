@@ -9,7 +9,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
   let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
 
   before do
-    allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info, tracer: tracer))
+    allow(Datadog).to receive(:send).with(:components).and_return(double(agent_info: agent_info, tracer: tracer, remote: nil))
   end
 
   describe '.annotate!' do
@@ -323,7 +323,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         end
 
         allow(Datadog).to receive(:send).with(:components).and_return(
-          double(agent_info: agent_info, tracer: tracer)
+          double(agent_info: agent_info, tracer: tracer, remote: nil)
         )
       end
 
