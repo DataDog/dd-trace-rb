@@ -763,7 +763,7 @@ static void update_metrics_and_sample(
 void thread_context_collector_on_gc_start(VALUE self_instance) {
   thread_context_collector_state *state;
   if (!rb_typeddata_is_kind_of(self_instance, &thread_context_collector_typed_data)) return;
-  // This should never fail the the above check passes
+  // This should never fail when the above check passes
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   per_thread_context *thread_context = get_context_for(rb_thread_current(), state);
@@ -796,7 +796,7 @@ __attribute__((warn_unused_result))
 bool thread_context_collector_on_gc_finish(VALUE self_instance) {
   thread_context_collector_state *state;
   if (!rb_typeddata_is_kind_of(self_instance, &thread_context_collector_typed_data)) return false;
-  // This should never fail the the above check passes
+  // This should never fail when the above check passes
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   per_thread_context *thread_context = get_context_for(rb_thread_current(), state);
