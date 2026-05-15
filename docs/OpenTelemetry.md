@@ -100,10 +100,8 @@
 - `OTEL_EXPORTER_OTLP_LOGS_PROTOCOL` - Protocol: `http/protobuf` (default); `grpc` and `http/json` are not yet supported.
 - `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` - Custom endpoint (defaults to the Datadog agent otlp endpoint)
 
-<div class="alert alert-warning">
-When OpenTelemetry logs export is enabled, Datadog log injection is disabled to avoid duplicate trace correlation fields.
-</div>
-
+> [!WARNING]
+> When OpenTelemetry logs export is enabled, Datadog log injection is disabled to avoid duplicate trace correlation fields.
 
 ## Limitations
 
