@@ -7,6 +7,13 @@
 #include <signal.h>
 #include <errno.h>
 
+#ifdef __APPLE__
+  #include <mach/mach.h>
+  #include <mach/mach_time.h>
+  #include <mach/thread_policy.h>
+  #include <pthread.h>
+#endif
+
 #include "helpers.h"
 #include "ruby_helpers.h"
 #include "collectors_thread_context.h"
@@ -234,6 +241,10 @@ void *simulate_sampling_signal_delivery(DDTRACE_UNUSED void *_unused);
 static void grab_gvl_and_sample(void);
 static void reset_stats_not_thread_safe(cpu_and_wall_time_worker_state *state);
 static void sleep_for(uint64_t time_ns);
+#ifdef __APPLE__
+  static void promote_sampler_thread_to_realtime(uint64_t period_ns);
+  static void demote_sampler_thread_from_realtime(void);
+#endif
 static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self);
 static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *unused2);
 static void disable_tracepoints(cpu_and_wall_time_worker_state *state);
@@ -683,6 +694,10 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
 
   uint64_t minimum_time_between_signals = MILLIS_AS_NS(state->cpu_sampling_interval_ms);
 
+  #ifdef __APPLE__
+    promote_sampler_thread_to_realtime(minimum_time_between_signals);
+  #endif
+
   while (atomic_load(&state->should_run)) {
     state->stats.trigger_sample_attempts++;
 
@@ -705,7 +720,12 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
         state->stats.interrupt_thread_attempts++;
 
         // Pick up any last-minute attempts to stop before we send the signal
-        if (!atomic_load(&state->should_run)) return NULL;
+        if (!atomic_load(&state->should_run)) {
+          #ifdef __APPLE__
+            demote_sampler_thread_from_realtime();
+          #endif
+          return NULL;
+        }
 
         pthread_kill(owner.owner, SIGPROF);
       } else {
@@ -739,6 +759,10 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
       sleep_for(extra_sleep);
     }
   }
+
+  #ifdef __APPLE__
+    demote_sampler_thread_from_realtime();
+  #endif
 
   return NULL; // Unused
 }
@@ -1200,6 +1224,54 @@ static void sleep_for(uint64_t time_ns) {
     }
   }
 }
+
+#ifdef __APPLE__
+  // On macOS the default scheduler wake latency for a timeshare thread is ~1-2ms,
+  // so nanosleep regularly overshoots a 10ms request by ~2ms. Marking the worker
+  // thread with THREAD_TIME_CONSTRAINT_POLICY tells the scheduler this thread has
+  // a periodic deadline; the kernel then wakes it close to the requested time.
+  //
+  // This only affects the sampler worker thread. We pair it with a demote call
+  // before the thread dies because Ruby may cache and reuse the native thread
+  // for unrelated Ruby threads (see the SIGPROF unblock dance in _native_sampling_loop).
+  static void promote_sampler_thread_to_realtime(uint64_t period_ns) {
+    static mach_timebase_info_data_t timebase = {0, 0};
+    if (timebase.denom == 0) mach_timebase_info(&timebase);
+
+    // ns -> mach ticks: each mach tick is (numer/denom) ns, so divide by that.
+    #define NS_TO_MACH_TICKS(ns) ((uint32_t) (((uint64_t)(ns) * (uint64_t) timebase.denom) / (uint64_t) timebase.numer))
+
+    struct thread_time_constraint_policy policy = {
+      .period      = NS_TO_MACH_TICKS(period_ns),
+      .computation = NS_TO_MACH_TICKS(MICROS_AS_NS(200)),  // 200us upper bound on the work we do per period
+      .constraint  = NS_TO_MACH_TICKS(MILLIS_AS_NS(1)),    // wake us within 1ms of the deadline
+      .preemptible = TRUE,
+    };
+
+    #undef NS_TO_MACH_TICKS
+
+    kern_return_t kr = thread_policy_set(
+      pthread_mach_thread_np(pthread_self()),
+      THREAD_TIME_CONSTRAINT_POLICY,
+      (thread_policy_t) &policy,
+      THREAD_TIME_CONSTRAINT_POLICY_COUNT
+    );
+    if (kr != KERN_SUCCESS) {
+      // Non-fatal: we'll fall back to the default scheduler behavior (overshoot ~2ms).
+      fprintf(stderr, "[ddtrace] Failed to set real-time policy on profiler sampler thread (kr=%d); sample cadence may be imprecise\n", kr);
+    }
+  }
+
+  static void demote_sampler_thread_from_realtime(void) {
+    struct thread_standard_policy policy = {.no_data = 0};
+    thread_policy_set(
+      pthread_mach_thread_np(pthread_self()),
+      THREAD_STANDARD_POLICY,
+      (thread_policy_t) &policy,
+      THREAD_STANDARD_POLICY_COUNT
+    );
+  }
+#endif
 
 static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self) {
   cpu_and_wall_time_worker_state *state = active_sampler_instance_state;
