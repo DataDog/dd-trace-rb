@@ -755,7 +755,6 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
     uint64_t extra_sleep =
       dynamic_sampling_rate_get_sleep(&state->cpu_dynamic_sampling_rate, monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE));
     if (state->dynamic_sampling_rate_enabled && extra_sleep > 0) {
-      fprintf(stderr, "extra sleep: %llu\n", extra_sleep);
       state->stats.trigger_sample_extra_sleep++;
       sleep_for(extra_sleep);
     }
