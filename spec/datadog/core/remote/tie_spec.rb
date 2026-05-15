@@ -35,6 +35,13 @@ RSpec.describe Datadog::Core::Remote::Tie do
         expect(result.time).to be_a(Numeric)
       end
 
+      it 'returns PASS on subsequent calls in the same process with the same remote' do
+        described_class.boot
+        result = described_class.boot
+        expect(result).to eq(Datadog::Core::Remote::Tie::PASS)
+        expect(result.barrier).to eq(:pass)
+      end
+
       it 'is idempotent across many calls in the same process' do
         10.times { described_class.boot }
         expect(remote).to have_received(:barrier).with(:once).once
@@ -49,6 +56,19 @@ RSpec.describe Datadog::Core::Remote::Tie do
 
         described_class.boot
         expect(remote).to have_received(:barrier).with(:once).twice
+      end
+
+      it 'reboots after the remote component changes (simulating Datadog.configure)' do
+        described_class.boot
+
+        # A new Datadog.configure creates a new remote component with a different object_id.
+        new_remote = instance_double(Datadog::Core::Remote::Component)
+        allow(new_remote).to receive(:barrier).with(:once).and_return(:lift)
+        allow(Datadog::Core::Remote).to receive(:active_remote).and_return(new_remote)
+
+        described_class.boot
+        expect(remote).to have_received(:barrier).with(:once).once
+        expect(new_remote).to have_received(:barrier).with(:once).once
       end
     end
   end
