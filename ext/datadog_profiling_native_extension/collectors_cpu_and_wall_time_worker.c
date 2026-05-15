@@ -17,6 +17,10 @@
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
 
+#ifdef __APPLE__
+  #include "macos_sampler_thread.h"
+#endif
+
 // Used to trigger the execution of Collectors::ThreadContext, which implements all of the sampling logic
 // itself; this class only implements the "when to do it" part.
 //
@@ -535,6 +539,14 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
 
   block_sigprof_signal_handler_from_running_in_current_thread(); // We want to interrupt the thread with the global VM lock, never this one
 
+  #ifdef __APPLE__
+    // Promote the native thread that will run the sampling loop to a realtime scheduling policy so
+    // its periodic wake-ups are not subject to the default ~1-2ms timeshare wake latency. The matching
+    // demote happens below in this same function, alongside the SIGPROF unblock dance, so both per-thread
+    // policy changes are reverted before Ruby reuses this native thread for an unrelated Ruby thread.
+    promote_sampler_thread_to_realtime(MILLIS_AS_NS(state->cpu_sampling_interval_ms));
+  #endif
+
   // Release GVL, get to the actual work!
   int exception_state;
   rb_protect(release_gvl_and_run_sampling_trigger_loop, instance, &exception_state);
@@ -555,6 +567,14 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   // send SIGPROF signals to it, and oops it could fail if it got the reused native thread from the worker which still
   // had SIGPROF delivery blocked. :hide_the_pain_harold:
   unblock_sigprof_signal_handler_from_running_in_current_thread();
+
+  #ifdef __APPLE__
+    // Pairs with promote_sampler_thread_to_realtime above. Same reasoning as the SIGPROF unblock:
+    // Ruby may reuse this native thread for an unrelated Ruby thread that would otherwise inherit
+    // our scheduler policy. Doing it here also covers the exception path, since grab_gvl_and_sample
+    // can raise and unwind out of the sampling loop.
+    demote_sampler_thread_from_realtime();
+  #endif
 
   // Why replace and not use remove the signal handler? We do this because when a process receives a SIGPROF without
   // having an explicit signal handler set up, the process will instantly terminate with a confusing
