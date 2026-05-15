@@ -47,7 +47,7 @@ module Datadog
           cpu_sampling_interval_ms:,
           # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
           # profiler overhead!
-          dynamic_sampling_rate_enabled: true,
+          dynamic_sampling_rate_enabled: false, # true,
           skip_idle_samples_for_testing: false,
           idle_sampling_helper: IdleSamplingHelper.new
         )
