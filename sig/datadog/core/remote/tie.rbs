@@ -5,13 +5,12 @@ module Datadog
         PASS: Boot
 
         @mutex: ::Thread::Mutex
-        @booted_in_pid: ::Integer?
-        @booted_remote_id: ::Integer?
+        @boot_key: [ ::Integer, ::Integer ]?
 
-        class Boot < ::Struct[[Component::Barrier, Numeric]]
-          def initialize: (Component::Barrier? barrier, Numeric? time) -> void
+        class Boot < ::Struct[[Symbol, Numeric]]
+          def initialize: (Symbol? barrier, Numeric? time) -> void
 
-          attr_reader barrier: Component::Barrier
+          attr_reader barrier: Symbol
           attr_reader time: Numeric
         end
 

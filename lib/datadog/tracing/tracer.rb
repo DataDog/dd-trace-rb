@@ -142,16 +142,16 @@ module Datadog
         id: nil,
         &block
       )
+        return skip_trace(name, &block) unless enabled
+
         # Bootstrap Remote Configuration the first time any span is created
         # in this process. After the first call, this is a guarded no-op.
         # Wrapped in rescue to ensure tracing never fails due to RC startup.
         begin
           Datadog::Core::Remote::Tie.boot
         rescue => e
-          logger.debug { "Remote::Tie.boot failed: #{e.class}: #{e.message}" }
+          logger.warn { "Remote::Tie.boot failed: #{e.class}: #{e.message}" }
         end
-
-        return skip_trace(name, &block) unless enabled
 
         # Resolve the trace
         begin

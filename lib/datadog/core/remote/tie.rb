@@ -16,8 +16,7 @@ module Datadog
         PASS = Boot.new(:pass, 0.0)
 
         @mutex = Mutex.new
-        @booted_in_pid = nil
-        @booted_remote_id = nil
+        @boot_key = nil
 
         # Boot the Remote Configuration worker for this process.
         #
@@ -31,22 +30,23 @@ module Datadog
         #   - A new `Datadog.configure` call (new remote component) triggers a
         #     fresh boot for the replacement component.
         def self.boot
-          return if Datadog::Core::Remote.active_remote.nil?
-
           active = Datadog::Core::Remote.active_remote
+          return if active.nil?
+
+          # Fast path: single reference read is atomic; a stale nil just falls
+          # through to the mutex path which re-checks before acting.
+          key = [Process.pid, active.object_id].freeze
+          return PASS if @boot_key == key
 
           @mutex.synchronize do
-            if @booted_in_pid == Process.pid && @booted_remote_id == active.object_id
-              return PASS
-            end
+            return PASS if @boot_key == key
 
             barrier = nil
             t = Datadog::Core::Utils::Time.measure do
               barrier = active.barrier(:once)
             end
 
-            @booted_in_pid = Process.pid
-            @booted_remote_id = active.object_id
+            @boot_key = key
 
             # steep does not permit the next line due to
             # https://github.com/soutaro/steep/issues/1231
@@ -57,10 +57,7 @@ module Datadog
         # Test helper. Resets the per-process boot cache.
         # @!visibility private
         def self.reset_for_tests!
-          @mutex.synchronize do
-            @booted_in_pid = nil
-            @booted_remote_id = nil
-          end
+          @mutex.synchronize { @boot_key = nil }
         end
         private_class_method :reset_for_tests!
       end

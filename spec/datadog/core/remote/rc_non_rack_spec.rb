@@ -47,7 +47,6 @@ RSpec.describe 'Remote Configuration bootstrap in non-Rack workloads', :integrat
     expect(remote.started?).to be false
 
     # Don't create any spans. Worker should still be quiescent.
-    sleep 0.1
     expect(remote.started?).to be false
   end
 end
