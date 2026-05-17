@@ -61,6 +61,21 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
           it { is_expected.to eq(true) }
         end
       end
+
+      context 'when AWS_LAMBDA_FUNCTION_NAME is set' do
+        before { Datadog::AppSec::Env.disable_appsec_on_lambda! }
+
+        around do |example|
+          ClimateControl.modify(
+            'AWS_LAMBDA_FUNCTION_NAME' => 'my-function',
+            'DD_APPSEC_ENABLED' => 'true',
+          ) do
+            example.run
+          end
+        end
+
+        it { is_expected.to eq(false) }
+      end
     end
 
     describe '#enabled=' do

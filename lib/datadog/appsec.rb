@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
 require_relative 'appsec/configuration'
+require_relative 'appsec/env'
+
+Datadog::AppSec::Env.disable_appsec_on_lambda!
+
 require_relative 'appsec/extensions'
 require_relative 'appsec/context'
 require_relative 'appsec/ext'
