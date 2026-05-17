@@ -10,6 +10,7 @@ require_relative '../../event'
 require_relative '../../response'
 require_relative '../../api_security'
 require_relative '../../default_header_tags'
+require_relative '../../route_normalizer'
 require_relative '../../security_event'
 require_relative '../../instrumentation/gateway'
 
@@ -75,6 +76,8 @@ module Datadog
 
               nil
             end
+
+            add_normalized_route_tag(ctx, env)
 
             if interrupt_params
               ctx.mark_as_interrupted!
@@ -196,6 +199,19 @@ module Datadog
               length = ResponseBody.content_length(response.body)
               span.set_tag('http.response.headers.content-length', length.to_s) if length
             end
+          end
+
+          def add_normalized_route_tag(context, env)
+            span = context.span
+            return unless span
+
+            normalized_route = RouteNormalizer.normalized_route(env)
+            return unless normalized_route
+
+            # NOTE: To build full path that covers mounted engines we need to add
+            #       pre-computed by Tracer route path tag to the normalized route
+            route_path = context.trace&.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH) || env['SCRIPT_NAME']
+            span.set_tag(AppSec::Ext::TAG_NORMALIZED_ROUTE, "#{route_path}#{normalized_route}")
           end
 
           def oneshot_tags_sent?
