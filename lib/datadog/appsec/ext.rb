@@ -17,6 +17,7 @@ module Datadog
       EXPLOIT_PREVENTION_EVENT_CATEGORY = 'exploit'
 
       TAG_APPSEC_ENABLED = '_dd.appsec.enabled'
+      TAG_NORMALIZED_ROUTE = '_dd.appsec.normalized_route'
       TAG_METASTRUCT_STACK_TRACE = '_dd.stack'
 
       TELEMETRY_METRICS_NAMESPACE = 'appsec'
