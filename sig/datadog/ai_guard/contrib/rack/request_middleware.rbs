@@ -13,11 +13,11 @@ module Datadog
 
           private
 
-          def stash_request_attributes: (::Rack::env env) -> void
+          def store_anomaly_detection_tags: (::Rack::env env) -> void
+
+          def clear_anomaly_detection_tags: () -> void
 
           def consume_ai_guard_executed_flag: () -> bool
-
-          def clear_stash: () -> void
 
           def tag_client_ip_on_request_span: () -> void
         end

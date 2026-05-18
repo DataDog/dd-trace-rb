@@ -11,67 +11,54 @@ module Datadog
       module Rack
         # AI Guard Rack middleware.
         #
-        # Inserted into the middleware stack right after
-        # Datadog::Tracing::Contrib::Rack::TraceMiddleware (i.e. nested inside
-        # it). This ordering matters: on the way out of the request, AI Guard's
-        # `ensure` block unwinds *before* Tracing's ensure, while Tracing's
-        # request span is still live. We need that, because Tracing's ensure
-        # calls `request_span.finish`, which builds a frozen `Span` snapshot of
-        # the meta hash — any `set_tag` call after that point mutates the
-        # `SpanOperation` but never reaches the exported `Span`.
+        # At request entry the middleware stores some request attributes for
+        # on the active trace under the `_dd.ai_guard.` prefix.
         #
-        # At request entry the middleware computes the request attributes the
-        # anomaly-detection pipeline needs (user agent, resolved client IP,
-        # REMOTE_ADDR) and stashes them on the active trace under the
-        # `_dd.ai_guard.` prefix. AI Guard evaluation reads the stash and
-        # mirrors the values onto the AI Guard span. On the way out, the
-        # middleware promotes the stashed IPs to the request span when AI
-        # Guard ran during the request, then clears the stash so the
-        # internal tags never reach the backend.
-        #
-        # TODO: remove the `steep:ignore` blocks below once
-        # `Datadog::Tracing.active_trace` is signed correctly. It is signed
-        # as `TraceSegment?` in `sig/datadog/tracing.rbs` but at runtime
-        # returns a `TraceOperation`, which is what exposes `get_tag`,
-        # `set_tag`, and `clear_tag`. Fixing the upstream sig is out of
-        # scope for this PR.
+        # Later when AI Guard evaluation is performed, those attributes are
+        # mirrored on AI Guard span.
         class RequestMiddleware
-          NETWORK_CLIENT_IP_TAG = "network.client.ip"
-
           def initialize(app, opt = {})
             @app = app
           end
 
           def call(env)
-            stash_request_attributes(env)
+            store_anomaly_detection_tags(env)
 
             @app.call(env)
           ensure
             tag_client_ip_on_request_span if consume_ai_guard_executed_flag
-            clear_stash
+            clear_anomaly_detection_tags
           end
 
           private
 
-          # Compute request attributes from the rack env and stash them on
-          # the active trace under `_dd.ai_guard.<key>`. AI Guard evaluation
-          # reads these to populate the AI Guard span; the ensure block reads
-          # them again to tag the request span when AI Guard ran.
           # steep:ignore:start
-          def stash_request_attributes(env)
+          def store_anomaly_detection_tags(env)
             trace = Datadog::Tracing.active_trace
             return unless trace
 
-            headers = Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection.new(env)
             remote_ip = env["REMOTE_ADDR"]
+            trace.set_tag(Datadog::AIGuard::Ext::TRACE_NETWORK_CLIENT_IP_TAG, remote_ip) if remote_ip
+
+            headers = Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection.new(env)
             resolved_client_ip = Datadog::Tracing::ClientIp.extract_client_ip(headers, remote_ip)
+            trace.set_tag(Datadog::AIGuard::Ext::TRACE_HTTP_CLIENT_IP_TAG, resolved_client_ip) if resolved_client_ip
 
             user_agent = env["HTTP_USER_AGENT"]
-            trace.set_tag("#{Datadog::AIGuard::Ext::STASH_TAG_PREFIX}#{Datadog::AIGuard::Ext::HTTP_USERAGENT_TAG}", user_agent) if user_agent
-            trace.set_tag("#{Datadog::AIGuard::Ext::STASH_TAG_PREFIX}#{Datadog::AIGuard::Ext::HTTP_CLIENT_IP_TAG}", resolved_client_ip) if resolved_client_ip
-            trace.set_tag("#{Datadog::AIGuard::Ext::STASH_TAG_PREFIX}#{Datadog::AIGuard::Ext::NETWORK_CLIENT_IP_TAG}", remote_ip) if remote_ip
+            trace.set_tag(Datadog::AIGuard::Ext::TRACE_HTTP_USERAGENT_TAG, user_agent) if user_agent
           rescue => e
-            Datadog::AIGuard.telemetry&.report(e, description: "AI Guard: failed to stash request attributes")
+            Datadog::AIGuard.telemetry&.report(e, description: "AI Guard: failed to get attributes for Anomaly Detection")
+          end
+          # steep:ignore:end
+
+          # steep:ignore:start
+          def clear_anomaly_detection_tags
+            trace = Datadog::Tracing.active_trace
+            return unless trace
+
+            Datadog::AIGuard::Ext::TRACE_ANOMALY_DETECTION_TAGS.each do |tag|
+              trace.clear_tag(tag)
+            end
           end
           # steep:ignore:end
 
@@ -83,19 +70,10 @@ module Datadog
           def consume_ai_guard_executed_flag
             trace = Datadog::Tracing.active_trace
             return false unless trace
-            return false unless trace.get_tag(Datadog::AIGuard::Ext::SERVICE_ENTRY_EXECUTED_TAG) == "1"
+            return false unless trace.get_tag(Datadog::AIGuard::Ext::TRACE_EXECUTED_TAG) == "1"
 
-            trace.clear_tag(Datadog::AIGuard::Ext::SERVICE_ENTRY_EXECUTED_TAG)
+            trace.clear_tag(Datadog::AIGuard::Ext::TRACE_EXECUTED_TAG)
             true
-          end
-
-          def clear_stash
-            trace = Datadog::Tracing.active_trace
-            return unless trace
-
-            Datadog::AIGuard::Ext::SERVICE_ENTRY_ATTRIBUTE_KEYS.each do |tag|
-              trace.clear_tag("#{Datadog::AIGuard::Ext::STASH_TAG_PREFIX}#{tag}")
-            end
           end
           # steep:ignore:end
 
@@ -107,14 +85,14 @@ module Datadog
             trace = Datadog::Tracing.active_trace
             return unless trace
 
-            client_ip = trace.get_tag("#{Datadog::AIGuard::Ext::STASH_TAG_PREFIX}#{Datadog::AIGuard::Ext::HTTP_CLIENT_IP_TAG}")
+            client_ip = trace.get_tag(Datadog::AIGuard::Ext::TRACE_HTTP_CLIENT_IP_TAG)
             if client_ip && span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP).nil?
               span.set_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, client_ip)
             end
 
-            network_client_ip = trace.get_tag("#{Datadog::AIGuard::Ext::STASH_TAG_PREFIX}#{Datadog::AIGuard::Ext::NETWORK_CLIENT_IP_TAG}")
-            if network_client_ip && span.get_tag(NETWORK_CLIENT_IP_TAG).nil?
-              span.set_tag(NETWORK_CLIENT_IP_TAG, network_client_ip)
+            network_client_ip = trace.get_tag(Datadog::AIGuard::Ext::TRACE_NETWORK_CLIENT_IP_TAG)
+            if network_client_ip && span.get_tag("network.client.ip").nil?
+              span.set_tag("network.client.ip", network_client_ip)
             end
           rescue => e
             Datadog::AIGuard.telemetry&.report(e, description: "AI Guard: failed to tag client IP on root span")

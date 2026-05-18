@@ -16,15 +16,10 @@ module Datadog
               Tracing::Sampling::Ext::Decision::AI_GUARD
             )
             trace.set_tag(Ext::EVENT_TAG, true)
-            trace.set_tag(Ext::SERVICE_ENTRY_EXECUTED_TAG, "1")
+            trace.set_tag(Ext::TRACE_EXECUTED_TAG, "1")
 
-            # Mirror request attributes stashed by the Rack middleware at
-            # request entry onto the AI Guard span. Anomaly detection needs
-            # them on the AI Guard span because the corresponding
-            # service-entry span may arrive in a separate trace chunk
-            # (partial flush or async LLM completion).
-            Ext::SERVICE_ENTRY_ATTRIBUTE_KEYS.each do |tag|
-              value = trace.get_tag("#{Ext::STASH_TAG_PREFIX}#{tag}")
+            Ext::TRACE_ANOMALY_DETECTION_TAGS.each do |tag|
+              value = trace.get_tag(tag)
               span.set_tag(tag, value) if value
             end
 
