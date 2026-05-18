@@ -30,16 +30,10 @@ CustomCops/EnvStringValidationCop:
   Exclude:
     - "lib/datadog/core/configuration/supported_configurations.rb"
 
-# Enforce underscore prefix for unused positional arguments
-Lint/UnusedMethodArgument:
+# Custom cop to enforce `.to_s` over `|| ''` for nil-safe string conversion
+CustomCops/NilSafeStringCop:
   Enabled: true
-  AllowUnusedKeywordArguments: true  # kwargs often unused for interface compliance
-  Include:
-    - "lib/datadog/open_feature/**/*"
-
-# Enforce `return` over `return nil` for implicit nil returns
-Style/ReturnNil:
-  Enabled: true
-  EnforcedStyle: return
+  Description: "Enforces `.to_s` over `|| ''` for nil-safe string conversion"
+  SafeAutoCorrect: true
   Include:
     - "lib/datadog/open_feature/**/*"

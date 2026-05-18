@@ -11,7 +11,7 @@ module Datadog
         ALLOWED_FIELD_TYPES = [String, Integer, Float, TrueClass, FalseClass].freeze
 
         class << self
-          def cache_key(_result, flag_key:, context:)
+          def cache_key(result, flag_key:, context:)
             "#{flag_key}:#{context.targeting_key}"
           end
 
