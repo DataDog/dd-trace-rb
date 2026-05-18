@@ -3,9 +3,9 @@ module Datadog
     class ServiceVersion
       @service: String
 
-      @env: String
+      @env: String?
 
-      @version: String
+      @version: String?
 
       @language: String
 
@@ -20,9 +20,9 @@ module Datadog
 
       attr_reader service: String
 
-      attr_reader env: String
+      attr_reader env: String?
 
-      attr_reader version: String
+      attr_reader version: String?
 
       attr_reader language: String
 

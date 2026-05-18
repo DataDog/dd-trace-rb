@@ -19,6 +19,8 @@ module Datadog
 
     def self.logger: () -> Core::Logger?
 
+    def self.telemetry: () -> Core::Telemetry::Component?
+
     def self.evaluate: (*Evaluation::Message messages, ?allow_raise: bool) -> (Evaluation::Result | Evaluation::NoOpResult)
 
     def self.message: (role: ::String | ::Symbol, ?content: ::String?) ?{ (Evaluation::ContentBuilder) -> void } -> Evaluation::Message
