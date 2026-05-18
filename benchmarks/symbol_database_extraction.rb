@@ -11,8 +11,10 @@
 # Output: symbol_database_extraction-results.json
 #
 # Notes on measurement:
-#   - Memory: VmRSS from /proc/self/status, sampled by a thread at ~10ms cadence
-#     during extraction. Overhead = peak − baseline (post-GC.start).
+#   - Memory: RSS in KB, sampled by a thread at ~10ms cadence during extraction.
+#     Source is VmRSS from /proc/self/status on Linux; falls back to `ps -o rss=`
+#     on macOS and other platforms without /proc. Overhead = peak − baseline
+#     (post-GC.start).
 #   - CPU: (utime + stime) / wall time, expressed as percent of one core. The
 #     5% threshold is interpretable only when amortized over a long-running
 #     process; a single one-shot extraction will report near 100% single-core
@@ -154,8 +156,15 @@ class SymbolDatabaseExtractionBenchmark
     }
   end
 
+  # /proc/self/status is fast and allocation-free on Linux, but doesn't exist on
+  # macOS or BSD. Fall back to `ps -o rss=` on those platforms — slower (forks a
+  # process) but portable. Both return RSS in KB.
   def read_rss_kb
-    File.read('/proc/self/status').match(/VmRSS:\s+(\d+) kB/)[1].to_i
+    if File.exist?('/proc/self/status')
+      File.read('/proc/self/status').match(/VmRSS:\s+(\d+) kB/)[1].to_i
+    else
+      `ps -o rss= -p #{Process.pid}`.strip.to_i
+    end
   end
 
   def emit(results)
