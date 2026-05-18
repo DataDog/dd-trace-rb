@@ -7,6 +7,7 @@ RSpec.describe 'Symbol Database benchmarks' do
 
   benchmarks_to_validate = %w[
     symbol_database_extraction
+    symbol_database_background_impact
   ]
 
   benchmarks_to_validate.each do |benchmark|
