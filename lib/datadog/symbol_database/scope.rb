@@ -22,10 +22,8 @@ module Datadog
         # - nil: not computed (source unreadable, native/C-extension method)
         # - []: computed but no executable lines found (comments/whitespace only)
         # - non-empty: computed, contains executable line ranges
-        # nil and [] both serialize as has_injectible_lines: false on METHOD
-        # scopes. Key is absent on non-METHOD scopes. The wire format key
-        # name keeps the historical spelling +injectible+ for backend
-        # compatibility; the Ruby identifier is +targetable_lines+.
+        # nil and [] both serialize as targetable_lines?: false on METHOD
+        # scopes. Key is absent on non-METHOD scopes.
         :targetable_lines,
         :language_specifics, :symbols, :scopes
 

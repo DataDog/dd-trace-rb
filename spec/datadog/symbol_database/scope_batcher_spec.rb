@@ -3,7 +3,6 @@
 require 'datadog/symbol_database/logger'
 require 'datadog/symbol_database/scope_batcher'
 require 'datadog/symbol_database/scope'
-require 'datadog/symbol_database/uploader'
 
 RSpec.describe Datadog::SymbolDatabase::ScopeBatcher do
   let(:uploader) { instance_double(Datadog::SymbolDatabase::Uploader) }
