@@ -187,6 +187,34 @@ deploy_to_reliability_env:
   needs:
     - save_versions
 
+test-rails-seven-symdb:
+  image: $RUBY_CUSTOM_IMAGE_BASE/3.3-amd64:current
+  tags: ["arch:amd64"]
+  stage: shared-pipeline
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push"
+  needs: []
+  services:
+    - name: mysql:8.0
+      alias: mysql
+      command: ["--default-authentication-plugin=mysql_native_password"]
+    - name: redis:7
+      alias: redis
+  variables:
+    MYSQL_ALLOW_EMPTY_PASSWORD: "true"
+    MYSQL_DATABASE: rails_seven_test
+    DATABASE_URL: "mysql2://root@mysql:3306"
+    REDIS_URL: "redis://redis:6379"
+    RAILS_ENV: test
+    RUBYOPT: "-I$CI_PROJECT_DIR/integration/images/include"
+    DD_DEMO_ENV_GEM_LOCAL_DATADOG: "$CI_PROJECT_DIR"
+    BUNDLE_GEMFILE: "$CI_PROJECT_DIR/integration/apps/rails-seven/Gemfile"
+  script:
+    - cd "$CI_PROJECT_DIR/integration/apps/rails-seven"
+    - bundle install
+    - bundle exec rake db:create db:migrate
+    - bundle exec rspec spec/integration/symdb_spec.rb
+
 # Config inversion CI steps
 validate_supported_configurations_v2_local_file:
   rules:
