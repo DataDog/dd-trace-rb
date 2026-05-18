@@ -13,9 +13,7 @@ module Datadog
 
           private
 
-          def store_anomaly_detection_tags: (::Rack::env env) -> void
-
-          def clear_anomaly_detection_tags: () -> void
+          def store_anomaly_detection_tags!: (Datadog::Tracing::TraceSegment trace, ::Rack::env env) -> void
 
           def consume_ai_guard_executed_flag: () -> bool
 

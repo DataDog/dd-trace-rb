@@ -22,21 +22,24 @@ module Datadog
           end
 
           def call(env)
-            store_anomaly_detection_tags(env)
+            trace = Datadog::Tracing.active_trace
+            return @app.call(env) unless trace
+
+            store_anomaly_detection_tags!(trace, env)
 
             @app.call(env)
           ensure
             tag_client_ip_on_request_span if consume_ai_guard_executed_flag
-            clear_anomaly_detection_tags
+
+            Datadog::AIGuard::Ext::TRACE_ANOMALY_DETECTION_TAGS.each do |tag|
+              trace&.clear_tag(tag)
+            end
           end
 
           private
 
           # steep:ignore:start
-          def store_anomaly_detection_tags(env)
-            trace = Datadog::Tracing.active_trace
-            return unless trace
-
+          def store_anomaly_detection_tags!(trace, env)
             remote_ip = env["REMOTE_ADDR"]
             trace.set_tag(Datadog::AIGuard::Ext::TRACE_NETWORK_CLIENT_IP_TAG, remote_ip) if remote_ip
 
@@ -47,18 +50,7 @@ module Datadog
             user_agent = env["HTTP_USER_AGENT"]
             trace.set_tag(Datadog::AIGuard::Ext::TRACE_HTTP_USERAGENT_TAG, user_agent) if user_agent
           rescue => e
-            Datadog::AIGuard.telemetry&.report(e, description: "AI Guard: failed to get attributes for Anomaly Detection")
-          end
-          # steep:ignore:end
-
-          # steep:ignore:start
-          def clear_anomaly_detection_tags
-            trace = Datadog::Tracing.active_trace
-            return unless trace
-
-            Datadog::AIGuard::Ext::TRACE_ANOMALY_DETECTION_TAGS.each do |tag|
-              trace.clear_tag(tag)
-            end
+            Datadog::AIGuard.telemetry&.report(e, description: "AI Guard: failed to get request attributes")
           end
           # steep:ignore:end
 
@@ -69,7 +61,7 @@ module Datadog
           # steep:ignore:start
           def consume_ai_guard_executed_flag
             trace = Datadog::Tracing.active_trace
-            return false unless trace
+            return unless trace
             return false unless trace.get_tag(Datadog::AIGuard::Ext::TRACE_EXECUTED_TAG) == "1"
 
             trace.clear_tag(Datadog::AIGuard::Ext::TRACE_EXECUTED_TAG)
