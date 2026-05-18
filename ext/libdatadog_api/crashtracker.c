@@ -72,6 +72,8 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
     .endpoint = {.url = char_slice_from_ruby_string(agent_base_url)},
     .resolve_frames = DDOG_CRASHT_STACKTRACE_COLLECTION_ENABLED_WITH_SYMBOLS_IN_RECEIVER,
     .timeout_ms = FIX2INT(upload_timeout_seconds) * 1000,
+    .collect_all_threads = true,
+    .max_threads = 128,
   };
 
   ddog_crasht_Metadata metadata = {

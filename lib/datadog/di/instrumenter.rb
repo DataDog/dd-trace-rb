@@ -618,12 +618,32 @@ module Datadog
       def raise_if_probe_in_loaded_features(probe, line_no, code_tracker)
         return unless probe.file
 
-        # Find the loaded path matching the probe file.
+        # Find the loaded path matching the probe file. Case-sensitive
+        # matching is attempted first, with case-insensitive matching as a
+        # fallback (see the design comment in utils.rb, steps 5-8). Leading
+        # directory components are stripped so probes whose sourceFile carries
+        # a source-repo prefix that does not exist on disk still resolve to
+        # the loaded file — matching the behavior of
+        # CodeTracker#iseqs_for_path_suffix.
         loaded_path = if $LOADED_FEATURES.include?(probe.file)
           probe.file
         else
           # Expensive suffix check.
-          $LOADED_FEATURES.find { |path| Utils.path_matches_suffix?(path, probe.file) }
+          suffix = Utils.normalize_windows_separators(probe.file)
+          found = nil #: ::String?
+          [false, true].each do |case_insensitive|
+            working_suffix = suffix.dup
+            loop do
+              found = $LOADED_FEATURES.find do |path|
+                Utils.path_matches_suffix?(path, working_suffix, case_insensitive: case_insensitive)
+              end
+              break if found
+              break unless working_suffix.include?('/')
+              working_suffix.sub!(%r{.*/+}, '')
+            end
+            break if found
+          end
+          found
         end
 
         return unless loaded_path
