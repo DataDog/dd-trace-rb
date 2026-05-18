@@ -181,7 +181,7 @@ module Datadog
       # Whether this component has been shut down.
       # @return [Boolean]
       def shutdown?
-        @mutex.synchronize { @shutdown }
+        @scheduler_mutex.synchronize { @shutdown }
       end
 
       # Schedule symbol upload (triggered by remote config or force mode).
@@ -249,7 +249,6 @@ module Datadog
         @scheduler_thread = nil
 
         @mutex.synchronize do
-          @shutdown = true
           if @upload_in_progress
             @upload_in_progress_cv.wait(@mutex, 5)
           end

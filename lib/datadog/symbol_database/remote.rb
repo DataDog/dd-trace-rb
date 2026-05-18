@@ -22,9 +22,9 @@ module Datadog
     #
     # @api private
     module Remote
-      class << self
-        PRODUCT = 'LIVE_DEBUGGING_SYMBOL_DB'
+      PRODUCT = 'LIVE_DEBUGGING_SYMBOL_DB'
 
+      class << self
         # Declare products this receiver handles.
         # @return [Array<String>] Product names
         def products
