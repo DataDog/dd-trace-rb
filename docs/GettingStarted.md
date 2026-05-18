@@ -2957,7 +2957,7 @@ Dynamic Instrumentation allows you to add log probes, metric probes, and span pr
 | `DD_DYNAMIC_INSTRUMENTATION_ENABLED` | `Boolean` | Enable or disable Dynamic Instrumentation. | `false` |
 | `DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS` | `Array` | Comma-separated list of variable/key names to redact in addition to the built-in list. Names are normalized (underscores, dashes, `@`, `$` removed) and matched case-insensitively. | `[]` |
 | `DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS` | `Array` | Comma-separated list of variable/key names to exclude from the built-in redaction list, allowing their values to be captured. | `[]` |
-| `DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES` | `Array` | Comma-separated list of class names whose values will be redacted. Suffix with `*` for wildcard matching (e.g. `Foo*` redacts `Foo`, `FooBar`, `Foo::Bar`). | `[]` |
+| `DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES` | `Array` | Comma-separated list of class names whose values will be redacted. Suffix with `*` for wildcard matching (for example, `Foo*` redacts `Foo`, `FooBar`, `Foo::Bar`). | `[]` |
 
 Alternatively, set DI parameters inside a `Datadog.configure` block:
 
@@ -2970,7 +2970,7 @@ Alternatively, set DI parameters inside a `Datadog.configure` block:
 
 #### Symbol Database
 
-When Dynamic Instrumentation is enabled, the tracer can extract and upload symbol information (class names, method signatures, parameter names) from your application to enable auto-completion in the DI UI. Symbol Database upload is enabled by default and activates automatically via Remote Configuration.
+When Dynamic Instrumentation is enabled, the tracer can extract and upload symbol information (class names, method signatures, parameter names) from your application to enable auto-completion in the DI UI. Symbol Database upload is enabled by default and activates automatically using Remote Configuration.
 
 | Environment variable | Type | Description | Default |
 |---|---|---|---|

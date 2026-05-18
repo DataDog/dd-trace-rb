@@ -390,8 +390,8 @@ Then [open a pull request](../CONTRIBUTING.md#have-a-patch) and be sure to add t
 
 ### Testing the Symbol Database without Remote Configuration
 
-Symbol Database upload normally activates via Remote Configuration when the DI
-UI is opened for the service. For local development, bypass RC and trigger the
+When you open the DI UI for a service, Symbol Database upload normally activates,
+using Remote Configuration. For local development, bypass RC and trigger the
 upload directly on tracer startup with:
 
     export DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD=true
