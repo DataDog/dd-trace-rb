@@ -27,18 +27,6 @@ static ID id_mesg;
 // method probes on Thread#[] / Thread#[]= cannot intercept guard reads/writes.
 static ID id_datadog_di_in_probe;
 
-// rb_thread_local_aref and rb_thread_local_aset are public Ruby C API functions
-// that read/write the current fiber's local storage hashtable directly. They do
-// NOT dispatch through Thread#[] / Thread#[]=, so a user probe on those Thread
-// methods does not cause re-entrancy when these are called.
-VALUE rb_thread_local_aref(VALUE thread, ID id);
-VALUE rb_thread_local_aset(VALUE thread, ID id, VALUE val);
-
-// rb_proc_call_with_block is a public Ruby C API function that invokes a Proc
-// directly without going through Proc#call method dispatch. Used by
-// DI.invoke_proc to bypass user-installed Proc#call probes.
-VALUE rb_proc_call_with_block(VALUE recv, int argc, const VALUE *argv, VALUE proc);
-
 // Returns whether the argument is an IMEMO of type ISEQ.
 static bool ddtrace_imemo_iseq_p(VALUE v) {
   return rb_objspace_internal_object_p(v) && RB_TYPE_P(v, T_IMEMO) && ddtrace_imemo_type(v) == IMEMO_TYPE_ISEQ;
