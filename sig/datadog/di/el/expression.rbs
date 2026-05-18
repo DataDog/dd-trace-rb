@@ -2,19 +2,19 @@ module Datadog
   module DI
     module EL
       class Expression
-        @dsl_expr: untyped
+        @dsl_expr: String
 
-        @evaluator: untyped
+        @evaluator: Evaluator
 
-        def initialize: (untyped dsl_expr, untyped compiled_expr) -> void
+        def initialize: (String dsl_expr, String compiled_expr) -> void
 
-        attr_reader dsl_expr: untyped
+        attr_reader dsl_expr: String
 
-        attr_reader evaluator: untyped
+        attr_reader evaluator: Evaluator
 
-        def evaluate: (untyped context) -> untyped
+        def evaluate: (Context context) -> untyped
 
-        def satisfied?: (untyped context) -> untyped
+        def satisfied?: (Context context) -> bool
       end
     end
   end

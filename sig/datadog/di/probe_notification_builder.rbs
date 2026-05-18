@@ -5,11 +5,12 @@ module Datadog
       MILLISECONDS: Integer
       BACKTRACE_FRAME_PATTERN: Regexp
 
+      @settings: Datadog::Core::Configuration::Settings
       @serializer: Serializer
 
-      def initialize: (untyped settings, Serializer serializer) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer) -> void
 
-      attr_reader settings: untyped
+      attr_reader settings: Datadog::Core::Configuration::Settings
       attr_reader serializer: Serializer
 
       def build_received: (Probe probe) -> Hash[Symbol,untyped]
@@ -29,15 +30,15 @@ module Datadog
       def format_backtrace_locations: (Array[Thread::Backtrace::Location] locations) -> Array[Hash[Symbol, String | Integer | nil]]
       def format_backtrace_strings: (Array[String]? backtrace) -> Array[Hash[Symbol, String | Integer | nil]]
 
-      def build_snapshot_base: (Context context, ?evaluation_errors: Array[untyped]?, ?captures: untyped?, ?message: String?) -> Hash[Symbol,untyped]
+      def build_snapshot_base: (Context context, ?evaluation_errors: Array[Hash[Symbol, String]]?, ?captures: Hash[Symbol, untyped]?, ?message: String?) -> Hash[Symbol,untyped]
 
-      def build_condition_evaluation_failed: (Context context, untyped expr, untyped exception) -> Hash[Symbol,untyped]
+      def build_condition_evaluation_failed: (Context context, EL::Expression expr, Exception exception) -> Hash[Symbol,untyped]
 
-      def build_status: (Probe probe, message: untyped, status: untyped, ?exception: Exception?) -> Hash[Symbol,untyped]
+      def build_status: (Probe probe, message: String, status: String, ?exception: Exception?) -> Hash[Symbol,untyped]
 
-      def format_caller_locations: (Array[untyped] callers) -> Array[Hash[Symbol,untyped]]
+      def format_caller_locations: (Array[Thread::Backtrace::Location] callers) -> Array[Hash[Symbol,untyped]]
 
-      def evaluate_template: (untyped template, Context context) -> [String, Array[String]]
+      def evaluate_template: (Array[String | EL::Expression] template, Context context) -> [String, Array[Hash[Symbol, String]]]
 
       def tag_process_tags!: (Hash[Symbol | String, untyped] payload, Core::Configuration::Settings settings) -> void
 

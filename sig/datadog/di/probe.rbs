@@ -16,7 +16,7 @@ module Datadog
       @method_name: String?
 
       @template: String?
-      @template_segments: Array[untyped]?
+      @template_segments: Array[String | DI::EL::Expression]?
 
       @capture_snapshot: bool
 
@@ -30,7 +30,7 @@ module Datadog
 
       @enabled: bool
 
-      def initialize: (id: String, type: Symbol, ?file: String?, ?line_no: Integer?, ?type_name: String?, ?method_name: String?, ?template: String?, ?template_segments: Array[untyped]?, ?capture_snapshot: bool,
+      def initialize: (id: String, type: Symbol, ?file: String?, ?line_no: Integer?, ?type_name: String?, ?method_name: String?, ?template: String?, ?template_segments: Array[String | DI::EL::Expression]?, ?capture_snapshot: bool,
 	?condition: DI::EL::Expression?,
 	?max_capture_depth: Integer?, ?max_capture_attribute_count: Integer?, ?rate_limit: Integer?) -> void
 
@@ -53,7 +53,7 @@ module Datadog
       attr_reader max_capture_attribute_count: Integer?
 
       attr_reader template: String?
-      attr_reader template_segments: Array[untyped]?
+      attr_reader template_segments: Array[String | DI::EL::Expression]?
       attr_reader rate_limiter: Datadog::Core::RateLimiter
 
       attr_reader condition_evaluation_failed_rate_limiter: Datadog::Core::RateLimiter?
