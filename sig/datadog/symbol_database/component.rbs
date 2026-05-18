@@ -4,11 +4,11 @@ module Datadog
       EXTRACT_DEBOUNCE_INTERVAL: Integer
 
       self.@uploaded_this_process: bool
-      self.@upload_done_mutex: Thread::Mutex
-      self.@upload_done_cv: Thread::ConditionVariable
+      self.@upload_done_mutex: ::Thread::Mutex
+      self.@upload_done_cv: ::Thread::ConditionVariable
 
-      def self.upload_done_mutex: () -> Thread::Mutex
-      def self.upload_done_cv: () -> Thread::ConditionVariable
+      def self.upload_done_mutex: () -> ::Thread::Mutex
+      def self.upload_done_cv: () -> ::Thread::ConditionVariable
       def self.uploaded_this_process?: () -> bool
       def self.mark_uploaded: () -> void
       def self.reset_uploaded_this_process_for_tests!: () -> void
@@ -20,25 +20,25 @@ module Datadog
       @extractor: Extractor
       @uploader: Uploader
       @scope_batcher: ScopeBatcher
-      @last_upload_time: Time?
-      @last_upload_scope_count: Integer?
-      @mutex: Thread::Mutex
+      @last_upload_time: ::Time?
+      @last_upload_scope_count: ::Integer?
+      @mutex: ::Thread::Mutex
       @upload_in_progress: bool
-      @upload_in_progress_cv: Thread::ConditionVariable
+      @upload_in_progress_cv: ::Thread::ConditionVariable
       @shutdown: bool
-      @scheduler_mutex: Thread::Mutex
-      @scheduler_cv: Thread::ConditionVariable
-      @scheduled_at: Float?
+      @scheduler_mutex: ::Thread::Mutex
+      @scheduler_cv: ::Thread::ConditionVariable
+      @scheduled_at: ::Float?
       @scheduler_signaled: bool
-      @scheduler_thread: Thread?
+      @scheduler_thread: ::Thread?
 
-      def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, untyped logger, ?telemetry: Datadog::Core::Telemetry::Component?) -> Component?
+      def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, ::Logger logger, ?telemetry: Datadog::Core::Telemetry::Component?) -> Component?
 
       def initialize: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, SymbolDatabase::Logger logger, ?telemetry: Datadog::Core::Telemetry::Component?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
-      attr_reader last_upload_time: Time?
-      attr_reader last_upload_scope_count: Integer?
+      attr_reader last_upload_time: ::Time?
+      attr_reader last_upload_scope_count: ::Integer?
       attr_reader upload_in_progress: bool
 
       def schedule_deferred_upload: () -> void
@@ -49,7 +49,7 @@ module Datadog
 
       def stop_upload: () -> void
 
-      def wait_for_idle: (?timeout: Numeric) -> bool
+      def wait_for_idle: (?timeout: ::Numeric) -> bool
 
       def shutdown!: () -> void
 
@@ -63,9 +63,9 @@ module Datadog
 
       def extract_and_upload: () -> void
 
-      def log_scope_tree: (Scope scope, Integer depth) -> void
+      def log_scope_tree: (Scope scope, ::Integer depth) -> void
 
-      def count_targetable_methods: (Array[Scope] file_scopes) -> Integer
+      def count_targetable_methods: (::Array[Scope] file_scopes) -> ::Integer
     end
   end
 end

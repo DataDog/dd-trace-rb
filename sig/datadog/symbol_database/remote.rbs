@@ -1,15 +1,15 @@
 module Datadog
   module SymbolDatabase
     module Remote
-      PRODUCT: String
+      PRODUCT: ::String
 
-      def self.products: () -> Array[String]
+      def self.products: () -> ::Array[::String]
 
-      def self.capabilities: () -> Array[Integer]
+      def self.capabilities: () -> ::Array[::Integer]
 
-      def self.receivers: (Datadog::Core::Telemetry::Component telemetry) -> Array[Core::Remote::Dispatcher::Receiver]
+      def self.receivers: (Datadog::Core::Telemetry::Component telemetry) -> ::Array[Datadog::Core::Remote::Dispatcher::Receiver]
 
-      def self.receiver: (?Array[String] products) { (Datadog::Core::Remote::Configuration::Repository repository, Array[Datadog::Core::Remote::Configuration::Repository::change] changes) -> void } -> Array[Core::Remote::Dispatcher::Receiver]
+      def self.receiver: (?::Array[::String] products) { (Datadog::Core::Remote::Configuration::Repository repository, ::Array[Datadog::Core::Remote::Configuration::Repository::change] changes) -> void } -> ::Array[Datadog::Core::Remote::Dispatcher::Receiver]
 
       def self.lookup_telemetry: () -> Datadog::Core::Telemetry::Component?
 
@@ -19,7 +19,7 @@ module Datadog
 
       def self.disable_upload: (Component component) -> void
 
-      def self.parse_config: (Datadog::Core::Remote::Configuration::Content content) -> Hash[String, untyped]?
+      def self.parse_config: (Datadog::Core::Remote::Configuration::Content content) -> ::Hash[::String, untyped]?
     end
   end
 end
