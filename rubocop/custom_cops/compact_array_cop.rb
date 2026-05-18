@@ -10,11 +10,9 @@ module CustomCops
   # @example
   #   # bad
   #   hook ? [hook] : []
-  #   value ? [value] : []
   #
   #   # good
   #   [hook].compact
-  #   [value].compact
   class CompactArrayCop < RuboCop::Cop::Base
     extend RuboCop::Cop::AutoCorrector
 
