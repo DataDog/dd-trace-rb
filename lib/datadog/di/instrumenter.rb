@@ -133,7 +133,7 @@ module Datadog
             # Nested invocations during DI processing bypass the rate
             # limiter entirely — they are not user-observable probe
             # firings, just internal calls that happen to land on a
-            # probed method, so they must not consume rate limit tokens.
+            # probed method, so they must not count towards the rate limit.
             #
             # Storage is fiber-local. The DI.in_probe?/enter_probe/leave_probe
             # methods are implemented in C and access the storage directly via

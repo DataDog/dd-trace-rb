@@ -364,8 +364,8 @@ line, including lines in standard library files.
 The tracer guarantees that probes on such methods do not cause runaway
 recursion or stack overflow. When the tracer calls a probed method
 while processing another probe firing, the probe is suppressed for
-that internal call and no rate-limit token is consumed. Customer code
-calls to the same method fire the probe normally.
+that internal call and does not count towards the rate limit. Customer
+code calls to the same method fire the probe normally.
 
 ## Getting Help
 
