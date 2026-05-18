@@ -13,7 +13,8 @@ require 'datadog/symbol_database/remote'
 require 'datadog/symbol_database/component'
 
 RSpec.describe Datadog::SymbolDatabase::Remote do
-  let(:component) { instance_double(Datadog::SymbolDatabase::Component) }
+  let(:logger) { instance_double(Datadog::SymbolDatabase::Logger, debug: nil) }
+  let(:component) { instance_double(Datadog::SymbolDatabase::Component, logger: logger) }
 
   # Helper to create a mock change object
   def mock_change(type:, data:)
@@ -166,26 +167,26 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
   describe '.parse_config' do
     it 'parses valid upload_symbols config' do
       content = instance_double('Content', data: '{"upload_symbols": true}')
-      result = described_class.send(:parse_config, content)
+      result = described_class.send(:parse_config, content, logger)
       expect(result).to eq({'upload_symbols' => true})
     end
 
     it 'returns nil for missing upload_symbols key' do
       content = instance_double('Content', data: '{"other": true}')
-      result = described_class.send(:parse_config, content)
+      result = described_class.send(:parse_config, content, logger)
       expect(result).to be_nil
     end
 
     it 'raises JSON::ParserError for invalid JSON (caller process_change rescues + reports)' do
       content = instance_double('Content', data: 'bad json')
       expect {
-        described_class.send(:parse_config, content)
+        described_class.send(:parse_config, content, logger)
       }.to raise_error(JSON::ParserError)
     end
 
     it 'returns nil for non-Hash JSON' do
       content = instance_double('Content', data: '[1, 2, 3]')
-      result = described_class.send(:parse_config, content)
+      result = described_class.send(:parse_config, content, logger)
       expect(result).to be_nil
     end
   end
