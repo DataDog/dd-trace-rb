@@ -32,7 +32,7 @@ module Datadog
             tag_client_ip_on_request_span if consume_ai_guard_executed_flag
 
             Datadog::AIGuard::Ext::TRACE_ANOMALY_DETECTION_TAGS.each do |tag|
-              trace&.clear_tag(tag)
+              trace&.clear_tag(tag) # steep:ignore
             end
           end
 
