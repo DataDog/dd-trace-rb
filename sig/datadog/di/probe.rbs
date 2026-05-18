@@ -65,6 +65,7 @@ module Datadog
       def location: () -> ::String
       def file_matches?: (String path) -> bool
       def emitting_notified?: () -> bool
+      attr_writer emitting_notified: bool
 
       def executed_on_line!: -> void
       def executed_on_line?: -> bool

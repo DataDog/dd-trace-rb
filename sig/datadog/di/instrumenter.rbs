@@ -33,14 +33,14 @@ module Datadog
 
       attr_reader telemetry: Core::Telemetry::Component?
 
-      def hook_method: (Probe probe, ProbeManager | ProcResponder responder) -> void
+      def hook_method: (Probe probe, untyped responder) -> void
 
       def unhook_method: (Probe probe) -> void
-      def hook_line: (Probe probe, ProbeManager | ProcResponder responder) -> bool
+      def hook_line: (Probe probe, untyped responder) -> bool?
 
       def unhook_line: (Probe probe) -> void
 
-      def hook: (Probe probe, ProbeManager | ProcResponder responder) -> void
+      def hook: (Probe probe, untyped responder) -> void
 
       def unhook: (Probe probe) -> void
 
@@ -51,13 +51,13 @@ module Datadog
 
       attr_reader lock: Mutex
 
-      def line_trace_point_callback: (Probe probe, RubyVM::InstructionSequence? iseq, ProbeManager | ProcResponder responder, TracePoint tp) -> void
+      def line_trace_point_callback: (Probe probe, RubyVM::InstructionSequence? iseq, untyped responder, TracePoint tp) -> void
 
       def build_trace_point_context: (Probe probe, TracePoint tp) -> Context
 
-      def check_and_disable_if_exceeded: (Probe probe, ProbeManager | ProcResponder responder, Float di_start_time, ?Float accumulated_duration) -> void
+      def check_and_disable_if_exceeded: (Probe probe, untyped responder, Float di_start_time, ?Float accumulated_duration) -> void
 
-      def symbolize_class_name: (String cls_name) -> Module
+      def symbolize_class_name: (String? cls_name) -> Module
       def raise_if_probe_in_loaded_features: (Probe probe, Integer line_no, CodeTracker? code_tracker) -> void
     end
   end

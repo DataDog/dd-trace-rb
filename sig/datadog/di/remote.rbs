@@ -9,7 +9,7 @@ module Datadog
 
       def self.receivers: (Core::Telemetry::Component? telemetry) -> ::Array[Core::Remote::Dispatcher::Receiver]
 
-      def self.receiver: (?::Array[String] products) { (Core::Remote::Configuration::Repository, Core::Remote::Configuration::Repository::ChangeSet) -> void } -> ::Array[Core::Remote::Dispatcher::Receiver]
+      def self.receiver: (?::Array[String] products) { (Core::Remote::Configuration::Repository, ::Array[Core::Remote::Configuration::Repository::change]) -> void } -> ::Array[Core::Remote::Dispatcher::Receiver]
 
       private
 

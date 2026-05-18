@@ -28,7 +28,7 @@ module Datadog
 
           def send_input: (Array[Hash[Symbol, untyped]] payload, Hash[String, String] tags, on_serialization_error: ^(String, Exception) -> void) -> Array[Hash[Symbol, untyped]]
 
-          def send_input_chunk: (String chunked_payload, String serialized_tags) -> Core::Transport::Response
+          def send_input_chunk: (String chunked_payload, String serialized_tags) -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
 
           def encoder: () -> singleton(Core::Encoding::JSONEncoder)
         end
