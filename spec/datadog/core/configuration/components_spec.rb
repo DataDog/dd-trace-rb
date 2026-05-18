@@ -178,7 +178,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       context 'when symbol_database is disabled' do
         before { settings.symbol_database.enabled = false }
 
-        it 'does not build a symbol_database component' do
+        it 'does not build a symbol database component' do
           expect(components.symbol_database).to be nil
         end
       end
@@ -195,7 +195,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         after { components.symbol_database&.shutdown! }
 
-        it 'builds a SymbolDatabase::Component' do
+        it 'builds a symbol database component' do
           expect(components.symbol_database).to be_a(Datadog::SymbolDatabase::Component)
         end
       end
