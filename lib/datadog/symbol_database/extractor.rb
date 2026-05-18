@@ -614,12 +614,17 @@ module Datadog
 
       # ── extract_all helpers ──────────────────────────────────────────────
 
-      # Sleep between chunks of modules walked in collect_extractable_modules so
+      # Sleep between chunks of modules processed in collect_extractable_modules so
       # request-handling threads have guaranteed CPU time while extraction is in
       # flight. Unlike Thread.pass (which only offers the GVL among runnable
       # threads and leaves the extractor immediately re-runnable), sleep removes
       # the extractor thread from the runnable set for a fixed duration, capping
       # its CPU share at sleep_work_ratio regardless of GVL scheduling.
+      #
+      # The cadence is measured in modules that pass the singleton-class fast-path
+      # skip — singleton classes are discarded in microseconds and counting them
+      # would add wall-clock delay disproportionate to the work being done (e.g.
+      # on heavily monkey-patched processes that retain large singleton chains).
       SLEEP_EVERY_N_MODULES = 100
       SLEEP_SECONDS = 0.001
       private_constant :SLEEP_EVERY_N_MODULES, :SLEEP_SECONDS
@@ -631,9 +636,6 @@ module Datadog
         seen = 0
 
         ObjectSpace.each_object(Module) do |mod|
-          seen += 1
-          sleep SLEEP_SECONDS if (seen % SLEEP_EVERY_N_MODULES).zero?
-
           # Singleton classes (per-object metaclasses) are never user-code classes.
           # They're not const-referenced, DI cannot instrument methods on a singular
           # object instance, and on Ruby 2.6 specifically, Module#name on unnamed
@@ -642,6 +644,9 @@ module Datadog
           # — measured ~20ms per call, which dominates extract_all on heavily-loaded
           # processes. Ruby 2.7+ optimized this path; the skip is a no-op there.
           next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
+
+          seen += 1
+          sleep SLEEP_SECONDS if (seen % SLEEP_EVERY_N_MODULES).zero?
 
           mod_name = safe_mod_name(mod)
           next unless mod_name
