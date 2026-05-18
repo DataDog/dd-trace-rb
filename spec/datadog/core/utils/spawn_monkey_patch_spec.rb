@@ -37,7 +37,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
 
     def run_spawn_capture(*spawn_args)
       read_io, write_io = IO.pipe
-      pipe_opts = { out: write_io, err: write_io, in: File::NULL }
+      pipe_opts = {out: write_io, err: write_io, in: File::NULL}
       if spawn_args.last.is_a?(Hash) && spawn_args.last.keys.all? { |k| k.is_a?(Symbol) || k.is_a?(Integer) }
         spawn_args[-1] = spawn_args.last.merge(pipe_opts)
       else
@@ -63,10 +63,43 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
     it 'positional Hash options work (opts = {...}; Process.spawn(cmd, opts))' do
       expect_in_fork do
         described_class.apply!(lineage_envs_provider: -> { {} })
-        options = { pgroup: true }
+        options = {pgroup: true}
         status, out = run_spawn_capture(%(printf 'hello\n'), options)
         expect(status).to eq(0)
         expect(out).to include('hello')
+      end
+    end
+
+    # Regression test for the bug this PR fixes. `childprocess` sets
+    # `options[writer.fileno] = :close` on duplex pipes, producing an options
+    # Hash with mixed Integer + Symbol keys (https://github.com/enkessler/childprocess/blob/master/lib/childprocess/process_spawn_process.rb).
+    #
+    # On Ruby 2.5/2.6/2.7, the prior wrapper signature `def spawn(*args, **opts)`
+    # partially extracted the Symbol-keyed entries of that Hash into `**opts`
+    # while leaving the Integer-keyed entries in the trailing positional Hash —
+    # mangling the call and raising `TypeError: no implicit conversion of Hash
+    # into String` inside `super`. Ruby 3+ does not auto-extract positional
+    # Hashes so the bug was invisible there.
+    #
+    # Dropping `**opts` from the wrapper means the entire options Hash stays
+    # positional in `*args`, regardless of its key shape, and `Process.spawn`
+    # receives it intact.
+    #
+    # No env-Hash is passed here so the test is independent of the constant-
+    # shadow fix in PR #5773.
+    it 'positional options Hash with mixed Symbol + Integer keys (childprocess close-on-exec form)' do
+      expect_in_fork do
+        described_class.apply!(lineage_envs_provider: -> { {} })
+        spare_r, spare_w = IO.pipe
+        begin
+          options = {:pgroup => true, spare_r.fileno => :close, spare_w.fileno => :close}
+          status, out = run_spawn_capture(%(printf 'hello\n'), options)
+          expect(status).to eq(0)
+          expect(out).to include('hello')
+        ensure
+          spare_r.close
+          spare_w.close
+        end
       end
     end
   end
