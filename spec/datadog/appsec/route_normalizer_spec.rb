@@ -143,6 +143,10 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
       it { expect(described_class.normalize('/*path', {}, '/')).to eq('/{path}') }
     end
 
+    context 'when route has nameless glob' do
+      it { expect(described_class.normalize('/*', {}, '/')).to eq('/{param1}') }
+    end
+
     context 'when route has static chars needing URL encoding' do
       it { expect(described_class.normalize('/hello world', {}, '/')).to eq('/hello%20world') }
     end
@@ -157,6 +161,10 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
 
     context 'when route is root' do
       it { expect(described_class.normalize('/', {}, '/')).to eq('/') }
+    end
+
+    context 'when route has trailing slash' do
+      it { expect(described_class.normalize('/users/', {}, '/users/')).to eq('/users/') }
     end
   end
 

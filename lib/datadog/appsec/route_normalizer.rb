@@ -11,9 +11,11 @@ module Datadog
       PATH_PARAMS_KEY = 'action_dispatch.request.path_parameters'
 
       PARAM_PATTERN = /(?<=:|(?<!\w)\*)\w+/
+      NAMELESS_GLOB_PATTERN = /(?<!\w)\*(?!\w)/
       OPTIONAL_GROUP_PATTERN = /\(([^()]*)\)/
 
       UNRESERVED_CHARS = /[^A-Za-z0-9.\-~_\/]/
+      HAS_DYNAMIC = /[:\*]/
 
       module_function
 
@@ -47,7 +49,10 @@ module Datadog
       def normalize(spec, path_params, request_path)
         resolved = resolve_optionals(spec, path_params, request_path)
 
-        result = resolved.split('/').map { |segment| normalize_segment(segment) }.join('/')
+        nameless_counter = 0
+        result = resolved.split('/', -1).map { |segment|
+          normalize_segment(segment) { nameless_counter += 1 }
+        }.join('/')
         result = "/#{result}" unless result.start_with?('/')
         result
       end
@@ -91,11 +96,12 @@ module Datadog
 
       def normalize_segment(segment)
         return segment if segment.empty?
+        return encode_static(segment) unless segment.match?(HAS_DYNAMIC)
 
         param_names = segment.scan(PARAM_PATTERN)
 
         if param_names.empty?
-          encode_static(segment)
+          segment.match?(NAMELESS_GLOB_PATTERN) ? "{param#{yield}}" : encode_static(segment)
         else
           "{#{param_names.join('+')}}"
         end
