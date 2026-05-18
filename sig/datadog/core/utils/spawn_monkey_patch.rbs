@@ -8,7 +8,7 @@ module Datadog
         def self.apply!: (lineage_envs_provider: ^() -> ::Hash[::String, ::String]) -> true
 
         module ProcessSpawnPatch
-          def spawn: (*untyped args, **untyped opts) -> untyped
+          def spawn: (*untyped args) -> untyped
         end
 
         def self.inject_lineage_envs: (untyped args) -> ::Array[untyped]
