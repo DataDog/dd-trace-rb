@@ -12,7 +12,7 @@ module Datadog
         end
 
         module ProcessSpawnPatch
-          def spawn(*args, **opts)
+          def spawn(*args)
             args.replace(SpawnMonkeyPatch.inject_lineage_envs(args))
             super
           end
