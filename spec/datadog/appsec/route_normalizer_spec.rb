@@ -147,6 +147,10 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
       it { expect(described_class.normalize('/hello world', {}, '/')).to eq('/hello%20world') }
     end
 
+    context 'when route has multi-byte static chars' do
+      it { expect(described_class.normalize('/café', {}, '/')).to eq('/caf%C3%A9') }
+    end
+
     context 'when route has no params at all' do
       it { expect(described_class.normalize('/api/v1/health', {}, '/')).to eq('/api/v1/health') }
     end

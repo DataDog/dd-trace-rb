@@ -102,7 +102,7 @@ module Datadog
       end
 
       def encode_static(segment)
-        segment.gsub(UNRESERVED_CHARS) { |c| "%%%02X" % c.ord }
+        segment.gsub(UNRESERVED_CHARS) { |c| c.bytes.map { |b| "%%%02X" % b }.join }
       end
     end
   end
