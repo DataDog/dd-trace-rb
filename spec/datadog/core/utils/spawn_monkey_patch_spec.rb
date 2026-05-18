@@ -48,7 +48,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
       if spawn_args.last.is_a?(Hash) && spawn_args.last.keys.all? { |k| k.is_a?(Symbol) || k.is_a?(Integer) }
         spawn_args[-1] = spawn_args.last.merge(out: write_io, err: write_io, in: File::NULL)
       else
-        spawn_args << { out: write_io, err: write_io, in: File::NULL }
+        spawn_args << {out: write_io, err: write_io, in: File::NULL}
       end
       pid = Process.spawn(*spawn_args)
       write_io.close
@@ -58,74 +58,74 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
       [pid.is_a?(Integer), status.exitstatus, output]
     end
 
-    LINEAGE_VAR = 'DD_LINEAGE_PROBE'
-    LINEAGE_VAL = 'lineage-value-zzz'
-    PROBE_CMD = %(printf 'LINEAGE=%s\n' "$#{LINEAGE_VAR}")
+    let(:lineage_var) { 'DD_LINEAGE_PROBE' }
+    let(:lineage_val) { 'lineage-value-zzz' }
+    let(:probe_cmd) { %(printf 'LINEAGE=%s\n' "$#{lineage_var}") }
 
     it 'spawn(cmd_string) — no env, no options' do
       expect_in_fork do
-        described_class.apply!(lineage_envs_provider: -> { { LINEAGE_VAR => LINEAGE_VAL } })
-        ok, status, out = run_spawn(PROBE_CMD)
+        described_class.apply!(lineage_envs_provider: -> { {lineage_var => lineage_val} })
+        ok, status, out = run_spawn(probe_cmd)
         expect(ok).to be(true)
         expect(status).to eq(0)
-        expect(out).to include("LINEAGE=#{LINEAGE_VAL}")
+        expect(out).to include("LINEAGE=#{lineage_val}")
       end
     end
 
     it 'spawn(cmd, kw: ...) — kwargs option syntax' do
       expect_in_fork do
-        described_class.apply!(lineage_envs_provider: -> { { LINEAGE_VAR => LINEAGE_VAL } })
-        ok, status, out = run_spawn(PROBE_CMD, pgroup: true)
+        described_class.apply!(lineage_envs_provider: -> { {lineage_var => lineage_val} })
+        ok, status, out = run_spawn(probe_cmd, pgroup: true)
         expect(ok).to be(true)
         expect(status).to eq(0)
-        expect(out).to include("LINEAGE=#{LINEAGE_VAL}")
+        expect(out).to include("LINEAGE=#{lineage_val}")
       end
     end
 
     it 'spawn(cmd, options_hash) — positional options hash variable' do
       expect_in_fork do
-        described_class.apply!(lineage_envs_provider: -> { { LINEAGE_VAR => LINEAGE_VAL } })
-        options = { pgroup: true }
-        ok, status, out = run_spawn(PROBE_CMD, options)
+        described_class.apply!(lineage_envs_provider: -> { {lineage_var => lineage_val} })
+        options = {pgroup: true}
+        ok, status, out = run_spawn(probe_cmd, options)
         expect(ok).to be(true)
         expect(status).to eq(0)
-        expect(out).to include("LINEAGE=#{LINEAGE_VAL}")
+        expect(out).to include("LINEAGE=#{lineage_val}")
       end
     end
 
     it 'spawn(env_hash, cmd)' do
       expect_in_fork do
-        described_class.apply!(lineage_envs_provider: -> { { LINEAGE_VAR => LINEAGE_VAL } })
-        ok, status, out = run_spawn({ 'EXTRA' => '1' }, PROBE_CMD)
+        described_class.apply!(lineage_envs_provider: -> { {lineage_var => lineage_val} })
+        ok, status, out = run_spawn({'EXTRA' => '1'}, probe_cmd)
         expect(ok).to be(true)
         expect(status).to eq(0)
-        expect(out).to include("LINEAGE=#{LINEAGE_VAL}")
+        expect(out).to include("LINEAGE=#{lineage_val}")
       end
     end
 
     # Terrapin: `Process.spawn(env, command, options.merge(pipe.pipe_options))`
     it 'spawn(env_hash, cmd, options_hash) — terrapin shape' do
       expect_in_fork do
-        described_class.apply!(lineage_envs_provider: -> { { LINEAGE_VAR => LINEAGE_VAL } })
-        options = { pgroup: true }
-        ok, status, out = run_spawn({ 'EXTRA' => '1' }, PROBE_CMD, options)
+        described_class.apply!(lineage_envs_provider: -> { {lineage_var => lineage_val} })
+        options = {pgroup: true}
+        ok, status, out = run_spawn({'EXTRA' => '1'}, probe_cmd, options)
         expect(ok).to be(true)
         expect(status).to eq(0)
-        expect(out).to include("LINEAGE=#{LINEAGE_VAL}")
+        expect(out).to include("LINEAGE=#{lineage_val}")
       end
     end
 
     # ChildProcess multi-arg: `::Process.spawn(environment, *args, options)`
     it 'spawn(env_hash, *args, options_hash) — childprocess multi-arg shape' do
       expect_in_fork do
-        described_class.apply!(lineage_envs_provider: -> { { LINEAGE_VAR => LINEAGE_VAL } })
+        described_class.apply!(lineage_envs_provider: -> { {lineage_var => lineage_val} })
         env = {}
-        args = ['/bin/sh', '-c', PROBE_CMD]
-        options = { pgroup: true }
+        args = ['/bin/sh', '-c', probe_cmd]
+        options = {pgroup: true}
         ok, status, out = run_spawn(env, *args, options)
         expect(ok).to be(true)
         expect(status).to eq(0)
-        expect(out).to include("LINEAGE=#{LINEAGE_VAL}")
+        expect(out).to include("LINEAGE=#{lineage_val}")
       end
     end
 
@@ -133,51 +133,38 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
     # `Process.spawn(env, [cmd, argv0], options)`.
     it 'spawn(env_hash, [cmdname, argv0], options_hash) — childprocess single-arg shape' do
       expect_in_fork do
-        described_class.apply!(lineage_envs_provider: -> { { LINEAGE_VAR => LINEAGE_VAL } })
-        options = { pgroup: true }
-        ok, status, out = run_spawn({}, ['/bin/sh', 'argv0-name'], '-c', PROBE_CMD, options)
+        described_class.apply!(lineage_envs_provider: -> { {lineage_var => lineage_val} })
+        options = {pgroup: true}
+        ok, status, out = run_spawn({}, ['/bin/sh', 'argv0-name'], '-c', probe_cmd, options)
         expect(ok).to be(true)
         expect(status).to eq(0)
-        expect(out).to include("LINEAGE=#{LINEAGE_VAL}")
+        expect(out).to include("LINEAGE=#{lineage_val}")
       end
     end
 
-    # ChildProcess sets `options[writer.fileno] = :close` on duplex pipes,
-    # producing an options Hash with mixed Integer + Symbol keys.
-    it 'spawn(env, cmd, options_with_integer_fd_keys)' do
-      expect_in_fork do
-        described_class.apply!(lineage_envs_provider: -> { { LINEAGE_VAR => LINEAGE_VAL } })
-        spare_r, spare_w = IO.pipe
-        begin
-          options = { pgroup: true, spare_r.fileno => :close, spare_w.fileno => :close }
-          ok, status, out = run_spawn({}, '/bin/sh', '-c', PROBE_CMD, options)
-          expect(ok).to be(true)
-          expect(status).to eq(0)
-          expect(out).to include("LINEAGE=#{LINEAGE_VAL}")
-        ensure
-          spare_r.close
-          spare_w.close
-        end
-      end
-    end
+    # NOTE: childprocess's close-on-exec form (`options[writer.fileno] = :close`)
+    # produces an options Hash with mixed Integer + Symbol keys. On Ruby 2.5/2.6/2.7
+    # the wrapper's `**opts` parameter partially extracts that Hash into kwargs,
+    # mangling the call. That's a distinct bug from the constant shadow fixed here;
+    # see PR #5774 (drops `**opts`) for the fix and its regression test.
 
     it 'spawn(env, cmd, **opts) — caller uses kwargs splat' do
       expect_in_fork do
-        described_class.apply!(lineage_envs_provider: -> { { LINEAGE_VAR => LINEAGE_VAL } })
-        opts = { pgroup: true }
-        ok, status, out = run_spawn({ 'EXTRA' => '1' }, PROBE_CMD, **opts)
+        described_class.apply!(lineage_envs_provider: -> { {lineage_var => lineage_val} })
+        opts = {pgroup: true}
+        ok, status, out = run_spawn({'EXTRA' => '1'}, probe_cmd, **opts)
         expect(ok).to be(true)
         expect(status).to eq(0)
-        expect(out).to include("LINEAGE=#{LINEAGE_VAL}")
+        expect(out).to include("LINEAGE=#{lineage_val}")
       end
     end
 
     it 'parent process ENV reaches the child when caller passes an env hash' do
       expect_in_fork do
-        described_class.apply!(lineage_envs_provider: -> { { LINEAGE_VAR => LINEAGE_VAL } })
+        described_class.apply!(lineage_envs_provider: -> { {lineage_var => lineage_val} })
         ENV['PARENT_ONLY_VAR'] = 'parent-only-value'
         cmd = %(printf 'PARENT=%s\n' "$PARENT_ONLY_VAR")
-        ok, status, out = run_spawn({ 'EXTRA' => '1' }, cmd)
+        ok, status, out = run_spawn({'EXTRA' => '1'}, cmd)
         expect(ok).to be(true)
         expect(status).to eq(0)
         expect(out).to include('PARENT=parent-only-value')
@@ -186,12 +173,12 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
 
     it 'does not mutate the env Hash supplied by the caller' do
       expect_in_fork do
-        described_class.apply!(lineage_envs_provider: -> { { LINEAGE_VAR => LINEAGE_VAL } })
-        caller_env = { 'CALLER_KEY' => 'caller-value' }
+        described_class.apply!(lineage_envs_provider: -> { {lineage_var => lineage_val} })
+        caller_env = {'CALLER_KEY' => 'caller-value'}
         before_keys = caller_env.keys.dup
-        run_spawn(caller_env, PROBE_CMD)
+        run_spawn(caller_env, probe_cmd)
         expect(caller_env.keys).to eq(before_keys)
-        expect(caller_env).not_to have_key(LINEAGE_VAR)
+        expect(caller_env).not_to have_key(lineage_var)
       end
     end
   end
