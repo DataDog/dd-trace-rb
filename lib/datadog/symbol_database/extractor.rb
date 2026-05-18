@@ -614,12 +614,26 @@ module Datadog
 
       # ── extract_all helpers ──────────────────────────────────────────────
 
+      # Sleep between chunks of modules walked in collect_extractable_modules so
+      # request-handling threads have guaranteed CPU time while extraction is in
+      # flight. Unlike Thread.pass (which only offers the GVL among runnable
+      # threads and leaves the extractor immediately re-runnable), sleep removes
+      # the extractor thread from the runnable set for a fixed duration, capping
+      # its CPU share at sleep_work_ratio regardless of GVL scheduling.
+      SLEEP_EVERY_N_MODULES = 100
+      SLEEP_SECONDS = 0.001
+      private_constant :SLEEP_EVERY_N_MODULES, :SLEEP_SECONDS
+
       # Pass 1: Collect all extractable modules with methods grouped by source file.
       # @return [Hash] { mod_name => { mod:, methods_by_file: { path => [{name:, method:, type:}] } } }
       def collect_extractable_modules
         entries = {}
+        seen = 0
 
         ObjectSpace.each_object(Module) do |mod|
+          seen += 1
+          sleep SLEEP_SECONDS if (seen % SLEEP_EVERY_N_MODULES).zero?
+
           # Singleton classes (per-object metaclasses) are never user-code classes.
           # They're not const-referenced, DI cannot instrument methods on a singular
           # object instance, and on Ruby 2.6 specifically, Module#name on unnamed
