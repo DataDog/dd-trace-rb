@@ -237,7 +237,7 @@ module Datadog
 
             # NOTE: To build full path that covers mounted engines we need to add
             #       pre-computed by Tracer route path tag to the normalized route
-            route_path = context.trace&.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
+            route_path = context.trace&.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH) || env['SCRIPT_NAME']
             span.set_tag(AppSec::Ext::TAG_NORMALIZED_ROUTE, "#{route_path}#{normalized_route}")
           end
 

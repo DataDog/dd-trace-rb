@@ -48,7 +48,7 @@ RSpec.describe 'Normalized route tag' do
   let(:service_span) { spans.find { |s| s.metrics.fetch('_dd.top_level', -1.0) > 0.0 } }
 
   let(:routes) do
-    route_env = simulated_env
+    route_env = rack_env
     proc do
       run(proc do |env|
         env.merge!(route_env)
@@ -61,7 +61,7 @@ RSpec.describe 'Normalized route tag' do
     context 'when route has params and format absent' do
       before { get('/', {}, 'REMOTE_ADDR' => '127.0.0.1') }
 
-      let(:simulated_env) do
+      let(:rack_env) do
         {
           'datadog.action_dispatch.route' => route_object('/users/:id(.:format)'),
           'action_dispatch.request.path_parameters' => {id: '42', format: nil},
@@ -75,7 +75,7 @@ RSpec.describe 'Normalized route tag' do
     context 'when route has format present in URL' do
       before { get('/', {}, 'REMOTE_ADDR' => '127.0.0.1') }
 
-      let(:simulated_env) do
+      let(:rack_env) do
         {
           'datadog.action_dispatch.route' => route_object('/posts/:id(.:format)'),
           'action_dispatch.request.path_parameters' => {id: '1', format: 'json'},
@@ -89,7 +89,7 @@ RSpec.describe 'Normalized route tag' do
     context 'when route is static' do
       before { get('/', {}, 'REMOTE_ADDR' => '127.0.0.1') }
 
-      let(:simulated_env) do
+      let(:rack_env) do
         {
           'datadog.action_dispatch.route' => route_object('/health'),
           'action_dispatch.request.path_parameters' => {},
@@ -103,7 +103,7 @@ RSpec.describe 'Normalized route tag' do
     context 'when route has nested optionals with partial match' do
       before { get('/', {}, 'REMOTE_ADDR' => '127.0.0.1') }
 
-      let(:simulated_env) do
+      let(:rack_env) do
         {
           'datadog.action_dispatch.route' => route_object('/posts(/:year(/:month(/:day)))'),
           'action_dispatch.request.path_parameters' => {year: '2024'},
@@ -119,7 +119,7 @@ RSpec.describe 'Normalized route tag' do
     context 'when route has params' do
       before { get('/', {}, 'REMOTE_ADDR' => '127.0.0.1') }
 
-      let(:simulated_env) do
+      let(:rack_env) do
         {
           'action_dispatch.route_uri_pattern' => '/articles/:slug(.:format)',
           'action_dispatch.request.path_parameters' => {slug: 'hello-world', format: nil},
@@ -135,7 +135,7 @@ RSpec.describe 'Normalized route tag' do
     context 'when route has params' do
       before { get('/', {}, 'REMOTE_ADDR' => '127.0.0.1') }
 
-      let(:simulated_env) do
+      let(:rack_env) do
         {
           'sinatra.route' => 'GET /users/:id',
           'PATH_INFO' => '/users/42',
@@ -150,7 +150,7 @@ RSpec.describe 'Normalized route tag' do
     context 'when route has params' do
       before { get('/', {}, 'REMOTE_ADDR' => '127.0.0.1') }
 
-      let(:simulated_env) do
+      let(:rack_env) do
         pattern = double('Grape::Router::Pattern', origin: '/api/users/:id')
         route_info = double('Grape::Router::Route', pattern: pattern)
         {
@@ -170,7 +170,7 @@ RSpec.describe 'Normalized route tag' do
         get('/', {}, 'REMOTE_ADDR' => '127.0.0.1')
       end
 
-      let(:simulated_env) { {} }
+      let(:rack_env) { {} }
 
       it { expect(service_span.get_tag('_dd.appsec.normalized_route')).to be_nil }
     end
@@ -184,7 +184,7 @@ RSpec.describe 'Normalized route tag' do
       get('/', {}, 'REMOTE_ADDR' => '127.0.0.1')
     end
 
-    let(:simulated_env) do
+    let(:rack_env) do
       {
         'datadog.action_dispatch.route' => route_object('/users/:id(.:format)'),
         'action_dispatch.request.path_parameters' => {id: '42', format: nil},
@@ -202,7 +202,7 @@ RSpec.describe 'Normalized route tag' do
       end
 
       let(:routes) do
-        route_env = simulated_env
+        route_env = rack_env
         proc do
           run(proc do |env|
             env.merge!(route_env)
@@ -213,7 +213,7 @@ RSpec.describe 'Normalized route tag' do
         end
       end
 
-      let(:simulated_env) do
+      let(:rack_env) do
         {
           'datadog.action_dispatch.route' => route_object('/users/:id(.:format)'),
           'action_dispatch.request.path_parameters' => {id: '42', format: nil},
@@ -222,6 +222,20 @@ RSpec.describe 'Normalized route tag' do
       end
 
       it { expect(service_span.get_tag('_dd.appsec.normalized_route')).to eq('/api/v2/users/{id}') }
+    end
+
+    context 'when SCRIPT_NAME is set and TAG_ROUTE_PATH is absent' do
+      before { get('/', {}, 'REMOTE_ADDR' => '127.0.0.1') }
+
+      let(:rack_env) do
+        {
+          'sinatra.route' => 'GET /users/:id',
+          'PATH_INFO' => '/users/42',
+          'SCRIPT_NAME' => '/myapp',
+        }
+      end
+
+      it { expect(service_span.get_tag('_dd.appsec.normalized_route')).to eq('/myapp/users/{id}') }
     end
   end
 
