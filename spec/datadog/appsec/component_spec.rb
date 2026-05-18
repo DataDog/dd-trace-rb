@@ -53,6 +53,18 @@ RSpec.describe Datadog::AppSec::Component do
 
         expect(described_class.build_appsec_component(settings, telemetry: telemetry)).to be_nil
       end
+
+      context 'when require of libddwaf raises non standard exception' do
+        before do
+          allow(described_class).to receive(:require_libddwaf).and_raise(LoadError, 'libddwaf not found')
+        end
+
+        it 'returns nil and logs a warning' do
+          expect(Datadog.logger).to receive(:warn).with(/LoadError.*libddwaf not found/)
+
+          expect(described_class.build_appsec_component(settings, telemetry: telemetry)).to be_nil
+        end
+      end
     end
 
     context 'when appsec is not enabled' do
