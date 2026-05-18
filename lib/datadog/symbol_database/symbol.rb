@@ -42,7 +42,10 @@ module Datadog
       end
 
       # Convert symbol to Hash for JSON serialization.
-      # Removes nil values to reduce payload size.
+      # The `type` key is always present per the symdb JSON schema — emit nil
+      # when the type cannot be determined (the common case in Ruby since
+      # parameters and instance variables carry no declared type).
+      # `language_specifics` is omitted when nil to reduce payload size.
       # @return [Hash] Symbol as hash with symbol keys
       def to_h
         h = {
@@ -50,9 +53,8 @@ module Datadog
           name: name,
           line: line,
           type: type,
-          language_specifics: language_specifics,
         }
-        h.compact!
+        h[:language_specifics] = language_specifics if language_specifics
         h
       end
 
