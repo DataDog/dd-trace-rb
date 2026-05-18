@@ -89,6 +89,7 @@ class SymbolDatabaseBackgroundImpactBenchmark
       results[:platform] = RUBY_PLATFORM
 
       emit(results)
+      results
     end
   end
 
@@ -325,8 +326,41 @@ class SymbolDatabaseBackgroundImpactBenchmark
 
     File.write("#{File.basename(__FILE__, '.rb')}-results.json", json)
   end
+
+  # Enforce requirements.md line 23: "Extraction must not block the application's
+  # request handling." A regression that removes the in-extractor throttle would
+  # push p99_ratio toward ~2.0 and throughput_ratio toward ~0.7 (measured on a
+  # 2,500-class workload). Thresholds are conservative — they pass with current
+  # throttling (ratios ~1.05 / ~0.99) and fail dramatically without it.
+  P99_RATIO_THRESHOLD = 1.50
+  THROUGHPUT_RATIO_THRESHOLD = 0.80
+
+  def enforce_requirement(results)
+    return if VALIDATE_BENCHMARK_MODE # 10-class / 200-iter ratios are too noisy to threshold
+
+    s = results[:summary]
+    failures = []
+
+    p99_ratio = s[:p99_ratio_treatment_over_baseline]
+    if p99_ratio && p99_ratio > P99_RATIO_THRESHOLD
+      failures << "p99_ratio_treatment_over_baseline=#{'%.2f' % p99_ratio} exceeds threshold #{P99_RATIO_THRESHOLD}"
+    end
+
+    tput_ratio = s[:throughput_ratio_treatment_over_baseline]
+    if tput_ratio && tput_ratio < THROUGHPUT_RATIO_THRESHOLD
+      failures << "throughput_ratio_treatment_over_baseline=#{'%.2f' % tput_ratio} below threshold #{THROUGHPUT_RATIO_THRESHOLD}"
+    end
+
+    return if failures.empty?
+
+    warn "Symbol database extraction violates requirements.md line 23 (must not block request handling):"
+    failures.each { |f| warn "  - #{f}" }
+    exit 1
+  end
 end
 
 puts "Current pid is #{Process.pid}"
 
-SymbolDatabaseBackgroundImpactBenchmark.new.run
+benchmark = SymbolDatabaseBackgroundImpactBenchmark.new
+results = benchmark.run
+benchmark.enforce_requirement(results) if results
