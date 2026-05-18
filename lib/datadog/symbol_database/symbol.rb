@@ -48,6 +48,7 @@ module Datadog
       # `language_specifics` is omitted when nil to reduce payload size.
       # @return [Hash] Symbol as hash with symbol keys
       def to_h
+        # @type var h: Hash[::Symbol, untyped]
         h = {
           symbol_type: symbol_type,
           name: name,
