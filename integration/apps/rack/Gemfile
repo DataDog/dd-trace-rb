@@ -14,7 +14,7 @@ gem 'rackup'
 
 # Known compatibility issue: https://github.com/redis/redis-rb/issues/1142
 gem 'redis', '< 5'
-gem 'sidekiq'
+gem 'sidekiq', '~> 7'
 gem 'resque'
 gem 'rake'
 
