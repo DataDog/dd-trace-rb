@@ -369,7 +369,7 @@ module Datadog
         when String
           serialize_string_or_symbol_for_message(value)
         when Symbol
-          ':' + serialize_string_or_symbol_for_message(value)
+          ':' + serialize_string_or_symbol_for_message(value) # steep:ignore ArgumentTypeMismatch
         when Array
           return '...' if depth <= 0
 
@@ -482,7 +482,7 @@ module Datadog
             if max % 2 == 0
               upper += 1
             end
-            value[0...max / 2 - 1] + '...' + value[upper...length]
+            value[0...max / 2 - 1] + '...' + value[upper...length] # steep:ignore NoMethod
           end
         else
           value
