@@ -368,6 +368,13 @@ while processing another probe firing, the probe is suppressed for
 that internal call and does not count towards the rate limit. Customer
 code calls to the same method fire the probe normally.
 
+Known limitation: on Ruby 3.3 and later, method probes on
+`Kernel#lambda` are not supported and may raise `ArgumentError` when
+the probed call site passes a non-literal block. This is a language
+behavior in Ruby 3.3+ that affects how the probe's wrapper invokes
+the original method; the tracer cannot work around it. Avoid setting
+probes on `Kernel#lambda` on Ruby 3.3+.
+
 ## Getting Help
 
 For the latest updates, known issues, and to provide feedback, please
