@@ -500,12 +500,10 @@ module Datadog
         component = self
         @hot_load_tracepoint = TracePoint.new(:class) do |tp|
           mod = tp.self
-          # steep:ignore:start
           next if mod.singleton_class?
           component.send(:enqueue_hot_load, mod)
-          # steep:ignore:end
         end
-        @hot_load_tracepoint.enable
+        @hot_load_tracepoint.enable # steep:ignore NoMethod
       end
 
       # Enqueue a hot-loaded module and signal the scheduler.
