@@ -132,7 +132,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
   # Regression coverage for https://github.com/DataDog/dd-trace-rb/issues/5621.
   #
   # When the env-detection check used bare `Hash`, it resolved to
-  # `Datadog::Core::Utils::Hash` (a refinement module) via Module.nesting,
+  # `Datadog::Core::Utils::Hash` via Module.nesting,
   # so `Hash === real_env_hash` silently returned false. `#inject_envs` then took
   # the wrong branch and broke callers that pass an env `{Hash}` first
   # (TypeError: no implicit conversion of Hash into String).

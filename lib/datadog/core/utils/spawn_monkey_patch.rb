@@ -38,7 +38,7 @@ module Datadog
         # See https://docs.ruby-lang.org/en/master/Process.html#module-Process-label-Environment+Variables+-28-3Aunsetenv_others-29
         #
         # NOTE: `::Hash` (not bare `Hash`) is required because this module is nested under
-        # `Datadog::Core::Utils`, and `Datadog::Core::Utils::Hash` exists as a refinement module.
+        # `Datadog::Core::Utils`, and `Datadog::Core::Utils::Hash` exists.
         # Bare `Hash` resolves to that module via Module.nesting, making `Hash === some_hash`
         # silently return `false`. See https://github.com/DataDog/dd-trace-rb/issues/5621.
         def self.inject_envs(args)

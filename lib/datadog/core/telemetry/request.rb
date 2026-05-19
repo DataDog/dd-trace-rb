@@ -2,7 +2,6 @@
 
 require_relative '../environment/platform'
 require_relative '../environment/process'
-require_relative '../utils/hash'
 
 module Datadog
   module Core
@@ -10,8 +9,6 @@ module Datadog
       # Module defining methods for collecting metadata for telemetry
       module Request
         class << self
-          using Core::Utils::Hash::Refinement
-
           def build_payload(event, seq_id, debug: false)
             hash = {
               api_version: 'v2',
