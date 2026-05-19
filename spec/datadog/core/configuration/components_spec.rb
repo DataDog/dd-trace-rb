@@ -114,8 +114,24 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       context 'DI is not enabled' do
-        it 'reports DI as disabled' do
-          expect(components.dynamic_instrumentation).to be nil
+        # The DI component is now always built when settings respond to
+        # dynamic_instrumentation (regardless of the env-var enabled flag),
+        # so it can be started later by remote config if the customer turns
+        # it on from the UI. With the env-var unset, the component is built
+        # but stays stopped (not started?), and the env logger reports the
+        # customer-configured value as false.
+        before(:all) do
+          skip 'Test requires MRI' if PlatformHelpers.jruby?
+          skip 'Test requires DI C extension' unless Datadog::DI.respond_to?(:exception_message)
+        end
+
+        after do
+          components.dynamic_instrumentation&.shutdown!
+        end
+
+        it 'builds the component but reports DI as disabled' do
+          expect(components.dynamic_instrumentation).to be_a(Datadog::DI::Component)
+          expect(components.dynamic_instrumentation.started?).to be false
           expect(extra).to eq(dynamic_instrumentation_enabled: false)
         end
       end
@@ -154,7 +170,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           end
 
           it 'reports DI as disabled' do
-            expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/C extension is not available/) }
+            expect(logger).to receive(:warn).with(/C extension is not available/)
             expect(components.dynamic_instrumentation).to be nil
             expect(extra).to eq(dynamic_instrumentation_enabled: false)
           end

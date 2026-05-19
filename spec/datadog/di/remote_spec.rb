@@ -37,6 +37,135 @@ RSpec.describe Datadog::DI::Remote do
     )
   end
 
+  describe '.handle_rc_enablement' do
+    # Verifies the RC-driven enable/disable path invoked from
+    # Datadog::Tracing::Remote when `dynamic_instrumentation_enabled`
+    # arrives in an APM_TRACING payload. This is the entire entry
+    # point for the implicit-enablement feature.
+
+    let(:component) { instance_double(Datadog::DI::Component) }
+    let(:components) { instance_double(Datadog::Core::Configuration::Components, dynamic_instrumentation: component) }
+
+    before do
+      allow(Datadog).to receive(:send).with(:components).and_return(components)
+    end
+
+    context 'when enabled: true and component is not explicitly disabled' do
+      before do
+        allow(described_class).to receive(:explicitly_disabled?).and_return(false)
+      end
+
+      it 'activates tracking and starts the component' do
+        expect(Datadog::DI).to receive(:activate_tracking)
+        expect(component).to receive(:start!)
+        described_class.handle_rc_enablement(true)
+      end
+    end
+
+    context 'when enabled: true and component is explicitly disabled (env var false)' do
+      before do
+        allow(described_class).to receive(:explicitly_disabled?).and_return(true)
+      end
+
+      it 'does not start the component (env var takes precedence)' do
+        expect(Datadog::DI).not_to receive(:activate_tracking)
+        expect(component).not_to receive(:start!)
+        described_class.handle_rc_enablement(true)
+      end
+    end
+
+    context 'when enabled: false' do
+      it 'stops the component (idempotent — also stops if not started)' do
+        expect(component).to receive(:stop!)
+        described_class.handle_rc_enablement(false)
+      end
+    end
+
+    context 'when component is nil (DI not built)' do
+      let(:components) { instance_double(Datadog::Core::Configuration::Components, dynamic_instrumentation: nil) }
+
+      it 'is a no-op on enable' do
+        expect(Datadog::DI).not_to receive(:activate_tracking)
+        described_class.handle_rc_enablement(true)
+      end
+
+      it 'is a no-op on disable' do
+        # No component to call stop! on; method returns without error.
+        expect { described_class.handle_rc_enablement(false) }.not_to raise_error
+      end
+    end
+
+    context 'when an exception is raised inside the body' do
+      let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+      let(:components) do
+        instance_double(
+          Datadog::Core::Configuration::Components,
+          dynamic_instrumentation: component,
+          telemetry: telemetry,
+        )
+      end
+
+      before do
+        allow(described_class).to receive(:explicitly_disabled?).and_return(false)
+        allow(Datadog::DI).to receive(:activate_tracking)
+        allow(component).to receive(:start!).and_raise(RuntimeError, 'boom')
+      end
+
+      it 'logs at debug and reports to telemetry, does not raise' do
+        expect(Datadog.logger).to receive(:debug) do |&block|
+          expect(block.call).to match(/error handling implicit enablement.*RuntimeError.*boom/)
+        end
+        expect(telemetry).to receive(:report).with(an_instance_of(RuntimeError), description: /implicit enablement/)
+        expect { described_class.handle_rc_enablement(true) }.not_to raise_error
+      end
+    end
+  end
+
+  describe '.explicitly_disabled?' do
+    # The precedence rule between env var and RC: env var
+    # `DD_DYNAMIC_INSTRUMENTATION_ENABLED=false` blocks RC enablement.
+    # An unset env var (default_precedence?) does not.
+
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+    let(:di_settings) { settings.dynamic_instrumentation }
+
+    before do
+      allow(Datadog).to receive(:configuration).and_return(settings)
+    end
+
+    context 'when the env var is unset (default precedence) and enabled remains default false' do
+      before do
+        # Touch the getter so the Option is materialized at default precedence
+        # (options are lazy-initialized on first access).
+        di_settings.enabled
+      end
+
+      it 'returns false (RC may enable)' do
+        expect(described_class.explicitly_disabled?).to be false
+      end
+    end
+
+    context 'when the env var is explicitly set to false by the customer' do
+      before do
+        di_settings.enabled = false
+      end
+
+      it 'returns true (RC enablement is blocked)' do
+        expect(described_class.explicitly_disabled?).to be true
+      end
+    end
+
+    context 'when the env var is explicitly set to true' do
+      before do
+        di_settings.enabled = true
+      end
+
+      it 'returns false (explicitly enabled — RC may also try to enable)' do
+        expect(described_class.explicitly_disabled?).to be false
+      end
+    end
+  end
+
   describe '.receivers' do
     let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 

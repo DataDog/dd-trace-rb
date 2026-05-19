@@ -25,6 +25,10 @@ module Datadog
 
       attr_reader probe_repository: ProbeRepository
 
+      def stop: () -> void
+
+      def reopen: () -> void
+
       def close: () -> void
 
       def clear_hooks: () -> void

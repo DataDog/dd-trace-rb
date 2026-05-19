@@ -31,10 +31,14 @@ RSpec.describe 'DI remote config' do
   let(:component) do
     # TODO should this use Component.new? We have to manually pass in
     # the code tracker in that case.
+    #
+    # Call start! so the RC receiver actually processes probe changes —
+    # the new lifecycle gates change processing on `component.started?`.
     Datadog::DI::Component.build(settings, agent_settings, logger).tap do |component|
       if component.nil?
         raise "Component failed to create - unsuitable environment? Check log entries"
       end
+      component.start!
     end
   end
 

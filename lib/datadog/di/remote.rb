@@ -37,7 +37,7 @@ module Datadog
             component.stop!
           end
         rescue => e
-          Datadog.logger.debug { "di: error handling implicit enablement: #{e.class}: #{e}" }
+          Datadog.logger.debug { "di: error handling implicit enablement: #{e.class}: #{e.message}" }
           Datadog.send(:components).telemetry&.report(e, description: "Error handling DI implicit enablement")
         end
 

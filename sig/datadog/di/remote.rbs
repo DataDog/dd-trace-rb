@@ -7,6 +7,10 @@ module Datadog
 
       def self.capabilities: () -> ::Array[Integer]
 
+      def self.handle_rc_enablement: (bool enabled) -> void
+
+      def self.explicitly_disabled?: () -> bool
+
       def self.receivers: (Core::Telemetry::Component? telemetry) -> ::Array[Core::Remote::Dispatcher::Receiver]
 
       def self.receiver: (?::Array[String] products) { (Core::Remote::Configuration::Repository, ::Array[Core::Remote::Configuration::Repository::change]) -> void } -> ::Array[Core::Remote::Dispatcher::Receiver]
