@@ -52,7 +52,7 @@ RSpec.describe Datadog::DI::Component do
       end
 
       it 'returns nil' do
-        expect(logger).to receive(:debug)
+        expect(logger).to receive(:warn).with(/C extension is not available/)
         component = described_class.build(settings, agent_settings, logger)
         expect(component).to be nil
       end
@@ -126,10 +126,22 @@ RSpec.describe Datadog::DI::Component do
       expect(component.started?).to be true
     end
 
-    it 'does not have background threads when stopped' do
-      threads_before = Thread.list.size
-      # Component is built but stopped — no new threads
-      expect(Thread.list.size).to eq(threads_before)
+    it 'spawns a background thread on start! and reaps it on stop!' do
+      baseline = Thread.list.size
+      expect(component.started?).to be false
+      # Component built but not yet started — no new threads beyond baseline.
+      expect(Thread.list.size).to eq(baseline)
+
+      component.start!
+      expect(Thread.list.size).to be > baseline
+
+      component.stop!
+      # Probe notifier worker thread exits on stop; allow brief grace for join.
+      deadline = Datadog::Core::Utils::Time.get_time + 2.0
+      while Thread.list.size > baseline && Datadog::Core::Utils::Time.get_time < deadline
+        Thread.pass
+      end
+      expect(Thread.list.size).to eq(baseline)
     end
 
     it 'definition trace point is disabled when stopped' do

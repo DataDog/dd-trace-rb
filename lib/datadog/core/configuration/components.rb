@@ -177,7 +177,14 @@ module Datadog
           @symbol_database = Datadog::SymbolDatabase::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
           @data_streams = self.class.build_data_streams(settings, agent_settings, @logger, @agent_info)
-          @environment_logger_extra[:dynamic_instrumentation_enabled] = false
+          # Reflects "the customer configured DI to be on" — true iff the
+          # component was built AND the env-var-driven enabled flag is set.
+          # This is the post-initialize / pre-startup value visible to tests
+          # that don't call startup!. Production overwrites this in startup!
+          # below with `dynamic_instrumentation&.started?`, which also accounts
+          # for RC-driven enablement carried over via ComponentsState.
+          @environment_logger_extra[:dynamic_instrumentation_enabled] =
+            !!(@dynamic_instrumentation && settings.dynamic_instrumentation.enabled)
 
           # Configure non-privileged components.
           Datadog::Tracing::Contrib::Component.configure(settings)

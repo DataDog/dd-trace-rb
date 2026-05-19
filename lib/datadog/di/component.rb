@@ -49,7 +49,13 @@ module Datadog
             return false
           end
           unless DI.respond_to?(:exception_message)
-            logger.debug { "di: not building DI component: C extension is not available" }
+            # Customer-actionable: the C extension must be compiled at install
+            # time. Keep this at warn level so customers who set up DI but
+            # missed extension compilation see a diagnostic without enabling
+            # debug logs. The MRI/Ruby-version cases above are also failure
+            # modes, but those are platform constraints rather than
+            # build/install steps the customer can fix on their next deploy.
+            logger.warn("di: not building DI component: C extension is not available")
             return false
           end
           true
@@ -79,6 +85,10 @@ module Datadog
           settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, probe_repository,
           telemetry: telemetry,
         )
+        # @started transitions are serialized by @lifecycle_mutex so that
+        # concurrent RC callbacks (which run on the remote-config thread)
+        # cannot race a foreground start! with a background stop!.
+        @lifecycle_mutex = Mutex.new
         @started = false
       end
 
@@ -98,15 +108,20 @@ module Datadog
       # Starts the DI component: begins accepting probes and
       # processing snapshots.
       #
-      # Starts the probe notifier worker thread and enables the
-      # definition trace point for pending method probes.
-      # No-op if already started.
+      # Starts the probe notifier worker thread first (so any probe statuses
+      # produced by trace-point-driven installation have a worker to drain
+      # them), then enables the definition trace point for pending method
+      # probes. No-op if already started. Serialized by @lifecycle_mutex.
+      #
+      # @return [void]
       def start!
-        return if @started
+        @lifecycle_mutex.synchronize do
+          return if @started
 
-        probe_notifier_worker.start
-        probe_manager.reopen
-        @started = true
+          probe_notifier_worker.start
+          probe_manager.reopen
+          @started = true
+        end
       end
 
       # Stops the DI component: removes all probes and stops
@@ -114,15 +129,26 @@ module Datadog
       #
       # The component remains alive and can be restarted with {#start!}.
       # Does not clear out the code tracker.
-      # No-op if already stopped.
+      # No-op if already stopped. Serialized by @lifecycle_mutex.
+      #
+      # @return [void]
       def stop!
-        return unless @started
+        @lifecycle_mutex.synchronize do
+          return unless @started
 
-        probe_manager.stop
-        probe_notifier_worker.stop
-        @started = false
+          probe_manager.stop
+          probe_notifier_worker.stop
+          @started = false
+        end
       end
 
+      # Whether the component is currently started.
+      #
+      # Read by remote config dispatch to decide whether to apply probe
+      # changes (changes received while stopped are dropped, since the
+      # next start! will reconcile from the latest RC state).
+      #
+      # @return [Boolean] true if start! has been called and stop! has not
       def started?
         @started
       end

@@ -158,8 +158,12 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         settings
       end
 
-      it 'does not register symbol database product' do
-        expect(capabilities.products).to_not include('LIVE_DEBUGGING_SYMBOL_DB')
+      # Symbol database registration is now decoupled from the DI
+      # env-var-enabled flag — symbol_database registers based on its own
+      # `enabled` setting alone, matching DI's own always-register policy.
+      # This lets RC enable DI without re-running setup for symbol_database.
+      it 'registers symbol database product' do
+        expect(capabilities.products).to include('LIVE_DEBUGGING_SYMBOL_DB')
       end
     end
 
