@@ -2,6 +2,7 @@
 
 require_relative '../environment/platform'
 require_relative '../environment/process'
+require_relative '../utils/hash'
 
 module Datadog
   module Core
