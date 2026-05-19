@@ -32,6 +32,7 @@
       library_gem_loading.rb
       symbol_database_extraction.rb
       symbol_database_background_impact.rb
+      symbol_database_baseline_matrix.rb
 
 .execution:
   variables:
