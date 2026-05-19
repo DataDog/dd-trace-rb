@@ -21,7 +21,6 @@ RSpec.describe 'Symbol database extraction' do
     extractor = Datadog::SymbolDatabase::Extractor.new(
       logger: Datadog.logger,
       settings: Datadog.configuration,
-      telemetry: nil,
     )
 
     file_scopes = extractor.extract_all
