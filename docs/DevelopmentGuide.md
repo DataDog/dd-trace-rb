@@ -185,7 +185,7 @@ end
 3. Now let's generate that dependency Gemfile with `rake`. Simply run
 
 > [!IMPORTANT]
-> Ensure you are either using Ruby 3.3 as the current Ruby version (`ruby -v`) or running commands within a Docker container.
+> Ensure you are either using the repo's current Ruby version from `.ruby-version` (`ruby -v`) or running commands within a Docker container.
 
 ```console
 $ bundle exec rake dependency:generate
