@@ -146,7 +146,7 @@ module Datadog
         rescue Exception => e # rubocop:disable Lint/RescueException
           Datadog.logger.debug(
             "CodeProvenance#bundler_bin_path failed. " \
-            "Cause: #{e.class}: #{e} Location: #{Array(e.backtrace).first}"
+            "Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
           )
           nil
         end

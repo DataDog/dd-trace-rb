@@ -45,6 +45,7 @@ require 'support/test_helpers'
 require 'support/telemetry_helpers'
 require 'support/tracer_helpers'
 require 'support/http_server_helpers'
+require 'support/webmock_helper'
 
 begin
   # Ignore interpreter warnings from external libraries
@@ -132,6 +133,38 @@ RSpec.configure do |config|
   #    end
   config.before(:each, ruby: ->(value) { !PlatformHelpers.ruby_version_matches?(value) }) do |example|
     skip "Test requires Ruby #{example.metadata[:ruby]}"
+  end
+
+  # Skip all symbol_database specs on unsupported platforms. Symbol database requires
+  # MRI Ruby 2.6+; on JRuby and Ruby <2.6 the entire suite is skipped wholesale so that
+  # individual specs do not need to repeat the platform guard.
+  #
+  # To run a spec on an otherwise-skipped platform, tag it with
+  # `symdb_supported_platforms: true`. This opt-out exists for tests that validate the
+  # platform-guard behavior itself (e.g. that the Component refuses to initialize on
+  # JRuby) — those tests must run on JRuby/<2.6 to be meaningful.
+  #
+  #    describe 'Component build on unsupported platform', symdb_supported_platforms: true do
+  #      ...
+  #    end
+  #
+  #    it 'returns nil on JRuby', symdb_supported_platforms: true do
+  #      ...
+  #    end
+  if PlatformHelpers.jruby?
+    config.before(:each) do |example|
+      if example.file_path.include?('/symbol_database/') && !example.metadata[:symdb_supported_platforms]
+        skip 'Symbol database not supported on JRuby'
+      end
+    end
+  end
+
+  if RUBY_VERSION < '2.6'
+    config.before(:each) do |example|
+      if example.file_path.include?('/symbol_database/') && !example.metadata[:symdb_supported_platforms]
+        skip 'Symbol database requires Ruby 2.6+'
+      end
+    end
   end
 
   config.before(:example, ractors: true) do

@@ -47,7 +47,7 @@ module Datadog
 
               record_exception(span, payload)
             rescue => e
-              Datadog.logger.debug { "#{e.class}: #{e}" }
+              Datadog.logger.debug { "#{e.class}: #{e.message}" }
             end
           end
         end

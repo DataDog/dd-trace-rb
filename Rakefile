@@ -433,12 +433,18 @@ namespace :spec do
   task appsec: [:"appsec:all"]
 
   namespace :ai_guard do
-    task all: [:main, :ruby_llm]
+    task all: [:main, :rack, :ruby_llm]
 
     desc '' # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(:main) do |t, args|
       t.pattern = 'spec/datadog/ai_guard/**/*_spec.rb,spec/datadog/ai_guard_spec.rb'
       t.exclude_pattern = 'spec/datadog/ai_guard/contrib/**/*_spec.rb'
+      t.rspec_opts = args.to_a.join(' ')
+    end
+
+    desc '' # "Explicitly hiding from `rake -T`"
+    RSpec::Core::RakeTask.new(:rack) do |t, args|
+      t.pattern = "spec/datadog/ai_guard/contrib/rack/**/*_spec.rb"
       t.rspec_opts = args.to_a.join(' ')
     end
 
@@ -455,6 +461,7 @@ namespace :spec do
     # Datadog DI integrations
     [
       :active_record,
+      :bootsnap,
       :rails,
     ].each do |contrib|
       desc '' # "Explicitly hiding from `rake -T`"
@@ -463,6 +470,8 @@ namespace :spec do
         t.rspec_opts = args.to_a.join(' ')
       end
     end
+    # bootsnap tests require the DI C extension (DI::Component.build checks for it).
+    Rake::Task['di:bootsnap'].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
 
     # rubocop:disable Style/MultilineBlockChain
     RSpec::Core::RakeTask.new(:di_with_ext) do |t, args|

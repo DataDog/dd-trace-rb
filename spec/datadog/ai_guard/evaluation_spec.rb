@@ -63,6 +63,17 @@ RSpec.describe Datadog::AIGuard::Evaluation do
       expect(trace.send(:sampling_decision_maker)).to eq('-13')
     end
 
+    it "sets ai_guard.event tag on the trace with AI Guard evaluations" do
+      Datadog::Tracing.trace("root") do
+        described_class.perform([
+          Datadog::AIGuard.message(role: :user, content: "Some content")
+        ])
+      end
+
+      trace = traces.first
+      expect(trace.send(:meta).fetch("ai_guard.event")).to eq("true")
+    end
+
     it "sets target tag to 'prompt' when last message is a prompt" do
       described_class.perform([
         Datadog::AIGuard.message(role: :system, content: "Some content"),

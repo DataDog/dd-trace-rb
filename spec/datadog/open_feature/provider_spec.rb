@@ -116,4 +116,36 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
   end
+
+  describe '#hooks' do
+    let(:components) { instance_double(Datadog::Core::Configuration::Components) }
+    let(:open_feature_component) { instance_double(Datadog::OpenFeature::Component) }
+
+    before do
+      allow(Datadog).to receive(:send).with(:components).and_return(components)
+    end
+
+    context 'when OpenFeature component is configured' do
+      let(:flag_eval_hook) { instance_double(Datadog::OpenFeature::Hooks::FlagEvalHook) }
+
+      before do
+        allow(components).to receive(:open_feature).and_return(open_feature_component)
+        allow(open_feature_component).to receive(:flag_eval_hook).and_return(flag_eval_hook)
+      end
+
+      it 'returns array with the flag eval hook' do
+        expect(provider.hooks).to eq([flag_eval_hook])
+      end
+    end
+
+    context 'when OpenFeature component is not configured' do
+      before do
+        allow(components).to receive(:open_feature).and_return(nil)
+      end
+
+      it 'returns empty array' do
+        expect(provider.hooks).to eq([])
+      end
+    end
+  end
 end

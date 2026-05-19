@@ -14,7 +14,7 @@ module Datadog
             end
             application_name&.underscore
           rescue => e
-            Datadog.logger.debug("Failed to extract Rails application name: #{e.class}: #{e}")
+            Datadog.logger.debug("Failed to extract Rails application name: #{e.class}: #{e.message}")
             nil
           end
 

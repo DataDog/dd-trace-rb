@@ -93,7 +93,7 @@ module Datadog
 
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             rescue => e
-              Datadog.logger.error("error preparing span from http request: #{e}")
+              Datadog.logger.error("error preparing span from http request: #{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 
@@ -108,7 +108,7 @@ module Datadog
                 Datadog.configuration.tracing.header_tags.response_tags(response)
               )
             rescue => e
-              Datadog.logger.error("error preparing span from http response: #{e}")
+              Datadog.logger.error("error preparing span from http response: #{e.class}: #{e.message}")
               Datadog::Core::Telemetry::Logger.report(e)
             end
 

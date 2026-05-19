@@ -173,6 +173,33 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
       end
     end
+
+    describe '@symbol_database' do
+      context 'when symbol_database is disabled' do
+        before { settings.symbol_database.enabled = false }
+
+        it 'does not build a symbol database component' do
+          expect(components.symbol_database).to be nil
+        end
+      end
+
+      context 'when symbol_database is enabled with remote config' do
+        before(:all) do
+          skip 'Symbol database requires MRI Ruby 2.6+' if PlatformHelpers.jruby? || RUBY_VERSION < '2.6'
+        end
+
+        before do
+          settings.symbol_database.enabled = true
+          settings.remote.enabled = true
+        end
+
+        after { components.symbol_database&.shutdown! }
+
+        it 'builds a symbol database component' do
+          expect(components.symbol_database).to be_a(Datadog::SymbolDatabase::Component)
+        end
+      end
+    end
   end
 
   describe '::build_health_metrics' do
@@ -631,6 +658,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         expect(components.remote).to receive(:shutdown!) unless components.remote.nil?
         expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
         expect(components.dynamic_instrumentation).to receive(:shutdown!) unless components.dynamic_instrumentation.nil?
+        expect(components.symbol_database).to receive(:shutdown!) unless components.symbol_database.nil?
         expect(components.appsec).to receive(:shutdown!) unless components.appsec.nil?
         expect(components.runtime_metrics).to receive(:stop)
           .with(true, close_metrics: false)

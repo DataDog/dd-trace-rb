@@ -8,7 +8,8 @@ module SynchronizationHelpers
   # if your whole example or example group should run in a forked process.
   def expect_in_fork(fork_expectations: nil, timeout_seconds: 10, trigger_stacktrace_on_kill: false, debug: false)
     fork_expectations ||= proc { |status:, stdout:, stderr:|
-      expect(status && status.success?).to be(true), "STDOUT:`#{stdout}` STDERR:`#{stderr}"
+      expect(status && status.success?).to be(true),
+        "Status:#{status.inspect} STDOUT:`#{stdout}` STDERR:`#{stderr}"
     }
 
     if debug

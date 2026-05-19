@@ -260,9 +260,9 @@ module Datadog
           end
 
           def collect_integration_configuration_options(tracing_settings)
-            return [] unless tracing_settings.respond_to?(:instrumented_integrations)
+            return [] unless tracing_settings.respond_to?(:instrumented_built_in_integrations)
 
-            tracing_settings.instrumented_integrations.each_value.with_object([]) do |integration, entries|
+            tracing_settings.instrumented_built_in_integrations.each_with_object([]) do |integration, entries|
               integration.configurations.each_value do |configuration|
                 entries.concat(collect_configuration_options_from(configuration))
               end

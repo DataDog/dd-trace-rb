@@ -3,7 +3,12 @@
 #include "datadog_ruby_common.h"
 
 // Prototypes for Ruby functions declared in internal Ruby headers.
+// rb_iseqw_new wraps an internal iseq pointer into a Ruby-visible
+// RubyVM::InstructionSequence object.
 VALUE rb_iseqw_new(const void *iseq);
+// rb_iseqw_to_iseq unwraps a RubyVM::InstructionSequence object back
+// to its internal iseq pointer.
+const void *rb_iseqw_to_iseq(VALUE iseqw);
 int rb_objspace_internal_object_p(VALUE obj);
 void rb_objspace_each_objects(
     int (*callback)(void *start, void *end, size_t stride, void *data),
@@ -70,10 +75,53 @@ static VALUE exception_message(DDTRACE_UNUSED VALUE _self, VALUE exception) {
   return rb_ivar_get(exception, id_mesg);
 }
 
+// rb_iseq_type was added in Ruby 3.1 (commit 89a02d89 by Koichi Sasada,
+// 2021-12-19). It returns the iseq type as a Symbol. On Ruby < 3.1 this
+// function does not exist, so have_func('rb_iseq_type') in extconf.rb
+// gates compilation. When unavailable, backfill_registry falls back to
+// the first_lineno == 0 heuristic.
+#ifdef HAVE_RB_ISEQ_TYPE
+VALUE rb_iseq_type(const void *iseq);
+
+/*
+ * call-seq:
+ *   DI.iseq_type(iseq) -> Symbol
+ *
+ * Returns the type of an InstructionSequence as a symbol by calling
+ * the internal rb_iseq_type() function (available since Ruby 3.1).
+ *
+ * This method is only defined when rb_iseq_type is detected at compile
+ * time via have_func in extconf.rb. On Ruby < 3.1 it is not available
+ * and callers must use an alternative (e.g. first_lineno heuristic).
+ *
+ * Possible return values: :top, :method, :block, :class, :rescue,
+ * :ensure, :eval, :main, :plain.
+ *
+ * :top and :main represent whole-file iseqs (from require/load and the
+ * entry point script respectively). Other types represent sub-file
+ * constructs (method definitions, class bodies, blocks, etc.).
+ *
+ * Used by CodeTracker#backfill_registry to distinguish whole-file iseqs
+ * from per-method/block/class iseqs when populating the registry from
+ * the object space.
+ *
+ * @param iseq [RubyVM::InstructionSequence] The instruction sequence
+ * @return [Symbol] The iseq type
+ */
+static VALUE iseq_type(DDTRACE_UNUSED VALUE _self, VALUE iseq_val) {
+  const void *iseq = rb_iseqw_to_iseq(iseq_val);
+  if (!iseq) return Qnil;
+  return rb_iseq_type(iseq);
+}
+#endif
+
 void di_init(VALUE datadog_module) {
   id_mesg = rb_intern("mesg");
 
   VALUE di_module = rb_define_module_under(datadog_module, "DI");
   rb_define_singleton_method(di_module, "all_iseqs", all_iseqs, 0);
   rb_define_singleton_method(di_module, "exception_message", exception_message, 1);
+#ifdef HAVE_RB_ISEQ_TYPE
+  rb_define_singleton_method(di_module, "iseq_type", iseq_type, 1);
+#endif
 }

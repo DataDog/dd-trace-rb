@@ -10,29 +10,37 @@ module Datadog
         def self.apply!(env_provider:)
           @env_provider = env_provider
 
+          # Idempotent: tests, reloads, or repeated Components init must not stack prepends.
           return if ::Process.singleton_class.ancestors.include?(ProcessSpawnPatch)
 
           ::Process.singleton_class.prepend(ProcessSpawnPatch)
         end
 
-        # Vessel for env_provider propagation.
+        # Prepends `Process.spawn` to merge `env_provider` output into the child's environment hash.
         module ProcessSpawnPatch
           def spawn(*args)
             super(*SpawnMonkeyPatch.inject_envs(args))
           end
         end
 
-        # Merge the env vars from `env_provider` with the `env` argument from {Process.spawn}.
+        # Merge the env vars from `env_provider` with the optional env `Hash` from {Process.spawn}.
         #
-        # `env` is the first argument to {Process.spawn}, which is an optional {Hash}
-        # (https://docs.ruby-lang.org/en/4.0/Process.html#method-c-spawn):
-        # `Process.spawn([env, ] *args, options = {})`
+        # `env` is the first argument when it is a {Hash}; see MRI `spawn([env, ] *args, options)`:
+        # https://docs.ruby-lang.org/en/master/Process.html#method-c-spawn
         #
-        # One thing to note is that parent process' (this process') environment variables are
-        # inherited by default by the spawned process. They are merged with (and possibly overwritten by)
-        # the env vars from the argument `env`.
-        # (https://docs.ruby-lang.org/en/4.0/Process.html#module-Process-label-Environment+Variables+-28-3Aunsetenv_others-29)
-        # This doesn't affect the current implementation.
+        # When there is **no** leading env Hash, MRI inherits the parent's `ENV`; we prepend only the
+        # `env_provider` hash so spawned children see parent env plus injections.
+        #
+        # When callers pass `unsetenv_others: true`, MRI only forwards the explicitly passed env Hash;
+        # replacing a missing hash with DATADOG_ENV.to_h would wrongly carry over parent variables.
+        # Prepending only the provider hash preserves `unsetenv_others` semantics.
+        #
+        # See https://docs.ruby-lang.org/en/master/Process.html#module-Process-label-Environment+Variables+-28-3Aunsetenv_others-29
+        #
+        # NOTE: `::Hash` (not bare `Hash`) is required because this module is nested under
+        # `Datadog::Core::Utils`, and `Datadog::Core::Utils::Hash` exists as a refinement module.
+        # Bare `Hash` resolves to that module via Module.nesting, making `Hash === some_hash`
+        # silently return `false`. See https://github.com/DataDog/dd-trace-rb/issues/5621.
         def self.inject_envs(args)
           provided_env = @env_provider.call
 

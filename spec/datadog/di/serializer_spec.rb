@@ -216,28 +216,22 @@ RSpec.describe Datadog::DI::Serializer do
        expected: {x: {type: "DISerializerSpecRedactedInstanceVariable", fields: {
          "@session": {type: "Integer", notCapturedReason: "redactedIdent"},
        }}}},
-      {name: "depth exceeded: array", input: {v: {a: {b: {c: []}}}},
+      {name: "depth exceeded: array", input: {v: {a: {b: []}}},
        expected: {v: {type: "Hash", entries: [
          [{type: "Symbol", value: "a"}, {type: "Hash", entries: [
-           [{type: "Symbol", value: "b"}, {type: "Hash", entries: [
-             [{type: "Symbol", value: "c"}, {type: "Array", notCapturedReason: "depth"}],
-           ]}],
+           [{type: "Symbol", value: "b"}, {type: "Array", notCapturedReason: "depth"}],
          ]}],
        ]}}},
-      {name: "depth exceeded: hash", input: {v: {a: {b: {c: {}}}}},
+      {name: "depth exceeded: hash", input: {v: {a: {b: {}}}},
        expected: {v: {type: "Hash", entries: [
          [{type: "Symbol", value: "a"}, {type: "Hash", entries: [
-           [{type: "Symbol", value: "b"}, {type: "Hash", entries: [
-             [{type: "Symbol", value: "c"}, {type: "Hash", notCapturedReason: "depth"}],
-           ]}],
+           [{type: "Symbol", value: "b"}, {type: "Hash", notCapturedReason: "depth"}],
          ]}],
        ]}}},
-      {name: "depth exceeded: object", input: {v: {a: {b: {c: Object.new}}}},
+      {name: "depth exceeded: object", input: {v: {a: {b: Object.new}}},
        expected: {v: {type: "Hash", entries: [
          [{type: "Symbol", value: "a"}, {type: "Hash", entries: [
-           [{type: "Symbol", value: "b"}, {type: "Hash", entries: [
-             [{type: "Symbol", value: "c"}, {type: "Object", notCapturedReason: "depth"}],
-           ]}],
+           [{type: "Symbol", value: "b"}, {type: "Object", notCapturedReason: "depth"}],
          ]}],
        ]}}},
       {name: "object with no attributes", input: {v: DISerializerSpecTestClass.new},
