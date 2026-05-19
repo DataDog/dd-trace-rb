@@ -21,7 +21,10 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
       write_io.close
       Process.wait(pid)
 
-      read_io.read.lines.map { |line| line.chomp.split('=', 2) }.to_h
+      Datadog::Core::Utils::Array.filter_map(read_io.read.lines) do |line|
+        parts = line.chomp.split('=', 2)
+        [parts[0], parts[1]] if parts.size == 2
+      end.to_h
     end
   end
 
@@ -79,6 +82,14 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
 
       expect(output).not_to include('PARENT1')
       expect(output).to include('ENV1' => 'val1', 'ENV2' => 'val2')
+    end
+
+    it 'respects unsetenv_others and does not inherit parent ENV aside from injections' do
+      output = process_spawn('/usr/bin/env', unsetenv_others: true)
+
+      expect(output).to include('ENV1' => 'val1', 'ENV2' => 'val2')
+      expect(output).not_to include('PARENT1')
+      expect(output.keys).not_to include('')
     end
 
     it 'respects array-form command variant' do
