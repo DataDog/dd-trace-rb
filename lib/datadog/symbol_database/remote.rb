@@ -112,7 +112,7 @@ module Datadog
           telemetry&.report(e, description: 'symdb: error processing remote config change')
           # Rescue runs regardless of which branch raised — Steep cannot narrow the
           # union type from a respond_to? check.
-          content_obj = change.respond_to?(:content) ? change.content : change.previous
+          content_obj = change.respond_to?(:content) ? change.content : change.previous # steep:ignore NoMethod
           content_obj&.errored(e.to_s)
         end
 
