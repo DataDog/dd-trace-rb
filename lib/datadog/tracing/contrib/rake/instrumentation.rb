@@ -53,6 +53,7 @@ module Datadog
 
             def annotate_invoke!(span, args)
               span.resource = name
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               # Set analytics sample rate
               if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
                 Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
@@ -71,6 +72,7 @@ module Datadog
 
             def annotate_execute!(span, args)
               span.resource = name
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_EXECUTE)
               span.set_tag(Ext::TAG_EXECUTE_ARGS, quantize_args(args.to_hash)) unless args.nil?

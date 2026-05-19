@@ -42,6 +42,7 @@ module Datadog
 
               span.name = "#{adapter_name}.query"
               span.service = service_name
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               span.resource = payload.fetch(:sql)
               span.type = Tracing::Metadata::Ext::SQL::TYPE
 

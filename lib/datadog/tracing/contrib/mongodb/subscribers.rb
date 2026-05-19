@@ -30,6 +30,8 @@ module Datadog
             span = Tracing.trace(Ext::SPAN_COMMAND, service: service, type: Ext::SPAN_TYPE_COMMAND)
             set_span(event, span)
 
+            span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
+
             # build a quantized Query using the Parser module
             query = MongoDB.query_builder(event.command_name, event.database_name, event.command)
             serialized_query = serialize_query(query)

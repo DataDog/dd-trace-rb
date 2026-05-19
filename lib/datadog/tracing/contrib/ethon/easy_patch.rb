@@ -133,6 +133,7 @@ module Datadog
 
             def datadog_tag_request
               span = @datadog_span
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               method = Ext::NOT_APPLICABLE_METHOD
               method = @datadog_method.to_s if instance_variable_defined?(:@datadog_method) && !@datadog_method.nil?
               span.resource = method

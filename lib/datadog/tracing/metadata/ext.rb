@@ -36,6 +36,10 @@ module Datadog
         # Set to the global service name when a span's service is overridden
         TAG_BASE_SERVICE = '_dd.base_service'
 
+        # Set to the source of a span's service override: the component name for Datadog-instrumented spans
+        # (e.g. 'redis', 'pg'), or 'm' for manually-instrumented spans
+        TAG_SVC_SRC = '_dd.svc_src'
+
         # Defines constants for trace analytics
         # @public_api
         module Analytics

@@ -36,6 +36,7 @@ module Datadog
               type: Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER,
               on_error: @on_error
             ) do |span|
+              span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               span.resource = resource
 
               span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_COMPONENT)
