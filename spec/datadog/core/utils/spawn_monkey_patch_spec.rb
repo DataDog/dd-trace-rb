@@ -131,12 +131,13 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
 
   # Regression coverage for https://github.com/DataDog/dd-trace-rb/issues/5621.
   #
-  # The wrapper's env-detection check uses bare `Hash`, which resolves to
-  # `Datadog::Core::Utils::Hash` (a refinement module) via Module.nesting
-  # once that file is loaded — silently returning `false` for real Hashes.
-  # The function then takes the "no env provided" branch and prepends
-  # `DATADOG_ENV.to_h`, pushing the caller's env-Hash into the command slot
-  # and producing `TypeError: no implicit conversion of Hash into String`.
+  # When the env-detection check used bare `Hash`, it resolved to
+  # `Datadog::Core::Utils::Hash` (a refinement module) via Module.nesting,
+  # so `Hash === real_env_hash` silently returned false. `#inject_envs` then took
+  # the wrong branch and broke callers that pass an env `{Hash}` first
+  # (TypeError: no implicit conversion of Hash into String).
+  #
+  # Implementation uses `::Hash === args.first` and forwards with `super(*args)`.
   #
   # Affected callers (named in the issue): childprocess, terrapin, launchy,
   # selenium-webdriver, cuprite/ferrum, danger.
@@ -169,7 +170,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
 
     it 'spawn(cmd_string) — no env, no options' do
       expect_in_fork do
-        described_class.apply!(lineage_envs_provider: -> { {lineage_var => lineage_val} })
+        described_class.apply!(env_provider: -> { {lineage_var => lineage_val} })
         ok, status, out = run_spawn(probe_cmd)
         expect(ok).to be(true)
         expect(status).to eq(0)
@@ -179,7 +180,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
 
     it 'spawn(cmd, kw: ...) — kwargs option syntax' do
       expect_in_fork do
-        described_class.apply!(lineage_envs_provider: -> { {lineage_var => lineage_val} })
+        described_class.apply!(env_provider: -> { {lineage_var => lineage_val} })
         ok, status, out = run_spawn(probe_cmd, pgroup: true)
         expect(ok).to be(true)
         expect(status).to eq(0)
@@ -189,7 +190,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
 
     it 'spawn(cmd, options_hash) — positional options hash variable' do
       expect_in_fork do
-        described_class.apply!(lineage_envs_provider: -> { {lineage_var => lineage_val} })
+        described_class.apply!(env_provider: -> { {lineage_var => lineage_val} })
         options = {pgroup: true}
         ok, status, out = run_spawn(probe_cmd, options)
         expect(ok).to be(true)
@@ -200,7 +201,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
 
     it 'spawn(env_hash, cmd)' do
       expect_in_fork do
-        described_class.apply!(lineage_envs_provider: -> { {lineage_var => lineage_val} })
+        described_class.apply!(env_provider: -> { {lineage_var => lineage_val} })
         ok, status, out = run_spawn({'EXTRA' => '1'}, probe_cmd)
         expect(ok).to be(true)
         expect(status).to eq(0)
@@ -211,7 +212,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
     # Terrapin: `Process.spawn(env, command, options.merge(pipe.pipe_options))`
     it 'spawn(env_hash, cmd, options_hash) — terrapin shape' do
       expect_in_fork do
-        described_class.apply!(lineage_envs_provider: -> { {lineage_var => lineage_val} })
+        described_class.apply!(env_provider: -> { {lineage_var => lineage_val} })
         options = {pgroup: true}
         ok, status, out = run_spawn({'EXTRA' => '1'}, probe_cmd, options)
         expect(ok).to be(true)
@@ -223,7 +224,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
     # ChildProcess multi-arg: `::Process.spawn(environment, *args, options)`
     it 'spawn(env_hash, *args, options_hash) — childprocess multi-arg shape' do
       expect_in_fork do
-        described_class.apply!(lineage_envs_provider: -> { {lineage_var => lineage_val} })
+        described_class.apply!(env_provider: -> { {lineage_var => lineage_val} })
         env = {}
         args = ['/bin/sh', '-c', probe_cmd]
         options = {pgroup: true}
@@ -238,7 +239,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
     # `Process.spawn(env, [cmd, argv0], options)`.
     it 'spawn(env_hash, [cmdname, argv0], options_hash) — childprocess single-arg shape' do
       expect_in_fork do
-        described_class.apply!(lineage_envs_provider: -> { {lineage_var => lineage_val} })
+        described_class.apply!(env_provider: -> { {lineage_var => lineage_val} })
         options = {pgroup: true}
         ok, status, out = run_spawn({}, ['/bin/sh', 'argv0-name'], '-c', probe_cmd, options)
         expect(ok).to be(true)
@@ -255,7 +256,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
 
     it 'spawn(env, cmd, **opts) — caller uses kwargs splat' do
       expect_in_fork do
-        described_class.apply!(lineage_envs_provider: -> { {lineage_var => lineage_val} })
+        described_class.apply!(env_provider: -> { {lineage_var => lineage_val} })
         opts = {pgroup: true}
         ok, status, out = run_spawn({'EXTRA' => '1'}, probe_cmd, **opts)
         expect(ok).to be(true)
@@ -266,7 +267,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
 
     it 'parent process ENV reaches the child when caller passes an env hash' do
       expect_in_fork do
-        described_class.apply!(lineage_envs_provider: -> { {lineage_var => lineage_val} })
+        described_class.apply!(env_provider: -> { {lineage_var => lineage_val} })
         ENV['PARENT_ONLY_VAR'] = 'parent-only-value'
         cmd = %(printf 'PARENT=%s\n' "$PARENT_ONLY_VAR")
         ok, status, out = run_spawn({'EXTRA' => '1'}, cmd)
@@ -278,7 +279,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
 
     it 'does not mutate the env Hash supplied by the caller' do
       expect_in_fork do
-        described_class.apply!(lineage_envs_provider: -> { {lineage_var => lineage_val} })
+        described_class.apply!(env_provider: -> { {lineage_var => lineage_val} })
         caller_env = {'CALLER_KEY' => 'caller-value'}
         before_keys = caller_env.keys.dup
         run_spawn(caller_env, probe_cmd)
