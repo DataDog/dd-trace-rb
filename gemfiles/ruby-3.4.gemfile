@@ -33,7 +33,10 @@ gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
 gem 'rspec', '~> 3.13'
 gem 'rspec-collection_matchers', '~> 1.1'
 gem 'rspec-wait', '~> 0'
-gem 'rspec_junit_formatter', '>= 0.5.1'
+gem 'rspec_junit_formatter',
+  git: 'https://github.com/marcotc/rspec_junit_formatter.git',
+  branch: 'marco/pure-junit-improvements'
+
 gem 'simplecov', '~> 0.22.0'
 gem 'warning', '~> 1' # NOTE: Used in spec_helper.rb
 gem 'webmock', '>= 3.10.0'

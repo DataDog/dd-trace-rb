@@ -27,7 +27,10 @@ gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
 gem 'rspec', '~> 3.13'
 gem 'rspec-collection_matchers', '~> 1.1'
 gem 'rspec-wait', '~> 0'
-gem 'rspec_junit_formatter', '>= 0.5.1'
+gem 'rspec_junit_formatter',
+  git: 'https://github.com/marcotc/rspec_junit_formatter.git',
+  branch: 'marco/pure-junit-improvements'
+
 gem 'simplecov', '~> 0.22.0'
 # strscan 3.1.8 declares Ruby 2.5 support but calls rb_deprecate_constant,
 # which Ruby 2.5 does not export.
