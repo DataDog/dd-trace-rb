@@ -140,6 +140,12 @@ module Datadog
             # rb_thread_local_aref / rb_thread_local_aset, bypassing Thread#[]
             # / Thread#[]= method dispatch — so user method probes on those
             # Thread methods cannot intercept guard reads/writes and recurse.
+            #
+            # The `# steep:ignore FallbackAny` directives below suppress
+            # Steep diagnostics that arise because Steep cannot narrow the
+            # `**kwargs` parameter inside this define_method block — it
+            # falls through to `untyped`, which makes both the `hash_empty?`
+            # arg and the `super(**kwargs, ...)` splat untyped.
             if DI.in_probe?
               if !DI.array_empty?(args)
                 if !DI.hash_empty?(kwargs) # steep:ignore FallbackAny
@@ -181,6 +187,15 @@ module Datadog
               end
             }
 
+            # FallbackAny: kwargs is `untyped` inside this define_method
+            # block (see the kwargs narrowing note above); the call site
+            # therefore can't satisfy run_method_probe's `::Hash[::Symbol, untyped]`
+            # parameter and Steep falls back to any.
+            # ArgumentTypeMismatch: method_name's static type is the
+            # `Symbol | String` of probe.method_name read at line 106;
+            # run_method_probe declares `::String`. The probe contract
+            # is that method_name is always a String at this point, but
+            # Steep can't prove it from the input type.
             instrumenter.run_method_probe(
               args, kwargs, target_block, # steep:ignore FallbackAny
               self, do_super,
@@ -580,7 +595,10 @@ module Datadog
               rv
             end
           else
-            # Disabled or rate-limited: skip DI processing and call super.
+            # Condition not satisfied or rate-limited: skip DI processing
+            # and call super. (The disabled-probe case is handled by the
+            # early return at the top of this method, so it never reaches
+            # this branch.)
             #
             # The guard must be released here (not relied on the ensure)
             # because do_super invokes the customer's method, which may
