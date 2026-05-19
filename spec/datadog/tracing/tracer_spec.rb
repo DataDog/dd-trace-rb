@@ -267,6 +267,16 @@ RSpec.describe Datadog::Tracing::Tracer do
                 expect(trace.hostname).to eq(Datadog::Core::Environment::Socket.hostname)
               end
             end
+
+            context 'and DD_HOSTNAME is set' do
+              before { allow(Datadog.configuration).to receive(:hostname).and_return('custom-host') }
+
+              it 'uses DD_HOSTNAME as the trace hostname' do
+                tracer.trace(name) do |_span, trace|
+                  expect(trace.hostname).to eq('custom-host')
+                end
+              end
+            end
           end
 
           context 'is disabled' do

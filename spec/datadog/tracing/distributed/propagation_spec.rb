@@ -322,7 +322,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
 
               it 'does not propagate error to caller' do
                 trace_digest
-                expect(Datadog.logger).to have_received(:error).with(/Cause: test_err Location: caller:1/)
+                expect(Datadog.logger).to have_received(:error).with(/Cause: StandardError: test_err Location: caller:1/)
               end
 
               it 'extracts values from non-failing propagator (tracecontext)' do

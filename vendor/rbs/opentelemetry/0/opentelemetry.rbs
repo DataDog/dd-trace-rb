@@ -1,13 +1,52 @@
 # External OpenTelemetry types not available in RBS
 module OpenTelemetry
-  def self.meter_provider: () -> untyped
+  def self.meter_provider: () -> SDK::Metrics::MeterProvider?
 
-  def self.meter_provider=: (untyped provider) -> void
+  def self.meter_provider=: (SDK::Metrics::MeterProvider provider) -> void
+
+  def self.logger_provider: () -> (SDK::Logs::LoggerProvider | Internal::ProxyLoggerProvider)
+
+  def self.logger_provider=: (SDK::Logs::LoggerProvider | Internal::ProxyLoggerProvider provider) -> void
+
+  module Internal
+    class ProxyLoggerProvider
+      def initialize: () -> void
+    end
+  end
 
   module SDK
     module Resources
       class Resource
         def self.create: (::Hash[::String, untyped] attributes) -> untyped
+      end
+    end
+
+    module Logs
+      class LoggerProvider
+        def initialize: (?resource: untyped) -> void
+
+        def add_log_record_processor: (untyped processor) -> void
+
+        def shutdown: () -> void
+
+        def force_flush: () -> void
+
+        def logger: (name: ::String, ?version: ::String?) -> untyped
+      end
+
+      class LogRecordData
+      end
+
+      module Export
+        class BatchLogRecordProcessor
+          def initialize: (
+            untyped exporter,
+            ?max_queue_size: ::Integer,
+            ?schedule_delay: ::Integer,
+            ?exporter_timeout: ::Integer,
+            ?max_export_batch_size: ::Integer
+          ) -> void
+        end
       end
     end
 
@@ -17,7 +56,23 @@ module OpenTelemetry
 
         def add_metric_reader: (untyped reader) -> void
 
+        def meter: (::String name, ?version: ::String?, ?schema_url: ::String?) -> Meter
+
         def shutdown: () -> void
+      end
+
+      class Meter
+        def create_counter: (
+          ::String name,
+          ?unit: ::String?,
+          ?description: ::String?
+        ) -> Instrument::Counter
+      end
+
+      module Instrument
+        class Counter
+          def add: (::Integer | ::Float value, ?attributes: ::Hash[::String, untyped]) -> void
+        end
       end
 
       module Export
@@ -33,6 +88,14 @@ module OpenTelemetry
       module Metrics
         class MetricsExporter
           def initialize: (endpoint: ::String, timeout: ::Float, headers: ::Hash[untyped, untyped]) -> void
+        end
+      end
+
+      module Logs
+        class LogsExporter
+          def initialize: (endpoint: ::String, timeout: ::Float, headers: ::Hash[untyped, untyped]) -> void
+
+          def export: (::Array[SDK::Logs::LogRecordData] log_records, ?timeout: ::Float?) -> ::Integer
         end
       end
     end

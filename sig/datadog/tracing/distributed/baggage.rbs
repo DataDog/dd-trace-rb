@@ -2,6 +2,8 @@ module Datadog
   module Tracing
     module Distributed
       class Baggage
+        type baggage = ::Hash[::String, ::String]
+
         BAGGAGE_KEY : "baggage"
         DD_TRACE_BAGGAGE_MAX_ITEMS : 64
         DD_TRACE_BAGGAGE_MAX_BYTES : 8192
@@ -17,18 +19,18 @@ module Datadog
 
         def inject!: (untyped digest, untyped data) -> (nil | untyped)
 
-        def extract: (untyped data) -> (nil | untyped)
+        def extract: (untyped data) -> TraceDigest?
 
 
         private
 
-        def encode_item: (String item, String safe_characters) -> string
+        def encode_item: (::String item, ::String safe_characters) -> ::String
 
-        def parse_baggage_header: (String baggage_header) -> Hash[String, String]
+        def parse_baggage_header: (::String baggage_header) -> baggage
 
-        def build_baggage_tags: (Hash[String, String] baggage) -> Hash[String, String]
+        def build_baggage_tags: (baggage baggage) -> baggage
 
-        def record_telemetry_metric: (String metric_name, Integer value, Hash[String, String] tags) -> void
+        def record_telemetry_metric: (::String metric_name, ::Integer value, baggage tags) -> void
         end
     end
   end

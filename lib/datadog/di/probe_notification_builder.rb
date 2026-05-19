@@ -368,8 +368,8 @@ module Datadog
           end
         rescue => exc
           evaluation_errors << {
-            message: "#{exc.class}: #{exc}",
-            expr: segment.dsl_expr,
+            message: "#{exc.class}: #{exc.message}",
+            expr: segment.dsl_expr, # steep:ignore NoMethod
           }
           '[evaluation error]'
         end.join

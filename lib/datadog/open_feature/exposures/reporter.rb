@@ -29,7 +29,7 @@ module Datadog
           event = Event.build(result, flag_key: flag_key, context: context)
           @worker.enqueue(event)
         rescue => e
-          @logger.debug { "OpenFeature: Failed to report resolution details: #{e.class}: #{e}" }
+          @logger.debug { "OpenFeature: Failed to report resolution details: #{e.class}: #{e.message}" }
           @telemetry.report(e, description: 'OpenFeature: Failed to report resolution details')
 
           false

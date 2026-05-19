@@ -208,6 +208,24 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
           end
         end
 
+        describe 'datadog.action_dispatch.route env key' do
+          let(:route) { last_request.env['datadog.action_dispatch.route'] }
+
+          it 'stores Journey::Route object in env' do
+            get '/api/users/1'
+
+            expect(last_response).to be_ok
+            expect(route.path.spec.to_s).to eq('/api/users/:id(.:format)')
+          end
+
+          it 'is not set for unknown routes' do
+            get '/nope'
+
+            expect(last_response).to be_not_found
+            expect(route).to be_nil
+          end
+        end
+
         describe 'http.endpoint tag' do
           context 'when resource_renaming.enabled is disabled by default and appsec is enabled' do
             before do
