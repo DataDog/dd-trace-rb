@@ -208,7 +208,17 @@ class SymbolDatabaseBaselineMatrixBenchmark
 
     if bg
       stop_bg = true
-      bg.value
+      # Cap how long we wait for the bg thread to finish its current
+      # extract_all. With the throttle (sleep every N modules), one iteration
+      # can take seconds on a process with many loaded modules — the
+      # measurement window is already complete here, so abandon a still-running
+      # iteration rather than block the run. Without this cap, validate-mode
+      # runs (10 arms × bg.value across the matrix) can blow past
+      # expect_in_fork's 10s timeout on slower CI Rubies.
+      unless bg.join(0.5)
+        bg.kill
+        bg.join
+      end
     end
 
     wall_seconds = wall_end - wall_start
