@@ -12,9 +12,24 @@ module Datadog
         end
 
         module ProcessSpawnPatch
-          def spawn(*args, **opts)
-            args.replace(SpawnMonkeyPatch.inject_lineage_envs(args))
-            super
+          # Per-Ruby-version signature. On Ruby 3+, `**opts` preserves caller kwargs as
+          # kwargs through `super`. On Ruby 2.5/2.6/2.7, `**opts` would auto-extract
+          # Symbol-keyed entries from a mixed-keys positional options Hash (e.g.
+          # childprocess's `options[fileno] = :close` on duplex pipes), splitting the
+          # Hash and raising `TypeError` inside `Process.spawn`. Dropping it on 2.x
+          # keeps the options Hash positional and intact. Same pattern as
+          # `lib/datadog/core/utils/forking.rb`.
+          if RUBY_VERSION >= '3'
+            # Steep doesn't follow RUBY_VERSION conditionals; sig declares the 2.x form.
+            def spawn(*args, **opts) # steep:ignore DifferentMethodParameterKind
+              args.replace(SpawnMonkeyPatch.inject_lineage_envs(args))
+              super
+            end
+          else
+            def spawn(*args)
+              args.replace(SpawnMonkeyPatch.inject_lineage_envs(args))
+              super
+            end
           end
         end
 

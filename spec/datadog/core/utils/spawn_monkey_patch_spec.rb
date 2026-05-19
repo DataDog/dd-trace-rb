@@ -142,11 +142,30 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
       end
     end
 
-    # NOTE: childprocess's close-on-exec form (`options[writer.fileno] = :close`)
-    # produces an options Hash with mixed Integer + Symbol keys. On Ruby 2.5/2.6/2.7
-    # the wrapper's `**opts` parameter partially extracts that Hash into kwargs,
-    # mangling the call. That's a distinct bug from the constant shadow fixed here;
-    # see PR #5774 (drops `**opts`) for the fix and its regression test.
+    # ChildProcess sets `options[writer.fileno] = :close` on duplex pipes, producing
+    # an options Hash with mixed Integer + Symbol keys. On Ruby 2.5/2.6/2.7 the prior
+    # wrapper signature `def spawn(*args, **opts)` auto-extracted the Symbol-keyed
+    # entries into `**opts` while leaving Integer-keyed entries in the trailing
+    # positional Hash — mangling the call and raising `TypeError`. The per-version
+    # split in the wrapper (Ruby 2.x drops `**opts`) keeps the options Hash positional
+    # and intact. No env-Hash is passed here so the test is independent of the
+    # constant-shadow fix in PR #5773.
+    it 'spawn(cmd, options_hash_with_mixed_symbol_and_integer_keys) — childprocess close-on-exec shape' do
+      expect_in_fork do
+        described_class.apply!(lineage_envs_provider: -> { {lineage_var => lineage_val} })
+        spare_r, spare_w = IO.pipe
+        begin
+          options = {:pgroup => true, spare_r.fileno => :close, spare_w.fileno => :close}
+          ok, status, out = run_spawn(probe_cmd, options)
+          expect(ok).to be(true)
+          expect(status).to eq(0)
+          expect(out).to include("LINEAGE=#{lineage_val}")
+        ensure
+          spare_r.close
+          spare_w.close
+        end
+      end
+    end
 
     it 'spawn(env, cmd, **opts) — caller uses kwargs splat' do
       expect_in_fork do
