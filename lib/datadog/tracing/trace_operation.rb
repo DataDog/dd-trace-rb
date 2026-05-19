@@ -565,7 +565,7 @@ module Datadog
         # Publish :span_before_finish event
         events.span_before_finish.publish(span_op, self)
       rescue => e
-        logger.debug { "Error in before_finish_span on trace: #{e} Backtrace: #{e.backtrace.first(3)}" }
+        logger.debug { "Error in before_finish_span on trace: #{e.class}: #{e.message} Backtrace: #{e.backtrace.first(3)}" }
       end
 
       # For traces with automatic context management (auto_finish),
