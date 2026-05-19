@@ -19,7 +19,7 @@ module Datadog
 
       @upload_id: String?
 
-      @batch_num: Integer
+      @batch_num: Integer?
 
       def initialize: (
         settings: Datadog::Core::Configuration::Settings,

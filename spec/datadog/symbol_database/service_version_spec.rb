@@ -86,6 +86,24 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
       })
     end
 
+    it 'includes upload metadata fields when provided' do
+      sv = described_class.new(
+        service: 'svc',
+        env: 'prod',
+        version: '1.0',
+        scopes: [],
+        upload_id: 'abc-123',
+        batch_num: 5,
+        final: false,
+      )
+
+      expect(sv.to_h).to include(
+        upload_id: 'abc-123',
+        batch_num: 5,
+        final: false,
+      )
+    end
+
     it 'serializes scopes recursively' do
       scope = Datadog::SymbolDatabase::Scope.new(
         scope_type: 'CLASS',
