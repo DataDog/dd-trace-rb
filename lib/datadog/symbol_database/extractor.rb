@@ -3,7 +3,7 @@
 require_relative 'scope'
 require_relative 'symbol'
 require_relative 'file_hash'
-require_relative '../core/utils/array'
+require_relative '../core/utils/array_utils'
 
 module Datadog
   module SymbolDatabase
@@ -593,7 +593,7 @@ module Datadog
 
         return [] if params.nil? || params.empty?
 
-        Core::Utils::Array.filter_map(params) do |param_type, param_name|
+        Core::Utils::ArrayUtils.filter_map(params) do |param_type, param_name|
           # Skip block parameters for MVP
           next if param_type == :block
 
@@ -791,7 +791,7 @@ module Datadog
       # @return [Scope] Scope object
       def convert_node_to_scope(node)
         # Build method scopes from collected method entries
-        method_scopes = Core::Utils::Array.filter_map(node[:methods]) do |method_info|
+        method_scopes = Core::Utils::ArrayUtils.filter_map(node[:methods]) do |method_info|
           build_instance_method_scope(node[:mod], method_info[:name], method_info[:method])
         end
 
