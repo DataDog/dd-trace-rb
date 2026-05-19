@@ -20,3 +20,8 @@ updates:
       - dependency-name: "DataDog/system-tests/.github/workflows/system-tests.yml"
     cooldown:
       default-days: 2
+
+  - package-ecosystem: "gitsubmodule"
+    directory: "/"
+    schedule:
+      interval: "weekly"
