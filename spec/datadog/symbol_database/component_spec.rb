@@ -328,6 +328,60 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(events.pop).to eq(:shutdown_returned)
       expect(component.upload_in_progress).to be false
     end
+
+    context 'when called from a forked child that inherited @upload_in_progress=true' do
+      # When a process that has a configured Component forks, the child
+      # inherits the @upload_in_progress flag as a stale snapshot — the
+      # scheduler thread that would clear it lives only in the parent. If
+      # the child's at_exit hook (which calls Datadog.shutdown!) reaches the
+      # cv wait, it blocks for the full 5s timeout for no benefit, since
+      # nothing in the child can ever signal the cv.
+      #
+      # The PID-mismatch guard in shutdown! detects this case and clears the
+      # stale flag without waiting. Verified by simulating the PID mismatch
+      # via stub_const on Process.pid — direct, hermetic, no fork required.
+      it 'detects PID mismatch and returns without waiting on the cv' do
+        component.instance_variable_set(:@upload_in_progress, true)
+        # Simulate the child observing a different PID than the one captured
+        # at Component construction in the parent.
+        original_pid = component.instance_variable_get(:@owner_pid)
+        allow(Process).to receive(:pid).and_return(original_pid + 1)
+
+        # @upload_in_progress_cv must not be touched in the child branch —
+        # the cv has no signaler in the child, so any wait would burn its
+        # full timeout.
+        cv = component.instance_variable_get(:@upload_in_progress_cv)
+        expect(cv).not_to receive(:wait)
+
+        start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        component.shutdown!
+        elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start
+
+        expect(elapsed).to be < 1.0
+        expect(component.upload_in_progress).to be false
+        expect(component.shutdown?).to be true
+      end
+
+      it 'still waits on the cv when called from the owning process' do
+        # Counterpart to the PID-mismatch test above: confirms the guard does
+        # not short-circuit in the normal (non-forked) case. Without this,
+        # the guard could silently degrade the in-flight-extraction wait.
+        component.instance_variable_set(:@upload_in_progress, true)
+        # Don't stub Process.pid — same-process case.
+
+        cv = component.instance_variable_get(:@upload_in_progress_cv)
+        # The cv will receive #wait. We make it terminate immediately so the
+        # test doesn't take 5s; we're only asserting the call happens.
+        allow(cv).to receive(:wait) do |mutex, _timeout|
+          # Match the contract of ConditionVariable#wait: clear the predicate
+          # so shutdown! sees @upload_in_progress=false after.
+          component.instance_variable_set(:@upload_in_progress, false)
+        end
+        expect(cv).to receive(:wait).with(component.instance_variable_get(:@mutex), 5)
+
+        component.shutdown!
+      end
+    end
   end
 
   describe 'reconfiguration scenario (regression test for two-uploads-per-extract-run)' do

@@ -130,6 +130,11 @@ module Datadog
         @upload_in_progress = false
         @upload_in_progress_cv = ConditionVariable.new
         @shutdown = false
+        # PID at construction time. Compared against Process.pid in shutdown!
+        # to detect forked-child callers, whose inherited @upload_in_progress
+        # snapshot is stale: the scheduler thread that would clear it lives
+        # only in the parent. See shutdown! for details.
+        @owner_pid = Process.pid
 
         # Per-instance scheduler state. The scheduler thread is started lazily
         # on the first start_upload call.
@@ -253,7 +258,19 @@ module Datadog
 
         @mutex.synchronize do
           if @upload_in_progress
-            @upload_in_progress_cv.wait(@mutex, 5)
+            if Process.pid == @owner_pid
+              @upload_in_progress_cv.wait(@mutex, 5)
+            else
+              # We are in a forked child that inherited this Component from
+              # the parent. The scheduler thread (the only writer that clears
+              # @upload_in_progress and signals the cv) lives only in the
+              # parent — fork carries only the calling thread, so nothing in
+              # this process can ever signal us. Waiting would burn the full
+              # 5s timeout for no benefit. Treat the inherited
+              # @upload_in_progress as a stale snapshot and proceed; the
+              # parent's shutdown! (running in the parent) is authoritative.
+              @upload_in_progress = false
+            end
           end
         end
 
