@@ -24,6 +24,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
   let(:logger) do
     instance_double(Datadog::Core::Logger).tap do |logger|
       allow(logger).to receive(:debug)
+      # DI::Component.build is now invoked unconditionally during Components
+      # construction. When the DI C extension is not compiled (the default
+      # for `test:main`), build emits a customer-actionable warn that is
+      # unrelated to whatever the surrounding test is exercising.
+      allow(logger).to receive(:warn).with(/C extension is not available/)
     end
   end
   let(:settings) { Datadog::Core::Configuration::Settings.new }
