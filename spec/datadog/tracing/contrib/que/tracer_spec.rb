@@ -1,5 +1,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 require 'datadog'
 require 'que'
 
@@ -48,6 +49,13 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
 
   describe '#call' do
     subject(:enqueue) { job_class.enqueue(job_args, job_options: job_options) }
+
+    context 'when service_name is overridden' do
+      let(:configuration_options) { {service_name: 'custom-que'} }
+      it_behaves_like 'tags _dd.svc_src', 'que' do
+        before { enqueue }
+      end
+    end
 
     context 'with default options' do
       let(:configuration_options) { {} }

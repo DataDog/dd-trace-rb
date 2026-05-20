@@ -4,6 +4,7 @@ require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 
 require 'aws-sdk'
 
@@ -47,6 +48,7 @@ RSpec.describe 'AWS instrumentation' do
       it_behaves_like 'measured span for integration'
       it_behaves_like 'schema version span'
       it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'tags _dd.svc_src', 'aws'
       it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
       it_behaves_like 'a peer service span' do
         let(:peer_service_val) { 'sts.us-stubbed-1.amazonaws.com' }

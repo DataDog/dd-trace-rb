@@ -2,6 +2,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 require 'datadog'
 
 require 'spec/datadog/tracing/contrib/rails/support/deprecation'
@@ -71,6 +72,8 @@ RSpec.describe 'ActiveRecord instrumentation' do
         let(:configuration_options) { super().merge(service_name: service_name) }
 
         it { expect(span.service).to eq(service_name) }
+
+        it_behaves_like 'tags _dd.svc_src', 'active_record'
       end
 
       context 'with a custom configuration' do

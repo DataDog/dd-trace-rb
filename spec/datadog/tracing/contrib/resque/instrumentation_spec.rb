@@ -9,6 +9,7 @@ require 'datadog/tracing/contrib/resque/ext'
 
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 
 RSpec.shared_context 'Resque job' do
   def perform_job(klass, *args)
@@ -71,6 +72,11 @@ RSpec.describe 'Resque instrumentation' do
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job')
         expect(span.get_tag('span.kind')).to eq('consumer')
         expect(span.get_tag('messaging.system')).to eq('resque')
+      end
+
+      context 'when service_name is overridden' do
+        let(:configuration_options) { {service_name: 'custom-resque'} }
+        it_behaves_like 'tags _dd.svc_src', 'resque'
       end
 
       it_behaves_like 'analytics for integration' do

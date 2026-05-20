@@ -1,5 +1,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 require 'rails'
 require 'active_support'
 require 'spec/datadog/tracing/contrib/action_mailer/helpers'
@@ -51,6 +52,11 @@ RSpec.describe 'ActionMailer patcher' do
 
     before do
       UserMailer.test_mail(1).deliver_now
+    end
+
+    context 'when service_name is overridden' do
+      let(:configuration_options) { {service_name: 'custom-action_mailer'} }
+      it_behaves_like 'tags _dd.svc_src', 'action_mailer'
     end
 
     context 'that doesn\'t raise an error' do

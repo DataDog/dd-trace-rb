@@ -1,5 +1,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 
 require 'ruby-kafka'
 require 'active_support'
@@ -40,6 +41,13 @@ RSpec.describe 'Kafka patcher' do
     let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_CONNECTION_REQUEST }
 
     context 'that doesn\'t raise an error' do
+      context 'when service_name is overridden' do
+        let(:configuration_options) { {service_name: 'custom-kafka'} }
+        it_behaves_like 'tags _dd.svc_src', 'kafka' do
+          before { ActiveSupport::Notifications.instrument('request.connection.kafka', payload) }
+        end
+      end
+
       it 'is expected to send a span' do
         ActiveSupport::Notifications.instrument('request.connection.kafka', payload)
 
