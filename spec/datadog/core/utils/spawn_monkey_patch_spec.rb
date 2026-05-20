@@ -252,7 +252,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
     # an options Hash with mixed Integer + Symbol keys. The prior wrapper signature
     # `def spawn(*args, **opts)` auto-extracted the Symbol-keyed entries into `**opts`
     # on Ruby 2.5/2.6/2.7 while leaving Integer-keyed entries in the trailing positional
-    # Hash — mangling the call and raising `TypeError`. Dropping `**opts` (this PR)
+    # Hash — mangling the call and raising `TypeError`. Dropping `**opts`
     # keeps the options Hash positional and intact across all supported Rubies.
     it 'spawn(cmd, options_hash_with_mixed_symbol_and_integer_keys) — childprocess close-on-exec shape' do
       expect_in_fork do
@@ -268,6 +268,27 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
           spare_r.close
           spare_w.close
         end
+      end
+    end
+
+    it 'delegates perfectly to the original method' do
+      expect_in_fork do
+        checker = double
+        if RUBY_VERSION < '2.7'
+          # 2.6 splits Symbol & non-Symbol kwargs so we have to test just *args
+          checker.define_singleton_method :spawn do |*args|
+            checker.check(*args)
+          end
+        else
+          checker.define_singleton_method :spawn do |*args, **kwargs|
+            checker.check(*args, **kwargs)
+          end
+        end
+        Datadog::Core::Utils::SpawnMonkeyPatch.instance_variable_set(:@env_provider, -> { {lineage_var => lineage_val} })
+        checker.singleton_class.prepend(Datadog::Core::Utils::SpawnMonkeyPatch::ProcessSpawnPatch)
+
+        expect(checker).to receive(:check).with({lineage_var => lineage_val}, ['echo', 'test'], 2 => 1, :out => File::NULL)
+        checker.spawn(['echo', 'test'], 2 => 1, :out => File::NULL)
       end
     end
 
