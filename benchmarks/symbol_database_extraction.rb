@@ -16,7 +16,7 @@
 #     throttling, which is too short to detect regressions smaller than
 #     timing noise and too short for CPU% to be meaningful (a one-shot
 #     measurement reports ~100% single-core by construction). The
-#     benchmark therefore loops extract_all until ~WINDOW_SECONDS of work
+#     benchmark therefore loops extract_all until ~12s of work
 #     is accumulated and reports per-iteration percentiles plus aggregate
 #     CPU%.
 #   - extract_all is idempotent: it re-walks loaded modules each call and
@@ -46,7 +46,7 @@ class SymbolDatabaseExtractionBenchmark
 
   # Target accumulated wall time. Long enough that timing variance is a
   # small fraction of the measurement and CPU% is interpretable.
-  WINDOW_SECONDS = VALIDATE_BENCHMARK_MODE ? 0.05 : 20
+  WINDOW_SECONDS = VALIDATE_BENCHMARK_MODE ? 0.05 : 12
 
   # Minimum iterations even if the window is reached early — guarantees
   # enough samples for percentiles when extract_all is fast.
