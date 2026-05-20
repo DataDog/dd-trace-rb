@@ -87,7 +87,6 @@ jobs:
       binaries_artifact: dd-trace-rb
       desired_execution_time: 300 # 5 minutes
       scenarios_groups: tracer_release
-      skip_empty_scenarios: false
       ref: a0b74f581061d063fa229da24aef540625d254cc # Automated: Updated by .github/workflows/update-system-tests.yml.
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8
