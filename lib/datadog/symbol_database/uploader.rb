@@ -185,10 +185,11 @@ module Datadog
             @upload_id = SecureRandom.uuid.freeze
             @batch_num = 0
           end
-          @batch_num += 1
-          # @upload_id is non-nil after the branch above; refine for Steep.
+          @batch_num += 1 # steep:ignore NoMethod
+          # @upload_id and @batch_num are non-nil after the branch above; refine for Steep.
           upload_id = @upload_id or raise('unreachable: @upload_id should be set')
-          [upload_id, @batch_num]
+          batch_num = @batch_num or raise('unreachable: @batch_num should be set')
+          [upload_id, batch_num]
         end
       end
 
