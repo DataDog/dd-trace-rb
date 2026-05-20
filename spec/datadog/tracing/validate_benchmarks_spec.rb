@@ -12,7 +12,7 @@ RSpec.describe 'Tracing benchmarks' do
   benchmarks_to_validate.each do |benchmark|
     describe benchmark do
       it 'runs without raising errors' do
-        expect_in_fork(timeout_seconds: 20) do
+        expect_in_fork(timeout_seconds: 4) do
           load "./benchmarks/#{benchmark}.rb"
         end
       end
