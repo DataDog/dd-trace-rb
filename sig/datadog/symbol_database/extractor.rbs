@@ -7,6 +7,8 @@ module Datadog
       TARGETABLE_LINE_EVENTS: Array[::Symbol]
       MODULE_SINGLETON_CLASS_PRED: ::UnboundMethod
       MODULE_NAME: ::UnboundMethod
+      SLEEP_EVERY_N_MODULES: Integer
+      SLEEP_SECONDS: Float
 
       @logger: untyped
       @settings: untyped
