@@ -683,13 +683,7 @@ module Datadog
           o.default Core::Environment::Ext::FALLBACK_SERVICE_NAME
 
           o.after_set do |service_name|
-            # Use object identity rather than equality: FALLBACK_SERVICE_NAME is frozen and
-            # SafeDup.frozen_or_dup returns the same object for the default value. A user who
-            # explicitly sets service to the same string as the fallback would produce a
-            # different object, so .equal? correctly distinguishes "never configured" from
-            # "explicitly set to the same value as the fallback".
-            user_configured = !service_name.equal?(Core::Environment::Ext::FALLBACK_SERVICE_NAME)
-            Core::Environment::Process.set_service(service_name, user_configured: user_configured)
+            Core::Environment::Process.set_service(service_name, user_configured: !using_default?(:service))
           end
 
           # There's a few cases where we don't want to use the fallback service name, so this helper allows us to get a
