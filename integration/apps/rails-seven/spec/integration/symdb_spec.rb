@@ -42,8 +42,15 @@ RSpec.describe 'Symbol database extraction' do
 
   # rubocop:enable Lint/ConstantDefinitionInBlock
 
-  let(:extraction_output) { `bin/rails runner '#{EXTRACTION_SCRIPT.tr("'", '"')}'` }
-  let(:entries) { JSON.parse(extraction_output, symbolize_names: true) }
+  # Booting Rails + extracting takes ~25s. The output is read-only across all
+  # examples, so capture once per example group and share via instance variables.
+  before(:all) do
+    @extraction_output = `bin/rails runner '#{EXTRACTION_SCRIPT.tr("'", '"')}'`
+    @entries = JSON.parse(@extraction_output, symbolize_names: true)
+  end
+
+  let(:extraction_output) { @extraction_output }
+  let(:entries) { @entries }
 
   # Helpers
   def find_class(name)
