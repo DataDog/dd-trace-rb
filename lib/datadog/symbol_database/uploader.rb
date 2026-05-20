@@ -126,7 +126,7 @@ module Datadog
       # @return [Hash] Form data hash with UploadIO objects
       def build_multipart_form(compressed_data, upload_id:, batch_num:)
         event_io = StringIO.new(
-          build_event_metadata(compressed_data.bytesize, upload_id: upload_id, batch_num: batch_num)
+          build_event_metadata(compressed_data.bytesize, upload_id: upload_id, batch_num: batch_num),
         )
         file_io = StringIO.new(compressed_data)
 
