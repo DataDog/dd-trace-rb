@@ -104,16 +104,29 @@ module Datadog
           end
 
           # (see Resolver#resolve)
-          def resolve(value)
-            cache_key = value.object_id
-            @cache.fetch(cache_key) do
-              if @cache.size >= @cache_limit
-                @cache.shift # Remove the oldest entry if cache is full
-              end
+          if RUBY_VERSION < '3.2'
+            def resolve(value)
+              @cache.fetch(value) do
+                if @cache.size >= @cache_limit
+                  @cache.shift # Remove the oldest entry if cache is full
+                end
 
-              # Register finalizer to clean up cache entry when object is garbage collected
-              ObjectSpace.define_finalizer(value) { @cache.delete(cache_key) }
-              @cache[cache_key] = super
+                @cache[value] = super
+              end
+            end
+          else
+            # Workaround for VM crash reported in https://github.com/DataDog/dd-trace-rb/issues/5718
+            # We don't quite understand yet _why_ the crash happens, but using the `object_id` instead of the object
+            # itself seems to work around whatever's going wrong inside the VM.
+            def resolve(value)
+              cache_key = value.object_id
+              @cache.fetch(cache_key) do
+                if @cache.size >= @cache_limit
+                  @cache.shift # Remove the oldest entry if cache is full
+                end
+
+                @cache[cache_key] = super
+              end
             end
           end
 
