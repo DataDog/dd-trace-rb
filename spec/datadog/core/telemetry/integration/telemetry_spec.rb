@@ -697,7 +697,18 @@ RSpec.describe 'Telemetry integration tests' do
         # DI requires a C extension and MRI Ruby 2.6+, which are not
         # available in all CI configurations. Mock the component build
         # so the test can run everywhere, same approach as profiling.
+        # Components#startup! now calls start! and started? on the DI
+        # component when the customer enabled DI, so the fake must
+        # respond to both (started? reports the customer-observable
+        # state used by app-started telemetry).
         fake_di = Object.new
+        def fake_di.start!
+        end
+
+        def fake_di.started?
+          true
+        end
+
         def fake_di.shutdown!
         end
 
