@@ -102,11 +102,13 @@ module Datadog
             disable_upload(component)
             change.previous&.applied
           else
-            Datadog.logger.debug { "symdb: unrecognized change type: #{change.type}" }
+            component.logger.debug { "symdb: unrecognized change type: #{change.type}" }
+            # Steep cannot narrow `change.content` from a respond_to? check — it sees
+            # the Repository::Change union type where `Deleted` lacks `content`.
             change.content.errored("Unrecognized change type: #{change.type}") if change.respond_to?(:content) # steep:ignore NoMethod
           end
         rescue => e
-          Datadog.logger.debug { "symdb: error processing remote config change: #{e.class}: #{e.message}" }
+          component.logger.debug { "symdb: error processing remote config change: #{e.class}: #{e.message}" }
           telemetry&.report(e, description: 'symdb: error processing remote config change')
           # Rescue runs regardless of which branch raised — Steep cannot narrow the
           # union type from a respond_to? check.
@@ -120,17 +122,17 @@ module Datadog
         # @return [void]
         # @api private
         def enable_upload(component, content)
-          config = parse_config(content)
+          config = parse_config(content, component.logger)
 
           unless config
             return
           end
 
           if config['upload_symbols']
-            Datadog.logger.debug { "symdb: upload enabled via remote config" }
+            component.logger.debug { "symdb: upload enabled via remote config" }
             component.start_upload
           else
-            Datadog.logger.debug { "symdb: upload disabled in config" }
+            component.logger.debug { "symdb: upload disabled in config" }
           end
         end
 
@@ -139,28 +141,29 @@ module Datadog
         # @return [void]
         # @api private
         def disable_upload(component)
-          Datadog.logger.debug { "symdb: upload disabled via remote config" }
+          component.logger.debug { "symdb: upload disabled via remote config" }
           component.stop_upload
         end
 
         # Parse and validate remote config content.
         # @param content [Content] Remote config content
+        # @param logger [SymbolDatabase::Logger] Logger for invalid-config diagnostics
         # @return [Hash, nil] Parsed config or nil if invalid
         # @api private
         #
         # JSON::ParserError is intentionally NOT rescued here — it propagates to
         # process_change's rescue, which logs and reports to telemetry. Catching
         # it locally would swallow the error from telemetry observability.
-        def parse_config(content)
+        def parse_config(content, logger)
           config = JSON.parse(content.data)
 
           unless config.is_a?(Hash)
-            Datadog.logger.debug { "symdb: invalid config format: expected Hash, got #{config.class}" }
+            logger.debug { "symdb: invalid config format: expected Hash, got #{config.class}" }
             return nil
           end
 
           unless config.key?('upload_symbols')
-            Datadog.logger.debug { "symdb: missing 'upload_symbols' key in config" }
+            logger.debug { "symdb: missing 'upload_symbols' key in config" }
             return nil
           end
 

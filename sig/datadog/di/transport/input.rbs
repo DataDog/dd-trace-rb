@@ -3,11 +3,11 @@ module Datadog
     module Transport
       module Input
         class Request < Datadog::Core::Transport::Request
-          @serialized_tags: untyped
+          @serialized_tags: String
 
-          attr_reader serialized_tags: untyped
+          attr_reader serialized_tags: String
 
-          def initialize: (untyped parcel, untyped serialized_tags) -> void
+          def initialize: (Core::Transport::Parcel parcel, String serialized_tags) -> void
         end
 
         class Transport < Core::Transport::Transport
@@ -26,9 +26,9 @@ module Datadog
             ?telemetry: Datadog::Core::Telemetry::Component?
           ) -> void
 
-          def send_input: (untyped payload, untyped tags, on_serialization_error: ^(String, Exception) -> void) -> untyped
+          def send_input: (Array[Hash[Symbol, untyped]] payload, Hash[String, String] tags, on_serialization_error: ^(String, Exception) -> void) -> Array[Hash[Symbol, untyped]]
 
-          def send_input_chunk: (untyped chunked_payload, untyped serialized_tags) -> untyped
+          def send_input_chunk: (String chunked_payload, String serialized_tags) -> (Core::Transport::HTTP::Response | Core::Transport::InternalErrorResponse)
 
           def encoder: () -> singleton(Core::Encoding::JSONEncoder)
         end

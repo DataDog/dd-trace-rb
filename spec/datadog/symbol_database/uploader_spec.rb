@@ -227,8 +227,104 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
 
       expect(event_json['ddsource']).to eq('ruby')
       expect(event_json['service']).to eq('test-service')
-      expect(event_json['type']).to eq('symdb')
+      expect(event_json['language']).to eq('ruby')
+      expect(event_json).to have_key('version')
       expect(event_json).to have_key('runtimeId')
+      expect(event_json['type']).to eq('symdb')
+      expect(event_json).to have_key('uploadId')
+      expect(event_json['batchNum']).to eq(1)
+      expect(event_json['final']).to eq(false)
+      expect(event_json['attachmentSize']).to be > 0
+    end
+  end
+
+  describe 'upload metadata across batches' do
+    before do
+      allow(mock_transport).to receive(:send_symbols).and_return(mock_response)
+    end
+
+    # Captures each event.json sent to the transport, in order.
+    def capture_events
+      captured = []
+      allow(mock_transport).to receive(:send_symbols) do |form|
+        event_io = form['event'].instance_variable_get(:@io)
+        captured << JSON.parse(event_io.read)
+        mock_response
+      end
+      yield
+      captured
+    end
+
+    it 'shares uploadId and increments batchNum across consecutive uploads' do
+      events = capture_events do
+        uploader.upload_scopes([test_scope])
+        uploader.upload_scopes([Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'Other')])
+      end
+
+      expect(events.size).to eq(2)
+      expect(events[0]['uploadId']).to eq(events[1]['uploadId'])
+      expect(events[0]['batchNum']).to eq(1)
+      expect(events[1]['batchNum']).to eq(2)
+    end
+
+    it 'generates a UUID for uploadId' do
+      events = capture_events { uploader.upload_scopes([test_scope]) }
+
+      # SecureRandom.uuid format: 8-4-4-4-12 hex
+      expect(events[0]['uploadId']).to match(/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/)
+    end
+
+    it 'resets uploadId and batchNum when Process.pid changes (fork)' do
+      # Stub Identity.id so that stubbing Process.pid below does not pollute
+      # Datadog::Core::Environment::Identity module-level state. Identity uses
+      # Process.pid to detect forks (Forking#forked?); calling Identity.id with
+      # a stubbed pid runs its after_fork! block, setting @root_runtime_id and
+      # @parent_runtime_id on the module — visible to later specs in the same
+      # RSpec process (notably spec/datadog/core/environment/identity_spec.rb).
+      allow(Datadog::Core::Environment::Identity).to receive(:id).and_return('test-runtime-id')
+
+      events = capture_events do
+        uploader.upload_scopes([test_scope])
+        # Simulate fork: child observes a different Process.pid
+        allow(Process).to receive(:pid).and_return(Process.pid + 1)
+        uploader.upload_scopes([Datadog::SymbolDatabase::Scope.new(scope_type: 'CLASS', name: 'Other')])
+      end
+
+      expect(events.size).to eq(2)
+      expect(events[0]['uploadId']).not_to eq(events[1]['uploadId'])
+      expect(events[0]['batchNum']).to eq(1)
+      expect(events[1]['batchNum']).to eq(1)
+    end
+
+    it 'embeds matching uploadId/batchNum in event and attachment for the same upload' do
+      captured_event = nil
+      captured_file = nil
+      allow(mock_transport).to receive(:send_symbols) do |form|
+        captured_event = JSON.parse(form['event'].instance_variable_get(:@io).read)
+        captured_file = JSON.parse(Zlib.gunzip(form['file'].instance_variable_get(:@io).read))
+        mock_response
+      end
+
+      uploader.upload_scopes([test_scope])
+
+      expect(captured_event['uploadId']).to eq(captured_file['upload_id'])
+      expect(captured_event['batchNum']).to eq(captured_file['batch_num'])
+      expect(captured_event['final']).to eq(captured_file['final'])
+      expect(captured_file['final']).to eq(false)
+    end
+
+    it 'sets attachmentSize to the gzipped attachment bytesize' do
+      captured_event = nil
+      captured_compressed_size = nil
+      allow(mock_transport).to receive(:send_symbols) do |form|
+        captured_event = JSON.parse(form['event'].instance_variable_get(:@io).read)
+        captured_compressed_size = form['file'].instance_variable_get(:@io).read.bytesize
+        mock_response
+      end
+
+      uploader.upload_scopes([test_scope])
+
+      expect(captured_event['attachmentSize']).to eq(captured_compressed_size)
     end
   end
 
