@@ -57,7 +57,11 @@ module Datadog
                 enabled: !!components.profiler,
               },
               dynamic_instrumentation: {
-                enabled: !!components.dynamic_instrumentation,
+                # The DI component object exists whenever the runtime
+                # supports it, so its presence is not a customer-observable
+                # signal. started? reflects whether DI was actually enabled
+                # by env var or by implicit enablement via remote config.
+                enabled: components.dynamic_instrumentation&.started? || false,
               }
             }
 
