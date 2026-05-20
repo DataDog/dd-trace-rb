@@ -1,8 +1,9 @@
 #
 # Symbol Database extraction benchmark.
 #
-# Generates 2500 user-code classes in a tmpdir, requires them, then runs
-# Extractor#extract_all once and captures memory + CPU + wall time.
+# Generates 2500 user-code classes in a tmpdir, requires them, then loops
+# Extractor#extract_all back-to-back until WINDOW_SECONDS of wall time is
+# accumulated, capturing memory + CPU + per-iteration timing.
 #
 # Acceptance thresholds (from projects/symdb/requirements.md):
 #   - memory overhead during extraction < 50 MB
@@ -11,13 +12,21 @@
 # Output: symbol_database_extraction-results.json
 #
 # Notes on measurement:
-#   - Memory: RSS via BenchmarkMemoryProbe (ps -o rss=), sampled by a thread at
-#     ~10ms cadence during extraction. Overhead = peak − baseline (post-GC.start).
-#   - CPU: (utime + stime) / wall time, expressed as percent of one core. The
-#     5% threshold is interpretable only when amortized over a long-running
-#     process; a single one-shot extraction will report near 100% single-core
-#     utilisation by construction. The harness emits the raw numbers and the
-#     results doc decides PASS/FAIL.
+#   - A single extract_all on 2500 classes finishes in ~0.3s without
+#     throttling, which is too short to detect regressions smaller than
+#     timing noise and too short for CPU% to be meaningful (a one-shot
+#     measurement reports ~100% single-core by construction). The
+#     benchmark therefore loops extract_all until ~WINDOW_SECONDS of work
+#     is accumulated and reports per-iteration percentiles plus aggregate
+#     CPU%.
+#   - extract_all is idempotent: it re-walks loaded modules each call and
+#     produces a fresh scope list. Looping exercises the same code path,
+#     amortizes GC and JIT effects, and gives variance estimates.
+#   - Memory: RSS via BenchmarkMemoryProbe (ps -o rss=), sampled by a
+#     thread at ~10ms cadence across the whole window. Overhead =
+#     peak − baseline (post-GC.start).
+#   - CPU: (utime + stime) / wall time across the whole window,
+#     expressed as percent of one core.
 #
 
 VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
@@ -34,6 +43,17 @@ require_relative 'support/memory_probe'
 
 class SymbolDatabaseExtractionBenchmark
   CLASS_COUNT = VALIDATE_BENCHMARK_MODE ? 10 : 2500
+
+  # Target accumulated wall time. Long enough that timing variance is a
+  # small fraction of the measurement and CPU% is interpretable.
+  WINDOW_SECONDS = VALIDATE_BENCHMARK_MODE ? 0.05 : 20
+
+  # Minimum iterations even if the window is reached early — guarantees
+  # enough samples for percentiles when extract_all is fast.
+  MIN_ITERATIONS = VALIDATE_BENCHMARK_MODE ? 1 : 10
+
+  # Safety cap so a degenerate fast path can't loop indefinitely.
+  MAX_ITERATIONS = VALIDATE_BENCHMARK_MODE ? 5 : 5000
 
   # Settings stub. Extractor stores @settings but extract_all does not consult
   # it — modelled after the double in spec/datadog/symbol_database/extractor_spec.rb.
@@ -54,6 +74,7 @@ class SymbolDatabaseExtractionBenchmark
 
       results = measure_extraction
       results[:class_count] = CLASS_COUNT
+      results[:window_seconds] = WINDOW_SECONDS
       results[:ruby_version] = RUBY_VERSION
       results[:platform] = RUBY_PLATFORM
 
@@ -127,9 +148,30 @@ class SymbolDatabaseExtractionBenchmark
       end
     end
 
-    wall_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    scopes = extractor.extract_all
-    wall_end = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    iter_walls = []
+    iter_cpus = []
+    last_scope_count = 0
+    iterations = 0
+
+    window_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    loop do
+      iter_wall_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      iter_times_start = Process.times
+      scopes = extractor.extract_all
+      iter_wall_end = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      iter_times_end = Process.times
+
+      iter_walls << (iter_wall_end - iter_wall_start)
+      iter_cpus << ((iter_times_end.utime + iter_times_end.stime) -
+        (iter_times_start.utime + iter_times_start.stime))
+      last_scope_count = scopes.size
+      iterations += 1
+
+      elapsed = iter_wall_end - window_start
+      break if iterations >= MAX_ITERATIONS
+      break if iterations >= MIN_ITERATIONS && elapsed >= WINDOW_SECONDS
+    end
+    window_end = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
     sampler_done = true
     sampler.join
@@ -137,22 +179,44 @@ class SymbolDatabaseExtractionBenchmark
     final_times = Process.times
     final_gc = GC.stat
 
-    wall_time = wall_end - wall_start
-    cpu_time = (final_times.utime + final_times.stime) -
+    total_wall = window_end - window_start
+    total_cpu = (final_times.utime + final_times.stime) -
       (baseline_times.utime + baseline_times.stime)
-    cpu_percent = (wall_time > 0) ? (cpu_time / wall_time) * 100.0 : 0.0
+    cpu_percent = (total_wall > 0) ? (total_cpu / total_wall) * 100.0 : 0.0
 
     {
-      wall_time_seconds: wall_time,
-      cpu_time_seconds: cpu_time,
+      iterations: iterations,
+      total_wall_time_seconds: total_wall,
+      total_cpu_time_seconds: total_cpu,
       cpu_percent: cpu_percent,
+      per_iteration_wall_seconds: percentiles(iter_walls),
+      per_iteration_cpu_seconds: percentiles(iter_cpus),
       memory_baseline_kb: baseline_rss_kb,
       memory_peak_kb: peak_rss_kb,
       memory_overhead_kb: peak_rss_kb - baseline_rss_kb,
       heap_live_slots_baseline: baseline_gc[:heap_live_slots],
       heap_live_slots_peak: final_gc[:heap_live_slots],
-      file_scope_count: scopes.size
+      file_scope_count: last_scope_count
     }
+  end
+
+  def percentiles(samples)
+    sorted = samples.sort
+    {
+      mean: samples.sum.fdiv(samples.size),
+      min: sorted.first,
+      p50: percentile(sorted, 0.50),
+      p95: percentile(sorted, 0.95),
+      p99: percentile(sorted, 0.99),
+      max: sorted.last
+    }
+  end
+
+  # Nearest-rank percentile on a pre-sorted array.
+  def percentile(sorted, q)
+    return sorted.first if sorted.size <= 1
+    idx = (q * (sorted.size - 1)).round
+    sorted[idx]
   end
 
   def emit(results)
