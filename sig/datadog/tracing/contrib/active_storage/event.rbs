@@ -1,0 +1,29 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveStorage
+        module Event
+          include ClassMethods
+
+          type span = ::Datadog::Tracing::SpanOperation
+          type payload = ::Hash[::Symbol, any]
+          type span_options = ({ service: ::String } | ::Hash[::Symbol, any])
+
+          def self.included: (::Module base) -> void
+          module ClassMethods
+            def span_options: () -> span_options
+
+            def configuration: () -> Configuration::Settings
+
+            def trace?: (any _event, payload _payload) -> bool
+
+            def process: (span span, any event, any id, payload payload) -> void
+            def on_finish: (span span, any event, any id, payload payload) -> void
+            def set_analytics: (span span) -> void
+            def set_tags: (span span, ::String operation_tag) -> void
+          end
+        end
+      end
+    end
+  end
+end

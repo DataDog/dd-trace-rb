@@ -4,6 +4,9 @@ module Datadog
       module ActiveSupport
         module Notifications
           module Event
+            include ClassMethods
+            include Subscriber
+
             def self.included: (untyped base) -> untyped
             module ClassMethods
               def subscribe!: () -> untyped

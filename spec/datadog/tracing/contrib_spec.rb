@@ -12,6 +12,7 @@ RSpec.describe Datadog::Tracing::Contrib do
     'active_job' => 'ActiveJob',
     'active_model_serializers' => 'ActiveModelSerializers',
     'active_record' => 'ActiveRecord',
+    'active_storage' => 'ActiveStorage',
     'active_support' => 'ActiveSupport',
     'aws' => 'Aws',
     'concurrent_ruby' => 'ConcurrentRuby',

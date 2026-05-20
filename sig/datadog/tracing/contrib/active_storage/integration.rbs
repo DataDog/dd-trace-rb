@@ -1,0 +1,28 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveStorage
+        class Integration
+          include Contrib::Integration
+
+          MINIMUM_VERSION: ::Gem::Version
+
+          def self.register_as: (Symbol name, auto_patch: bool) -> void
+
+          def self.gem_name: () -> "activestorage"
+
+          def self.version: () -> ::Gem::Version?
+
+          def self.loaded?: () -> bool
+
+          def self.compatible?: () -> bool
+          def auto_instrument?: () -> bool
+
+          def new_configuration: () -> Configuration::Settings
+
+          def patcher: () -> singleton(Patcher)
+        end
+      end
+    end
+  end
+end

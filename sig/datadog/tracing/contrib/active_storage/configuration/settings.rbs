@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveStorage
+        module Configuration
+          class Settings < Contrib::Configuration::Settings
+            def self.option: (Symbol name, ?Core::Configuration::OptionDefinition::meta meta) ?{ (Core::Configuration::OptionDefinition::Builder) -> void } -> Core::Configuration::OptionDefinition
+          end
+        end
+      end
+    end
+  end
+end
