@@ -191,6 +191,16 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       end
     end
 
+    context 'with OpenTelemetry logs headers configured' do
+      with_env 'OTEL_EXPORTER_OTLP_LOGS_HEADERS' => 'authorization=Bearer secret'
+
+      it 'does not report logs headers to telemetry' do
+        expect(event.payload[:configuration]).to_not include(
+          include(name: 'OTEL_EXPORTER_OTLP_LOGS_HEADERS')
+        )
+      end
+    end
+
     context 'with default configuration' do
       it 'reports default configuration' do
         expect(event.payload[:configuration]).to include(*default_configuration.map { |name, value| {name: name, origin: 'default', seq_id: 1, value: value} })

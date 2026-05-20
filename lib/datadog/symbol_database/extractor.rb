@@ -9,6 +9,10 @@ module Datadog
   module SymbolDatabase
     # Extracts symbol metadata from loaded Ruby modules and classes via introspection.
     #
+    # Instance created by Component with injected dependencies (logger, settings).
+    # All methods are instance methods accessing @logger, @settings directly —
+    # no parameter threading needed.
+    #
     # Uses Ruby's reflection APIs (Module#constants, Class#instance_methods, Method#parameters)
     # to build hierarchical Scope structures representing code organization.
     # Filters to user code only (excludes gems, stdlib, test files).
@@ -80,6 +84,11 @@ module Datadog
       MODULE_SINGLETON_CLASS_PRED = Module.instance_method(:singleton_class?)
       private_constant :MODULE_SINGLETON_CLASS_PRED
 
+      # Cached UnboundMethod for Module#name — avoids resolving it on every
+      # safe_mod_name call. Some classes override .name (e.g. Faker::Travel::Airport),
+      # so we bind the original Module#name to get the real module name safely.
+      MODULE_NAME = Module.instance_method(:name)
+
       # @param logger [Logger] Logger instance (SymbolDatabase::Logger facade or compatible)
       # @param settings [Configuration::Settings] Tracer settings
       def initialize(logger:, settings:)
@@ -150,7 +159,7 @@ module Datadog
       # @param mod [Module] The module
       # @return [String, nil] Module name or nil
       def safe_mod_name(mod)
-        Module.instance_method(:name).bind(mod).call
+        MODULE_NAME.bind(mod).call
       rescue => e
         @logger.debug { "symdb: safe_mod_name failed: #{e.class}: #{e.message}" }
         nil

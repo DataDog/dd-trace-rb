@@ -58,19 +58,19 @@ GEM
     karafka-core (2.5.13)
       karafka-rdkafka (>= 0.20.0)
       logger (>= 1.6.0)
-    karafka-rdkafka (0.26.1)
+    karafka-rdkafka (0.27.1)
       ffi (~> 1.17.1)
       json (> 2.0)
       logger
       mini_portile2 (~> 2.6)
       rake (> 12)
-    karafka-rdkafka (0.26.1-aarch64-linux-gnu)
+    karafka-rdkafka (0.27.1-aarch64-linux-gnu)
       ffi (~> 1.17.1)
       json (> 2.0)
       logger
       mini_portile2 (~> 2.6)
       rake (> 12)
-    karafka-rdkafka (0.26.1-x86_64-linux-gnu)
+    karafka-rdkafka (0.27.1-x86_64-linux-gnu)
       ffi (~> 1.17.1)
       json (> 2.0)
       logger
