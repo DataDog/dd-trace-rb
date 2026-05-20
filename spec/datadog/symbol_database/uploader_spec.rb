@@ -275,6 +275,14 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
     end
 
     it 'resets uploadId and batchNum when Process.pid changes (fork)' do
+      # Stub Identity.id so that stubbing Process.pid below does not pollute
+      # Datadog::Core::Environment::Identity module-level state. Identity uses
+      # Process.pid to detect forks (Forking#forked?); calling Identity.id with
+      # a stubbed pid runs its after_fork! block, setting @root_runtime_id and
+      # @parent_runtime_id on the module — visible to later specs in the same
+      # RSpec process (notably spec/datadog/core/environment/identity_spec.rb).
+      allow(Datadog::Core::Environment::Identity).to receive(:id).and_return('test-runtime-id')
+
       events = capture_events do
         uploader.upload_scopes([test_scope])
         # Simulate fork: child observes a different Process.pid
