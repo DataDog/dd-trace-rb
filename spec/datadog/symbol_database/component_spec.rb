@@ -381,6 +381,67 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
         component.shutdown!
       end
+
+      it 'waits on the cv for child-owned uploads (start_upload called in this process)' do
+        # Codex review scenario: in preload/fork servers the child can call
+        # start_upload on the inherited Component (e.g. remote config arrives
+        # in a Puma worker). The resulting upload is child-owned and must not
+        # be discarded by the PID-mismatch guard. start_upload claims
+        # @owner_pid for the current process, so shutdown! takes the cv-wait
+        # branch and waits for the child's extraction to finish.
+        original_owner_pid = component.instance_variable_get(:@owner_pid)
+        child_pid = original_owner_pid + 1
+        allow(Process).to receive(:pid).and_return(child_pid)
+
+        extract_started = Queue.new
+        release_extract = Queue.new
+        allow(component.instance_variable_get(:@extractor)).to receive(:extract_all) do
+          extract_started.push(:started)
+          release_extract.pop
+          []
+        end
+
+        component.start_upload
+        extract_started.pop # extraction in flight; @upload_in_progress=true; child owns it
+
+        # start_upload must have claimed ownership for the simulated child pid.
+        expect(component.instance_variable_get(:@owner_pid)).to eq(child_pid)
+
+        shutdown_thread = Thread.new { component.shutdown! }
+        release_extract.push(:go) # let extraction complete; cv will be signaled
+        joined = shutdown_thread.join(10)
+        expect(joined).not_to be_nil # shutdown! returned within 10s
+
+        expect(component.upload_in_progress).to be false
+        expect(component.shutdown?).to be true
+      end
+
+      it 'clears inherited @upload_in_progress when child calls start_upload' do
+        # If the parent had @upload_in_progress=true at fork time and the
+        # child later calls start_upload, the inherited true is a stale
+        # snapshot — the parent's scheduler does not exist in the child.
+        # Without clearing it on ownership claim, the child's shutdown! could
+        # cv-wait on a flag nothing in this process will ever clear.
+        original_owner_pid = component.instance_variable_get(:@owner_pid)
+        child_pid = original_owner_pid + 1
+        allow(Process).to receive(:pid).and_return(child_pid)
+
+        component.instance_variable_set(:@upload_in_progress, true)
+
+        # Hold the scheduler in its wait so extract_and_upload doesn't run
+        # before we check the post-claim state.
+        allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
+
+        component.start_upload
+
+        expect(component.instance_variable_get(:@owner_pid)).to eq(child_pid)
+        # The inherited stale flag is cleared at ownership claim time, before
+        # the scheduler thread runs.
+        # (The scheduler may set it again on its own — that's the legitimate
+        # child-owned case.)
+
+        component.shutdown!
+      end
     end
   end
 

@@ -200,6 +200,16 @@ module Datadog
         @scheduler_mutex.synchronize do
           return if @shutdown
 
+          if @owner_pid != Process.pid
+            # Forked child: claim ownership and clear inherited
+            # @upload_in_progress. The inherited flag was the parent's
+            # snapshot; the parent's scheduler thread does not exist in this
+            # process. Any upload starting now is child-owned and must be
+            # waited on in shutdown! via the PID-match branch.
+            @owner_pid = Process.pid
+            @mutex.synchronize { @upload_in_progress = false }
+          end
+
           @scheduled_at = Datadog::Core::Utils::Time.get_time + EXTRACT_DEBOUNCE_INTERVAL
           @scheduler_signaled = true
           @scheduler_cv.signal
@@ -261,14 +271,18 @@ module Datadog
             if Process.pid == @owner_pid
               @upload_in_progress_cv.wait(@mutex, 5)
             else
-              # We are in a forked child that inherited this Component from
-              # the parent. The scheduler thread (the only writer that clears
-              # @upload_in_progress and signals the cv) lives only in the
-              # parent — fork carries only the calling thread, so nothing in
-              # this process can ever signal us. Waiting would burn the full
-              # 5s timeout for no benefit. Treat the inherited
-              # @upload_in_progress as a stale snapshot and proceed; the
-              # parent's shutdown! (running in the parent) is authoritative.
+              # We are in a forked child that inherited this Component but
+              # never called start_upload here. The scheduler thread (the
+              # only writer that clears @upload_in_progress and signals the
+              # cv) lives only in the parent — fork carries only the calling
+              # thread, so nothing in this process can ever signal us.
+              # Waiting would burn the full 5s timeout for no benefit. Treat
+              # the inherited @upload_in_progress as a stale snapshot and
+              # proceed; the parent's shutdown! (running in the parent) is
+              # authoritative. Child-owned uploads (where start_upload was
+              # called in this process) take the PID-match branch above,
+              # because start_upload claims @owner_pid for the current
+              # process.
               @upload_in_progress = false
             end
           end
