@@ -151,7 +151,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
     # run Process.spawn, return [success?, exit_status, child_stdout].
     def run_spawn(*spawn_args)
       read_io, write_io = IO.pipe
-      if spawn_args.last.is_a?(Hash) && spawn_args.last.keys.all? { |k| k.is_a?(Symbol) || k.is_a?(Integer) }
+      if spawn_args.last.is_a?(Hash)
         spawn_args[-1] = spawn_args.last.merge(out: write_io, err: write_io, in: File::NULL)
       else
         spawn_args << {out: write_io, err: write_io, in: File::NULL}
