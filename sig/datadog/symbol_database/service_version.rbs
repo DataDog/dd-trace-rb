@@ -11,11 +11,20 @@ module Datadog
 
       @scopes: Array[Scope]
 
+      @upload_id: String?
+
+      @batch_num: Integer?
+
+      @final: bool?
+
       def initialize: (
         service: String?,
         env: String?,
         version: String?,
-        scopes: Array[Scope]
+        scopes: Array[Scope],
+        ?upload_id: String?,
+        ?batch_num: Integer?,
+        ?final: bool?
       ) -> void
 
       attr_reader service: String
@@ -27,6 +36,12 @@ module Datadog
       attr_reader language: String
 
       attr_reader scopes: Array[Scope]
+
+      attr_reader upload_id: String?
+
+      attr_reader batch_num: Integer?
+
+      attr_reader final: bool?
 
       def to_h: () -> Hash[::Symbol, untyped]
 
