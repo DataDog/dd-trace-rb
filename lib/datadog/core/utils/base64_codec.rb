@@ -3,7 +3,8 @@
 module Datadog
   module Core
     module Utils
-      # Helper methods for encoding and decoding base64
+      # Base64 encoding/decoding without using the `base64` gem,
+      # which is no longer a default gem since Ruby 3.4.
       module Base64Codec
         def self.encode64(bin)
           [bin].pack('m')
