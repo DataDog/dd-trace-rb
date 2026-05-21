@@ -4,7 +4,7 @@ module Datadog
   module Core
     module Utils
       # Helper methods for encoding and decoding base64
-      module Base64
+      module Base64Codec
         def self.encode64(bin)
           [bin].pack('m')
         end
