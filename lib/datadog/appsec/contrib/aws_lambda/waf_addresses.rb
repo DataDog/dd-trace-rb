@@ -42,7 +42,7 @@ module Datadog
 
             headers = parse_headers(payload)
             data = {
-              'server.response.status' => payload['statusCode']&.to_s,
+              'server.response.status' => payload['status_code']&.to_s,
               'server.response.headers' => headers,
               'server.response.headers.no_cookies' => headers.dup.tap { |h| h.delete('set-cookie') }
             }
