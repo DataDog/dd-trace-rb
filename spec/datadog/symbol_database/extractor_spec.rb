@@ -508,7 +508,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         # because const_source_location propagates source file through the chain.
         # Use explicit module list rather than ObjectSpace to avoid cross-test pollution.
         mods = [TestA, TestA::TestB, TestA::TestB::TestC]
-        extracted = Datadog::Core::Utils::ArrayUtils.filter_map(mods) { |mod| extractor.extract(mod) }
+        extracted = Datadog::Core::Utils::EnumerableCompat.filter_map(mods) { |mod| extractor.extract(mod) }
 
         # All scopes are FILE-wrapped. Inner scope names distinguish modules from classes.
         if TestA.respond_to?(:const_source_location)
