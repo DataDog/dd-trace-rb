@@ -54,7 +54,7 @@ module Datadog
               Tracing.continue_trace!(GRPC.extract(metadata))
             rescue => e
               Datadog.logger.debug(
-                "unable to propagate GRPC metadata to context: #{e}"
+                "unable to propagate GRPC metadata to context: #{e.class}: #{e.message}"
               )
             end
 
@@ -64,11 +64,6 @@ module Datadog
                 next if header.to_s.start_with?(Tracing::Distributed::Datadog::TAGS_PREFIX)
 
                 span.set_tag(header, value)
-              end
-
-              # Tag original global service name if not used
-              if span.service != Datadog.configuration.service
-                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
               end
 
               span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)
@@ -86,7 +81,7 @@ module Datadog
               # Measure service stats
               Contrib::Analytics.set_measured(span)
             rescue => e
-              Datadog.logger.debug("GRPC server trace failed: #{e}")
+              Datadog.logger.debug("GRPC server trace failed: #{e.class}: #{e.message}")
             end
           end
         end

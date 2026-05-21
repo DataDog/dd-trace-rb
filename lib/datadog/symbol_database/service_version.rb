@@ -16,23 +16,29 @@ module Datadog
     #
     # @api private
     class ServiceVersion
-      attr_reader :service, :env, :version, :language, :scopes
+      attr_reader :service, :env, :version, :language, :scopes, :upload_id, :batch_num, :final
 
       # Initialize a new ServiceVersion
       # @param service [String] Service name (required, from DD_SERVICE)
-      # @param env [String] Environment (from DD_ENV, defaults to "none")
-      # @param version [String] Version (from DD_VERSION, defaults to "none")
+      # @param env [String, nil] Environment (from DD_ENV, passed through unchanged)
+      # @param version [String, nil] Version (from DD_VERSION, passed through unchanged)
       # @param scopes [Array<Scope>] Top-level scopes (required)
+      # @param upload_id [String, nil] UUID identifying the logical upload (shared by all batches)
+      # @param batch_num [Integer, nil] 1-indexed batch number within the upload
+      # @param final [Boolean, nil] true if this is the last batch of the upload
       # @raise [ArgumentError] if service empty or scopes not an array
-      def initialize(service:, env:, version:, scopes:)
+      def initialize(service:, env:, version:, scopes:, upload_id: nil, batch_num: nil, final: nil)
         raise ArgumentError, 'service is required' if service.nil? || service.empty?
         raise ArgumentError, 'scopes must be an array' unless scopes.is_a?(Array)
 
         @service = service
-        @env = env.to_s.empty? ? 'none' : env.to_s
-        @version = version.to_s.empty? ? 'none' : version.to_s
+        @env = env
+        @version = version
         @language = 'ruby'
         @scopes = scopes
+        @upload_id = upload_id
+        @batch_num = batch_num
+        @final = final
       end
 
       # Convert service version to Hash for JSON serialization.
@@ -44,6 +50,9 @@ module Datadog
           version: version,
           language: language,
           scopes: scopes.map(&:to_h),
+          upload_id: upload_id,
+          batch_num: batch_num,
+          final: final,
         }
       end
 

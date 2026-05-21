@@ -52,7 +52,9 @@ module Datadog
             log_configuration!('CORE', data.to_json)
           end
         rescue => e
-          logger.warn("Failed to collect core environment information: #{e} Location: #{Array(e.backtrace).first}")
+          logger.warn(
+            "Failed to collect core environment information: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
+          )
         end
       end
 

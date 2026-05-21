@@ -2,6 +2,12 @@ module Datadog
   module Tracing
     module Distributed
       class TraceContext
+        type tags = ::Hash[::String, ::String]
+        type traceparent_fields = [::Integer, ::Integer, ::Integer]
+        type extracted_traceparent = [::Integer, ::Integer, ::Integer, ::Integer]
+        type extracted_datadog_fields = [::String?, ::Integer?, ::String?, tags?, ::String?]
+        type extracted_tracestate = [::String, ::Integer?, ::String?, ::String?, tags?, ::String?]
+
         TRACEPARENT_KEY: "traceparent"
 
         TRACESTATE_KEY: "tracestate"
@@ -17,31 +23,37 @@ module Datadog
         private
         module Refine
         end
-        def build_traceparent: (untyped digest) -> untyped
-        def build_traceparent_string: (untyped trace_id, untyped parent_id, untyped trace_flags) -> ::String
-        def build_trace_flags: (untyped digest) -> untyped
-        def build_tracestate: (untyped digest) -> untyped
-        def serialize_origin: (untyped value) -> untyped
-        def serialize_tag_key: (untyped name) -> untyped
-        def serialize_tag_value: (untyped value) -> untyped
+        def build_traceparent: (TraceDigest digest) -> ::String
+        def build_traceparent_string: (::Integer trace_id, ::Integer parent_id, ::Integer trace_flags) -> ::String
+        def build_trace_flags: (TraceDigest digest) -> ::Integer
+        def build_tracestate: (TraceDigest digest) -> ::String?
+        def append_dd: (::String tracestate, ::String field) -> bool
+        def last_dd_parent_id: (TraceDigest digest) -> ::String
+        def serialize_origin: (::String value) -> ::String
+        def serialize_tag_key: (::String name) -> ::String
+        def serialize_tag_value: (::String value) -> ::String
 
-        def extract_traceparent: (untyped traceparent) -> (nil | ::Array[untyped])
+        def extract_traceparent: (::String? traceparent) -> extracted_traceparent?
 
-        def parse_traceparent_string: (untyped traceparent) -> untyped
+        def parse_traceparent_string: (::String? traceparent) -> traceparent_fields?
 
-        def parse_sampled_flag: (untyped trace_flags) -> untyped
-        def extract_tracestate: (untyped tracestate) -> (nil | untyped | ::Array[untyped])
+        def parse_sampled_flag: (::Integer trace_flags) -> ::Integer
+        def extract_tracestate: (::String? tracestate) -> (::String | extracted_tracestate)?
 
-        def extract_datadog_fields: (untyped dd_tracestate) -> ::Array[untyped]
-        def deserialize_tag_value: (untyped value) -> untyped
-        def parse_priority_sampling: (untyped sampled, untyped sampling_priority) -> untyped
+        def extract_datadog_fields: (::String dd_tracestate) -> extracted_datadog_fields
+        def deserialize_tag_value: (::String value) -> ::String
+        def parse_priority_sampling: (::Integer sampled, ::Integer? sampling_priority) { (::String | :drop decision) -> void } -> ::Integer
 
-        def split_tracestate: (untyped tracestate) -> untyped
+        def split_tracestate: (::String? tracestate) -> ::Array[::String]?
+        TRACEPARENT_MAX_SIZE_LIMIT: 512
+        TRACESTATE_MAX_SIZE_LIMIT: 512
+        TRACESTATE_MAX_LIST_MEMBERS: 32
         INVALID_VERSION: "ff"
         DEFAULT_TRACE_FLAGS: 0
         TRACE_FLAGS_SAMPLED: 1
         TRACESTATE_VALUE_SIZE_LIMIT: 256
         INVALID_ORIGIN_CHARS: ::Regexp
+        REMAP_ORIGIN_CHARS: ::Regexp
         INVALID_TAG_KEY_CHARS: ::Regexp
         INVALID_TAG_VALUE_CHARS: ::Regexp
       end

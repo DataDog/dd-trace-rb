@@ -153,7 +153,7 @@ module Datadog
             active_trace
           end
         rescue => e
-          logger.debug { "Failed to trace: #{e}" }
+          logger.debug { "Failed to trace: #{e.class}: #{e.message}" }
 
           # Tracing failed: fallback and run code without tracing.
           return skip_trace(name, &block)
@@ -303,7 +303,7 @@ module Datadog
         @sampler.sample!(trace_op) if trace_op.sampling_priority.nil?
       rescue => e
         SAMPLE_TRACE_LOG_ONLY_ONCE.run do
-          logger.warn { "Failed to sample trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+          logger.warn { "Failed to sample trace: #{e.class}: #{e.message} at #{Array(e.backtrace).first}" }
         end
       end
 
@@ -315,7 +315,7 @@ module Datadog
       rescue => e
         RECONSIDER_RESOURCE_SAMPLE_TRACE_LOG_ONLY_ONCE.run do
           logger.warn do
-            "Failed to reconsider trace sampling: #{e.class.name} #{e} at #{Array(e.backtrace).first}"
+            "Failed to reconsider trace sampling: #{e.class}: #{e.message} at #{Array(e.backtrace).first}"
           end
         end
       end
@@ -372,9 +372,7 @@ module Datadog
       end
 
       def build_trace(digest, auto_finish)
-        # Resolve hostname if configured
-        hostname = Core::Environment::Socket.hostname if Datadog.configuration.tracing.report_hostname
-        hostname = (hostname && !hostname.empty?) ? hostname : nil
+        hostname = Core::Environment::Socket.resolved_hostname(Datadog.configuration)
 
         if digest
           sampling_priority = if propagate_sampling_priority?(upstream_tags: digest.trace_distributed_tags)
@@ -417,6 +415,12 @@ module Datadog
         events.span_before_start.subscribe do |event_span_op, event_trace_op|
           event_trace_op.service ||= @default_service
           event_span_op.service ||= @default_service
+        end
+
+        events.span_before_finish.subscribe do |event_span_op, _event_trace_op|
+          if event_span_op.service && event_span_op.service != @default_service
+            event_span_op.set_tag(Tracing::Metadata::Ext::TAG_BASE_SERVICE, @default_service)
+          end
         end
 
         events.trace_propagated.subscribe do |event_trace_op|
@@ -563,7 +567,7 @@ module Datadog
         @span_sampler.sample!(trace_op, span)
       rescue => e
         SAMPLE_SPAN_LOG_ONLY_ONCE.run do
-          logger.warn { "Failed to sample span: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+          logger.warn { "Failed to sample span: #{e.class}: #{e.message} at #{Array(e.backtrace).first}" }
         end
       end
 
@@ -576,7 +580,7 @@ module Datadog
         write(trace) if trace && !trace.empty?
       rescue => e
         FLUSH_TRACE_LOG_ONLY_ONCE.run do
-          logger.warn { "Failed to flush trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+          logger.warn { "Failed to flush trace: #{e.class}: #{e.message} at #{Array(e.backtrace).first}" }
         end
       end
 

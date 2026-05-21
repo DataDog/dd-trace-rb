@@ -66,11 +66,6 @@ module Datadog
                   )
                 end
 
-                # Tag original global service name if not used
-                if span.service != Datadog.configuration.service
-                  span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
-                end
-
                 span.type = Datadog::Tracing::Contrib::Elasticsearch::Ext::SPAN_TYPE_QUERY
 
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
@@ -98,7 +93,7 @@ module Datadog
                 Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
               rescue => e
                 # TODO: Refactor the code to streamline the execution without ensure
-                Datadog.logger.error("#{e.class}: #{e}")
+                Datadog.logger.error("#{e.class}: #{e.message}")
                 Datadog::Core::Telemetry::Logger.report(e)
               ensure
                 # the call is still executed

@@ -50,7 +50,7 @@ module Datadog
             rescue => exc
               raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-              component.logger.debug { "di: unhandled exception adding #{probe.type} probe at #{probe.location} (#{probe.id}) in DI probe file loader: #{exc.class}: #{exc}" }
+              component.logger.debug { "di: unhandled exception adding #{probe.type} probe at #{probe.location} (#{probe.id}) in DI probe file loader: #{exc.class}: #{exc.message}" }
               component.telemetry&.report(exc, description: "Unhandled exception adding probe in DI probe file loader")
 
               # TODO test this path
@@ -64,7 +64,7 @@ module Datadog
             raise
           end
 
-          component.logger.debug { "di: unhandled exception handling a probe in DI probe file loader: #{exc.class}: #{exc}" }
+          component.logger.debug { "di: unhandled exception handling a probe in DI probe file loader: #{exc.class}: #{exc.message}" }
           component.telemetry&.report(exc, description: "Unhandled exception handling probe in DI probe file loader")
         end
       rescue

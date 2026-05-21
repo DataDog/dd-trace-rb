@@ -38,5 +38,21 @@ module OpenFeature
         ERROR: t
       end
     end
+
+    class EvaluationDetails < ::Struct[untyped]
+      def variant: () -> ::String?
+      def reason: () -> ::String?
+      def error_code: () -> ::String?
+      def flag_metadata: () -> ::Hash[::String, untyped]?
+    end
+
+    module Hooks
+      module Hook
+      end
+
+      class HookContext
+        def flag_key: () -> ::String
+      end
+    end
   end
 end

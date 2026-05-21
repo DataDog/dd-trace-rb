@@ -316,98 +316,80 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
 
     context "cpu-time behavior" do
-      context "when not on Linux" do
-        before do
-          skip "The fallback behavior only applies when not on Linux" if PlatformHelpers.linux?
-        end
-
-        it "sets the cpu-time on every sample to zero" do
+      it "includes the cpu-time for the samples" do
+        rspec_thread_spent_time = Datadog::Core::Utils::Time.measure(:nanosecond) do
           5.times { sample }
-
-          expect(samples).to all have_attributes(values: include("cpu-time": 0))
+          samples # to trigger serialization
         end
+
+        # The only thread we're guaranteed has spent some time on cpu is the rspec thread, so let's check we have
+        # some data for it
+        total_cpu_for_rspec_thread =
+          samples_for_thread(samples, Thread.current)
+            .map { |it| it.values.fetch(:"cpu-time") }
+            .reduce(:+)
+
+        # The **wall-clock time** spent by the rspec thread is going to be an upper bound for the cpu time spent,
+        # e.g. if it took 5 real world seconds to run the test, then at most the rspec thread spent those 5 seconds
+        # running on CPU, but possibly it spent slightly less.
+        expect(total_cpu_for_rspec_thread).to be_between(1, rspec_thread_spent_time)
       end
 
-      context "on Linux" do
-        before do
-          skip "Test only runs on Linux" unless PlatformHelpers.linux?
-        end
+      context "when a thread is marked as being in garbage collection by on_gc_start" do
+        it "records the cpu-time between a previous sample and the start of garbage collection, and no further time" do
+          sample
+          cpu_time_at_first_sample = per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
 
-        it "includes the cpu-time for the samples" do
-          rspec_thread_spent_time = Datadog::Core::Utils::Time.measure(:nanosecond) do
-            5.times { sample }
-            samples # to trigger serialization
-          end
+          on_gc_start
 
-          # The only thread we're guaranteed has spent some time on cpu is the rspec thread, so let's check we have
-          # some data for it
+          cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:"gc_tracking.cpu_time_at_start_ns")
+
+          # Even though we keep calling sample, the result only includes the time until we called on_gc_start
+          5.times { another_way_of_calling_sample }
+
           total_cpu_for_rspec_thread =
             samples_for_thread(samples, Thread.current)
+              .select { |it| it.locations.find { |frame| frame.base_label == "another_way_of_calling_sample" } }
               .map { |it| it.values.fetch(:"cpu-time") }
               .reduce(:+)
 
-          # The **wall-clock time** spent by the rspec thread is going to be an upper bound for the cpu time spent,
-          # e.g. if it took 5 real world seconds to run the test, then at most the rspec thread spent those 5 seconds
-          # running on CPU, but possibly it spent slightly less.
-          expect(total_cpu_for_rspec_thread).to be_between(1, rspec_thread_spent_time)
+          expect(total_cpu_for_rspec_thread).to be(cpu_time_at_gc_start - cpu_time_at_first_sample)
         end
 
-        context "when a thread is marked as being in garbage collection by on_gc_start" do
-          it "records the cpu-time between a previous sample and the start of garbage collection, and no further time" do
-            sample
-            cpu_time_at_first_sample = per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
+        # When a thread is marked as being in GC the cpu_time_at_previous_sample_ns is not allowed to advance until
+        # the GC finishes.
+        it "does not advance cpu_time_at_previous_sample_ns for the thread beyond gc_tracking.cpu_time_at_start_ns" do
+          sample
 
-            on_gc_start
+          on_gc_start
 
-            cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:"gc_tracking.cpu_time_at_start_ns")
+          cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:"gc_tracking.cpu_time_at_start_ns")
 
-            # Even though we keep calling sample, the result only includes the time until we called on_gc_start
-            5.times { another_way_of_calling_sample }
+          5.times { sample }
 
-            total_cpu_for_rspec_thread =
-              samples_for_thread(samples, Thread.current)
-                .select { |it| it.locations.find { |frame| frame.base_label == "another_way_of_calling_sample" } }
-                .map { |it| it.values.fetch(:"cpu-time") }
-                .reduce(:+)
+          cpu_time_at_previous_sample_ns =
+            per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
 
-            expect(total_cpu_for_rspec_thread).to be(cpu_time_at_gc_start - cpu_time_at_first_sample)
-          end
-
-          # When a thread is marked as being in GC the cpu_time_at_previous_sample_ns is not allowed to advance until
-          # the GC finishes.
-          it "does not advance cpu_time_at_previous_sample_ns for the thread beyond gc_tracking.cpu_time_at_start_ns" do
-            sample
-
-            on_gc_start
-
-            cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:"gc_tracking.cpu_time_at_start_ns")
-
-            5.times { sample }
-
-            cpu_time_at_previous_sample_ns =
-              per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
-
-            expect(cpu_time_at_previous_sample_ns).to be cpu_time_at_gc_start
-          end
+          expect(cpu_time_at_previous_sample_ns).to be cpu_time_at_gc_start
         end
+      end
 
-        context "when a thread is unmarked as being in garbage collection by on_gc_finish" do
-          it "lets cpu_time_at_previous_sample_ns advance again" do
-            sample
+      context "when a thread is unmarked as being in garbage collection by on_gc_finish" do
+        it "lets cpu_time_at_previous_sample_ns advance again" do
+          sample
 
-            on_gc_start
+          on_gc_start
 
-            cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:"gc_tracking.cpu_time_at_start_ns")
+          cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:"gc_tracking.cpu_time_at_start_ns")
 
-            on_gc_finish
+          on_gc_finish
 
-            5.times { sample }
+          5.times { sample }
 
-            cpu_time_at_previous_sample_ns =
-              per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
+          cpu_time_at_previous_sample_ns =
+            per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
 
-            expect(cpu_time_at_previous_sample_ns).to be > cpu_time_at_gc_start
-          end
+          expect(cpu_time_at_previous_sample_ns).to be > cpu_time_at_gc_start
         end
       end
     end
@@ -1249,10 +1231,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             )
           end
 
-          context "cpu-time behavior on Linux" do
+          context "cpu-time behavior" do
             before do
-              skip "Test only runs on Linux" unless PlatformHelpers.linux?
-
               apply_delta_to_cpu_time_at_previous_sample_ns(t1, -12345) # Rewind back cpu-clock since previous sample
             end
 
@@ -1314,10 +1294,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             expect(gvl_waiting_at_for(t1)).to be > 0
           end
 
-          context "cpu-time behavior on Linux" do
+          context "cpu-time behavior" do
             before do
-              skip "Test only runs on Linux" unless PlatformHelpers.linux?
-
               apply_delta_to_cpu_time_at_previous_sample_ns(t1, -12345) # Rewind back cpu-clock since previous sample
             end
 
@@ -1355,11 +1333,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 3.times { sample_and_check(expected_state: "sleeping") }
               end
 
-              context "cpu-time behavior on Linux" do
-                before do
-                  skip "Test only runs on Linux" unless PlatformHelpers.linux?
-                end
-
+              context "cpu-time behavior" do
                 it "assigns all the cpu-time to samples only after Waiting for GVL ends" do
                   apply_delta_to_cpu_time_at_previous_sample_ns(t1, -12345) # Rewind back cpu-clock since previous sample
 
@@ -1422,33 +1396,13 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         )
       end
 
-      context "cpu-time behavior" do
-        context "when not on Linux" do
-          before do
-            skip "The fallback behavior only applies when not on Linux" if PlatformHelpers.linux?
-          end
+      it "records the cpu-time when garbage collection started in the caller thread's context" do
+        on_gc_start
 
-          it "records the cpu-time when garbage collection started in the caller thread's context as zero" do
-            on_gc_start
+        cpu_time_at_previous_sample_ns = per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
 
-            expect(per_thread_context.fetch(Thread.current)).to include("gc_tracking.cpu_time_at_start_ns": 0)
-          end
-        end
-
-        context "on Linux" do
-          before do
-            skip "Test only runs on Linux" unless PlatformHelpers.linux?
-          end
-
-          it "records the cpu-time when garbage collection started in the caller thread's context" do
-            on_gc_start
-
-            cpu_time_at_previous_sample_ns = per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
-
-            expect(per_thread_context.fetch(Thread.current))
-              .to include("gc_tracking.cpu_time_at_start_ns": (be > cpu_time_at_previous_sample_ns))
-          end
-        end
+        expect(per_thread_context.fetch(Thread.current))
+          .to include("gc_tracking.cpu_time_at_start_ns": (be > cpu_time_at_previous_sample_ns))
       end
     end
   end
@@ -1507,39 +1461,21 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         end
 
         context "cpu-time behavior" do
-          context "when not on Linux" do
-            before do
-              skip "The fallback behavior only applies when not on Linux" if PlatformHelpers.linux?
-            end
+          it "records the cpu-time spent between calls to on_gc_start and on_gc_finish" do
+            on_gc_finish
 
-            it "records the accumulated_cpu_time_ns as zero" do
-              on_gc_finish
-
-              expect(gc_tracking.fetch(:accumulated_cpu_time_ns)).to be 0
-            end
+            expect(gc_tracking.fetch(:accumulated_cpu_time_ns)).to be > 0
           end
 
-          context "on Linux" do
-            before do
-              skip "Test only runs on Linux" unless PlatformHelpers.linux?
-            end
+          it "advances the cpu_time_at_previous_sample_ns for the sampled thread by the time spent in GC" do
+            cpu_time_at_previous_sample_ns_before =
+              per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
 
-            it "records the cpu-time spent between calls to on_gc_start and on_gc_finish" do
-              on_gc_finish
+            on_gc_finish
 
-              expect(gc_tracking.fetch(:accumulated_cpu_time_ns)).to be > 0
-            end
-
-            it "advances the cpu_time_at_previous_sample_ns for the sampled thread by the time spent in GC" do
-              cpu_time_at_previous_sample_ns_before =
-                per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
-
-              on_gc_finish
-
-              expect(per_thread_context.fetch(Thread.current)).to include(
-                cpu_time_at_previous_sample_ns: be > cpu_time_at_previous_sample_ns_before
-              )
-            end
+            expect(per_thread_context.fetch(Thread.current)).to include(
+              cpu_time_at_previous_sample_ns: be > cpu_time_at_previous_sample_ns_before
+            )
           end
         end
       end
@@ -2162,56 +2098,32 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
 
       context "cpu time behavior" do
-        context "when not on Linux" do
-          before do
-            skip "The fallback behavior only applies when not on Linux" if PlatformHelpers.linux?
-          end
-
-          it "sets the cpu_time_at_previous_sample_ns to zero" do
-            expect(per_thread_context.values).to all(
-              include(cpu_time_at_previous_sample_ns: 0)
-            )
-          end
-
-          it "marks the thread_cpu_time_ids as not valid" do
-            expect(per_thread_context.values).to all(
-              include(thread_cpu_time_id_valid?: false)
-            )
-          end
+        it "sets the cpu_time_at_previous_sample_ns to the current cpu clock value" do
+          # It's somewhat difficult to validate the actual value since this is an operating system-specific value
+          # which should only be assessed in relation to other values for the same thread, not in absolute
+          expect(per_thread_context.values).to all(
+            include(cpu_time_at_previous_sample_ns: not_be(0))
+          )
         end
 
-        context "on Linux" do
-          before do
-            skip "Test only runs on Linux" unless PlatformHelpers.linux?
+        it "returns a bigger value for each sample" do
+          sample_values = []
+
+          3.times do
+            sample
+
+            sample_values <<
+              per_thread_context[Thread.main].fetch(:cpu_time_at_previous_sample_ns)
           end
 
-          it "sets the cpu_time_at_previous_sample_ns to the current cpu clock value" do
-            # It's somewhat difficult to validate the actual value since this is an operating system-specific value
-            # which should only be assessed in relation to other values for the same thread, not in absolute
-            expect(per_thread_context.values).to all(
-              include(cpu_time_at_previous_sample_ns: not_be(0))
-            )
-          end
+          expect(sample_values.uniq.size).to be(3), "Every sample is expected to have a differ cpu time value"
+          expect(sample_values).to eq(sample_values.sort), "Samples are expected to be in ascending order"
+        end
 
-          it "returns a bigger value for each sample" do
-            sample_values = []
-
-            3.times do
-              sample
-
-              sample_values <<
-                per_thread_context[Thread.main].fetch(:cpu_time_at_previous_sample_ns)
-            end
-
-            expect(sample_values.uniq.size).to be(3), "Every sample is expected to have a differ cpu time value"
-            expect(sample_values).to eq(sample_values.sort), "Samples are expected to be in ascending order"
-          end
-
-          it "marks the thread_cpu_time_ids as valid" do
-            expect(per_thread_context.values).to all(
-              include(thread_cpu_time_id_valid?: true)
-            )
-          end
+        it "marks the thread_cpu_time_ids as valid" do
+          expect(per_thread_context.values).to all(
+            include(thread_cpu_time_id_valid?: true)
+          )
         end
       end
 

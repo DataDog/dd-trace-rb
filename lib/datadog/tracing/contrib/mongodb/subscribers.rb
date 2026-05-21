@@ -41,11 +41,6 @@ module Datadog
               )
             end
 
-            # Tag original global service name if not used
-            if span.service != Datadog.configuration.service
-              span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
-            end
-
             span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
 
             span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
@@ -73,7 +68,7 @@ module Datadog
             # set the resource with the quantized query
             span.resource = serialized_query
           rescue => e
-            Datadog.logger.debug("error when handling MongoDB 'started' event: #{e}")
+            Datadog.logger.debug("error when handling MongoDB 'started' event: #{e.class}: #{e.message}")
           end
           # rubocop:enable Metrics/AbcSize
 
@@ -85,7 +80,7 @@ module Datadog
             # the framework itself, so we set only the error and the message
             span.set_error(event)
           rescue => e
-            Datadog.logger.debug("error when handling MongoDB 'failed' event: #{e}")
+            Datadog.logger.debug("error when handling MongoDB 'failed' event: #{e.class}: #{e.message}")
           ensure
             # whatever happens, the Span must be removed from the local storage and
             # it must be finished to prevent any leak
@@ -101,7 +96,7 @@ module Datadog
             rows = event.reply.fetch('n', nil)
             span.set_tag(Ext::TAG_ROWS, rows) unless rows.nil?
           rescue => e
-            Datadog.logger.debug("error when handling MongoDB 'succeeded' event: #{e}")
+            Datadog.logger.debug("error when handling MongoDB 'succeeded' event: #{e.class}: #{e.message}")
           ensure
             # whatever happens, the Span must be removed from the local storage and
             # it must be finished to prevent any leak

@@ -58,7 +58,7 @@ module Datadog
           condition: cond,
         )
       rescue KeyError => exc
-        raise ArgumentError, "Malformed remote configuration entry for probe: #{exc.class}: #{exc}: #{config}"
+        raise ArgumentError, "Malformed remote configuration entry for probe: #{exc.class}: #{exc.message}: #{config}"
       end
 
       def build_template_segments(segments)

@@ -42,14 +42,14 @@ module Datadog
               changes.each do |change|
                 case change.type
                 when :insert
-                  add_probe(change.content, component)
+                  add_probe(change.content, component) # steep:ignore NoMethod
                 when :update
                   # We do not implement updates at the moment, remove the
                   # probe and reinstall.
-                  remove_probe(change.content, component)
-                  add_probe(change.content, component)
+                  remove_probe(change.content, component) # steep:ignore NoMethod
+                  add_probe(change.content, component) # steep:ignore NoMethod
                 when :delete
-                  remove_probe(change.previous, component)
+                  remove_probe(change.previous, component) # steep:ignore NoMethod
                 else
                   # This really should never happen since we generate the
                   # change types in the library.
@@ -88,11 +88,11 @@ module Datadog
             # content as errored but with a somewhat different exception
             # message.
             # TODO assert content state (errored for this example)
-            content.errored("Error applying dynamic instrumentation configuration: #{exc.class.name} #{exc.message}")
+            content.errored("Error applying dynamic instrumentation configuration: #{exc.class}: #{exc.message}")
           rescue => exc
             raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-            component.logger.debug { "di: unhandled exception adding #{probe.type} probe at #{probe.location} (#{probe.id}) in DI remote receiver: #{exc.class}: #{exc}" }
+            component.logger.debug { "di: unhandled exception adding #{probe.type} probe at #{probe.location} (#{probe.id}) in DI remote receiver: #{exc.class}: #{exc.message}" }
             component.telemetry&.report(exc, description: "Unhandled exception adding probe in DI remote receiver")
 
             # TODO test this path
@@ -106,7 +106,7 @@ module Datadog
             # content as errored but with a somewhat different exception
             # message.
             # TODO assert content state (errored for this example)
-            content.errored("Error applying dynamic instrumentation configuration: #{exc.class.name} #{exc.message}")
+            content.errored("Error applying dynamic instrumentation configuration: #{exc.class}: #{exc.message}")
           end
 
           # Important: even if processing fails for this probe config,
@@ -117,11 +117,11 @@ module Datadog
         rescue => exc
           raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-          component.logger.debug { "di: unhandled exception handling a probe in DI remote receiver: #{exc.class}: #{exc}" }
+          component.logger.debug { "di: unhandled exception handling a probe in DI remote receiver: #{exc.class}: #{exc.message}" }
           component.telemetry&.report(exc, description: "Unhandled exception handling probe in DI remote receiver")
 
           # TODO assert content state (errored for this example)
-          content.errored("Error applying dynamic instrumentation configuration: #{exc.class.name} #{exc.message}")
+          content.errored("Error applying dynamic instrumentation configuration: #{exc.class}: #{exc.message}")
         end
 
         # This method does not mark +previous_content+ as succeeded or errored,
@@ -136,7 +136,7 @@ module Datadog
         rescue => exc
           raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-          component.logger.debug { "di: unhandled exception removing probes in DI remote receiver: #{exc.class}: #{exc}" }
+          component.logger.debug { "di: unhandled exception removing probes in DI remote receiver: #{exc.class}: #{exc.message}" }
           component.telemetry&.report(exc, description: "Unhandled exception removing probes in DI remote receiver")
         end
 

@@ -165,7 +165,7 @@ RSpec.describe 'DI integration from remote config' do
           },
         },
       },
-      message: /Instrumentation for probe 11 failed: File matching probe path \(instrumentation_integration_test_class.rb\) was loaded and is not in code tracker registry:/,
+      message: /Instrumentation for probe 11 failed:.*instrumentation_integration_test_class.rb.*no surviving iseqs|no per-method iseqs/,
       service: 'rspec',
       timestamp: Integer,
     }
@@ -587,7 +587,7 @@ RSpec.describe 'DI integration from remote config' do
       it 'marks RC payload as errored' do
         expect_lazy_log_many(logger, :debug,
           /received log probe at .+ via RC/,
-          /error processing probe configuration:.*File matching probe path.*was loaded and is not in code tracker registry/,)
+          /error processing probe configuration:.*no surviving iseqs|no per-method iseqs/,)
 
         do_rc(expect_hook: false)
         assert_received_and_errored

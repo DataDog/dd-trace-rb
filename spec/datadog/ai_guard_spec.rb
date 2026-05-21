@@ -57,7 +57,7 @@ RSpec.describe Datadog::AIGuard do
   end
 
   describe ".evaluate" do
-    context "when AI Guard is enabled" do
+    context "when AI Guard is enabled", webmock: true do
       include_context :ai_guard_enabled
 
       let(:messages) do
@@ -68,8 +68,6 @@ RSpec.describe Datadog::AIGuard do
 
       before do
         Datadog.configuration.ai_guard.enabled = true
-
-        WebMock.enable!
 
         stub_request(:post, "https://app.datadoghq.com/api/v2/ai-guard/evaluate")
           .to_return do |request|
@@ -83,9 +81,6 @@ RSpec.describe Datadog::AIGuard do
 
       after do
         Datadog.configuration.reset!
-
-        WebMock.reset!
-        WebMock.disable!
       end
 
       context "when result is ALLOW" do

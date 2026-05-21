@@ -40,7 +40,7 @@ module Datadog
                 span
               end
             rescue => e
-              Datadog.logger.debug { "#{e.class}: #{e}" }
+              Datadog.logger.debug { "#{e.class}: #{e.message}" }
             end
 
             @stack.request_call(datum)
@@ -128,11 +128,6 @@ module Datadog
               )
             end
 
-            # Tag original global service name if not used
-            if span.service != Datadog.configuration.service
-              span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
-            end
-
             span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
 
             span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
@@ -180,7 +175,7 @@ module Datadog
               end
             end
           rescue => e
-            Datadog.logger.debug { "#{e.class}: #{e}" }
+            Datadog.logger.debug { "#{e.class}: #{e.message}" }
           end
 
           def propagate!(trace, span, datum)

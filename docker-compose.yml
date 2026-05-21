@@ -236,7 +236,7 @@ services:
     ports:
       - "127.0.0.1:${TEST_MEMCACHED_PORT}:11211"
   mongodb:
-    image: mongo:3.6
+    image: mongo:4.2
     expose:
       - "27017"
     ports:

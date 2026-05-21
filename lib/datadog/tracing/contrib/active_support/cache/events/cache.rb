@@ -82,10 +82,6 @@ module Datadog
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CACHE)
 
-                if span.service != Datadog.configuration.service
-                  span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
-                end
-
                 span.set_tag(Ext::TAG_CACHE_BACKEND, cache_backend(store))
 
                 span.set_tag('EVENT', event)
@@ -94,7 +90,7 @@ module Datadog
                   set_cache_key(span, key, mapping[:multi_key])
                 end
               rescue => e
-                Datadog.logger.error("#{e.class}: #{e}")
+                Datadog.logger.error("#{e.class}: #{e.message}")
                 Datadog::Core::Telemetry::Logger.report(e)
               end
 

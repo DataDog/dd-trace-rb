@@ -1201,7 +1201,11 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
     ID2SYM(rb_intern("thread_id")),                       /* => */ rb_str_new2(thread_context->thread_id),
     ID2SYM(rb_intern("thread_invoke_location")),          /* => */ rb_str_new2(thread_context->thread_invoke_location),
     ID2SYM(rb_intern("thread_cpu_time_id_valid?")),       /* => */ thread_context->thread_cpu_time_id.valid ? Qtrue : Qfalse,
-    ID2SYM(rb_intern("thread_cpu_time_id")),              /* => */ CLOCKID2NUM(thread_context->thread_cpu_time_id.clock_id),
+    #ifdef __APPLE__
+      ID2SYM(rb_intern("thread_cpu_time_id")),              /* => */ ULL2NUM(thread_context->thread_cpu_time_id.clock_id),
+    #else
+      ID2SYM(rb_intern("thread_cpu_time_id")),              /* => */ CLOCKID2NUM(thread_context->thread_cpu_time_id.clock_id),
+    #endif
     ID2SYM(rb_intern("cpu_time_at_previous_sample_ns")),  /* => */ LONG2NUM(thread_context->cpu_time_at_previous_sample_ns),
     ID2SYM(rb_intern("wall_time_at_previous_sample_ns")), /* => */ LONG2NUM(thread_context->wall_time_at_previous_sample_ns),
 
@@ -1924,10 +1928,14 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     intptr_t gvl_waiting_at = gvl_profiling_state_get(thread);
 
     // Thread was not being profiled / not waiting on gvl
-    if (gvl_waiting_at == 0 || gvl_waiting_at == GVL_WAITING_ENABLED_EMPTY) return ON_GVL_RUNNING_UNKNOWN;
+    if (gvl_waiting_at == 0 || gvl_waiting_at == GVL_WAITING_ENABLED_EMPTY) {
+      return (on_gvl_running_result) {.action = ON_GVL_RUNNING_UNKNOWN, .waiting_for_gvl_duration_ns = 0};
+    }
 
     // @ivoanjo: I'm not sure if this can happen -- It means we should've sampled already but haven't gotten the chance yet?
-    if (gvl_waiting_at < 0) return ON_GVL_RUNNING_SAMPLE;
+    if (gvl_waiting_at < 0) {
+      return (on_gvl_running_result) {.action = ON_GVL_RUNNING_SAMPLE, .waiting_for_gvl_duration_ns = 0};
+    }
 
     long waiting_for_gvl_duration_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - gvl_waiting_at;
 
@@ -1943,7 +1951,10 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
       gvl_profiling_state_set(thread, GVL_WAITING_ENABLED_EMPTY);
     }
 
-    return should_sample ? ON_GVL_RUNNING_SAMPLE : ON_GVL_RUNNING_DONT_SAMPLE;
+    return (on_gvl_running_result) {
+      .action = should_sample ? ON_GVL_RUNNING_SAMPLE : ON_GVL_RUNNING_DONT_SAMPLE,
+      .waiting_for_gvl_duration_ns = waiting_for_gvl_duration_ns,
+    };
   }
 
   __attribute__((warn_unused_result))
@@ -2146,7 +2157,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 
     debug_enter_unsafe_context();
 
-    VALUE result = thread_context_collector_on_gvl_running(thread_from_thread_object(thread)) == ON_GVL_RUNNING_SAMPLE ? Qtrue : Qfalse;
+    VALUE result = thread_context_collector_on_gvl_running(thread_from_thread_object(thread)).action == ON_GVL_RUNNING_SAMPLE ? Qtrue : Qfalse;
 
     debug_leave_unsafe_context();
 

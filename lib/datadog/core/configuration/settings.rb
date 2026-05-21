@@ -14,6 +14,7 @@ require_relative '../../profiling/ext'
 
 require_relative '../../tracing/configuration/settings'
 require_relative '../../opentelemetry/configuration/settings'
+require_relative '../../symbol_database/configuration'
 
 module Datadog
   module Core
@@ -169,6 +170,16 @@ module Datadog
           o.type :string, nilable: true
           # NOTE: env also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.env Core::Environment::Ext::ENV_ENVIRONMENT
+        end
+
+        # Override the hostname reported by this process.
+        # When `report_hostname` is enabled, sets the hostname on traces and
+        # the `host.name` resource attribute in OpenTelemetry.
+        # @default `DD_HOSTNAME` environment variable, otherwise `nil`
+        # @return [String,nil]
+        option :hostname do |o|
+          o.type :string, nilable: true
+          o.env Core::Environment::Ext::ENV_HOSTNAME
         end
 
         # Configuration for container environments. For internal use only.
@@ -1116,6 +1127,8 @@ module Datadog
         extend Datadog::Tracing::Configuration::Settings
 
         extend Datadog::OpenTelemetry::Configuration::Settings
+
+        extend Datadog::SymbolDatabase::Configuration::Settings
       end
       # standard:enable Metrics/BlockLength
     end
