@@ -2,7 +2,7 @@ module Datadog
   module DI
     module EL
       class Compiler
-        def compile: (untyped ast) -> untyped
+        def compile: (untyped ast) -> String
 
         private
 
@@ -14,10 +14,10 @@ module Datadog
 
         MULTI_ARG_METHODS: { "and" => "&&", "or" => "||" }
 
-        def compile_partial: (untyped ast) -> untyped
-        def var_name_maybe: (untyped target) -> (untyped | "(expression)")
+        def compile_partial: (untyped ast) -> String
+        def var_name_maybe: (untyped target) -> String
 
-        def escape: (untyped needle) -> untyped
+        def escape: (String needle) -> String
       end
     end
   end

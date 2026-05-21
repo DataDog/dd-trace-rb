@@ -46,7 +46,10 @@ module Datadog
 
           security_engine = SecurityEngine::Engine.new(appsec_settings: settings.appsec, telemetry: telemetry)
           new(security_engine: security_engine)
-        rescue => e
+        # NOTE: At this point we should capture all possible exceptions and
+        #       gracefully fail component initialization, preventing propagation
+        #       into the host application code.
+        rescue Exception => e # standard:disable Lint/RescueException
           Datadog.logger.warn("AppSec is disabled: #{e.class}: #{e.message}; there may be additional logged errors above")
 
           # Not reporting to telemetry here because some of the rescued exceptions

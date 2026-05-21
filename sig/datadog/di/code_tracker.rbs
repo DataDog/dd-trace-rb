@@ -13,7 +13,7 @@ module Datadog
       def backfill_registry: () -> void
       def start: () -> void
       def active?: () -> bool
-      def iseqs_for_path_suffix: (String suffix) -> untyped
+      def iseqs_for_path_suffix: (String suffix) -> [String, RubyVM::InstructionSequence]?
       def iseq_for_line: (String suffix, Integer line) -> [String, RubyVM::InstructionSequence]?
       def stop: () -> void
       def clear: () -> void

@@ -11,6 +11,8 @@ module Datadog
           module Instrumentation
             SCRIPT_NAME_KEY = 'SCRIPT_NAME'
             FORMAT_SUFFIX = '(.:format)'
+            # NOTE: Rails 8.1.1+ natively provides the same object via 'action_dispatch.route'.
+            DATADOG_RAILS_ROUTE_ENV_KEY = 'datadog.action_dispatch.route'
 
             module_function
 
@@ -48,6 +50,8 @@ module Datadog
                   result.each do |_, _, route|
                     next unless Instrumentation.dispatcher_route?(route)
 
+                    req.env[DATADOG_RAILS_ROUTE_ENV_KEY] = route
+
                     http_route = route.path.spec.to_s
                     http_route.delete_suffix!(FORMAT_SUFFIX)
 
@@ -66,6 +70,8 @@ module Datadog
                 def find_routes(req)
                   super do |match, parameters, route|
                     if Instrumentation.dispatcher_route?(route)
+                      req.env[DATADOG_RAILS_ROUTE_ENV_KEY] = route
+
                       http_route = route.path.spec.to_s
                       http_route.delete_suffix!(FORMAT_SUFFIX)
 
@@ -86,6 +92,8 @@ module Datadog
 
                   super do |route, parameters|
                     if Instrumentation.dispatcher_route?(route)
+                      req.env[DATADOG_RAILS_ROUTE_ENV_KEY] = route
+
                       http_route = route.path.spec.to_s
                       http_route = http_route.delete_suffix(FORMAT_SUFFIX)
 

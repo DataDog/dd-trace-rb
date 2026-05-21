@@ -101,14 +101,6 @@ module Datadog
 
           def enabled=: (bool) -> void
 
-          def untargeted_trace_points: () -> bool
-
-          def untargeted_trace_points=: (bool) -> void
-
-          def propagate_all_exceptions: () -> bool
-
-          def propagate_all_exceptions=: (bool) -> void
-
           def redacted_identifiers: () -> Array[String]
 
           def redacted_identifiers=: (Array[String]) -> void
@@ -136,6 +128,38 @@ module Datadog
           def max_capture_attribute_count: () -> Integer
 
           def max_capture_attribute_count=: (Integer) -> void
+
+          def internal: () -> _DIInternal
+        end
+
+        interface _DIInternal
+          def untargeted_trace_points: () -> bool
+
+          def untargeted_trace_points=: (bool) -> void
+
+          def propagate_all_exceptions: () -> bool
+
+          def propagate_all_exceptions=: (bool) -> void
+
+          def min_send_interval: () -> Float
+
+          def min_send_interval=: (Float) -> void
+
+          def snapshot_queue_capacity: () -> Integer
+
+          def snapshot_queue_capacity=: (Integer) -> void
+
+          def development: () -> bool
+
+          def development=: (bool) -> void
+
+          def trace_logging: () -> bool
+
+          def trace_logging=: (bool) -> void
+
+          def max_processing_time: () -> Float?
+
+          def max_processing_time=: (Float?) -> void
         end
 
         interface _TemplatesBlock
@@ -179,6 +203,8 @@ module Datadog
         def env: -> String?
 
         def api_key: -> String?
+
+        def hostname: -> String?
 
         def service: -> String?
 

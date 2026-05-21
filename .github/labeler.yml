@@ -1,9 +1,18 @@
 # Configuration for GitHub Action `.github/workflows/pull-request-labeler.yml`.
 # See https://github.com/marketplace/actions/labeler for more information.
 
+# Changes to AI Guard
+ai-guard:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'lib/datadog/ai_guard.rb'
+    - 'lib/datadog/ai_guard/**'
+
 core:
 - changed-files:
-  - any-glob-to-any-file: ['lib/datadog/core/**']
+  - any-glob-to-any-file:
+    - 'lib/datadog/core.rb'
+    - 'lib/datadog/core/**'
 
 # Only documentation changes
 docs:
@@ -18,7 +27,10 @@ dev/testing:
 # Changes to Profiling
 profiling:
 - changed-files:
-  - any-glob-to-any-file: ['{lib/datadog/profiling/**,ext/datadog_profiling_native_extension/**}']
+  - any-glob-to-any-file:
+    - 'lib/datadog/profiling.rb'
+    - 'lib/datadog/profiling/**'
+    - 'ext/datadog_profiling_native_extension/**'
 
 # Changes to CI-App
 ci-app:
@@ -28,12 +40,16 @@ ci-app:
 # Changes to ASM
 appsec:
 - changed-files:
-  - any-glob-to-any-file: ['lib/datadog/appsec/**']
+  - any-glob-to-any-file:
+    - 'lib/datadog/appsec.rb'
+    - 'lib/datadog/appsec/**'
 
 # Changes to Tracing
 tracing:
 - changed-files:
-  - any-glob-to-any-file: ['lib/datadog/tracing/**']
+  - any-glob-to-any-file:
+    - 'lib/datadog/tracing.rb'
+    - 'lib/datadog/tracing/**'
 
 # Changes to Tracing integrations
 integrations:
@@ -58,14 +74,20 @@ release:
 # Changes to OpenTelemetry
 otel:
 - changed-files:
-  - any-glob-to-any-file: ['lib/datadog/opentelemetry/**']
+  - any-glob-to-any-file:
+    - 'lib/datadog/opentelemetry.rb'
+    - 'lib/datadog/opentelemetry/**'
 
 # Changes to Single Step Instrumentation
 single-step:
 - changed-files:
   - any-glob-to-any-file: ['lib-injection/**']
 
-# Changes to Debugging
-debugging:
+# Changes to Dynamic Instrumentation or Symbol Database
+debugger:
 - changed-files:
-  - any-glob-to-any-file: ['lib/datadog/debugging/**']
+  - any-glob-to-any-file:
+    - 'lib/datadog/di.rb'
+    - 'lib/datadog/di/**'
+    - 'lib/datadog/symbol_database.rb'
+    - 'lib/datadog/symbol_database/**'

@@ -302,11 +302,34 @@ RSpec.shared_examples 'Trace Context distributed format' do
             end
           end
 
+          context 'and an oversized upstream tracestate' do
+            let(:upstream_tracestate) { Array.new(100) { |i| "other#{i}=vendor#{i}" }.join(',') }
+
+            it 'truncates whole values to the tracestate limit' do
+              expect(tracestate).to start_with('dd=o:origin,')
+              expect(tracestate.bytesize).to be <= 512
+              expect(tracestate.split(',').all? { |member| member.include?('=') }).to be true
+            end
+          end
+
           context 'and unknown `dd=` tracestate values' do
             let(:options) { super().merge(trace_origin: 'origin', trace_state_unknown_fields: 'future=field;') }
 
             it 'joins known and unknown `dd=` fields' do
               expect(tracestate).to eq('dd=o:origin;future=field,other=vendor')
+            end
+          end
+
+          context 'and oversized unknown `dd=` tracestate values' do
+            let(:options) do
+              super().merge(
+                trace_origin: 'origin',
+                trace_state_unknown_fields: "future=field;large:#{'x' * 300};small:ok;"
+              )
+            end
+
+            it 'drops unknown fields when they exceed the Datadog value limit' do
+              expect(tracestate).to eq('dd=o:origin,other=vendor')
             end
           end
         end
@@ -365,6 +388,11 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
       context 'more fields than expected' do
         let(:traceparent) { '00-00000000000000000000000000c0ffee-0000000000000bee-01-FFFFF' }
+        it { is_expected.to be_nil }
+      end
+
+      context 'prohibitively large future version' do
+        let(:traceparent) { '01-00000000000000000000000000c0ffee-0000000000000bee-01-' + ('x' * 512) }
         it { is_expected.to be_nil }
       end
     end
@@ -520,6 +548,69 @@ RSpec.shared_examples 'Trace Context distributed format' do
         it { expect(digest.span_id).to eq(0xBEE) }
         it { expect(digest.trace_state).to eq('v1=1,v2=2') }
         it { expect(digest.trace_origin).to eq('origin') }
+      end
+
+      context 'with oversized tracestate vendors' do
+        let(:tracestate) { Array.new(100) { |i| "v#{i}=#{'a' * 8}" }.join(',') }
+
+        it 'truncates whole values to the tracestate limit' do
+          expect(digest.trace_state.bytesize).to be <= 512
+          expect(digest.trace_state.split(',').length).to be <= 32
+          expect(digest.trace_state.split(',').all? { |member| member.include?('=') }).to be true
+        end
+      end
+
+      context 'with more than 32 tracestate vendors' do
+        let(:tracestate) { Array.new(33) { |i| "v#{i}=1" }.join(',') }
+
+        it 'keeps only the first 32 values' do
+          expect(digest.trace_state).to eq(Array.new(32) { |i| "v#{i}=1" }.join(','))
+        end
+      end
+
+      context 'with an oversized tracestate value' do
+        let(:tracestate) { 'v=' + ('a' * 600) }
+
+        it { expect(digest.trace_state).to be_nil }
+      end
+
+      context 'with a tracestate value at the size limit' do
+        let(:tracestate) { 'v=' + ('a' * 510) }
+
+        it { expect(digest.trace_state).to eq(tracestate) }
+      end
+
+      context 'with a tracestate delimiter one byte after the size limit' do
+        let(:member) { 'v=' + ('a' * 510) }
+        let(:tracestate) { "#{member},other=value" }
+
+        it { expect(digest.trace_state).to eq(member) }
+      end
+
+      context 'with ambiguous whitespace one byte after the size limit' do
+        let(:member) { 'v=' + ('a' * 510) }
+        let(:tracestate) { "#{member} ,other=value" }
+
+        it { expect(digest.trace_state).to be_nil }
+      end
+
+      context 'with an oversized tracestate tail' do
+        let(:tracestate) { 'v=1,' + ('a' * 600) }
+
+        it { expect(digest.trace_state).to eq('v=1') }
+      end
+
+      context 'with a trailing tracestate member truncated inside a multibyte character' do
+        let(:complete_member) { 'v=1' }
+        let(:partial_key) { 'w=' }
+        let(:partial_value) do
+          'a' * (512 - complete_member.bytesize - 1 - partial_key.bytesize - 1) + '🍀' # A 4-leaf clover, 4-byte character
+        end
+        let(:tracestate) { "#{complete_member},#{partial_key}#{partial_value}" }
+
+        it 'extracts complete members before the partial multibyte tail' do
+          expect(digest.trace_state).to eq(complete_member)
+        end
       end
 
       context 'trailing whitespace' do

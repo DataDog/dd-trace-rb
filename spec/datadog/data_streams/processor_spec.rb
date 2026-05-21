@@ -292,6 +292,17 @@ RSpec.describe Datadog::DataStreams::Processor do
       end
 
       it 'serializes consumer backlogs with type:kafka_commit tag' do
+        # Stop the auto-spawned background worker thread before exercising
+        # process_events synchronously. Otherwise the worker can race with the
+        # test thread: its first perform_loop iteration runs immediately
+        # (loop_wait_before_first_iteration? is false), and if the OS schedules
+        # it after the first track_kafka_consume but before the second, the
+        # worker drains @event_buffer (consuming event1 into @consumer_stats)
+        # and flush_stats then clears @consumer_stats — so the test's later
+        # process_events only sees event2 and serialize_consumer_backlogs
+        # returns one entry instead of two. See ruby-guild#281.
+        processor.stop(true)
+
         processor.track_kafka_consume('orders', 0, 100, base_time)
         processor.track_kafka_consume('payments', 1, 50, base_time + 1)
 
@@ -341,6 +352,17 @@ RSpec.describe Datadog::DataStreams::Processor do
     let(:sent_payload) { @sent_payload }
 
     before do
+      # Stop the auto-spawned background worker thread before exercising
+      # flush_stats synchronously. Otherwise the worker can race with the
+      # test thread: its first perform_loop iteration runs immediately
+      # (loop_wait_before_first_iteration? is false), and if the OS
+      # schedules it after set_produce_checkpoint pushes its event, the
+      # worker drains @event_buffer and runs flush_stats — which clears
+      # @buckets via serialize_buckets and calls the unmocked
+      # send_stats_to_agent. The test's later flush_stats then early-returns
+      # at processor.rb:307 (empty @buckets) and @sent_payload stays nil.
+      flush_processor.stop(true)
+
       flush_processor.set_produce_checkpoint(type: 'kafka', destination: 'orders')
       flush_processor.send(:process_events)
 

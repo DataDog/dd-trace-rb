@@ -7,7 +7,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
   before { skip_if_profiling_not_supported }
 
   let(:numeric_labels) { [] }
-  let(:cpu_time_enabled) { true }
   let(:alloc_samples_enabled) { true }
   # Disabling these by default since they require some extra setup and produce separate samples.
   # Enabling this is tested in a particular context below.
@@ -19,7 +18,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
   subject(:stack_recorder) do
     described_class.new(
-      cpu_time_enabled: cpu_time_enabled,
       alloc_samples_enabled: alloc_samples_enabled,
       heap_samples_enabled: heap_samples_enabled,
       heap_size_enabled: heap_size_enabled,
@@ -138,7 +136,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
 
       describe "profile types configuration" do
-        let(:cpu_time_enabled) { true }
         let(:alloc_samples_enabled) { true }
         let(:heap_samples_enabled) { true }
         let(:heap_size_enabled) { true }
@@ -165,14 +162,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         context "when all profile types are enabled" do
           it "returns a pprof with the configured sample types" do
             expect(sample_types_from(decoded_profile)).to eq(all_profile_types)
-          end
-        end
-
-        context "when cpu-time is disabled" do
-          let(:cpu_time_enabled) { false }
-
-          it "returns a pprof without the cpu-type type" do
-            expect(sample_types_from(decoded_profile)).to eq(profile_types_without("cpu-time"))
           end
         end
 
@@ -210,7 +199,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         context "when all optional types are disabled" do
-          let(:cpu_time_enabled) { false }
           let(:alloc_samples_enabled) { false }
           let(:heap_samples_enabled) { false }
           let(:heap_size_enabled) { false }
@@ -218,6 +206,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
           it "returns a pprof without the optional types" do
             expect(sample_types_from(decoded_profile)).to eq(
+              "cpu-time" => "nanoseconds",
               "cpu-samples" => "count",
               "wall-time" => "nanoseconds",
             )
@@ -306,11 +295,11 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
 
       context "when disabling an optional profile sample type" do
-        let(:cpu_time_enabled) { false }
+        let(:timeline_enabled) { false }
 
         it "encodes the sample with the metrics provided, ignoring the disabled ones" do
           expect(samples.first.values).to eq(
-            "cpu-samples": 456, "wall-time": 789, "alloc-samples": 4242, "alloc-samples-unscaled": 2222, timeline: 1111
+            "cpu-time": 123, "cpu-samples": 456, "wall-time": 789, "alloc-samples": 4242, "alloc-samples-unscaled": 2222
           )
         end
       end
@@ -486,6 +475,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it "include the stack and sample counts for the objects still left alive" do
+          skip_asan_flaky
+
           # There should be 3 different allocation class labels so we expect 3 different heap samples
           expect(heap_samples.size).to eq(3)
 
@@ -494,6 +485,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it "include accurate object sizes" do
+          skip_asan_flaky
+
           string_sample = heap_samples.find { |s| s.labels[:"allocation class"] == "String" }
           expect(string_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_string) * sample_rate)
 
@@ -617,6 +610,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it "contribute to recorded samples stats" do
+          skip_asan_flaky
+
           test_num_allocated_object = 123
           live_objects = Array.new(test_num_allocated_object)
 
@@ -662,6 +657,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           let(:heap_sample_every) { 2 }
 
           it "only keeps track of some allocations" do
+            skip_asan_flaky
+
             # By only sampling every 2nd allocation we only track the odd objects which means our array
             # should be the only heap sample captured (string is index 0, array is index 1, hash is 4)
             expect(heap_samples.size)
@@ -784,6 +781,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
             context "when there's a heap serialization ongoing" do
               it "does nothing" do
+                skip_asan_flaky
+
                 described_class::Testing._native_start_fake_slow_heap_serialization(stack_recorder)
 
                 test_object_id = sample_and_clear

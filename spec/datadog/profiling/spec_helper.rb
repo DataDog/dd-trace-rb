@@ -110,6 +110,19 @@ module ProfileHelpers
       testcase.skip "GVL profiling is only supported on Ruby >= 3.2"
     end
   end
+
+  def asan_build?
+    %w[CFLAGS LDFLAGS configure_args].any? do |key|
+      RbConfig::CONFIG[key].to_s.include?("sanitize=address")
+    end
+  end
+
+  # Under ASAN-built Ruby, we've seen flakiness in some of our tests.
+  # We suspect this may be the ASAN fake stack keeping things alive, although we're not entirely sure...
+  # For now let's skip these tests when testing with ASAN to avoid impacting CI
+  def skip_asan_flaky
+    skip "Skipped test to avoid flakiness in ASAN builds" if asan_build?
+  end
 end
 
 RSpec.configure do |config|

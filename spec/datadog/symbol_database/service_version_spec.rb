@@ -2,6 +2,7 @@
 
 require 'datadog/symbol_database/service_version'
 require 'datadog/symbol_database/scope'
+require 'datadog/symbol_database/symbol'
 
 RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
   describe '#initialize' do
@@ -38,24 +39,24 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
       }.to raise_error(ArgumentError, /scopes must be an array/)
     end
 
-    it 'converts empty env to "none"' do
+    it 'passes empty env through' do
       sv = described_class.new(service: 'svc', env: '', version: '1.0', scopes: [])
-      expect(sv.env).to eq('none')
+      expect(sv.env).to eq('')
     end
 
-    it 'converts nil env to "none"' do
+    it 'passes nil env through' do
       sv = described_class.new(service: 'svc', env: nil, version: '1.0', scopes: [])
-      expect(sv.env).to eq('none')
+      expect(sv.env).to be_nil
     end
 
-    it 'converts empty version to "none"' do
+    it 'passes empty version through' do
       sv = described_class.new(service: 'svc', env: 'prod', version: '', scopes: [])
-      expect(sv.version).to eq('none')
+      expect(sv.version).to eq('')
     end
 
-    it 'converts nil version to "none"' do
+    it 'passes nil version through' do
       sv = described_class.new(service: 'svc', env: 'prod', version: nil, scopes: [])
-      expect(sv.version).to eq('none')
+      expect(sv.version).to be_nil
     end
 
     it 'sets language' do
@@ -78,8 +79,29 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         env: 'staging',
         version: '2.1.0',
         language: 'ruby',
-        scopes: []
+        scopes: [],
+        upload_id: nil,
+        batch_num: nil,
+        final: nil,
       })
+    end
+
+    it 'includes upload metadata fields when provided' do
+      sv = described_class.new(
+        service: 'svc',
+        env: 'prod',
+        version: '1.0',
+        scopes: [],
+        upload_id: 'abc-123',
+        batch_num: 5,
+        final: false,
+      )
+
+      expect(sv.to_h).to include(
+        upload_id: 'abc-123',
+        batch_num: 5,
+        final: false,
+      )
     end
 
     it 'serializes scopes recursively' do
@@ -105,14 +127,24 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
       )
     end
 
-    it 'handles empty env as "none"' do
+    it 'passes empty env through to hash' do
       sv = described_class.new(service: 'svc', env: '', version: '1.0', scopes: [])
-      expect(sv.to_h[:env]).to eq('none')
+      expect(sv.to_h[:env]).to eq('')
     end
 
-    it 'handles empty version as "none"' do
+    it 'passes nil env through to hash' do
+      sv = described_class.new(service: 'svc', env: nil, version: '1.0', scopes: [])
+      expect(sv.to_h[:env]).to be_nil
+    end
+
+    it 'passes empty version through to hash' do
       sv = described_class.new(service: 'svc', env: 'prod', version: '', scopes: [])
-      expect(sv.to_h[:version]).to eq('none')
+      expect(sv.to_h[:version]).to eq('')
+    end
+
+    it 'passes nil version through to hash' do
+      sv = described_class.new(service: 'svc', env: 'prod', version: nil, scopes: [])
+      expect(sv.to_h[:version]).to be_nil
     end
   end
 
@@ -146,7 +178,7 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         source_file: '/app/models/user.rb',
         start_line: 5,
         end_line: 7,
-        injectible_lines: [{start: 6, end: 7}],
+        targetable_lines: [{start: 6, end: 7}],
         language_specifics: {visibility: 'public', method_type: 'instance'},
         symbols: [
           Datadog::SymbolDatabase::Symbol.new(symbol_type: 'ARG', name: 'token', line: 5),

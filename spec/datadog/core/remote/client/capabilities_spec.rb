@@ -147,6 +147,52 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
     end
   end
 
+  context 'Symbol Database component' do
+    context 'when DI is disabled' do
+      let(:settings) do
+        settings = Datadog::Core::Configuration::Settings.new
+        settings.dynamic_instrumentation.enabled = false
+        settings.symbol_database.enabled = true
+        settings
+      end
+
+      it 'does not register symbol database product' do
+        expect(capabilities.products).to_not include('LIVE_DEBUGGING_SYMBOL_DB')
+      end
+    end
+
+    context 'when DI is enabled and symbol_database is disabled' do
+      let(:settings) do
+        settings = Datadog::Core::Configuration::Settings.new
+        settings.dynamic_instrumentation.enabled = true
+        settings.symbol_database.enabled = false
+        settings
+      end
+
+      it 'does not register symbol database product' do
+        expect(capabilities.products).to_not include('LIVE_DEBUGGING_SYMBOL_DB')
+      end
+    end
+
+    context 'when DI is enabled and symbol_database is enabled' do
+      let(:settings) do
+        settings = Datadog::Core::Configuration::Settings.new
+        settings.dynamic_instrumentation.enabled = true
+        settings.symbol_database.enabled = true
+        settings
+      end
+
+      it 'registers symbol database product and a receiver matching its path' do
+        expect(capabilities.products).to include('LIVE_DEBUGGING_SYMBOL_DB')
+        expect(capabilities.receivers).to include(
+          lambda { |r|
+            r.match? Datadog::Core::Remote::Configuration::Path.parse('datadog/2/LIVE_DEBUGGING_SYMBOL_DB/_/_')
+          }
+        )
+      end
+    end
+  end
+
   context 'Tracing component' do
     it 'register capabilities, products, and receivers' do
       expect(capabilities.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29)
