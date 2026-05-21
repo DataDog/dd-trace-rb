@@ -151,7 +151,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
     # run Process.spawn, return [success?, exit_status, child_stdout].
     def run_spawn(*spawn_args)
       read_io, write_io = IO.pipe
-      if spawn_args.last.is_a?(Hash) && spawn_args.last.keys.all? { |k| k.is_a?(Symbol) || k.is_a?(Integer) }
+      if spawn_args.last.is_a?(Hash)
         spawn_args[-1] = spawn_args.last.merge(out: write_io, err: write_io, in: File::NULL)
       else
         spawn_args << {out: write_io, err: write_io, in: File::NULL}
@@ -248,11 +248,49 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
       end
     end
 
-    # NOTE: childprocess's close-on-exec form (`options[writer.fileno] = :close`)
-    # produces an options Hash with mixed Integer + Symbol keys. On Ruby 2.5/2.6/2.7
-    # the wrapper's `**opts` parameter partially extracts that Hash into kwargs,
-    # mangling the call. That's a distinct bug from the constant shadow fixed here;
-    # see PR #5774 (drops `**opts`) for the fix and its regression test.
+    # ChildProcess sets `options[writer.fileno] = :close` on duplex pipes, producing
+    # an options Hash with mixed Integer + Symbol keys. The prior wrapper signature
+    # `def spawn(*args, **opts)` auto-extracted the Symbol-keyed entries into `**opts`
+    # on Ruby 2.5/2.6/2.7 while leaving Integer-keyed entries in the trailing positional
+    # Hash — mangling the call and raising `TypeError`. Dropping `**opts`
+    # keeps the options Hash positional and intact across all supported Rubies.
+    it 'spawn(cmd, options_hash_with_mixed_symbol_and_integer_keys) — childprocess close-on-exec shape' do
+      expect_in_fork do
+        described_class.apply!(env_provider: -> { {lineage_var => lineage_val} })
+        spare_r, spare_w = IO.pipe
+        begin
+          options = {:pgroup => true, spare_r.fileno => :close, spare_w.fileno => :close}
+          ok, status, out = run_spawn(probe_cmd, options)
+          expect(ok).to be(true)
+          expect(status).to eq(0)
+          expect(out).to include("LINEAGE=#{lineage_val}")
+        ensure
+          spare_r.close
+          spare_w.close
+        end
+      end
+    end
+
+    it 'delegates perfectly to the original method' do
+      expect_in_fork do
+        checker = double
+        if RUBY_VERSION < '2.7'
+          # 2.6 splits Symbol & non-Symbol kwargs so we have to test just *args
+          checker.define_singleton_method :spawn do |*args|
+            checker.check(*args)
+          end
+        else
+          checker.define_singleton_method :spawn do |*args, **kwargs|
+            checker.check(*args, **kwargs)
+          end
+        end
+        Datadog::Core::Utils::SpawnMonkeyPatch.instance_variable_set(:@env_provider, -> { {lineage_var => lineage_val} })
+        checker.singleton_class.prepend(Datadog::Core::Utils::SpawnMonkeyPatch::ProcessSpawnPatch)
+
+        expect(checker).to receive(:check).with({lineage_var => lineage_val}, ['echo', 'test'], 2 => 1, :out => File::NULL)
+        checker.spawn(['echo', 'test'], 2 => 1, :out => File::NULL)
+      end
+    end
 
     it 'spawn(env, cmd, **opts) — caller uses kwargs splat' do
       expect_in_fork do

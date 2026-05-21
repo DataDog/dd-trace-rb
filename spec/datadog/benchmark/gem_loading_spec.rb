@@ -50,10 +50,13 @@ RSpec.describe 'Gem loading' do
 
   context 'memory' do
     let(:program) do
-      <<-'RUBY'
-      puts `ps -o rss= -p #{Process.pid}`.to_i
+      support_path = File.expand_path('../../../benchmarks/support', __dir__)
+      <<-RUBY
+      $LOAD_PATH.unshift(#{support_path.inspect})
+      require 'memory_probe'
+      puts BenchmarkMemoryProbe.rss_kb
       require 'datadog'
-      puts `ps -o rss= -p #{Process.pid}`.to_i
+      puts BenchmarkMemoryProbe.rss_kb
       RUBY
     end
 

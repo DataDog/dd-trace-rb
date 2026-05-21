@@ -6,6 +6,7 @@ require_relative 'base'
 require_relative 'ext'
 require_relative '../environment/execution'
 require_relative '../environment/ext'
+require_relative '../environment/process'
 require_relative '../runtime/ext'
 require_relative '../telemetry/ext'
 require_relative '../remote/ext'
@@ -692,12 +693,16 @@ module Datadog
           o.env Core::Environment::Ext::ENV_SERVICE
           o.default Core::Environment::Ext::FALLBACK_SERVICE_NAME
 
+          o.after_set do |service_name|
+            Core::Environment::Process.set_service(service_name, user_configured: !using_default?(:service))
+          end
+
           # There's a few cases where we don't want to use the fallback service name, so this helper allows us to get a
           # nil instead so that one can do
           # nice_service_name = Datadog.configuration.service_without_fallback || nice_service_name_default
           o.helper(:service_without_fallback) do
             service_name = service
-            service_name unless service_name.equal?(Core::Environment::Ext::FALLBACK_SERVICE_NAME)
+            service_name unless using_default?(:service)
           end
         end
 
