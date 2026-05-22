@@ -39,23 +39,46 @@ end
 
 total_files_size = Dir.glob("#{project.base_dir}/lib/**/*.rb").size
 
+def stats_item(path, line, line_content, comparison_key)
+  {
+    path: path.to_s,
+    line: line,
+    line_content: line_content,
+    comparison_key: comparison_key
+  }.compact
+end
+
+# Include the ignore comment and ignored source so line-only moves stay matched.
+def ignore_item(path, line, comment_source, ignored_source)
+  stats_item(path, line, nil, {type: "steep_ignore", path: path.to_s, source: comment_source, ignored_source: ignored_source})
+end
+
+# Include the enclosing namespace so equivalent RBS declarations in different owners stay distinct.
+def rbs_item(path, line, source, context)
+  stats_item(path, line, source, {type: "rbs_declaration", path: path.to_s, context: context, source: source})
+end
+
 # steep:ignore comments stats
 ignore_comments = loader.each_path_in_patterns(datadog_target.source_pattern).each_with_object([]) do |path, result|
-  buffer = ::Parser::Source::Buffer.new(path.to_s, 1, source: path.read)
+  source = path.read
+  source_lines = source.lines
+  buffer = ::Parser::Source::Buffer.new(path.to_s, 1, source: source)
   _, comments = ::Parser::Ruby25.new.parse_with_comments(buffer)
-  rbs_buffer = ::RBS::Buffer.new(name: path, content: path.read)
+  rbs_buffer = ::RBS::Buffer.new(name: path, content: source)
   comments.each do |comment|
     ignore = ::Steep::AST::Ignore.parse(comment, rbs_buffer)
     next if ignore.nil? || ignore.is_a?(::Steep::AST::Ignore::IgnoreEnd)
 
-    result << {
-      path: path.to_s,
-      line: ignore.line
-    }
+    ignored_source = source_lines[ignore.line - 1]&.strip
+    result << ignore_item(path, ignore.line, comment.loc.expression.source, ignored_source)
   end
 end
 
-def ast_traversal(declarations, result = {})
+# Collects declarations with their enclosing RBS namespace for stable comparison keys.
+# @param declarations [Array<RBS::AST::Declarations::Base, RBS::AST::Members::Base>]
+# @param result [Hash] accumulated methods and other declarations
+# @param context [Array<String>] enclosing Ruby namespace, e.g. ["Datadog", "Core"]
+def ast_traversal(declarations, result = {}, context = [])
   result[:methods] ||= []
   result[:others] ||= []
   declarations.each do |declaration|
@@ -63,16 +86,16 @@ def ast_traversal(declarations, result = {})
     when ::RBS::AST::Declarations::Module,
          ::RBS::AST::Declarations::Class,
          ::RBS::AST::Declarations::Interface
-      ast_traversal(declaration.members, result)
+      ast_traversal(declaration.members, result, context + [declaration.name.to_s])
     when ::RBS::AST::Declarations::TypeAlias,
       ::RBS::AST::Declarations::Constant,
       ::RBS::AST::Declarations::Global,
       ::RBS::AST::Members::Var,
       ::RBS::AST::Members::Attribute
-      result[:others] << declaration
+      result[:others] << {declaration: declaration, context: context}
     # Only this one does not have a type field
     when ::RBS::AST::Members::MethodDefinition
-      result[:methods] << declaration
+      result[:methods] << {declaration: declaration, context: context}
     end
   end
   result
@@ -177,7 +200,9 @@ signature_paths.each do |sig_path|
   _, _directives, declarations = ::RBS::Parser.parse_signature(buffer)
   filtered_declarations = ast_traversal(declarations)
 
-  filtered_declarations[:methods].each do |method|
+  filtered_declarations[:methods].each do |entry|
+    method = entry[:declaration]
+
     # Skip definitions with last comment line being `untyped:accept`
     if method.comment&.string&.end_with?("untyped:accept\n")
       typed_methods_size += 1
@@ -192,13 +217,15 @@ signature_paths.each do |sig_path|
     when :typed
       typed_methods_size += 1
     when :untyped
-      untyped_methods << {path: sig_path.to_s, line: method.location.start_line, line_content: method.location.source}
+      untyped_methods << rbs_item(sig_path, method.location.start_line, method.location.source, entry[:context])
     when :partial
-      partially_typed_methods << {path: sig_path.to_s, line: method.location.start_line, line_content: method.location.source}
+      partially_typed_methods << rbs_item(sig_path, method.location.start_line, method.location.source, entry[:context])
     end
   end
 
-  filtered_declarations[:others].each do |declaration|
+  filtered_declarations[:others].each do |entry|
+    declaration = entry[:declaration]
+
     # Skip definitions with last comment line being `untyped:accept`
     if declaration.comment&.string&.end_with?("untyped:accept\n")
       typed_others_size += 1
@@ -209,9 +236,9 @@ signature_paths.each do |sig_path|
     when :typed, nil
       typed_others_size += 1
     when :untyped
-      untyped_others << {path: sig_path.to_s, line: declaration.location.start_line, line_content: declaration.location.source}
+      untyped_others << rbs_item(sig_path, declaration.location.start_line, declaration.location.source, entry[:context])
     when :partial
-      partially_typed_others << {path: sig_path.to_s, line: declaration.location.start_line, line_content: declaration.location.source}
+      partially_typed_others << rbs_item(sig_path, declaration.location.start_line, declaration.location.source, entry[:context])
     end
   end
 end
