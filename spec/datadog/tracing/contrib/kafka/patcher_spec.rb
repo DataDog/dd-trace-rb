@@ -20,9 +20,19 @@ RSpec.describe 'Kafka patcher' do
   end
 
   around do |example|
-    # Reset before and after each example; don't allow global state to linger.
+    # Subscriptions cache `span_options` at first subscribe time. Tear them
+    # down and reset the patcher so the upcoming `c.tracing.instrument :kafka`
+    # re-runs `Events.subscribe!` with the current configuration.
+    Datadog::Tracing::Contrib::Kafka::Events::ALL.each do |klass|
+      klass.subscriptions.each(&:unsubscribe_all)
+      klass.subscriptions.clear
+      klass.instance_variable_set(:@subscribed, false)
+    end
+    Datadog::Tracing::Contrib::Kafka::Patcher.instance_variable_set(:@patch_only_once, nil)
     Datadog.registry[:kafka].reset_configuration!
+
     example.run
+
     Datadog.registry[:kafka].reset_configuration!
   end
 
