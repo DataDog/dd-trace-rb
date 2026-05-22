@@ -56,7 +56,7 @@ module Datadog
             return unless trace
 
             Ext::TRACE_ANOMALY_DETECTION_TAGS.each do |tag|
-              trace.clear_tag(tag)
+              trace.clear_tag(tag) # steep:ignore
             end
           end
 
