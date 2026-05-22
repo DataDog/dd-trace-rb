@@ -46,6 +46,8 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::UnifiedTracePatcher,
             end
             TestGraphQLSchema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: {var: 1})
           end
+
+          let(:span) { spans.find { |s| s.name == 'graphql.execute_multiplex' } }
         end
       end
 
