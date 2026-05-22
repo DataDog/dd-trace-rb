@@ -31,12 +31,14 @@ runs:
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: ${{ steps.lockfile.outputs.lockfile }}
-        path: "*.lock"
+        path: |
+          *.lock
+          gemfiles/*.lock
     - name: Restore cache
       uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       id: restore-cache
       with:
-        key: bundle-${{ steps.ruby-env-id.outputs.id }}-${{ hashFiles('*.lock') }}
+        key: bundle-${{ steps.ruby-env-id.outputs.id }}-${{ hashFiles('*.lock', 'gemfiles/*.lock') }}
         path: "/usr/local/bundle"
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       shell: bash
