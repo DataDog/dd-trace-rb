@@ -31,9 +31,7 @@ module Datadog
           ensure
             tag_client_ip_on_request_span if consume_ai_guard_executed_flag
 
-            Datadog::AIGuard::Ext::TRACE_ANOMALY_DETECTION_TAGS.each do |tag|
-              trace&.clear_tag(tag) # steep:ignore
-            end
+            clean_up_anomaly_detection_tags!(trace)
           end
 
           private
@@ -53,6 +51,14 @@ module Datadog
             Datadog::AIGuard.telemetry&.report(e, description: "AI Guard: failed to get request attributes")
           end
           # steep:ignore:end
+
+          def clean_up_anomaly_detection_tags!(trace)
+            return unless trace
+
+            Ext::TRACE_ANOMALY_DETECTION_TAGS.each do |tag|
+              trace.clear_tag(tag)
+            end
+          end
 
           # AI Guard's evaluation flow sets `_dd.ai_guard.executed` on the
           # trace whenever an AI Guard span is created during the request.
@@ -83,9 +89,7 @@ module Datadog
             end
 
             network_client_ip = trace.get_tag(Datadog::AIGuard::Ext::TRACE_NETWORK_CLIENT_IP_TAG)
-            if network_client_ip && span.get_tag("network.client.ip").nil?
-              span.set_tag("network.client.ip", network_client_ip)
-            end
+            span["network.client.ip"] = network_client_ip if network_client_ip
           rescue => e
             Datadog::AIGuard.telemetry&.report(e, description: "AI Guard: failed to tag client IP on root span")
           end
