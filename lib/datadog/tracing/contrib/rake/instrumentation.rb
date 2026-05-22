@@ -3,7 +3,7 @@
 require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative 'ext'
-require_relative '../utils/quantization/hash'
+require_relative '../utils/quantization/hash_formatter'
 
 module Datadog
   module Tracing
@@ -80,7 +80,7 @@ module Datadog
 
             def quantize_args(args)
               quantize_options = configuration[:quantize][:args]
-              Contrib::Utils::Quantization::Hash.format(args, quantize_options)
+              Contrib::Utils::Quantization::HashFormatter.format(args, quantize_options)
             end
 
             def enabled?
