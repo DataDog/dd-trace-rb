@@ -29,19 +29,3 @@ CustomCops/EnvStringValidationCop:
     - "lib/**/*"
   Exclude:
     - "lib/datadog/core/configuration/supported_configurations.rb"
-
-# Custom cop to enforce `.to_s` over `|| ''` for nil-safe string conversion
-CustomCops/NilSafeStringCop:
-  Enabled: true
-  Description: "Enforces `.to_s` over `|| ''` for nil-safe string conversion"
-  SafeAutoCorrect: true
-  Include:
-    - "lib/datadog/open_feature/**/*"
-
-# Custom cop to enforce `[x].compact` over `x ? [x] : []`
-CustomCops/CompactArrayCop:
-  Enabled: true
-  Description: "Enforces `[x].compact` over `x ? [x] : []` for optional single-element arrays"
-  SafeAutoCorrect: true
-  Include:
-    - "lib/**/*"

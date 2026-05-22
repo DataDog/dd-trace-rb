@@ -158,8 +158,6 @@ bundle exec rspec spec/path/file_spec.rb:123  # Run specific test (only works fo
 
 Enforced by StandardRB: `bundle exec rake standard:fix`
 
-**Do not use `--force-default-config`** when testing lint rules - it bypasses StandardRB and gives false results.
-
 Additional team preferences:
 - Trailing commas in multi-line arrays, hashes, and arguments
 - RBS type definitions in `sig/` mirror `lib/` structure
