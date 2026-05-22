@@ -79,8 +79,29 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         env: 'staging',
         version: '2.1.0',
         language: 'ruby',
-        scopes: []
+        scopes: [],
+        upload_id: nil,
+        batch_num: nil,
+        final: nil,
       })
+    end
+
+    it 'includes upload metadata fields when provided' do
+      sv = described_class.new(
+        service: 'svc',
+        env: 'prod',
+        version: '1.0',
+        scopes: [],
+        upload_id: 'abc-123',
+        batch_num: 5,
+        final: false,
+      )
+
+      expect(sv.to_h).to include(
+        upload_id: 'abc-123',
+        batch_num: 5,
+        final: false,
+      )
     end
 
     it 'serializes scopes recursively' do

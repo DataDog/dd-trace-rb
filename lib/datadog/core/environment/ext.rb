@@ -45,6 +45,10 @@ module Datadog
         TAG_RAILS_APPLICATION = "rails.application"
         TAG_PROCESS_TAGS = "_dd.tags.process"
         TAG_SERVICE = 'service'
+        # Service name was automatically populated by this library
+        TAG_SVC_AUTO = 'svc.auto'
+        # Service name was explicitly configured by the library user
+        TAG_SVC_USER = 'svc.user'
         TAG_VERSION = 'version'
 
         GEM_DATADOG_VERSION = Datadog::VERSION::STRING

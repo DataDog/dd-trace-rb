@@ -106,7 +106,7 @@ module Datadog
         serializer = self.serializer
         method_name = probe.method_name
         loc = begin
-          cls.instance_method(method_name).source_location
+          cls.instance_method(method_name).source_location # steep:ignore ArgumentTypeMismatch
         rescue NameError
           # The target method is not defined.
           # This could be because it will be explicitly defined later
@@ -668,7 +668,7 @@ module Datadog
 
       # TODO test that this resolves qualified names e.g. A::B
       def symbolize_class_name(cls_name)
-        Object.const_get(cls_name)
+        Object.const_get(cls_name) # steep:ignore ArgumentTypeMismatch
       rescue NameError => exc
         raise Error::DITargetNotDefined, "Class not defined: #{cls_name}: #{exc.class}: #{exc.message}"
       end

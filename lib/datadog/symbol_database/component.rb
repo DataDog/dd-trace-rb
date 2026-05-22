@@ -107,7 +107,7 @@ module Datadog
         end
       end
 
-      attr_reader :settings, :last_upload_time, :last_upload_scope_count, :upload_in_progress
+      attr_reader :settings, :logger, :last_upload_time, :last_upload_scope_count, :upload_in_progress
 
       # Initialize component.
       # @param settings [Configuration::Settings] Tracer settings
@@ -224,7 +224,10 @@ module Datadog
       def wait_for_idle(timeout: 30)
         deadline = Datadog::Core::Utils::Time.get_time + timeout
         Component.upload_done_mutex.synchronize do
-          until Component.send(:instance_variable_get, :@uploaded_this_process)
+          # Read @uploaded_this_process directly: we already hold
+          # Component.upload_done_mutex here, and uploaded_this_process?
+          # would try to re-acquire it (non-reentrant), deadlocking.
+          until Component.instance_variable_get(:@uploaded_this_process)
             remaining = deadline - Datadog::Core::Utils::Time.get_time
             return false if remaining <= 0
             Component.upload_done_cv.wait(Component.upload_done_mutex, remaining)

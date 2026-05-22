@@ -1,13 +1,13 @@
 module Datadog
   module DI
     class Component
-      @settings: untyped
+      @settings: Datadog::Core::Configuration::Settings
 
-      @agent_settings: untyped
+      @agent_settings: Datadog::Core::Configuration::AgentSettings
 
-      @logger: untyped
+      @logger: DI::Logger
 
-      @telemetry: untyped
+      @telemetry: Core::Telemetry::Component?
 
       @redactor: Redactor
 
@@ -15,9 +15,7 @@ module Datadog
 
       @instrumenter: Instrumenter
 
-      @code_tracker: CodeTracker
-
-      @transport: untyped
+      @code_tracker: CodeTracker?
 
       @probe_repository: ProbeRepository
 
@@ -27,25 +25,23 @@ module Datadog
 
       @probe_manager: ProbeManager
 
-      def self.build: (untyped settings, untyped agent_settings, Core::Logger logger, ?telemetry: untyped?) -> (nil | untyped)
+      def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, Core::Logger logger, ?telemetry: Core::Telemetry::Component?) -> Component?
 
-      def self.environment_supported?: (untyped settings, Core::Logger logger) -> (false | true)
+      def self.environment_supported?: (Datadog::Core::Configuration::Settings settings, Core::Logger logger) -> bool
 
-      def initialize: (untyped settings, untyped agent_settings, Core::Logger logger, ?code_tracker: untyped?, ?telemetry: untyped?) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, Core::Logger logger, ?code_tracker: CodeTracker?, ?telemetry: Core::Telemetry::Component?) -> void
 
-      attr_reader settings: untyped
+      attr_reader settings: Datadog::Core::Configuration::Settings
 
-      attr_reader agent_settings: untyped
+      attr_reader agent_settings: Datadog::Core::Configuration::AgentSettings
 
-      attr_reader logger: untyped
+      attr_reader logger: DI::Logger
 
-      attr_reader telemetry: untyped
+      attr_reader telemetry: Core::Telemetry::Component?
 
-      attr_reader code_tracker: CodeTracker
+      attr_reader code_tracker: CodeTracker?
 
       attr_reader instrumenter: Instrumenter
-
-      attr_reader transport: untyped
 
       attr_reader probe_repository: ProbeRepository
 
@@ -57,10 +53,11 @@ module Datadog
 
       attr_reader redactor: Redactor
 
-      attr_reader serializer: untyped
-      def shutdown!: (?untyped? replacement) -> untyped
-      
-      def parse_probe_spec_and_notify: (untyped) -> untyped
+      attr_reader serializer: Serializer
+
+      def shutdown!: (?Component? replacement) -> void
+
+      def parse_probe_spec_and_notify: (Hash[String, untyped] probe_spec) -> Probe
     end
   end
 end
