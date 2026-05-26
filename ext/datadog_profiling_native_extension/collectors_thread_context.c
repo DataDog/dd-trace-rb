@@ -2041,17 +2041,17 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     //  ...──────────────┬───────────────────...
     //       Other state │ Waiting for GVL
     //  ...──────────────┴───────────────────...
-    //     ▲                              ▲
+    //     ▲                               ▲
     //     └─ Previous sample              └─ Regular sample (caller)
     //
     //   In this case, we'll want to push two samples: a) one for the current time (handled by the caller), b) an extra sample
-    //   to represent the remaining cpu/wall time before the "Waiting for GVL" started:
+    //   to represent the remaining cpu/wall time before the "Waiting for GVL" started (for timeline purposes):
     //
     //                             time ─────►
     //  ...──────────────┬───────────────────...
     //       Other state │ Waiting for GVL
     //  ...──────────────┴───────────────────...
-    //     ▲            ▲                ▲
+    //     ▲             ▲                 ▲
     //     └─ Prev...    └─ Extra sample   └─ Regular sample (caller)
     //
     // 2. The current sample is the n-th one after we entered the "Waiting for GVL" state
@@ -2061,7 +2061,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     //  ...──────────────┬───────────────────────────────────────────────...
     //       Other state │ Waiting for GVL
     //  ...──────────────┴───────────────────────────────────────────────...
-    //     ▲                              ▲                          ▲
+    //     ▲                               ▲                          ▲
     //     └─ Previous sample              └─ Previous sample         └─ Regular sample (caller)
     //
     //   In this case, we just report back to the caller that the thread is in the "Waiting for GVL" state.
