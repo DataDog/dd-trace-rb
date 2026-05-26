@@ -29,9 +29,13 @@ module Datadog
 
             @app.call(env)
           ensure
-            tag_client_ip_on_request_span if consume_ai_guard_executed_flag
+            # @type var trace: Datadog::Tracing::TraceSegment?
+            # Steep: https://github.com/soutaro/steep/issues/919
+            if trace
+              tag_client_ip_on_request_span!(trace) if ai_guard_executed?(trace)
 
-            clean_up_anomaly_detection_tags!(trace)
+              clean_up_ai_guard_temp_tags!(trace)
+            end
           end
 
           private
@@ -52,36 +56,28 @@ module Datadog
           end
           # steep:ignore:end
 
-          def clean_up_anomaly_detection_tags!(trace)
-            return unless trace
-
+          # steep:ignore:start
+          def clean_up_ai_guard_temp_tags!(trace)
             Ext::TRACE_ANOMALY_DETECTION_TAGS.each do |tag|
-              trace.clear_tag(tag) # steep:ignore
+              trace.clear_tag(tag)
             end
+
+            trace.clear_tag(Datadog::AIGuard::Ext::TRACE_EXECUTED_TAG)
           end
+          # steep:ignore:end
 
           # AI Guard's evaluation flow sets `_dd.ai_guard.executed` on the
           # trace whenever an AI Guard span is created during the request.
-          # We read it here to know whether to tag client IP, then clear it
-          # so the internal flag does not propagate to the exported trace.
           # steep:ignore:start
-          def consume_ai_guard_executed_flag
-            trace = Datadog::Tracing.active_trace
-            return unless trace
-            return false unless trace.get_tag(Datadog::AIGuard::Ext::TRACE_EXECUTED_TAG) == "1"
-
-            trace.clear_tag(Datadog::AIGuard::Ext::TRACE_EXECUTED_TAG)
-            true
+          def ai_guard_executed?(trace)
+            trace.get_tag(Datadog::AIGuard::Ext::TRACE_EXECUTED_TAG) == "1"
           end
           # steep:ignore:end
 
           # steep:ignore:start
-          def tag_client_ip_on_request_span
+          def tag_client_ip_on_request_span!(trace)
             span = Datadog::Tracing.active_span
             return unless span
-
-            trace = Datadog::Tracing.active_trace
-            return unless trace
 
             client_ip = trace.get_tag(Datadog::AIGuard::Ext::TRACE_HTTP_CLIENT_IP_TAG)
             if client_ip && span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP).nil?
