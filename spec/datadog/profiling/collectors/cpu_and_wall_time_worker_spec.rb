@@ -297,8 +297,18 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # The intention of this test is to warn us if we accidentally trigger object allocations during "happy path"
         # sampling.
         # Note that when something does go wrong during sampling, we do allocate exceptions (and then raise them).
+        #
+        # The first sample of each thread allocates a TypedData wrapper for per_thread_context, so we wait for that
+        # initial burst to pass and then check that no further allocations occur.
 
         start
+
+        try_wait_until do
+          samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
+          samples if samples.any?
+        end
+
+        allocations_after_initial = cpu_and_wall_time_worker.stats.fetch(:allocations_during_sample)
 
         try_wait_until do
           samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
@@ -309,7 +319,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         stats = cpu_and_wall_time_worker.stats
 
-        expect(stats).to include(allocations_during_sample: 0)
+        expect(stats.fetch(:allocations_during_sample)).to be(allocations_after_initial)
       end
     end
 

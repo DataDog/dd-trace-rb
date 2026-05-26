@@ -9,6 +9,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     @clean_threads_required = true
     testing_threads.each { ready_queue.pop }
     expect(Thread.list).to include(*testing_threads)
+
+    testing_threads_and_current.each { |t| clear_per_thread_context_for(t) }
   end
 
   let(:recorder) do
@@ -37,15 +39,16 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
   let(:profiler_overhead_thread_placeholder) do
     Thread.new(ready_queue) do |ready_queue|
-      def self.overhead_placeholder(queue)
+      overhead_placeholder = ->(queue) do
         queue << true
         sleep
       end
 
-      overhead_placeholder(ready_queue)
+      overhead_placeholder.call(ready_queue)
     end
   end
   let(:testing_threads) { [t1, t2, t3, profiler_overhead_thread_placeholder] }
+  let(:testing_threads_and_current) { [*testing_threads, Thread.current] }
   let(:max_frames) { 123 }
 
   let(:pprof_result) { recorder.serialize! }
@@ -83,6 +86,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   def sample(profiler_overhead_stack_thread: profiler_overhead_thread_placeholder, allow_exception: false)
     described_class::Testing._native_sample(thread_context_collector, profiler_overhead_stack_thread, allow_exception)
+  end
+
+  def clear_per_thread_context_for(thread)
+    described_class::Testing._native_clear_per_thread_context_for(thread)
   end
 
   def on_gc_start
@@ -139,11 +146,11 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   def apply_delta_to_cpu_time_at_previous_sample_ns(thread, delta_ns)
     described_class::Testing
-      ._native_apply_delta_to_cpu_time_at_previous_sample_ns(thread_context_collector, thread, delta_ns)
+      ._native_apply_delta_to_cpu_time_at_previous_sample_ns(thread, delta_ns)
   end
 
   def prepare_sample_inside_signal_handler
-    described_class::Testing._native_prepare_sample_inside_signal_handler(thread_context_collector)
+    described_class::Testing._native_prepare_sample_inside_signal_handler
   end
 
   # What's the deal with the `profiler_system_epoch_time_now_ns`? Internally the profiler uses a monotonic clock
@@ -323,22 +330,18 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
     context "cpu-time behavior" do
       it "includes the cpu-time for the samples" do
-        rspec_thread_spent_time = Datadog::Core::Utils::Time.measure(:nanosecond) do
-          5.times { sample }
-          samples # to trigger serialization
-        end
+        t0 = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond)
+        5.times { sample }
+        samples # to trigger serialization
+        t1 = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond)
+        rspec_thread_spent_cpu_time = t1 - t0
 
-        # The only thread we're guaranteed has spent some time on cpu is the rspec thread, so let's check we have
-        # some data for it
         total_cpu_for_rspec_thread =
           samples_for_thread(samples, Thread.current)
             .map { |it| it.values.fetch(:"cpu-time") }
             .reduce(:+)
 
-        # The **wall-clock time** spent by the rspec thread is going to be an upper bound for the cpu time spent,
-        # e.g. if it took 5 real world seconds to run the test, then at most the rspec thread spent those 5 seconds
-        # running on CPU, but possibly it spent slightly less.
-        expect(total_cpu_for_rspec_thread).to be_between(1, rspec_thread_spent_time)
+        expect(total_cpu_for_rspec_thread).to be_between(1, rspec_thread_spent_cpu_time)
       end
 
       context "when a thread is marked as being in garbage collection by on_gc_start" do
@@ -1360,6 +1363,17 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         end
       end
     end
+
+    context "when a thread is frozen" do
+      it "does not raise and skips the frozen thread" do
+        t1.freeze
+
+        sample
+
+        expect(samples_for_thread(samples, t1)).to be_empty
+        expect(per_thread_context.keys).to_not include(t1)
+      end
+    end
   end
 
   describe "#on_gc_start" do
@@ -1786,10 +1800,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     before { skip_if_gvl_profiling_not_supported(self) }
 
     context "if thread has not been sampled before" do
-      it "does not record anything in the internal_thread_specific value" do
+      it "does not trigger the creation of the thread context" do
         on_gvl_waiting(t1)
 
-        expect(gvl_waiting_at_for(t1)).to be 0
+        expect(gvl_waiting_at_for(t1)).to be_nil
       end
     end
 
@@ -1812,10 +1826,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     before { skip_if_gvl_profiling_not_supported(self) }
 
     context "if thread has not been sampled before" do
-      it "does not record anything in the internal_thread_specific value" do
+      it "does not trigger the creation of the thread context" do
         on_gvl_running(t1)
 
-        expect(gvl_waiting_at_for(t1)).to be 0
+        expect(gvl_waiting_at_for(t1)).to be_nil
       end
     end
 
@@ -1891,9 +1905,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   describe "#sample_after_gvl_running" do
     before { skip_if_gvl_profiling_not_supported(self) }
 
-    context "when thread is not at the end of a Waiting for GVL period" do
+    context "if thread has not been sampled before" do
       before do
-        expect(gvl_waiting_at_for(t1)).to be 0
+        expect(gvl_waiting_at_for(t1)).to be_nil
       end
 
       it do
@@ -2019,12 +2033,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   describe "#per_thread_context" do
-    context "before sampling" do
-      it do
-        expect(per_thread_context).to be_empty
-      end
-    end
-
     context "after sampling" do
       before do
         @wall_time_before_sample_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
@@ -2123,11 +2131,11 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
           sample
 
-          native_thread.kill
-          native_thread.join
-
           invoke_location = per_thread_context.fetch(native_thread).fetch(:thread_invoke_location)
           expect(invoke_location).to eq "(Unnamed thread from native code)"
+
+          native_thread.kill
+          native_thread.join
         end
 
         context "when the `logging` gem has monkey patched thread creation" do
@@ -2162,22 +2170,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
 
       describe ":gvl_waiting_at" do
-        context "on supported Rubies" do
-          before { skip_if_gvl_profiling_not_supported(self) }
-
-          it "is initialized to GVL_WAITING_ENABLED_EMPTY (INTPTR_MAX)" do
-            expect(per_thread_context.values).to all(
-              include(gvl_waiting_at: gvl_waiting_enabled_empty_magic_value)
-            )
-          end
-        end
-
-        context "on legacy Rubies" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.2." }
-
-          it "is not set" do
-            per_thread_context.each do |_thread, context|
-              expect(context.key?(:gvl_waiting_at)).to be false
+        it "is initialized to GVL_WAITING_ENABLED_EMPTY (INTPTR_MAX)" do
+          per_thread_context.each do |thread, context|
+            if testing_threads_and_current.include?(thread)
+              expect(context[:gvl_waiting_at]).to eq gvl_waiting_enabled_empty_magic_value
             end
           end
         end
