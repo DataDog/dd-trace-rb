@@ -140,6 +140,13 @@ RSpec.describe "typing_stats_compare.rb" do
     expect(run_compare(head, base, "R097\tsig/datadog/http_client.rbs\tsig/datadog/net_client.rbs\n")).to include("Partially typed methods (<strong>+1-1</strong>)")
   end
 
+  it "ignores steep:ignore line moves" do
+    base = stats(steep_ignore_comments: [steep_ignore(line: 8)])
+    head = stats(steep_ignore_comments: [steep_ignore(line: 18)])
+
+    expect(run_compare(head, base, "")).to eq("")
+  end
+
   it "compares RBS and steep:ignore findings as multisets" do
     repeated = declaration(path: "sig/datadog/example.rbs", line: 10)
     base = stats(partially_typed_methods: [repeated, repeated.merge(line: 20)])

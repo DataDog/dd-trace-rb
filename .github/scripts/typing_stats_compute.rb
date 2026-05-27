@@ -48,6 +48,30 @@ def stats_item(path, line, line_content, comparison_key)
   }.compact
 end
 
+# Include the ignore comment and ignored source so line-only moves stay matched.
+def ignore_item(path, line, comment_source, ignored_source)
+  stats_item(path, line, nil, {type: "steep_ignore", path: path.to_s, source: comment_source, ignored_source: ignored_source})
+end
+
+# Uses block contents for block ignores so unrelated blocks in the same file do not collide.
+def ignored_source_for_ignore(ignore, ignores, source_lines)
+  unless ignore.is_a?(::Steep::AST::Ignore::IgnoreStart)
+    return source_lines[ignore.line - 1]&.strip
+  end
+
+  ignore_end = ignores.find do |candidate|
+    candidate.is_a?(::Steep::AST::Ignore::IgnoreEnd) && candidate.line > ignore.line
+  end
+
+  block_lines = if ignore_end
+    source_lines[ignore.line...(ignore_end.line - 1)]
+  else
+    source_lines[ignore.line..-1]
+  end
+
+  block_lines.map(&:strip).join("\n")
+end
+
 # Include the enclosing namespace so equivalent RBS declarations in different owners stay distinct.
 def rbs_item(path, line, source, constant_path)
   stats_item(path, line, source, {type: "rbs_declaration", path: path.to_s, constant_path: constant_path, source: source})
@@ -55,17 +79,17 @@ end
 
 # steep:ignore comments stats
 ignore_comments = loader.each_path_in_patterns(datadog_target.source_pattern).each_with_object([]) do |path, result|
-  buffer = ::Parser::Source::Buffer.new(path.to_s, 1, source: path.read)
+  source = path.read
+  source_lines = source.lines
+  buffer = ::Parser::Source::Buffer.new(path.to_s, 1, source: source)
   _, comments = ::Parser::Ruby25.new.parse_with_comments(buffer)
-  rbs_buffer = ::RBS::Buffer.new(name: path, content: path.read)
-  comments.each do |comment|
-    ignore = ::Steep::AST::Ignore.parse(comment, rbs_buffer)
+  rbs_buffer = ::RBS::Buffer.new(name: path, content: source)
+  ignores = comments.map { |comment| ::Steep::AST::Ignore.parse(comment, rbs_buffer) }
+  comments.zip(ignores).each do |comment, ignore|
     next if ignore.nil? || ignore.is_a?(::Steep::AST::Ignore::IgnoreEnd)
 
-    result << {
-      path: path.to_s,
-      line: ignore.line
-    }
+    ignored_source = ignored_source_for_ignore(ignore, ignores, source_lines)
+    result << ignore_item(path, ignore.line, comment.loc.expression.source, ignored_source)
   end
 end
 

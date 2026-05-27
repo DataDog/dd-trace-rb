@@ -204,8 +204,10 @@ def ignored_files_summary(head_stats, base_stats)
 end
 
 def steep_ignore_summary(head_stats, base_stats)
-  steep_ignore_added = head_stats[:steep_ignore_comments] - base_stats[:steep_ignore_comments]
-  steep_ignore_removed = base_stats[:steep_ignore_comments] - head_stats[:steep_ignore_comments]
+  steep_ignore_added, steep_ignore_removed = multiset_comparison(
+    head_stats[:steep_ignore_comments],
+    base_stats[:steep_ignore_comments]
+  )
 
   create_summary(
     added: steep_ignore_added,
