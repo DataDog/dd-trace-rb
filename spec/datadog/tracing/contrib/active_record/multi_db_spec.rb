@@ -85,18 +85,22 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
     widget_class.count
   end
 
-  before do
+  around do |example|
+    reset_subscription_state!(
+      :active_record,
+      Datadog::Tracing::Contrib::ActiveRecord::Events,
+      Datadog::Tracing::Contrib::ActiveRecord::Patcher,
+    )
+    example.run
     Datadog.registry[:active_record].reset_configuration!
+  end
 
+  before do
     Datadog.configure do |c|
       c.tracing.instrument :active_record, configuration_options
     end
 
     raise_on_rails_deprecation!
-  end
-
-  after do
-    Datadog.registry[:active_record].reset_configuration!
   end
 
   context 'when databases are configured with' do

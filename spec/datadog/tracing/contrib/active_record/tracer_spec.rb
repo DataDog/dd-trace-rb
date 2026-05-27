@@ -27,8 +27,11 @@ RSpec.describe 'ActiveRecord instrumentation' do
   end
 
   around do |example|
-    # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:active_record].reset_configuration!
+    reset_subscription_state!(
+      :active_record,
+      Datadog::Tracing::Contrib::ActiveRecord::Events,
+      Datadog::Tracing::Contrib::ActiveRecord::Patcher,
+    )
     example.run
     Datadog.registry[:active_record].reset_configuration!
   end

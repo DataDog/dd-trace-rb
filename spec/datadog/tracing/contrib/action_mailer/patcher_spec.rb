@@ -29,8 +29,11 @@ RSpec.describe 'ActionMailer patcher' do
   end
 
   around do |example|
-    # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:action_mailer].reset_configuration!
+    reset_subscription_state!(
+      :action_mailer,
+      Datadog::Tracing::Contrib::ActionMailer::Events,
+      Datadog::Tracing::Contrib::ActionMailer::Patcher,
+    )
     example.run
     Datadog.registry[:action_mailer].reset_configuration!
   end

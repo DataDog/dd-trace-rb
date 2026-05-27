@@ -7,6 +7,7 @@ require 'datadog/tracing/sync_writer'
 
 module Contrib
   include NetworkHelpers
+
   # Contrib-specific tracer helpers.
   # For contrib, we only allow one tracer to be active:
   # the global tracer in +Datadog::Tracing+.
@@ -62,6 +63,22 @@ module Contrib
       @trace = nil
       @spans = nil
       @span = nil
+    end
+
+    # Resets ActiveSupport::Notifications subscription state for a contrib so the next
+    # +Datadog.configure+ call re-runs the patcher and re-captures span options.
+    #
+    # Why: +Subscription#initialize+ snapshots +span_options+ (including +service+) at
+    # subscribe-time. Without this reset, a test that overrides +service_name+ leaves
+    # the stale service cached in the subscription, leaking into later tests.
+    def reset_subscription_state!(registry_key, events_module, patcher)
+      events_module::ALL.each do |klass|
+        klass.subscriptions.each(&:unsubscribe_all)
+        klass.subscriptions.clear
+        klass.instance_variable_set(:@subscribed, false)
+      end
+      patcher.instance_variable_set(:@patch_only_once, nil)
+      Datadog.registry[registry_key].reset_configuration!
     end
 
     RSpec.configure do |config|
