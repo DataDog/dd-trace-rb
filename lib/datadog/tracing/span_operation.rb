@@ -270,6 +270,9 @@ module Datadog
         # Stop timing
         stop(end_time)
 
+        # Allow subscribers to enrich the span before it is finalized.
+        events.before_finish.publish(self)
+
         # Build span
         # Memoize for performance reasons
         @span = build_span
@@ -400,12 +403,14 @@ module Datadog
           :logger,
           :after_finish,
           :after_stop,
+          :before_finish,
           :before_start
 
         def initialize(logger: Datadog.logger)
           @logger = logger
           @after_finish = AfterFinish.new
           @after_stop = AfterStop.new
+          @before_finish = BeforeFinish.new
           @before_start = BeforeStart.new
         end
 
@@ -426,6 +431,14 @@ module Datadog
         class AfterStop < Tracing::Event
           def initialize
             super(:after_stop)
+          end
+        end
+
+        # Triggered just before the span is finalized into a Span object.
+        # Subscribers can still mutate tags on the SpanOperation at this point.
+        class BeforeFinish < Tracing::Event
+          def initialize
+            super(:before_finish)
           end
         end
 

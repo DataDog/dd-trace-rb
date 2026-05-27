@@ -4,7 +4,7 @@ require 'uri'
 
 require_relative '../../utils/http/media_type'
 require_relative '../../utils/http/body'
-require_relative '../../../core/utils/base64'
+require_relative '../../../core/utils/base64_codec'
 require_relative '../../../core/header_collection'
 require_relative '../../../tracing/client_ip'
 
@@ -42,7 +42,7 @@ module Datadog
 
             headers = parse_headers(payload)
             data = {
-              'server.response.status' => payload['statusCode']&.to_s,
+              'server.response.status' => payload['status_code']&.to_s,
               'server.response.headers' => headers,
               'server.response.headers.no_cookies' => headers.dup.tap { |h| h.delete('set-cookie') }
             }
@@ -94,7 +94,7 @@ module Datadog
             body = payload['body']
             return unless body
 
-            body = Core::Utils::Base64.strict_decode64(body) if payload['base64_encoded']
+            body = Core::Utils::Base64Codec.strict_decode64(body) if payload['base64_encoded']
 
             content_type = headers['content-type']
             return unless content_type

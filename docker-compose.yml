@@ -14,8 +14,6 @@ services:
       - presto
       - redis
       - testagent
-    links: &common-links
-      - mongodb:mongodb_secondary
     env_file: ./.env
     environment: &common-environment
       BUNDLE_GEMFILE: /app/ruby-2.5.gemfile
@@ -45,7 +43,6 @@ services:
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
-    links: *common-links
     env_file: ./.env
     environment:
       <<: *common-environment
@@ -62,7 +59,6 @@ services:
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
-    links: *common-links
     env_file: ./.env
     environment:
       <<: *common-environment
@@ -79,7 +75,6 @@ services:
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
-    links: *common-links
     env_file: ./.env
     environment:
       <<: *common-environment
@@ -96,7 +91,6 @@ services:
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
-    links: *common-links
     env_file: ./.env
     environment:
       <<: *common-environment
@@ -113,7 +107,6 @@ services:
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
-    links: *common-links
     env_file: ./.env
     environment:
       <<: *common-environment
@@ -130,7 +123,6 @@ services:
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
-    links: *common-links
     env_file: ./.env
     environment:
       <<: *common-environment
@@ -147,7 +139,6 @@ services:
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
-    links: *common-links
     env_file: ./.env
     environment:
       <<: *common-environment
@@ -164,7 +155,6 @@ services:
     working_dir: /app
     command: /bin/bash
     depends_on: *common-depends-on
-    links: *common-links
     env_file: ./.env
     environment:
       <<: *common-environment
@@ -241,6 +231,10 @@ services:
       - "27017"
     ports:
       - "127.0.0.1:${TEST_MONGODB_PORT}:27017"
+    networks:
+      default:
+        aliases:
+          - mongodb_secondary
   mysql:
     image: mysql:8.0
     environment:

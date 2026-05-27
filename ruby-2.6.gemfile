@@ -39,6 +39,10 @@ gem 'simplecov', '~> 0.22.0'
 gem 'warning', '~> 1' # NOTE: Used in spec_helper.rb
 gem 'webmock', '>= 3.10.0'
 
+# The last binary ffi gem compatible with 2.6 is 1.17.2, newer versions are incompatible:
+# ffi-1.17.3-arm64-darwin requires ruby version < 4.1.dev, >= 3.0
+gem 'ffi', '1.17.2'
+
 group :dev do
   gem 'appraisal', '~> 2.4.0', require: false
   gem 'pimpmychangelog', '~> 0.1.3', require: false
