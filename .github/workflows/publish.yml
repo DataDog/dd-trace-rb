@@ -36,6 +36,18 @@ jobs:
       - id: version
         run: echo "version=$(ruby -e 'puts Gem::Specification::load(Dir.glob("*.gemspec").first).version')" >> "$GITHUB_OUTPUT"
 
+      # Reject prerelease versions (e.g. X.Y.Z.dev). The in-repo version.rb keeps
+      # PRE='dev' between releases; publishing without flipping PRE to nil would
+      # push a .dev gem to RubyGems, which cannot be reused once yanked.
+      - name: Verify version is not a prerelease
+        env:
+          GEM_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if ruby -e "exit Gem::Version.new(ENV['GEM_VERSION']).prerelease? ? 0 : 1"; then
+            echo "::error::Version $GEM_VERSION is a prerelease (e.g. .dev) - refusing to publish"
+            exit 1
+          fi
+
       # Check if the gem version is already published
       - name: Verify gem version
         continue-on-error: ${{ inputs.force }}
