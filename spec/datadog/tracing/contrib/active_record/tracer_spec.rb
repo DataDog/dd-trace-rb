@@ -16,25 +16,16 @@ RSpec.describe 'ActiveRecord instrumentation' do
     # Prevent extra spans during tests
     Article.count
 
-    # Reset options (that might linger from other tests)
-    Datadog.configuration.tracing[:active_record].reset!
-
-    Datadog.configure do |c|
-      c.tracing.instrument :active_record, configuration_options
+    reset_subscription_state!(:active_record, Datadog::Tracing::Contrib::ActiveRecord::Events) do
+      Datadog.configure do |c|
+        c.tracing.instrument :active_record, configuration_options
+      end
     end
 
     raise_on_rails_deprecation!
   end
 
-  around do |example|
-    reset_subscription_state!(
-      :active_record,
-      Datadog::Tracing::Contrib::ActiveRecord::Events,
-      Datadog::Tracing::Contrib::ActiveRecord::Patcher,
-    )
-    example.run
-    Datadog.registry[:active_record].reset_configuration!
-  end
+  after { Datadog.registry[:active_record].reset_configuration! }
 
   context 'when query is made' do
     before { Article.count }

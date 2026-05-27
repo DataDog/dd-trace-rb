@@ -14,20 +14,14 @@ RSpec.describe 'Kafka patcher' do
   end
 
   before do
-    Datadog.configure do |c|
-      c.tracing.instrument :kafka, configuration_options
+    reset_subscription_state!(:kafka, Datadog::Tracing::Contrib::Kafka::Events) do
+      Datadog.configure do |c|
+        c.tracing.instrument :kafka, configuration_options
+      end
     end
   end
 
-  around do |example|
-    reset_subscription_state!(
-      :kafka,
-      Datadog::Tracing::Contrib::Kafka::Events,
-      Datadog::Tracing::Contrib::Kafka::Patcher,
-    )
-    example.run
-    Datadog.registry[:kafka].reset_configuration!
-  end
+  after { Datadog.registry[:kafka].reset_configuration! }
 
   describe 'connection.request' do
     let(:api) { 'api' }

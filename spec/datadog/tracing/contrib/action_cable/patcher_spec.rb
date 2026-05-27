@@ -27,22 +27,16 @@ RSpec.describe 'ActionCable patcher', execute_in_fork: ::ActionCable.version.seg
   end
 
   before do
-    Datadog.configure do |c|
-      c.tracing.instrument :action_cable, configuration_options
+    reset_subscription_state!(:action_cable, Datadog::Tracing::Contrib::ActionCable::Events) do
+      Datadog.configure do |c|
+        c.tracing.instrument :action_cable, configuration_options
+      end
     end
 
     raise_on_rails_deprecation!
   end
 
-  around do |example|
-    reset_subscription_state!(
-      :action_cable,
-      Datadog::Tracing::Contrib::ActionCable::Events,
-      Datadog::Tracing::Contrib::ActionCable::Patcher,
-    )
-    example.run
-    Datadog.registry[:action_cable].reset_configuration!
-  end
+  after { Datadog.registry[:action_cable].reset_configuration! }
 
   context 'with server' do
     let(:channel) { 'chat_room' }

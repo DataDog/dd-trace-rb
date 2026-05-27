@@ -19,24 +19,16 @@ RSpec.describe 'ActionMailer patcher' do
   let(:configuration_options) { {} }
 
   before do
-    if Datadog::Tracing::Contrib::ActionMailer::Integration.compatible?
+    skip unless Datadog::Tracing::Contrib::ActionMailer::Integration.compatible?
+
+    reset_subscription_state!(:action_mailer, Datadog::Tracing::Contrib::ActionMailer::Events) do
       Datadog.configure do |c|
         c.tracing.instrument :action_mailer, configuration_options
       end
-    else
-      skip
     end
   end
 
-  around do |example|
-    reset_subscription_state!(
-      :action_mailer,
-      Datadog::Tracing::Contrib::ActionMailer::Events,
-      Datadog::Tracing::Contrib::ActionMailer::Patcher,
-    )
-    example.run
-    Datadog.registry[:action_mailer].reset_configuration!
-  end
+  after { Datadog.registry[:action_mailer].reset_configuration! }
 
   describe 'for single process.action_mailer process' do
     let(:mailer) { 'UserMailer' }

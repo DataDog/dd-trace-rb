@@ -65,20 +65,26 @@ module Contrib
       @span = nil
     end
 
-    # Resets ActiveSupport::Notifications subscription state for a contrib so the next
-    # +Datadog.configure+ call re-runs the patcher and re-captures span options.
+    # Tears down ActiveSupport notification subscriptions for a contrib, runs the
+    # caller's +Datadog.configure+ block, then re-subscribes against the fresh
+    # configuration.
     #
-    # Why: +Subscription#initialize+ snapshots +span_options+ (including +service+) at
-    # subscribe-time. Without this reset, a test that overrides +service_name+ leaves
-    # the stale service cached in the subscription, leaking into later tests.
-    def reset_subscription_state!(registry_key, events_module, patcher)
+    # Why: +Subscription#initialize+ snapshots +span_options+ (including +service+)
+    # at subscribe-time. Without this reset, a test that overrides +service_name+
+    # leaves the stale service cached in the subscription, leaking into later tests.
+    #
+    # We do NOT reset the patcher's +@patch_only_once+ flag because some patchers
+    # (e.g. ActionCable) re-register Rails callbacks every time +patch+ runs,
+    # which would accumulate duplicate callbacks across tests.
+    def reset_subscription_state!(registry_key, events_module)
       events_module::ALL.each do |klass|
         klass.subscriptions.each(&:unsubscribe_all)
         klass.subscriptions.clear
         klass.instance_variable_set(:@subscribed, false)
       end
-      patcher.instance_variable_set(:@patch_only_once, nil)
       Datadog.registry[registry_key].reset_configuration!
+      yield if block_given?
+      events_module.subscribe!
     end
 
     RSpec.configure do |config|
