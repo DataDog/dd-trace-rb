@@ -19,8 +19,18 @@ namespace :version do
 
   task :next_dev do
     current_version = load_gemspec_version
-    major, minor, = current_version.segments
-    $stdout.puts "#{major}.#{minor.succ}.0.dev"
+
+    next_version =
+      if current_version.prerelease?
+        # If prerelease, return the release version with .dev suffix (ie. 2.36.0.beta1 -> 2.36.0.dev)
+        "#{current_version.release}.dev"
+      else
+        # When releasing from `master` branch, return the next minor version with .dev suffix (ie. 2.34.0 -> 2.35.0.dev)
+        major, minor, = current_version.segments
+        "#{major}.#{minor.succ}.0.dev"
+      end
+
+    $stdout.puts next_version
   end
 
   task :bump do |_t, args|
