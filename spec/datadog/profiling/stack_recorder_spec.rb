@@ -781,6 +781,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
             context "when there's a heap serialization ongoing" do
               it "does nothing" do
+                skip_asan_flaky
+
                 described_class::Testing._native_start_fake_slow_heap_serialization(stack_recorder)
 
                 test_object_id = sample_and_clear

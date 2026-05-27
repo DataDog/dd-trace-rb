@@ -9,6 +9,10 @@ module Datadog
   module SymbolDatabase
     # Extracts symbol metadata from loaded Ruby modules and classes via introspection.
     #
+    # Instance created by Component with injected dependencies (logger, settings).
+    # All methods are instance methods accessing @logger, @settings directly —
+    # no parameter threading needed.
+    #
     # Uses Ruby's reflection APIs (Module#constants, Class#instance_methods, Method#parameters)
     # to build hierarchical Scope structures representing code organization.
     # Filters to user code only (excludes gems, stdlib, test files).
@@ -80,6 +84,11 @@ module Datadog
       MODULE_SINGLETON_CLASS_PRED = Module.instance_method(:singleton_class?)
       private_constant :MODULE_SINGLETON_CLASS_PRED
 
+      # Cached UnboundMethod for Module#name — avoids resolving it on every
+      # safe_mod_name call. Some classes override .name (e.g. Faker::Travel::Airport),
+      # so we bind the original Module#name to get the real module name safely.
+      MODULE_NAME = Module.instance_method(:name)
+
       # @param logger [Logger] Logger instance (SymbolDatabase::Logger facade or compatible)
       # @param settings [Configuration::Settings] Tracer settings
       def initialize(logger:, settings:)
@@ -150,7 +159,7 @@ module Datadog
       # @param mod [Module] The module
       # @return [String, nil] Module name or nil
       def safe_mod_name(mod)
-        Module.instance_method(:name).bind(mod).call
+        MODULE_NAME.bind(mod).call
       rescue => e
         @logger.debug { "symdb: safe_mod_name failed: #{e.class}: #{e.message}" }
         nil
@@ -605,10 +614,26 @@ module Datadog
 
       # ── extract_all helpers ──────────────────────────────────────────────
 
+      # Sleep between chunks of modules processed in collect_extractable_modules so
+      # request-handling threads have guaranteed CPU time while extraction is in
+      # flight. Unlike Thread.pass (which only offers the GVL among runnable
+      # threads and leaves the extractor immediately re-runnable), sleep removes
+      # the extractor thread from the runnable set for a fixed duration, capping
+      # its CPU share at sleep_work_ratio regardless of GVL scheduling.
+      #
+      # The cadence is measured in modules that pass the singleton-class fast-path
+      # skip — singleton classes are discarded in microseconds and counting them
+      # would add wall-clock delay disproportionate to the work being done (e.g.
+      # on heavily monkey-patched processes that retain large singleton chains).
+      SLEEP_EVERY_N_MODULES = 100
+      SLEEP_SECONDS = 0.001
+      private_constant :SLEEP_EVERY_N_MODULES, :SLEEP_SECONDS
+
       # Pass 1: Collect all extractable modules with methods grouped by source file.
       # @return [Hash] { mod_name => { mod:, methods_by_file: { path => [{name:, method:, type:}] } } }
       def collect_extractable_modules
         entries = {}
+        seen = 0
 
         ObjectSpace.each_object(Module) do |mod|
           # Singleton classes (per-object metaclasses) are never user-code classes.
@@ -619,6 +644,9 @@ module Datadog
           # — measured ~20ms per call, which dominates extract_all on heavily-loaded
           # processes. Ruby 2.7+ optimized this path; the skip is a no-op there.
           next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
+
+          seen += 1
+          sleep SLEEP_SECONDS if (seen % SLEEP_EVERY_N_MODULES).zero?
 
           mod_name = safe_mod_name(mod)
           next unless mod_name

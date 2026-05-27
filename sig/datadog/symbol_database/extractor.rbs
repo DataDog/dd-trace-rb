@@ -5,11 +5,13 @@ module Datadog
       UNKNOWN_MAX_LINE: Integer
       EXCLUDED_COMMON_MODULES: Array[String]
       TARGETABLE_LINE_EVENTS: Array[::Symbol]
-      MODULE_SINGLETON_CLASS_PRED: UnboundMethod
+      MODULE_SINGLETON_CLASS_PRED: ::UnboundMethod
+      MODULE_NAME: ::UnboundMethod
+      SLEEP_EVERY_N_MODULES: Integer
+      SLEEP_SECONDS: Float
 
       @logger: untyped
       @settings: untyped
-
       def initialize: (logger: untyped, settings: untyped) -> void
 
       def extract: (Module mod) -> Scope?

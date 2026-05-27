@@ -1,0 +1,60 @@
+name: Integration Apps
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+permissions: {}
+
+jobs:
+  rails-seven:
+    name: rails-seven (Ruby ${{ matrix.ruby }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby:
+          - "3.4"
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      # The script/ci scripts shell out to `docker-compose` (v1). Ubuntu 24.04
+      # runners ship Docker Compose v2 (invoked as `docker compose`) but not the
+      # standalone v1 binary. Shim `docker-compose` so the existing scripts work
+      # unchanged on CI while remaining compatible with local v1 setups.
+      - name: Shim docker-compose to Compose v2
+        run: |
+          shim=/usr/local/bin/docker-compose
+          sudo tee "$shim" >/dev/null <<'SHIM'
+          #!/bin/bash
+          exec docker compose "$@"
+          SHIM
+          sudo chmod +x "$shim"
+
+      - name: Build integration base image
+        run: ./integration/script/build-images -v ${{ matrix.ruby }}
+
+      - name: Build rails-seven image
+        run: ./integration/apps/rails-seven/script/build-images -v ${{ matrix.ruby }}
+
+      - name: Run rails-seven integration tests
+        run: ./integration/apps/rails-seven/script/ci -v ${{ matrix.ruby }}
+
+  complete:
+    name: Integration Apps (complete)
+    needs:
+      - rails-seven
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "Done"

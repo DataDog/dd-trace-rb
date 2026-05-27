@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.33.0)
+    datadog (2.34.0)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
       libdatadog (~> 33.0.0.1.0)
@@ -27,7 +27,7 @@ GEM
     crack (1.0.0)
       bigdecimal
       rexml
-    dalli (5.0.2)
+    dalli (5.0.4)
       logger
     datadog-ruby_core_source (3.5.2)
     date (3.4.1)

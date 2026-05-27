@@ -1,8 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../../utils/base64'
+require_relative '../../utils/base64_codec'
 require_relative '../../../appsec/remote'
 require_relative '../../../tracing/remote'
+require_relative '../../../di/remote'
+require_relative '../../../symbol_database/remote'
 require_relative '../../../open_feature/remote'
 
 module Datadog
@@ -37,6 +39,13 @@ module Datadog
               register_capabilities(Datadog::DI::Remote.capabilities)
               register_products(Datadog::DI::Remote.products)
               register_receivers(Datadog::DI::Remote.receivers(@telemetry))
+
+              # Symbol Database
+              if settings.respond_to?(:symbol_database) && settings.symbol_database.enabled
+                register_capabilities(Datadog::SymbolDatabase::Remote.capabilities)
+                register_products(Datadog::SymbolDatabase::Remote.products)
+                register_receivers(Datadog::SymbolDatabase::Remote.receivers(@telemetry))
+              end
             end
 
             if settings.respond_to?(:open_feature) && settings.open_feature.enabled
@@ -68,7 +77,7 @@ module Datadog
             cap_to_hexs = capabilities.reduce(:|).to_s(16).tap { |s| s.size.odd? && s.prepend('0') }.scan(/\h\h/)
             binary = cap_to_hexs.each_with_object([]) { |hex, acc| acc << hex }.map { |e| e.to_i(16) }.pack('C*')
 
-            Datadog::Core::Utils::Base64.strict_encode64(binary)
+            Datadog::Core::Utils::Base64Codec.strict_encode64(binary)
           end
         end
       end

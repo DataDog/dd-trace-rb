@@ -2,43 +2,43 @@ module Datadog
   module DI
     module EL
       class Evaluator
-        @context: untyped
+        @context: Context
 
-        def initialize: (untyped context) -> void
+        def initialize: (Context context) -> void
 
-        def evaluate: (untyped compiled) -> untyped
+        def evaluate: (Context compiled) -> untyped
 
-        def ref: (untyped var) -> untyped
+        def ref: ((Symbol | String) var) -> untyped
 
-        def iref: (untyped var) -> untyped
+        def iref: ((Symbol | String) var) -> untyped
 
-        def len: (untyped var, untyped var_name) -> untyped
+        def len: (untyped var, (Symbol | String) var_name) -> Integer
 
-        def is_empty: (untyped var, untyped var_name) -> (false | untyped)
+        def is_empty: (untyped var, (Symbol | String) var_name) -> bool
 
-        def is_undefined: (untyped var, untyped var_name) -> untyped
+        def is_undefined: (untyped var, (Symbol | String) var_name) -> bool
 
-        def contains: (untyped haystack, untyped needle) -> untyped
+        def contains: (untyped haystack, untyped needle) -> bool
 
-        def matches: (untyped haystack, untyped needle) -> untyped
+        def matches: (String haystack, String needle) -> bool
 
-        def getmember: (untyped object, untyped field) -> untyped
+        def getmember: (untyped object, (Symbol | String) field) -> untyped
 
-        def index: (untyped array_or_hash, untyped index_or_key) -> untyped
+        def index: (Array[untyped] | Hash[untyped, untyped] array_or_hash, untyped index_or_key) -> untyped
 
-        def substring: (untyped object, untyped from, untyped to) -> untyped
+        def substring: (String object, Integer from, Integer to) -> String?
 
-        def starts_with: (untyped haystack, untyped needle) -> untyped
+        def starts_with: (untyped haystack, String needle) -> bool
 
-        def ends_with: (untyped haystack, untyped needle) -> untyped
+        def ends_with: (untyped haystack, String needle) -> bool
 
-        def all: (untyped collection) { (?) -> untyped } -> untyped
+        def all: (Array[untyped] | Hash[untyped, untyped] collection) { (?) -> untyped } -> bool
 
-        def any: (untyped collection) { (?) -> untyped } -> untyped
+        def any: (Array[untyped] | Hash[untyped, untyped] collection) { (?) -> untyped } -> bool
 
-        def filter: (untyped collection) { (?) -> untyped } -> untyped
+        def filter: (Array[untyped] | Hash[untyped, untyped] collection) { (?) -> untyped } -> (Array[untyped] | Hash[untyped, untyped])
 
-        def instanceof: (untyped object, untyped cls_name) -> (true | false | untyped)
+        def instanceof: (untyped object, String cls_name) -> bool
       end
     end
   end

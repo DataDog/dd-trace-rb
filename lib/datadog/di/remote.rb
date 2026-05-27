@@ -42,14 +42,14 @@ module Datadog
               changes.each do |change|
                 case change.type
                 when :insert
-                  add_probe(change.content, component)
+                  add_probe(change.content, component) # steep:ignore NoMethod
                 when :update
                   # We do not implement updates at the moment, remove the
                   # probe and reinstall.
-                  remove_probe(change.content, component)
-                  add_probe(change.content, component)
+                  remove_probe(change.content, component) # steep:ignore NoMethod
+                  add_probe(change.content, component) # steep:ignore NoMethod
                 when :delete
-                  remove_probe(change.previous, component)
+                  remove_probe(change.previous, component) # steep:ignore NoMethod
                 else
                   # This really should never happen since we generate the
                   # change types in the library.

@@ -76,7 +76,21 @@ module Datadog
           Core::Environment::Ext::GEM_DATADOG_VERSION
         end
 
-        # Returns tracer version, comforming to https://semver.org/spec/v2.0.0.html
+        # Returns the tracer version in SemVer-2 form (https://semver.org/spec/v2.0.0.html).
+        #
+        # Converts the RubyGems-style version returned by {.gem_datadog_version}
+        # (dot-separated prerelease/build segments, e.g. "2.34.0.dev") into the
+        # SemVer-2 form expected by cross-language Datadog consumers (hyphen-separated
+        # prerelease, "+" build metadata, e.g. "2.34.0-dev").
+        #
+        # Called by reporters that emit a tracer version on the wire and must match
+        # the format used by other-language tracers:
+        # - process discovery memfd (`Core::ProcessDiscovery.get_metadata` → `tracer_version`)
+        # - telemetry payloads (`Core::Telemetry::Request#application`)
+        # - remote configuration client identification (`Core::Remote::Client#tracer_version`)
+        #
+        # Use {.gem_datadog_version} (not this method) when a RubyGems-style string is
+        # required (e.g. gem-internal contexts, gemspec interop).
         def gem_datadog_version_semver2
           major, minor, patch, rest = gem_datadog_version.split('.', 4)
 
