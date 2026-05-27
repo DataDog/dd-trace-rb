@@ -25,7 +25,11 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
 
   # Helper to create test files in user code location
   def create_user_code_file(content)
-    filename = File.join(@test_dir, "test_#{Time.now.to_i}_#{rand(10000)}.rb")
+    # REPRODUCER: force the filename-collision flake (issue ruby-guild#303).
+    # Original returned "test_#{Time.now.to_i}_#{rand(10000)}.rb"; collisions
+    # within a single example occur with ~1/10000 probability per call pair.
+    # This constant filename triggers the failure deterministically.
+    filename = File.join(@test_dir, "test_collide.rb")
     File.write(filename, content)
     filename
   end
