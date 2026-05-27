@@ -6,12 +6,8 @@
 
 ### Added
 
-* Dynamic Instrumentation: Enable Symbol Database upload so Ruby services populate Live Debugger UI autocomplete when creating probes ([#5717][])
+* Dynamic Instrumentation: Enable opt-in Symbol Database upload so Ruby services populate Live Debugger UI autocomplete when creating probes ([#5717][])
 * Open Telemetry: Add OpenTelemetry logs support with OTLP export. Enable using `DD_LOGS_OTEL_ENABLED=true`; supports standard `OTEL_EXPORTER_OTLP_*` settings ([#5446][])
-
-### Changed
-
-* Dynamic Instrumentation: Improve request latency under load by throttling symbol database extraction CPU usage during background processing ([#5776][])
 
 ### Fixed
 
@@ -5372,7 +5368,6 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#5762]: https://github.com/DataDog/dd-trace-rb/issues/5762
 [#5768]: https://github.com/DataDog/dd-trace-rb/issues/5768
 [#5773]: https://github.com/DataDog/dd-trace-rb/issues/5773
-[#5776]: https://github.com/DataDog/dd-trace-rb/issues/5776
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
