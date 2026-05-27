@@ -221,6 +221,7 @@ jobs:
       GEM_VERSION: ${{ needs.verify-checks.outputs.version }}
     outputs:
       next_version: ${{ steps.next_version.outputs.next_version }}
+      next_dev_version: ${{ steps.next_dev_version.outputs.next_dev_version }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -234,6 +235,9 @@ jobs:
       - id: next_version
         run: |
           echo "next_version=$(bundle exec rake version:next)" >> "$GITHUB_OUTPUT"
+      - id: next_dev_version
+        run: |
+          echo "next_dev_version=$(bundle exec rake version:next_dev)" >> "$GITHUB_OUTPUT"
 
   bump-gem-version:
     if: github.ref_name == 'master'
@@ -246,7 +250,7 @@ jobs:
       - update-gem-version
     uses: ./.github/workflows/bump-gem-version.yml
     with:
-      version: ${{ needs.update-gem-version.outputs.next_version }}
+      version: ${{ needs.update-gem-version.outputs.next_dev_version }}
     secrets: inherit # zizmor: ignore[secrets-inherit]
 
   # https://docs.github.com/en/rest/issues/milestones?apiVersion=2022-11-28

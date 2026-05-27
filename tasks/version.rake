@@ -17,6 +17,12 @@ namespace :version do
     $stdout.puts next_version
   end
 
+  task :next_dev do
+    current_version = load_gemspec_version
+    major, minor, = current_version.segments
+    $stdout.puts "#{major}.#{minor.succ}.0.dev"
+  end
+
   task :bump do |_t, args|
     input = args.extras.first || raise(ArgumentError, 'Please provide a version to bump to')
     next_version = Gem::Version.new(input)
