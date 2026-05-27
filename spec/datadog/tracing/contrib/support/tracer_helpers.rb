@@ -77,6 +77,13 @@ module Contrib
     # (e.g. ActionCable) re-register Rails callbacks every time +patch+ runs,
     # which would accumulate duplicate callbacks across tests.
     def reset_subscription_state!(registry_key, events_module)
+      # +Fanout#unsubscribe+ (called by +unsubscribe_all+ below) does
+      # +subscriber.try(:pattern)+ on its argument. AS 7.0+ requires +Object#try+
+      # in +fanout.rb+ itself; AS 6.x does not, so we hit a NoMethodError unless
+      # someone else has loaded the core_ext. Load it here to support AS 6.x;
+      # remove this require once activesupport < 7.0 support is dropped.
+      require 'active_support/core_ext/object/try'
+
       events_module::ALL.each do |klass|
         klass.subscriptions.each(&:unsubscribe_all)
         klass.subscriptions.clear
