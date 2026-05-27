@@ -7,18 +7,42 @@ require "json"
 head_stats = JSON.parse(File.read(ENV["CURRENT_STATS_PATH"]), symbolize_names: true)
 base_stats = JSON.parse(File.read(ENV["BASE_STATS_PATH"]), symbolize_names: true)
 
+# Synthesizes constant names from every part of an RBS file path.
+## Example: "path/to/resolver.rbs" -> ["Path", "To", "Resolver"]
+def constant_names_from_path(path)
+  path.delete_suffix(".rbs").split("/").map do |part|
+    part.split("_").map(&:capitalize).join
+  end
+end
+
 # Parse renames from Git.
 RENAMED_PATHS = File.readlines(ENV["RENAMED_PATHS_PATH"], chomp: true).each_with_object({}) do |line, result|
   _, base_path, head_path = line.split("\t", 3)
   result[head_path] = base_path
 end
 
+# Look up for renamed constant names.
+# Example: on rename from base "base.rbs" to head "head.rbs", "Head" should compare as "Base".
+# Same for nested constant paths: ['NewPath', 'NewPath::Core'] compares as ['BasePath', 'BasePath::Core'].
+RENAMED_CONSTANTS = RENAMED_PATHS.each_with_object({}) do |(head_path, base_path), result|
+  result[head_path] = constant_names_from_path(head_path).zip(constant_names_from_path(base_path))
+end
+
 # Normalizes comparison keys so findings follow renames.
 # Example: on rename from base "base.rbs" to head "head.rbs", both paths compare as "base.rbs".
 def comparison_key(item)
   key = item[:comparison_key].dup
+  path = key[:path]
+  base_path = RENAMED_PATHS[path]
+
+  if key[:constant_path] && RENAMED_CONSTANTS[path]
+    key[:constant_path] = key[:constant_path].map do |owner|
+      owner.split("::").map { |part| RENAMED_CONSTANTS[path].assoc(part)&.last || part }.join("::")
+    end
+  end
+
   # Normalize key as base path.
-  key[:path] = RENAMED_PATHS.fetch(key[:path], key[:path])
+  key[:path] = base_path || path
   key
 end
 
@@ -180,10 +204,8 @@ def ignored_files_summary(head_stats, base_stats)
 end
 
 def steep_ignore_summary(head_stats, base_stats)
-  steep_ignore_added, steep_ignore_removed = multiset_comparison(
-    head_stats[:steep_ignore_comments],
-    base_stats[:steep_ignore_comments]
-  )
+  steep_ignore_added = head_stats[:steep_ignore_comments] - base_stats[:steep_ignore_comments]
+  steep_ignore_removed = base_stats[:steep_ignore_comments] - head_stats[:steep_ignore_comments]
 
   create_summary(
     added: steep_ignore_added,

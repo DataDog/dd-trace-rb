@@ -48,37 +48,32 @@ def stats_item(path, line, line_content, comparison_key)
   }.compact
 end
 
-# Include the ignore comment and ignored source so line-only moves stay matched.
-def ignore_item(path, line, comment_source, ignored_source)
-  stats_item(path, line, nil, {type: "steep_ignore", path: path.to_s, source: comment_source, ignored_source: ignored_source})
-end
-
 # Include the enclosing namespace so equivalent RBS declarations in different owners stay distinct.
-def rbs_item(path, line, source, context)
-  stats_item(path, line, source, {type: "rbs_declaration", path: path.to_s, context: context, source: source})
+def rbs_item(path, line, source, constant_path)
+  stats_item(path, line, source, {type: "rbs_declaration", path: path.to_s, constant_path: constant_path, source: source})
 end
 
 # steep:ignore comments stats
 ignore_comments = loader.each_path_in_patterns(datadog_target.source_pattern).each_with_object([]) do |path, result|
-  source = path.read
-  source_lines = source.lines
-  buffer = ::Parser::Source::Buffer.new(path.to_s, 1, source: source)
+  buffer = ::Parser::Source::Buffer.new(path.to_s, 1, source: path.read)
   _, comments = ::Parser::Ruby25.new.parse_with_comments(buffer)
-  rbs_buffer = ::RBS::Buffer.new(name: path, content: source)
+  rbs_buffer = ::RBS::Buffer.new(name: path, content: path.read)
   comments.each do |comment|
     ignore = ::Steep::AST::Ignore.parse(comment, rbs_buffer)
     next if ignore.nil? || ignore.is_a?(::Steep::AST::Ignore::IgnoreEnd)
 
-    ignored_source = source_lines[ignore.line - 1]&.strip
-    result << ignore_item(path, ignore.line, comment.loc.expression.source, ignored_source)
+    result << {
+      path: path.to_s,
+      line: ignore.line
+    }
   end
 end
 
-# Collects declarations with their enclosing RBS namespace for stable comparison keys.
+# Collects declarations with their constant path for stable comparison keys.
 # @param declarations [Array<RBS::AST::Declarations::Base, RBS::AST::Members::Base>]
 # @param result [Hash] accumulated methods and other declarations
-# @param context [Array<String>] enclosing Ruby namespace, e.g. ["Datadog", "Core"]
-def ast_traversal(declarations, result = {}, context = [])
+# @param constant_path [Array<String>] enclosing RBS constant path for the current item, e.g. ["::Datadog", "::Datadog::Core"]
+def ast_traversal(declarations, result = {}, constant_path = [])
   result[:methods] ||= []
   result[:others] ||= []
   declarations.each do |declaration|
@@ -86,16 +81,16 @@ def ast_traversal(declarations, result = {}, context = [])
     when ::RBS::AST::Declarations::Module,
          ::RBS::AST::Declarations::Class,
          ::RBS::AST::Declarations::Interface
-      ast_traversal(declaration.members, result, context + [declaration.name.to_s])
+      ast_traversal(declaration.members, result, constant_path + [declaration.name.to_s])
     when ::RBS::AST::Declarations::TypeAlias,
       ::RBS::AST::Declarations::Constant,
       ::RBS::AST::Declarations::Global,
       ::RBS::AST::Members::Var,
       ::RBS::AST::Members::Attribute
-      result[:others] << {declaration: declaration, context: context}
+      result[:others] << {declaration: declaration, constant_path: constant_path}
     # Only this one does not have a type field
     when ::RBS::AST::Members::MethodDefinition
-      result[:methods] << {declaration: declaration, context: context}
+      result[:methods] << {declaration: declaration, constant_path: constant_path}
     end
   end
   result
@@ -217,9 +212,9 @@ signature_paths.each do |sig_path|
     when :typed
       typed_methods_size += 1
     when :untyped
-      untyped_methods << rbs_item(sig_path, method.location.start_line, method.location.source, entry[:context])
+      untyped_methods << rbs_item(sig_path, method.location.start_line, method.location.source, entry[:constant_path])
     when :partial
-      partially_typed_methods << rbs_item(sig_path, method.location.start_line, method.location.source, entry[:context])
+      partially_typed_methods << rbs_item(sig_path, method.location.start_line, method.location.source, entry[:constant_path])
     end
   end
 
@@ -236,9 +231,9 @@ signature_paths.each do |sig_path|
     when :typed, nil
       typed_others_size += 1
     when :untyped
-      untyped_others << rbs_item(sig_path, declaration.location.start_line, declaration.location.source, entry[:context])
+      untyped_others << rbs_item(sig_path, declaration.location.start_line, declaration.location.source, entry[:constant_path])
     when :partial
-      partially_typed_others << rbs_item(sig_path, declaration.location.start_line, declaration.location.source, entry[:context])
+      partially_typed_others << rbs_item(sig_path, declaration.location.start_line, declaration.location.source, entry[:constant_path])
     end
   end
 end

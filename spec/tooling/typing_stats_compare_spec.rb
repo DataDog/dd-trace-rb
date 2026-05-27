@@ -27,12 +27,12 @@ RSpec.describe "typing_stats_compare.rb" do
     }.merge(overrides)
   end
 
-  def declaration(path:, line:, source: "def self?.call: (untyped value) -> untyped", context: ["::Datadog", "::Datadog::Example"])
+  def declaration(path:, line:, source: "def self?.call: (untyped value) -> untyped", constant_path: ["::Datadog", "::Datadog::Example"])
     {
       path: path,
       line: line,
       line_content: source,
-      comparison_key: {type: "rbs_declaration", path: path, context: context, source: source}
+      comparison_key: {type: "rbs_declaration", path: path, constant_path: constant_path, source: source}
     }
   end
 
@@ -94,19 +94,50 @@ RSpec.describe "typing_stats_compare.rb" do
       .and include("clears **1** untyped method")
   end
 
-  it "ignores RBS line moves, follows renames, and ignores steep:ignore line moves" do
+  it "ignores RBS line moves and follows renames" do
     base = stats(
       partially_typed_methods: [declaration(path: "sig/datadog/base_name.rbs", line: 10)],
-      partially_typed_others: [declaration(path: "sig/datadog/example.rbs", line: 12, source: "EXAMPLE_OPTIONS: ::Hash[::Symbol, untyped]")],
-      steep_ignore_comments: [steep_ignore(line: 8)]
+      partially_typed_others: [declaration(path: "sig/datadog/example.rbs", line: 12, source: "EXAMPLE_OPTIONS: ::Hash[::Symbol, untyped]")]
     )
     head = stats(
       partially_typed_methods: [declaration(path: "sig/datadog/head_name.rbs", line: 25)],
-      partially_typed_others: [declaration(path: "sig/datadog/example.rbs", line: 30, source: "EXAMPLE_OPTIONS: ::Hash[::Symbol, untyped]")],
-      steep_ignore_comments: [steep_ignore(line: 18)]
+      partially_typed_others: [declaration(path: "sig/datadog/example.rbs", line: 30, source: "EXAMPLE_OPTIONS: ::Hash[::Symbol, untyped]")]
     )
 
     expect(run_compare(head, base, "R097\tsig/datadog/base_name.rbs\tsig/datadog/head_name.rbs\n")).to eq("")
+  end
+
+  it "normalizes RBS declaration constant paths when renamed files also rename classes" do
+    base = stats(
+      partially_typed_methods: [declaration(path: "sig/datadog/base_name.rbs", line: 10, constant_path: ["::Datadog", "::Datadog::BaseName"])]
+    )
+    head = stats(
+      partially_typed_methods: [declaration(path: "sig/datadog/head_name.rbs", line: 25, constant_path: ["::Datadog", "::Datadog::HeadName"])]
+    )
+
+    expect(run_compare(head, base, "R097\tsig/datadog/base_name.rbs\tsig/datadog/head_name.rbs\n")).to eq("")
+  end
+
+  it "normalizes RBS declaration constant paths across renamed directories" do
+    base = stats(
+      partially_typed_methods: [declaration(path: "sig/path/to/core.rbs", line: 10, constant_path: ["::Path", "::Path::To", "::Path::To::Core"])]
+    )
+    head = stats(
+      partially_typed_methods: [declaration(path: "sig/path1/to2/new.rbs", line: 25, constant_path: ["::Path1", "::Path1::To2", "::Path1::To2::New"])]
+    )
+
+    expect(run_compare(head, base, "R097\tsig/path/to/core.rbs\tsig/path1/to2/new.rbs\n")).to eq("")
+  end
+
+  it "does not infer acronym casing when normalizing RBS declaration constant paths" do
+    base = stats(
+      partially_typed_methods: [declaration(path: "sig/datadog/http_client.rbs", line: 10, constant_path: ["::Datadog", "::Datadog::HTTPClient"])]
+    )
+    head = stats(
+      partially_typed_methods: [declaration(path: "sig/datadog/net_client.rbs", line: 25, constant_path: ["::Datadog", "::Datadog::NetClient"])]
+    )
+
+    expect(run_compare(head, base, "R097\tsig/datadog/http_client.rbs\tsig/datadog/net_client.rbs\n")).to include("Partially typed methods (<strong>+1-1</strong>)")
   end
 
   it "compares RBS and steep:ignore findings as multisets" do
@@ -118,10 +149,21 @@ RSpec.describe "typing_stats_compare.rb" do
   end
 
   it "does not match RBS declarations across different owners" do
-    base = stats(untyped_methods: [declaration(path: "sig/datadog/example.rbs", line: 10, context: ["::Datadog::BaseExample"])])
-    head = stats(untyped_methods: [declaration(path: "sig/datadog/example.rbs", line: 14, context: ["::Datadog::HeadExample"])])
+    base = stats(untyped_methods: [declaration(path: "sig/datadog/example.rbs", line: 10, constant_path: ["::Datadog::BaseExample"])])
+    head = stats(untyped_methods: [declaration(path: "sig/datadog/example.rbs", line: 14, constant_path: ["::Datadog::HeadExample"])])
 
     expect(run_compare(head, base, "")).to include("Untyped methods (<strong>+1-1</strong>)")
+  end
+
+  it "does not match renamed RBS declarations across unrelated nested owners" do
+    base = stats(
+      untyped_methods: [declaration(path: "sig/datadog/base_name.rbs", line: 10, constant_path: ["::Datadog", "::Datadog::BaseName::BaseOwner"])]
+    )
+    head = stats(
+      untyped_methods: [declaration(path: "sig/datadog/head_name.rbs", line: 14, constant_path: ["::Datadog", "::Datadog::HeadName::HeadOwner"])]
+    )
+
+    expect(run_compare(head, base, "R097\tsig/datadog/base_name.rbs\tsig/datadog/head_name.rbs\n")).to include("Untyped methods (<strong>+1-1</strong>)")
   end
 
   it "does not match steep:ignore comments across different ignored source" do
