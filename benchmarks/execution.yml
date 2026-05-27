@@ -17,6 +17,8 @@
   - &profiling >-
       profiling_allocation.rb
       profiling_gc.rb
+      profiling_heap_sample.rb
+      profiling_heap_serialize.rb
       profiling_hold_resume_interruptions.rb
       profiling_http_transport.rb
       profiling_memory_sample_serialize.rb

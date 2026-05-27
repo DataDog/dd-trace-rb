@@ -14,7 +14,8 @@ module Datadog
         heap_size_enabled:,
         heap_sample_every:,
         timeline_enabled:,
-        heap_clean_after_gc_enabled:
+        heap_clean_after_gc_enabled:,
+        dictionary_rotation_period: 0
       )
         # This mutex works in addition to the fancy C-level mutexes we have in the native side (see the docs there).
         # It prevents multiple Ruby threads calling serialize at the same time -- something like
@@ -32,6 +33,7 @@ module Datadog
           heap_sample_every: heap_sample_every,
           timeline_enabled: timeline_enabled,
           heap_clean_after_gc_enabled: heap_clean_after_gc_enabled,
+          dictionary_rotation_period: dictionary_rotation_period,
         )
       end
 
@@ -42,6 +44,7 @@ module Datadog
         heap_sample_every: 1,
         timeline_enabled: false,
         heap_clean_after_gc_enabled: true,
+        dictionary_rotation_period: 1,
         **options
       )
         new(
@@ -51,6 +54,7 @@ module Datadog
           heap_sample_every: heap_sample_every,
           timeline_enabled: timeline_enabled,
           heap_clean_after_gc_enabled: heap_clean_after_gc_enabled,
+          dictionary_rotation_period: dictionary_rotation_period,
           **options,
         )
       end

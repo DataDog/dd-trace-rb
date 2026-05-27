@@ -8,16 +8,6 @@
 #define MAX_FRAMES_LIMIT            3000
 #define MAX_FRAMES_LIMIT_AS_STRING "3000"
 
-// Used as scratch space during sampling
-typedef struct {
-  uint16_t max_frames;
-  ddog_prof_Location *locations;
-  frame_info *stack_buffer;
-  bool pending_sample;
-  bool is_marking; // Used to avoid recording a sample when marking
-  int pending_sample_result;
-} sampling_buffer;
-
 void sample_thread(
   VALUE thread,
   sampling_buffer* buffer,
