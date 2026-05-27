@@ -162,3 +162,8 @@ Additional team preferences:
 - Trailing commas in multi-line arrays, hashes, and arguments
 - RBS type definitions in `sig/` mirror `lib/` structure
 - Avoid `untyped`; use `Type?` not `(nil | Type)`
+
+Ruby idioms:
+- Prefer `x.to_s` over `x || ''` for nil-safe string conversion
+- Prefer `return unless x` over `return nil unless x` (implicit nil)
+- Prefix unused method arguments with `_` (e.g., `_unused`) or use `**_opts` for intentionally ignored kwargs
