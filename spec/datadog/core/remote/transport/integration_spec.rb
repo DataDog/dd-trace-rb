@@ -3,7 +3,7 @@
 require 'spec_helper'
 
 require 'ostruct'
-require 'datadog/core/utils/base64'
+require 'datadog/core/utils/base64_codec'
 require 'datadog/core/remote/transport/http'
 require 'datadog/core/remote/transport/http/negotiation'
 require 'datadog/core/remote/transport/negotiation'
@@ -93,7 +93,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
               env: Datadog.configuration.env,
               tags: [],
             },
-            capabilities: Datadog::Core::Utils::Base64.encode64(capabilities_binary).chomp,
+            capabilities: Datadog::Core::Utils::Base64Codec.encode64(capabilities_binary).chomp,
           },
           cached_target_files: [],
         }

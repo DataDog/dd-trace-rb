@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 require 'datadog/core/remote/component'
-require 'datadog/core/utils/base64'
+require 'datadog/core/utils/base64_codec'
 
 RSpec.describe Datadog::Core::Remote::Component do
   forking_platform_only
@@ -165,7 +165,7 @@ RSpec.describe Datadog::Core::Remote::Component do
 
         # Return an empty but valid response
         jencode = proc do |obj|
-          Datadog::Core::Utils::Base64.strict_encode64(JSON.dump(obj)).chomp
+          Datadog::Core::Utils::Base64Codec.strict_encode64(JSON.dump(obj)).chomp
         end
 
         res.status = 200
