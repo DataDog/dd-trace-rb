@@ -43,7 +43,7 @@ jobs:
         env:
           GEM_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          if ruby -e "exit Gem::Version.new(ENV['GEM_VERSION']).prerelease? ? 0 : 1"; then
+          if ruby -e "exit Gem::Version.new(ENV['GEM_VERSION']).prerelease?"; then
             echo "::error::Version $GEM_VERSION is a prerelease (e.g. .dev) - refusing to publish"
             exit 1
           fi
