@@ -77,6 +77,15 @@ module Datadog
               service: service,
               version: version
             )
+
+            # In forked child processes the tokio runtime is dead.
+            # Recreate it so the exporter can send traces again.
+            exporter = @exporter
+            Core::Utils::AtForkMonkeyPatch.at_fork(:child) do
+              exporter._native_after_fork_in_child
+            rescue => e
+              Datadog.logger.warn { "Native transport after-fork reset failed: #{e}" }
+            end
           end
 
           # Send a list of traces to the agent.
