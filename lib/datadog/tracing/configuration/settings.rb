@@ -117,6 +117,23 @@ module Datadog
                 end
               end
 
+              # Behavior applied to a distributed-trace context extracted from incoming requests.
+              option :propagation_behavior_extract do |o|
+                o.env Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_BEHAVIOR_EXTRACT
+                o.default Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_CONTINUE
+                o.type :string
+                o.env_parser do |value|
+                  value = value&.downcase
+                  if Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_SUPPORTED.include?(value)
+                    value
+                  else
+                    Datadog.logger.warn("Unsupported propagation behavior extract: #{value.inspect}. " \
+                      "Set to default value (#{Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_CONTINUE}).")
+                    nil
+                  end
+                end
+              end
+
               # Strictly stop at the first successfully serialized style.
               # This prevents the tracer from enriching the extracted context with information from
               # other valid propagations styles present in the request.
