@@ -16,7 +16,7 @@ services:
       - testagent
     env_file: ./.env
     environment: &common-environment
-      BUNDLE_GEMFILE: /app/ruby-2.5.gemfile
+      BUNDLE_GEMFILE: /app/gemfiles/ruby-2.5.gemfile
       DD_AGENT_HOST: testagent
       DD_TRACE_AGENT_PORT: 9126
       TEST_DATADOG_INTEGRATION: 1
@@ -46,7 +46,7 @@ services:
     env_file: ./.env
     environment:
       <<: *common-environment
-      BUNDLE_GEMFILE: /app/ruby-2.6.gemfile
+      BUNDLE_GEMFILE: /app/gemfiles/ruby-2.6.gemfile
     stdin_open: true
     tty: true
     volumes:
@@ -62,7 +62,7 @@ services:
     env_file: ./.env
     environment:
       <<: *common-environment
-      BUNDLE_GEMFILE: /app/ruby-2.7.gemfile
+      BUNDLE_GEMFILE: /app/gemfiles/ruby-2.7.gemfile
     stdin_open: true
     tty: true
     volumes:
@@ -78,7 +78,7 @@ services:
     env_file: ./.env
     environment:
       <<: *common-environment
-      BUNDLE_GEMFILE: /app/ruby-3.0.gemfile
+      BUNDLE_GEMFILE: /app/gemfiles/ruby-3.0.gemfile
     stdin_open: true
     tty: true
     volumes:
@@ -94,7 +94,7 @@ services:
     env_file: ./.env
     environment:
       <<: *common-environment
-      BUNDLE_GEMFILE: /app/ruby-3.1.gemfile
+      BUNDLE_GEMFILE: /app/gemfiles/ruby-3.1.gemfile
     stdin_open: true
     tty: true
     volumes:
@@ -110,7 +110,7 @@ services:
     env_file: ./.env
     environment:
       <<: *common-environment
-      BUNDLE_GEMFILE: /app/ruby-3.2.gemfile
+      BUNDLE_GEMFILE: /app/gemfiles/ruby-3.2.gemfile
     stdin_open: true
     tty: true
     volumes:
@@ -126,7 +126,7 @@ services:
     env_file: ./.env
     environment:
       <<: *common-environment
-      BUNDLE_GEMFILE: /app/ruby-3.3.gemfile
+      BUNDLE_GEMFILE: /app/gemfiles/ruby-3.3.gemfile
     stdin_open: true
     tty: true
     volumes:
@@ -142,7 +142,7 @@ services:
     env_file: ./.env
     environment:
       <<: *common-environment
-      BUNDLE_GEMFILE: /app/ruby-3.4.gemfile
+      BUNDLE_GEMFILE: /app/gemfiles/ruby-3.4.gemfile
     stdin_open: true
     tty: true
     volumes:
@@ -158,7 +158,7 @@ services:
     env_file: ./.env
     environment:
       <<: *common-environment
-      BUNDLE_GEMFILE: /app/ruby-4.0.gemfile
+      BUNDLE_GEMFILE: /app/gemfiles/ruby-4.0.gemfile
     stdin_open: true
     tty: true
     volumes:

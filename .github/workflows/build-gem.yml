@@ -31,6 +31,9 @@ jobs:
           - dev
     runs-on: ubuntu-24.04
     name: Build gem (${{ matrix.type }})
+    env:
+      BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+      BUNDLE_FROZEN: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -38,7 +41,7 @@ jobs:
           persist-credentials: false
       - uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
         with:
-          ruby-version: "3.2"
+          ruby-version: "4.0.1"
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
       - name: Patch version
         if: ${{ matrix.type != 'final' }}
@@ -89,7 +92,7 @@ jobs:
           find pkg
       - uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
         with:
-          ruby-version: "3.2"
+          ruby-version: "4.0.1"
       - name: Install gem
         run: |
           gem install pkg/*.gem

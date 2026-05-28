@@ -31,6 +31,8 @@ jobs:
       id-token: write
     env:
       NEXT_VERSION: ${{ inputs.version }}
+      BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+      BUNDLE_FROZEN: "true"
     steps:
       - name: Get GitHub Token via dd-octo-sts
         id: generate-token
@@ -48,7 +50,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
         with:
-          ruby-version: "3.3.7"
+          ruby-version: "4.0.1"
 
       - run: bundle install
 

@@ -20,6 +20,18 @@ require_relative '../tasks/appraisal_conversion'
 gemfile = Appraisal::Gemfile.new.tap do |g|
   # Support `eval_gemfile` for `Bundler::DSL`
   g.define_singleton_method(:eval_gemfile) { |file| load(file) }
+
+  # The base gemfiles under `gemfiles/` declare `gemspec path: '..'` so Bundler
+  # can resolve datadog.gemspec when those files are loaded directly via
+  # `BUNDLE_GEMFILE`. Appraisal flattens all `eval_gemfile` content into a
+  # single context, so the `..` would survive into integration gemfiles —
+  # combined with Appraisal::Utils.prefix_path prepending another `..`, the
+  # generated `gemspec path: "../.."` resolves outside the project. Normalize
+  # to `.` so the generated value becomes `..`, relative to gemfiles/.
+  g.define_singleton_method(:gemspec) do |options = {}|
+    @gemspecs << Appraisal::Gemspec.new(options.merge(path: '.'))
+  end
+
   g.load(Bundler.default_gemfile)
 end
 
