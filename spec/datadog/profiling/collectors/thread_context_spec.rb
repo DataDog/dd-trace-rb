@@ -1484,23 +1484,20 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         let(:context_tracking) { [] }
 
         before do
-          5.times do
+          trigger_gc = proc do
             on_gc_start
-            # Burn enough CPU per cycle to guarantee a measurable delta even when the
-            # underlying CPU clock has microsecond resolution (macOS Mach `thread_info`).
-            # Without this, fast cycles may all land in the same microsecond bucket,
-            # making `accumulated_cpu_time_ns` constant across snapshots and failing the
-            # strict `<` assertion below.
-            #
-            # Sizing: 1_000_000 Ruby XOR iterations is ~3-5 ms per cycle on current
-            # runners, roughly 3000-5000x the 1 us Mach `thread_info` floor. The
-            # large margin is deliberate — a magic number tuned to today's CPU speed
-            # would erode on a future runner upgrade.
-            burn = 0
-            1_000_000.times { |i| burn ^= i }
             on_gc_finish
-
             context_tracking << gc_tracking
+          end
+
+          # Loop until accumulated_cpu_time_ns strictly increases across snapshots.
+          # This handles platforms whose CPU clock has microsecond resolution (macOS
+          # Mach `thread_info`) where fast back-to-back cycles can land in the same
+          # microsecond bucket.
+          loop_until do
+            trigger_gc.call
+            context_tracking.first.fetch(:accumulated_cpu_time_ns) <
+              context_tracking.last.fetch(:accumulated_cpu_time_ns)
           end
         end
 
