@@ -34,6 +34,7 @@ module Datadog
               response = nil
               # rubocop:disable Metrics/BlockLength
               Tracing.trace('opensearch.query', service: datadog_configuration[:service_name]) do |span|
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 # Set generic tags
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)

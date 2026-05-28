@@ -24,6 +24,7 @@ module Datadog
               on_error = Datadog.configuration_for(self, :on_error) || datadog_configuration[:on_error]
 
               Tracing.trace(Ext::SPAN_QUERY, service: service, on_error: on_error) do |span, trace_op|
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 span.resource = sql
                 span.type = Tracing::Metadata::Ext::SQL::TYPE
 

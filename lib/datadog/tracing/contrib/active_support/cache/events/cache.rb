@@ -77,6 +77,7 @@ module Datadog
                 mapping = MAPPING.fetch(event)
 
                 span.service = configuration[:cache_service]
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 span.resource = mapping[:resource]
 
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)

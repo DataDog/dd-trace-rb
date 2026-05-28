@@ -4,6 +4,7 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 require 'datadog/tracing/contrib/support/http'
 
 require 'excon'
@@ -79,6 +80,7 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
     end
 
     it_behaves_like 'environment service name', 'DD_TRACE_EXCON_SERVICE_NAME'
+    it_behaves_like 'tags _dd.svc_src', 'excon'
     it_behaves_like 'configured peer service span', 'DD_TRACE_EXCON_PEER_SERVICE'
     it_behaves_like 'schema version span'
   end

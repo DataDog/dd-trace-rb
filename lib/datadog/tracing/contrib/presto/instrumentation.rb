@@ -23,6 +23,7 @@ module Datadog
                   service: datadog_configuration[:service_name]
                 ) do |span|
                   begin
+                    span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                     decorate!(span, Ext::TAG_OPERATION_QUERY)
                     span.resource = query
                     span.type = Tracing::Metadata::Ext::SQL::TYPE
@@ -41,6 +42,7 @@ module Datadog
                   service: datadog_configuration[:service_name]
                 ) do |span|
                   begin
+                    span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                     decorate!(span, Ext::TAG_OPERATION_QUERY)
                     span.resource = query
                     span.type = Tracing::Metadata::Ext::SQL::TYPE
@@ -59,6 +61,7 @@ module Datadog
                   service: datadog_configuration[:service_name]
                 ) do |span|
                   begin
+                    span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                     decorate!(span, Ext::TAG_OPERATION_KILL)
                     span.resource = Ext::SPAN_KILL
                     span.type = Tracing::Metadata::Ext::AppTypes::TYPE_DB

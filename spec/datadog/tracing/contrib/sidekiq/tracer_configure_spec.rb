@@ -1,4 +1,5 @@
 require 'datadog/tracing/contrib/support/spec_helper'
+require 'datadog/tracing/contrib/svc_src_examples'
 require_relative 'support/helper'
 
 RSpec.describe 'Tracer configuration' do
@@ -27,6 +28,11 @@ RSpec.describe 'Tracer configuration' do
 
       span, _push = spans
       expect(span.service).to eq('my-service')
+    end
+
+    it_behaves_like 'tags _dd.svc_src', 'sidekiq' do
+      let(:span) { spans.first }
+      before { perform_async }
     end
 
     context 'with custom error handler' do

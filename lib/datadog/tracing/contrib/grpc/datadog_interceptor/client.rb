@@ -29,6 +29,7 @@ module Datadog
               }
 
               Tracing.trace(Ext::SPAN_CLIENT, **options) do |span, trace|
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 annotate!(trace, span, keywords, formatter)
 
                 begin
