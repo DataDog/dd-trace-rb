@@ -540,6 +540,7 @@ typedef struct {
   const ddog_TraceExporter       *exporter;
   ddog_TracerTraceChunks         *chunks;
   ddog_TraceExporterResponse     *response;
+  ddog_TraceExporterCancelToken  *cancel_token;  /* borrowed, not owned */
   ddog_TraceExporterErrorCode     error_code;
   bool                            failed;
   bool                            send_ran;
@@ -548,7 +549,7 @@ typedef struct {
 static void *send_chunks_without_gvl(void *data) {
   send_chunks_args_t *args = (send_chunks_args_t *)data;
   ddog_TraceExporterError *err = ddog_trace_exporter_send_trace_chunks(
-      args->exporter, args->chunks, &args->response);
+      args->exporter, args->chunks, &args->response, args->cancel_token);
   if (err != NULL) {
     args->error_code = err->code;
     args->failed = true;
@@ -556,6 +557,20 @@ static void *send_chunks_without_gvl(void *data) {
   }
   args->send_ran = true;
   return NULL;
+}
+
+/*
+ * Unblock function: cooperatively cancel an in-flight send.
+ *
+ * Called by Ruby when an interrupt (Thread#kill, shutdown) fires while
+ * the thread is inside rb_thread_call_without_gvl2.  Cancelling the
+ * token causes the Rust HTTP pipeline to abort the in-flight request
+ * and return promptly, which is not possible with RUBY_UBF_IO's
+ * signal-based approach.
+ */
+static void interrupt_exporter_call(void *cancel_token) {
+  ddog_trace_exporter_cancel_token_cancel(
+      (ddog_TraceExporterCancelToken *)cancel_token);
 }
 
 /*
@@ -650,13 +665,24 @@ static VALUE build_and_send_traces(VALUE arg) {
    * response before any Ruby exception propagates -- otherwise we
    * would leak those Rust-allocated objects.
    *
+   * A cancellation token is created per send call and passed to the
+   * custom unblock function (interrupt_exporter_call).  When Ruby
+   * interrupts the thread (shutdown, Thread#kill), the UBF cancels
+   * the token, which cooperatively aborts the in-flight HTTP request
+   * in the Rust runtime.  This replaces the signal-based RUBY_UBF_IO
+   * which could not actually cancel the Rust HTTP pipeline.
+   *
    * An interrupt (e.g. Thread#kill) may cause gvl2 to return before
    * our function runs, so we loop until it does.
    */
+  ddog_TraceExporterCancelToken cancel_token =
+      ddog_trace_exporter_cancel_token_new();
+
   send_chunks_args_t args = {
     .exporter     = ctx->exporter,
     .chunks       = ctx->chunks,
     .response     = NULL,
+    .cancel_token = &cancel_token,
     .failed       = false,
     .send_ran     = false,
   };
@@ -665,12 +691,14 @@ static VALUE build_and_send_traces(VALUE arg) {
   while (!args.send_ran && !pending_exception) {
     rb_thread_call_without_gvl2(
         send_chunks_without_gvl, &args,
-        RUBY_UBF_IO, NULL);
+        interrupt_exporter_call, &cancel_token);
 
     if (!args.send_ran) {
       pending_exception = check_if_pending_exception();
     }
   }
+
+  ddog_trace_exporter_cancel_token_drop(&cancel_token);
   /* Only null chunks when the send actually ran and consumed them.
    * If an interrupt fired before the send executed, chunks are still
    * live and the ensure handler must free them. */
