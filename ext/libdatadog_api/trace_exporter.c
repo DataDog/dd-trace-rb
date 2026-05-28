@@ -20,6 +20,9 @@ static VALUE _native_from_span(VALUE klass, VALUE span);
 /* TraceExporter methods */
 static VALUE _native_exporter_new(int argc, VALUE *argv, VALUE klass);
 static VALUE _native_send_traces(VALUE self, VALUE traces);
+static VALUE _native_before_fork(VALUE self);
+static VALUE _native_after_fork_in_parent(VALUE self);
+static VALUE _native_after_fork_in_child(VALUE self);
 
 /* Response helpers */
 static VALUE create_ok_response(long trace_count, VALUE payload);
@@ -486,6 +489,46 @@ static VALUE _native_exporter_new(
 }
 
 /* ========================================================================
+ * Fork safety hooks
+ *
+ * These coordinate the tokio runtime lifecycle around process forks
+ * (Puma, Unicorn, Passenger).
+ * ======================================================================== */
+
+static VALUE _native_before_fork(VALUE self) {
+  ddog_TraceExporter *exporter;
+  TypedData_Get_Struct(self, ddog_TraceExporter, &trace_exporter_typed_data, exporter);
+  if (exporter == NULL) {
+    raise_error(rb_eRuntimeError, "TraceExporter has not been initialized or was already freed");
+  }
+  ddog_TraceExporterError *err = ddog_trace_exporter_before_fork(exporter);
+  check_exporter_error("Failed to prepare for fork", err);
+  return Qnil;
+}
+
+static VALUE _native_after_fork_in_parent(VALUE self) {
+  ddog_TraceExporter *exporter;
+  TypedData_Get_Struct(self, ddog_TraceExporter, &trace_exporter_typed_data, exporter);
+  if (exporter == NULL) {
+    raise_error(rb_eRuntimeError, "TraceExporter has not been initialized or was already freed");
+  }
+  ddog_TraceExporterError *err = ddog_trace_exporter_after_fork_in_parent(exporter);
+  check_exporter_error("Failed to restore after fork in parent", err);
+  return Qnil;
+}
+
+static VALUE _native_after_fork_in_child(VALUE self) {
+  ddog_TraceExporter *exporter;
+  TypedData_Get_Struct(self, ddog_TraceExporter, &trace_exporter_typed_data, exporter);
+  if (exporter == NULL) {
+    raise_error(rb_eRuntimeError, "TraceExporter has not been initialized or was already freed");
+  }
+  ddog_TraceExporterError *err = ddog_trace_exporter_after_fork_in_child(exporter);
+  check_exporter_error("Failed to restore after fork in child", err);
+  return Qnil;
+}
+
+/* ========================================================================
  * GVL-release helper for ddog_trace_exporter_send_trace_chunks
  *
  * The send call performs blocking network I/O.  Releasing the GVL lets
@@ -747,6 +790,14 @@ void trace_exporter_init(VALUE tracing_module) {
   /* Instance: _native_send_traces(traces) -> Array[Response] */
   rb_define_method(trace_exporter_class, "_native_send_traces",
                    _native_send_traces, 1);
+
+  /* Instance: fork safety hooks */
+  rb_define_method(trace_exporter_class, "_native_before_fork",
+                   _native_before_fork, 0);
+  rb_define_method(trace_exporter_class, "_native_after_fork_in_parent",
+                   _native_after_fork_in_parent, 0);
+  rb_define_method(trace_exporter_class, "_native_after_fork_in_child",
+                   _native_after_fork_in_child, 0);
 
   /* ----------------------------------------------------------------
    * Response class (defined in Ruby, loaded lazily)
