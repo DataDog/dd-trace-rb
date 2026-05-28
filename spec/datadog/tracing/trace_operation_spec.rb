@@ -67,6 +67,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
   shared_examples 'a span with default events' do
     subject(:span_events) { span.send(:events) }
     it { expect(span_events.before_start.subscriptions).to contain_exactly(kind_of(Proc)) }
+    it { expect(span_events.before_finish.subscriptions).to contain_exactly(kind_of(Proc)) }
     it { expect(span_events.after_finish.subscriptions).to contain_exactly(kind_of(Proc)) }
   end
 
@@ -2597,6 +2598,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             new_events = new_trace_op.send(:events)
 
             [
+              :span_before_finish,
               :span_before_start,
               :span_finished,
               :trace_finished,

@@ -3,9 +3,9 @@ module Datadog
     module ProbeBuilder
       PROBE_TYPES: { "LOG_PROBE" => :log }
 
-      def self?.build_from_remote_config: (Hash[untyped,untyped] config) -> Probe
+      def self?.build_from_remote_config: (Hash[String, untyped] config) -> Probe
 
-      def self?.build_template_segments: (untyped segments) -> untyped
+      def self?.build_template_segments: (Array[Hash[String, untyped]]? segments) -> Array[String | DI::EL::Expression]?
     end
   end
 end

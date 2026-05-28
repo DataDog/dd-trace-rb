@@ -19,7 +19,7 @@ module Datadog
 
       def self.disable_upload: (Component component) -> void
 
-      def self.parse_config: (Datadog::Core::Remote::Configuration::Content content) -> ::Hash[::String, untyped]?
+      def self.parse_config: (Datadog::Core::Remote::Configuration::Content content, SymbolDatabase::Logger logger) -> ::Hash[::String, untyped]?
     end
   end
 end

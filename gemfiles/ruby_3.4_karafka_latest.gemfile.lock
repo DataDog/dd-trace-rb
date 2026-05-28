@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.34.0)
+    datadog (2.35.0.dev)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
       libdatadog (~> 33.0.0.1.0)
@@ -58,19 +58,19 @@ GEM
     karafka-core (2.5.13)
       karafka-rdkafka (>= 0.20.0)
       logger (>= 1.6.0)
-    karafka-rdkafka (0.27.1)
+    karafka-rdkafka (0.27.2)
       ffi (~> 1.17.1)
       json (> 2.0)
       logger
       mini_portile2 (~> 2.6)
       rake (> 12)
-    karafka-rdkafka (0.27.1-aarch64-linux-gnu)
+    karafka-rdkafka (0.27.2-aarch64-linux-gnu)
       ffi (~> 1.17.1)
       json (> 2.0)
       logger
       mini_portile2 (~> 2.6)
       rake (> 12)
-    karafka-rdkafka (0.27.1-x86_64-linux-gnu)
+    karafka-rdkafka (0.27.2-x86_64-linux-gnu)
       ffi (~> 1.17.1)
       json (> 2.0)
       logger
@@ -147,7 +147,7 @@ GEM
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
     webrick (1.9.1)
-    zeitwerk (2.7.5)
+    zeitwerk (2.8.2)
     zstd-ruby (2.0.3)
 
 PLATFORMS
