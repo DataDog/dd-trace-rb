@@ -107,6 +107,7 @@ module Datadog
         option :api_key do |o|
           o.type :string, nilable: true
           o.env Core::Environment::Ext::ENV_API_KEY
+          o.skip_telemetry true
         end
 
         # Datadog diagnostic settings.
