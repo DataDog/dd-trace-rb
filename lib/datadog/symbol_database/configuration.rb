@@ -33,7 +33,14 @@ module Datadog
               option :enabled do |o|
                 o.type :bool
                 o.env 'DD_SYMBOL_DATABASE_UPLOAD_ENABLED'
-                o.default { Datadog.configuration.dynamic_instrumentation.enabled }
+                # symdb's Settings are loaded from core (settings.rb requires this file
+                # unconditionally). DI's Settings are extended lazily by lib/datadog/di.rb,
+                # which not all load paths reach before the symdb default fires. Guard
+                # the lookup so symdb defaults to false when DI isn't loaded.
+                o.default do
+                  config = Datadog.configuration
+                  config.respond_to?(:dynamic_instrumentation) && config.dynamic_instrumentation.enabled
+                end
               end
 
               # Settings in the 'internal' group are for internal Datadog
