@@ -4,7 +4,7 @@ require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative 'ext'
 require_relative 'utils'
-require_relative '../utils/quantization/hash'
+require_relative '../utils/quantization/hash_formatter'
 require_relative 'distributed/propagation'
 
 module Datadog
@@ -68,7 +68,7 @@ module Datadog
 
               args = job['args']
               if args && !args.empty?
-                span.set_tag(Ext::TAG_JOB_ARGS, Contrib::Utils::Quantization::Hash.format(args, (@quantize[:args] || {})))
+                span.set_tag(Ext::TAG_JOB_ARGS, Contrib::Utils::Quantization::HashFormatter.format(args, (@quantize[:args] || {})))
               end
 
               yield
