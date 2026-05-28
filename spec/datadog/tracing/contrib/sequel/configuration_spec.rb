@@ -47,6 +47,10 @@ RSpec.describe 'Sequel configuration' do
         it do
           expect(span.service).to eq('sqlite')
         end
+
+        it 'tags _dd.svc_src with the integration component' do
+          expect(span.get_tag('_dd.svc_src')).to eq('sequel')
+        end
       end
 
       context 'with options set via #use' do

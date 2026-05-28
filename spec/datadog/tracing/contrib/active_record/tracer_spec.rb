@@ -2,6 +2,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 require 'datadog'
 
 require 'spec/datadog/tracing/contrib/rails/support/deprecation'
@@ -15,22 +16,16 @@ RSpec.describe 'ActiveRecord instrumentation' do
     # Prevent extra spans during tests
     Article.count
 
-    # Reset options (that might linger from other tests)
-    Datadog.configuration.tracing[:active_record].reset!
-
-    Datadog.configure do |c|
-      c.tracing.instrument :active_record, configuration_options
+    reset_subscription_state!(:active_record, Datadog::Tracing::Contrib::ActiveRecord::Events) do
+      Datadog.configure do |c|
+        c.tracing.instrument :active_record, configuration_options
+      end
     end
 
     raise_on_rails_deprecation!
   end
 
-  around do |example|
-    # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:active_record].reset_configuration!
-    example.run
-    Datadog.registry[:active_record].reset_configuration!
-  end
+  after { Datadog.registry[:active_record].reset_configuration! }
 
   context 'when query is made' do
     before { Article.count }
@@ -71,6 +66,8 @@ RSpec.describe 'ActiveRecord instrumentation' do
         let(:configuration_options) { super().merge(service_name: service_name) }
 
         it { expect(span.service).to eq(service_name) }
+
+        it_behaves_like 'tags _dd.svc_src', 'active_record'
       end
 
       context 'with a custom configuration' do

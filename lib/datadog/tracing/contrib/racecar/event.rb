@@ -35,6 +35,7 @@ module Datadog
 
             def on_start(span, event, _id, payload)
               span.service = configuration[:service_name]
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               span.resource = payload[:consumer_class]
 
               span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_MESSAGING_SYSTEM)

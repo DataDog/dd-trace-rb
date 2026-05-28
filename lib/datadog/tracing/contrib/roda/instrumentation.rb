@@ -25,7 +25,10 @@ module Datadog
               begin
                 request_method = request.request_method.to_s.upcase
 
-                span.service = configuration[:service_name] if configuration[:service_name]
+                if configuration[:service_name]
+                  span.service = configuration[:service_name]
+                  span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
+                end
 
                 span.type = Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
 

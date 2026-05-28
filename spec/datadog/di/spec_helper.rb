@@ -1,3 +1,5 @@
+require 'datadog/core/utils/base64_codec'
+
 module DIHelpers
   class TestRemoteConfigGenerator
     def initialize(probe_configs)
@@ -81,7 +83,7 @@ module DIHelpers
     end
 
     def encode_str(v)
-      Datadog::Core::Utils::Base64.strict_encode64(v).chomp
+      Datadog::Core::Utils::Base64Codec.strict_encode64(v).chomp
     end
 
     def encode_obj(v)

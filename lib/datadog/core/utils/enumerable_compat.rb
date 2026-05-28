@@ -3,8 +3,8 @@
 module Datadog
   module Core
     module Utils
-      # Common array-related utility functions.
-      module Array
+      # Bring newer Enumerable methods to older Ruby versions.
+      module EnumerableCompat
         def self.filter_map(array, &block)
           if array.respond_to?(:filter_map)
             # DEV Supported since Ruby 2.7, saves an intermediate object creation

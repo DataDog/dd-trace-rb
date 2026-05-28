@@ -4,6 +4,7 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 
 require_relative 'shared_examples'
 
@@ -63,6 +64,15 @@ RSpec.describe 'tracing on the client connection' do
       expect(
         span.get_tag(Datadog::Tracing::Contrib::GRPC::Ext::TAG_CLIENT_DEADLINE)
       ).to eq '2022-01-02T03:04:05.678Z'
+    end
+
+    context 'when service_name is overridden' do
+      let(:configuration_options) { {service_name: 'custom-grpc'} }
+      let(:span) { fetch_spans.first }
+
+      it_behaves_like 'tags _dd.svc_src', 'grpc' do
+        before { default_client_interceptor.request_response(**keywords) {} }
+      end
     end
   end
 

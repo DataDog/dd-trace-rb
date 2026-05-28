@@ -1,5 +1,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 
 require 'datadog'
 require 'sneakers'
@@ -95,6 +96,13 @@ RSpec.describe Datadog::Tracing::Contrib::Sneakers::Tracer do
       it 'sends to body in the trace' do
         call
         expect(span.get_tag(Datadog::Tracing::Contrib::Sneakers::Ext::TAG_JOB_BODY)).to eq('{"foo":"bar"}')
+      end
+    end
+
+    context 'when service_name is overridden' do
+      let(:configuration_options) { {service_name: 'custom-sneakers'} }
+      it_behaves_like 'tags _dd.svc_src', 'sneakers' do
+        before { call }
       end
     end
 

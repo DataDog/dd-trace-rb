@@ -23,6 +23,7 @@ module Datadog
               service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
 
               Tracing.trace(Ext::SPAN_QUERY, service: service) do |span, trace_op|
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 span.resource = sql
                 span.type = Tracing::Metadata::Ext::SQL::TYPE
 

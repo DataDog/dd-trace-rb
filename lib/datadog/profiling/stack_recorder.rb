@@ -13,7 +13,6 @@ module Datadog
         heap_samples_enabled:,
         heap_size_enabled:,
         heap_sample_every:,
-        timeline_enabled:,
         heap_clean_after_gc_enabled:
       )
         # This mutex works in addition to the fancy C-level mutexes we have in the native side (see the docs there).
@@ -30,7 +29,6 @@ module Datadog
           heap_samples_enabled: heap_samples_enabled,
           heap_size_enabled: heap_size_enabled,
           heap_sample_every: heap_sample_every,
-          timeline_enabled: timeline_enabled,
           heap_clean_after_gc_enabled: heap_clean_after_gc_enabled,
         )
       end
@@ -40,7 +38,6 @@ module Datadog
         heap_samples_enabled: false,
         heap_size_enabled: false,
         heap_sample_every: 1,
-        timeline_enabled: false,
         heap_clean_after_gc_enabled: true,
         **options
       )
@@ -49,7 +46,6 @@ module Datadog
           heap_samples_enabled: heap_samples_enabled,
           heap_size_enabled: heap_size_enabled,
           heap_sample_every: heap_sample_every,
-          timeline_enabled: timeline_enabled,
           heap_clean_after_gc_enabled: heap_clean_after_gc_enabled,
           **options,
         )
