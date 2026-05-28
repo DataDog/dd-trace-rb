@@ -61,6 +61,8 @@ jobs:
           # Test result
           grep -e allowed_push_host datadog.gemspec
       - name: Build gem
+        env:
+          BUNDLE_FROZEN: "false"
         run: bundle exec rake build
       - name: List gem
         run: |
