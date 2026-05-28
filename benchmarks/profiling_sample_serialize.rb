@@ -27,9 +27,6 @@ class ProfilerSampleSerializeBenchmark
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 60, warmup: 2}
       x.config(**benchmark_time)
 
-      # Temporary workaround for benchmark analyzer expecting at least one benchmark to not be change per file
-      x.report("sample  timeline=false") {}
-
       x.report("sample and serialize #{ENV["CONFIG"]}") do
         samples_per_second = 100
         simulate_seconds = 60
