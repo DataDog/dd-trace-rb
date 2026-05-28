@@ -9,6 +9,14 @@ require 'datadog/symbol_database/configuration'
 RSpec.describe 'Symbol Database Configuration', :symdb_supported_platforms do
   subject(:settings) { Datadog::Core::Configuration::Settings.new }
 
+  # The default for symbol_database.enabled is a block that reads
+  # Datadog.configuration.dynamic_instrumentation.enabled. Route the global
+  # lookup to the per-example fixture so tests don't leak state across each
+  # other.
+  before do
+    allow(Datadog).to receive(:configuration).and_return(settings)
+  end
+
   describe 'symbol_database' do
     context 'programmatic configuration' do
       [
@@ -47,7 +55,6 @@ RSpec.describe 'Symbol Database Configuration', :symdb_supported_platforms do
       [
         ['DD_SYMBOL_DATABASE_UPLOAD_ENABLED', 'true', nil, 'enabled', true],
         ['DD_SYMBOL_DATABASE_UPLOAD_ENABLED', 'false', nil, 'enabled', false],
-        ['DD_SYMBOL_DATABASE_UPLOAD_ENABLED', nil, nil, 'enabled', true],
         ['DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD', 'true', 'internal', 'force_upload', true],
         ['DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD', 'false', 'internal', 'force_upload', false],
         ['DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD', nil, 'internal', 'force_upload', false],
@@ -72,6 +79,37 @@ RSpec.describe 'Symbol Database Configuration', :symdb_supported_platforms do
             scope = scope_name ? settings.symbol_database.public_send(scope_name) : settings.symbol_database
             expect(scope.public_send(setting_name)).to eq(setting_value)
           end
+        end
+      end
+    end
+
+    context 'default tracks dynamic_instrumentation.enabled' do
+      context 'when dynamic_instrumentation.enabled is true' do
+        before { settings.dynamic_instrumentation.enabled = true }
+
+        it 'defaults symbol_database.enabled to true' do
+          expect(settings.symbol_database.enabled).to be(true)
+        end
+      end
+
+      context 'when dynamic_instrumentation.enabled is false' do
+        before { settings.dynamic_instrumentation.enabled = false }
+
+        it 'defaults symbol_database.enabled to false' do
+          expect(settings.symbol_database.enabled).to be(false)
+        end
+      end
+
+      context 'when DD_SYMBOL_DATABASE_UPLOAD_ENABLED is set' do
+        around do |example|
+          ClimateControl.modify('DD_SYMBOL_DATABASE_UPLOAD_ENABLED' => 'true') do
+            example.run
+          end
+        end
+
+        it 'env wins over the dynamic_instrumentation-derived default' do
+          settings.dynamic_instrumentation.enabled = false
+          expect(settings.symbol_database.enabled).to be(true)
         end
       end
     end

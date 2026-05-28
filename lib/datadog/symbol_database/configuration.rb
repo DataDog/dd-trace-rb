@@ -7,7 +7,9 @@ module Datadog
       # Configuration settings for symbol database upload feature.
       #
       # Public environment variable:
-      # - DD_SYMBOL_DATABASE_UPLOAD_ENABLED (default: true) - Feature gate
+      # - DD_SYMBOL_DATABASE_UPLOAD_ENABLED - Feature gate. When unset, defaults
+      #   to the value of dynamic_instrumentation.enabled: true when DI is
+      #   enabled, false otherwise.
       #
       # Extended into: Core::Configuration::Settings (via extend)
       # Accessed as: Datadog.configuration.symbol_database.enabled
@@ -31,7 +33,7 @@ module Datadog
               option :enabled do |o|
                 o.type :bool
                 o.env 'DD_SYMBOL_DATABASE_UPLOAD_ENABLED'
-                o.default true
+                o.default { Datadog.configuration.dynamic_instrumentation.enabled }
               end
 
               # Settings in the 'internal' group are for internal Datadog
