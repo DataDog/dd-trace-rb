@@ -163,6 +163,8 @@ jobs:
       id-token: write
     env:
       SKIP_SIMPLECOV: 1
+      BUNDLE_GEMFILE: gemfiles/ruby-3.3.gemfile
+      BUNDLE_FROZEN: "true"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -219,6 +221,8 @@ jobs:
       - rubygems-release
     env:
       GEM_VERSION: ${{ needs.verify-checks.outputs.version }}
+      BUNDLE_GEMFILE: gemfiles/ruby-3.3.gemfile
+      BUNDLE_FROZEN: "true"
     outputs:
       next_version: ${{ steps.next_version.outputs.next_version }}
     steps:

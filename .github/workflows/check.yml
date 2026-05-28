@@ -23,6 +23,7 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
     outputs:
       lockfile: ${{ steps.bundle-cache.outputs.lockfile }}
       cache-key: ${{ steps.bundle-cache.outputs.cache-key }}
@@ -42,6 +43,7 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -61,6 +63,7 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -80,6 +83,7 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -99,6 +103,7 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
       env:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:

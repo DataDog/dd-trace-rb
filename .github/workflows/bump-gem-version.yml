@@ -31,6 +31,8 @@ jobs:
       id-token: write
     env:
       NEXT_VERSION: ${{ inputs.version }}
+      BUNDLE_GEMFILE: gemfiles/ruby-3.3.gemfile
+      BUNDLE_FROZEN: "true"
     steps:
       - name: Get GitHub Token via dd-octo-sts
         id: generate-token
