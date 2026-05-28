@@ -1,36 +1,23 @@
 require 'open3'
 
 namespace :version do
+  def next_version(current_version)
+    if current_version.prerelease?
+      # If prerelease, return the release version (ie. 2.0.0.beta1 -> 2.0.0)
+      current_version.release.to_s
+    else
+      # When releasing from `master` branch, return the next minor version (ie. 2.0.0 -> 2.1.0)
+      major, minor, = current_version.segments
+      [major, minor.succ, 0].join(".")
+    end
+  end
+
   task :next do
-    current_version = load_gemspec_version
-
-    next_version =
-      if current_version.prerelease?
-        # If prerelease, return the release version (ie. 2.0.0.beta1 -> 2.0.0)
-        current_version.release
-      else
-        # When releasing from `master` branch, return the next minor version (ie. 2.0.0 -> 2.1.0)
-        major, minor, = current_version.segments
-        Gem::Version.new([major, minor.succ, 0].join(".")).to_s
-      end
-
-    $stdout.puts next_version
+    $stdout.puts next_version(load_gemspec_version)
   end
 
   task :next_dev do
-    current_version = load_gemspec_version
-
-    next_version =
-      if current_version.prerelease?
-        # If prerelease, return the release version with .dev suffix (ie. 2.36.0.beta1 -> 2.36.0.dev)
-        "#{current_version.release}.dev"
-      else
-        # When releasing from `master` branch, return the next minor version with .dev suffix (ie. 2.34.0 -> 2.35.0.dev)
-        major, minor, = current_version.segments
-        "#{major}.#{minor.succ}.0.dev"
-      end
-
-    $stdout.puts next_version
+    $stdout.puts "#{next_version(load_gemspec_version)}.dev"
   end
 
   task :bump do |_t, args|
