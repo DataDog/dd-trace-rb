@@ -120,20 +120,6 @@ static inline void check_exporter_error(const char *context,
   raise_error(rb_eRuntimeError, "%s", buf);
 }
 
-/*
- * If +err+ indicates an error, extracts the message using the common
- * ddog_Error helpers, drops the error, and raises a Ruby RuntimeError.
- * Does not return on error.
- */
-static inline void check_maybe_error(const char *context,
-                                     ddog_MaybeError err) {
-  if (err.tag == DDOG_OPTION_ERROR_NONE_ERROR) return;
-
-  char buf[MAX_RAISE_MESSAGE_SIZE];
-  read_ddogerr_string_and_drop(&err.some, buf, sizeof(buf));
-  raise_error(rb_eRuntimeError, "%s: %s", context, buf);
-}
-
 /* ========================================================================
  * Config helpers
  * ======================================================================== */
@@ -211,7 +197,7 @@ static inline trace_id_t split_trace_id(VALUE trace_id) {
 
 typedef struct {
   ddog_TracerSpan        *span;
-  ddog_MaybeError         error;  /* first error, if any */
+  ddog_TraceExporterError *error;  /* first error, if any */
   long                    skipped; /* entries skipped due to wrong type */
 } hash_iter_ctx;
 
@@ -233,8 +219,8 @@ static int meta_iter_cb(VALUE key, VALUE value, VALUE arg) {
   ddog_CharSlice ks = {.ptr = RSTRING_PTR(key),   .len = RSTRING_LEN(key)};
   ddog_CharSlice vs = {.ptr = RSTRING_PTR(value), .len = RSTRING_LEN(value)};
 
-  ddog_MaybeError err = ddog_tracer_span_set_meta(ctx->span, ks, vs);
-  if (err.tag == DDOG_OPTION_ERROR_SOME_ERROR) {
+  ddog_TraceExporterError *err = ddog_tracer_span_set_meta(ctx->span, ks, vs);
+  if (err != NULL) {
     ctx->error = err;
     return ST_STOP;
   }
@@ -255,9 +241,9 @@ static int metrics_iter_cb(VALUE key, VALUE value, VALUE arg) {
   /* See meta_iter_cb for why we avoid char_slice_from_ruby_string() here. */
   ddog_CharSlice ks = {.ptr = RSTRING_PTR(key), .len = RSTRING_LEN(key)};
 
-  ddog_MaybeError err =
+  ddog_TraceExporterError *err =
       ddog_tracer_span_set_metric(ctx->span, ks, NUM2DBL(value));
-  if (err.tag == DDOG_OPTION_ERROR_SOME_ERROR) {
+  if (err != NULL) {
     ctx->error = err;
     return ST_STOP;
   }
@@ -328,22 +314,18 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
   };
 
   ddog_TracerSpan *rust_span = NULL;
-  ddog_MaybeError err = ddog_tracer_span_new(&rust_span, &fields);
-  check_maybe_error("Failed to create TracerSpan", err);
+  ddog_TraceExporterError *err = ddog_tracer_span_new(&rust_span, &fields);
+  check_exporter_error("Failed to create TracerSpan", err);
 
   /* 4. Populate meta and metrics */
-  hash_iter_ctx ctx = {
-    .span = rust_span,
-    .error = {.tag = DDOG_OPTION_ERROR_NONE_ERROR},
-    .skipped = 0,
-  };
+  hash_iter_ctx ctx = {.span = rust_span, .error = NULL, .skipped = 0};
 
   VALUE rb_meta = rb_ivar_get(span, at_meta_id);
   if (RB_TYPE_P(rb_meta, T_HASH) && RHASH_SIZE(rb_meta) > 0) {
     rb_hash_foreach(rb_meta, meta_iter_cb, (VALUE)&ctx);
-    if (ctx.error.tag == DDOG_OPTION_ERROR_SOME_ERROR) {
+    if (ctx.error != NULL) {
       ddog_tracer_span_free(rust_span);
-      check_maybe_error("Failed to set span meta", ctx.error);
+      check_exporter_error("Failed to set span meta", ctx.error);
     }
     if (ctx.skipped > 0) {
       log_warning(rb_sprintf(
@@ -356,9 +338,9 @@ static ddog_TracerSpan *convert_ruby_span_to_rust(VALUE span) {
   VALUE rb_metrics = rb_ivar_get(span, at_metrics_id);
   if (RB_TYPE_P(rb_metrics, T_HASH) && RHASH_SIZE(rb_metrics) > 0) {
     rb_hash_foreach(rb_metrics, metrics_iter_cb, (VALUE)&ctx);
-    if (ctx.error.tag == DDOG_OPTION_ERROR_SOME_ERROR) {
+    if (ctx.error != NULL) {
       ddog_tracer_span_free(rust_span);
-      check_maybe_error("Failed to set span metric", ctx.error);
+      check_exporter_error("Failed to set span metric", ctx.error);
     }
     if (ctx.skipped > 0) {
       log_warning(rb_sprintf(
@@ -589,10 +571,10 @@ static VALUE build_and_send_traces(VALUE arg) {
     ENFORCE_TYPE(chunk_spans, T_ARRAY);
 
     long span_count = RARRAY_LEN(chunk_spans);
-    ddog_MaybeError begin_err =
+    ddog_TraceExporterError *begin_err =
         ddog_tracer_trace_chunks_begin_chunk(ctx->chunks, (size_t)span_count);
-    if (begin_err.tag == DDOG_OPTION_ERROR_SOME_ERROR) {
-      ddog_MaybeError_drop(begin_err);
+    if (begin_err != NULL) {
+      ddog_trace_exporter_error_free(begin_err);
     }
     for (long j = 0; j < span_count; j++) {
       VALUE rb_span = rb_ary_entry(chunk_spans, j);
@@ -605,10 +587,10 @@ static VALUE build_and_send_traces(VALUE arg) {
        * The error path is unreachable in practice: push only fails if no
        * chunk was started (we always call begin_chunk above) or if the
        * handle is NULL.  Free defensively just in case. */
-      ddog_MaybeError push_err =
+      ddog_TraceExporterError *push_err =
           ddog_tracer_trace_chunks_push_span(ctx->chunks, rust_span);
-      if (push_err.tag == DDOG_OPTION_ERROR_SOME_ERROR) {
-        ddog_MaybeError_drop(push_err);
+      if (push_err != NULL) {
+        ddog_trace_exporter_error_free(push_err);
       }
     }
   }
@@ -711,9 +693,12 @@ static VALUE _native_send_traces(VALUE self, VALUE traces) {
 
   /* Allocate trace chunks */
   ddog_TracerTraceChunks *chunks = NULL;
-  ddog_MaybeError chunks_err =
+  ddog_TraceExporterError *chunks_err =
       ddog_tracer_trace_chunks_new((size_t)trace_count, &chunks);
-  check_maybe_error("Failed to allocate trace chunks", chunks_err);
+  if (chunks_err != NULL) {
+    ddog_trace_exporter_error_free(chunks_err);
+    raise_error(rb_eRuntimeError, "Failed to allocate trace chunks");
+  }
 
   send_traces_ctx ctx = {
     .exporter    = exporter,
