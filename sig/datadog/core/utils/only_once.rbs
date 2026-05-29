@@ -5,15 +5,15 @@ module Datadog
         @ran_once: bool
         @mutex: Thread::Mutex
 
-        def initialize: () -> untyped
+        def initialize: () -> void
 
         def run: () { () -> untyped } -> untyped
 
-        def ran?: () -> untyped
+        def ran?: () -> bool
 
         private
 
-        def reset_ran_once_state_for_tests: () -> untyped
+        def reset_ran_once_state_for_tests: () -> void
       end
     end
   end

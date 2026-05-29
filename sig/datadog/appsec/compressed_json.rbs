@@ -3,7 +3,7 @@ module Datadog
     module CompressedJson
       MIN_SIZE_FOR_COMPRESSION: ::Integer
 
-      def self.dump: (untyped payload) -> ::String?
+      def self.dump: (any payload) -> ::String?
 
       def self.compress_and_encode: (::String payload) -> ::String?
     end
