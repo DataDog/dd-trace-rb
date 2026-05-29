@@ -2,9 +2,9 @@ module Datadog
   module Core
     module Environment
       module ThreadCount
-        def self?.value: () -> untyped
+        def self?.value: () -> ::Integer
 
-        def self?.available?: () -> untyped
+        def self?.available?: () -> bool
       end
     end
   end
