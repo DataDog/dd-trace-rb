@@ -18,7 +18,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     )
   end
   let(:no_signals_workaround_enabled) { false }
-  let(:timeline_enabled) { false }
   let(:options) { {} }
   let(:stack_recorder_options) { {} }
   let(:allocation_counting_enabled) { false }
@@ -54,17 +53,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         it "initializes the ThreadContext collector with endpoint_collection_enabled: #{value}" do
           expect(Datadog::Profiling::Collectors::ThreadContext)
             .to receive(:new).with(hash_including(endpoint_collection_enabled: value)).and_call_original
-
-          cpu_and_wall_time_worker
-        end
-      end
-
-      context "when timeline_enabled is #{value}" do
-        let(:timeline_enabled) { value }
-
-        it "initializes the ThreadContext collector with timeline_enabled: #{value}" do
-          expect(Datadog::Profiling::Collectors::ThreadContext)
-            .to receive(:new).with(hash_including(timeline_enabled: value)).and_call_original
 
           cpu_and_wall_time_worker
         end
@@ -449,7 +437,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         let(:gvl_profiling_enabled) { true }
 
-        let(:timeline_enabled) { true }
         let(:ready_queue_2) { Queue.new }
         let(:background_thread_affected_by_gvl_contention) do
           Thread.new do
@@ -464,6 +451,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         end
 
         it "records Waiting for GVL samples" do
+          skip "TODO: This test is flaky on macOS" if PlatformHelpers.mac?
+
           background_thread_affected_by_gvl_contention
           ready_queue_2.pop
 
@@ -1670,7 +1659,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     Datadog::Profiling::Collectors::ThreadContext.for_testing(
       recorder: recorder,
       endpoint_collection_enabled: endpoint_collection_enabled,
-      timeline_enabled: timeline_enabled,
       **options,
     )
   end

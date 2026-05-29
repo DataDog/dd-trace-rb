@@ -142,8 +142,6 @@ typedef struct {
   VALUE thread_list_buffer;
   // Used to omit endpoint names (retrieved from tracer) from collected data
   bool endpoint_collection_enabled;
-  // Used to omit timestamps / timeline events from collected data
-  bool timeline_enabled;
   // Used to control context collection
   otel_context_enabled otel_context_enabled;
   // Used to remember where otel context is being stored after we observe it the first time
@@ -458,7 +456,6 @@ static VALUE _native_new(VALUE klass) {
   VALUE thread_list_buffer = rb_ary_new();
   state->thread_list_buffer = thread_list_buffer;
   state->endpoint_collection_enabled = true;
-  state->timeline_enabled = true;
   state->native_filenames_enabled = false;
   state->native_filenames_cache = st_init_numtable();
   state->otel_context_enabled = OTEL_CONTEXT_ENABLED_FALSE;
@@ -492,14 +489,12 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   VALUE max_frames = rb_hash_fetch(options, ID2SYM(rb_intern("max_frames")));
   VALUE tracer_context_key = rb_hash_fetch(options, ID2SYM(rb_intern("tracer_context_key")));
   VALUE endpoint_collection_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("endpoint_collection_enabled")));
-  VALUE timeline_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("timeline_enabled")));
   VALUE waiting_for_gvl_threshold_ns = rb_hash_fetch(options, ID2SYM(rb_intern("waiting_for_gvl_threshold_ns")));
   VALUE otel_context_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("otel_context_enabled")));
   VALUE native_filenames_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("native_filenames_enabled")));
 
   ENFORCE_TYPE(max_frames, T_FIXNUM);
   ENFORCE_BOOLEAN(endpoint_collection_enabled);
-  ENFORCE_BOOLEAN(timeline_enabled);
   ENFORCE_TYPE(waiting_for_gvl_threshold_ns, T_FIXNUM);
   ENFORCE_BOOLEAN(native_filenames_enabled);
 
@@ -512,7 +507,6 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   // hash_map_per_thread_context is already initialized, nothing to do here
   state->recorder_instance = enforce_recorder_instance(recorder_instance);
   state->endpoint_collection_enabled = (endpoint_collection_enabled == Qtrue);
-  state->timeline_enabled = (timeline_enabled == Qtrue);
   state->native_filenames_enabled = (native_filenames_enabled == Qtrue);
   if (otel_context_enabled == Qfalse || otel_context_enabled == Qnil) {
     state->otel_context_enabled = OTEL_CONTEXT_ENABLED_FALSE;
@@ -844,11 +838,7 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
   ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = label_pos};
 
   // The end_timestamp_ns is treated specially by libdatadog and that's why it's not added as a ddog_prof_Label
-  int64_t end_timestamp_ns = 0;
-
-  if (state->timeline_enabled) {
-    end_timestamp_ns = monotonic_to_system_epoch_ns(&state->time_converter_state, state->gc_tracking.wall_time_at_previous_gc_ns);
-  }
+  int64_t end_timestamp_ns = monotonic_to_system_epoch_ns(&state->time_converter_state, state->gc_tracking.wall_time_at_previous_gc_ns);
 
   record_placeholder_stack(
     state->recorder_instance,
@@ -1008,7 +998,7 @@ static void trigger_sample_for_thread(
 
   // The end_timestamp_ns is treated specially by libdatadog and that's why it's not added as a ddog_prof_Label
   int64_t end_timestamp_ns = 0;
-  if (state->timeline_enabled && current_monotonic_wall_time_ns != INVALID_TIME) {
+  if (current_monotonic_wall_time_ns != INVALID_TIME) {
     end_timestamp_ns = monotonic_to_system_epoch_ns(&state->time_converter_state, current_monotonic_wall_time_ns);
   }
 
@@ -1166,7 +1156,6 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   rb_str_concat(result, rb_sprintf(" sample_count=%u", state->sample_count));
   rb_str_concat(result, rb_sprintf(" stats=%"PRIsVALUE, stats_as_ruby_hash(state)));
   rb_str_concat(result, rb_sprintf(" endpoint_collection_enabled=%"PRIsVALUE, state->endpoint_collection_enabled ? Qtrue : Qfalse));
-  rb_str_concat(result, rb_sprintf(" timeline_enabled=%"PRIsVALUE, state->timeline_enabled ? Qtrue : Qfalse));
   rb_str_concat(result, rb_sprintf(" native_filenames_enabled=%"PRIsVALUE, state->native_filenames_enabled ? Qtrue : Qfalse));
   // Note: `st_table_size()` is available from Ruby 3.2+ but not before
   rb_str_concat(result, rb_sprintf(" native_filenames_cache_size=%zu", state->native_filenames_cache->num_entries));
@@ -1993,8 +1982,6 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
   VALUE thread_context_collector_sample_after_gvl_running(VALUE self_instance, VALUE current_thread, long current_monotonic_wall_time_ns) {
     thread_context_collector_state *state;
     TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
-
-    if (!state->timeline_enabled) raise_error(rb_eRuntimeError, "GVL profiling requires timeline to be enabled");
 
     intptr_t gvl_waiting_at = gvl_profiling_state_thread_object_get(current_thread);
 

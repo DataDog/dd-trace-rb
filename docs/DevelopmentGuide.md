@@ -185,7 +185,7 @@ end
 3. Now let's generate that dependency Gemfile with `rake`. Simply run
 
 > [!IMPORTANT]
-> Ensure you are either using Ruby 3.3 as the current Ruby version (`ruby -v`) or running commands within a Docker container.
+> Ensure you are either using the repo's current Ruby version from `.ruby-version` (`ruby -v`) or running commands within a Docker container.
 
 ```console
 $ bundle exec rake dependency:generate
@@ -387,6 +387,14 @@ Then [open a pull request](../CONTRIBUTING.md#have-a-patch) and be sure to add t
  - Links to the repository/website of the library being integrated
  - Screenshots showing a sample trace
  - Any additional code snippets, sample apps, benchmarks, or other resources that demonstrate its implementation are a huge plus!
+
+### Testing the Symbol Database without Remote Configuration
+
+When you open the DI UI for a service, Symbol Database upload normally activates,
+using Remote Configuration. For local development, bypass RC and trigger the
+upload directly on tracer startup with:
+
+    export DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD=true
 
 ### Generating GRPC proto stubs for tests
 

@@ -1328,6 +1328,20 @@ RSpec.describe Datadog::DI::Instrumenter do
             end
           end.to raise_error(Datadog::DI::Error::DITargetNotInRegistry, /no surviving iseqs/)
         end
+
+        context 'with Windows-style probe path requiring prefix stripping' do
+          let(:probe) do
+            Datadog::DI::Probe.new(file: 'shared\rails\hook_line.rb', line_no: 3,
+              id: 1, type: :log)
+          end
+
+          it 'raises DITargetNotInRegistry after backslash normalization and prefix stripping' do
+            expect do
+              hook_line(probe) do |payload|
+              end
+            end.to raise_error(Datadog::DI::Error::DITargetNotInRegistry, /no surviving iseqs/)
+          end
+        end
       end
 
       include_examples 'multiple invocations'

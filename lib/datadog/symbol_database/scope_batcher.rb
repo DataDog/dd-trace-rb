@@ -43,13 +43,11 @@ module Datadog
       # Initialize batching context.
       # @param uploader [Uploader] Uploader instance for triggering uploads
       # @param logger [Logger] Logger for diagnostics
-      # @param telemetry [Core::Telemetry::Component, nil] Telemetry for error reporting
       # @param on_upload [Proc, nil] Optional callback called after upload (for testing)
       # @param timer_enabled [Boolean] Enable async timer (default true, false for tests)
-      def initialize(uploader, logger:, telemetry: nil, on_upload: nil, timer_enabled: true)
+      def initialize(uploader, logger:, on_upload: nil, timer_enabled: true)
         @uploader = uploader
         @logger = logger
-        @telemetry = telemetry
         @on_upload = on_upload
         @timer_enabled = timer_enabled
         @scopes = []
@@ -93,6 +91,14 @@ module Datadog
             return
           end
 
+          # Marked uploaded before perform_upload runs. This is intentional:
+          # symdb extraction is a one-shot operation per process — extract_all
+          # walks ObjectSpace once and never revisits a module within the same
+          # process. The Set deduplicates within a single extraction run, not
+          # across upload attempts. Failed uploads are not retried; symbols
+          # from a failed batch are lost until the next process restart, by
+          # design (matches Python and Go; Java retries via OkHttp, .NET via
+          # exponential backoff — Ruby does neither).
           @uploaded_modules.add(scope.name)
           @file_count += 1
 
@@ -118,7 +124,6 @@ module Datadog
         perform_upload(scopes_to_upload) if scopes_to_upload
       rescue => e
         @logger.debug { "symdb: failed to add scope: #{e.class}: #{e.message}" }
-        @telemetry&.report(e, description: 'symdb: failed to add scope')
         # Don't propagate, continue operation
       end
 
@@ -264,7 +269,6 @@ module Datadog
         end
       rescue => e
         @logger.debug { "symdb: timer thread error: #{e.class}: #{e.message}" }
-        @telemetry&.report(e, description: 'symdb: timer thread error')
       end
 
       # Perform upload via uploader.
@@ -277,7 +281,6 @@ module Datadog
         @on_upload&.call(scopes)  # Notify tests after upload
       rescue => e
         @logger.debug { "symdb: upload failed: #{e.class}: #{e.message}" }
-        @telemetry&.report(e, description: 'symdb: upload failed')
         # Don't propagate, uploader handles retries
       end
     end

@@ -255,7 +255,7 @@ module Datadog
 
             serialized.update(value: value)
           when Array
-            if depth < 0
+            if depth <= 0
               serialized.update(notCapturedReason: "depth")
             else
               max = settings.dynamic_instrumentation.max_capture_collection_size
@@ -271,7 +271,7 @@ module Datadog
               serialized.update(elements: entries)
             end
           when Hash
-            if depth < 0
+            if depth <= 0
               serialized.update(notCapturedReason: "depth")
             else
               max = settings.dynamic_instrumentation.max_capture_collection_size
@@ -288,7 +288,7 @@ module Datadog
               serialized.update(entries: entries)
             end
           else
-            if depth < 0
+            if depth <= 0
               serialized.update(notCapturedReason: "depth")
             else
               fields = {}
@@ -369,7 +369,7 @@ module Datadog
         when String
           serialize_string_or_symbol_for_message(value)
         when Symbol
-          ':' + serialize_string_or_symbol_for_message(value)
+          ':' + serialize_string_or_symbol_for_message(value) # steep:ignore ArgumentTypeMismatch
         when Array
           return '...' if depth <= 0
 
@@ -482,7 +482,7 @@ module Datadog
             if max % 2 == 0
               upper += 1
             end
-            value[0...max / 2 - 1] + '...' + value[upper...length]
+            value[0...max / 2 - 1] + '...' + value[upper...length] # steep:ignore NoMethod
           end
         else
           value

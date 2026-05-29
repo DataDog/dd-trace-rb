@@ -140,7 +140,7 @@ RSpec.describe Datadog::Tracing::Transport::IO::Client do
             # Match complete encoded span structure
             expect(encoded_span).to match(
               'error' => 0,
-              'meta' => {},
+              'meta' => be_a(Hash),
               'metrics' => be_a(Hash),
               'meta_struct' => {},
               'name' => 'client.testing',

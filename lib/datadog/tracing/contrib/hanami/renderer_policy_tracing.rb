@@ -24,6 +24,7 @@ module Datadog
               resource: action_klass.to_s,
               type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
             ) do |span_op, _trace_op|
+              span_op.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               span_op.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span_op.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_RENDER)
 

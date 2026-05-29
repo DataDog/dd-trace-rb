@@ -23,6 +23,7 @@ module Datadog
               service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
 
               Tracing.trace(Ext::SPAN_QUERY, service: service) do |span, trace_op|
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 span.resource = sql
                 span.type = Tracing::Metadata::Ext::SQL::TYPE
 
@@ -31,11 +32,6 @@ module Datadog
                     Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                     datadog_configuration[:peer_service]
                   )
-                end
-
-                # Tag original global service name if not used
-                if span.service != Datadog.configuration.service
-                  span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
                 end
 
                 span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)

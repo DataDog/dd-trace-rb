@@ -6,7 +6,7 @@ module Datadog
 
         def self.symbols: (
           agent_settings: Datadog::Core::Configuration::AgentSettings,
-          logger: Datadog::Core::Logger,
+          logger: SymbolDatabase::Logger,
           ?headers: Hash[String, String]?
         ) ?{ (Datadog::Core::Transport::HTTP::Builder) -> void } -> SymbolDatabase::Transport::Symbols::Transport
       end

@@ -1,6 +1,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 
 require 'spec/support/thread_helpers'
 
@@ -37,6 +38,10 @@ RSpec.describe 'Racecar patcher' do
     end
 
     context 'that doesn\'t raise an error' do
+      it_behaves_like 'tags _dd.svc_src', 'racecar' do
+        before { ActiveSupport::Notifications.instrument('main_loop.racecar', payload) }
+      end
+
       it 'is expected to send a span' do
         ActiveSupport::Notifications.instrument('main_loop.racecar', payload)
 

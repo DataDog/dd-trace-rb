@@ -23,7 +23,11 @@ Datadog::DI::Serializer.register(
   #
   # +depth+ is the remaining depth for serializing collections and objects.
   # It should always be an integer.
-  # Reduce it by 1 when invoking +serialize_value+ on the contents of +value+.
+  # Pass it through to +serialize_value+ when the structure you produce
+  # represents +value+ directly (a transparent wrapper); +serialize_value+
+  # decrements depth itself when it recurses into Array/Hash/object entries.
+  # Decrement +depth+ only if your wrapper introduces real additional
+  # nesting levels in the output.
   # This serializer could also potentially do its own depth limiting.
   #
   # Steep: steep thinks all of the arguments are nil here
@@ -33,5 +37,5 @@ Datadog::DI::Serializer.register(
     attributes: value.attributes,
     new_record: value.new_record?,
   }
-  serializer.serialize_value(value_to_serialize, depth: depth - 1, type: value.class)
+  serializer.serialize_value(value_to_serialize, depth: depth, type: value.class)
 end

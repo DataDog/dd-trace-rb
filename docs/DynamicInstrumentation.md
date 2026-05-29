@@ -4,7 +4,7 @@
 
 Dynamic Instrumentation for Ruby is in **limited preview**.
 While the core functionality is stable, some features available in other
-languages (Java, Python, .NET) are not yet available for Ruby.
+languages (Java, Python, .NET) are not available for Ruby.
 
 > **New to Dynamic Instrumentation?**
 > This document covers Ruby-specific setup and limitations. For an
@@ -26,7 +26,7 @@ practices for using Dynamic Instrumentation.
 - Rack-based applications only
   - Includes Rails, Sinatra, and other Rack-compatible frameworks
   - Non-Rack applications are not supported
-  - Background processes and jobs (including Sidekiq, Resque, etc.) are not yet supported
+  - Background processes and jobs (including Sidekiq, Resque, etc.) are not supported
 - [Remote Configuration Management](https://docs.datadoghq.com/remote_configuration/) enabled
   - Remote Configuration is enabled by default.
   - If it's disabled, follow the [instructions to enable it](https://docs.datadoghq.com/remote_configuration/#enable-remote-configuration).
@@ -118,9 +118,9 @@ the entire method execution.
 - You're debugging method-level behavior
 - You need to track method execution time
 
-### Not Yet Supported
+### Not Supported
 
-The following probe types available in other languages are not yet
+The following probe types available in other languages are not
 supported for Ruby:
 
 - Metric probes
@@ -223,7 +223,7 @@ generated.
 ### Application Must Be Processing Requests
 - Dynamic Instrumentation is initialized via Rack middleware when
   processing HTTP requests
-- An application that has just booted but has not yet served any requests
+- An application that has just booted but has not served any requests
   will not have Dynamic Instrumentation activated
 - Dynamic Instrumentation will be automatically activated when the first
   HTTP request is processed
@@ -267,7 +267,7 @@ per-probe in the probe definition.
   data at the default depth of 3
 - Their attributes are often nested deeper than 3 levels
 - Custom serializers are available for internal Datadog use but the API
-  is not yet finalized for customer use
+  is not finalized for customer use
 - **Workaround:** Increase the capture depth for probes targeting code
   that works with complex objects
 
@@ -286,8 +286,9 @@ The value will fall back to default serialization.
 
 ## What Data Is Captured
 
-When a probe fires, Dynamic Instrumentation captures a snapshot of
-application state and sends it to Datadog. The snapshot includes:
+Dynamic instrumentation sends some of the application data to Datadog.
+
+**Probe snapshots** (captured when probes fire):
 
 - **Variable values** — local variables, method arguments, and return
   values, subject to the capture depth and collection size limits
@@ -304,6 +305,31 @@ application state and sends it to Datadog. The snapshot includes:
     exception type is still reported but the message will show as
     redacted.
 - **Stack traces** — the call stack at the point the probe fires.
+
+**Symbol Database** (uploaded once at startup, see below):
+
+- Class, module, and method names from user application code
+- Method parameter names (not values)
+- Source file paths and line ranges
+- File content hashes (for source code version matching)
+- No runtime values, variable contents, or application data
+
+## Symbol Database
+
+The Symbol Database powers auto-completion in the Dynamic Instrumentation
+UI. When enabled, the tracer extracts symbol information (classes,
+modules, methods, parameters) from your running application and uploads
+it to Datadog via the Agent. This allows the DI UI to suggest class
+names, method names, and method parameters when creating probes.
+
+### Enabling the Symbol Database
+
+Symbol Database upload is disabled by default. To enable it, set:
+
+    export DD_SYMBOL_DATABASE_UPLOAD_ENABLED=true
+
+Once enabled, the upload activates via Remote Configuration when you open
+the DI UI for your service.
 
 ## Rate Limiting and Performance
 

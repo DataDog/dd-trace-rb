@@ -3,7 +3,7 @@ module Datadog
     module Contrib
       module Utils
         module Quantization
-          module Hash
+          module HashFormatter
             PLACEHOLDER: "?"
 
             EXCLUDE_KEYS: ::Array[untyped]

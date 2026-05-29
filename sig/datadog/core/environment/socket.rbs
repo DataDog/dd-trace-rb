@@ -3,6 +3,7 @@ module Datadog
     module Environment
       module Socket
         def self?.hostname: () -> ::String
+        def self?.resolved_hostname: (untyped settings) -> String?
       end
     end
   end

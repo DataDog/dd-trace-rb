@@ -7,6 +7,7 @@ module Datadog
         # Roda integration constants
         module Ext
           APP = 'roda'
+          TAG_COMPONENT = 'roda'
           ENV_ENABLED = 'DD_TRACE_RODA_ENABLED'
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_RODA_ANALYTICS_ENABLED'
