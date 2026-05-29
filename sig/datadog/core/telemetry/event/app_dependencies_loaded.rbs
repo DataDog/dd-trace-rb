@@ -5,7 +5,7 @@ module Datadog
         class AppDependenciesLoaded < Base
           def type: () -> "app-dependencies-loaded"
 
-          def payload: () -> { dependencies: untyped }
+          def payload: () -> { dependencies: Array[Hash[Symbol, String]] }
 
           private
 
