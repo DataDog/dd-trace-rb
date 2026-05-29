@@ -2,7 +2,7 @@ module Datadog
   module Core
     module Buffer
       class CRuby < Random
-        FIXNUM_MAX: untyped
+        FIXNUM_MAX: ::Integer
         def replace!: (untyped item) -> untyped
       end
     end
