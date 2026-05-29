@@ -1674,5 +1674,4 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       **options,
     )
   end
-
 end
