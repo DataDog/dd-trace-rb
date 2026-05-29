@@ -1468,11 +1468,20 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         let(:context_tracking) { [] }
 
         before do
-          5.times do
+          trigger_gc = proc do
             on_gc_start
             on_gc_finish
-
             context_tracking << gc_tracking
+          end
+
+          # Loop until accumulated_cpu_time_ns strictly increases across snapshots.
+          # This handles platforms whose CPU clock has microsecond resolution (macOS
+          # Mach `thread_info`) where fast back-to-back cycles can land in the same
+          # microsecond bucket.
+          loop_until do
+            trigger_gc.call
+            context_tracking.first.fetch(:accumulated_cpu_time_ns) <
+              context_tracking.last.fetch(:accumulated_cpu_time_ns)
           end
         end
 
