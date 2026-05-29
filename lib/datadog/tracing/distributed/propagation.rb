@@ -3,6 +3,7 @@
 require_relative '../configuration/ext'
 require_relative '../trace_digest'
 require_relative '../trace_operation'
+require_relative '../span_link'
 require_relative '../../core/telemetry/logger'
 require_relative 'baggage'
 
@@ -13,6 +14,8 @@ module Datadog
       class Propagation
         # @param propagation_styles [Hash<String,Object>]
         #  a map of propagation styles to their corresponding implementations
+        # @param propagation_behavior_extract [String]
+        #   the behavior to apply when extracting distributed trace data
         # @param propagation_style_inject [Array<String>]
         #   a list of styles to use when injecting distributed trace data
         # @param propagation_style_extract [Array<String>]
@@ -23,9 +26,11 @@ module Datadog
           propagation_styles:,
           propagation_style_inject:,
           propagation_style_extract:,
+          propagation_behavior_extract:,
           propagation_extract_first:
         )
           @propagation_styles = propagation_styles
+          @propagation_behavior_extract = propagation_behavior_extract
           @propagation_extract_first = propagation_extract_first
           @propagation_style_inject = propagation_style_inject.map { |style| propagation_styles[style] }
           @propagation_style_extract = propagation_style_extract.map { |style| propagation_styles[style] }
@@ -97,6 +102,10 @@ module Datadog
           return unless data
           return if data.empty?
 
+          if @propagation_behavior_extract == Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_IGNORE
+            return nil
+          end
+
           extracted_trace_digest = nil
 
           @propagation_style_extract.each do |propagator|
@@ -145,7 +154,18 @@ module Datadog
           # Handle baggage after all other styles if present
           extracted_trace_digest = propagate_baggage(data, extracted_trace_digest) if @baggage_propagator
 
-          extracted_trace_digest
+          if @propagation_behavior_extract == Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_RESTART
+            # @MilanGarnier: Restart a new trace with span link
+            if extracted_trace_digest.nil?
+              nil
+            else
+              TraceDigest.new(span_links: [SpanLink.new(extracted_trace_digest, attributes: {'reason' =>
+            'propagation_behavior_extract'})], baggage: extracted_trace_digest.baggage, span_remote: false)
+            end
+          else
+            # Behavior is continue (no exhaustive check for it, has been validated by configuration)
+            extracted_trace_digest
+          end
         end
 
         private
