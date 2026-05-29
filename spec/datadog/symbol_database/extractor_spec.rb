@@ -23,9 +23,15 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
     end
   end
 
-  # Helper to create test files in user code location
+  # Helper to create test files in user code location.
+  # Uses a per-example monotonic counter for filename uniqueness. Earlier
+  # implementation built names from "test_#{Time.now.to_i}_#{rand(10000)}.rb",
+  # which collided with ~1/10000 probability per consecutive call pair within
+  # the same second — see ruby-guild#303.
   def create_user_code_file(content)
-    filename = File.join(@test_dir, "test_#{Time.now.to_i}_#{rand(10000)}.rb")
+    @file_index ||= 0
+    @file_index += 1
+    filename = File.join(@test_dir, "test_#{@file_index}.rb")
     File.write(filename, content)
     filename
   end
@@ -508,7 +514,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         # because const_source_location propagates source file through the chain.
         # Use explicit module list rather than ObjectSpace to avoid cross-test pollution.
         mods = [TestA, TestA::TestB, TestA::TestB::TestC]
-        extracted = Datadog::Core::Utils::Array.filter_map(mods) { |mod| extractor.extract(mod) }
+        extracted = Datadog::Core::Utils::EnumerableCompat.filter_map(mods) { |mod| extractor.extract(mod) }
 
         # All scopes are FILE-wrapped. Inner scope names distinguish modules from classes.
         if TestA.respond_to?(:const_source_location)

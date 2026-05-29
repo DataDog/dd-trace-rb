@@ -1662,26 +1662,4 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       **options,
     )
   end
-
-  def loop_until(timeout_seconds: 5, check_condition_every_seconds: 0)
-    started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second)
-
-    deadline = started_at + timeout_seconds
-    condition_deadline = started_at + check_condition_every_seconds
-
-    while (now = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second)) < deadline
-      if check_condition_every_seconds > 0
-        if now >= condition_deadline
-          condition_deadline = now + check_condition_every_seconds
-        else
-          next
-        end
-      end
-
-      result = yield
-      return result if result
-    end
-
-    raise("Wait time exhausted!")
-  end
 end
