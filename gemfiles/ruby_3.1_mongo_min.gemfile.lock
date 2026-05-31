@@ -79,7 +79,7 @@ GEM
     method_source (1.1.0)
     mongo (2.1.0)
       bson (~> 3.0)
-    msgpack (1.8.0)
+    msgpack (1.8.1)
     os (1.1.4)
     pp (0.6.2)
       prettyprint
