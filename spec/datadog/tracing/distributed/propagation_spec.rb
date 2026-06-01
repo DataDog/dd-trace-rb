@@ -11,7 +11,8 @@ RSpec.shared_examples 'Distributed tracing propagator' do
       propagation_styles: propagation_styles,
       propagation_style_inject: propagation_style_inject,
       propagation_style_extract: propagation_style_extract,
-      propagation_extract_first: propagation_extract_first
+      propagation_extract_first: propagation_extract_first,
+      propagation_behavior_extract: propagation_behavior_extract
     )
   end
 
@@ -27,6 +28,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
   let(:propagation_style_inject) { ['datadog', 'tracecontext', 'baggage'] }
   let(:propagation_style_extract) { ['datadog', 'tracecontext', 'baggage'] }
   let(:propagation_extract_first) { false }
+  let(:propagation_behavior_extract) { 'continue' }
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 

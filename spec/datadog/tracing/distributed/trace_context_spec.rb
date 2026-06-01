@@ -23,7 +23,8 @@ RSpec.shared_examples 'Trace Context distributed format' do
     end
 
     context 'a digest' do
-      let(:digest) { Datadog::Tracing::TraceDigest.new(trace_id: 0xC0FFEE, span_id: 0xBEE, **options) }
+      let(:span_links) { [] }
+      let(:digest) { Datadog::Tracing::TraceDigest.new(trace_id: 0xC0FFEE, span_id: 0xBEE, span_links: span_links, **options) }
       let(:options) { {} }
 
       it { expect(traceparent).to eq('00-00000000000000000000000000c0ffee-0000000000000bee-00') }
