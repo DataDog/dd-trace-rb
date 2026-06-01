@@ -1,0 +1,17 @@
+module Datadog
+  module DI
+    class CaptureExpressionEvaluator
+      @settings: untyped
+      @serializer: Datadog::DI::Serializer
+      @telemetry: untyped?
+
+      def initialize: (settings: untyped, serializer: Datadog::DI::Serializer, ?telemetry: untyped?) -> void
+
+      attr_reader settings: untyped
+      attr_reader serializer: Datadog::DI::Serializer
+      attr_reader telemetry: untyped?
+
+      def evaluate: (Probe probe, Context context) -> [Hash[String, untyped], Array[Hash[Symbol, String]]]
+    end
+  end
+end

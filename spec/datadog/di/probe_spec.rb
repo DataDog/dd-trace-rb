@@ -198,6 +198,66 @@ RSpec.describe Datadog::DI::Probe do
     end
   end
 
+  describe "capture expressions" do
+    let(:capture_expression) do
+      Datadog::DI::CaptureExpression.new(name: "x", expr: nil)
+    end
+
+    context "no capture_expressions argument" do
+      include_context "method probe"
+
+      it "defaults to an empty array and capture_expressions? is false" do
+        expect(probe.capture_expressions).to eq([])
+        expect(probe.capture_expressions?).to be false
+      end
+    end
+
+    context "capture_expressions provided" do
+      let(:probe) do
+        described_class.new(
+          id: "42", type: :log, type_name: "Foo", method_name: "bar",
+          capture_expressions: [capture_expression],
+        )
+      end
+
+      it "stores them and capture_expressions? is true" do
+        expect(probe.capture_expressions).to eq([capture_expression])
+        expect(probe.capture_expressions?).to be true
+      end
+
+      it "defaults rate_limit to 1/sec (snapshot-class) when only capture_expressions set" do
+        expect(probe.rate_limit).to eq(1)
+      end
+    end
+
+    context "capture_expressions explicitly empty array, capture_snapshot false" do
+      let(:probe) do
+        described_class.new(
+          id: "42", type: :log, type_name: "Foo", method_name: "bar",
+          capture_expressions: [],
+        )
+      end
+
+      it "defaults rate_limit to 5000/sec (log-class)" do
+        expect(probe.rate_limit).to eq(5000)
+      end
+    end
+
+    context "explicit rate_limit overrides the capture-expressions default" do
+      let(:probe) do
+        described_class.new(
+          id: "42", type: :log, type_name: "Foo", method_name: "bar",
+          capture_expressions: [capture_expression],
+          rate_limit: 42,
+        )
+      end
+
+      it "uses the explicit value" do
+        expect(probe.rate_limit).to eq(42)
+      end
+    end
+  end
+
   describe "#location" do
     context "method probe" do
       include_context "method probe"

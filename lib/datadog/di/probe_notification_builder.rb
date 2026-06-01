@@ -3,6 +3,7 @@
 # rubocop:disable Lint/AssignmentInCondition
 
 require_relative 'fatal_exceptions'
+require_relative 'capture_expression_evaluator'
 
 module Datadog
   module DI
@@ -13,10 +14,14 @@ module Datadog
       def initialize(settings, serializer)
         @settings = settings
         @serializer = serializer
+        @capture_expression_evaluator = CaptureExpressionEvaluator.new(
+          settings: settings, serializer: serializer,
+        )
       end
 
       attr_reader :settings
       attr_reader :serializer
+      attr_reader :capture_expression_evaluator
 
       def build_received(probe)
         build_status(probe,
@@ -65,8 +70,14 @@ module Datadog
           raise ArgumentError, "Asked to build snapshot with snapshot capture but target_self is nil"
         end
 
+        # Mutual exclusion (D1): capture_snapshot wins at fire time when both
+        # captureSnapshot and captureExpressions are set on the same probe.
+        # The capture-expression values are silently dropped in that case;
+        # the user-visible mutual exclusion is also logged at parse time in
+        # ProbeBuilder. See projects/capture-expressions/design/decisions.md.
         # TODO also verify that non-capturing probe does not pass
         # snapshot or vars/args into this method
+        capture_expression_evaluation_errors = []
         captures = if probe.capture_snapshot?
           if probe.method?
             return_arguments = {
@@ -94,6 +105,24 @@ module Datadog
               },
             }
           end
+        elsif probe.capture_expressions?
+          captured_block, capture_expression_evaluation_errors =
+            capture_expression_evaluator.evaluate(probe, context)
+          if probe.method?
+            {
+              entry: {captureExpressions: captured_block},
+              return: {
+                captureExpressions: captured_block,
+                throwable: context.exception ? serialize_throwable(context.exception) : nil,
+              },
+            }
+          elsif probe.line?
+            {
+              lines: {
+                probe.line_no => {captureExpressions: captured_block},
+              },
+            }
+          end
         end
 
         message = nil
@@ -101,6 +130,10 @@ module Datadog
         if segments = probe.template_segments
           message, evaluation_errors = evaluate_template(segments, context)
         end
+        # Per-expression evaluation errors are merged into the snapshot's
+        # top-level evaluationErrors array alongside template/condition errors.
+        # See projects/capture-expressions/design/decisions.md (D5).
+        evaluation_errors.concat(capture_expression_evaluation_errors)
         build_snapshot_base(context,
           evaluation_errors: evaluation_errors, message: message,
           captures: captures)

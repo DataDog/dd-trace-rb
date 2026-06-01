@@ -3,6 +3,7 @@
 # rubocop:disable Lint/AssignmentInCondition
 
 require_relative "probe"
+require_relative "capture_expression"
 require_relative 'el'
 
 module Datadog
@@ -27,6 +28,11 @@ module Datadog
 
       module_function
 
+      # Backend JSON schema constraint on capture-expression names:
+      # remote-config/apps/rc-schema-validation/schemas/live-debugging.json
+      # in DataDog/dd-go declares pattern "^[a-zA-Z0-9_?]+$".
+      CAPTURE_EXPRESSION_NAME_PATTERN = /\A[a-zA-Z0-9_?]+\z/
+
       def build_from_remote_config(config)
         # The validations here are not yet comprehensive.
         type = config.fetch('type')
@@ -37,6 +43,17 @@ module Datadog
           end
           compiled = EL::Compiler.new.compile(cond_spec['json'])
           EL::Expression.new(cond_spec['dsl'], compiled)
+        end
+        capture_expressions = build_capture_expressions(config['captureExpressions'])
+        if !!config["captureSnapshot"] && !capture_expressions.empty?
+          # Per the project design, the runtime emits the snapshot block and
+          # silently drops capture-expression values when both are set
+          # (snapshot wins). Logged at debug to make the choice observable
+          # without spamming operator logs. See
+          # projects/capture-expressions/design/decisions.md (D1).
+          Datadog.logger.debug do
+            "di: probe #{config["id"]}: captureSnapshot=true wins over captureExpressions (n=#{capture_expressions.size})"
+          end
         end
         Probe.new(
           id: config.fetch("id"),
@@ -54,11 +71,51 @@ module Datadog
           capture_snapshot: !!config["captureSnapshot"],
           max_capture_depth: config["capture"]&.[]("maxReferenceDepth"),
           max_capture_attribute_count: config["capture"]&.[]("maxFieldCount"),
+          max_capture_collection_size: config["capture"]&.[]("maxCollectionSize"),
+          max_capture_string_length: config["capture"]&.[]("maxLength"),
+          capture_expressions: capture_expressions,
           rate_limit: config["sampling"]&.[]("snapshotsPerSecond"),
           condition: cond,
         )
       rescue KeyError => exc
         raise ArgumentError, "Malformed remote configuration entry for probe: #{exc.class}: #{exc.message}: #{config}"
+      end
+
+      def build_capture_expressions(raw)
+        return [] if raw.nil? || raw.empty?
+        unless Array === raw
+          raise ArgumentError, "captureExpressions must be an array, got: #{raw.class}"
+        end
+        raw.map do |entry|
+          unless Hash === entry
+            raise ArgumentError, "captureExpressions entry must be a hash, got: #{entry.class}"
+          end
+          name = entry['name']
+          unless String === name && CAPTURE_EXPRESSION_NAME_PATTERN.match?(name)
+            raise ArgumentError, "captureExpressions entry name missing or invalid (must match #{CAPTURE_EXPRESSION_NAME_PATTERN.inspect}): #{name.inspect}"
+          end
+          expr_spec = entry['expr']
+          unless Hash === expr_spec && expr_spec['dsl'] && expr_spec['json']
+            raise ArgumentError, "captureExpressions entry #{name}: missing or malformed expr"
+          end
+          compiled = EL::Compiler.new.compile(expr_spec['json'])
+          expr = EL::Expression.new(expr_spec['dsl'], compiled)
+          limits = build_capture_limits(entry['capture'])
+          CaptureExpression.new(name: name, expr: expr, limits: limits)
+        end
+      end
+
+      def build_capture_limits(raw)
+        return nil if raw.nil?
+        unless Hash === raw
+          raise ArgumentError, "capture-expression entry capture must be a hash, got: #{raw.class}"
+        end
+        CaptureLimits.new(
+          max_reference_depth: raw['maxReferenceDepth'],
+          max_collection_size: raw['maxCollectionSize'],
+          max_length: raw['maxLength'],
+          max_field_count: raw['maxFieldCount'],
+        )
       end
 
       def build_template_segments(segments)

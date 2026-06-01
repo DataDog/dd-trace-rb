@@ -175,5 +175,118 @@ RSpec.describe Datadog::DI::ProbeBuilder do
         end.to raise_error(ArgumentError, /Malformed remote configuration entry/)
       end
     end
+
+    context "capture expressions" do
+      let(:base_spec) do
+        {
+          "id" => "ce-test",
+          "type" => "LOG_PROBE",
+          "where" => {"typeName" => "Foo", "methodName" => "bar"},
+          "template" => "",
+          "segments" => [],
+          "captureSnapshot" => false,
+        }
+      end
+
+      let(:valid_capture_expression) do
+        {
+          "name" => "x",
+          "expr" => {"dsl" => "x", "json" => {"ref" => "x"}},
+        }
+      end
+
+      context "with a valid captureExpressions entry" do
+        let(:rc_probe_spec) do
+          base_spec.merge("captureExpressions" => [valid_capture_expression])
+        end
+
+        it "creates a probe with capture expressions" do
+          expect(probe.capture_expressions.size).to eq(1)
+          expect(probe.capture_expressions.first.name).to eq("x")
+          expect(probe.capture_expressions.first.expr).to be_a(Datadog::DI::EL::Expression)
+          expect(probe.capture_expressions.first.limits).to be_nil
+        end
+
+        it "defaults to snapshot-class rate limit (1/sec)" do
+          expect(probe.rate_limit).to eq(1)
+        end
+      end
+
+      context "with per-expression capture limits" do
+        let(:rc_probe_spec) do
+          base_spec.merge("captureExpressions" => [
+            valid_capture_expression.merge("capture" => {
+              "maxReferenceDepth" => 7,
+              "maxCollectionSize" => 17,
+              "maxLength" => 50,
+              "maxFieldCount" => 11,
+            }),
+          ])
+        end
+
+        it "populates CaptureLimits with the per-expression values" do
+          limits = probe.capture_expressions.first.limits
+          expect(limits).to be_a(Datadog::DI::CaptureLimits)
+          expect(limits.max_reference_depth).to eq(7)
+          expect(limits.max_collection_size).to eq(17)
+          expect(limits.max_length).to eq(50)
+          expect(limits.max_field_count).to eq(11)
+        end
+      end
+
+      context "name violates the backend pattern" do
+        let(:rc_probe_spec) do
+          base_spec.merge("captureExpressions" => [
+            valid_capture_expression.merge("name" => "invalid-name-with-hyphens"),
+          ])
+        end
+
+        it "raises ArgumentError" do
+          expect { probe }.to raise_error(ArgumentError, /name missing or invalid/)
+        end
+      end
+
+      context "missing expr" do
+        let(:rc_probe_spec) do
+          base_spec.merge("captureExpressions" => [{"name" => "x"}])
+        end
+
+        it "raises ArgumentError" do
+          expect { probe }.to raise_error(ArgumentError, /missing or malformed expr/)
+        end
+      end
+
+      context "empty captureExpressions array" do
+        let(:rc_probe_spec) do
+          base_spec.merge("captureExpressions" => [])
+        end
+
+        it "creates a probe with no capture expressions" do
+          expect(probe.capture_expressions).to eq([])
+          expect(probe.capture_expressions?).to be false
+        end
+      end
+
+      context "captureSnapshot=true and non-empty captureExpressions (mutual exclusion at fire time)" do
+        let(:rc_probe_spec) do
+          base_spec.merge(
+            "captureSnapshot" => true,
+            "captureExpressions" => [valid_capture_expression],
+          )
+        end
+
+        it "creates the probe successfully (mutual exclusion resolved at fire time)" do
+          expect(probe.capture_snapshot?).to be true
+          expect(probe.capture_expressions?).to be true
+        end
+
+        it "logs a debug message about snapshot winning" do
+          expect(Datadog.logger).to receive(:debug) do |&block|
+            expect(block.call).to match(/captureSnapshot=true wins over captureExpressions/)
+          end
+          probe
+        end
+      end
+    end
   end
 end

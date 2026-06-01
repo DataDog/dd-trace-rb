@@ -134,6 +134,16 @@ module Datadog
                 o.default 20
               end
 
+              # Per-fire time budget for evaluating capture expressions,
+              # in milliseconds. Once exhausted, remaining capture
+              # expressions emit a stub entry with
+              # `notCapturedReason: "timeout"` in the snapshot.
+              option :capture_expression_timeout_ms do |o|
+                o.type :int
+                o.default 200
+                o.env 'DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS'
+              end
+
               # Settings in the 'internal' group are for internal Datadog
               # use only, and are needed to test dynamic instrumentation or
               # experiment with features not released to customers.

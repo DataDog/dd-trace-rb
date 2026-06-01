@@ -38,7 +38,10 @@ module Datadog
         file: nil, line_no: nil, type_name: nil, method_name: nil,
         template: nil, template_segments: nil,
         capture_snapshot: false, max_capture_depth: nil,
-        max_capture_attribute_count: nil, condition: nil,
+        max_capture_attribute_count: nil,
+        max_capture_collection_size: nil, max_capture_string_length: nil,
+        capture_expressions: [],
+        condition: nil,
         rate_limit: nil)
         # Perform some sanity checks here to detect unexpected attribute
         # combinations, in order to not do them in subsequent code.
@@ -81,9 +84,18 @@ module Datadog
         @capture_snapshot = !!capture_snapshot
         @max_capture_depth = max_capture_depth
         @max_capture_attribute_count = max_capture_attribute_count
+        @max_capture_collection_size = max_capture_collection_size
+        @max_capture_string_length = max_capture_string_length
+        @capture_expressions = capture_expressions || []
         @condition = condition
 
-        @rate_limit = rate_limit || (@capture_snapshot ? 1 : 5000)
+        # Capture-expression probes are charged against the snapshot rate-limit
+        # bucket (1/sec default), matching Python/.NET/Go DI. They are not
+        # treated as cheap log probes (5000/sec) because evaluating arbitrary
+        # user-authored expressions has snapshot-class cost.
+        # See projects/capture-expressions/design/decisions.md (D3) in the
+        # planning repo for the cross-tracer comparison.
+        @rate_limit = rate_limit || ((@capture_snapshot || !@capture_expressions.empty?) ? 1 : 5000)
         @rate_limiter = Datadog::Core::TokenBucket.new(@rate_limit)
 
         # At most one report per second.
@@ -120,6 +132,22 @@ module Datadog
       # the global default will be used.
       attr_reader :max_capture_attribute_count
 
+      # Configured maximum collection size. Can be nil in which case the
+      # global default will be used. Currently only used by capture
+      # expressions; the snapshot serializer reads the setting directly.
+      attr_reader :max_capture_collection_size
+
+      # Configured maximum string length. Can be nil in which case the
+      # global default will be used. Currently only used by capture
+      # expressions; the snapshot serializer reads the setting directly.
+      attr_reader :max_capture_string_length
+
+      # Capture expressions attached to this probe. Empty array when no
+      # capture expressions are configured.
+      #
+      # @return [Array<Datadog::DI::CaptureExpression>]
+      attr_reader :capture_expressions
+
       # Rate limit in effect, in invocations per second. Always present.
       attr_reader :rate_limit
 
@@ -138,6 +166,11 @@ module Datadog
 
       def capture_snapshot?
         @capture_snapshot
+      end
+
+      # Returns whether the probe has any capture expressions configured.
+      def capture_expressions?
+        !@capture_expressions.empty?
       end
 
       # Returns whether the probe is a line probe.

@@ -1,0 +1,168 @@
+require "datadog/di/spec_helper"
+require "datadog/di/capture_expression"
+require "datadog/di/capture_expression_evaluator"
+require "datadog/di/probe"
+require "datadog/di/serializer"
+require "datadog/di/redactor"
+require "datadog/di/el"
+require_relative "serializer_helper"
+
+RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
+  di_test
+
+  extend SerializerHelper
+
+  default_settings
+
+  before do
+    allow(di_settings).to receive(:capture_expression_timeout_ms).and_return(200)
+  end
+
+  let(:redactor) do
+    Datadog::DI::Redactor.new(settings)
+  end
+
+  let(:serializer) do
+    Datadog::DI::Serializer.new(settings, redactor)
+  end
+
+  let(:evaluator) do
+    described_class.new(settings: settings, serializer: serializer)
+  end
+
+  def compile_expression(dsl_string, json)
+    compiled = Datadog::DI::EL::Compiler.new.compile(json)
+    Datadog::DI::EL::Expression.new(dsl_string, compiled)
+  end
+
+  let(:context) do
+    Datadog::DI::Context.new(
+      probe: probe,
+      settings: settings,
+      serializer: serializer,
+      locals: {x: 42, name: "alice"},
+      target_self: nil,
+    )
+  end
+
+  describe "#evaluate" do
+    context "with a single successful expression" do
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "p1", type: :log, type_name: "F", method_name: "m",
+          capture_expressions: [
+            Datadog::DI::CaptureExpression.new(
+              name: "x", expr: compile_expression("x", {"ref" => "x"}),
+            ),
+          ],
+        )
+      end
+
+      it "emits the serialized value under the name" do
+        output, errors = evaluator.evaluate(probe, context)
+        expect(output.keys).to eq(["x"])
+        expect(output["x"]).to include(type: "Integer", value: "42")
+        expect(errors).to eq([])
+      end
+    end
+
+    context "expression evaluation raises" do
+      # len() of a non-Array/String/Hash raises ExpressionEvaluationError.
+      # The locals do not have :badvar, so the ref resolves to nil, and len(nil) raises.
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "p1", type: :log, type_name: "F", method_name: "m",
+          capture_expressions: [
+            Datadog::DI::CaptureExpression.new(
+              name: "bad_len",
+              expr: compile_expression("len(badvar)",
+                {"len" => {"ref" => "badvar"}}),
+            ),
+          ],
+        )
+      end
+
+      it "omits the key from output and appends to evaluation_errors" do
+        output, errors = evaluator.evaluate(probe, context)
+        expect(output).to eq({})
+        expect(errors.size).to eq(1)
+        expect(errors.first[:expr]).to eq("bad_len")
+        expect(errors.first[:message]).to include("ExpressionEvaluationError")
+      end
+    end
+
+    context "mixed success and failure" do
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "p1", type: :log, type_name: "F", method_name: "m",
+          capture_expressions: [
+            Datadog::DI::CaptureExpression.new(
+              name: "ok", expr: compile_expression("x", {"ref" => "x"}),
+            ),
+            Datadog::DI::CaptureExpression.new(
+              name: "fail",
+              expr: compile_expression("len(badvar)",
+                {"len" => {"ref" => "badvar"}}),
+            ),
+          ],
+        )
+      end
+
+      it "succeeds for the good one, errors for the bad one" do
+        output, errors = evaluator.evaluate(probe, context)
+        expect(output.keys).to eq(["ok"])
+        expect(errors.size).to eq(1)
+        expect(errors.first[:expr]).to eq("fail")
+      end
+    end
+
+    context "time budget exhausted before evaluating any" do
+      before do
+        allow(di_settings).to receive(:capture_expression_timeout_ms).and_return(0)
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "p1", type: :log, type_name: "F", method_name: "m",
+          capture_expressions: [
+            Datadog::DI::CaptureExpression.new(
+              name: "x", expr: compile_expression("x", {"ref" => "x"}),
+            ),
+            Datadog::DI::CaptureExpression.new(
+              name: "y", expr: compile_expression("name", {"ref" => "name"}),
+            ),
+          ],
+        )
+      end
+
+      it "emits notCapturedReason:timeout stubs for all expressions" do
+        output, errors = evaluator.evaluate(probe, context)
+        expect(output["x"]).to eq(notCapturedReason: "timeout")
+        expect(output["y"]).to eq(notCapturedReason: "timeout")
+        expect(errors).to eq([])
+      end
+    end
+
+    context "per-expression depth limit overrides probe-level depth" do
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "p1", type: :log, type_name: "F", method_name: "m",
+          max_capture_depth: 1,
+          capture_expressions: [
+            Datadog::DI::CaptureExpression.new(
+              name: "deep", expr: compile_expression("x", {"ref" => "x"}),
+              limits: Datadog::DI::CaptureLimits.new(max_reference_depth: 5),
+            ),
+          ],
+        )
+      end
+
+      # The depth value passed to the serializer is what we are asserting on
+      # rather than the resulting JSON shape.
+      it "passes the expression's depth into the serializer" do
+        expect(serializer).to receive(:serialize_value).with(42, hash_including(depth: 5, attribute_count: 10)).and_call_original
+        evaluator.evaluate(probe, context)
+      end
+    end
+  end
+end
