@@ -396,7 +396,6 @@ module Datadog
           span_resource: @active_span && @active_span.resource,
           span_service: @active_span && @active_span.service,
           span_type: @active_span && @active_span.type,
-          span_links: @span_links,
           trace_distributed_tags: distributed_tags,
           trace_hostname: @hostname,
           trace_id: @id,

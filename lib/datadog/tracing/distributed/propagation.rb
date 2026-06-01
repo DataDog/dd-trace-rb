@@ -155,7 +155,7 @@ module Datadog
           extracted_trace_digest = propagate_baggage(data, extracted_trace_digest) if @baggage_propagator
 
           if @propagation_behavior_extract == Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_RESTART
-            # @MilanGarnier: Restart a new trace with span link
+            # Restart a new trace with span link
             if extracted_trace_digest.nil?
               nil
             else
