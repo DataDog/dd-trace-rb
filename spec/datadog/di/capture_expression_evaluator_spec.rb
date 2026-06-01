@@ -15,7 +15,7 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
   default_settings
 
   before do
-    allow(di_settings).to receive(:capture_expression_timeout_ms).and_return(200)
+    allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(200)
   end
 
   let(:redactor) do
@@ -118,7 +118,7 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
 
     context "time budget exhausted before evaluating any" do
       before do
-        allow(di_settings).to receive(:capture_expression_timeout_ms).and_return(0)
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(0)
       end
 
       let(:probe) do

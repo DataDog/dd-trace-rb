@@ -280,18 +280,18 @@
         "default": null
       }
     ],
-    "DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS": [
-      {
-        "version": "A",
-        "type": "int",
-        "default": "200"
-      }
-    ],
     "DD_DYNAMIC_INSTRUMENTATION_ENABLED": [
       {
         "version": "A",
         "type": "boolean",
         "default": "false"
+      }
+    ],
+    "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "200"
       }
     ],
     "DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE": [

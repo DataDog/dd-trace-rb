@@ -181,10 +181,11 @@ Behavior notes for Ruby:
   log-message bucket. Override with `sampling.snapshotsPerSecond` on
   the probe.
 - **Per-fire time budget.** Capture-expression evaluation for one
-  probe fire is bounded by `DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS`
-  (default `200`). When exceeded, remaining expressions are emitted
-  with `"notCapturedReason": "timeout"` so the truncation is visible
-  in the snapshot UI.
+  probe fire is bounded by `DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE`
+  (default `200` ms). When exceeded, remaining expressions are
+  emitted with `"notCapturedReason": "timeout"` so the truncation is
+  visible in the snapshot UI. This env var is shared with the .NET
+  tracer's whole-snapshot serialization budget.
 - **Evaluation errors are visible.** When an individual expression
   fails to evaluate, its key is omitted from `captureExpressions`
   and an `{ expr: <name>, message: … }` entry is added to the

@@ -134,14 +134,20 @@ module Datadog
                 o.default 20
               end
 
-              # Per-fire time budget for evaluating capture expressions,
-              # in milliseconds. Once exhausted, remaining capture
+              # Time budget (in milliseconds) for serialization work during
+              # probe fires. Today applied only to capture-expression
+              # evaluation; once the budget is exhausted, remaining capture
               # expressions emit a stub entry with
               # `notCapturedReason: "timeout"` in the snapshot.
-              option :capture_expression_timeout_ms do |o|
+              #
+              # The env var is shared with .NET's whole-snapshot
+              # serialization budget. Default (200 ms) matches Python's
+              # hardcoded `CAPTURE_TIME_BUDGET` and .NET's
+              # `DefaultMaxSerializationTimeInMilliseconds`.
+              option :max_time_to_serialize_ms do |o|
                 o.type :int
                 o.default 200
-                o.env 'DD_DYNAMIC_INSTRUMENTATION_CAPTURE_TIMEOUT_MS'
+                o.env 'DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE'
               end
 
               # Settings in the 'internal' group are for internal Datadog
