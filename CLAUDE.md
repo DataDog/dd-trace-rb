@@ -95,17 +95,27 @@ bundle exec rspec spec/path/file.rb     # ONLY for specs covered by test:main or
 
 The `test:main` task uses the default Gemfile and its specs can also be run individually with `bundle exec rspec`.
 
-### Docker requirement
+### Docker
 
-- Contrib/integration tests need Docker: `docker compose run --rm tracer-3.4 /bin/bash`, then run the rake task inside
-- `test:main` can run locally on any Ruby for quick feedback
+- AppSec integration tests need Ruby 3.4, use Ruby 3.4 installed locally or if not available Docker (`docker compose run --rm tracer-3.4 /bin/bash`, then run the rake task inside)
+- `test:main` and `bundle exec rspec spec/datadog/profiling` can run locally on any Ruby for quick feedback
 - If Bundler fails inside the container (e.g. after a dependency update), run `bundle install` and retry the rake task once before investigating further
 
 ### Verifying across Ruby versions
 
-Before marking a task complete, run the relevant test task on both the earliest and latest supported Ruby versions. Regressions in older Rubies are easy to miss when only testing on the latest. Check the component's entry in `Matrixfile` for the supported range, then:
+Before marking a task complete, run the relevant test task on both the earliest and latest supported Ruby versions.
+Regressions in older Rubies are easy to miss when only testing on the latest.
+Check the component's entry in `Matrixfile` for the supported range, then:
 
 ```bash
+# If mise is available:
+# Use Ruby 2.6 if 2.5 is not available, Ruby 2.5 no longer builds on macOS
+mise exec ruby@2.6 -- bundle exec rake test:TASK_KEY
+mise exec ruby@4.0 -- bundle exec rake test:TASK_KEY
+```
+
+```bash
+# If no mise, use Docker:
 docker compose run --rm tracer-2.5 bundle exec rake test:TASK_KEY
 docker compose run --rm tracer-4.0 bundle exec rake test:TASK_KEY
 ```
