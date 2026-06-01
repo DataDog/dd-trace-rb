@@ -43,7 +43,7 @@ module Datadog
       #   - the `captureExpressions` block ({ name => serialized_value })
       #   - the per-expression evaluation_errors array
       def evaluate(probe, context)
-        budget_ns = settings.dynamic_instrumentation.capture_expression_timeout_ms * 1_000_000
+        budget_ns = settings.dynamic_instrumentation.max_time_to_serialize_ms * 1_000_000
         deadline_ns = ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) + budget_ns
 
         output = {}
