@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'encoder'
+
 module Datadog
   module AppSec
     module RouteNormalizer
@@ -14,68 +16,155 @@ module Datadog
       #   /posts/:id(.:format) => /posts/{id+format}
       #   /hello world         => /hello%20world
       #
+      # NOTE: When a request path is supplied, optional groups `(...)` are resolved
+      #       against it: a group is kept only when the path actually matched it.
+      #
+      # NOTE: Without a request path (or for paths longer than {MAX_RESOLVE_LENGTH}),
+      #       optional markers are flattened and kept as if present.
+      #
       # @api private
-      module StringRoute
+      class StringRoute
         PARAM_TOKEN = /:\w+|(?<!\w)\*\w*/
         PARAM_SIGILS = /[:\*]/
+        WORD_CHAR = /\w/
 
-        DISALLOWED_CHARS = %r{[^\w.~/-]}
+        # A param value ends at the next segment boundary in the request path.
+        SEGMENT_BOUNDARY = %r{[./]}
 
-        # Per-byte percent-encoding lookup, indexed by byte value (0-255)
-        #
-        # Example:
-        #
-        #  32 => %20   (space)
-        #  33 => %21   (!)
-        #  47 => /     (passthrough)
-        #  65 => A     (passthrough)
-        # 195 => %C3   (UTF-8 lead byte)
-        # 169 => %A9   (UTF-8 continuation byte)
-        BYTE_ENCODING_TABLE = Array.new(256) do |byte|
-          char = byte.chr
-          char.match?(DISALLOWED_CHARS) ? -('%%%02X' % byte) : -char
-        end.freeze
+        # Pattern characters that are never custom segment delimiters: `.` and
+        # `/` are the default boundaries, `():*` are structural.
+        RESERVED_PATTERN_CHARS = '():*./'
 
-        # Max bytes one input byte expands to as percent-encoded `%XX`
-        MAX_ENCODED_BYTE_SIZE = 3
+        # Pattern characters used to define optional path parameters
+        OPTIONAL_PATTERN_CHARS = '()?'
 
-        module_function
+        # Upper bound on request path length we will scan to resolve optionals.
+        # Beyond it we flatten instead, trading exactness for bounded work.
+        MAX_RESOLVE_LENGTH = 8192
 
-        def normalize(route_pattern)
+        def initialize(pattern)
+          @pattern = pattern
+        end
+
+        def normalized(for_path: nil)
+          if resolve_optionals?(for_path)
+            resolved = resolve_optionals(for_path)
+            return build_template(resolved) if resolved
+          end
+
+          build_template(@pattern.delete(OPTIONAL_PATTERN_CHARS))
+        end
+
+        private
+
+        def resolve_optionals?(request_path)
+          request_path && @pattern.include?('(') && request_path.length <= MAX_RESOLVE_LENGTH
+        end
+
+        def build_template(route)
           nameless_counter = 0
-          # NOTE: Flatten optional markers — reached without matched params
-          #       (e.g. http.route fallback), so the optional can't be resolved
-          #       and is kept as if present
-          route = route_pattern.delete('()?')
 
           result = route.split('/', -1).each_with_object(+'') do |segment, memo|
             memo << '/' unless memo.empty? && segment.empty?
             next if segment.empty?
 
-            next memo << encode_static(segment) unless segment.match?(PARAM_SIGILS)
+            next memo << Encoder.encode_static(segment) unless segment.match?(PARAM_SIGILS)
 
             tokens = segment.scan(PARAM_TOKEN)
-            next memo << encode_static(segment) if tokens.empty?
+            next memo << Encoder.encode_static(segment) if tokens.empty?
 
-            names = tokens.map { |token| (token.length > 1) ? token[1..-1] : "param#{nameless_counter += 1}" }
+            names = tokens.map do |token|
+              (token.length > 1) ? token[1..-1] : "param#{nameless_counter += 1}"
+            end
+
             memo << "{#{names.join('+')}}"
           end
 
-          result = "/#{result}" unless result.start_with?('/')
-          result
+          result.start_with?('/') ? result : "/#{result}"
         end
 
-        def encode_static(text)
-          return text unless text.match?(DISALLOWED_CHARS)
+        # Walks the route pattern and the request path together, dropping
+        # optional groups the path did not match. Returns the resolved pattern
+        # string, or nil when the path diverges from the pattern (caller then
+        # flattens). Backtrack-free: each character of both strings is visited
+        # at most once and param values are skipped via C-level String#index.
+        def resolve_optionals(request_path)
+          resolved = +''
+          pattern_pos = 0
+          url_pos = 0
+          pattern_len = @pattern.length
+          url_len = request_path.length
 
-          buffer = String.new(capacity: text.bytesize * MAX_ENCODED_BYTE_SIZE, encoding: Encoding::UTF_8)
-          text.each_byte { |byte| buffer << BYTE_ENCODING_TABLE.fetch(byte) }
-          buffer
-        # NOTE: Defensive only — this can never happen. {String#each_byte} yields
-        #       integers in 0-255 and {BYTE_ENCODING_TABLE} has an entry for every one
-        rescue IndexError => e
-          AppSec.telemetry&.report(e, description: 'AppSec: Route segment byte outside 0-255 encoding table')
-          '~invalid~'
+          while pattern_pos < pattern_len
+            char = @pattern[pattern_pos]
+
+            case char
+            when '('
+              if url_pos < url_len && request_path[url_pos] == @pattern[pattern_pos + 1]
+                pattern_pos += 1
+              else
+                pattern_pos = skip_group(pattern_pos)
+              end
+            when ')'
+              pattern_pos += 1
+            when ':', '*'
+              name_end = pattern_pos + 1
+              name_end += 1 while name_end < pattern_len && WORD_CHAR.match?(@pattern[name_end])
+
+              if char == ':' && name_end == pattern_pos + 1
+                return unless url_pos < url_len && request_path[url_pos] == ':'
+
+                resolved << ':'
+                url_pos += 1
+                pattern_pos += 1
+              else
+                resolved << @pattern[pattern_pos...name_end]
+                url_pos = (char == '*') ? url_len : consume_value(request_path, url_pos, @pattern[name_end])
+                pattern_pos = name_end
+              end
+            else
+              return unless url_pos < url_len && request_path[url_pos] == char
+
+              resolved << char
+              url_pos += 1
+              pattern_pos += 1
+            end
+          end
+
+          resolved
+        end
+
+        def consume_value(request_path, from, next_pattern_char)
+          default_stop = request_path.index(SEGMENT_BOUNDARY, from) || request_path.length
+          return default_stop unless custom_delimiter?(next_pattern_char)
+
+          custom_stop = request_path.index(next_pattern_char, from) || request_path.length
+          (custom_stop < default_stop) ? custom_stop : default_stop
+        end
+
+        def custom_delimiter?(char)
+          return false if char.nil?
+          return false if WORD_CHAR.match?(char)
+
+          !RESERVED_PATTERN_CHARS.include?(char)
+        end
+
+        def skip_group(open_pos)
+          depth = 0
+          pos = open_pos
+          length = @pattern.length
+
+          while pos < length
+            case @pattern[pos]
+            when '(' then depth += 1
+            when ')'
+              depth -= 1
+              return pos + 1 if depth.zero?
+            end
+            pos += 1
+          end
+
+          pos
         end
       end
     end

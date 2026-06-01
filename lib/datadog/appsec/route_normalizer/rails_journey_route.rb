@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require_relative 'string_route'
+require_relative 'encoder'
+
 module Datadog
   module AppSec
     module RouteNormalizer
@@ -25,39 +28,79 @@ module Datadog
         private
 
         def normalize_ast
-          return StringRoute.encode_static(@route.path.spec.to_s) if @route.path.names.empty?
-
-          segments = collect_segments(@route.path.spec)
-          nameless_counter = 0
-
-          parts = segments.map do |items|
-            param_names = []
-            items.each { |type, value| param_names << value if type == :param }
-
-            if param_names.empty?
-              static_text = items.map { |_, text| text }.join
-              StringRoute.encode_static(static_text)
-            else
-              names = param_names.map do |name|
-                if name.empty?
-                  nameless_counter += 1
-                  "param#{nameless_counter}"
-                else
-                  name
-                end
-              end
-              "{#{names.join('+')}}"
-            end
+          if @route.path.names.empty?
+            spec_string = @route.path.spec.to_s
+            return Encoder.encode_static(spec_string) unless spec_string.include?('(')
           end
 
-          result = parts.join('/')
-          result = "/#{result}" unless result.start_with?('/')
-          result
+          @result = +''
+          @static = +''
+          @names = []
+          @has_param = false
+          @parts = 0
+          @nameless_counter = 0
+
+          visit(@route.path.spec)
+          flush_segment
+
+          @result = "/#{@result}" unless @result.start_with?('/')
+          @result
+        end
+
+        def visit(node)
+          case node.type
+          when :CAT
+            visit(node.left)
+            visit(node.right)
+          when :SLASH
+            flush_segment
+          when :LITERAL
+            @static << node.left
+          when :DOT
+            @static << '.'
+          when :SYMBOL, :STAR
+            @has_param = true
+            @names << node.name
+          when :GROUP
+            visit(node.left) if group_present?(node.left)
+          end
+        end
+
+        def flush_segment
+          @result << '/' if @parts > 0
+          @result << (@has_param ? render_params : Encoder.encode_static(@static))
+          @parts += 1
+
+          @static.clear
+          @names.clear
+          @has_param = false
+        end
+
+        def render_params
+          names = @names.map { |name| name.empty? ? "param#{@nameless_counter += 1}" : name }
+          "{#{names.join('+')}}"
+        end
+
+        def group_present?(node)
+          params = direct_params(node)
+          !params.empty? && params.all? { |param| param_present?(param.name.to_sym) }
+        end
+
+        def direct_params(node, acc = [])
+          case node.type
+          when :SYMBOL, :STAR
+            acc << node
+          when :CAT
+            direct_params(node.left, acc)
+            direct_params(node.right, acc)
+          when :GROUP
+            # stop — nested group resolves independently
+          end
+          acc
         end
 
         def normalize_string
-          resolved = resolve_optionals(@route_string)
-          StringRoute.normalize(resolved)
+          StringRoute.new(resolve_optionals(@route_string)).normalized
         end
 
         def resolve_optionals(route_string)
@@ -79,56 +122,6 @@ module Datadog
           return false if param_names.empty?
 
           param_names.all? { |name| param_present?(name) }
-        end
-
-        def collect_segments(node)
-          segments = [[]]
-
-          visit = ->(n) {
-            case n.type
-            when :CAT
-              visit.call(n.left)
-              visit.call(n.right)
-            when :SLASH
-              segments << []
-            when :LITERAL
-              segments.last << [:static, n.left]
-            when :DOT
-              segments.last << [:static, '.']
-            when :SYMBOL
-              segments.last << [:param, n.name]
-            when :STAR
-              segments.last << [:param, n.name]
-            when :GROUP
-              param_nodes = direct_params(n.left)
-
-              unless param_nodes.empty?
-                if param_nodes.all? { |pn| param_present?(pn.name.to_sym) }
-                  visit.call(n.left)
-                end
-              end
-            end
-          }
-
-          visit.call(node)
-          segments
-        end
-
-        def direct_params(node)
-          result = []
-          collect = ->(n) {
-            case n.type
-            when :SYMBOL, :STAR
-              result << n
-            when :CAT
-              collect.call(n.left)
-              collect.call(n.right)
-            when :GROUP
-              # stop — nested group resolves independently
-            end
-          }
-          collect.call(node)
-          result
         end
 
         def param_present?(name)

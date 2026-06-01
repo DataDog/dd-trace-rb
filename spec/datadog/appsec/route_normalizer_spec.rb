@@ -345,6 +345,14 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
 
         it { expect(result).to eq('/users/') }
       end
+
+      context 'when route has an optional group but no params' do
+        let(:route) { build_rails_route(lit('/'), lit('foo'), group(lit('/'), lit('bar'))) }
+        let(:path_params) { {} }
+        let(:path) { '/foo/bar' }
+
+        it { expect(result).to eq('/foo') }
+      end
     end
 
     context 'with Rails native route key' do
