@@ -65,17 +65,12 @@ module Datadog
               probe: probe,
               settings: settings,
             )
-            # NOTE: only depth and attribute_count are threaded through to
-            # the serializer here; max_length and max_collection_size are
-            # read from settings directly inside Serializer#serialize_value
-            # and are not yet overridable per expression. Fixing this
-            # requires adding length / collection_size kwargs to
-            # Serializer#serialize_value and its recursive call sites.
-            # Tracked as a follow-up in projects/capture-expressions/backlog.
             output[name] = serializer.serialize_value(
               value, name: name,
               depth: limits[:depth],
               attribute_count: limits[:attribute_count],
+              length: limits[:length],
+              collection_size: limits[:collection_size],
             )
           rescue => exc
             evaluation_errors << {expr: name, message: "#{exc.class}: #{exc.message}"}
