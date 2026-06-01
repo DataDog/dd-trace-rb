@@ -160,9 +160,16 @@ module Datadog
       # (integers, strings, arrays, hashes).
       #
       # Respects string length, collection size and traversal depth limits.
+      #
+      # +length+ and +collection_size+ accept nil to mean "use the global
+      # default setting". They are threaded through to recursive calls so
+      # callers (e.g. the capture-expression evaluator) can override them
+      # per evaluation without re-routing through the global settings.
       def serialize_value(value, name: nil,
         depth: settings.dynamic_instrumentation.max_capture_depth,
         attribute_count: nil,
+        length: nil,
+        collection_size: nil,
         type: nil)
         attribute_count ||= settings.dynamic_instrumentation.max_capture_attribute_count
         cls = type || value.class
@@ -198,6 +205,10 @@ module Datadog
 
               if condition_result
                 serializer_proc = entry.fetch(:proc)
+                # Custom serializers do not yet accept length / collection_size;
+                # they receive the standard depth only. This matches the
+                # pre-capture-expressions behavior so existing custom
+                # serializers continue to work.
                 return serializer_proc.call(self, value, name: nil, depth: depth)
               end
             end
@@ -235,7 +246,8 @@ module Datadog
             #
             # Truncate binary data BEFORE escaping to avoid cutting mid-escape-sequence.
             # For regular strings, the limit is applied to string length in characters.
-            max = settings.dynamic_instrumentation.max_capture_string_length
+            length ||= settings.dynamic_instrumentation.max_capture_string_length
+            max = length
 
             if value.encoding == Encoding::BINARY || !value.valid_encoding?
               # Truncate binary data BEFORE escaping to avoid cutting mid-escape-sequence
@@ -263,7 +275,8 @@ module Datadog
             if depth <= 0
               serialized.update(notCapturedReason: "depth")
             else
-              max = settings.dynamic_instrumentation.max_capture_collection_size
+              collection_size ||= settings.dynamic_instrumentation.max_capture_collection_size
+              max = collection_size
               if max != 0 && value.length > max
                 serialized.update(notCapturedReason: "collectionSize", size: value.length)
                 # same steep failure with array slices.
@@ -271,7 +284,7 @@ module Datadog
                 value = value[0...max] || []
               end
               entries = value.map do |elt|
-                serialize_value(elt, depth: depth - 1)
+                serialize_value(elt, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count)
               end
               serialized.update(elements: entries)
             end
@@ -279,7 +292,8 @@ module Datadog
             if depth <= 0
               serialized.update(notCapturedReason: "depth")
             else
-              max = settings.dynamic_instrumentation.max_capture_collection_size
+              collection_size ||= settings.dynamic_instrumentation.max_capture_collection_size
+              max = collection_size
               cur = 0
               entries = []
               value.each do |k, v|
@@ -288,7 +302,8 @@ module Datadog
                   break
                 end
                 cur += 1
-                entries << [serialize_value(k, depth: depth - 1), serialize_value(v, name: k, depth: depth - 1)]
+                entries << [serialize_value(k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count),
+                  serialize_value(v, name: k, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count)]
               end
               serialized.update(entries: entries)
             end
@@ -327,7 +342,7 @@ module Datadog
                   break
                 end
                 cur += 1
-                fields[ivar] = serialize_value(value.instance_variable_get(ivar), name: ivar, depth: depth - 1)
+                fields[ivar] = serialize_value(value.instance_variable_get(ivar), name: ivar, depth: depth - 1, length: length, collection_size: collection_size, attribute_count: attribute_count)
               end
               serialized.update(fields: fields)
             end

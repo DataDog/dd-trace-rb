@@ -3,9 +3,15 @@ module Datadog
     module ProbeBuilder
       PROBE_TYPES: { "LOG_PROBE" => :log }
 
+      CAPTURE_EXPRESSION_NAME_PATTERN: Regexp
+
       def self?.build_from_remote_config: (Hash[String, untyped] config) -> Probe
 
       def self?.build_template_segments: (Array[Hash[String, untyped]]? segments) -> Array[String | DI::EL::Expression]?
+
+      def self?.build_capture_expressions: (Array[Hash[String, untyped]]? raw) -> Array[CaptureExpression]
+
+      def self?.build_capture_limits: (Hash[String, untyped]? raw) -> CaptureLimits?
     end
   end
 end

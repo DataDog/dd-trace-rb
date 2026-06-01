@@ -190,11 +190,6 @@ Behavior notes for Ruby:
   and an `{ expr: <name>, message: … }` entry is added to the
   snapshot's `evaluationErrors` array.
 
-Known limitation: per-expression `maxLength` and `maxCollectionSize`
-overrides are not yet honored end-to-end; the tracer falls back to the
-DI settings defaults for these two fields. Per-expression
-`maxReferenceDepth` and `maxFieldCount` work as documented.
-
 ## Expression Language
 
 The Ruby tracer supports Dynamic Instrumentation expression language for
