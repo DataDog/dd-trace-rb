@@ -19,6 +19,7 @@ module Datadog
             def initialize(
               propagation_style_inject:,
               propagation_style_extract:,
+              propagation_behavior_extract:,
               propagation_extract_first:
             )
               super(
@@ -37,6 +38,7 @@ module Datadog
                 },
                 propagation_style_inject: propagation_style_inject,
                 propagation_style_extract: propagation_style_extract,
+                propagation_behavior_extract: propagation_behavior_extract,
                 propagation_extract_first: propagation_extract_first
               )
             end
