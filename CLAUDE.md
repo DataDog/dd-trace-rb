@@ -84,7 +84,7 @@ Tests MUST be run via rake tasks, not bare `bundle exec rspec`, because most tes
 
 ```bash
 bundle exec rake test:TASK_KEY          # Correct - always use this
-bundle exec rspec spec/path/file.rb     # ONLY for specs covered by test:main
+bundle exec rspec spec/path/file.rb     # ONLY for specs covered by test:main or spec/datadog/profiling
 ```
 
 ### Finding the right rake task
