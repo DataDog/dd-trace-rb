@@ -51,13 +51,19 @@ jobs:
           persist-credentials: false
       - name: Bundle
         run: bundle install
-      - name: Update latest
+      - name: Ensure parent lockfile platforms
+        run: bundle lock --add-platform x86_64-linux aarch64-linux arm64-darwin x86_64-darwin
+      - name: Update (parent level)
+        run: bundle update
+      - name: Update (child level)
         run: bundle exec rake edge:gemspec edge:update
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: 'gha${{ github.run_id }}-datadog-gem-${{ matrix.engine.name }}-${{ matrix.engine.version }}'
-          path: gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}_*
+          path: |
+            gemfiles/${{ matrix.engine.name }}-${{ matrix.engine.version }}.gemfile.lock
+            gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}_*
           retention-days: 1
 
   aggregate:
