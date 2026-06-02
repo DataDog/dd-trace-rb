@@ -275,6 +275,57 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
+    describe '#propagation_behavior_extract' do
+      subject(:propagation_behavior_extract) { settings.tracing.propagation_behavior_extract }
+
+      let(:envs) { {'DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT' => var_value} }
+      let(:var_value) { nil }
+
+      context 'when DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT' do
+        context 'is not defined' do
+          let(:var_value) { nil }
+
+          it { is_expected.to eq('continue') }
+        end
+
+        context 'is set to restart' do
+          let(:var_value) { 'restart' }
+
+          it { is_expected.to eq('restart') }
+        end
+
+        context 'is set to ignore' do
+          let(:var_value) { 'ignore' }
+
+          it { is_expected.to eq('ignore') }
+        end
+
+        context 'is set with mixed case' do
+          let(:var_value) { 'ReStArT' }
+
+          it { is_expected.to eq('restart') }
+        end
+
+        context 'is set to an unsupported value' do
+          let(:var_value) { 'bogus' }
+
+          it 'falls back to continue and warns' do
+            expect(Datadog.logger).to receive(:warn).with(/Unsupported propagation behavior extract/)
+            is_expected.to eq('continue')
+          end
+        end
+      end
+
+      describe '#propagation_behavior_extract=' do
+        it 'updates the #propagation_behavior_extract setting' do
+          expect { settings.tracing.propagation_behavior_extract = 'restart' }
+            .to change { settings.tracing.propagation_behavior_extract }
+            .from('continue')
+            .to('restart')
+        end
+      end
+    end
+
     describe '#enabled' do
       subject(:enabled) { settings.tracing.enabled }
 

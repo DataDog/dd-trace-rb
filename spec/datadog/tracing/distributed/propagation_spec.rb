@@ -11,7 +11,8 @@ RSpec.shared_examples 'Distributed tracing propagator' do
       propagation_styles: propagation_styles,
       propagation_style_inject: propagation_style_inject,
       propagation_style_extract: propagation_style_extract,
-      propagation_extract_first: propagation_extract_first
+      propagation_extract_first: propagation_extract_first,
+      propagation_behavior_extract: propagation_behavior_extract
     )
   end
 
@@ -27,6 +28,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
   let(:propagation_style_inject) { ['datadog', 'tracecontext', 'baggage'] }
   let(:propagation_style_extract) { ['datadog', 'tracecontext', 'baggage'] }
   let(:propagation_extract_first) { false }
+  let(:propagation_behavior_extract) { 'continue' }
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
@@ -527,6 +529,110 @@ RSpec.shared_examples 'Distributed tracing propagator' do
           expect(modified_trace_digest.baggage).to eq({'key' => 'value', 'user.id' => 'test-user'})
           expect(modified_trace_digest.trace_distributed_tags).to include('baggage.user.id' => 'test-user')
         end
+      end
+    end
+  end
+
+  describe '.extract with DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT' do
+    subject(:trace_digest) { propagator.extract(data) }
+
+    let(:data) do
+      {
+        prepare_key['x-datadog-trace-id'] => '123',
+        prepare_key['x-datadog-parent-id'] => '456',
+        prepare_key['x-datadog-sampling-priority'] => '1',
+        prepare_key['baggage'] => 'key=value',
+      }
+    end
+
+    context 'when set to `continue` (default)' do
+      let(:propagation_behavior_extract) { 'continue' }
+
+      it 'continues the extracted trace' do
+        expect(trace_digest.trace_id).to eq(123)
+        expect(trace_digest.span_id).to eq(456)
+        expect(trace_digest.span_links).to be_nil
+        expect(trace_digest.baggage).to eq({'key' => 'value'})
+      end
+    end
+
+    context 'when set to `restart`' do
+      let(:propagation_behavior_extract) { 'restart' }
+
+      it 'starts a new trace, turning the extracted context into a span link' do
+        expect(trace_digest.trace_id).to be_nil
+        expect(trace_digest.span_id).to be_nil
+        expect(trace_digest.span_remote).to be false
+      end
+
+      it 'links back to the extracted context' do
+        expect(trace_digest.span_links.size).to eq(1)
+        link = trace_digest.span_links.first
+        expect(link.trace_id).to eq(123)
+        expect(link.span_id).to eq(456)
+        expect(link.attributes).to eq(
+          'reason' => 'propagation_behavior_extract',
+          'context_headers' => 'datadog'
+        )
+      end
+
+      it 'derives the span link trace flags from the sampling priority' do
+        expect(trace_digest.span_links.first.trace_flags).to eq(1)
+      end
+
+      it 'still propagates baggage' do
+        expect(trace_digest.baggage).to eq({'key' => 'value'})
+      end
+
+      context 'when only baggage is present (no trace context)' do
+        let(:data) { {prepare_key['baggage'] => 'key=value'} }
+
+        it 'does not create a span link' do
+          expect(trace_digest.span_links).to be_nil
+          expect(trace_digest.baggage).to eq({'key' => 'value'})
+        end
+      end
+
+      context 'when the context is produced by a non-first propagator' do
+        # Only W3C headers are present. `datadog` is configured first but finds nothing,
+        # so `tracecontext` is the propagator that produces the context. `context_headers`
+        # must reflect the producing style, not the first configured one.
+        let(:data) do
+          {
+            prepare_key['traceparent'] =>
+              '00-00000000000000000000000000000003-0000000000000003-01',
+            prepare_key['tracestate'] => 'dd=s:1',
+          }
+        end
+
+        it 'names the producing style in context_headers' do
+          link = trace_digest.span_links.first
+          expect(link.span_id).to eq(3)
+          expect(link.attributes['context_headers']).to eq('tracecontext')
+        end
+      end
+
+      context 'when DD_TRACE_PROPAGATION_EXTRACT_FIRST is also enabled' do
+        let(:propagation_extract_first) { true }
+
+        it 'still creates a single span link to the first extracted context' do
+          expect(trace_digest.span_links.size).to eq(1)
+          link = trace_digest.span_links.first
+          expect(link.trace_id).to eq(123)
+          expect(link.attributes['context_headers']).to eq('datadog')
+        end
+
+        it 'still propagates baggage despite stopping after the first propagator' do
+          expect(trace_digest.baggage).to eq({'key' => 'value'})
+        end
+      end
+    end
+
+    context 'when set to `ignore`' do
+      let(:propagation_behavior_extract) { 'ignore' }
+
+      it 'ignores the extracted context entirely, including baggage' do
+        expect(trace_digest).to be_nil
       end
     end
   end
