@@ -64,6 +64,7 @@ module Datadog
               )
               @datadog_multi_trace_digest = Tracing.active_trace.to_digest
 
+              @datadog_multi_span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               @datadog_multi_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               @datadog_multi_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_MULTI_REQUEST)
 

@@ -109,6 +109,7 @@ module Datadog
                 resource: resource,
                 type: Tracing::Metadata::Ext::SQL::TYPE
               ) do |span, trace_op|
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 annotate_span_with_query!(span, service)
                 # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?

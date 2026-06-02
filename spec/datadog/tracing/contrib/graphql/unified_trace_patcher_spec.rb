@@ -1,6 +1,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/graphql/test_schema_examples'
 require 'datadog/tracing/contrib/graphql/unified_trace_patcher'
+require 'datadog/tracing/contrib/svc_src_examples'
 
 require 'datadog'
 
@@ -36,6 +37,17 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::UnifiedTracePatcher,
           end
 
           let(:service) { 'my-graphql' }
+        end
+
+        it_behaves_like 'tags _dd.svc_src', 'graphql' do
+          before do
+            Datadog.configure do |c|
+              c.tracing.instrument :graphql, with_unified_tracer: true, service_name: 'my-graphql'
+            end
+            TestGraphQLSchema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: {var: 1})
+          end
+
+          let(:span) { spans.find { |s| s.name == 'graphql.execute_multiplex' } }
         end
       end
 

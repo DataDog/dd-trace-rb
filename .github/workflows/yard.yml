@@ -26,9 +26,10 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-24.04
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:3.2-gnu-gcc
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
       env:
         BUNDLE_GEMFILE: tools/yard.gemfile
+        BUNDLE_FROZEN: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

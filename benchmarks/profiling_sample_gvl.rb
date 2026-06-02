@@ -31,11 +31,10 @@ class ProfilerSampleGvlBenchmark
   end
 
   def create_profiler
-    @recorder = Datadog::Profiling::StackRecorder.for_testing(timeline_enabled: true)
+    @recorder = Datadog::Profiling::StackRecorder.for_testing
     @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(
       recorder: @recorder,
-      waiting_for_gvl_threshold_ns: 0,
-      timeline_enabled: true,
+      waiting_for_gvl_threshold_ns: 0
     )
   end
 

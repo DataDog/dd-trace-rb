@@ -34,8 +34,10 @@ module Datadog
 
           tags << "#{Environment::Ext::TAG_ENTRYPOINT_TYPE}:#{TagNormalizer.normalize(entrypoint_type, remove_digit_start_char: false)}"
 
-          rails_name = TagNormalizer.normalize_process_value(@rails_application_name.to_s)
-          tags << "#{Environment::Ext::TAG_RAILS_APPLICATION}:#{rails_name}" unless rails_name.empty?
+          if defined?(@rails_application_name)
+            rails_name = TagNormalizer.normalize_process_value(@rails_application_name.to_s)
+            tags << "#{Environment::Ext::TAG_RAILS_APPLICATION}:#{rails_name}" unless rails_name.empty?
+          end
 
           if defined?(@service_user_configured)
             if @service_user_configured

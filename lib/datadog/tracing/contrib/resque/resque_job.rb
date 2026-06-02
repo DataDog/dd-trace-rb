@@ -35,6 +35,7 @@ module Datadog
             return yield unless datadog_configuration && Tracing.enabled?
 
             Tracing.trace(Ext::SPAN_JOB, **span_options) do |span|
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               span.resource = args.first.is_a?(Hash) && args.first['job_class'] || name
               span.type = Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
 
