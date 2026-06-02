@@ -154,16 +154,18 @@ module Datadog
           # Handle baggage after all other styles if present
           extracted_trace_digest = propagate_baggage(data, extracted_trace_digest) if @baggage_propagator
 
-          if @propagation_behavior_extract == Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_RESTART
-            # Restart a new trace with span link
-            if extracted_trace_digest.nil?
-              nil
-            else
-              TraceDigest.new(span_links: [SpanLink.new(extracted_trace_digest, attributes: {'reason' =>
-            'propagation_behavior_extract'})], baggage: extracted_trace_digest.baggage, span_remote: false)
-            end
+          if @propagation_behavior_extract == Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_RESTART && extracted_trace_digest
+            # Restart a new trace, linking back to the extracted context.
+            # The trace id and root span are generated fresh by the trace operation
+            # (`trace_id`/`span_id` are intentionally left unset so the new root span has no parent).
+            link = SpanLink.new(extracted_trace_digest, attributes: {'reason' => 'propagation_behavior_extract'})
+            TraceDigest.new(
+              span_links: [link],
+              baggage: extracted_trace_digest.baggage,
+              span_remote: false,
+            )
           else
-            # Behavior is continue (no exhaustive check for it, has been validated by configuration)
+            # defaulting to continue (no exhaustive check for it, has been validated by configuration)
             extracted_trace_digest
           end
         end
