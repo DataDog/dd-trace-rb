@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "capture_expression"
+require_relative "capture_limits"
 
 module Datadog
   module DI

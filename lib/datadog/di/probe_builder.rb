@@ -4,6 +4,7 @@
 
 require_relative "probe"
 require_relative "capture_expression"
+require_relative "capture_limits"
 require_relative 'el'
 
 module Datadog
