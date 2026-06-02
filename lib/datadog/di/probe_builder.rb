@@ -82,10 +82,11 @@ module Datadog
       end
 
       def build_capture_expressions(raw)
-        return [] if raw.nil? || raw.empty?
+        return [] if raw.nil?
         unless Array === raw
           raise ArgumentError, "captureExpressions must be an array, got: #{raw.class}"
         end
+        return [] if raw.empty?
         raw.map do |entry|
           unless Hash === entry
             raise ArgumentError, "captureExpressions entry must be a hash, got: #{entry.class}"

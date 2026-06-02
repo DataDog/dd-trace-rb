@@ -267,6 +267,16 @@ RSpec.describe Datadog::DI::ProbeBuilder do
         end
       end
 
+      context "non-Array captureExpressions value" do
+        let(:rc_probe_spec) do
+          base_spec.merge("captureExpressions" => 5)
+        end
+
+        it "raises ArgumentError with the offending type" do
+          expect { probe }.to raise_error(ArgumentError, /captureExpressions must be an array, got: Integer/)
+        end
+      end
+
       context "captureSnapshot=true and non-empty captureExpressions (mutual exclusion at fire time)" do
         let(:rc_probe_spec) do
           base_spec.merge(
