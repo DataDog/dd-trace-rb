@@ -133,13 +133,11 @@ module Datadog
       attr_reader :max_capture_attribute_count
 
       # Configured maximum collection size. Can be nil in which case the
-      # global default will be used. Currently only used by capture
-      # expressions; the snapshot serializer reads the setting directly.
+      # global default will be used.
       attr_reader :max_capture_collection_size
 
       # Configured maximum string length. Can be nil in which case the
-      # global default will be used. Currently only used by capture
-      # expressions; the snapshot serializer reads the setting directly.
+      # global default will be used.
       attr_reader :max_capture_string_length
 
       # Capture expressions attached to this probe. Empty array when no
@@ -171,6 +169,21 @@ module Datadog
       # Returns whether the probe has any capture expressions configured.
       def capture_expressions?
         !@capture_expressions.empty?
+      end
+
+      # Returns the four capture-limit keyword arguments for snapshot
+      # serialization, applying the probe-level override for each field and
+      # falling back to the DI settings default when the probe-level value
+      # is nil. The result is intended to be splatted into
+      # +Serializer#serialize_value+, +serialize_args+, or +serialize_vars+.
+      def snapshot_serializer_limits(settings)
+        di = settings.dynamic_instrumentation
+        {
+          depth: max_capture_depth || di.max_capture_depth,
+          attribute_count: max_capture_attribute_count || di.max_capture_attribute_count,
+          length: max_capture_string_length || di.max_capture_string_length,
+          collection_size: max_capture_collection_size || di.max_capture_collection_size,
+        }
       end
 
       # Returns whether the probe is a line probe.

@@ -22,6 +22,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     allow(settings.dynamic_instrumentation).to receive(:max_capture_depth).and_return(2)
     allow(settings.dynamic_instrumentation).to receive(:max_capture_attribute_count).and_return(2)
     allow(settings.dynamic_instrumentation).to receive(:max_capture_string_length).and_return(100)
+    allow(settings.dynamic_instrumentation).to receive(:max_capture_collection_size).and_return(100)
     allow(settings.dynamic_instrumentation).to receive(:redacted_type_names).and_return([])
     allow(settings.dynamic_instrumentation).to receive(:redacted_identifiers).and_return([])
     allow(settings.dynamic_instrumentation).to receive(:redaction_excluded_identifiers).and_return([])
