@@ -84,6 +84,10 @@ jobs:
           pattern: gha${{ github.run_id }}-datadog-gem-*
           merge-multiple: true
 
+      # Use dd-octo-sts (not GITHUB_TOKEN) so the PR opens with a token that
+      # triggers downstream workflows. lock-dependency.yml must fire on this PR
+      # for `dependency:propagate` to run; PRs created with GITHUB_TOKEN do not
+      # dispatch workflows, so swapping the token would silently break propagation.
       - name: Get GitHub Token via dd-octo-sts
         id: generate-token
         uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4

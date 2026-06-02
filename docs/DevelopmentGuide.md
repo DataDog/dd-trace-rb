@@ -156,39 +156,25 @@ bundle exec rake dependency:lock['/app/gemfiles/ruby_3.4_stripe_latest.gemfile']
 
 Under `gemfiles/` there are two layers of lockfiles:
 
-1. **Parent locks** — `gemfiles/ruby-X.Y.gemfile.lock`, one per supported Ruby. Contains the shared development tooling (rspec, standard, …) plus the `datadog.gemspec` runtime dependencies.
-2. **Appraisal locks** — `gemfiles/ruby_X_Y_<group>.gemfile.lock`, one per integration group. Each is a self-contained resolution that adds the integration under test (rails 6.1, sidekiq 7.x, karafka, …) on top of the parent's gem set.
+1. **Parent locks** — `gemfiles/ruby-X.Y.gemfile.lock`, one per supported Ruby. Holds the shared development tooling plus the `datadog.gemspec` runtime dependencies.
+2. **Appraisal locks** — `gemfiles/ruby_X_Y_<group>.gemfile.lock`, one per integration group. Each adds the integration under test on top of the parent's gem set.
 
-The two layers are independent Bundler resolutions of overlapping gem sets. They are kept in sync by automation (see below); without that sync they would drift on shared gems.
+The two layers are independent Bundler resolutions of overlapping gem sets and will drift on shared gems without active sync.
 
-**Propagating parent-lock movement**
+**Task surfaces**
 
-In addition to `dependency:generate`, `:lock`, and `:install`, two more tasks close the maintenance loop:
+Two rake namespaces, with different intents:
 
-- `dependency:propagate` — diffs the parent lock against each appraisal lock and runs `bundle lock --update=<drifted gems>` on any appraisal that has fallen behind. This pushes parent-level version movement (e.g. an rspec patch bump) down into the appraisal locks even when the appraisal gemfile constraints did not change.
-- `dependency:all` — meta task; runs `:generate`, `:lock`, then `:propagate` in order. This is what the on-PR workflow invokes.
-
-**Moving versions to the latest edge**
-
-`tasks/edge.rake` is the home for tasks that intentionally move versions forward (as opposed to `dependency:*`, which keeps the lock consistent with the current constraints):
-
-- `edge:gemspec` — `bundle lock --update=<gemspec runtime deps>` across appraisals; propagates a `datadog.gemspec` runtime-dep change to every matching appraisal lock.
-- `edge:update` — `bundle lock --update=<gem>` for an allowlisted set of integration libraries (defined in `tasks/edge.rake`) on each matching appraisal. The allowlist exists because we do not want every integration appraisal tracking the latest; only the explicitly enumerated ones do.
+- `tasks/dependency.rake` (`rake -T dependency:`) — keeps lockfiles consistent with the current gemfile constraints, including propagating parent-layer movement into appraisal locks. Does not move versions on its own.
+- `tasks/edge.rake` (`rake -T edge:`) — intentionally moves versions toward the latest within constraints. Includes an allowlist for integration libraries we explicitly want tracking latest; appraisals outside the allowlist stay where their gemfile pins them.
 
 **CI automation**
 
-Three GitHub Actions workflows keep the lockfiles in shape; you should rarely need to run any of the above tasks by hand on a clean checkout.
+Three workflows exercise the above; you should rarely need to run the tasks by hand. The workflow YAML and per-step `name:` fields are the source of truth for what each one does — only the high-level role is captured here.
 
-- `.github/workflows/lock-dependency.yml` — runs on every PR that touches `Gemfile`, `datadog.gemspec`, `appraisal/**`, or `gemfiles/**` (see `.github/dependency_filters.yml`). For each supported Ruby it locks the parent (`bundle lock --add-platform x86_64-linux aarch64-linux arm64-darwin x86_64-darwin`) and then runs `dependency:all` to regenerate, lock, and propagate. The result is committed back to the same PR.
-- `.github/workflows/update-latest-dependency.yml` — Sunday cron + manual dispatch. For each Ruby it runs `bundle update` against the parent gemfile (refreshing the parent lock) and then `edge:gemspec edge:update` (refreshing the appraisal layer's gemspec deps and allowlisted integration libs). It opens / refreshes a single aggregated PR on `auto-generate/update-latest-dependencies`. Because the PR touches `gemfiles/**`, it then triggers `lock-dependency.yml`, which runs `dependency:propagate` to push the parent-lock movement into appraisal locks on the same PR.
-- `.github/workflows/bump-gem-version.yml` — invoked from the release process. Runs `rake version:bump`, which rewrites the datadog version pin in `lib/datadog/version.rb`, `gemfiles/*.lock`, and `tools/*.lock`. The auto-PR includes all three paths.
-
-> [!NOTE]
-> The cron uses a non-default token (`dd-octo-sts`) to create its PR. This is intentional — PRs created with the default `GITHUB_TOKEN` do not trigger downstream workflows, which would silently break the propagation step.
-
-**Out-of-band: `tools/yard.gemfile.lock`**
-
-`tools/yard.gemfile.lock` is not covered by the automations above and must be regenerated manually after editing `tools/yard.gemfile`. The command is documented as a comment at the top of the gemfile. `version:bump` does keep the datadog version pin in sync inside that lock, but transitive dependencies drift until someone refreshes them by hand.
+- `.github/workflows/lock-dependency.yml` — on-PR. Runs whenever a dependency-relevant file changes (see `.github/dependency_filters.yml`). Keeps the appraisal layer consistent with the parent layer and with any gemfile changes the PR introduced, and commits the result back to the PR.
+- `.github/workflows/update-latest-dependency.yml` — Sunday cron + manual dispatch. Moves versions forward and opens a single aggregated PR. That PR then triggers `lock-dependency.yml`, so propagation runs in the same PR.
+- `.github/workflows/bump-gem-version.yml` — invoked from the release flow to rewrite the datadog version pin everywhere it appears.
 
 **How to add a new dependency group**
 
