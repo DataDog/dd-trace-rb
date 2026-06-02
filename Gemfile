@@ -3,12 +3,10 @@
 #
 # NOTE:
 # After changing Ruby version, `Gemfile.lock` can become stale.
-# Rgenerate `Gemfile.lock` by running `rm Gemfile.lock && bundle lock`.
+# Regenerate `Gemfile.lock` by running `rm Gemfile.lock && bundle lock`.
 #
 # If you are not familiar with handling multiple Ruby versions. It is recommended
 # to used `docker compose` for development, which already handles the Ruby version for you.
-
-source 'https://rubygems.org'
 
 # The gemspec is declared inside each per-Ruby base gemfile under gemfiles/
 # (as `gemspec path: '..'`). That allows those files to be loaded directly via
