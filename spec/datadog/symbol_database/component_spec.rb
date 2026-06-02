@@ -218,17 +218,6 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(extraction_count).to eq(1)
     end
 
-    it 'short-circuits when the process has already uploaded' do
-      described_class.mark_uploaded
-
-      expect(component).not_to receive(:extract_and_upload)
-      component.start_upload
-      # start_upload returns immediately because uploaded_this_process? is true —
-      # no scheduler thread is started, so there is nothing to wait on.
-      expect(component.instance_variable_get(:@scheduler_thread)).to be_nil
-    end
-
-
     it 'does not extract when shut down' do
       component.shutdown!
       expect(component).not_to receive(:extract_and_upload)
@@ -506,6 +495,22 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(component.instance_variable_get(:@hot_load_tracepoint)).to be_nil
     end
 
+    it 'disables the inherited hot-load tracepoint before clearing the reference' do
+      # In a forked child, the parent's enabled TracePoint is copied in and
+      # remains rooted by the VM. Niling the ivar without disabling first would
+      # leave it firing — and a subsequent start_upload would install a second
+      # hook on top of it, double-enqueueing every class load.
+      tracepoint = TracePoint.new(:class) {}
+      tracepoint.enable
+      component.instance_variable_set(:@hot_load_tracepoint, tracepoint)
+      expect(tracepoint.enabled?).to be true
+
+      component.after_fork!
+
+      expect(tracepoint.enabled?).to be false
+      expect(component.instance_variable_get(:@hot_load_tracepoint)).to be_nil
+    end
+
     it 'resets @upload_in_progress to false' do
       component.instance_variable_set(:@upload_in_progress, true)
 
@@ -558,31 +563,6 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       allow(settings.symbol_database.internal).to receive(:force_upload).and_return(true)
       hide_const('ActiveSupport')
       hide_const('Rails::Railtie')
-    end
-
-    it 'multiple start_upload calls within the debounce window produce one extraction' do
-      extraction_count = 0
-      allow_any_instance_of(described_class).to receive(:extract_and_upload) do |_inst|
-        extraction_count += 1
-      end
-
-      # First Component: built, schedules upload, fires on its scheduler thread.
-      component_a = described_class.build(settings, agent_settings, logger)
-      component_a.wait_for_idle(timeout: 5)
-
-      # Reconfigure: shut down A, build B (via .build to trigger
-      # schedule_deferred_upload), then call start_upload explicitly on B
-      # (simulating bin/extract_symbols).
-      component_a.shutdown!
-      component_b = described_class.build(settings, agent_settings, logger)
-      component_b.start_upload
-      # component_b.start_upload short-circuits because uploaded_this_process?
-      # is true from component_a. No scheduler thread is started.
-      expect(component_b.instance_variable_get(:@scheduler_thread)).to be_nil
-
-      expect(extraction_count).to eq(1)
-
-      component.shutdown!
     end
 
     it 'each Component built across reconfigurations extracts independently' do
@@ -677,7 +657,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(component.instance_variable_get(:@scheduled_at)).to be_nil
     end
 
-    it 'does not extract again after start, stop, re-start when already uploaded once this process' do
+    it 're-runs extract_all after stop_upload + start_upload (RC re-enable does a fresh scan)' do
       extraction_count = 0
       allow(component.instance_variable_get(:@extractor)).to receive(:extract_all) do
         extraction_count += 1
@@ -687,11 +667,56 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       component.start_upload
       component.wait_for_idle(timeout: 5)
       component.stop_upload
-      # wait_for_idle returned, so uploaded_this_process? is true. The second
-      # start_upload short-circuits without scheduling another extraction.
+      # stop_upload disables the hot-load hook and resets @initial_extraction_done.
+      # A subsequent start_upload — modeling RC re-enabling symdb — therefore
+      # runs a fresh extract_all rather than draining an empty hot-load buffer.
       component.start_upload
+      component.wait_for_idle(timeout: 5)
 
+      expect(extraction_count).to eq(2)
+    end
+
+    it 'stop_upload disables the hot-load TracePoint and clears the buffer' do
+      allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
+      component.start_upload
+      component.wait_for_idle(timeout: 5)
+
+      component.instance_variable_get(:@hot_load_buffer) << Object # simulate a queued event
+      tracepoint = component.instance_variable_get(:@hot_load_tracepoint)
+      expect(tracepoint).not_to be_nil
+      expect(tracepoint.enabled?).to be true
+
+      component.stop_upload
+
+      expect(tracepoint.enabled?).to be false
+      expect(component.instance_variable_get(:@hot_load_tracepoint)).to be_nil
+      expect(component.instance_variable_get(:@hot_load_buffer)).to be_empty
+      expect(component.instance_variable_get(:@initial_extraction_done)).to be false
+    end
+
+    it 'stop_upload prevents a post-stop class definition from triggering extraction' do
+      extraction_count = 0
+      allow(component.instance_variable_get(:@extractor)).to receive(:extract_all) do
+        extraction_count += 1
+        []
+      end
+
+      component.start_upload
+      component.wait_for_idle(timeout: 5)
       expect(extraction_count).to eq(1)
+
+      component.stop_upload
+
+      begin
+        # Define a class after stop_upload — with the TracePoint disabled this
+        # must not enqueue a hot-load event or re-arm the scheduler.
+        eval('class SymdbStopUploadSpecPostStopClass; def hello; end; end', binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
+        sleep 0.1
+        expect(extraction_count).to eq(1)
+        expect(component.instance_variable_get(:@scheduled_at)).to be_nil
+      ensure
+        Object.send(:remove_const, :SymdbStopUploadSpecPostStopClass) if Object.const_defined?(:SymdbStopUploadSpecPostStopClass)
+      end
     end
   end
 

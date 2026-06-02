@@ -224,11 +224,12 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       component.wait_for_idle(timeout: 30)
       upload_count_after_first = captured_forms.size
 
-      # Second call should be a no-op (uploaded_this_process? is true).
-      # start_upload short-circuits before starting a scheduler thread —
-      # no need to sleep; the assertion below proves no second upload happened.
-      component.stop_upload
+      # Second call (without stop_upload between) runs the hot-load path: the
+      # TracePoint buffer is empty because no new classes loaded since the
+      # initial extraction, so the drain produces zero scopes and
+      # ScopeBatcher.flush has nothing to send.
       component.start_upload
+      component.wait_for_idle(timeout: 30)
       expect(captured_forms.size).to eq(upload_count_after_first)
 
       component.shutdown!

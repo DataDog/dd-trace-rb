@@ -196,10 +196,20 @@ module Datadog
         @telemetry&.report(e, description: 'symdb: error scheduling upload')
       end
 
-      # Stop symbol upload (cancel the scheduler).
+      # Stop symbol upload (cancel the scheduler) and suppress further hot-load
+      # extraction. Called when remote config sends upload_symbols: false or
+      # deletes the config. Disables the TracePoint :class hook so post-stop
+      # class loads don't re-arm the scheduler, clears the hot-load buffer, and
+      # resets @initial_extraction_done so a future re-enable performs a fresh
+      # extract_all instead of draining an empty buffer.
       # Thread-safe: can be called concurrently from multiple remote config updates.
       # @return [void]
       def stop_upload
+        @hot_load_tracepoint&.disable
+        @hot_load_tracepoint = nil
+        @hot_load_buffer_mutex.synchronize { @hot_load_buffer.clear }
+        @initial_extraction_done = false
+
         @scheduler_mutex.synchronize do
           @scheduled_at = nil
           @scheduler_signaled = true
@@ -306,11 +316,17 @@ module Datadog
       # Cross-process upload deduplication is intentionally not handled here.
       # Each forked Component does its own initial extraction. Workers in
       # `preload_app! + eager_load=true` deployments hold identical code to
-      # the parent — backend dedup of identical-content uploads is tracked
-      # separately in `backlog/impl.md §Fork/child dedup`.
+      # the parent — backend dedup of identical-content uploads is the
+      # backend's responsibility, not the tracer's.
       #
       # @return [void]
       def after_fork!
+        # Disable the inherited TracePoint before dropping the reference: fork
+        # copies the enabled TP into the child, where it remains rooted by the
+        # VM. Without an explicit disable, every subsequent class load in the
+        # child would enqueue through the inherited hook in addition to the
+        # fresh hook that start_upload installs.
+        @hot_load_tracepoint&.disable
         @hot_load_buffer = []
         @hot_load_buffer_mutex = Mutex.new
         @hot_load_tracepoint = nil
