@@ -70,7 +70,7 @@ jobs:
           commit-message: "[🤖] Update datadog gem version to ${{ inputs.version }}"
           delete-branch: true
           sign-commits: true
-          add-paths: gemfiles,lib/datadog/version.rb
+          add-paths: gemfiles,tools/*.lock,lib/datadog/version.rb
           body: |
             _This is an auto-generated PR from [here](${{github.server_url}}/${{ github.repository }}/blob/master/.github/workflows/bump-datadog-gem-version.yml)_
             The PR updates the version of datadog gem to ${{ inputs.version }}
