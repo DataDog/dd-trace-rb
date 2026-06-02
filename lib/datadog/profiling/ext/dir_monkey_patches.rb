@@ -4,9 +4,10 @@ module Datadog
   module Profiling
     # Monkey patches needed for profiler features and compatibility
     module Ext
-      # All Ruby versions as of this writing have bugs in the dir class implementation, causing issues such as
+      # Ruby versions before 3.4 have bugs in the `Dir` class implementation, causing issues such as
       # https://github.com/DataDog/dd-trace-rb/issues/3450 .
-      # See also https://bugs.ruby-lang.org/issues/20586 for more details.
+      # This was fixed upstream in https://bugs.ruby-lang.org/issues/20586 but we use this monkey patch to work around
+      # the issue on legacy versions (it gets applied by `Datadog::Profiling::Component`).
       #
       # This monkey patch for the Ruby `Dir` class works around these bugs for affected Ruby versions by temporarily
       # blocking the profiler from interrupting system calls.
