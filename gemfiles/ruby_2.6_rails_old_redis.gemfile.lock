@@ -95,6 +95,7 @@ GEM
     dogstatsd-ruby (5.7.1)
     erubi (1.13.1)
     ffi (1.17.2-aarch64-linux-gnu)
+    ffi (1.17.2-arm64-darwin)
     ffi (1.17.2-x86_64-darwin)
     ffi (1.17.2-x86_64-linux-gnu)
     globalid (1.2.1)
@@ -110,8 +111,11 @@ GEM
       addressable (>= 2.4)
     libdatadog (33.0.0.1.0)
     libdatadog (33.0.0.1.0-aarch64-linux)
+    libdatadog (33.0.0.1.0-arm64-darwin)
     libdatadog (33.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.2-aarch64-linux)
+      ffi (~> 1.0)
+    libddwaf (1.30.0.0.2-arm64-darwin)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.2-x86_64-darwin)
       ffi (~> 1.0)
@@ -148,6 +152,8 @@ GEM
       net-protocol
     nio4r (2.7.4)
     nokogiri (1.13.10-aarch64-linux)
+      racc (~> 1.4)
+    nokogiri (1.13.10-arm64-darwin)
       racc (~> 1.4)
     nokogiri (1.13.10-x86_64-darwin)
       racc (~> 1.4)
@@ -251,6 +257,7 @@ GEM
 
 PLATFORMS
   aarch64-linux
+  arm64-darwin
   x86_64-darwin
   x86_64-linux
 

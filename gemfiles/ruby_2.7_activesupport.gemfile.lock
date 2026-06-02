@@ -78,9 +78,11 @@ GEM
       zeitwerk (~> 2.6)
     erubi (1.12.0)
     ffi (1.17.2-aarch64-linux-gnu)
+    ffi (1.17.2-arm64-darwin)
     ffi (1.17.2-x86_64-darwin)
     ffi (1.17.2-x86_64-linux-gnu)
     google-protobuf (3.25.8-aarch64-linux)
+    google-protobuf (3.25.8-arm64-darwin)
     google-protobuf (3.25.8-x86_64-darwin)
     google-protobuf (3.25.8-x86_64-linux)
     grape (1.8.0)
@@ -100,8 +102,11 @@ GEM
     king_konf (1.0.1)
     libdatadog (33.0.0.1.0)
     libdatadog (33.0.0.1.0-aarch64-linux)
+    libdatadog (33.0.0.1.0-arm64-darwin)
     libdatadog (33.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.2-aarch64-linux)
+      ffi (~> 1.0)
+    libddwaf (1.30.0.0.2-arm64-darwin)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.2-x86_64-darwin)
       ffi (~> 1.0)
@@ -126,6 +131,8 @@ GEM
     mustermann-grape (1.0.2)
       mustermann (>= 1.0.0)
     nokogiri (1.15.4-aarch64-linux)
+      racc (~> 1.4)
+    nokogiri (1.15.4-arm64-darwin)
       racc (~> 1.4)
     nokogiri (1.15.4-x86_64-darwin)
       racc (~> 1.4)
@@ -212,6 +219,7 @@ GEM
 
 PLATFORMS
   aarch64-linux
+  arm64-darwin
   x86_64-darwin
   x86_64-linux
 
