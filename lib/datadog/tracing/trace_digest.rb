@@ -83,6 +83,11 @@ module Datadog
       # @!attribute [r] baggage
       #   The W3C "baggage" extracted from a distributed context. This field is a hash of key/value pairs.
       #   @return [Hash<String,String>]
+      # @!attribute [r] span_links
+      #   Span links to attach to the local root span when this digest starts a new trace.
+      #   Used when `DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT` is set to `restart`: the extracted
+      #   context becomes a span link instead of the trace's parent.
+      #   @return [Array<SpanLink>]
       # TODO: The documentation for the last attribute above won't be rendered.
       # TODO: This might be a YARD bug as adding an attribute, making it now second-last attribute, renders correctly.
       attr_reader \
@@ -106,7 +111,8 @@ module Datadog
         :trace_state,
         :trace_state_unknown_fields,
         :span_remote,
-        :baggage
+        :baggage,
+        :span_links
 
       def initialize(
         span_id: nil,
@@ -129,7 +135,8 @@ module Datadog
         trace_state: nil,
         trace_state_unknown_fields: nil,
         span_remote: true,
-        baggage: nil
+        baggage: nil,
+        span_links: nil
       )
         @span_id = span_id
         @span_name = span_name && span_name.dup.freeze
@@ -152,6 +159,7 @@ module Datadog
         @trace_state_unknown_fields = trace_state_unknown_fields && trace_state_unknown_fields.dup.freeze
         @span_remote = span_remote
         @baggage = baggage && baggage.dup.freeze
+        @span_links = span_links && span_links.dup.freeze
         freeze
       end
 
@@ -182,7 +190,8 @@ module Datadog
           trace_state: trace_state,
           trace_state_unknown_fields: trace_state_unknown_fields,
           span_remote: span_remote,
-          baggage: baggage, **field_value_pairs
+          baggage: baggage,
+          span_links: span_links, **field_value_pairs
         )
       end
     end

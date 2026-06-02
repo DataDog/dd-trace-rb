@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../configuration/ext'
+require_relative '../span_link'
 require_relative '../trace_digest'
 require_relative '../trace_operation'
 require_relative '../../core/telemetry/logger'
@@ -19,16 +20,26 @@ module Datadog
         #   a list of styles to use when extracting distributed trace data
         # @param propagation_extract_first [Boolean]
         #   if true, only the first successfully extracted trace will be used
+        # @param propagation_behavior_extract [String]
+        #   what to do with an extracted context: `continue` (default), `restart`, or `ignore`.
+        #   @see Datadog::Tracing::Configuration::Ext::Distributed
         def initialize(
           propagation_styles:,
           propagation_style_inject:,
           propagation_style_extract:,
-          propagation_extract_first:
+          propagation_extract_first:,
+          propagation_behavior_extract: Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_CONTINUE
         )
           @propagation_styles = propagation_styles
           @propagation_extract_first = propagation_extract_first
+          @propagation_behavior_extract = propagation_behavior_extract
           @propagation_style_inject = propagation_style_inject.map { |style| propagation_styles[style] }
           @propagation_style_extract = propagation_style_extract.map { |style| propagation_styles[style] }
+
+          # Reverse lookup so we can name the style that produced an extracted context,
+          # used as the `context_headers` attribute on the span link created for `restart`.
+          @style_name_by_propagator = {}
+          propagation_styles.each { |name, propagator| @style_name_by_propagator[propagator] = name }
 
           # The baggage propagator is unique in that baggage should always be extracted, if present.
           # Therefore we remove it from the `propagation_style_extract` list.
@@ -97,12 +108,18 @@ module Datadog
           return unless data
           return if data.empty?
 
+          # `ignore` discards the extracted context entirely, including baggage.
+          return if @propagation_behavior_extract == Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_IGNORE
+
           extracted_trace_digest = nil
+          # Style that produced the first valid extraction, used for the `restart` span link.
+          first_extracted_style = nil
 
           @propagation_style_extract.each do |propagator|
             # First extraction?
             unless extracted_trace_digest
               extracted_trace_digest = propagator.extract(data)
+              first_extracted_style = @style_name_by_propagator[propagator] if extracted_trace_digest
               next
             end
 
@@ -142,6 +159,13 @@ module Datadog
               "Error extracting distributed trace data. Cause: #{e.class}: #{e.message} Location: #{Array(e.backtrace).first}"
             )
           end
+          # `restart` turns the extracted context into a span link instead of the trace parent,
+          # so the local root span starts a brand-new trace. Baggage is still propagated below.
+          if @propagation_behavior_extract == Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_RESTART &&
+              extracted_trace_digest&.trace_id
+            extracted_trace_digest = restart_digest(extracted_trace_digest, first_extracted_style)
+          end
+
           # Handle baggage after all other styles if present
           extracted_trace_digest = propagate_baggage(data, extracted_trace_digest) if @baggage_propagator
 
@@ -149,6 +173,22 @@ module Datadog
         end
 
         private
+
+        # Builds a digest that starts a new local trace while linking back to the
+        # extracted context, for `DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT=restart`.
+        def restart_digest(extracted_trace_digest, style)
+          link = SpanLink.new(
+            extracted_trace_digest,
+            attributes: {
+              'reason' => 'propagation_behavior_extract',
+              'context_headers' => style,
+            }
+          )
+
+          # No trace_id/span_id: the trace operation generates a fresh trace with a local root span.
+          # `span_remote` is false because the new root is not a continuation of the remote parent.
+          TraceDigest.new(span_links: [link], span_remote: false)
+        end
 
         def propagate_baggage(data, extracted_trace_digest)
           if extracted_trace_digest

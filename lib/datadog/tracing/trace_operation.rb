@@ -88,6 +88,7 @@ module Datadog
         remote_parent: false,
         tracer: nil, # DEV-3.0: deprecated, remove in 3.0
         baggage: nil,
+        span_links: nil,
         auto_finish: true
       )
         @logger = logger
@@ -115,6 +116,7 @@ module Datadog
         @trace_state = trace_state
         @trace_state_unknown_fields = trace_state_unknown_fields
         @baggage = baggage
+        @span_links = span_links
 
         # Generic tags
         set_tags(tags) if tags
@@ -293,6 +295,14 @@ module Datadog
         # Necessary when this trace continues from another, e.g. distributed trace.
         parent_id = parent ? parent.id : @parent_span_id || 0
 
+        # Attach pending span links to the local root span only, then clear them so
+        # descendant spans don't inherit them.
+        links = nil
+        if @span_links && parent.nil?
+          links = @span_links
+          @span_links = nil
+        end
+
         # Build events
         span_events = events || SpanOperation::Events.new(logger: logger)
 
@@ -324,7 +334,8 @@ module Datadog
           tags: tags,
           trace_id: trace_id,
           type: type,
-          id: id
+          id: id,
+          links: links
         )
       rescue => e
         logger.debug { "Failed to build new span: #{e.class}: #{e.message}" }

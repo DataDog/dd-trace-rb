@@ -394,6 +394,7 @@ module Datadog
             remote_parent: digest.span_remote,
             tracer: self,
             baggage: digest.baggage,
+            span_links: digest.span_links,
             auto_finish: auto_finish
           )
         else
