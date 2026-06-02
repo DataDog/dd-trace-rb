@@ -1,0 +1,19 @@
+module Datadog
+  module DI
+    class CaptureLimits
+      @max_reference_depth: Integer?
+      @max_collection_size: Integer?
+      @max_length: Integer?
+      @max_field_count: Integer?
+
+      def initialize: (?max_reference_depth: Integer?, ?max_collection_size: Integer?, ?max_length: Integer?, ?max_field_count: Integer?) -> void
+
+      attr_reader max_reference_depth: Integer?
+      attr_reader max_collection_size: Integer?
+      attr_reader max_length: Integer?
+      attr_reader max_field_count: Integer?
+
+      def self.resolve: (expr_limits: CaptureLimits?, probe: Probe, settings: untyped) -> Hash[Symbol, Integer]
+    end
+  end
+end
