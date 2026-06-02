@@ -128,6 +128,37 @@ module Datadog
                 o.type :bool
               end
 
+              # Controls what the tracer does with an extracted distributed context.
+              #
+              # * `continue` (default): The SDK will continue the distributed trace if the incoming
+              # distributed tracing headers represent a valid trace context.
+              # * `restart`: The SDK will always start a new trace. If the incoming distributed
+              # tracing headers represent a valid trace context, that trace context will be
+              # represented as a span link on service entry spans (as opposed to the parent
+              # span in the continue configuration).
+              # * `ignore`:  The SDK will always start a new trace and all incoming distributed tracing headers are ignored
+              #
+              # @default `DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT` environment variable, otherwise `continue`.
+              # @return [String]
+              option :propagation_behavior_extract do |o|
+                o.env Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_BEHAVIOR_EXTRACT
+                o.default Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_CONTINUE
+                o.type :string
+                o.setter do |value|
+                  behavior = value.to_s.downcase
+                  supported = Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_SUPPORTED
+                  unless supported.include?(behavior)
+                    Datadog.logger.warn(
+                      "Unsupported propagation behavior extract: #{value}. " \
+                      "Supported values are: #{supported.join(', ')}. Falling back to " \
+                      "#{Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_CONTINUE}."
+                    )
+                    behavior = Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_CONTINUE
+                  end
+                  behavior
+                end
+              end
+
               # Enable trace collection and span generation.
               #
               # You can use this option to disable tracing without having to

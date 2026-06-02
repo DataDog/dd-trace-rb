@@ -69,6 +69,26 @@ module Datadog
           # Strictly stop at the first successfully serialized style.
           EXTRACT_FIRST = 'DD_TRACE_PROPAGATION_EXTRACT_FIRST'
 
+          # Controls what the tracer does with an extracted distributed context.
+          # @see https://docs.datadoghq.com/tracing/trace_collection/trace_context_propagation/
+          ENV_PROPAGATION_BEHAVIOR_EXTRACT = 'DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT'
+
+          # Continue the trace from the extracted distributed context (default behavior).
+          PROPAGATION_BEHAVIOR_CONTINUE = 'continue'
+
+          # Start a new trace, turning the extracted context into a span link on the
+          # local root span. Baggage, if present, is still propagated.
+          PROPAGATION_BEHAVIOR_RESTART = 'restart'
+
+          # Ignore the extracted context entirely, including baggage.
+          PROPAGATION_BEHAVIOR_IGNORE = 'ignore'
+
+          PROPAGATION_BEHAVIOR_EXTRACT_SUPPORTED = [
+            PROPAGATION_BEHAVIOR_CONTINUE,
+            PROPAGATION_BEHAVIOR_RESTART,
+            PROPAGATION_BEHAVIOR_IGNORE,
+          ].freeze
+
           ENV_X_DATADOG_TAGS_MAX_LENGTH = 'DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH'
         end
 
