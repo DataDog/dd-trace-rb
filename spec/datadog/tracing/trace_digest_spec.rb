@@ -20,6 +20,7 @@ RSpec.describe Datadog::Tracing::TraceDigest do
           span_resource: nil,
           span_service: nil,
           span_type: nil,
+          span_links: nil,
           trace_distributed_tags: nil,
           trace_hostname: nil,
           trace_id: nil,
@@ -74,6 +75,13 @@ RSpec.describe Datadog::Tracing::TraceDigest do
         let(:span_type) { 'worker' }
 
         it { is_expected.to have_attributes(span_type: be_a_frozen_copy_of(span_type)) }
+      end
+
+      context ':span_links' do
+        let(:options) { {span_links: span_links} }
+        let(:span_links) { [Datadog::Tracing::SpanLink.new(Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2))] }
+
+        it { is_expected.to have_attributes(span_links: be_a_frozen_copy_of(span_links)) }
       end
 
       context ':trace_distributed_tags' do
