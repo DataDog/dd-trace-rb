@@ -531,6 +531,120 @@ RSpec.shared_examples 'Distributed tracing propagator' do
         end
       end
     end
+
+    context 'with DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT' do
+      let(:baggage_header) { 'key=value' }
+      let(:datadog_trace_id) { 0xabcdef }
+      let(:datadog_span_id) { 0xfffffff }
+
+      shared_context 'a datadog trace context' do
+        let(:data) do
+          {
+            prepare_key['x-datadog-trace-id'] => datadog_trace_id.to_s(10),
+            prepare_key['x-datadog-parent-id'] => datadog_span_id.to_s(10),
+            prepare_key['x-datadog-sampling-priority'] => '1',
+            prepare_key['baggage'] => baggage_header,
+          }
+        end
+      end
+
+      context "set to 'ignore'" do
+        let(:propagation_behavior_extract) { 'ignore' }
+        include_context 'a datadog trace context'
+
+        it 'ignores the incoming context entirely, dropping baggage' do
+          expect(trace_digest).to be_nil
+        end
+      end
+
+      context "set to 'restart'" do
+        let(:propagation_behavior_extract) { 'restart' }
+
+        context 'with a datadog trace context' do
+          include_context 'a datadog trace context'
+
+          it 'starts a fresh trace, leaving trace_id and span_id unset' do
+            expect(trace_digest).to be_a_kind_of(Datadog::Tracing::TraceDigest)
+            expect(trace_digest.trace_id).to be_nil
+            expect(trace_digest.span_id).to be_nil
+            expect(trace_digest.span_remote).to be false
+          end
+
+          it 'records a single span link back to the extracted context' do
+            expect(trace_digest.span_links.size).to eq(1)
+            link = trace_digest.span_links.first
+            expect(link.trace_id).to eq(datadog_trace_id)
+            expect(link.span_id).to eq(datadog_span_id)
+            expect(link.trace_flags).to eq(1)
+            expect(link.attributes).to eq(
+              'reason' => 'propagation_behavior_extract',
+              'context_headers' => 'datadog'
+            )
+          end
+
+          it 'propagates baggage' do
+            expect(trace_digest.baggage).to eq({'key' => 'value'})
+          end
+
+          context 'with propagation_extract_first true' do
+            let(:propagation_extract_first) { true }
+
+            it 'still restarts and propagates baggage' do
+              expect(trace_digest.trace_id).to be_nil
+              expect(trace_digest.span_links.size).to eq(1)
+              expect(trace_digest.span_links.first.attributes['context_headers']).to eq('datadog')
+              expect(trace_digest.baggage).to eq({'key' => 'value'})
+            end
+          end
+        end
+
+        context 'with a tracecontext trace context' do
+          let(:tracecontext_trace_id) { 0x123456 }
+          let(:tracecontext_span_id) { 0x1111111 }
+          let(:tracecontext_trace_flags) { 0x01 }
+          let(:data) do
+            {
+              prepare_key['traceparent'] => traceparent,
+              prepare_key['baggage'] => baggage_header,
+            }
+          end
+
+          it 'records a span link with context_headers=tracecontext' do
+            expect(trace_digest.trace_id).to be_nil
+            link = trace_digest.span_links.first
+            expect(link.trace_id).to eq(tracecontext_trace_id)
+            expect(link.span_id).to eq(tracecontext_span_id)
+            expect(link.trace_flags).to eq(tracecontext_trace_flags)
+            expect(link.attributes).to eq(
+              'reason' => 'propagation_behavior_extract',
+              'context_headers' => 'tracecontext'
+            )
+          end
+        end
+
+        context 'with only baggage present (no trace context)' do
+          let(:data) { {prepare_key['baggage'] => baggage_header} }
+
+          it 'falls through to continue: baggage propagates with no span link' do
+            expect(trace_digest).to be_a_kind_of(Datadog::Tracing::TraceDigest)
+            expect(trace_digest.span_links).to be_nil
+            expect(trace_digest.baggage).to eq({'key' => 'value'})
+          end
+        end
+      end
+
+      context "set to 'continue'" do
+        let(:propagation_behavior_extract) { 'continue' }
+        include_context 'a datadog trace context'
+
+        it 'continues the incoming trace with no span link' do
+          expect(trace_digest.trace_id).to eq(datadog_trace_id)
+          expect(trace_digest.span_id).to eq(datadog_span_id)
+          expect(trace_digest.span_links).to be_nil
+          expect(trace_digest.baggage).to eq({'key' => 'value'})
+        end
+      end
+    end
   end
 end
 
