@@ -560,6 +560,43 @@ RSpec.describe 'Instrumentation integration' do
         end
       end
 
+      context 'with capture expression referencing a positional argument' do
+        let(:probe) do
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
+        end
+
+        let(:probe_spec) do
+          {
+            id: '1234',
+            type: 'LOG_PROBE',
+            where: {typeName: 'InstrumentationSpecTestClass', methodName: 'test_method'},
+            captureExpressions: [
+              {name: 'arg1', expr: {dsl: 'arg1', json: {ref: 'arg1'}}},
+            ],
+          }
+        end
+
+        it 'evaluates the expression against arg locals at return time' do
+          expect(diagnostics_transport).to receive(:send_diagnostics)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          expect(InstrumentationSpecTestClass.new.test_method(7)).to eq(42)
+          component.probe_notifier_worker.flush
+
+          captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
+          expect(captures.fetch(:return).fetch(:captureExpressions)).to eq(
+            "arg1" => {type: 'Integer', value: '7'},
+          )
+          expect(captures.fetch(:entry).fetch(:captureExpressions)).to eq(
+            "arg1" => {type: 'Integer', value: '7'},
+          )
+        end
+      end
+
       context 'when target is invoked' do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,

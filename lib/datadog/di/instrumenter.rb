@@ -270,7 +270,15 @@ module Datadog
               caller_locs = method_frame + caller_locations
               # TODO capture arguments at exit
 
-              context = Context.new(locals: nil, target_self: self,
+              # Method-probe capture expressions need access to args/kwargs by
+              # name (arg1, arg2, kwarg keys). Populate locals from the live
+              # arg references when the probe has capture expressions; values
+              # may reflect in-place mutation by the method body, matching the
+              # return-time scope semantics.
+              capture_expression_locals = if probe.capture_expressions?
+                serializer.combine_args(args, kwargs, self)
+              end
+              context = Context.new(locals: capture_expression_locals, target_self: self,
                 probe: probe, settings: settings, serializer: serializer,
                 serialized_entry_args: serialized_entry_args,
                 caller_locations: caller_locs,
