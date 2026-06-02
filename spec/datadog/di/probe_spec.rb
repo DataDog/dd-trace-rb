@@ -275,4 +275,65 @@ RSpec.describe Datadog::DI::Probe do
       end
     end
   end
+
+  describe "#snapshot_serializer_limits" do
+    let(:settings) do
+      double("settings", dynamic_instrumentation: double(
+        max_capture_depth: 3,
+        max_capture_attribute_count: 20,
+        max_capture_string_length: 255,
+        max_capture_collection_size: 100,
+      ))
+    end
+
+    context "no probe-level overrides" do
+      let(:probe) do
+        described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar")
+      end
+
+      it "returns all four settings defaults" do
+        expect(probe.snapshot_serializer_limits(settings)).to eq(
+          depth: 3,
+          attribute_count: 20,
+          length: 255,
+          collection_size: 100,
+        )
+      end
+    end
+
+    context "all four probe-level overrides set" do
+      let(:probe) do
+        described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar",
+          max_capture_depth: 7,
+          max_capture_attribute_count: 99,
+          max_capture_string_length: 77,
+          max_capture_collection_size: 33,)
+      end
+
+      it "returns the probe-level values for all four fields" do
+        expect(probe.snapshot_serializer_limits(settings)).to eq(
+          depth: 7,
+          attribute_count: 99,
+          length: 77,
+          collection_size: 33,
+        )
+      end
+    end
+
+    context "mixed probe-level overrides" do
+      let(:probe) do
+        described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar",
+          max_capture_string_length: 50,)
+      end
+
+      it "uses the probe-level value where set, settings default otherwise" do
+        expect(probe.snapshot_serializer_limits(settings)).to eq(
+          depth: 3,
+          attribute_count: 20,
+          length: 50,
+          collection_size: 100,
+        )
+      end
+    end
+  end
 end

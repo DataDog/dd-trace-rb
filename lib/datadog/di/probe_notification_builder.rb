@@ -79,12 +79,11 @@ module Datadog
         # snapshot or vars/args into this method
         capture_expression_evaluation_errors = []
         captures = if probe.capture_snapshot?
+          snapshot_limits = probe.snapshot_serializer_limits(settings)
           if probe.method?
             return_arguments = {
-              "@return": serializer.serialize_value(context.return_value,
-                depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-                attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count),
-              self: serializer.serialize_value(context.target_self),
+              "@return": serializer.serialize_value(context.return_value, **snapshot_limits),
+              self: serializer.serialize_value(context.target_self, **snapshot_limits),
             }
             {
               entry: {
@@ -100,7 +99,7 @@ module Datadog
               lines: (locals = context.serialized_locals) && {
                 probe.line_no => {
                   locals: locals,
-                  arguments: {self: serializer.serialize_value(context.target_self)},
+                  arguments: {self: serializer.serialize_value(context.target_self, **snapshot_limits)},
                 },
               },
             }

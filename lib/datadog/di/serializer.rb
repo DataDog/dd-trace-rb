@@ -131,9 +131,12 @@ module Datadog
       # in upstream code.
       def serialize_args(args, kwargs, target_self,
         depth: settings.dynamic_instrumentation.max_capture_depth,
-        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count)
+        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,
+        length: nil,
+        collection_size: nil)
         combined = combine_args(args, kwargs, target_self)
-        serialize_vars(combined, depth: depth, attribute_count: attribute_count)
+        serialize_vars(combined, depth: depth, attribute_count: attribute_count,
+          length: length, collection_size: collection_size)
       end
 
       # Serializes variables captured by a line probe.
@@ -142,9 +145,12 @@ module Datadog
       # of executed code.
       def serialize_vars(vars,
         depth: settings.dynamic_instrumentation.max_capture_depth,
-        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count)
+        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,
+        length: nil,
+        collection_size: nil)
         vars.each_with_object({}) do |(k, v), agg|
-          agg[k] = serialize_value(v, name: k, depth: depth, attribute_count: attribute_count)
+          agg[k] = serialize_value(v, name: k, depth: depth, attribute_count: attribute_count,
+            length: length, collection_size: collection_size)
         end
       end
 

@@ -597,6 +597,40 @@ RSpec.describe 'Instrumentation integration' do
         end
       end
 
+      context 'with snapshot capture and probe-level maxLength override' do
+        let(:probe) do
+          Datadog::DI::Probe.new(id: "1234", type: :log,
+            type_name: 'InstrumentationSpecTestClass', method_name: 'mutating_method',
+            capture_snapshot: true,
+            max_capture_string_length: 4,)
+        end
+
+        it 'truncates strings in entry args, return value, and self to the probe-level limit' do
+          expect(diagnostics_transport).to receive(:send_diagnostics)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          expect(InstrumentationSpecTestClass.new.mutating_method('hello world')).to eq('bye world')
+          component.probe_notifier_worker.flush
+
+          captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
+          # Entry arg passes through serialize_args with the probe-level limit.
+          expect(captures.fetch(:entry).fetch(:arguments).fetch(:arg1)).to include(
+            type: 'String', value: 'hell', truncated: true,
+          )
+          # @return passes through serialize_value with the probe-level limit.
+          expect(captures.fetch(:return).fetch(:arguments).fetch(:@return)).to include(
+            type: 'String', value: 'bye ', truncated: true,
+          )
+          # self is serialized with the probe-level limit so its ivar string is also truncated.
+          ivar = captures.fetch(:return).fetch(:arguments).fetch(:self).fetch(:fields).fetch(:@ivar)
+          expect(ivar).to include(type: 'String', value: 'star', truncated: true)
+        end
+      end
+
       context 'when target is invoked' do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
