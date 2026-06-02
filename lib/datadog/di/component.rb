@@ -76,7 +76,7 @@ module Datadog
         @serializer = Serializer.new(settings, redactor, telemetry: telemetry)
         @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry)
         @probe_repository = ProbeRepository.new
-        @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer)
+        @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer, telemetry: telemetry)
         @probe_notifier_worker = ProbeNotifierWorker.new(
           settings, logger,
           agent_settings: agent_settings,

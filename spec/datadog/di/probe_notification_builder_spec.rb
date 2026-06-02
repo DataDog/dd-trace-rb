@@ -2,6 +2,8 @@ require "datadog/di/spec_helper"
 require 'datadog/di/probe_notification_builder'
 require 'datadog/di/serializer'
 require 'datadog/di/probe'
+require 'datadog/di/capture_expression'
+require 'datadog/di/el'
 
 # Notification builder is primarily tested via integration tests for
 # dynamic instrumentation overall, since the generated payloads depend
@@ -34,6 +36,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       allow(settings).to receive(:max_capture_attribute_count).and_return(10)
       allow(settings).to receive(:max_capture_depth).and_return(2)
       allow(settings).to receive(:max_capture_string_length).and_return(100)
+      allow(settings).to receive(:max_time_to_serialize_ms).and_return(200)
     end
   end
 
@@ -699,6 +702,142 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
 
       it 'substitutes correctly' do
         expect(builder.send(:evaluate_template, template_segments, context)).to eq([expected, []])
+      end
+    end
+  end
+
+  describe '#build_snapshot with capture_expressions' do
+    let(:compiled_expr) do
+      compiled = Datadog::DI::EL::Compiler.new.compile({"ref" => "x"})
+      Datadog::DI::EL::Expression.new("x", compiled)
+    end
+
+    let(:capture_expression) do
+      Datadog::DI::CaptureExpression.new(name: "x", expr: compiled_expr)
+    end
+
+    let(:context) do
+      Datadog::DI::Context.new(
+        settings: settings, serializer: serializer,
+        probe: probe,
+        locals: {x: 42},
+        target_self: nil,
+      )
+    end
+
+    context 'line probe with only capture_expressions' do
+      let(:probe) do
+        Datadog::DI::Probe.new(id: '123', type: :log, file: 'X', line_no: 1,
+          capture_expressions: [capture_expression])
+      end
+
+      it 'emits captureExpressions under the line block' do
+        payload = builder.build_snapshot(context)
+        lines = payload[:debugger][:snapshot][:captures][:lines]
+        expect(lines.keys).to eq([1])
+        expect(lines[1][:captureExpressions].keys).to eq(["x"])
+        expect(lines[1][:captureExpressions]["x"]).to include(type: "Integer", value: "42")
+      end
+
+      it 'does not emit locals or arguments blocks alongside captureExpressions' do
+        payload = builder.build_snapshot(context)
+        lines = payload[:debugger][:snapshot][:captures][:lines]
+        expect(lines[1]).not_to have_key(:locals)
+        expect(lines[1]).not_to have_key(:arguments)
+      end
+    end
+
+    context 'method probe with only capture_expressions' do
+      let(:probe) do
+        Datadog::DI::Probe.new(id: '123', type: :log, type_name: 'Foo', method_name: 'bar',
+          capture_expressions: [capture_expression])
+      end
+
+      it 'emits captureExpressions under both entry and return blocks' do
+        payload = builder.build_snapshot(context)
+        captures = payload[:debugger][:snapshot][:captures]
+        expect(captures[:entry][:captureExpressions].keys).to eq(["x"])
+        expect(captures[:return][:captureExpressions].keys).to eq(["x"])
+        expect(captures[:entry][:captureExpressions]["x"]).to include(type: "Integer", value: "42")
+      end
+    end
+
+    context 'method probe with capture_expressions and an exception in context' do
+      let(:probe) do
+        Datadog::DI::Probe.new(id: '123', type: :log, type_name: 'Foo', method_name: 'bar',
+          capture_expressions: [capture_expression])
+      end
+
+      let(:raised_exception) do
+        raise "boom"
+      rescue => e
+        e
+      end
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          settings: settings, serializer: serializer,
+          probe: probe,
+          locals: {x: 42},
+          target_self: Object.new,
+          exception: raised_exception,
+        )
+      end
+
+      it 'emits throwable in the return block alongside captureExpressions' do
+        payload = builder.build_snapshot(context)
+        return_block = payload[:debugger][:snapshot][:captures][:return]
+        expect(return_block[:captureExpressions].keys).to eq(["x"])
+        expect(return_block[:throwable][:type]).to eq("RuntimeError")
+      end
+    end
+
+    context 'captureSnapshot wins when both are set' do
+      let(:target_self) { Object.new }
+
+      let(:probe) do
+        Datadog::DI::Probe.new(id: '123', type: :log, type_name: 'Foo', method_name: 'bar',
+          capture_snapshot: true,
+          capture_expressions: [capture_expression])
+      end
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          settings: settings, serializer: serializer,
+          probe: probe,
+          target_self: target_self,
+          return_value: 99,
+        )
+      end
+
+      it 'emits the snapshot blocks and omits captureExpressions' do
+        payload = builder.build_snapshot(context)
+        captures = payload[:debugger][:snapshot][:captures]
+        expect(captures[:return][:arguments]).to be_a(Hash)
+        expect(captures[:entry]).not_to have_key(:captureExpressions)
+        expect(captures[:return]).not_to have_key(:captureExpressions)
+      end
+    end
+
+    context 'evaluation error in a capture expression' do
+      let(:failing_expr) do
+        # len(badvar) — badvar is not in locals, resolves to nil, len(nil) raises
+        compiled = Datadog::DI::EL::Compiler.new.compile({"len" => {"ref" => "badvar"}})
+        Datadog::DI::EL::Expression.new("len(badvar)", compiled)
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(id: '123', type: :log, file: 'X', line_no: 1,
+          capture_expressions: [Datadog::DI::CaptureExpression.new(name: "bad", expr: failing_expr)])
+      end
+
+      it 'omits the failing key from captureExpressions and reports in top-level evaluationErrors' do
+        payload = builder.build_snapshot(context)
+        snapshot = payload[:debugger][:snapshot]
+        expect(snapshot[:captures][:lines][1][:captureExpressions]).to eq({})
+        expect(snapshot[:evaluationErrors].size).to eq(1)
+        expect(snapshot[:evaluationErrors].first[:expr]).to eq("bad")
+        expect(snapshot[:evaluationErrors].first[:message]).to include("ExpressionEvaluationError")
       end
     end
   end

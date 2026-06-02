@@ -297,6 +297,38 @@ RSpec.describe Datadog::DI::ProbeBuilder do
           probe
         end
       end
+
+      context "captureExpressions is not an array" do
+        let(:rc_probe_spec) do
+          base_spec.merge("captureExpressions" => {"name" => "x"})
+        end
+
+        it "raises ArgumentError" do
+          expect { probe }.to raise_error(ArgumentError, /captureExpressions must be an array/)
+        end
+      end
+
+      context "captureExpressions entry is not a hash" do
+        let(:rc_probe_spec) do
+          base_spec.merge("captureExpressions" => ["not-a-hash"])
+        end
+
+        it "raises ArgumentError" do
+          expect { probe }.to raise_error(ArgumentError, /captureExpressions entry must be a hash/)
+        end
+      end
+
+      context "per-expression capture block is not a hash" do
+        let(:rc_probe_spec) do
+          base_spec.merge("captureExpressions" => [
+            valid_capture_expression.merge("capture" => "not-a-hash"),
+          ])
+        end
+
+        it "raises ArgumentError" do
+          expect { probe }.to raise_error(ArgumentError, /capture-expression entry capture must be a hash/)
+        end
+      end
     end
   end
 end
