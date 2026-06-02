@@ -1,6 +1,8 @@
 module Datadog
   module DI
     class CaptureExpressionEvaluator
+      TELEMETRY_NAMESPACE: String
+
       @settings: untyped
       @serializer: Datadog::DI::Serializer
       @telemetry: untyped?

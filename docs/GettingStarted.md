@@ -2958,6 +2958,7 @@ Dynamic Instrumentation allows you to add log probes, metric probes, and span pr
 | `DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS` | `Array` | Comma-separated list of variable/key names to redact in addition to the built-in list. Names are normalized (underscores, dashes, `@`, `$` removed) and matched case-insensitively. | `[]` |
 | `DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS` | `Array` | Comma-separated list of variable/key names to exclude from the built-in redaction list, allowing their values to be captured. | `[]` |
 | `DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES` | `Array` | Comma-separated list of class names whose values will be redacted. Suffix with `*` for wildcard matching (for example, `Foo*` redacts `Foo`, `FooBar`, `Foo::Bar`). | `[]` |
+| `DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE` | `Integer` | Time budget (in milliseconds) per probe fire for capture-expression evaluation. Once exhausted, remaining capture expressions emit a `notCapturedReason: "timeout"` stub in the snapshot. Shared with the .NET tracer's whole-snapshot serialization budget. | `200` |
 
 Alternatively, set DI parameters inside a `Datadog.configure` block:
 
@@ -2967,6 +2968,7 @@ Alternatively, set DI parameters inside a `Datadog.configure` block:
 | `c.dynamic_instrumentation.redacted_identifiers` | `Array` | Variable/key names to redact in addition to the built-in list. | `[]` |
 | `c.dynamic_instrumentation.redaction_excluded_identifiers` | `Array` | Variable/key names to exclude from the built-in redaction list. | `[]` |
 | `c.dynamic_instrumentation.redacted_type_names` | `Array` | Class names whose values will be redacted. Suffix with `*` for wildcard. | `[]` |
+| `c.dynamic_instrumentation.max_time_to_serialize_ms` | `Integer` | Per-probe-fire time budget (in milliseconds) for capture-expression evaluation. | `200` |
 
 #### Symbol Database
 

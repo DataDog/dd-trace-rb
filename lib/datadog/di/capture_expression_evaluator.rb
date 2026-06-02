@@ -22,6 +22,8 @@ module Datadog
     #
     # @api private
     class CaptureExpressionEvaluator
+      TELEMETRY_NAMESPACE = "dynamic_instrumentation"
+
       # @param settings [Datadog::Core::Configuration::Settings]
       # @param serializer [Datadog::DI::Serializer]
       # @param telemetry [Datadog::Core::Telemetry::Component, nil]
@@ -54,7 +56,7 @@ module Datadog
 
           if ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) >= deadline_ns
             output[name] = {notCapturedReason: "timeout"}
-            telemetry&.inc("dynamic_instrumentation.capture_expression_timeout", 1)
+            telemetry&.inc(TELEMETRY_NAMESPACE, "capture_expression_timeout", 1)
             next
           end
 

@@ -1,5 +1,6 @@
 require "datadog/di/spec_helper"
 require "datadog/di/capture_expression"
+require "datadog/di/probe"
 
 RSpec.describe Datadog::DI::CaptureExpression do
   di_test
@@ -55,7 +56,7 @@ RSpec.describe Datadog::DI::CaptureLimits do
       ))
     end
     let(:probe) do
-      double("probe",
+      instance_double(Datadog::DI::Probe,
         max_capture_depth: nil,
         max_capture_attribute_count: nil,
         max_capture_collection_size: nil,
@@ -71,7 +72,7 @@ RSpec.describe Datadog::DI::CaptureLimits do
 
     context "probe-level limits set" do
       let(:probe) do
-        double("probe",
+        instance_double(Datadog::DI::Probe,
           max_capture_depth: 7,
           max_capture_attribute_count: 99,
           max_capture_collection_size: nil,
@@ -86,7 +87,7 @@ RSpec.describe Datadog::DI::CaptureLimits do
 
     context "probe-level collection_size and length set" do
       let(:probe) do
-        double("probe",
+        instance_double(Datadog::DI::Probe,
           max_capture_depth: nil,
           max_capture_attribute_count: nil,
           max_capture_collection_size: 33,
@@ -115,7 +116,7 @@ RSpec.describe Datadog::DI::CaptureLimits do
         described_class.new(max_reference_depth: 8)
       end
       let(:probe) do
-        double("probe",
+        instance_double(Datadog::DI::Probe,
           max_capture_depth: 5,
           max_capture_attribute_count: 7,
           max_capture_collection_size: nil,
@@ -133,7 +134,7 @@ RSpec.describe Datadog::DI::CaptureLimits do
         described_class.new(max_length: 20)
       end
       let(:probe) do
-        double("probe",
+        instance_double(Datadog::DI::Probe,
           max_capture_depth: nil,
           max_capture_attribute_count: nil,
           max_capture_collection_size: 44,
