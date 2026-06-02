@@ -40,6 +40,8 @@ jobs:
       DD_REMOTE_CONFIGURATION_ENABLED: false
       DATADOG_GEM_CI: true
       DD_PROFILING_MACOS_TESTING: true
+      BUNDLE_GEMFILE: gemfiles/ruby-${{ matrix.ruby.version }}.gemfile
+      BUNDLE_FROZEN: "true"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:

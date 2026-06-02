@@ -31,6 +31,8 @@ jobs:
       id-token: write
     env:
       NEXT_VERSION: ${{ inputs.version }}
+      BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+      BUNDLE_FROZEN: "true"
     steps:
       - name: Get GitHub Token via dd-octo-sts
         id: generate-token
@@ -48,7 +50,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
         with:
-          ruby-version: "3.3.7"
+          ruby-version: "4.0.1"
 
       - run: bundle install
 
@@ -68,7 +70,7 @@ jobs:
           commit-message: "[🤖] Update datadog gem version to ${{ inputs.version }}"
           delete-branch: true
           sign-commits: true
-          add-paths: gemfiles,lib/datadog/version.rb
+          add-paths: gemfiles,tools/*.lock,lib/datadog/version.rb
           body: |
             _This is an auto-generated PR from [here](${{github.server_url}}/${{ github.repository }}/blob/master/.github/workflows/bump-datadog-gem-version.yml)_
             The PR updates the version of datadog gem to ${{ inputs.version }}
