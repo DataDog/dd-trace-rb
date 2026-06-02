@@ -65,8 +65,10 @@ module Datadog
             probe.max_capture_depth ||
             di.max_capture_depth,
           collection_size: expr_limits&.max_collection_size ||
+            probe.max_capture_collection_size ||
             di.max_capture_collection_size,
           length: expr_limits&.max_length ||
+            probe.max_capture_string_length ||
             di.max_capture_string_length,
           attribute_count: expr_limits&.max_field_count ||
             probe.max_capture_attribute_count ||
