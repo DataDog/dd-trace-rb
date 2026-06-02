@@ -34,17 +34,15 @@ module Datadog
           @propagation_extract_first = propagation_extract_first
           @propagation_behavior_extract = propagation_behavior_extract
           @propagation_style_inject = propagation_style_inject.map { |style| propagation_styles[style] }
-          @propagation_style_extract = propagation_style_extract.map { |style| propagation_styles[style] }
-
-          # Reverse lookup so we can name the style that produced an extracted context,
-          # used as the `context_headers` attribute on the span link created for `restart`.
-          @style_name_by_propagator = {}
-          propagation_styles.each { |name, propagator| @style_name_by_propagator[propagator] = name }
+          @propagation_style_extract = propagation_style_extract.map { |style| [style, propagation_styles[style]] }
 
           # The baggage propagator is unique in that baggage should always be extracted, if present.
           # Therefore we remove it from the `propagation_style_extract` list.
-          @baggage_propagator = @propagation_style_extract.find { |propagator| propagator.is_a?(Baggage) }
-          @propagation_style_extract.delete(@baggage_propagator) if @baggage_propagator
+          baggage_style = @propagation_style_extract.find { |_style, propagator| propagator.is_a?(Baggage) }
+          if baggage_style
+            @baggage_propagator = baggage_style.last
+            @propagation_style_extract.delete(baggage_style)
+          end
         end
 
         # inject! populates the env with span ID, trace ID and sampling priority
@@ -115,11 +113,11 @@ module Datadog
           # Style that produced the first valid extraction, used for the `restart` span link.
           first_extracted_style = nil
 
-          @propagation_style_extract.each do |propagator|
+          @propagation_style_extract.each do |style, propagator|
             # First extraction?
             unless extracted_trace_digest
               extracted_trace_digest = propagator.extract(data)
-              first_extracted_style = @style_name_by_propagator[propagator] if extracted_trace_digest
+              first_extracted_style = style if extracted_trace_digest
               next
             end
 
@@ -209,7 +207,8 @@ module Datadog
         end
 
         def last_datadog_parent_id(headers, tracecontext_tags)
-          dd_propagator = @propagation_style_extract.find { |propagator| propagator.is_a?(Datadog) }
+          dd_style = @propagation_style_extract.find { |_style, propagator| propagator.is_a?(Datadog) }
+          dd_propagator = dd_style&.last
           if tracecontext_tags&.fetch(
             Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID,
             Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
