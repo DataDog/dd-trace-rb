@@ -61,13 +61,6 @@ NORETURN(
 
 #define MAX_RAISE_MESSAGE_SIZE 256
 
-#define FORMAT_VA_ERROR_MESSAGE(buf, fmt) \
-  char buf[MAX_RAISE_MESSAGE_SIZE]; \
-  va_list buf##_args; \
-  va_start(buf##_args, fmt); \
-  vsnprintf(buf, MAX_RAISE_MESSAGE_SIZE, fmt, buf##_args); \
-  va_end(buf##_args);
-
 // Helper to retrieve Datadog::VERSION::STRING
 VALUE datadog_gem_version(void);
 

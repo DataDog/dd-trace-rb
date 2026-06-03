@@ -187,6 +187,14 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       expect(thread_context_collector.inspect).to include("global_waiting_for_gvl_threshold_ns=222333444")
     end
 
+    context "when otel_context_enabled has an invalid value" do
+      it "raises an ArgumentError with the value formatted via PRIsVALUE" do
+        expect {
+          described_class.for_testing(recorder: recorder, otel_context_enabled: :invalid)
+        }.to raise_error(ArgumentError, "Unexpected value for otel_context_enabled: :invalid")
+      end
+    end
+
     context "when native filenames are enabled but feature is not available" do
       let(:native_filenames_enabled) { true }
 
