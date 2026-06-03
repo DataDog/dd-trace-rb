@@ -55,6 +55,7 @@ module Datadog
                 service: service,
                 on_error: on_error
               ) do |span|
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 connection = transport.connections.first
                 host = connection.host[:host] if connection
                 port = connection.host[:port] if connection

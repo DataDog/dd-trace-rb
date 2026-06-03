@@ -22,6 +22,7 @@ module Datadog
               Tracing.trace(Ext::SPAN_COMMAND) do |span|
                 span.resource = op.to_s.upcase
                 span.service = datadog_configuration[:service_name]
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 span.type = Ext::SPAN_TYPE_COMMAND
 
                 if datadog_configuration[:peer_service]

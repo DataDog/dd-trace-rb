@@ -37,6 +37,7 @@ module Datadog
             end
 
             def datadog_tag_request(uri, span)
+              span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               span.resource = method.to_s.upcase
 
               if datadog_configuration[:peer_service]

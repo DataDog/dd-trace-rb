@@ -4,6 +4,7 @@ require 'rack'
 require 'rack/test'
 require 'datadog'
 require 'datadog/tracing/contrib/support/spec_helper'
+require 'datadog/tracing/contrib/svc_src_examples'
 require 'datadog/tracing/contrib/rack/ext'
 require 'datadog/tracing/contrib/hanami/ext'
 
@@ -30,6 +31,19 @@ RSpec.describe 'Hanami instrumentation' do
         parent: routing_span,
         resource: 'Hanami::Routing::Default::NullAction'
       )
+    end
+  end
+
+  context 'when service_name is overridden' do
+    before do
+      Datadog.configure do |c|
+        c.tracing.instrument :hanami, service_name: 'custom-hanami'
+      end
+      get 'simple_success'
+    end
+
+    it_behaves_like 'tags _dd.svc_src', 'hanami' do
+      let(:span) { routing_span }
     end
   end
 

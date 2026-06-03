@@ -28,7 +28,10 @@ module Datadog
             end
 
             def on_start(span, _event, _id, payload)
-              span.service = configuration[:service_name] if configuration[:service_name]
+              if configuration[:service_name]
+                span.service = configuration[:service_name]
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
+              end
               span.type = Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)

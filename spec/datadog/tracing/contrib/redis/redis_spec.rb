@@ -7,6 +7,7 @@ require_relative 'shared_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 
 RSpec.describe 'Redis test' do
   let(:configuration_options) { {} }
@@ -36,6 +37,10 @@ RSpec.describe 'Redis test' do
 
       it_behaves_like 'environment service name', 'DD_TRACE_REDIS_SERVICE_NAME' do
         subject { redis.ping }
+      end
+
+      it_behaves_like 'tags _dd.svc_src', 'redis' do
+        before { redis.ping }
       end
 
       it_behaves_like 'configured peer service span', 'DD_TRACE_REDIS_PEER_SERVICE' do

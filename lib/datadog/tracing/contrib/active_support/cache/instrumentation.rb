@@ -51,6 +51,7 @@ module Datadog
                 service: Datadog.configuration.tracing[:active_support][:cache_service],
                 resource: action
               ) do |span|
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CACHE)
 

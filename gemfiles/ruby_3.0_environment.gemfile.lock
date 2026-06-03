@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.34.0)
+    datadog (2.35.0)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
       libdatadog (~> 33.0.0.1.0)
@@ -97,7 +97,7 @@ GEM
     method_source (1.1.0)
     mini_mime (1.1.5)
     minitest (5.26.1)
-    msgpack (1.8.0)
+    msgpack (1.8.1)
     multi_test (1.1.0)
     os (1.1.4)
     pry (0.16.0)

@@ -1,5 +1,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 require 'datadog'
 require 'datadog/tracing/contrib/grape/patcher'
 require 'datadog/tracing/contrib/rack/middlewares'
@@ -179,6 +180,14 @@ RSpec.describe 'Grape instrumentation' do
           let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           before { is_expected.to be_ok }
+        end
+
+        context 'when service_name is overridden' do
+          let(:configuration_options) { {service_name: 'custom-grape'} }
+          it_behaves_like 'tags _dd.svc_src', 'grape' do
+            let(:span) { run_span }
+            before { subject }
+          end
         end
 
         it 'traces the endpoint body' do

@@ -33,6 +33,7 @@ module Datadog
               set_distributed_context!(metadata)
 
               Tracing.trace(Ext::SPAN_SERVICE, **options) do |span|
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 annotate!(span, metadata, formatter)
 
                 begin

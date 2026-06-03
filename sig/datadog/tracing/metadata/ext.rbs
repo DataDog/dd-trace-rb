@@ -10,6 +10,8 @@ module Datadog
         TAG_TOP_LEVEL: ::String
         TAG_APM_ENABLED: ::String
         TAG_BASE_SERVICE: ::String
+        TAG_SVC_SRC: ::String
+        SVC_SRC_MANUAL: ::String
 
         module Analytics
           DEFAULT_SAMPLE_RATE: ::Float
