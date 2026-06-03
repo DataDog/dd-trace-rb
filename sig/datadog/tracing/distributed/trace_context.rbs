@@ -21,8 +21,6 @@ module Datadog
         def extract: (untyped data) -> (nil | untyped)
 
         private
-        module Refine
-        end
         def build_traceparent: (TraceDigest digest) -> ::String
         def build_traceparent_string: (::Integer trace_id, ::Integer parent_id, ::Integer trace_flags) -> ::String
         def build_trace_flags: (TraceDigest digest) -> ::Integer

@@ -1,5 +1,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/environment_service_name_examples'
+require 'datadog/tracing/contrib/span_attribute_schema_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 
 require 'ethon'
 require 'datadog/tracing/contrib/ethon/easy_patch'
@@ -111,10 +113,6 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
       let(:span) { span_op }
       before { subject }
     end
-
-    it_behaves_like 'environment service name', 'DD_TRACE_ETHON_SERVICE_NAME' do
-      let(:span) { span_op }
-    end
   end
 
   describe '#complete' do
@@ -135,6 +133,12 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
       subject
       expect(easy.instance_eval { @datadog_span }).to be_nil
     end
+
+    it_behaves_like 'environment service name', 'DD_TRACE_ETHON_SERVICE_NAME'
+    it_behaves_like 'tags _dd.svc_src', 'ethon' do
+      before { subject }
+    end
+    it_behaves_like 'schema version span'
 
     context 'when response is successful' do
       before do

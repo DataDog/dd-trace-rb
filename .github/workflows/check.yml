@@ -19,7 +19,11 @@ jobs:
   build:
     name: build
     runs-on: ubuntu-24.04
-    container: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+      env:
+        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
     outputs:
       lockfile: ${{ steps.bundle-cache.outputs.lockfile }}
       cache-key: ${{ steps.bundle-cache.outputs.cache-key }}
@@ -35,7 +39,11 @@ jobs:
     name: rubocop/lint
     runs-on: ubuntu-24.04
     needs: ['build']
-    container: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+      env:
+        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -51,7 +59,11 @@ jobs:
     name: standard/lint
     runs-on: ubuntu-24.04
     needs: ['build']
-    container: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+      env:
+        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -67,7 +79,11 @@ jobs:
     name: lint/frozen_string_literal
     runs-on: ubuntu-24.04
     needs: ['build']
-    container: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+      env:
+        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -83,7 +99,11 @@ jobs:
     name: steep/typecheck
     runs-on: ubuntu-24.04
     needs: ['build']
-    container: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
+      env:
+        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
+        BUNDLE_FROZEN: "true"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:

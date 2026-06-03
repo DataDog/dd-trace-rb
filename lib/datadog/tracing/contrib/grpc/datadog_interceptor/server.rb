@@ -33,6 +33,7 @@ module Datadog
               set_distributed_context!(metadata)
 
               Tracing.trace(Ext::SPAN_SERVICE, **options) do |span|
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 annotate!(span, metadata, formatter)
 
                 begin
@@ -64,11 +65,6 @@ module Datadog
                 next if header.to_s.start_with?(Tracing::Distributed::Datadog::TAGS_PREFIX)
 
                 span.set_tag(header, value)
-              end
-
-              # Tag original global service name if not used
-              if span.service != Datadog.configuration.service
-                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
               end
 
               span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)

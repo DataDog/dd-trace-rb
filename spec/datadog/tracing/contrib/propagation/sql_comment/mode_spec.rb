@@ -8,6 +8,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment::Mode do
     [
       ['disabled', false],
       ['service', true],
+      ['dynamic_service', true],
       ['full', true],
       ['undefined', false]
     ].each do |string, result|
@@ -22,6 +23,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment::Mode do
     [
       ['disabled', false],
       ['service', true],
+      ['dynamic_service', true],
       ['full', false],
       ['undefined', false]
     ].each do |string, result|
@@ -36,6 +38,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment::Mode do
     [
       ['disabled', false],
       ['service', false],
+      ['dynamic_service', false],
       ['full', true],
       ['undefined', false]
     ].each do |string, result|
@@ -60,11 +63,13 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment::Mode do
 
   describe '#inject_sql_basehash?' do
     [
-      [false, false],
-      [true, true]
-    ].each do |value, result|
-      context "when given `#{value}`" do
-        subject { described_class.new('service', false, value).inject_sql_basehash? }
+      ['service', false, false],
+      ['service', true, true],
+      ['dynamic_service', false, true],
+      ['dynamic_service', true, true]
+    ].each do |mode, value, result|
+      context "when given mode `#{mode}` and inject_sql_basehash `#{value}`" do
+        subject { described_class.new(mode, false, value).inject_sql_basehash? }
         it { is_expected.to be result }
       end
     end

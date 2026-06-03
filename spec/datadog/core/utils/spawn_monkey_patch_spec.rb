@@ -21,7 +21,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
       write_io.close
       Process.wait(pid)
 
-      Datadog::Core::Utils::Array.filter_map(read_io.read.lines) do |line|
+      Datadog::Core::Utils::EnumerableCompat.filter_map(read_io.read.lines) do |line|
         parts = line.chomp.split('=', 2)
         [parts[0], parts[1]] if parts.size == 2
       end.to_h
@@ -132,7 +132,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
   # Regression coverage for https://github.com/DataDog/dd-trace-rb/issues/5621.
   #
   # When the env-detection check used bare `Hash`, it resolved to
-  # `Datadog::Core::Utils::Hash` (a refinement module) via Module.nesting,
+  # `Datadog::Core::Utils::Hash` via Module.nesting,
   # so `Hash === real_env_hash` silently returned false. `#inject_envs` then took
   # the wrong branch and broke callers that pass an env `{Hash}` first
   # (TypeError: no implicit conversion of Hash into String).
@@ -151,7 +151,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
     # run Process.spawn, return [success?, exit_status, child_stdout].
     def run_spawn(*spawn_args)
       read_io, write_io = IO.pipe
-      if spawn_args.last.is_a?(Hash) && spawn_args.last.keys.all? { |k| k.is_a?(Symbol) || k.is_a?(Integer) }
+      if spawn_args.last.is_a?(Hash)
         spawn_args[-1] = spawn_args.last.merge(out: write_io, err: write_io, in: File::NULL)
       else
         spawn_args << {out: write_io, err: write_io, in: File::NULL}
@@ -252,7 +252,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
     # an options Hash with mixed Integer + Symbol keys. The prior wrapper signature
     # `def spawn(*args, **opts)` auto-extracted the Symbol-keyed entries into `**opts`
     # on Ruby 2.5/2.6/2.7 while leaving Integer-keyed entries in the trailing positional
-    # Hash — mangling the call and raising `TypeError`. Dropping `**opts` (this PR)
+    # Hash — mangling the call and raising `TypeError`. Dropping `**opts`
     # keeps the options Hash positional and intact across all supported Rubies.
     it 'spawn(cmd, options_hash_with_mixed_symbol_and_integer_keys) — childprocess close-on-exec shape' do
       expect_in_fork do
@@ -268,6 +268,27 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
           spare_r.close
           spare_w.close
         end
+      end
+    end
+
+    it 'delegates perfectly to the original method' do
+      expect_in_fork do
+        checker = double
+        if RUBY_VERSION < '2.7'
+          # 2.6 splits Symbol & non-Symbol kwargs so we have to test just *args
+          checker.define_singleton_method :spawn do |*args|
+            checker.check(*args)
+          end
+        else
+          checker.define_singleton_method :spawn do |*args, **kwargs|
+            checker.check(*args, **kwargs)
+          end
+        end
+        Datadog::Core::Utils::SpawnMonkeyPatch.instance_variable_set(:@env_provider, -> { {lineage_var => lineage_val} })
+        checker.singleton_class.prepend(Datadog::Core::Utils::SpawnMonkeyPatch::ProcessSpawnPatch)
+
+        expect(checker).to receive(:check).with({lineage_var => lineage_val}, ['echo', 'test'], 2 => 1, :out => File::NULL)
+        checker.spawn(['echo', 'test'], 2 => 1, :out => File::NULL)
       end
     end
 

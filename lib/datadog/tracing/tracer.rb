@@ -417,6 +417,15 @@ module Datadog
           event_span_op.service ||= @default_service
         end
 
+        events.span_before_finish.subscribe do |event_span_op, _event_trace_op|
+          if event_span_op.service && event_span_op.service != @default_service
+            event_span_op.set_tag(Tracing::Metadata::Ext::TAG_BASE_SERVICE, @default_service)
+            event_span_op.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Tracing::Metadata::Ext::SVC_SRC_MANUAL) unless event_span_op.get_tag(Tracing::Metadata::Ext::TAG_SVC_SRC)
+          else
+            event_span_op.send(:meta).delete(Tracing::Metadata::Ext::TAG_SVC_SRC)
+          end
+        end
+
         events.trace_propagated.subscribe do |event_trace_op|
           sample_trace(event_trace_op)
         end

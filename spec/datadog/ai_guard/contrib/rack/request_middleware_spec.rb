@@ -32,7 +32,7 @@ RSpec.describe Datadog::AIGuard::Contrib::Rack::RequestMiddleware do
   context "when AI Guard ran during the request" do
     let(:app) do
       lambda do |_env|
-        Datadog::Tracing.active_trace&.set_tag(Datadog::AIGuard::Ext::SERVICE_ENTRY_EXECUTED_TAG, "1")
+        Datadog::Tracing.active_trace&.set_tag(Datadog::AIGuard::Ext::TRACE_EXECUTED_TAG, "1")
         [200, {}, ["ok"]]
       end
     end
@@ -59,13 +59,29 @@ RSpec.describe Datadog::AIGuard::Contrib::Rack::RequestMiddleware do
       Datadog::Tracing.trace("rack.request") do |_span, trace|
         middleware.call(env)
 
-        expect(trace.get_tag(Datadog::AIGuard::Ext::SERVICE_ENTRY_EXECUTED_TAG)).to be_nil
+        expect(trace.get_tag(Datadog::AIGuard::Ext::TRACE_EXECUTED_TAG)).to be_nil
+      end
+    end
+
+    it "clears temporary trace tags on exit" do
+      noop_app = ->(_) { [200, {}, ["ok"]] }
+
+      Datadog::Tracing.trace("rack.request") do |_span, trace|
+        Datadog::AIGuard::Ext::TRACE_ANOMALY_DETECTION_TAGS.each do |tag|
+          trace.set_tag(tag, "sentinel")
+        end
+
+        described_class.new(noop_app).call(env)
+
+        Datadog::AIGuard::Ext::TRACE_ANOMALY_DETECTION_TAGS.each do |tag|
+          expect(trace.get_tag(tag)).to be_nil
+        end
       end
     end
 
     it "still tags on the way out when the inner app raises" do
       raising_app = lambda do |_env|
-        Datadog::Tracing.active_trace&.set_tag(Datadog::AIGuard::Ext::SERVICE_ENTRY_EXECUTED_TAG, "1")
+        Datadog::Tracing.active_trace&.set_tag(Datadog::AIGuard::Ext::TRACE_EXECUTED_TAG, "1")
         raise "boom"
       end
       mw = described_class.new(raising_app)
@@ -90,9 +106,9 @@ RSpec.describe Datadog::AIGuard::Contrib::Rack::RequestMiddleware do
       end
     end
 
-    context "when tagging raises" do
+    context "when error is raised during Anomaly Detection tags setting" do
       before do
-        allow(Datadog::Tracing::ClientIp).to receive(:set_client_ip_tag!).and_raise(StandardError, "boom")
+        allow(Datadog::Tracing::ClientIp).to receive(:extract_client_ip).and_raise(StandardError, "boom")
       end
 
       it "reports to telemetry instead of raising" do
@@ -128,7 +144,7 @@ RSpec.describe Datadog::AIGuard::Contrib::Rack::RequestMiddleware do
     let(:app) do
       lambda do |_env|
         Datadog::Tracing.trace(Datadog::AIGuard::Ext::SPAN_NAME) do |_span, trace|
-          trace.set_tag(Datadog::AIGuard::Ext::SERVICE_ENTRY_EXECUTED_TAG, "1")
+          trace.set_tag(Datadog::AIGuard::Ext::TRACE_EXECUTED_TAG, "1")
         end
         [200, {}, ["ok"]]
       end

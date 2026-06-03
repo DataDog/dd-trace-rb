@@ -37,7 +37,6 @@ module Datadog
         # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
         no_signals_workaround_enabled = no_signals_workaround_enabled?(settings, logger)
-        timeline_enabled = settings.profiling.advanced.timeline_enabled
         allocation_profiling_enabled = enable_allocation_profiling?(settings, logger)
         heap_sample_every = get_heap_sample_every(settings)
         heap_profiling_enabled = enable_heap_profiling?(settings, allocation_profiling_enabled, heap_sample_every, logger)
@@ -53,10 +52,9 @@ module Datadog
           heap_samples_enabled: heap_profiling_enabled,
           heap_size_enabled: heap_size_profiling_enabled,
           heap_sample_every: heap_sample_every,
-          timeline_enabled: timeline_enabled,
           heap_clean_after_gc_enabled: settings.profiling.advanced.heap_clean_after_gc_enabled,
         )
-        thread_context_collector = build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
+        thread_context_collector = build_thread_context_collector(settings, recorder, optional_tracer)
         worker = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
           gc_profiling_enabled: enable_gc_profiling?(settings, logger),
           no_signals_workaround_enabled: no_signals_workaround_enabled,
@@ -71,7 +69,6 @@ module Datadog
 
         internal_metadata = {
           no_signals_workaround_enabled: no_signals_workaround_enabled,
-          timeline_enabled: timeline_enabled,
           heap_sample_every: heap_sample_every,
         }.freeze
 
@@ -99,13 +96,12 @@ module Datadog
         [nil, {profiling_enabled: false}]
       end
 
-      private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
+      private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer)
         Datadog::Profiling::Collectors::ThreadContext.new(
           recorder: recorder,
           max_frames: settings.profiling.advanced.max_frames,
           tracer: optional_tracer,
           endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
-          timeline_enabled: timeline_enabled,
           waiting_for_gvl_threshold_ns: settings.profiling.advanced.waiting_for_gvl_threshold_ns,
           otel_context_enabled: settings.profiling.advanced.preview_otel_context_enabled,
           native_filenames_enabled: settings.profiling.advanced.native_filenames_enabled,
@@ -469,11 +465,7 @@ module Datadog
       end
 
       private_class_method def self.enable_gvl_profiling?(settings, logger)
-        return false if RUBY_VERSION < "3.2"
-
-        # GVL profiling only makes sense in the context of timeline. We could emit a warning here, but not sure how
-        # useful it is -- if a customer disables timeline, there's nowhere to look for GVL profiling anyway!
-        settings.profiling.advanced.timeline_enabled && settings.profiling.advanced.gvl_enabled
+        RUBY_VERSION >= "3.2" && settings.profiling.advanced.gvl_enabled
       end
     end
   end

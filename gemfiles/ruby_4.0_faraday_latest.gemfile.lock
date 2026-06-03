@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.34.0.dev)
+    datadog (2.36.0.dev)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
       libdatadog (~> 33.0.0.1.0)
@@ -38,7 +38,7 @@ GEM
       logger
     faraday-follow_redirects (0.5.0)
       faraday (>= 1, < 3)
-    faraday-net_http (3.4.2)
+    faraday-net_http (3.4.3)
       net-http (~> 0.5)
     ffi (1.17.4)
     ffi (1.17.4-aarch64-linux-gnu)
@@ -46,7 +46,7 @@ GEM
     fiddle (1.1.8)
     google-protobuf (3.25.8)
     hashdiff (1.2.1)
-    json (2.19.5)
+    json (2.19.7)
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (33.0.0.1.0)
@@ -61,7 +61,7 @@ GEM
     logger (1.7.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    msgpack (1.8.0)
+    msgpack (1.8.1)
     mutex_m (0.3.0)
     net-http (0.9.1)
       uri (>= 0.11.1)

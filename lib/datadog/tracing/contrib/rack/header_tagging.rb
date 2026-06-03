@@ -1,11 +1,18 @@
 # frozen_string_literal: true
 
+require_relative 'header_collection'
+
 module Datadog
   module Tracing
     module Contrib
       module Rack
         # Matches Rack-style headers with a matcher and sets matching headers into a span.
         module HeaderTagging
+          DATADOG_REQUEST_ATTRIBUTION_HEADERS = [
+            'x-datadog-endpoint-scan',
+            'x-datadog-security-test'
+          ].freeze
+
           def self.tag_request_headers(span, env, configuration)
             # Wrap env in a case-insensitive Rack-style accessor.
             headers = env.is_a?(Header::RequestHeaderCollection) ? env : Header::RequestHeaderCollection.new(env)
@@ -25,6 +32,7 @@ module Datadog
             end
 
             span.set_tags(tags)
+            tag_datadog_request_attribution_headers(span, headers)
           end
 
           def self.tag_response_headers(span, headers, configuration)
@@ -55,6 +63,21 @@ module Datadog
             end
 
             span.set_tags(tags)
+          end
+
+          # Datadog-originated requests use these headers for request attribution.
+          # They are tagged independently of user-configured header tagging so
+          # downstream systems can distinguish them from regular application traffic.
+          #
+          # @api private
+          private_class_method def self.tag_datadog_request_attribution_headers(span, headers)
+            DATADOG_REQUEST_ATTRIBUTION_HEADERS.each do |header|
+              header_value = headers.get(header)
+              next unless header_value
+
+              header_tag = Tracing::Metadata::Ext::HTTP::RequestHeaders.to_tag(header)
+              span.set_tag(header_tag, header_value)
+            end
           end
         end
       end
