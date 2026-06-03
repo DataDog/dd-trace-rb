@@ -1,5 +1,5 @@
 PATH
-  remote: ..
+  remote: .
   specs:
     datadog (2.35.0)
       cgi
@@ -295,4 +295,4 @@ DEPENDENCIES
   zstd-ruby
 
 BUNDLED WITH
-   2.7.2
+  4.0.6

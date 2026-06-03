@@ -1,5 +1,5 @@
 PATH
-  remote: ..
+  remote: .
   specs:
     datadog (2.35.0)
       cgi
@@ -35,10 +35,10 @@ GEM
     diff-lcs (1.6.2)
     docile (1.4.1)
     dogstatsd-ruby (5.7.1)
-    ffi (1.17.2-aarch64-linux-gnu)
+    ffi (1.17.2-aarch64-linux)
     ffi (1.17.2-arm64-darwin)
     ffi (1.17.2-x86_64-darwin)
-    ffi (1.17.2-x86_64-linux-gnu)
+    ffi (1.17.2-x86_64-linux)
     google-protobuf (3.25.8-aarch64-linux)
     google-protobuf (3.25.8-arm64-darwin)
     google-protobuf (3.25.8-x86_64-darwin)
