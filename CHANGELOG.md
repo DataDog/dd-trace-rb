@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+## [2.35.0] - 2026-06-03
+
+### Added
+
+* Tracing: Add `dynamic_service` SQL comment propagation mode for Database Monitoring ([#5812][])
+* Tracing: Prevent Datadog-generated traffic from interfering with application metrics ([#5811][])
+
+### Changed
+
+* AppSec: Improve route extraction performance for Rails applications ([#5836][])
+
+### Fixed
+
+* Tracing: Restore `Datadog::Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE` constant removed in v2.34.0 ([#5830][])
+
+### Removed
+
+* Profiling: Deprecate the `profiling.advanced.timeline_enabled` setting for removal; it no longer does anything. Please remove it from `Datadog.configure` and do not set `DD_PROFILING_TIMELINE_ENABLED` ([#5750][])
+
 ## [2.34.0] - 2026-05-27
 
 ### Added
@@ -3615,7 +3634,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.34.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.35.0...master
+[2.35.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.34.0...v2.35.0
 [2.34.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.33.0...v2.34.0
 [2.33.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.32.0...v2.33.0
 [2.32.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.31.0...v2.32.0
@@ -5363,11 +5383,16 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#5717]: https://github.com/DataDog/dd-trace-rb/issues/5717
 [#5723]: https://github.com/DataDog/dd-trace-rb/issues/5723
 [#5724]: https://github.com/DataDog/dd-trace-rb/issues/5724
+[#5750]: https://github.com/DataDog/dd-trace-rb/issues/5750
 [#5753]: https://github.com/DataDog/dd-trace-rb/issues/5753
 [#5754]: https://github.com/DataDog/dd-trace-rb/issues/5754
 [#5762]: https://github.com/DataDog/dd-trace-rb/issues/5762
 [#5768]: https://github.com/DataDog/dd-trace-rb/issues/5768
 [#5773]: https://github.com/DataDog/dd-trace-rb/issues/5773
+[#5811]: https://github.com/DataDog/dd-trace-rb/issues/5811
+[#5812]: https://github.com/DataDog/dd-trace-rb/issues/5812
+[#5830]: https://github.com/DataDog/dd-trace-rb/issues/5830
+[#5836]: https://github.com/DataDog/dd-trace-rb/issues/5836
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
