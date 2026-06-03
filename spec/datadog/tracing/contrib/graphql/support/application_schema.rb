@@ -1,6 +1,6 @@
+require 'ostruct' # graphql 1.13 does not require ostruct
 require 'graphql'
 require 'json'
-require 'ostruct'
 
 module TestGraphQL
   class Case < GraphQL::Schema::Directive
