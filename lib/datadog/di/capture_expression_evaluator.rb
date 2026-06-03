@@ -27,15 +27,18 @@ module Datadog
 
       # @param settings [Datadog::Core::Configuration::Settings]
       # @param serializer [Datadog::DI::Serializer]
-      # @param telemetry [Datadog::Core::Telemetry::Component, nil]
-      def initialize(settings:, serializer:, telemetry: nil)
+      # @param logger [Datadog::Core::Logger]
+      # @param telemetry [Datadog::Core::Telemetry::Component]
+      def initialize(settings:, serializer:, logger:, telemetry:)
         @settings = settings
         @serializer = serializer
+        @logger = logger
         @telemetry = telemetry
       end
 
       attr_reader :settings
       attr_reader :serializer
+      attr_reader :logger
       attr_reader :telemetry
 
       # Evaluate +probe.capture_expressions+ against +context+.
@@ -57,7 +60,7 @@ module Datadog
 
           if ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) >= deadline_ns
             output[name] = {notCapturedReason: "timeout"}
-            telemetry&.inc(TELEMETRY_NAMESPACE, "capture_expression_timeout", 1)
+            telemetry.inc(TELEMETRY_NAMESPACE, "capture_expression_timeout", 1)
             next
           end
 
@@ -77,10 +80,10 @@ module Datadog
             )
           rescue => exc
             evaluation_errors << {expr: name, message: "#{exc.class}: #{exc.message}"}
-            Datadog.logger.debug do
+            logger.debug do
               "di: probe #{probe.id}: capture expression #{name}: evaluation failed: #{exc.class}: #{exc.message}"
             end
-            telemetry&.report(exc, description: "DI capture-expression evaluation failed")
+            telemetry.report(exc, description: "DI capture-expression evaluation failed")
           end
         end
 

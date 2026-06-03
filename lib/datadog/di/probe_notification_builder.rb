@@ -11,17 +11,19 @@ module Datadog
     #
     # @api private
     class ProbeNotificationBuilder
-      def initialize(settings, serializer, telemetry: nil)
+      def initialize(settings, serializer, logger, telemetry:)
         @settings = settings
         @serializer = serializer
+        @logger = logger
         @telemetry = telemetry
         @capture_expression_evaluator = CaptureExpressionEvaluator.new(
-          settings: settings, serializer: serializer, telemetry: telemetry,
+          settings: settings, serializer: serializer, logger: logger, telemetry: telemetry,
         )
       end
 
       attr_reader :settings
       attr_reader :serializer
+      attr_reader :logger
       attr_reader :telemetry
       attr_reader :capture_expression_evaluator
 
