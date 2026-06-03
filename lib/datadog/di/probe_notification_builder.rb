@@ -11,6 +11,15 @@ module Datadog
     #
     # @api private
     class ProbeNotificationBuilder
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings;
+      #   read at payload-build time for service/env/version/tags fields.
+      # @param serializer [Datadog::DI::Serializer] serializer used for snapshot
+      #   values (captures, return, throwable).
+      # @param logger [Datadog::Core::Logger] logger forwarded to the internal
+      #   CaptureExpressionEvaluator for per-expression evaluation failures.
+      # @param telemetry [Datadog::Core::Telemetry::Component] telemetry forwarded
+      #   to the internal CaptureExpressionEvaluator for timeout / failure
+      #   reporting.
       def initialize(settings, serializer, logger, telemetry:)
         @settings = settings
         @serializer = serializer
@@ -21,10 +30,25 @@ module Datadog
         )
       end
 
+      # Tracer settings; read at every build_* call.
+      # @return [Datadog::Core::Configuration::Settings]
       attr_reader :settings
+
+      # Serializer used to convert captured values into snapshot wire format.
+      # @return [Datadog::DI::Serializer]
       attr_reader :serializer
+
+      # Logger; passed through to CaptureExpressionEvaluator at construction.
+      # @return [Datadog::Core::Logger]
       attr_reader :logger
+
+      # Telemetry; passed through to CaptureExpressionEvaluator at construction.
+      # @return [Datadog::Core::Telemetry::Component]
       attr_reader :telemetry
+
+      # Lazily-constructed sub-component that evaluates probe.capture_expressions
+      # during build_snapshot when probe.capture_expressions? is true.
+      # @return [Datadog::DI::CaptureExpressionEvaluator]
       attr_reader :capture_expression_evaluator
 
       def build_received(probe)

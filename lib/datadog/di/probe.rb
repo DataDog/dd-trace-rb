@@ -176,6 +176,11 @@ module Datadog
       # falling back to the DI settings default when the probe-level value
       # is nil. The result is intended to be splatted into
       # +Serializer#serialize_value+, +serialize_args+, or +serialize_vars+.
+      #
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings
+      #   providing the dynamic_instrumentation.max_capture_* fallback values.
+      # @return [Hash{Symbol => Integer}] hash with keys :depth, :attribute_count,
+      #   :length, :collection_size — all values are Integers (no nils).
       def snapshot_serializer_limits(settings)
         di = settings.dynamic_instrumentation
         {

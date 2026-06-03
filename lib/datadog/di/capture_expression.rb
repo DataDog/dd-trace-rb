@@ -16,14 +16,30 @@ module Datadog
     #
     # @api private
     class CaptureExpression
+      # @param name [String] user-supplied key under which this expression's
+      #   serialized value appears in the snapshot's captureExpressions block.
+      #   Validated against /\A[a-zA-Z0-9_?]+\z/ by ProbeBuilder.
+      # @param expr [Datadog::DI::EL::Expression] compiled DSL expression
+      #   evaluated against the probe context at probe-fire time.
+      # @param limits [Datadog::DI::CaptureLimits, nil] optional per-expression
+      #   capture-limit overrides. nil falls back to probe-level then
+      #   settings-level limits independently per field via CaptureLimits.resolve.
       def initialize(name:, expr:, limits: nil)
         @name = name
         @expr = expr
         @limits = limits
       end
 
+      # User-supplied snapshot key. See `initialize` for charset constraints.
+      # @return [String]
       attr_reader :name
+
+      # Compiled DI expression-language expression evaluated at probe-fire time.
+      # @return [Datadog::DI::EL::Expression]
       attr_reader :expr
+
+      # Per-expression capture-limit overrides, or nil when none are configured.
+      # @return [Datadog::DI::CaptureLimits, nil]
       attr_reader :limits
     end
   end

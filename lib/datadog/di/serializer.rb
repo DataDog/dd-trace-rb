@@ -129,6 +129,18 @@ module Datadog
       # Instance variables are technically a hash just like kwargs,
       # we take them as a separate parameter to avoid a hash merge
       # in upstream code.
+      #
+      # @param args [Array] positional arguments captured at the call site.
+      # @param kwargs [Hash] keyword arguments captured at the call site.
+      # @param target_self [Object] the receiver of the instrumented method
+      #   call; its instance variables are folded into the output.
+      # @param depth [Integer] object traversal depth cap.
+      # @param attribute_count [Integer] per-object attribute count cap.
+      # @param length [Integer, nil] String length cap; nil leaves it
+      #   unspecified and lets serialize_value fall back to settings.
+      # @param collection_size [Integer, nil] Array/Hash size cap; nil leaves
+      #   it unspecified and lets serialize_value fall back to settings.
+      # @return [Hash{Symbol => Hash}] serialized argument map.
       def serialize_args(args, kwargs, target_self,
         depth: settings.dynamic_instrumentation.max_capture_depth,
         attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,
@@ -143,6 +155,15 @@ module Datadog
       #
       # These are normally local variables that exist on a particular line
       # of executed code.
+      #
+      # @param vars [Hash{Symbol => Object}] variable-name => value map.
+      # @param depth [Integer] object traversal depth cap.
+      # @param attribute_count [Integer] per-object attribute count cap.
+      # @param length [Integer, nil] String length cap; nil leaves it
+      #   unspecified and lets serialize_value fall back to settings.
+      # @param collection_size [Integer, nil] Array/Hash size cap; nil leaves
+      #   it unspecified and lets serialize_value fall back to settings.
+      # @return [Hash{Symbol => Hash}] serialized variable map.
       def serialize_vars(vars,
         depth: settings.dynamic_instrumentation.max_capture_depth,
         attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,

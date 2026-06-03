@@ -82,6 +82,17 @@ module Datadog
         raise ArgumentError, "Malformed remote configuration entry for probe: #{exc.class}: #{exc.message}: #{config}"
       end
 
+      # Parses the `captureExpressions` block of a remote-config probe payload
+      # into compiled CaptureExpression instances.
+      #
+      # @param raw [Array<Hash>, nil] raw `captureExpressions` value from the
+      #   remote-config payload. nil is treated as "no expressions" (returns []).
+      # @return [Array<Datadog::DI::CaptureExpression>] one per entry; empty
+      #   array when raw is nil or empty.
+      # @raise [ArgumentError] when raw is non-nil and not an Array, when any
+      #   entry is not a Hash, when an entry's name is missing or fails the
+      #   CAPTURE_EXPRESSION_NAME_PATTERN charset check, or when the `expr`
+      #   field is missing/malformed.
       def build_capture_expressions(raw)
         return [] if raw.nil?
         unless Array === raw
@@ -107,6 +118,14 @@ module Datadog
         end
       end
 
+      # Parses a per-expression `capture` block of a remote-config probe payload
+      # into a CaptureLimits instance.
+      #
+      # @param raw [Hash, nil] raw per-expression `capture` value. nil means
+      #   "no per-expression overrides" (returns nil).
+      # @return [Datadog::DI::CaptureLimits, nil] CaptureLimits when raw is a
+      #   Hash; nil when raw is nil.
+      # @raise [ArgumentError] when raw is non-nil and not a Hash.
       def build_capture_limits(raw)
         return nil if raw.nil?
         unless Hash === raw
