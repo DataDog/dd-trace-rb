@@ -19,7 +19,7 @@ For a list of available integrations, and their supported version ranges, refer 
 | active_support           | 4.2.11.3            | 8.1.3               |
 | aws                      | 3.1.0               | 3.3.0               |
 | concurrent_ruby          | 1.2.2               | 1.3.6               |
-| dalli                    | 2.7.11              | 5.0.4               |
+| dalli                    | 2.7.11              | 5.0.5               |
 | delayed_job              | 4.1.11              | 4.1.13              |
 | elasticsearch            | 7.17.11             | 9.4.0               |
 | ethon                    | 0.15.0              | 0.18.0              |
@@ -58,7 +58,7 @@ For a list of available integrations, and their supported version ranges, refer 
 | sidekiq                  | 5.2.8               | 8.0.7               |
 | sinatra                  | 2.2.4               | 4.1.1               |
 | sneakers                 | 2.12.0              | 2.12.0              |
-| stripe                   | 5.15.0              | 19.1.0              |
+| stripe                   | 5.15.0              | 19.2.0              |
 | sucker_punch             | 3.1.0               | 3.2.0               |
 | trilogy                  | 2.6.0               | 2.9.0               |
-| waterdrop                | 2.6.14              | 2.10.0              |
+| waterdrop                | 2.6.14              | 2.10.1              |
