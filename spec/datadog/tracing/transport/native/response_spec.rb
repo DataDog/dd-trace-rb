@@ -19,7 +19,7 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::Response' do
                     client_error: false, not_found: false,
                     unsupported: false, trace_count: 0, payload: nil)
     resp = response_class.allocate
-    resp.instance_variable_set(:@ok,             ok)
+    resp.instance_variable_set(:@ok,              ok)
     resp.instance_variable_set(:@internal_error,  internal_error)
     resp.instance_variable_set(:@server_error,    server_error)
     resp.instance_variable_set(:@client_error,    client_error)
