@@ -2208,8 +2208,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       sample
     end
 
-    it "clears the per_thread_context" do
-      expect { reset_after_fork }.to change { per_thread_context.empty? }.from(false).to(true)
+    it "clears the current Thread per_thread_context" do
+      expect { reset_after_fork }.to change { per_thread_context.key?(Thread.current) }.from(true).to(false)
     end
 
     it "clears the stats" do

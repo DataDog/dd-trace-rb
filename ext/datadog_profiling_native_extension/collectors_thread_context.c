@@ -1409,22 +1409,17 @@ static bool should_collect_resource(VALUE root_span) {
 //
 // Assumption: This method gets called BEFORE restarting profiling -- e.g. there are no components attempting to
 // trigger samples at the same time.
+//
+// Note that tests call this method directly in the same process without forking,
+// and in such a case non-current Threads keep running.
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   state->stats = (struct stats) {}; // Resets all stats back to zero
 
-  VALUE threads = thread_list(state);
-  const long thread_count = RARRAY_LEN(threads);
-  for (long i = 0; i < thread_count; i++) {
-    VALUE thread = RARRAY_AREF(threads, i);
-    per_thread_context *ctx = get_per_thread_context(thread);
-    if (ctx != NULL) {
-      set_per_thread_context(thread, NULL);
-      if (!RB_OBJ_FROZEN(thread)) rb_ivar_set(thread, dd_per_thread_context_id, Qnil);
-    }
-  }
+  // Clear any leftover state from parent process in the current thread; all other threads are assumed dead
+  _native_clear_per_thread_context_for(Qnil, rb_thread_current());
 
   rb_funcall(state->recorder_instance, rb_intern("reset_after_fork"), 0);
 
