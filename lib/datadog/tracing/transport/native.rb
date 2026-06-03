@@ -90,17 +90,17 @@ module Datadog
             Core::Utils::AtForkMonkeyPatch.at_fork(:before) do
               exporter._native_before_fork
             rescue => e
-              Datadog.logger.warn { "Native transport before-fork failed: #{e}" }
+              Datadog.logger.warn { "Native transport before-fork preparation failed; traces may not be sent to Datadog: #{e}" }
             end
             Core::Utils::AtForkMonkeyPatch.at_fork(:parent) do
               exporter._native_after_fork_in_parent
             rescue => e
-              Datadog.logger.warn { "Native transport after-fork reset failed: #{e}" }
+              Datadog.logger.warn { "Native transport after-fork reset failed; traces may not be sent to Datadog: #{e}" }
             end
             Core::Utils::AtForkMonkeyPatch.at_fork(:child) do
               exporter._native_after_fork_in_child
             rescue => e
-              Datadog.logger.warn { "Native transport after-fork reset failed: #{e}" }
+              Datadog.logger.warn { "Native transport after-fork reset failed; traces may not be sent to Datadog: #{e}" }
             end
           end
 
