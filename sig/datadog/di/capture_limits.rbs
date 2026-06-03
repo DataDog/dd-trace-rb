@@ -13,7 +13,7 @@ module Datadog
       attr_reader max_length: Integer?
       attr_reader max_field_count: Integer?
 
-      def self.resolve: (expr_limits: CaptureLimits?, probe: Probe, settings: untyped) -> Hash[Symbol, Integer]
+      def self.resolve: (expr_limits: CaptureLimits?, probe: Probe, settings: Datadog::Core::Configuration::Settings) -> Hash[Symbol, Integer]
     end
   end
 end

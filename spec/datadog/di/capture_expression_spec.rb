@@ -18,4 +18,3 @@ RSpec.describe Datadog::DI::CaptureExpression do
     end
   end
 end
-

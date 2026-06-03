@@ -69,7 +69,7 @@ module Datadog
 
       def capture_snapshot?: () -> bool
       def capture_expressions?: () -> bool
-      def snapshot_serializer_limits: (untyped settings) -> Hash[Symbol, Integer]
+      def snapshot_serializer_limits: (Datadog::Core::Configuration::Settings settings) -> Hash[Symbol, Integer]
       def line?: () -> bool
       def method?: () -> bool
       def line_no!: () -> Integer
