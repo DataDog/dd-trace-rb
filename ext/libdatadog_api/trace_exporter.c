@@ -787,6 +787,23 @@ static VALUE build_and_send_traces(VALUE arg) {
     args.response = NULL;
   }
 
+  /*
+   * Re-check for a pending interrupt unconditionally before deciding the
+   * outcome.  In a race, the unblock function (interrupt_exporter_call) can
+   * fire -- cancelling the token -- while the send still completes, so
+   * rb_thread_call_without_gvl2 returns with args.send_ran == true.  In that
+   * case the loop above exits without ever calling check_if_pending_exception(),
+   * leaving the interrupt pending.  If we did not check here, the cancelled
+   * send would fall through and be reported as an ordinary transport error
+   * response, swallowing the interrupt (e.g. Thread#kill / shutdown).
+   *
+   * This runs after the response has already been extracted and freed and
+   * after chunks have been handed off to the ensure handler, so re-raising
+   * here leaks nothing.
+   */
+  if (!pending_exception) {
+    pending_exception = check_if_pending_exception();
+  }
   if (pending_exception) {
     rb_jump_tag(pending_exception);
   }
