@@ -1368,10 +1368,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       it "does not raise and skips the frozen thread" do
         t1.freeze
 
-        sample
-
-        expect(samples_for_thread(samples, t1)).to be_empty
-        expect(per_thread_context.keys).to_not include(t1)
+        expect {
+          sample(allow_exception: true)
+        }.to raise_error(FrozenError, "Cannot setup profiler state for Thread #{t1} because it is frozen. Please avoid freezing Thread instances and/or report the issue to dd-trace-rb")
       end
     end
   end

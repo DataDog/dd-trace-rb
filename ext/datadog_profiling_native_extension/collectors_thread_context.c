@@ -437,7 +437,9 @@ static VALUE _native_clear_per_thread_context_for(DDTRACE_UNUSED VALUE self, VAL
   per_thread_context *ctx = get_per_thread_context(thread);
   if (ctx != NULL) {
     set_per_thread_context(thread, NULL);
-    if (!RB_OBJ_FROZEN(thread)) rb_ivar_set(thread, dd_per_thread_context_id, Qnil);
+    if (!RB_OBJ_FROZEN(thread)) {
+      rb_ivar_set(thread, dd_per_thread_context_id, Qnil);
+    }
   }
   return Qnil;
 }
@@ -598,7 +600,6 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
 
   VALUE current_thread = rb_thread_current();
   per_thread_context *current_thread_context = get_or_create_context_for(current_thread, state);
-  if (current_thread_context == NULL) return;
   long cpu_time_at_sample_start_for_current_thread = cpu_time_now_ns(current_thread_context);
 
   VALUE threads = thread_list(state);
@@ -1034,7 +1035,9 @@ static per_thread_context *get_or_create_context_for(VALUE thread, thread_contex
   per_thread_context *thread_context = get_per_thread_context(thread);
   if (thread_context != NULL) return thread_context;
 
-  if (RB_OBJ_FROZEN(thread)) return NULL;
+  if (RB_OBJ_FROZEN(thread)) {
+    raise_error(rb_eFrozenError, "Cannot setup profiler state for Thread %"PRIsVALUE" because it is frozen. Please avoid freezing Thread instances and/or report the issue to dd-trace-rb", thread);
+  }
 
   thread_context = calloc(1, sizeof(per_thread_context)); // See "note on calloc vs ruby_xcalloc use" in heap_recorder.c
   initialize_context(thread, thread_context, state);
@@ -1550,9 +1553,6 @@ static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collecto
   thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
   per_thread_context *thread_context = get_or_create_context_for(rb_thread_current(), state);
-  if (thread_context == NULL) {
-    return Qnil;
-  }
 
   debug_enter_unsafe_context();
 
@@ -1960,7 +1960,6 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
     per_thread_context *thread_context = get_or_create_context_for(current_thread, state);
-    if (thread_context == NULL) return Qfalse;
 
     long gvl_waiting_at = thread_context->gvl_waiting_at;
 
