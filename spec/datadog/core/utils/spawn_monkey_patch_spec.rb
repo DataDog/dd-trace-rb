@@ -21,7 +21,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
       write_io.close
       Process.wait(pid)
 
-      Datadog::Core::Utils::Array.filter_map(read_io.read.lines) do |line|
+      Datadog::Core::Utils::EnumerableCompat.filter_map(read_io.read.lines) do |line|
         parts = line.chomp.split('=', 2)
         [parts[0], parts[1]] if parts.size == 2
       end.to_h

@@ -604,11 +604,12 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
 
       describe '#timeline_enabled=' do
-        it 'updates the #timeline_enabled setting from its default of true' do
-          expect { settings.profiling.advanced.timeline_enabled = false }
-            .to change { settings.profiling.advanced.timeline_enabled }
-            .from(true)
-            .to(false)
+        before { allow(Datadog::Core).to receive(:log_deprecation) }
+
+        it "logs a warning informing customers this no longer does anything" do
+          expect(Datadog::Core).to receive(:log_deprecation)
+
+          settings.profiling.advanced.timeline_enabled = false
         end
       end
 

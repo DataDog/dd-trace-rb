@@ -18,19 +18,16 @@ class ProfilerSampleSerializeBenchmark
   PROFILER_OVERHEAD_STACK_THREAD = Thread.new { sleep }
 
   def create_profiler
-    timeline_enabled = ENV['TIMELINE'] == 'true'
-    @recorder = Datadog::Profiling::StackRecorder.for_testing(timeline_enabled: timeline_enabled)
-    @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder, timeline_enabled: timeline_enabled)
+    @recorder = Datadog::Profiling::StackRecorder.for_testing
+    @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder)
   end
 
   def run_benchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 60, warmup: 2}
-      x.config(
-        **benchmark_time,
-      )
+      x.config(**benchmark_time)
 
-      x.report("sample #{ENV["CONFIG"]} timeline=#{ENV["TIMELINE"] == "true"}") do
+      x.report("sample and serialize #{ENV["CONFIG"]}") do
         samples_per_second = 100
         simulate_seconds = 60
 

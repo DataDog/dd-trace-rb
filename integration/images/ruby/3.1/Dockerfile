@@ -13,10 +13,11 @@ RUN set -ex && \
         apt-get install -y --force-yes --no-install-recommends nodejs && \
         \
         echo "===> Installing Yarn" && \
-        curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
-        echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
+        install -d -m 0755 /etc/apt/keyrings && \
+        curl -fsSL https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor -o /etc/apt/keyrings/yarn.gpg && \
+        echo "deb [signed-by=/etc/apt/keyrings/yarn.gpg] https://dl.yarnpkg.com/debian/ stable main" > /etc/apt/sources.list.d/yarn.list && \
         apt-get update && \
-        apt-get install -y --force-yes --no-install-recommends yarn && \
+        apt-get install -y --no-install-recommends yarn && \
         \
         echo "===> Installing database libraries" && \
         apt-get install -y --force-yes --no-install-recommends \

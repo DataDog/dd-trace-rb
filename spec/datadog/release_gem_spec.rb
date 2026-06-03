@@ -95,11 +95,15 @@ RSpec.describe 'gem release process' do
           file.write "gem '#{gemspec.name}', path: '#{FileUtils.pwd}'\n"
           file.rewind
 
-          gemfile = Bundler::Dsl.evaluate(file.path, nil, {})
-          lock_file_parser = Bundler::LockfileParser.new(gemfile.to_lock)
+          # Override BUNDLE_FROZEN so dependency resolution proceeds for the ad-hoc Gemfile;
+          # without this, `to_lock` returns an empty specs section under frozen CI envs.
+          gem_version_mapping = Bundler.settings.temporary(frozen: false) do
+            gemfile = Bundler::Dsl.evaluate(file.path, nil, {})
+            lock_file_parser = Bundler::LockfileParser.new(gemfile.to_lock)
 
-          gem_version_mapping = lock_file_parser.specs.each_with_object({}) do |spec, hash|
-            hash[spec.name] = spec.version.to_s
+            lock_file_parser.specs.each_with_object({}) do |spec, hash|
+              hash[spec.name] = spec.version.to_s
+            end
           end
         ensure
           file.close

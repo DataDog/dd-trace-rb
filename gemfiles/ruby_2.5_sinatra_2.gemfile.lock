@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.35.0.dev)
+    datadog (2.35.0)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
       libdatadog (~> 33.0.0.1.0)
@@ -45,7 +45,7 @@ GEM
     logger (1.7.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    msgpack (1.8.0)
+    msgpack (1.8.1)
     multi_json (1.15.0)
     mustermann (2.0.2)
       ruby2_keywords (~> 0.0.1)

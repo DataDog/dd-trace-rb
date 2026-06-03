@@ -71,6 +71,7 @@ module Datadog
               option :app_key do |o|
                 o.type :string, nilable: true
                 o.env Ext::ENV_APP_KEY
+                o.skip_telemetry true
               end
 
               # Request timeout in milliseconds.
