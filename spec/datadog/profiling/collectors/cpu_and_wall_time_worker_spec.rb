@@ -292,6 +292,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     context "with allocation profiling enabled" do
       # We need this otherwise allocations_during_sample will never change
       let(:allocation_profiling_enabled) { true }
+      let(:sample) {
+        Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(worker_settings[:thread_context_collector], Thread.current, false)
+      }
 
       it "does not allocate Ruby objects during the regular operation of sampling" do
         # The intention of this test is to warn us if we accidentally trigger object allocations during "happy path"
@@ -302,12 +305,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # initial burst to pass and then check that no further allocations occur.
 
         start
-
-        try_wait_until do
-          samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
-          samples if samples.any?
-        end
-
+        sample
         allocations_after_initial = cpu_and_wall_time_worker.stats.fetch(:allocations_during_sample)
 
         try_wait_until do
