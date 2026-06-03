@@ -45,12 +45,6 @@ static void *trigger_raise(void *raise_arguments) {
   raise_args *args = (raise_args *) raise_arguments;
 
   VALUE detailed_message = rb_vsprintf(args->format_string, args->va_args);
-  if (RSTRING_LEN(detailed_message) >= MAX_RAISE_MESSAGE_SIZE) {
-    detailed_message = rb_str_substr(detailed_message, 0, MAX_RAISE_MESSAGE_SIZE - 1);
-  }
-
-  char telemetry_message[MAX_RAISE_MESSAGE_SIZE];
-  snprintf(telemetry_message, MAX_RAISE_MESSAGE_SIZE, "%s", args->format_string);
 
   VALUE exception;
   if (args->syserr_errno) {
@@ -59,7 +53,7 @@ static void *trigger_raise(void *raise_arguments) {
     exception = rb_exc_new_str(args->exception_class, detailed_message);
   }
 
-  private_raise_exception(exception, telemetry_message);
+  private_raise_exception(exception, args->format_string);
 
   return NULL;
 }

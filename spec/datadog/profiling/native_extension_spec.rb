@@ -35,16 +35,6 @@ RSpec.describe Datadog::Profiling::NativeExtension do
         end
     end
 
-    it "limits the exception message to 255 characters" do
-      big_message = "a" * 500
-
-      expect { described_class::Testing._native_grab_gvl_and_raise_cstr_arg(::RuntimeError, big_message, nil, true) }
-        .to raise_error(::RuntimeError) do |error|
-          expect(error.message).to match(/a{255}\z/)
-          expect(error.instance_variable_get(:@telemetry_message)).to match(/a{255}\z/)
-        end
-    end
-
     context "when called without releasing the gvl" do
       it "raises a RuntimeError with appropriate error handling when called without GVL" do
         expect do
@@ -126,14 +116,6 @@ RSpec.describe Datadog::Profiling::NativeExtension do
         expect(error.message).to include("message oops")
         expect(error.instance_variable_get(:@telemetry_message)).to eq("message %s")
       end
-    end
-
-    it "limits the caller-provided exception message to 255 characters" do
-      big_message = "a" * 500
-
-      expect do
-        described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, big_message, nil, true)
-      end.to raise_exception(Errno::EINTR, /.+a{255}\z/)
     end
 
     context "when called without releasing the gvl" do
