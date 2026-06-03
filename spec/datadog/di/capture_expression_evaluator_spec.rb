@@ -26,8 +26,11 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
     Datadog::DI::Serializer.new(settings, redactor)
   end
 
+  let(:logger) { instance_double(Datadog::Core::Logger).as_null_object }
+  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
+
   let(:evaluator) do
-    described_class.new(settings: settings, serializer: serializer)
+    described_class.new(settings: settings, serializer: serializer, logger: logger, telemetry: telemetry)
   end
 
   def compile_expression(dsl_string, json)
@@ -89,6 +92,17 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
         expect(errors.first[:expr]).to eq("bad_len")
         expect(errors.first[:message]).to include("ExpressionEvaluationError")
       end
+
+      it "logs at debug and reports the exception to telemetry" do
+        expect(logger).to receive(:debug) do |&block|
+          expect(block.call).to include("bad_len", "evaluation failed", "ExpressionEvaluationError")
+        end
+        expect(telemetry).to receive(:report).with(
+          an_instance_of(Datadog::DI::Error::ExpressionEvaluationError),
+          description: "DI capture-expression evaluation failed",
+        )
+        evaluator.evaluate(probe, context)
+      end
     end
 
     context "mixed success and failure" do
@@ -140,6 +154,13 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
         expect(output["x"]).to eq(notCapturedReason: "timeout")
         expect(output["y"]).to eq(notCapturedReason: "timeout")
         expect(errors).to eq([])
+      end
+
+      it "increments the timeout telemetry counter for each timed-out expression" do
+        expect(telemetry).to receive(:inc).with(
+          "dynamic_instrumentation", "capture_expression_timeout", 1,
+        ).twice
+        evaluator.evaluate(probe, context)
       end
     end
 

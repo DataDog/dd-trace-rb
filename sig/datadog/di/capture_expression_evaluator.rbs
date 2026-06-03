@@ -5,13 +5,15 @@ module Datadog
 
       @settings: untyped
       @serializer: Datadog::DI::Serializer
-      @telemetry: untyped?
+      @logger: untyped
+      @telemetry: untyped
 
-      def initialize: (settings: untyped, serializer: Datadog::DI::Serializer, ?telemetry: untyped?) -> void
+      def initialize: (settings: untyped, serializer: Datadog::DI::Serializer, logger: untyped, telemetry: untyped) -> void
 
       attr_reader settings: untyped
       attr_reader serializer: Datadog::DI::Serializer
-      attr_reader telemetry: untyped?
+      attr_reader logger: untyped
+      attr_reader telemetry: untyped
 
       def evaluate: (Probe probe, Context context) -> [Hash[String, untyped], Array[Hash[Symbol, String]]]
     end
