@@ -17,10 +17,10 @@ module Datadog
       #   values (captures, return, throwable).
       # @param logger [Datadog::Core::Logger] logger forwarded to the internal
       #   CaptureExpressionEvaluator for per-expression evaluation failures.
-      # @param telemetry [Datadog::Core::Telemetry::Component] telemetry forwarded
-      #   to the internal CaptureExpressionEvaluator for timeout / failure
-      #   reporting.
-      def initialize(settings, serializer, logger, telemetry:)
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] telemetry
+      #   forwarded to the internal CaptureExpressionEvaluator. nil when DI was
+      #   constructed without telemetry (Component.build allows this).
+      def initialize(settings, serializer, logger, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
@@ -43,7 +43,8 @@ module Datadog
       attr_reader :logger
 
       # Telemetry; passed through to CaptureExpressionEvaluator at construction.
-      # @return [Datadog::Core::Telemetry::Component]
+      # nil when DI was constructed without telemetry.
+      # @return [Datadog::Core::Telemetry::Component, nil]
       attr_reader :telemetry
 
       # Lazily-constructed sub-component that evaluates probe.capture_expressions
