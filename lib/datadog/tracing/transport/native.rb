@@ -78,9 +78,25 @@ module Datadog
               version: version
             )
 
-            # In forked child processes the tokio runtime is dead.
-            # Recreate it so the exporter can send traces again.
+            # Fork safety: the native exporter owns a long-lived tokio runtime
+            # with background worker threads. Around a fork we must quiesce the
+            # runtime before forking and restore it afterwards in both the parent
+            # and the child (where the inherited runtime is dead).
+            #
+            # Note: on Ruby 3.1+, the `:before` block runs before EVERY `_fork`,
+            # which includes `system`/`popen`/backtick subprocess spawns, so it
+            # must stay cheap.
             exporter = @exporter
+            Core::Utils::AtForkMonkeyPatch.at_fork(:before) do
+              exporter._native_before_fork
+            rescue => e
+              Datadog.logger.warn { "Native transport before-fork failed: #{e}" }
+            end
+            Core::Utils::AtForkMonkeyPatch.at_fork(:parent) do
+              exporter._native_after_fork_in_parent
+            rescue => e
+              Datadog.logger.warn { "Native transport after-fork reset failed: #{e}" }
+            end
             Core::Utils::AtForkMonkeyPatch.at_fork(:child) do
               exporter._native_after_fork_in_child
             rescue => e
