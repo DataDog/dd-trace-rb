@@ -353,11 +353,11 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         cv = component.instance_variable_get(:@upload_in_progress_cv)
         expect(cv).not_to receive(:wait)
 
-        start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         component.shutdown!
-        elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start
 
-        expect(elapsed).to be < 1.0
+        # @owner_pid is unchanged — the guard treats the inherited flag as a
+        # stale snapshot rather than claiming ownership for the child.
+        expect(component.instance_variable_get(:@owner_pid)).to eq(original_pid)
         expect(component.upload_in_progress).to be false
         expect(component.shutdown?).to be true
       end
