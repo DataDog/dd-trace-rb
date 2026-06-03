@@ -107,10 +107,11 @@ void private_raise_enforce_syserr(
   int line,
   const char *function_name
 ) {
+  const char *format = "Failure returned by '%s' at %s:%d:in `%s'";
   if (have_gvl) {
-    rb_exc_raise(rb_syserr_new_str(syserr_errno, rb_sprintf("Failure returned by '%s' at %s:%d:in `%s'", expression, file, line, function_name)));
+    private_raise_exception(rb_syserr_new_str(syserr_errno, rb_sprintf(format, expression, file, line, function_name)), format);
   } else {
-    private_grab_gvl_and_raise(Qnil, syserr_errno, "Failure returned by '%s' at %s:%d:in `%s'", expression, file, line, function_name);
+    private_grab_gvl_and_raise(Qnil, syserr_errno, format, expression, file, line, function_name);
   }
 }
 
