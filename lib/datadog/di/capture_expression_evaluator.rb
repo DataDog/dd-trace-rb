@@ -36,9 +36,24 @@ module Datadog
         @telemetry = telemetry
       end
 
+      # Tracer settings; the `dynamic_instrumentation.max_time_to_serialize_ms`
+      # field is read on every #evaluate call to compute the per-fire deadline.
+      # @return [Datadog::Core::Configuration::Settings]
       attr_reader :settings
+
+      # Serializer used to convert evaluated expression values into the
+      # snapshot wire format.
+      # @return [Datadog::DI::Serializer]
       attr_reader :serializer
+
+      # Logger used for debug-level reporting of per-expression evaluation
+      # failures.
+      # @return [Datadog::Core::Logger]
       attr_reader :logger
+
+      # Telemetry component used to report capture-expression timeouts (inc)
+      # and per-expression evaluation exceptions (report).
+      # @return [Datadog::Core::Telemetry::Component]
       attr_reader :telemetry
 
       # Evaluate +probe.capture_expressions+ against +context+.
