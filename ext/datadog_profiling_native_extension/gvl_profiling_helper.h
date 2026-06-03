@@ -13,6 +13,16 @@
 
   typedef struct { VALUE thread; } gvl_profiling_thread;
   extern rb_internal_thread_specific_key_t gvl_waiting_tls_key;
+  // Per-thread "state + version" word, updated on every GVL state transition. The encoding is:
+  //   - low bit:  current state (1 = currently suspended, 0 = currently running)
+  //   - bits 1+:  monotonic event counter (incremented on every SUSPENDED or RESUMED)
+  // The hooks set the state bit explicitly rather than relying on parity, so the encoding stays
+  // correct even when initialize_context clears the slot for a thread that was already mid-
+  // suspension before the profiler observed it. The sampler reads the word once: low bit is the
+  // current state, equality with its per-thread snapshot means no transitions since the last
+  // sample. Together this answers "did not have the GVL last sample and did not acquire it since
+  // then" with no wall-time read in the hot SUSPENDED hook path.
+  extern rb_internal_thread_specific_key_t gvl_state_change_count_tls_key;
 
   void gvl_profiling_init(void);
 
@@ -30,6 +40,28 @@
 
   static inline void gvl_profiling_state_set(gvl_profiling_thread thread, intptr_t value) {
     rb_internal_thread_specific_set(thread.thread, gvl_waiting_tls_key, (void *) value);
+  }
+
+  static inline long gvl_state_change_count_get(gvl_profiling_thread thread) {
+    return (long) (intptr_t) rb_internal_thread_specific_get(thread.thread, gvl_state_change_count_tls_key);
+  }
+
+  static inline void gvl_state_change_count_set(gvl_profiling_thread thread, long value) {
+    rb_internal_thread_specific_set(thread.thread, gvl_state_change_count_tls_key, (void *) (intptr_t) value);
+  }
+
+  // Called by the SUSPENDED internal-thread-event hook. Bumps the event counter (so the whole
+  // word changes) and sets the state bit to "suspended".
+  static inline void gvl_state_change_count_mark_suspended(gvl_profiling_thread thread) {
+    long counter_portion = gvl_state_change_count_get(thread) >> 1;
+    gvl_state_change_count_set(thread, ((counter_portion + 1) << 1) | 1L);
+  }
+
+  // Called by the RESUMED internal-thread-event hook. Bumps the event counter and clears the
+  // state bit to "running".
+  static inline void gvl_state_change_count_mark_resumed(gvl_profiling_thread thread) {
+    long counter_portion = gvl_state_change_count_get(thread) >> 1;
+    gvl_state_change_count_set(thread, (counter_portion + 1) << 1);
   }
 #endif
 
@@ -63,5 +95,15 @@
 
   static inline void gvl_profiling_state_thread_object_set(VALUE thread, intptr_t value) {
     gvl_profiling_state_set(thread_from_thread_object(thread), value);
+  }
+#endif
+
+#if !defined(NO_GVL_INSTRUMENTATION) && !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS) // Ruby 3.3+
+  static inline long gvl_state_change_count_thread_object_get(VALUE thread) {
+    return gvl_state_change_count_get(thread_from_thread_object(thread));
+  }
+
+  static inline void gvl_state_change_count_thread_object_set(VALUE thread, long value) {
+    gvl_state_change_count_set(thread_from_thread_object(thread), value);
   }
 #endif

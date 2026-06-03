@@ -132,6 +132,12 @@ module Datadog
           @start_stop_mutex.synchronize do
             Datadog.logger.debug("Requesting CpuAndWallTimeWorker thread shut down")
 
+            # Emit one sample for each per-tick-skipped thread (including the profiler-internal
+            # threads themselves) while they're still alive. The scheduler's final flush during
+            # shutdown happens after both threads are joined, at which point stack walks for
+            # those dead threads return misleading frames.
+            flush_inactive_threads
+
             @idle_sampling_helper.stop
 
             return unless @worker_thread
@@ -159,6 +165,13 @@ module Datadog
           stats = self.stats
           self.class._native_stats_reset_not_thread_safe(self)
           stats
+        end
+
+        # Called before serialization so threads continuously suspended across the whole profile
+        # period still get a sample recorded for it. A no-op on Rubies older than 3.3.
+        #: () -> void
+        def flush_inactive_threads
+          self.class._native_flush_inactive_threads(self)
         end
 
         # Useful for testing, to e.g. make sure the profiler is running before we start running some code we want to observe

@@ -1369,6 +1369,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           gvl_sampling_time_ns_total: nil,
           gvl_sampling_time_ns_avg: nil,
           gvl_waiting_time_ns_total: nil,
+          inactive_thread_samples_skipped: ((RUBY_VERSION >= "3.3") ? 0 : nil),
+          # Lives on the thread-context collector; this spec stubs the collector's reset so we
+          # only assert the stat exists, not its post-reset value.
+          profiler_thread_samples_skipped: an_instance_of(Integer),
         }
       )
     end

@@ -7,6 +7,13 @@
 #include <signal.h>
 #include <errno.h>
 
+#ifdef __APPLE__
+  #include <mach/mach.h>
+  #include <mach/mach_time.h>
+  #include <mach/thread_policy.h>
+  #include <pthread.h>
+#endif
+
 #include "helpers.h"
 #include "ruby_helpers.h"
 #include "collectors_thread_context.h"
@@ -233,10 +240,15 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance)
 static VALUE _native_is_sigprof_blocked_in_current_thread(DDTRACE_UNUSED VALUE self);
 static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance);
 static VALUE _native_stats_reset_not_thread_safe(DDTRACE_UNUSED VALUE self, VALUE instance);
+static VALUE _native_flush_inactive_threads(DDTRACE_UNUSED VALUE self, DDTRACE_UNUSED VALUE instance);
 void *simulate_sampling_signal_delivery(DDTRACE_UNUSED void *_unused);
 static void grab_gvl_and_sample(void);
 static void reset_stats_not_thread_safe(cpu_and_wall_time_worker_state *state);
 static void sleep_for(uint64_t time_ns);
+#ifdef __APPLE__
+  static void promote_sampler_thread_to_realtime(uint64_t period_ns);
+  static void demote_sampler_thread_from_realtime(void);
+#endif
 static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self);
 static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *unused2);
 static void disable_tracepoints(cpu_and_wall_time_worker_state *state);
@@ -346,6 +358,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stats", _native_stats, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stats_reset_not_thread_safe", _native_stats_reset_not_thread_safe, 1);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_flush_inactive_threads", _native_flush_inactive_threads, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_allocation_count", _native_allocation_count, 0);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_is_running?", _native_is_running, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_failure_exception_during_operation", _native_failure_exception_during_operation, 1);
@@ -535,6 +548,16 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   active_sampler_instance = instance;
   state->owner_thread = rb_thread_current();
 
+  // Mark both profiler-internal threads so the sampler skips them in the per-tick iteration loop.
+  // Accumulated wall/CPU time is still emitted once per reporting period by flush_inactive_threads.
+  // The idle helper's @worker_thread is already assigned by IdleSamplingHelper#start, which
+  // CpuAndWallTimeWorker#start calls before spawning the worker thread that runs us.
+  thread_context_collector_register_profiler_internal_thread(state->thread_context_collector_instance, state->owner_thread);
+  VALUE idle_helper_thread = rb_ivar_get(state->idle_sampling_helper_instance, rb_intern("@worker_thread"));
+  if (!NIL_P(idle_helper_thread)) {
+    thread_context_collector_register_profiler_internal_thread(state->thread_context_collector_instance, idle_helper_thread);
+  }
+
   atomic_store(&state->should_run, true);
 
   block_sigprof_signal_handler_from_running_in_current_thread(); // We want to interrupt the thread with the global VM lock, never this one
@@ -637,7 +660,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 
   if (
     !ruby_native_thread_p() || // Not a Ruby thread
-    !is_current_thread_holding_the_gvl() || // Not safe to enqueue a sample from this thread
+    !is_current_thread_holding_the_gvl() || // Not safe to enqueue a sample from this thread; TODO why not? rb_postponed_job_trigger() is safe to call without GVL at least
     !ddtrace_rb_ractor_main_p() // We're not on the main Ractor; we currently don't support profiling non-main Ractors
   ) {
     state->stats.signal_handler_wrong_thread++;
@@ -701,6 +724,10 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
 
   uint64_t minimum_time_between_signals = MILLIS_AS_NS(state->cpu_sampling_interval_ms);
 
+  #ifdef __APPLE__
+    promote_sampler_thread_to_realtime(minimum_time_between_signals);
+  #endif
+
   while (atomic_load(&state->should_run)) {
     state->stats.trigger_sample_attempts++;
 
@@ -723,7 +750,12 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
         state->stats.interrupt_thread_attempts++;
 
         // Pick up any last-minute attempts to stop before we send the signal
-        if (!atomic_load(&state->should_run)) return NULL;
+        if (!atomic_load(&state->should_run)) {
+          #ifdef __APPLE__
+            demote_sampler_thread_from_realtime();
+          #endif
+          return NULL;
+        }
 
         pthread_kill(owner.owner, SIGPROF);
       } else {
@@ -757,6 +789,10 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
       sleep_for(extra_sleep);
     }
   }
+
+  #ifdef __APPLE__
+    demote_sampler_thread_from_realtime();
+  #endif
 
   return NULL; // Unused
 }
@@ -876,6 +912,14 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
           // (e.g. check docs or gvl-tracing gem)
           RUBY_INTERNAL_THREAD_EVENT_READY /* waiting for gvl */ |
           RUBY_INTERNAL_THREAD_EVENT_RESUMED /* running/runnable */
+          #if !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
+            // Track when threads release the GVL (sleep, IO, Thread.pass) so we can:
+            //   (a) skip per-tick samples for threads that have been continuously suspended
+            //       (collectors_thread_context.c:update_metrics_and_sample), and
+            //   (b) trigger an after-resume sample so accumulated wall-time lands on a
+            //       near-idle stack (collectors_thread_context.c:on_gvl_running_with_threshold).
+            | RUBY_INTERNAL_THREAD_EVENT_SUSPENDED /* released gvl */
+          #endif
         ),
         NULL
       );
@@ -1127,6 +1171,21 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("gvl_sampling_time_ns_total")), /* => */ RUBY_NUM_OR_NIL(state->stats.gvl_sampling_time_ns_total, > 0, ULL2NUM),
     ID2SYM(rb_intern("gvl_sampling_time_ns_avg")),   /* => */ RUBY_AVG_OR_NIL(state->stats.gvl_sampling_time_ns_total, state->stats.after_gvl_running),
     ID2SYM(rb_intern("gvl_waiting_time_ns_total")),  /* => */ state->gvl_profiling_enabled ? ULL2NUM(state->stats.vm_metrics.gvl_waiting_time_ns_total) : Qnil,
+
+    // Counter lives on the thread-context collector (where the skip decision is made); surface
+    // it here so it shows up alongside the other cpu/wall sampling stats in worker_stats.
+    ID2SYM(rb_intern("inactive_thread_samples_skipped")),
+    #if !defined(NO_GVL_INSTRUMENTATION) && !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
+      /* => */ UINT2NUM(thread_context_collector_inactive_thread_samples_skipped(state->thread_context_collector_instance)),
+    #else
+      /* => */ Qnil,
+    #endif
+
+    // Counter for per-tick samples skipped because the thread is one of the profiler's own
+    // background threads (CpuAndWallTimeWorker, IdleSamplingHelper). Their accumulated time is
+    // still recorded once per reporting period via flush_inactive_threads.
+    ID2SYM(rb_intern("profiler_thread_samples_skipped")),
+    /* => */ UINT2NUM(thread_context_collector_profiler_thread_samples_skipped(state->thread_context_collector_instance)),
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;
@@ -1136,6 +1195,17 @@ static VALUE _native_stats_reset_not_thread_safe(DDTRACE_UNUSED VALUE self, VALU
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
   reset_stats_not_thread_safe(state);
+  return Qnil;
+}
+
+// Called from the exporter before pprof_recorder.serialize so that threads whose per-tick
+// samples were skipped (either by the SUSPENDED-skip optimization on Ruby 3.3+, or by the
+// profiler-internal-thread skip) still emit one sample per reporting period carrying their
+// accumulated wall/CPU time.
+static VALUE _native_flush_inactive_threads(DDTRACE_UNUSED VALUE self, VALUE instance) {
+  cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+  thread_context_collector_flush_inactive_threads(state->thread_context_collector_instance);
   return Qnil;
 }
 
@@ -1188,6 +1258,54 @@ static void sleep_for(uint64_t time_ns) {
     }
   }
 }
+
+#ifdef __APPLE__
+  // On macOS the default scheduler wake latency for a timeshare thread is ~1-2ms,
+  // so nanosleep regularly overshoots a 10ms request by ~2ms. Marking the worker
+  // thread with THREAD_TIME_CONSTRAINT_POLICY tells the scheduler this thread has
+  // a periodic deadline; the kernel then wakes it close to the requested time.
+  //
+  // This only affects the sampler worker thread. We pair it with a demote call
+  // before the thread dies because Ruby may cache and reuse the native thread
+  // for unrelated Ruby threads (see the SIGPROF unblock dance in _native_sampling_loop).
+  static void promote_sampler_thread_to_realtime(uint64_t period_ns) {
+    static mach_timebase_info_data_t timebase = {0, 0};
+    if (timebase.denom == 0) mach_timebase_info(&timebase);
+
+    // ns -> mach ticks: each mach tick is (numer/denom) ns, so divide by that.
+    #define NS_TO_MACH_TICKS(ns) ((uint32_t) (((uint64_t)(ns) * (uint64_t) timebase.denom) / (uint64_t) timebase.numer))
+
+    struct thread_time_constraint_policy policy = {
+      .period      = NS_TO_MACH_TICKS(period_ns),
+      .computation = NS_TO_MACH_TICKS(MICROS_AS_NS(200)),  // 200us upper bound on the work we do per period
+      .constraint  = NS_TO_MACH_TICKS(MILLIS_AS_NS(1)),    // wake us within 1ms of the deadline
+      .preemptible = TRUE,
+    };
+
+    #undef NS_TO_MACH_TICKS
+
+    kern_return_t kr = thread_policy_set(
+      pthread_mach_thread_np(pthread_self()),
+      THREAD_TIME_CONSTRAINT_POLICY,
+      (thread_policy_t) &policy,
+      THREAD_TIME_CONSTRAINT_POLICY_COUNT
+    );
+    if (kr != KERN_SUCCESS) {
+      // Non-fatal: we'll fall back to the default scheduler behavior (overshoot ~2ms).
+      fprintf(stderr, "[ddtrace] Failed to set real-time policy on profiler sampler thread (kr=%d); sample cadence may be imprecise\n", kr);
+    }
+  }
+
+  static void demote_sampler_thread_from_realtime(void) {
+    struct thread_standard_policy policy = {.no_data = 0};
+    thread_policy_set(
+      pthread_mach_thread_np(pthread_self()),
+      THREAD_STANDARD_POLICY,
+      (thread_policy_t) &policy,
+      THREAD_STANDARD_POLICY_COUNT
+    );
+  }
+#endif
 
 static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self) {
   cpu_and_wall_time_worker_state *state = active_sampler_instance_state;
@@ -1422,6 +1540,10 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
 
     if (event_id == RUBY_INTERNAL_THREAD_EVENT_READY) { /* waiting for gvl */
       thread_context_collector_on_gvl_waiting(target_thread);
+    #if !defined(USE_GVL_PROFILING_3_2_WORKAROUNDS)
+      } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_SUSPENDED) { /* released gvl */
+        thread_context_collector_on_gvl_suspended(target_thread);
+    #endif
     } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_RESUMED) { /* running/runnable */
       // Interesting note: A RUBY_INTERNAL_THREAD_EVENT_RESUMED is guaranteed to be called with the GVL being acquired.
       // (And... I think target_thread will be == rb_thread_current()?)
