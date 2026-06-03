@@ -13,13 +13,11 @@ module Datadog
     # key is omitted from the output and an `{ expr: name, message: ... }`
     # entry is appended to the returned `evaluation_errors` array. This
     # matches the cross-tracer convention (Python, Java, .NET, Node.js,
-    # Go DI) — see
-    # projects/capture-expressions/specs/wire-format.md §8.8 and
-    # projects/capture-expressions/design/decisions.md (D5).
+    # Go DI).
     #
     # On per-fire time-budget exhaustion, remaining expressions emit a
-    # stub `{ "notCapturedReason" => "timeout" }` entry (Node.js shape;
-    # see D4).
+    # stub `{ "notCapturedReason" => "timeout" }` entry, matching the
+    # Node.js DI shape.
     #
     # @api private
     class CaptureExpressionEvaluator

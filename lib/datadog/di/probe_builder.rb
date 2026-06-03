@@ -47,11 +47,11 @@ module Datadog
         end
         capture_expressions = build_capture_expressions(config['captureExpressions'])
         if !!config["captureSnapshot"] && !capture_expressions.empty?
-          # Per the project design, the runtime emits the snapshot block and
-          # silently drops capture-expression values when both are set
-          # (snapshot wins). Logged at debug to make the choice observable
-          # without spamming operator logs. See
-          # projects/capture-expressions/design/decisions.md (D1).
+          # When both captureSnapshot and captureExpressions are set on the
+          # same probe, the runtime emits the snapshot block and silently
+          # drops capture-expression values (snapshot wins), matching
+          # Python/Java/Go DI. Logged at debug to make the choice observable
+          # without spamming operator logs.
           Datadog.logger.debug do
             "di: probe #{config["id"]}: captureSnapshot=true wins over captureExpressions (n=#{capture_expressions.size})"
           end

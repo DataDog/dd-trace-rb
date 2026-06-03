@@ -98,11 +98,11 @@ module Datadog
           raise ArgumentError, "Asked to build snapshot with snapshot capture but target_self is nil"
         end
 
-        # Mutual exclusion (D1): capture_snapshot wins at fire time when both
-        # captureSnapshot and captureExpressions are set on the same probe.
-        # The capture-expression values are silently dropped in that case;
-        # the user-visible mutual exclusion is also logged at parse time in
-        # ProbeBuilder. See projects/capture-expressions/design/decisions.md.
+        # Mutual exclusion: capture_snapshot wins at fire time when both
+        # captureSnapshot and captureExpressions are set on the same probe,
+        # matching Python/Java/Go DI. The capture-expression values are
+        # silently dropped in that case; the user-visible mutual exclusion
+        # is also logged at parse time in ProbeBuilder.
         # TODO also verify that non-capturing probe does not pass
         # snapshot or vars/args into this method
         capture_expression_evaluation_errors = []
@@ -158,8 +158,8 @@ module Datadog
           message, evaluation_errors = evaluate_template(segments, context)
         end
         # Per-expression evaluation errors are merged into the snapshot's
-        # top-level evaluationErrors array alongside template/condition errors.
-        # See projects/capture-expressions/design/decisions.md (D5).
+        # top-level evaluationErrors array alongside template/condition errors,
+        # matching the cross-tracer convention.
         evaluation_errors.concat(capture_expression_evaluation_errors)
         build_snapshot_base(context,
           evaluation_errors: evaluation_errors, message: message,
