@@ -21,41 +21,45 @@ void ruby_helpers_init(void) {
   to_s_id = rb_intern("to_s");
 }
 
-// Internal helper for raising pre-formatted syserr exceptions
-static NORETURN(void private_raise_syserr_formatted(int syserr_errno, const char *detailed_message, const char *static_message)) {
-  VALUE exception = rb_syserr_new(syserr_errno, detailed_message);
-  private_raise_exception(exception, static_message);
-}
-
 // Use `raise_syserr` the macro instead, as it provides additional argument checks.
 void private_raise_syserr(int syserr_errno, const char *fmt, ...) {
-  FORMAT_VA_ERROR_MESSAGE(detailed_message, fmt);
-  private_raise_syserr_formatted(syserr_errno, detailed_message, fmt);
+  va_list args;
+  va_start(args, fmt);
+  VALUE detailed_message = rb_vsprintf(fmt, args);
+  va_end(args);
+
+  VALUE exception = rb_syserr_new_str(syserr_errno, detailed_message);
+  private_raise_exception(exception, fmt);
 }
 
 typedef struct {
   VALUE exception_class;
   int syserr_errno;
-  char exception_message[MAX_RAISE_MESSAGE_SIZE];
-  char telemetry_message[MAX_RAISE_MESSAGE_SIZE];
+  const char *format_string;
+  va_list va_args;
 } raise_args;
 
+// Called via rb_thread_call_with_gvl from private_grab_gvl_and_raise.
+// Formats the message with rb_vsprintf (which requires the GVL) and raises.
 static void *trigger_raise(void *raise_arguments) {
   raise_args *args = (raise_args *) raise_arguments;
 
-  if (args->syserr_errno) {
-    private_raise_syserr_formatted(
-      args->syserr_errno,
-      args->exception_message,
-      args->telemetry_message
-    );
-  } else {
-    private_raise_error_formatted(
-      args->exception_class,
-      args->exception_message,
-      args->telemetry_message
-    );
+  VALUE detailed_message = rb_vsprintf(args->format_string, args->va_args);
+  if (RSTRING_LEN(detailed_message) >= MAX_RAISE_MESSAGE_SIZE) {
+    detailed_message = rb_str_substr(detailed_message, 0, MAX_RAISE_MESSAGE_SIZE - 1);
   }
+
+  char telemetry_message[MAX_RAISE_MESSAGE_SIZE];
+  snprintf(telemetry_message, MAX_RAISE_MESSAGE_SIZE, "%s", args->format_string);
+
+  VALUE exception;
+  if (args->syserr_errno) {
+    exception = rb_syserr_new_str(args->syserr_errno, detailed_message);
+  } else {
+    exception = rb_exc_new_str(args->exception_class, detailed_message);
+  }
+
+  private_raise_exception(exception, telemetry_message);
 
   return NULL;
 }
@@ -71,11 +75,17 @@ void private_grab_gvl_and_raise(VALUE exception_class, int syserr_errno, const c
     args.syserr_errno = 0;
   }
 
-  FORMAT_VA_ERROR_MESSAGE(formatted_exception_message, format_string);
-  snprintf(args.exception_message, MAX_RAISE_MESSAGE_SIZE, "%s", formatted_exception_message);
-  snprintf(args.telemetry_message, MAX_RAISE_MESSAGE_SIZE, "%s", format_string);
+  args.format_string = format_string;
+  va_start(args.va_args, format_string);
 
   if (is_current_thread_holding_the_gvl()) {
+    VALUE detailed_message = rb_vsprintf(format_string, args.va_args);
+    va_end(args.va_args);
+
+    VALUE wrapped_message = rb_sprintf(
+      "grab_gvl_and_raise called by thread holding the global VM lock: %"PRIsVALUE,
+      detailed_message
+    );
     char telemetry_message[MAX_RAISE_MESSAGE_SIZE];
     snprintf(
       telemetry_message,
@@ -83,20 +93,14 @@ void private_grab_gvl_and_raise(VALUE exception_class, int syserr_errno, const c
       "grab_gvl_and_raise called by thread holding the global VM lock: %s",
       format_string
     );
-    char exception_message[MAX_RAISE_MESSAGE_SIZE];
-    snprintf(
-      exception_message,
-      MAX_RAISE_MESSAGE_SIZE,
-      "grab_gvl_and_raise called by thread holding the global VM lock: %s",
-      args.exception_message
-    );
-    VALUE exception = rb_exc_new_cstr(rb_eRuntimeError, exception_message);
+    VALUE exception = rb_exc_new_str(rb_eRuntimeError, wrapped_message);
     private_raise_exception(exception, telemetry_message);
   }
 
   rb_thread_call_with_gvl(trigger_raise, &args);
 
-  rb_bug("[ddtrace] Unexpected: Reached the end of grab_gvl_and_raise while raising '%s'\n", args.exception_message);
+  va_end(args.va_args);
+  rb_bug("[ddtrace] Unexpected: Reached the end of grab_gvl_and_raise while raising '%s'\n", format_string);
 }
 
 void private_raise_enforce_syserr(
