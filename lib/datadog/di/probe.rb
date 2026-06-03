@@ -93,8 +93,6 @@ module Datadog
         # bucket (1/sec default), matching Python/.NET/Go DI. They are not
         # treated as cheap log probes (5000/sec) because evaluating arbitrary
         # user-authored expressions has snapshot-class cost.
-        # See projects/capture-expressions/design/decisions.md (D3) in the
-        # planning repo for the cross-tracer comparison.
         @rate_limit = rate_limit || ((@capture_snapshot || !@capture_expressions.empty?) ? 1 : 5000)
         @rate_limiter = Datadog::Core::TokenBucket.new(@rate_limit)
 
