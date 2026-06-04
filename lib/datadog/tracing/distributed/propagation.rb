@@ -173,8 +173,7 @@ module Datadog
                 'context_headers' => extracted_style_name,
               }
             )
-            baggage_tags = extracted_trace_digest.trace_distributed_tags
-                             &.select { |k, _| k.start_with?('baggage.') }
+            baggage_tags = extracted_trace_digest.trace_distributed_tags&.select { |k, _| k.start_with?('baggage.') }
             baggage_tags = nil if baggage_tags&.empty?
             TraceDigest.new(
               span_links: [link],
