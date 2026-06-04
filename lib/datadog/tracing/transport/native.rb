@@ -107,9 +107,19 @@ module Datadog
             # Note: on Ruby 3.1+, the `:before` block runs before EVERY `_fork`,
             # which includes `system`/`popen`/backtick subprocess spawns, so it
             # must stay cheap.
+            #
+            # The hooks below are process-global and are never auto-removed by
+            # the fork machinery, so each transport must deregister its own
+            # hooks when it goes away (see #close and the finalizer): otherwise
+            # the closures keep the exporter -- and its runtime threads -- alive
+            # forever, and every later fork runs them against every
+            # historically-created exporter. The closures intentionally capture
+            # only the `exporter`/`send_mutex` locals (NOT `self`), so the
+            # Transport stays GC-eligible and its finalizer can fire even when
+            # #close was not called explicitly.
             exporter = @exporter
             send_mutex = @send_mutex
-            Core::Utils::AtForkMonkeyPatch.at_fork(:before) do
+            before_hook = Core::Utils::AtForkMonkeyPatch.at_fork(:before) do
               # Drain any in-flight send and block new sends before tearing down
               # the runtime. Held across the fork; released in :parent/:child.
               send_mutex.lock
@@ -117,7 +127,7 @@ module Datadog
             rescue => e
               Datadog.logger.warn { "Native transport before-fork preparation failed; traces may not be sent to Datadog: #{e}" }
             end
-            Core::Utils::AtForkMonkeyPatch.at_fork(:parent) do
+            parent_hook = Core::Utils::AtForkMonkeyPatch.at_fork(:parent) do
               exporter._native_after_fork_in_parent
             rescue => e
               Datadog.logger.warn { "Native transport after-fork reset failed; traces may not be sent to Datadog: #{e}" }
@@ -127,7 +137,7 @@ module Datadog
               # call raised, so a failure can't leave the mutex locked forever.
               send_mutex.unlock if send_mutex.owned?
             end
-            Core::Utils::AtForkMonkeyPatch.at_fork(:child) do
+            child_hook = Core::Utils::AtForkMonkeyPatch.at_fork(:child) do
               exporter._native_after_fork_in_child
             rescue => e
               Datadog.logger.warn { "Native transport after-fork reset failed; traces may not be sent to Datadog: #{e}" }
@@ -136,7 +146,53 @@ module Datadog
               # owns the lock; the guard avoids raising if :before failed.
               send_mutex.unlock if send_mutex.owned?
             end
+
+            @fork_hooks = {before: before_hook, parent: parent_hook, child: child_hook}
+
+            # Fallback so a dropped (un-#close'd) transport doesn't leak its
+            # global fork hooks (and, through them, the exporter/runtime). The
+            # finalizer proc is built by a class method capturing ONLY the
+            # stage->block handles, never `self` -- a finalizer that closed over
+            # the object it is attached to would keep that object reachable and
+            # never run.
+            ObjectSpace.define_finalizer(self, self.class.send(:finalizer_for, @fork_hooks))
           end
+
+          # Deregister this transport's process-global fork hooks and release the
+          # native exporter so its runtime can shut down. Idempotent: safe to
+          # call multiple times and safe to call after the finalizer has run.
+          def close
+            fork_hooks = @fork_hooks
+            @fork_hooks = nil
+            return if fork_hooks.nil?
+
+            fork_hooks.each do |stage, block|
+              Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
+            end
+
+            # Drop our reference to the exporter so that, once the hooks above no
+            # longer pin it, it can be collected and its runtime shut down
+            # cleanly in this (parent) process.
+            @exporter = nil
+
+            nil
+          end
+
+          # Builds the finalizer proc for a transport's fork hooks.
+          #
+          # Defined as a class method so the proc closes over ONLY the
+          # stage->block handles passed in and never over a Transport instance
+          # (which would keep the instance reachable and prevent the finalizer
+          # from ever running). Removing the hooks unpins the exporter captured
+          # by those closures, allowing it (and its runtime) to be freed.
+          def self.finalizer_for(fork_hooks)
+            proc do
+              fork_hooks.each do |stage, block|
+                Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
+              end
+            end
+          end
+          private_class_method :finalizer_for
 
           # Send a list of traces to the agent.
           #
