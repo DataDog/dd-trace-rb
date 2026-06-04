@@ -1,4 +1,4 @@
-require 'ostruct' # graphql 1.13 does not require ostruct
+require 'ostruct' # graphql 1.13 uses OpenStruct without requiring ostruct itself
 require 'graphql'
 require 'json'
 
