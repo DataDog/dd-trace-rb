@@ -84,9 +84,18 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
     double('agent_settings', url: "http://127.0.0.1:#{mock_agent.port}")
   end
 
+  # Track every transport built by these examples so we can deterministically
+  # dispose of it afterwards, freeing its native exporter during the run rather
+  # than at interpreter exit (see NativeTransportForkIsolation.dispose).
+  let(:built_transports) { [] }
+
   let(:transport) do
-    transport_class.new(agent_settings: agent_settings, logger: logger)
+    transport_class.new(agent_settings: agent_settings, logger: logger).tap do |t|
+      built_transports << t
+    end
   end
+
+  after { built_transports.each { |t| NativeTransportForkIsolation.dispose(t) } }
 
   let(:logger) { Logger.new('/dev/null') }
 

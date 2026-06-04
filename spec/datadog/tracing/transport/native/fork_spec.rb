@@ -269,10 +269,11 @@ RSpec.describe 'Native transport fork safety and cancellation' do
     end
 
     after(:all) do
-      # Drop the registered at-fork closures (which capture the exporter) FIRST,
-      # so the exporter becomes collectable. Then free it via GC while the
-      # responding agent is still alive, so its final flush succeeds quickly.
-      # Only then stop the agent.
+      # Deterministically release the exporter (deregister its at-fork closures
+      # and undefine its finalizer) and free it via GC while the responding
+      # agent is still alive, so its final flush succeeds quickly. Only then
+      # restore the global registry and stop the agent.
+      NativeTransportForkIsolation.dispose(@transport)
       AtForkRegistryHelpers.restore(@saved_at_fork)
       @transport = nil
       GC.start
@@ -351,9 +352,11 @@ RSpec.describe 'Native transport fork safety and cancellation' do
       # Stop the silent agent FIRST: it holds connections open and never
       # responds, so freeing the exporter while those connections are live
       # could block on a flush. Killing the agent closes the sockets, so the
-      # exporter's flush fails fast and shutdown completes. Drop the at-fork
-      # closures (which capture the exporter) before the GC that frees it.
+      # exporter's flush fails fast and shutdown completes. Then deterministically
+      # release the exporter (deregister its at-fork closures and undefine its
+      # finalizer) before the GC that frees it.
       @mock_agent&.stop
+      NativeTransportForkIsolation.dispose(@transport)
       AtForkRegistryHelpers.restore(@saved_at_fork)
       @transport = nil
       GC.start
@@ -434,6 +437,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
     end
 
     after(:all) do
+      NativeTransportForkIsolation.dispose(@transport)
       AtForkRegistryHelpers.restore(@saved_at_fork)
       @transport = nil
       GC.start

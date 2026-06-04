@@ -33,6 +33,28 @@ module NativeTransportForkIsolation
 
   module_function
 
+  # Deterministically release a native transport so its exporter -- and the
+  # Rust/tokio runtime it owns -- is freed during the run (here in the parent)
+  # rather than surviving to interpreter exit, where freeing it after a fork has
+  # happened can deadlock.
+  #
+  # `Transport#close` deregisters the exporter's process-global fork hooks and
+  # drops the transport's own reference to the exporter. That alone is not
+  # enough: each transport also has an `ObjectSpace` finalizer whose captured
+  # closures (the fork-hook blocks) still pin the exporter, and RSpec keeps the
+  # example instance -- and thus the transport -- reachable for the rest of the
+  # run, so the finalizer never fires on its own. Undefining the now-redundant
+  # finalizer (its sole job, deregistering the hooks, is already done by
+  # `#close`) releases that last reference so the exporter becomes collectable.
+  #
+  # Idempotent and nil-safe.
+  def dispose(transport)
+    return unless transport.respond_to?(:close)
+
+    transport.close
+    ObjectSpace.undefine_finalizer(transport)
+  end
+
   def registry
     require 'datadog/core/utils/at_fork_monkey_patch'
     Datadog::Core::Utils::AtForkMonkeyPatch
