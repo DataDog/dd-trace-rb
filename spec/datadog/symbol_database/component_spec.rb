@@ -287,6 +287,34 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(component.instance_variable_get(:@scheduler_thread)).to be_nil
     end
 
+    it 'prevents a post-shutdown class definition from enqueuing into the hot-load buffer' do
+      allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
+      component.start_upload
+      component.wait_for_idle(timeout: 5)
+
+      buffer = component.instance_variable_get(:@hot_load_buffer)
+      tracepoint = component.instance_variable_get(:@hot_load_tracepoint)
+      expect(tracepoint).not_to be_nil
+      expect(tracepoint.enabled?).to be true
+
+      component.shutdown!
+
+      expect(tracepoint.enabled?).to be false
+      expect(component.instance_variable_get(:@hot_load_tracepoint)).to be_nil
+
+      begin
+        # Define a class after shutdown! — with the TracePoint disabled this
+        # must not enqueue into the hot-load buffer. A regression here means
+        # an enabled TracePoint leaked past shutdown! and is rooted by the VM,
+        # growing the buffer unboundedly for the rest of the process.
+        before_size = buffer.size
+        eval('class SymdbShutdownSpecPostShutdownClass; def hello; end; end', binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
+        expect(buffer.size).to eq(before_size)
+      ensure
+        Object.send(:remove_const, :SymdbShutdownSpecPostShutdownClass) if Object.const_defined?(:SymdbShutdownSpecPostShutdownClass)
+      end
+    end
+
     it 'waits for an in-flight extraction to complete' do
       events = Queue.new
       extract_started = Queue.new

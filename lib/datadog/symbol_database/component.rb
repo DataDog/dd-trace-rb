@@ -210,18 +210,22 @@ module Datadog
       # resets @initial_extraction_done so a future re-enable performs a fresh
       # extract_all instead of draining an empty buffer.
       # Thread-safe: can be called concurrently from multiple remote config updates.
+      # The TracePoint teardown sits inside the same @scheduler_mutex critical
+      # section as the @scheduled_at reset, so it is atomic against a concurrent
+      # start_upload (which installs the TracePoint under @scheduler_mutex). Without
+      # that, a stop interleaved with a start could leave an enabled TracePoint
+      # rooted by the VM after stop_upload returned.
       # @return [void]
       def stop_upload
-        @hot_load_tracepoint&.disable
-        @hot_load_tracepoint = nil
-        @hot_load_buffer_mutex.synchronize { @hot_load_buffer.clear }
-        @initial_extraction_done = false
-
         @scheduler_mutex.synchronize do
+          @hot_load_tracepoint&.disable
+          @hot_load_tracepoint = nil
           @scheduled_at = nil
           @scheduler_signaled = true
           @scheduler_cv.signal
         end
+        @hot_load_buffer_mutex.synchronize { @hot_load_buffer.clear }
+        @initial_extraction_done = false
       end
 
       # Block until this Component finishes an extract+upload after this call,
@@ -250,12 +254,18 @@ module Datadog
       # extraction is dropped. Waits for an in-flight extraction to complete
       # before returning. Does not touch any sibling Components, so a sibling
       # Component built after shutdown can still upload.
+      # The TracePoint teardown sits inside the same @scheduler_mutex critical
+      # section as the @shutdown flag flip, so it is atomic against a concurrent
+      # start_upload (which installs the TracePoint under @scheduler_mutex). Without
+      # that, a shutdown interleaved with a start could leave an enabled TracePoint
+      # rooted by the VM — class loads would keep growing @hot_load_buffer for the
+      # rest of the process lifetime (enqueue_hot_load's @shutdown check skips
+      # re-scheduling but only after the buffer push).
       # @return [void]
       def shutdown!
-        @hot_load_tracepoint&.disable
-        @hot_load_tracepoint = nil
-
         @scheduler_mutex.synchronize do
+          @hot_load_tracepoint&.disable
+          @hot_load_tracepoint = nil
           @shutdown = true
           @scheduler_signaled = true
           @scheduler_cv.signal
