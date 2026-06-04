@@ -134,6 +134,70 @@ RSpec.describe 'Native transport fork safety and cancellation' do
     end
   end
 
+  # Accepts connections, signals (via a pipe) that a request has arrived and is
+  # in-flight, waits a fixed delay, then answers with `200 OK`. The delay lets a
+  # test fork WHILE a send is mid-flight (the agent has received the request but
+  # not yet replied), so the fork's `:before` hook must wait for the in-flight
+  # send to drain before tearing down the runtime.
+  class DelayingMockAgent
+    attr_reader :port
+
+    def initialize(delay:)
+      @read_io, @write_io = IO.pipe
+      server = TCPServer.new('127.0.0.1', 0)
+      @port = server.addr[1]
+
+      @pid = fork do
+        @read_io.close
+        body = '{"rate_by_service":{"service:,env:":1.0}}'
+        response = "HTTP/1.1 200 OK\r\nContent-Length: #{body.bytesize}\r\n" \
+                   "Content-Type: application/json\r\n\r\n#{body}"
+
+        loop do
+          client = server.accept rescue break
+          Thread.new(client) do |c|
+            begin
+              request_line = c.gets
+              next c.close if request_line.nil?
+
+              content_length = 0
+              while (line = c.gets) && line != "\r\n"
+                content_length = line.split(': ', 2).last.to_i if line.downcase.start_with?('content-length')
+              end
+              c.read(content_length) if content_length > 0
+
+              # Signal that the request has arrived and is in-flight, THEN delay
+              # before replying so the send stays in-flight for `delay` seconds.
+              @write_io.write('x') rescue nil
+              sleep delay
+
+              c.print response
+            rescue # rubocop:disable Lint/SuppressedException
+            ensure
+              c.close rescue nil
+            end
+          end
+        end
+      end
+
+      server.close
+      @write_io.close
+    end
+
+    # Block until the agent has received at least one request (send in-flight).
+    def wait_for_connection(timeout: 5)
+      ready = IO.select([@read_io], nil, nil, timeout)
+      raise 'Timed out waiting for the native send to reach the mock agent' unless ready
+
+      @read_io.read(1)
+    end
+
+    def stop
+      ForkSpecHelpers.reap_process(@pid)
+      @read_io.close rescue nil
+    end
+  end
+
   # ---------------------------------------------------------------------------
   # Shared helpers
   # ---------------------------------------------------------------------------
@@ -333,6 +397,120 @@ RSpec.describe 'Native transport fork safety and cancellation' do
       # normal/error response that swallows the kill.
       expect(returned).to be_empty,
         "expected the killed send to propagate the interrupt, but it returned: #{returned.pop unless returned.empty?}"
+    end
+  end
+
+  # ===========================================================================
+  # 3. Fork while a send is in-flight
+  # ===========================================================================
+  #
+  # A libdatadog Rust send must not be interrupted by `fork()`: the native send
+  # releases the GVL, and `_native_before_fork` tears down/replaces the runtime,
+  # so forking mid-send would leave the child with a half-completed send and
+  # Rust-internal locks (deadlock/crash). The transport guards this with a
+  # per-transport mutex held across the fork: the `:before` hook blocks until
+  # any in-flight send drains before `_native_before_fork` runs.
+  describe 'fork while a send is in-flight' do
+    # Keep the delay comfortably larger than the slack we allow when asserting
+    # the fork blocked for the send to drain.
+    AGENT_DELAY = 1.0
+
+    before(:all) do
+      # Isolate the global registries so only our transport's hooks fire, and
+      # enable `_fork`/`fork` interception so before/parent/child hooks run
+      # around a real fork.
+      @saved_at_fork = AtForkRegistryHelpers.snapshot_and_clear
+      Datadog::Core::Utils::AtForkMonkeyPatch.apply!
+
+      # Forked before the transport registers its hooks (registries are empty),
+      # so this fork is a hook no-op.
+      @mock_agent = DelayingMockAgent.new(delay: AGENT_DELAY)
+
+      agent_settings = Struct.new(:url).new("http://127.0.0.1:#{@mock_agent.port}")
+      @transport = Datadog::Tracing::Transport::Native::Transport.new(
+        agent_settings: agent_settings,
+        logger: Logger.new('/dev/null'),
+      )
+    end
+
+    after(:all) do
+      AtForkRegistryHelpers.restore(@saved_at_fork)
+      @transport = nil
+      GC.start
+      @mock_agent&.stop
+    end
+
+    let(:transport) { @transport }
+    let(:mock_agent) { @mock_agent }
+
+    it 'drains the in-flight send before the fork, and both child and parent send succeed' do
+      # The background send's result, pushed only when send_traces returns.
+      sender_result = Queue.new
+
+      sender = Thread.new do
+        Thread.current.report_on_exception = false
+        sender_result.push(transport.send_traces([build_trace(name: 'inflight.op')]))
+      end
+
+      # Wait until the send has actually reached the agent (is in-flight). The
+      # agent then sleeps AGENT_DELAY before replying, so the send is still
+      # holding @send_mutex when we fork below.
+      mock_agent.wait_for_connection(timeout: 10)
+
+      # Fork through the real AtForkMonkeyPatch path so the transport's
+      # :before/:parent/:child hooks run. The :before hook locks @send_mutex,
+      # which BLOCKS until the in-flight send finishes, so `fork` itself blocks
+      # here for ~AGENT_DELAY.
+      read_io, write_io = IO.pipe
+      fork_started = Datadog::Core::Utils::Time.get_time
+      pid = Timeout.timeout(15) do
+        fork do
+          read_io.close
+          result =
+            begin
+              response = transport.send_traces([build_trace(name: 'child.op')]).first
+              response.ok? ? 'OK' : "NOT_OK:#{response.inspect}"
+            rescue => e
+              "RAISED:#{e.class}:#{e.message}"
+            end
+          write_io.write(result)
+          write_io.close
+          exit!(0)
+        end
+      end
+      fork_elapsed = Datadog::Core::Utils::Time.get_time - fork_started
+      write_io.close
+
+      child_result =
+        begin
+          Timeout.timeout(15) { read_io.read }
+        ensure
+          read_io.close
+        end
+      _, status = Process.wait2(pid)
+
+      # The fork's :before hook must have waited for the in-flight send to
+      # drain before tearing down the runtime. Because the agent holds the
+      # request for AGENT_DELAY before replying, `fork` blocks for at least
+      # that long (minus generous slack to stay non-flaky). The background send
+      # must therefore have completed by the time the child ran.
+      expect(fork_elapsed).to be >= (AGENT_DELAY * 0.5),
+        "expected fork to block until the in-flight send drained (>= #{AGENT_DELAY * 0.5}s), " \
+        "but it returned after #{fork_elapsed}s"
+      expect(sender_result).to_not be_empty,
+        'expected the in-flight send to have completed before the child started'
+
+      # No deadlock/crash/SIGSEGV: the child sent successfully and exited 0.
+      expect(child_result).to eq('OK')
+      expect(status.success?).to be(true)
+
+      # The in-flight parent send completed without error.
+      parent_responses = sender_result.pop
+      expect(parent_responses.first.ok?).to be(true)
+      expect(sender.join(10)).to_not be_nil
+
+      # The parent transport still works after the fork.
+      expect(transport.send_traces([build_trace(name: 'after.op')]).first.ok?).to be(true)
     end
   end
 end
