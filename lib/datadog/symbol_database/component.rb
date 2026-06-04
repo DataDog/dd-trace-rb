@@ -47,6 +47,13 @@ module Datadog
       # Long enough to absorb reconfiguration cascades during Rails boot.
       EXTRACT_DEBOUNCE_INTERVAL = 5  # seconds
 
+      # Cached unbound Module#singleton_class? — dispatched explicitly inside the
+      # hot-load TracePoint so user code that overrides `singleton_class?` (e.g.
+      # `def self.singleton_class?(arg)`) cannot raise inside the :class hook and
+      # abort the user's class definition. Mirrors the cache in Extractor.
+      MODULE_SINGLETON_CLASS_PRED = Module.instance_method(:singleton_class?)
+      private_constant :MODULE_SINGLETON_CLASS_PRED
+
       # Build a new Component if feature is enabled and dependencies met.
       # @param settings [Configuration::Settings] Tracer settings
       # @param agent_settings [Configuration::AgentSettings] Agent configuration
@@ -516,7 +523,7 @@ module Datadog
         component = self
         @hot_load_tracepoint = TracePoint.new(:class) do |tp|
           mod = tp.self
-          next if mod.singleton_class?
+          next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
           component.send(:enqueue_hot_load, mod)
         end
         @hot_load_tracepoint.enable # steep:ignore NoMethod

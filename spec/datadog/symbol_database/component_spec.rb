@@ -623,6 +623,40 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         component.shutdown!
       end
     end
+
+    it 'does not raise inside the :class hook when user code overrides singleton_class? with an incompatible signature' do
+      # Define a top-level class whose `self.singleton_class?(arg)` override would
+      # raise ArgumentError if the hook dispatched through it. The hook must use
+      # the cached unbound Module#singleton_class? predicate instead.
+      eval(<<~RUBY, binding, __FILE__, __LINE__ + 1) # rubocop:disable Security/Eval
+        class SymdbHotLoadSpecSingletonOverride
+          def self.singleton_class?(_arg)
+            raise 'hot-load hook should not dispatch through user-defined singleton_class?'
+          end
+        end
+      RUBY
+
+      component = described_class.build(settings, agent_settings, logger)
+      component.wait_for_idle(timeout: 5)
+
+      buffered = nil
+      begin
+        # Reopen the class with the override already in place. The :class TracePoint
+        # fires; the hook must filter via the unbound predicate without raising.
+        expect do
+          eval('class SymdbHotLoadSpecSingletonOverride; end', binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
+        end.not_to raise_error
+
+        buffered = component.instance_variable_get(:@hot_load_buffer).dup
+      ensure
+        component.shutdown!
+        Object.send(:remove_const, :SymdbHotLoadSpecSingletonOverride) if Object.const_defined?(:SymdbHotLoadSpecSingletonOverride)
+      end
+
+      # The reopened class is a regular Class (not a singleton class), so the
+      # bound Module#singleton_class? returns false and the module is enqueued.
+      expect(buffered.map(&:name)).to include('SymdbHotLoadSpecSingletonOverride')
+    end
   end
 
   describe 'enable/disable upload (ported from Java SymDBEnablementTest.enableDisableSymDBThroughRC)' do
