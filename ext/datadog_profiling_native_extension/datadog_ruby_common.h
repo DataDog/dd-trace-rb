@@ -47,11 +47,6 @@ NORETURN(
   __attribute__ ((format (printf, 2, 3)));
 );
 
-// Internal helper for raising pre-formatted exceptions
-NORETURN(
-  void private_raise_error_formatted(VALUE exception_class, const char *detailed_message, const char *static_message)
-);
-
 // Raises an exception with separate telemetry-safe and detailed messages.
 // NOTE: Raising an exception always invokes Ruby code so it requires the GVL and is not compatible with "debug_enter_unsafe_context".
 // @see debug_enter_unsafe_context
