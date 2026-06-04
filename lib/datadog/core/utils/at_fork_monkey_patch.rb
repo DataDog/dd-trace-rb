@@ -41,12 +41,27 @@ module Datadog
           blocks_for(stage).each(&:call)
         end
 
+        # Registers a block to run at the given fork +stage+ (+:before+,
+        # +:parent+, or +:child+).
+        #
+        # Returns the registered block so callers can keep a handle to it and
+        # later deregister it via {.remove_at_fork}.
         def self.at_fork(stage, &block)
           raise(ArgumentError, 'Missing block argument') unless block
 
           blocks_for(stage) << block
 
-          true
+          block
+        end
+
+        # Deregisters a block previously registered with {.at_fork} for the given
+        # +stage+. It is a no-op (does not raise) when +block+ was never
+        # registered (or was already removed). Raises +ArgumentError+ for an
+        # unknown stage, matching the {.at_fork} contract.
+        def self.remove_at_fork(stage, block)
+          blocks_for(stage).delete(block)
+
+          nil
         end
 
         def self.blocks_for(stage)
