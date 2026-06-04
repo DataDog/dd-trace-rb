@@ -29,12 +29,6 @@ void private_raise_exception(VALUE exception, const char *static_message) {
   rb_exc_raise(exception);
 }
 
-// Helper for raising pre-formatted exceptions
-void private_raise_error_formatted(VALUE exception_class, const char *detailed_message, const char *static_message) {
-  VALUE exception = rb_exc_new_cstr(exception_class, detailed_message);
-  private_raise_exception(exception, static_message);
-}
-
 // Use `raise_error` the macro instead, as it provides additional argument checks.
 void private_raise_error(VALUE exception_class, const char *fmt, ...) {
   va_list args;
