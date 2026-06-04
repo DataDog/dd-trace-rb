@@ -119,10 +119,6 @@ module Datadog
                   next stack.call(gateway_request.request) if context.span.nil?
 
                   gateway_request.headers.each do |name, value|
-                    if Ext::COLLECTABLE_REQUEST_HEADERS.include?(name)
-                      context.span["http.request.headers.#{name}"] ||= value
-                    end
-
                     if context.state[:has_identity_event] && Ext::IDENTITY_COLLECTABLE_REQUEST_HEADERS.include?(name)
                       context.span["http.request.headers.#{name}"] ||= value
                     end

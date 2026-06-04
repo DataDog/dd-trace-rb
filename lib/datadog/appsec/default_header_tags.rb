@@ -10,20 +10,24 @@ module Datadog
     #
     # @api private
     module DefaultHeaderTags
-      WAF_VENDOR_HEADERS_TAGS = %w[
+      # NOTE: Contains additional WAF vendor headers
+      REQUEST_HEADERS_TAGS = %w[
+        accept
+        content-type
+        user-agent
+        akamai-user-risk
         x-amzn-trace-id
-        cloudfront-viewer-ja3-fingerprint
-        cf-ray
         x-cloud-trace-context
         x-appgw-trace-id
         x-sigsci-requestid
         x-sigsci-tags
-        akamai-user-risk
+        cf-ray
+        cloudfront-viewer-ja3-fingerprint
       ].freeze
 
       RESPONSE_HEADERS_TAGS = %w[
-        content-length
         content-type
+        content-length
         content-encoding
         content-language
       ].freeze
@@ -31,7 +35,7 @@ module Datadog
       module_function
 
       def tag_request(span, headers)
-        WAF_VENDOR_HEADERS_TAGS.each do |name|
+        REQUEST_HEADERS_TAGS.each do |name|
           value = headers.get(name)
           span.set_tag("http.request.headers.#{name}", value) if value
         end
