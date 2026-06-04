@@ -1564,7 +1564,10 @@ static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collecto
   return needs_after_allocation ? Qtrue : Qfalse;
 }
 
-static VALUE new_empty_thread_inner(DDTRACE_UNUSED void *arg) { return Qnil; }
+static VALUE new_empty_thread_inner(DDTRACE_UNUSED void *arg) {
+  rb_thread_sleep(INT_MAX);
+  return Qnil;
+}
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
