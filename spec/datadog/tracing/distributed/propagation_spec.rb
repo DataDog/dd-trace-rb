@@ -631,6 +631,37 @@ RSpec.shared_examples 'Distributed tracing propagator' do
             expect(trace_digest.baggage).to eq({'key' => 'value'})
           end
         end
+
+        context 'with baggage_tag_keys configured' do
+          let(:propagation_styles) do
+            {
+              'datadog' => Datadog::Tracing::Distributed::Datadog.new(fetcher: fetcher_class),
+              'tracecontext' => Datadog::Tracing::Distributed::TraceContext.new(fetcher: fetcher_class),
+              'baggage' => Datadog::Tracing::Distributed::Baggage.new(
+                fetcher: fetcher_class,
+                baggage_tag_keys: ['user.id']
+              ),
+            }
+          end
+
+          let(:data) do
+            {
+              prepare_key['x-datadog-trace-id'] => datadog_trace_id.to_s(10),
+              prepare_key['x-datadog-parent-id'] => datadog_span_id.to_s(10),
+              prepare_key['x-datadog-sampling-priority'] => '1',
+              prepare_key['x-datadog-tags'] => '_dd.p.dm=-1',
+              prepare_key['baggage'] => 'user.id=milan',
+            }
+          end
+
+          it 'applies baggage-derived tags to the restarted trace digest' do
+            expect(trace_digest.trace_distributed_tags).to include('baggage.user.id' => 'milan')
+          end
+
+          it 'does not carry over _dd.p.* tags from the upstream trace' do
+            expect(trace_digest.trace_distributed_tags).not_to include('_dd.p.dm' => '-1')
+          end
+        end
       end
 
       context "set to 'continue'" do
