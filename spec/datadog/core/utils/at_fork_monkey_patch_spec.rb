@@ -328,5 +328,61 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
     it 'raises ArgumentError when no block is given' do
       expect { described_class.at_fork(:child) }.to raise_error(ArgumentError, /Missing block argument/)
     end
+
+    it 'returns the registered block as a handle' do
+      block = proc {}
+      expect(described_class.at_fork(:child, &block)).to be(block)
+    end
+  end
+
+  describe '::remove_at_fork' do
+    after do
+      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_BEFORE_BLOCKS).clear
+      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_PARENT_BLOCKS).clear
+      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
+    end
+
+    %i[before parent child].each do |stage|
+      it "stops a removed #{stage.inspect} block from running" do
+        calls = []
+        kept = described_class.at_fork(stage) { calls << :kept }
+        removed = described_class.at_fork(stage) { calls << :removed }
+
+        described_class.remove_at_fork(stage, removed)
+        described_class.run_at_fork_blocks(stage)
+
+        expect(calls).to eq(%i[kept])
+        # The handle returned by at_fork is the one that was removed.
+        expect(removed).to be_a(Proc)
+        expect(kept).to be_a(Proc)
+      end
+    end
+
+    it 'is a no-op when the block was never registered' do
+      calls = []
+      described_class.at_fork(:child) { calls << :kept }
+      never_registered = proc { calls << :never }
+
+      expect { described_class.remove_at_fork(:child, never_registered) }.to_not raise_error
+
+      described_class.run_at_fork_blocks(:child)
+      expect(calls).to eq(%i[kept])
+    end
+
+    it 'is a no-op when removing the same block twice' do
+      calls = []
+      block = described_class.at_fork(:child) { calls << :block }
+
+      described_class.remove_at_fork(:child, block)
+      expect { described_class.remove_at_fork(:child, block) }.to_not raise_error
+
+      described_class.run_at_fork_blocks(:child)
+      expect(calls).to eq([])
+    end
+
+    it 'raises ArgumentError for an unknown stage' do
+      expect { described_class.remove_at_fork(:nonsense, proc {}) }
+        .to raise_error(ArgumentError, /Unsupported stage nonsense/)
+    end
   end
 end
