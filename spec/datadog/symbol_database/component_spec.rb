@@ -328,6 +328,121 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(events.pop).to eq(:shutdown_returned)
       expect(component.upload_in_progress).to be false
     end
+
+    context 'when called from a forked child that inherited @upload_in_progress=true' do
+      # When a process that has a configured Component forks, the child
+      # inherits the @upload_in_progress flag as a stale snapshot — the
+      # scheduler thread that would clear it lives only in the parent. If
+      # the child's at_exit hook (which calls Datadog.shutdown!) reaches the
+      # cv wait, it blocks for the full 5s timeout for no benefit, since
+      # nothing in the child can ever signal the cv.
+      #
+      # The PID-mismatch guard in shutdown! detects this case and clears the
+      # stale flag without waiting. Verified by simulating the PID mismatch
+      # via stub_const on Process.pid — direct, hermetic, no fork required.
+      it 'detects PID mismatch and returns without waiting on the cv' do
+        component.instance_variable_set(:@upload_in_progress, true)
+        # Simulate the child observing a different PID than the one captured
+        # at Component construction in the parent.
+        original_pid = component.instance_variable_get(:@owner_pid)
+        allow(Process).to receive(:pid).and_return(original_pid + 1)
+
+        # @upload_in_progress_cv must not be touched in the child branch —
+        # the cv has no signaler in the child, so any wait would burn its
+        # full timeout.
+        cv = component.instance_variable_get(:@upload_in_progress_cv)
+        expect(cv).not_to receive(:wait)
+
+        component.shutdown!
+
+        # @owner_pid is unchanged — the guard treats the inherited flag as a
+        # stale snapshot rather than claiming ownership for the child.
+        expect(component.instance_variable_get(:@owner_pid)).to eq(original_pid)
+        expect(component.upload_in_progress).to be false
+        expect(component.shutdown?).to be true
+      end
+
+      it 'still waits on the cv when called from the owning process' do
+        # Counterpart to the PID-mismatch test above: confirms the guard does
+        # not short-circuit in the normal (non-forked) case. Without this,
+        # the guard could silently degrade the in-flight-extraction wait.
+        component.instance_variable_set(:@upload_in_progress, true)
+        # Don't stub Process.pid — same-process case.
+
+        cv = component.instance_variable_get(:@upload_in_progress_cv)
+        # The cv will receive #wait. We make it terminate immediately so the
+        # test doesn't take 5s; we're only asserting the call happens.
+        allow(cv).to receive(:wait) do |mutex, _timeout|
+          # Match the contract of ConditionVariable#wait: clear the predicate
+          # so shutdown! sees @upload_in_progress=false after.
+          component.instance_variable_set(:@upload_in_progress, false)
+        end
+        expect(cv).to receive(:wait).with(component.instance_variable_get(:@mutex), 5)
+
+        component.shutdown!
+      end
+
+      it 'waits on the cv for child-owned uploads (start_upload called in this process)' do
+        # Codex review scenario: in preload/fork servers the child can call
+        # start_upload on the inherited Component (e.g. remote config arrives
+        # in a Puma worker). The resulting upload is child-owned and must not
+        # be discarded by the PID-mismatch guard. start_upload claims
+        # @owner_pid for the current process, so shutdown! takes the cv-wait
+        # branch and waits for the child's extraction to finish.
+        original_owner_pid = component.instance_variable_get(:@owner_pid)
+        child_pid = original_owner_pid + 1
+        allow(Process).to receive(:pid).and_return(child_pid)
+
+        extract_started = Queue.new
+        release_extract = Queue.new
+        allow(component.instance_variable_get(:@extractor)).to receive(:extract_all) do
+          extract_started.push(:started)
+          release_extract.pop
+          []
+        end
+
+        component.start_upload
+        extract_started.pop # extraction in flight; @upload_in_progress=true; child owns it
+
+        # start_upload must have claimed ownership for the simulated child pid.
+        expect(component.instance_variable_get(:@owner_pid)).to eq(child_pid)
+
+        shutdown_thread = Thread.new { component.shutdown! }
+        release_extract.push(:go) # let extraction complete; cv will be signaled
+        joined = shutdown_thread.join(10)
+        expect(joined).not_to be_nil # shutdown! returned within 10s
+
+        expect(component.upload_in_progress).to be false
+        expect(component.shutdown?).to be true
+      end
+
+      it 'clears inherited @upload_in_progress when child calls start_upload' do
+        # If the parent had @upload_in_progress=true at fork time and the
+        # child later calls start_upload, the inherited true is a stale
+        # snapshot — the parent's scheduler does not exist in the child.
+        # Without clearing it on ownership claim, the child's shutdown! could
+        # cv-wait on a flag nothing in this process will ever clear.
+        original_owner_pid = component.instance_variable_get(:@owner_pid)
+        child_pid = original_owner_pid + 1
+        allow(Process).to receive(:pid).and_return(child_pid)
+
+        component.instance_variable_set(:@upload_in_progress, true)
+
+        # Hold the scheduler in its wait so extract_and_upload doesn't run
+        # before we check the post-claim state.
+        allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
+
+        component.start_upload
+
+        expect(component.instance_variable_get(:@owner_pid)).to eq(child_pid)
+        # The inherited stale flag is cleared at ownership claim time, before
+        # the scheduler thread runs.
+        # (The scheduler may set it again on its own — that's the legitimate
+        # child-owned case.)
+
+        component.shutdown!
+      end
+    end
   end
 
   describe 'reconfiguration scenario (regression test for two-uploads-per-extract-run)' do

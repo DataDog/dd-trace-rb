@@ -31,6 +31,7 @@ module Datadog
       @scheduled_at: ::Float?
       @scheduler_signaled: bool
       @scheduler_thread: ::Thread?
+      @owner_pid: ::Integer
 
       def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, ::Logger logger, ?telemetry: Datadog::Core::Telemetry::Component?) -> Component?
 
