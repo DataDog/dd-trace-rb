@@ -2,6 +2,7 @@ module Datadog
   module SymbolDatabase
     class Component
       EXTRACT_DEBOUNCE_INTERVAL: Integer
+      MODULE_SINGLETON_CLASS_PRED: ::UnboundMethod
 
       @settings: Datadog::Core::Configuration::Settings
       @agent_settings: Datadog::Core::Configuration::AgentSettings
