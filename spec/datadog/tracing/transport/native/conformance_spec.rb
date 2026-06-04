@@ -118,10 +118,13 @@ RSpec.describe 'Native transport wire-level conformance' do
   end
 
   after(:all) do
-    # Release the transport reference and force GC so that
-    # ddog_trace_exporter_free runs, shutting down the Rust
-    # TraceExporter and its background workers (e.g. /info fetcher)
-    # before we kill the mock agent process they connect to.
+    # Deterministically release the transport (deregister its at-fork closures
+    # and undefine its finalizer) and force GC so that ddog_trace_exporter_free
+    # runs, shutting down the Rust TraceExporter and its background workers
+    # (e.g. /info fetcher) before we kill the mock agent process they connect
+    # to -- and so it cannot survive to interpreter exit, where freeing it
+    # after a fork can deadlock.
+    NativeTransportForkIsolation.dispose(@transport)
     @transport = nil
     GC.start
     @mock_agent&.stop
