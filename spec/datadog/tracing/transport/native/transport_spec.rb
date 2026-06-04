@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'datadog/tracing/transport/native'
+require 'datadog/tracing/writer'
 require 'datadog/tracing/span'
 require 'datadog/tracing/trace_segment'
 require 'datadog/tracing/transport/trace_formatter'
@@ -228,6 +229,29 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
         hooks.each do |stage, block|
           expect(registry_contains?(stage, block)).to be(false)
         end
+      end
+    end
+
+    describe 'teardown via Writer#stop' do
+      # The native transport is plugged into a Writer via its :transport option.
+      # Stopping a Writer is a permanent teardown, so it must deterministically
+      # #close the native transport, deregistering its global fork hooks rather
+      # than leaving them to the GC finalizer.
+      it 'closes the native transport and removes its fork hooks on writer stop' do
+        hooks = transport.instance_variable_get(:@fork_hooks)
+
+        writer = Datadog::Tracing::Writer.new(
+          transport: transport,
+          agent_settings: agent_settings,
+          logger: logger,
+        )
+
+        writer.stop
+
+        hooks.each do |stage, block|
+          expect(registry_contains?(stage, block)).to be(false)
+        end
+        expect(transport.instance_variable_get(:@exporter)).to be_nil
       end
     end
   end
