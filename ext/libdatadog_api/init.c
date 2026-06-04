@@ -11,6 +11,10 @@ void ddsketch_init(VALUE core_module);
 void di_init(VALUE datadog_module);
 
 void DDTRACE_EXPORT Init_libdatadog_api(void) {
+  #ifndef NO_RB_EXT_RACTOR_SAFE
+    rb_ext_ractor_safe(true);
+  #endif
+
   VALUE datadog_module = rb_define_module("Datadog");
 
   // MUST be called before all other initialization

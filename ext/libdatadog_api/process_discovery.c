@@ -17,11 +17,15 @@ static void tracer_memfd_free(void *ptr) {
   ruby_xfree(ptr);
 }
 
+static size_t tracer_memfd_size(DDTRACE_UNUSED const void *data) {
+  return sizeof(int); // Wraps a single file descriptor
+}
+
 static const rb_data_type_t tracer_memfd_type = {
   .wrap_struct_name = "Datadog::Core::ProcessDiscovery::TracerMemfd",
   .function = {
     .dfree = tracer_memfd_free,
-    .dsize = NULL,
+    .dsize = tracer_memfd_size,
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };

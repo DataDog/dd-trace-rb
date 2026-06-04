@@ -62,15 +62,17 @@ void collectors_idle_sampling_helper_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_idle_sampling_helper_request_action", _native_idle_sampling_helper_request_action, 1);
 }
 
+static size_t idle_sampling_helper_typed_data_size(DDTRACE_UNUSED const void *data) {
+  return sizeof(idle_sampling_loop_state);
+}
+
 // This structure is used to define a Ruby object that stores a pointer to a idle_sampling_loop_state
 // See also https://github.com/ruby/ruby/blob/master/doc/extension.rdoc for how this works
 static const rb_data_type_t idle_sampling_helper_typed_data = {
   .wrap_struct_name = "Datadog::Profiling::Collectors::IdleSamplingHelper",
   .function = {
-    .dmark = NULL, // We don't store references to Ruby objects so we don't need to mark any of them
     .dfree = RUBY_DEFAULT_FREE,
-    .dsize = NULL, // We don't track memory usage (although it'd be cool if we did!)
-    //.dcompact = NULL, // Not needed -- we don't store references to Ruby objects
+    .dsize = idle_sampling_helper_typed_data_size,
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };

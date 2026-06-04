@@ -317,8 +317,8 @@ VALUE discrete_dynamic_sampler_state_snapshot(discrete_dynamic_sampler *sampler)
     ID2SYM(rb_intern("max_sampling_time_ns")),            /* => */ LONG2NUM(sampler->max_sampling_time_ns),
     ID2SYM(rb_intern("sampling_time_clamps")),            /* => */ ULONG2NUM(sampler->sampling_time_clamps),
   };
-  VALUE hash = rb_hash_new();
-  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(hash, arguments[i], arguments[i+1]);
+  VALUE hash = rb_hash_new_capa(VALUE_COUNT(arguments) / 2);
+  rb_hash_bulk_insert(VALUE_COUNT(arguments), arguments, hash);
   return hash;
 }
 
@@ -355,11 +355,15 @@ void collectors_discrete_dynamic_sampler_init(VALUE profiling_module) {
   rb_define_method(sampler_class, "_native_state_snapshot", _native_state_snapshot, 0);
 }
 
+static size_t sampler_typed_data_size(DDTRACE_UNUSED const void *data) {
+  return sizeof(sampler_state);
+}
+
 static const rb_data_type_t sampler_typed_data = {
   .wrap_struct_name = "Datadog::Profiling::DiscreteDynamicSampler::Testing::Sampler",
   .function = {
     .dfree = RUBY_DEFAULT_FREE,
-    .dsize = NULL,
+    .dsize = sampler_typed_data_size,
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };

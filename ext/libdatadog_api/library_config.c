@@ -24,7 +24,7 @@ static const rb_data_type_t configurator_typed_data = {
   .wrap_struct_name = "Datadog::Core::Configuration::StableConfig::Configurator",
   .function = {
     .dfree = configurator_free,
-    .dsize = NULL,
+    .dsize = NULL, // Opaque handle managed by libdatadog -- libdatadog does not expose its internal size
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };
@@ -41,13 +41,12 @@ static const rb_data_type_t config_logged_result_typed_data = {
   .wrap_struct_name = "Datadog::Core::Configuration::StableConfigLoggedResult",
   .function = {
     .dfree = config_logged_result_free,
-    .dsize = NULL,
+    .dsize = NULL, // Opaque libdatadog type -- libdatadog does not expose its internal size
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };
 
 void library_config_init(VALUE core_module) {
-  rb_global_variable(&config_logged_result_class);
   VALUE configuration_module = rb_define_module_under(core_module, "Configuration");
   VALUE stable_config_module = rb_define_module_under(configuration_module, "StableConfig");
   VALUE configurator_class = rb_define_class_under(stable_config_module, "Configurator", rb_cObject);
@@ -133,8 +132,8 @@ static VALUE _native_configurator_get(VALUE self) {
 
   bool local_config_id_set = false;
   bool fleet_config_id_set = false;
-  VALUE local_hash = rb_hash_new();
-  VALUE fleet_hash = rb_hash_new();
+  VALUE local_hash = rb_hash_new_capa(2);
+  VALUE fleet_hash = rb_hash_new_capa(2);
   for (uintptr_t i = 0; i < config_vec.len; i++) {
     ddog_LibraryConfig config = config_vec.ptr[i];
     VALUE selected_hash;
@@ -163,7 +162,7 @@ static VALUE _native_configurator_get(VALUE self) {
   rb_hash_aset(local_hash, ID2SYM(rb_intern("config")), local_config_hash);
   rb_hash_aset(fleet_hash, ID2SYM(rb_intern("config")), fleet_config_hash);
 
-  VALUE result = rb_hash_new();
+  VALUE result = rb_hash_new_capa(3);
   rb_hash_aset(result, ID2SYM(rb_intern("logs")), logs);
   rb_hash_aset(result, ID2SYM(rb_intern("local")), local_hash);
   rb_hash_aset(result, ID2SYM(rb_intern("fleet")), fleet_hash);
