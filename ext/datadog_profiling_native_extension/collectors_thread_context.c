@@ -124,9 +124,8 @@ typedef struct {
   // Note: Places in this file that usually need to be changed when this struct is changed are tagged with
   // "Update this when modifying state struct"
 
-  // Required by Datadog::Profiling::Collectors::Stack as a scratch buffer during sampling
-  ddog_prof_Location *locations;
-  uint16_t max_frames;
+  // Output buffer for stack traces, passed to sample_thread()
+  sample_locations locations;
   // Datadog::Profiling::StackRecorder instance
   VALUE recorder_instance;
   // If the tracer is available and enabled, this will be the fiber-local symbol for accessing its running context,
@@ -401,7 +400,7 @@ static void thread_context_collector_typed_data_free(void *state_ptr) {
 
   // Important: Remember that we're only guaranteed to see here what's been set in _native_new, aka
   // pointers that have been set NULL there may still be NULL here.
-  if (state->locations != NULL) ruby_xfree(state->locations);
+  if (state->locations.ptr != NULL) ruby_xfree(state->locations.ptr);
 
   st_free_table(state->native_filenames_cache);
 
@@ -451,8 +450,8 @@ static VALUE _native_new(VALUE klass) {
   // being leaked.
 
   // Update this when modifying state struct
-  state->locations = NULL;
-  state->max_frames = 0;
+  state->locations.ptr = NULL;
+  state->locations.len = 0;
   state->recorder_instance = Qnil;
   state->tracer_context_key = MISSING_TRACER_CONTEXT_KEY;
   VALUE thread_list_buffer = rb_ary_new();
@@ -504,8 +503,8 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   // Update this when modifying state struct
-  state->max_frames = sampling_buffer_check_max_frames(NUM2INT(max_frames));
-  state->locations = ruby_xcalloc(state->max_frames, sizeof(ddog_prof_Location));
+  state->locations.len = sampling_buffer_check_max_frames(NUM2INT(max_frames));
+  state->locations.ptr = ruby_xcalloc(state->locations.len, sizeof(ddog_prof_Location));
   state->recorder_instance = enforce_recorder_instance(recorder_instance);
   state->endpoint_collection_enabled = (endpoint_collection_enabled == Qtrue);
   state->native_filenames_enabled = (native_filenames_enabled == Qtrue);
@@ -1071,7 +1070,7 @@ static bool is_logging_gem_monkey_patch(VALUE invoke_file_location) {
 }
 
 static void initialize_context(VALUE thread, per_thread_context *thread_context, thread_context_collector_state *state) {
-  sampling_buffer_initialize(&thread_context->sampling_buffer, state->max_frames);
+  sampling_buffer_initialize(&thread_context->sampling_buffer, state->locations.len);
 
   snprintf(thread_context->thread_id, THREAD_ID_LIMIT_CHARS, "%"PRIu64" (%lu)", native_thread_id_for(thread), (unsigned long) thread_id_for(thread));
   thread_context->thread_id_char_slice = (ddog_CharSlice) {.ptr = thread_context->thread_id, .len = strlen(thread_context->thread_id)};
@@ -1132,7 +1131,7 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   VALUE result = rb_str_new2(" (native state)");
 
   // Update this when modifying state struct
-  rb_str_concat(result, rb_sprintf(" max_frames=%d", state->max_frames));
+  rb_str_concat(result, rb_sprintf(" max_frames=%d", state->locations.len));
   rb_str_concat(result, rb_sprintf(" recorder_instance=%"PRIsVALUE, state->recorder_instance));
   VALUE tracer_context_key = state->tracer_context_key == MISSING_TRACER_CONTEXT_KEY ? Qnil : ID2SYM(state->tracer_context_key);
   rb_str_concat(result, rb_sprintf(" tracer_context_key=%+"PRIsVALUE, tracer_context_key));

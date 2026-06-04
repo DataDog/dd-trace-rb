@@ -98,7 +98,7 @@ typedef struct {
   sample_values values;
   sample_labels labels;
   VALUE thread;
-  ddog_prof_Location *locations;
+  sample_locations locations;
   sampling_buffer *buffer;
   bool native_filenames_enabled;
   st_table *native_filenames_cache;
@@ -185,7 +185,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
     .values = values,
     .labels = (sample_labels) {.labels = slice_labels, .state_label = state_label, .is_gvl_waiting_state = is_gvl_waiting_state == Qtrue},
     .thread = thread,
-    .locations = locations,
+    .locations = (sample_locations) {.ptr = locations, .len = max_frames_requested},
     .buffer = &buffer,
     .native_filenames_enabled = native_filenames_enabled == Qtrue,
     .native_filenames_cache = st_init_numtable(),
@@ -223,7 +223,7 @@ static VALUE native_sample_do(VALUE args) {
 static VALUE native_sample_ensure(VALUE args) {
   native_sample_args *args_struct = (native_sample_args *) args;
 
-  ruby_xfree(args_struct->locations);
+  ruby_xfree(args_struct->locations.ptr);
   sampling_buffer_free(args_struct->buffer);
   st_free_table(args_struct->native_filenames_cache);
 
@@ -244,7 +244,7 @@ static VALUE native_sample_ensure(VALUE args) {
 void sample_thread(
   VALUE thread,
   sampling_buffer* buffer,
-  ddog_prof_Location *locations,
+  sample_locations locations,
   VALUE recorder_instance,
   sample_values values,
   sample_labels labels,
@@ -252,10 +252,20 @@ void sample_thread(
   st_table *native_filenames_cache
 ) {
   // If we already prepared a sample, we use it below; if not, we prepare it now.
-  if (!buffer->pending_sample) prepare_sample_thread(thread, buffer);
+  if (!buffer->pending_sample) {
+    // Reconcile the sampling_buffer's max_frames with the locations size
+    if (buffer->max_frames != locations.len) {
+      sampling_buffer_reinitialize(buffer, locations.len);
+    }
+    prepare_sample_thread(thread, buffer);
+  }
 
   buffer->pending_sample = false;
   int captured_frames = buffer->pending_sample_result;
+
+  // The per_thread_context's sampling_buffer may have been created by a previous collector with a
+  // different (larger) max_frames. Cap to the locations array size to prevent out-of-bounds writes.
+  if (captured_frames > (int) locations.len) captured_frames = (int) locations.len;
 
   if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
     record_placeholder_stack_in_native_code(recorder_instance, values, labels);
@@ -391,25 +401,30 @@ void sample_thread(
 
     int libdatadog_stores_stacks_flipped_from_rb_profile_frames_index = top_of_stack_position - i;
 
-    locations[libdatadog_stores_stacks_flipped_from_rb_profile_frames_index] = (ddog_prof_Location) {
+    locations.ptr[libdatadog_stores_stacks_flipped_from_rb_profile_frames_index] = (ddog_prof_Location) {
       .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
       .function = (ddog_prof_Function) {.name = name_slice, .filename = filename_slice},
       .line = line,
     };
   }
 
-  // If we filled up the buffer, some frames may have been omitted. In that case, we'll add a placeholder frame
+  // If we filled up the locations, some frames may have been omitted. In that case, we'll add a placeholder frame
   // with that info.
-  if (captured_frames == (long) buffer->max_frames) {
-    add_truncated_frames_placeholder(locations);
+  if (captured_frames == (long) locations.len) {
+    add_truncated_frames_placeholder(locations.ptr);
   }
 
   record_sample(
     recorder_instance,
-    (ddog_prof_Slice_Location) {.ptr = locations, .len = captured_frames},
+    (ddog_prof_Slice_Location) {.ptr = locations.ptr, .len = captured_frames},
     values,
     labels
   );
+
+  // Reconcile the sampling_buffer's max_frames with the locations size for future samples
+  if (buffer->max_frames != locations.len) {
+    sampling_buffer_reinitialize(buffer, locations.len);
+  }
 }
 
 #if (defined(HAVE_DLADDR1) && HAVE_DLADDR1) || (defined(HAVE_DLADDR) && HAVE_DLADDR)
@@ -628,6 +643,11 @@ void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames) {
   buffer->pending_sample = false;
   buffer->is_marking = false;
   buffer->pending_sample_result = 0;
+}
+
+void sampling_buffer_reinitialize(sampling_buffer *buffer, uint16_t max_frames) {
+  sampling_buffer_free(buffer);
+  sampling_buffer_initialize(buffer, max_frames);
 }
 
 void sampling_buffer_free(sampling_buffer *buffer) {

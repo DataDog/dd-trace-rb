@@ -2226,4 +2226,41 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       reset_after_fork
     end
   end
+
+  describe "when a new collector is created with a smaller max_frames" do
+    it "caps the number of frames to the new max_frames" do
+      large_max_frames = 400
+      first_collector = described_class.new(
+        recorder: recorder,
+        max_frames: large_max_frames,
+        tracer: tracer,
+        endpoint_collection_enabled: endpoint_collection_enabled,
+        waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
+        otel_context_enabled: otel_context_enabled,
+        native_filenames_enabled: native_filenames_enabled,
+      )
+      described_class::Testing._native_sample(first_collector, profiler_overhead_thread_placeholder, false)
+
+      # Second collector with much smaller max_frames — its locations array is smaller,
+      # but the existing per_thread_context still has a sampling_buffer sized for large_max_frames.
+      small_max_frames = 5
+      second_recorder = Datadog::Profiling::StackRecorder.for_testing(alloc_samples_enabled: true)
+      second_collector = described_class.new(
+        recorder: second_recorder,
+        max_frames: small_max_frames,
+        tracer: tracer,
+        endpoint_collection_enabled: endpoint_collection_enabled,
+        waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
+        otel_context_enabled: otel_context_enabled,
+        native_filenames_enabled: native_filenames_enabled,
+      )
+      described_class::Testing._native_sample(second_collector, profiler_overhead_thread_placeholder, false)
+
+      second_samples = samples_from_pprof(second_recorder.serialize!)
+      current_thread_samples = samples_for_thread(second_samples, Thread.current)
+      main_sample = current_thread_samples.find { |s| !s.labels.key?(:"profiler overhead") }
+
+      expect(main_sample.locations.size).to be <= small_max_frames
+    end
+  end
 end
