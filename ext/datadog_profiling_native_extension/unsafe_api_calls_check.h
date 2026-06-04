@@ -18,7 +18,7 @@
 // in most (all?) thread switch points, Ruby will check for interrupts and run the postponed jobs.
 //
 // Thus, if we set a flag while we're sampling (inside_unsafe_context), trigger the postponed job, and then only unset
-// the flag after sampling, he correct thing to happen is that the postponed job should never see the flag.
+// the flag after sampling, the correct thing to happen is that the postponed job should never see the flag.
 //
 // If, however, we have a bug and there's a thread switch point, our postponed job will see the flag and immediately
 // stop the Ruby VM before further damage happens (and hopefully giving us a stack trace clearly pointing to the culprit).

@@ -85,6 +85,8 @@
 // and for which there's no data yet
 #define GVL_WAITING_ENABLED_EMPTY RUBY_FIXNUM_MAX
 
+static ID dd_per_thread_context_id; // Hidden ivar (no @ prefix, inaccessible from Ruby)
+
 static ID at_active_span_id;  // id of :@active_span in Ruby
 static ID at_active_trace_id; // id of :@active_trace in Ruby
 static ID at_id_id;           // id of :@id in Ruby
@@ -122,22 +124,14 @@ typedef struct {
   // Note: Places in this file that usually need to be changed when this struct is changed are tagged with
   // "Update this when modifying state struct"
 
-  // Required by Datadog::Profiling::Collectors::Stack as a scratch buffer during sampling
-  ddog_prof_Location *locations;
-  uint16_t max_frames;
-  // Hashmap <Thread Object, per_thread_context>
-  // Note: Be very careful when mutating this map, as it gets read e.g. in the middle of GC and signal handlers.
-  st_table *hash_map_per_thread_context;
+  // Output buffer for stack traces, passed to sample_thread()
+  sample_locations locations;
   // Datadog::Profiling::StackRecorder instance
   VALUE recorder_instance;
   // If the tracer is available and enabled, this will be the fiber-local symbol for accessing its running context,
   // to enable code hotspots and endpoint aggregation.
   // When not available, this is set to MISSING_TRACER_CONTEXT_KEY.
   ID tracer_context_key;
-  // Track how many regular samples we've taken. Does not include garbage collection samples.
-  // Currently **outside** of stats struct because we also use it to decide when to clean the contexts, and thus this
-  // is not (just) a stat.
-  unsigned int sample_count;
   // Reusable array to get list of threads
   VALUE thread_list_buffer;
   // Used to omit endpoint names (retrieved from tracer) from collected data
@@ -160,6 +154,8 @@ typedef struct {
   st_table *native_filenames_cache;
 
   struct stats {
+    // Track how many regular samples we've taken. Does not include garbage collection samples.
+    unsigned int sample_count;
     // Track how many garbage collection samples we've taken.
     unsigned int gc_samples;
     // See thread_context_collector_on_gc_start for details
@@ -176,7 +172,7 @@ typedef struct {
 } thread_context_collector_state;
 
 // Tracks per-thread state
-typedef struct {
+struct per_thread_context {
   sampling_buffer sampling_buffer;
   char thread_id[THREAD_ID_LIMIT_CHARS];
   ddog_CharSlice thread_id_char_slice;
@@ -185,6 +181,7 @@ typedef struct {
   thread_cpu_time_id thread_cpu_time_id;
   long cpu_time_at_previous_sample_ns;  // Can be INVALID_TIME until initialized or if getting it fails for another reason
   long wall_time_at_previous_sample_ns; // Can be INVALID_TIME until initialized
+  long gvl_waiting_at;
 
   struct {
     // Both of these fields are set by on_gc_start and kept until on_gc_finish is called.
@@ -192,7 +189,7 @@ typedef struct {
     long cpu_time_at_start_ns;
     long wall_time_at_start_ns;
   } gc_tracking;
-} per_thread_context;
+};
 
 // Used to correlate profiles with traces
 typedef struct {
@@ -210,8 +207,8 @@ typedef struct {
 
 static void thread_context_collector_typed_data_mark(void *state_ptr);
 static void thread_context_collector_typed_data_free(void *state_ptr);
-static int hash_map_per_thread_context_mark(st_data_t key_thread, st_data_t value_thread_context, DDTRACE_UNUSED st_data_t _argument);
-static int hash_map_per_thread_context_free_values(st_data_t _thread, st_data_t value_per_thread_context, st_data_t _argument);
+static void per_thread_context_typed_data_mark(void *ctx_ptr);
+static void per_thread_context_typed_data_free(void *ctx_ptr);
 static VALUE _native_new(VALUE klass);
 static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_sample(VALUE self, VALUE collector_instance, VALUE profiler_overhead_stack_thread, VALUE allow_exception);
@@ -242,16 +239,11 @@ static void trigger_sample_for_thread(
 );
 static VALUE _native_thread_list(VALUE self);
 static per_thread_context *get_or_create_context_for(VALUE thread, thread_context_collector_state *state);
-static per_thread_context *get_context_for(VALUE thread, thread_context_collector_state *state);
 static void initialize_context(VALUE thread, per_thread_context *thread_context, thread_context_collector_state *state);
-static void free_context(per_thread_context* thread_context);
 static VALUE _native_inspect(VALUE self, VALUE collector_instance);
-static VALUE per_thread_context_st_table_as_ruby_hash(thread_context_collector_state *state);
-static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value_context, st_data_t result_hash);
+static VALUE per_thread_context_to_ruby_hash(per_thread_context *thread_context);
 static VALUE stats_as_ruby_hash(thread_context_collector_state *state);
 static VALUE gc_tracking_as_ruby_hash(thread_context_collector_state *state);
-static void remove_context_for_dead_threads(thread_context_collector_state *state);
-static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, st_data_t _argument);
 static VALUE _native_per_thread_context(VALUE self, VALUE collector_instance);
 static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns, long gc_start_time_ns, bool is_wall_time);
 static long cpu_time_now_ns(per_thread_context *thread_context);
@@ -293,7 +285,7 @@ static bool handle_gvl_waiting(
   static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread);
   static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread);
   static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE allow_exception);
-  static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE delta_ns);
+  static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE delta_ns);
 #endif
 static void otel_without_ddtrace_trace_identifiers_for(
   thread_context_collector_state *state,
@@ -305,7 +297,8 @@ static otel_span otel_span_from(VALUE otel_context, VALUE otel_current_span_key)
 static uint64_t otel_span_id_to_uint(VALUE otel_span_id);
 static VALUE safely_lookup_hash_without_going_into_ruby_code(VALUE hash, VALUE key);
 static VALUE _native_system_epoch_time_now_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
-static VALUE _native_prepare_sample_inside_signal_handler(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
+static VALUE _native_prepare_sample_inside_signal_handler(DDTRACE_UNUSED VALUE self);
+static VALUE _native_clear_per_thread_context_for(DDTRACE_UNUSED VALUE self, VALUE thread);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -338,13 +331,14 @@ void collectors_thread_context_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_new_empty_thread", _native_new_empty_thread, 0);
   rb_define_singleton_method(testing_module, "_native_sample_skipped_allocation_samples", _native_sample_skipped_allocation_samples, 2);
   rb_define_singleton_method(testing_module, "_native_system_epoch_time_now_ns", _native_system_epoch_time_now_ns, 1);
-  rb_define_singleton_method(testing_module, "_native_prepare_sample_inside_signal_handler", _native_prepare_sample_inside_signal_handler, 1);
+  rb_define_singleton_method(testing_module, "_native_prepare_sample_inside_signal_handler", _native_prepare_sample_inside_signal_handler, 0);
+  rb_define_singleton_method(testing_module, "_native_clear_per_thread_context_for", _native_clear_per_thread_context_for, 1);
   #ifndef NO_GVL_INSTRUMENTATION
     rb_define_singleton_method(testing_module, "_native_on_gvl_waiting", _native_on_gvl_waiting, 1);
     rb_define_singleton_method(testing_module, "_native_gvl_waiting_at_for", _native_gvl_waiting_at_for, 1);
     rb_define_singleton_method(testing_module, "_native_on_gvl_running", _native_on_gvl_running, 1);
     rb_define_singleton_method(testing_module, "_native_sample_after_gvl_running", _native_sample_after_gvl_running, 3);
-    rb_define_singleton_method(testing_module, "_native_apply_delta_to_cpu_time_at_previous_sample_ns", _native_apply_delta_to_cpu_time_at_previous_sample_ns, 3);
+    rb_define_singleton_method(testing_module, "_native_apply_delta_to_cpu_time_at_previous_sample_ns", _native_apply_delta_to_cpu_time_at_previous_sample_ns, 2);
   #endif
 
   at_active_span_id = rb_intern_const("@active_span");
@@ -366,10 +360,10 @@ void collectors_thread_context_init(VALUE profiling_module) {
   otel_context_storage_id = rb_intern_const("__opentelemetry_context_storage__");
   otel_fiber_context_storage_id = rb_intern_const("@opentelemetry_context");
 
-  #ifndef NO_GVL_INSTRUMENTATION
-    // This will raise if Ruby already ran out of thread-local keys
-    gvl_profiling_init();
-  #endif
+  dd_per_thread_context_id = rb_intern_const("dd_per_thread_context");
+
+  // This will raise if Ruby already ran out of thread-local keys
+  per_thread_context_tls_init();
 
   gc_profiling_init();
 }
@@ -394,7 +388,6 @@ static void thread_context_collector_typed_data_mark(void *state_ptr) {
 
   // Update this when modifying state struct
   rb_gc_mark(state->recorder_instance);
-  st_foreach(state->hash_map_per_thread_context, hash_map_per_thread_context_mark, 0 /* unused */);
   rb_gc_mark(state->thread_list_buffer);
   rb_gc_mark(state->main_thread);
   rb_gc_mark(state->otel_current_span_key);
@@ -407,36 +400,47 @@ static void thread_context_collector_typed_data_free(void *state_ptr) {
 
   // Important: Remember that we're only guaranteed to see here what's been set in _native_new, aka
   // pointers that have been set NULL there may still be NULL here.
-  if (state->locations != NULL) ruby_xfree(state->locations);
-
-  // Free each entry in the map
-  st_foreach(state->hash_map_per_thread_context, hash_map_per_thread_context_free_values, 0 /* unused */);
-  // ...and then the map
-  st_free_table(state->hash_map_per_thread_context);
+  if (state->locations.ptr != NULL) ruby_xfree(state->locations.ptr);
 
   st_free_table(state->native_filenames_cache);
 
   ruby_xfree(state);
 }
 
-// Mark Ruby thread references we keep as keys in hash_map_per_thread_context
-static int hash_map_per_thread_context_mark(st_data_t key_thread, st_data_t value_thread_context, DDTRACE_UNUSED st_data_t _argument) {
-  VALUE thread = (VALUE) key_thread;
-  per_thread_context *thread_context = (per_thread_context *) value_thread_context;
+// per_thread_context is wrapped in a TypedData Ruby object stored as an ivar on each Ruby Thread.
+// This gives us automatic GC marking (for sampling_buffer iseq VALUEs) and lifecycle management.
+static const rb_data_type_t per_thread_context_typed_data = {
+  .wrap_struct_name = "Datadog::Profiling::PerThreadContext",
+  .function = {
+    .dmark = per_thread_context_typed_data_mark,
+    .dfree = per_thread_context_typed_data_free,
+    .dsize = NULL,
+  },
+  .flags = RUBY_TYPED_FREE_IMMEDIATELY,
+};
 
-  rb_gc_mark(thread);
-  if (sampling_buffer_needs_marking(&thread_context->sampling_buffer)) {
-    sampling_buffer_mark(&thread_context->sampling_buffer);
+static void per_thread_context_typed_data_mark(void *ctx_ptr) {
+  per_thread_context *ctx = (per_thread_context *) ctx_ptr;
+  if (sampling_buffer_needs_marking(&ctx->sampling_buffer)) {
+    sampling_buffer_mark(&ctx->sampling_buffer);
   }
-
-  return ST_CONTINUE;
 }
 
-// Used to clear each of the per_thread_contexts inside the hash_map_per_thread_context
-static int hash_map_per_thread_context_free_values(DDTRACE_UNUSED st_data_t _thread, st_data_t value_per_thread_context, DDTRACE_UNUSED st_data_t _argument) {
-  per_thread_context *thread_context = (per_thread_context*) value_per_thread_context;
-  free_context(thread_context);
-  return ST_CONTINUE;
+static void per_thread_context_typed_data_free(void *ctx_ptr) {
+  per_thread_context *ctx = (per_thread_context *) ctx_ptr;
+  sampling_buffer_free(&ctx->sampling_buffer);
+  free(ctx);
+}
+
+static VALUE _native_clear_per_thread_context_for(DDTRACE_UNUSED VALUE self, VALUE thread) {
+  per_thread_context *ctx = get_per_thread_context(thread);
+  if (ctx != NULL) {
+    set_per_thread_context(thread, NULL);
+    if (!RB_OBJ_FROZEN(thread)) {
+      rb_ivar_set(thread, dd_per_thread_context_id, Qnil);
+    }
+  }
+  return Qnil;
 }
 
 static VALUE _native_new(VALUE klass) {
@@ -446,11 +450,8 @@ static VALUE _native_new(VALUE klass) {
   // being leaked.
 
   // Update this when modifying state struct
-  state->locations = NULL;
-  state->max_frames = 0;
-  state->hash_map_per_thread_context =
-   // "numtable" is an awful name, but TL;DR it's what should be used when keys are `VALUE`s.
-    st_init_numtable();
+  state->locations.ptr = NULL;
+  state->locations.len = 0;
   state->recorder_instance = Qnil;
   state->tracer_context_key = MISSING_TRACER_CONTEXT_KEY;
   VALUE thread_list_buffer = rb_ary_new();
@@ -502,9 +503,8 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   // Update this when modifying state struct
-  state->max_frames = sampling_buffer_check_max_frames(NUM2INT(max_frames));
-  state->locations = ruby_xcalloc(state->max_frames, sizeof(ddog_prof_Location));
-  // hash_map_per_thread_context is already initialized, nothing to do here
+  state->locations.len = sampling_buffer_check_max_frames(NUM2INT(max_frames));
+  state->locations.ptr = ruby_xcalloc(state->locations.len, sizeof(ddog_prof_Location));
   state->recorder_instance = enforce_recorder_instance(recorder_instance);
   state->endpoint_collection_enabled = (endpoint_collection_enabled == Qtrue);
   state->native_filenames_enabled = (native_filenames_enabled == Qtrue);
@@ -623,11 +623,7 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
     );
   }
 
-  state->sample_count++;
-
-  // TODO: This seems somewhat overkill and inefficient to do often; right now we just do it every few samples
-  // but there's probably a better way to do this if we actually track when threads finish
-  if (state->sample_count % 100 == 0) remove_context_for_dead_threads(state);
+  state->stats.sample_count++;
 
   update_metrics_and_sample(
     state,
@@ -718,7 +714,7 @@ void thread_context_collector_on_gc_start(VALUE self_instance) {
   // This should never fail the the above check passes
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-  per_thread_context *thread_context = get_context_for(rb_thread_current(), state);
+  per_thread_context *thread_context = get_per_thread_context(rb_thread_current());
 
   // If there was no previously-existing context for this thread, we won't allocate one (see safety). For now we just drop
   // the GC sample, under the assumption that "a thread that is so new that we never sampled it even once before it triggers
@@ -751,7 +747,7 @@ bool thread_context_collector_on_gc_finish(VALUE self_instance) {
   // This should never fail the the above check passes
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-  per_thread_context *thread_context = get_context_for(rb_thread_current(), state);
+  per_thread_context *thread_context = get_per_thread_context(rb_thread_current());
 
   // If there was no previously-existing context for this thread, we won't allocate one (see safety). We keep a metric for
   // how often this happens -- see on_gc_start.
@@ -1005,6 +1001,7 @@ static void trigger_sample_for_thread(
   sample_thread(
     stack_from_thread,
     sampling_buffer,
+    state->locations,
     state->recorder_instance,
     values,
     (sample_labels) {
@@ -1032,29 +1029,22 @@ static VALUE _native_thread_list(DDTRACE_UNUSED VALUE _self) {
   return result;
 }
 
+// This allocates a Ruby object and therefore needs the GVL and is not safe to call from RUBY_INTERNAL_EVENT_* hooks.
 static per_thread_context *get_or_create_context_for(VALUE thread, thread_context_collector_state *state) {
-  per_thread_context* thread_context = NULL;
-  st_data_t value_context = 0;
+  per_thread_context *thread_context = get_per_thread_context(thread);
+  if (thread_context != NULL) return thread_context;
 
-  if (st_lookup(state->hash_map_per_thread_context, (st_data_t) thread, &value_context)) {
-    thread_context = (per_thread_context*) value_context;
-  } else {
-    thread_context = calloc(1, sizeof(per_thread_context)); // See "note on calloc vs ruby_xcalloc use" in heap_recorder.c
-    initialize_context(thread, thread_context, state);
-    st_insert(state->hash_map_per_thread_context, (st_data_t) thread, (st_data_t) thread_context);
+  if (RB_OBJ_FROZEN(thread)) {
+    raise_error(rb_eFrozenError, "Cannot setup profiler state for Thread %"PRIsVALUE" because it is frozen. Please avoid freezing Thread instances and/or report the issue to dd-trace-rb", thread);
   }
 
-  return thread_context;
-}
+  thread_context = calloc(1, sizeof(per_thread_context)); // See "note on calloc vs ruby_xcalloc use" in heap_recorder.c
+  initialize_context(thread, thread_context, state);
 
-static per_thread_context *get_context_for(VALUE thread, thread_context_collector_state *state) {
-  per_thread_context* thread_context = NULL;
-  st_data_t value_context = 0;
+  VALUE wrapper = TypedData_Wrap_Struct(rb_cObject, &per_thread_context_typed_data, thread_context);
+  rb_ivar_set(thread, dd_per_thread_context_id, wrapper);
 
-  if (st_lookup(state->hash_map_per_thread_context, (st_data_t) thread, &value_context)) {
-    thread_context = (per_thread_context*) value_context;
-  }
-
+  set_per_thread_context(thread, thread_context);
   return thread_context;
 }
 
@@ -1080,7 +1070,7 @@ static bool is_logging_gem_monkey_patch(VALUE invoke_file_location) {
 }
 
 static void initialize_context(VALUE thread, per_thread_context *thread_context, thread_context_collector_state *state) {
-  sampling_buffer_initialize(&thread_context->sampling_buffer, state->max_frames, state->locations);
+  sampling_buffer_initialize(&thread_context->sampling_buffer, state->locations.len);
 
   snprintf(thread_context->thread_id, THREAD_ID_LIMIT_CHARS, "%"PRIu64" (%lu)", native_thread_id_for(thread), (unsigned long) thread_id_for(thread));
   thread_context->thread_id_char_slice = (ddog_CharSlice) {.ptr = thread_context->thread_id, .len = strlen(thread_context->thread_id)};
@@ -1121,24 +1111,17 @@ static void initialize_context(VALUE thread, per_thread_context *thread_context,
   thread_context->gc_tracking.cpu_time_at_start_ns = INVALID_TIME;
   thread_context->gc_tracking.wall_time_at_start_ns = INVALID_TIME;
 
-  #ifndef NO_GVL_INSTRUMENTATION
-    // We use this special location to store data that can be accessed without any
-    // kind of synchronization (e.g. by threads without the GVL).
-    //
-    // We set this marker here for two purposes:
-    // * To make sure there's no stale data from a previous execution of the profiler.
-    // * To mark threads that are actually being profiled
-    //
-    // (Setting this is potentially a race, but what we want is to avoid _stale_ data, so
-    // if this gets set concurrently with context initialization, then such a value will belong
-    // to the current profiler instance, so that's OK)
-    gvl_profiling_state_thread_object_set(thread, GVL_WAITING_ENABLED_EMPTY);
-  #endif
-}
-
-static void free_context(per_thread_context* thread_context) {
-  sampling_buffer_free(&thread_context->sampling_buffer);
-  free(thread_context); // See "note on calloc vs ruby_xcalloc use" in heap_recorder.c
+  // We use this special location to store data that can be accessed without any
+  // kind of synchronization (e.g. by threads without the GVL).
+  //
+  // We set this marker here for two purposes:
+  // * To make sure there's no stale data from a previous execution of the profiler.
+  // * To mark threads that are actually being profiled
+  //
+  // (Setting this is potentially a race, but what we want is to avoid _stale_ data, so
+  // if this gets set concurrently with context initialization, then such a value will belong
+  // to the current profiler instance, so that's OK)
+  thread_context->gvl_waiting_at = GVL_WAITING_ENABLED_EMPTY;
 }
 
 static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
@@ -1148,12 +1131,10 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   VALUE result = rb_str_new2(" (native state)");
 
   // Update this when modifying state struct
-  rb_str_concat(result, rb_sprintf(" max_frames=%d", state->max_frames));
-  rb_str_concat(result, rb_sprintf(" hash_map_per_thread_context=%"PRIsVALUE, per_thread_context_st_table_as_ruby_hash(state)));
+  rb_str_concat(result, rb_sprintf(" max_frames=%d", state->locations.len));
   rb_str_concat(result, rb_sprintf(" recorder_instance=%"PRIsVALUE, state->recorder_instance));
   VALUE tracer_context_key = state->tracer_context_key == MISSING_TRACER_CONTEXT_KEY ? Qnil : ID2SYM(state->tracer_context_key);
   rb_str_concat(result, rb_sprintf(" tracer_context_key=%+"PRIsVALUE, tracer_context_key));
-  rb_str_concat(result, rb_sprintf(" sample_count=%u", state->sample_count));
   rb_str_concat(result, rb_sprintf(" stats=%"PRIsVALUE, stats_as_ruby_hash(state)));
   rb_str_concat(result, rb_sprintf(" endpoint_collection_enabled=%"PRIsVALUE, state->endpoint_collection_enabled ? Qtrue : Qfalse));
   rb_str_concat(result, rb_sprintf(" native_filenames_enabled=%"PRIsVALUE, state->native_filenames_enabled ? Qtrue : Qfalse));
@@ -1173,18 +1154,8 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   return result;
 }
 
-static VALUE per_thread_context_st_table_as_ruby_hash(thread_context_collector_state *state) {
-  VALUE result = rb_hash_new();
-  st_foreach(state->hash_map_per_thread_context, per_thread_context_as_ruby_hash, result);
-  return result;
-}
-
-static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value_context, st_data_t result_hash) {
-  VALUE thread = (VALUE) key_thread;
-  per_thread_context *thread_context = (per_thread_context*) value_context;
-  VALUE result = (VALUE) result_hash;
+static VALUE per_thread_context_to_ruby_hash(per_thread_context *thread_context) {
   VALUE context_as_hash = rb_hash_new();
-  rb_hash_aset(result, thread, context_as_hash);
 
   VALUE arguments[] = {
     ID2SYM(rb_intern("thread_id")),                       /* => */ rb_str_new2(thread_context->thread_id),
@@ -1201,19 +1172,18 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
     ID2SYM(rb_intern("gc_tracking.cpu_time_at_start_ns")),   /* => */ LONG2NUM(thread_context->gc_tracking.cpu_time_at_start_ns),
     ID2SYM(rb_intern("gc_tracking.wall_time_at_start_ns")),  /* => */ LONG2NUM(thread_context->gc_tracking.wall_time_at_start_ns),
 
-    #ifndef NO_GVL_INSTRUMENTATION
-      ID2SYM(rb_intern("gvl_waiting_at")), /* => */ LONG2NUM(gvl_profiling_state_thread_object_get(thread)),
-    #endif
+    ID2SYM(rb_intern("gvl_waiting_at")), /* => */ LONG2NUM(thread_context->gvl_waiting_at),
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(context_as_hash, arguments[i], arguments[i+1]);
 
-  return ST_CONTINUE;
+  return context_as_hash;
 }
 
 static VALUE stats_as_ruby_hash(thread_context_collector_state *state) {
   // Update this when modifying state struct (stats inner struct)
   VALUE stats_as_hash = rb_hash_new();
   VALUE arguments[] = {
+    ID2SYM(rb_intern("sample_count")),                             /* => */ UINT2NUM(state->stats.sample_count),
     ID2SYM(rb_intern("gc_samples")),                               /* => */ UINT2NUM(state->stats.gc_samples),
     ID2SYM(rb_intern("gc_samples_missed_due_to_missing_context")), /* => */ UINT2NUM(state->stats.gc_samples_missed_due_to_missing_context),
   };
@@ -1234,29 +1204,25 @@ static VALUE gc_tracking_as_ruby_hash(thread_context_collector_state *state) {
   return result;
 }
 
-static void remove_context_for_dead_threads(thread_context_collector_state *state) {
-  st_foreach(state->hash_map_per_thread_context, remove_if_dead_thread, 0 /* unused */);
-}
-
-static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, DDTRACE_UNUSED st_data_t _argument) {
-  VALUE thread = (VALUE) key_thread;
-  per_thread_context* thread_context = (per_thread_context*) value_context;
-
-  if (is_thread_alive(thread)) return ST_CONTINUE;
-
-  free_context(thread_context);
-  return ST_DELETE;
-}
-
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 //
-// Returns the whole contents of the per_thread_context structs being tracked.
+// Returns the whole contents of the per_thread_context structs being tracked, by iterating all live threads.
 static VALUE _native_per_thread_context(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-  return per_thread_context_st_table_as_ruby_hash(state);
+  VALUE result = rb_hash_new();
+  VALUE threads = thread_list(state);
+  const long thread_count = RARRAY_LEN(threads);
+  for (long i = 0; i < thread_count; i++) {
+    VALUE thread = RARRAY_AREF(threads, i);
+    per_thread_context *thread_context = get_per_thread_context(thread);
+    if (thread_context != NULL) {
+      rb_hash_aset(result, thread, per_thread_context_to_ruby_hash(thread_context));
+    }
+  }
+  return result;
 }
 
 static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns, long gc_start_time_ns, bool is_wall_time) {
@@ -1445,16 +1411,17 @@ static bool should_collect_resource(VALUE root_span) {
 //
 // Assumption: This method gets called BEFORE restarting profiling -- e.g. there are no components attempting to
 // trigger samples at the same time.
+//
+// Note that tests call this method directly in the same process without forking,
+// and in such a case non-current Threads keep running.
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-  // Release all context memory before clearing the existing context
-  st_foreach(state->hash_map_per_thread_context, hash_map_per_thread_context_free_values, 0 /* unused */);
-
-  st_clear(state->hash_map_per_thread_context);
-
   state->stats = (struct stats) {}; // Resets all stats back to zero
+
+  // Clear any leftover state from parent process in the current thread; all other threads are assumed dead
+  _native_clear_per_thread_context_for(Qnil, rb_thread_current());
 
   rb_funcall(state->recorder_instance, rb_intern("reset_after_fork"), 0);
 
@@ -1475,14 +1442,9 @@ static VALUE thread_list(thread_context_collector_state *state) {
 // expected to be called from a signal handler and to be async-signal-safe.
 //
 // Also, no allocation (Ruby or malloc) can happen.
-bool thread_context_collector_prepare_sample_inside_signal_handler(VALUE self_instance) {
-  thread_context_collector_state *state;
-  if (!rb_typeddata_is_kind_of(self_instance, &thread_context_collector_typed_data)) return false;
-  // This should never fail if the above check passes
-  TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
-
+bool thread_context_collector_prepare_sample_inside_signal_handler(void) {
   VALUE current_thread = rb_thread_current();
-  per_thread_context *thread_context = get_context_for(current_thread, state);
+  per_thread_context *thread_context = get_per_thread_context(current_thread);
   if (thread_context == NULL) return false;
 
   return prepare_sample_thread(current_thread, &thread_context->sampling_buffer);
@@ -1493,11 +1455,11 @@ bool thread_context_collector_prepare_sample_inside_signal_handler(VALUE self_in
 //
 // Returns true if the after_allocation needs to be called (to do work that can't be done from inside the
 // tracepoint, such as allocate new objects), and false if it doesn't
-bool thread_context_collector_sample_allocation(VALUE self_instance, unsigned int sample_weight, VALUE new_object) {
+//
+// The callers must ensure thread_context is non-NULL.
+bool thread_context_collector_sample_allocation(VALUE self_instance, per_thread_context *thread_context, unsigned int sample_weight, VALUE new_object) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
-
-  VALUE current_thread = rb_thread_current();
 
   enum ruby_value_type type = rb_type(new_object);
 
@@ -1565,7 +1527,7 @@ bool thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
 
   bool needs_after_allocation = track_object(state->recorder_instance, new_object, sample_weight, class_name);
 
-  per_thread_context *thread_context = get_or_create_context_for(current_thread, state);
+  VALUE current_thread = rb_thread_current();
 
   trigger_sample_for_thread(
     state,
@@ -1587,9 +1549,13 @@ bool thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE sample_weight, VALUE new_object) {
+  thread_context_collector_state *state;
+  TypedData_Get_Struct(collector_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
+  per_thread_context *thread_context = get_or_create_context_for(rb_thread_current(), state);
+
   debug_enter_unsafe_context();
 
-  bool needs_after_allocation = thread_context_collector_sample_allocation(collector_instance, NUM2UINT(sample_weight), new_object);
+  bool needs_after_allocation = thread_context_collector_sample_allocation(collector_instance, thread_context, NUM2UINT(sample_weight), new_object);
 
   debug_leave_unsafe_context();
 
@@ -1598,7 +1564,10 @@ static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collecto
   return needs_after_allocation ? Qtrue : Qfalse;
 }
 
-static VALUE new_empty_thread_inner(DDTRACE_UNUSED void *arg) { return Qnil; }
+static VALUE new_empty_thread_inner(DDTRACE_UNUSED void *arg) {
+  rb_thread_sleep(INT_MAX);
+  return Qnil;
+}
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
@@ -1893,7 +1862,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 
 #ifndef NO_GVL_INSTRUMENTATION
   // This function can get called from outside the GVL and even on non-main Ractors
-  void thread_context_collector_on_gvl_waiting(gvl_profiling_thread thread) {
+  void thread_context_collector_on_gvl_waiting(VALUE thread) {
     // Because this function gets called from a thread that is NOT holding the GVL, we avoid touching the
     // per-thread context directly.
     //
@@ -1902,19 +1871,26 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     //
     // Also, this function can get called on the non-main Ractor. We deal with this by checking if the value in the context
     // is non-zero, since only `initialize_context` ever sets the value from 0 to non-zero for threads it sees.
-    intptr_t thread_being_profiled = gvl_profiling_state_get(thread);
+    per_thread_context* thread_being_profiled = get_per_thread_context(thread);
     if (!thread_being_profiled) return;
 
     long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
     if (current_monotonic_wall_time_ns <= 0 || current_monotonic_wall_time_ns > GVL_WAITING_ENABLED_EMPTY) return;
 
-    gvl_profiling_state_set(thread, current_monotonic_wall_time_ns);
+    thread_being_profiled->gvl_waiting_at = current_monotonic_wall_time_ns;
   }
 
   // This function can get called from outside the GVL and even on non-main Ractors
   __attribute__((warn_unused_result))
-  on_gvl_running_result thread_context_collector_on_gvl_running_with_threshold(gvl_profiling_thread thread, uint32_t waiting_for_gvl_threshold_ns) {
-    intptr_t gvl_waiting_at = gvl_profiling_state_get(thread);
+  on_gvl_running_result thread_context_collector_on_gvl_running_with_threshold(VALUE thread, uint32_t waiting_for_gvl_threshold_ns) {
+    per_thread_context* thread_being_profiled = get_per_thread_context(thread);
+
+    // Thread was not being profiled
+    if (!thread_being_profiled) {
+      return (on_gvl_running_result) {.action = ON_GVL_RUNNING_UNKNOWN, .waiting_for_gvl_duration_ns = 0};
+    }
+
+    long gvl_waiting_at = thread_being_profiled->gvl_waiting_at;
 
     // Thread was not being profiled / not waiting on gvl
     if (gvl_waiting_at == 0 || gvl_waiting_at == GVL_WAITING_ENABLED_EMPTY) {
@@ -1932,12 +1908,12 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 
     if (should_sample) {
       // We flip the gvl_waiting_at to negative to mark that the thread is now running and no longer waiting
-      intptr_t gvl_waiting_at_is_now_running = -gvl_waiting_at;
+      long gvl_waiting_at_is_now_running = -gvl_waiting_at;
 
-      gvl_profiling_state_set(thread, gvl_waiting_at_is_now_running);
+      thread_being_profiled->gvl_waiting_at = gvl_waiting_at_is_now_running;
     } else {
       // We decided not to sample. Let's mark the thread back to the initial "enabled but empty" state
-      gvl_profiling_state_set(thread, GVL_WAITING_ENABLED_EMPTY);
+      thread_being_profiled->gvl_waiting_at = GVL_WAITING_ENABLED_EMPTY;
     }
 
     return (on_gvl_running_result) {
@@ -1947,7 +1923,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
   }
 
   __attribute__((warn_unused_result))
-  on_gvl_running_result thread_context_collector_on_gvl_running(gvl_profiling_thread thread) {
+  on_gvl_running_result thread_context_collector_on_gvl_running(VALUE thread) {
     return thread_context_collector_on_gvl_running_with_threshold(thread, global_waiting_for_gvl_threshold_ns);
   }
 
@@ -1977,13 +1953,17 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
   //
   // ---
   //
+  // Always called with the GVL, either from a postponed_job or from tests.
+  //
   // NOTE: In normal use, current_thread is expected to be == rb_thread_current(); the `current_thread` parameter only
   // exists to enable testing.
   VALUE thread_context_collector_sample_after_gvl_running(VALUE self_instance, VALUE current_thread, long current_monotonic_wall_time_ns) {
     thread_context_collector_state *state;
     TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-    intptr_t gvl_waiting_at = gvl_profiling_state_thread_object_get(current_thread);
+    per_thread_context *thread_context = get_or_create_context_for(current_thread, state);
+
+    long gvl_waiting_at = thread_context->gvl_waiting_at;
 
     if (gvl_waiting_at >= 0) {
       // @ivoanjo: I'm not sure if this can ever happen. This means that we're not on the same thread
@@ -1992,8 +1972,6 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
       // We do nothing in this case.
       return Qfalse;
     }
-
-    per_thread_context *thread_context = get_or_create_context_for(current_thread, state);
 
     // We don't actually account for cpu-time during Waiting for GVL. BUT, we may chose to push an
     // extra sample to represent the period prior to Waiting for GVL. To support that, we retrieve the current
@@ -2026,7 +2004,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     sampling_buffer* sampling_buffer,
     long current_cpu_time_ns
   ) {
-    intptr_t gvl_waiting_at = gvl_profiling_state_thread_object_get(thread_being_sampled);
+    long gvl_waiting_at = thread_context->gvl_waiting_at;
 
     bool is_gvl_waiting_state = gvl_waiting_at != 0 && gvl_waiting_at != GVL_WAITING_ENABLED_EMPTY;
 
@@ -2041,17 +2019,17 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     //  ...──────────────┬───────────────────...
     //       Other state │ Waiting for GVL
     //  ...──────────────┴───────────────────...
-    //     ▲                              ▲
+    //     ▲                               ▲
     //     └─ Previous sample              └─ Regular sample (caller)
     //
     //   In this case, we'll want to push two samples: a) one for the current time (handled by the caller), b) an extra sample
-    //   to represent the remaining cpu/wall time before the "Waiting for GVL" started:
+    //   to represent the remaining cpu/wall time before the "Waiting for GVL" started (for timeline purposes):
     //
     //                             time ─────►
     //  ...──────────────┬───────────────────...
     //       Other state │ Waiting for GVL
     //  ...──────────────┴───────────────────...
-    //     ▲            ▲                ▲
+    //     ▲             ▲                 ▲
     //     └─ Prev...    └─ Extra sample   └─ Regular sample (caller)
     //
     // 2. The current sample is the n-th one after we entered the "Waiting for GVL" state
@@ -2061,7 +2039,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     //  ...──────────────┬───────────────────────────────────────────────...
     //       Other state │ Waiting for GVL
     //  ...──────────────┴───────────────────────────────────────────────...
-    //     ▲                              ▲                          ▲
+    //     ▲                               ▲                          ▲
     //     └─ Previous sample              └─ Previous sample         └─ Regular sample (caller)
     //
     //   In this case, we just report back to the caller that the thread is in the "Waiting for GVL" state.
@@ -2076,7 +2054,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 
     if (gvl_waiting_at < 0) {
       // Negative means the waiting for GVL just ended, so we clear the state, so next samples no longer represent waiting
-      gvl_profiling_state_thread_object_set(thread_being_sampled, GVL_WAITING_ENABLED_EMPTY);
+      thread_context->gvl_waiting_at = GVL_WAITING_ENABLED_EMPTY;
     }
 
     long gvl_waiting_started_wall_time_ns = labs(gvl_waiting_at);
@@ -2120,7 +2098,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 
     debug_enter_unsafe_context();
 
-    thread_context_collector_on_gvl_waiting(thread_from_thread_object(thread));
+    thread_context_collector_on_gvl_waiting(thread);
 
     debug_leave_unsafe_context();
 
@@ -2132,11 +2110,12 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 
     debug_enter_unsafe_context();
 
-    intptr_t gvl_waiting_at = gvl_profiling_state_thread_object_get(thread);
+    per_thread_context *thread_context = get_per_thread_context(thread);
+    VALUE result = thread_context ? LONG2NUM(thread_context->gvl_waiting_at) : Qnil;
 
     debug_leave_unsafe_context();
 
-    return LONG2NUM(gvl_waiting_at);
+    return result;
   }
 
   static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread) {
@@ -2144,7 +2123,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 
     debug_enter_unsafe_context();
 
-    VALUE result = thread_context_collector_on_gvl_running(thread_from_thread_object(thread)).action == ON_GVL_RUNNING_SAMPLE ? Qtrue : Qfalse;
+    VALUE result = thread_context_collector_on_gvl_running(thread).action == ON_GVL_RUNNING_SAMPLE ? Qtrue : Qfalse;
 
     debug_leave_unsafe_context();
 
@@ -2154,8 +2133,6 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
   static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE allow_exception) {
     ENFORCE_THREAD(thread);
     ENFORCE_BOOLEAN(allow_exception);
-
-
 
     if (allow_exception == Qfalse) debug_enter_unsafe_context();
 
@@ -2170,13 +2147,10 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     return result;
   }
 
-  static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE delta_ns) {
+  static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE delta_ns) {
     ENFORCE_THREAD(thread);
 
-    thread_context_collector_state *state;
-    TypedData_Get_Struct(collector_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
-
-    per_thread_context *thread_context = get_context_for(thread, state);
+    per_thread_context *thread_context = get_per_thread_context(thread);
     if (thread_context == NULL) raise_error(rb_eArgError, "Unexpected: This method cannot be used unless the per-thread context for the thread already exists");
 
     thread_context->cpu_time_at_previous_sample_ns += NUM2LONG(delta_ns);
@@ -2239,6 +2213,6 @@ static VALUE _native_system_epoch_time_now_ns(DDTRACE_UNUSED VALUE self, VALUE c
   return LONG2NUM(system_epoch_time_ns);
 }
 
-static VALUE _native_prepare_sample_inside_signal_handler(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
-  return thread_context_collector_prepare_sample_inside_signal_handler(collector_instance) ? Qtrue : Qfalse;
+static VALUE _native_prepare_sample_inside_signal_handler(DDTRACE_UNUSED VALUE self) {
+  return thread_context_collector_prepare_sample_inside_signal_handler() ? Qtrue : Qfalse;
 }
