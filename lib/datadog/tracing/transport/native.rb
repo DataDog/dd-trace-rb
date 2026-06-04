@@ -56,6 +56,10 @@ module Datadog
 
             @logger = logger
 
+            # Serializes native sends and is held across a fork. See the
+            # fork-safety note below.
+            @send_mutex = Mutex.new
+
             url                  = agent_settings.url
             tracer_version       = tracer_version_string
             language             = Core::Environment::Ext::LANG
@@ -77,7 +81,132 @@ module Datadog
               service: service,
               version: version
             )
+
+            # Fork safety: the native exporter owns a long-lived tokio runtime
+            # with background worker threads. Around a fork we must quiesce the
+            # runtime before forking and restore it afterwards in both the parent
+            # and the child (where the inherited runtime is dead).
+            #
+            # A libdatadog Rust call must NOT be interrupted by `fork()`. A
+            # native send releases the GVL during the Rust
+            # `ddog_trace_exporter_send_trace_chunks` call, so if another thread
+            # forks while a (typically the writer/`AsyncTransport`) thread is
+            # mid-send, the child would inherit a half-completed send and
+            # Rust-internal locks, deadlocking or crashing. `_native_before_fork`
+            # also tears down and replaces the runtime, so it must not run while
+            # a send is still using that runtime.
+            #
+            # `@send_mutex` serializes sends (see #send_traces) and is held
+            # across the fork. The `:before` hook first calls
+            # `_native_before_fork` to pause the runtime, THEN locks the mutex.
+            # This ordering minimizes the serialized section and is safe to run
+            # concurrently with an in-flight send: `block_on` (used by
+            # `send_trace_chunks`) only briefly locks the runtime mutex to clone
+            # the `Arc<Runtime>` (or build a throwaway `current_thread` runtime
+            # if it has been taken) and then drives the send on its own clone
+            # holding no mutex, while `_native_before_fork` just `take()`s the
+            # shared `Arc` and pauses workers -- so neither deadlocks the other.
+            # Locking the mutex AFTER `_native_before_fork` still guarantees the
+            # drain: it BLOCKS until any in-flight send finishes (bounded by the
+            # exporter's request timeout), which drops the send's last `Arc` and
+            # fully shuts the runtime down, and prevents new sends from starting.
+            # The lock is released in the `:parent` and `:child` hooks. In
+            # practice only one writer thread sends, so serializing adds no real
+            # contention.
+            #
+            # Note: on Ruby 3.1+, the `:before` block runs before EVERY `_fork`,
+            # which includes `system`/`popen`/backtick subprocess spawns, so it
+            # must stay cheap.
+            #
+            # The hooks below are process-global and are never auto-removed by
+            # the fork machinery, so each transport must deregister its own
+            # hooks when it goes away (see #close and the finalizer): otherwise
+            # the closures keep the exporter -- and its runtime threads -- alive
+            # forever, and every later fork runs them against every
+            # historically-created exporter. The closures intentionally capture
+            # only the `exporter`/`send_mutex` locals (NOT `self`), so the
+            # Transport stays GC-eligible and its finalizer can fire even when
+            # #close was not called explicitly.
+            exporter = @exporter
+            send_mutex = @send_mutex
+            before_hook = Core::Utils::AtForkMonkeyPatch.at_fork(:before) do
+              # Pause the runtime first (safe to run concurrently with an
+              # in-flight send), then drain by locking the mutex. The lock must
+              # happen even if `_native_before_fork` raises, so the in-flight
+              # send has returned (dropping the runtime's last `Arc`) before the
+              # fork. Held across the fork; released in :parent/:child.
+              exporter._native_before_fork
+            rescue => e
+              Datadog.logger.warn { "Native transport before-fork preparation failed; traces may not be sent to Datadog: #{e}" }
+            ensure
+              send_mutex.lock
+            end
+            parent_hook = Core::Utils::AtForkMonkeyPatch.at_fork(:parent) do
+              exporter._native_after_fork_in_parent
+            rescue => e
+              Datadog.logger.warn { "Native transport after-fork reset failed; traces may not be sent to Datadog: #{e}" }
+            ensure
+              # The forking thread owns the lock here; the guard avoids raising
+              # if :before failed to acquire it. Released even if the native
+              # call raised, so a failure can't leave the mutex locked forever.
+              send_mutex.unlock if send_mutex.owned?
+            end
+            child_hook = Core::Utils::AtForkMonkeyPatch.at_fork(:child) do
+              exporter._native_after_fork_in_child
+            rescue => e
+              Datadog.logger.warn { "Native transport after-fork reset failed; traces may not be sent to Datadog: #{e}" }
+            ensure
+              # The forking thread is the lone surviving thread in the child and
+              # owns the lock; the guard avoids raising if :before failed.
+              send_mutex.unlock if send_mutex.owned?
+            end
+
+            @fork_hooks = {before: before_hook, parent: parent_hook, child: child_hook}
+
+            # Fallback so a dropped (un-#close'd) transport doesn't leak its
+            # global fork hooks (and, through them, the exporter/runtime). The
+            # finalizer proc is built by a class method capturing ONLY the
+            # stage->block handles, never `self` -- a finalizer that closed over
+            # the object it is attached to would keep that object reachable and
+            # never run.
+            ObjectSpace.define_finalizer(self, self.class.send(:finalizer_for, @fork_hooks))
           end
+
+          # Deregister this transport's process-global fork hooks and release the
+          # native exporter so its runtime can shut down. Idempotent: safe to
+          # call multiple times and safe to call after the finalizer has run.
+          def close
+            fork_hooks = @fork_hooks
+            @fork_hooks = nil
+            return if fork_hooks.nil?
+
+            fork_hooks.each do |stage, block|
+              Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
+            end
+
+            # Drop our reference to the exporter so that, once the hooks above no
+            # longer pin it, it can be collected and its runtime shut down
+            # cleanly in this (parent) process.
+            @exporter = nil
+
+            nil
+          end
+
+          # Builds the finalizer proc for a transport's fork hooks.
+          #
+          # Defined as a class method so the proc closes over ONLY the
+          # stage->block handles passed in and never over a Transport instance
+          # (which would keep the instance reachable and prevent the finalizer
+          # from ever running). Removing the hooks unpins the exporter captured
+          # by those closures, allowing it (and its runtime) to be freed.
+          def self.finalizer_for(fork_hooks)
+            proc do
+              fork_hooks.each do |stage, block|
+                Core::Utils::AtForkMonkeyPatch.remove_at_fork(stage, block)
+              end
+            end
+          end
+          private_class_method :finalizer_for
 
           # Send a list of traces to the agent.
           #
@@ -96,7 +225,12 @@ module Datadog
             # Each trace segment becomes one inner array (one trace chunk).
             chunks = traces.map(&:spans)
 
-            responses = @exporter._native_send_traces(chunks)
+            # Serialize the native send and hold the mutex across it so a
+            # concurrent fork's :before hook blocks until this send drains
+            # (and `_native_before_fork` cannot tear down the runtime mid-send).
+            # `Mutex#synchronize` releases on exception / `rb_jump_tag` via its
+            # ensure, so interrupt propagation stays correct.
+            responses = @send_mutex.synchronize { @exporter._native_send_traces(chunks) }
 
             # Update statistics from the response
             responses.each { |response| update_stats_from_response!(response) }

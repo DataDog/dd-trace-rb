@@ -17,10 +17,13 @@ module Datadog
 
           @logger: untyped
           @exporter: untyped
+          @fork_hooks: Hash[Symbol, Proc]?
 
           attr_reader logger: untyped
 
           def initialize: (agent_settings: untyped, ?logger: untyped) -> void
+          def self.finalizer_for: (Hash[Symbol, Proc] fork_hooks) -> Proc
+          def close: () -> void
           def send_traces: (Array[untyped] traces) -> Array[untyped]
 
           private

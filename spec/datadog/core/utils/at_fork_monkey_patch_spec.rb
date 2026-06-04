@@ -106,13 +106,19 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
     end
 
     shared_context 'at_fork callbacks' do
+      let(:before_fork) { double('before') }
+      let(:parent) { double('parent') }
       let(:child) { double('child') }
 
       before do
+        Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:before) { before_fork.call }
+        Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:parent) { parent.call }
         Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:child) { child.call }
       end
 
       after do
+        Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_BEFORE_BLOCKS).clear
+        Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_PARENT_BLOCKS).clear
         Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
       end
     end
@@ -133,7 +139,9 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
           context 'and returns from the parent context' do
             let(:fork_result) { 1234 } # simulate parent: result is a pid
 
-            it do
+            it 'runs the before and parent callbacks but not the child callbacks' do
+              expect(before_fork).to receive(:call).ordered
+              expect(parent).to receive(:call).ordered
               expect(child).to_not receive(:call)
 
               is_expected.to be fork_result
@@ -143,8 +151,10 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
           context 'and returns from the child context' do
             let(:fork_result) { nil } # simulate child: result is a nil
 
-            it do
-              expect(child).to receive(:call)
+            it 'runs the before and child callbacks but not the parent callbacks' do
+              expect(before_fork).to receive(:call).ordered
+              expect(child).to receive(:call).ordered
+              expect(parent).to_not receive(:call)
 
               is_expected.to be nil
             end
@@ -167,7 +177,11 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
             include_context 'at_fork callbacks'
 
             it 'invokes all the callbacks in order' do
-              expect(child).to receive(:call)
+              # The stubbed fork invokes the wrapped block (running the child
+              # callbacks) and then returns a non-nil pid (parent branch).
+              expect(before_fork).to receive(:call).ordered
+              expect(child).to receive(:call).ordered
+              expect(parent).to receive(:call).ordered
 
               is_expected.to be fork_result
             end
@@ -189,24 +203,46 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
         define_singleton_method(:_fork) { result }
       end
     end
+    let(:before_callback) { double('before', call: true) }
+    let(:parent_callback) { double('parent', call: true) }
     let(:child_callback) { double('child', call: true) }
 
     before do
       process_module.singleton_class.prepend(described_class)
 
+      Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:before) { before_callback.call }
+      Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:parent) { parent_callback.call }
       Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:child) { child_callback.call }
     end
 
     after do
+      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_BEFORE_BLOCKS).clear
+      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_PARENT_BLOCKS).clear
       Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
     end
 
     describe '.daemon' do
-      it 'calls the child at_fork callbacks after calling Process.daemon' do
-        expect(process_module).to receive(:daemon).ordered.and_call_original
-        expect(child_callback).to receive(:call).ordered
+      it 'calls the before and child at_fork callbacks around Process.daemon, but not the parent callbacks' do
+        expect(process_module).to receive(:daemon).and_call_original
+        expect(before_callback).to receive(:call)
+        expect(child_callback).to receive(:call)
+        # `daemon` kills the parent, so the parent callbacks never run.
+        expect(parent_callback).to_not receive(:call)
 
         process_module.daemon
+      end
+
+      it 'runs the before callback before the child callback' do
+        calls = []
+        described_class_blocks = Datadog::Core::Utils::AtForkMonkeyPatch
+        described_class_blocks.const_get(:AT_FORK_BEFORE_BLOCKS).clear
+        described_class_blocks.const_get(:AT_FORK_CHILD_BLOCKS).clear
+        described_class_blocks.at_fork(:before) { calls << :before }
+        described_class_blocks.at_fork(:child) { calls << :child }
+
+        process_module.daemon
+
+        expect(calls).to eq(%i[before child])
       end
 
       it 'passes any arguments to Process.daemon and returns its results' do
@@ -218,8 +254,10 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
       context 'in the child process' do
         let(:_fork_result) { 0 }
 
-        it 'triggers the child callbacks' do
-          expect(child_callback).to receive(:call)
+        it 'triggers the before and child callbacks but not the parent callbacks' do
+          expect(before_callback).to receive(:call).ordered
+          expect(child_callback).to receive(:call).ordered
+          expect(parent_callback).to_not receive(:call)
 
           expect(process_module._fork).to be 0
         end
@@ -232,7 +270,9 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
       context 'in the parent process' do
         let(:_fork_result) { 1234 }
 
-        it 'does not trigger the child callbacks' do
+        it 'triggers the before and parent callbacks but not the child callbacks' do
+          expect(before_callback).to receive(:call).ordered
+          expect(parent_callback).to receive(:call).ordered
           expect(child_callback).to_not receive(:call)
 
           process_module._fork
@@ -242,6 +282,107 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
           expect(process_module._fork).to be _fork_result
         end
       end
+    end
+  end
+
+  describe '::at_fork and ::run_at_fork_blocks' do
+    after do
+      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_BEFORE_BLOCKS).clear
+      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_PARENT_BLOCKS).clear
+      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
+    end
+
+    %i[before parent child].each do |stage|
+      it "registers and runs #{stage.inspect} blocks in registration order" do
+        calls = []
+        described_class.at_fork(stage) { calls << :first }
+        described_class.at_fork(stage) { calls << :second }
+
+        described_class.run_at_fork_blocks(stage)
+
+        expect(calls).to eq(%i[first second])
+      end
+    end
+
+    it 'keeps the stages independent' do
+      calls = []
+      described_class.at_fork(:before) { calls << :before }
+      described_class.at_fork(:parent) { calls << :parent }
+      described_class.at_fork(:child) { calls << :child }
+
+      described_class.run_at_fork_blocks(:before)
+      expect(calls).to eq(%i[before])
+
+      described_class.run_at_fork_blocks(:child)
+      expect(calls).to eq(%i[before child])
+    end
+
+    it 'raises ArgumentError for an unknown stage when registering' do
+      expect { described_class.at_fork(:nonsense) {} }.to raise_error(ArgumentError, /Unsupported stage nonsense/)
+    end
+
+    it 'raises ArgumentError for an unknown stage when running' do
+      expect { described_class.run_at_fork_blocks(:nonsense) }.to raise_error(ArgumentError, /Unsupported stage nonsense/)
+    end
+
+    it 'raises ArgumentError when no block is given' do
+      expect { described_class.at_fork(:child) }.to raise_error(ArgumentError, /Missing block argument/)
+    end
+
+    it 'returns the registered block as a handle' do
+      block = proc {}
+      expect(described_class.at_fork(:child, &block)).to be(block)
+    end
+  end
+
+  describe '::remove_at_fork' do
+    after do
+      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_BEFORE_BLOCKS).clear
+      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_PARENT_BLOCKS).clear
+      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
+    end
+
+    %i[before parent child].each do |stage|
+      it "stops a removed #{stage.inspect} block from running" do
+        calls = []
+        kept = described_class.at_fork(stage) { calls << :kept }
+        removed = described_class.at_fork(stage) { calls << :removed }
+
+        described_class.remove_at_fork(stage, removed)
+        described_class.run_at_fork_blocks(stage)
+
+        expect(calls).to eq(%i[kept])
+        # The handle returned by at_fork is the one that was removed.
+        expect(removed).to be_a(Proc)
+        expect(kept).to be_a(Proc)
+      end
+    end
+
+    it 'is a no-op when the block was never registered' do
+      calls = []
+      described_class.at_fork(:child) { calls << :kept }
+      never_registered = proc { calls << :never }
+
+      expect { described_class.remove_at_fork(:child, never_registered) }.to_not raise_error
+
+      described_class.run_at_fork_blocks(:child)
+      expect(calls).to eq(%i[kept])
+    end
+
+    it 'is a no-op when removing the same block twice' do
+      calls = []
+      block = described_class.at_fork(:child) { calls << :block }
+
+      described_class.remove_at_fork(:child, block)
+      expect { described_class.remove_at_fork(:child, block) }.to_not raise_error
+
+      described_class.run_at_fork_blocks(:child)
+      expect(calls).to eq([])
+    end
+
+    it 'raises ArgumentError for an unknown stage' do
+      expect { described_class.remove_at_fork(:nonsense, proc {}) }
+        .to raise_error(ArgumentError, /Unsupported stage nonsense/)
     end
   end
 end

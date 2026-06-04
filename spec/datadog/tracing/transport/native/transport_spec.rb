@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 
 require 'datadog/tracing/transport/native'
+require 'datadog/tracing/writer'
 require 'datadog/tracing/span'
 require 'datadog/tracing/trace_segment'
 require 'datadog/tracing/transport/trace_formatter'
+require 'datadog/core/utils/at_fork_monkey_patch'
 require 'socket'
 require 'json'
 
@@ -82,9 +84,18 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
     double('agent_settings', url: "http://127.0.0.1:#{mock_agent.port}")
   end
 
+  # Track every transport built by these examples so we can deterministically
+  # dispose of it afterwards, freeing its native exporter during the run rather
+  # than at interpreter exit (see NativeTransportForkIsolation.dispose).
+  let(:built_transports) { [] }
+
   let(:transport) do
-    transport_class.new(agent_settings: agent_settings, logger: logger)
+    transport_class.new(agent_settings: agent_settings, logger: logger).tap do |t|
+      built_transports << t
+    end
   end
+
+  after { built_transports.each { |t| NativeTransportForkIsolation.dispose(t) } }
 
   let(:logger) { Logger.new('/dev/null') }
 
@@ -125,6 +136,132 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       expect {
         transport_class.new(agent_settings: agent_settings)
       }.to raise_error(RuntimeError, /not supported/)
+    end
+  end
+
+  describe 'fork-hook lifecycle' do
+    let(:at_fork) { Datadog::Core::Utils::AtForkMonkeyPatch }
+
+    def registry(stage)
+      const = {before: :AT_FORK_BEFORE_BLOCKS, parent: :AT_FORK_PARENT_BLOCKS, child: :AT_FORK_CHILD_BLOCKS}.fetch(stage)
+      at_fork.const_get(const)
+    end
+
+    # Identity membership check. We must NOT use RSpec's `include(block)` here:
+    # `include` treats a Proc argument as a case-equality predicate and *calls*
+    # it against each element, which would both invoke the native fork hook and
+    # report false matches.
+    def registry_contains?(stage, block)
+      registry(stage).any? { |b| b.equal?(block) }
+    end
+
+    describe '#initialize' do
+      it 'registers one before/parent/child hook' do
+        hooks = transport.instance_variable_get(:@fork_hooks)
+
+        expect(hooks.keys).to contain_exactly(:before, :parent, :child)
+        hooks.each do |stage, block|
+          expect(registry_contains?(stage, block)).to be(true)
+        end
+      end
+    end
+
+    describe '#close' do
+      it 'removes all of its hooks from the global registry' do
+        hooks = transport.instance_variable_get(:@fork_hooks)
+
+        transport.close
+
+        hooks.each do |stage, block|
+          expect(registry_contains?(stage, block)).to be(false)
+        end
+      end
+
+      it 'clears the exporter so it can be freed' do
+        transport.close
+        expect(transport.instance_variable_get(:@exporter)).to be_nil
+      end
+
+      it 'stops the exporter native fork hooks from firing on a later fork' do
+        exporter = transport.instance_variable_get(:@exporter)
+        # If our hooks were still registered, running the blocks would invoke
+        # these native methods.
+        allow(exporter).to receive(:_native_before_fork)
+        allow(exporter).to receive(:_native_after_fork_in_parent)
+        allow(exporter).to receive(:_native_after_fork_in_child)
+
+        transport.close
+
+        at_fork.run_at_fork_blocks(:before)
+        at_fork.run_at_fork_blocks(:parent)
+        at_fork.run_at_fork_blocks(:child)
+
+        expect(exporter).to_not have_received(:_native_before_fork)
+        expect(exporter).to_not have_received(:_native_after_fork_in_parent)
+        expect(exporter).to_not have_received(:_native_after_fork_in_child)
+      end
+
+      it 'is idempotent' do
+        transport.close
+        expect { transport.close }.to_not raise_error
+      end
+    end
+
+    describe 'finalizer fallback' do
+      it 'registers a finalizer on the transport at construction' do
+        # The finalizer guards against a transport that is dropped without
+        # #close: it must still deregister the global fork hooks.
+        expect(ObjectSpace).to receive(:define_finalizer).with(kind_of(transport_class), kind_of(Proc))
+        transport
+      end
+
+      it 'builds a finalizer in class scope so it cannot capture a transport instance' do
+        # A finalizer that closed over the Transport it is attached to would
+        # keep that object reachable, so it would never fire. Building it in a
+        # class method guarantees its binding receiver is the class, not an
+        # instance.
+        hooks = transport.instance_variable_get(:@fork_hooks)
+        finalizer = transport_class.send(:finalizer_for, hooks)
+
+        expect(finalizer.binding.receiver).to be(transport_class)
+        expect(finalizer.binding.receiver).to_not be(transport)
+      end
+
+      it 'removes all the hooks when the finalizer runs' do
+        hooks = transport.instance_variable_get(:@fork_hooks)
+        finalizer = transport_class.send(:finalizer_for, hooks)
+
+        # Simulate finalization (what ObjectSpace would call once the transport
+        # is collected). The finalizer receives the object id; ignore it.
+        finalizer.call(transport.object_id)
+
+        hooks.each do |stage, block|
+          expect(registry_contains?(stage, block)).to be(false)
+        end
+      end
+    end
+
+    describe 'teardown via Writer#stop' do
+      # The native transport is plugged into a Writer via its :transport option.
+      # Stopping a Writer is a permanent teardown, so it must deterministically
+      # #close the native transport, deregistering its global fork hooks rather
+      # than leaving them to the GC finalizer.
+      it 'closes the native transport and removes its fork hooks on writer stop' do
+        hooks = transport.instance_variable_get(:@fork_hooks)
+
+        writer = Datadog::Tracing::Writer.new(
+          transport: transport,
+          agent_settings: agent_settings,
+          logger: logger,
+        )
+
+        writer.stop
+
+        hooks.each do |stage, block|
+          expect(registry_contains?(stage, block)).to be(false)
+        end
+        expect(transport.instance_variable_get(:@exporter)).to be_nil
+      end
     end
   end
 

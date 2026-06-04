@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'datadog/core'
+require 'datadog/tracing/transport/native'
 
 RSpec.describe 'Datadog::Tracing::Transport::Native::Response' do
   before do
