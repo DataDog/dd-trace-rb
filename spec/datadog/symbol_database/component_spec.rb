@@ -519,6 +519,22 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(component.upload_in_progress).to be false
     end
 
+    it 'replaces the scope batcher so the child does not inherit the parent uploaded-scopes dedup set' do
+      # ScopeBatcher#add_scope skips scopes whose name is already in @uploaded_modules.
+      # Without a fresh batcher, the child's re-extraction silently drops every scope
+      # name the parent already uploaded.
+      # Re-stub ScopeBatcher.new so each call yields a distinct double instead of
+      # the single fixed double in the outer `before` block.
+      allow(Datadog::SymbolDatabase::ScopeBatcher).to receive(:new) do
+        instance_double(Datadog::SymbolDatabase::ScopeBatcher, shutdown: nil, add_scope: nil, flush: nil, reset: nil)
+      end
+      old_batcher = component.instance_variable_get(:@scope_batcher)
+
+      component.after_fork!
+
+      expect(component.instance_variable_get(:@scope_batcher)).not_to equal(old_batcher)
+    end
+
     context 'when force_upload is enabled' do
       before do
         allow(settings.symbol_database.internal).to receive(:force_upload).and_return(true)

@@ -307,6 +307,11 @@ module Datadog
       #   `start_upload`.
       # - `@upload_in_progress = false` — parent may have been mid-upload at
       #   the fork instant; the child has no upload in flight.
+      # - `@scope_batcher` replaced with a fresh instance. The inherited batcher
+      #   carries the parent's `@uploaded_modules` set, which `add_scope` uses
+      #   to dedup by scope name. Without a fresh batcher, the child's
+      #   re-extraction silently drops every scope whose name the parent
+      #   already uploaded — under `preload_app!` that's most of the app.
       #
       # Mutex/CV reinit (orphan-lock guard):
       # - `@scheduler_mutex`, `@scheduler_cv`, `@mutex`,
@@ -349,6 +354,10 @@ module Datadog
         @upload_in_progress = false
         @upload_in_progress_cv = ConditionVariable.new
         @last_upload_time_cv = ConditionVariable.new
+
+        # Fresh ScopeBatcher: the inherited one carries the parent's
+        # @uploaded_modules set, against which add_scope dedups by name.
+        @scope_batcher = ScopeBatcher.new(@uploader, logger: @logger)
 
         schedule_deferred_upload if @settings.symbol_database.internal.force_upload
       end
