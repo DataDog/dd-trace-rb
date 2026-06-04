@@ -97,12 +97,22 @@ module Datadog
             # a send is still using that runtime.
             #
             # `@send_mutex` serializes sends (see #send_traces) and is held
-            # across the fork: the `:before` hook locks it, which BLOCKS until
-            # any in-flight send finishes (bounded by the exporter's request
-            # timeout) and prevents new sends from starting; only then does
-            # `_native_before_fork` run. The lock is released in the `:parent`
-            # and `:child` hooks. In practice only one writer thread sends, so
-            # serializing adds no real contention.
+            # across the fork. The `:before` hook first calls
+            # `_native_before_fork` to pause the runtime, THEN locks the mutex.
+            # This ordering minimizes the serialized section and is safe to run
+            # concurrently with an in-flight send: `block_on` (used by
+            # `send_trace_chunks`) only briefly locks the runtime mutex to clone
+            # the `Arc<Runtime>` (or build a throwaway `current_thread` runtime
+            # if it has been taken) and then drives the send on its own clone
+            # holding no mutex, while `_native_before_fork` just `take()`s the
+            # shared `Arc` and pauses workers -- so neither deadlocks the other.
+            # Locking the mutex AFTER `_native_before_fork` still guarantees the
+            # drain: it BLOCKS until any in-flight send finishes (bounded by the
+            # exporter's request timeout), which drops the send's last `Arc` and
+            # fully shuts the runtime down, and prevents new sends from starting.
+            # The lock is released in the `:parent` and `:child` hooks. In
+            # practice only one writer thread sends, so serializing adds no real
+            # contention.
             #
             # Note: on Ruby 3.1+, the `:before` block runs before EVERY `_fork`,
             # which includes `system`/`popen`/backtick subprocess spawns, so it
@@ -120,12 +130,16 @@ module Datadog
             exporter = @exporter
             send_mutex = @send_mutex
             before_hook = Core::Utils::AtForkMonkeyPatch.at_fork(:before) do
-              # Drain any in-flight send and block new sends before tearing down
-              # the runtime. Held across the fork; released in :parent/:child.
-              send_mutex.lock
+              # Pause the runtime first (safe to run concurrently with an
+              # in-flight send), then drain by locking the mutex. The lock must
+              # happen even if `_native_before_fork` raises, so the in-flight
+              # send has returned (dropping the runtime's last `Arc`) before the
+              # fork. Held across the fork; released in :parent/:child.
               exporter._native_before_fork
             rescue => e
               Datadog.logger.warn { "Native transport before-fork preparation failed; traces may not be sent to Datadog: #{e}" }
+            ensure
+              send_mutex.lock
             end
             parent_hook = Core::Utils::AtForkMonkeyPatch.at_fork(:parent) do
               exporter._native_after_fork_in_parent
