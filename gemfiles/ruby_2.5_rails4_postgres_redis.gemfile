@@ -30,6 +30,7 @@ gem "redis-rails"
 gem "redis", "< 4.0"
 gem "sprockets", "< 4"
 gem "lograge", "~> 0.11"
+gem "bigdecimal", "< 2"
 
 group :dev do
 

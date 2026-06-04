@@ -20,6 +20,16 @@ module AppraisalConversion
     end
   end
 
+  def parent_gemfile
+    path = root_path.join(gemfile_dir, "#{runtime_identifier}.gemfile")
+
+    if path.exist?
+      path.to_s
+    else
+      raise "Parent gemfile not found at #{path}"
+    end
+  end
+
   def definition
     path = root_path.join(@definition_dir, "#{runtime_identifier}.rb")
 
@@ -36,7 +46,7 @@ module AppraisalConversion
   end
 
   def gemfile_pattern
-    root_path + gemfile_dir + "#{runtime_identifier.tr("-", "_")}_*.gemfile"
+    root_path + gemfile_dir + "#{runtime_identifier.tr('-', '_')}_*.gemfile"
   end
 
   def gemfile_dir
