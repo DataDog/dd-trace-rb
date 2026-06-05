@@ -177,6 +177,37 @@ struct per_thread_context {
   thread_cpu_time_id thread_cpu_time_id;
   long cpu_time_at_previous_sample_ns;  // Can be INVALID_TIME until initialized or if getting it fails for another reason
   long wall_time_at_previous_sample_ns; // Can be INVALID_TIME until initialized
+
+  // There are 3 possible states for the GVL (per thread), and 3 transitions for which we received GVL events:
+  // Thread holds the GVL
+  //   on_gvl_released() the thread releases the GVL (RUBY_INTERNAL_THREAD_EVENT_SUSPENDED)
+  // Thread runs without the GVL
+  //   on_gvl_waiting() the thread wants the GVL (RUBY_INTERNAL_THREAD_EVENT_READY)
+  // Thread is "Waiting for GVL"
+  //   on_gvl_running() the thread now got the GVL (RUBY_INTERNAL_THREAD_EVENT_RESUMED)
+  // ... and the cycle restarts
+
+
+  // --- GVL waiting tracking state machine ---
+  //
+  // gvl_waiting_at tracks the GVL wait state for each profiled thread:
+  //
+  //        ┌───────────────────────────────────┐
+  //        │           on_gvl_waiting          │
+  //        │                                   ▼
+  //   Not Waiting (0) ◀────────────────── Waiting (> 0)
+  //        ▲            on_gvl_running         │
+  //        │          (below threshold)        │ on_gvl_running (above threshold)
+  //        │                                   ▼
+  //        └─────────────────────────── Sample Pending (< 0)
+  //      sample / sample_after_gvl_running
+  //
+  // Not Waiting (0):      thread is running or not waiting for the GVL
+  // Waiting (> 0):        monotonic wall time (ns) when the thread started waiting
+  // Sample Pending (< 0): negated timestamp; the wait ended and a sample is pending
+  //
+  // The field is accessed under the GVL for most functions EXCEPT on_gvl_waiting() which writes to it without the GVL.
+  // So we need to pack the above state in a single long to ensure atomicity.
   long gvl_waiting_at;
 
   struct {
@@ -1847,18 +1878,11 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 }
 
 #ifndef NO_GVL_INSTRUMENTATION
-  // This function can get called from outside the GVL and even on non-main Ractors
+  // This function gets called without the GVL and possibly on non-main Ractors
   void thread_context_collector_on_gvl_waiting(VALUE thread) {
-    // Because this function gets called from a thread that is NOT holding the GVL, we avoid touching the
-    // per-thread context directly.
-    //
-    // Instead, we ask Ruby to hold the data we need in Ruby's own special per-thread context area
-    // that's thread-safe and built for this kind of use
-    //
-    // Also, this function can get called on the non-main Ractor. We deal with this by checking if a per_thread_context
-    // exists, since only `initialize_context` ever creates one for threads it sees.
     per_thread_context* thread_being_profiled = get_per_thread_context(thread);
     if (!thread_being_profiled) return;
+    // If non-NULL the thread is profiled and from the main Ractor
 
     long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
     if (current_monotonic_wall_time_ns <= 0) return;
@@ -1866,7 +1890,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     thread_being_profiled->gvl_waiting_at = current_monotonic_wall_time_ns;
   }
 
-  // This function can get called from outside the GVL and even on non-main Ractors
+  // This function runs on the passed thread and has the GVL because it gets called just after the Ruby thread acquired the GVL
   __attribute__((warn_unused_result))
   on_gvl_running_result thread_context_collector_on_gvl_running_with_threshold(VALUE thread, uint32_t waiting_for_gvl_threshold_ns) {
     per_thread_context* thread_being_profiled = get_per_thread_context(thread);

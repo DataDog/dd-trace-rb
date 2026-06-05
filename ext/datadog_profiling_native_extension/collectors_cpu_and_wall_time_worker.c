@@ -1424,7 +1424,7 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
 #ifndef NO_GVL_INSTRUMENTATION
   static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused) {
     // Be very careful about touching the `state` here or doing anything at all:
-    // This function gets called without the GVL, and potentially from background Ractors!
+    // This function gets called without the GVL, and potentially from non-main Ractors!
     //
     // In fact, the thread that this event is about may not even be the current thread. (So be careful with thread locals that
     // are not directly tied to the thread object and the like)
