@@ -1878,29 +1878,17 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 }
 
 #ifndef NO_GVL_INSTRUMENTATION
-  // This function gets called without the GVL and possibly on non-main Ractors
-  void thread_context_collector_on_gvl_waiting(VALUE thread) {
-    per_thread_context* thread_being_profiled = get_per_thread_context(thread);
-    if (!thread_being_profiled) return;
-    // If non-NULL the thread is profiled and from the main Ractor
-
+  void thread_context_collector_on_gvl_waiting(per_thread_context *thread_context) {
     long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
     if (current_monotonic_wall_time_ns <= 0) return;
 
-    thread_being_profiled->gvl_waiting_at = current_monotonic_wall_time_ns;
+    thread_context->gvl_waiting_at = current_monotonic_wall_time_ns;
   }
 
   // This function runs on the passed thread and has the GVL because it gets called just after the Ruby thread acquired the GVL
   __attribute__((warn_unused_result))
-  on_gvl_running_result thread_context_collector_on_gvl_running(VALUE thread) {
-    per_thread_context* thread_being_profiled = get_per_thread_context(thread);
-
-    // Thread was not being profiled
-    if (!thread_being_profiled) {
-      return (on_gvl_running_result) {.action = ON_GVL_RUNNING_UNKNOWN, .waiting_for_gvl_duration_ns = 0};
-    }
-
-    long gvl_waiting_at = thread_being_profiled->gvl_waiting_at;
+  on_gvl_running_result thread_context_collector_on_gvl_running(per_thread_context *thread_context) {
+    long gvl_waiting_at = thread_context->gvl_waiting_at;
 
     // Thread was not waiting on gvl
     if (gvl_waiting_at == 0) {
@@ -1920,9 +1908,9 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
       // We flip the gvl_waiting_at to negative to mark that the thread is now running and no longer waiting
       long gvl_waiting_at_is_now_running = -gvl_waiting_at;
 
-      thread_being_profiled->gvl_waiting_at = gvl_waiting_at_is_now_running;
+      thread_context->gvl_waiting_at = gvl_waiting_at_is_now_running;
     } else {
-      thread_being_profiled->gvl_waiting_at = 0;
+      thread_context->gvl_waiting_at = 0;
     }
 
     return (on_gvl_running_result) {
@@ -2102,7 +2090,8 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 
     debug_enter_unsafe_context();
 
-    thread_context_collector_on_gvl_waiting(thread);
+    per_thread_context *thread_context = get_per_thread_context(thread);
+    if (thread_context) thread_context_collector_on_gvl_waiting(thread_context);
 
     debug_leave_unsafe_context();
 
@@ -2127,7 +2116,13 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 
     debug_enter_unsafe_context();
 
-    VALUE result = thread_context_collector_on_gvl_running(thread).action == ON_GVL_RUNNING_SAMPLE ? Qtrue : Qfalse;
+    per_thread_context *thread_context = get_per_thread_context(thread);
+    VALUE result;
+    if (thread_context) {
+      result = thread_context_collector_on_gvl_running(thread_context).action == ON_GVL_RUNNING_SAMPLE ? Qtrue : Qfalse;
+    } else {
+      result = Qfalse;
+    }
 
     debug_leave_unsafe_context();
 
