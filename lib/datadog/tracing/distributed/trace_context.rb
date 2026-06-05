@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'helpers'
+
 module Datadog
   module Tracing
     module Distributed
@@ -285,6 +287,7 @@ module Datadog
         # @return [Array<String,Integer,String,String,Hash>] returns 4 values:
         # tracestate, sampling_priority, ts_parent_id, origin, tags.
         def extract_tracestate(tracestate)
+          tracestate = Helpers.normalize_tracestate_encoding(tracestate)
           vendors = split_tracestate(tracestate)
           return unless vendors && !vendors.empty?
 

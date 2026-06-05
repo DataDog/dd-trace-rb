@@ -551,6 +551,36 @@ RSpec.shared_examples 'Trace Context distributed format' do
         it { expect(digest.trace_origin).to eq('origin') }
       end
 
+      # HTTP frameworks (Rack and friends) hand header values to applications tagged
+      # as ASCII-8BIT. msgpack-ruby serializes those as `bin` rather than `str`,
+      # which the agent's wire schema rejects for `SpanLinks[N].Tracestate`.
+      context 'with an ASCII-8BIT-tagged tracestate header' do
+        let(:tracestate) do
+          String.new('dd=o:origin,v1=1,v2=2', encoding: Encoding::ASCII_8BIT)
+        end
+
+        it 'stores trace_state as UTF-8' do
+          expect(digest.trace_state).to eq('v1=1,v2=2')
+          expect(digest.trace_state.encoding).to eq(Encoding::UTF_8)
+        end
+
+        it 'still extracts Datadog fields from the dd= entry' do
+          expect(digest.trace_origin).to eq('origin')
+        end
+      end
+
+      context 'with an ASCII-8BIT tracestate containing invalid UTF-8 bytes' do
+        let(:tracestate) do
+          String.new("v1=1,vendor=foo\xFFbar", encoding: Encoding::ASCII_8BIT)
+        end
+
+        it 'drops the tracestate but keeps the traceparent' do
+          expect(digest.trace_id).to eq(0xC0FFEE)
+          expect(digest.span_id).to eq(0xBEE)
+          expect(digest.trace_state).to be_nil
+        end
+      end
+
       context 'with oversized tracestate vendors' do
         let(:tracestate) { Array.new(100) { |i| "v#{i}=#{'a' * 8}" }.join(',') }
 
