@@ -157,13 +157,11 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
         expect(event.payload[:configuration]).to include(
           # Environment variables values
           {name: 'OTEL_EXPORTER_OTLP_ENDPOINT', origin: 'env_var', seq_id: 3, value: 'http://otel:4317'},
-          {name: 'OTEL_EXPORTER_OTLP_HEADERS', origin: 'env_var', seq_id: 3, value: 'key1=value1,key2=value2'},
           {name: 'OTEL_EXPORTER_OTLP_PROTOCOL', origin: 'env_var', seq_id: 3, value: 'http/protobuf'},
           {name: 'OTEL_EXPORTER_OTLP_TIMEOUT', origin: 'env_var', seq_id: 3, value: 5000},
           {name: 'DD_METRICS_OTEL_ENABLED', origin: 'env_var', seq_id: 3, value: true},
           {name: 'OTEL_METRICS_EXPORTER', origin: 'env_var', seq_id: 3, value: 'otlp'},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT', origin: 'env_var', seq_id: 3, value: 'http://metrics:4318'},
-          {name: 'OTEL_EXPORTER_OTLP_METRICS_HEADERS', origin: 'env_var', seq_id: 3, value: 'metrics_key=metrics_value'},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_PROTOCOL', origin: 'env_var', seq_id: 3, value: 'http/protobuf'},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT', origin: 'env_var', seq_id: 3, value: 3000},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE', origin: 'env_var', seq_id: 3, value: 'cumulative'},
@@ -173,21 +171,41 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
         expect(event.payload[:configuration]).to include(
           # Default values
           {name: 'OTEL_EXPORTER_OTLP_ENDPOINT', origin: 'default', seq_id: 1, value: nil},
-          {name: 'OTEL_EXPORTER_OTLP_HEADERS', origin: 'default', seq_id: 1, value: ''},
           {name: 'OTEL_EXPORTER_OTLP_PROTOCOL', origin: 'default', seq_id: 1, value: 'http/protobuf'},
           {name: 'OTEL_EXPORTER_OTLP_TIMEOUT', origin: 'default', seq_id: 1, value: 10000},
           {name: 'DD_METRICS_OTEL_ENABLED', origin: 'default', seq_id: 1, value: false},
           {name: 'OTEL_METRICS_EXPORTER', origin: 'default', seq_id: 1, value: 'otlp'},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT', origin: 'default', seq_id: 1, value: nil},
-          {name: 'OTEL_EXPORTER_OTLP_METRICS_HEADERS', origin: 'default', seq_id: 1, value: nil},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_PROTOCOL', origin: 'default', seq_id: 1, value: 'http/protobuf'},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT', origin: 'default', seq_id: 1, value: 10000},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE', origin: 'default', seq_id: 1, value: 'delta'},
           {name: 'OTEL_METRIC_EXPORT_INTERVAL', origin: 'default', seq_id: 1, value: 10000},
           {name: 'OTEL_METRIC_EXPORT_TIMEOUT', origin: 'default', seq_id: 1, value: 7500}
         )
-        expect(event.payload[:configuration].count { |entry| entry[:name] == 'OTEL_EXPORTER_OTLP_HEADERS' && entry[:origin] == 'env_var' }).to eq(1)
-        expect(event.payload[:configuration].count { |entry| entry[:name] == 'OTEL_EXPORTER_OTLP_HEADERS' && entry[:origin] == 'default' }).to eq(1)
+      end
+
+      it 'does not report OpenTelemetry headers to telemetry' do
+        expect(event.payload[:configuration]).to_not include(
+          include(name: 'OTEL_EXPORTER_OTLP_HEADERS')
+        )
+        expect(event.payload[:configuration]).to_not include(
+          include(name: 'OTEL_EXPORTER_OTLP_METRICS_HEADERS')
+        )
+      end
+    end
+
+    context 'with sensitive values in OpenTelemetry headers' do
+      with_env 'OTEL_EXPORTER_OTLP_HEADERS' => 'dd-api-key=SENTINEL_OTLP_BASE',
+        'DD_METRICS_OTEL_ENABLED' => 'true',
+        'OTEL_EXPORTER_OTLP_METRICS_HEADERS' => 'dd-api-key=SENTINEL_OTLP_METRICS',
+        'OTEL_EXPORTER_OTLP_LOGS_HEADERS' => 'dd-api-key=SENTINEL_OTLP_LOGS'
+
+      it 'does not report the configured header values to telemetry' do
+        configured_values = event.payload[:configuration].map { |entry| entry[:value] }
+
+        expect(configured_values).to_not include(a_string_including('SENTINEL_OTLP_BASE'))
+        expect(configured_values).to_not include(a_string_including('SENTINEL_OTLP_METRICS'))
+        expect(configured_values).to_not include(a_string_including('SENTINEL_OTLP_LOGS'))
       end
     end
 
