@@ -1921,7 +1921,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     # @ivoanjo: The behavior here is expected to be (in terms of wall-time accounting and timestamps) exactly the same
     # as for #sample. That's because both call the same underlying `update_metrics_and_sample` method to do the work.
     #
-    # See the big comment next to the definition of `thread_context_collector_sample_after_gvl_running_with_thread`
+    # See the big comment next to the definition of `thread_context_collector_sample_after_gvl_running`
     # for why we need a separate `sample_after_gvl_running`.
     #
     # Thus, I chose to not repeat the extensive Waiting for GVL specs we already have in #sample, and do a smaller pass.

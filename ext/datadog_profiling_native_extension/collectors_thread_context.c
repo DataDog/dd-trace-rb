@@ -1892,7 +1892,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 
   // This function runs on the passed thread and has the GVL because it gets called just after the Ruby thread acquired the GVL
   __attribute__((warn_unused_result))
-  on_gvl_running_result thread_context_collector_on_gvl_running_with_threshold(VALUE thread, uint32_t waiting_for_gvl_threshold_ns) {
+  on_gvl_running_result thread_context_collector_on_gvl_running(VALUE thread) {
     per_thread_context* thread_being_profiled = get_per_thread_context(thread);
 
     // Thread was not being profiled
@@ -1914,7 +1914,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 
     long waiting_for_gvl_duration_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - gvl_waiting_at;
 
-    bool should_sample = waiting_for_gvl_duration_ns >= waiting_for_gvl_threshold_ns;
+    bool should_sample = waiting_for_gvl_duration_ns >= global_waiting_for_gvl_threshold_ns;
 
     if (should_sample) {
       // We flip the gvl_waiting_at to negative to mark that the thread is now running and no longer waiting
@@ -1929,11 +1929,6 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
       .action = should_sample ? ON_GVL_RUNNING_SAMPLE : ON_GVL_RUNNING_DONT_SAMPLE,
       .waiting_for_gvl_duration_ns = waiting_for_gvl_duration_ns,
     };
-  }
-
-  __attribute__((warn_unused_result))
-  on_gvl_running_result thread_context_collector_on_gvl_running(VALUE thread) {
-    return thread_context_collector_on_gvl_running_with_threshold(thread, global_waiting_for_gvl_threshold_ns);
   }
 
   // Why does this method need to exist?
