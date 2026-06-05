@@ -38,6 +38,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       **options
     }
   end
+  let(:sample) {
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(worker_settings[:thread_context_collector], Thread.current, false)
+  }
 
   subject(:cpu_and_wall_time_worker) { described_class.new(**worker_settings, **options) }
 
@@ -292,19 +295,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     context "with allocation profiling enabled" do
       # We need this otherwise allocations_during_sample will never change
       let(:allocation_profiling_enabled) { true }
-      let(:sample) {
-        Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(worker_settings[:thread_context_collector], Thread.current, false)
-      }
 
       it "does not allocate Ruby objects during the regular operation of sampling" do
-        # The intention of this test is to warn us if we accidentally trigger object allocations during "happy path"
-        # sampling.
+        # The intention of this test is to warn us if we accidentally trigger object allocations during "happy path" sampling.
         # Note that when something does go wrong during sampling, we do allocate exceptions (and then raise them).
-        #
-        # The first sample of each thread allocates a TypedData wrapper for per_thread_context, so we wait for that
-        # initial burst to pass and then check that no further allocations occur.
 
         start
+        # Ensure the per_thread_context TypedData wrapper is already allocated for the current Thread
         sample
         allocations_after_initial = cpu_and_wall_time_worker.stats.fetch(:allocations_during_sample)
 
@@ -1425,8 +1422,11 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # there's a small chance that a GC gets triggered in between the two
           # `_native_allocation_count` calls and contributes with unexpected Array allocations to
           # the allocation count. To prevent this, we'll explicitly disable GC around these checks.
-
           GC.disable
+
+          # Ensure the per_thread_context TypedData wrapper is already allocated for the current Thread
+          sample
+
           # To get the exact expected number of allocations, we run through the ropes once so
           # Ruby can create and cache all it needs to and hopefully flush any pending finalizer
           # executions that could affect our expectations
@@ -1440,7 +1440,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           100.times(&new_object)
           after_allocations = described_class._native_allocation_count
 
-          expect(after_allocations - before_allocations).to be 100
+          expect(after_allocations - before_allocations).to eq 100
         ensure
           GC.enable
         end

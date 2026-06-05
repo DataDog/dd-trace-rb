@@ -56,9 +56,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:invalid_time) { -1 }
   let(:tracer) { nil }
   let(:endpoint_collection_enabled) { true }
-  # This mirrors the use of RUBY_FIXNUM_MAX for GVL_WAITING_ENABLED_EMPTY in the native code; it may need adjusting if we
-  # ever want to support more platforms
-  let(:gvl_waiting_enabled_empty_magic_value) { 2**62 - 1 }
+
   let(:waiting_for_gvl_threshold_ns) { 222_333_444 }
   let(:otel_context_enabled) { false }
   let(:native_filenames_enabled) { false }
@@ -1314,12 +1312,12 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               sample_and_check(expected_state: "waiting for gvl")
             end
 
-            it "resets the gvl_waiting_at to GVL_WAITING_ENABLED_EMPTY" do
+            it "resets the gvl_waiting_at to 0 (not waiting)" do
               expect(gvl_waiting_at_for(t1)).to be < 0
 
               expect { sample }.to change { gvl_waiting_at_for(t1) }
                 .from(gvl_waiting_at_for(t1))
-                .to(gvl_waiting_enabled_empty_magic_value)
+                .to(0)
             end
 
             it "does not record a new Waiting for GVL sample afterwards" do
@@ -1348,7 +1346,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             let(:waiting_for_gvl_threshold_ns) { 1_000_000_000 }
 
             it "records a regular sample" do
-              expect(gvl_waiting_at_for(t1)).to eq gvl_waiting_enabled_empty_magic_value
+              expect(gvl_waiting_at_for(t1)).to eq 0
 
               # This is a rare situation (but can still happen) -- the thread was Waiting for GVL on the previous sample,
               # but the overall duration of the Waiting for GVL was below the threshold. This means that on_gvl_running
@@ -1832,10 +1830,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
     end
 
-    context "when the internal_thread_specific value is GVL_WAITING_ENABLED_EMPTY" do
+    context "when the internal_thread_specific value is 0 (not waiting)" do
       before do
         sample
-        expect(gvl_waiting_at_for(t1)).to eq gvl_waiting_enabled_empty_magic_value
+        expect(gvl_waiting_at_for(t1)).to eq 0
       end
 
       it do
@@ -1887,11 +1885,11 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       context "when Waiting for GVL duration < the threshold" do
         let(:waiting_for_gvl_threshold_ns) { 1_000_000_000 }
 
-        it "resets the value of gvl_waiting_at back to GVL_WAITING_ENABLED_EMPTY" do
+        it "resets the value of gvl_waiting_at back to 0 (not waiting)" do
           expect { on_gvl_running(t1) }
             .to change { gvl_waiting_at_for(t1) }
             .from(@gvl_waiting_at)
-            .to(gvl_waiting_enabled_empty_magic_value)
+            .to(0)
         end
 
         it "flags that a sample is not needed" do
@@ -1923,7 +1921,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     # @ivoanjo: The behavior here is expected to be (in terms of wall-time accounting and timestamps) exactly the same
     # as for #sample. That's because both call the same underlying `update_metrics_and_sample` method to do the work.
     #
-    # See the big comment next to the definition of `thread_context_collector_sample_after_gvl_running_with_thread`
+    # See the big comment next to the definition of `thread_context_collector_sample_after_gvl_running`
     # for why we need a separate `sample_after_gvl_running`.
     #
     # Thus, I chose to not repeat the extensive Waiting for GVL specs we already have in #sample, and do a smaller pass.
@@ -2169,10 +2167,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
 
       describe ":gvl_waiting_at" do
-        it "is initialized to GVL_WAITING_ENABLED_EMPTY (INTPTR_MAX)" do
+        it "is initialized to 0" do
           per_thread_context.each do |thread, context|
             if testing_threads_and_current.include?(thread)
-              expect(context[:gvl_waiting_at]).to eq gvl_waiting_enabled_empty_magic_value
+              expect(context[:gvl_waiting_at]).to eq 0
             end
           end
         end
