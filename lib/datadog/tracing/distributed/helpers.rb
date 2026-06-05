@@ -34,6 +34,27 @@ module Datadog
           num
         end
 
+        # Returns the input with UTF-8 encoding tagged, suitable for downstream
+        # consumers (msgpack, JSON, log encoders) that key behavior off `Encoding`.
+        #
+        # HTTP frameworks hand header values to applications tagged as ASCII-8BIT;
+        # msgpack-ruby serializes those as `bin` rather than `str`, which the agent's
+        # wire schema rejects for fields like `SpanLinks[N].Tracestate`.
+        #
+        # Returns nil for nil input, and for byte sequences that are not valid UTF-8 —
+        # W3C tracestate is restricted to printable ASCII, so non-ASCII bytes are spec
+        # violations and are dropped rather than propagated as corrupted data.
+        def self.normalize_tracestate_encoding(value)
+          return unless value
+
+          if value.encoding == ::Encoding::UTF_8
+            return value.valid_encoding? ? value : nil
+          end
+
+          value = value.dup.force_encoding(::Encoding::UTF_8)
+          value if value.valid_encoding?
+        end
+
         def self.parse_hex_id(value)
           return unless value
 
