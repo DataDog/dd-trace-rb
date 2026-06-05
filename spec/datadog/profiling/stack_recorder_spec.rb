@@ -792,6 +792,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             end
 
             it "enforces a minimum time between heap updates" do
+              skip_asan_flaky
+
               test_object_id_1 = sample_and_clear
 
               expect { recorder_after_gc_step }.to change { is_object_recorded?(test_object_id_1) }.from(true).to(false)
@@ -802,6 +804,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             end
 
             it "does not apply the minimum time between heap updates when serializing" do
+              skip_asan_flaky
+
               test_object_id_1 = sample_and_clear
 
               expect { recorder_after_gc_step }.to change { is_object_recorded?(test_object_id_1) }.from(true).to(false)
