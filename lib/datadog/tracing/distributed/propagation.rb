@@ -182,7 +182,7 @@ module Datadog
               span_remote: false,
             )
           else
-            # defaulting to continue (no exhaustive check for it, has been validated by configuration)
+            # 'continue' (default behavior): return the upstream digest unchanged so the new trace adopts the incoming trace_id/span_id.
             extracted_trace_digest
           end
         end
