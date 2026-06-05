@@ -119,7 +119,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   def on_gvl_running(thread)
-    described_class::Testing._native_on_gvl_running(thread)
+    described_class::Testing._native_on_gvl_running(thread_context_collector, thread)
   end
 
   def sample_after_gvl_running(thread, allow_exception: false)
@@ -189,7 +189,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   describe ".new" do
     it "sets the waiting_for_gvl_threshold_ns to the provided value" do
       # This is a bit ugly but it saves us from having to introduce yet another way to poke at the native state
-      expect(thread_context_collector.inspect).to include("global_waiting_for_gvl_threshold_ns=222333444")
+      expect(thread_context_collector.inspect).to include("waiting_for_gvl_threshold_ns=222333444")
     end
 
     context "when otel_context_enabled has an invalid value" do

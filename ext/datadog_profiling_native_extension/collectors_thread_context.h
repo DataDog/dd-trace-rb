@@ -34,6 +34,6 @@ VALUE enforce_thread_context_collector_instance(VALUE object);
   } on_gvl_running_result;
 
   void thread_context_collector_on_gvl_waiting(per_thread_context *thread_context);
-  __attribute__((warn_unused_result)) on_gvl_running_result thread_context_collector_on_gvl_running(per_thread_context *thread_context);
+  __attribute__((warn_unused_result)) on_gvl_running_result thread_context_collector_on_gvl_running(VALUE self_instance, per_thread_context *thread_context);
   VALUE thread_context_collector_sample_after_gvl_running(VALUE self_instance, VALUE current_thread, long current_monotonic_wall_time_ns);
 #endif
