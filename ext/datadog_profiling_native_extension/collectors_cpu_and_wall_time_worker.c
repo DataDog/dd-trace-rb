@@ -90,7 +90,6 @@ unsigned int MAX_ALLOC_WEIGHT = 10000;
   // `collectors_cpu_and_wall_time_worker_init` below and always get reused after that.
   static rb_postponed_job_handle_t sample_from_postponed_job_handle;
   static rb_postponed_job_handle_t after_gc_from_postponed_job_handle;
-  static rb_postponed_job_handle_t after_gvl_running_from_postponed_job_handle;
   static rb_postponed_job_handle_t after_allocation_from_postponed_job_handle;
 #endif
 
@@ -250,9 +249,8 @@ static VALUE _native_hold_signals(DDTRACE_UNUSED VALUE self);
 static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self);
 #ifndef NO_GVL_INSTRUMENTATION
   static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused);
-  static void after_gvl_running_from_postponed_job(DDTRACE_UNUSED void *_unused);
-  static VALUE rescued_after_gvl_running_from_postponed_job(VALUE self_instance);
-  static VALUE handle_sampling_failure_rescued_after_gvl_running_from_postponed_job(VALUE self_instance, VALUE exception);
+  static VALUE rescued_sample_after_gvl_running(VALUE self_instance);
+  static VALUE handle_sampling_failure_rescued_sample_after_gvl_running(VALUE self_instance, VALUE exception);
 #endif
 static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, VALUE instance);
 static VALUE handle_sampling_failure_rescued_sample_from_postponed_job(VALUE self_instance, VALUE exception);
@@ -308,13 +306,11 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
     int unused_flags = 0;
     sample_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, sample_from_postponed_job, NULL);
     after_gc_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_gc_from_postponed_job, NULL);
-    after_gvl_running_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_gvl_running_from_postponed_job, NULL);
     after_allocation_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_allocation_from_postponed_job, NULL);
 
     if (
       sample_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
       after_gc_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
-      after_gvl_running_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
       after_allocation_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID
     ) {
       raise_error(rb_eRuntimeError, "Failed to register profiler postponed jobs (got POSTPONED_JOB_HANDLE_INVALID)");
@@ -1459,11 +1455,16 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
       }
 
       if (result.action == ON_GVL_RUNNING_SAMPLE) {
-        #ifndef NO_POSTPONED_TRIGGER
-          rb_postponed_job_trigger(after_gvl_running_from_postponed_job_handle);
-        #else
-          rb_postponed_job_register_one(0, after_gvl_running_from_postponed_job, NULL);
-        #endif
+        during_sample_enter(state);
+
+        safely_call(
+          rescued_sample_after_gvl_running,
+          state->self_instance,
+          state->self_instance,
+          handle_sampling_failure_rescued_sample_after_gvl_running
+        );
+
+        during_sample_exit(state);
       } else if (result.action == ON_GVL_RUNNING_DONT_SAMPLE) {
         state->stats.gvl_dont_sample++;
       }
@@ -1473,26 +1474,7 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     }
   }
 
-  static void after_gvl_running_from_postponed_job(DDTRACE_UNUSED void *_unused) {
-    cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
-
-    // This can potentially happen if the CpuAndWallTimeWorker was stopped while the postponed job was waiting to be executed; nothing to do
-    if (state == NULL) return;
-
-    during_sample_enter(state);
-
-    // Rescue against any exceptions that happen during sampling
-    safely_call(
-      rescued_after_gvl_running_from_postponed_job,
-      state->self_instance,
-      state->self_instance,
-      handle_sampling_failure_rescued_after_gvl_running_from_postponed_job
-    );
-
-    during_sample_exit(state);
-  }
-
-  static VALUE rescued_after_gvl_running_from_postponed_job(VALUE self_instance) {
+  static VALUE rescued_sample_after_gvl_running(VALUE self_instance) {
     cpu_and_wall_time_worker_state *state;
     TypedData_Get_Struct(self_instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
@@ -1521,8 +1503,8 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     return state->gvl_profiling_hook != NULL ? Qtrue : Qfalse;
   }
 
-  static VALUE handle_sampling_failure_rescued_after_gvl_running_from_postponed_job(VALUE self_instance, VALUE exception) {
-    stop(self_instance, exception, "rescued_after_gvl_running_from_postponed_job");
+  static VALUE handle_sampling_failure_rescued_sample_after_gvl_running(VALUE self_instance, VALUE exception) {
+    stop(self_instance, exception, "rescued_sample_after_gvl_running");
     return Qnil;
   }
 #else
