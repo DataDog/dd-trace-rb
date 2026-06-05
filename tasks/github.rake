@@ -43,9 +43,6 @@ namespace :github do
     end
 
     # Seed
-    rng = (ENV['CI_TEST_SEED'] && ENV['CI_TEST_SEED'] != '') ? Random.new(ENV['CI_TEST_SEED'].to_i) : Random.new
-    matching_tasks.shuffle!(random: rng)
-
     batch_count = 7
 
     tasks_per_job = (matching_tasks.size.to_f / batch_count).ceil
@@ -57,7 +54,6 @@ namespace :github do
     end
 
     data = {
-      seed: rng.seed,
       batches: batched_matrix,
       misc: {'include' => [{'batch' => "0", 'tasks' => misc_tasks}]}
     }
@@ -74,7 +70,6 @@ namespace :github do
     summary = ENV['GITHUB_STEP_SUMMARY']
 
     File.open(summary, 'a') do |f|
-      f.puts "*__Seed__: #{ENV["CI_TEST_SEED"]}*"
       data['include'].each do |batch|
         rows = batch['tasks'].map do |t|
           "* #{t["task"]} (#{t["group"]})"

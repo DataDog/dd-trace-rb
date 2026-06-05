@@ -29,6 +29,7 @@ runs:
     shell: bash
     env:
       COVERAGE_DIR: coverage/versions/${{ inputs.alias }}/${{ inputs.container-id }}
+      CI_TEST_SEED: "${{ github.run_id }}"
 
   - name: Display debug info
     if: ${{ !cancelled() }}
