@@ -1448,7 +1448,7 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
       cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
       if (state == NULL) return; // This should not happen, but just in case...
 
-      on_gvl_running_result result = thread_context_collector_on_gvl_running(target_thread);
+      on_gvl_running_result result = thread_context_collector_on_gvl_running(state->thread_context_collector_instance, target_thread);
 
       if (result.waiting_for_gvl_duration_ns > 0) {
         state->stats.vm_metrics.gvl_waiting_time_ns_total += (uint64_t) result.waiting_for_gvl_duration_ns;
