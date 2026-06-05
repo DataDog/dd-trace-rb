@@ -80,10 +80,6 @@
 #define MISSING_TRACER_CONTEXT_KEY 0
 #define TIME_BETWEEN_GC_EVENTS_NS MILLIS_AS_NS(10)
 
-// This is used as a placeholder to mark threads that are allowed to be profiled (enabled)
-// (e.g. to avoid trying to gvl profile threads that are not from the main Ractor)
-// and for which there's no data yet
-#define GVL_WAITING_ENABLED_EMPTY RUBY_FIXNUM_MAX
 
 static ID dd_per_thread_context_id; // Hidden ivar (no @ prefix, inaccessible from Ruby)
 
@@ -1111,17 +1107,7 @@ static void initialize_context(VALUE thread, per_thread_context *thread_context,
   thread_context->gc_tracking.cpu_time_at_start_ns = INVALID_TIME;
   thread_context->gc_tracking.wall_time_at_start_ns = INVALID_TIME;
 
-  // We use this special location to store data that can be accessed without any
-  // kind of synchronization (e.g. by threads without the GVL).
-  //
-  // We set this marker here for two purposes:
-  // * To make sure there's no stale data from a previous execution of the profiler.
-  // * To mark threads that are actually being profiled
-  //
-  // (Setting this is potentially a race, but what we want is to avoid _stale_ data, so
-  // if this gets set concurrently with context initialization, then such a value will belong
-  // to the current profiler instance, so that's OK)
-  thread_context->gvl_waiting_at = GVL_WAITING_ENABLED_EMPTY;
+  thread_context->gvl_waiting_at = 0;
 }
 
 static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
@@ -1869,13 +1855,13 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     // Instead, we ask Ruby to hold the data we need in Ruby's own special per-thread context area
     // that's thread-safe and built for this kind of use
     //
-    // Also, this function can get called on the non-main Ractor. We deal with this by checking if the value in the context
-    // is non-zero, since only `initialize_context` ever sets the value from 0 to non-zero for threads it sees.
+    // Also, this function can get called on the non-main Ractor. We deal with this by checking if a per_thread_context
+    // exists, since only `initialize_context` ever creates one for threads it sees.
     per_thread_context* thread_being_profiled = get_per_thread_context(thread);
     if (!thread_being_profiled) return;
 
     long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
-    if (current_monotonic_wall_time_ns <= 0 || current_monotonic_wall_time_ns > GVL_WAITING_ENABLED_EMPTY) return;
+    if (current_monotonic_wall_time_ns <= 0) return;
 
     thread_being_profiled->gvl_waiting_at = current_monotonic_wall_time_ns;
   }
@@ -1892,8 +1878,8 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 
     long gvl_waiting_at = thread_being_profiled->gvl_waiting_at;
 
-    // Thread was not being profiled / not waiting on gvl
-    if (gvl_waiting_at == 0 || gvl_waiting_at == GVL_WAITING_ENABLED_EMPTY) {
+    // Thread was not waiting on gvl
+    if (gvl_waiting_at == 0) {
       return (on_gvl_running_result) {.action = ON_GVL_RUNNING_UNKNOWN, .waiting_for_gvl_duration_ns = 0};
     }
 
@@ -1912,8 +1898,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 
       thread_being_profiled->gvl_waiting_at = gvl_waiting_at_is_now_running;
     } else {
-      // We decided not to sample. Let's mark the thread back to the initial "enabled but empty" state
-      thread_being_profiled->gvl_waiting_at = GVL_WAITING_ENABLED_EMPTY;
+      thread_being_profiled->gvl_waiting_at = 0;
     }
 
     return (on_gvl_running_result) {
@@ -2006,7 +1991,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
   ) {
     long gvl_waiting_at = thread_context->gvl_waiting_at;
 
-    bool is_gvl_waiting_state = gvl_waiting_at != 0 && gvl_waiting_at != GVL_WAITING_ENABLED_EMPTY;
+    bool is_gvl_waiting_state = gvl_waiting_at != 0;
 
     if (!is_gvl_waiting_state) return false;
 
@@ -2054,7 +2039,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 
     if (gvl_waiting_at < 0) {
       // Negative means the waiting for GVL just ended, so we clear the state, so next samples no longer represent waiting
-      thread_context->gvl_waiting_at = GVL_WAITING_ENABLED_EMPTY;
+      thread_context->gvl_waiting_at = 0;
     }
 
     long gvl_waiting_started_wall_time_ns = labs(gvl_waiting_at);
