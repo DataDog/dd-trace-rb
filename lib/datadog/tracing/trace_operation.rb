@@ -99,7 +99,7 @@ module Datadog
         @parent_span_id = parent_span_id
         @sampled = sampled.nil? || sampled
         @remote_parent = remote_parent
-        @span_links = span_links || []
+        @span_links = span_links
         # Tags
         @agent_sample_rate = agent_sample_rate
         @hostname = hostname
