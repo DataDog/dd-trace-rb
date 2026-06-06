@@ -1,6 +1,9 @@
 require 'spec_helper'
 
+require 'msgpack'
+
 require 'datadog/tracing/distributed/trace_context'
+require 'datadog/tracing/span_link'
 require 'datadog/tracing/trace_digest'
 
 RSpec.shared_examples 'Trace Context distributed format' do
@@ -578,6 +581,24 @@ RSpec.shared_examples 'Trace Context distributed format' do
           expect(digest.trace_id).to eq(0xC0FFEE)
           expect(digest.span_id).to eq(0xBEE)
           expect(digest.trace_state).to be_nil
+        end
+      end
+
+      # End-to-end: an ASCII-8BIT-tagged header must round-trip through
+      # SpanLink#to_hash and msgpack as a `str`, not a `bin`. msgpack-ruby
+      # uses encoding as a type signal — ASCII-8BIT serializes as `bin`,
+      # which the agent's wire schema rejects for `SpanLinks[N].Tracestate`.
+      context 'when the digest is serialized as a SpanLink through msgpack' do
+        let(:tracestate) do
+          String.new('dd=o:origin,v1=1,v2=2', encoding: Encoding::ASCII_8BIT)
+        end
+
+        let(:link_hash) { Datadog::Tracing::SpanLink.new(digest).to_hash }
+        let(:roundtripped) { MessagePack.unpack(MessagePack.pack(link_hash)) }
+
+        it 'encodes tracestate as a msgpack str (UTF-8 on unpack), not bin' do
+          expect(roundtripped['tracestate']).to eq('v1=1,v2=2')
+          expect(roundtripped['tracestate'].encoding).to eq(Encoding::UTF_8)
         end
       end
 
