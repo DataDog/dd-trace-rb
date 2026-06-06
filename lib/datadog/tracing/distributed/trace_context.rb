@@ -284,8 +284,11 @@ module Datadog
           trace_flags & TRACE_FLAGS_SAMPLED
         end
 
-        # @return [Array<String,Integer,String,String,Hash>] returns 4 values:
-        # tracestate, sampling_priority, ts_parent_id, origin, tags.
+        # @return [nil] when the tracestate is absent or has no vendor entries.
+        # @return [String] when no `dd=` entry is present — the joined vendor list.
+        # @return [Array(String, Integer, String, String, Hash, String)] when a `dd=`
+        #   entry is present: [tracestate without `dd=`, sampling_priority, origin,
+        #   ts_parent_id, tags, unknown_fields]. All elements past the first may be nil.
         def extract_tracestate(tracestate)
           tracestate = Helpers.normalize_tracestate_encoding(tracestate)
           vendors = split_tracestate(tracestate)
