@@ -290,7 +290,6 @@ module Datadog
         #   entry is present: [tracestate without `dd=`, sampling_priority, origin,
         #   ts_parent_id, tags, unknown_fields]. All elements past the first may be nil.
         def extract_tracestate(tracestate)
-          tracestate = Helpers.normalize_tracestate_encoding(tracestate)
           vendors = split_tracestate(tracestate)
           return unless vendors && !vendors.empty?
 
@@ -400,6 +399,9 @@ module Datadog
             tracestate = tracestate.byteslice(0, TRACESTATE_MAX_SIZE_LIMIT + 1) #: String
             tracestate = tracestate.chop
           end
+
+          tracestate = Helpers.normalize_tracestate_encoding(tracestate)
+          return unless tracestate
 
           vendors = tracestate.split(',', TRACESTATE_MAX_LIST_MEMBERS + 1)
           if vendors.length > TRACESTATE_MAX_LIST_MEMBERS || remove_last_member

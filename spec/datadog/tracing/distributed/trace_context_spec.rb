@@ -583,6 +583,21 @@ RSpec.shared_examples 'Trace Context distributed format' do
         end
       end
 
+      # The size-limit truncation in split_tracestate runs before encoding
+      # validation, so an invalid byte that would be discarded by truncation
+      # does not poison the parseable prefix.
+      context 'with an oversized ASCII-8BIT tracestate where invalid bytes are only in the truncated tail' do
+        let(:tracestate) do
+          String.new("dd=o:origin,v=1,#{'a' * 600}\xFF", encoding: Encoding::ASCII_8BIT)
+        end
+
+        it 'preserves the parseable prefix instead of dropping the whole field' do
+          expect(digest.trace_origin).to eq('origin')
+          expect(digest.trace_state).to eq('v=1')
+          expect(digest.trace_state.encoding).to eq(Encoding::UTF_8)
+        end
+      end
+
       # End-to-end: an ASCII-8BIT-tagged header must round-trip through
       # SpanLink#to_hash and msgpack as a `str`, not a `bin`. msgpack-ruby
       # uses encoding as a type signal — ASCII-8BIT serializes as `bin`,
