@@ -45,7 +45,7 @@ GEM
     google-protobuf (3.25.8-x86_64-linux)
     hashdiff (1.2.1)
     io-console (0.8.2)
-    json (2.19.7)
+    json (2.19.8)
     json-schema (2.8.1)
       addressable (>= 2.4)
     language_server-protocol (3.17.0.5)
