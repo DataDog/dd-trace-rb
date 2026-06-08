@@ -87,14 +87,35 @@ RSpec.describe Datadog::DI::Remote do
     context 'when component is nil (DI not built)' do
       let(:components) { instance_double(Datadog::Core::Configuration::Components, dynamic_instrumentation: nil) }
 
-      it 'is a no-op on enable' do
-        expect(Datadog::DI).not_to receive(:activate_tracking)
-        described_class.handle_rc_enablement(true)
+      context 'on enable=true' do
+        # The component is nil because Component.build returned nil at startup.
+        # The customer who clicked "create probe" in the UI deserves the same
+        # visibility a customer who set DD_DYNAMIC_INSTRUMENTATION_ENABLED
+        # would have gotten at boot.
+        it 'does not activate tracking and warns naming the unsupported reason' do
+          allow(Datadog::DI).to receive(:unsupported_reason).and_return("MRI is required, but running on jruby")
+          expect(Datadog::DI).not_to receive(:activate_tracking)
+          expect(Datadog.logger).to receive(:warn).with(
+            a_string_matching(/cannot enable dynamic instrumentation via remote configuration.*MRI is required.*jruby/)
+          )
+          described_class.handle_rc_enablement(true)
+        end
+
+        it 'falls back to a generic message when no reason is available' do
+          allow(Datadog::DI).to receive(:unsupported_reason).and_return(nil)
+          expect(Datadog.logger).to receive(:warn).with(
+            a_string_matching(/cannot enable dynamic instrumentation via remote configuration.*was not built at startup/)
+          )
+          described_class.handle_rc_enablement(true)
+        end
       end
 
-      it 'is a no-op on disable' do
-        # No component to call stop! on; method returns without error.
-        expect { described_class.handle_rc_enablement(false) }.not_to raise_error
+      context 'on enable=false' do
+        it 'is a silent no-op' do
+          # RC asking to disable something we don't have is fine — no warn needed.
+          expect(Datadog.logger).not_to receive(:warn)
+          expect { described_class.handle_rc_enablement(false) }.not_to raise_error
+        end
       end
     end
 
