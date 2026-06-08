@@ -42,15 +42,11 @@ module Datadog
         # Returns nil for nil input and for byte sequences that are not valid UTF-8
         # (e.g. a lone 0xFF). Bytes that form a valid UTF-8 sequence, including
         # non-ASCII multi-byte characters, are kept.
-        def self.normalize_tracestate_encoding(value)
+        def self.force_utf8_encoding(value)
           return unless value
 
-          if value.encoding == ::Encoding::UTF_8
-            return value.valid_encoding? ? value : nil
-          end
-
-          value = value.dup.force_encoding(::Encoding::UTF_8)
-          value if value.valid_encoding?
+          value = value.dup.force_encoding(::Encoding::UTF_8) if value.encoding != ::Encoding::UTF_8
+          value.valid_encoding? ? value : nil
         end
 
         def self.parse_hex_id(value)

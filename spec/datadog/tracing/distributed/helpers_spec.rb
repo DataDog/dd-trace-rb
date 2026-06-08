@@ -39,8 +39,8 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
     end
   end
 
-  describe '.normalize_tracestate_encoding' do
-    subject(:result) { described_class.normalize_tracestate_encoding(value) }
+  describe '.force_utf8_encoding' do
+    subject(:result) { described_class.force_utf8_encoding(value) }
 
     context 'with nil' do
       let(:value) { nil }

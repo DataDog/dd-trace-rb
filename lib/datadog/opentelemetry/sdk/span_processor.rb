@@ -107,7 +107,7 @@ module Datadog
                   trace_id: link.span_context.hex_trace_id.to_i(16),
                   span_id: link.span_context.hex_span_id.to_i(16),
                   trace_sampling_priority: (link.span_context.trace_flags&.sampled? ? 1 : 0),
-                  trace_state: Tracing::Distributed::Helpers.normalize_tracestate_encoding(
+                  trace_state: Tracing::Distributed::Helpers.force_utf8_encoding(
                     link.span_context.tracestate&.to_s
                   ),
                   span_remote: link.span_context.remote?,

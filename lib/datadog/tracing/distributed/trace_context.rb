@@ -400,7 +400,7 @@ module Datadog
             tracestate = tracestate.chop
           end
 
-          tracestate = Helpers.normalize_tracestate_encoding(tracestate)
+          tracestate = Helpers.force_utf8_encoding(tracestate)
           return unless tracestate
 
           vendors = tracestate.split(',', TRACESTATE_MAX_LIST_MEMBERS + 1)
