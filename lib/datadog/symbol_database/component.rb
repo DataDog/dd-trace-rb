@@ -555,8 +555,17 @@ module Datadog
           next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
           component.send(:enqueue_hot_load, mod)
         rescue => e
-          logger.debug { "symdb: hot-load hook error: #{e.class}: #{e.message}" }
-          telemetry&.report(e, description: 'symdb: hot-load hook error')
+          # Logger or telemetry can themselves raise (custom logger
+          # implementation, telemetry worker in an unexpected state). The
+          # :class TracePoint fires inside customer class bodies, so the
+          # error boundary must hold even when error reporting fails;
+          # nothing useful to do if logging is broken.
+          begin
+            logger.debug { "symdb: hot-load hook error: #{e.class}: #{e.message}" }
+            telemetry&.report(e, description: 'symdb: hot-load hook error')
+          rescue
+            nil
+          end
         end
         @hot_load_tracepoint.enable # steep:ignore NoMethod
       end
