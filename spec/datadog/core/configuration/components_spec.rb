@@ -36,7 +36,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   let(:agent_info) { Datadog::Core::Environment::AgentInfo.new(agent_settings, logger: logger) }
 
   let(:profiler_setup_task) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Tasks::Setup) : nil }
-  let(:remote) { instance_double(Datadog::Core::Remote::Component, start: nil, shutdown!: nil) }
+  let(:remote) { instance_double(Datadog::Core::Remote::Component, start: nil, shutdown!: nil, started?: false) }
   let(:telemetry) do
     instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
       allow(telemetry).to receive(:start)
@@ -685,6 +685,147 @@ RSpec.describe Datadog::Core::Configuration::Components do
       allow(components).to receive(:symbol_database).and_return(nil)
 
       expect { after_fork }.not_to raise_error
+    end
+  end
+
+  describe '#state' do
+    # The implicit-enablement carry-over rides on ComponentsState. When
+    # Datadog.configure rebuilds the tree, the old tree's #state is read
+    # by the new tree's #startup! to decide whether to start DI. di_implicitly_enabled?
+    # must reflect whether the component was actually started at the time
+    # #state is called — not whether DI was configured to start. The
+    # distinction matters because RC may have started DI on a tracer that
+    # had no env var set; the new tree won't know to restart DI unless we
+    # captured that runtime fact.
+
+    context 'when DI component is started' do
+      before(:all) do
+        skip 'Test requires MRI' if PlatformHelpers.jruby?
+        skip 'Test requires DI C extension' if RUBY_VERSION < '2.6' || !Datadog::DI.respond_to?(:exception_message)
+      end
+
+      before do
+        settings.dynamic_instrumentation.internal.development = true
+        components.dynamic_instrumentation&.start!
+      end
+
+      after { components.dynamic_instrumentation&.shutdown! }
+
+      it 'captures di_implicitly_enabled? as true' do
+        expect(components.state.di_implicitly_enabled?).to be true
+      end
+    end
+
+    context 'when DI component is stopped' do
+      before(:all) do
+        skip 'Test requires MRI' if PlatformHelpers.jruby?
+        skip 'Test requires DI C extension' if RUBY_VERSION < '2.6' || !Datadog::DI.respond_to?(:exception_message)
+      end
+
+      before do
+        settings.dynamic_instrumentation.internal.development = true
+      end
+
+      after { components.dynamic_instrumentation&.shutdown! }
+
+      it 'captures di_implicitly_enabled? as false' do
+        expect(components.dynamic_instrumentation&.started?).to be false
+        expect(components.state.di_implicitly_enabled?).to be false
+      end
+    end
+
+    context 'when DI component is nil (unsupported environment)' do
+      before do
+        allow(Datadog::DI::Component).to receive(:build).and_return(nil)
+      end
+
+      it 'captures di_implicitly_enabled? as false' do
+        expect(components.dynamic_instrumentation).to be nil
+        expect(components.state.di_implicitly_enabled?).to be false
+      end
+    end
+  end
+
+  describe '#startup! with old_state carrying DI implicit enablement' do
+    # The other side of the ComponentsState round-trip: given an old_state
+    # whose di_implicitly_enabled? is true, #startup! must start DI on the
+    # new tree even when settings.dynamic_instrumentation.enabled is false
+    # (no env var). The env-var-only path and the no-carry path are also
+    # covered to make the precedence explicit.
+
+    subject(:startup!) { components.startup!(settings, old_state: old_state) }
+
+    before(:all) do
+      skip 'Test requires MRI' if PlatformHelpers.jruby?
+      skip 'Test requires DI C extension' if RUBY_VERSION < '2.6' || !Datadog::DI.respond_to?(:exception_message)
+    end
+
+    before do
+      settings.dynamic_instrumentation.internal.development = true
+      allow(Datadog::Profiling::Component).to receive(:build_profiler_component)
+        .and_return([nil, environment_logger_extra])
+      allow(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!)
+      allow(Datadog::Core::ProcessDiscovery).to receive(:publish)
+    end
+
+    after { components.dynamic_instrumentation&.shutdown! }
+
+    context 'old_state.di_implicitly_enabled? is true, env var not set' do
+      let(:old_state) do
+        Datadog::Core::Configuration::ComponentsState.new(
+          telemetry_enabled: true,
+          remote_started: false,
+          di_implicitly_enabled: true,
+        )
+      end
+
+      it 'starts the DI component on the new tree' do
+        expect(components.dynamic_instrumentation).not_to be_nil
+        expect(components.dynamic_instrumentation.started?).to be false
+        startup!
+        expect(components.dynamic_instrumentation.started?).to be true
+      end
+    end
+
+    context 'old_state.di_implicitly_enabled? is false, env var not set' do
+      let(:old_state) do
+        Datadog::Core::Configuration::ComponentsState.new(
+          telemetry_enabled: true,
+          remote_started: false,
+          di_implicitly_enabled: false,
+        )
+      end
+
+      it 'leaves the DI component stopped on the new tree' do
+        startup!
+        expect(components.dynamic_instrumentation.started?).to be false
+      end
+    end
+
+    context 'old_state.di_implicitly_enabled? is false, env var explicitly true' do
+      let(:old_state) do
+        Datadog::Core::Configuration::ComponentsState.new(
+          telemetry_enabled: true,
+          remote_started: false,
+          di_implicitly_enabled: false,
+        )
+      end
+
+      before { settings.dynamic_instrumentation.enabled = true }
+
+      it 'starts the DI component on the new tree (env-var path)' do
+        startup!
+        expect(components.dynamic_instrumentation.started?).to be true
+      end
+    end
+
+    context 'no old_state (initial startup)' do
+      let(:old_state) { nil }
+
+      it 'leaves the DI component stopped when env var is not set' do
+        startup!
+        expect(components.dynamic_instrumentation.started?).to be false
+      end
     end
   end
 

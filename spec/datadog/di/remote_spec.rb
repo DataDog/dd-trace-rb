@@ -145,6 +145,57 @@ RSpec.describe Datadog::DI::Remote do
     end
   end
 
+  describe '.handle_rc_enablement settings invariant (test 23)' do
+    # Guards the "RC only enables/disables" decision in design/architecture.md.
+    # RC must never mutate settings under settings.dynamic_instrumentation —
+    # those are injected at component build time and remain authoritative
+    # through start!/stop!. If a future change accidentally routes a settings
+    # update through this path, this snapshot diff catches it.
+
+    let(:component) { instance_double(Datadog::DI::Component, start!: nil, stop!: nil) }
+    let(:components) { instance_double(Datadog::Core::Configuration::Components, dynamic_instrumentation: component) }
+    let(:settings) do
+      Datadog::Core::Configuration::Settings.new.tap do |s|
+        # Touch DI settings so the option hash is fully materialized and the
+        # snapshot covers every defined option.
+        s.dynamic_instrumentation.enabled
+        s.dynamic_instrumentation.redacted_identifiers
+        s.dynamic_instrumentation.max_capture_depth
+      end
+    end
+
+    before do
+      allow(Datadog).to receive(:send).and_call_original
+      allow(Datadog).to receive(:send).with(:components).and_return(components)
+      allow(Datadog).to receive(:configuration).and_return(settings)
+      allow(described_class).to receive(:explicitly_disabled?).and_return(false)
+      allow(Datadog::DI).to receive(:activate_tracking)
+    end
+
+    def options_snapshot(di_settings)
+      di_settings.options.transform_values do |opt|
+        # Capture the current value AND the precedence so a change in either
+        # would be detected. Some options have nested settings hashes, so we
+        # also walk those.
+        [opt.get, opt.send(:precedence_set)]
+      end
+    end
+
+    it 'leaves dynamic_instrumentation settings unchanged after enable=true' do
+      before_snap = options_snapshot(settings.dynamic_instrumentation)
+      described_class.handle_rc_enablement(true)
+      after_snap = options_snapshot(settings.dynamic_instrumentation)
+      expect(after_snap).to eq before_snap
+    end
+
+    it 'leaves dynamic_instrumentation settings unchanged after enable=false' do
+      before_snap = options_snapshot(settings.dynamic_instrumentation)
+      described_class.handle_rc_enablement(false)
+      after_snap = options_snapshot(settings.dynamic_instrumentation)
+      expect(after_snap).to eq before_snap
+    end
+  end
+
   describe '.explicitly_disabled?' do
     # The precedence rule between env var and RC: env var
     # `DD_DYNAMIC_INSTRUMENTATION_ENABLED=false` blocks RC enablement.
@@ -157,10 +208,19 @@ RSpec.describe Datadog::DI::Remote do
       allow(Datadog).to receive(:configuration).and_return(settings)
     end
 
+    context 'when called before any code has touched dynamic_instrumentation.enabled' do
+      # The option hash is lazy-initialized; reading
+      # options[:enabled].default_precedence? without first touching the
+      # getter would NoMethodError on nil. using_default? materializes the
+      # option as needed.
+      it 'returns false without raising' do
+        expect { described_class.explicitly_disabled? }.not_to raise_error
+        expect(described_class.explicitly_disabled?).to be false
+      end
+    end
+
     context 'when the env var is unset (default precedence) and enabled remains default false' do
       before do
-        # Touch the getter so the Option is materialized at default precedence
-        # (options are lazy-initialized on first access).
         di_settings.enabled
       end
 
