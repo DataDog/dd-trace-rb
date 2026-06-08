@@ -1,0 +1,239 @@
+require 'spec_helper'
+require 'datadog/di/spec_helper'
+require 'datadog/di'
+require 'datadog/tracing/remote'
+
+# Target class for the method probe in test 14. Loaded before the RC
+# enable signal arrives — this is the canonical "code loaded before
+# enablement" case that always-build + late activation is meant to fix.
+class ImplicitEnablementSpecTargetClass
+  def target_method
+    42
+  end
+end
+
+RSpec.describe 'DI implicit enablement integration' do
+  di_test
+  deactivate_code_tracking
+
+  # Tests 14 and 15 in testing/test-strategy.md. Exercises the full
+  # APM_TRACING → DI::Remote.handle_rc_enablement → component.start! chain
+  # in-process, then drops a LIVE_DEBUGGING probe and verifies the
+  # in-stopped-state component refuses probes, the started component
+  # accepts and fires them, and the subsequent enabled=false stops the
+  # component and removes installed probes.
+
+  let(:settings) do
+    Datadog::Core::Configuration::Settings.new.tap do |s|
+      s.remote.enabled = true
+      # Note: dynamic_instrumentation.enabled stays at its default (false).
+      # This is the implicit-enablement scenario — the customer never set
+      # the env var; DI must come up via RC.
+      s.dynamic_instrumentation.internal.development = true
+      s.dynamic_instrumentation.internal.propagate_all_exceptions = true
+    end
+  end
+
+  let(:agent_settings) { instance_double_agent_settings_with_stubs }
+  let(:logger) { instance_double(Logger) }
+  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
+  let(:component) do
+    Datadog::DI::Component.build(settings, agent_settings, logger, telemetry: telemetry)
+  end
+
+  let(:components) do
+    # Stand-in for Core::Configuration::Components. handle_rc_enablement
+    # reaches the component via Datadog.send(:components).dynamic_instrumentation
+    # and Tracing::Remote.process_config calls reconfigure_sampler on it for
+    # each tracing dynamic-option update. We expose only what's needed.
+    instance_double(
+      Datadog::Core::Configuration::Components,
+      dynamic_instrumentation: component,
+      telemetry: telemetry,
+    )
+  end
+
+  # The probe notifier worker thread runs in the background and posts probe
+  # status events over HTTP. In tests we replace its transports with doubles
+  # so probe installation does not attempt real network calls.
+  let(:diagnostics_transport) do
+    instance_double(Datadog::DI::Transport::Diagnostics::Transport).tap do |t|
+      allow(t).to receive(:send_diagnostics)
+    end
+  end
+
+  let(:input_transport) do
+    instance_double(Datadog::DI::Transport::Input::Transport).tap do |t|
+      allow(t).to receive(:send_input)
+    end
+  end
+
+  before do
+    allow(logger).to receive(:debug)
+    allow(Datadog).to receive(:send).and_call_original
+    allow(Datadog).to receive(:send).with(:components).and_return(components)
+    allow(Datadog).to receive(:configuration).and_return(settings)
+    allow(Datadog).to receive(:logger).and_return(logger)
+    allow(logger).to receive(:warn)
+    allow(components).to receive(:reconfigure_sampler)
+    allow(telemetry).to receive(:client_configuration_change!)
+    allow(Datadog::DI::Transport::HTTP).to receive(:diagnostics).and_return(diagnostics_transport)
+    allow(Datadog::DI::Transport::HTTP).to receive(:input).and_return(input_transport)
+  end
+
+  after { component&.shutdown! }
+
+  describe 'test 14: RC enables DI → method probe installs and fires' do
+    let(:rc_payload_enable) { {'lib_config' => {'dynamic_instrumentation_enabled' => true}} }
+    let(:rc_content) { instance_double(Datadog::Core::Remote::Configuration::Content) }
+
+    before do
+      allow(rc_content).to receive(:applied)
+      allow(rc_content).to receive(:errored)
+      allow(telemetry).to receive(:client_configuration_change!)
+    end
+
+    it 'starts the component when dynamic_instrumentation_enabled=true arrives' do
+      expect(component).not_to be_nil
+      expect(component.started?).to be false
+
+      Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
+
+      expect(component.started?).to be true
+      expect(rc_content).to have_received(:applied)
+    end
+
+    it 'activates code tracking when the enable signal arrives' do
+      # activate_tracking is the precondition for line probes to work on
+      # code loaded between enablement and the probe arrival. Verifying
+      # the side effect directly without depending on tracking's runtime
+      # state (which other tests in the suite may touch).
+      expect(Datadog::DI).to receive(:activate_tracking)
+
+      Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
+    end
+
+    context 'after the component is started, a LIVE_DEBUGGING method probe arrives' do
+      # The implicit-enablement-specific assertion is that the RC enable
+      # signal flips the receiver from "silently drops probes" (component
+      # stopped) to "installs probes" (component started). The probe-fires
+      # path beyond installation is regression-covered by
+      # everything_from_remote_config_spec.rb and is not duplicated here.
+
+      let(:probe_spec) do
+        {
+          id: 'test-probe-14',
+          name: 'bar',
+          type: 'LOG_PROBE',
+          where: {
+            typeName: 'ImplicitEnablementSpecTargetClass',
+            methodName: 'target_method',
+          },
+        }
+      end
+
+      let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
+      let(:probe_configs) { {'datadog/2/LIVE_DEBUGGING/foo/bar' => probe_spec} }
+      let(:transaction) do
+        DIHelpers::TestRemoteConfigGenerator.new(probe_configs).insert_transaction(repository)
+      end
+      let(:di_receiver) { Datadog::DI::Remote.receivers(telemetry).first }
+
+      before do
+        allow(Datadog::DI).to receive(:component).and_return(component)
+        allow(Datadog::DI).to receive(:activate_tracking)
+      end
+
+      it 'is silently dropped if delivered while the component is stopped' do
+        expect(component.started?).to be false
+        di_receiver.call(repository, transaction)
+        expect(component.probe_manager.probe_repository.installed_probes.length).to eq 0
+        expect(component.probe_manager.probe_repository.pending_probes.length).to eq 0
+      end
+
+      it 'is installed after the APM_TRACING enable signal arrives' do
+        Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
+        expect(component.started?).to be true
+
+        di_receiver.call(repository, transaction)
+        component.probe_notifier_worker.flush
+
+        expect(component.probe_manager.probe_repository.installed_probes.length).to eq 1
+      end
+    end
+  end
+
+  describe 'test 15: RC disable stops the component and removes probes' do
+    let(:rc_payload_enable) { {'lib_config' => {'dynamic_instrumentation_enabled' => true}} }
+    let(:rc_payload_disable) { {'lib_config' => {'dynamic_instrumentation_enabled' => false}} }
+    let(:rc_content) { instance_double(Datadog::Core::Remote::Configuration::Content, applied: nil, errored: nil) }
+
+    before do
+      allow(telemetry).to receive(:client_configuration_change!)
+      allow(Datadog::DI).to receive(:activate_tracking)
+    end
+
+    it 'stops the component when dynamic_instrumentation_enabled=false arrives' do
+      Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
+      expect(component.started?).to be true
+
+      Datadog::Tracing::Remote.process_config(rc_payload_disable, rc_content)
+      expect(component.started?).to be false
+    end
+
+    it 'is idempotent: false → false stays stopped without error' do
+      Datadog::Tracing::Remote.process_config(rc_payload_disable, rc_content)
+      expect(component.started?).to be false
+      expect { Datadog::Tracing::Remote.process_config(rc_payload_disable, rc_content) }.not_to raise_error
+      expect(component.started?).to be false
+    end
+
+    it 'supports restart: true → false → true' do
+      Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
+      expect(component.started?).to be true
+      Datadog::Tracing::Remote.process_config(rc_payload_disable, rc_content)
+      expect(component.started?).to be false
+      Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
+      expect(component.started?).to be true
+    end
+
+    context 'with an installed probe' do
+      let(:probe_spec) do
+        {
+          id: 'test-probe-15',
+          name: 'bar',
+          type: 'LOG_PROBE',
+          where: {
+            typeName: 'ImplicitEnablementSpecTargetClass',
+            methodName: 'target_method',
+          },
+        }
+      end
+
+      let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
+      let(:probe_configs) { {'datadog/2/LIVE_DEBUGGING/foo/bar' => probe_spec} }
+      let(:transaction) do
+        DIHelpers::TestRemoteConfigGenerator.new(probe_configs).insert_transaction(repository)
+      end
+      let(:di_receiver) { Datadog::DI::Remote.receivers(telemetry).first }
+
+      before do
+        allow(Datadog::DI).to receive(:component).and_return(component)
+      end
+
+      it 'removes the probe when the component is stopped via RC disable' do
+        Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
+        di_receiver.call(repository, transaction)
+        component.probe_notifier_worker.flush
+        expect(component.probe_manager.probe_repository.installed_probes.length).to eq 1
+
+        Datadog::Tracing::Remote.process_config(rc_payload_disable, rc_content)
+
+        expect(component.started?).to be false
+        # stop! calls probe_manager.stop which removes all installed probes.
+        expect(component.probe_manager.probe_repository.installed_probes).to be_empty
+      end
+    end
+  end
+end

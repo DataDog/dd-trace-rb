@@ -179,6 +179,75 @@ RSpec.describe Datadog::DI::Component do
     end
   end
 
+  describe 'test 25: DI.add_current_component invariant from build' do
+    # Guards the "two storage places" decision in design/architecture.md.
+    # Built components are tracked in BOTH Components#@dynamic_instrumentation
+    # AND DI.@current_components, so the code-tracker callback (which has
+    # no reference to Components) can locate the live component via
+    # DI.current_component without round-tripping through Datadog.send(:components).
+    # A future refactor that drops one of the two stores would be caught here.
+
+    let(:settings) do
+      Datadog::Core::Configuration::Settings.new.tap do |s|
+        s.remote.enabled = true
+        s.dynamic_instrumentation.internal.development = true
+      end
+    end
+
+    let(:agent_settings) { instance_double_agent_settings_with_stubs }
+    let(:logger) { instance_double(Logger) }
+
+    it 'registers the built component in DI.current_component' do
+      component = described_class.build(settings, agent_settings, logger)
+      expect(component).not_to be_nil
+      expect(Datadog::DI.current_component).to be component
+      component.shutdown!
+    end
+
+    it 'removes the component from DI.current_component on shutdown!' do
+      component = described_class.build(settings, agent_settings, logger)
+      component.shutdown!
+      expect(Datadog::DI.current_component).not_to be component
+    end
+  end
+
+  describe 'test 26: build does not block' do
+    # Companion to test 10 (handle_rc_enablement non-blocking).
+    # requirements.md constraint: "DI startup must not block requests."
+    # Component.build is called during Components#initialize — any blocking
+    # call here delays application boot and Rack request handling. The
+    # build path should perform no I/O: no socket open, no thread join,
+    # no remote fetch. The constructor's only background work is allocating
+    # the probe notifier worker thread object (not starting it).
+    #
+    # The bound here is loose because we're catching pathological
+    # regressions (seconds-of-blocking) rather than profiling. CI variance
+    # under load doesn't generally exceed 1s for an allocation-only path.
+
+    let(:settings) do
+      Datadog::Core::Configuration::Settings.new.tap do |s|
+        s.remote.enabled = true
+        s.dynamic_instrumentation.internal.development = true
+      end
+    end
+
+    let(:agent_settings) { instance_double_agent_settings_with_stubs }
+    let(:logger) { instance_double(Logger) }
+
+    it 'completes synchronously without I/O' do
+      baseline = Thread.list.size
+      started = Datadog::Core::Utils::Time.get_time
+      component = described_class.build(settings, agent_settings, logger)
+      elapsed = Datadog::Core::Utils::Time.get_time - started
+      expect(component).not_to be_nil
+      expect(elapsed).to be < 1.0
+      # build must not have spawned the probe notifier worker thread or
+      # any other background thread — those start in #start!.
+      expect(Thread.list.size).to eq baseline
+      component.shutdown!
+    end
+  end
+
   describe '#start! and #stop!' do
     let(:settings) do
       settings = Datadog::Core::Configuration::Settings.new

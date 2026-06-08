@@ -72,7 +72,10 @@ module Datadog
 
         def explicitly_disabled?
           settings = Datadog.configuration
-          !settings.dynamic_instrumentation.options[:enabled].default_precedence? &&
+          # using_default? rather than options[:enabled].default_precedence?
+          # because options are lazy-initialized; the underlying Option may
+          # not exist yet when the RC handler runs (NoMethodError on nil).
+          !settings.dynamic_instrumentation.using_default?(:enabled) &&
             !settings.dynamic_instrumentation.enabled
         end
 
