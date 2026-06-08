@@ -9,7 +9,7 @@ module Datadog
               propagation_style_inject: ::Array[::String],
               propagation_style_extract: ::Array[::String],
               propagation_extract_first: bool,
-              propagation_behavior_extract: ::String
+              propagation_behavior_extract: String
             ) -> void
           end
         end
