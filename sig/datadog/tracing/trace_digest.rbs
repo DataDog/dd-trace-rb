@@ -6,7 +6,7 @@ module Datadog
       attr_reader span_resource: untyped
       attr_reader span_service: untyped
       attr_reader span_type: untyped
-      attr_reader span_links: ::Array[SpanLink]?
+      attr_reader span_links: Array[SpanLink]?
       attr_reader trace_distributed_tags: untyped
       attr_reader trace_hostname: untyped
       attr_reader trace_id: untyped
