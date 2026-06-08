@@ -48,7 +48,7 @@ module Datadog
           # (new spans become root spans). Span_links from the restart digest are not propagated
           # through the OTel path — the SpanProcessor will create a new Datadog trace from the
           # OTel-generated trace id when the first span starts.
-          return context if digest.trace_id.nil?
+          return context unless digest.trace_id
 
           # Converts the {Numeric} Datadog id object to OpenTelemetry's byte array format.
           # 128-bit unsigned, big-endian integer
