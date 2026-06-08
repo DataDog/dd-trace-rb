@@ -540,10 +540,24 @@ module Datadog
       def install_hot_load_hook
         return if @hot_load_tracepoint
         component = self
+        logger = @logger
+        telemetry = @telemetry
         @hot_load_tracepoint = TracePoint.new(:class) do |tp|
-          mod = tp.self
-          next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
-          component.send(:enqueue_hot_load, mod)
+          # The :class TracePoint fires inside the customer's class body —
+          # any exception that escapes this block surfaces at the customer's
+          # `class Foo; ... end` line and breaks their class load. The
+          # MODULE_SINGLETON_CLASS_PRED dispatch defends against one specific
+          # raise source (user-overridden singleton_class?); this rescue
+          # closes the general case. Verified: a raise inside the callback
+          # backtraces through `<class:CustomerClass>` in Ruby 3.x.
+          begin
+            mod = tp.self
+            next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
+            component.send(:enqueue_hot_load, mod)
+          rescue => e
+            logger.debug { "symdb: hot-load hook error: #{e.class}: #{e.message}" }
+            telemetry&.report(e, description: 'symdb: hot-load hook error')
+          end
         end
         @hot_load_tracepoint.enable # steep:ignore NoMethod
       end

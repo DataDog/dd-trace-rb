@@ -703,6 +703,35 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       # bound Module#singleton_class? returns false and the module is enqueued.
       expect(buffered.map(&:name)).to include('SymdbHotLoadSpecSingletonOverride')
     end
+
+    it 'rescues exceptions raised inside the :class hook so customer class loads do not break' do
+      # The :class TracePoint fires inside the customer's `class Foo; ... end`
+      # body. If an exception escapes the callback, it propagates into the
+      # class definition and breaks the customer's class load (verified
+      # empirically: backtrace includes `<class:CustomerClass>`). The rescue
+      # in install_hot_load_hook contains the failure, logs at debug, and
+      # reports via telemetry.
+      component = described_class.build(settings, agent_settings, logger)
+      component.wait_for_idle(timeout: 5)
+
+      injected_error = RuntimeError.new('simulated hot-load enqueue failure')
+      allow(component).to receive(:enqueue_hot_load).and_raise(injected_error)
+
+      expect(raw_logger).to receive(:debug) do |&block|
+        expect(block.call).to include('hot-load hook error', 'RuntimeError', 'simulated hot-load enqueue failure')
+      end
+
+      begin
+        # With the rescue in place, defining a class while enqueue_hot_load is
+        # rigged to raise must not propagate the exception into the class body.
+        expect do
+          eval('class SymdbHotLoadRescueTestClass; end', binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
+        end.not_to raise_error
+      ensure
+        component.shutdown!
+        Object.send(:remove_const, :SymdbHotLoadRescueTestClass) if Object.const_defined?(:SymdbHotLoadRescueTestClass)
+      end
+    end
   end
 
   describe 'enable/disable upload (ported from Java SymDBEnablementTest.enableDisableSymDBThroughRC)' do
