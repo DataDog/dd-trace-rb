@@ -165,6 +165,26 @@ module Datadog
         nil
       end
 
+      # Verify that mod_name still resolves to mod through Ruby's constant
+      # table. Returns false when a Class/Module has been detached from its
+      # constant (via remove_const) but still carries the cached Module#name —
+      # see collect_extractable_modules for the failure mode this protects.
+      #
+      # Uses const_defined? before const_get so an unresolvable path
+      # short-circuits without triggering const_missing on the customer's
+      # Object class. const_get is only reached when the path resolves to a
+      # real binding, which avoids triggering autoload as a side effect.
+      # @param mod_name [String]
+      # @param mod [Module]
+      # @return [Boolean]
+      def resolves_to_same_module?(mod_name, mod)
+        return false unless Object.const_defined?(mod_name)
+        Object.const_get(mod_name).equal?(mod)
+      rescue NameError, ArgumentError => e
+        @logger.debug { "symdb: resolves_to_same_module?(#{mod_name}) failed: #{e.class}: #{e.message}" }
+        false
+      end
+
       # Check if module is from user code (not gems or stdlib)
       # @param mod [Module] The module to check
       # @return [Boolean] true if user code
@@ -650,6 +670,16 @@ module Datadog
 
           mod_name = safe_mod_name(mod)
           next unless mod_name
+
+          # Skip modules whose cached name no longer resolves to them. CRuby
+          # caches Module#name, so a Class whose constant was removed via
+          # remove_const stays in ObjectSpace and still reports its old FQN.
+          # Without this guard, a leaked Class from a prior remove_const +
+          # redefinition (test cleanup, customer hot-reload) collides with
+          # the current binding in the name-keyed `entries` hash below and
+          # the "winner" depends on ObjectSpace iteration order.
+          next unless resolves_to_same_module?(mod_name, mod)
+
           next unless user_code_module?(mod)
 
           methods_by_file = group_methods_by_file(mod)

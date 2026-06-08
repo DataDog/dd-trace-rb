@@ -2328,5 +2328,51 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         expect(host.scopes.map(&:name)).to include('host_method')
       end
     end
+
+    context 'class detached from its constant via remove_const' do
+      # CRuby caches Module#name. After Object.send(:remove_const, :Foo) the
+      # Class stays in ObjectSpace and `mod.name` still returns "Foo".
+      # Without the resolves_to_same_module? filter in
+      # collect_extractable_modules, the leaked Class collides with a fresh
+      # binding of the same constant in the name-keyed entries hash, and the
+      # ObjectSpace-iteration-order winner can pair a MODULE from one binding
+      # with a CLASS from another — producing FILE scopes with empty children.
+      before do
+        @leaked_file = create_test_file('detached_old.rb', <<~RUBY)
+          class ExtractAllDetached
+            def old_method; end
+          end
+        RUBY
+        load @leaked_file
+        # Keep a hard reference so GC.start cannot reclaim the leaked Class.
+        @leaked_class = ExtractAllDetached
+        Object.send(:remove_const, :ExtractAllDetached)
+
+        @new_file = create_test_file('detached_new.rb', <<~RUBY)
+          class ExtractAllDetached
+            def new_method; end
+          end
+        RUBY
+        load @new_file
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllDetached) if defined?(ExtractAllDetached)
+      end
+
+      it 'extracts the currently-bound class only, not the leaked one' do
+        scopes = extract_all_clean
+
+        leaked_file_scope = scopes.find { |s| s.scope_type == 'FILE' && s.name == @leaked_file }
+        expect(leaked_file_scope).to be_nil
+
+        new_file_scope = scopes.find { |s| s.scope_type == 'FILE' && s.name == @new_file }
+        expect(new_file_scope).not_to be_nil
+        host = new_file_scope.scopes.find { |s| s.name == 'ExtractAllDetached' }
+        expect(host).not_to be_nil
+        expect(host.scopes.map(&:name)).to include('new_method')
+        expect(host.scopes.map(&:name)).not_to include('old_method')
+      end
+    end
   end
 end
