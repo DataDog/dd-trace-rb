@@ -158,33 +158,31 @@ module Datadog
           # Handle baggage after all other styles if present
           extracted_trace_digest = propagate_baggage(data, extracted_trace_digest) if @baggage_propagator
 
-          if @propagation_behavior_extract == Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_RESTART &&
-              extracted_trace_digest&.trace_id
-            # Restart a new trace, linking back to the extracted context.
-            # The trace id and root span are generated fresh by the trace operation
-            # (`trace_id`/`span_id` are intentionally left unset so the new root span has no parent).
-            #
-            # Only fires when a real trace context was extracted: a baggage-only digest has no
-            # `trace_id`, so it falls through to `continue` and baggage keeps propagating.
-            link = SpanLink.new(
-              extracted_trace_digest,
-              attributes: {
-                'reason' => 'propagation_behavior_extract',
-                'context_headers' => extracted_style_name,
-              }
-            )
-            baggage_tags = extracted_trace_digest.trace_distributed_tags&.select { |k, _| k.start_with?('baggage.') }
-            baggage_tags = nil if baggage_tags&.empty?
-            TraceDigest.new(
-              span_links: [link],
-              baggage: extracted_trace_digest.baggage,
-              trace_distributed_tags: baggage_tags,
-              span_remote: false,
-            )
-          else
-            # 'continue' (default behavior): return the upstream digest unchanged so the new trace adopts the incoming trace_id/span_id.
-            extracted_trace_digest
-          end
+          # continue behavior: return the upstream digest unchanged so the new trace adopts the incoming trace_id/span_id.
+          # restart behavior when the digest does not have a trace_id: return the extracted trace digest unchanged.
+          return extracted_trace_digest if @propagation_behavior_extract != Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_RESTART || extracted_trace_digest&.trace_id.nil?
+
+          # Restart a new trace, linking back to the extracted context.
+          # The trace id and root span are generated fresh by the trace operation
+          # (`trace_id`/`span_id` are intentionally left unset so the new root span has no parent).
+          #
+          # Only fires when a real trace context was extracted: a baggage-only digest has no
+          # `trace_id`, so it falls through to `continue` and baggage keeps propagating.
+          link = SpanLink.new(
+            extracted_trace_digest,
+            attributes: {
+              'reason' => 'propagation_behavior_extract',
+              'context_headers' => extracted_style_name,
+            }
+          )
+          baggage_tags = extracted_trace_digest.trace_distributed_tags&.select { |k, _| k.start_with?('baggage.') }
+          baggage_tags = nil if baggage_tags&.empty?
+          TraceDigest.new(
+            span_links: [link],
+            baggage: extracted_trace_digest.baggage,
+            trace_distributed_tags: baggage_tags,
+            span_remote: false,
+          )
         end
 
         private
