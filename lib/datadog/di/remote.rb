@@ -38,7 +38,11 @@ module Datadog
               )
               return
             end
-            DI.activate_tracking
+            # Same guard as Components#startup! — DI.activate_tracking is only
+            # defined when di/base.rb is loaded (Ruby >= 2.6). On 2.5 the
+            # component is always nil so we never reach this in production;
+            # the guard is for tests that stub component presence.
+            DI.activate_tracking if DI.respond_to?(:activate_tracking)
             component.start!
           else
             component.stop!
