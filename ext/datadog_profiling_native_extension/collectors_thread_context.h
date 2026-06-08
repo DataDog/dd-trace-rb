@@ -8,8 +8,7 @@
 
 void thread_context_collector_sample(
   VALUE self_instance,
-  long current_monotonic_wall_time_ns,
-  VALUE profiler_overhead_stack_thread
+  long current_monotonic_wall_time_ns
 );
 __attribute__((warn_unused_result)) bool thread_context_collector_prepare_sample_inside_signal_handler(void);
 __attribute__((warn_unused_result)) bool thread_context_collector_sample_allocation(VALUE self_instance, per_thread_context *thread_context, unsigned int sample_weight, VALUE new_object);
