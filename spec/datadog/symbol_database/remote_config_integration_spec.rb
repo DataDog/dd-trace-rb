@@ -217,6 +217,8 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
     #      hot-load extraction drains the buffer and a second upload lands
     #      — no sleep, no polling.
     #   5. The second upload's payload contains the runtime-defined class.
+    #
+    # Entire test was measured to run in ~0.25 seconds locally.
     it 'uploads a class defined after the initial upload completes' do
       component = Datadog::SymbolDatabase::Component.build(
         settings,
@@ -227,7 +229,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       # Step 1: initial load runs.
       GC.start
       component.start_upload
-      component.wait_for_idle(timeout: 30)
+      component.wait_for_idle(timeout: 5)
 
       initial_form_count = captured_forms.size
       expect(initial_form_count).to be >= 1
@@ -249,7 +251,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
           # Step 4: event-driven wait — wait_for_idle blocks on
           # @last_upload_time_cv until @last_upload_time advances past the
           # value captured at entry. No sleep.
-          expect(component.wait_for_idle(timeout: 30)).to be true
+          expect(component.wait_for_idle(timeout: 5)).to be true
 
           # Step 5: a new upload landed, and it contains the new class.
           expect(captured_forms.size).to be > initial_form_count
