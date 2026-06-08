@@ -67,9 +67,12 @@ RSpec.describe Datadog::DI::Remote do
         allow(described_class).to receive(:explicitly_disabled?).and_return(true)
       end
 
-      it 'does not start the component (env var takes precedence)' do
+      it 'does not start the component (env var takes precedence) and warns' do
         expect(Datadog::DI).not_to receive(:activate_tracking)
         expect(component).not_to receive(:start!)
+        expect(Datadog.logger).to receive(:warn).with(
+          a_string_matching(/ignoring implicit enablement signal.*DD_DYNAMIC_INSTRUMENTATION_ENABLED.*explicitly set to false/)
+        )
         described_class.handle_rc_enablement(true)
       end
     end

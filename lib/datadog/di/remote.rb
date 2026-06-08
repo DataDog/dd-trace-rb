@@ -30,7 +30,14 @@ module Datadog
           return unless component
 
           if enabled
-            return if explicitly_disabled?
+            if explicitly_disabled?
+              Datadog.logger.warn(
+                "di: ignoring implicit enablement signal from remote configuration " \
+                "because DD_DYNAMIC_INSTRUMENTATION_ENABLED is explicitly set to false. " \
+                "To allow remote enablement, unset DD_DYNAMIC_INSTRUMENTATION_ENABLED."
+              )
+              return
+            end
             DI.activate_tracking
             component.start!
           else
