@@ -239,7 +239,11 @@ module Datadog
           # (via RC) in the previous Components instance.
           if dynamic_instrumentation
             if settings.dynamic_instrumentation.enabled || old_state&.di_implicitly_enabled?
-              DI.activate_tracking
+              # DI.activate_tracking is defined in di/base.rb which is only
+              # loaded on Ruby >= 2.6 (see lib/datadog.rb). On Ruby 2.5 the
+              # real component build returns nil so this branch never runs;
+              # the respond_to? guard is for tests that stub Component.build.
+              DI.activate_tracking if DI.respond_to?(:activate_tracking)
               dynamic_instrumentation.start!
             end
           end
