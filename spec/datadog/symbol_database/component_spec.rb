@@ -32,9 +32,6 @@ RSpec.describe Datadog::SymbolDatabase::Component do
   let(:raw_logger) { instance_double(Logger, debug: nil) }
   let(:logger) { Datadog::SymbolDatabase::Logger.new(settings, raw_logger) }
 
-  # Reset the class-level "have we uploaded this process" flag between tests.
-  before { described_class.reset_uploaded_this_process_for_tests! }
-
   # Stub Uploader and ScopeBatcher to avoid real HTTP calls.
   before do
     allow(Datadog::SymbolDatabase::Transport::HTTP).to receive(:symbols).and_return(
@@ -181,8 +178,8 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
       it 'each Component registers its own callback (no class-level dedup of registration)' do
         # Per-instance design: each Component schedules its own deferred upload.
-        # Cross-instance deduplication of the actual upload is handled by the
-        # class-level uploaded_this_process? flag, not by guarding registration.
+        # Old shut-down Components short-circuit their start_upload via @shutdown,
+        # so the surviving Component is the one that actually triggers extraction.
         component2 = described_class.new(settings, agent_settings, logger)
 
         component.schedule_deferred_upload
@@ -219,16 +216,6 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       component.wait_for_idle(timeout: 5)
 
       expect(extraction_count).to eq(1)
-    end
-
-    it 'short-circuits when the process has already uploaded' do
-      described_class.mark_uploaded
-
-      expect(component).not_to receive(:extract_and_upload)
-      component.start_upload
-      # start_upload returns immediately because uploaded_this_process? is true —
-      # no scheduler thread is started, so there is nothing to wait on.
-      expect(component.instance_variable_get(:@scheduler_thread)).to be_nil
     end
 
     it 'does not extract when shut down' do
@@ -298,6 +285,34 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       # seen @shutdown=true, and exited without calling extract_all.
       component.shutdown!
       expect(component.instance_variable_get(:@scheduler_thread)).to be_nil
+    end
+
+    it 'prevents a post-shutdown class definition from enqueuing into the hot-load buffer' do
+      allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
+      component.start_upload
+      component.wait_for_idle(timeout: 5)
+
+      buffer = component.instance_variable_get(:@hot_load_buffer)
+      tracepoint = component.instance_variable_get(:@hot_load_tracepoint)
+      expect(tracepoint).not_to be_nil
+      expect(tracepoint.enabled?).to be true
+
+      component.shutdown!
+
+      expect(tracepoint.enabled?).to be false
+      expect(component.instance_variable_get(:@hot_load_tracepoint)).to be_nil
+
+      begin
+        # Define a class after shutdown! — with the TracePoint disabled this
+        # must not enqueue into the hot-load buffer. A regression here means
+        # an enabled TracePoint leaked past shutdown! and is rooted by the VM,
+        # growing the buffer unboundedly for the rest of the process.
+        before_size = buffer.size
+        eval('class SymdbShutdownSpecPostShutdownClass; def hello; end; end', binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
+        expect(buffer.size).to eq(before_size)
+      ensure
+        Object.send(:remove_const, :SymdbShutdownSpecPostShutdownClass) if Object.const_defined?(:SymdbShutdownSpecPostShutdownClass)
+      end
     end
 
     it 'waits for an in-flight extraction to complete' do
@@ -445,42 +460,246 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
   end
 
-  describe 'reconfiguration scenario (regression test for two-uploads-per-extract-run)' do
-    # Bug: reconfiguration via Datadog.configure replaces the Component after
-    # the deferred callback has fired on the old instance. The script's
-    # explicit start_upload then hits the new instance and triggers a second
-    # extraction. The fix lifts upload-done state to a class-level flag so
-    # the new instance's start_upload short-circuits.
+  describe '#after_fork!' do
+    let(:component) { described_class.new(settings, agent_settings, logger) }
+
+    # Simulate fork: call after_fork! on the same Component to model the
+    # state a child process inherits. Real fork specs are awkward in
+    # rspec — the unit-level guarantees are about mutex/CV/thread reinit
+    # and force-upload re-trigger, which are observable without forking.
+
+    it 'reinitializes scheduler mutex and condition variable' do
+      old_mutex = component.instance_variable_get(:@scheduler_mutex)
+      old_cv = component.instance_variable_get(:@scheduler_cv)
+
+      component.after_fork!
+
+      expect(component.instance_variable_get(:@scheduler_mutex)).not_to equal(old_mutex)
+      expect(component.instance_variable_get(:@scheduler_cv)).not_to equal(old_cv)
+    end
+
+    it 'reinitializes the upload mutex, condition variables, and hot-load buffer mutex' do
+      old_mutex = component.instance_variable_get(:@mutex)
+      old_progress_cv = component.instance_variable_get(:@upload_in_progress_cv)
+      old_last_upload_cv = component.instance_variable_get(:@last_upload_time_cv)
+      old_buffer_mutex = component.instance_variable_get(:@hot_load_buffer_mutex)
+
+      component.after_fork!
+
+      expect(component.instance_variable_get(:@mutex)).not_to equal(old_mutex)
+      expect(component.instance_variable_get(:@upload_in_progress_cv)).not_to equal(old_progress_cv)
+      expect(component.instance_variable_get(:@last_upload_time_cv)).not_to equal(old_last_upload_cv)
+      expect(component.instance_variable_get(:@hot_load_buffer_mutex)).not_to equal(old_buffer_mutex)
+    end
+
+    it 'clears scheduler thread reference and pending schedule' do
+      component.start_upload
+      sleep 0.01 # let scheduler thread enter wait
+      expect(component.instance_variable_get(:@scheduler_thread)).not_to be_nil
+
+      component.after_fork!
+
+      expect(component.instance_variable_get(:@scheduler_thread)).to be_nil
+      expect(component.instance_variable_get(:@scheduled_at)).to be_nil
+      expect(component.instance_variable_get(:@scheduler_signaled)).to be false
+    end
+
+    it 'clears the hot-load buffer and the initial-extraction flag' do
+      component.instance_variable_get(:@hot_load_buffer) << Object
+      component.instance_variable_set(:@initial_extraction_done, true)
+
+      component.after_fork!
+
+      expect(component.instance_variable_get(:@hot_load_buffer)).to be_empty
+      expect(component.instance_variable_get(:@initial_extraction_done)).to be false
+    end
+
+    it 'clears the hot-load tracepoint reference so start_upload installs a fresh one' do
+      tracepoint = TracePoint.new(:class) {}
+      component.instance_variable_set(:@hot_load_tracepoint, tracepoint)
+
+      component.after_fork!
+
+      expect(component.instance_variable_get(:@hot_load_tracepoint)).to be_nil
+    end
+
+    it 'disables the inherited hot-load tracepoint before clearing the reference' do
+      # In a forked child, the parent's enabled TracePoint is copied in and
+      # remains rooted by the VM. Niling the ivar without disabling first would
+      # leave it firing — and a subsequent start_upload would install a second
+      # hook on top of it, double-enqueueing every class load.
+      tracepoint = TracePoint.new(:class) {}
+      tracepoint.enable
+      component.instance_variable_set(:@hot_load_tracepoint, tracepoint)
+      expect(tracepoint.enabled?).to be true
+
+      component.after_fork!
+
+      expect(tracepoint.enabled?).to be false
+      expect(component.instance_variable_get(:@hot_load_tracepoint)).to be_nil
+    end
+
+    it 'resets @upload_in_progress to false' do
+      component.instance_variable_set(:@upload_in_progress, true)
+
+      component.after_fork!
+
+      expect(component.upload_in_progress).to be false
+    end
+
+    it 'replaces the scope batcher so the child does not inherit the parent uploaded-scopes dedup set' do
+      # ScopeBatcher#add_scope skips scopes whose name is already in @uploaded_modules.
+      # Without a fresh batcher, the child's re-extraction silently drops every scope
+      # name the parent already uploaded.
+      # Re-stub ScopeBatcher.new so each call yields a distinct double instead of
+      # the single fixed double in the outer `before` block.
+      allow(Datadog::SymbolDatabase::ScopeBatcher).to receive(:new) do
+        instance_double(Datadog::SymbolDatabase::ScopeBatcher, shutdown: nil, add_scope: nil, flush: nil, reset: nil)
+      end
+      old_batcher = component.instance_variable_get(:@scope_batcher)
+
+      component.after_fork!
+
+      expect(component.instance_variable_get(:@scope_batcher)).not_to equal(old_batcher)
+    end
+
+    context 'when force_upload is enabled' do
+      before do
+        allow(settings.symbol_database.internal).to receive(:force_upload).and_return(true)
+        hide_const('ActiveSupport')
+        hide_const('Rails::Railtie')
+      end
+
+      it 're-registers the deferred upload in the child' do
+        expect(component).to receive(:schedule_deferred_upload)
+        component.after_fork!
+      end
+    end
+
+    context 'when force_upload is not enabled' do
+      it 'does not re-trigger an upload — relies on remote config re-subscription' do
+        expect(component).not_to receive(:schedule_deferred_upload)
+        component.after_fork!
+      end
+    end
+
+    it 'leaves a child Component able to start_upload normally after fork-state reset' do
+      # Simulate parent upload completing, then fork.
+      component.instance_variable_set(:@last_upload_time, Datadog::Core::Utils::Time.now)
+      component.after_fork!
+
+      extractor = component.instance_variable_get(:@extractor)
+      expect(extractor).to receive(:extract_all).at_least(:once).and_return([])
+
+      component.start_upload
+      sleep 0.2 # > EXTRACT_DEBOUNCE_INTERVAL
+
+      component.shutdown!
+    end
+  end
+
+  describe 'debounce regression (collapses bursts of start_upload calls)' do
+    # The two-uploads bug was that a burst of start_upload triggers — auto-deferred
+    # callback then explicit script call — produced two extractions. The fix is
+    # the per-instance debounce scheduler: multiple start_upload calls within
+    # EXTRACT_DEBOUNCE_INTERVAL coalesce into a single extraction.
     before do
       allow(settings.symbol_database.internal).to receive(:force_upload).and_return(true)
       hide_const('ActiveSupport')
       hide_const('Rails::Railtie')
     end
 
-    it 'only performs one extraction across reconfigurations + explicit start_upload' do
+    it 'each Component built across reconfigurations extracts independently' do
+      # With hot-load coverage, dedup across Components is intentionally removed.
+      # Each Component is responsible for its own initial extraction (which the
+      # new Component needs in order to have a hot-load baseline) plus any
+      # incremental extractions driven by the TracePoint :class hook.
       extraction_count = 0
-      allow_any_instance_of(described_class).to receive(:extract_and_upload) do |inst|
+      allow_any_instance_of(described_class).to receive(:extract_and_upload) do |_inst|
         extraction_count += 1
-        described_class.mark_uploaded
       end
 
-      # First Component: built, schedules upload, fires on its scheduler thread.
       component_a = described_class.build(settings, agent_settings, logger)
       component_a.wait_for_idle(timeout: 5)
-
-      # Reconfigure: shut down A, build B (via .build to trigger
-      # schedule_deferred_upload), then call start_upload explicitly on B
-      # (simulating bin/extract_symbols).
       component_a.shutdown!
-      component_b = described_class.build(settings, agent_settings, logger)
-      component_b.start_upload
-      # component_b.start_upload short-circuits because uploaded_this_process?
-      # is true from component_a. No scheduler thread is started.
-      expect(component_b.instance_variable_get(:@scheduler_thread)).to be_nil
 
-      expect(extraction_count).to eq(1)
+      component_b = described_class.build(settings, agent_settings, logger)
+      component_b.wait_for_idle(timeout: 5)
+
+      expect(extraction_count).to eq(2)
 
       component_b.shutdown!
+    end
+  end
+
+  describe 'hot-load coverage (TracePoint :class)' do
+    # Verifies the cross-tracer parity goal (Java ClassFileTransformer,
+    # Python BaseModuleWatchdog#after_import, .NET AppDomain.AssemblyLoad):
+    # classes defined after initial extraction reach the symbol DB via
+    # incremental uploads driven by the TracePoint :class hook.
+    before do
+      allow(settings.symbol_database.internal).to receive(:force_upload).and_return(true)
+      hide_const('ActiveSupport')
+      hide_const('Rails::Railtie')
+    end
+
+    it 'extracts a class defined after the initial upload completes' do
+      extracted_modules = []
+      allow_any_instance_of(Datadog::SymbolDatabase::Extractor).to receive(:extract) do |_inst, mod|
+        extracted_modules << mod
+        nil
+      end
+
+      component = described_class.build(settings, agent_settings, logger)
+      component.wait_for_idle(timeout: 5)
+
+      begin
+        # Define a class — `class Foo` opens a class body, which fires
+        # TracePoint :class. The hook buffers the class; the scheduler
+        # drains and calls Extractor#extract.
+        eval('class SymdbHotLoadSpecNewClass; def hello; end; end', binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
+
+        component.wait_for_idle(timeout: 5)
+
+        expect(extracted_modules.map(&:name)).to include('SymdbHotLoadSpecNewClass')
+      ensure
+        Object.send(:remove_const, :SymdbHotLoadSpecNewClass) if Object.const_defined?(:SymdbHotLoadSpecNewClass)
+        component.shutdown!
+      end
+    end
+
+    it 'does not raise inside the :class hook when user code overrides singleton_class? with an incompatible signature' do
+      # Define a top-level class whose `self.singleton_class?(arg)` override would
+      # raise ArgumentError if the hook dispatched through it. The hook must use
+      # the cached unbound Module#singleton_class? predicate instead.
+      eval(<<~RUBY, binding, __FILE__, __LINE__ + 1) # rubocop:disable Security/Eval
+        class SymdbHotLoadSpecSingletonOverride
+          def self.singleton_class?(_arg)
+            raise 'hot-load hook should not dispatch through user-defined singleton_class?'
+          end
+        end
+      RUBY
+
+      component = described_class.build(settings, agent_settings, logger)
+      component.wait_for_idle(timeout: 5)
+
+      buffered = nil
+      begin
+        # Reopen the class with the override already in place. The :class TracePoint
+        # fires; the hook must filter via the unbound predicate without raising.
+        expect do
+          eval('class SymdbHotLoadSpecSingletonOverride; end', binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
+        end.not_to raise_error
+
+        buffered = component.instance_variable_get(:@hot_load_buffer).dup
+      ensure
+        component.shutdown!
+        Object.send(:remove_const, :SymdbHotLoadSpecSingletonOverride) if Object.const_defined?(:SymdbHotLoadSpecSingletonOverride)
+      end
+
+      # The reopened class is a regular Class (not a singleton class), so the
+      # bound Module#singleton_class? returns false and the module is enqueued.
+      expect(buffered.map(&:name)).to include('SymdbHotLoadSpecSingletonOverride')
     end
   end
 
@@ -516,7 +735,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(component.instance_variable_get(:@scheduled_at)).to be_nil
     end
 
-    it 'does not extract again after start, stop, re-start when already uploaded once this process' do
+    it 're-runs extract_all after stop_upload + start_upload (RC re-enable does a fresh scan)' do
       extraction_count = 0
       allow(component.instance_variable_get(:@extractor)).to receive(:extract_all) do
         extraction_count += 1
@@ -526,11 +745,56 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       component.start_upload
       component.wait_for_idle(timeout: 5)
       component.stop_upload
-      # wait_for_idle returned, so uploaded_this_process? is true. The second
-      # start_upload short-circuits without scheduling another extraction.
+      # stop_upload disables the hot-load hook and resets @initial_extraction_done.
+      # A subsequent start_upload — modeling RC re-enabling symdb — therefore
+      # runs a fresh extract_all rather than draining an empty hot-load buffer.
       component.start_upload
+      component.wait_for_idle(timeout: 5)
 
+      expect(extraction_count).to eq(2)
+    end
+
+    it 'stop_upload disables the hot-load TracePoint and clears the buffer' do
+      allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
+      component.start_upload
+      component.wait_for_idle(timeout: 5)
+
+      component.instance_variable_get(:@hot_load_buffer) << Object # simulate a queued event
+      tracepoint = component.instance_variable_get(:@hot_load_tracepoint)
+      expect(tracepoint).not_to be_nil
+      expect(tracepoint.enabled?).to be true
+
+      component.stop_upload
+
+      expect(tracepoint.enabled?).to be false
+      expect(component.instance_variable_get(:@hot_load_tracepoint)).to be_nil
+      expect(component.instance_variable_get(:@hot_load_buffer)).to be_empty
+      expect(component.instance_variable_get(:@initial_extraction_done)).to be false
+    end
+
+    it 'stop_upload prevents a post-stop class definition from triggering extraction' do
+      extraction_count = 0
+      allow(component.instance_variable_get(:@extractor)).to receive(:extract_all) do
+        extraction_count += 1
+        []
+      end
+
+      component.start_upload
+      component.wait_for_idle(timeout: 5)
       expect(extraction_count).to eq(1)
+
+      component.stop_upload
+
+      begin
+        # Define a class after stop_upload — with the TracePoint disabled this
+        # must not enqueue a hot-load event or re-arm the scheduler.
+        eval('class SymdbStopUploadSpecPostStopClass; def hello; end; end', binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
+        sleep 0.1
+        expect(extraction_count).to eq(1)
+        expect(component.instance_variable_get(:@scheduled_at)).to be_nil
+      ensure
+        Object.send(:remove_const, :SymdbStopUploadSpecPostStopClass) if Object.const_defined?(:SymdbStopUploadSpecPostStopClass)
+      end
     end
   end
 
