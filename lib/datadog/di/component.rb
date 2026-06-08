@@ -17,48 +17,37 @@ module Datadog
         def build(settings, agent_settings, logger, telemetry: nil)
           return unless settings.respond_to?(:dynamic_instrumentation)
 
-          unless settings.respond_to?(:remote) && settings.remote.enabled
-            logger.debug { "di: not building DI component because Remote Configuration Management is not available" }
+          reason = DI.unsupported_reason(settings)
+          if reason
+            # Log level mirrors customer intent: if the customer explicitly
+            # opted in via DD_DYNAMIC_INSTRUMENTATION_ENABLED, warn. Otherwise
+            # debug — with always-build, this path runs on every tracer boot
+            # for every customer, including those who never wanted DI. Spamming
+            # warnings to silent users (especially on JRuby or Ruby 2.5) would
+            # be noise. Customers who later trigger implicit enablement via the
+            # Datadog UI get a symmetric warn from Remote.handle_rc_enablement
+            # when the RC enable signal finds no component to start.
+            level = explicitly_enabled?(settings) ? :warn : :debug
+            logger.public_send(level, "di: not building DI component: #{reason}")
             return
           end
-
-          return unless environment_supported?(settings, logger)
 
           new(settings, agent_settings, logger, code_tracker: DI.code_tracker, telemetry: telemetry).tap do |component|
             DI.add_current_component(component)
           end
         end
 
-        # Checks whether the runtime environment is supported by
-        # dynamic instrumentation. Currently we only require that, if Rails
-        # is used, that Rails environment is not development because
-        # DI does not currently support code unloading and reloading.
-        def environment_supported?(settings, logger)
-          unless settings.dynamic_instrumentation.internal.development
-            if Datadog::Core::Environment::Execution.development?
-              logger.debug { "di: development environment detected; not building DI component" }
-              return false
-            end
-          end
-          if RUBY_ENGINE != 'ruby'
-            logger.debug { "di: not building DI component: MRI is required, but running on #{RUBY_ENGINE}" }
-            return false
-          end
-          if RubyVersion.is?('< 2.6')
-            logger.debug { "di: not building DI component: Ruby 2.6+ is required, but running on #{RUBY_VERSION}" }
-            return false
-          end
-          unless DI.respond_to?(:exception_message)
-            # Customer-actionable: the C extension must be compiled at install
-            # time. Keep this at warn level so customers who set up DI but
-            # missed extension compilation see a diagnostic without enabling
-            # debug logs. The MRI/Ruby-version cases above are also failure
-            # modes, but those are platform constraints rather than
-            # build/install steps the customer can fix on their next deploy.
-            logger.warn("di: not building DI component: C extension is not available")
-            return false
-          end
-          true
+        # True when the customer explicitly set
+        # DD_DYNAMIC_INSTRUMENTATION_ENABLED=true (or its equivalent in code).
+        # Symmetric to {Remote.explicitly_disabled?}.
+        #
+        # Uses {Datadog::Core::Configuration::Options::InstanceMethods#using_default?}
+        # rather than `options[:enabled].default_precedence?` because the option
+        # hash is populated lazily on first access; reading the underlying option
+        # before {Component.build} touches the value would NoMethodError on nil.
+        def explicitly_enabled?(settings)
+          !settings.dynamic_instrumentation.using_default?(:enabled) &&
+            settings.dynamic_instrumentation.enabled
         end
       end
 

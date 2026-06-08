@@ -32,15 +32,81 @@ RSpec.describe Datadog::DI::Component do
       end
     end
 
+    # Log level on build-time precondition failures follows the customer's
+    # explicit intent: warn when DD_DYNAMIC_INSTRUMENTATION_ENABLED=true is
+    # set, otherwise debug. Implicit-enabled customers receive their warn
+    # from Remote.handle_rc_enablement when the RC signal lands on a nil
+    # component.
     context 'when remote config is disabled' do
       before do
         settings.remote.enabled = false
       end
 
-      it 'returns nil' do
-        expect(logger).to receive(:debug)
-        component = described_class.build(settings, agent_settings, logger)
-        expect(component).to be nil
+      context 'with DD_DYNAMIC_INSTRUMENTATION_ENABLED explicitly true' do
+        before { settings.dynamic_instrumentation.enabled = true }
+
+        it 'returns nil and warns with the docs URL' do
+          expect(logger).to receive(:warn).with(
+            a_string_matching(%r{Remote Configuration is not enabled.*docs\.datadoghq\.com/agent/remote_config})
+          )
+          expect(described_class.build(settings, agent_settings, logger)).to be nil
+        end
+      end
+
+      context 'without DD_DYNAMIC_INSTRUMENTATION_ENABLED set' do
+        it 'returns nil and logs at debug only' do
+          expect(logger).to receive(:debug)
+          expect(logger).not_to receive(:warn)
+          expect(described_class.build(settings, agent_settings, logger)).to be nil
+        end
+      end
+    end
+
+    context 'when the runtime is unsupported (MRI required, mocked)' do
+      before do
+        settings.remote.enabled = true
+        stub_const('RUBY_ENGINE', 'jruby')
+      end
+
+      context 'with DD_DYNAMIC_INSTRUMENTATION_ENABLED explicitly true' do
+        before { settings.dynamic_instrumentation.enabled = true }
+
+        it 'returns nil and warns naming the engine' do
+          expect(logger).to receive(:warn).with(a_string_matching(/MRI is required.*jruby/))
+          expect(described_class.build(settings, agent_settings, logger)).to be nil
+        end
+      end
+
+      context 'without DD_DYNAMIC_INSTRUMENTATION_ENABLED set' do
+        it 'returns nil and logs at debug only' do
+          expect(logger).to receive(:debug)
+          expect(logger).not_to receive(:warn)
+          expect(described_class.build(settings, agent_settings, logger)).to be nil
+        end
+      end
+    end
+
+    context 'when the runtime is unsupported (Ruby 2.6+ required, mocked)' do
+      before do
+        settings.remote.enabled = true
+        stub_const('RUBY_VERSION', '2.5.0')
+      end
+
+      context 'with DD_DYNAMIC_INSTRUMENTATION_ENABLED explicitly true' do
+        before { settings.dynamic_instrumentation.enabled = true }
+
+        it 'returns nil and warns naming the version' do
+          expect(logger).to receive(:warn).with(a_string_matching(/Ruby 2\.6\+ is required.*2\.5\.0/))
+          expect(described_class.build(settings, agent_settings, logger)).to be nil
+        end
+      end
+
+      context 'without DD_DYNAMIC_INSTRUMENTATION_ENABLED set' do
+        it 'returns nil and logs at debug only' do
+          expect(logger).to receive(:debug)
+          expect(logger).not_to receive(:warn)
+          expect(described_class.build(settings, agent_settings, logger)).to be nil
+        end
       end
     end
 
@@ -51,10 +117,21 @@ RSpec.describe Datadog::DI::Component do
         allow(Datadog::DI).to receive(:respond_to?).with(:exception_message).and_return(false)
       end
 
-      it 'returns nil' do
-        expect(logger).to receive(:warn).with(/C extension is not available/)
-        component = described_class.build(settings, agent_settings, logger)
-        expect(component).to be nil
+      context 'with DD_DYNAMIC_INSTRUMENTATION_ENABLED explicitly true' do
+        before { settings.dynamic_instrumentation.enabled = true }
+
+        it 'returns nil and warns' do
+          expect(logger).to receive(:warn).with(/C extension is not available/)
+          expect(described_class.build(settings, agent_settings, logger)).to be nil
+        end
+      end
+
+      context 'without DD_DYNAMIC_INSTRUMENTATION_ENABLED set' do
+        it 'returns nil and logs at debug only' do
+          expect(logger).to receive(:debug)
+          expect(logger).not_to receive(:warn)
+          expect(described_class.build(settings, agent_settings, logger)).to be nil
+        end
       end
     end
 
@@ -69,6 +146,35 @@ RSpec.describe Datadog::DI::Component do
         expect(component).to be_a(described_class)
         expect(component.started?).to be false
         component.shutdown!
+      end
+    end
+  end
+
+  describe '.explicitly_enabled?' do
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+    let(:di_settings) { settings.dynamic_instrumentation }
+
+    context 'when DD_DYNAMIC_INSTRUMENTATION_ENABLED is unset (default precedence)' do
+      before { di_settings.enabled }
+
+      it 'returns false' do
+        expect(described_class.explicitly_enabled?(settings)).to be false
+      end
+    end
+
+    context 'when DD_DYNAMIC_INSTRUMENTATION_ENABLED is explicitly set to true' do
+      before { di_settings.enabled = true }
+
+      it 'returns true' do
+        expect(described_class.explicitly_enabled?(settings)).to be true
+      end
+    end
+
+    context 'when DD_DYNAMIC_INSTRUMENTATION_ENABLED is explicitly set to false' do
+      before { di_settings.enabled = false }
+
+      it 'returns false' do
+        expect(described_class.explicitly_enabled?(settings)).to be false
       end
     end
   end

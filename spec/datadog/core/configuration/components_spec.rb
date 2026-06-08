@@ -187,7 +187,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           end
 
           it 'reports DI as disabled' do
-            expect(logger).to receive(:warn).with(/cannot enable dynamic instrumentation/)
+            expect(logger).to receive(:warn).with(/MRI is required.*jruby/)
             expect(components.dynamic_instrumentation).to be nil
             expect(extra).to eq(dynamic_instrumentation_enabled: false)
           end

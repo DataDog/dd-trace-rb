@@ -101,6 +101,8 @@ module Datadog
 
           def enabled=: (bool) -> void
 
+          def using_default?: (Symbol option_name) -> bool
+
           def redacted_identifiers: () -> Array[String]
 
           def redacted_identifiers=: (Array[String]) -> void

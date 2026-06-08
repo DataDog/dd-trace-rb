@@ -27,7 +27,25 @@ module Datadog
 
         def handle_rc_enablement(enabled)
           component = Datadog.send(:components).dynamic_instrumentation
-          return unless component
+          unless component
+            # The component is nil because Component.build returned nil at
+            # startup — a runtime precondition is not met (RC disabled, MRI
+            # required, Ruby 2.6+ required, Rails dev env, C extension absent).
+            # On disable, silently no-op: RC asking us to turn off something we
+            # don't have is fine. On enable, warn with the reason: this is the
+            # implicit-enablement counterpart to the warn-on-explicit message
+            # at build time. The customer who clicked "create probe" in the UI
+            # gets the same visibility a customer who set
+            # DD_DYNAMIC_INSTRUMENTATION_ENABLED would have gotten at boot.
+            if enabled
+              reason = DI.unsupported_reason
+              Datadog.logger.warn(
+                "di: cannot enable dynamic instrumentation via remote configuration: " \
+                "#{reason || "DI component was not built at startup"}"
+              )
+            end
+            return
+          end
 
           if enabled
             if explicitly_disabled?
