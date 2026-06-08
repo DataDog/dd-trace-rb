@@ -556,6 +556,13 @@ module Datadog
         @hot_load_buffer_mutex.synchronize { @hot_load_buffer << mod }
         @scheduler_mutex.synchronize do
           return if @shutdown
+          # TracePoint#disable does not wait for in-flight callbacks: a :class
+          # event firing concurrently with stop_upload can reach here after the
+          # hook has been torn down. Without this guard the stale event would
+          # re-arm the scheduler, contradicting stop_upload's contract. The
+          # buffer push above is harmless — the next start_upload runs
+          # extract_all, which clears the buffer before extracting.
+          return unless @hot_load_tracepoint
           @scheduled_at = Datadog::Core::Utils::Time.get_time + EXTRACT_DEBOUNCE_INTERVAL
           @scheduler_signaled = true
           @scheduler_cv.signal

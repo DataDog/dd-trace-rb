@@ -493,8 +493,10 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
 
     it 'clears scheduler thread reference and pending schedule' do
+      # start_upload assigns @scheduler_thread synchronously inside
+      # @scheduler_mutex via ensure_scheduler_thread, so the ivar is non-nil
+      # by the time start_upload returns — no wait needed.
       component.start_upload
-      sleep 0.01 # let scheduler thread enter wait
       expect(component.instance_variable_get(:@scheduler_thread)).not_to be_nil
 
       component.after_fork!
@@ -592,7 +594,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(extractor).to receive(:extract_all).at_least(:once).and_return([])
 
       component.start_upload
-      sleep 0.2 # > EXTRACT_DEBOUNCE_INTERVAL
+      expect(component.wait_for_idle(timeout: 5)).to be true
 
       component.shutdown!
     end
@@ -787,14 +789,33 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
       begin
         # Define a class after stop_upload — with the TracePoint disabled this
-        # must not enqueue a hot-load event or re-arm the scheduler.
+        # must not enqueue a hot-load event or re-arm the scheduler. The
+        # @scheduled_at check is the structural proof: only enqueue_hot_load
+        # sets it after stop_upload, and enqueue_hot_load only runs if the
+        # TracePoint fired. extract_all cannot have been called because the
+        # scheduler thread cannot fire without @scheduled_at set.
         eval('class SymdbStopUploadSpecPostStopClass; def hello; end; end', binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
-        sleep 0.1
-        expect(extraction_count).to eq(1)
         expect(component.instance_variable_get(:@scheduled_at)).to be_nil
+        expect(extraction_count).to eq(1)
       ensure
         Object.send(:remove_const, :SymdbStopUploadSpecPostStopClass) if Object.const_defined?(:SymdbStopUploadSpecPostStopClass)
       end
+    end
+
+    it 'enqueue_hot_load called after stop_upload does not re-arm the scheduler' do
+      # Models the race where a :class TracePoint event fires concurrently
+      # with stop_upload: TracePoint#disable does not wait for in-flight
+      # callbacks, so the callback can reach enqueue_hot_load after the hook
+      # has been torn down. Without the @hot_load_tracepoint guard,
+      # enqueue_hot_load would re-arm the scheduler in this state.
+      allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
+      component.start_upload
+      component.wait_for_idle(timeout: 5)
+      component.stop_upload
+
+      component.send(:enqueue_hot_load, Object)
+
+      expect(component.instance_variable_get(:@scheduled_at)).to be_nil
     end
   end
 
