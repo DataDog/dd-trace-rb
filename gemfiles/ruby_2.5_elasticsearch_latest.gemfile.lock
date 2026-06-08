@@ -30,7 +30,7 @@ GEM
     diff-lcs (1.6.2)
     docile (1.4.1)
     dogstatsd-ruby (5.7.1)
-    elastic-transport (8.5.1)
+    elastic-transport (8.5.2)
       faraday (< 3)
       multi_json
     elasticsearch (8.19.3)
