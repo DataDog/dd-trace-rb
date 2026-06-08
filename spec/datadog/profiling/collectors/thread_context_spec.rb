@@ -147,6 +147,15 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       ._native_apply_delta_to_cpu_time_at_previous_sample_ns(thread, delta_ns)
   end
 
+  # Resets cpu_time_at_previous_sample_ns to INVALID_TIME (-1) so the next sample
+  # treats current_cpu_time_ns as the previous one (elapsed = 0). Used to neutralize
+  # per-thread CPU clock ticks that can otherwise flip a "sleeping" sample into
+  # "had cpu" under slow environments such as valgrind.
+  def invalidate_cpu_time_at_previous_sample_ns(thread)
+    current = per_thread_context.dig(thread, :cpu_time_at_previous_sample_ns)
+    apply_delta_to_cpu_time_at_previous_sample_ns(thread, -(current + 1))
+  end
+
   def prepare_sample_inside_signal_handler
     described_class::Testing._native_prepare_sample_inside_signal_handler
   end
@@ -1347,6 +1356,17 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
             it "records a regular sample" do
               expect(gvl_waiting_at_for(t1)).to eq 0
+
+              # Make the cpu-time delta deterministic. Under slow environments such as
+              # valgrind, t1's per-thread CPU clock can tick between the last setup
+              # `sample` (which updates cpu_time_at_previous_sample_ns in
+              # handle_gvl_waiting's situation-1 extra-sample path) and the test's
+              # `sample` call below — even though t1 is in `Kernel.sleep`. A non-zero
+              # cpu_time_elapsed_ns short-circuits state detection in collectors_stack.c
+              # to "had cpu", bypassing the stack-based "sleeping" detection this test
+              # is asserting. Resetting cpu_time_at_previous_sample_ns to INVALID_TIME
+              # forces the next sample's elapsed to 0 so the stack-based path runs.
+              invalidate_cpu_time_at_previous_sample_ns(t1)
 
               # This is a rare situation (but can still happen) -- the thread was Waiting for GVL on the previous sample,
               # but the overall duration of the Waiting for GVL was below the threshold. This means that on_gvl_running
