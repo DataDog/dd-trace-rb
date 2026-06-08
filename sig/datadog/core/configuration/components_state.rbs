@@ -6,15 +6,15 @@ module Datadog
 
         @remote_started: untyped
 
-        @di_implicitly_enabled: untyped
+        @di_implicitly_enabled: bool
 
-        def initialize: (telemetry_enabled: untyped, remote_started: untyped, ?di_implicitly_enabled: untyped) -> void
+        def initialize: (telemetry_enabled: untyped, remote_started: untyped, ?di_implicitly_enabled: bool) -> void
 
         def telemetry_enabled?: () -> untyped
 
         def remote_started?: () -> untyped
 
-        def di_implicitly_enabled?: () -> untyped
+        def di_implicitly_enabled?: () -> bool
       end
     end
   end
