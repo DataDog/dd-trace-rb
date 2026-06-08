@@ -53,7 +53,7 @@ module Datadog
         else
           0
         end
-        @trace_state = digest.trace_state && Core::Utils.utf8_encode(digest.trace_state)
+        @trace_state = digest.trace_state&.dup
         @dropped_attributes = 0
         @attributes = attributes&.dup || {}
       end
