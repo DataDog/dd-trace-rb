@@ -207,6 +207,62 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
     end
   end
 
+  describe 'hot-load end-to-end (TracePoint :class → buffer → debounce → upload)' do
+    # End-to-end verification of the hot-load hook added in this PR:
+    #   1. Initial extract_all runs and uploads a payload.
+    #   2. Hot-load class is not in that payload.
+    #   3. A class is defined at runtime (via `load`, so the TracePoint :class
+    #      fires with a real user_code_path? source_file).
+    #   4. wait_for_idle blocks on @last_upload_time_cv until the debounced
+    #      hot-load extraction drains the buffer and a second upload lands
+    #      — no sleep, no polling.
+    #   5. The second upload's payload contains the runtime-defined class.
+    it 'uploads a class defined after the initial upload completes' do
+      component = Datadog::SymbolDatabase::Component.build(
+        settings,
+        agent_settings,
+        symdb_logger
+      )
+
+      # Step 1: initial load runs.
+      GC.start
+      component.start_upload
+      component.wait_for_idle(timeout: 30)
+
+      initial_form_count = captured_forms.size
+      expect(initial_form_count).to be >= 1
+
+      # Step 2: hot-load class is not in any initial upload.
+      expect(uploaded_class_names_across(captured_forms)).not_to include('HotLoadE2ETestClass')
+
+      # Step 3: define the class via a real file so its source_location
+      # passes user_code_path? (eval-defined classes get `'(eval)'` and are
+      # filtered out by the extractor).
+      Dir.mktmpdir('hot_load_e2e') do |hot_dir|
+        hot_file = File.join(hot_dir, "hot_load_e2e_#{Time.now.to_i}_#{rand(10000)}.rb")
+        File.write(hot_file, "class HotLoadE2ETestClass; def hello; 42; end; end\n")
+        hot_file = File.realpath(hot_file)
+
+        begin
+          load hot_file
+
+          # Step 4: event-driven wait — wait_for_idle blocks on
+          # @last_upload_time_cv until @last_upload_time advances past the
+          # value captured at entry. No sleep.
+          expect(component.wait_for_idle(timeout: 30)).to be true
+
+          # Step 5: a new upload landed, and it contains the new class.
+          expect(captured_forms.size).to be > initial_form_count
+          expect(uploaded_class_names_across(captured_forms)).to include('HotLoadE2ETestClass')
+        ensure
+          Object.send(:remove_const, :HotLoadE2ETestClass) if defined?(HotLoadE2ETestClass)
+        end
+      end
+
+      component.shutdown!
+    end
+  end
+
   describe 'incremental extraction after initial upload' do
     it 'a second start_upload with no new class loads produces no extra upload' do
       # With hot-load coverage, a second start_upload runs the hot-load path
@@ -245,5 +301,16 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       names.concat(collect_scope_names(child))
     end
     names
+  end
+
+  # Flat list of every scope name across every captured multipart form's
+  # decompressed `file` payload. Used by the hot-load end-to-end test to
+  # assert presence/absence of a class across the full upload history.
+  def uploaded_class_names_across(forms)
+    forms.flat_map do |form|
+      file_io = form['file'].instance_variable_get(:@io)
+      payload = JSON.parse(Zlib.gunzip(file_io.string))
+      payload['scopes'].flat_map { |s| collect_scope_names(s) }
+    end
   end
 end
