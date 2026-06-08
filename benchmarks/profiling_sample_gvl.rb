@@ -59,7 +59,7 @@ class ProfilerSampleGvlBenchmark
 
       x.report("gvl benchmark samples") do
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gvl_waiting(@target_thread)
-        Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gvl_running(@target_thread)
+        Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gvl_running(@collector, @target_thread)
 
         # Benchmark backwards compatibility
         if Datadog::Profiling::Collectors::ThreadContext::Testing.method(:_native_sample_after_gvl_running).arity == 3

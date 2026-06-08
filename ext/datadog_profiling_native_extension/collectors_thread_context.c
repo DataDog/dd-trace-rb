@@ -105,12 +105,6 @@ static ID server_id;      // id of :server in Ruby
 static ID otel_context_storage_id; // id of :__opentelemetry_context_storage__ in Ruby
 static ID otel_fiber_context_storage_id; // id of :@opentelemetry_context in Ruby
 
-// This is used by `thread_context_collector_on_gvl_running`. Because when that method gets called we're not sure if
-// it's safe to access the state of the thread context collector, we store this setting as a global value. This does
-// mean this setting is shared among all thread context collectors, and thus it's "last writer wins".
-// In production this should not be a problem: there should only be one profiler, which is the last one created,
-// and that'll be the one that last wrote this setting.
-static uint32_t global_waiting_for_gvl_threshold_ns = MILLIS_AS_NS(10);
 
 typedef enum { OTEL_CONTEXT_ENABLED_FALSE, OTEL_CONTEXT_ENABLED_ONLY, OTEL_CONTEXT_ENABLED_BOTH } otel_context_enabled;
 typedef enum { OTEL_CONTEXT_SOURCE_UNKNOWN, OTEL_CONTEXT_SOURCE_FIBER_IVAR, OTEL_CONTEXT_SOURCE_FIBER_LOCAL } otel_context_source;
@@ -148,6 +142,8 @@ typedef struct {
   bool native_filenames_enabled;
   // Used to cache native filename lookup results (Map[void *function_pointer, char *filename])
   st_table *native_filenames_cache;
+  // Minimum duration of a "Waiting for GVL" period to trigger a sample
+  uint32_t waiting_for_gvl_threshold_ns;
 
   struct stats {
     // Track how many regular samples we've taken. Does not include garbage collection samples.
@@ -310,7 +306,7 @@ static bool handle_gvl_waiting(
 #ifndef NO_GVL_INSTRUMENTATION
   static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread);
   static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread);
-  static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread);
+  static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread);
   static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE allow_exception);
   static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE delta_ns);
 #endif
@@ -363,7 +359,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   #ifndef NO_GVL_INSTRUMENTATION
     rb_define_singleton_method(testing_module, "_native_on_gvl_waiting", _native_on_gvl_waiting, 1);
     rb_define_singleton_method(testing_module, "_native_gvl_waiting_at_for", _native_gvl_waiting_at_for, 1);
-    rb_define_singleton_method(testing_module, "_native_on_gvl_running", _native_on_gvl_running, 1);
+    rb_define_singleton_method(testing_module, "_native_on_gvl_running", _native_on_gvl_running, 2);
     rb_define_singleton_method(testing_module, "_native_sample_after_gvl_running", _native_sample_after_gvl_running, 3);
     rb_define_singleton_method(testing_module, "_native_apply_delta_to_cpu_time_at_previous_sample_ns", _native_apply_delta_to_cpu_time_at_previous_sample_ns, 2);
   #endif
@@ -545,7 +541,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
     raise_error(rb_eArgError, "Unexpected value for otel_context_enabled: %+" PRIsVALUE, otel_context_enabled);
   }
 
-  global_waiting_for_gvl_threshold_ns = NUM2UINT(waiting_for_gvl_threshold_ns);
+  state->waiting_for_gvl_threshold_ns = NUM2UINT(waiting_for_gvl_threshold_ns);
 
   if (RTEST(tracer_context_key)) {
     ENFORCE_TYPE(tracer_context_key, T_SYMBOL);
@@ -1166,7 +1162,7 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   rb_str_concat(result, rb_sprintf(" main_thread=%"PRIsVALUE, state->main_thread));
   rb_str_concat(result, rb_sprintf(" gc_tracking=%"PRIsVALUE, gc_tracking_as_ruby_hash(state)));
   rb_str_concat(result, rb_sprintf(" otel_current_span_key=%"PRIsVALUE, state->otel_current_span_key));
-  rb_str_concat(result, rb_sprintf(" global_waiting_for_gvl_threshold_ns=%u", global_waiting_for_gvl_threshold_ns));
+  rb_str_concat(result, rb_sprintf(" waiting_for_gvl_threshold_ns=%u", state->waiting_for_gvl_threshold_ns));
 
   return result;
 }
@@ -1878,29 +1874,20 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 }
 
 #ifndef NO_GVL_INSTRUMENTATION
-  // This function gets called without the GVL and possibly on non-main Ractors
-  void thread_context_collector_on_gvl_waiting(VALUE thread) {
-    per_thread_context* thread_being_profiled = get_per_thread_context(thread);
-    if (!thread_being_profiled) return;
-    // If non-NULL the thread is profiled and from the main Ractor
-
+  void thread_context_collector_on_gvl_waiting(per_thread_context *thread_context) {
     long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
     if (current_monotonic_wall_time_ns <= 0) return;
 
-    thread_being_profiled->gvl_waiting_at = current_monotonic_wall_time_ns;
+    thread_context->gvl_waiting_at = current_monotonic_wall_time_ns;
   }
 
   // This function runs on the passed thread and has the GVL because it gets called just after the Ruby thread acquired the GVL
   __attribute__((warn_unused_result))
-  on_gvl_running_result thread_context_collector_on_gvl_running(VALUE thread) {
-    per_thread_context* thread_being_profiled = get_per_thread_context(thread);
+  on_gvl_running_result thread_context_collector_on_gvl_running(VALUE self_instance, per_thread_context *thread_context) {
+    thread_context_collector_state *state;
+    TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-    // Thread was not being profiled
-    if (!thread_being_profiled) {
-      return (on_gvl_running_result) {.action = ON_GVL_RUNNING_UNKNOWN, .waiting_for_gvl_duration_ns = 0};
-    }
-
-    long gvl_waiting_at = thread_being_profiled->gvl_waiting_at;
+    long gvl_waiting_at = thread_context->gvl_waiting_at;
 
     // Thread was not waiting on gvl
     if (gvl_waiting_at == 0) {
@@ -1914,15 +1901,15 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 
     long waiting_for_gvl_duration_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - gvl_waiting_at;
 
-    bool should_sample = waiting_for_gvl_duration_ns >= global_waiting_for_gvl_threshold_ns;
+    bool should_sample = waiting_for_gvl_duration_ns >= state->waiting_for_gvl_threshold_ns;
 
     if (should_sample) {
       // We flip the gvl_waiting_at to negative to mark that the thread is now running and no longer waiting
       long gvl_waiting_at_is_now_running = -gvl_waiting_at;
 
-      thread_being_profiled->gvl_waiting_at = gvl_waiting_at_is_now_running;
+      thread_context->gvl_waiting_at = gvl_waiting_at_is_now_running;
     } else {
-      thread_being_profiled->gvl_waiting_at = 0;
+      thread_context->gvl_waiting_at = 0;
     }
 
     return (on_gvl_running_result) {
@@ -2102,7 +2089,8 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 
     debug_enter_unsafe_context();
 
-    thread_context_collector_on_gvl_waiting(thread);
+    per_thread_context *thread_context = get_per_thread_context(thread);
+    if (thread_context) thread_context_collector_on_gvl_waiting(thread_context);
 
     debug_leave_unsafe_context();
 
@@ -2122,12 +2110,18 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     return result;
   }
 
-  static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread) {
+  static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread) {
     ENFORCE_THREAD(thread);
 
     debug_enter_unsafe_context();
 
-    VALUE result = thread_context_collector_on_gvl_running(thread).action == ON_GVL_RUNNING_SAMPLE ? Qtrue : Qfalse;
+    per_thread_context *thread_context = get_per_thread_context(thread);
+    VALUE result;
+    if (thread_context) {
+      result = thread_context_collector_on_gvl_running(collector_instance, thread_context).action == ON_GVL_RUNNING_SAMPLE ? Qtrue : Qfalse;
+    } else {
+      result = Qfalse;
+    }
 
     debug_leave_unsafe_context();
 
