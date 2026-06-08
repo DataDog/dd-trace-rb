@@ -550,14 +550,13 @@ module Datadog
           # raise source (user-overridden singleton_class?); this rescue
           # closes the general case. Verified: a raise inside the callback
           # backtraces through `<class:CustomerClass>` in Ruby 3.x.
-          begin
-            mod = tp.self
-            next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
-            component.send(:enqueue_hot_load, mod)
-          rescue => e
-            logger.debug { "symdb: hot-load hook error: #{e.class}: #{e.message}" }
-            telemetry&.report(e, description: 'symdb: hot-load hook error')
-          end
+
+          mod = tp.self
+          next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
+          component.send(:enqueue_hot_load, mod)
+        rescue => e
+          logger.debug { "symdb: hot-load hook error: #{e.class}: #{e.message}" }
+          telemetry&.report(e, description: 'symdb: hot-load hook error')
         end
         @hot_load_tracepoint.enable # steep:ignore NoMethod
       end
