@@ -1348,6 +1348,14 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             it "records a regular sample" do
               expect(gvl_waiting_at_for(t1)).to eq 0
 
+              # Reproduce the CI failure mode: under valgrind, t1's per-thread CPU clock
+              # ticks between sample calls even when t1 is in Kernel.sleep. Rewinding
+              # cpu_time_at_previous_sample_ns by a small amount forces the next sample
+              # to compute cpu_time_elapsed_ns > 0, which makes state detection
+              # short-circuit to "had cpu" instead of running the stack-based detection
+              # that would label the sample "sleeping".
+              apply_delta_to_cpu_time_at_previous_sample_ns(t1, -12345)
+
               # This is a rare situation (but can still happen) -- the thread was Waiting for GVL on the previous sample,
               # but the overall duration of the Waiting for GVL was below the threshold. This means that on_gvl_running
               # clears the Waiting for GVL state, and the next sample is immediately back to being a regular sample.
