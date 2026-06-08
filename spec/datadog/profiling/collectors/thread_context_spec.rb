@@ -147,6 +147,15 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       ._native_apply_delta_to_cpu_time_at_previous_sample_ns(thread, delta_ns)
   end
 
+  # Resets cpu_time_at_previous_sample_ns to INVALID_TIME (-1) so the next sample
+  # treats current_cpu_time_ns as the previous one (elapsed = 0). Used to neutralize
+  # per-thread CPU clock ticks that can otherwise flip a "sleeping" sample into
+  # "had cpu" under slow environments such as valgrind.
+  def invalidate_cpu_time_at_previous_sample_ns(thread)
+    current = per_thread_context.dig(thread, :cpu_time_at_previous_sample_ns)
+    apply_delta_to_cpu_time_at_previous_sample_ns(thread, -(current + 1))
+  end
+
   def prepare_sample_inside_signal_handler
     described_class::Testing._native_prepare_sample_inside_signal_handler
   end
@@ -1348,13 +1357,15 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             it "records a regular sample" do
               expect(gvl_waiting_at_for(t1)).to eq 0
 
-              # Reproduce the CI failure mode: under valgrind, t1's per-thread CPU clock
-              # ticks between sample calls even when t1 is in Kernel.sleep. Rewinding
-              # cpu_time_at_previous_sample_ns by a small amount forces the next sample
-              # to compute cpu_time_elapsed_ns > 0, which makes state detection
-              # short-circuit to "had cpu" instead of running the stack-based detection
-              # that would label the sample "sleeping".
+              # Reproducer (from companion PR): rewind cpu_time_at_previous_sample_ns
+              # to force cpu_time_elapsed_ns > 0, simulating the valgrind CI failure.
               apply_delta_to_cpu_time_at_previous_sample_ns(t1, -12345)
+
+              # Fix (from companion PR): reset cpu_time_at_previous_sample_ns to
+              # INVALID_TIME so the next sample's elapsed cpu-time is deterministically
+              # 0 and the stack-based "sleeping" detection runs. This neutralizes the
+              # reproducer's rewind above (and the real valgrind tick in CI).
+              invalidate_cpu_time_at_previous_sample_ns(t1)
 
               # This is a rare situation (but can still happen) -- the thread was Waiting for GVL on the previous sample,
               # but the overall duration of the Waiting for GVL was below the threshold. This means that on_gvl_running
