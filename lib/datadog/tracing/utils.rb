@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'securerandom'
+require_relative '../core/configuration/config_helper'
 require_relative '../core/utils/forking'
 require_relative '../core/utils/time'
 
@@ -34,7 +36,13 @@ module Datadog
       # This method is thread-safe and fork-safe.
       def self.next_id
         after_fork! { reset! }
-        id_rng.rand(RUBY_ID_RANGE)
+        secure_random? ? SecureRandom.random_number(RUBY_ID_RANGE) : id_rng.rand(RUBY_ID_RANGE)
+      end
+
+      def self.secure_random?
+        return !!@secure_random unless @secure_random.nil?
+
+        @secure_random = (DATADOG_ENV['DD_TRACE_SECURE_RANDOM'] == 'true')
       end
 
       def self.id_rng
@@ -61,7 +69,7 @@ module Datadog
         end
       end
 
-      private_class_method :id_rng, :reset!
+      private_class_method :id_rng, :reset!, :secure_random?
 
       # The module handles bitwise operation for trace id
       module TraceId
