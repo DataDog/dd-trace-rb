@@ -98,6 +98,12 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
           }, {}, anything
         )
       end
+
+      it 'does not parse the body' do
+        gateway.push('rails.request.action', gateway_request)
+
+        expect(gateway_request).not_to have_received(:parsed_body)
+      end
     end
 
     context 'when the parsing size limit is zero' do
@@ -115,8 +121,8 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
       end
     end
 
-    context 'when no body was parsed' do
-      before { allow(gateway_request).to receive(:parsed_body).and_return(nil) }
+    context 'when there is no request body' do
+      let(:rack_request) { instance_double(ActionDispatch::Request, body: StringIO.new(''), content_length: 0) }
 
       it 'runs WAF with only the path params' do
         gateway.push('rails.request.action', gateway_request)
@@ -124,6 +130,12 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
         expect(context).to have_received(:run_waf).with(
           {'server.request.path_params' => {id: '1'}}, {}, anything
         )
+      end
+
+      it 'does not parse the body' do
+        gateway.push('rails.request.action', gateway_request)
+
+        expect(gateway_request).not_to have_received(:parsed_body)
       end
     end
   end

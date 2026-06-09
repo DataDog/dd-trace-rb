@@ -93,6 +93,14 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Watcher do
           {'server.request.body.byte_length' => 9}, {}, anything
         )
       end
+
+      it 'does not parse the form body' do
+        allow(gateway_request).to receive(:form_hash)
+
+        gateway.push('rack.request.body', gateway_request)
+
+        expect(gateway_request).not_to have_received(:form_hash)
+      end
     end
 
     context 'when the parsing size limit is zero' do
