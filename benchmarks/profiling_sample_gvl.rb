@@ -18,16 +18,12 @@ end
 # This benchmark measures the performance of the main stack sampling loop of the profiler
 
 class ProfilerSampleGvlBenchmark
-  # This is needed because we're directly invoking the collector through a testing interface; in normal
-  # use a profiler thread is automatically used.
-  PROFILER_OVERHEAD_STACK_THREAD = Thread.new { sleep }
-
   def initialize
     create_profiler
     @target_thread = thread_with_very_deep_stack
 
     # Sample once to trigger thread context creation for all threads (including @target_thread)
-    Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD, false)
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, false)
   end
 
   def create_profiler
