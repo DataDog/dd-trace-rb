@@ -64,23 +64,15 @@ RSpec.describe 'sensitive configuration registry drift' do
     collect_sensitive_registry_keys(registry).sort
   end
 
-  it 'marks every env-backed skip_telemetry option as sensitive in the registry' do
+  it 'keeps the skip_telemetry and registry-sensitive sets identical' do
     missing_from_registry = skip_telemetry_env_keys - registry_sensitive_keys
-
-    expect(missing_from_registry).to be_empty,
-      "These options declare `skip_telemetry true` but are not marked `\"sensitive\": true` " \
-      "in supported-configurations.json: #{missing_from_registry.inspect}"
-  end
-
-  it 'backs every registry-sensitive key with a skip_telemetry option' do
     missing_from_code = registry_sensitive_keys - skip_telemetry_env_keys
 
-    expect(missing_from_code).to be_empty,
-      "These registry entries are marked `\"sensitive\": true` but no option declares " \
-      "`skip_telemetry true` for them: #{missing_from_code.inspect}"
-  end
-
-  it 'keeps the two sets identical' do
-    expect(skip_telemetry_env_keys).to eq(registry_sensitive_keys)
+    expect(skip_telemetry_env_keys).to eq(registry_sensitive_keys),
+      "skip_telemetry options and registry-sensitive keys have drifted. " \
+      "Declared `skip_telemetry true` but not marked `\"sensitive\": true` in " \
+      "supported-configurations.json: #{missing_from_registry.inspect}. " \
+      "Marked `\"sensitive\": true` in supported-configurations.json but no option declares " \
+      "`skip_telemetry true`: #{missing_from_code.inspect}."
   end
 end

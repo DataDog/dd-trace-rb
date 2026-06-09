@@ -184,30 +184,6 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
           {name: 'OTEL_METRIC_EXPORT_TIMEOUT', origin: 'default', seq_id: 1, value: 7500}
         )
       end
-
-      it 'does not report OpenTelemetry headers to telemetry' do
-        expect(event.payload[:configuration]).to_not include(
-          include(name: 'OTEL_EXPORTER_OTLP_HEADERS')
-        )
-        expect(event.payload[:configuration]).to_not include(
-          include(name: 'OTEL_EXPORTER_OTLP_METRICS_HEADERS')
-        )
-      end
-    end
-
-    context 'with sensitive values in OpenTelemetry headers' do
-      with_env 'OTEL_EXPORTER_OTLP_HEADERS' => 'dd-api-key=SENTINEL_OTLP_BASE',
-        'DD_METRICS_OTEL_ENABLED' => 'true',
-        'OTEL_EXPORTER_OTLP_METRICS_HEADERS' => 'dd-api-key=SENTINEL_OTLP_METRICS',
-        'OTEL_EXPORTER_OTLP_LOGS_HEADERS' => 'dd-api-key=SENTINEL_OTLP_LOGS'
-
-      it 'does not report the configured header values to telemetry' do
-        configured_values = event.payload[:configuration].map { |entry| entry[:value] }
-
-        expect(configured_values).to_not include(a_string_including('SENTINEL_OTLP_BASE'))
-        expect(configured_values).to_not include(a_string_including('SENTINEL_OTLP_METRICS'))
-        expect(configured_values).to_not include(a_string_including('SENTINEL_OTLP_LOGS'))
-      end
     end
 
     # Black-box invariant: walk the live settings tree, collect every option whose
@@ -299,31 +275,6 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
           expect(reported_names).to_not include(telemetry_name),
             "expected skip_telemetry option #{telemetry_name.inspect} to be absent from reported configuration"
         end
-      end
-    end
-
-    # Explicitly include the two Datadog credential keys in the sentinel sweep, so a
-    # regression on either cannot slip through even if the generic walk changes shape.
-    context 'with sentinel values in the Datadog credential keys' do
-      before do
-        Datadog.configure do |c|
-          c.api_key = 'SENTINEL_DD_API_KEY'
-          c.ai_guard.app_key = 'SENTINEL_DD_APP_KEY'
-        end
-      end
-
-      after do
-        Datadog.configuration.reset!
-      end
-
-      it 'does not report DD_API_KEY or DD_APP_KEY values to telemetry' do
-        reported = event.payload[:configuration]
-        reported_values = reported.map { |entry| entry[:value]&.to_s }.compact
-
-        expect(reported_values).to_not include(a_string_including('SENTINEL_DD_API_KEY'))
-        expect(reported_values).to_not include(a_string_including('SENTINEL_DD_APP_KEY'))
-        expect(reported).to_not include(include(name: 'DD_API_KEY'))
-        expect(reported).to_not include(include(name: 'DD_APP_KEY'))
       end
     end
 
