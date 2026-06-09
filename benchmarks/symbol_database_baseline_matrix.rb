@@ -146,14 +146,14 @@ class SymbolDatabaseBaselineMatrixBenchmark
     # cold-start costs the later arms have already amortized.
     warmup_duration = VALIDATE_BENCHMARK_MODE ? 0.01 : 1.0
     run_arm(75, warmup_duration, extractor: nil)
-    3.times { GC.start }
+    gc_settle
 
     arms = {}
     BASELINES.each do |baseline_pct|
       no_extractor = run_arm(baseline_pct, WINDOW_SECONDS, extractor: nil)
-      3.times { GC.start }
+      gc_settle
       with_extractor = run_arm(baseline_pct, WINDOW_SECONDS, extractor: extractor)
-      3.times { GC.start }
+      gc_settle
 
       base_ops = no_extractor[:ops_per_sec].to_f
       rps_drop = (base_ops > 0) ? 1.0 - (with_extractor[:ops_per_sec].to_f / base_ops) : nil
@@ -215,7 +215,7 @@ class SymbolDatabaseBaselineMatrixBenchmark
       # iteration rather than block the run. Without this cap, validate-mode
       # runs (10 arms × bg.value across the matrix) can blow past
       # expect_in_fork's 10s timeout on slower CI Rubies.
-      unless bg.join(0.5)
+      unless bg.join(VALIDATE_BENCHMARK_MODE ? 0.05 : 0.5)
         bg.kill
         bg.join
       end
@@ -232,7 +232,13 @@ class SymbolDatabaseBaselineMatrixBenchmark
   # Time one cpu_chunk call. Warm up first so JIT/inline caches don't
   # inflate the calibration sample. Take the median of 5 samples to
   # de-noise scheduler interference.
+  #
+  # Validate mode skips this — the bitrot check only needs the code path
+  # to run, not a real-host CPU calibration. 8 cpu_chunks at ~73ms each
+  # were the largest fixed cost on CI (~580ms) before this short-circuit.
   def calibrate_cpu_chunk
+    return 0.01 if VALIDATE_BENCHMARK_MODE
+
     3.times { cpu_chunk }
     samples = Array.new(5) do
       t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -240,6 +246,17 @@ class SymbolDatabaseBaselineMatrixBenchmark
       Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0
     end
     samples.sort[samples.size / 2]
+  end
+
+  # Force three GC passes between arms in real mode so each arm starts from
+  # a comparable heap state. Validate mode skips this — the bitrot check
+  # doesn't measure anything, and the 8× GC.start blocks were 4-6s of CI
+  # wall time with high run-to-run variance (the entire source of the
+  # observed 6.4s ↔ 8.7s spread).
+  def gc_settle
+    return if VALIDATE_BENCHMARK_MODE
+
+    3.times { GC.start }
   end
 
   # A fixed amount of pure-Ruby CPU work. ~10 ms on a modern host; exact
