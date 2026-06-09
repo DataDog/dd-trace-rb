@@ -191,8 +191,10 @@ module Datadog
           current = current.const_get(sym)
         end
         current.equal?(mod)
-      rescue NameError, ArgumentError => e
-        @logger.debug { "symdb: resolves_to_same_module?(#{mod_name}) failed: #{e.class}: #{e.message}" }
+      rescue NameError, ArgumentError
+        # Expected "no" outcome for stale/detached classes — the whole point
+        # of this predicate. Per the rescue convention in this file's header
+        # comment: inner per-item rescues are expected failures, no logging.
         false
       end
 
