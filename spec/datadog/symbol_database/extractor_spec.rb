@@ -1675,7 +1675,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
 
     context 'top-level rescue' do
       it 'returns [] and logs when collection raises' do
-        allow(extractor).to receive(:collect_extractable_modules).and_raise(StandardError, 'boom')
+        allow(extractor).to receive(:build_per_file_index).and_raise(StandardError, 'boom')
         expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/extract_all.*StandardError.*boom/i) }
 
         result = extractor.extract_all

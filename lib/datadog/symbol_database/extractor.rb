@@ -142,32 +142,39 @@ module Datadog
       # so a class reopened across two files produces two FILE scopes, each with only
       # the methods defined in that file.
       #
-      # When a block is given, FILE scopes are yielded one at a time and the underlying
-      # tree node is released as it is yielded — the caller (typically ScopeBatcher) can
-      # then drop its reference too. This keeps the peak working set bounded by
-      # `file_trees` rather than `file_trees + Array<Scope>`. The `entries` hash from
-      # Pass 1 is also dropped before Pass 3 begins, so its `UnboundMethod` references
-      # become eligible for collection at the next GC.
+      # Memory profile (with a block):
+      #   - Pass 1 builds a per-file index containing only Symbol method names plus
+      #     Module references. No UnboundMethod objects are retained between passes.
+      #   - Pass 2 processes one file at a time. The peak per file is bounded by the
+      #     number of methods that live in that one file across all its modules
+      #     (typical Rails: tens of methods; pathological case: a single very large
+      #     source file). Once a FILE scope is yielded and the caller stops referencing
+      #     it, the entire per-file working set becomes garbage.
+      #
+      # This is O(largest_file + batch_buffer), not O(total_classes).
       #
       # Without a block, returns the full `Array<Scope>` (legacy form, used by specs).
+      # The Array itself still scales with the number of files, so block form is the
+      # one to use for production memory bounds.
       #
       # @yieldparam scope [Scope] FILE scope for one source file
       # @return [Array<Scope>, nil] Array of FILE scopes when called without a block; nil when a block is given
       def extract_all
-        entries = collect_extractable_modules
-        file_trees = build_file_trees(entries)
-        entries = nil # release UnboundMethod references retained in entries before Pass 3
+        index = build_per_file_index
 
         if block_given?
-          # Destructively drain file_trees so each per-file tree becomes eligible for
-          # collection as soon as its FILE scope is yielded.
-          until file_trees.empty?
-            file_path, root = file_trees.shift
-            yield convert_tree_to_scope(file_path, root)
+          # Drain the index destructively so each per-file entry becomes eligible for
+          # collection as soon as its FILE scope is yielded and consumed.
+          until index.empty?
+            file_path, entries = index.shift
+            scope = build_file_scope(file_path, entries)
+            yield scope if scope
           end
           nil
         else
-          convert_trees_to_scopes(file_trees)
+          Core::Utils::EnumerableCompat.filter_map(index) do |file_path, entries|
+            build_file_scope(file_path, entries)
+          end
         end
       rescue => e
         @logger.debug { "symdb: error in extract_all: #{e.class}: #{e.message}" }
@@ -652,7 +659,129 @@ module Datadog
       SLEEP_SECONDS = 0.001
       private_constant :SLEEP_EVERY_N_MODULES, :SLEEP_SECONDS
 
-      # Pass 1: Collect all extractable modules with methods grouped by source file.
+      # Pass 1 (memory-bounded form): build a per-file index of
+      # `{ file_path => [[mod_name, mod, [method_name_symbol, ...]], ...] }`.
+      #
+      # Stores Symbol method names plus Module references only — no UnboundMethod
+      # objects retained between passes. UnboundMethods created here (to read
+      # `source_location`) become garbage as the inner loop ends.
+      #
+      # The Module references are pointer-sized and the modules are already kept
+      # alive in ObjectSpace, so adding them to the index costs no extra retention.
+      #
+      # @return [Hash{String=>Array<Array(String, Module, Array<Symbol>)>}]
+      def build_per_file_index
+        index = {}
+        seen = 0
+
+        ObjectSpace.each_object(Module) do |mod|
+          # See collect_extractable_modules for the rationale behind this skip and
+          # the periodic sleep.
+          next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
+
+          seen += 1
+          sleep SLEEP_SECONDS if (seen % SLEEP_EVERY_N_MODULES).zero?
+
+          mod_name = safe_mod_name(mod)
+          next unless mod_name
+          next unless user_code_module?(mod)
+
+          file_to_names = collect_method_names_by_file(mod)
+
+          # Namespace-only modules (no own methods) — use find_source_file as the
+          # canonical file so the FILE scope still gets a MODULE entry.
+          if file_to_names.empty?
+            source_file = find_source_file(mod)
+            file_to_names[source_file] = [] if source_file
+          end
+
+          next if file_to_names.empty?
+
+          file_to_names.each do |file_path, method_names|
+            (index[file_path] ||= []) << [mod_name, mod, method_names]
+          end
+        rescue => e
+          @logger.debug { "symdb: error indexing #{mod_name || '<unknown>'}: #{e.class}: #{e.message}" }
+        end
+
+        index
+      end
+
+      # For a single module, return `{ file_path => [method_name_symbol, ...] }`.
+      # Unlike `group_methods_by_file`, this does not store UnboundMethod objects —
+      # only the method-name symbols and their file paths. The UnboundMethods
+      # allocated to read `source_location` are not retained.
+      def collect_method_names_by_file(mod)
+        result = Hash.new { |h, k| h[k] = [] } # steep:ignore
+
+        # Module#instance_methods(false) already returns both public and protected
+        # methods, so iterating it plus private_instance_methods covers all three
+        # visibilities without an intermediate merged array.
+        [mod.instance_methods(false), mod.private_instance_methods(false)].each do |method_names|
+          method_names.each do |method_name|
+            method = mod.instance_method(method_name)
+            loc = method.source_location
+            next unless loc
+            next unless user_code_path?(loc[0])
+
+            result[loc[0]] << method_name
+          rescue => e
+            @logger.debug { "symdb: error indexing method #{method_name}: #{e.class}: #{e.message}" }
+          end
+        end
+
+        result
+      rescue => e
+        @logger.debug { "symdb: error indexing methods: #{e.class}: #{e.message}" }
+        {}
+      end
+
+      # Pass 2: build the FILE scope for one source file by walking just the modules
+      # that contribute methods to it. Resolves UnboundMethods just-in-time per
+      # method; the per-method scratch is collected by GC as each module's loop body
+      # ends. The returned Scope is the only thing the caller needs to keep alive
+      # — once the caller drops it, the entire per-file working set is collectable.
+      #
+      # @param file_path [String]
+      # @param entries [Array<Array(String, Module, Array<Symbol>)>] tuples produced by build_per_file_index
+      # @return [Scope, nil] FILE scope, or nil if nothing extractable
+      def build_file_scope(file_path, entries)
+        return nil if entries.empty?
+
+        root = {
+          name: file_path, type: 'FILE', children: {},
+          methods: [], mod: nil, source_file: file_path, fqn: nil
+        }
+
+        # Sort by FQN depth so parent namespaces are placed before children.
+        sorted = entries.sort_by { |(mod_name, _, _)| mod_name.count(':') }
+
+        sorted.each do |mod_name, mod, method_names|
+          # Resolve UnboundMethods for this (mod, file) just-in-time. These objects
+          # live only as long as the tree node holds them; they are released when
+          # convert_tree_to_scope finishes building the file's Scope.
+          method_infos = method_names.filter_map do |name|
+            method = mod.instance_method(name)
+            {name: name, method: method, type: :instance}
+          rescue => e
+            @logger.debug { "symdb: error resolving #{mod_name}##{name}: #{e.class}: #{e.message}" }
+            nil
+          end
+
+          parts = mod_name.split('::')
+          place_in_tree(root, parts, mod, mod_name, method_infos, file_path)
+        rescue => e
+          @logger.debug { "symdb: error placing #{mod_name} in tree: #{e.class}: #{e.message}" }
+        end
+
+        return nil if root[:children].empty?
+
+        convert_tree_to_scope(file_path, root)
+      end
+
+      # Pass 1 (legacy form): Collect all extractable modules with methods grouped
+      # by source file. Retained for tests that exercise the old shape; not used by
+      # extract_all.
       # @return [Hash] { mod_name => { mod:, methods_by_file: { path => [{name:, method:, type:}] } } }
       def collect_extractable_modules
         entries = {}
