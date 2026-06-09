@@ -136,7 +136,7 @@ module Datadog
           self.class::PATCH_ONLY_ONCE.run do
             Utils::AtForkMonkeyPatch.apply!
             Utils::SpawnMonkeyPatch.apply!(
-              lineage_envs_provider: Core::Environment::Identity.method(:runtime_propagation_envs),
+              env_provider: Core::Environment::Identity.method(:runtime_propagation_envs),
             )
 
             # Register callback that calls Components.after_fork
@@ -194,6 +194,7 @@ module Datadog
           remote&.after_fork
           crashtracker&.update_on_fork
           ProcessDiscovery.after_fork
+          symbol_database&.after_fork!
         end
 
         # Hot-swaps with a new sampler.

@@ -55,6 +55,7 @@ module Datadog
                 service: service,
                 on_error: on_error
               ) do |span|
+                span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 connection = transport.connections.first
                 host = connection.host[:host] if connection
                 port = connection.host[:port] if connection
@@ -64,11 +65,6 @@ module Datadog
                     Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                     datadog_configuration[:peer_service]
                   )
-                end
-
-                # Tag original global service name if not used
-                if span.service != Datadog.configuration.service
-                  span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
                 end
 
                 span.type = Datadog::Tracing::Contrib::Elasticsearch::Ext::SPAN_TYPE_QUERY

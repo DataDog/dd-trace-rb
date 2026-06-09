@@ -6,6 +6,7 @@ require 'datadog/tracing/contrib/roda/instrumentation'
 require 'datadog/tracing/contrib/roda/ext'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
+require 'datadog/tracing/contrib/svc_src_examples'
 
 RSpec.shared_examples_for 'shared examples for roda' do |test_method|
   let(:configuration_options) { {} }
@@ -85,6 +86,13 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq(response_code.to_s)
+      end
+
+      context 'when service_name is overridden' do
+        let(:configuration_options) { {service_name: 'custom-roda'} }
+        it_behaves_like 'tags _dd.svc_src', 'roda' do
+          before { instrumented_method }
+        end
       end
     end
 

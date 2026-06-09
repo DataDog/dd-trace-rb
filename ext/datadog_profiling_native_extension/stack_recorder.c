@@ -420,14 +420,12 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   VALUE heap_samples_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("heap_samples_enabled")));
   VALUE heap_size_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("heap_size_enabled")));
   VALUE heap_sample_every = rb_hash_fetch(options, ID2SYM(rb_intern("heap_sample_every")));
-  VALUE timeline_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("timeline_enabled")));
   VALUE heap_clean_after_gc_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("heap_clean_after_gc_enabled")));
 
   ENFORCE_BOOLEAN(alloc_samples_enabled);
   ENFORCE_BOOLEAN(heap_samples_enabled);
   ENFORCE_BOOLEAN(heap_size_enabled);
   ENFORCE_TYPE(heap_sample_every, T_FIXNUM);
-  ENFORCE_BOOLEAN(timeline_enabled);
   ENFORCE_BOOLEAN(heap_clean_after_gc_enabled);
 
   stack_recorder_state *state;
@@ -440,8 +438,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   uint8_t requested_values_count = ALL_VALUE_TYPES_COUNT -
     (alloc_samples_enabled == Qtrue? 0 : 2) -
     (heap_samples_enabled == Qtrue ? 0 : 1) -
-    (heap_size_enabled == Qtrue ? 0 : 1) -
-    (timeline_enabled == Qtrue ? 0 : 1);
+    (heap_size_enabled == Qtrue ? 0 : 1);
 
   if (requested_values_count == ALL_VALUE_TYPES_COUNT) return Qtrue; // Nothing to do, this is the default
 
@@ -466,6 +463,10 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   // CPU_TIME is always enabled
   enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_CPU_TIME;
   state->position_for[CPU_TIME_VALUE_ID] = next_enabled_pos++;
+
+  // TIMELINE is always enabled
+  enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_TIMELINE;
+  state->position_for[TIMELINE_VALUE_ID] = next_enabled_pos++;
 
   if (alloc_samples_enabled == Qtrue) {
     enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_ALLOC_SAMPLES;
@@ -498,13 +499,6 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
     // assuming all samples were enabled. We need to deinitialize the heap recorder.
     heap_recorder_free(state->heap_recorder);
     state->heap_recorder = NULL;
-  }
-
-  if (timeline_enabled == Qtrue) {
-    enabled_sample_types[next_enabled_pos] = DDOG_PROF_SAMPLE_TYPE_TIMELINE;
-    state->position_for[TIMELINE_VALUE_ID] = next_enabled_pos++;
-  } else {
-    state->position_for[TIMELINE_VALUE_ID] = next_disabled_pos++;
   }
 
   ddog_prof_Profile_drop(&state->profile_slot_one.profile);
@@ -639,6 +633,7 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
       .values = (ddog_Slice_I64) {.ptr = metric_values, .len = state->enabled_values_count},
       .labels = labels.labels
     },
+    /* To disable end_timestamp_ns to get aggregated profiles in pprof, replace the below with `0` */
     labels.end_timestamp_ns
   );
 
@@ -899,6 +894,9 @@ static ddog_Timespec system_epoch_now_timespec(void) {
 //
 // Assumption: This method gets called BEFORE restarting profiling -- e.g. there are no components attempting to
 // trigger samples at the same time.
+//
+// Note that tests call this method directly in the same process without forking,
+// and in such a case non-current Threads keep running.
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);

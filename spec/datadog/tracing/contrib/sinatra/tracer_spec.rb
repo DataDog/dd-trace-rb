@@ -10,6 +10,7 @@ require 'datadog/tracing/contrib/sinatra/tracer'
 
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
+require 'datadog/tracing/contrib/svc_src_examples'
 require 'rspec/expectations'
 
 require_relative '../support/http'
@@ -109,6 +110,13 @@ RSpec.describe 'Sinatra instrumentation' do
 
           it_behaves_like 'measured span for integration', true do
             before { is_expected.to be_ok }
+          end
+
+          context 'when service_name is overridden' do
+            let(:configuration_options) { {service_name: 'custom-sinatra'} }
+            it_behaves_like 'tags _dd.svc_src', 'sinatra' do
+              before { subject }
+            end
           end
 
           context 'which sets X-Request-Id on the response' do

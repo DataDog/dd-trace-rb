@@ -19,7 +19,6 @@ module Datadog
           max_frames:,
           tracer:,
           endpoint_collection_enabled:,
-          timeline_enabled:,
           waiting_for_gvl_threshold_ns:,
           otel_context_enabled:,
           native_filenames_enabled:
@@ -31,10 +30,10 @@ module Datadog
             max_frames: max_frames,
             tracer_context_key: tracer_context_key,
             endpoint_collection_enabled: endpoint_collection_enabled,
-            timeline_enabled: timeline_enabled,
             waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
             otel_context_enabled: otel_context_enabled,
             native_filenames_enabled: validate_native_filenames(native_filenames_enabled),
+            overhead_filename: __FILE__,
           )
         end
 
@@ -43,7 +42,6 @@ module Datadog
           max_frames: 400,
           tracer: nil,
           endpoint_collection_enabled: false,
-          timeline_enabled: false,
           waiting_for_gvl_threshold_ns: 10_000_000,
           otel_context_enabled: false,
           native_filenames_enabled: true,
@@ -54,7 +52,6 @@ module Datadog
             max_frames: max_frames,
             tracer: tracer,
             endpoint_collection_enabled: endpoint_collection_enabled,
-            timeline_enabled: timeline_enabled,
             waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
             otel_context_enabled: otel_context_enabled,
             native_filenames_enabled: native_filenames_enabled,

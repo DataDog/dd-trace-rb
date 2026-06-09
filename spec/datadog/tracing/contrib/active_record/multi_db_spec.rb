@@ -86,18 +86,16 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
   end
 
   before do
-    Datadog.registry[:active_record].reset_configuration!
-
-    Datadog.configure do |c|
-      c.tracing.instrument :active_record, configuration_options
+    reset_subscription_state!(:active_record, Datadog::Tracing::Contrib::ActiveRecord::Events) do
+      Datadog.configure do |c|
+        c.tracing.instrument :active_record, configuration_options
+      end
     end
 
     raise_on_rails_deprecation!
   end
 
-  after do
-    Datadog.registry[:active_record].reset_configuration!
-  end
+  after { Datadog.registry[:active_record].reset_configuration! }
 
   context 'when databases are configured with' do
     let(:gadget_db_service_name) { 'gadget-db' }

@@ -28,6 +28,7 @@ module Datadog
               Tracing.trace(Ext::SPAN_REQUEST) do |span, trace|
                 begin
                   span.service = service_name(host, request_options, client_config)
+                  span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                   span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
 
                   if Tracing::Distributed::PropagationPolicy.enabled?(
@@ -64,11 +65,6 @@ module Datadog
                   Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                   req_options[:peer_service]
                 )
-              end
-
-              # Tag original global service name if not used
-              if span.service != Datadog.configuration.service
-                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
               end
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)

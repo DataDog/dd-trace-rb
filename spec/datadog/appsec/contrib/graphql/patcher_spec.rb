@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'datadog/appsec/spec_helper'
+require 'ostruct' # graphql 1.13 uses OpenStruct without requiring ostruct itself
 require 'graphql'
 require 'datadog/appsec/contrib/graphql/patcher'
 

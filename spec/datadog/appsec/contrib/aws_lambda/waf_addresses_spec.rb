@@ -213,7 +213,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
     context 'when payload has status and headers' do
       let(:payload) do
         {
-          'statusCode' => 201,
+          'status_code' => 201,
           'headers' => {'Content-Type' => 'application/json', 'Set-Cookie' => 'session=xyz'},
         }
       end
@@ -235,13 +235,13 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
       it { expect(result).to eq({}) }
     end
 
-    context 'when statusCode is a string' do
-      let(:payload) { {'statusCode' => '404', 'headers' => {}} }
+    context 'when status code is a string' do
+      let(:payload) { {'status_code' => '404', 'headers' => {}} }
 
       it { expect(result['server.response.status']).to eq('404') }
     end
 
-    context 'when statusCode is missing' do
+    context 'when status code is missing' do
       let(:payload) { {'headers' => {}} }
 
       it { expect(result).not_to have_key('server.response.status') }

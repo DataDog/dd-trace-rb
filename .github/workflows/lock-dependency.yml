@@ -19,7 +19,7 @@ jobs:
     outputs:
       changes: ${{ steps.changes.outputs.dependencies }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
       - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
@@ -57,22 +57,25 @@ jobs:
     container:
       image: ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}-gnu-gcc
       env:
+        BUNDLE_GEMFILE: gemfiles/${{ matrix.engine.name }}-${{ matrix.engine.version }}.gemfile
         BUNDLE_WITHOUT: check
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
       - run: |
           ruby -v
           gem -v
           bundler -v
+      - run: bundle lock --add-platform x86_64-linux aarch64-linux arm64-darwin x86_64-darwin
       - run: bundle install
-      - run: bundle exec rake dependency:generate
-      - run: bundle exec rake dependency:lock
+      - run: bundle exec rake dependency:all
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: lock-dependency-${{ github.run_id }}-${{ matrix.engine.name }}-${{ matrix.engine.version }}
-          path: gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}*
+          path: |
+            gemfiles/${{ matrix.engine.name }}-${{ matrix.engine.version }}.gemfile.lock
+            gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}*
           retention-days: 1
 
   commit:
@@ -88,7 +91,7 @@ jobs:
         with:
           scope: DataDog/dd-trace-rb
           policy: self.lock-dependency
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: true # required for `git` operations (commit & push) at later steps
           token: ${{ steps.generate-token.outputs.token }}
@@ -103,7 +106,7 @@ jobs:
         run: git add gemfiles
       - run: git diff --cached --color=always
       - name: Commit changes
-        uses: planetscale/ghcommit-action@25309d8005ac7c3bcd61d3fe19b69e0fe47dbdde # v0.2.20
+        uses: planetscale/ghcommit-action@57a6c787385af407a557374c794a09273aaebfd7 # v0.2.21
         with:
           repo: ${{ github.repository }}
           branch: ${{ github.head_ref }}
