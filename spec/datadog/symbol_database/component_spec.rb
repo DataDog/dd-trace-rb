@@ -493,8 +493,10 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
 
     it 'clears scheduler thread reference and pending schedule' do
+      # start_upload assigns @scheduler_thread synchronously inside
+      # @scheduler_mutex via ensure_scheduler_thread, so the ivar is non-nil
+      # by the time start_upload returns — no wait needed.
       component.start_upload
-      sleep 0.01 # let scheduler thread enter wait
       expect(component.instance_variable_get(:@scheduler_thread)).not_to be_nil
 
       component.after_fork!
@@ -592,7 +594,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(extractor).to receive(:extract_all).at_least(:once).and_return([])
 
       component.start_upload
-      sleep 0.2 # > EXTRACT_DEBOUNCE_INTERVAL
+      expect(component.wait_for_idle(timeout: 5)).to be true
 
       component.shutdown!
     end
@@ -701,6 +703,57 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       # bound Module#singleton_class? returns false and the module is enqueued.
       expect(buffered.map(&:name)).to include('SymdbHotLoadSpecSingletonOverride')
     end
+
+    it 'rescues exceptions raised inside the :class hook so customer class loads do not break' do
+      # The :class TracePoint fires inside the customer's `class Foo; ... end`
+      # body. If an exception escapes the callback, it propagates into the
+      # class definition and breaks the customer's class load (verified
+      # empirically: backtrace includes `<class:CustomerClass>`). The rescue
+      # in install_hot_load_hook contains the failure, logs at debug, and
+      # reports via telemetry.
+      component = described_class.build(settings, agent_settings, logger)
+      component.wait_for_idle(timeout: 5)
+
+      injected_error = RuntimeError.new('simulated hot-load enqueue failure')
+      allow(component).to receive(:enqueue_hot_load).and_raise(injected_error)
+
+      expect(raw_logger).to receive(:debug) do |&block|
+        expect(block.call).to include('hot-load hook error', 'RuntimeError', 'simulated hot-load enqueue failure')
+      end
+
+      begin
+        # With the rescue in place, defining a class while enqueue_hot_load is
+        # rigged to raise must not propagate the exception into the class body.
+        expect do
+          eval('class SymdbHotLoadRescueTestClass; end', binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
+        end.not_to raise_error
+      ensure
+        component.shutdown!
+        Object.send(:remove_const, :SymdbHotLoadRescueTestClass) if Object.const_defined?(:SymdbHotLoadRescueTestClass)
+      end
+    end
+
+    it 'does not propagate exceptions when logger.debug itself raises' do
+      # If the rescue handler's own logger call raises (custom logger
+      # implementation, IO error), it would escape the outer rescue and
+      # surface in the customer's class body. The inner rescue contains
+      # this case.
+      component = described_class.build(settings, agent_settings, logger)
+      component.wait_for_idle(timeout: 5)
+
+      allow(component).to receive(:enqueue_hot_load)
+        .and_raise(RuntimeError.new('simulated hot-load enqueue failure'))
+      allow(raw_logger).to receive(:debug).and_raise(RuntimeError.new('logger boom'))
+
+      begin
+        expect do
+          eval('class SymdbHotLoadLoggerRescueTestClass; end', binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
+        end.not_to raise_error
+      ensure
+        component.shutdown!
+        Object.send(:remove_const, :SymdbHotLoadLoggerRescueTestClass) if Object.const_defined?(:SymdbHotLoadLoggerRescueTestClass)
+      end
+    end
   end
 
   describe 'enable/disable upload (ported from Java SymDBEnablementTest.enableDisableSymDBThroughRC)' do
@@ -787,14 +840,33 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
       begin
         # Define a class after stop_upload — with the TracePoint disabled this
-        # must not enqueue a hot-load event or re-arm the scheduler.
+        # must not enqueue a hot-load event or re-arm the scheduler. The
+        # @scheduled_at check is the structural proof: only enqueue_hot_load
+        # sets it after stop_upload, and enqueue_hot_load only runs if the
+        # TracePoint fired. extract_all cannot have been called because the
+        # scheduler thread cannot fire without @scheduled_at set.
         eval('class SymdbStopUploadSpecPostStopClass; def hello; end; end', binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
-        sleep 0.1
-        expect(extraction_count).to eq(1)
         expect(component.instance_variable_get(:@scheduled_at)).to be_nil
+        expect(extraction_count).to eq(1)
       ensure
         Object.send(:remove_const, :SymdbStopUploadSpecPostStopClass) if Object.const_defined?(:SymdbStopUploadSpecPostStopClass)
       end
+    end
+
+    it 'enqueue_hot_load called after stop_upload does not re-arm the scheduler' do
+      # Models the race where a :class TracePoint event fires concurrently
+      # with stop_upload: TracePoint#disable does not wait for in-flight
+      # callbacks, so the callback can reach enqueue_hot_load after the hook
+      # has been torn down. Without the @hot_load_tracepoint guard,
+      # enqueue_hot_load would re-arm the scheduler in this state.
+      allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
+      component.start_upload
+      component.wait_for_idle(timeout: 5)
+      component.stop_upload
+
+      component.send(:enqueue_hot_load, Object)
+
+      expect(component.instance_variable_get(:@scheduled_at)).to be_nil
     end
   end
 
