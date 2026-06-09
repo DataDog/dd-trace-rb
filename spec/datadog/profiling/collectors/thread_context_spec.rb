@@ -1320,6 +1320,33 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           context "when Waiting for GVL duration < the threshold" do
             let(:waiting_for_gvl_threshold_ns) { 1_000_000_000 }
 
+            # Reproducer for the CI flake observed in PR #5871's `test-memcheck` job
+            # (https://github.com/DataDog/dd-trace-rb/actions/runs/27163185182/job/80183618479).
+            # Tests the mechanism hypothesized by Ivo Anjo in PR #5879: there's no
+            # atomicity between `ready_queue << true` and `sleep` in the default `t1`.
+            # Under valgrind's slow, single-threaded scheduling, the test setup proceeds
+            # while `t1` is still on the path to `sleep`, so `t1` legitimately accrues
+            # cpu-time between the setup's last `sample` and the test body's `sample`.
+            # A positive `cpu_time_elapsed_ns` short-circuits state detection in
+            # collectors_stack.c:288-293 to "had cpu", bypassing the stack-based
+            # "sleeping" detection.
+            #
+            # This override forces the race deterministically by busy-waiting (instead
+            # of going straight to `sleep`) for long enough to cover the setup chain on
+            # any environment.
+            let(:t1) do
+              Thread.new(ready_queue) do |ready_queue|
+                inside_t1 do
+                  ready_queue << true
+                  deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second) + 0.5
+                  while Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second) < deadline
+                    Thread.pass
+                  end
+                  sleep
+                end
+              end
+            end
+
             it "records a regular sample" do
               expect(gvl_waiting_at_for(t1)).to eq 0
 
