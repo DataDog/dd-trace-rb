@@ -250,7 +250,7 @@ RSpec.describe 'Method probe dispatch semantics' do
 
   describe 'Ractor isolation when invoking a probed method' do
     # Ractors enforce that user-defined Ruby objects passed across
-    # Ractor boundaries are either shareable (frozen / built-in / Ractor::makeshare
+    # Ractor boundaries are either shareable (frozen / built-in / Ractor.make_shareable
     # processed) or accessed via copy. The method-probe wrapper closes over
     # an Instrumenter instance, which holds a Logger, settings, a serializer,
     # and a code tracker — none of which are Ractor-shareable.
