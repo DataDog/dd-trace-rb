@@ -95,6 +95,18 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Watcher do
       end
     end
 
+    context 'when the parsing size limit is zero' do
+      before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(0) }
+
+      it 'runs WAF with only the byte length' do
+        gateway.push('rack.request.body', gateway_request)
+
+        expect(context).to have_received(:run_waf).with(
+          {'server.request.body.byte_length' => 9}, {}, anything
+        )
+      end
+    end
+
     context 'when no body was parsed' do
       let(:gateway_request) do
         Datadog::AppSec::Contrib::Rack::Gateway::Request.new(

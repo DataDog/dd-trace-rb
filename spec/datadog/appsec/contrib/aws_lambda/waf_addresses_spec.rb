@@ -147,6 +147,21 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
       it { expect(result['server.request.body.byte_length']).to eq(15) }
     end
 
+    context 'when the parsing size limit is zero' do
+      before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(0) }
+
+      let(:payload) do
+        {
+          'headers' => {'Content-Type' => 'application/json'},
+          'body' => '{"key":"value"}',
+          'base64_encoded' => false,
+        }
+      end
+
+      it { expect(result).not_to have_key('server.request.body') }
+      it { expect(result['server.request.body.byte_length']).to eq(15) }
+    end
+
     context 'when payload has plain JSON body' do
       let(:payload) do
         {
