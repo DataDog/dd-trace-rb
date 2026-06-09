@@ -11,6 +11,8 @@ module Datadog
       def ensure_priority_sampling: (untyped sampler, untyped settings) -> untyped
       def build_writer: (untyped settings, untyped agent_settings, ?Hash[Symbol, untyped] options) -> untyped
 
+      def otlp_trace_export_enabled?: (untyped settings) -> bool
+
       def subscribe_to_writer_events!: (untyped writer, untyped sampler, untyped test_mode) -> (nil | untyped)
 
       WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK: untyped

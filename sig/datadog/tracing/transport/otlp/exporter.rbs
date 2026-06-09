@@ -1,0 +1,29 @@
+module Datadog
+  module Tracing
+    module Transport
+      module OTLP
+        class Exporter
+          CONTENT_TYPE: String
+
+          @uri: URI::Generic
+          @headers: Hash[String, String]
+          @timeout_seconds: Float
+          @logger: untyped
+
+          attr_reader uri: URI::Generic
+          attr_reader headers: Hash[String, String]
+          attr_reader timeout_seconds: Float
+          attr_reader logger: untyped
+
+          def initialize: (endpoint: String, headers: Hash[String, String]?, timeout_millis: Integer, logger: untyped) -> void
+
+          def export: (String payload) -> bool
+
+          private
+
+          def request_path: () -> String
+        end
+      end
+    end
+  end
+end

@@ -35,6 +35,8 @@ module Datadog
           TAG_ORIGIN: ::String
           TAG_SAMPLING_PRIORITY: ::String
           TAGS_PREFIX: ::String
+          TID: ::String
+          TAG_TID: ::String
         end
 
         module Errors

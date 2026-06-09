@@ -1,0 +1,72 @@
+module Datadog
+  module Tracing
+    module Transport
+      module OTLP
+        class Encoder
+          SPAN_KIND_UNSPECIFIED: Integer
+          SPAN_KIND_INTERNAL: Integer
+          SPAN_KIND_SERVER: Integer
+          SPAN_KIND_CLIENT: Integer
+          SPAN_KIND_PRODUCER: Integer
+          SPAN_KIND_CONSUMER: Integer
+
+          STATUS_CODE_UNSET: Integer
+          STATUS_CODE_ERROR: Integer
+
+          SPAN_KIND_BY_META: Hash[String, Integer]
+          SPAN_KIND_BY_TYPE: Hash[String, Integer]
+
+          MIN_INT64: Integer
+          MAX_INT64: Integer
+
+          INSTRUMENTATION_SCOPE_NAME: String
+
+          SPAN_KIND_META: String
+          ERROR_MSG_META: String
+          TID_META: String
+          EXCLUDED_META_KEYS: Array[String]
+
+          @resource_attributes: Array[Hash[Symbol, untyped]]
+          @scope_version: String?
+          @default_service: String?
+
+          def initialize: (resource_attributes: Array[Hash[Symbol, untyped]], ?scope_version: String?, ?default_service: String?) -> void
+
+          def encode: (untyped trace) -> String
+
+          def payload: (untyped trace) -> Hash[Symbol, untyped]
+
+          private
+
+          def encode_span: (untyped span, String? trace_id_high) -> Hash[Symbol, untyped]
+
+          def attributes: (untyped span) -> Array[Hash[Symbol, untyped]]
+
+          def encode_link: (untyped link) -> Hash[Symbol, untyped]
+
+          def encode_event: (untyped event) -> Hash[Symbol, untyped]
+
+          def any_value: (untyped value) -> Hash[Symbol, untyped]
+
+          def numeric_value: (Numeric value) -> Hash[Symbol, untyped]
+
+          def integer_value: (Integer value) -> Hash[Symbol, untyped]
+
+          def span_kind: (untyped span) -> Integer
+
+          def status: (untyped span) -> Hash[Symbol, untyped]
+
+          def trace_id_hex: (Integer trace_id, String? trace_id_high) -> String
+
+          def id_hex: (Integer id) -> String
+
+          def start_time_nano: (untyped span) -> Integer
+
+          def end_time_nano: (untyped span) -> Integer
+
+          def string_attribute: (String key, untyped value) -> Hash[Symbol, untyped]
+        end
+      end
+    end
+  end
+end

@@ -643,6 +643,122 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
+    describe '#otlp' do
+      describe '#exporter' do
+        subject(:exporter) { settings.tracing.otlp.exporter }
+
+        context "when #{Datadog::Tracing::Configuration::Ext::OTLP::ENV_TRACES_EXPORTER}" do
+          around do |example|
+            ClimateControl.modify(
+              Datadog::Tracing::Configuration::Ext::OTLP::ENV_TRACES_EXPORTER => environment
+            ) { example.run }
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be nil }
+          end
+
+          context 'is set to otlp' do
+            let(:environment) { 'otlp' }
+
+            it { is_expected.to eq('otlp') }
+          end
+        end
+      end
+
+      describe '#endpoint' do
+        subject(:endpoint) { settings.tracing.otlp.endpoint }
+
+        context "when #{Datadog::Tracing::Configuration::Ext::OTLP::ENV_TRACES_ENDPOINT}" do
+          around do |example|
+            ClimateControl.modify(
+              Datadog::Tracing::Configuration::Ext::OTLP::ENV_TRACES_ENDPOINT => 'http://collector:4318/v1/traces'
+            ) { example.run }
+          end
+
+          it { is_expected.to eq('http://collector:4318/v1/traces') }
+        end
+
+        context 'by default' do
+          it { is_expected.to be nil }
+        end
+      end
+
+      describe '#endpoint_fallback' do
+        subject(:endpoint_fallback) { settings.tracing.otlp.endpoint_fallback }
+
+        context "when #{Datadog::Tracing::Configuration::Ext::OTLP::ENV_ENDPOINT}" do
+          around do |example|
+            ClimateControl.modify(
+              Datadog::Tracing::Configuration::Ext::OTLP::ENV_ENDPOINT => 'http://collector:4318'
+            ) { example.run }
+          end
+
+          it { is_expected.to eq('http://collector:4318') }
+        end
+      end
+
+      describe '#headers' do
+        subject(:headers) { settings.tracing.otlp.headers }
+
+        context "when #{Datadog::Tracing::Configuration::Ext::OTLP::ENV_TRACES_HEADERS}" do
+          around do |example|
+            ClimateControl.modify(
+              Datadog::Tracing::Configuration::Ext::OTLP::ENV_TRACES_HEADERS => environment
+            ) { example.run }
+          end
+
+          context 'has comma-separated key=value pairs' do
+            let(:environment) { 'api-key=secret, x-tenant = acme ' }
+
+            it 'parses and trims the header pairs' do
+              is_expected.to eq('api-key' => 'secret', 'x-tenant' => 'acme')
+            end
+          end
+
+          context 'is malformed' do
+            let(:environment) { 'no-equals-sign' }
+
+            it { is_expected.to eq({}) }
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be nil }
+          end
+        end
+      end
+
+      describe '#timeout_millis_fallback' do
+        subject(:timeout) { settings.tracing.otlp.timeout_millis_fallback }
+
+        context 'by default' do
+          it { is_expected.to eq(10_000) }
+        end
+
+        context "when #{Datadog::Tracing::Configuration::Ext::OTLP::ENV_TIMEOUT}" do
+          around do |example|
+            ClimateControl.modify(
+              Datadog::Tracing::Configuration::Ext::OTLP::ENV_TIMEOUT => '2000'
+            ) { example.run }
+          end
+
+          it { is_expected.to eq(2000) }
+        end
+      end
+
+      describe '#protocol_fallback' do
+        subject(:protocol) { settings.tracing.otlp.protocol_fallback }
+
+        context 'by default' do
+          it { is_expected.to eq('http/json') }
+        end
+      end
+    end
+
     describe '#sampler' do
       subject(:sampler) { settings.tracing.sampler }
 

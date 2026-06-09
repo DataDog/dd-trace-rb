@@ -7,6 +7,9 @@ require_relative 'sampling/span/rule_parser'
 require_relative 'sampling/span/sampler'
 require_relative 'diagnostics/environment_logger'
 require_relative 'contrib/component'
+require_relative 'configuration/ext'
+require_relative 'transport/otlp'
+require_relative '../core/environment/variable_helpers'
 
 module Datadog
   module Tracing
@@ -104,7 +107,34 @@ module Datadog
           return writer
         end
 
+        if otlp_trace_export_enabled?(settings)
+          transport = Tracing::Transport::OTLP.build(
+            settings: settings,
+            agent_settings: agent_settings,
+            logger: Datadog.logger,
+          )
+          return Tracing::Writer.new(agent_settings: agent_settings, transport: transport, **options)
+        end
+
         Tracing::Writer.new(agent_settings: agent_settings, **options)
+      end
+
+      # OTLP trace export is enabled only when `OTEL_TRACES_EXPORTER=otlp` and the agent trace
+      # transport protocol version has not been explicitly selected via
+      # `DD_TRACE_AGENT_PROTOCOL_VERSION` (which forces the Datadog agent transport).
+      def otlp_trace_export_enabled?(settings)
+        return false unless settings.tracing.otlp.exporter == Tracing::Configuration::Ext::OTLP::EXPORTER_OTLP
+
+        protocol_version = DATADOG_ENV[Tracing::Configuration::Ext::Transport::ENV_AGENT_PROTOCOL_VERSION]
+        if protocol_version && !protocol_version.empty?
+          Datadog.logger.info(
+            "OTEL_TRACES_EXPORTER=otlp is ignored because #{Tracing::Configuration::Ext::Transport::ENV_AGENT_PROTOCOL_VERSION}" \
+            "=#{protocol_version} forces the Datadog agent trace transport. OTLP trace export is disabled."
+          )
+          return false
+        end
+
+        true
       end
 
       def subscribe_to_writer_events!(writer, sampler_delegator, test_mode)
