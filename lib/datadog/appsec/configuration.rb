@@ -138,7 +138,7 @@ module Datadog
               option :body_parsing_size_limit do |o|
                 o.type :int
                 o.env 'DD_APPSEC_BODY_PARSING_SIZE_LIMIT' # bytes
-                o.default 1_048_576
+                o.default 10_485_760
               end
 
               option :waf_debug do |o|
