@@ -267,7 +267,9 @@ RSpec.describe 'Method probe dispatch semantics' do
 
     before do
       skip "Ractor requires Ruby 3.0+" if RUBY_VERSION < "3.0"
-      skip "Ractor was removed/renamed in Ruby 4.0" if RUBY_VERSION >= "4.0"
+      # Ruby 3.0 Ractors have known bugs causing CI instability — matches the skip
+      # pattern used in spec/datadog/profiling/native_extension_spec.rb.
+      skip "Ruby 3.0 Ractors are too buggy to run this spec" if RUBY_VERSION.start_with?("3.0.")
     end
 
     after { instrumenter.unhook(probe) if probe }
@@ -295,7 +297,9 @@ RSpec.describe 'Method probe dispatch semantics' do
         else
           [:ok, nil, nil]
         end
-        result = ractor.take
+        # Ractor#take was replaced by Ractor#value in Ruby 4.0; matches the
+        # version-conditional pattern from spec/datadog/profiling/native_extension_spec.rb.
+        result = (RUBY_VERSION < "4") ? ractor.take : ractor.value
         error_class = result[1]
       ensure
         $VERBOSE = verbose_was
@@ -330,7 +334,7 @@ RSpec.describe 'Method probe dispatch semantics' do
         rescue
           :error
         end
-        ractor.take
+        (RUBY_VERSION < "4") ? ractor.take : ractor.value
       ensure
         $VERBOSE = verbose_was
       end
@@ -352,7 +356,7 @@ RSpec.describe 'Method probe dispatch semantics' do
         rescue
           nil
         end
-        ractor.take
+        (RUBY_VERSION < "4") ? ractor.take : ractor.value
       ensure
         $VERBOSE = verbose_was
       end
