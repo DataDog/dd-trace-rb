@@ -228,8 +228,12 @@ RSpec.describe 'Method probe dispatch semantics' do
       yielded = fiber.resume
       expect(yielded).to eq('orphan')
 
-      # Abandon the fiber. It will not be resumed and will be GC'd.
-      fiber = nil
+      # Abandon the fiber by dropping the local-variable reference so the
+      # subsequent GC.start can actually collect it. StandardRB flags the
+      # assignment as useless because the variable is never read again,
+      # but the dead-store is the entire point — it's what makes the fiber
+      # collectable.
+      fiber = nil # standard:disable Lint/UselessAssignment
       GC.start
 
       # A subsequent firing on the parent fiber should produce a
@@ -285,13 +289,11 @@ RSpec.describe 'Method probe dispatch semantics' do
         verbose_was = $VERBOSE
         $VERBOSE = nil
         ractor = Ractor.new do
-          begin
-            RactorDispatchFixture.new.value(21)
-          rescue => e
-            [:error, e.class.name, e.message]
-          else
-            [:ok, nil, nil]
-          end
+          RactorDispatchFixture.new.value(21)
+        rescue => e
+          [:error, e.class.name, e.message]
+        else
+          [:ok, nil, nil]
         end
         result = ractor.take
         error_class = result[1]
@@ -323,12 +325,10 @@ RSpec.describe 'Method probe dispatch semantics' do
       $VERBOSE = nil
       begin
         ractor = Ractor.new do
-          begin
-            RactorDispatchFixture.new.value(7)
-            :ok
-          rescue
-            :error
-          end
+          RactorDispatchFixture.new.value(7)
+          :ok
+        rescue
+          :error
         end
         ractor.take
       ensure
@@ -348,11 +348,9 @@ RSpec.describe 'Method probe dispatch semantics' do
       $VERBOSE = nil
       begin
         ractor = Ractor.new do
-          begin
-            RactorDispatchFixture.new.value(7)
-          rescue
-            nil
-          end
+          RactorDispatchFixture.new.value(7)
+        rescue
+          nil
         end
         ractor.take
       ensure
