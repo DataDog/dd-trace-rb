@@ -4,14 +4,15 @@
 # Typical result (Intel Core Ultra 7 165U, Ruby 3.2.3, intel_pstate/no_turbo=1
 # locking P-cores at 1.7 GHz base, taskset -c 2,3 pinning to one P-core):
 #
-# Comparison:
-#       no instrumentation - again:   242268.1 i/s
-#   line instrumentation - cleared:   242757.1 i/s - same-ish: within error
-#               no instrumentation:   240234.8 i/s - same-ish: within error
-# method instrumentation - cleared:   234189.2 i/s - same-ish: within error
-#           method instrumentation:   138017.6 i/s - 1.74x  slower
-#  line instrumentation - targeted:   117677.4 i/s - 2.04x  slower
-# line instrumentation - untargeted:   25021.7 i/s - 9.60x  slower
+# Reports in execution order, with i/s and slowdown vs. the initial baseline:
+#
+#               no instrumentation:   240234.8 i/s   1.00x  (baseline)
+#           method instrumentation:   138017.6 i/s   1.74x  slower
+# line instrumentation - untargeted:   25021.7 i/s   9.60x  slower
+#  line instrumentation - targeted:   117677.4 i/s   2.04x  slower
+# method instrumentation - cleared:   234189.2 i/s   1.03x  slower (within error)
+#   line instrumentation - cleared:   242757.1 i/s   0.99x  faster (within error)
+#       no instrumentation - again:   242268.1 i/s   0.99x  faster (within error)
 #
 # Per-report error bands were +/- 1.4% to 2.2% on all configurations except
 # untargeted line (+/- 5.1%, which is intrinsic to its 40 us/iteration cost
