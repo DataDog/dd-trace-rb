@@ -621,7 +621,7 @@ RSpec.describe 'Instrumentation integration' do
             payload = payload_
           end
 
-          greeting = String.new('hello world')
+          greeting = +'hello world'
           InstrumentationSpecTestClass.new.mutating_method(greeting)
           # Confirm the method mutated the arg.
           expect(greeting).to eq('bye world')
@@ -662,7 +662,7 @@ RSpec.describe 'Instrumentation integration' do
             payload = payload_
           end
 
-          InstrumentationSpecTestClass.new.mutating_method(String.new('hello world'))
+          InstrumentationSpecTestClass.new.mutating_method(+'hello world')
           component.probe_notifier_worker.flush
 
           captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
