@@ -77,7 +77,10 @@ module Datadog
 
           if ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, :nanosecond) >= deadline_ns
             output[name] = {notCapturedReason: "timeout"}
-            telemetry&.inc(TELEMETRY_NAMESPACE, "capture_expression_timeout", 1)
+            # Counter is per-expression: a single probe fire with N expressions
+            # that all time out increments by N. The metric name reflects the
+            # unit ("expressions skipped"), not "fires timed out".
+            telemetry&.inc(TELEMETRY_NAMESPACE, "capture_expressions_skipped_by_timeout", 1)
             next
           end
 
