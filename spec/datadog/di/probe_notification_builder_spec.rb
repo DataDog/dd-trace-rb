@@ -756,12 +756,12 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           capture_expressions: [capture_expression])
       end
 
-      it 'emits captureExpressions under both entry and return blocks' do
+      it 'emits captureExpressions in the return block and omits the entry block' do
         payload = builder.build_snapshot(context)
         captures = payload[:debugger][:snapshot][:captures]
-        expect(captures[:entry][:captureExpressions].keys).to eq(["x"])
+        expect(captures).not_to have_key(:entry)
         expect(captures[:return][:captureExpressions].keys).to eq(["x"])
-        expect(captures[:entry][:captureExpressions]["x"]).to include(type: "Integer", value: "42")
+        expect(captures[:return][:captureExpressions]["x"]).to include(type: "Integer", value: "42")
       end
     end
 

@@ -137,8 +137,15 @@ module Datadog
           captured_block, capture_expression_evaluation_errors =
             capture_expression_evaluator.evaluate(probe, context)
           if probe.method?
+            # Capture expressions are evaluated once, at method return — the
+            # only point where args, kwargs, self, @return, and exception are
+            # all observable. The snapshot schema's entry/return split exists
+            # for captureSnapshot, which freezes args before super and reads
+            # self/@return after. captureExpressions has no entry-time
+            # evaluation, so we do not emit an entry block — populating it
+            # with the return-time captured_block would mislabel exit-time
+            # data as entry-time state.
             {
-              entry: {captureExpressions: captured_block},
               return: {
                 captureExpressions: captured_block,
                 throwable: context.exception ? serialize_throwable(context.exception) : nil,

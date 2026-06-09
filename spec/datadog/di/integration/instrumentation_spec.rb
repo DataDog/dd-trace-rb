@@ -591,9 +591,8 @@ RSpec.describe 'Instrumentation integration' do
           expect(captures.fetch(:return).fetch(:captureExpressions)).to eq(
             "arg1" => {type: 'Integer', value: '7'},
           )
-          expect(captures.fetch(:entry).fetch(:captureExpressions)).to eq(
-            "arg1" => {type: 'Integer', value: '7'},
-          )
+          # Capture expressions are evaluated once at return; no entry block is emitted.
+          expect(captures).not_to have_key(:entry)
         end
       end
 
@@ -653,7 +652,7 @@ RSpec.describe 'Instrumentation integration' do
           }
         end
 
-        it 'emits notCapturedReason:timeout stubs for the expressions in both entry and return blocks' do
+        it 'emits notCapturedReason:timeout stubs in the return block' do
           expect(diagnostics_transport).to receive(:send_diagnostics)
           probe_manager.add_probe(probe)
           payload = nil
@@ -668,9 +667,7 @@ RSpec.describe 'Instrumentation integration' do
           expect(captures.fetch(:return).fetch(:captureExpressions)).to eq(
             "arg1" => {notCapturedReason: "timeout"},
           )
-          expect(captures.fetch(:entry).fetch(:captureExpressions)).to eq(
-            "arg1" => {notCapturedReason: "timeout"},
-          )
+          expect(captures).not_to have_key(:entry)
         end
       end
 
@@ -707,12 +704,9 @@ RSpec.describe 'Instrumentation integration' do
           snapshot = payload.fetch(:debugger).fetch(:snapshot)
           captures = snapshot.fetch(:captures)
           expect(captures.fetch(:return).fetch(:captureExpressions)).to eq({})
-          expect(captures.fetch(:entry).fetch(:captureExpressions)).to eq({})
+          expect(captures).not_to have_key(:entry)
 
           evaluation_errors = snapshot.fetch(:evaluationErrors)
-          # Both entry and return paths run the expression — each surfaces
-          # its own error entry, so we expect at least one with this name
-          # and message shape.
           matching = evaluation_errors.select { |e| e[:expr] == 'bad_len' }
           expect(matching).not_to be_empty
           expect(matching.first[:message]).to include('ExpressionEvaluationError')
