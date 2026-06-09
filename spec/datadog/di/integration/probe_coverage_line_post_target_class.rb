@@ -7,7 +7,7 @@
 # per-case-fixture rationale.
 class ProbeCoverageLinePostTargetClass
   def target_method
-    answer = 42 # line 10 — line-probe target
+    answer = 42 # line 10 — line-probe target # standard:disable Style/RedundantAssignment
     answer
   end
 end
