@@ -274,7 +274,9 @@ module Datadog
               # arg references when the probe has capture expressions; values
               # may reflect in-place mutation by the method body, matching the
               # return-time scope semantics.
-              capture_expression_locals = if probe.capture_expressions?
+              # Skip when capture_snapshot is also set — the snapshot wins at
+              # build time, so the combined hash would be discarded.
+              capture_expression_locals = if probe.capture_expressions? && !probe.capture_snapshot?
                 serializer.combine_args(args, kwargs, self)
               end
               context = Context.new(locals: capture_expression_locals, target_self: self,

@@ -158,8 +158,57 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
 
       it "increments the timeout telemetry counter for each timed-out expression" do
         expect(telemetry).to receive(:inc).with(
-          "dynamic_instrumentation", "capture_expression_timeout", 1,
+          "dynamic_instrumentation", "capture_expressions_skipped_by_timeout", 1,
         ).twice
+        evaluator.evaluate(probe, context)
+      end
+    end
+
+    context "time budget exhausted mid-loop after some expressions have evaluated" do
+      before do
+        allow(di_settings).to receive(:max_time_to_serialize_ms).and_return(100)
+        # Stub the clock so the deadline calculation sees t=0, the first
+        # iteration's check sees t=0 (under deadline of 100ms in ns), and
+        # the second iteration's check sees t=200ms in ns (past deadline).
+        # Targets only the :nanosecond variant the evaluator uses; other
+        # callers (Time.now via :float_second, etc.) fall through to the
+        # real implementation.
+        clock_calls = 0
+        clock_returns = [0, 0, 200_000_000]
+        allow(::Process).to receive(:clock_gettime).and_wrap_original do |original, *args|
+          if args == [::Process::CLOCK_MONOTONIC, :nanosecond]
+            clock_returns[clock_calls].tap { clock_calls += 1 }
+          else
+            original.call(*args)
+          end
+        end
+      end
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "p1", type: :log, type_name: "F", method_name: "m",
+          capture_expressions: [
+            Datadog::DI::CaptureExpression.new(
+              name: "x", expr: compile_expression("x", {"ref" => "x"}),
+            ),
+            Datadog::DI::CaptureExpression.new(
+              name: "y", expr: compile_expression("name", {"ref" => "name"}),
+            ),
+          ],
+        )
+      end
+
+      it "evaluates the first expression and times out the second" do
+        output, errors = evaluator.evaluate(probe, context)
+        expect(output["x"]).to include(type: "Integer", value: "42")
+        expect(output["y"]).to eq(notCapturedReason: "timeout")
+        expect(errors).to eq([])
+      end
+
+      it "increments the timeout counter only for the timed-out expression" do
+        expect(telemetry).to receive(:inc).with(
+          "dynamic_instrumentation", "capture_expressions_skipped_by_timeout", 1,
+        ).once
         evaluator.evaluate(probe, context)
       end
     end
