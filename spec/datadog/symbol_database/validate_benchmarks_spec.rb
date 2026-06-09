@@ -14,7 +14,21 @@ RSpec.describe 'Symbol Database benchmarks' do
   benchmarks_to_validate.each do |benchmark|
     describe benchmark do
       it 'runs without raising errors' do
-        expect_in_fork do
+        # DIAGNOSTIC: bump timeout and print fork stderr on success so the
+        # baseline_matrix benchmark's per-phase timing trace surfaces in CI logs.
+        # Default expect_in_fork captures stderr into a tempfile and discards it
+        # on success, hiding the trace. Restore the default once CI timing is
+        # understood.
+        expect_in_fork(
+          timeout_seconds: 60,
+          fork_expectations: proc { |status:, stdout:, stderr:|
+            warn "=== fork stderr from #{benchmark} ==="
+            warn stderr
+            warn "=== end fork stderr from #{benchmark} ==="
+            expect(status && status.success?).to be(true),
+              "Status:#{status.inspect} STDOUT:`#{stdout}` STDERR:`#{stderr}`"
+          }
+        ) do
           load "./benchmarks/#{benchmark}.rb"
         end
       end
