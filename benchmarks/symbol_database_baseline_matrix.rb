@@ -73,13 +73,19 @@ class SymbolDatabaseBaselineMatrixBenchmark
   end
 
   def run
+    @trace_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    trace('run start')
     Dir.mktmpdir('symdb_matrix_') do |dir|
       generate_class_files(dir)
+      trace('generated class files')
       load_class_files(dir)
+      trace('loaded class files')
 
       @cpu_chunk_seconds = calibrate_cpu_chunk
+      trace("calibrated cpu_chunk_seconds=#{@cpu_chunk_seconds}")
 
       results = measure_matrix
+      trace('measure_matrix done')
       results[:class_count] = CLASS_COUNT
       results[:window_seconds] = WINDOW_SECONDS
       results[:cpu_chunk_seconds] = @cpu_chunk_seconds
@@ -88,8 +94,16 @@ class SymbolDatabaseBaselineMatrixBenchmark
       results[:platform] = RUBY_PLATFORM
 
       emit(results)
+      trace('run end')
       results
     end
+  end
+
+  # DIAGNOSTIC: stderr timing trace to locate the >10s phase in CI validate runs.
+  # Remove once the CI timeout issue is resolved.
+  def trace(label)
+    elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - @trace_start
+    warn format('[t+%6.3fs] %s', elapsed, label)
   end
 
   private
@@ -146,13 +160,19 @@ class SymbolDatabaseBaselineMatrixBenchmark
     # cold-start costs the later arms have already amortized.
     warmup_duration = VALIDATE_BENCHMARK_MODE ? 0.01 : 1.0
     run_arm(75, warmup_duration, extractor: nil)
+    trace('warmup arm done')
     3.times { GC.start }
+    trace('post-warmup GC done')
 
     arms = {}
     BASELINES.each do |baseline_pct|
+      trace("baseline=#{baseline_pct} starting no_extractor arm")
       no_extractor = run_arm(baseline_pct, WINDOW_SECONDS, extractor: nil)
+      trace("baseline=#{baseline_pct} no_extractor arm done")
       3.times { GC.start }
+      trace("baseline=#{baseline_pct} starting with_extractor arm")
       with_extractor = run_arm(baseline_pct, WINDOW_SECONDS, extractor: extractor)
+      trace("baseline=#{baseline_pct} with_extractor arm done")
       3.times { GC.start }
 
       base_ops = no_extractor[:ops_per_sec].to_f
@@ -208,6 +228,7 @@ class SymbolDatabaseBaselineMatrixBenchmark
 
     if bg
       stop_bg = true
+      bg_stop_t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       # Cap how long we wait for the bg thread to finish its current
       # extract_all. With the throttle (sleep every N modules), one iteration
       # can take seconds on a process with many loaded modules — the
@@ -215,10 +236,16 @@ class SymbolDatabaseBaselineMatrixBenchmark
       # iteration rather than block the run. Without this cap, validate-mode
       # runs (10 arms × bg.value across the matrix) can blow past
       # expect_in_fork's 10s timeout on slower CI Rubies.
-      unless bg.join(0.5)
+      joined = bg.join(0.5)
+      bg_stop_join_dt = Process.clock_gettime(Process::CLOCK_MONOTONIC) - bg_stop_t0
+      unless joined
         bg.kill
         bg.join
       end
+      bg_stop_total_dt = Process.clock_gettime(Process::CLOCK_MONOTONIC) - bg_stop_t0
+      warn format('[t+%6.3fs]   run_arm baseline=%d bg_join_dt=%.3fs joined=%s bg_total_stop_dt=%.3fs',
+        Process.clock_gettime(Process::CLOCK_MONOTONIC) - @trace_start,
+        baseline_pct, bg_stop_join_dt, joined.inspect, bg_stop_total_dt)
     end
 
     wall_seconds = wall_end - wall_start
