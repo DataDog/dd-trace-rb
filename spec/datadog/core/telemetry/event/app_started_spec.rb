@@ -219,9 +219,18 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       # form so the parsed value carries the sentinel. Options that aren't
       # string-settable (e.g. an opaque object like `logger.instance`) are excluded
       # here and instead covered by the name-absence assertion below.
+      #
+      # Only env-configurable options (those with a declared `env`) get a value sentinel.
+      # Options without an `env` are not user-configurable: they are set programmatically
+      # and consumed structurally (e.g. `tracing.writer_options` is splatted as keyword
+      # arguments into a writer), so a string-keyed sentinel hash would break component
+      # building rather than exercise the value-absence path. Those options are still
+      # covered by the name-absence assertion below.
       let(:string_settable_sentinels) do
         sentinels = {}
         skip_telemetry_options.each_with_index do |option, index|
+          next unless option.definition.env
+
           sentinel = "SENTINEL_SKIP_TELEMETRY_#{index}"
           case option.definition.type
           when :string
