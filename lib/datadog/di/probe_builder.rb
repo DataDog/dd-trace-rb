@@ -34,6 +34,16 @@ module Datadog
       # in DataDog/dd-go declares pattern "^[a-zA-Z0-9_?]+$".
       CAPTURE_EXPRESSION_NAME_PATTERN = /\A[a-zA-Z0-9_?]+\z/
 
+      # Permitted values for the RC payload's `evaluateAt` field. Backend
+      # schema (DataDog/dd-go live-debugging.json) also accepts "DEFAULT"
+      # for Java compatibility; we normalize that to :exit at parse time to
+      # match the libdatadog default.
+      EVALUATE_AT_STRINGS = {
+        "ENTRY" => :entry,
+        "EXIT" => :exit,
+        "DEFAULT" => :exit,
+      }.freeze
+
       def build_from_remote_config(config)
         # The validations here are not yet comprehensive.
         type = config.fetch('type')
@@ -75,6 +85,7 @@ module Datadog
           max_capture_collection_size: config["capture"]&.[]("maxCollectionSize"),
           max_capture_string_length: config["capture"]&.[]("maxLength"),
           capture_expressions: capture_expressions,
+          evaluate_at: parse_evaluate_at(config["evaluateAt"], config["id"]),
           rate_limit: config["sampling"]&.[]("snapshotsPerSecond"),
           condition: cond,
         )
@@ -137,6 +148,26 @@ module Datadog
           max_length: raw['maxLength'],
           max_field_count: raw['maxFieldCount'],
         )
+      end
+
+      # Parses the RC payload's `evaluateAt` string into the
+      # +Datadog::DI::Probe+ symbol form. "ENTRY" → :entry, "EXIT" → :exit,
+      # "DEFAULT" → :exit (Java sends this; libdatadog also treats it as
+      # Exit). Absent or unrecognized values coerce to :exit and emit a
+      # debug log; the runtime never raises on an unknown evaluateAt because
+      # such payloads should still install as conventional EXIT-timed probes.
+      #
+      # @param raw [String, nil] raw `evaluateAt` value from the RC payload.
+      # @param probe_id [String, nil] probe id for the diagnostic log line.
+      # @return [Symbol] :entry or :exit.
+      def parse_evaluate_at(raw, probe_id)
+        return :exit if raw.nil?
+        EVALUATE_AT_STRINGS[raw] || begin
+          Datadog.logger.debug do
+            "di: probe #{probe_id}: unrecognized evaluateAt value #{raw.inspect}, defaulting to :exit"
+          end
+          :exit
+        end
       end
 
       def build_template_segments(segments)

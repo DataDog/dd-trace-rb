@@ -258,6 +258,69 @@ RSpec.describe Datadog::DI::Probe do
     end
   end
 
+  describe "evaluate_at" do
+    context "omitted" do
+      let(:probe) do
+        described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar")
+      end
+
+      it "defaults to :exit" do
+        expect(probe.evaluate_at).to eq(:exit)
+      end
+    end
+
+    context "explicitly nil" do
+      let(:probe) do
+        described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar",
+          evaluate_at: nil)
+      end
+
+      it "coerces to :exit" do
+        expect(probe.evaluate_at).to eq(:exit)
+      end
+    end
+
+    context ":entry" do
+      let(:probe) do
+        described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar",
+          evaluate_at: :entry)
+      end
+
+      it "is stored as :entry" do
+        expect(probe.evaluate_at).to eq(:entry)
+      end
+    end
+
+    context ":exit" do
+      let(:probe) do
+        described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar",
+          evaluate_at: :exit)
+      end
+
+      it "is stored as :exit" do
+        expect(probe.evaluate_at).to eq(:exit)
+      end
+    end
+
+    context "unknown symbol" do
+      it "raises ArgumentError" do
+        expect do
+          described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar",
+            evaluate_at: :before)
+        end.to raise_error(ArgumentError, /Unknown evaluate_at value/)
+      end
+    end
+
+    context "unknown String value" do
+      it "raises ArgumentError" do
+        expect do
+          described_class.new(id: "42", type: :log, type_name: "Foo", method_name: "bar",
+            evaluate_at: "ENTRY")
+        end.to raise_error(ArgumentError, /Unknown evaluate_at value/)
+      end
+    end
+  end
+
   describe "#location" do
     context "method probe" do
       include_context "method probe"

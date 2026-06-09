@@ -330,5 +330,67 @@ RSpec.describe Datadog::DI::ProbeBuilder do
         end
       end
     end
+
+    describe "evaluateAt parsing" do
+      let(:base_spec) do
+        {"id" => "42", "type" => "LOG_PROBE",
+         "where" => {"typeName" => "Foo", "methodName" => "bar"}}
+      end
+
+      context "absent" do
+        let(:rc_probe_spec) { base_spec }
+
+        it "defaults probe.evaluate_at to :exit" do
+          expect(probe.evaluate_at).to eq(:exit)
+        end
+      end
+
+      context "explicit nil" do
+        let(:rc_probe_spec) { base_spec.merge("evaluateAt" => nil) }
+
+        it "defaults probe.evaluate_at to :exit" do
+          expect(probe.evaluate_at).to eq(:exit)
+        end
+      end
+
+      context "\"ENTRY\"" do
+        let(:rc_probe_spec) { base_spec.merge("evaluateAt" => "ENTRY") }
+
+        it "maps to :entry" do
+          expect(probe.evaluate_at).to eq(:entry)
+        end
+      end
+
+      context "\"EXIT\"" do
+        let(:rc_probe_spec) { base_spec.merge("evaluateAt" => "EXIT") }
+
+        it "maps to :exit" do
+          expect(probe.evaluate_at).to eq(:exit)
+        end
+      end
+
+      context "\"DEFAULT\" (Java sends this)" do
+        let(:rc_probe_spec) { base_spec.merge("evaluateAt" => "DEFAULT") }
+
+        it "maps to :exit (matching libdatadog default)" do
+          expect(probe.evaluate_at).to eq(:exit)
+        end
+      end
+
+      context "unrecognized string" do
+        let(:rc_probe_spec) { base_spec.merge("evaluateAt" => "AROUND") }
+
+        it "falls back to :exit" do
+          expect(probe.evaluate_at).to eq(:exit)
+        end
+
+        it "logs a debug message naming the bad value" do
+          expect(Datadog.logger).to receive(:debug) do |&block|
+            expect(block.call).to match(/unrecognized evaluateAt value "AROUND"/)
+          end
+          probe
+        end
+      end
+    end
   end
 end

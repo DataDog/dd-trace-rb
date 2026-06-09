@@ -34,6 +34,13 @@ module Datadog
     class Probe
       KNOWN_TYPES = %i[log].freeze
 
+      # Permitted values for the +evaluate_at+ constructor argument.
+      # +:exit+ is the default applied when +nil+ is passed (this matches the
+      # libdatadog ProbeCommon JSON-parse default of EvaluateAt::Exit, which
+      # PHP shares; Python's Snapshot._timing also resolves DEFAULT to EXIT
+      # for log probes).
+      EVALUATE_AT_VALUES = %i[entry exit].freeze
+
       def initialize(id:, type:,
         file: nil, line_no: nil, type_name: nil, method_name: nil,
         template: nil, template_segments: nil,
@@ -41,6 +48,7 @@ module Datadog
         max_capture_attribute_count: nil,
         max_capture_collection_size: nil, max_capture_string_length: nil,
         capture_expressions: [],
+        evaluate_at: nil,
         condition: nil,
         rate_limit: nil)
         # Perform some sanity checks here to detect unexpected attribute
@@ -87,6 +95,16 @@ module Datadog
         @max_capture_collection_size = max_capture_collection_size
         @max_capture_string_length = max_capture_string_length
         @capture_expressions = capture_expressions || []
+        # Per-expression evaluation timing on method probes. nil from the
+        # RC payload (or the constructor default) coerces to +:exit+, matching
+        # the libdatadog ProbeCommon JSON-parse default (EvaluateAt::Exit).
+        # Unknown symbols are rejected at construction. Line probes ignore
+        # this value (single firing point at the TracePoint callback).
+        evaluate_at = :exit if evaluate_at.nil?
+        unless EVALUATE_AT_VALUES.include?(evaluate_at)
+          raise ArgumentError, "Unknown evaluate_at value: #{evaluate_at.inspect} (expected one of #{EVALUATE_AT_VALUES.inspect})"
+        end
+        @evaluate_at = evaluate_at
         @condition = condition
 
         # Capture-expression probes are charged against the snapshot rate-limit
@@ -143,6 +161,13 @@ module Datadog
       #
       # @return [Array<Datadog::DI::CaptureExpression>]
       attr_reader :capture_expressions
+
+      # Per-expression evaluation timing for method probes. One of
+      # +:entry+ / +:exit+. Defaults to +:exit+ (matching libdatadog's
+      # ProbeCommon JSON-parse default). Ignored by line probes.
+      #
+      # @return [Symbol]
+      attr_reader :evaluate_at
 
       # Rate limit in effect, in invocations per second. Always present.
       attr_reader :rate_limit

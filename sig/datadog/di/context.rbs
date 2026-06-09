@@ -17,13 +17,16 @@ module Datadog
 
       @serialized_entry_args: Hash[Symbol, untyped]?
 
+      @entry_capture_expressions: Hash[String, untyped]?
+      @entry_capture_evaluation_errors: Array[Hash[Symbol, String]]?
+
       @return_value: untyped
 
       @duration: Float?
 
       @exception: Exception?
 
-      def initialize: (probe: Probe, settings: Datadog::Core::Configuration::Settings, serializer: Serializer, ?locals: Hash[Symbol, untyped]?, ?target_self: untyped?, ?path: String?, ?caller_locations: Array[Thread::Backtrace::Location]?, ?serialized_entry_args: Hash[Symbol, untyped]?, ?return_value: untyped?, ?duration: Float?, ?exception: Exception?) -> void
+      def initialize: (probe: Probe, settings: Datadog::Core::Configuration::Settings, serializer: Serializer, ?locals: Hash[Symbol, untyped]?, ?target_self: untyped?, ?path: String?, ?caller_locations: Array[Thread::Backtrace::Location]?, ?serialized_entry_args: Hash[Symbol, untyped]?, ?entry_capture_expressions: Hash[String, untyped]?, ?entry_capture_evaluation_errors: Array[Hash[Symbol, String]]?, ?return_value: untyped?, ?duration: Float?, ?exception: Exception?) -> void
 
       attr_reader probe: Probe
 
@@ -38,6 +41,8 @@ module Datadog
       attr_reader caller_locations: Array[Thread::Backtrace::Location]?
 
       attr_reader serialized_entry_args: Hash[Symbol, untyped]?
+      attr_reader entry_capture_expressions: Hash[String, untyped]?
+      attr_reader entry_capture_evaluation_errors: Array[Hash[Symbol, String]]?
       attr_reader return_value: untyped
       attr_reader duration: Float?
       attr_reader exception: Exception?
