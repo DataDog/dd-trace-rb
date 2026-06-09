@@ -33,6 +33,7 @@ module Datadog
             waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
             otel_context_enabled: otel_context_enabled,
             native_filenames_enabled: validate_native_filenames(native_filenames_enabled),
+            overhead_filename: __FILE__,
           )
         end
 

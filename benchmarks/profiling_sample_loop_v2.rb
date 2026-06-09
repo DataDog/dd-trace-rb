@@ -11,10 +11,6 @@ require 'os'
 VARYING_DEPTH_DEFAULT = 2900
 
 class ProfilerSampleLoopBenchmark
-  # This is needed because we're directly invoking the collector through a testing interface; in normal
-  # use a profiler thread is automatically used.
-  PROFILER_OVERHEAD_STACK_THREAD = Thread.new { sleep }
-
   def create_profiler
     @recorder = Datadog::Profiling::StackRecorder.for_testing
   end
@@ -144,7 +140,6 @@ class ProfilerSampleLoopBenchmark
   def sample(collector)
     Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(
       collector,
-      PROFILER_OVERHEAD_STACK_THREAD,
       false
     )
   end
