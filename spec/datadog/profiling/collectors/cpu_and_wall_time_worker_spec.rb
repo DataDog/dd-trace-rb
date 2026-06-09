@@ -39,7 +39,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     }
   end
   let(:sample) {
-    Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(worker_settings[:thread_context_collector], Thread.current, false)
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(worker_settings[:thread_context_collector], false)
   }
 
   subject(:cpu_and_wall_time_worker) { described_class.new(**worker_settings, **options) }

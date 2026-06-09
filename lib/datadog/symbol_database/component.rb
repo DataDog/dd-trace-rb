@@ -540,10 +540,32 @@ module Datadog
       def install_hot_load_hook
         return if @hot_load_tracepoint
         component = self
+        logger = @logger
+        telemetry = @telemetry
         @hot_load_tracepoint = TracePoint.new(:class) do |tp|
+          # The :class TracePoint fires inside the customer's class body —
+          # any exception that escapes this block surfaces at the customer's
+          # `class Foo; ... end` line and breaks their class load. The
+          # MODULE_SINGLETON_CLASS_PRED dispatch defends against one specific
+          # raise source (user-overridden singleton_class?); this rescue
+          # closes the general case. Verified: a raise inside the callback
+          # backtraces through `<class:CustomerClass>` in Ruby 3.x.
+
           mod = tp.self
           next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
           component.send(:enqueue_hot_load, mod)
+        rescue => e
+          # Logger or telemetry can themselves raise (custom logger
+          # implementation, telemetry worker in an unexpected state). The
+          # :class TracePoint fires inside customer class bodies, so the
+          # error boundary must hold even when error reporting fails;
+          # nothing useful to do if logging is broken.
+          begin
+            logger.debug { "symdb: hot-load hook error: #{e.class}: #{e.message}" }
+            telemetry&.report(e, description: 'symdb: hot-load hook error')
+          rescue
+            nil
+          end
         end
         @hot_load_tracepoint.enable # steep:ignore NoMethod
       end
@@ -556,6 +578,13 @@ module Datadog
         @hot_load_buffer_mutex.synchronize { @hot_load_buffer << mod }
         @scheduler_mutex.synchronize do
           return if @shutdown
+          # TracePoint#disable does not wait for in-flight callbacks: a :class
+          # event firing concurrently with stop_upload can reach here after the
+          # hook has been torn down. Without this guard the stale event would
+          # re-arm the scheduler, contradicting stop_upload's contract. The
+          # buffer push above is harmless — the next start_upload runs
+          # extract_all, which clears the buffer before extracting.
+          return unless @hot_load_tracepoint
           @scheduled_at = Datadog::Core::Utils::Time.get_time + EXTRACT_DEBOUNCE_INTERVAL
           @scheduler_signaled = true
           @scheduler_cv.signal

@@ -76,10 +76,11 @@
 #define THREAD_ID_LIMIT_CHARS 44 // Why 44? "#{2**64} (#{2**64})".size + 1 for \0
 #define THREAD_INVOKE_LOCATION_LIMIT_CHARS 512
 #define IS_WALL_TIME true
-#define IS_NOT_WALL_TIME false
+#define IS_CPU_TIME false
 #define MISSING_TRACER_CONTEXT_KEY 0
 #define TIME_BETWEEN_GC_EVENTS_NS MILLIS_AS_NS(10)
 
+#define MAX(a, b) ((a) < (b) ? (b) : (a))
 
 static ID dd_per_thread_context_id; // Hidden ivar (no @ prefix, inaccessible from Ruby)
 
@@ -142,6 +143,8 @@ typedef struct {
   bool native_filenames_enabled;
   // Used to cache native filename lookup results (Map[void *function_pointer, char *filename])
   st_table *native_filenames_cache;
+  // Used to attribute overhead during sampling to this component
+  VALUE overhead_filename;
   // Minimum duration of a "Waiting for GVL" period to trigger a sample
   uint32_t waiting_for_gvl_threshold_ns;
 
@@ -234,14 +237,13 @@ static void per_thread_context_typed_data_mark(void *ctx_ptr);
 static void per_thread_context_typed_data_free(void *ctx_ptr);
 static VALUE _native_new(VALUE klass);
 static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
-static VALUE _native_sample(VALUE self, VALUE collector_instance, VALUE profiler_overhead_stack_thread, VALUE allow_exception);
+static VALUE _native_sample(VALUE self, VALUE collector_instance, VALUE allow_exception);
 static VALUE _native_on_gc_start(VALUE self, VALUE collector_instance);
 static VALUE _native_on_gc_finish(VALUE self, VALUE collector_instance);
 static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE allow_exception);
 static void update_metrics_and_sample(
   thread_context_collector_state *state,
   VALUE thread_being_sampled,
-  VALUE stack_from_thread,
   per_thread_context *thread_context,
   sampling_buffer* sampling_buffer,
   long current_cpu_time_ns,
@@ -249,8 +251,7 @@ static void update_metrics_and_sample(
 );
 static void trigger_sample_for_thread(
   thread_context_collector_state *state,
-  VALUE thread,
-  VALUE stack_from_thread,
+  VALUE thread_being_sampled,
   per_thread_context *thread_context,
   sampling_buffer* sampling_buffer,
   sample_values values,
@@ -298,7 +299,6 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
 static bool handle_gvl_waiting(
   thread_context_collector_state *state,
   VALUE thread_being_sampled,
-  VALUE stack_from_thread,
   per_thread_context *thread_context,
   sampling_buffer* sampling_buffer,
   long current_cpu_time_ns
@@ -342,7 +342,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, -1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_inspect", _native_inspect, 1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
-  rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 3);
+  rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 2);
   rb_define_singleton_method(testing_module, "_native_sample_allocation", _native_sample_allocation, 3);
   rb_define_singleton_method(testing_module, "_native_on_gc_start", _native_on_gc_start, 1);
   rb_define_singleton_method(testing_module, "_native_on_gc_finish", _native_on_gc_finish, 1);
@@ -414,6 +414,7 @@ static void thread_context_collector_typed_data_mark(void *state_ptr) {
   rb_gc_mark(state->thread_list_buffer);
   rb_gc_mark(state->main_thread);
   rb_gc_mark(state->otel_current_span_key);
+  rb_gc_mark(state->overhead_filename);
 }
 
 static void thread_context_collector_typed_data_free(void *state_ptr) {
@@ -516,11 +517,13 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   VALUE waiting_for_gvl_threshold_ns = rb_hash_fetch(options, ID2SYM(rb_intern("waiting_for_gvl_threshold_ns")));
   VALUE otel_context_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("otel_context_enabled")));
   VALUE native_filenames_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("native_filenames_enabled")));
+  VALUE overhead_filename = rb_hash_fetch(options, ID2SYM(rb_intern("overhead_filename")));
 
   ENFORCE_TYPE(max_frames, T_FIXNUM);
   ENFORCE_BOOLEAN(endpoint_collection_enabled);
   ENFORCE_TYPE(waiting_for_gvl_threshold_ns, T_FIXNUM);
   ENFORCE_BOOLEAN(native_filenames_enabled);
+  ENFORCE_TYPE(overhead_filename, T_STRING);
 
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
@@ -531,6 +534,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   state->recorder_instance = enforce_recorder_instance(recorder_instance);
   state->endpoint_collection_enabled = (endpoint_collection_enabled == Qtrue);
   state->native_filenames_enabled = (native_filenames_enabled == Qtrue);
+  state->overhead_filename = overhead_filename;
   if (otel_context_enabled == Qfalse || otel_context_enabled == Qnil) {
     state->otel_context_enabled = OTEL_CONTEXT_ENABLED_FALSE;
   } else if (otel_context_enabled == ID2SYM(rb_intern("only"))) {
@@ -556,14 +560,12 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
-static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE collector_instance, VALUE profiler_overhead_stack_thread, VALUE allow_exception) {
+static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE collector_instance, VALUE allow_exception) {
   ENFORCE_BOOLEAN(allow_exception);
-
-  if (!is_thread_alive(profiler_overhead_stack_thread)) raise_error(rb_eArgError, "Unexpected: profiler_overhead_stack_thread is not alive");
 
   if (allow_exception == Qfalse) debug_enter_unsafe_context();
 
-  thread_context_collector_sample(collector_instance, monotonic_wall_time_now_ns(RAISE_ON_FAILURE), profiler_overhead_stack_thread);
+  thread_context_collector_sample(collector_instance, monotonic_wall_time_now_ns(RAISE_ON_FAILURE));
 
   if (allow_exception == Qfalse) debug_leave_unsafe_context();
 
@@ -606,6 +608,53 @@ static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_
   return Qtrue;
 }
 
+// Record profiler sampling overhead as a placeholder stack
+static void record_sampling_overhead(thread_context_collector_state *state, per_thread_context *current_thread_context) {
+  long wall_time_after_sampling = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+  long cpu_time_after_sampling = cpu_time_now_ns(current_thread_context);
+
+  long overhead_cpu_time_ns = update_time_since_previous_sample(
+    &current_thread_context->cpu_time_at_previous_sample_ns,
+    cpu_time_after_sampling,
+    current_thread_context->gc_tracking.cpu_time_at_start_ns,
+    IS_CPU_TIME);
+
+  long overhead_wall_time_ns = update_time_since_previous_sample(
+    &current_thread_context->wall_time_at_previous_sample_ns,
+    wall_time_after_sampling,
+    INVALID_TIME,
+    IS_WALL_TIME);
+
+  ddog_prof_Label overhead_labels[] = {
+    {.key = DDOG_CHARSLICE_C("thread id"), .str = DDOG_CHARSLICE_C("0"), .num = 0},
+    {.key = DDOG_CHARSLICE_C("thread name"), .str = DDOG_CHARSLICE_C("Datadog::Profiling::Sampling"), .num = 0},
+    {.key = DDOG_CHARSLICE_C("state"), .str = DDOG_CHARSLICE_C("had cpu"), .num = 0},
+    {.key = DDOG_CHARSLICE_C("profiler overhead"), .num = 1},
+  };
+
+  int64_t end_timestamp_ns = monotonic_to_system_epoch_ns(&state->time_converter_state, wall_time_after_sampling);
+
+  ddog_prof_Location overhead_location = {
+    .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
+    .function = {
+      .name = DDOG_CHARSLICE_C("sampling"),
+      .filename = char_slice_from_ruby_string(state->overhead_filename),
+    },
+    .line = 0,
+  };
+
+  record_sample(
+    state->recorder_instance,
+    (ddog_prof_Slice_Location) {.ptr = &overhead_location, .len = 1},
+    (sample_values) {.cpu_time_ns = overhead_cpu_time_ns, .cpu_or_wall_samples = 1, .wall_time_ns = overhead_wall_time_ns},
+    (sample_labels) {
+      .labels = (ddog_prof_Slice_Label) {.ptr = overhead_labels, .len = sizeof(overhead_labels) / sizeof(overhead_labels[0])},
+      .state_label = NULL,
+      .end_timestamp_ns = end_timestamp_ns,
+    }
+  );
+}
+
 // This function gets called from the Collectors::CpuAndWallTimeWorker to trigger the actual sampling.
 //
 // Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
@@ -614,9 +663,7 @@ static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_
 // Assumption 4: This function IS NOT called in a reentrant way.
 // Assumption 5: This function is called from the main Ractor (if Ruby has support for Ractors).
 //
-// The `profiler_overhead_stack_thread` is used to attribute the profiler overhead to a stack borrowed from a different thread
-// (belonging to ddtrace), so that the overhead is visible in the profile rather than blamed on user code.
-void thread_context_collector_sample(VALUE self_instance, long current_monotonic_wall_time_ns, VALUE profiler_overhead_stack_thread) {
+void thread_context_collector_sample(VALUE self_instance, long current_monotonic_wall_time_ns) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
@@ -631,14 +678,14 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
     VALUE thread = RARRAY_AREF(threads, i);
     per_thread_context *thread_context = get_or_create_context_for(thread, state);
 
-    // We account for cpu-time for the current thread in a different way -- we use the cpu-time at sampling start, to avoid
-    // blaming the time the profiler took on whatever's running on the thread right now
-    long current_cpu_time_ns = thread != current_thread ? cpu_time_now_ns(thread_context) : cpu_time_at_sample_start_for_current_thread;
+    // We account for cpu-time for the current thread in a different way: we use the cpu-time at sampling start,
+    // to avoid blaming the time the profiler took on whatever is currently running on the thread,
+    // and instead we report that time the profiler took as sampling overhead below.
+    long current_cpu_time_ns = (thread == current_thread) ? cpu_time_at_sample_start_for_current_thread : cpu_time_now_ns(thread_context);
 
     update_metrics_and_sample(
       state,
-      /* thread_being_sampled: */ thread,
-      /* stack_from_thread: */ thread,
+      thread,
       thread_context,
       &thread_context->sampling_buffer,
       current_cpu_time_ns,
@@ -647,46 +694,31 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
   }
 
   state->stats.sample_count++;
-
-  update_metrics_and_sample(
-    state,
-    /* thread_being_sampled: */ current_thread,
-    /* stack_from_thread: */ profiler_overhead_stack_thread,
-    current_thread_context,
-    // Here we use the overhead thread's sampling buffer so as to not invalidate the cache in the buffer of the thread being sampled
-    &get_or_create_context_for(profiler_overhead_stack_thread, state)->sampling_buffer,
-    cpu_time_now_ns(current_thread_context),
-    monotonic_wall_time_now_ns(RAISE_ON_FAILURE)
-  );
+  record_sampling_overhead(state, current_thread_context);
 }
 
 static void update_metrics_and_sample(
   thread_context_collector_state *state,
   VALUE thread_being_sampled,
-  VALUE stack_from_thread, // This can be different when attributing profiler overhead using a different stack
   per_thread_context *thread_context,
   sampling_buffer* sampling_buffer,
   long current_cpu_time_ns,
   long current_monotonic_wall_time_ns
 ) {
   bool is_gvl_waiting_state =
-    handle_gvl_waiting(state, thread_being_sampled, stack_from_thread, thread_context, sampling_buffer, current_cpu_time_ns);
+    handle_gvl_waiting(state, thread_being_sampled, thread_context, sampling_buffer, current_cpu_time_ns);
 
   // Don't assign/update cpu during "Waiting for GVL"
   long cpu_time_elapsed_ns = is_gvl_waiting_state ? 0 : update_time_since_previous_sample(
     &thread_context->cpu_time_at_previous_sample_ns,
     current_cpu_time_ns,
     thread_context->gc_tracking.cpu_time_at_start_ns,
-    IS_NOT_WALL_TIME
+    IS_CPU_TIME
   );
 
   long wall_time_elapsed_ns = update_time_since_previous_sample(
     &thread_context->wall_time_at_previous_sample_ns,
     current_monotonic_wall_time_ns,
-    // We explicitly pass in `INVALID_TIME` as an argument for `gc_start_time_ns` here because we don't want wall-time
-    // accounting to change during GC.
-    // E.g. if 60 seconds pass in the real world, 60 seconds of wall-time are recorded, regardless of the thread doing
-    // GC or not.
     INVALID_TIME,
     IS_WALL_TIME
   );
@@ -709,7 +741,6 @@ static void update_metrics_and_sample(
   trigger_sample_for_thread(
     state,
     thread_being_sampled,
-    stack_from_thread,
     thread_context,
     sampling_buffer,
     (sample_values) {.cpu_time_ns = cpu_time_elapsed_ns, .cpu_or_wall_samples = 1, .wall_time_ns = wall_time_elapsed_ns},
@@ -890,8 +921,7 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
 
 static void trigger_sample_for_thread(
   thread_context_collector_state *state,
-  VALUE thread,
-  VALUE stack_from_thread, // This can be different when attributing profiler overhead using a different stack
+  VALUE thread_being_sampled,
   per_thread_context *thread_context,
   sampling_buffer* sampling_buffer,
   sample_values values,
@@ -907,7 +937,6 @@ static void trigger_sample_for_thread(
   int max_label_count =
     1 + // thread id
     1 + // thread name
-    1 + // profiler overhead
     2 + // ruby vm type and allocation class
     1 + // state (only set for cpu/wall-time samples)
     2;  // local root span id and span id
@@ -919,13 +948,13 @@ static void trigger_sample_for_thread(
     .str = thread_context->thread_id_char_slice
   };
 
-  VALUE thread_name = thread_name_for(thread);
+  VALUE thread_name = thread_name_for(thread_being_sampled);
   if (thread_name != Qnil) {
     labels[label_pos++] = (ddog_prof_Label) {
       .key = DDOG_CHARSLICE_C("thread name"),
       .str = char_slice_from_ruby_string(thread_name)
     };
-  } else if (thread == state->main_thread) { // Threads are often not named, but we can have a nice fallback for this special thread
+  } else if (thread_being_sampled == state->main_thread) { // Threads are often not named, but we can have a nice fallback for this special thread
     ddog_CharSlice main_thread_name = DDOG_CHARSLICE_C("main");
     labels[label_pos++] = (ddog_prof_Label) {
       .key = DDOG_CHARSLICE_C("thread name"),
@@ -941,11 +970,11 @@ static void trigger_sample_for_thread(
   }
 
   trace_identifiers trace_identifiers_result = {.valid = false, .trace_endpoint = Qnil};
-  trace_identifiers_for(state, thread, &trace_identifiers_result, is_safe_to_allocate_objects);
+  trace_identifiers_for(state, thread_being_sampled, &trace_identifiers_result, is_safe_to_allocate_objects);
 
   if (!trace_identifiers_result.valid && state->otel_context_enabled != OTEL_CONTEXT_ENABLED_FALSE) {
     // If we couldn't get something with ddtrace, let's see if we can get some trace identifiers from opentelemetry directly
-    otel_without_ddtrace_trace_identifiers_for(state, thread, &trace_identifiers_result, is_safe_to_allocate_objects);
+    otel_without_ddtrace_trace_identifiers_for(state, thread_being_sampled, &trace_identifiers_result, is_safe_to_allocate_objects);
   }
 
   if (trace_identifiers_result.valid) {
@@ -968,13 +997,6 @@ static void trigger_sample_for_thread(
         char_slice_from_ruby_string(trace_identifiers_result.trace_endpoint)
       );
     }
-  }
-
-  if (thread != stack_from_thread) {
-    labels[label_pos++] = (ddog_prof_Label) {
-      .key = DDOG_CHARSLICE_C("profiler overhead"),
-      .num = 1
-    };
   }
 
   if (ruby_vm_type != NULL) {
@@ -1022,7 +1044,7 @@ static void trigger_sample_for_thread(
   }
 
   sample_thread(
-    stack_from_thread,
+    thread_being_sampled,
     sampling_buffer,
     state->locations,
     state->recorder_instance,
@@ -1238,11 +1260,14 @@ static VALUE _native_per_thread_context(DDTRACE_UNUSED VALUE _self, VALUE collec
   return result;
 }
 
+// gc_start_time_ns should only be passed if IS_CPU_TIME
 static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns, long gc_start_time_ns, bool is_wall_time) {
   // If we didn't have a time for the previous sample, we use the current one
   if (*time_at_previous_sample_ns == INVALID_TIME) *time_at_previous_sample_ns = current_time_ns;
 
-  bool is_thread_doing_gc = gc_start_time_ns != INVALID_TIME;
+  // We don't want wall-time accounting to change during GC.
+  // E.g. if 60 seconds pass in the real world, 60 seconds of wall-time are recorded, regardless of the thread doing GC or not.
+  bool is_thread_doing_gc = !is_wall_time && gc_start_time_ns != INVALID_TIME;
   long elapsed_time_ns = -1;
 
   if (is_thread_doing_gc) {
@@ -1544,8 +1569,7 @@ bool thread_context_collector_sample_allocation(VALUE self_instance, per_thread_
 
   trigger_sample_for_thread(
     state,
-    /* thread: */  current_thread,
-    /* stack_from_thread: */ current_thread,
+    current_thread,
     thread_context,
     &thread_context->sampling_buffer,
     (sample_values) {.alloc_samples = sample_weight, .alloc_samples_unscaled = 1, .heap_sample = true},
@@ -1973,8 +1997,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
 
     update_metrics_and_sample(
       state,
-      /* thread_being_sampled: */ current_thread,
-      /* stack_from_thread: */ current_thread,
+      current_thread,
       thread_context,
       &thread_context->sampling_buffer,
       cpu_time_for_thread,
@@ -1990,7 +2013,6 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
   static bool handle_gvl_waiting(
     thread_context_collector_state *state,
     VALUE thread_being_sampled,
-    VALUE stack_from_thread,
     per_thread_context *thread_context,
     sampling_buffer* sampling_buffer,
     long current_cpu_time_ns
@@ -2055,7 +2077,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
         &thread_context->cpu_time_at_previous_sample_ns,
         current_cpu_time_ns,
         thread_context->gc_tracking.cpu_time_at_start_ns,
-        IS_NOT_WALL_TIME
+        IS_CPU_TIME
       );
 
       long duration_until_start_of_gvl_waiting_ns = update_time_since_previous_sample(
@@ -2069,7 +2091,6 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
       trigger_sample_for_thread(
         state,
         thread_being_sampled,
-        stack_from_thread,
         thread_context,
         sampling_buffer,
         (sample_values) {.cpu_time_ns = cpu_time_elapsed_ns, .cpu_or_wall_samples = 1, .wall_time_ns = duration_until_start_of_gvl_waiting_ns},
@@ -2160,7 +2181,6 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
   static bool handle_gvl_waiting(
     DDTRACE_UNUSED thread_context_collector_state *state,
     DDTRACE_UNUSED VALUE thread_being_sampled,
-    DDTRACE_UNUSED VALUE stack_from_thread,
     DDTRACE_UNUSED per_thread_context *thread_context,
     DDTRACE_UNUSED sampling_buffer* sampling_buffer,
     DDTRACE_UNUSED long current_cpu_time_ns
