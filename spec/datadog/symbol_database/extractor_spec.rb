@@ -2337,6 +2337,17 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       # The fix relies on the order of operations: const_defined?(sym, false)
       # detects the direct subclass binding first, and const_get(sym, false)
       # returns it without triggering the ancestor's autoload.
+      #
+      # Requires Module#autoload?(name, inherit) — the `inherit` parameter was
+      # added in Ruby 2.7 (Ruby 2.7.0 NEWS). On Ruby 2.5/2.6 the fallback in
+      # resolves_to_same_module? uses autoload?(name) which checks ancestors,
+      # so a subclass binding that collides with an ancestor's pending
+      # autoload is conservatively treated as stale and dropped. That is the
+      # documented fallback behavior and is unavoidable without the 2.7+ API.
+      before(:all) do
+        skip 'requires Module#autoload?(name, inherit) — Ruby 2.7+' if RUBY_VERSION < '2.7'
+      end
+
       before do
         @parent_file = create_test_file('autoload_parent.rb', <<~RUBY)
           class ExtractAllAutoloadParent
