@@ -170,16 +170,27 @@ module Datadog
       # constant (via remove_const) but still carries the cached Module#name —
       # see collect_extractable_modules for the failure mode this protects.
       #
-      # Uses const_defined? before const_get so an unresolvable path
-      # short-circuits without triggering const_missing on the customer's
-      # Object class. const_get is only reached when the path resolves to a
-      # real binding, which avoids triggering autoload as a side effect.
+      # Walks the namespace path segment-by-segment using Module#autoload? at
+      # each step. A pending autoload at any segment is treated as "does not
+      # resolve" without ever calling const_get on the autoload target — so
+      # symbol extraction never loads customer code as a side effect and a
+      # missing autoload target cannot raise LoadError (which is ScriptError,
+      # not StandardError, and would propagate past the outer rescue in
+      # collect_extractable_modules). const_defined?(sym, false) restricts the
+      # lookup to constants directly defined on the current namespace, matching
+      # the segment semantics of '::'.
       # @param mod_name [String]
       # @param mod [Module]
       # @return [Boolean]
       def resolves_to_same_module?(mod_name, mod)
-        return false unless Object.const_defined?(mod_name)
-        Object.const_get(mod_name).equal?(mod)
+        current = Object
+        mod_name.split('::').each do |seg|
+          sym = seg.to_sym
+          return false if current.autoload?(sym)
+          return false unless current.const_defined?(sym, false)
+          current = current.const_get(sym)
+        end
+        current.equal?(mod)
       rescue NameError, ArgumentError => e
         @logger.debug { "symdb: resolves_to_same_module?(#{mod_name}) failed: #{e.class}: #{e.message}" }
         false

@@ -2329,6 +2329,50 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
     end
 
+    context 'autoload registered after remove_const' do
+      # Customer pattern (reloaders, plugin hot-load): a class is defined,
+      # removed via remove_const, then an autoload is registered at the same
+      # name. The leaked Class stays in ObjectSpace with the cached name.
+      # The earlier implementation called Object.const_get(mod_name) to verify
+      # the binding, which triggered the autoload (loading customer code as a
+      # side effect of extraction) and raised LoadError if the autoload target
+      # was missing. LoadError is ScriptError, not StandardError, so neither
+      # the local rescue (NameError, ArgumentError) nor the outer rescue in
+      # collect_extractable_modules (StandardError) caught it — extract_all
+      # aborted instead of skipping the leaked class.
+      before do
+        @leaked_file = create_test_file('autoload_leaked.rb', <<~RUBY)
+          class ExtractAllAutoloadDetached
+            def leaked_method; end
+          end
+        RUBY
+        load @leaked_file
+        # Keep a hard reference so GC.start cannot reclaim the leaked Class.
+        @leaked_class = ExtractAllAutoloadDetached
+        Object.send(:remove_const, :ExtractAllAutoloadDetached)
+        @autoload_target = '/nonexistent/symdb_autoload_target.rb'
+        Object.autoload(:ExtractAllAutoloadDetached, @autoload_target)
+      end
+
+      after do
+        if Object.const_defined?(:ExtractAllAutoloadDetached, false)
+          Object.send(:remove_const, :ExtractAllAutoloadDetached)
+        end
+      end
+
+      it 'skips the leaked class without triggering the autoload' do
+        scopes = nil
+        expect { scopes = extract_all_clean }.not_to raise_error
+
+        # Autoload registration is still pending — the target was not loaded.
+        expect(Object.autoload?(:ExtractAllAutoloadDetached)).to eq(@autoload_target)
+
+        # The leaked class's FILE scope is filtered out.
+        leaked_scope = scopes.find { |s| s.scope_type == 'FILE' && s.name == @leaked_file }
+        expect(leaked_scope).to be_nil
+      end
+    end
+
     context 'class detached from its constant via remove_const' do
       # CRuby caches Module#name. After Object.send(:remove_const, :Foo) the
       # Class stays in ObjectSpace and `mod.name` still returns "Foo".
