@@ -178,6 +178,10 @@ RSpec.describe(Datadog::DI) do
 
     context 'when the C extension is not loaded' do
       before do
+        # Neutralize the earlier RUBY_VERSION < '2.6' check so this context
+        # reaches the C-extension branch when the spec runs on Ruby 2.5.
+        # Same pattern as the non-MRI context's stub_const('RUBY_ENGINE', ...).
+        stub_const('RUBY_VERSION', '3.0.0')
         allow(described_class).to receive(:respond_to?).and_call_original
         allow(described_class).to receive(:respond_to?).with(:exception_message).and_return(false)
       end
