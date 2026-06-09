@@ -227,7 +227,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     it 'sets last_upload_time and last_upload_scope_count after a successful upload' do
       file_scope1 = instance_double(Datadog::SymbolDatabase::Scope, scope_type: 'FILE', name: 'a.rb', scopes: [])
       file_scope2 = instance_double(Datadog::SymbolDatabase::Scope, scope_type: 'FILE', name: 'b.rb', scopes: [])
-      allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([file_scope1, file_scope2])
+      allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_yield(file_scope1).and_yield(file_scope2)
       allow(component.instance_variable_get(:@scope_batcher)).to receive(:add_scope)
       allow(component.instance_variable_get(:@scope_batcher)).to receive(:flush)
 

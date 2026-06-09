@@ -136,19 +136,42 @@ module Datadog
       # Two-pass algorithm:
       # Pass 1: Iterate ObjectSpace, collect all extractable modules with methods grouped by file
       # Pass 2: Build FILE scope trees with nested MODULE/CLASS hierarchy from FQN splitting
+      # Pass 3: Convert each tree to a FILE Scope object
       #
       # This is the production path used by Component. Methods are split by source file,
       # so a class reopened across two files produces two FILE scopes, each with only
       # the methods defined in that file.
       #
-      # @return [Array<Scope>] Array of FILE scopes
+      # When a block is given, FILE scopes are yielded one at a time and the underlying
+      # tree node is released as it is yielded — the caller (typically ScopeBatcher) can
+      # then drop its reference too. This keeps the peak working set bounded by
+      # `file_trees` rather than `file_trees + Array<Scope>`. The `entries` hash from
+      # Pass 1 is also dropped before Pass 3 begins, so its `UnboundMethod` references
+      # become eligible for collection at the next GC.
+      #
+      # Without a block, returns the full `Array<Scope>` (legacy form, used by specs).
+      #
+      # @yieldparam scope [Scope] FILE scope for one source file
+      # @return [Array<Scope>, nil] Array of FILE scopes when called without a block; nil when a block is given
       def extract_all
         entries = collect_extractable_modules
         file_trees = build_file_trees(entries)
-        convert_trees_to_scopes(file_trees)
+        entries = nil # release UnboundMethod references retained in entries before Pass 3
+
+        if block_given?
+          # Destructively drain file_trees so each per-file tree becomes eligible for
+          # collection as soon as its FILE scope is yielded.
+          until file_trees.empty?
+            file_path, root = file_trees.shift
+            yield convert_tree_to_scope(file_path, root)
+          end
+          nil
+        else
+          convert_trees_to_scopes(file_trees)
+        end
       rescue => e
         @logger.debug { "symdb: error in extract_all: #{e.class}: #{e.message}" }
-        []
+        block_given? ? nil : []
       end
 
       private
@@ -677,21 +700,21 @@ module Datadog
       def group_methods_by_file(mod)
         result = Hash.new { |h, k| h[k] = [] } # steep:ignore
 
-        # Instance methods (public, protected, private)
-        all_methods = mod.instance_methods(false) +
-          mod.protected_instance_methods(false) +
-          mod.private_instance_methods(false)
-        all_methods.uniq!
+        # Module#instance_methods(false) already returns both public and protected
+        # methods, so iterating it plus private_instance_methods covers all three
+        # visibilities without allocating an intermediate merged array or doing a
+        # `uniq!` pass to drop the redundant protected entries.
+        [mod.instance_methods(false), mod.private_instance_methods(false)].each do |method_names|
+          method_names.each do |method_name|
+            method = mod.instance_method(method_name)
+            loc = method.source_location
+            next unless loc
+            next unless user_code_path?(loc[0])
 
-        all_methods.each do |method_name|
-          method = mod.instance_method(method_name)
-          loc = method.source_location
-          next unless loc
-          next unless user_code_path?(loc[0])
-
-          result[loc[0]] << {name: method_name, method: method, type: :instance}
-        rescue => e
-          @logger.debug { "symdb: error grouping method #{method_name}: #{e.class}: #{e.message}" }
+            result[loc[0]] << {name: method_name, method: method, type: :instance}
+          rescue => e
+            @logger.debug { "symdb: error grouping method #{method_name}: #{e.class}: #{e.message}" }
+          end
         end
 
         result
@@ -788,21 +811,28 @@ module Datadog
       # @param file_trees [Hash] { file_path => root_node }
       # @return [Array<Scope>] Array of FILE scopes
       def convert_trees_to_scopes(file_trees)
-        file_trees.map do |file_path, root|
-          file_hash = FileHash.compute(file_path, logger: @logger)
-          lang = {}
-          lang[:file_hash] = file_hash if file_hash
+        file_trees.map { |file_path, root| convert_tree_to_scope(file_path, root) }
+      end
 
-          Scope.new(
-            scope_type: 'FILE',
-            name: file_path,
-            source_file: file_path,
-            start_line: UNKNOWN_MIN_LINE,
-            end_line: UNKNOWN_MAX_LINE,
-            language_specifics: lang,
-            scopes: root[:children].values.map { |child| convert_node_to_scope(child) }
-          )
-        end
+      # Convert a single file tree to a FILE Scope. Extracted from convert_trees_to_scopes
+      # so the block form of extract_all can yield scopes one at a time.
+      # @param file_path [String] Source file path
+      # @param root [Hash] Tree node from build_file_trees
+      # @return [Scope] FILE scope
+      def convert_tree_to_scope(file_path, root)
+        file_hash = FileHash.compute(file_path, logger: @logger)
+        lang = {}
+        lang[:file_hash] = file_hash if file_hash
+
+        Scope.new(
+          scope_type: 'FILE',
+          name: file_path,
+          source_file: file_path,
+          start_line: UNKNOWN_MIN_LINE,
+          end_line: UNKNOWN_MAX_LINE,
+          language_specifics: lang,
+          scopes: root[:children].values.map { |child| convert_node_to_scope(child) }
+        )
       end
 
       # Convert a single hash node to a Scope object (recursive).
