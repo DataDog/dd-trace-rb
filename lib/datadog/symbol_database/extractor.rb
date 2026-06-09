@@ -170,15 +170,29 @@ module Datadog
       # constant (via remove_const) but still carries the cached Module#name —
       # see collect_extractable_modules for the failure mode this protects.
       #
-      # Walks the namespace path segment-by-segment using Module#autoload? at
-      # each step. A pending autoload at any segment is treated as "does not
-      # resolve" without ever calling const_get on the autoload target — so
-      # symbol extraction never loads customer code as a side effect and a
-      # missing autoload target cannot raise LoadError (which is ScriptError,
-      # not StandardError, and would propagate past the outer rescue in
-      # collect_extractable_modules). const_defined?(sym, false) restricts the
-      # lookup to constants directly defined on the current namespace, matching
-      # the segment semantics of '::'.
+      # Walks the namespace path segment-by-segment. For each segment:
+      # 1. Check for a pending autoload directly on the current namespace.
+      #    If present, const_get would trigger it — loading customer code as
+      #    a side effect of symbol extraction and raising LoadError if the
+      #    target file is missing (LoadError is ScriptError, not StandardError,
+      #    and would propagate past the outer rescue in
+      #    collect_extractable_modules). Return false instead.
+      # 2. Otherwise, require the constant to be directly defined on this
+      #    namespace (const_defined?(sym, false)) and descend via
+      #    const_get(sym, false). The direct-only lookup means an ancestor's
+      #    pending autoload at the same name does not affect the result: a
+      #    subclass with its own binding resolves through the binding, an
+      #    inherited autoload triggers nothing.
+      #
+      # Ruby 2.7+ adds an inherit parameter to Module#autoload? —
+      # `current.autoload?(sym, false)` cleanly asks "is there an autoload
+      # registered directly on this namespace?". On Ruby 2.5 and 2.6 that
+      # parameter doesn't exist (per Ruby 2.7.0 NEWS), so the fallback
+      # branch uses `current.autoload?(sym)` which also reports inherited
+      # autoloads. The consequence on 2.5/2.6: a subclass binding whose
+      # name collides with an ancestor's pending autoload is conservatively
+      # treated as stale and dropped from extraction. The minimum supported
+      # Ruby is 2.5 per lib/datadog/version.rb, so this fallback ships.
       # @param mod_name [String]
       # @param mod [Module]
       # @return [Boolean]
@@ -186,9 +200,14 @@ module Datadog
         current = Object
         mod_name.split('::').each do |seg|
           sym = seg.to_sym
-          return false if current.autoload?(sym)
+          pending_autoload = if RUBY_VERSION >= '2.7'
+            current.autoload?(sym, false)
+          else
+            current.autoload?(sym)
+          end
+          return false if pending_autoload
           return false unless current.const_defined?(sym, false)
-          current = current.const_get(sym)
+          current = current.const_get(sym, false)
         end
         current.equal?(mod)
       rescue NameError, ArgumentError

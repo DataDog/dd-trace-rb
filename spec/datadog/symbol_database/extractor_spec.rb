@@ -2329,6 +2329,59 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
     end
 
+    context 'subclass with constant of same name as ancestor pending autoload' do
+      # Module#autoload? defaults to inherit=true, so when a subclass has a
+      # constant directly defined and an ancestor has a pending autoload at
+      # the same name, autoload? returns the ancestor's pending path. An
+      # autoload-first check would silently drop the real subclass binding.
+      # The fix relies on the order of operations: const_defined?(sym, false)
+      # detects the direct subclass binding first, and const_get(sym, false)
+      # returns it without triggering the ancestor's autoload.
+      before do
+        @parent_file = create_test_file('autoload_parent.rb', <<~RUBY)
+          class ExtractAllAutoloadParent
+            autoload :ExtractAllAutoloadChild, '/nonexistent/autoload_parent_child.rb'
+          end
+        RUBY
+        load @parent_file
+        @sub_file = create_test_file('autoload_sub.rb', <<~RUBY)
+          class ExtractAllAutoloadSub < ExtractAllAutoloadParent
+            class ExtractAllAutoloadChild
+              def real_method; end
+            end
+          end
+        RUBY
+        load @sub_file
+      end
+
+      after do
+        if Object.const_defined?(:ExtractAllAutoloadSub, false)
+          Object.send(:remove_const, :ExtractAllAutoloadSub)
+        end
+        if Object.const_defined?(:ExtractAllAutoloadParent, false)
+          Object.send(:remove_const, :ExtractAllAutoloadParent)
+        end
+      end
+
+      it 'extracts the subclass child without triggering the ancestor autoload' do
+        scopes = nil
+        expect { scopes = extract_all_clean }.not_to raise_error
+
+        # Ancestor's autoload remained pending — the lookup did not trigger it.
+        expect(ExtractAllAutoloadParent.autoload?(:ExtractAllAutoloadChild))
+          .to eq('/nonexistent/autoload_parent_child.rb')
+
+        # The subclass's directly-defined child is included in the payload.
+        file_scope = scopes.find { |s| s.scope_type == 'FILE' && s.name == @sub_file }
+        expect(file_scope).not_to be_nil
+        sub = file_scope.scopes.find { |s| s.name == 'ExtractAllAutoloadSub' }
+        expect(sub).not_to be_nil
+        child = sub.scopes.find { |s| s.name == 'ExtractAllAutoloadSub::ExtractAllAutoloadChild' }
+        expect(child).not_to be_nil
+        expect(child.scopes.map(&:name)).to include('real_method')
+      end
+    end
+
     context 'autoload registered after remove_const' do
       # Customer pattern (reloaders, plugin hot-load): a class is defined,
       # removed via remove_const, then an autoload is registered at the same
