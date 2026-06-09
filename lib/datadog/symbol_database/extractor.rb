@@ -134,9 +134,15 @@ module Datadog
       # Returns an array of FILE scopes with proper FQN-based nesting.
       #
       # Two-pass algorithm:
-      # Pass 1: Iterate ObjectSpace, collect all extractable modules with methods grouped by file
-      # Pass 2: Build FILE scope trees with nested MODULE/CLASS hierarchy from FQN splitting
-      # Pass 3: Convert each tree to a FILE Scope object
+      # Pass 1 (`build_per_file_index`): iterate ObjectSpace once, building
+      #   `{ file_path => [[mod_name, mod, [method_name_symbol, ...]], ...] }`.
+      #   Stores Symbol method names + Module refs only; no UnboundMethod retention
+      #   between passes.
+      # Pass 2 (`build_file_scope`): for each file in the index, resolve
+      #   UnboundMethods just-in-time, build the nested MODULE/CLASS scope tree from
+      #   FQN splitting, and produce one FILE Scope. The per-file working set is
+      #   released as soon as the FILE scope is yielded (or accumulated into the
+      #   returned Array, in legacy mode).
       #
       # This is the production path used by Component. Methods are split by source file,
       # so a class reopened across two files produces two FILE scopes, each with only
@@ -164,17 +170,25 @@ module Datadog
 
         if block_given?
           # Drain the index destructively so each per-file entry becomes eligible for
-          # collection as soon as its FILE scope is yielded and consumed.
-          until index.empty?
-            file_path, entries = index.shift
-            scope = build_file_scope(file_path, entries)
+          # collection as soon as its FILE scope is yielded and consumed. Hash#shift
+          # returns [key, value] on a non-empty hash and nil when empty, so the
+          # `while (pair = ...)` form is the drain. Indexing pair[0]/pair[1] rather
+          # than destructuring avoids introducing names into method scope that would
+          # then shadow the else-branch's block parameters on Ruby 2.5/2.6.
+          while (pair = index.shift)
+            scope = build_file_scope(pair[0], pair[1])
             yield scope if scope
           end
           nil
         else
-          Core::Utils::EnumerableCompat.filter_map(index) do |file_path, entries|
-            build_file_scope(file_path, entries)
+          # Legacy non-block form for specs. No memory bound — the full Array is
+          # materialized.
+          result = []
+          index.each do |path, file_entries|
+            scope = build_file_scope(path, file_entries)
+            result << scope if scope
           end
+          result
         end
       rescue => e
         @logger.debug { "symdb: error in extract_all: #{e.class}: #{e.message}" }
@@ -750,7 +764,7 @@ module Datadog
 
         root = {
           name: file_path, type: 'FILE', children: {},
-          methods: [], mod: nil, source_file: file_path, fqn: nil
+          methods: [], mod: nil, source_file: file_path, fqn: nil,
         }
 
         # Sort by FQN depth so parent namespaces are placed before children.
@@ -774,7 +788,11 @@ module Datadog
           @logger.debug { "symdb: error placing #{mod_name} in tree: #{e.class}: #{e.message}" }
         end
 
+        # steep:ignore:start
+        # Steep widens root[:children] to the union of all value types declared in
+        # the literal (String | Hash | Array | nil), losing the Hash narrowing.
         return nil if root[:children].empty?
+        # steep:ignore:end
 
         convert_tree_to_scope(file_path, root)
       end
@@ -946,7 +964,7 @@ module Datadog
       # Convert a single file tree to a FILE Scope. Extracted from convert_trees_to_scopes
       # so the block form of extract_all can yield scopes one at a time.
       # @param file_path [String] Source file path
-      # @param root [Hash] Tree node from build_file_trees
+      # @param root [Hash] Tree node from build_file_trees or build_file_scope
       # @return [Scope] FILE scope
       def convert_tree_to_scope(file_path, root)
         file_hash = FileHash.compute(file_path, logger: @logger)
@@ -960,7 +978,7 @@ module Datadog
           start_line: UNKNOWN_MIN_LINE,
           end_line: UNKNOWN_MAX_LINE,
           language_specifics: lang,
-          scopes: root[:children].values.map { |child| convert_node_to_scope(child) }
+          scopes: root[:children].values.map { |child| convert_node_to_scope(child) },
         )
       end
 

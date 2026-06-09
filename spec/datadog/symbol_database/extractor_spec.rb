@@ -1673,6 +1673,16 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       extractor.extract_all
     end
 
+    # Block-form equivalent of extract_all_clean — yields each FILE scope and
+    # returns the collected array, alongside the block's return value (which the
+    # caller asserts is nil).
+    def extract_all_clean_with_block
+      GC.start
+      collected = []
+      result = extractor.extract_all { |scope| collected << scope }
+      [collected, result]
+    end
+
     context 'top-level rescue' do
       it 'returns [] and logs when collection raises' do
         allow(extractor).to receive(:build_per_file_index).and_raise(StandardError, 'boom')
@@ -1681,6 +1691,69 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         result = extractor.extract_all
 
         expect(result).to eq([])
+      end
+
+      it 'returns nil and logs when collection raises in block form' do
+        allow(extractor).to receive(:build_per_file_index).and_raise(StandardError, 'boom')
+        expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/extract_all.*StandardError.*boom/i) }
+
+        yielded = []
+        result = extractor.extract_all { |scope| yielded << scope }
+
+        expect(result).to be_nil
+        expect(yielded).to be_empty
+      end
+    end
+
+    context 'block form' do
+      before do
+        @file_a = create_test_file('block_form_a.rb', <<~RUBY)
+          class ExtractAllBlockFormA
+            def alpha; end
+            def beta; end
+          end
+        RUBY
+        @file_b = create_test_file('block_form_b.rb', <<~RUBY)
+          class ExtractAllBlockFormB
+            def gamma; end
+          end
+        RUBY
+        load @file_a
+        load @file_b
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllBlockFormA) if defined?(ExtractAllBlockFormA)
+        Object.send(:remove_const, :ExtractAllBlockFormB) if defined?(ExtractAllBlockFormB)
+      end
+
+      it 'yields one FILE scope per source file and returns nil' do
+        yielded, result = extract_all_clean_with_block
+
+        expect(result).to be_nil
+
+        block_form_file_scopes = yielded.select do |s|
+          s.scope_type == 'FILE' && s.scopes.any? { |c| %w[ExtractAllBlockFormA ExtractAllBlockFormB].include?(c.name) }
+        end
+        expect(block_form_file_scopes.size).to eq(2)
+        expect(block_form_file_scopes.map(&:name)).to contain_exactly(@file_a, @file_b)
+      end
+
+      it 'yields scopes equivalent to the non-block form' do
+        non_block_scopes = extract_all_clean
+        non_block_a = find_file_scope(non_block_scopes, 'ExtractAllBlockFormA')
+        non_block_b = find_file_scope(non_block_scopes, 'ExtractAllBlockFormB')
+
+        yielded, = extract_all_clean_with_block
+        block_a = find_file_scope(yielded, 'ExtractAllBlockFormA')
+        block_b = find_file_scope(yielded, 'ExtractAllBlockFormB')
+
+        expect(block_a.name).to eq(non_block_a.name)
+        expect(block_a.scopes.flat_map { |c| c.scopes.map(&:name) })
+          .to match_array(non_block_a.scopes.flat_map { |c| c.scopes.map(&:name) })
+        expect(block_b.name).to eq(non_block_b.name)
+        expect(block_b.scopes.flat_map { |c| c.scopes.map(&:name) })
+          .to match_array(non_block_b.scopes.flat_map { |c| c.scopes.map(&:name) })
       end
     end
 

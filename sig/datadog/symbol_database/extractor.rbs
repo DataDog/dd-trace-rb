@@ -16,9 +16,19 @@ module Datadog
 
       def extract: (Module mod) -> Scope?
 
-      def extract_all: () -> Array[Scope]
+      def extract_all: () -> ::Array[Scope]
+                     | () { (Scope) -> void } -> nil
 
       private
+
+      def build_per_file_index: () -> ::Hash[::String, ::Array[[::String, Module, ::Array[::Symbol]]]]
+
+      def collect_method_names_by_file: (Module mod) -> ::Hash[::String, ::Array[::Symbol]]
+
+      def build_file_scope: (::String file_path, ::Array[[::String, Module, ::Array[::Symbol]]] entries) -> Scope?
+
+      def convert_tree_to_scope: (::String file_path, untyped root) -> Scope
+
 
       def safe_mod_name: (Module mod) -> String?
 

@@ -600,10 +600,6 @@ module Datadog
         scope.scopes&.each { |child| log_scope_tree(child, depth + 1) }
       end
 
-      def count_targetable_methods(file_scopes)
-        file_scopes.sum { |file_scope| count_targetable_methods_in_scope(file_scope) }
-      end
-
       # Count METHOD scopes with targetable lines inside one FILE scope. Used by
       # extract_and_upload to accumulate the count while streaming, without
       # retaining the Array<Scope> just to compute the total at the end.
