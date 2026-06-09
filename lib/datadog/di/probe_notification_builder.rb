@@ -134,24 +134,33 @@ module Datadog
             }
           end
         elsif probe.capture_expressions?
-          captured_block, capture_expression_evaluation_errors =
-            capture_expression_evaluator.evaluate(probe, context)
+          # Per-expression evaluation timing on method probes is single-eval,
+          # honoring probe.evaluate_at (default :exit), matching Python /
+          # .NET / PHP. evaluate_at: :entry block was evaluated at the entry
+          # hook (Instrumenter#hook_method) against the pre-super scope; we
+          # just consume the stashed result. evaluate_at: :exit (default)
+          # evaluates here, at exit, against the full exit-time scope.
+          # Line probes ignore evaluate_at and always emit under captures.lines.
           if probe.method?
-            # Capture expressions are evaluated once, at method return — the
-            # only point where args, kwargs, self, @return, and exception are
-            # all observable. The snapshot schema's entry/return split exists
-            # for captureSnapshot, which freezes args before super and reads
-            # self/@return after. captureExpressions has no entry-time
-            # evaluation, so we do not emit an entry block — populating it
-            # with the return-time captured_block would mislabel exit-time
-            # data as entry-time state.
-            {
-              return: {
-                captureExpressions: captured_block,
-                throwable: context.exception ? serialize_throwable(context.exception) : nil,
-              },
-            }
+            if probe.evaluate_at == :entry
+              captured_block = context.entry_capture_expressions || {}
+              capture_expression_evaluation_errors = context.entry_capture_evaluation_errors || []
+              {
+                entry: {captureExpressions: captured_block},
+              }
+            else
+              captured_block, capture_expression_evaluation_errors =
+                capture_expression_evaluator.evaluate(probe, context)
+              {
+                return: {
+                  captureExpressions: captured_block,
+                  throwable: context.exception ? serialize_throwable(context.exception) : nil,
+                },
+              }
+            end
           elsif probe.line?
+            captured_block, capture_expression_evaluation_errors =
+              capture_expression_evaluator.evaluate(probe, context)
             {
               lines: {
                 probe.line_no => {captureExpressions: captured_block},

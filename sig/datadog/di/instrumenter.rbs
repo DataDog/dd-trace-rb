@@ -23,6 +23,8 @@ module Datadog
 
       @lock: Mutex
 
+      @capture_expression_evaluator: CaptureExpressionEvaluator?
+
       def initialize: (Datadog::Core::Configuration::Settings settings, Serializer serializer, DI::Logger logger, ?code_tracker: CodeTracker?, ?telemetry: Core::Telemetry::Component?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
@@ -34,6 +36,8 @@ module Datadog
       attr_reader logger: DI::Logger
 
       attr_reader telemetry: Core::Telemetry::Component?
+
+      def capture_expression_evaluator: () -> CaptureExpressionEvaluator
 
       def hook_method: (Probe probe, untyped responder) -> void
 

@@ -822,6 +822,64 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       end
     end
 
+    context 'method probe with evaluate_at: :entry' do
+      let(:probe) do
+        Datadog::DI::Probe.new(id: '123', type: :log, type_name: 'Foo', method_name: 'bar',
+          evaluate_at: :entry,
+          capture_expressions: [capture_expression])
+      end
+
+      let(:context) do
+        Datadog::DI::Context.new(
+          settings: settings, serializer: serializer,
+          probe: probe,
+          target_self: nil,
+          entry_capture_expressions: {"x" => {type: "Integer", value: "7"}},
+          entry_capture_evaluation_errors: [],
+          return_value: 999,
+        )
+      end
+
+      it 'emits captureExpressions under the entry block and omits the return block' do
+        payload = builder.build_snapshot(context)
+        captures = payload[:debugger][:snapshot][:captures]
+        expect(captures).to have_key(:entry)
+        expect(captures).not_to have_key(:return)
+        expect(captures[:entry][:captureExpressions]).to eq({"x" => {type: "Integer", value: "7"}})
+      end
+
+      it 'consumes pre-computed entry-time block; does not re-evaluate against exit scope' do
+        # context.locals contains {x: 42}, but the stashed entry block has
+        # {"x" => 7} — confirming the builder uses the pre-computed block and
+        # does not run the evaluator against the exit-time scope.
+        payload = builder.build_snapshot(context)
+        expect(payload[:debugger][:snapshot][:captures][:entry][:captureExpressions]["x"][:value]).to eq("7")
+      end
+
+      it 'merges entry-time evaluation errors into the snapshot evaluationErrors array' do
+        context = Datadog::DI::Context.new(
+          settings: settings, serializer: serializer,
+          probe: probe, target_self: nil,
+          entry_capture_expressions: {},
+          entry_capture_evaluation_errors: [{expr: "x", message: "NameError: badvar"}],
+        )
+        payload = builder.build_snapshot(context)
+        errors = payload[:debugger][:snapshot][:evaluationErrors]
+        expect(errors).to include(expr: "x", message: "NameError: badvar")
+      end
+
+      it 'emits an empty captureExpressions hash when no entry block was stashed' do
+        context = Datadog::DI::Context.new(
+          settings: settings, serializer: serializer,
+          probe: probe, target_self: nil,
+        )
+        payload = builder.build_snapshot(context)
+        captures = payload[:debugger][:snapshot][:captures]
+        expect(captures[:entry][:captureExpressions]).to eq({})
+        expect(captures).not_to have_key(:return)
+      end
+    end
+
     context 'evaluation error in a capture expression' do
       let(:failing_expr) do
         # len(badvar) — badvar is not in locals, resolves to nil, len(nil) raises

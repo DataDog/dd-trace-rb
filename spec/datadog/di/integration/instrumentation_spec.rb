@@ -596,6 +596,84 @@ RSpec.describe 'Instrumentation integration' do
         end
       end
 
+      context 'with capture expression and evaluateAt: ENTRY' do
+        let(:probe) do
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
+        end
+
+        let(:probe_spec) do
+          {
+            id: '1234',
+            type: 'LOG_PROBE',
+            where: {typeName: 'InstrumentationSpecTestClass', methodName: 'mutating_method'},
+            evaluateAt: 'ENTRY',
+            captureExpressions: [
+              {name: 'greeting_at_entry', expr: {dsl: 'arg1', json: {ref: 'arg1'}}},
+            ],
+          }
+        end
+
+        it 'evaluates against pre-super scope and emits under captures.entry' do
+          expect(diagnostics_transport).to receive(:send_diagnostics)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          greeting = String.new('hello world')
+          InstrumentationSpecTestClass.new.mutating_method(greeting)
+          # Confirm the method mutated the arg.
+          expect(greeting).to eq('bye world')
+          component.probe_notifier_worker.flush
+
+          captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
+          # Entry-time evaluation sees the original value, not the post-mutation one.
+          expect(captures.fetch(:entry).fetch(:captureExpressions)).to eq(
+            "greeting_at_entry" => {type: 'String', value: 'hello world'},
+          )
+          # evaluateAt: :entry emits only the entry block; no return block.
+          expect(captures).not_to have_key(:return)
+        end
+      end
+
+      context 'with capture expression and evaluateAt: EXIT (explicit, same as default)' do
+        let(:probe) do
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
+        end
+
+        let(:probe_spec) do
+          {
+            id: '1234',
+            type: 'LOG_PROBE',
+            where: {typeName: 'InstrumentationSpecTestClass', methodName: 'mutating_method'},
+            evaluateAt: 'EXIT',
+            captureExpressions: [
+              {name: 'greeting_at_exit', expr: {dsl: 'arg1', json: {ref: 'arg1'}}},
+            ],
+          }
+        end
+
+        it 'evaluates against post-super scope (post-mutation values) and emits under captures.return' do
+          expect(diagnostics_transport).to receive(:send_diagnostics)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          InstrumentationSpecTestClass.new.mutating_method(String.new('hello world'))
+          component.probe_notifier_worker.flush
+
+          captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
+          # Exit-time evaluation sees the post-mutation value.
+          expect(captures.fetch(:return).fetch(:captureExpressions)).to eq(
+            "greeting_at_exit" => {type: 'String', value: 'bye world'},
+          )
+          expect(captures).not_to have_key(:entry)
+        end
+      end
+
       context 'with both captureSnapshot=true and capture_expressions (mutual exclusion)' do
         let(:probe) do
           Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))

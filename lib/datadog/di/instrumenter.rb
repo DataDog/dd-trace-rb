@@ -2,6 +2,7 @@
 
 require_relative '../core/utils/time'
 require_relative 'fatal_exceptions'
+require_relative 'capture_expression_evaluator'
 
 # rubocop:disable Lint/AssignmentInCondition
 # rubocop:disable Style/AndOr
@@ -82,6 +83,17 @@ module Datadog
       attr_reader :logger
       attr_reader :telemetry
       attr_reader :code_tracker
+
+      # Lazily-constructed CaptureExpressionEvaluator used for entry-time
+      # evaluation on method probes with evaluate_at: :entry. The notification
+      # builder owns a separate instance for exit-time evaluation; they share
+      # the same settings/serializer/logger/telemetry and produce identical
+      # output for an identical context.
+      def capture_expression_evaluator
+        @capture_expression_evaluator ||= CaptureExpressionEvaluator.new(
+          settings: settings, serializer: serializer, logger: logger, telemetry: telemetry,
+        )
+      end
 
       # This is a substitute for Thread::Backtrace::Location
       # which does not have a public constructor.
@@ -214,6 +226,28 @@ module Datadog
                 serializer.serialize_args(args, kwargs, self,
                   **probe.snapshot_serializer_limits(settings))
               end
+
+              # Entry-time capture-expression evaluation. For probes with
+              # evaluate_at: :entry, evaluate against the pre-super scope
+              # (args/kwargs/self only — @return/@duration/@exception are
+              # nil at this point) and stash the result. The Context built
+              # below carries it through to the notification builder, which
+              # emits the block under captures.entry instead of re-running
+              # the evaluator at exit-time scope.
+              # Skipped when capture_snapshot is also set: the snapshot block
+              # wins at fire time, so any pre-computed capture-expression block
+              # would be discarded by ProbeNotificationBuilder.
+              entry_capture_expressions = nil
+              entry_capture_evaluation_errors = nil
+              if probe.capture_expressions? && probe.evaluate_at == :entry && !probe.capture_snapshot?
+                entry_context = Context.new(
+                  probe: probe, settings: settings, serializer: serializer,
+                  target_self: self,
+                  locals: serializer.combine_args(args, kwargs, self),
+                )
+                entry_capture_expressions, entry_capture_evaluation_errors =
+                  instrumenter.capture_expression_evaluator.evaluate(probe, entry_context)
+              end
               # We intentionally do not use Core::Utils::Time.get_time
               # here because the time provider may be overridden by the
               # customer, and DI is not allowed to invoke customer code.
@@ -282,6 +316,8 @@ module Datadog
               context = Context.new(locals: capture_expression_locals, target_self: self,
                 probe: probe, settings: settings, serializer: serializer,
                 serialized_entry_args: serialized_entry_args,
+                entry_capture_expressions: entry_capture_expressions,
+                entry_capture_evaluation_errors: entry_capture_evaluation_errors,
                 caller_locations: caller_locs,
                 return_value: rv, duration: duration, exception: exc,)
 
