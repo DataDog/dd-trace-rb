@@ -56,13 +56,11 @@ module Datadog
         definition_trace_point.disable
         probe_repository.synchronize do
           probe_repository.installed_probes.each_value do |probe|
-            begin
-              instrumenter.unhook(probe)
-            rescue => exc
-              raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-              logger.debug { "di: error unhooking #{probe.type} probe at #{probe.location} (#{probe.id}) on stop: #{exc.class}: #{exc.message}" }
-              telemetry&.report(exc, description: "Error unhooking probe on stop")
-            end
+            instrumenter.unhook(probe)
+          rescue => exc
+            raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+            logger.debug { "di: error unhooking #{probe.type} probe at #{probe.location} (#{probe.id}) on stop: #{exc.class}: #{exc.message}" }
+            telemetry&.report(exc, description: "Error unhooking probe on stop")
           end
         end
       end
@@ -83,17 +81,15 @@ module Datadog
           # values.each so concurrent mutation of @installed_probes (via
           # remove_installed below) does not iterate over a stale key set.
           probe_repository.installed_probes.values.each do |probe|
-            begin
-              instrumenter.hook(probe, self)
-            rescue Error::DITargetNotDefined
-              probe_repository.remove_installed(probe.id)
-              probe_repository.add_pending(probe)
-              logger.trace { "di: target for #{probe.type} probe (#{probe.id}) no longer defined on reopen, demoting to pending" }
-            rescue => exc
-              raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-              logger.debug { "di: error re-hooking #{probe.type} probe at #{probe.location} (#{probe.id}) on reopen: #{exc.class}: #{exc.message}" }
-              telemetry&.report(exc, description: "Error re-hooking probe on reopen")
-            end
+            instrumenter.hook(probe, self)
+          rescue Error::DITargetNotDefined
+            probe_repository.remove_installed(probe.id)
+            probe_repository.add_pending(probe)
+            logger.trace { "di: target for #{probe.type} probe (#{probe.id}) no longer defined on reopen, demoting to pending" }
+          rescue => exc
+            raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+            logger.debug { "di: error re-hooking #{probe.type} probe at #{probe.location} (#{probe.id}) on reopen: #{exc.class}: #{exc.message}" }
+            telemetry&.report(exc, description: "Error re-hooking probe on reopen")
           end
         end
       end
