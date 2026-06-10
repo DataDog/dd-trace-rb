@@ -104,7 +104,7 @@ RSpec.describe Datadog::DI::Remote do
         it 'falls back to a generic message when no reason is available' do
           allow(Datadog::DI).to receive(:unsupported_reason).and_return(nil)
           expect(Datadog.logger).to receive(:warn).with(
-            a_string_matching(/cannot enable dynamic instrumentation via remote configuration.*was not built at startup/)
+            a_string_matching(/cannot enable dynamic instrumentation via remote configuration.*was not initialized at startup/)
           )
           described_class.handle_rc_enablement(true)
         end

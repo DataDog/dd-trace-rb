@@ -28,7 +28,7 @@ module Datadog
             # Datadog UI get a symmetric warn from Remote.handle_rc_enablement
             # when the RC enable signal finds no component to start.
             level = explicitly_enabled?(settings) ? :warn : :debug
-            logger.public_send(level, "di: not building DI component: #{reason}")
+            logger.public_send(level, "di: dynamic instrumentation is disabled: #{reason}")
             return
           end
 
