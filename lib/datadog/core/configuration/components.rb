@@ -331,14 +331,21 @@ module Datadog
 
         # Returns the current state of various components.
         def state
-          # di_implicitly_enabled distinguishes RC-driven start from env-var
-          # start so that an explicit `enabled = false` on reconfiguration
-          # can take effect. If the component is started AND env-var enable
-          # is set, the next Components tree will pick up the env var on its
-          # own; carrying an "implicit" flag forward would override a user's
-          # later explicit disable. Only carry forward when the env var is
-          # not set (i.e., the only reason DI was started was RC).
-          di_implicit = dynamic_instrumentation&.started? && !@settings.dynamic_instrumentation.enabled
+          # di_implicitly_enabled distinguishes RC-driven start from explicit
+          # start (env var or programmatic) so that an explicit
+          # `enabled = false` on reconfiguration can take effect.
+          #
+          # using_default? — not `!enabled` — because by the time #state runs,
+          # Datadog.configure has already mutated the singleton settings via
+          # its yield. A customer who calls
+          # `Datadog.configure { |c| c.dynamic_instrumentation.enabled = false }`
+          # to disable an RC-enabled (or env-var-enabled) DI would see
+          # `!enabled == true` here and we'd ORally restart DI in the new
+          # startup!. using_default? captures "the customer never touched the
+          # setting" — the only condition under which RC-driven carry-over
+          # is the right thing to do.
+          di_implicit = dynamic_instrumentation&.started? &&
+            @settings.dynamic_instrumentation.using_default?(:enabled)
           ComponentsState.new(
             telemetry_enabled: telemetry.enabled,
             remote_started: remote&.started?,

@@ -760,6 +760,26 @@ RSpec.describe Datadog::Core::Configuration::Components do
         expect(components.state.di_implicitly_enabled?).to be false
       end
     end
+
+    # Regression: prior to using `using_default?`, #state branched on
+    # `!@settings.dynamic_instrumentation.enabled`. Datadog.configure mutates
+    # the singleton settings BEFORE the old tree's #state is read; an explicit
+    # `enabled = false` would arrive at #state on the OLD components and the
+    # `!enabled` check would compute di_implicit=true, causing the new tree's
+    # #startup! to OR-restart DI that the customer just explicitly disabled.
+    # The fix uses using_default? to detect "customer never touched the setting".
+    context 'when settings.enabled is explicitly false (customer disabled after RC enable)' do
+      let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: true, shutdown!: nil) }
+
+      before do
+        settings.dynamic_instrumentation.enabled = false
+        allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
+      end
+
+      it 'captures di_implicitly_enabled? as false (customer explicitly disabled — do not carry over)' do
+        expect(components.state.di_implicitly_enabled?).to be false
+      end
+    end
   end
 
   describe '#startup! with old_state carrying DI implicit enablement' do
@@ -768,6 +788,14 @@ RSpec.describe Datadog::Core::Configuration::Components do
     # new tree even when settings.dynamic_instrumentation.enabled is false
     # (no env var). The env-var-only path and the no-carry path are also
     # covered to make the precedence explicit.
+
+    # Ruby 2.5 does not load di/base.rb, so Datadog::DI.activate_tracking is
+    # not defined. The production code guards with respond_to?, but
+    # verify_partial_doubles trips on the allow(...).to receive() below.
+    # The semantic being tested (state carry-over across Components rebuild)
+    # is platform-agnostic; the unsupported Ruby version short-circuits
+    # before any of this matters in production.
+    before(:all) { skip 'requires Ruby >= 2.6 (DI.activate_tracking not loaded on 2.5)' if RUBY_VERSION < '2.6' }
 
     subject(:startup!) { components.startup!(settings, old_state: old_state) }
 
