@@ -285,6 +285,82 @@ RSpec.describe Datadog::DI::ProbeManager do
     end
   end
 
+  describe '#stop then #reopen' do
+    # Round-trip the codex review scenario on PR #5525: RC toggles
+    # dynamic_instrumentation_enabled from true to false, then back to true
+    # with the same LIVE_DEBUGGING content. The remote client only
+    # redispatches receivers on a content hash change, so the LIVE_DEBUGGING
+    # receiver does not re-fire on the second enable. The probe repository
+    # must preserve the installed probes across the stop/reopen cycle so
+    # the customer's probe still fires after re-enable without needing to
+    # delete and recreate it.
+
+    let(:probe) do
+      Datadog::DI::Probe.new(
+        id: '3ecfd456-2d7c-4359-a51f-d4cc44141ffe', type: :log, file: 'xx', line_no: 123,
+      )
+    end
+
+    let(:trace_point) do
+      instance_double(TracePoint)
+    end
+
+    before do
+      expect(TracePoint).to receive(:new).with(:end).and_return(trace_point)
+      allow(trace_point).to receive(:disable)
+      allow(trace_point).to receive(:enable)
+      manager
+      probe_repository.add_installed(probe)
+    end
+
+    after do
+      manager.close
+    end
+
+    it 'preserves installed probes across the cycle' do
+      allow(instrumenter).to receive(:unhook)
+      allow(instrumenter).to receive(:hook)
+
+      manager.stop
+
+      expect(probe_repository.installed_probes.length).to eq 1
+      expect(probe_repository.installed_probes[probe.id]).to be(probe)
+
+      manager.reopen
+
+      expect(probe_repository.installed_probes.length).to eq 1
+      expect(probe_repository.installed_probes[probe.id]).to be(probe)
+    end
+
+    it 'unhooks on stop and re-hooks on reopen' do
+      call_order = []
+      allow(instrumenter).to receive(:unhook).with(probe) { call_order << :unhook }
+      allow(instrumenter).to receive(:hook).with(probe, manager) { call_order << :hook }
+
+      manager.stop
+      manager.reopen
+
+      # Cycle calls unhook then hook. The after-block close adds a trailing
+      # unhook via clear_hooks, which we tolerate by asserting on the first
+      # two elements rather than equality.
+      expect(call_order.first(2)).to eq([:unhook, :hook])
+    end
+
+    context 'when a probe target is no longer defined on reopen' do
+      it 'demotes the probe to pending' do
+        allow(instrumenter).to receive(:unhook)
+        expect(instrumenter).to receive(:hook).with(probe, manager)
+          .and_raise(Datadog::DI::Error::DITargetNotDefined)
+
+        manager.stop
+        manager.reopen
+
+        expect(probe_repository.installed_probes).to be_empty
+        expect(probe_repository.pending_probes[probe.id]).to be(probe)
+      end
+    end
+  end
+
   describe '#clear_hooks' do
     context 'pending probes' do
       let(:probe) do
