@@ -750,6 +750,7 @@ module Datadog
 
           mod_name = safe_mod_name(mod)
           next unless mod_name
+          next unless resolves_to_same_module?(mod_name, mod)
           next unless user_code_module?(mod)
 
           file_to_names = collect_method_names_by_file(mod)
@@ -826,7 +827,7 @@ module Datadog
           # Resolve UnboundMethods for this (mod, file) just-in-time. These objects
           # live only as long as the tree node holds them; they are released when
           # convert_tree_to_scope finishes building the file's Scope.
-          method_infos = method_names.filter_map do |name|
+          method_infos = Core::Utils::EnumerableCompat.filter_map(method_names) do |name|
             method = mod.instance_method(name)
             {name: name, method: method, type: :instance}
           rescue => e
