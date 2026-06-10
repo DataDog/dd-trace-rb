@@ -165,7 +165,7 @@ RSpec.describe 'DI implicit enablement integration' do
     end
   end
 
-  describe 'test 15: RC disable stops the component and removes probes' do
+  describe 'test 15: RC disable stops the component and unhooks probes' do
     let(:rc_payload_enable) { {'lib_config' => {'dynamic_instrumentation_enabled' => true}} }
     let(:rc_payload_disable) { {'lib_config' => {'dynamic_instrumentation_enabled' => false}} }
     let(:rc_content) { instance_double(Datadog::Core::Remote::Configuration::Content, applied: nil, errored: nil) }
@@ -223,17 +223,29 @@ RSpec.describe 'DI implicit enablement integration' do
         allow(Datadog::DI).to receive(:component).and_return(component)
       end
 
-      it 'removes the probe when the component is stopped via RC disable' do
+      it 'unhooks the probe but preserves it in the repository when the component is stopped via RC disable' do
         Datadog::Tracing::Remote.process_config(rc_payload_enable, rc_content)
         di_receiver.call(repository, transaction)
         component.probe_notifier_worker.flush
-        expect(component.probe_manager.probe_repository.installed_probes.length).to eq 1
+        installed = component.probe_manager.probe_repository.installed_probes
+        expect(installed.length).to eq 1
+        probe = installed.values.first
+        # Pre-check: hook installed instrumentation on the target method.
+        expect(probe.instrumentation_module).not_to be_nil
 
         Datadog::Tracing::Remote.process_config(rc_payload_disable, rc_content)
 
         expect(component.started?).to be false
-        # stop! calls probe_manager.stop which removes all installed probes.
-        expect(component.probe_manager.probe_repository.installed_probes).to be_empty
+        # stop! calls probe_manager.stop which unhooks installed probes
+        # without clearing the repository, so a subsequent RC re-enable
+        # can re-hook the probe locally without waiting for the
+        # LIVE_DEBUGGING content hash to change. See
+        # ProbeManager#stop for the rationale.
+        expect(component.probe_manager.probe_repository.installed_probes.length).to eq 1
+        expect(component.probe_manager.probe_repository.installed_probes[probe.id]).to be(probe)
+        # instrumentation_module is nilled by Instrumenter#unhook_method,
+        # confirming the probe was unhooked on stop.
+        expect(probe.instrumentation_module).to be_nil
       end
     end
   end
