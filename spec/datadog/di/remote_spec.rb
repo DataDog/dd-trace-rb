@@ -146,8 +146,8 @@ RSpec.describe Datadog::DI::Remote do
   end
 
   describe '.handle_rc_enablement settings invariant' do
-    # Guards the "RC only enables/disables" decision in design/architecture.md.
-    # RC must never mutate settings under settings.dynamic_instrumentation —
+    # Guards the "RC only enables/disables" decision: RC must never
+    # mutate settings under settings.dynamic_instrumentation —
     # those are injected at component build time and remain authoritative
     # through start!/stop!. If a future change accidentally routes a settings
     # update through this path, this snapshot diff catches it.
