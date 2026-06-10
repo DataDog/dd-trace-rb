@@ -8,6 +8,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
     @clean_threads_required = true
     testing_threads.each { ready_queue.pop }
+    # Make sure all threads have reached the `sleep` before moving on
+    loop_until { testing_threads.all? { |t| t.status == "sleep" } }
     expect(Thread.list).to include(*testing_threads)
 
     testing_threads_and_current.each { |t| clear_per_thread_context_for(t) }
