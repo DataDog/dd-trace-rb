@@ -112,7 +112,7 @@ RSpec.describe 'Method probe dispatch semantics' do
 
   let(:redactor) { Datadog::DI::Redactor.new(settings) }
   let(:serializer) { Datadog::DI::Serializer.new(settings, redactor) }
-  let(:logger) { instance_double(Logger).tap { |l| allow(l).to receive(:debug) } }
+  let(:logger) { instance_double(Logger, debug: nil) }
   let(:instrumenter) { Datadog::DI::Instrumenter.new(settings, serializer, logger, code_tracker: nil) }
 
   def install_probe(type_name, method_name, &on_fire)
