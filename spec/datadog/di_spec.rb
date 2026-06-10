@@ -170,6 +170,24 @@ RSpec.describe(Datadog::DI) do
       end
     end
 
+    context 'when settings does not respond to :dynamic_instrumentation' do
+      # In unusual configurations (test doubles, partial Settings) the
+      # DI namespace may be absent. Without the guard the line
+      # `settings.dynamic_instrumentation.internal.development` would
+      # raise NoMethodError and prevent Remote.handle_rc_enablement
+      # from emitting the customer-facing warn.
+      let(:settings) { double('settings') }
+
+      before do
+        allow(settings).to receive(:respond_to?).with(:dynamic_instrumentation).and_return(false)
+      end
+
+      it 'returns a DI-not-available reason without raising' do
+        expect(described_class.unsupported_reason(settings))
+          .to match(/dynamic instrumentation settings are not available/)
+      end
+    end
+
     context 'when running on a non-MRI engine' do
       before { stub_const('RUBY_ENGINE', 'truffleruby') }
 

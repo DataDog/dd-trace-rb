@@ -86,6 +86,15 @@ module Datadog
       # @param settings [Datadog::Core::Configuration::Settings]
       # @return [String, nil] reason string or nil when supported
       def unsupported_reason(settings = Datadog.configuration)
+        # Symmetric to the respond_to?(:remote) guard below: in unusual
+        # configurations (test doubles, partial Settings) the DI namespace
+        # may be absent. Returning a reason here lets callers — most
+        # importantly Remote.handle_rc_enablement — emit the customer-facing
+        # warn instead of raising NoMethodError on the unguarded access at
+        # line 92 (`settings.dynamic_instrumentation.internal.development`).
+        unless settings.respond_to?(:dynamic_instrumentation)
+          return "dynamic instrumentation settings are not available"
+        end
         unless settings.respond_to?(:remote) && settings.remote.enabled
           return "Remote Configuration is not enabled. See https://docs.datadoghq.com/agent/remote_config"
         end
