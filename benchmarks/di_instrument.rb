@@ -58,22 +58,6 @@
 # production use; the skip-variant measurement is the floor cost that even
 # rate-limit-skipped traffic pays.
 #
-# After instrumentation is removed, performance returns to baseline within
-# measurement error: method-cleared was 2.6% below baseline, line-cleared was
-# 1.1% above baseline, no-instr-again was 0.8% above baseline -- all within the
-# +/- 1.6-2.2% error bands. A prior version of this header documented a 6-10%
-# residual loss with two candidate causes (lingering code overhead vs. CPU
-# thermal throttling); the throttling theory is consistent with what we see
-# now -- with turbo disabled the residual loss disappears.
-#
-# To reproduce stable measurements on a laptop, run as root:
-#   echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo
-# then run the benchmark pinned to one P-core's SMT pair:
-#   taskset -c 2,3 bundle exec ruby benchmarks/di_instrument.rb
-# Without these, the default intel_pstate powersave governor swings P-core
-# frequency between 400 MHz and ~4.3 GHz under load, producing +/- 16-36%
-# per-report error bands that swamp the differences this benchmark measures.
-#
 
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
 VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
