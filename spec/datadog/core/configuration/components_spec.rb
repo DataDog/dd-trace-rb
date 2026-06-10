@@ -125,17 +125,16 @@ RSpec.describe Datadog::Core::Configuration::Components do
         # it on from the UI. With the env-var unset, the component is built
         # but stays stopped (not started?), and the env logger reports the
         # customer-configured value as false.
-        before(:all) do
-          skip 'Test requires MRI' if PlatformHelpers.jruby?
-          skip 'Test requires DI C extension' unless Datadog::DI.respond_to?(:exception_message)
+        let(:stub_di_component) do
+          instance_double(Datadog::DI::Component, started?: false, shutdown!: nil)
         end
 
-        after do
-          components.dynamic_instrumentation&.shutdown!
+        before do
+          allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
         end
 
         it 'builds the component but reports DI as disabled' do
-          expect(components.dynamic_instrumentation).to be_a(Datadog::DI::Component)
+          expect(components.dynamic_instrumentation).to be(stub_di_component)
           expect(components.dynamic_instrumentation.started?).to be false
           expect(extra).to eq(dynamic_instrumentation_enabled: false)
         end
@@ -699,17 +698,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
     # captured that runtime fact.
 
     context 'when DI component is started' do
-      before(:all) do
-        skip 'Test requires MRI' if PlatformHelpers.jruby?
-        skip 'Test requires DI C extension' if RUBY_VERSION < '2.6' || !Datadog::DI.respond_to?(:exception_message)
-      end
+      let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: true, shutdown!: nil) }
 
       before do
-        settings.dynamic_instrumentation.internal.development = true
-        components.dynamic_instrumentation&.start!
+        allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
       end
-
-      after { components.dynamic_instrumentation&.shutdown! }
 
       it 'captures di_implicitly_enabled? as true' do
         expect(components.state.di_implicitly_enabled?).to be true
@@ -717,16 +710,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
 
     context 'when DI component is stopped' do
-      before(:all) do
-        skip 'Test requires MRI' if PlatformHelpers.jruby?
-        skip 'Test requires DI C extension' if RUBY_VERSION < '2.6' || !Datadog::DI.respond_to?(:exception_message)
-      end
+      let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: false, shutdown!: nil) }
 
       before do
-        settings.dynamic_instrumentation.internal.development = true
+        allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
       end
-
-      after { components.dynamic_instrumentation&.shutdown! }
 
       it 'captures di_implicitly_enabled? as false' do
         expect(components.dynamic_instrumentation&.started?).to be false
@@ -755,9 +743,17 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
     subject(:startup!) { components.startup!(settings, old_state: old_state) }
 
-    before(:all) do
-      skip 'Test requires MRI' if PlatformHelpers.jruby?
-      skip 'Test requires DI C extension' if RUBY_VERSION < '2.6' || !Datadog::DI.respond_to?(:exception_message)
+    # State-aware double so start!/stop! transitions show up in started?.
+    # Avoids needing the real DI C extension while still exercising the
+    # exact lifecycle Components#startup! drives.
+    let(:di_state) { {started: false} }
+    let(:stub_di_component) do
+      instance_double(Datadog::DI::Component).tap do |dbl|
+        allow(dbl).to receive(:started?) { di_state[:started] }
+        allow(dbl).to receive(:start!) { di_state[:started] = true }
+        allow(dbl).to receive(:stop!) { di_state[:started] = false }
+        allow(dbl).to receive(:shutdown!) { di_state[:started] = false }
+      end
     end
 
     before do
@@ -766,9 +762,9 @@ RSpec.describe Datadog::Core::Configuration::Components do
         .and_return([nil, environment_logger_extra])
       allow(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!)
       allow(Datadog::Core::ProcessDiscovery).to receive(:publish)
+      allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
+      allow(Datadog::DI).to receive(:activate_tracking)
     end
-
-    after { components.dynamic_instrumentation&.shutdown! }
 
     context 'old_state.di_implicitly_enabled? is true, env var not set' do
       let(:old_state) do

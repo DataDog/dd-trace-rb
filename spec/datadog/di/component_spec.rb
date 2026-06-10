@@ -310,12 +310,9 @@ RSpec.describe Datadog::DI::Component do
       component.start!
       expect(Thread.list.size).to be > baseline
 
+      # ProbeNotifierWorker#stop calls thread.join (or thread.kill on timeout),
+      # so by the time component.stop! returns the worker thread is gone.
       component.stop!
-      # Probe notifier worker thread exits on stop; allow brief grace for join.
-      deadline = Datadog::Core::Utils::Time.get_time + 2.0
-      while Thread.list.size > baseline && Datadog::Core::Utils::Time.get_time < deadline
-        Thread.pass
-      end
       expect(Thread.list.size).to eq(baseline)
     end
 

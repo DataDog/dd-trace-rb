@@ -26,7 +26,12 @@ module Datadog
         end
 
         def handle_rc_enablement(enabled)
-          component = Datadog.send(:components).dynamic_instrumentation
+          # allow_initialization: false because this runs on the remote-config
+          # thread (a callback context). The default `true` would synchronously
+          # build the entire component tree from the wrong thread if the RC
+          # signal lands before Components#initialize completed.
+          components = Datadog.send(:components, allow_initialization: false)
+          component = components&.dynamic_instrumentation
           unless component
             # The component is nil because Component.build returned nil at
             # startup — a runtime precondition is not met (RC disabled, MRI
@@ -41,7 +46,7 @@ module Datadog
               reason = DI.unsupported_reason
               Datadog.logger.warn(
                 "di: cannot enable dynamic instrumentation via remote configuration: " \
-                "#{reason || "dynamic instrumentation was not initialized at startup"}"
+                "#{reason || "dynamic instrumentation was not initialized at startup"}",
               )
             end
             return
@@ -52,7 +57,7 @@ module Datadog
               Datadog.logger.warn(
                 "di: ignoring implicit enablement signal from remote configuration " \
                 "because DD_DYNAMIC_INSTRUMENTATION_ENABLED is explicitly set to false. " \
-                "To allow remote enablement, unset DD_DYNAMIC_INSTRUMENTATION_ENABLED."
+                "To allow remote enablement, unset DD_DYNAMIC_INSTRUMENTATION_ENABLED.",
               )
               return
             end
@@ -67,7 +72,10 @@ module Datadog
           end
         rescue => e
           Datadog.logger.debug { "di: error handling implicit enablement: #{e.class}: #{e.message}" }
-          Datadog.send(:components).telemetry&.report(e, description: "Error handling DI implicit enablement")
+          Datadog.send(:components, allow_initialization: false)&.telemetry&.report(
+            e,
+            description: "Error handling DI implicit enablement",
+          )
         end
 
         def explicitly_disabled?
