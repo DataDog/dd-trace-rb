@@ -1864,6 +1864,44 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
     end
 
+    context 'when a recorded method has moved to another file between passes' do
+      # build_per_file_index (Pass 1) records (mod, method_name, file_path) and
+      # drops the UnboundMethod. build_file_scope (Pass 2) re-resolves the method
+      # via mod.instance_method(name). If the method has been redefined in another
+      # file between the two passes, its current source_location no longer matches
+      # the recorded file_path; the stale entry must be skipped so the FILE scope
+      # does not attribute the method to a file it no longer lives in. The
+      # hot-load TracePoint enqueues the redefined class and the next debounce
+      # window extracts it under the new file_path.
+
+      before do
+        @real_file = create_test_file('method_moved_real.rb', <<~RUBY)
+          class ExtractAllMethodMoved
+            def actual_method
+              'real'
+            end
+          end
+        RUBY
+        load @real_file
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllMethodMoved) if defined?(ExtractAllMethodMoved)
+      end
+
+      it 'drops the module entry when every recorded method has moved out of file_path' do
+        stale_file_path = '/path/recorded/in/pass_one.rb'
+        entries = [['ExtractAllMethodMoved', ExtractAllMethodMoved, [:actual_method]]]
+
+        scope = extractor.send(:build_file_scope, stale_file_path, entries)
+
+        # actual_method's real source_location is @real_file, not stale_file_path,
+        # so the only entry's methods are all stale; the FILE scope collapses
+        # rather than emitting an empty CLASS node at the stale location.
+        expect(scope).to be_nil
+      end
+    end
+
     # ── Targetable lines unit tests ──────────────────────────────────────
 
     describe 'build_targetable_ranges' do

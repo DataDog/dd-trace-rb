@@ -834,11 +834,26 @@ module Datadog
           # convert_tree_to_scope finishes building the file's Scope.
           method_infos = Core::Utils::EnumerableCompat.filter_map(method_names) do |name|
             method = mod.instance_method(name)
+            # Pass 1 (build_per_file_index) recorded this method under file_path.
+            # If the method has been redefined in another file between the two
+            # passes (e.g. a class reopened during a Rails reload while extract_all
+            # is iterating), the resolved UnboundMethod's source_location now
+            # points elsewhere. Drop the stale entry — the hot-load TracePoint
+            # enqueues the redefined class and the next debounce window extracts
+            # it under the new file_path.
+            loc = method.source_location
+            next nil unless loc && loc[0] == file_path
             {name: name, method: method, type: :instance}
           rescue => e
             @logger.debug { "symdb: error resolving #{mod_name}##{name}: #{e.class}: #{e.message}" }
             nil
           end
+
+          # If Pass 1 recorded methods for this module but every one of them has
+          # moved out of file_path between the passes, drop the entry — otherwise
+          # the FILE scope would carry an empty CLASS/MODULE node at a location
+          # the module no longer lives in.
+          next if method_names.any? && method_infos.empty?
 
           parts = mod_name.split('::')
           place_in_tree(root, parts, mod, mod_name, method_infos, file_path)
