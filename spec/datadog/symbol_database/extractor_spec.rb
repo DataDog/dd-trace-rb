@@ -2593,5 +2593,38 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         expect(host.scopes.map(&:name)).not_to include('old_method')
       end
     end
+
+    context 'namespace-only module entry with empty method list' do
+      # Regression guard for the Pass 1 → Pass 2 stale-method recheck in
+      # build_file_scope. Pass 1 records namespace-only modules (no own
+      # methods) with an empty method-name list via the find_source_file
+      # fallback. The `next if method_names.any? && method_infos.empty?`
+      # guard must not over-filter this case — there are no methods to
+      # compare source_locations on, so the empty list is canonical, not
+      # stale, and the FILE scope must still place the MODULE node.
+      before do
+        @namespace_file = create_test_file('extract_all_namespace_only.rb', <<~RUBY)
+          module ExtractAllNamespaceOnly
+            FOO = 1
+          end
+        RUBY
+        load @namespace_file
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllNamespaceOnly) if defined?(ExtractAllNamespaceOnly)
+      end
+
+      it 'places the module entry under its recorded file_path' do
+        mod = ExtractAllNamespaceOnly
+        namespace_entries = [['ExtractAllNamespaceOnly', mod, []]]
+
+        scope = extractor.send(:build_file_scope, @namespace_file, namespace_entries)
+
+        expect(scope).not_to be_nil
+        expect(scope.scope_type).to eq('FILE')
+        expect(scope.scopes.map(&:name)).to include('ExtractAllNamespaceOnly')
+      end
+    end
   end
 end
