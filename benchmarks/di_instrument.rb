@@ -1,36 +1,46 @@
 #
 # "Instrumentation" part of Dynamic Instrumentation benchmarks.
 #
-# Typical result:
+# Typical result (Intel Core Ultra 7 165U, Ruby 3.2.3, intel_pstate/no_turbo=1
+# locking P-cores at 1.7 GHz base, taskset -c 2,3 pinning to one P-core):
 #
-# Comparison:
-#   no instrumentation:   589490.0 i/s
-# method instrumentation - cleared:   545807.2 i/s - 1.08x  slower
-# line instrumentation - cleared:   539686.5 i/s - 1.09x  slower
-# no instrumentation - again:   535761.0 i/s - 1.10x  slower
-# method instrumentation:   129159.5 i/s - 4.56x  slower
-# line instrumentation - targeted:   128848.6 i/s - 4.58x  slower
-# line instrumentation:    10771.7 i/s - 54.73x  slower
+# Reports in execution order, with i/s and slowdown vs. the initial baseline:
 #
-# Targeted line and method instrumentations have similar performance at
-# about 25% of baseline. Note that the instrumented method is fairly
-# small and probably runs very quickly by itself, so while this is not the
-# worst possible case for instrumentation (that would be an empty method),
-# likely the vast majority of real world uses of DI would have way expensive
-# target code and the relative overhead of instrumentation will be significantly
-# lower than it is in this benchmark.
+#               no instrumentation:   240234.8 i/s   1.00x  (baseline)
+#           method instrumentation:   138017.6 i/s   1.74x  slower
+# line instrumentation - untargeted:   25021.7 i/s   9.60x  slower
+#  line instrumentation - targeted:   117677.4 i/s   2.04x  slower
+# method instrumentation - cleared:   234189.2 i/s   1.03x  slower (within error)
+#   line instrumentation - cleared:   242757.1 i/s   0.99x  faster (within error)
+#       no instrumentation - again:   242268.1 i/s   0.99x  faster (within error)
 #
-# Untargeted line instrumentation is extremely slow, too slow to be usable.
+# Per-report error bands were +/- 1.4% to 2.2% on all configurations except
+# untargeted line (+/- 5.1%, which is intrinsic to its 40 us/iteration cost
+# yielding only ~2,500 iterations per 100 ms benchmark/ips sample).
 #
-# In theory, after instrumentation is removed, performance should return to
-# the baseline. We are currently observing about a 6-10% performance loss.
-# Two theories for why this is so:
-# 1. Some overhead remains in the code - to be investigated.
-# 2. The benchmarks were run on a laptop, and during the benchmarking
-# process the CPU is heating up and it can't turbo to the same speeds at
-# the end of the run as it can at the beginning. Meaning the observed 6-10%
-# slowdown at the end is an environmental issue and not an implementation
-# problem.
+# Targeted line and method instrumentation have similar performance at about
+# 50-60% of baseline on this trivial target method. Real-world targets do more
+# per call, so the relative overhead of instrumentation will be lower in
+# practice than it is in this benchmark.
+#
+# Untargeted line instrumentation is the slowest configuration by ~4.7x over
+# the next-slowest, and remains too slow to be usable.
+#
+# After instrumentation is removed, performance returns to baseline within
+# measurement error: method-cleared was 2.6% below baseline, line-cleared was
+# 1.1% above baseline, no-instr-again was 0.8% above baseline -- all within the
+# +/- 1.6-2.2% error bands. A prior version of this header documented a 6-10%
+# residual loss with two candidate causes (lingering code overhead vs. CPU
+# thermal throttling); the throttling theory is consistent with what we see
+# now -- with turbo disabled the residual loss disappears.
+#
+# To reproduce stable measurements on a laptop, run as root:
+#   echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo
+# then run the benchmark pinned to one P-core's SMT pair:
+#   taskset -c 2,3 bundle exec ruby benchmarks/di_instrument.rb
+# Without these, the default intel_pstate powersave governor swings P-core
+# frequency between 400 MHz and ~4.3 GHz under load, producing +/- 16-36%
+# per-report error bands that swamp the differences this benchmark measures.
 #
 
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
