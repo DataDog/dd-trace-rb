@@ -248,7 +248,7 @@ RSpec.describe 'Method probe dispatch semantics' do
     end
   end
 
-  describe 'Ractor isolation when invoking a probed method' do
+  describe 'Ractor isolation when invoking a probed method', ractors: true do
     # Ractors enforce that user-defined Ruby objects passed across
     # Ractor boundaries are either shareable (frozen / built-in / Ractor.make_shareable
     # processed) or accessed via copy. The method-probe wrapper closes over

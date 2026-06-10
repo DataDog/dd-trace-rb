@@ -19,6 +19,12 @@
   'di:di_with_ext' => {
     '' => '❌ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 4.0',
   },
+  # DI Ractor dispatch-semantics spec, isolated from di:di_with_ext to keep the regular
+  # DI job from transitioning the VM into multi-ractor mode. Ruby 3.0 is excluded because
+  # of the same Ractor stability issues that the in-spec skip guard covers.
+  'di:ractors' => {
+    '' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 4.0',
+  },
   'core_with_rails' => {
     # Run with Rails integration
     'rails8' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ 4.0',
