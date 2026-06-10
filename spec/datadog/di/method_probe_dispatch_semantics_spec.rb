@@ -94,16 +94,20 @@ RSpec.describe 'Method probe dispatch semantics' do
   let(:propagate_all_exceptions) { true }
 
   mock_settings_for_di do |settings|
-    allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(true)
-    allow(settings.dynamic_instrumentation.internal).to receive(:untargeted_trace_points).and_return(false)
-    allow(settings.dynamic_instrumentation).to receive(:max_capture_depth).and_return(2)
-    allow(settings.dynamic_instrumentation).to receive(:max_capture_attribute_count).and_return(2)
-    allow(settings.dynamic_instrumentation).to receive(:max_capture_string_length).and_return(100)
-    allow(settings.dynamic_instrumentation).to receive(:redacted_type_names).and_return([])
-    allow(settings.dynamic_instrumentation).to receive(:redacted_identifiers).and_return([])
-    allow(settings.dynamic_instrumentation).to receive(:redaction_excluded_identifiers).and_return([])
-    allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(propagate_all_exceptions)
-    allow(settings.dynamic_instrumentation.internal).to receive(:max_processing_time).and_return(1)
+    allow(settings.dynamic_instrumentation).to receive_messages(
+      enabled: true,
+      max_capture_depth: 2,
+      max_capture_attribute_count: 2,
+      max_capture_string_length: 100,
+      redacted_type_names: [],
+      redacted_identifiers: [],
+      redaction_excluded_identifiers: [],
+    )
+    allow(settings.dynamic_instrumentation.internal).to receive_messages(
+      untargeted_trace_points: false,
+      propagate_all_exceptions: propagate_all_exceptions,
+      max_processing_time: 1,
+    )
   end
 
   let(:redactor) { Datadog::DI::Redactor.new(settings) }
