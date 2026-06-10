@@ -3,7 +3,7 @@ require 'datadog/di/spec_helper'
 require 'datadog/di'
 require 'datadog/tracing/remote'
 
-# Target class for the method probe in test 14. Loaded before the RC
+# Target class for the method probe used below. Loaded before the RC
 # enable signal arrives — this is the canonical "code loaded before
 # enablement" case that always-build + late activation is meant to fix.
 class ImplicitEnablementSpecTargetClass
@@ -16,12 +16,11 @@ RSpec.describe 'DI implicit enablement integration' do
   di_test
   deactivate_code_tracking
 
-  # Tests 14 and 15 in testing/test-strategy.md. Exercises the full
-  # APM_TRACING → DI::Remote.handle_rc_enablement → component.start! chain
-  # in-process, then drops a LIVE_DEBUGGING probe and verifies the
-  # in-stopped-state component refuses probes, the started component
-  # accepts and fires them, and the subsequent enabled=false stops the
-  # component and removes installed probes.
+  # Exercises the full APM_TRACING → DI::Remote.handle_rc_enablement →
+  # component.start! chain in-process, then drops a LIVE_DEBUGGING probe
+  # and verifies the in-stopped-state component refuses probes, the
+  # started component accepts and fires them, and the subsequent
+  # enabled=false stops the component and unhooks installed probes.
 
   let(:settings) do
     Datadog::Core::Configuration::Settings.new.tap do |s|
@@ -85,7 +84,7 @@ RSpec.describe 'DI implicit enablement integration' do
 
   after { component&.shutdown! }
 
-  describe 'test 14: RC enables DI → method probe installs and fires' do
+  describe 'RC enables DI → method probe installs and fires' do
     let(:rc_payload_enable) { {'lib_config' => {'dynamic_instrumentation_enabled' => true}} }
     let(:rc_content) { instance_double(Datadog::Core::Remote::Configuration::Content) }
 
@@ -165,7 +164,7 @@ RSpec.describe 'DI implicit enablement integration' do
     end
   end
 
-  describe 'test 15: RC disable stops the component and unhooks probes' do
+  describe 'RC disable stops the component and unhooks probes' do
     let(:rc_payload_enable) { {'lib_config' => {'dynamic_instrumentation_enabled' => true}} }
     let(:rc_payload_disable) { {'lib_config' => {'dynamic_instrumentation_enabled' => false}} }
     let(:rc_content) { instance_double(Datadog::Core::Remote::Configuration::Content, applied: nil, errored: nil) }

@@ -179,7 +179,7 @@ RSpec.describe Datadog::DI::Component do
     end
   end
 
-  describe 'test 25: DI.add_current_component invariant from build' do
+  describe 'DI.add_current_component invariant from build' do
     # Guards the "two storage places" decision in design/architecture.md.
     # Built components are tracked in BOTH Components#@dynamic_instrumentation
     # AND DI.@current_components, so the code-tracker callback (which has
@@ -211,9 +211,9 @@ RSpec.describe Datadog::DI::Component do
     end
   end
 
-  describe 'test 26: build does not block' do
-    # Companion to test 10 (handle_rc_enablement non-blocking).
-    # requirements.md constraint: "DI startup must not block requests."
+  describe 'build does not block' do
+    # Companion to the handle_rc_enablement non-blocking guarantee.
+    # DI startup must not block requests:
     # Component.build is called during Components#initialize — any blocking
     # call here delays application boot and Rack request handling. The
     # build path should perform no I/O: no socket open, no thread join,

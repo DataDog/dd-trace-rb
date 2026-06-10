@@ -1,21 +1,19 @@
 require 'datadog/di/spec_helper'
 require 'datadog/di'
 
-# Tests 21 and 22 in testing/test-strategy.md.
-#
-# The line-probe pre-load case (test 21 row 1) is the one that
-# historically did not work in Ruby DI: a customer who created a line
-# probe in the Datadog UI for a file already loaded into the process
-# (typically the customer's own application code, loaded before the
-# tracer enabled DI) would see the probe silently never fire. The fix
-# is two parts already on the enablement branch: (a) backfill_registry
-# runs at code-tracking activation so pre-loaded iseqs are registered,
-# and (b) DI.activate_tracking is invoked by handle_rc_enablement on
-# the RC enable signal — so a customer's late-loaded code path is also
+# The line-probe pre-load case is the one that historically did not
+# work in Ruby DI: a customer who created a line probe in the Datadog
+# UI for a file already loaded into the process (typically the
+# customer's own application code, loaded before the tracer enabled
+# DI) would see the probe silently never fire. The fix is two parts
+# already on the enablement branch: (a) backfill_registry runs at
+# code-tracking activation so pre-loaded iseqs are registered, and
+# (b) DI.activate_tracking is invoked by handle_rc_enablement on the
+# RC enable signal — so a customer's late-loaded code path is also
 # covered.
 #
-# Method probes (test 22) use Module#prepend, which is unaffected by
-# code-tracking timing. They serve as regression coverage: both rows of
+# Method probes use Module#prepend, which is unaffected by code-
+# tracking timing. They serve as regression coverage: both rows of
 # the load-before / load-after matrix must continue to pass.
 #
 # Each matrix cell uses its own fixture file and class name. Reusing
@@ -87,7 +85,7 @@ RSpec.describe 'DI probe coverage across enablement timing' do
     Datadog::DI.deactivate_tracking!
   end
 
-  describe 'test 21: line probe' do
+  describe 'line probe' do
     context 'code loaded BEFORE implicit enablement' do
       # The historically-broken case. With backfill_registry running at
       # activate_tracking time, the iseq for the target file is
@@ -160,7 +158,7 @@ RSpec.describe 'DI probe coverage across enablement timing' do
     end
   end
 
-  describe 'test 22: method probe' do
+  describe 'method probe' do
     context 'code loaded BEFORE implicit enablement' do
       # Method probes use Module#prepend, which works regardless of
       # code-tracking timing. Regression coverage.

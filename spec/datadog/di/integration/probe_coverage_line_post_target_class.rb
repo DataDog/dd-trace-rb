@@ -1,5 +1,5 @@
 # Target class for the "line probe, code loaded AFTER implicit
-# enablement" case in probe_coverage_spec.rb (test 21).
+# enablement" case in probe_coverage_spec.rb.
 #
 # Loaded by exactly one example, after the spec activates code tracking,
 # so the iseq must be captured by the :script_compiled trace point at
