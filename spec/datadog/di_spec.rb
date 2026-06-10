@@ -143,8 +143,16 @@ RSpec.describe(Datadog::DI) do
     end
 
     context 'when all preconditions are met' do
+      # Stub respond_to?(:exception_message) so this test exercises the
+      # all-preconditions-met branch on builds without the DI C extension
+      # compiled (e.g. spec:main). The test's subject is the precondition
+      # logic itself, not the C extension method.
+      before do
+        allow(described_class).to receive(:respond_to?).and_call_original
+        allow(described_class).to receive(:respond_to?).with(:exception_message).and_return(true)
+      end
+
       it 'returns nil' do
-        skip 'C extension not available in this build' unless described_class.respond_to?(:exception_message)
         expect(described_class.unsupported_reason(settings)).to be_nil
       end
     end

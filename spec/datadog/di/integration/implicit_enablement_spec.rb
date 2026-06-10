@@ -73,6 +73,7 @@ RSpec.describe 'DI implicit enablement integration' do
     allow(logger).to receive(:debug)
     allow(Datadog).to receive(:send).and_call_original
     allow(Datadog).to receive(:send).with(:components).and_return(components)
+    allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(components)
     allow(Datadog).to receive(:configuration).and_return(settings)
     allow(Datadog).to receive(:logger).and_return(logger)
     allow(logger).to receive(:warn)

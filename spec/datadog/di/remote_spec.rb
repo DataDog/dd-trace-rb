@@ -47,7 +47,7 @@ RSpec.describe Datadog::DI::Remote do
     let(:components) { instance_double(Datadog::Core::Configuration::Components, dynamic_instrumentation: component) }
 
     before do
-      allow(Datadog).to receive(:send).with(:components).and_return(components)
+      allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(components)
     end
 
     context 'when enabled: true and component is not explicitly disabled' do
@@ -166,7 +166,7 @@ RSpec.describe Datadog::DI::Remote do
 
     before do
       allow(Datadog).to receive(:send).and_call_original
-      allow(Datadog).to receive(:send).with(:components).and_return(components)
+      allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(components)
       allow(Datadog).to receive(:configuration).and_return(settings)
       allow(described_class).to receive(:explicitly_disabled?).and_return(false)
       allow(Datadog::DI).to receive(:activate_tracking)
