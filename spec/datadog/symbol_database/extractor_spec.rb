@@ -1638,6 +1638,62 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
     end
   end
 
+  describe '#each_named_module' do
+    def collect_walked
+      walked = []
+      extractor.send(:each_named_module) { |m| walked << m }
+      walked
+    end
+
+    it 'yields each const-reachable Module once even when assigned to multiple constants' do
+      stub_const('EachNamedModuleAliasHost', Module.new)
+      shared = Module.new
+      EachNamedModuleAliasHost.const_set(:First, shared)
+      EachNamedModuleAliasHost.const_set(:Second, shared)
+
+      walked = collect_walked
+
+      expect(walked.count(shared)).to eq(1)
+    end
+
+    it 'does not yield a class that has been remove_const-ed but is still in ObjectSpace' do
+      stub_const('EachNamedModuleLeakHost', Module.new)
+      leaked = Class.new do
+        def alpha
+        end
+      end
+      EachNamedModuleLeakHost.const_set(:Leaked, leaked)
+      # Keep a hard reference so GC cannot reclaim the leaked Class.
+      keep_alive = leaked
+      EachNamedModuleLeakHost.send(:remove_const, :Leaked)
+
+      walked = collect_walked
+
+      expect(walked).not_to include(leaked)
+      expect(keep_alive).to be(leaked)
+    end
+
+    it 'does not trigger an autoload-pending constant' do
+      stub_const('EachNamedModuleAutoloadHost', Module.new)
+      autoload_target = '/nonexistent/each_named_module_autoload_target.rb'
+      EachNamedModuleAutoloadHost.autoload(:Pending, autoload_target)
+
+      expect { collect_walked }.not_to raise_error
+      expect(EachNamedModuleAutoloadHost.autoload?(:Pending)).to eq(autoload_target)
+    end
+
+    it 'skips non-Module constants' do
+      stub_const('EachNamedModuleConstantHost', Module.new)
+      EachNamedModuleConstantHost.const_set(:NUMBER, 42)
+      EachNamedModuleConstantHost.const_set(:STRING, 'hello')
+
+      walked = collect_walked
+
+      expect(walked).not_to include(42)
+      expect(walked).not_to include('hello')
+    end
+  end
+
   # ── extract_all tests ──────────────────────────────────────────────
   # These test the production path: two-pass extraction with FQN-based nesting
   # and per-file method grouping.
