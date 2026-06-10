@@ -25,9 +25,22 @@ module Datadog
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
 
                   persistent_data = {
-                    'server.request.body' => gateway_request.parsed_body,
                     'server.request.path_params' => gateway_request.route_params
                   }
+
+                  # NOTE: Specification requires measuring the body size,
+                  #       preferring the raw data over the Content-Length header
+                  body_io = gateway_request.request.body
+                  byte_length = body_io.respond_to?(:size) ? body_io.size : gateway_request.request.content_length
+
+                  if byte_length&.positive?
+                    persistent_data['server.request.body.byte_length'] = byte_length
+
+                    if byte_length <= Datadog.configuration.appsec.body_parsing_size_limit
+                      body = gateway_request.parsed_body
+                      persistent_data['server.request.body'] = body if body
+                    end
+                  end
 
                   result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
