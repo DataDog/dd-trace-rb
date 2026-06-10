@@ -29,15 +29,12 @@ module Datadog
 
       module_function
 
-      # Backend JSON schema constraint on capture-expression names:
-      # remote-config/apps/rc-schema-validation/schemas/live-debugging.json
-      # in DataDog/dd-go declares pattern "^[a-zA-Z0-9_?]+$".
+      # Backend JSON schema constraint on capture-expression names.
       CAPTURE_EXPRESSION_NAME_PATTERN = /\A[a-zA-Z0-9_?]+\z/
 
-      # Permitted values for the RC payload's `evaluateAt` field. Backend
-      # schema (DataDog/dd-go live-debugging.json) also accepts "DEFAULT"
-      # for Java compatibility; we normalize that to :exit at parse time to
-      # match the libdatadog default.
+      # Permitted values for the RC payload's `evaluateAt` field. The backend
+      # schema also accepts "DEFAULT" for Java compatibility; we normalize that
+      # to :exit at parse time to match the libdatadog default.
       EVALUATE_AT_STRINGS = {
         "ENTRY" => :entry,
         "EXIT" => :exit,
