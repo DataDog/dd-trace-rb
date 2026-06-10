@@ -22,24 +22,24 @@
 # Typical result:
 #
 # Comparison:
-#                          method instrumentation - cleared:   556227.8 i/s
-#                            line instrumentation - cleared:   553976.4 i/s - same-ish: difference falls within error
-#                                        no instrumentation:   544419.0 i/s - same-ish: difference falls within error
-#                                no instrumentation - again:   499320.2 i/s - same-ish: difference falls within error
-#              method instrumentation - rate_limit=1 (skip):   295040.9 i/s - 1.89x  slower
-#     line instrumentation - targeted - rate_limit=1 (skip):   279164.6 i/s - 1.99x  slower
-#           method instrumentation - rate_limit=1M (firing):   122105.7 i/s - 4.56x  slower
-#  line instrumentation - targeted - rate_limit=1M (firing):   108801.5 i/s - 5.11x  slower
-#   line instrumentation - untargeted - rate_limit=1 (skip):    60316.8 i/s - 9.22x  slower
-# line instrumentation - untargeted - rate_limit=1M (firing):    44622.4 i/s - 12.47x  slower
+#                          method instrumentation - cleared:   170807.4 i/s
+#                                no instrumentation - again:   170507.2 i/s - same-ish: difference falls within error
+#                            line instrumentation - cleared:   169760.6 i/s - same-ish: difference falls within error
+#                                        no instrumentation:   165453.4 i/s - 1.03x  slower
+#              method instrumentation - rate_limit=1 (skip):    90687.8 i/s - 1.88x  slower
+#     line instrumentation - targeted - rate_limit=1 (skip):    81769.3 i/s - 2.09x  slower
+#           method instrumentation - rate_limit=1M (firing):    36179.6 i/s - 4.72x  slower
+#  line instrumentation - targeted - rate_limit=1M (firing):    33589.6 i/s - 5.09x  slower
+#   line instrumentation - untargeted - rate_limit=1 (skip):    29559.6 i/s - 5.78x  slower
+# line instrumentation - untargeted - rate_limit=1M (firing):    19262.5 i/s - 8.87x  slower
 #
 # Per-call wrapper overhead, computed as (1/instr_ips) - (1/baseline_ips)
 # from the numbers above:
 #
 #                                       skip path     firing path
-#   method probe                        ~1.55 us      ~6.35 us
-#   line probe - targeted               ~1.75 us      ~7.35 us
-#   line probe - untargeted             ~14.7 us      ~20.6 us
+#   method probe                        ~4.98 us      ~21.60 us
+#   line probe - targeted               ~6.19 us      ~23.73 us
+#   line probe - untargeted             ~27.79 us     ~45.87 us
 #
 # Method-probe firing is ~4x more expensive per call than skip. In
 # production, where the probe rate limit caps firing at 5000/sec per probe
@@ -52,7 +52,7 @@
 #
 # Untargeted line instrumentation is much slower than targeted because the
 # TracePoint fires for every line in the file rather than only the
-# instrumented line. The skip variant is still slow (~14.7 us) because the
+# instrumented line. The skip variant is still slow (~27.8 us) because the
 # per-line TracePoint callback runs even when the rate limiter rejects
 # snapshot delivery. Untargeted line probes remain unsuitable for
 # production use; the skip-variant measurement is the floor cost that even
