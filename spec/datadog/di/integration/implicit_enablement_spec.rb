@@ -237,4 +237,65 @@ RSpec.describe 'DI implicit enablement integration' do
       end
     end
   end
+
+  describe 'combined RC transaction: LIVE_DEBUGGING + APM_TRACING dispatched together' do
+    # Regression test for the dispatch-order bug raised in PR review: when a
+    # single RC response contains both a LIVE_DEBUGGING probe insert AND an
+    # APM_TRACING `dynamic_instrumentation_enabled=true` toggle, the receiver
+    # registered first wins control of dispatch. If the DI receiver ran first
+    # while the component is still stopped, it would silently drop the probe;
+    # the Tracing receiver would then start DI, but the probe content is now
+    # "unchanged" in the repository so a subsequent poll would not redispatch
+    # it, and the probe would never install.
+    #
+    # The fix in lib/datadog/core/remote/client/capabilities.rb registers the
+    # Tracing receiver before the DI receiver. This test drives the full
+    # Capabilities-built receiver list against a single combined transaction
+    # to verify the probe lands on one dispatch.
+
+    let(:probe_spec) do
+      {
+        id: 'test-probe-combined',
+        name: 'bar',
+        type: 'LOG_PROBE',
+        where: {
+          typeName: 'ImplicitEnablementSpecTargetClass',
+          methodName: 'target_method',
+        },
+      }
+    end
+
+    let(:apm_tracing_payload) { {'lib_config' => {'dynamic_instrumentation_enabled' => true}} }
+
+    let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
+    let(:combined_configs) do
+      {
+        'datadog/2/LIVE_DEBUGGING/foo/bar' => probe_spec,
+        'datadog/2/APM_TRACING/lib_config/config' => apm_tracing_payload,
+      }
+    end
+    let(:transaction) do
+      DIHelpers::TestRemoteConfigGenerator.new(combined_configs).insert_transaction(repository)
+    end
+
+    # Production-built receiver list (Tracing before DI). Bypasses AppSec /
+    # SymDB / OpenFeature by leaving their settings disabled in `settings`.
+    let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry) }
+    let(:dispatcher) { Datadog::Core::Remote::Dispatcher.new(capabilities.receivers) }
+
+    before do
+      allow(Datadog::DI).to receive(:component).and_return(component)
+      allow(Datadog::DI).to receive(:activate_tracking)
+    end
+
+    it 'installs the probe in a single dispatch (Tracing receiver enables DI first)' do
+      expect(component.started?).to be false
+
+      dispatcher.dispatch(transaction, repository)
+      component.probe_notifier_worker.flush
+
+      expect(component.started?).to be true
+      expect(component.probe_manager.probe_repository.installed_probes.length).to eq 1
+    end
+  end
 end

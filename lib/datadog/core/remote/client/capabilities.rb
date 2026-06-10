@@ -35,6 +35,20 @@ module Datadog
               register_receivers(Datadog::AppSec::Remote.receivers(@telemetry))
             end
 
+            # Tracing must register before DI so the APM_TRACING receiver
+            # runs first on a combined RC dispatch. The Tracing receiver
+            # invokes Datadog::DI::Remote.handle_rc_enablement, which calls
+            # component.start! on enable. The DI receiver then processes
+            # LIVE_DEBUGGING changes against a started component within the
+            # same dispatch pass. Reversing the order would silently drop
+            # the probe: the DI receiver runs first, sees component.started?
+            # is false, drops the change; the remote client only redispatches
+            # on content hash changes, so a subsequent poll with the same
+            # probe content would never deliver it again.
+            register_capabilities(Datadog::Tracing::Remote.capabilities)
+            register_products(Datadog::Tracing::Remote.products)
+            register_receivers(Datadog::Tracing::Remote.receivers(@telemetry))
+
             if settings.respond_to?(:dynamic_instrumentation)
               register_capabilities(Datadog::DI::Remote.capabilities)
               register_products(Datadog::DI::Remote.products)
@@ -52,10 +66,6 @@ module Datadog
               register_products(Datadog::OpenFeature::Remote.products)
               register_receivers(Datadog::OpenFeature::Remote.receivers(@telemetry))
             end
-
-            register_capabilities(Datadog::Tracing::Remote.capabilities)
-            register_products(Datadog::Tracing::Remote.products)
-            register_receivers(Datadog::Tracing::Remote.receivers(@telemetry))
           end
 
           def register_capabilities(capabilities)
