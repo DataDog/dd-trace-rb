@@ -2954,7 +2954,7 @@ Dynamic Instrumentation allows you to add log probes, metric probes, and span pr
 
 | Environment variable | Type | Description | Default |
 |---|---|---|---|
-| `DD_DYNAMIC_INSTRUMENTATION_ENABLED` | `Boolean` | Controls Dynamic Instrumentation enablement. `true` enables at boot. `false` disables and blocks UI-driven enablement via remote configuration. Unset (the default) leaves DI off at boot but allows it to be turned on later from the Datadog UI when a probe is created. | `false` |
+| `DD_DYNAMIC_INSTRUMENTATION_ENABLED` | `Boolean` | Enables or disables Dynamic Instrumentation. `true` enables at boot; `false` disables and blocks UI-driven enablement through remote configuration. When unset (the default), Dynamic Instrumentation is off at boot but can be enabled from the Datadog UI when a probe is created. | `false` |
 | `DD_DYNAMIC_INSTRUMENTATION_REDACTED_IDENTIFIERS` | `Array` | Comma-separated list of variable/key names to redact in addition to the built-in list. Names are normalized (underscores, dashes, `@`, `$` removed) and matched case-insensitively. | `[]` |
 | `DD_DYNAMIC_INSTRUMENTATION_REDACTION_EXCLUDED_IDENTIFIERS` | `Array` | Comma-separated list of variable/key names to exclude from the built-in redaction list, allowing their values to be captured. | `[]` |
 | `DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES` | `Array` | Comma-separated list of class names whose values will be redacted. Suffix with `*` for wildcard matching (for example, `Foo*` redacts `Foo`, `FooBar`, `Foo::Bar`). | `[]` |
