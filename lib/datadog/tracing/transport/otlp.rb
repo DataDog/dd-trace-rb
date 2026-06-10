@@ -32,6 +32,17 @@ module Datadog
           headers = otlp.headers || otlp.headers_fallback
           timeout = otlp.timeout_millis || otlp.timeout_millis_fallback
 
+          # Only http/json is supported this phase. Warn (don't fail) on a configured non-http/json
+          # protocol so a grpc/http-protobuf misconfiguration isn't a silent no-op — traces are still
+          # sent as http/json. Mirrors dd-trace-rs.
+          protocol = otlp.protocol || otlp.protocol_fallback
+          if protocol && protocol != Configuration::Ext::OTLP::PROTOCOL_HTTP_JSON
+            logger.warn(
+              "OTLP trace export only supports the http/json protocol; the configured protocol " \
+              "#{protocol.inspect} is ignored and traces are sent as http/json."
+            )
+          end
+
           exporter = Exporter.new(
             endpoint: endpoint,
             headers: headers,
@@ -142,6 +153,13 @@ module Datadog
 
           def internal_error?
             false
+          end
+
+          # OTLP endpoints don't return Datadog agent service sampling rates. Returning nil lets the
+          # writer's after-send priority-sampler callback short-circuit cleanly instead of raising
+          # (and swallowing) a NoMethodError on every flush.
+          def service_rates
+            nil
           end
         end
 

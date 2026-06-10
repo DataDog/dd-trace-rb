@@ -179,6 +179,11 @@ module Datadog
                   # Tracing is enabled when DD_TRACE_ENABLED is true or 1
                   elsif ['true', '1'].include?(value)
                     true
+                  # OTEL_TRACES_EXPORTER=otlp keeps tracing enabled; the OTLP exporter is selected
+                  # separately via `tracing.otlp`. Return nil to keep the default (enabled) without
+                  # the misleading "Traces will be sent to Datadog" warning on the documented value.
+                  elsif value == 'otlp'
+                    nil
                   else
                     Datadog.logger.warn("Unsupported value for exporting datadog traces: #{value}. Traces will be sent to Datadog.")
                     nil

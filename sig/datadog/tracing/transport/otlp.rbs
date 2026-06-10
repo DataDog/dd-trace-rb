@@ -45,6 +45,8 @@ module Datadog
           def server_error?: () -> bool
 
           def internal_error?: () -> bool
+
+          def service_rates: () -> nil
         end
 
         class Statistics
