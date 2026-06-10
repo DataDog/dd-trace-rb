@@ -85,11 +85,7 @@ require 'datadog'
 # Need to require datadog/di explicitly because dynamic instrumentation is not
 # currently integrated into the Ruby tracer due to being under development.
 require 'datadog/di'
-begin
-  require 'datadog/di/proc_responder'
-rescue LoadError
-  # Old tree
-end
+require 'datadog/di/proc_responder'
 
 class DIInstrumentBenchmark
   class Target
@@ -176,12 +172,8 @@ class DIInstrumentBenchmark
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
       type_name: 'DIInstrumentBenchmark::Target', method_name: 'test_method',
       rate_limit: 1_000_000,)
-    if defined?(Datadog::DI::ProcResponder)
-      responder = Datadog::DI::ProcResponder.new(executed_proc)
-      rv = instrumenter.hook_method(probe, responder)
-    else
-      rv = instrumenter.hook_method(probe, &executed_proc)
-    end
+    responder = Datadog::DI::ProcResponder.new(executed_proc)
+    rv = instrumenter.hook_method(probe, responder)
     unless rv
       raise "Method probe was not successfully installed (rate_limit=1M)"
     end
@@ -214,12 +206,8 @@ class DIInstrumentBenchmark
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
       type_name: 'DIInstrumentBenchmark::Target', method_name: 'test_method',
       rate_limit: 1,)
-    if defined?(Datadog::DI::ProcResponder)
-      responder = Datadog::DI::ProcResponder.new(executed_proc)
-      rv = instrumenter.hook_method(probe, responder)
-    else
-      rv = instrumenter.hook_method(probe, &executed_proc)
-    end
+    responder = Datadog::DI::ProcResponder.new(executed_proc)
+    rv = instrumenter.hook_method(probe, responder)
     unless rv
       raise "Method probe was not successfully installed (rate_limit=1)"
     end
@@ -263,12 +251,8 @@ class DIInstrumentBenchmark
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
       file: file, line_no: line + 1, rate_limit: 1_000_000,)
-    if defined?(Datadog::DI::ProcResponder)
-      responder = Datadog::DI::ProcResponder.new(executed_proc)
-      rv = instrumenter.hook_line(probe, responder)
-    else
-      rv = instrumenter.hook_line(probe, &executed_proc)
-    end
+    responder = Datadog::DI::ProcResponder.new(executed_proc)
+    rv = instrumenter.hook_line(probe, responder)
     unless rv
       raise "Line probe (untargeted, rate_limit=1M) was not successfully installed"
     end
@@ -299,12 +283,8 @@ class DIInstrumentBenchmark
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
       file: file, line_no: line + 1, rate_limit: 1,)
-    if defined?(Datadog::DI::ProcResponder)
-      responder = Datadog::DI::ProcResponder.new(executed_proc)
-      rv = instrumenter.hook_line(probe, responder)
-    else
-      rv = instrumenter.hook_line(probe, &executed_proc)
-    end
+    responder = Datadog::DI::ProcResponder.new(executed_proc)
+    rv = instrumenter.hook_line(probe, responder)
     unless rv
       raise "Line probe (untargeted, rate_limit=1) was not successfully installed"
     end
@@ -351,11 +331,8 @@ class DIInstrumentBenchmark
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
       file: targeted_file, line_no: targeted_line + 1, rate_limit: 1_000_000,)
-    rv = if defined?(Datadog::DI::ProcResponder)
-      instrumenter.hook_line(probe, responder)
-    else
-      instrumenter.hook_line(probe, &executed_proc)
-    end
+    responder = Datadog::DI::ProcResponder.new(executed_proc)
+    rv = instrumenter.hook_line(probe, responder)
     unless rv
       raise "Line probe (targeted, rate_limit=1M) was not successfully installed"
     end
@@ -387,11 +364,8 @@ class DIInstrumentBenchmark
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
       file: targeted_file, line_no: targeted_line + 1, rate_limit: 1,)
-    rv = if defined?(Datadog::DI::ProcResponder)
-      instrumenter.hook_line(probe, responder)
-    else
-      instrumenter.hook_line(probe, &executed_proc)
-    end
+    responder = Datadog::DI::ProcResponder.new(executed_proc)
+    rv = instrumenter.hook_line(probe, responder)
     unless rv
       raise "Line probe (targeted, rate_limit=1) was not successfully installed"
     end
