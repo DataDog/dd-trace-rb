@@ -234,7 +234,7 @@ class DISnapshotBenchmark
         # This request is a multipart form post
       end
 
-      server.mount_proc('/debugger/v1/input') do |req, res|
+      server.mount_proc('/debugger/v2/input') do |req, res|
         payload = JSON.parse(req.body)
         @received_snapshot_count += payload.length
         @received_snapshot_bytes += req.body.length
