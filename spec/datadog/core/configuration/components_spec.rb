@@ -158,11 +158,16 @@ RSpec.describe Datadog::Core::Configuration::Components do
         context 'MRI with C extension' do
           before(:all) do
             skip 'Test requires MRI' if PlatformHelpers.jruby?
-            skip 'Test requires DI C extension' unless Datadog::DI.respond_to?(:exception_message)
+          end
+
+          let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: true, shutdown!: nil) }
+
+          before do
+            allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
           end
 
           it 'reports DI as enabled' do
-            expect(components.dynamic_instrumentation).to be_a(Datadog::DI::Component)
+            expect(components.dynamic_instrumentation).to be(stub_di_component)
             expect(extra).to eq(dynamic_instrumentation_enabled: true)
           end
         end
@@ -170,7 +175,16 @@ RSpec.describe Datadog::Core::Configuration::Components do
         context 'MRI without C extension' do
           before(:all) do
             skip 'Test requires MRI' if PlatformHelpers.jruby?
-            skip 'Test requires C extension to be absent' if Datadog::DI.respond_to?(:exception_message)
+          end
+
+          before do
+            # Make Component.build behave as if the C extension is absent: the
+            # real build path checks `DI.respond_to?(:exception_message)` and
+            # warns + returns nil when the method is missing. Stubbing
+            # respond_to? lets the test exercise that branch regardless of
+            # whether the C extension is actually compiled in this build.
+            allow(Datadog::DI).to receive(:respond_to?).and_call_original
+            allow(Datadog::DI).to receive(:respond_to?).with(:exception_message).and_return(false)
           end
 
           it 'reports DI as disabled' do
