@@ -79,7 +79,7 @@ module Datadog
       # Cached unbound Module#singleton_class? — dispatched explicitly so user classes
       # that define their own `singleton_class?` (e.g. with required arguments) cannot
       # intercept the predicate and cause the module to be silently dropped from
-      # extract_all. Cached at load time because collect_extractable_modules iterates
+      # extract_all. Cached at load time because build_per_file_index iterates
       # ObjectSpace.each_object(Module) over tens of thousands of modules.
       MODULE_SINGLETON_CLASS_PRED = Module.instance_method(:singleton_class?)
       private_constant :MODULE_SINGLETON_CLASS_PRED
@@ -212,7 +212,7 @@ module Datadog
       # Verify that mod_name still resolves to mod through Ruby's constant
       # table. Returns false when a Class/Module has been detached from its
       # constant (via remove_const) but still carries the cached Module#name —
-      # see collect_extractable_modules for the failure mode this protects.
+      # see build_per_file_index for the failure mode this protects.
       #
       # Walks the namespace path segment-by-segment. For each segment:
       # 1. Check for a pending autoload directly on the current namespace.
@@ -220,7 +220,7 @@ module Datadog
       #    a side effect of symbol extraction and raising LoadError if the
       #    target file is missing (LoadError is ScriptError, not StandardError,
       #    and would propagate past the outer rescue in
-      #    collect_extractable_modules). Return false instead.
+      #    build_per_file_index). Return false instead.
       # 2. Otherwise, require the constant to be directly defined on this
       #    namespace (const_defined?(sym, false)) and descend via
       #    const_get(sym, false). The direct-only lookup means an ancestor's
@@ -710,7 +710,7 @@ module Datadog
 
       # ── extract_all helpers ──────────────────────────────────────────────
 
-      # Sleep between chunks of modules processed in collect_extractable_modules so
+      # Sleep between chunks of modules processed in build_per_file_index so
       # request-handling threads have guaranteed CPU time while extraction is in
       # flight. Unlike Thread.pass (which only offers the GVL among runnable
       # threads and leaves the extractor immediately re-runnable), sleep removes
@@ -741,8 +741,13 @@ module Datadog
         seen = 0
 
         ObjectSpace.each_object(Module) do |mod|
-          # See collect_extractable_modules for the rationale behind this skip and
-          # the periodic sleep.
+          # Singleton classes (per-object metaclasses) are never user-code classes.
+          # They're not const-referenced, DI cannot instrument methods on a singular
+          # object instance, and on Ruby 2.6 specifically, Module#name on unnamed
+          # singleton classes with long ancestor chains (e.g. through monkey-patches
+          # prepended into Kernel, common in dd-trace-rb test processes) is O(ancestors)
+          # — measured ~20ms per call, which dominates extract_all on heavily-loaded
+          # processes. Ruby 2.7+ optimized this path; the skip is a no-op there.
           next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
 
           seen += 1
@@ -775,9 +780,9 @@ module Datadog
       end
 
       # For a single module, return `{ file_path => [method_name_symbol, ...] }`.
-      # Unlike `group_methods_by_file`, this does not store UnboundMethod objects —
-      # only the method-name symbols and their file paths. The UnboundMethods
-      # allocated to read `source_location` are not retained.
+      # Stores only the method-name symbols and their file paths — UnboundMethod
+      # objects allocated to read `source_location` are not retained between
+      # passes, so they can be GC'd as soon as the inner loop ends.
       def collect_method_names_by_file(mod)
         result = Hash.new { |h, k| h[k] = [] } # steep:ignore
 
@@ -850,119 +855,6 @@ module Datadog
         convert_tree_to_scope(file_path, root)
       end
 
-      # Pass 1 (legacy form): Collect all extractable modules with methods grouped
-      # by source file. Retained for tests that exercise the old shape; not used by
-      # extract_all.
-      # @return [Hash] { mod_name => { mod:, methods_by_file: { path => [{name:, method:, type:}] } } }
-      def collect_extractable_modules
-        entries = {}
-        seen = 0
-
-        ObjectSpace.each_object(Module) do |mod|
-          # Singleton classes (per-object metaclasses) are never user-code classes.
-          # They're not const-referenced, DI cannot instrument methods on a singular
-          # object instance, and on Ruby 2.6 specifically, Module#name on unnamed
-          # singleton classes with long ancestor chains (e.g. through monkey-patches
-          # prepended into Kernel, common in dd-trace-rb test processes) is O(ancestors)
-          # — measured ~20ms per call, which dominates extract_all on heavily-loaded
-          # processes. Ruby 2.7+ optimized this path; the skip is a no-op there.
-          next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
-
-          seen += 1
-          sleep SLEEP_SECONDS if (seen % SLEEP_EVERY_N_MODULES).zero?
-
-          mod_name = safe_mod_name(mod)
-          next unless mod_name
-
-          # Skip modules whose cached name no longer resolves to them. CRuby
-          # caches Module#name, so a Class whose constant was removed via
-          # remove_const stays in ObjectSpace and still reports its old FQN.
-          # Without this guard, a leaked Class from a prior remove_const +
-          # redefinition (test cleanup, customer hot-reload) collides with
-          # the current binding in the name-keyed `entries` hash below and
-          # the "winner" depends on ObjectSpace iteration order.
-          next unless resolves_to_same_module?(mod_name, mod)
-
-          next unless user_code_module?(mod)
-
-          methods_by_file = group_methods_by_file(mod)
-
-          # For modules/classes with no methods but valid source, use find_source_file as fallback.
-          # This handles namespace modules and classes with only constants.
-          if methods_by_file.empty?
-            source_file = find_source_file(mod)
-            methods_by_file[source_file] = [] if source_file
-          end
-
-          next if methods_by_file.empty?
-
-          entries[mod_name] = {mod: mod, methods_by_file: methods_by_file}
-        rescue => e
-          @logger.debug { "symdb: error collecting #{mod_name || '<unknown>'}: #{e.class}: #{e.message}" }
-        end
-
-        entries
-      end
-
-      # Group a module's methods by their source file path.
-      # @param mod [Module] The module
-      # @return [Hash] { file_path => [{name:, method:, type:}] }
-      def group_methods_by_file(mod)
-        result = Hash.new { |h, k| h[k] = [] } # steep:ignore
-
-        # Module#instance_methods(false) already returns both public and protected
-        # methods, so iterating it plus private_instance_methods covers all three
-        # visibilities without allocating an intermediate merged array or doing a
-        # `uniq!` pass to drop the redundant protected entries.
-        [mod.instance_methods(false), mod.private_instance_methods(false)].each do |method_names|
-          method_names.each do |method_name|
-            method = mod.instance_method(method_name)
-            loc = method.source_location
-            next unless loc
-            next unless user_code_path?(loc[0])
-
-            result[loc[0]] << {name: method_name, method: method, type: :instance}
-          rescue => e
-            @logger.debug { "symdb: error grouping method #{method_name}: #{e.class}: #{e.message}" }
-          end
-        end
-
-        result
-      rescue => e
-        @logger.debug { "symdb: error grouping methods: #{e.class}: #{e.message}" }
-        {}
-      end
-
-      # Pass 2: Build per-file trees from collected entries.
-      # Uses hash nodes during construction, converted to Scope objects at the end.
-      #
-      # Node structure: { name:, type:, children: {name => node}, methods: [], mod:, source_file:, fqn: }
-      #
-      # @param entries [Hash] Output from collect_extractable_modules
-      # @return [Hash] { file_path => root_node }
-      def build_file_trees(entries)
-        file_trees = {}
-
-        # Sort by FQN depth so parents are placed before children.
-        # This ensures intermediate nodes created for parents have correct scope_type.
-        sorted = entries.sort_by { |name, _| name.count(':') }
-
-        sorted.each do |mod_name, entry|
-          entry[:methods_by_file].each do |file_path, methods|
-            root = file_trees[file_path] ||= {
-              name: file_path, type: 'FILE', children: {},
-              methods: [], mod: nil, source_file: file_path, fqn: nil
-            }
-            parts = mod_name.split('::')
-            place_in_tree(root, parts, entry[:mod], mod_name, methods, file_path)
-          end
-        rescue => e
-          @logger.debug { "symdb: error building tree for #{mod_name}: #{e.class}: #{e.message}" }
-        end
-
-        file_trees
-      end
-
       # Place a module/class in the file tree at the correct nesting depth.
       # Creates intermediate namespace nodes as needed.
       # mod_name is the safe name (resolved via Module#instance_method bind) —
@@ -1017,17 +909,9 @@ module Datadog
         'MODULE'
       end
 
-      # Convert hash-based file trees to Scope objects.
-      # @param file_trees [Hash] { file_path => root_node }
-      # @return [Array<Scope>] Array of FILE scopes
-      def convert_trees_to_scopes(file_trees)
-        file_trees.map { |file_path, root| convert_tree_to_scope(file_path, root) }
-      end
-
-      # Convert a single file tree to a FILE Scope. Extracted from convert_trees_to_scopes
-      # so the block form of extract_all can yield scopes one at a time.
+      # Convert a single file tree (built by build_file_scope) to a FILE Scope.
       # @param file_path [String] Source file path
-      # @param root [Hash] Tree node from build_file_trees or build_file_scope
+      # @param root [Hash] Tree node from build_file_scope
       # @return [Scope] FILE scope
       def convert_tree_to_scope(file_path, root)
         file_hash = FileHash.compute(file_path, logger: @logger)

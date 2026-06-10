@@ -62,17 +62,9 @@ module Datadog
 
       def extract_method_parameters: (UnboundMethod method) -> Array[Symbol]
 
-      def collect_extractable_modules: () -> Hash[String, untyped]
-
-      def group_methods_by_file: (Module mod) -> Hash[String, Array[untyped]]
-
-      def build_file_trees: (Hash[String, untyped] entries) -> Hash[String, untyped]
-
       def place_in_tree: (untyped root, Array[String] name_parts, Module mod, String mod_name, Array[untyped] methods, String file_path) -> void
 
       def resolve_scope_type: (String fqn) -> String
-
-      def convert_trees_to_scopes: (Hash[String, untyped] file_trees) -> Array[Scope]
 
       def convert_node_to_scope: (untyped node) -> Scope
 

@@ -2369,7 +2369,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
     context 'with a class overriding singleton_class?' do
       # Some libraries define class methods that shadow Module#singleton_class?
       # (typically with required arguments). The singleton-class skip in
-      # collect_extractable_modules dispatches via the unbound Module#singleton_class?
+      # build_per_file_index dispatches via the unbound Module#singleton_class?
       # so user overrides cannot intercept the predicate. Without that dispatch,
       # calling the user method without its required argument would raise and the
       # class would be silently dropped by the per-module rescue.
@@ -2475,7 +2475,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       # side effect of extraction) and raised LoadError if the autoload target
       # was missing. LoadError is ScriptError, not StandardError, so neither
       # the local rescue (NameError, ArgumentError) nor the outer rescue in
-      # collect_extractable_modules (StandardError) caught it — extract_all
+      # build_per_file_index (StandardError) caught it — extract_all
       # aborted instead of skipping the leaked class.
       before do
         @leaked_file = create_test_file('autoload_leaked.rb', <<~RUBY)
@@ -2514,8 +2514,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       # CRuby caches Module#name. After Object.send(:remove_const, :Foo) the
       # Class stays in ObjectSpace and `mod.name` still returns "Foo".
       # Without the resolves_to_same_module? filter in
-      # collect_extractable_modules, the leaked Class collides with a fresh
-      # binding of the same constant in the name-keyed entries hash, and the
+      # build_per_file_index, the leaked Class collides with a fresh binding
+      # of the same constant in the per-file index, and the
       # ObjectSpace-iteration-order winner can pair a MODULE from one binding
       # with a CLASS from another — producing FILE scopes with empty children.
       before do

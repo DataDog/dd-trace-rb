@@ -229,7 +229,7 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
       begin
         # Step 1: initial load runs. Timeout matches the other e2e test in
         # this file (line 84). On Ruby 2.6, extract_all is slow under heavy
-        # monkey-patching (see extractor.rb collect_extractable_modules
+        # monkey-patching (see extractor.rb build_per_file_index
         # comment about Module#name on singleton classes being O(ancestors)),
         # so 5s is too short when an AppSec spec ran just before this one.
         # Check the return value so a timeout fails the test loudly here
