@@ -155,10 +155,17 @@ module Datadog
       def shutdown!(replacement = nil)
         DI.remove_current_component(self)
 
-        @started = false
-        probe_manager.clear_hooks
-        probe_manager.close
-        probe_notifier_worker.stop
+        # Hold the lifecycle mutex so all transitions of @started are
+        # serialized — start! / stop! / shutdown! cannot interleave with
+        # one another. Without the mutex an in-flight stop! from an RC
+        # callback could complete after shutdown!'s probe_manager.close,
+        # producing an inconsistent state.
+        @lifecycle_mutex.synchronize do
+          @started = false
+          probe_manager.clear_hooks
+          probe_manager.close
+          probe_notifier_worker.stop
+        end
       end
 
       def parse_probe_spec_and_notify(probe_spec)

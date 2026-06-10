@@ -145,9 +145,13 @@ RSpec.describe(Datadog::DI) do
     context 'when all preconditions are met' do
       # Stub respond_to?(:exception_message) so this test exercises the
       # all-preconditions-met branch on builds without the DI C extension
-      # compiled (e.g. spec:main). The test's subject is the precondition
-      # logic itself, not the C extension method.
+      # compiled (e.g. spec:main). RUBY_VERSION is stubbed because the
+      # version check fires before the C-extension check; without the
+      # stub this test would fail on Ruby 2.5 (which is otherwise
+      # supported by spec:main). The test's subject is the precondition
+      # logic itself, not the actual platform.
       before do
+        stub_const('RUBY_VERSION', '3.0.0')
         allow(described_class).to receive(:respond_to?).and_call_original
         allow(described_class).to receive(:respond_to?).with(:exception_message).and_return(true)
       end
