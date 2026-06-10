@@ -954,7 +954,7 @@ RSpec.describe Datadog::DI::CodeTracker do
     end
   end
 
-  describe 'test 24: registry survives Component#stop!' do
+  describe 'registry survives Component#stop!' do
     # Guards the "no registry clearing" decision in design/architecture.md.
     # When DI is stopped via RC and later restarted (RC disable → enable),
     # the code tracker must retain its registry of pre-loaded iseqs.

@@ -1,5 +1,5 @@
 # Target class for the "method probe, code loaded AFTER implicit
-# enablement" case in probe_coverage_spec.rb (test 22).
+# enablement" case in probe_coverage_spec.rb.
 #
 # Method probes use Module#prepend, so they're insensitive to
 # code-tracking timing — this case is regression coverage. Distinct
