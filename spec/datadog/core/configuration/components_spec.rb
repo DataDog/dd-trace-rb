@@ -704,21 +704,35 @@ RSpec.describe Datadog::Core::Configuration::Components do
   describe '#state' do
     # The implicit-enablement carry-over rides on ComponentsState. When
     # Datadog.configure rebuilds the tree, the old tree's #state is read
-    # by the new tree's #startup! to decide whether to start DI. di_implicitly_enabled?
-    # must reflect whether the component was actually started at the time
-    # #state is called — not whether DI was configured to start. The
-    # distinction matters because RC may have started DI on a tracer that
-    # had no env var set; the new tree won't know to restart DI unless we
-    # captured that runtime fact.
+    # by the new tree's #startup! to decide whether to start DI.
+    # di_implicitly_enabled? must reflect whether DI was started *because of*
+    # RC (implicit) — not just whether it was started for any reason. An
+    # env-var-driven start is explicit; the new settings will re-evaluate
+    # the env var directly, and carrying "implicit" forward would override
+    # a user's explicit disable on reconfiguration.
 
-    context 'when DI component is started' do
+    context 'when DI component is started via env var (settings.enabled true)' do
       let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: true, shutdown!: nil) }
 
       before do
+        settings.dynamic_instrumentation.enabled = true
         allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
       end
 
-      it 'captures di_implicitly_enabled? as true' do
+      it 'captures di_implicitly_enabled? as false (start was explicit)' do
+        expect(components.state.di_implicitly_enabled?).to be false
+      end
+    end
+
+    context 'when DI component is started via RC (settings.enabled false)' do
+      let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: true, shutdown!: nil) }
+
+      before do
+        # settings.dynamic_instrumentation.enabled left at default (false)
+        allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
+      end
+
+      it 'captures di_implicitly_enabled? as true (start was implicit)' do
         expect(components.state.di_implicitly_enabled?).to be true
       end
     end
@@ -833,6 +847,33 @@ RSpec.describe Datadog::Core::Configuration::Components do
       let(:old_state) { nil }
 
       it 'leaves the DI component stopped when env var is not set' do
+        startup!
+        expect(components.dynamic_instrumentation.started?).to be false
+      end
+    end
+
+    context 'env var was previously true and user reconfigures with enabled=false' do
+      # Round-trip the scenario from the codex P2 review comment: a process
+      # boots with DD_DYNAMIC_INSTRUMENTATION_ENABLED=true, which starts DI;
+      # the user later calls Datadog.configure to explicitly disable DI. The
+      # new component must NOT auto-start. The bug was that #state captured
+      # any started DI as "implicitly enabled", so the new tree's #startup!
+      # would OR the old (incorrectly true) implicit flag with the new
+      # (explicitly false) enabled setting and start DI anyway.
+      let(:old_state) do
+        # Construct the state the OLD tree would have produced — env var
+        # had set it to true and DI was started. Per the fixed #state, this
+        # captures di_implicitly_enabled? as FALSE (start was explicit).
+        Datadog::Core::Configuration::ComponentsState.new(
+          telemetry_enabled: true,
+          remote_started: false,
+          di_implicitly_enabled: false,
+        )
+      end
+
+      before { settings.dynamic_instrumentation.enabled = false }
+
+      it 'leaves the DI component stopped on the new tree' do
         startup!
         expect(components.dynamic_instrumentation.started?).to be false
       end
