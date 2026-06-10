@@ -331,10 +331,18 @@ module Datadog
 
         # Returns the current state of various components.
         def state
+          # di_implicitly_enabled distinguishes RC-driven start from env-var
+          # start so that an explicit `enabled = false` on reconfiguration
+          # can take effect. If the component is started AND env-var enable
+          # is set, the next Components tree will pick up the env var on its
+          # own; carrying an "implicit" flag forward would override a user's
+          # later explicit disable. Only carry forward when the env var is
+          # not set (i.e., the only reason DI was started was RC).
+          di_implicit = dynamic_instrumentation&.started? && !@settings.dynamic_instrumentation.enabled
           ComponentsState.new(
             telemetry_enabled: telemetry.enabled,
             remote_started: remote&.started?,
-            di_implicitly_enabled: dynamic_instrumentation&.started? || false,
+            di_implicitly_enabled: di_implicit || false,
           )
         end
       end
