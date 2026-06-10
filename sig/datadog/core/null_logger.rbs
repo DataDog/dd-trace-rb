@@ -1,0 +1,5 @@
+module Datadog
+  module Core
+    NULL_LOGGER: ::Logger
+  end
+end
