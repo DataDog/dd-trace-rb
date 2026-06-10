@@ -180,8 +180,8 @@ RSpec.describe Datadog::DI::Component do
   end
 
   describe 'DI.add_current_component invariant from build' do
-    # Guards the "two storage places" decision in design/architecture.md.
-    # Built components are tracked in BOTH Components#@dynamic_instrumentation
+    # Guards the "two storage places" decision: built components are
+    # tracked in BOTH Components#@dynamic_instrumentation
     # AND DI.@current_components, so the code-tracker callback (which has
     # no reference to Components) can locate the live component via
     # DI.current_component without round-tripping through Datadog.send(:components).
