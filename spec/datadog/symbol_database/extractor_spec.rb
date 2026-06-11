@@ -1673,14 +1673,87 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       extractor.extract_all
     end
 
+    # Block-form equivalent of extract_all_clean — yields each FILE scope and
+    # returns the collected array, alongside the block's return value (which the
+    # caller asserts is nil).
+    def extract_all_clean_with_block
+      GC.start
+      collected = []
+      result = extractor.extract_all { |scope| collected << scope }
+      [collected, result]
+    end
+
     context 'top-level rescue' do
       it 'returns [] and logs when collection raises' do
-        allow(extractor).to receive(:collect_extractable_modules).and_raise(StandardError, 'boom')
+        allow(extractor).to receive(:build_per_file_index).and_raise(StandardError, 'boom')
         expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/extract_all.*StandardError.*boom/i) }
 
         result = extractor.extract_all
 
         expect(result).to eq([])
+      end
+
+      it 'returns nil and logs when collection raises in block form' do
+        allow(extractor).to receive(:build_per_file_index).and_raise(StandardError, 'boom')
+        expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/extract_all.*StandardError.*boom/i) }
+
+        yielded = []
+        result = extractor.extract_all { |scope| yielded << scope }
+
+        expect(result).to be_nil
+        expect(yielded).to be_empty
+      end
+    end
+
+    context 'block form' do
+      before do
+        @file_a = create_test_file('block_form_a.rb', <<~RUBY)
+          class ExtractAllBlockFormA
+            def alpha; end
+            def beta; end
+          end
+        RUBY
+        @file_b = create_test_file('block_form_b.rb', <<~RUBY)
+          class ExtractAllBlockFormB
+            def gamma; end
+          end
+        RUBY
+        load @file_a
+        load @file_b
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllBlockFormA) if defined?(ExtractAllBlockFormA)
+        Object.send(:remove_const, :ExtractAllBlockFormB) if defined?(ExtractAllBlockFormB)
+      end
+
+      it 'yields one FILE scope per source file and returns nil' do
+        yielded, result = extract_all_clean_with_block
+
+        expect(result).to be_nil
+
+        block_form_file_scopes = yielded.select do |s|
+          s.scope_type == 'FILE' && s.scopes.any? { |c| %w[ExtractAllBlockFormA ExtractAllBlockFormB].include?(c.name) }
+        end
+        expect(block_form_file_scopes.size).to eq(2)
+        expect(block_form_file_scopes.map(&:name)).to contain_exactly(@file_a, @file_b)
+      end
+
+      it 'yields scopes equivalent to the non-block form' do
+        non_block_scopes = extract_all_clean
+        non_block_a = find_file_scope(non_block_scopes, 'ExtractAllBlockFormA')
+        non_block_b = find_file_scope(non_block_scopes, 'ExtractAllBlockFormB')
+
+        yielded, = extract_all_clean_with_block
+        block_a = find_file_scope(yielded, 'ExtractAllBlockFormA')
+        block_b = find_file_scope(yielded, 'ExtractAllBlockFormB')
+
+        expect(block_a.name).to eq(non_block_a.name)
+        expect(block_a.scopes.flat_map { |c| c.scopes.map(&:name) })
+          .to match_array(non_block_a.scopes.flat_map { |c| c.scopes.map(&:name) })
+        expect(block_b.name).to eq(non_block_b.name)
+        expect(block_b.scopes.flat_map { |c| c.scopes.map(&:name) })
+          .to match_array(non_block_b.scopes.flat_map { |c| c.scopes.map(&:name) })
       end
     end
 
@@ -1788,6 +1861,44 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         method_scope = class_scope.scopes.find { |s| s.name == 'lengthy' }
 
         expect(method_scope.end_line).to be > method_scope.start_line
+      end
+    end
+
+    context 'when a recorded method has moved to another file between passes' do
+      # build_per_file_index (Pass 1) records (mod, method_name, file_path) and
+      # drops the UnboundMethod. build_file_scope (Pass 2) re-resolves the method
+      # via mod.instance_method(name). If the method has been redefined in another
+      # file between the two passes, its current source_location no longer matches
+      # the recorded file_path; the stale entry must be skipped so the FILE scope
+      # does not attribute the method to a file it no longer lives in. The
+      # hot-load TracePoint enqueues the redefined class and the next debounce
+      # window extracts it under the new file_path.
+
+      before do
+        @real_file = create_test_file('method_moved_real.rb', <<~RUBY)
+          class ExtractAllMethodMoved
+            def actual_method
+              'real'
+            end
+          end
+        RUBY
+        load @real_file
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllMethodMoved) if defined?(ExtractAllMethodMoved)
+      end
+
+      it 'drops the module entry when every recorded method has moved out of file_path' do
+        stale_file_path = '/path/recorded/in/pass_one.rb'
+        entries = [['ExtractAllMethodMoved', ExtractAllMethodMoved, [:actual_method]]]
+
+        scope = extractor.send(:build_file_scope, stale_file_path, entries)
+
+        # actual_method's real source_location is @real_file, not stale_file_path,
+        # so the only entry's methods are all stale; the FILE scope collapses
+        # rather than emitting an empty CLASS node at the stale location.
+        expect(scope).to be_nil
       end
     end
 
@@ -2296,7 +2407,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
     context 'with a class overriding singleton_class?' do
       # Some libraries define class methods that shadow Module#singleton_class?
       # (typically with required arguments). The singleton-class skip in
-      # collect_extractable_modules dispatches via the unbound Module#singleton_class?
+      # build_per_file_index dispatches via the unbound Module#singleton_class?
       # so user overrides cannot intercept the predicate. Without that dispatch,
       # calling the user method without its required argument would raise and the
       # class would be silently dropped by the per-module rescue.
@@ -2402,7 +2513,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       # side effect of extraction) and raised LoadError if the autoload target
       # was missing. LoadError is ScriptError, not StandardError, so neither
       # the local rescue (NameError, ArgumentError) nor the outer rescue in
-      # collect_extractable_modules (StandardError) caught it — extract_all
+      # build_per_file_index (StandardError) caught it — extract_all
       # aborted instead of skipping the leaked class.
       before do
         @leaked_file = create_test_file('autoload_leaked.rb', <<~RUBY)
@@ -2441,8 +2552,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       # CRuby caches Module#name. After Object.send(:remove_const, :Foo) the
       # Class stays in ObjectSpace and `mod.name` still returns "Foo".
       # Without the resolves_to_same_module? filter in
-      # collect_extractable_modules, the leaked Class collides with a fresh
-      # binding of the same constant in the name-keyed entries hash, and the
+      # build_per_file_index, the leaked Class collides with a fresh binding
+      # of the same constant in the per-file index, and the
       # ObjectSpace-iteration-order winner can pair a MODULE from one binding
       # with a CLASS from another — producing FILE scopes with empty children.
       before do
@@ -2480,6 +2591,39 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         expect(host).not_to be_nil
         expect(host.scopes.map(&:name)).to include('new_method')
         expect(host.scopes.map(&:name)).not_to include('old_method')
+      end
+    end
+
+    context 'namespace-only module entry with empty method list' do
+      # Regression guard for the Pass 1 → Pass 2 stale-method recheck in
+      # build_file_scope. Pass 1 records namespace-only modules (no own
+      # methods) with an empty method-name list via the find_source_file
+      # fallback. The `next if method_names.any? && method_infos.empty?`
+      # guard must not over-filter this case — there are no methods to
+      # compare source_locations on, so the empty list is canonical, not
+      # stale, and the FILE scope must still place the MODULE node.
+      before do
+        @namespace_file = create_test_file('extract_all_namespace_only.rb', <<~RUBY)
+          module ExtractAllNamespaceOnly
+            FOO = 1
+          end
+        RUBY
+        load @namespace_file
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllNamespaceOnly) if defined?(ExtractAllNamespaceOnly)
+      end
+
+      it 'places the module entry under its recorded file_path' do
+        mod = ExtractAllNamespaceOnly
+        namespace_entries = [['ExtractAllNamespaceOnly', mod, []]]
+
+        scope = extractor.send(:build_file_scope, @namespace_file, namespace_entries)
+
+        expect(scope).not_to be_nil
+        expect(scope.scope_type).to eq('FILE')
+        expect(scope.scopes.map(&:name)).to include('ExtractAllNamespaceOnly')
       end
     end
   end
