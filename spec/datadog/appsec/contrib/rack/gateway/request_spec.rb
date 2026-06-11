@@ -154,4 +154,45 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
       end
     end
   end
+
+  describe '#collectable_body?' do
+    context 'when the request carries form data' do
+      let(:request) do
+        described_class.new(
+          Rack::MockRequest.env_for(
+            'http://example.com:8080/',
+            {:method => 'POST', :input => 'name=john', 'CONTENT_TYPE' => 'application/x-www-form-urlencoded'}
+          )
+        )
+      end
+
+      it { expect(request.collectable_body?).to be(true) }
+    end
+
+    context 'when the body was already parsed upstream' do
+      let(:request) do
+        described_class.new(
+          Rack::MockRequest.env_for(
+            'http://example.com:8080/',
+            {:method => 'POST', 'CONTENT_TYPE' => 'application/json', 'rack.request.form_hash' => {'name' => 'john'}}
+          )
+        )
+      end
+
+      it { expect(request.collectable_body?).to be(true) }
+    end
+
+    context 'when the request has no collectable body' do
+      let(:request) do
+        described_class.new(
+          Rack::MockRequest.env_for(
+            'http://example.com:8080/',
+            {:method => 'POST', :input => '{"name":"john"}', 'CONTENT_TYPE' => 'application/json'}
+          )
+        )
+      end
+
+      it { expect(request.collectable_body?).to be(false) }
+    end
+  end
 end

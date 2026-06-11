@@ -8,7 +8,8 @@
 - Write for the developer performing code review; be concise
 - Use one sentence per relevant point in summary/motivation sections
 - Changelog entries are written for customers only; consider changes from user/customer POV
-- Internal changes (telemetry, CI, tooling) = "None" for changelog
+- Internal changes (CI, tooling, tracer-internal telemetry consumed only by Datadog engineering) = "None" for changelog
+- Telemetry that powers customer-facing Datadog product features (symbol database → DI autocomplete UI, profiling data → Profiler UI, AppSec events → AppSec UI, etc.) = "Yes" with a customer-facing summary, even though the data flow is tracer → Datadog backend
 - Changelog entry format: MUST start with "Yes." or "None."
   - If changes need CHANGELOG: `Yes. Brief customer-facing summary.`
   - If no CHANGELOG needed: `None.`

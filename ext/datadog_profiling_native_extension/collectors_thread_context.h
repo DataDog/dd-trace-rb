@@ -8,8 +8,7 @@
 
 void thread_context_collector_sample(
   VALUE self_instance,
-  long current_monotonic_wall_time_ns,
-  VALUE profiler_overhead_stack_thread
+  long current_monotonic_wall_time_ns
 );
 __attribute__((warn_unused_result)) bool thread_context_collector_prepare_sample_inside_signal_handler(void);
 __attribute__((warn_unused_result)) bool thread_context_collector_sample_allocation(VALUE self_instance, per_thread_context *thread_context, unsigned int sample_weight, VALUE new_object);
@@ -33,7 +32,7 @@ VALUE enforce_thread_context_collector_instance(VALUE object);
     long waiting_for_gvl_duration_ns;
   } on_gvl_running_result;
 
-  void thread_context_collector_on_gvl_waiting(VALUE thread);
-  __attribute__((warn_unused_result)) on_gvl_running_result thread_context_collector_on_gvl_running(VALUE thread);
+  void thread_context_collector_on_gvl_waiting(per_thread_context *thread_context);
+  __attribute__((warn_unused_result)) on_gvl_running_result thread_context_collector_on_gvl_running(VALUE self_instance, per_thread_context *thread_context);
   VALUE thread_context_collector_sample_after_gvl_running(VALUE self_instance, VALUE current_thread, long current_monotonic_wall_time_ns);
 #endif

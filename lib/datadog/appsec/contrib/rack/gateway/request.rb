@@ -83,6 +83,15 @@ module Datadog
               env['rack.request.form_hash']
             end
 
+            # Whether a request body can be collected without forcing a parse:
+            # either form data parseable on demand, or a body already parsed upstream
+            #
+            # NOTE: Rack does not parse JSON itself, a body parser middleware such as
+            #       {Rack::JSONBodyParser} populates the form hash read by {#form_hash}
+            def collectable_body?
+              request.form_data? || request.parseable_data? || env.key?('rack.request.form_hash')
+            end
+
             def client_ip
               remote_ip = remote_addr
               header_collection = Datadog::Core::HeaderCollection.from_hash(headers)

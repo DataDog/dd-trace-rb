@@ -808,8 +808,7 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
 
   state->stats.cpu_sampled++;
 
-  VALUE profiler_overhead_stack_thread = state->owner_thread; // Used to attribute profiler overhead to a different stack
-  thread_context_collector_sample(state->thread_context_collector_instance, wall_time_ns_before_sample, profiler_overhead_stack_thread);
+  thread_context_collector_sample(state->thread_context_collector_instance, wall_time_ns_before_sample);
 
   long wall_time_ns_after_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
   long delta_ns = wall_time_ns_after_sample - wall_time_ns_before_sample;
@@ -1425,14 +1424,14 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
   static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused) {
     // Be very careful about touching the `state` here or doing anything at all:
     // This function gets called without the GVL, and potentially from non-main Ractors!
-    //
-    // In fact, the thread that this event is about may not even be the current thread. (So be careful with thread locals that
-    // are not directly tied to the thread object and the like)
 
-    // On Ruby 3.2 the event does not carry the thread, but it always fires on the OS thread of the Ruby thread
-    // it is about, so `rb_thread_current()` returns the event thread for both READY and RESUMED.
-    // However, during early thread startup `rb_thread_current()` can crash because the execution context isn't
-    // stored in TLS yet; `ruby_native_thread_p()` guards against this.
+    // The thread that this event is about may not be the current thread
+    // (as documented on rb_internal_thread_add_event_hook(), and this is notably the case for READY on Ruby 4.0),
+    // so be careful with native thread locals that are not directly tied to the thread object and the like.
+
+    // On Ruby 3.2 the event does not carry the thread, but all events always fire on the event thread on Ruby 3.2.
+    // However, during early thread startup rb_thread_current() can crash because the execution context (Fiber) isn't
+    // stored in TLS yet; ruby_native_thread_p() guards against this.
     #ifdef HAVE_RUBY_THREAD_STORAGE_API
       VALUE target_thread = event_data->thread;
     #else
@@ -1440,19 +1439,21 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
       VALUE target_thread = rb_thread_current();
     #endif
 
-    if (event_id == RUBY_INTERNAL_THREAD_EVENT_READY) { /* waiting for gvl */
-      thread_context_collector_on_gvl_waiting(target_thread);
-    } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_RESUMED) { /* running/runnable */
-      // Interesting note: A RUBY_INTERNAL_THREAD_EVENT_RESUMED is guaranteed to be called with the GVL being acquired.
-      //
-      // But we're not sure if we're on the main Ractor yet. The thread context collector can actually help here:
-      // it tags threads it's tracking, so if a thread is tagged then by definition we know that thread belongs to the main
-      // Ractor. Thus, if we get a ON_GVL_RUNNING_UNKNOWN result we shouldn't touch any state, but otherwise we're good to go.
+    per_thread_context* thread_context = get_per_thread_context(target_thread);
+    if (!thread_context) return;
+    // If non-NULL the thread is profiled and from the main Ractor
 
+    if (event_id == RUBY_INTERNAL_THREAD_EVENT_READY) { /* waiting for gvl */
+      thread_context_collector_on_gvl_waiting(thread_context);
+    } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_RESUMED) { /* running/runnable */
+      // Interesting note: A RUBY_INTERNAL_THREAD_EVENT_RESUMED is guaranteed to be called with the GVL being acquired
+      // and on the event thread.
+      // However, on_gvl_event() is called while holding the scheduler lock, so we do as little work as possible here,
+      // and perform the sample in a postponed_job.
       cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
       if (state == NULL) return; // This should not happen, but just in case...
 
-      on_gvl_running_result result = thread_context_collector_on_gvl_running(target_thread);
+      on_gvl_running_result result = thread_context_collector_on_gvl_running(state->thread_context_collector_instance, thread_context);
 
       if (result.waiting_for_gvl_duration_ns > 0) {
         state->stats.vm_metrics.gvl_waiting_time_ns_total += (uint64_t) result.waiting_for_gvl_duration_ns;

@@ -292,6 +292,28 @@ RSpec.describe "Datadog::Profiling::Collectors::DiscreteDynamicSampler" do
   describe ".state_snapshot" do
     let(:state_snapshot) { sampler._native_state_snapshot }
 
+    it "starts with a sampling interval of 1" do
+      expect(state_snapshot.fetch(:sampling_interval)).to eq(1)
+    end
+
+    it "samples the whole startup window, readjusts at the sample-count cap, then backs off" do
+      # Base interval of 1 => we sample every event at startup, with no skipping between samples.
+      expect(Array.new(99) { maybe_sample(sampling_seconds: 0.0001) }).to all(be(true))
+      # No readjustment yet: still under both the 1s window and the 100-sample cap.
+      expect(sampler._native_state_snapshot.fetch(:samples_since_last_readjustment)).to eq(99)
+
+      # The 100th sample is still taken; its after_sample trips ADJUSTMENT_WINDOW_SAMPLES (100) and
+      # forces a readjustment, which resets the per-window counters. This holds regardless of load.
+      expect(maybe_sample(sampling_seconds: 0.0001)).to be(true)
+      expect(sampler._native_state_snapshot.fetch(:samples_since_last_readjustment)).to eq(0)
+
+      # Because this simulated window was 100% sampling overhead (no working time between events), that
+      # readjustment also backs the sampler off, so the 101st event is skipped. In a real, lower-overhead
+      # window the interval could instead stay at 1 and keep sampling -- the skip here is the high-overhead
+      # consequence, whereas the readjustment above always holds.
+      expect(maybe_sample(sampling_seconds: 0.0001)).to be(false)
+    end
+
     it "fills a Ruby hash with relevant data from a sampler instance" do
       # Max overhead of 2% over 1 second means a max of 0.02 seconds of sampling.
       # With each sample taking 0.01 seconds, we can afford to do 2 of these every second.

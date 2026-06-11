@@ -8,6 +8,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
     @clean_threads_required = true
     testing_threads.each { ready_queue.pop }
+    # Make sure all threads have reached the `sleep` before moving on
+    loop_until { testing_threads.all? { |t| t.status == "sleep" } }
     expect(Thread.list).to include(*testing_threads)
 
     testing_threads_and_current.each { |t| clear_per_thread_context_for(t) }
@@ -37,17 +39,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       sleep
     end
   end
-  let(:profiler_overhead_thread_placeholder) do
-    Thread.new(ready_queue) do |ready_queue|
-      overhead_placeholder = ->(queue) do
-        queue << true
-        sleep
-      end
-
-      overhead_placeholder.call(ready_queue)
-    end
-  end
-  let(:testing_threads) { [t1, t2, t3, profiler_overhead_thread_placeholder] }
+  let(:testing_threads) { [t1, t2, t3] }
   let(:testing_threads_and_current) { [*testing_threads, Thread.current] }
   let(:max_frames) { 123 }
 
@@ -82,8 +74,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
   end
 
-  def sample(profiler_overhead_stack_thread: profiler_overhead_thread_placeholder, allow_exception: false)
-    described_class::Testing._native_sample(thread_context_collector, profiler_overhead_stack_thread, allow_exception)
+  def sample(allow_exception: false)
+    described_class::Testing._native_sample(thread_context_collector, allow_exception)
   end
 
   def clear_per_thread_context_for(thread)
@@ -119,7 +111,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   def on_gvl_running(thread)
-    described_class::Testing._native_on_gvl_running(thread)
+    described_class::Testing._native_on_gvl_running(thread_context_collector, thread)
   end
 
   def sample_after_gvl_running(thread, allow_exception: false)
@@ -182,14 +174,14 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   # This method exists only so we can look for its name in the stack trace in a few tests
-  def another_way_of_calling_sample(profiler_overhead_stack_thread: Thread.current)
-    sample(profiler_overhead_stack_thread: profiler_overhead_stack_thread)
+  def another_way_of_calling_sample
+    sample
   end
 
   describe ".new" do
     it "sets the waiting_for_gvl_threshold_ns to the provided value" do
       # This is a bit ugly but it saves us from having to introduce yet another way to poke at the native state
-      expect(thread_context_collector.inspect).to include("global_waiting_for_gvl_threshold_ns=222333444")
+      expect(thread_context_collector.inspect).to include("waiting_for_gvl_threshold_ns=222333444")
     end
 
     context "when otel_context_enabled has an invalid value" do
@@ -230,7 +222,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
       expect(Thread.list).to eq(all_threads), "Threads finished during this spec, causing flakiness!"
 
-      seen_threads = samples.map(&:labels).map { |it| it.fetch(:"thread id") }.uniq
+      seen_threads =
+        samples
+          .reject { |it| it.labels.key?(:"profiler overhead") }
+          .map(&:labels).map { |it| it.fetch(:"thread id") }.uniq
 
       expect(seen_threads.size).to be all_threads.size
     end
@@ -304,6 +299,12 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       expect(t1_samples.map(&:values).map { |it| it.fetch(:"cpu-samples") }.reduce(:+)).to eq 5
     end
 
+    # WARNING:
+    # The following tests do on_gc_start() + sample() on the same thread,
+    # which cannot happen in reality since when a thread is doing GC it's definitely not calling Ruby methods.
+    # They should be changed to be more realistic if possible, probably by simplifying the state changes around GC
+    # so it does not e.g. prevent regular time to advance and is more like GVL waiting tracking.
+
     context "when a thread is marked as being in garbage collection by on_gc_start" do
       # @ivoanjo: This spec exists because for cpu-time the behavior is not this one (e.g. we don't keep recording
       # cpu-time), and I wanted to validate that the different behavior does not get applied to wall-time.
@@ -313,7 +314,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
         on_gc_start
 
-        5.times { sample }
+        5.times { sample } # See WARNING above
 
         time_after = Datadog::Core::Utils::Time.get_time(:nanosecond)
 
@@ -352,7 +353,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:"gc_tracking.cpu_time_at_start_ns")
 
           # Even though we keep calling sample, the result only includes the time until we called on_gc_start
-          5.times { another_way_of_calling_sample }
+          5.times { another_way_of_calling_sample } # See WARNING above
 
           total_cpu_for_rspec_thread =
             samples_for_thread(samples, Thread.current)
@@ -372,7 +373,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
           cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:"gc_tracking.cpu_time_at_start_ns")
 
-          5.times { sample }
+          5.times { sample } # See WARNING above
 
           cpu_time_at_previous_sample_ns =
             per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
@@ -1129,46 +1130,20 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
     end
 
-    # This is a bit weird, but what we're doing here is using the stack from a different thread to represent the
-    # profiler overhead. In practice, the "different thread" will be the Collectors::CpuAndWallTimeWorker thread.
-    #
-    # Thus, what happens is, when we sample _once_, two samples will show up for the thread **that calls sample**:
-    # * The regular stack
-    # * The stack from the other thread
-    #
-    # E.g. if 1s elapsed since the last sample, and sampling takes 500ms:
-    # * The regular stack will have 1s attributed to it
-    # * The stack from the other thread will have 500ms attributed to it.
-    #
-    # This way it's clear what overhead comes from profiling. Without this feature (aka if profiler_overhead_stack_thread
-    # is set to Thread.current), then all 1.5s get attributed to the current stack, and the profiler overhead would be
-    # invisible.
-    it "attributes the time sampling to the stack of the worker_thread_to_blame" do
+    it "records profiler overhead as a placeholder stack" do
       sample
-      wall_time_at_first_sample = per_thread_context.fetch(Thread.current).fetch(:wall_time_at_previous_sample_ns)
 
-      another_way_of_calling_sample(profiler_overhead_stack_thread: t1)
-      wall_time_at_second_sample = per_thread_context.fetch(Thread.current).fetch(:wall_time_at_previous_sample_ns)
+      profiler_overhead_samples = samples.select { |it| it.labels.key?(:"profiler overhead") }
 
-      second_sample_stack =
-        samples_for_thread(samples, Thread.current)
-          .select { |it| it.locations.find { |frame| frame.base_label == "another_way_of_calling_sample" } }
+      expect(profiler_overhead_samples.size).to be 1
 
-      # The stack from the profiler_overhead_stack_thread (t1) above has showed up attributed to Thread.current, as we
-      # are using it to represent the profiler overhead.
-      profiler_overhead_stack =
-        samples_for_thread(samples, Thread.current)
-          .select { |it| it.locations.find { |frame| frame.base_label == "inside_t1" } }
-
-      expect(second_sample_stack.size).to be 1
-      expect(profiler_overhead_stack.size).to be 1
-
-      expect(
-        second_sample_stack.first.values.fetch(:"wall-time") + profiler_overhead_stack.first.values.fetch(:"wall-time")
-      ).to be wall_time_at_second_sample - wall_time_at_first_sample
-
-      expect(second_sample_stack.first.labels).to_not include("profiler overhead": anything)
-      expect(profiler_overhead_stack.first.labels).to include("profiler overhead": 1)
+      overhead_sample = profiler_overhead_samples.first
+      expect(overhead_sample.locations.map(&:base_label)).to eq ["sampling"]
+      root = File.expand_path("../../../..", __dir__)
+      expect(overhead_sample.locations.map(&:path)).to eq ["#{root}/lib/datadog/profiling/collectors/thread_context.rb"]
+      expect(overhead_sample.labels).to include("profiler overhead": 1, "thread id": "0", "thread name": "Datadog::Profiling::Sampling")
+      expect(overhead_sample.values.fetch(:"wall-time")).to be >= 0
+      expect(overhead_sample.values.fetch(:"cpu-time")).to be >= 0
     end
 
     describe "timeline support" do
@@ -2237,7 +2212,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         otel_context_enabled: otel_context_enabled,
         native_filenames_enabled: native_filenames_enabled,
       )
-      described_class::Testing._native_sample(first_collector, profiler_overhead_thread_placeholder, false)
+      described_class::Testing._native_sample(first_collector, false)
 
       # Second collector with much smaller max_frames — its locations array is smaller,
       # but the existing per_thread_context still has a sampling_buffer sized for large_max_frames.
@@ -2252,7 +2227,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         otel_context_enabled: otel_context_enabled,
         native_filenames_enabled: native_filenames_enabled,
       )
-      described_class::Testing._native_sample(second_collector, profiler_overhead_thread_placeholder, false)
+      described_class::Testing._native_sample(second_collector, false)
 
       second_samples = samples_from_pprof(second_recorder.serialize!)
       current_thread_samples = samples_for_thread(second_samples, Thread.current)

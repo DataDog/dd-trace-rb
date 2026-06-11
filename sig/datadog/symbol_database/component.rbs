@@ -1,17 +1,8 @@
 module Datadog
   module SymbolDatabase
     class Component
-      EXTRACT_DEBOUNCE_INTERVAL: Integer
-
-      self.@uploaded_this_process: bool
-      self.@upload_done_mutex: ::Thread::Mutex
-      self.@upload_done_cv: ::Thread::ConditionVariable
-
-      def self.upload_done_mutex: () -> ::Thread::Mutex
-      def self.upload_done_cv: () -> ::Thread::ConditionVariable
-      def self.uploaded_this_process?: () -> bool
-      def self.mark_uploaded: () -> void
-      def self.reset_uploaded_this_process_for_tests!: () -> void
+      EXTRACT_DEBOUNCE_INTERVAL: ::Numeric
+      MODULE_SINGLETON_CLASS_PRED: ::UnboundMethod
 
       @settings: Datadog::Core::Configuration::Settings
       @agent_settings: Datadog::Core::Configuration::AgentSettings
@@ -22,6 +13,7 @@ module Datadog
       @scope_batcher: ScopeBatcher
       @last_upload_time: ::Time?
       @last_upload_scope_count: ::Integer?
+      @last_upload_time_cv: ::Thread::ConditionVariable
       @mutex: ::Thread::Mutex
       @upload_in_progress: bool
       @upload_in_progress_cv: ::Thread::ConditionVariable
@@ -32,6 +24,10 @@ module Datadog
       @scheduler_signaled: bool
       @scheduler_thread: ::Thread?
       @owner_pid: ::Integer
+      @hot_load_buffer: ::Array[::Module]
+      @hot_load_buffer_mutex: ::Thread::Mutex
+      @hot_load_tracepoint: ::TracePoint?
+      @initial_extraction_done: bool
 
       def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, ::Logger logger, ?telemetry: Datadog::Core::Telemetry::Component?) -> Component?
 
@@ -55,6 +51,8 @@ module Datadog
 
       def shutdown!: () -> void
 
+      def after_fork!: () -> void
+
       private
 
       def self.environment_supported?: (SymbolDatabase::Logger logger) -> bool
@@ -64,6 +62,12 @@ module Datadog
       def scheduler_loop: () -> void
 
       def extract_and_upload: () -> void
+
+      def extract_hot_load_buffer: () -> ::Array[Scope]
+
+      def install_hot_load_hook: () -> void
+
+      def enqueue_hot_load: (::Module mod) -> void
 
       def log_scope_tree: (Scope scope, ::Integer depth) -> void
 
