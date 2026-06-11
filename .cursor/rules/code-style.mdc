@@ -38,6 +38,12 @@ alwaysApply: true
 - `actionlint`: on `.github/*.yml` edits.
 - ⚠️ IMPORTANT: Ensure all code passes style checks before submitting
 
+## Ruby Idioms
+
+- Prefer `x.to_s` over `x || ''` for nil-safe string conversion
+- Prefer `return unless x` over `return nil unless x` (implicit nil)
+- Prefix unused method arguments with `_` (e.g., `_unused`) or use `**_opts` for intentionally ignored kwargs
+
 ## Performance
 
 - Code in `lib/` and `ext/` is performance sensitive, except for: configuration,  gem startup/shutdown

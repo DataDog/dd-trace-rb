@@ -659,7 +659,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   if (sample_from_signal_handler) {
     // Buffer current stack trace. Note that this will not actually record the sample, for that we still need to wait
     // until the postponed job below gets run.
-    bool prepared = thread_context_collector_prepare_sample_inside_signal_handler(state->thread_context_collector_instance);
+    bool prepared = thread_context_collector_prepare_sample_inside_signal_handler();
 
     if (prepared) state->stats.signal_handler_prepared_sample++;
   }
@@ -808,8 +808,7 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
 
   state->stats.cpu_sampled++;
 
-  VALUE profiler_overhead_stack_thread = state->owner_thread; // Used to attribute profiler overhead to a different stack
-  thread_context_collector_sample(state->thread_context_collector_instance, wall_time_ns_before_sample, profiler_overhead_stack_thread);
+  thread_context_collector_sample(state->thread_context_collector_instance, wall_time_ns_before_sample);
 
   long wall_time_ns_after_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
   long delta_ns = wall_time_ns_after_sample - wall_time_ns_before_sample;
@@ -865,10 +864,6 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
 
   if (state->gvl_profiling_enabled) {
     #ifndef NO_GVL_INSTRUMENTATION
-      #ifdef USE_GVL_PROFILING_3_2_WORKAROUNDS
-        gvl_profiling_state_thread_tracking_workaround();
-      #endif
-
       state->gvl_profiling_hook = rb_internal_thread_add_event_hook(
         on_gvl_event,
         (
@@ -1055,6 +1050,9 @@ static VALUE _native_simulate_sample_from_postponed_job(DDTRACE_UNUSED VALUE sel
 //
 // In the future, if we add more other components with tracepoints, we will need to coordinate stopping all such
 // tracepoints before doing the other cleaning steps.
+//
+// Note that tests call this method directly in the same process without forking,
+// and in such a case non-current Threads keep running.
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance) {
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
@@ -1245,13 +1243,23 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
     return;
   }
 
+  VALUE current_thread = rb_thread_current();
+
   // If Ruby is in the middle of raising an exception, we don't want to try to sample. This is because if we accidentally
   // trigger an exception inside the profiler code, bad things will happen (specifically, Ruby will try to kill off the
   // thread even though we may try to catch the exception).
   //
   // Note that "in the middle of raising an exception" means the exception itself has already been allocated.
   // What's getting allocated now is probably the backtrace objects (@ivoanjo or at least that's what I've observed)
-  if (is_raised_flag_set(rb_thread_current())) {
+  if (is_raised_flag_set(current_thread)) {
+    return;
+  }
+
+  per_thread_context *thread_context = get_per_thread_context(current_thread);
+  if (!thread_context) {
+    // No per_thread_context yet on this Thread, we can't use get_or_create_context_for() as that allocates,
+    // and we are inside on_newobj_event where we MUST NOT allocate.
+    // So we don't sample allocations until another hook allocates the per_thread_context.
     return;
   }
 
@@ -1286,7 +1294,7 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
   // Rescue against any exceptions that happen during sampling
   safely_call(
     rescued_sample_allocation,
-    Qnil,
+    (VALUE) thread_context,
     state->self_instance,
     handle_sampling_failure_rescued_sample_allocation
   );
@@ -1338,7 +1346,8 @@ static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self) {
   }
 }
 
-static VALUE rescued_sample_allocation(DDTRACE_UNUSED VALUE unused) {
+static VALUE rescued_sample_allocation(VALUE arg) {
+  per_thread_context *thread_context = (per_thread_context*) arg;
   cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
   // This should not happen in a normal situation because on_newobj_event already checked for this, but just in case...
@@ -1357,7 +1366,7 @@ static VALUE rescued_sample_allocation(DDTRACE_UNUSED VALUE unused) {
   // To control bias from sampling, we clamp the maximum weight attributed to a single allocation sample. This avoids
   // assigning a very large number to a sample, if for instance the dynamic sampling mechanism chose a really big interval.
   unsigned int weight = allocations_since_last_sample > MAX_ALLOC_WEIGHT ? MAX_ALLOC_WEIGHT : (unsigned int) allocations_since_last_sample;
-  bool needs_after_allocation = thread_context_collector_sample_allocation(state->thread_context_collector_instance, weight, new_object);
+  bool needs_after_allocation = thread_context_collector_sample_allocation(state->thread_context_collector_instance, thread_context, weight, new_object);
   // ...but we still represent the skipped samples in the profile, thus the data will account for all allocations.
   if (weight < allocations_since_last_sample) {
     uint32_t skipped_samples = (uint32_t) uint64_min_of(allocations_since_last_sample - weight, UINT32_MAX);
@@ -1414,30 +1423,37 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
 #ifndef NO_GVL_INSTRUMENTATION
   static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused) {
     // Be very careful about touching the `state` here or doing anything at all:
-    // This function gets called without the GVL, and potentially from background Ractors!
-    //
-    // In fact, the `target_thread` that this event is about may not even be the current thread. (So be careful with thread locals that
-    // are not directly tied to the `target_thread` object and the like)
-    gvl_profiling_thread target_thread = thread_from_event(event_data);
+    // This function gets called without the GVL, and potentially from non-main Ractors!
+
+    // The thread that this event is about may not be the current thread
+    // (as documented on rb_internal_thread_add_event_hook(), and this is notably the case for READY on Ruby 4.0),
+    // so be careful with native thread locals that are not directly tied to the thread object and the like.
+
+    // On Ruby 3.2 the event does not carry the thread, but all events always fire on the event thread on Ruby 3.2.
+    // However, during early thread startup rb_thread_current() can crash because the execution context (Fiber) isn't
+    // stored in TLS yet; ruby_native_thread_p() guards against this.
+    #ifdef HAVE_RUBY_THREAD_STORAGE_API
+      VALUE target_thread = event_data->thread;
+    #else
+      if (!ruby_native_thread_p()) return;
+      VALUE target_thread = rb_thread_current();
+    #endif
+
+    per_thread_context* thread_context = get_per_thread_context(target_thread);
+    if (!thread_context) return;
+    // If non-NULL the thread is profiled and from the main Ractor
 
     if (event_id == RUBY_INTERNAL_THREAD_EVENT_READY) { /* waiting for gvl */
-      thread_context_collector_on_gvl_waiting(target_thread);
+      thread_context_collector_on_gvl_waiting(thread_context);
     } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_RESUMED) { /* running/runnable */
-      // Interesting note: A RUBY_INTERNAL_THREAD_EVENT_RESUMED is guaranteed to be called with the GVL being acquired.
-      // (And... I think target_thread will be == rb_thread_current()?)
-      //
-      // But we're not sure if we're on the main Ractor yet. The thread context collector can actually help here:
-      // it tags threads it's tracking, so if a thread is tagged then by definition we know that thread belongs to the main
-      // Ractor. Thus, if we get a ON_GVL_RUNNING_UNKNOWN result we shouldn't touch any state, but otherwise we're good to go.
-
-      #ifdef USE_GVL_PROFILING_3_2_WORKAROUNDS
-        target_thread = gvl_profiling_state_maybe_initialize();
-      #endif
-
+      // Interesting note: A RUBY_INTERNAL_THREAD_EVENT_RESUMED is guaranteed to be called with the GVL being acquired
+      // and on the event thread.
+      // However, on_gvl_event() is called while holding the scheduler lock, so we do as little work as possible here,
+      // and perform the sample in a postponed_job.
       cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
       if (state == NULL) return; // This should not happen, but just in case...
 
-      on_gvl_running_result result = thread_context_collector_on_gvl_running(target_thread);
+      on_gvl_running_result result = thread_context_collector_on_gvl_running(state->thread_context_collector_instance, thread_context);
 
       if (result.waiting_for_gvl_duration_ns > 0) {
         state->stats.vm_metrics.gvl_waiting_time_ns_total += (uint64_t) result.waiting_for_gvl_duration_ns;

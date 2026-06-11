@@ -80,7 +80,7 @@ RSpec.describe Datadog::DataStreams::PathwayContext do
 
     it 'returns nil for truncated data' do
       # Base64 encode only 4 bytes (need at least 8 for hash)
-      truncated = Datadog::Core::Utils::Base64.strict_encode64("\x01\x02\x03\x04")
+      truncated = Datadog::Core::Utils::Base64Codec.strict_encode64("\x01\x02\x03\x04")
       result = described_class.decode_b64(truncated)
       expect(result).to be_nil
     end

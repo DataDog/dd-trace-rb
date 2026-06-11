@@ -173,6 +173,22 @@ RSpec.configure do |config|
     end
   end
 
+  # Repeat each example N times to flush out transient failures.
+  # Usage: RSPEC_REPEAT=100 bundle exec rspec spec/path/to_spec.rb:123
+  if (repeat_count = Integer(ENV['RSPEC_REPEAT'] || 1)) > 1
+    config.around do |example|
+      repeat_count.times do |i|
+        example.run
+        if example.exception
+          warn "Failed on repetition #{i + 1}/#{repeat_count}"
+          break
+        end
+        example.example_group_instance.send(:__init_memoized)
+        example.instance_variable_set(:@exception, nil)
+      end
+    end
+  end
+
   # Check for leaky test resources.
   #
   # Execute this after the test has finished

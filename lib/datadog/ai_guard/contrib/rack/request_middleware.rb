@@ -11,71 +11,85 @@ module Datadog
       module Rack
         # AI Guard Rack middleware.
         #
-        # Inserted into the middleware stack right after
-        # Datadog::Tracing::Contrib::Rack::TraceMiddleware (i.e. nested inside
-        # it). This ordering matters: on the way out of the request, AI Guard's
-        # `ensure` block unwinds *before* Tracing's ensure, while Tracing's
-        # request span is still live. We need that, because Tracing's ensure
-        # calls `request_span.finish`, which builds a frozen `Span` snapshot of
-        # the meta hash — any `set_tag` call after that point mutates the
-        # `SpanOperation` but never reaches the exported `Span`.
+        # At request entry the middleware stores some request attributes for
+        # on the active trace under the `_dd.ai_guard.` prefix.
         #
-        # So while the span is still active, we tag `http.client_ip` and
-        # `network.client.ip` on it — but only when an AI Guard span was
-        # actually recorded during the request.
+        # Later when AI Guard evaluation is performed, those attributes are
+        # mirrored on AI Guard span.
         class RequestMiddleware
-          NETWORK_CLIENT_IP_TAG = "network.client.ip"
-
           def initialize(app, opt = {})
             @app = app
           end
 
           def call(env)
+            trace = Datadog::Tracing.active_trace
+            return @app.call(env) unless trace
+
+            store_anomaly_detection_tags!(trace, env)
+
             @app.call(env)
           ensure
-            tag_client_ip(env) if consume_ai_guard_executed_flag
+            # @type var trace: Datadog::Tracing::TraceSegment?
+            # Steep: https://github.com/soutaro/steep/issues/919
+            if trace
+              tag_client_ip_on_request_span!(trace) if ai_guard_executed?(trace)
+
+              clean_up_ai_guard_temp_tags!(trace)
+            end
           end
 
           private
 
-          # AI Guard's evaluation flow sets `ai_guard.executed` on the trace
-          # whenever an AI Guard span is created during the request. We read
-          # it here to know whether to tag client IP, then clear it so the
-          # internal flag does not propagate to the exported trace.
-          #
-          # `Tracing.active_trace` is publicly typed as `TraceSegment?` but at
-          # runtime returns a `TraceOperation`, which exposes `get_tag` and
-          # `clear_tag`. Pre-existing sig mismatch — hence the steep:ignore.
           # steep:ignore:start
-          def consume_ai_guard_executed_flag
-            trace = Datadog::Tracing.active_trace
-            return false unless trace
-            return false unless trace.get_tag(Datadog::AIGuard::Ext::SERVICE_ENTRY_EXECUTED_TAG) == "1"
+          def store_anomaly_detection_tags!(trace, env)
+            remote_ip = env["REMOTE_ADDR"]
+            trace.set_tag(Datadog::AIGuard::Ext::TRACE_NETWORK_CLIENT_IP_TAG, remote_ip) if remote_ip
 
-            trace.clear_tag(Datadog::AIGuard::Ext::SERVICE_ENTRY_EXECUTED_TAG)
-            true
+            headers = Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection.new(env)
+            resolved_client_ip = Datadog::Tracing::ClientIp.extract_client_ip(headers, remote_ip)
+            trace.set_tag(Datadog::AIGuard::Ext::TRACE_HTTP_CLIENT_IP_TAG, resolved_client_ip) if resolved_client_ip
+
+            user_agent = env["HTTP_USER_AGENT"]
+            trace.set_tag(Datadog::AIGuard::Ext::TRACE_HTTP_USERAGENT_TAG, user_agent) if user_agent
+          rescue => e
+            Datadog::AIGuard.telemetry&.report(e, description: "AI Guard: failed to get request attributes")
           end
           # steep:ignore:end
 
-          def tag_client_ip(env)
+          # steep:ignore:start
+          def clean_up_ai_guard_temp_tags!(trace)
+            Ext::TRACE_ANOMALY_DETECTION_TAGS.each do |tag|
+              trace.clear_tag(tag)
+            end
+
+            trace.clear_tag(Datadog::AIGuard::Ext::TRACE_EXECUTED_TAG)
+          end
+          # steep:ignore:end
+
+          # AI Guard's evaluation flow sets `_dd.ai_guard.executed` on the
+          # trace whenever an AI Guard span is created during the request.
+          # steep:ignore:start
+          def ai_guard_executed?(trace)
+            trace.get_tag(Datadog::AIGuard::Ext::TRACE_EXECUTED_TAG) == "1"
+          end
+          # steep:ignore:end
+
+          # steep:ignore:start
+          def tag_client_ip_on_request_span!(trace)
             span = Datadog::Tracing.active_span
             return unless span
 
-            if span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP).nil?
-              headers = Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection.new(env)
-              Datadog::Tracing::ClientIp.set_client_ip_tag!(
-                span,
-                headers: headers,
-                remote_ip: env["REMOTE_ADDR"]
-              )
+            client_ip = trace.get_tag(Datadog::AIGuard::Ext::TRACE_HTTP_CLIENT_IP_TAG)
+            if client_ip && span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP).nil?
+              span.set_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, client_ip)
             end
 
-            if env["REMOTE_ADDR"] && span.get_tag(NETWORK_CLIENT_IP_TAG).nil?
-              span.set_tag(NETWORK_CLIENT_IP_TAG, env["REMOTE_ADDR"])
-            end
+            network_client_ip = trace.get_tag(Datadog::AIGuard::Ext::TRACE_NETWORK_CLIENT_IP_TAG)
+            span["network.client.ip"] = network_client_ip if network_client_ip
           rescue => e
             Datadog::AIGuard.telemetry&.report(e, description: "AI Guard: failed to tag client IP on root span")
           end
+          # steep:ignore:end
         end
       end
     end

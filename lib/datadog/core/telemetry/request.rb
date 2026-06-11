@@ -10,8 +10,6 @@ module Datadog
       # Module defining methods for collecting metadata for telemetry
       module Request
         class << self
-          using Core::Utils::Hash::Refinement
-
           def build_payload(event, seq_id, debug: false)
             hash = {
               api_version: 'v2',

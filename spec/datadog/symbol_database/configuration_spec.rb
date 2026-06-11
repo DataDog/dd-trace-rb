@@ -47,7 +47,7 @@ RSpec.describe 'Symbol Database Configuration', :symdb_supported_platforms do
       [
         ['DD_SYMBOL_DATABASE_UPLOAD_ENABLED', 'true', nil, 'enabled', true],
         ['DD_SYMBOL_DATABASE_UPLOAD_ENABLED', 'false', nil, 'enabled', false],
-        ['DD_SYMBOL_DATABASE_UPLOAD_ENABLED', nil, nil, 'enabled', true],
+        ['DD_SYMBOL_DATABASE_UPLOAD_ENABLED', nil, nil, 'enabled', false],
         ['DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD', 'true', 'internal', 'force_upload', true],
         ['DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD', 'false', 'internal', 'force_upload', false],
         ['DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD', nil, 'internal', 'force_upload', false],

@@ -5,7 +5,7 @@
 #include "libdatadog_helpers.h"
 #include "time_helpers.h"
 
-// Note on calloc vs ruby_xcalloc use:
+// note on calloc vs ruby_xcalloc use:
 // * Whenever we're allocating memory after being called by the Ruby VM in a "regular" situation (e.g. initializer)
 //   we should use `ruby_xcalloc` to give the VM visibility into what we're doing + give it a chance to manage GC
 // * BUT, when we're being called during a sample, being in the middle of an object allocation is a very special

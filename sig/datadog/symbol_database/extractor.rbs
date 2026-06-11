@@ -22,6 +22,8 @@ module Datadog
 
       def safe_mod_name: (Module mod) -> String?
 
+      def resolves_to_same_module?: (String mod_name, Module mod) -> bool
+
       def user_code_module?: (Module mod) -> bool
 
       def user_code_path?: (String path) -> bool

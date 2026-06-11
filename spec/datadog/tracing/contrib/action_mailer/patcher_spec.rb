@@ -1,5 +1,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 require 'rails'
 require 'active_support'
 require 'spec/datadog/tracing/contrib/action_mailer/helpers'
@@ -18,21 +19,16 @@ RSpec.describe 'ActionMailer patcher' do
   let(:configuration_options) { {} }
 
   before do
-    if Datadog::Tracing::Contrib::ActionMailer::Integration.compatible?
+    skip unless Datadog::Tracing::Contrib::ActionMailer::Integration.compatible?
+
+    reset_subscription_state!(:action_mailer, Datadog::Tracing::Contrib::ActionMailer::Events) do
       Datadog.configure do |c|
         c.tracing.instrument :action_mailer, configuration_options
       end
-    else
-      skip
     end
   end
 
-  around do |example|
-    # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:action_mailer].reset_configuration!
-    example.run
-    Datadog.registry[:action_mailer].reset_configuration!
-  end
+  after { Datadog.registry[:action_mailer].reset_configuration! }
 
   describe 'for single process.action_mailer process' do
     let(:mailer) { 'UserMailer' }
@@ -51,6 +47,11 @@ RSpec.describe 'ActionMailer patcher' do
 
     before do
       UserMailer.test_mail(1).deliver_now
+    end
+
+    context 'when service_name is overridden' do
+      let(:configuration_options) { {service_name: 'custom-action_mailer'} }
+      it_behaves_like 'tags _dd.svc_src', 'action_mailer'
     end
 
     context 'that doesn\'t raise an error' do

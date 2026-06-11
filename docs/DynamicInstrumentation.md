@@ -324,13 +324,12 @@ names, method names, and method parameters when creating probes.
 
 ### Enabling the Symbol Database
 
-Symbol Database upload is enabled by default when Dynamic Instrumentation
-is enabled. No additional configuration is required. It activates using
-Remote Configuration when you open the DI UI for your service.
+Symbol Database upload is disabled by default. To enable it, set:
 
-To explicitly disable it:
+    export DD_SYMBOL_DATABASE_UPLOAD_ENABLED=true
 
-    export DD_SYMBOL_DATABASE_UPLOAD_ENABLED=false
+Once enabled, the upload activates via Remote Configuration when you open
+the DI UI for your service.
 
 ## Rate Limiting and Performance
 

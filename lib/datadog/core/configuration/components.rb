@@ -194,6 +194,7 @@ module Datadog
           remote&.after_fork
           crashtracker&.update_on_fork
           ProcessDiscovery.after_fork
+          symbol_database&.after_fork!
         end
 
         # Hot-swaps with a new sampler.

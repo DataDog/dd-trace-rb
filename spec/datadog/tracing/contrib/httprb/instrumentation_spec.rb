@@ -14,6 +14,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 require 'datadog/tracing/contrib/http_examples'
 require 'datadog/tracing/contrib/support/http'
 require 'spec/support/thread_helpers'
@@ -127,6 +128,9 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
           end
 
           it_behaves_like 'environment service name', 'DD_TRACE_HTTPRB_SERVICE_NAME'
+          it_behaves_like 'tags _dd.svc_src', 'httprb' do
+            before { response }
+          end
           it_behaves_like 'configured peer service span', 'DD_TRACE_HTTPRB_PEER_SERVICE'
           it_behaves_like 'schema version span'
 

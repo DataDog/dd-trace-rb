@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.34.0.dev)
+    datadog (2.36.0.dev)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
       libdatadog (~> 33.0.0.1.0)
@@ -12,13 +12,13 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    addressable (2.8.8)
+    addressable (2.9.0)
       public_suffix (>= 2.0.2, < 8.0)
     amq-protocol (2.5.1)
-    benchmark-ips (2.14.0)
+    benchmark-ips (2.15.1)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
-    bigdecimal (4.0.1)
+    bigdecimal (4.1.2)
     bunny (2.24.0)
       amq-protocol (~> 2.3)
       sorted_set (~> 1, >= 1.0.2)
@@ -72,7 +72,7 @@ GEM
     logger (1.7.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    msgpack (1.8.0)
+    msgpack (1.8.1)
     os (1.1.4)
     pry (0.16.0)
       coderay (~> 1.1)
@@ -97,7 +97,7 @@ GEM
     rspec-expectations (3.13.5)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
-    rspec-mocks (3.13.7)
+    rspec-mocks (3.13.8)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
     rspec-support (3.13.7)
@@ -125,13 +125,13 @@ GEM
       rbtree
       set (~> 1.0)
     thor (1.5.0)
-    warning (1.5.0)
-    webmock (3.26.1)
+    warning (1.6.0)
+    webmock (3.26.2)
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
     webrick (1.9.2)
-    zstd-ruby (2.0.5)
+    zstd-ruby (2.0.6)
 
 PLATFORMS
   aarch64-linux

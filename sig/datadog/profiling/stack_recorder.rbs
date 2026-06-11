@@ -8,7 +8,6 @@ module Datadog
         heap_samples_enabled: bool,
         heap_size_enabled: bool,
         heap_sample_every: Integer,
-        timeline_enabled: bool,
         heap_clean_after_gc_enabled: bool,
       ) -> void
 
@@ -18,7 +17,6 @@ module Datadog
         heap_samples_enabled: bool,
         heap_size_enabled: bool,
         heap_sample_every: Integer,
-        timeline_enabled: bool,
         heap_clean_after_gc_enabled: bool,
       ) -> true
 
@@ -27,7 +25,6 @@ module Datadog
         ?heap_samples_enabled: bool,
         ?heap_size_enabled: bool,
         ?heap_sample_every: Integer,
-        ?timeline_enabled: bool,
         ?heap_clean_after_gc_enabled: bool,
         **untyped
       ) -> Datadog::Profiling::StackRecorder

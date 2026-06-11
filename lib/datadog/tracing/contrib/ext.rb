@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../metadata/ext'
+
 module Datadog
   module Tracing
     module Contrib
@@ -62,7 +64,7 @@ module Datadog
           TAG_PEER_SERVICE_REMAP = '_dd.peer.service.remapped_from'
 
           # Set equal to the global service when contrib span.service is overriden
-          TAG_BASE_SERVICE = '_dd.base_service'
+          TAG_BASE_SERVICE = Tracing::Metadata::Ext::TAG_BASE_SERVICE
         end
       end
     end

@@ -71,11 +71,8 @@ module ProfileHelpers
   end
 
   def object_id_from(thread_id)
-    if thread_id != "GC"
-      Integer(thread_id.match(/\d+ \((?<object_id>\d+)\)/)[:object_id])
-    else
-      -1
-    end
+    match = thread_id.match(/\d+ \((?<object_id>\d+)\)/)
+    match ? Integer(match[:object_id]) : -1
   end
 
   def samples_for_thread(samples, thread, expected_size: nil)
@@ -122,6 +119,28 @@ module ProfileHelpers
   # For now let's skip these tests when testing with ASAN to avoid impacting CI
   def skip_asan_flaky
     skip "Skipped test to avoid flakiness in ASAN builds" if asan_build?
+  end
+
+  def loop_until(timeout_seconds: 5, check_condition_every_seconds: 0)
+    started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second)
+
+    deadline = started_at + timeout_seconds
+    condition_deadline = started_at + check_condition_every_seconds
+
+    while (now = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second)) < deadline
+      if check_condition_every_seconds > 0
+        if now >= condition_deadline
+          condition_deadline = now + check_condition_every_seconds
+        else
+          next
+        end
+      end
+
+      result = yield
+      return result if result
+    end
+
+    raise("Wait time exhausted!")
   end
 end
 

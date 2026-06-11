@@ -30,7 +30,9 @@ module SynchronizationHelpers
         $stderr.reopen(fork_stderr) # STDERR captures RSpec failures. We print it in case the fork fails on exit.
         $stderr.sync = true
 
-        yield
+        RSpec::Mocks.with_temporary_scope do
+          yield
+        end
       end
 
       # Wait for fork to finish, retrieve its status.

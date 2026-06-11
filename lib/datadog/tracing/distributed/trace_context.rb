@@ -75,34 +75,6 @@ module Datadog
 
         private
 
-        # Refinements to ensure newer rubies do not suffer performance impact
-        # by needing to use older APIs.
-        module Refine
-          # Backport `Regexp::match?` because it is measurably the most performant
-          # way to check if a string matches a regular expression.
-          unless Regexp.method_defined?(:match?)
-            refine ::Regexp do
-              def match?(*args)
-                !match(*args).nil?
-              end
-            end
-          end
-
-          unless String.method_defined?(:delete_prefix)
-            refine ::String do
-              def delete_prefix(prefix)
-                prefix = prefix.to_s
-                if rindex(prefix, 0)
-                  self[prefix.length..-1]
-                else
-                  dup
-                end
-              end
-            end
-          end
-        end
-        using Refine
-
         # @see https://www.w3.org/TR/trace-context/#traceparent-header
         def build_traceparent(digest)
           build_traceparent_string(

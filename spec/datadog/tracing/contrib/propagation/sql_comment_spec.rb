@@ -35,6 +35,22 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
       end
     end
 
+    context 'when `dynamic_service` mode' do
+      let(:mode) { 'dynamic_service' }
+
+      before do
+        allow(Datadog.configuration).to receive(:experimental_propagate_process_tags_enabled).and_return(true)
+        allow(agent_info).to receive(:propagation_checksum).and_return(1234567890)
+      end
+
+      it 'sets the propagated hash and does not mark full trace injection' do
+        described_class.annotate!(span_op, propagation_mode)
+
+        expect(span_op.get_tag('_dd.propagated_hash')).to eq('1234567890')
+        expect(span_op.get_tag('_dd.dbm_trace_injected')).to be_nil
+      end
+    end
+
     context 'when `full` mode' do
       let(:mode) { 'full' }
 
@@ -262,6 +278,21 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
           it 'appends the comment after the sql statement' do
             is_expected.to eq("#{sql_statement} /*dde='dev',ddps='api',ddpv='1.2',dddbs='db_service'*/")
           end
+        end
+      end
+
+      context 'when `dynamic_service` mode' do
+        let(:mode) { 'dynamic_service' }
+
+        before do
+          Datadog.configuration.experimental_propagate_process_tags_enabled = true
+          allow(agent_info).to receive(:propagation_checksum).and_return(1234567890)
+        end
+
+        it 'includes service metadata and the propagation hash in the SQL comment' do
+          is_expected.to eq(
+            "/*dde='dev',ddps='api',ddpv='1.2',ddsh='1234567890',dddbs='db_service'*/ #{sql_statement}"
+          )
         end
       end
 

@@ -1,4 +1,5 @@
 require 'open3'
+require 'set'
 
 require_relative 'appraisal_conversion'
 require_relative 'runtime_matcher'
@@ -6,7 +7,7 @@ require_relative 'runtime_matcher'
 # rubocop:disable Metrics/BlockLength
 namespace :edge do
   desc 'Update all the groups with gemspec dependencies'
-  task :gemspec do |_t, _args|
+  task :gemspec do
     candidates = Set.new
 
     TEST_METADATA.each do |_, metadata|
@@ -25,7 +26,7 @@ namespace :edge do
       Bundler.with_unbundled_env do
         output, = Open3.capture2e(
           {'BUNDLE_GEMFILE' => gemfile.to_s},
-          "bundle lock --update=#{gemspec_runtime_dependencies.map(&:name).join(" ")}"
+          "bundle lock --update #{gemspec_runtime_dependencies.map(&:name).join(' ')}"
         )
 
         puts output

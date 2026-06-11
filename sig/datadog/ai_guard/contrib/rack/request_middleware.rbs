@@ -13,9 +13,13 @@ module Datadog
 
           private
 
-          def consume_ai_guard_executed_flag: () -> bool
+          def store_anomaly_detection_tags!: (Datadog::Tracing::TraceSegment trace, ::Rack::env env) -> void
 
-          def tag_client_ip: (::Rack::env env) -> void
+          def clean_up_ai_guard_temp_tags!: (Datadog::Tracing::TraceSegment trace) -> void
+
+          def ai_guard_executed?: (Datadog::Tracing::TraceSegment) -> bool
+
+          def tag_client_ip_on_request_span!: (Datadog::Tracing::TraceSegment trace) -> void
         end
       end
     end

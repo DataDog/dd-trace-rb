@@ -4,6 +4,7 @@ require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 
 require 'dalli'
 require 'datadog'
@@ -32,6 +33,13 @@ RSpec.describe 'Dalli instrumentation' do
 
   it_behaves_like 'environment service name', 'DD_TRACE_DALLI_SERVICE_NAME' do
     subject do
+      client.set('abc', 123)
+      try_wait_until { fetch_spans.any? }
+    end
+  end
+
+  it_behaves_like 'tags _dd.svc_src', 'dalli' do
+    before do
       client.set('abc', 123)
       try_wait_until { fetch_spans.any? }
     end

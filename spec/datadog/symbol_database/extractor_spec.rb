@@ -23,9 +23,15 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
     end
   end
 
-  # Helper to create test files in user code location
+  # Helper to create test files in user code location.
+  # Uses a per-example monotonic counter for filename uniqueness. Earlier
+  # implementation built names from "test_#{Time.now.to_i}_#{rand(10000)}.rb",
+  # which collided with ~1/10000 probability per consecutive call pair within
+  # the same second — see ruby-guild#303.
   def create_user_code_file(content)
-    filename = File.join(@test_dir, "test_#{Time.now.to_i}_#{rand(10000)}.rb")
+    @file_index ||= 0
+    @file_index += 1
+    filename = File.join(@test_dir, "test_#{@file_index}.rb")
     File.write(filename, content)
     filename
   end
@@ -508,7 +514,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         # because const_source_location propagates source file through the chain.
         # Use explicit module list rather than ObjectSpace to avoid cross-test pollution.
         mods = [TestA, TestA::TestB, TestA::TestB::TestC]
-        extracted = Datadog::Core::Utils::Array.filter_map(mods) { |mod| extractor.extract(mod) }
+        extracted = Datadog::Core::Utils::EnumerableCompat.filter_map(mods) { |mod| extractor.extract(mod) }
 
         # All scopes are FILE-wrapped. Inner scope names distinguish modules from classes.
         if TestA.respond_to?(:const_source_location)
@@ -2320,6 +2326,160 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         host = file_scope.scopes.find { |s| s.name == 'ExtractAllSingletonPredOverride' }
         expect(host).not_to be_nil
         expect(host.scopes.map(&:name)).to include('host_method')
+      end
+    end
+
+    context 'subclass with constant of same name as ancestor pending autoload' do
+      # Module#autoload? defaults to inherit=true, so when a subclass has a
+      # constant directly defined and an ancestor has a pending autoload at
+      # the same name, autoload? returns the ancestor's pending path. An
+      # autoload-first check would silently drop the real subclass binding.
+      # The fix relies on the order of operations: const_defined?(sym, false)
+      # detects the direct subclass binding first, and const_get(sym, false)
+      # returns it without triggering the ancestor's autoload.
+      #
+      # Requires Module#autoload?(name, inherit) — the `inherit` parameter was
+      # added in Ruby 2.7 (Ruby 2.7.0 NEWS). On Ruby 2.5/2.6 the fallback in
+      # resolves_to_same_module? uses autoload?(name) which checks ancestors,
+      # so a subclass binding that collides with an ancestor's pending
+      # autoload is conservatively treated as stale and dropped. That is the
+      # documented fallback behavior and is unavoidable without the 2.7+ API.
+      before(:all) do
+        skip 'requires Module#autoload?(name, inherit) — Ruby 2.7+' if RUBY_VERSION < '2.7'
+      end
+
+      before do
+        @parent_file = create_test_file('autoload_parent.rb', <<~RUBY)
+          class ExtractAllAutoloadParent
+            autoload :ExtractAllAutoloadChild, '/nonexistent/autoload_parent_child.rb'
+          end
+        RUBY
+        load @parent_file
+        @sub_file = create_test_file('autoload_sub.rb', <<~RUBY)
+          class ExtractAllAutoloadSub < ExtractAllAutoloadParent
+            class ExtractAllAutoloadChild
+              def real_method; end
+            end
+          end
+        RUBY
+        load @sub_file
+      end
+
+      after do
+        if Object.const_defined?(:ExtractAllAutoloadSub, false)
+          Object.send(:remove_const, :ExtractAllAutoloadSub)
+        end
+        if Object.const_defined?(:ExtractAllAutoloadParent, false)
+          Object.send(:remove_const, :ExtractAllAutoloadParent)
+        end
+      end
+
+      it 'extracts the subclass child without triggering the ancestor autoload' do
+        scopes = nil
+        expect { scopes = extract_all_clean }.not_to raise_error
+
+        # Ancestor's autoload remained pending — the lookup did not trigger it.
+        expect(ExtractAllAutoloadParent.autoload?(:ExtractAllAutoloadChild))
+          .to eq('/nonexistent/autoload_parent_child.rb')
+
+        # The subclass's directly-defined child is included in the payload.
+        file_scope = scopes.find { |s| s.scope_type == 'FILE' && s.name == @sub_file }
+        expect(file_scope).not_to be_nil
+        sub = file_scope.scopes.find { |s| s.name == 'ExtractAllAutoloadSub' }
+        expect(sub).not_to be_nil
+        child = sub.scopes.find { |s| s.name == 'ExtractAllAutoloadSub::ExtractAllAutoloadChild' }
+        expect(child).not_to be_nil
+        expect(child.scopes.map(&:name)).to include('real_method')
+      end
+    end
+
+    context 'autoload registered after remove_const' do
+      # Customer pattern (reloaders, plugin hot-load): a class is defined,
+      # removed via remove_const, then an autoload is registered at the same
+      # name. The leaked Class stays in ObjectSpace with the cached name.
+      # The earlier implementation called Object.const_get(mod_name) to verify
+      # the binding, which triggered the autoload (loading customer code as a
+      # side effect of extraction) and raised LoadError if the autoload target
+      # was missing. LoadError is ScriptError, not StandardError, so neither
+      # the local rescue (NameError, ArgumentError) nor the outer rescue in
+      # collect_extractable_modules (StandardError) caught it — extract_all
+      # aborted instead of skipping the leaked class.
+      before do
+        @leaked_file = create_test_file('autoload_leaked.rb', <<~RUBY)
+          class ExtractAllAutoloadDetached
+            def leaked_method; end
+          end
+        RUBY
+        load @leaked_file
+        # Keep a hard reference so GC.start cannot reclaim the leaked Class.
+        @leaked_class = ExtractAllAutoloadDetached
+        Object.send(:remove_const, :ExtractAllAutoloadDetached)
+        @autoload_target = '/nonexistent/symdb_autoload_target.rb'
+        Object.autoload(:ExtractAllAutoloadDetached, @autoload_target)
+      end
+
+      after do
+        if Object.const_defined?(:ExtractAllAutoloadDetached, false)
+          Object.send(:remove_const, :ExtractAllAutoloadDetached)
+        end
+      end
+
+      it 'skips the leaked class without triggering the autoload' do
+        scopes = nil
+        expect { scopes = extract_all_clean }.not_to raise_error
+
+        # Autoload registration is still pending — the target was not loaded.
+        expect(Object.autoload?(:ExtractAllAutoloadDetached)).to eq(@autoload_target)
+
+        # The leaked class's FILE scope is filtered out.
+        leaked_scope = scopes.find { |s| s.scope_type == 'FILE' && s.name == @leaked_file }
+        expect(leaked_scope).to be_nil
+      end
+    end
+
+    context 'class detached from its constant via remove_const' do
+      # CRuby caches Module#name. After Object.send(:remove_const, :Foo) the
+      # Class stays in ObjectSpace and `mod.name` still returns "Foo".
+      # Without the resolves_to_same_module? filter in
+      # collect_extractable_modules, the leaked Class collides with a fresh
+      # binding of the same constant in the name-keyed entries hash, and the
+      # ObjectSpace-iteration-order winner can pair a MODULE from one binding
+      # with a CLASS from another — producing FILE scopes with empty children.
+      before do
+        @leaked_file = create_test_file('detached_old.rb', <<~RUBY)
+          class ExtractAllDetached
+            def old_method; end
+          end
+        RUBY
+        load @leaked_file
+        # Keep a hard reference so GC.start cannot reclaim the leaked Class.
+        @leaked_class = ExtractAllDetached
+        Object.send(:remove_const, :ExtractAllDetached)
+
+        @new_file = create_test_file('detached_new.rb', <<~RUBY)
+          class ExtractAllDetached
+            def new_method; end
+          end
+        RUBY
+        load @new_file
+      end
+
+      after do
+        Object.send(:remove_const, :ExtractAllDetached) if defined?(ExtractAllDetached)
+      end
+
+      it 'extracts the currently-bound class only, not the leaked one' do
+        scopes = extract_all_clean
+
+        leaked_file_scope = scopes.find { |s| s.scope_type == 'FILE' && s.name == @leaked_file }
+        expect(leaked_file_scope).to be_nil
+
+        new_file_scope = scopes.find { |s| s.scope_type == 'FILE' && s.name == @new_file }
+        expect(new_file_scope).not_to be_nil
+        host = new_file_scope.scopes.find { |s| s.name == 'ExtractAllDetached' }
+        expect(host).not_to be_nil
+        expect(host.scopes.map(&:name)).to include('new_method')
+        expect(host.scopes.map(&:name)).not_to include('old_method')
       end
     end
   end

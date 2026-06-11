@@ -3,7 +3,7 @@
 require_relative 'scope'
 require_relative 'symbol'
 require_relative 'file_hash'
-require_relative '../core/utils/array'
+require_relative '../core/utils/enumerable_compat'
 
 module Datadog
   module SymbolDatabase
@@ -163,6 +163,58 @@ module Datadog
       rescue => e
         @logger.debug { "symdb: safe_mod_name failed: #{e.class}: #{e.message}" }
         nil
+      end
+
+      # Verify that mod_name still resolves to mod through Ruby's constant
+      # table. Returns false when a Class/Module has been detached from its
+      # constant (via remove_const) but still carries the cached Module#name —
+      # see collect_extractable_modules for the failure mode this protects.
+      #
+      # Walks the namespace path segment-by-segment. For each segment:
+      # 1. Check for a pending autoload directly on the current namespace.
+      #    If present, const_get would trigger it — loading customer code as
+      #    a side effect of symbol extraction and raising LoadError if the
+      #    target file is missing (LoadError is ScriptError, not StandardError,
+      #    and would propagate past the outer rescue in
+      #    collect_extractable_modules). Return false instead.
+      # 2. Otherwise, require the constant to be directly defined on this
+      #    namespace (const_defined?(sym, false)) and descend via
+      #    const_get(sym, false). The direct-only lookup means an ancestor's
+      #    pending autoload at the same name does not affect the result: a
+      #    subclass with its own binding resolves through the binding, an
+      #    inherited autoload triggers nothing.
+      #
+      # Ruby 2.7+ adds an inherit parameter to Module#autoload? —
+      # `current.autoload?(sym, false)` cleanly asks "is there an autoload
+      # registered directly on this namespace?". On Ruby 2.5 and 2.6 that
+      # parameter doesn't exist (per Ruby 2.7.0 NEWS), so the fallback
+      # branch uses `current.autoload?(sym)` which also reports inherited
+      # autoloads. The consequence on 2.5/2.6: a subclass binding whose
+      # name collides with an ancestor's pending autoload is conservatively
+      # treated as stale and dropped from extraction. The minimum supported
+      # Ruby is 2.5 per lib/datadog/version.rb, so this fallback ships.
+      # @param mod_name [String]
+      # @param mod [Module]
+      # @return [Boolean]
+      def resolves_to_same_module?(mod_name, mod)
+        current = Object
+        mod_name.split('::').each do |seg|
+          sym = seg.to_sym
+          pending_autoload = if RUBY_VERSION >= '2.7'
+            current.autoload?(sym, false)
+          else
+            current.autoload?(sym)
+          end
+          return false if pending_autoload
+          return false unless current.const_defined?(sym, false)
+          current = current.const_get(sym, false)
+        end
+        current.equal?(mod)
+      rescue NameError, ArgumentError
+        # Expected "no" outcome for stale/detached classes — the whole point
+        # of this predicate. Per the rescue convention in this file's header
+        # comment: inner per-item rescues are expected failures, no logging.
+        false
       end
 
       # Check if module is from user code (not gems or stdlib)
@@ -593,7 +645,7 @@ module Datadog
 
         return [] if params.nil? || params.empty?
 
-        Core::Utils::Array.filter_map(params) do |param_type, param_name|
+        Core::Utils::EnumerableCompat.filter_map(params) do |param_type, param_name|
           # Skip block parameters for MVP
           next if param_type == :block
 
@@ -650,6 +702,16 @@ module Datadog
 
           mod_name = safe_mod_name(mod)
           next unless mod_name
+
+          # Skip modules whose cached name no longer resolves to them. CRuby
+          # caches Module#name, so a Class whose constant was removed via
+          # remove_const stays in ObjectSpace and still reports its old FQN.
+          # Without this guard, a leaked Class from a prior remove_const +
+          # redefinition (test cleanup, customer hot-reload) collides with
+          # the current binding in the name-keyed `entries` hash below and
+          # the "winner" depends on ObjectSpace iteration order.
+          next unless resolves_to_same_module?(mod_name, mod)
+
           next unless user_code_module?(mod)
 
           methods_by_file = group_methods_by_file(mod)
@@ -810,7 +872,7 @@ module Datadog
       # @return [Scope] Scope object
       def convert_node_to_scope(node)
         # Build method scopes from collected method entries
-        method_scopes = Core::Utils::Array.filter_map(node[:methods]) do |method_info|
+        method_scopes = Core::Utils::EnumerableCompat.filter_map(node[:methods]) do |method_info|
           build_instance_method_scope(node[:mod], method_info[:name], method_info[:method])
         end
 

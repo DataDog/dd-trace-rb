@@ -6,6 +6,7 @@ require_relative 'base'
 require_relative 'ext'
 require_relative '../environment/execution'
 require_relative '../environment/ext'
+require_relative '../environment/process'
 require_relative '../runtime/ext'
 require_relative '../telemetry/ext'
 require_relative '../remote/ext'
@@ -106,6 +107,7 @@ module Datadog
         option :api_key do |o|
           o.type :string, nilable: true
           o.env Core::Environment::Ext::ENV_API_KEY
+          o.skip_telemetry true
         end
 
         # Datadog diagnostic settings.
@@ -393,16 +395,19 @@ module Datadog
               o.default false
             end
 
-            # Controls data collection for the timeline feature.
-            #
-            # If you needed to disable this, please tell us why on <https://github.com/DataDog/dd-trace-rb/issues/new>,
-            # so we can fix it!
-            #
-            # @default `DD_PROFILING_TIMELINE_ENABLED` environment variable as a boolean, otherwise `true`
+            # DEV-3.0: Remove `timeline_enabled` option
             option :timeline_enabled do |o|
               o.type :bool
               o.env 'DD_PROFILING_TIMELINE_ENABLED'
               o.default true
+              o.after_set do |_, _, precedence|
+                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                  Core.log_deprecation(key: :timeline_enabled) do
+                    'The profiling.advanced.timeline_enabled setting has been deprecated for removal and no longer does anything. ' \
+                      'Please remove it from your Datadog.configure block and do not set DD_PROFILING_TIMELINE_ENABLED.'
+                  end
+                end
+              end
             end
 
             # The profiler gathers data by sending `SIGPROF` unix signals to Ruby application threads.
@@ -692,12 +697,16 @@ module Datadog
           o.env Core::Environment::Ext::ENV_SERVICE
           o.default Core::Environment::Ext::FALLBACK_SERVICE_NAME
 
+          o.after_set do |service_name|
+            Core::Environment::Process.set_service(service_name, user_configured: !using_default?(:service))
+          end
+
           # There's a few cases where we don't want to use the fallback service name, so this helper allows us to get a
           # nil instead so that one can do
           # nice_service_name = Datadog.configuration.service_without_fallback || nice_service_name_default
           o.helper(:service_without_fallback) do
             service_name = service
-            service_name unless service_name.equal?(Core::Environment::Ext::FALLBACK_SERVICE_NAME)
+            service_name unless using_default?(:service)
           end
         end
 

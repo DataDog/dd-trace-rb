@@ -10,6 +10,7 @@ appraise 'rails4-mysql2' do
   gem 'mysql2', '< 1'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
+  gem 'bigdecimal', '< 2' # Rails 4.2 uses BigDecimal.new, removed in bigdecimal 2.0
 end
 
 appraise 'rails4-postgres' do
@@ -18,6 +19,7 @@ appraise 'rails4-postgres' do
   gem 'pg', '< 1.0'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
+  gem 'bigdecimal', '< 2' # Rails 4.2 uses BigDecimal.new, removed in bigdecimal 2.0
 end
 
 appraise 'rails4-semantic-logger' do
@@ -26,6 +28,7 @@ appraise 'rails4-semantic-logger' do
   gem 'pg', '< 1.0'
   gem 'sprockets', '< 4'
   gem 'rails_semantic_logger', '~> 4.0'
+  gem 'bigdecimal', '< 2' # Rails 4.2 uses BigDecimal.new, removed in bigdecimal 2.0
 end
 
 appraise 'rails4-postgres-redis' do
@@ -36,6 +39,7 @@ appraise 'rails4-postgres-redis' do
   gem 'redis', '< 4.0'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
+  gem 'bigdecimal', '< 2' # Rails 4.2 uses BigDecimal.new, removed in bigdecimal 2.0
 end
 
 appraise 'rails4-postgres-sidekiq' do
@@ -46,6 +50,7 @@ appraise 'rails4-postgres-sidekiq' do
   gem 'activejob'
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
+  gem 'bigdecimal', '< 2' # Rails 4.2 uses BigDecimal.new, removed in bigdecimal 2.0
 end
 
 appraise 'rails5-mysql2' do

@@ -102,7 +102,7 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
     before do
       headers = {
         'HTTP_UNKNOWNHEADER' => 'something',
-        'HTTP_CONTENT_TYPE' => 'text/html',
+        'CONTENT_TYPE' => 'text/html',
         'HTTP_CF_CONNECTING_IPV6' => '2001:db8:3333:4444:5555:6666:1.2.3.4'
       }
       get('/without-identity-set-user', {}, headers)

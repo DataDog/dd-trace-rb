@@ -40,8 +40,10 @@ jobs:
       DD_REMOTE_CONFIGURATION_ENABLED: false
       DATADOG_GEM_CI: true
       DD_PROFILING_MACOS_TESTING: true
+      BUNDLE_GEMFILE: gemfiles/ruby-${{ matrix.ruby.version }}.gemfile
+      BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
       # bundler appears to match both prerelease and release rubies when we
@@ -49,7 +51,7 @@ jobs:
       # head rubies
       - if: ${{ matrix.ruby.version == 'head' }}
         run: sed -i~ -e '/spec\.required_ruby_version/d' datadog.gemspec
-      - uses: ruby/setup-ruby@97ecb7b512899eb71ab1bf2310a624c6f1589ac6 # v1.308.0
+      - uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
         with:
           ruby-version: ${{ matrix.ruby.version }}
       - name: Install rubygems

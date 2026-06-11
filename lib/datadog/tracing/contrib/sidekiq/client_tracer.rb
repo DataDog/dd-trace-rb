@@ -24,6 +24,7 @@ module Datadog
             resource = job_resource(job)
 
             Datadog::Tracing.trace(Ext::SPAN_PUSH, service: @sidekiq_service) do |span, trace_op|
+              span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
               if Tracing::Distributed::PropagationPolicy.enabled?(
                 global_config: configuration,
                 trace: trace_op
