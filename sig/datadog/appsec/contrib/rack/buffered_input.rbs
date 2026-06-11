@@ -1,0 +1,25 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rack
+        class BufferedInput
+          READ_CHUNK_SIZE: ::Integer
+
+          @stream: untyped
+
+          @buffer: untyped
+
+          def initialize: (untyped stream, buffer: untyped) -> void
+
+          def read: (?::Integer? length, ?::String? outbuf) -> ::String?
+
+          def gets: () -> ::String?
+
+          def each: () { (::String chunk) -> void } -> self
+
+          def close: () -> void
+        end
+      end
+    end
+  end
+end

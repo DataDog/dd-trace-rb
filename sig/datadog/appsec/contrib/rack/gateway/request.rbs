@@ -30,11 +30,17 @@ module Datadog
 
             def remote_addr: () -> ::String
 
-            def form_hash: () -> ::Hash[::String, any]
+            def form_hash: () -> ::Hash[::String, any]?
+
+            def body_bytesize: (::Integer limit) -> ::Integer?
 
             def collectable_body?: () -> bool
 
             def client_ip: () -> ::String?
+
+            private
+
+            def measure_body!: (untyped io, limit: ::Integer) -> ::Integer?
           end
         end
       end

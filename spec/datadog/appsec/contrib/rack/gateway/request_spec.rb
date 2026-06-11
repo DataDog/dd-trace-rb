@@ -155,6 +155,118 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
     end
   end
 
+  describe '#body_bytesize' do
+    let(:request) do
+      described_class.new(
+        Rack::MockRequest.env_for(
+          'http://example.com:8080/',
+          {:method => 'POST', :input => 'name=john', 'CONTENT_TYPE' => 'application/x-www-form-urlencoded'}
+        )
+      )
+    end
+
+    context 'when the body stream reports its size' do
+      it 'returns the size and leaves the body readable' do
+        expect(request.body_bytesize(100)).to eq(9)
+        expect(request.request.body.read).to eq('name=john')
+      end
+    end
+
+    context 'when there is no request body' do
+      before { request.env['rack.input'] = nil }
+
+      it { expect(request.body_bytesize(100)).to eq(0) }
+    end
+
+    context 'when the size is unknown but Content-Length is set' do
+      before do
+        request.env['CONTENT_LENGTH'] = '42'
+        request.env['rack.input'] = sizeless_io
+      end
+
+      let(:sizeless_io) do
+        StringIO.new('name=john').tap do |io|
+          allow(io).to receive(:respond_to?).and_call_original
+          allow(io).to receive(:respond_to?).with(:size).and_return(false)
+        end
+      end
+
+      it 'returns the Content-Length without reading the body' do
+        expect(request.body_bytesize(100)).to eq(42)
+        expect(request.env['rack.input']).to be(sizeless_io)
+      end
+    end
+
+    context 'when the size is unknown and there is no Content-Length' do
+      before do
+        request.env.delete('CONTENT_LENGTH')
+        request.env['rack.input'] = body_io
+      end
+
+      context 'and the body is a streaming input that cannot be rewound' do
+        let(:body_io) do
+          StringIO.new('name=john').tap do |io|
+            allow(io).to receive(:respond_to?).and_call_original
+            allow(io).to receive(:respond_to?).with(:size).and_return(false)
+            allow(io).to receive(:rewind).and_return(true)
+          end
+        end
+
+        context 'and it fits within the limit' do
+          it 'buffers the whole body and keeps it readable' do
+            expect(request.body_bytesize(100)).to eq(9)
+            expect(request.env['rack.input']).to be_a(StringIO)
+            expect(request.env['rack.input'].read).to eq('name=john')
+          end
+        end
+
+        context 'and it exceeds the limit' do
+          it 'wraps the body in a forward-only input and returns nil' do
+            expect(request.body_bytesize(4)).to be_nil
+            expect(request.env['rack.input']).to be_a(Datadog::AppSec::Contrib::Rack::BufferedInput)
+            expect(request.env['rack.input'].read).to eq('name=john')
+          end
+        end
+
+        context 'and its size is exactly the limit' do
+          it 'treats it as within the limit and returns the size' do
+            expect(request.body_bytesize(9)).to eq(9)
+            expect(request.env['rack.input']).to be_a(StringIO)
+            expect(request.env['rack.input'].read).to eq('name=john')
+          end
+        end
+
+        context 'and its size is one byte over the limit' do
+          it 'treats it as over the limit and returns nil' do
+            expect(request.body_bytesize(8)).to be_nil
+            expect(request.env['rack.input']).to be_a(Datadog::AppSec::Contrib::Rack::BufferedInput)
+            expect(request.env['rack.input'].read).to eq('name=john')
+          end
+        end
+      end
+
+      context 'and the streaming input returns short reads' do
+        let(:body_io) do
+          StringIO.new('name=john').tap do |io|
+            allow(io).to receive(:respond_to?).and_call_original
+            allow(io).to receive(:respond_to?).with(:size).and_return(false)
+            allow(io).to receive(:respond_to?).with(:rewind).and_return(false)
+
+            read = io.method(:read)
+            allow(io).to receive(:read) { |length, *rest| read.call(length && [length, 5].min, *rest) }
+          end
+        end
+
+        it 'reads the whole body across reads and returns the full size' do
+          aggregate_failures 'a short read does not truncate the measurement or the body' do
+            expect(request.body_bytesize(100)).to eq(9)
+            expect(request.env['rack.input'].read).to eq('name=john')
+          end
+        end
+      end
+    end
+  end
+
   describe '#collectable_body?' do
     context 'when the request carries form data' do
       let(:request) do

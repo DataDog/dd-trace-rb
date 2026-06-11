@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require 'stringio'
+
+require_relative '../buffered_input'
 require_relative '../../../instrumentation/gateway/argument'
 require_relative '../../../../core/header_collection'
 require_relative '../../../../tracing/client_ip'
@@ -75,12 +78,34 @@ module Datadog
             end
 
             def form_hash
-              # force form data processing
+              # NOTE: Rack populates `rack.request.form_hash` only as a side effect
+              #       of {::Rack::Request#POST}, which reads and parses the body.
               request.POST if request.form_data?
 
-              # usually Hash<String,String> but can be a more complex
-              # Hash<String,String||Array||Hash> when e.g coming from JSON
+              # usually Hash[String, String] but can be a more complex
+              # Hash[String, (String|Array|Hash)] when e.g coming from JSON
               env['rack.request.form_hash']
+            end
+
+            # Returns the request body size in bytes using all available methods,
+            # or nil when the size cannot be measured within the limit
+            #
+            # NOTE: The priority of the measurement is the following:
+            #       size if it's known, content-length if provided, and buffering
+            #       to the limit if unknown-length
+            #
+            # WARNING: The buffering path adds overhead for streaming web-servers
+            #          (Rack 3+) when the body length is unknown
+            def body_bytesize(limit)
+              io = request.body
+
+              return 0 unless io
+              return io.size if io.respond_to?(:size)
+
+              content_length = request.content_length
+              return content_length.to_i if content_length
+
+              measure_body!(io, limit: limit)
             end
 
             # Whether a request body can be collected without forcing a parse:
@@ -97,6 +122,38 @@ module Datadog
               header_collection = Datadog::Core::HeaderCollection.from_hash(headers)
 
               Datadog::Tracing::ClientIp.extract_client_ip(header_collection, remote_ip)
+            end
+
+            private
+
+            # Peeks the body up to limit + 1 bytes to measure its size without parsing,
+            # then restores `rack.input` for downstream reads
+            #
+            # NOTE: We never rewind. The Rack 3+ rewind contract is unreliable
+            #       (Falcon's `rewind` returns `true` without repositioning).
+            #
+            #       We always replace `rack.input` with a replay over the bytes
+            #       already read: {BufferedInput} over the limit, {StringIO} otherwise.
+            #
+            # Returns the byte size within the limit, or `nil` when over it.
+            def measure_body!(io, limit:)
+              buffer = +''
+              max = limit + 1
+
+              while buffer.bytesize <= limit
+                chunk = io.read(max - buffer.bytesize)
+                break if chunk.nil? || chunk.empty?
+
+                buffer << chunk
+              end
+
+              if buffer.bytesize > limit
+                env['rack.input'] = BufferedInput.new(io, buffer: StringIO.new(buffer))
+                return
+              end
+
+              env['rack.input'] = StringIO.new(buffer)
+              buffer.bytesize
             end
           end
         end
