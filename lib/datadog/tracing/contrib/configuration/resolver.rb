@@ -101,32 +101,23 @@ module Datadog
             # shrink a Hash using an "st_table" back to an "ar_table")
             @cache = Hash[*1..20]
             @cache.clear
+            # Workaround for the segfault from https://github.com/DataDog/dd-trace-rb/issues/5718#issuecomment-4421844775.
+            # It crashes on a simple {Hash} lookup, {Hash#key?}, called from `@cache.fetch(value)`.
+            # Using an identity-based {Hash} avoids {Hash#key?} calls.
+            # We should attempt to remove this workaround when we only support Ruby 4+,
+            # as large change around the crash site was done in that version (https://github.com/ruby/ruby/pull/14039/changes#diff-884a5a8a369ef1b4c7597e00aa65974cec8c5f54f25f03ad5d24848f64892869R1743),
+            # where `RClass.cc_table` (the NULL dereferenced pointer) became a GC-managed object,
+            @cache.compare_by_identity
           end
 
           # (see Resolver#resolve)
-          if RUBY_VERSION < '3.2'
-            def resolve(value)
-              @cache.fetch(value) do
-                if @cache.size >= @cache_limit
-                  @cache.shift # Remove the oldest entry if cache is full
-                end
-
-                @cache[value] = super
+          def resolve(value)
+            @cache.fetch(value) do
+              if @cache.size >= @cache_limit
+                @cache.shift # Remove the oldest entry if cache is full
               end
-            end
-          else
-            # Workaround for VM crash reported in https://github.com/DataDog/dd-trace-rb/issues/5718
-            # We don't quite understand yet _why_ the crash happens, but using the `object_id` instead of the object
-            # itself seems to work around whatever's going wrong inside the VM.
-            def resolve(value)
-              cache_key = value.object_id
-              @cache.fetch(cache_key) do
-                if @cache.size >= @cache_limit
-                  @cache.shift # Remove the oldest entry if cache is full
-                end
 
-                @cache[cache_key] = super
-              end
+              @cache[value] = super
             end
           end
 
