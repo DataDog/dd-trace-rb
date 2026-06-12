@@ -16,7 +16,7 @@ module Datadog
         def self.apply!
           return false unless supported?
 
-          if RUBY_VERSION < '3.1'
+          if RubyVersion.is?('< 3.1')
             [
               ::Process.singleton_class, # Process.fork
               ::Kernel.singleton_class,  # Kernel.fork

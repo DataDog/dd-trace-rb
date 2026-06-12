@@ -22,7 +22,7 @@ module Datadog
             return
           end
 
-          if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.3') && ffi_version < Gem::Version.new('1.16.0')
+          if RubyVersion.is?('>= 3.3') && ffi_version < Gem::Version.new('1.16.0')
             Datadog.logger.warn(
               'AppSec is not supported in Ruby versions above 3.3.0 when using `ffi` versions older than 1.16.0, ' \
               'and will be forcibly disabled due to a memory leak in `ffi`. ' \

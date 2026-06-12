@@ -45,7 +45,7 @@ module Datadog
             logger.warn("di: cannot enable dynamic instrumentation: MRI is required, but running on #{RUBY_ENGINE}")
             return false
           end
-          if RUBY_VERSION < '2.6'
+          if RubyVersion.is?('< 2.6')
             logger.warn("di: cannot enable dynamic instrumentation: Ruby 2.6+ is required, but running on #{RUBY_VERSION}")
             return false
           end

@@ -72,7 +72,7 @@ module Datadog
               raise ArgumentError, 'span name is not a String'
             end
 
-            args = (RUBY_VERSION >= '2.7.') ? '...' : '*args, &block'
+            args = RubyVersion.is?('>= 2.7') ? '...' : '*args, &block'
 
             hook_module = Module.new do
               define_singleton_method(:inspect) do
