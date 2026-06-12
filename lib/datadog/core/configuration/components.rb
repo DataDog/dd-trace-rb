@@ -334,15 +334,12 @@ module Datadog
           # start (env var or programmatic) so that an explicit
           # `enabled = false` on reconfiguration can take effect.
           #
-          # using_default? — not `!enabled` — because by the time #state runs,
-          # Datadog.configure has already mutated the singleton settings via
-          # its yield. A customer who calls
-          # `Datadog.configure { |c| c.dynamic_instrumentation.enabled = false }`
-          # to disable an RC-enabled (or env-var-enabled) DI would see
-          # `!enabled == true` here and we'd ORally restart DI in the new
-          # startup!. using_default? captures "the customer never touched the
-          # setting" — the only condition under which RC-driven carry-over
-          # is the right thing to do.
+          # using_default? — not `!enabled` — because Datadog.configure has
+          # already mutated the singleton settings by the time #state runs,
+          # so `!enabled` would treat a customer's explicit
+          # `enabled = false` as "implicitly enabled" and restart DI.
+          # using_default? asks "did the customer ever touch this setting",
+          # which is the right question for RC carry-over.
           di_implicit = dynamic_instrumentation&.started? &&
             @settings.dynamic_instrumentation.using_default?(:enabled)
           ComponentsState.new(
