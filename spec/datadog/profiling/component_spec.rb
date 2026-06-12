@@ -172,7 +172,7 @@ RSpec.describe Datadog::Profiling::Component do
             stub_const("RUBY_VERSION", testing_version)
           end
 
-          ["2.7.0", "3.1.4", "3.2.3", "3.3.0"].each do |fixed_ruby|
+          ["2.7.0", "3.1.4", "3.2.3", "3.2.10", "3.3.0"].each do |fixed_ruby|
             context "on a Ruby version not affected by https://bugs.ruby-lang.org/issues/18464 (#{fixed_ruby})" do
               let(:testing_version) { fixed_ruby }
 
