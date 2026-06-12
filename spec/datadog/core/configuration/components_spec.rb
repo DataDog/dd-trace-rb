@@ -790,11 +790,10 @@ RSpec.describe Datadog::Core::Configuration::Components do
     # covered to make the precedence explicit.
 
     # Ruby 2.5 does not load di/base.rb, so Datadog::DI.activate_tracking is
-    # not defined. The production code guards with respond_to?, but
-    # verify_partial_doubles trips on the allow(...).to receive() below.
-    # The semantic being tested (state carry-over across Components rebuild)
-    # is platform-agnostic; the unsupported Ruby version short-circuits
-    # before any of this matters in production.
+    # not defined. These tests stub Component.build to return a non-nil double,
+    # which makes startup! reach the DI.activate_tracking call that's normally
+    # unreachable on 2.5 (Component.build returns nil there). The semantic being
+    # tested (state carry-over across Components rebuild) is platform-agnostic.
     before(:all) { skip 'requires Ruby >= 2.6 (DI.activate_tracking not loaded on 2.5)' if RUBY_VERSION < '2.6' }
 
     subject(:startup!) { components.startup!(settings, old_state: old_state) }

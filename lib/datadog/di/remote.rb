@@ -61,11 +61,10 @@ module Datadog
               )
               return
             end
-            # Same guard as Components#startup! — DI.activate_tracking is only
-            # defined when di/base.rb is loaded (Ruby >= 2.6). On 2.5 the
-            # component is always nil so we never reach this in production;
-            # the guard is for tests that stub component presence.
-            DI.activate_tracking if DI.respond_to?(:activate_tracking)
+            # component is non-nil here only because Component.build's preconditions
+            # passed, which is the same condition under which di/base.rb is loaded
+            # and DI.activate_tracking is defined.
+            DI.activate_tracking
             component.start!
           else
             component.stop!
@@ -78,11 +77,10 @@ module Datadog
           )
         end
 
+        # Symmetric to {DI::Component.explicitly_enabled?} (see there for why
+        # using_default? rather than options[:enabled].default_precedence?).
         def explicitly_disabled?
           settings = Datadog.configuration
-          # using_default? rather than options[:enabled].default_precedence?
-          # because options are lazy-initialized; the underlying Option may
-          # not exist yet when the RC handler runs (NoMethodError on nil).
           !settings.dynamic_instrumentation.using_default?(:enabled) &&
             !settings.dynamic_instrumentation.enabled
         end
