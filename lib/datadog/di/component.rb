@@ -15,45 +15,42 @@ module Datadog
     class Component
       class << self
         def build(settings, agent_settings, logger, telemetry: nil)
-          return unless settings.respond_to?(:dynamic_instrumentation) && settings.dynamic_instrumentation.enabled
+          return unless settings.respond_to?(:dynamic_instrumentation)
 
-          unless settings.respond_to?(:remote) && settings.remote.enabled
-            logger.warn("di: dynamic instrumentation could not be enabled because Remote Configuration Management is not available. To enable Remote Configuration, see https://docs.datadoghq.com/agent/remote_config")
+          reason = DI.unsupported_reason(settings)
+          if reason
+            # Log level mirrors customer intent: if the customer explicitly
+            # opted in via DD_DYNAMIC_INSTRUMENTATION_ENABLED, warn. Otherwise
+            # debug — with always-build, this path runs on every tracer boot
+            # for every customer, including those who never wanted DI. Spamming
+            # warnings to silent users (especially on JRuby or Ruby 2.5) would
+            # be noise. Customers who later trigger implicit enablement via the
+            # Datadog UI get a symmetric warn from Remote.handle_rc_enablement
+            # when the RC enable signal finds no component to start.
+            level = explicitly_enabled?(settings) ? :warn : :debug
+            logger.public_send(level, "di: dynamic instrumentation is disabled: #{reason}")
             return
           end
-
-          return unless environment_supported?(settings, logger)
 
           new(settings, agent_settings, logger, code_tracker: DI.code_tracker, telemetry: telemetry).tap do |component|
             DI.add_current_component(component)
           end
         end
 
-        # Checks whether the runtime environment is supported by
-        # dynamic instrumentation. Currently we only require that, if Rails
-        # is used, that Rails environment is not development because
-        # DI does not currently support code unloading and reloading.
-        def environment_supported?(settings, logger)
-          # TODO add tests?
-          unless settings.dynamic_instrumentation.internal.development
-            if Datadog::Core::Environment::Execution.development?
-              logger.warn("di: development environment detected; not enabling dynamic instrumentation")
-              return false
-            end
-          end
-          if RUBY_ENGINE != 'ruby'
-            logger.warn("di: cannot enable dynamic instrumentation: MRI is required, but running on #{RUBY_ENGINE}")
-            return false
-          end
-          if RUBY_VERSION < '2.6'
-            logger.warn("di: cannot enable dynamic instrumentation: Ruby 2.6+ is required, but running on #{RUBY_VERSION}")
-            return false
-          end
-          unless DI.respond_to?(:exception_message)
-            logger.warn("di: cannot enable dynamic instrumentation: C extension is not available")
-            return false
-          end
-          true
+        # True when the customer explicitly set
+        # DD_DYNAMIC_INSTRUMENTATION_ENABLED=true (or its equivalent in code).
+        # Symmetric to {Remote.explicitly_disabled?}.
+        #
+        # Uses {Datadog::Core::Configuration::Options::InstanceMethods#using_default?}
+        # rather than `options[:enabled].default_precedence?` because the option
+        # hash is populated lazily on first access; reading the underlying option
+        # before {Component.build} touches the value would NoMethodError on nil.
+        #
+        # @param settings [Datadog::Core::Configuration::Settings]
+        # @return [Boolean]
+        def explicitly_enabled?(settings)
+          !settings.dynamic_instrumentation.using_default?(:enabled) &&
+            settings.dynamic_instrumentation.enabled
         end
       end
 
@@ -80,7 +77,11 @@ module Datadog
           settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, probe_repository,
           telemetry: telemetry,
         )
-        probe_notifier_worker.start
+        # @started transitions are serialized by @lifecycle_mutex so that
+        # concurrent RC callbacks (which run on the remote-config thread)
+        # cannot race a foreground start! with a background stop!.
+        @lifecycle_mutex = Mutex.new
+        @started = false
       end
 
       attr_reader :settings
@@ -96,9 +97,61 @@ module Datadog
       attr_reader :redactor
       attr_reader :serializer
 
-      # Shuts down dynamic instrumentation.
+      # Starts the DI component: begins accepting probes and
+      # processing snapshots.
+      #
+      # Starts the probe notifier worker thread before enabling the
+      # definition trace point, so any future status emission from a
+      # trace-point-driven installation has a worker to drain it.
+      # Today {ProbeManager#reopen} re-hooks without emitting statuses, so
+      # the order is defensive rather than load-bearing. No-op if already
+      # started. Serialized by @lifecycle_mutex.
+      #
+      # @return [void]
+      def start!
+        @lifecycle_mutex.synchronize do
+          return if @started
+
+          probe_notifier_worker.start
+          probe_manager.reopen
+          @started = true
+        end
+      end
+
+      # Stops the DI component: removes all probes and stops
+      # background threads.
+      #
+      # The component remains alive and can be restarted with {#start!}.
+      # Does not clear out the code tracker.
+      # No-op if already stopped. Serialized by @lifecycle_mutex.
+      #
+      # @return [void]
+      def stop!
+        @lifecycle_mutex.synchronize do
+          return unless @started
+
+          probe_manager.stop
+          probe_notifier_worker.stop
+          @started = false
+        end
+      end
+
+      # Whether the component is currently started.
+      #
+      # Read by remote config dispatch to decide whether to apply probe
+      # changes (changes received while stopped are dropped, since the
+      # next start! will reconcile from the latest RC state).
+      #
+      # @return [Boolean] true if start! has been called and stop! has not
+      def started?
+        @started
+      end
+
+      # Shuts down dynamic instrumentation permanently.
       #
       # Removes all code hooks and stops background threads.
+      # Called by Components#shutdown! during component destruction.
+      # Unlike {#stop!}, this is not reversible.
       #
       # Does not clear out the code tracker, because it's only populated
       # by code when code is compiled and therefore, if the code tracker
@@ -107,9 +160,17 @@ module Datadog
       def shutdown!(replacement = nil)
         DI.remove_current_component(self)
 
-        probe_manager.clear_hooks
-        probe_manager.close
-        probe_notifier_worker.stop
+        # Hold the lifecycle mutex so all transitions of @started are
+        # serialized — start! / stop! / shutdown! cannot interleave with
+        # one another. Without the mutex an in-flight stop! from an RC
+        # callback could complete after shutdown!'s probe_manager.close,
+        # producing an inconsistent state.
+        @lifecycle_mutex.synchronize do
+          @started = false
+          probe_manager.clear_hooks
+          probe_manager.close
+          probe_notifier_worker.stop
+        end
       end
 
       def parse_probe_spec_and_notify(probe_spec)

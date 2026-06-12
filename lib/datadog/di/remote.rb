@@ -25,6 +25,80 @@ module Datadog
           []
         end
 
+        # Entry point for the RC-driven DI enable/disable path.
+        #
+        # Invoked from {Datadog::Tracing::Remote.process_config} when an
+        # APM_TRACING payload carries `dynamic_instrumentation_enabled`. Runs
+        # on the remote-config thread; never raises.
+        #
+        # @param enabled [Boolean] desired state from RC: true to start DI,
+        #   false to stop it. The `DD_DYNAMIC_INSTRUMENTATION_ENABLED=false`
+        #   env var blocks an enable here (see {.explicitly_disabled?}).
+        # @return [void]
+        def handle_rc_enablement(enabled)
+          # allow_initialization: false because this runs on the remote-config
+          # thread (a callback context). The default `true` would synchronously
+          # build the entire component tree from the wrong thread if the RC
+          # signal lands before Components#initialize completed.
+          components = Datadog.send(:components, allow_initialization: false)
+          component = components&.dynamic_instrumentation
+          unless component
+            # The component is nil because Component.build returned nil at
+            # startup — a runtime precondition is not met (RC disabled, MRI
+            # required, Ruby 2.6+ required, Rails dev env, C extension absent).
+            # On disable, silently no-op: RC asking us to turn off something we
+            # don't have is fine. On enable, warn with the reason: this is the
+            # implicit-enablement counterpart to the warn-on-explicit message
+            # at build time. The customer who clicked "create probe" in the UI
+            # gets the same visibility a customer who set
+            # DD_DYNAMIC_INSTRUMENTATION_ENABLED would have gotten at boot.
+            if enabled
+              reason = DI.unsupported_reason
+              Datadog.logger.warn(
+                "di: cannot enable dynamic instrumentation via remote configuration: " \
+                "#{reason || "dynamic instrumentation was not initialized at startup"}",
+              )
+            end
+            return
+          end
+
+          if enabled
+            if explicitly_disabled?
+              Datadog.logger.warn(
+                "di: ignoring implicit enablement signal from remote configuration " \
+                "because DD_DYNAMIC_INSTRUMENTATION_ENABLED is explicitly set to false. " \
+                "To allow remote enablement, unset DD_DYNAMIC_INSTRUMENTATION_ENABLED.",
+              )
+              return
+            end
+            # component is non-nil here only because Component.build's preconditions
+            # passed, which is the same condition under which di/base.rb is loaded
+            # and DI.activate_tracking is defined.
+            DI.activate_tracking
+            component.start!
+          else
+            component.stop!
+          end
+        rescue => e
+          Datadog.logger.debug { "di: error handling implicit enablement: #{e.class}: #{e.message}" }
+          Datadog.send(:components, allow_initialization: false)&.telemetry&.report(
+            e,
+            description: "Error handling DI implicit enablement",
+          )
+        end
+
+        # Symmetric to {DI::Component.explicitly_enabled?} (see there for why
+        # using_default? rather than options[:enabled].default_precedence?).
+        #
+        # @return [Boolean] true when the customer set
+        #   `DD_DYNAMIC_INSTRUMENTATION_ENABLED=false` (or the programmatic
+        #   equivalent), which blocks RC-driven enablement.
+        def explicitly_disabled?
+          settings = Datadog.configuration
+          !settings.dynamic_instrumentation.using_default?(:enabled) &&
+            !settings.dynamic_instrumentation.enabled
+        end
+
         def receivers(telemetry)
           receiver do |repository, changes|
             # DEV: Filter our by product. Given it will be very common
@@ -32,13 +106,7 @@ module Datadog
             # DEV: Apply this refactor to AppSec as well if implemented.
 
             component = DI.component
-            # We should always have a non-nil DI component here, because we
-            # only add DI product to remote config request if DI is enabled.
-            # Ideally, we should be injected with the DI component here
-            # rather than having to retrieve it from global state.
-            # If the component is nil for some reason, we also don't have a
-            # logger instance to report the issue.
-            if component
+            if component&.started?
               changes.each do |change|
                 case change.type
                 when :insert

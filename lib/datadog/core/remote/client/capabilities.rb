@@ -35,17 +35,27 @@ module Datadog
               register_receivers(Datadog::AppSec::Remote.receivers(@telemetry))
             end
 
-            if settings.respond_to?(:dynamic_instrumentation) && settings.dynamic_instrumentation.enabled
+            # Tracing must register before DI: on a combined RC dispatch,
+            # the APM_TRACING handler must run first to call
+            # Datadog::DI::Remote.handle_rc_enablement and start the
+            # component before the DI receiver processes LIVE_DEBUGGING
+            # changes against `component.started?`. Reversing the order
+            # silently drops the probe — the remote client only
+            # redispatches on content hash changes.
+            register_capabilities(Datadog::Tracing::Remote.capabilities)
+            register_products(Datadog::Tracing::Remote.products)
+            register_receivers(Datadog::Tracing::Remote.receivers(@telemetry))
+
+            if settings.respond_to?(:dynamic_instrumentation)
               register_capabilities(Datadog::DI::Remote.capabilities)
               register_products(Datadog::DI::Remote.products)
               register_receivers(Datadog::DI::Remote.receivers(@telemetry))
+            end
 
-              # Symbol Database
-              if settings.respond_to?(:symbol_database) && settings.symbol_database.enabled
-                register_capabilities(Datadog::SymbolDatabase::Remote.capabilities)
-                register_products(Datadog::SymbolDatabase::Remote.products)
-                register_receivers(Datadog::SymbolDatabase::Remote.receivers(@telemetry))
-              end
+            if settings.respond_to?(:symbol_database) && settings.symbol_database.enabled
+              register_capabilities(Datadog::SymbolDatabase::Remote.capabilities)
+              register_products(Datadog::SymbolDatabase::Remote.products)
+              register_receivers(Datadog::SymbolDatabase::Remote.receivers(@telemetry))
             end
 
             if settings.respond_to?(:open_feature) && settings.open_feature.enabled
@@ -53,10 +63,6 @@ module Datadog
               register_products(Datadog::OpenFeature::Remote.products)
               register_receivers(Datadog::OpenFeature::Remote.receivers(@telemetry))
             end
-
-            register_capabilities(Datadog::Tracing::Remote.capabilities)
-            register_products(Datadog::Tracing::Remote.products)
-            register_receivers(Datadog::Tracing::Remote.receivers(@telemetry))
           end
 
           def register_capabilities(capabilities)
