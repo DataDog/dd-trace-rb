@@ -10,7 +10,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     let(:redactor) { Datadog::DI::Redactor.new(settings) }
     let(:serializer) { Datadog::DI::Serializer.new(settings, redactor) }
 
-    let(:builder) { described_class.new(settings, serializer) }
+    let(:logger) { instance_double(Datadog::Core::Logger).as_null_object }
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component).as_null_object }
+
+    let(:builder) { described_class.new(settings, serializer, logger, telemetry: telemetry) }
 
     let(:instrumenter) do
       Datadog::DI::Instrumenter.new(settings)

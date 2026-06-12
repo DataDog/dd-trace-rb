@@ -2,19 +2,54 @@
 
 # rubocop:disable Lint/AssignmentInCondition
 
+require_relative "capture_expression_evaluator"
+
 module Datadog
   module DI
     # Builds probe status notification and snapshot payloads.
     #
     # @api private
     class ProbeNotificationBuilder
-      def initialize(settings, serializer)
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings;
+      #   read at payload-build time for service/env/version/tags fields.
+      # @param serializer [Datadog::DI::Serializer] serializer used for snapshot
+      #   values (captures, return, throwable).
+      # @param logger [Datadog::Core::Logger] logger forwarded to the internal
+      #   CaptureExpressionEvaluator for per-expression evaluation failures.
+      # @param telemetry [Datadog::Core::Telemetry::Component, nil] telemetry
+      #   forwarded to the internal CaptureExpressionEvaluator. nil when DI was
+      #   constructed without telemetry (Component.build allows this).
+      def initialize(settings, serializer, logger, telemetry: nil)
         @settings = settings
         @serializer = serializer
+        @logger = logger
+        @telemetry = telemetry
+        @capture_expression_evaluator = CaptureExpressionEvaluator.new(
+          settings: settings, serializer: serializer, logger: logger, telemetry: telemetry,
+        )
       end
 
+      # Tracer settings; read at every build_* call.
+      # @return [Datadog::Core::Configuration::Settings]
       attr_reader :settings
+
+      # Serializer used to convert captured values into snapshot wire format.
+      # @return [Datadog::DI::Serializer]
       attr_reader :serializer
+
+      # Logger; passed through to CaptureExpressionEvaluator at construction.
+      # @return [Datadog::Core::Logger]
+      attr_reader :logger
+
+      # Telemetry; passed through to CaptureExpressionEvaluator at construction.
+      # nil when DI was constructed without telemetry.
+      # @return [Datadog::Core::Telemetry::Component, nil]
+      attr_reader :telemetry
+
+      # Lazily-constructed sub-component that evaluates probe.capture_expressions
+      # during build_snapshot when probe.capture_expressions? is true.
+      # @return [Datadog::DI::CaptureExpressionEvaluator]
+      attr_reader :capture_expression_evaluator
 
       def build_received(probe)
         build_status(probe,
@@ -63,15 +98,20 @@ module Datadog
           raise ArgumentError, "Asked to build snapshot with snapshot capture but target_self is nil"
         end
 
+        # Mutual exclusion: capture_snapshot wins at fire time when both
+        # captureSnapshot and captureExpressions are set on the same probe,
+        # matching Python/Java/Go DI. The capture-expression values are
+        # silently dropped in that case; the user-visible mutual exclusion
+        # is also logged at parse time in ProbeBuilder.
         # TODO also verify that non-capturing probe does not pass
         # snapshot or vars/args into this method
+        capture_expression_evaluation_errors = []
         captures = if probe.capture_snapshot?
+          snapshot_limits = probe.snapshot_serializer_limits(settings)
           if probe.method?
             return_arguments = {
-              "@return": serializer.serialize_value(context.return_value,
-                depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-                attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count),
-              self: serializer.serialize_value(context.target_self),
+              "@return": serializer.serialize_value(context.return_value, **snapshot_limits),
+              self: serializer.serialize_value(context.target_self, **snapshot_limits),
             }
             {
               entry: {
@@ -87,8 +127,42 @@ module Datadog
               lines: (locals = context.serialized_locals) && {
                 probe.line_no => {
                   locals: locals,
-                  arguments: {self: serializer.serialize_value(context.target_self)},
+                  arguments: {self: serializer.serialize_value(context.target_self, **snapshot_limits)},
                 },
+              },
+            }
+          end
+        elsif probe.capture_expressions?
+          # Per-expression evaluation timing on method probes is single-eval,
+          # honoring probe.evaluate_at (default :exit), matching Python /
+          # .NET / PHP. evaluate_at: :entry block was evaluated at the entry
+          # hook (Instrumenter#hook_method) against the pre-super scope; we
+          # just consume the stashed result. evaluate_at: :exit (default)
+          # evaluates here, at exit, against the full exit-time scope.
+          # Line probes ignore evaluate_at and always emit under captures.lines.
+          if probe.method?
+            if probe.evaluate_at == :entry
+              captured_block = context.entry_capture_expressions || {}
+              capture_expression_evaluation_errors = context.entry_capture_evaluation_errors || []
+              {
+                entry: {captureExpressions: captured_block},
+              }
+            else
+              captured_block, capture_expression_evaluation_errors =
+                capture_expression_evaluator.evaluate(probe, context)
+              {
+                return: {
+                  captureExpressions: captured_block,
+                  throwable: context.exception ? serialize_throwable(context.exception) : nil,
+                },
+              }
+            end
+          elsif probe.line?
+            captured_block, capture_expression_evaluation_errors =
+              capture_expression_evaluator.evaluate(probe, context)
+            {
+              lines: {
+                probe.line_no => {captureExpressions: captured_block},
               },
             }
           end
@@ -99,6 +173,10 @@ module Datadog
         if segments = probe.template_segments
           message, evaluation_errors = evaluate_template(segments, context)
         end
+        # Per-expression evaluation errors are merged into the snapshot's
+        # top-level evaluationErrors array alongside template/condition errors,
+        # matching the cross-tracer convention.
+        evaluation_errors.concat(capture_expression_evaluation_errors)
         build_snapshot_base(context,
           evaluation_errors: evaluation_errors, message: message,
           captures: captures)

@@ -34,11 +34,22 @@ module Datadog
     class Probe
       KNOWN_TYPES = %i[log].freeze
 
+      # Permitted values for the +evaluate_at+ constructor argument.
+      # +:exit+ is the default applied when +nil+ is passed (this matches the
+      # libdatadog ProbeCommon JSON-parse default of EvaluateAt::Exit, which
+      # PHP shares; Python's Snapshot._timing also resolves DEFAULT to EXIT
+      # for log probes).
+      EVALUATE_AT_VALUES = %i[entry exit].freeze
+
       def initialize(id:, type:,
         file: nil, line_no: nil, type_name: nil, method_name: nil,
         template: nil, template_segments: nil,
         capture_snapshot: false, max_capture_depth: nil,
-        max_capture_attribute_count: nil, condition: nil,
+        max_capture_attribute_count: nil,
+        max_capture_collection_size: nil, max_capture_string_length: nil,
+        capture_expressions: [],
+        evaluate_at: nil,
+        condition: nil,
         rate_limit: nil)
         # Perform some sanity checks here to detect unexpected attribute
         # combinations, in order to not do them in subsequent code.
@@ -81,9 +92,26 @@ module Datadog
         @capture_snapshot = !!capture_snapshot
         @max_capture_depth = max_capture_depth
         @max_capture_attribute_count = max_capture_attribute_count
+        @max_capture_collection_size = max_capture_collection_size
+        @max_capture_string_length = max_capture_string_length
+        @capture_expressions = capture_expressions || []
+        # Per-expression evaluation timing on method probes. nil from the
+        # RC payload (or the constructor default) coerces to +:exit+, matching
+        # the libdatadog ProbeCommon JSON-parse default (EvaluateAt::Exit).
+        # Unknown symbols are rejected at construction. Line probes ignore
+        # this value (single firing point at the TracePoint callback).
+        evaluate_at = :exit if evaluate_at.nil?
+        unless EVALUATE_AT_VALUES.include?(evaluate_at)
+          raise ArgumentError, "Unknown evaluate_at value: #{evaluate_at.inspect} (expected one of #{EVALUATE_AT_VALUES.inspect})"
+        end
+        @evaluate_at = evaluate_at
         @condition = condition
 
-        @rate_limit = rate_limit || (@capture_snapshot ? 1 : 5000)
+        # Capture-expression probes are charged against the snapshot rate-limit
+        # bucket (1/sec default), matching Python/.NET/Go DI. They are not
+        # treated as cheap log probes (5000/sec) because evaluating arbitrary
+        # user-authored expressions has snapshot-class cost.
+        @rate_limit = rate_limit || ((@capture_snapshot || !@capture_expressions.empty?) ? 1 : 5000)
         @rate_limiter = Datadog::Core::TokenBucket.new(@rate_limit)
 
         # At most one report per second.
@@ -120,6 +148,27 @@ module Datadog
       # the global default will be used.
       attr_reader :max_capture_attribute_count
 
+      # Configured maximum collection size. Can be nil in which case the
+      # global default will be used.
+      attr_reader :max_capture_collection_size
+
+      # Configured maximum string length. Can be nil in which case the
+      # global default will be used.
+      attr_reader :max_capture_string_length
+
+      # Capture expressions attached to this probe. Empty array when no
+      # capture expressions are configured.
+      #
+      # @return [Array<Datadog::DI::CaptureExpression>]
+      attr_reader :capture_expressions
+
+      # Per-expression evaluation timing for method probes. One of
+      # +:entry+ / +:exit+. Defaults to +:exit+ (matching libdatadog's
+      # ProbeCommon JSON-parse default). Ignored by line probes.
+      #
+      # @return [Symbol]
+      attr_reader :evaluate_at
+
       # Rate limit in effect, in invocations per second. Always present.
       attr_reader :rate_limit
 
@@ -138,6 +187,31 @@ module Datadog
 
       def capture_snapshot?
         @capture_snapshot
+      end
+
+      # Returns whether the probe has any capture expressions configured.
+      def capture_expressions?
+        !@capture_expressions.empty?
+      end
+
+      # Returns the four capture-limit keyword arguments for snapshot
+      # serialization, applying the probe-level override for each field and
+      # falling back to the DI settings default when the probe-level value
+      # is nil. The result is intended to be splatted into
+      # +Serializer#serialize_value+, +serialize_args+, or +serialize_vars+.
+      #
+      # @param settings [Datadog::Core::Configuration::Settings] tracer settings
+      #   providing the dynamic_instrumentation.max_capture_* fallback values.
+      # @return [Hash{Symbol => Integer}] hash with keys :depth, :attribute_count,
+      #   :length, :collection_size — all values are Integers (no nils).
+      def snapshot_serializer_limits(settings)
+        di = settings.dynamic_instrumentation
+        {
+          depth: max_capture_depth || di.max_capture_depth,
+          attribute_count: max_capture_attribute_count || di.max_capture_attribute_count,
+          length: max_capture_string_length || di.max_capture_string_length,
+          collection_size: max_capture_collection_size || di.max_capture_collection_size,
+        }
       end
 
       # Returns whether the probe is a line probe.

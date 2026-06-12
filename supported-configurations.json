@@ -285,6 +285,13 @@
         "default": "false"
       }
     ],
+    "DD_DYNAMIC_INSTRUMENTATION_MAX_TIME_TO_SERIALIZE": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "200"
+      }
+    ],
     "DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE": [
       {
         "version": "A",

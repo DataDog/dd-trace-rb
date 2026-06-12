@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../core/utils/time'
+require_relative 'capture_expression_evaluator'
 
 # rubocop:disable Lint/AssignmentInCondition
 # rubocop:disable Style/AndOr
@@ -81,6 +82,17 @@ module Datadog
       attr_reader :logger
       attr_reader :telemetry
       attr_reader :code_tracker
+
+      # Lazily-constructed CaptureExpressionEvaluator used for entry-time
+      # evaluation on method probes with evaluate_at: :entry. The notification
+      # builder owns a separate instance for exit-time evaluation; they share
+      # the same settings/serializer/logger/telemetry and produce identical
+      # output for an identical context.
+      def capture_expression_evaluator
+        @capture_expression_evaluator ||= CaptureExpressionEvaluator.new(
+          settings: settings, serializer: serializer, logger: logger, telemetry: telemetry,
+        )
+      end
 
       # This is a substitute for Thread::Backtrace::Location
       # which does not have a public constructor.
@@ -178,8 +190,29 @@ module Datadog
               # they need to be serialized prior to method invocation.
               serialized_entry_args = if probe.capture_snapshot?
                 serializer.serialize_args(args, kwargs, self,
-                  depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-                  attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
+                  **probe.snapshot_serializer_limits(settings))
+              end
+
+              # Entry-time capture-expression evaluation. For probes with
+              # evaluate_at: :entry, evaluate against the pre-super scope
+              # (args/kwargs/self only — @return/@duration/@exception are
+              # nil at this point) and stash the result. The Context built
+              # below carries it through to the notification builder, which
+              # emits the block under captures.entry instead of re-running
+              # the evaluator at exit-time scope.
+              # Skipped when capture_snapshot is also set: the snapshot block
+              # wins at fire time, so any pre-computed capture-expression block
+              # would be discarded by ProbeNotificationBuilder.
+              entry_capture_expressions = nil
+              entry_capture_evaluation_errors = nil
+              if probe.capture_expressions? && probe.evaluate_at == :entry && !probe.capture_snapshot?
+                entry_context = Context.new(
+                  probe: probe, settings: settings, serializer: serializer,
+                  target_self: self,
+                  locals: serializer.combine_args(args, kwargs, self),
+                )
+                entry_capture_expressions, entry_capture_evaluation_errors =
+                  instrumenter.capture_expression_evaluator.evaluate(probe, entry_context)
               end
               # We intentionally do not use Core::Utils::Time.get_time
               # here because the time provider may be overridden by the
@@ -237,9 +270,21 @@ module Datadog
               caller_locs = method_frame + caller_locations
               # TODO capture arguments at exit
 
-              context = Context.new(locals: nil, target_self: self,
+              # Method-probe capture expressions need access to args/kwargs by
+              # name (arg1, arg2, kwarg keys). Populate locals from the live
+              # arg references when the probe has capture expressions; values
+              # may reflect in-place mutation by the method body, matching the
+              # return-time scope semantics.
+              # Skip when capture_snapshot is also set — the snapshot wins at
+              # build time, so the combined hash would be discarded.
+              capture_expression_locals = if probe.capture_expressions? && !probe.capture_snapshot?
+                serializer.combine_args(args, kwargs, self)
+              end
+              context = Context.new(locals: capture_expression_locals, target_self: self,
                 probe: probe, settings: settings, serializer: serializer,
                 serialized_entry_args: serialized_entry_args,
+                entry_capture_expressions: entry_capture_expressions,
+                entry_capture_evaluation_errors: entry_capture_evaluation_errors,
                 caller_locations: caller_locs,
                 return_value: rv, duration: duration, exception: exc,)
 
