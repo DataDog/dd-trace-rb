@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'aggregator'
-require_relative '../../../core/utils/time'
+require_relative '../../core/utils/time'
 
 module Datadog
   module OpenFeature
@@ -61,10 +61,12 @@ module Datadog
         def start_background_thread
           Thread.new do
             until @stopped
-              sleep(FLUSH_INTERVAL_SECONDS)
-              drain_and_flush
-            rescue => e
-              @logger.debug { "OpenFeature EVP: writer error: #{e.class}: #{e.message}" }
+              begin
+                sleep(FLUSH_INTERVAL_SECONDS)
+                drain_and_flush
+              rescue => e
+                @logger.debug { "OpenFeature EVP: writer error: #{e.class}: #{e.message}" }
+              end
             end
           end
         end
