@@ -102,11 +102,17 @@ module Datadog
             @cache = Hash[*1..20]
             @cache.clear
             # Workaround for the segfault from https://github.com/DataDog/dd-trace-rb/issues/5718#issuecomment-4421844775.
-            # It crashes on a simple {Hash} lookup, {Hash#key?}, called from `@cache.fetch(value)`.
+            # It crashes on a simple {Hash} lookup, {Hash#key?}, called from `@cache.fetch(value)`:
+            # The access `tbl->capa` segfaults because `tbl` is an invalid pointer (https://github.com/ruby/ruby/blob/76cca827ab52a/id_table.c#L132),
+            # which comes from an invalid method call-cache table, `RCLASS_CC_TBL(klass)`,
+            # retrieved in `cached_callable_method_entry` (https://github.com/ruby/ruby/blob/76cca827ab52a/vm_method.c#L1430-L1433).
+            #
             # Using an identity-based {Hash} avoids {Hash#key?} calls.
-            # We should attempt to remove this workaround when we only support Ruby 4+,
-            # as large change around the crash site was done in that version (https://github.com/ruby/ruby/pull/14039/changes#diff-884a5a8a369ef1b4c7597e00aa65974cec8c5f54f25f03ad5d24848f64892869R1743),
-            # where `RClass.cc_table` (the NULL dereferenced pointer) became a GC-managed object,
+            #
+            # We should attempt to remove this workaround once we only support Ruby 4+,
+            # as large change around the crash site was done in that version (https://github.com/ruby/ruby/pull/14039/changes#diff-884a5a8a369ef1b4c7597e00aa65974cec8c5f54f25f03ad5d24848f64892869R1740-R1743),
+            # where the call-cache table (the `tbl` in `tbl->capa`) became a GC-managed object,
+            # instead of the C struct in Ruby < 4.
             @cache.compare_by_identity
           end
 
