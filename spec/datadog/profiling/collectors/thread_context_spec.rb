@@ -114,6 +114,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_on_gvl_running(thread_context_collector, thread)
   end
 
+  def on_gvl_released(thread)
+    described_class::Testing._native_on_gvl_released(thread)
+  end
+
   def sample_after_gvl_running(thread, allow_exception: false)
     described_class::Testing._native_sample_after_gvl_running(thread_context_collector, thread, allow_exception)
   end
@@ -1872,6 +1876,44 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         end
       end
     end
+
+    context "when thread had skipped samples (was_skipped_at_last_sample)" do
+      let(:waiting_for_gvl_threshold_ns) { 1_000_000_000 }
+
+      before do
+        sample
+        on_gvl_released(t1)
+        sample # first sample updates the snapshot to the suspended counter
+        sample # second sample sees unchanged counter, skips and sets was_skipped_at_last_sample
+        expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be true
+
+        on_gvl_waiting(t1)
+      end
+
+      it "flags that a sample is needed to cut the accumulated idle wall-time" do
+        expect(on_gvl_running(t1)).to be true
+      end
+
+      it "produces a sample via sample_after_gvl_running that consumes the accumulated idle wall-time" do
+        wall_time_before = per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)
+
+        on_gvl_running(t1)
+        sample_after_gvl_running(t1)
+
+        wall_time_after = per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)
+        expect(wall_time_after).to be > wall_time_before
+      end
+
+      it "produces a sample via sample_after_gvl_running that consumes the accumulated CPU time" do
+        apply_delta_to_cpu_time_at_previous_sample_ns(t1, -12345) # Rewind back to ensure it's > 0
+
+        on_gvl_running(t1)
+        sample_after_gvl_running(t1)
+
+        latest_sample = samples_for_thread(samples_from_pprof(recorder.serialize!), t1).last
+        expect(latest_sample.values.fetch(:"cpu-time")).to be >= 12345
+      end
+    end
   end
 
   describe "#sample_after_gvl_running" do
@@ -1946,6 +1988,75 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
           expect(samples.first.labels).to include(state: "waiting for gvl")
         end
+      end
+    end
+  end
+
+  describe "SUSPENDED-skip optimization" do
+    before { skip_if_gvl_profiling_not_supported(self) }
+
+    context "when a thread is suspended (does not hold the GVL)" do
+      before do
+        sample # create thread context
+        recorder.serialize! # flush the initial sample
+        on_gvl_released(t1)
+      end
+
+      it "skips per-tick samples for the suspended thread" do
+        t = per_thread_context.fetch(t1)
+        expect(t.fetch(:gvl_state_change_count_at_previous_sample)).to_not eq(t.fetch(:gvl_state_change_count))
+
+        # first sample updates the snapshot to the suspended counter
+        sample
+        t = per_thread_context.fetch(t1)
+        gvl_state_change_count = t.fetch(:gvl_state_change_count)
+        expect(t.fetch(:gvl_state_change_count_at_previous_sample)).to eq(gvl_state_change_count)
+        expect(t.fetch(:was_skipped_at_last_sample)).to be false
+        expect(stats.fetch(:inactive_thread_samples_skipped)).to eq 0
+
+        # second sample sees unchanged counter and skips
+        sample
+        t = per_thread_context.fetch(t1)
+        expect(t.fetch(:gvl_state_change_count)).to eq(gvl_state_change_count)
+        expect(t.fetch(:gvl_state_change_count_at_previous_sample)).to eq(gvl_state_change_count)
+        expect(t.fetch(:was_skipped_at_last_sample)).to be true
+        expect(stats.fetch(:inactive_thread_samples_skipped)).to eq 1
+      end
+
+      it "still records at least one sample per profile period via serialize" do
+        # We test that the optimization applies with consecutive samples, that serialize causes an extra sample,
+        # and also that the optimization applies again after serialize,
+        # causing only 1 sample per profile period if the thread does not acquire the GVL
+
+        sample # updates the snapshot
+        expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be false
+
+        sample # skips, sets was_skipped_at_last_sample
+        expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be true
+        expect(stats.fetch(:inactive_thread_samples_skipped)).to eq 1
+
+        # End of profile period 1: serialize flushes the skipped thread
+        result = recorder.serialize!
+        expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be false
+        t1_samples = samples_for_thread(samples_from_pprof(result), t1)
+        # 2 samples: the first sample (updates snapshot) + the on-serialize flush
+        expect(t1_samples.size).to eq(2)
+        expect(t1_samples.sum { |s| s.values.fetch(:"wall-time") }).to be > 0
+
+        # All of these are skipped
+        10.times {
+          sample
+          expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be true
+        }
+        expect(stats.fetch(:inactive_thread_samples_skipped)).to eq 11
+
+        # End of profile period 2: serialize again flushes the skipped thread
+        result = recorder.serialize!
+        expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be false
+        t1_samples = samples_for_thread(samples_from_pprof(result), t1)
+        # Exactly 1 sample from the on-serialize flush
+        expect(t1_samples.size).to eq(1)
+        expect(t1_samples.sum { |s| s.values.fetch(:"wall-time") }).to be > 0
       end
     end
   end
