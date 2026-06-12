@@ -236,19 +236,13 @@ module Datadog
           end
 
           # Start DI component if enabled by env var or if it was implicitly enabled
-          # (via RC) in the previous Components instance.
-          #
-          # respond_to? guard on DI.activate_tracking: in production the
-          # non-nil dynamic_instrumentation check above implies di/base.rb
-          # was loaded (and so DI.activate_tracking is defined), because
-          # Component.build returns nil on Ruby < 2.6. But specs in
-          # spec:main (e.g. spec/datadog/core/telemetry/integration/
-          # telemetry_spec.rb) run on Ruby 2.5 and stub
-          # Datadog::DI::Component.build to a non-nil fake — those reach
-          # this branch on Ruby 2.5 where DI.activate_tracking is undefined.
+          # (via RC) in the previous Components instance. dynamic_instrumentation is
+          # non-nil only when Component.build's preconditions passed (Ruby 2.6+ MRI,
+          # etc.), which is exactly the condition under which di/base.rb is loaded
+          # and DI.activate_tracking is defined.
           if dynamic_instrumentation
             if settings.dynamic_instrumentation.enabled || old_state&.di_implicitly_enabled?
-              DI.activate_tracking if DI.respond_to?(:activate_tracking)
+              DI.activate_tracking
               dynamic_instrumentation.start!
             end
           end

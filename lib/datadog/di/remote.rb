@@ -71,12 +71,10 @@ module Datadog
               )
               return
             end
-            # respond_to? guard: symmetric to Components#startup!. In
-            # production the non-nil component check above implies
-            # DI.activate_tracking is defined (Component.build returns nil
-            # on Ruby < 2.6). The guard is for spec:main tests that may
-            # stub the component to a non-nil fake on Ruby 2.5.
-            DI.activate_tracking if DI.respond_to?(:activate_tracking)
+            # component is non-nil here only because Component.build's preconditions
+            # passed, which is the same condition under which di/base.rb is loaded
+            # and DI.activate_tracking is defined.
+            DI.activate_tracking
             component.start!
           else
             component.stop!
