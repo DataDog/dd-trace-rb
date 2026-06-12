@@ -2,24 +2,12 @@ require 'spec_helper'
 
 require 'json'
 
-# Drift guard between the code and the configuration registry.
-#
-# Two sources of truth must agree about which configurations are sensitive:
-#   1. The code: options whose definition declares `skip_telemetry true`.
-#   2. The registry: entries marked `"sensitive": true` in supported-configurations.json.
-#
-# This spec asserts the two sets are consistent so that adding a new sensitive
-# configuration without the flag (or marking the flag without the registry, or
-# vice versa) fails loudly.
-#
-# Scope: the comparison is limited to env-var-backed options. Some `skip_telemetry`
-# options have no environment variable and exist purely to control how the value is
-# reported, not because the value is sensitive (e.g. `logger.instance`, which is
-# re-added manually under its own name, and `tracing.writer_options`, which is split
-# into per-key entries). Those have no registry key to compare against, so they are
-# intentionally excluded from this 1:1 mapping.
+# Drift guard: options declaring `skip_telemetry true` must match the entries marked
+# `"sensitive": true` in supported-configurations.json, so adding one without the other
+# fails loudly. Compared on env-var-backed options only; skip_telemetry options without an
+# env var (e.g. logger.instance, tracing.writer_options) have no registry key.
 RSpec.describe 'sensitive configuration registry drift' do
-  # Recursively yield every leaf (non-settings) option in the live settings tree.
+  # Yield every leaf (non-settings) option in the live settings tree.
   def each_leaf_option(settings, &block)
     settings.class.options.each_key do |name|
       option = settings.send(:resolve_option, name)

@@ -186,14 +186,10 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       end
     end
 
-    # Black-box invariant: walk the live settings tree, collect every option whose
-    # definition declares `skip_telemetry true`, assign each a unique recognizable
-    # sentinel, then assert no sentinel reaches any reported configuration value.
-    #
-    # This auto-covers any future sensitive option with no per-name enumeration, so a
-    # newly-added `skip_telemetry` option is protected the moment it is declared.
+    # Assign a unique sentinel to every skip_telemetry option and assert no sentinel
+    # reaches a reported configuration value. Covers new sensitive options automatically.
     context 'with sentinel values assigned to every skip_telemetry option' do
-      # Recursively yield every leaf (non-settings) option in the live settings tree.
+      # Yield every leaf (non-settings) option in the live settings tree.
       def each_leaf_option(settings, &block)
         settings.class.options.each_key do |name|
           option = settings.send(:resolve_option, name)
@@ -205,7 +201,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
         end
       end
 
-      # All leaf options that opt out of telemetry, discovered generically (no names).
+      # Every leaf option that opts out of telemetry.
       let(:skip_telemetry_options) do
         [].tap do |options|
           each_leaf_option(Datadog.configuration) do |option|
@@ -214,18 +210,9 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
         end
       end
 
-      # Options we can drive to a recognizable string sentinel. String-typed options
-      # take the sentinel directly; hash/map header options take a `header=SENTINEL`
-      # form so the parsed value carries the sentinel. Options that aren't
-      # string-settable (e.g. an opaque object like `logger.instance`) are excluded
-      # here and instead covered by the name-absence assertion below.
-      #
-      # Only env-configurable options (those with a declared `env`) get a value sentinel.
-      # Options without an `env` are not user-configurable: they are set programmatically
-      # and consumed structurally (e.g. `tracing.writer_options` is splatted as keyword
-      # arguments into a writer), so a string-keyed sentinel hash would break component
-      # building rather than exercise the value-absence path. Those options are still
-      # covered by the name-absence assertion below.
+      # Drive each env-configurable option to a string sentinel (strings directly, hashes
+      # as `header=SENTINEL`). Options that aren't string-settable or have no env var are
+      # skipped here and covered by the name-absence assertion below.
       let(:string_settable_sentinels) do
         sentinels = {}
         skip_telemetry_options.each_with_index do |option, index|
@@ -268,17 +255,15 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       end
 
       it 'does not report the name of any skip_telemetry option' do
-        # Name-absence covers options that are not string-settable (so the value-absence
-        # assertion above cannot reach them) and reinforces the value check for the rest.
+        # Covers options that aren't string-settable, and reinforces the value check.
         string_settable_sentinels # ensure values are set for the run
 
         reported_names = event.payload[:configuration].map { |entry| entry[:name] }
 
         skip_telemetry_options.each do |option|
           telemetry_name = option.definition.env || option.name_with_settings_path
-          # logger.instance is the documented exception: it is re-added manually by the
-          # AppStarted event under its own name with the class name (never its value),
-          # so we skip the name-absence check only for it.
+          # logger.instance is re-added manually under its own name (the class name, never
+          # its value), so skip the name-absence check for it.
           next if telemetry_name == 'logger.instance'
 
           expect(reported_names).to_not include(telemetry_name),
@@ -459,10 +444,8 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
     end
   end
 
-  # The app-extended-heartbeat event inherits AppStarted and reuses the same
-  # `configuration` builder, so the same skip_telemetry gate must hold there.
-  # Re-run the sentinel sweep against that secondary emitting path so a value
-  # cannot leak through it.
+  # AppExtendedHeartbeat inherits AppStarted's configuration builder, so the redaction
+  # must hold on that path too.
   describe 'app-extended-heartbeat configuration (inherited emitting path)' do
     subject(:extended_event) do
       Datadog::Core::Telemetry::Event::AppExtendedHeartbeat.new(
