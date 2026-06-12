@@ -12,7 +12,7 @@ module Datadog
   module OpenFeature
     # This class is the entry point for the OpenFeature component
     class Component
-      attr_reader :engine, :flag_eval_hook
+      attr_reader :engine, :flag_eval_hook, :flag_eval_evp_hook
 
       def self.build(settings, agent_settings, logger:, telemetry:)
         return unless settings.respond_to?(:open_feature) && settings.open_feature.enabled
@@ -54,11 +54,14 @@ module Datadog
 
         @telemetry = telemetry
         @logger = logger
-        @flag_eval_hook = create_flag_eval_hook
+        @agent_settings = agent_settings
+        @flag_eval_hook     = create_flag_eval_hook
+        @flag_eval_evp_hook = create_flag_eval_evp_hook
       end
 
       def shutdown!
         @worker.graceful_shutdown
+        @flag_eval_evp_writer&.stop
       end
 
       private
@@ -69,6 +72,24 @@ module Datadog
 
         metrics = Metrics::FlagEvalMetrics.new(telemetry: @telemetry, logger: @logger)
         Hooks::FlagEvalHook.new(metrics)
+      rescue LoadError
+        nil
+      end
+
+      # Killswitch: DD_FLAGGING_EVALUATION_COUNTS_ENABLED (default on) gates only the EVP path.
+      def create_flag_eval_evp_hook
+        return if ENV.fetch('DD_FLAGGING_EVALUATION_COUNTS_ENABLED', 'true') == 'false'
+
+        require_relative 'hooks/flag_eval_evp_hook'
+        return unless Hooks::FlagEvalEVPHook.available?
+
+        evp_transport = Transport::HTTP.build_flagevaluations(
+          agent_settings: @agent_settings,
+          logger: @logger,
+        )
+        require_relative 'flagevaluation/writer'
+        @flag_eval_evp_writer = FlagEvaluation::Writer.new(transport: evp_transport, logger: @logger)
+        Hooks::FlagEvalEVPHook.new(@flag_eval_evp_writer)
       rescue LoadError
         nil
       end
