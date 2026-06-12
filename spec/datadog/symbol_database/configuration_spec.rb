@@ -9,6 +9,14 @@ require 'datadog/symbol_database/configuration'
 RSpec.describe 'Symbol Database Configuration', :symdb_supported_platforms do
   subject(:settings) { Datadog::Core::Configuration::Settings.new }
 
+  # The default for symbol_database.enabled is a block that reads
+  # Datadog.configuration.dynamic_instrumentation.enabled. Route the global
+  # lookup to the per-example fixture so tests don't leak state across each
+  # other.
+  before do
+    allow(Datadog).to receive(:configuration).and_return(settings)
+  end
+
   describe 'symbol_database' do
     context 'programmatic configuration' do
       [
@@ -47,7 +55,6 @@ RSpec.describe 'Symbol Database Configuration', :symdb_supported_platforms do
       [
         ['DD_SYMBOL_DATABASE_UPLOAD_ENABLED', 'true', nil, 'enabled', true],
         ['DD_SYMBOL_DATABASE_UPLOAD_ENABLED', 'false', nil, 'enabled', false],
-        ['DD_SYMBOL_DATABASE_UPLOAD_ENABLED', nil, nil, 'enabled', false],
         ['DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD', 'true', 'internal', 'force_upload', true],
         ['DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD', 'false', 'internal', 'force_upload', false],
         ['DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD', nil, 'internal', 'force_upload', false],
@@ -71,6 +78,77 @@ RSpec.describe 'Symbol Database Configuration', :symdb_supported_platforms do
           it "sets symbol_database.#{[scope_name, setting_name].compact.join('.')}=#{setting_value}" do
             scope = scope_name ? settings.symbol_database.public_send(scope_name) : settings.symbol_database
             expect(scope.public_send(setting_name)).to eq(setting_value)
+          end
+        end
+      end
+    end
+
+    context 'default tracks dynamic_instrumentation.enabled' do
+      context 'when dynamic_instrumentation.enabled is true' do
+        before do
+          settings.dynamic_instrumentation.enabled = true
+          # The default consults DI::Component.environment_supported?, which
+          # checks Datadog::Core::Environment::Execution.development? — true
+          # under rspec. Set the documented dev-mode escape hatch so DI's
+          # gate evaluates to true, matching what a customer running DI in
+          # development would set.
+          settings.dynamic_instrumentation.internal.development = true
+        end
+
+        it 'defaults symbol_database.enabled to true' do
+          expect(settings.symbol_database.enabled).to be(true)
+        end
+      end
+
+      context 'when dynamic_instrumentation.enabled is false' do
+        before { settings.dynamic_instrumentation.enabled = false }
+
+        it 'defaults symbol_database.enabled to false' do
+          expect(settings.symbol_database.enabled).to be(false)
+        end
+      end
+
+      context 'when DD_SYMBOL_DATABASE_UPLOAD_ENABLED is set' do
+        around do |example|
+          ClimateControl.modify('DD_SYMBOL_DATABASE_UPLOAD_ENABLED' => 'true') do
+            example.run
+          end
+        end
+
+        it 'env wins over the dynamic_instrumentation-derived default' do
+          settings.dynamic_instrumentation.enabled = false
+          expect(settings.symbol_database.enabled).to be(true)
+        end
+      end
+
+      context 'when dynamic_instrumentation.enabled is true but DI environment is not supported' do
+        # PR #5828 codex review: the default ties symdb to DI at the
+        # default-value layer, not at Component.build. The DI setting
+        # alone is not enough — dynamic_instrumentation.enabled = true is
+        # a user intent, not a runtime fact. DI::Component.build refuses
+        # to start in Rails dev mode, on non-MRI engines, when the DI C
+        # extension is missing, etc. The default consults
+        # DI::Component.environment_supported? so it stays in lockstep
+        # with DI's actual start gate; an explicit
+        # DD_SYMBOL_DATABASE_UPLOAD_ENABLED override bypasses both layers.
+        before do
+          settings.dynamic_instrumentation.enabled = true
+          allow(Datadog::DI::Component).to receive(:environment_supported?).and_return(false)
+        end
+
+        it 'defaults symbol_database.enabled to false' do
+          expect(settings.symbol_database.enabled).to be(false)
+        end
+
+        context 'with explicit DD_SYMBOL_DATABASE_UPLOAD_ENABLED=true' do
+          around do |example|
+            ClimateControl.modify('DD_SYMBOL_DATABASE_UPLOAD_ENABLED' => 'true') do
+              example.run
+            end
+          end
+
+          it 'explicit env value enables symdb regardless of DI environment' do
+            expect(settings.symbol_database.enabled).to be(true)
           end
         end
       end
