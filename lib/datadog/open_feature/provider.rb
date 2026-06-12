@@ -9,6 +9,11 @@ module Datadog
     #
     # Requires openfeature-sdk >= 0.5.1 for flag evaluation metrics support.
     #
+    # Hook lifecycle note: the Ruby openfeature-sdk (through at least 0.5.x) does not invoke
+    # provider hooks during evaluation. FlagEvalEVPHook is registered for forward compatibility
+    # but is also called directly from #evaluate to ensure EVP flag-evaluation events are
+    # emitted regardless of SDK version. See call_evp_hook for details.
+    #
     # Implementation follows the OpenFeature contract of Provider SDK.
     # For details see:
     #   - https://github.com/open-feature/ruby-sdk/blob/v0.4.1/README.md#develop-a-provider
@@ -54,6 +59,23 @@ module Datadog
     #   ```
     class Provider
       NAME = 'Datadog Feature Flagging Provider'
+
+      # Lightweight duck-typed wrappers used to call FlagEvalEVPHook#finally directly,
+      # bypassing the openfeature-sdk hook lifecycle (which is not invoked in sdk <= 0.5.x).
+      #
+      # The hook accesses:
+      #   hook_context.flag_key
+      #   hook_context.evaluation_context&.targeting_key
+      #   hook_context.evaluation_context&.attributes  (Hash of non-targeting_key fields)
+      #   evaluation_details.flag_metadata
+      #   evaluation_details.variant
+      #   evaluation_details.reason
+      #
+      # ::OpenFeature::SDK::EvaluationContext exposes #fields (all fields including targeting_key)
+      # and #targeting_key, but NOT #attributes. EvpEvalContext adapts fields -> attributes.
+      EvpEvalContext = Struct.new(:targeting_key, :attributes)
+      HookContext = Struct.new(:flag_key, :evaluation_context)
+      HookDetails = Struct.new(:variant, :reason, :flag_metadata)
 
       attr_reader :metadata
 
@@ -113,6 +135,13 @@ module Datadog
           evaluation_context: evaluation_context
         )
 
+        # Build metadata before branching so EVP and the success path share one call.
+        flag_meta = build_flag_metadata(result)
+
+        # Drive EVP hook directly: the Ruby openfeature-sdk does not invoke provider hooks,
+        # so we call it here to cover both success and error paths (finally semantics).
+        call_evp_hook(flag_key, result, evaluation_context, flag_meta)
+
         if result.error?
           return ::OpenFeature::SDK::Provider::ResolutionDetails.new(
             value: default_value,
@@ -126,7 +155,7 @@ module Datadog
           value: result.value,
           variant: result.variant,
           reason: result.reason,
-          flag_metadata: build_flag_metadata(result),
+          flag_metadata: flag_meta,
         )
       rescue => e
         ::OpenFeature::SDK::Provider::ResolutionDetails.new(
@@ -155,6 +184,34 @@ module Datadog
           error_message: "Datadog's OpenFeature component must be configured",
           reason: Ext::ERROR
         )
+      end
+
+      # Call the EVP hook directly — the Ruby openfeature-sdk (through at least 0.5.x) does not
+      # invoke provider hooks during evaluation, so we must drive it ourselves. The hook is still
+      # registered via #hooks for forward compatibility with future SDK versions that do support
+      # the full hook lifecycle. This method is idempotent: if the killswitch is on or the
+      # component is absent, flag_eval_evp_hook is nil and this is a no-op.
+      #
+      # ::OpenFeature::SDK::EvaluationContext has #fields and #targeting_key but NOT #attributes.
+      # We adapt it into EvpEvalContext which provides the #attributes interface the hook expects.
+      def call_evp_hook(flag_key, result, evaluation_context, flag_metadata)
+        hook = Datadog.send(:components).open_feature&.flag_eval_evp_hook
+        return unless hook
+
+        evp_ctx = if evaluation_context
+          targeting_key = evaluation_context.targeting_key
+          # attributes: all fields except targeting_key (mirrors how exposures builds context)
+          attrs = evaluation_context.fields.reject { |k, _| k == ::OpenFeature::SDK::EvaluationContext::TARGETING_KEY }
+          EvpEvalContext.new(targeting_key, attrs)
+        end
+
+        hook.finally(
+          hook_context: HookContext.new(flag_key, evp_ctx),
+          evaluation_details: HookDetails.new(result.variant, result.reason, flag_metadata),
+        )
+      rescue => e
+        # Best-effort: EVP emission must never raise into the evaluation hot path.
+        Datadog.logger.debug { "OpenFeature EVP: call_evp_hook error: #{e.class}: #{e.message}" }
       end
     end
   end
