@@ -45,6 +45,9 @@ module Datadog
         # rather than `options[:enabled].default_precedence?` because the option
         # hash is populated lazily on first access; reading the underlying option
         # before {Component.build} touches the value would NoMethodError on nil.
+        #
+        # @param settings [Datadog::Core::Configuration::Settings]
+        # @return [Boolean]
         def explicitly_enabled?(settings)
           !settings.dynamic_instrumentation.using_default?(:enabled) &&
             settings.dynamic_instrumentation.enabled
@@ -97,10 +100,12 @@ module Datadog
       # Starts the DI component: begins accepting probes and
       # processing snapshots.
       #
-      # Starts the probe notifier worker thread first (so any probe statuses
-      # produced by trace-point-driven installation have a worker to drain
-      # them), then enables the definition trace point for pending method
-      # probes. No-op if already started. Serialized by @lifecycle_mutex.
+      # Starts the probe notifier worker thread before enabling the
+      # definition trace point, so any future status emission from a
+      # trace-point-driven installation has a worker to drain it.
+      # Today {ProbeManager#reopen} re-hooks without emitting statuses, so
+      # the order is defensive rather than load-bearing. No-op if already
+      # started. Serialized by @lifecycle_mutex.
       #
       # @return [void]
       def start!
