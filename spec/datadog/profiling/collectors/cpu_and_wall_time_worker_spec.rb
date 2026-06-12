@@ -161,7 +161,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     context "when gvl_profiling_enabled is true on an unsupported Ruby" do
-      before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.2." }
+      before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?(">= 3.2") }
 
       let(:gvl_profiling_enabled) { true }
 
@@ -626,7 +626,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         #
         expect(sample_count).to be >= 8, "sample_count: #{sample_count}, stats: #{stats}, debug_failures: #{debug_failures}"
 
-        if RUBY_VERSION >= "3.3.0"
+        if RubyVersion.is?(">= 3.3.0")
           expect(trigger_sample_attempts).to be >= sample_count
         else
           # @ivoanjo: We've seen this assertion become flaky once in CI for Ruby 3.1, where
@@ -720,7 +720,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(allocation_sample.values).to include("alloc-samples": test_num_allocated_object)
         # For Ruby 4 onwards, new is inlined into the bytecode of the caller and there's no "new"
         # frame at the top of the stack, see https://github.com/ruby/ruby/pull/13080
-        expect((RUBY_VERSION >= "4.0.0") ? allocation_sample.locations[0] : allocation_sample.locations[1])
+        expect(RubyVersion.is?(">= 4.0.0") ? allocation_sample.locations[0] : allocation_sample.locations[1])
           .to match(have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: allocation_line))
       end
 
@@ -815,7 +815,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         end
 
         context "on Ruby 2.x" do
-          before { skip "Behavior only applies on Ruby 2.x" unless RUBY_VERSION.start_with?("2.") }
+          before { skip "Behavior only applies on Ruby 2.x" unless RubyVersion.is?("~> 2.0") }
 
           it "records internal VM objects, not including their specific kind" do
             start
@@ -833,7 +833,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         end
 
         context "on Ruby 3.x" do
-          before { skip "Behavior only applies on Ruby 3.x" if RUBY_VERSION.start_with?("2.") }
+          before { skip "Behavior only applies on Ruby 3.x" if RubyVersion.is?("~> 2.0") }
 
           it "records internal VM objects, including their specific kind" do
             start
@@ -888,7 +888,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         allow(Datadog.logger).to receive(:warn)
         expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
 
-        skip "Heap profiling is only supported on Ruby >= 2.7" if RUBY_VERSION < "2.7"
+        skip "Heap profiling is only supported on Ruby >= 2.7" if RubyVersion.is?("< 2.7")
       end
 
       after do |example|
@@ -925,7 +925,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         relevant_samples = samples_from_pprof(recorder.serialize!).select do |sample|
           # From Ruby 4 onwards, new is inlined into the bytecode of the caller and there's no "new"
           # frame at the top of the stack, see https://github.com/ruby/ruby/pull/13080
-          allocation_trigger_frame = (RUBY_VERSION >= "4.0.0") ? sample.locations[0] : sample.locations[1]
+          allocation_trigger_frame = RubyVersion.is?(">= 4.0.0") ? sample.locations[0] : sample.locations[1]
           next unless allocation_trigger_frame
 
           allocation_trigger_frame.lineno == allocation_line &&
@@ -1092,9 +1092,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       def skip_if_signal_handler_sampling_not_supported
         return unless sighandler_sampling_enabled
 
-        ruby_version = Gem::Version.new(RUBY_VERSION)
-        if ruby_version < Gem::Version.new("3.2.5") ||
-            (ruby_version >= Gem::Version.new("3.3.0") && ruby_version < Gem::Version.new("3.3.4"))
+        if RubyVersion.is?("< 3.2.5") ||
+            RubyVersion.is?(">= 3.3.0", "< 3.3.4")
           # In practice, many older Rubies are OK to sample from the signal handler, but for the purposes of testing
           # this is a safe simplification (these versions all include https://github.com/ruby/ruby/pull/11036)
           skip "Not safe to enable signal handler sampling on Ruby < 3.2.5 / Ruby < 3.3.4"
@@ -1152,10 +1151,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
   describe "Ractor safety" do
     before do
-      skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3."
+      skip "Behavior does not apply to current Ruby version" if RubyVersion.is?("< 3")
 
       # See native_extension_spec.rb for more details on the issues we saw on 3.0
-      skip "Ruby 3.0 Ractors are too buggy to run this spec" if RUBY_VERSION.start_with?("3.0.")
+      skip "Ruby 3.0 Ractors are too buggy to run this spec" if RubyVersion.is?("~> 3.0.0")
     end
 
     shared_examples_for "does not trigger a sample" do |run_ractor|
@@ -1190,7 +1189,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               Ractor.new do
                 Thread.current.name = "background ractor"
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_handle_sampling_signal
-              end.yield_self { |r| (RUBY_VERSION < "4") ? r.take : r.value }
+              end.yield_self { |r| RubyVersion.is?("< 4") ? r.take : r.value }
             end
           )
       end
@@ -1202,7 +1201,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               Ractor.new do
                 Thread.current.name = "background ractor"
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_sample_from_postponed_job
-              end.yield_self { |r| (RUBY_VERSION < "4") ? r.take : r.value }
+              end.yield_self { |r| RubyVersion.is?("< 4") ? r.take : r.value }
             end
           )
       end

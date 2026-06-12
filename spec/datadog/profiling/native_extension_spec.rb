@@ -134,13 +134,13 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     subject(:ddtrace_rb_ractor_main_p) { described_class::Testing._native_ddtrace_rb_ractor_main_p }
 
     context "when Ruby has no support for Ractors" do
-      before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3" }
+      before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?(">= 3") }
 
       it { is_expected.to be true }
     end
 
     context "when Ruby has support for Ractors" do
-      before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3" }
+      before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?("< 3") }
 
       context "on the main Ractor" do
         it { is_expected.to be true }
@@ -157,13 +157,13 @@ RSpec.describe Datadog::Profiling::NativeExtension do
           # I was able to see this even on both Linux with 3.0.3 and macOS with 3.0.4. Thus, I decided to skip this
           # spec on Ruby 3.0. We can always run it manually if we change something around this helper; and we have
           # coverage on 3.1+ anyway.
-          skip "Ruby 3.0 Ractors are too buggy to run this spec" if RUBY_VERSION.start_with?("3.0.")
+          skip "Ruby 3.0 Ractors are too buggy to run this spec" if RubyVersion.is?("~> 3.0.0")
         end
 
         subject(:ddtrace_rb_ractor_main_p) do
           Ractor.new do
             Datadog::Profiling::NativeExtension::Testing._native_ddtrace_rb_ractor_main_p
-          end.yield_self { |r| (RUBY_VERSION < "4") ? r.take : r.value }
+          end.yield_self { |r| RubyVersion.is?("< 4") ? r.take : r.value }
         end
 
         it { is_expected.to be false }
@@ -258,7 +258,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     subject(:safe_object_info) { described_class::Testing._native_safe_object_info(object_to_inspect) }
 
     context "on a Ruby with rb_obj_info" do
-      before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION.start_with?("2.5", "3.3", "4.0") }
+      before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?("~> 2.5.0") || RubyVersion.is?("~> 3.3.0") || RubyVersion.is?("~> 4.0.0") }
 
       it "returns a string with information about the object" do
         expect(safe_object_info).to include("T_STRING")
@@ -266,7 +266,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
 
     context "on a Ruby without rb_obj_info" do
-      before { skip "Behavior does not apply to current Ruby version" unless RUBY_VERSION.start_with?("2.5", "3.3", "4.0") }
+      before { skip "Behavior does not apply to current Ruby version" unless RubyVersion.is?("~> 2.5.0") || RubyVersion.is?("~> 3.3.0") || RubyVersion.is?("~> 4.0.0") }
 
       it "returns a placeholder string and does not otherwise fail" do
         expect(safe_object_info).to eq "(No rb_obj_info for current Ruby)"
