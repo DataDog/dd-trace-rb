@@ -72,7 +72,7 @@ module IbhContainsRefinement
   module RefinesIbhClassG
     refine IbhClassG do
       def hello
-        if RUBY_VERSION >= "2.7.0"
+        if RubyVersion.is?(">= 2.7.0")
           IbhClassE.instance_method(:hello).bind_call(IbhClassF.new)
         else
           IbhClassE.instance_method(:hello).bind(IbhClassF.new).call
