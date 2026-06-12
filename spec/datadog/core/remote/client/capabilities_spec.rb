@@ -211,6 +211,40 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
     end
   end
 
+  # The receiver registration order is load-bearing: on a combined RC
+  # dispatch (LIVE_DEBUGGING probe insert + APM_TRACING
+  # dynamic_instrumentation_enabled=true in one transaction), the Tracing
+  # receiver must run before the DI receiver so handle_rc_enablement starts
+  # DI before the DI receiver processes the probe change. Reversing the
+  # order silently drops the probe: the DI receiver runs against a stopped
+  # component, drops the change, and the remote client only redispatches on
+  # content hash changes, so a subsequent poll with the same probe content
+  # never redelivers it.
+  describe 'receiver registration order' do
+    let(:settings) do
+      Datadog::Core::Configuration::Settings.new.tap do |s|
+        s.dynamic_instrumentation.enabled = true
+      end
+    end
+
+    let(:apm_tracing_path) do
+      Datadog::Core::Remote::Configuration::Path.parse('datadog/1/APM_TRACING/_/lib_config')
+    end
+
+    let(:live_debugging_path) do
+      Datadog::Core::Remote::Configuration::Path.parse('datadog/2/LIVE_DEBUGGING/_/_')
+    end
+
+    it 'registers the Tracing receiver before the DI receiver' do
+      tracing_index = capabilities.receivers.index { |r| r.match?(apm_tracing_path) }
+      di_index = capabilities.receivers.index { |r| r.match?(live_debugging_path) }
+
+      expect(tracing_index).not_to be_nil
+      expect(di_index).not_to be_nil
+      expect(tracing_index).to be < di_index
+    end
+  end
+
   describe '#capabilities_to_base64' do
     before do
       allow(capabilities).to receive(:capabilities).and_return(
