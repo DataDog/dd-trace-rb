@@ -25,6 +25,16 @@ module Datadog
           []
         end
 
+        # Entry point for the RC-driven DI enable/disable path.
+        #
+        # Invoked from {Datadog::Tracing::Remote.process_config} when an
+        # APM_TRACING payload carries `dynamic_instrumentation_enabled`. Runs
+        # on the remote-config thread; never raises.
+        #
+        # @param enabled [Boolean] desired state from RC: true to start DI,
+        #   false to stop it. The `DD_DYNAMIC_INSTRUMENTATION_ENABLED=false`
+        #   env var blocks an enable here (see {.explicitly_disabled?}).
+        # @return [void]
         def handle_rc_enablement(enabled)
           # allow_initialization: false because this runs on the remote-config
           # thread (a callback context). The default `true` would synchronously
@@ -79,6 +89,10 @@ module Datadog
 
         # Symmetric to {DI::Component.explicitly_enabled?} (see there for why
         # using_default? rather than options[:enabled].default_precedence?).
+        #
+        # @return [Boolean] true when the customer set
+        #   `DD_DYNAMIC_INSTRUMENTATION_ENABLED=false` (or the programmatic
+        #   equivalent), which blocks RC-driven enablement.
         def explicitly_disabled?
           settings = Datadog.configuration
           !settings.dynamic_instrumentation.using_default?(:enabled) &&
