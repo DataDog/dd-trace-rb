@@ -1,6 +1,7 @@
 require 'spec_helper'
 
 require 'datadog/core/telemetry/event/app_started'
+require 'datadog/core/telemetry/event/app_extended_heartbeat'
 
 RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
   let(:id) { double('seq_id') }
@@ -157,13 +158,11 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
         expect(event.payload[:configuration]).to include(
           # Environment variables values
           {name: 'OTEL_EXPORTER_OTLP_ENDPOINT', origin: 'env_var', seq_id: 3, value: 'http://otel:4317'},
-          {name: 'OTEL_EXPORTER_OTLP_HEADERS', origin: 'env_var', seq_id: 3, value: 'key1=value1,key2=value2'},
           {name: 'OTEL_EXPORTER_OTLP_PROTOCOL', origin: 'env_var', seq_id: 3, value: 'http/protobuf'},
           {name: 'OTEL_EXPORTER_OTLP_TIMEOUT', origin: 'env_var', seq_id: 3, value: 5000},
           {name: 'DD_METRICS_OTEL_ENABLED', origin: 'env_var', seq_id: 3, value: true},
           {name: 'OTEL_METRICS_EXPORTER', origin: 'env_var', seq_id: 3, value: 'otlp'},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT', origin: 'env_var', seq_id: 3, value: 'http://metrics:4318'},
-          {name: 'OTEL_EXPORTER_OTLP_METRICS_HEADERS', origin: 'env_var', seq_id: 3, value: 'metrics_key=metrics_value'},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_PROTOCOL', origin: 'env_var', seq_id: 3, value: 'http/protobuf'},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT', origin: 'env_var', seq_id: 3, value: 3000},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE', origin: 'env_var', seq_id: 3, value: 'cumulative'},
@@ -173,21 +172,103 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
         expect(event.payload[:configuration]).to include(
           # Default values
           {name: 'OTEL_EXPORTER_OTLP_ENDPOINT', origin: 'default', seq_id: 1, value: nil},
-          {name: 'OTEL_EXPORTER_OTLP_HEADERS', origin: 'default', seq_id: 1, value: ''},
           {name: 'OTEL_EXPORTER_OTLP_PROTOCOL', origin: 'default', seq_id: 1, value: 'http/protobuf'},
           {name: 'OTEL_EXPORTER_OTLP_TIMEOUT', origin: 'default', seq_id: 1, value: 10000},
           {name: 'DD_METRICS_OTEL_ENABLED', origin: 'default', seq_id: 1, value: false},
           {name: 'OTEL_METRICS_EXPORTER', origin: 'default', seq_id: 1, value: 'otlp'},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT', origin: 'default', seq_id: 1, value: nil},
-          {name: 'OTEL_EXPORTER_OTLP_METRICS_HEADERS', origin: 'default', seq_id: 1, value: nil},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_PROTOCOL', origin: 'default', seq_id: 1, value: 'http/protobuf'},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_TIMEOUT', origin: 'default', seq_id: 1, value: 10000},
           {name: 'OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE', origin: 'default', seq_id: 1, value: 'delta'},
           {name: 'OTEL_METRIC_EXPORT_INTERVAL', origin: 'default', seq_id: 1, value: 10000},
           {name: 'OTEL_METRIC_EXPORT_TIMEOUT', origin: 'default', seq_id: 1, value: 7500}
         )
-        expect(event.payload[:configuration].count { |entry| entry[:name] == 'OTEL_EXPORTER_OTLP_HEADERS' && entry[:origin] == 'env_var' }).to eq(1)
-        expect(event.payload[:configuration].count { |entry| entry[:name] == 'OTEL_EXPORTER_OTLP_HEADERS' && entry[:origin] == 'default' }).to eq(1)
+      end
+    end
+
+    # Assign a unique sentinel to every skip_telemetry option and assert no sentinel
+    # reaches a reported configuration value. Covers new sensitive options automatically.
+    context 'with sentinel values assigned to every skip_telemetry option' do
+      # Yield every leaf (non-settings) option in the live settings tree.
+      def each_leaf_option(settings, &block)
+        settings.class.options.each_key do |name|
+          option = settings.send(:resolve_option, name)
+          if option.settings?
+            each_leaf_option(option.get, &block)
+          else
+            block.call(option)
+          end
+        end
+      end
+
+      # Every leaf option that opts out of telemetry.
+      let(:skip_telemetry_options) do
+        [].tap do |options|
+          each_leaf_option(Datadog.configuration) do |option|
+            options << option if option.definition.skip_telemetry
+          end
+        end
+      end
+
+      # Drive each env-configurable option to a string sentinel (strings directly, hashes
+      # as `header=SENTINEL`). Options that aren't string-settable or have no env var are
+      # skipped here and covered by the name-absence assertion below.
+      let(:string_settable_sentinels) do
+        sentinels = {}
+        skip_telemetry_options.each_with_index do |option, index|
+          next unless option.definition.env
+
+          sentinel = "SENTINEL_SKIP_TELEMETRY_#{index}"
+          case option.definition.type
+          when :string
+            option.set(sentinel, precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
+            sentinels[option] = sentinel
+          when :hash
+            option.set({'sentinel-header' => sentinel}, precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
+            sentinels[option] = sentinel
+          end
+        end
+        sentinels
+      end
+
+      after do
+        Datadog.configuration.reset!
+      end
+
+      it 'assigns a sentinel to at least one option (sanity check the sweep is live)' do
+        # Guards against the sweep silently covering nothing if the discovery logic breaks.
+        expect(skip_telemetry_options).to_not be_empty
+        expect(string_settable_sentinels).to_not be_empty
+      end
+
+      it 'never reports a sentinel value for any skip_telemetry option' do
+        # Assign sentinels before building the event.
+        sentinels = string_settable_sentinels.values
+        expect(sentinels).to_not be_empty
+
+        reported_values = event.payload[:configuration].map { |entry| entry[:value]&.to_s }.compact
+
+        sentinels.each do |sentinel|
+          expect(reported_values).to_not include(a_string_including(sentinel)),
+            "expected sentinel #{sentinel.inspect} to be absent from reported configuration values"
+        end
+      end
+
+      it 'does not report the name of any skip_telemetry option' do
+        # Covers options that aren't string-settable, and reinforces the value check.
+        string_settable_sentinels # ensure values are set for the run
+
+        reported_names = event.payload[:configuration].map { |entry| entry[:name] }
+
+        skip_telemetry_options.each do |option|
+          telemetry_name = option.definition.env || option.name_with_settings_path
+          # logger.instance is re-added manually under its own name (the class name, never
+          # its value), so skip the name-absence check for it.
+          next if telemetry_name == 'logger.instance'
+
+          expect(reported_names).to_not include(telemetry_name),
+            "expected skip_telemetry option #{telemetry_name.inspect} to be absent from reported configuration"
+        end
       end
     end
 
@@ -360,6 +441,37 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
 
         expect(custom_configuration).to be_empty
       end
+    end
+  end
+
+  # AppExtendedHeartbeat inherits AppStarted's configuration builder, so the redaction
+  # must hold on that path too.
+  describe 'app-extended-heartbeat configuration (inherited emitting path)' do
+    subject(:extended_event) do
+      Datadog::Core::Telemetry::Event::AppExtendedHeartbeat.new(
+        settings: Datadog.configuration,
+        agent_settings: agent_settings,
+      )
+    end
+
+    before do
+      Datadog.configure do |c|
+        c.api_key = 'SENTINEL_HEARTBEAT_API_KEY'
+        c.ai_guard.app_key = 'SENTINEL_HEARTBEAT_APP_KEY'
+        c.opentelemetry.exporter.headers = {'dd-api-key' => 'SENTINEL_HEARTBEAT_OTLP'}
+      end
+    end
+
+    after do
+      Datadog.configuration.reset!
+    end
+
+    it 'does not report sensitive values through the extended-heartbeat event' do
+      reported_values = extended_event.payload[:configuration].map { |entry| entry[:value]&.to_s }.compact
+
+      expect(reported_values).to_not include(a_string_including('SENTINEL_HEARTBEAT_API_KEY'))
+      expect(reported_values).to_not include(a_string_including('SENTINEL_HEARTBEAT_APP_KEY'))
+      expect(reported_values).to_not include(a_string_including('SENTINEL_HEARTBEAT_OTLP'))
     end
   end
 end
