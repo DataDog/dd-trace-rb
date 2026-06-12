@@ -7,6 +7,64 @@ require "json"
 head_stats = JSON.parse(File.read(ENV["CURRENT_STATS_PATH"]), symbolize_names: true)
 base_stats = JSON.parse(File.read(ENV["BASE_STATS_PATH"]), symbolize_names: true)
 
+# Synthesizes constant names from every part of an RBS file path.
+## Example: "path/to/resolver.rbs" -> ["Path", "To", "Resolver"]
+def constant_names_from_path(path)
+  path.delete_suffix(".rbs").split("/").map do |part|
+    part.split("_").map(&:capitalize).join
+  end
+end
+
+# Parse renames from Git.
+RENAMED_PATHS = File.readlines(ENV["RENAMED_PATHS_PATH"], chomp: true).each_with_object({}) do |line, result|
+  _, base_path, head_path = line.split("\t", 3)
+  result[head_path] = base_path
+end
+
+# Look up for renamed constant names.
+# Example: on rename from base "base.rbs" to head "head.rbs", "Head" should compare as "Base".
+# Same for nested constant paths: ['NewPath', 'NewPath::Core'] compares as ['BasePath', 'BasePath::Core'].
+RENAMED_CONSTANTS = RENAMED_PATHS.each_with_object({}) do |(head_path, base_path), result|
+  result[head_path] = constant_names_from_path(head_path).zip(constant_names_from_path(base_path))
+end
+
+# Normalizes comparison keys so findings follow renames.
+# Example: on rename from base "base.rbs" to head "head.rbs", both paths compare as "base.rbs".
+def comparison_key(item)
+  key = item[:comparison_key].dup
+  path = key[:path]
+  base_path = RENAMED_PATHS[path]
+
+  if key[:constant_path] && RENAMED_CONSTANTS[path]
+    key[:constant_path] = key[:constant_path].map do |owner|
+      owner.split("::").map { |part| RENAMED_CONSTANTS[path].assoc(part)&.last || part }.join("::")
+    end
+  end
+
+  # Normalize key as base path.
+  key[:path] = base_path || path
+  key
+end
+
+# Compares keyed findings while preserving duplicate counts.
+def multiset_comparison(head_items, base_items)
+  unmatched_base = base_items.group_by { |item| comparison_key(item) }
+  added = []
+
+  head_items.each do |item|
+    base_matches = unmatched_base[comparison_key(item)]
+    if base_matches&.any?
+      # Consume one matching base finding so duplicate findings are counted independently.
+      base_matches.shift
+    else
+      added << item
+    end
+  end
+
+  removed = unmatched_base.values.flatten
+  [added, removed]
+end
+
 def format_for_code_block(data)
   data.map do |item|
     formatted_string = +"#{item[:path]}:#{item[:line]}"
@@ -157,10 +215,14 @@ def steep_ignore_summary(head_stats, base_stats)
 end
 
 def untyped_methods_summary(head_stats, base_stats)
-  untyped_methods_added = head_stats[:untyped_methods] - base_stats[:untyped_methods]
-  untyped_methods_removed = base_stats[:untyped_methods] - head_stats[:untyped_methods]
-  partially_typed_methods_added = head_stats[:partially_typed_methods] - base_stats[:partially_typed_methods]
-  partially_typed_methods_removed = base_stats[:partially_typed_methods] - head_stats[:partially_typed_methods]
+  untyped_methods_added, untyped_methods_removed = multiset_comparison(
+    head_stats[:untyped_methods],
+    base_stats[:untyped_methods]
+  )
+  partially_typed_methods_added, partially_typed_methods_removed = multiset_comparison(
+    head_stats[:partially_typed_methods],
+    base_stats[:partially_typed_methods]
+  )
   total_methods_base = base_stats[:typed_methods_size] + base_stats[:untyped_methods].size + base_stats[:partially_typed_methods].size
   total_methods_head = head_stats[:typed_methods_size] + head_stats[:untyped_methods].size + head_stats[:partially_typed_methods].size
   typed_methods_percentage_base = (base_stats[:typed_methods_size] / total_methods_base.to_f * 100).round(2)
@@ -180,10 +242,14 @@ def untyped_methods_summary(head_stats, base_stats)
 end
 
 def untyped_others_summary(head_stats, base_stats)
-  untyped_others_added = head_stats[:untyped_others] - base_stats[:untyped_others]
-  untyped_others_removed = base_stats[:untyped_others] - head_stats[:untyped_others]
-  partially_typed_others_added = head_stats[:partially_typed_others] - base_stats[:partially_typed_others]
-  partially_typed_others_removed = base_stats[:partially_typed_others] - head_stats[:partially_typed_others]
+  untyped_others_added, untyped_others_removed = multiset_comparison(
+    head_stats[:untyped_others],
+    base_stats[:untyped_others]
+  )
+  partially_typed_others_added, partially_typed_others_removed = multiset_comparison(
+    head_stats[:partially_typed_others],
+    base_stats[:partially_typed_others]
+  )
   total_others_base = base_stats[:typed_others_size] + base_stats[:untyped_others].size + base_stats[:partially_typed_others].size
   total_others_head = head_stats[:typed_others_size] + head_stats[:untyped_others].size + head_stats[:partially_typed_others].size
   typed_others_percentage_base = (base_stats[:typed_others_size] / total_others_base.to_f * 100).round(2)
