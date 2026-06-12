@@ -9,7 +9,7 @@ module Datadog
       # All aggregation (canonical key, tier routing, cap enforcement) is performed
       # in the background by the FlagEvaluation::Writer.
       #
-      # OTel non-regression (PRES-01): hooks/flag_eval_hook.rb and metrics/flag_eval_metrics.rb
+      # OTel non-regression: hooks/flag_eval_hook.rb and metrics/flag_eval_metrics.rb
       # are byte-for-byte untouched. This hook is wired ALONGSIDE the existing OTel hook.
       class FlagEvalEVPHook
         # Include the Hook module if available (SDK >= 0.5.0) for interface documentation
@@ -25,14 +25,14 @@ module Datadog
           @writer = writer
         end
 
-        # finally covers success, error, AND default paths (reviewer concern #7 / pitfall 1).
+        # finally covers success, error, AND default paths (not just After).
         # Cheap extraction only — no aggregation on the caller thread.
         def finally(hook_context:, evaluation_details:, **_opts)
           writer = @writer
           return unless writer
 
           # Eval-time stamped by the provider at eval-entry time; fall back to hook-fire time.
-          # Metadata key: 'dd.eval.timestamp_ms' (int, ms since epoch) — reviewer concern #4.
+          # Metadata key: 'dd.eval.timestamp_ms' (int, ms since epoch) — stamped at eval entry.
           metadata     = evaluation_details.flag_metadata
           eval_time_ms = metadata.is_a?(Hash) ? metadata['dd.eval.timestamp_ms'] : nil
           eval_time_ms ||= (Core::Utils::Time.now.to_f * 1000).to_i

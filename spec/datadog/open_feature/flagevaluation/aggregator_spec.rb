@@ -27,7 +27,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       expect(aggregator.canonical_context_key({})).to eq('')
     end
 
-    it 'differentiates integer 1 from string "1" (type-tag, reviewer concern #3)' do
+    it 'differentiates integer 1 from string "1" (type-tag prevents collisions)' do
       key_int    = aggregator.canonical_context_key('x' => 1)
       key_string = aggregator.canonical_context_key('x' => '1')
       expect(key_int).not_to eq(key_string)
@@ -79,7 +79,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
   # ─── context pruning ─────────────────────────────────────────────────────────
 
   describe '#prune_context' do
-    it 'skips string values exceeding 256 chars (reviewer concern #1)' do
+    it 'skips string values exceeding 256 chars' do
       long_value = 'x' * 257
       attrs = {'key' => long_value, 'other' => 'fine'}
       pruned = aggregator.prune_context(attrs)
@@ -135,7 +135,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
     end
 
     context 'two evaluations differing only by context value type (int 1 vs string "1")' do
-      it 'creates two distinct full-tier buckets (reviewer concern #3)' do
+      it 'creates two distinct full-tier buckets (type-tagged canonical key)' do
         aggregator.record(**base_event.merge(attrs: {'x' => 1}))
         aggregator.record(**base_event.merge(attrs: {'x' => '1'}))
 
@@ -144,7 +144,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       end
     end
 
-    context 'runtime_default detection (reviewer concern #5)' do
+    context 'runtime_default detection' do
       it 'marks runtime_default_used true when variant is nil' do
         aggregator.record(**base_event.merge(variant: nil))
 
@@ -162,7 +162,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       end
     end
 
-    context 'full-tier globalCap overflow routes to degraded (reviewer concern #8)' do
+    context 'full-tier globalCap overflow routes to degraded' do
       let(:global_cap) { 2 }
       let(:per_flag_cap) { 10 }
 
@@ -195,7 +195,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       end
     end
 
-    context 'degraded-tier degradedCap overflow increments dropped counter (reviewer concern #8)' do
+    context 'degraded-tier degradedCap overflow increments dropped counter' do
       let(:global_cap) { 1 }    # force overflow to degraded immediately
       let(:per_flag_cap) { 1 }
       let(:degraded_cap) { 1 }  # then degrade overflows
@@ -213,7 +213,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       end
     end
 
-    context 'degraded tier omits targeting_key and context (reviewer concern #2 — omitempty schema)' do
+    context 'degraded tier omits targeting_key and context (omitempty schema fields)' do
       let(:global_cap) { 1 }
       let(:per_flag_cap) { 1 }
 

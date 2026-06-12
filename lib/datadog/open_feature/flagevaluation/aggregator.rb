@@ -5,13 +5,13 @@ module Datadog
     module FlagEvaluation
       # Two-tier aggregation for EVP flagevaluation events.
       #
-      # Design: frozen contract conformance per .planning/FANOUT-CONTRACT.md
+      # Two-tier design:
       # - full-tier  key: (flag_key, variant, allocation_key, reason, targeting_key, canonical_context_key)
       # - degraded-tier key: (flag_key, variant, allocation_key, reason) — exactly OTel cardinality
       # - Drop-and-count when degraded tier is full (no ultra-degraded tier)
       # - canonical_context_key: sorted type-tagged length-delimited encoding (no hash digest)
       # - Caps: globalCap=131_072 / perFlagCap=10_000 / degradedCap=32_768
-      # - Context pruning: 256 fields / 256 chars (reviewer concern #1)
+      # - Context pruning: 256 fields / 256 chars (matches flageval-worker backend limits)
       class Aggregator
         MAX_CONTEXT_FIELDS = 256
         MAX_FIELD_LENGTH = 256
@@ -45,7 +45,7 @@ module Datadog
         # Record one evaluation event. Thread-safe. Called from the hook's finally stage.
         # All aggregation is done here — the hook itself only calls record.
         def record(flag_key:, variant:, allocation_key:, reason:, targeting_key:, eval_time_ms:, attrs:)
-          # Runtime default: primary signal is absent/nil variant (reviewer concern #5)
+          # Runtime default: primary signal is absent/nil variant (not reason alone)
           runtime_default = variant.nil?
 
           # Normalize nil/empty strings
@@ -54,7 +54,7 @@ module Datadog
           reason        = reason.to_s
           targeting_key = targeting_key.to_s
 
-          # Context pruning + canonical key (reviewer concern #1 + #3)
+          # Context pruning + canonical key (see prune_context and canonical_context_key)
           pruned  = prune_context(attrs)
           ctx_key = canonical_context_key(pruned)
 
@@ -102,7 +102,7 @@ module Datadog
         end
 
         # Prune context: keep first MAX_CONTEXT_FIELDS fields (sorted), skip string values >256 chars.
-        # Keys are sorted before pruning to ensure deterministic subset selection (reviewer concern #1).
+        # Keys are sorted before pruning to ensure deterministic subset selection.
         def prune_context(attrs)
           return {} if attrs.nil? || attrs.empty?
 
@@ -124,7 +124,7 @@ module Datadog
         # Canonical context key: sorted type-tagged length-delimited encoding.
         # Each field is: 8-byte big-endian key length + key bytes + type-tag byte +
         #                8-byte big-endian value length + value bytes.
-        # No hash digest — the key IS the full encoding (reviewer concern #3).
+        # No hash digest — the key IS the full encoding (collision-free, no FNV).
         def canonical_context_key(attrs)
           return '' if attrs.nil? || attrs.empty?
 
@@ -194,12 +194,12 @@ module Datadog
 
           # New degraded bucket — check degradedCap (terminal tier)
           if @degraded.size >= @degraded_cap
-            # Terminal tier full — drop and count (reviewer concern #8)
+            # Terminal tier full — drop and count (explicit overflow counter)
             @dropped_degraded_overflow += 1
             return
           end
 
-          # Degraded entry omits targeting_key + context_attrs (reviewer concern #2 — schema omitempty)
+          # Degraded entry omits targeting_key + context_attrs (schema omitempty fields)
           @degraded[deg_key] = new_entry(eval_ms, runtime_default: runtime_default)
         end
       end
