@@ -39,7 +39,7 @@ module Datadog
 
           writer.enqueue(
             flag_key: hook_context.flag_key,
-            variant: evaluation_details.variant, # nil = absent = runtime_default (concern #5)
+            variant: evaluation_details.variant, # nil = absent = runtime default
             reason: evaluation_details.reason.to_s,
             allocation_key: extract_allocation_key(evaluation_details),
             targeting_key: hook_context.evaluation_context&.targeting_key,

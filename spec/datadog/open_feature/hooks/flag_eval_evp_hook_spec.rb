@@ -17,7 +17,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
   let(:eval_context) { double('EvpEvalContext', targeting_key: 'user-7', attributes: {'env' => 'prod'}) }
   let(:hook_context) { double('HookContext', flag_key: 'my-flag', evaluation_context: eval_context) }
 
-  describe '#finally — captures cheaply and enqueues (G2 async boundary)' do
+  describe '#finally — captures cheaply and enqueues (async boundary)' do
     let(:evaluation_details) do
       instance_double(
         'OpenFeature::SDK::EvaluationDetails',
@@ -27,20 +27,20 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       )
     end
 
-    # G1: variant comes from evaluation_details.variant (the OpenFeature variant), NEVER the value.
+    # Variant comes from evaluation_details.variant (the OpenFeature variant), NEVER the value.
     # The hook is never given the evaluated value, so it cannot accidentally emit it.
     it 'enqueues the variant from evaluation_details.variant' do
       expect(writer).to receive(:enqueue).with(hash_including(variant: 'on'))
       hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
     end
 
-    # G7: allocation_key read from metadata['__dd_allocation_key'] — the SAME source the OTel hook uses.
+    # allocation_key read from metadata['__dd_allocation_key'] — the SAME source the OTel hook uses.
     it 'enqueues allocation_key from the same metadata key the OTel hook reads' do
       expect(writer).to receive(:enqueue).with(hash_including(allocation_key: 'alloc-9'))
       hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
     end
 
-    # G13: eval-time read from the provider-stamped 'dd.eval.timestamp_ms' metadata key.
+    # eval-time read from the provider-stamped 'dd.eval.timestamp_ms' metadata key.
     it 'enqueues eval_time_ms from the provider-stamped dd.eval.timestamp_ms metadata' do
       expect(writer).to receive(:enqueue).with(hash_including(eval_time_ms: 1_700_000_000_000))
       hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
@@ -67,7 +67,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
   end
 
   describe '#finally — runtime-default + missing-metadata edge cases' do
-    # G13 fallback: when the provider did not stamp a timestamp, fall back to hook-fire time.
+    # Fallback: when the provider did not stamp a timestamp, fall back to hook-fire time.
     it 'falls back to a real hook-fire timestamp when dd.eval.timestamp_ms is absent' do
       details = instance_double(
         'OpenFeature::SDK::EvaluationDetails',

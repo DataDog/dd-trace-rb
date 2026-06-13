@@ -43,7 +43,7 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
       end
     end
 
-    # G8: the EVP killswitch is read through the config registry (DD_FLAGGING_EVALUATION_COUNTS_ENABLED),
+    # The EVP killswitch is read through the config registry (DD_FLAGGING_EVALUATION_COUNTS_ENABLED),
     # not raw ENV. Default on; settable in code.
     describe '#evaluation_counts_enabled' do
       subject(:evaluation_counts_enabled) { settings.open_feature.evaluation_counts_enabled }

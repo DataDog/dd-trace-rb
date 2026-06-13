@@ -142,7 +142,7 @@ module Datadog
 
         private
 
-        # Type tags matching Go reference (flagevaluation.go lines 741-752)
+        # Type tags so values of different Ruby types never collide in the canonical key.
         CTX_TAG_STRING = 's'
         CTX_TAG_BOOL = 'b'
         CTX_TAG_INTEGER = 'i'

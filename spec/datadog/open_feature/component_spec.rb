@@ -85,7 +85,7 @@ RSpec.describe Datadog::OpenFeature::Component do
     end
   end
 
-  # G8: the EVP killswitch is read through the config registry (settings.open_feature
+  # The EVP killswitch is read through the config registry (settings.open_feature
   # .evaluation_counts_enabled), NOT raw ENV. When disabled, the EVP hook is not created and the
   # OTel hook is unaffected (non-regression).
   # Hooks only exist when the OpenFeature SDK supports them (>= 0.5); skip on the min appraisal.
@@ -129,7 +129,7 @@ RSpec.describe Datadog::OpenFeature::Component do
       component.shutdown!
     end
 
-    # G5: shutdown stops the EVP writer (which drains + final-flushes its queue).
+    # Shutdown stops the EVP writer (which drains + final-flushes its queue).
     # Only meaningful when the SDK supports hooks (>= 0.5) — skip on the min appraisal.
     it 'stops the EVP flagevaluation writer so it drains and flushes',
       skip: !Datadog::OpenFeature::Hooks::FlagEvalEVPHook.available? do

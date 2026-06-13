@@ -253,7 +253,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       expect(aggregator_small.dropped_degraded_overflow).to eq(0)
     end
 
-    # G4: the snapshot must CARRY the degraded-overflow count so the writer can emit it before
+    # The snapshot must CARRY the degraded-overflow count so the writer can emit it before
     # reset (not reset-without-emit). The count must equal what dropped at flush time.
     it 'returns the degraded-overflow count in the snapshot so it can be emitted before reset' do
       aggregator_small = described_class.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 1)

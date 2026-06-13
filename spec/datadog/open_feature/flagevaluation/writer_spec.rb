@@ -49,7 +49,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
     end
   end
 
-  # G5: #stop must drain + final-flush even when the worker is mid-wait (sleeping). The worker
+  # #stop must drain + final-flush even when the worker is mid-wait (sleeping). The worker
   # waits on a ConditionVariable up to FLUSH_INTERVAL_SECONDS (10s); #stop must wake it and the
   # transport must actually RECEIVE the drained events — proven without sleeping in the test.
   describe '#stop drains and flushes a sleeping worker' do
@@ -82,7 +82,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
     end
   end
 
-  # G4: backpressure must be OBSERVABLE. When the hand-off queue overflows, enqueue increments an
+  # Backpressure must be OBSERVABLE. When the hand-off queue overflows, enqueue increments an
   # observable counter that is emitted (logged) on the next flush — not silently dropped.
   describe '#enqueue queue-overflow backpressure' do
     let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP, send_flag_evaluations: nil) }
@@ -115,7 +115,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
     end
   end
 
-  # G3: emitted payload MUST validate against the real flageval-worker JSON schema — for BOTH
+  # Emitted payload MUST validate against the real flageval-worker JSON schema — for BOTH
   # full-tier and degraded-tier rows. variant/allocation serialize as {"key": ...} objects.
   describe 'emitted payload conforms to the flageval-worker JSON schema' do
     let(:logger) { instance_double(Logger, debug: nil) }
@@ -175,7 +175,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(errors).to be_empty, "schema errors: #{errors.join("\n")}"
     end
 
-    # G6: the emitted context must hold the PRUNED attrs (oversized strings removed, <=256 fields),
+    # The emitted context must hold the PRUNED attrs (oversized strings removed, <=256 fields),
     # not the raw attrs. Proven by inspecting the emitted payload, not the aggregator internals.
     it 'emits PRUNED context attrs in the payload (oversized strings removed, capped at 256 fields)' do
       raw = {'keep' => 'ok', 'toobig' => 'x' * 257}
@@ -197,7 +197,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
     end
   end
 
-  # G4: the aggregator's degraded-overflow count must be EMITTED before reset (not reset-without-emit).
+  # The aggregator's degraded-overflow count must be EMITTED before reset (not reset-without-emit).
   describe '#flush_once emits degraded-overflow drops' do
     let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP, send_flag_evaluations: nil) }
     let(:logger) { instance_double(Logger) }

@@ -286,7 +286,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    # G12: ALL evaluation exit paths must reach (or safely bypass) the EVP hook.
+    # ALL evaluation exit paths must reach (or safely bypass) the EVP hook.
     context 'evaluation exit paths' do
       before do
         allow(provider).to receive(:call_evp_hook).and_call_original
@@ -332,7 +332,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    # G13: provider stamps 'dd.eval.timestamp_ms' into flag metadata at eval entry, which the
+    # Provider stamps 'dd.eval.timestamp_ms' into flag metadata at eval entry, which the
     # EVP hook reads for first/last_evaluation. Proven by inspecting the metadata the hook sees.
     context 'eval-time metadata stamping' do
       # Override the configurable time provider (no Timecop dependency). The provider lambda runs
