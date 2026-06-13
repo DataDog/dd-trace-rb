@@ -1,13 +1,20 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'open_feature/sdk'
 require 'datadog/open_feature/component'
+require 'datadog/open_feature/flagevaluation/writer'
+require 'datadog/open_feature/hooks/flag_eval_evp_hook'
 
 RSpec.describe Datadog::OpenFeature::Component do
   before do
     allow(Datadog::OpenFeature::Transport::HTTP).to receive(:build).and_return(transport)
+    allow(Datadog::OpenFeature::Transport::HTTP).to receive(:build_flagevaluations).and_return(transport)
     allow(Datadog::OpenFeature::Exposures::Worker).to receive(:new).and_return(worker)
     allow(Datadog::OpenFeature::Exposures::Reporter).to receive(:new).and_return(reporter)
+    # Never spawn the EVP writer's real background thread in component specs (avoid resource leaks).
+    allow_any_instance_of(Datadog::OpenFeature::FlagEvaluation::Writer)
+      .to receive(:start_background_thread).and_return(nil)
   end
 
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
@@ -78,16 +85,58 @@ RSpec.describe Datadog::OpenFeature::Component do
     end
   end
 
+  # G8: the EVP killswitch is read through the config registry (settings.open_feature
+  # .evaluation_counts_enabled), NOT raw ENV. When disabled, the EVP hook is not created and the
+  # OTel hook is unaffected (non-regression).
+  # Hooks only exist when the OpenFeature SDK supports them (>= 0.5); skip on the min appraisal.
+  describe 'EVP killswitch via config registry', skip: !Datadog::OpenFeature::Hooks::FlagEvalEVPHook.available? do
+    before do
+      settings.open_feature.enabled = true
+      settings.remote.enabled = true
+      stub_const('Datadog::Core::LIBDATADOG_API_FAILURE', nil)
+    end
+
+    subject(:component) { described_class.new(settings, agent_settings, logger: logger, telemetry: telemetry) }
+
+    context 'when evaluation_counts_enabled is true (default)' do
+      it 'creates the EVP hook' do
+        expect(component.flag_eval_evp_hook).to be_a(Datadog::OpenFeature::Hooks::FlagEvalEVPHook)
+      end
+    end
+
+    context 'when evaluation_counts_enabled is false' do
+      before { settings.open_feature.evaluation_counts_enabled = false }
+
+      it 'does not create the EVP hook (killswitch), leaving the OTel hook intact' do
+        expect(component.flag_eval_evp_hook).to be_nil
+        expect(component.flag_eval_hook).to be_a(Datadog::OpenFeature::Hooks::FlagEvalHook)
+      end
+    end
+  end
+
   describe '#shutdown!' do
     before do
       settings.open_feature.enabled = true
       settings.remote.enabled = true
+      stub_const('Datadog::Core::LIBDATADOG_API_FAILURE', nil)
     end
 
     subject(:component) { described_class.new(settings, agent_settings, logger: logger, telemetry: telemetry) }
 
     it 'gracefully shutdown the worker' do
       expect(worker).to receive(:graceful_shutdown)
+
+      component.shutdown!
+    end
+
+    # G5: shutdown stops the EVP writer (which drains + final-flushes its queue).
+    # Only meaningful when the SDK supports hooks (>= 0.5) — skip on the min appraisal.
+    it 'stops the EVP flagevaluation writer so it drains and flushes',
+      skip: !Datadog::OpenFeature::Hooks::FlagEvalEVPHook.available? do
+      evp_writer = component.instance_variable_get(:@flag_eval_evp_writer)
+      expect(evp_writer).to be_a(Datadog::OpenFeature::FlagEvaluation::Writer)
+      expect(evp_writer).to receive(:stop)
+      allow(worker).to receive(:graceful_shutdown)
 
       component.shutdown!
     end

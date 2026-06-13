@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'ext'
+require_relative '../core/utils/time'
 require 'open_feature/sdk'
 
 module Datadog
@@ -94,7 +95,7 @@ module Datadog
       def hooks
         component = Datadog.send(:components).open_feature
         otel_hook = component&.flag_eval_hook
-        evp_hook  = component&.flag_eval_evp_hook
+        evp_hook = component&.flag_eval_evp_hook
         [otel_hook, evp_hook].compact
       end
 
@@ -125,6 +126,10 @@ module Datadog
       private
 
       def evaluate(flag_key, default_value:, expected_type:, evaluation_context:)
+        # Stamp evaluation entry time once, here on the eval thread. The EVP path uses this for
+        # accurate first/last_evaluation bounds instead of a later hook-fire clock read.
+        eval_time_ms = (Core::Utils::Time.now.to_f * 1000).to_i
+
         engine = OpenFeature.engine
         return component_not_configured_default(default_value) if engine.nil?
 
@@ -136,7 +141,7 @@ module Datadog
         )
 
         # Build metadata before branching so EVP and the success path share one call.
-        flag_meta = build_flag_metadata(result)
+        flag_meta = build_flag_metadata(result, eval_time_ms)
 
         # Drive EVP hook directly: the Ruby openfeature-sdk does not invoke provider hooks,
         # so we call it here to cover both success and error paths (finally semantics).
@@ -166,13 +171,16 @@ module Datadog
         )
       end
 
-      def build_flag_metadata(result)
-        metadata = result.flag_metadata || {}
+      def build_flag_metadata(result, eval_time_ms)
+        metadata = (result.flag_metadata || {}).dup
         allocation_key = result.allocation_key
         if allocation_key && !allocation_key.empty?
-          metadata = metadata.dup
           metadata['__dd_allocation_key'] = allocation_key
         end
+
+        # Eval-time stamped at provider entry; the EVP hook reads 'dd.eval.timestamp_ms' for
+        # accurate first/last_evaluation bounds (it falls back to hook-fire time when absent).
+        metadata['dd.eval.timestamp_ms'] = eval_time_ms
 
         metadata
       end

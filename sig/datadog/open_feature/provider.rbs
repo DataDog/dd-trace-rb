@@ -63,8 +63,16 @@ module Datadog
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def build_flag_metadata: (
-        (ResolutionDetails | Core::FeatureFlags::ResolutionDetails) result
-      ) -> ::Hash[::String, ::String]
+        (ResolutionDetails | Core::FeatureFlags::ResolutionDetails) result,
+        ::Integer eval_time_ms
+      ) -> ::Hash[::String, untyped]
+
+      def call_evp_hook: (
+        ::String flag_key,
+        (ResolutionDetails | Core::FeatureFlags::ResolutionDetails) result,
+        ::OpenFeature::SDK::EvaluationContext? evaluation_context,
+        ::Hash[::String, untyped] flag_metadata
+      ) -> void
     end
   end
 end

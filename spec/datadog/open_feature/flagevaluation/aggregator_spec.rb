@@ -28,20 +28,20 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
     end
 
     it 'differentiates integer 1 from string "1" (type-tag prevents collisions)' do
-      key_int    = aggregator.canonical_context_key('x' => 1)
+      key_int = aggregator.canonical_context_key('x' => 1)
       key_string = aggregator.canonical_context_key('x' => '1')
       expect(key_int).not_to eq(key_string)
     end
 
     it 'differentiates boolean from string "true"' do
-      key_bool   = aggregator.canonical_context_key('x' => true)
+      key_bool = aggregator.canonical_context_key('x' => true)
       key_string = aggregator.canonical_context_key('x' => 'true')
       expect(key_bool).not_to eq(key_string)
     end
 
     it 'differentiates float from integer' do
       key_float = aggregator.canonical_context_key('x' => 1.0)
-      key_int   = aggregator.canonical_context_key('x' => 1)
+      key_int = aggregator.canonical_context_key('x' => 1)
       expect(key_float).not_to eq(key_int)
     end
 
@@ -250,6 +250,20 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       aggregator_small.record(flag_key: 'f', variant: 'v', allocation_key: '', reason: 'R', targeting_key: '', eval_time_ms: 2, attrs: {'x' => 2})
       aggregator_small.record(flag_key: 'f', variant: 'v', allocation_key: '', reason: 'R', targeting_key: '', eval_time_ms: 3, attrs: {'x' => 3})
       aggregator_small.flush_and_reset
+      expect(aggregator_small.dropped_degraded_overflow).to eq(0)
+    end
+
+    # G4: the snapshot must CARRY the degraded-overflow count so the writer can emit it before
+    # reset (not reset-without-emit). The count must equal what dropped at flush time.
+    it 'returns the degraded-overflow count in the snapshot so it can be emitted before reset' do
+      aggregator_small = described_class.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 1)
+      aggregator_small.record(flag_key: 'f', variant: 'v', allocation_key: '', reason: 'R', targeting_key: '', eval_time_ms: 1, attrs: {'x' => 1})
+      aggregator_small.record(flag_key: 'f', variant: 'v', allocation_key: '', reason: 'R', targeting_key: '', eval_time_ms: 2, attrs: {'x' => 2})
+      aggregator_small.record(flag_key: 'f', variant: 'v', allocation_key: '', reason: 'DEFAULT', targeting_key: '', eval_time_ms: 3, attrs: {'x' => 3})
+
+      snapshot = aggregator_small.flush_and_reset
+      expect(snapshot[:dropped_degraded_overflow]).to be >= 1
+      # And after flush the internal counter is reset (single source of truth).
       expect(aggregator_small.dropped_degraded_overflow).to eq(0)
     end
   end

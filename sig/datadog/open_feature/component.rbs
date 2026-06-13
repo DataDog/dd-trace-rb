@@ -15,9 +15,15 @@ module Datadog
 
       @flag_eval_hook: Hooks::FlagEvalHook?
 
+      @flag_eval_evp_hook: Hooks::FlagEvalEVPHook?
+
+      @flag_eval_evp_writer: FlagEvaluation::Writer?
+
       attr_reader engine: EvaluationEngine
 
       attr_reader flag_eval_hook: Hooks::FlagEvalHook?
+
+      attr_reader flag_eval_evp_hook: Hooks::FlagEvalEVPHook?
 
       def self.build: (
         Core::Configuration::Settings settings,
@@ -33,13 +39,13 @@ module Datadog
         telemetry: Core::Telemetry::Component
       ) -> void
 
-      def flush: () -> void
-
       def shutdown!: () -> void
 
       private
 
       def create_flag_eval_hook: () -> Hooks::FlagEvalHook?
+
+      def create_flag_eval_evp_hook: () -> Hooks::FlagEvalEVPHook?
     end
   end
 end

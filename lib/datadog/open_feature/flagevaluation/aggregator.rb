@@ -16,7 +16,7 @@ module Datadog
         MAX_CONTEXT_FIELDS = 256
         MAX_FIELD_LENGTH = 256
 
-        DEFAULT_GLOBAL_CAP   = 131_072
+        DEFAULT_GLOBAL_CAP = 131_072
         DEFAULT_PER_FLAG_CAP = 10_000
         DEFAULT_DEGRADED_CAP = 32_768
 
@@ -27,13 +27,13 @@ module Datadog
           per_flag_cap: DEFAULT_PER_FLAG_CAP,
           degraded_cap: DEFAULT_DEGRADED_CAP
         )
-          @global_cap   = global_cap
+          @global_cap = global_cap
           @per_flag_cap = per_flag_cap
           @degraded_cap = degraded_cap
 
-          @mutex  = Mutex.new
+          @mutex = Mutex.new
           # full-tier: Array key -> Hash entry
-          @full   = {}
+          @full = {}
           # degraded-tier: Array key -> Hash entry
           @degraded = {}
           # per-flag full-bucket count for perFlagCap enforcement
@@ -49,17 +49,17 @@ module Datadog
           runtime_default = variant.nil?
 
           # Normalize nil/empty strings
-          variant       = variant.to_s
+          variant = variant.to_s
           allocation_key = allocation_key.to_s
-          reason        = reason.to_s
+          reason = reason.to_s
           targeting_key = targeting_key.to_s
 
           # Context pruning + canonical key (see prune_context and canonical_context_key)
-          pruned  = prune_context(attrs)
+          pruned = prune_context(attrs)
           ctx_key = canonical_context_key(pruned)
 
           full_key = [flag_key, variant, allocation_key, reason, targeting_key, ctx_key]
-          eval_ms  = eval_time_ms.to_i
+          eval_ms = eval_time_ms.to_i
 
           @mutex.synchronize do
             # --- Full tier ---
@@ -70,7 +70,7 @@ module Datadog
 
             # Check caps before adding new full bucket
             full_ok = @global_count < @global_cap &&
-                      @per_flag_full[flag_key] < @per_flag_cap
+              @per_flag_full[flag_key] < @per_flag_cap
 
             if full_ok
               e = new_entry(eval_ms, runtime_default: runtime_default, targeting_key: targeting_key, context_attrs: pruned)
@@ -85,19 +85,22 @@ module Datadog
         end
 
         # Flush aggregation maps, reset state, return snapshot.
-        # Returns { full: Hash, degraded: Hash }
+        # Returns { full: Hash, degraded: Hash, dropped_degraded_overflow: Integer }.
+        # The overflow count is included in the snapshot so the caller can EMIT it before it is
+        # reset — the count is never reset-without-emit (backpressure stays observable).
         def flush_and_reset
           @mutex.synchronize do
-            full_snap     = @full
+            full_snap = @full
             degraded_snap = @degraded
+            dropped_snap = @dropped_degraded_overflow
 
-            @full               = {}
-            @degraded           = {}
-            @per_flag_full      = Hash.new(0)
-            @global_count       = 0
+            @full = {}
+            @degraded = {}
+            @per_flag_full = Hash.new(0)
+            @global_count = 0
             @dropped_degraded_overflow = 0
 
-            {full: full_snap, degraded: degraded_snap}
+            {full: full_snap, degraded: degraded_snap, dropped_degraded_overflow: dropped_snap}
           end
         end
 
@@ -106,7 +109,7 @@ module Datadog
         def prune_context(attrs)
           return {} if attrs.nil? || attrs.empty?
 
-          out   = {}
+          out = {}
           count = 0
           attrs.keys.sort.each do |k|
             break if count >= MAX_CONTEXT_FIELDS
@@ -140,20 +143,20 @@ module Datadog
         private
 
         # Type tags matching Go reference (flagevaluation.go lines 741-752)
-        CTX_TAG_STRING  = 's'
-        CTX_TAG_BOOL    = 'b'
+        CTX_TAG_STRING = 's'
+        CTX_TAG_BOOL = 'b'
         CTX_TAG_INTEGER = 'i'
-        CTX_TAG_FLOAT   = 'f'
-        CTX_TAG_OTHER   = 'o'
+        CTX_TAG_FLOAT = 'f'
+        CTX_TAG_OTHER = 'o'
 
         def context_value_bytes(v)
           tag, encoded = case v
-                         when String          then [CTX_TAG_STRING,  v.to_s]
-                         when TrueClass, FalseClass then [CTX_TAG_BOOL, v.to_s]
-                         when Integer         then [CTX_TAG_INTEGER, v.to_s]
-                         when Float           then [CTX_TAG_FLOAT,   v.to_s]
-                         else                      [CTX_TAG_OTHER,   v.to_s]
-                         end
+          when String then [CTX_TAG_STRING, v.to_s]
+          when TrueClass, FalseClass then [CTX_TAG_BOOL, v.to_s]
+          when Integer then [CTX_TAG_INTEGER, v.to_s]
+          when Float then [CTX_TAG_FLOAT, v.to_s]
+          else [CTX_TAG_OTHER, v.to_s]
+          end
           String.new(tag, encoding: Encoding::BINARY) + length_delimited(encoded)
         end
 
@@ -181,7 +184,7 @@ module Datadog
         def observe(entry, eval_ms)
           entry[:count] += 1
           entry[:first_evaluation] = eval_ms if eval_ms < entry[:first_evaluation]
-          entry[:last_evaluation]  = eval_ms if eval_ms > entry[:last_evaluation]
+          entry[:last_evaluation] = eval_ms if eval_ms > entry[:last_evaluation]
         end
 
         def add_to_degraded(flag_key, variant, allocation_key, reason, eval_ms, runtime_default)

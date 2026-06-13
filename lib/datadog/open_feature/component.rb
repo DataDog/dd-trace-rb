@@ -54,8 +54,9 @@ module Datadog
 
         @telemetry = telemetry
         @logger = logger
+        @settings = settings
         @agent_settings = agent_settings
-        @flag_eval_hook     = create_flag_eval_hook
+        @flag_eval_hook = create_flag_eval_hook
         @flag_eval_evp_hook = create_flag_eval_evp_hook
       end
 
@@ -77,8 +78,9 @@ module Datadog
       end
 
       # Killswitch: DD_FLAGGING_EVALUATION_COUNTS_ENABLED (default on) gates only the EVP path.
+      # Read through the datadog config registry, not raw ENV.
       def create_flag_eval_evp_hook
-        return if ENV.fetch('DD_FLAGGING_EVALUATION_COUNTS_ENABLED', 'true') == 'false'
+        return unless @settings.open_feature.evaluation_counts_enabled
 
         require_relative 'hooks/flag_eval_evp_hook'
         return unless Hooks::FlagEvalEVPHook.available?

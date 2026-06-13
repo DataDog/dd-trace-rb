@@ -1,0 +1,72 @@
+module Datadog
+  module OpenFeature
+    module FlagEvaluation
+      class Writer
+        FLUSH_INTERVAL_SECONDS: ::Integer
+
+        QUEUE_SIZE: ::Integer
+
+        @transport: Transport::HTTP
+
+        @logger: Core::Logger
+
+        @aggregator: Aggregator
+
+        @queue: ::Thread::SizedQueue
+
+        @stop_mutex: ::Thread::Mutex
+
+        @stop_cond: ::Thread::ConditionVariable
+
+        @stopped: bool
+
+        @dropped_queue_overflow: ::Integer
+
+        @service_context: ::Hash[::String, ::String]
+
+        @thread: ::Thread?
+
+        attr_reader service_context: ::Hash[::String, ::String]
+
+        attr_reader dropped_queue_overflow: ::Integer
+
+        def initialize: (transport: Transport::HTTP, logger: Core::Logger) -> void
+
+        def enqueue: (**untyped event) -> void
+
+        def stop: () -> void
+
+        private
+
+        def build_service_context: () -> ::Hash[::String, ::String]
+
+        def start_background_thread: () -> ::Thread
+
+        def stopped?: () -> bool
+
+        def wait_for_next_cycle: () -> void
+
+        def drain_and_flush: () -> void
+
+        def flush_once: () -> void
+
+        def take_dropped_queue_overflow: () -> ::Integer
+
+        def emit_drop_counts: (::Integer dropped_queue, ::Integer dropped_overflow) -> void
+
+        def build_events: (::Hash[::Symbol, untyped] snapshot) -> ::Array[::Hash[::String, untyped]]
+
+        def build_event: (
+          flag_key: ::String,
+          variant: ::String?,
+          allocation_key: ::String?,
+          reason: ::String?,
+          targeting_key: ::String?,
+          entry: ::Hash[::Symbol, untyped],
+          now_ms: ::Integer,
+          tier: ::Symbol
+        ) -> ::Hash[::String, untyped]
+      end
+    end
+  end
+end

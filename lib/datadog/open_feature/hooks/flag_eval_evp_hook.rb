@@ -33,18 +33,18 @@ module Datadog
 
           # Eval-time stamped by the provider at eval-entry time; fall back to hook-fire time.
           # Metadata key: 'dd.eval.timestamp_ms' (int, ms since epoch) — stamped at eval entry.
-          metadata     = evaluation_details.flag_metadata
+          metadata = evaluation_details.flag_metadata
           eval_time_ms = metadata.is_a?(Hash) ? metadata['dd.eval.timestamp_ms'] : nil
           eval_time_ms ||= (Core::Utils::Time.now.to_f * 1000).to_i
 
           writer.enqueue(
-            flag_key:       hook_context.flag_key,
-            variant:        evaluation_details.variant, # nil = absent = runtime_default (concern #5)
-            reason:         evaluation_details.reason.to_s,
+            flag_key: hook_context.flag_key,
+            variant: evaluation_details.variant, # nil = absent = runtime_default (concern #5)
+            reason: evaluation_details.reason.to_s,
             allocation_key: extract_allocation_key(evaluation_details),
-            targeting_key:  hook_context.evaluation_context&.targeting_key,
-            eval_time_ms:   eval_time_ms,
-            attrs:          hook_context.evaluation_context&.attributes || {},
+            targeting_key: hook_context.evaluation_context&.targeting_key,
+            eval_time_ms: eval_time_ms,
+            attrs: hook_context.evaluation_context&.attributes || {},
           )
         end
 

@@ -1,0 +1,93 @@
+module Datadog
+  module OpenFeature
+    module FlagEvaluation
+      class Aggregator
+        MAX_CONTEXT_FIELDS: ::Integer
+
+        MAX_FIELD_LENGTH: ::Integer
+
+        DEFAULT_GLOBAL_CAP: ::Integer
+
+        DEFAULT_PER_FLAG_CAP: ::Integer
+
+        DEFAULT_DEGRADED_CAP: ::Integer
+
+        CTX_TAG_STRING: ::String
+
+        CTX_TAG_BOOL: ::String
+
+        CTX_TAG_INTEGER: ::String
+
+        CTX_TAG_FLOAT: ::String
+
+        CTX_TAG_OTHER: ::String
+
+        @global_cap: ::Integer
+
+        @per_flag_cap: ::Integer
+
+        @degraded_cap: ::Integer
+
+        @mutex: ::Thread::Mutex
+
+        @full: ::Hash[::Array[untyped], ::Hash[::Symbol, untyped]]
+
+        @degraded: ::Hash[::Array[untyped], ::Hash[::Symbol, untyped]]
+
+        @per_flag_full: ::Hash[::String, ::Integer]
+
+        @global_count: ::Integer
+
+        @dropped_degraded_overflow: ::Integer
+
+        attr_reader dropped_degraded_overflow: ::Integer
+
+        def initialize: (
+          ?global_cap: ::Integer,
+          ?per_flag_cap: ::Integer,
+          ?degraded_cap: ::Integer
+        ) -> void
+
+        def record: (
+          flag_key: ::String,
+          variant: ::String?,
+          allocation_key: ::String?,
+          reason: ::String?,
+          targeting_key: ::String?,
+          eval_time_ms: ::Integer,
+          attrs: ::Hash[::String, untyped]?
+        ) -> void
+
+        def flush_and_reset: () -> ::Hash[::Symbol, untyped]
+
+        def prune_context: (::Hash[::String, untyped]? attrs) -> ::Hash[::String, untyped]
+
+        def canonical_context_key: (::Hash[::String, untyped]? attrs) -> ::String
+
+        private
+
+        def context_value_bytes: (untyped v) -> ::String
+
+        def length_delimited: (::String s) -> ::String
+
+        def new_entry: (
+          ::Integer eval_ms,
+          runtime_default: bool,
+          ?targeting_key: ::String?,
+          ?context_attrs: ::Hash[::String, untyped]?
+        ) -> ::Hash[::Symbol, untyped]
+
+        def observe: (::Hash[::Symbol, untyped] entry, ::Integer eval_ms) -> void
+
+        def add_to_degraded: (
+          ::String flag_key,
+          ::String variant,
+          ::String allocation_key,
+          ::String reason,
+          ::Integer eval_ms,
+          bool runtime_default
+        ) -> void
+      end
+    end
+  end
+end
