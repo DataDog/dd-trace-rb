@@ -34,6 +34,21 @@ module Datadog
           num
         end
 
+        # Returns the input retagged as UTF-8. HTTP frameworks hand header values to
+        # applications tagged as ASCII-8BIT; msgpack-ruby serializes those as `bin`
+        # rather than `str`, which the agent's wire schema rejects for fields like
+        # `SpanLinks[N].Tracestate`.
+        #
+        # Returns nil for nil input and for byte sequences that are not valid UTF-8
+        # (e.g. a lone 0xFF). Bytes that form a valid UTF-8 sequence, including
+        # non-ASCII multi-byte characters, are kept.
+        def self.force_utf8_encoding(value)
+          return unless value
+
+          value = value.dup.force_encoding(::Encoding::UTF_8) if value.encoding != ::Encoding::UTF_8
+          value.valid_encoding? ? value : nil
+        end
+
         def self.parse_hex_id(value)
           return unless value
 

@@ -39,6 +39,73 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
     end
   end
 
+  describe '.force_utf8_encoding' do
+    subject(:result) { described_class.force_utf8_encoding(value) }
+
+    context 'with nil' do
+      let(:value) { nil }
+
+      it { is_expected.to be_nil }
+    end
+
+    context 'with an empty string tagged ASCII-8BIT' do
+      let(:value) { String.new('', encoding: Encoding::ASCII_8BIT) }
+
+      it 'returns an empty UTF-8 string' do
+        expect(result).to eq('')
+        expect(result.encoding).to eq(Encoding::UTF_8)
+      end
+    end
+
+    context 'with an ASCII-8BIT string containing only ASCII bytes' do
+      let(:value) { String.new('vendor1=value1,vendor2=value2', encoding: Encoding::ASCII_8BIT) }
+
+      it 'retags as UTF-8 without modifying bytes' do
+        expect(result).to eq('vendor1=value1,vendor2=value2')
+        expect(result.encoding).to eq(Encoding::UTF_8)
+        expect(result.bytes).to eq(value.bytes)
+      end
+
+      it 'does not mutate the input' do
+        expect { result }.not_to(change { value.encoding })
+      end
+    end
+
+    context 'with a UTF-8 string that is already valid' do
+      let(:value) { 'vendor1=value1' }
+
+      it 'returns the input unchanged' do
+        expect(result).to equal(value)
+      end
+    end
+
+    context 'with an ASCII-8BIT string whose bytes form a valid UTF-8 sequence' do
+      # 'café' in UTF-8 is 63 61 66 c3 a9
+      let(:value) { String.new("caf\xC3\xA9", encoding: Encoding::ASCII_8BIT) }
+
+      it 'returns a UTF-8 string with the same bytes' do
+        expect(result.encoding).to eq(Encoding::UTF_8)
+        expect(result.bytes).to eq(value.bytes)
+      end
+    end
+
+    context 'with an ASCII-8BIT string containing invalid UTF-8 byte sequences' do
+      # Lone 0xFF is not a valid UTF-8 start byte.
+      let(:value) { String.new("foo\xFFbar", encoding: Encoding::ASCII_8BIT) }
+
+      it { is_expected.to be_nil }
+    end
+
+    context 'with a frozen ASCII-8BIT string' do
+      let(:value) { String.new('vendor=value', encoding: Encoding::ASCII_8BIT).freeze }
+
+      it 'returns a UTF-8 string without raising' do
+        expect(result.encoding).to eq(Encoding::UTF_8)
+        expect(result).to eq('vendor=value')
+      end
+    end
+  end
+
   describe '.parse_hex_id' do
     context 'when given with `length`' do
       [
