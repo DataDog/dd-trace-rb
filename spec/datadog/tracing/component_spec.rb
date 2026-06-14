@@ -10,6 +10,10 @@ require 'datadog/tracing/sampling/rule_sampler'
 require 'datadog/tracing/sync_writer'
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/writer'
+require 'datadog/tracing/component'
+require 'datadog/tracing/configuration/ext'
+require 'datadog/tracing/transport/otlp'
+require 'datadog/core/configuration/agent_settings_resolver'
 
 RSpec.describe Datadog::Tracing::Component do
   describe '::build_tracer' do
@@ -593,6 +597,44 @@ RSpec.describe Datadog::Tracing::Component do
         it 'does not update sampler' do
           expect(sampler).to_not receive(:update)
           call
+        end
+      end
+    end
+  end
+
+  describe '::build_writer' do
+    subject(:build_writer) { described_class.build_writer(settings, agent_settings) }
+
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+    let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
+
+    after { build_writer.stop if build_writer.respond_to?(:stop) }
+
+    context 'when OTLP trace export is not enabled' do
+      it 'builds a Writer with the default agent transport' do
+        expect(build_writer).to be_a(Datadog::Tracing::Writer)
+        expect(build_writer.transport).to be_a(Datadog::Tracing::Transport::Traces::Transport)
+      end
+    end
+
+    context "when #{Datadog::Tracing::Configuration::Ext::OTLP::ENV_TRACES_EXPORTER} is otlp" do
+      before { settings.tracing.otlp.exporter = 'otlp' }
+
+      it 'builds a Writer backed by the OTLP transport' do
+        expect(build_writer).to be_a(Datadog::Tracing::Writer)
+        expect(build_writer.transport).to be_a(Datadog::Tracing::Transport::OTLP::Transport)
+      end
+
+      context "and #{Datadog::Tracing::Configuration::Ext::Transport::ENV_AGENT_PROTOCOL_VERSION} is set" do
+        around do |example|
+          ClimateControl.modify(
+            Datadog::Tracing::Configuration::Ext::Transport::ENV_AGENT_PROTOCOL_VERSION => 'v0.4'
+          ) { example.run }
+        end
+
+        it 'disables OTLP and falls back to the agent transport' do
+          expect(Datadog.logger).to receive(:info).with(/OTLP trace export is disabled/)
+          expect(build_writer.transport).to be_a(Datadog::Tracing::Transport::Traces::Transport)
         end
       end
     end

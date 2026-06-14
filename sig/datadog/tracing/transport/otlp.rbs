@@ -1,0 +1,58 @@
+module Datadog
+  module Tracing
+    module Transport
+      module OTLP
+        def self?.build: (settings: untyped, agent_settings: untyped, ?logger: untyped) -> Transport
+
+        def self?.resolve_endpoint: (untyped otlp, untyped agent_settings) -> String
+
+        def self?.resource_attributes: (untyped settings) -> Array[Hash[Symbol, untyped]]
+
+        def self?.string_attribute: (String key, untyped value) -> Hash[Symbol, untyped]
+
+        class Transport
+          @exporter: Exporter
+          @encoder: Encoder
+          @logger: untyped
+          @stats: Statistics
+
+          attr_reader exporter: Exporter
+          attr_reader encoder: Encoder
+          attr_reader logger: untyped
+          attr_reader stats: Statistics
+
+          def initialize: (exporter: Exporter, encoder: Encoder, logger: untyped) -> void
+
+          def send_traces: (untyped traces) -> Array[Response]
+
+          private
+
+          def drop?: (untyped trace) -> bool
+        end
+
+        class Response
+          include Core::Transport::Response
+
+          @trace_count: Integer
+          @server_error: bool
+
+          attr_reader trace_count: Integer
+
+          def initialize: (trace_count: Integer, ?server_error: bool) -> void
+
+          def ok?: () -> bool
+
+          def server_error?: () -> bool
+
+          def internal_error?: () -> bool
+
+          def service_rates: () -> nil
+        end
+
+        class Statistics
+          def reset!: () -> void
+        end
+      end
+    end
+  end
+end
