@@ -261,6 +261,74 @@ module Datadog
         false
       end
 
+      # Yield every named Module reachable from `Object` via const lookup,
+      # once per Module identity. Used by `build_per_file_index` in place of
+      # `ObjectSpace.each_object(Module)`.
+      #
+      # Coverage equivalence vs `ObjectSpace.each_object(Module)`:
+      #   - Modules reachable via const lookup: yielded by both.
+      #   - Anonymous modules (no `Module#name`): not yielded here, but
+      #     `safe_mod_name` in the previous traversal returned nil for these
+      #     and they were filtered out anyway.
+      #   - Singleton classes: not yielded here (not const-referenced), and
+      #     the previous traversal skipped them via MODULE_SINGLETON_CLASS_PRED.
+      #   - "Leaked" classes whose constant was removed via `remove_const` but
+      #     are still held by ObjectSpace: not yielded here (unreachable via
+      #     const lookup), and `resolves_to_same_module?` in the previous
+      #     traversal filtered them out. The const-walk provides the same
+      #     guarantee by construction — anything reached IS the binding at
+      #     that name.
+      #
+      # Autoload safety: a const_get on an autoload-pending name triggers
+      # the autoload (loads customer code, raises LoadError on missing
+      # target). Each segment is guarded with `autoload?` first; pending
+      # autoloads abort descent into that subtree without triggering.
+      #
+      # Order is DFS, parent-before-child. The seen set is keyed on
+      # `object_id` so a Module assigned to multiple constants
+      # (`Alias = SomeMod`) is yielded once — `Module#name` returns the
+      # canonical (first-assigned) name regardless of the traversal path.
+      def each_named_module
+        seen = {}
+        # Stack holds Object (the root, a Class<Module>) plus Modules pushed
+        # during traversal. The runtime invariant is "every element responds
+        # to `constants`, `autoload?`, `const_get`"; Module satisfies that
+        # contract for both Object (a Class<Module>) and any pushed element.
+        stack = [Object]
+        while (parent = stack.pop)
+          begin
+            parent.constants(false).each do |sym|
+              pending_autoload = if RUBY_VERSION >= '2.7'
+                parent.autoload?(sym, false)
+              else
+                parent.autoload?(sym)
+              end
+              next if pending_autoload
+              val = begin
+                parent.const_get(sym, false)
+              rescue NameError, ScriptError
+                # const_get can race with concurrent remove_const, or hit a
+                # loader that surfaces a load error even off the autoload
+                # path. ScriptError covers LoadError (its subclass). Skip
+                # the subtree rather than abort the walk.
+                next
+              end
+              next unless val.is_a?(Module)
+              oid = val.object_id
+              next if seen[oid]
+              seen[oid] = true
+              yield val
+              stack << val # steep:ignore
+            end
+          rescue => e
+            @logger.debug do
+              "symdb: error walking constants under #{safe_mod_name(parent) || '<unknown>'}: " \
+                "#{e.class}: #{e.message}"
+            end
+          end
+        end
+      end
+
       # Check if module is from user code (not gems or stdlib)
       # @param mod [Module] The module to check
       # @return [Boolean] true if user code
@@ -740,22 +808,21 @@ module Datadog
         index = {}
         seen = 0
 
-        ObjectSpace.each_object(Module) do |mod|
-          # Singleton classes (per-object metaclasses) are never user-code classes.
-          # They're not const-referenced, DI cannot instrument methods on a singular
-          # object instance, and on Ruby 2.6 specifically, Module#name on unnamed
-          # singleton classes with long ancestor chains (e.g. through monkey-patches
-          # prepended into Kernel, common in dd-trace-rb test processes) is O(ancestors)
-          # — measured ~20ms per call, which dominates extract_all on heavily-loaded
-          # processes. Ruby 2.7+ optimized this path; the skip is a no-op there.
-          next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
-
+        # Const-walk reachability is the leak filter: anything reached IS the
+        # binding at that name, so `resolves_to_same_module?` is not needed
+        # here (vs. the legacy `collect_extractable_modules`, which iterates
+        # `ObjectSpace.each_object(Module)` and must filter post-hoc).
+        # Anonymous and singleton modules are excluded by construction.
+        each_named_module do |mod|
+          # See collect_extractable_modules for the rationale behind the
+          # periodic sleep.
           seen += 1
           sleep SLEEP_SECONDS if (seen % SLEEP_EVERY_N_MODULES).zero?
 
           mod_name = safe_mod_name(mod)
+          # Const-reachable modules normally have a name, but a recently
+          # remove_const'd module could be reached transiently — skip it.
           next unless mod_name
-          next unless resolves_to_same_module?(mod_name, mod)
           next unless user_code_module?(mod)
 
           file_to_names = collect_method_names_by_file(mod)
