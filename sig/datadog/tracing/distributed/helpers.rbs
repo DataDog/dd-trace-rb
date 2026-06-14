@@ -6,6 +6,8 @@ module Datadog
 
         def self.parse_decimal_id: (untyped value) -> (nil | untyped)
 
+        def self.normalize_tracestate_encoding: (String? value) -> String?
+
         def self.parse_hex_id: (untyped value) -> (nil | untyped)
       end
     end

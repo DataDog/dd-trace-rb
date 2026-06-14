@@ -6,7 +6,8 @@ module Datadog
           propagation_styles: untyped,
           ?propagation_style_inject: untyped,
           ?propagation_style_extract: untyped,
-          ?propagation_extract_first: untyped
+          ?propagation_extract_first: untyped,
+          ?propagation_behavior_extract: String
         ) -> void
         def inject!: (untyped digest, untyped data) -> (nil | untyped)
         def extract: (untyped data) -> untyped

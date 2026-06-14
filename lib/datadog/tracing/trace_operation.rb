@@ -72,6 +72,7 @@ module Datadog
         name: nil,
         origin: nil,
         parent_span_id: nil,
+        span_links: nil,
         rate_limiter_rate: nil,
         resource: nil,
         rule_sample_rate: nil,
@@ -98,7 +99,7 @@ module Datadog
         @parent_span_id = parent_span_id
         @sampled = sampled.nil? || sampled
         @remote_parent = remote_parent
-
+        @span_links = span_links
         # Tags
         @agent_sample_rate = agent_sample_rate
         @hostname = hostname
@@ -318,6 +319,7 @@ module Datadog
           events: span_events,
           on_error: on_error,
           parent_id: parent_id,
+          links: (@root_span.nil? ? @span_links : nil),
           resource: resource || op_name,
           service: service,
           start_time: start_time,

@@ -1,6 +1,9 @@
 require 'spec_helper'
 
+require 'msgpack'
+
 require 'datadog/tracing/distributed/trace_context'
+require 'datadog/tracing/span_link'
 require 'datadog/tracing/trace_digest'
 
 RSpec.shared_examples 'Trace Context distributed format' do
@@ -23,7 +26,8 @@ RSpec.shared_examples 'Trace Context distributed format' do
     end
 
     context 'a digest' do
-      let(:digest) { Datadog::Tracing::TraceDigest.new(trace_id: 0xC0FFEE, span_id: 0xBEE, **options) }
+      let(:span_links) { [] }
+      let(:digest) { Datadog::Tracing::TraceDigest.new(trace_id: 0xC0FFEE, span_id: 0xBEE, span_links: span_links, **options) }
       let(:options) { {} }
 
       it { expect(traceparent).to eq('00-00000000000000000000000000c0ffee-0000000000000bee-00') }
@@ -548,6 +552,69 @@ RSpec.shared_examples 'Trace Context distributed format' do
         it { expect(digest.span_id).to eq(0xBEE) }
         it { expect(digest.trace_state).to eq('v1=1,v2=2') }
         it { expect(digest.trace_origin).to eq('origin') }
+      end
+
+      # HTTP frameworks (Rack and friends) hand header values to applications tagged
+      # as ASCII-8BIT. msgpack-ruby serializes those as `bin` rather than `str`,
+      # which the agent's wire schema rejects for `SpanLinks[N].Tracestate`.
+      context 'with an ASCII-8BIT-tagged tracestate header' do
+        let(:tracestate) do
+          String.new('dd=o:origin,v1=1,v2=2', encoding: Encoding::ASCII_8BIT)
+        end
+
+        it 'stores trace_state as UTF-8' do
+          expect(digest.trace_state).to eq('v1=1,v2=2')
+          expect(digest.trace_state.encoding).to eq(Encoding::UTF_8)
+        end
+
+        it 'still extracts Datadog fields from the dd= entry' do
+          expect(digest.trace_origin).to eq('origin')
+        end
+      end
+
+      context 'with an ASCII-8BIT tracestate containing invalid UTF-8 bytes' do
+        let(:tracestate) do
+          String.new("v1=1,vendor=foo\xFFbar", encoding: Encoding::ASCII_8BIT)
+        end
+
+        it 'drops the tracestate but keeps the traceparent' do
+          expect(digest.trace_id).to eq(0xC0FFEE)
+          expect(digest.span_id).to eq(0xBEE)
+          expect(digest.trace_state).to be_nil
+        end
+      end
+
+      # The size-limit truncation in split_tracestate runs before encoding
+      # validation, so an invalid byte that would be discarded by truncation
+      # does not poison the parseable prefix.
+      context 'with an oversized ASCII-8BIT tracestate where invalid bytes are only in the truncated tail' do
+        let(:tracestate) do
+          String.new("dd=o:origin,v=1,#{'a' * 600}\xFF", encoding: Encoding::ASCII_8BIT)
+        end
+
+        it 'preserves the parseable prefix instead of dropping the whole field' do
+          expect(digest.trace_origin).to eq('origin')
+          expect(digest.trace_state).to eq('v=1')
+          expect(digest.trace_state.encoding).to eq(Encoding::UTF_8)
+        end
+      end
+
+      # End-to-end: an ASCII-8BIT-tagged header must round-trip through
+      # SpanLink#to_hash and msgpack as a `str`, not a `bin`. msgpack-ruby
+      # uses encoding as a type signal — ASCII-8BIT serializes as `bin`,
+      # which the agent's wire schema rejects for `SpanLinks[N].Tracestate`.
+      context 'when the digest is serialized as a SpanLink through msgpack' do
+        let(:tracestate) do
+          String.new('dd=o:origin,v1=1,v2=2', encoding: Encoding::ASCII_8BIT)
+        end
+
+        let(:link_hash) { Datadog::Tracing::SpanLink.new(digest).to_hash }
+        let(:roundtripped) { MessagePack.unpack(MessagePack.pack(link_hash)) }
+
+        it 'encodes tracestate as a msgpack str (UTF-8 on unpack), not bin' do
+          expect(roundtripped['tracestate']).to eq('v1=1,v2=2')
+          expect(roundtripped['tracestate'].encoding).to eq(Encoding::UTF_8)
+        end
       end
 
       context 'with oversized tracestate vendors' do
