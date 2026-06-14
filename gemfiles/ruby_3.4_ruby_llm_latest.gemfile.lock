@@ -84,7 +84,7 @@ GEM
     marcel (1.1.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    msgpack (1.8.1)
+    msgpack (1.8.3)
     multipart-post (2.4.1)
     mutex_m (0.3.0)
     net-http (0.9.1)

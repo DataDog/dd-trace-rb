@@ -65,7 +65,7 @@ GEM
     mongo (2.24.1)
       base64
       bson (>= 4.14.1, < 6.0.0)
-    msgpack (1.8.1)
+    msgpack (1.8.3)
     mutex_m (0.3.0)
     os (1.1.4)
     ostruct (0.6.3)
