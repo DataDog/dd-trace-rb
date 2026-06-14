@@ -59,7 +59,7 @@ GEM
     method_source (1.1.0)
     mongo (2.1.0)
       bson (~> 3.0)
-    msgpack (1.8.1)
+    msgpack (1.8.3)
     os (1.1.4)
     pry (0.16.0)
       coderay (~> 1.1)
