@@ -2624,8 +2624,11 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'includes the private inner class in extract_all output' do
-        scopes = extract_all_clean
+        # Ensure this fixture is actually using a private constant (Module#constants(false) excludes it).
+        expect(ExtractAllPrivateConstantHost.constants(false)).not_to include(:Worker)
+        expect(ExtractAllPrivateConstantHost.private_constants(false)).to include(:Worker)
 
+        scopes = extract_all_clean
         file_scope = scopes.find { |s| s.scope_type == 'FILE' && s.name == @file }
         expect(file_scope).not_to be_nil
 
