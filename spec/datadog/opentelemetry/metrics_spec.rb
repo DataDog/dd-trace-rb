@@ -13,8 +13,11 @@ require 'datadog/opentelemetry'
 require 'datadog/core/configuration/settings'
 require 'net/http'
 require 'json'
+require 'datadog/opentelemetry/spec_helper'
 
 RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
+  include OpenTelemetryHelpers
+
   let(:default_otlp_http_port) { 4318 }
   let(:provider) { ::OpenTelemetry.meter_provider }
   let(:reader) { provider.metric_readers.first }
@@ -28,17 +31,11 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
   end
 
   after do
-    # Ensures background threads collecting metrics are shutdown.
-    provider.shutdown if provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
-    # OpenTelemetry::SDK.configure (called from setup_metrics) also runs the
-    # logs configurator patch, which spawns a BatchLogRecordProcessor thread.
-    # Shut it down here so it doesn't outlive the example. Guard with
-    # defined? + is_a? because the logs SDK gem is optional.
-    if defined?(::OpenTelemetry::SDK::Logs::LoggerProvider) &&
-        ::OpenTelemetry.respond_to?(:logger_provider) &&
-        ::OpenTelemetry.logger_provider.is_a?(::OpenTelemetry::SDK::Logs::LoggerProvider)
-      ::OpenTelemetry.logger_provider.shutdown
-    end
+    # Shuts down both the metrics provider and the logs provider that
+    # OpenTelemetry::SDK.configure (called from setup_metrics) instantiates
+    # via its configurator patches. Each spawns a background thread which
+    # would otherwise outlive the example.
+    shutdown_otel_providers
   end
 
   def agent_host

@@ -10,11 +10,14 @@ if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.1')
 end
 
 require 'datadog/opentelemetry'
+require 'datadog/opentelemetry/spec_helper'
 require 'datadog/core/configuration/settings'
 require 'net/http'
 require 'json'
 
 RSpec.describe 'OpenTelemetry Logs Integration', ruby: '>= 3.1' do
+  include OpenTelemetryHelpers
+
   let(:provider) { ::OpenTelemetry.logger_provider }
   let(:processor) { provider.instance_variable_get(:@log_record_processors)&.first }
   let(:exporter) { processor&.instance_variable_get(:@exporter) }
@@ -50,15 +53,11 @@ RSpec.describe 'OpenTelemetry Logs Integration', ruby: '>= 3.1' do
   end
 
   after do
-    provider.shutdown if provider.is_a?(::OpenTelemetry::SDK::Logs::LoggerProvider)
-    # OpenTelemetry::SDK.configure also runs the metrics configurator patch,
-    # which spawns a PeriodicMetricReader thread. Shut it down here so it
-    # doesn't outlive the example. Guard with defined? + is_a? because the
-    # metrics SDK gem is optional.
-    if defined?(::OpenTelemetry::SDK::Metrics::MeterProvider) &&
-        ::OpenTelemetry.meter_provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
-      ::OpenTelemetry.meter_provider.shutdown
-    end
+    # Shuts down both the logs provider and the metrics provider that
+    # OpenTelemetry::SDK.configure instantiates via its configurator
+    # patches. Each spawns a background thread which would otherwise
+    # outlive the example.
+    shutdown_otel_providers
   end
 
   describe 'Basic Functionality' do
