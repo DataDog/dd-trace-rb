@@ -49,6 +49,10 @@ class InstrumentationSpecTestClass
     # Method with binary data in parameters
     binary_param.length + normal_param.length
   end
+
+  def collection_method(items)
+    items
+  end
 end
 
 RSpec.describe 'Instrumentation integration' do
@@ -825,6 +829,46 @@ RSpec.describe 'Instrumentation integration' do
         end
       end
 
+      context 'with snapshot capture and probe-level maxCollectionSize override' do
+        # Verifies the same plumbing as the maxLength test, for the
+        # maxCollectionSize override that was previously silently dropped
+        # before flowing through Probe#snapshot_serializer_limits.
+        let(:probe) do
+          Datadog::DI::Probe.new(id: "1234", type: :log,
+            type_name: 'InstrumentationSpecTestClass', method_name: 'collection_method',
+            capture_snapshot: true,
+            max_capture_collection_size: 2,)
+        end
+
+        it 'truncates arrays in entry args, return value, and self ivar to the probe-level limit' do
+          expect(diagnostics_transport).to receive(:send_diagnostics)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          instance = InstrumentationSpecTestClass.new
+          instance.instance_variable_set(:@ivar, [10, 20, 30, 40, 50])
+          expect(instance.collection_method([1, 2, 3, 4, 5])).to eq([1, 2, 3, 4, 5])
+          component.probe_notifier_worker.flush
+
+          captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
+          # Entry arg array passes through serialize_args; only first 2 elements captured.
+          arg1 = captures.fetch(:entry).fetch(:arguments).fetch(:arg1)
+          expect(arg1).to include(type: 'Array', notCapturedReason: 'collectionSize', size: 5)
+          expect(arg1.fetch(:elements).size).to eq(2)
+          # @return array passes through serialize_value with the probe-level limit.
+          ret = captures.fetch(:return).fetch(:arguments).fetch(:@return)
+          expect(ret).to include(type: 'Array', notCapturedReason: 'collectionSize', size: 5)
+          expect(ret.fetch(:elements).size).to eq(2)
+          # self serialization recurses with the probe-level limit so the ivar array is also truncated.
+          ivar = captures.fetch(:return).fetch(:arguments).fetch(:self).fetch(:fields).fetch(:@ivar)
+          expect(ivar).to include(type: 'Array', notCapturedReason: 'collectionSize', size: 5)
+          expect(ivar.fetch(:elements).size).to eq(2)
+        end
+      end
+
       context 'when target is invoked' do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
@@ -1438,6 +1482,41 @@ RSpec.describe 'Instrumentation integration' do
           let(:test_method_name) { :method_with_no_locals }
 
           include_examples 'assembles expected notification payload'
+        end
+
+        context 'with probe-level maxCollectionSize override on line-probe locals' do
+          # Verifies probe-level capture-limit overrides flow through to
+          # serialize_vars on the line-probe locals path. Previously
+          # maxLength / maxCollectionSize were silently dropped here; this
+          # asserts that probe.snapshot_serializer_limits feeds
+          # Context#serialized_locals.
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "1234", type: :log,
+              file: 'instrumentation_integration_test_class.rb', line_no: 40,
+              capture_snapshot: true,
+              max_capture_collection_size: 1,)
+          end
+
+          it 'truncates the redacted hash local to the probe-level limit' do
+            expect(diagnostics_transport).to receive(:send_diagnostics)
+            probe_manager.add_probe(probe)
+            payload = nil
+            expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+              payload = payload_
+            end
+
+            expect(InstrumentationIntegrationTestClass.new.test_method).to eq(42)
+            component.probe_notifier_worker.flush
+
+            redacted_local = payload.fetch(:debugger).fetch(:snapshot)
+              .fetch(:captures).fetch(:lines).fetch(40)
+              .fetch(:locals).fetch(:redacted)
+            expect(redacted_local).to include(
+              type: 'Hash', notCapturedReason: 'collectionSize', size: 2,
+            )
+            # Only the first entry (:b => 33) made it under the size cap.
+            expect(redacted_local.fetch(:entries).size).to eq(1)
+          end
         end
       end
 
