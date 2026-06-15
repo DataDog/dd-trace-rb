@@ -54,7 +54,7 @@ module Datadog
             return line if line.end_with?("\n")
 
             more = @stream.gets
-            more ? (line + more) : line
+            more ? line << more : line
           end
 
           def each

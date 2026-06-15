@@ -65,6 +65,15 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::BufferedInput do
           expect(outbuf).to eq('world!')
         end
       end
+
+      it 'reuses the output buffer when reading the entire input' do
+        outbuf = +'stale'
+
+        aggregate_failures 'output buffer contains the complete input' do
+          expect(io.read(nil, outbuf)).to be(outbuf)
+          expect(outbuf).to eq('hello world!')
+        end
+      end
     end
 
     context 'when the stream signals EOF with an empty string' do
