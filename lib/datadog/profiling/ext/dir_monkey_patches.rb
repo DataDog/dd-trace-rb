@@ -300,7 +300,7 @@ module Datadog
             end
           end
 
-          unless RubyVersion.is?("~> 2.5.0") # This is Ruby 2.6+
+          if RubyVersion.is?(">= 2.6.0") # This is Ruby 2.6+
             # See note on methods that yield above.
             def each_child(*args, &block)
               if block
