@@ -184,7 +184,8 @@ class SymbolDatabaseBaselineMatrixBenchmark
     if extractor
       bg = Thread.new do
         # extract_all until the main thread signals stop. Any exception
-        # propagates out via bg.value below.
+        # propagates out via bg.join below — Thread#join re-raises in the
+        # caller when the thread terminated with an exception.
         loop do
           break if stop_bg
           extractor.extract_all
@@ -213,7 +214,7 @@ class SymbolDatabaseBaselineMatrixBenchmark
       # can take seconds on a process with many loaded modules — the
       # measurement window is already complete here, so abandon a still-running
       # iteration rather than block the run. Without this cap, validate-mode
-      # runs (10 arms × bg.value across the matrix) can blow past
+      # runs (10 arms × bg.join across the matrix) can blow past
       # expect_in_fork's 10s timeout on slower CI Rubies.
       unless bg.join(VALIDATE_BENCHMARK_MODE ? 0.05 : 0.5)
         bg.kill
