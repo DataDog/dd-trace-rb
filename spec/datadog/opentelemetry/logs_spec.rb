@@ -51,6 +51,14 @@ RSpec.describe 'OpenTelemetry Logs Integration', ruby: '>= 3.1' do
 
   after do
     provider.shutdown if provider.is_a?(::OpenTelemetry::SDK::Logs::LoggerProvider)
+    # OpenTelemetry::SDK.configure also runs the metrics configurator patch,
+    # which spawns a PeriodicMetricReader thread. Shut it down here so it
+    # doesn't outlive the example. Guard with defined? + is_a? because the
+    # metrics SDK gem is optional.
+    if defined?(::OpenTelemetry::SDK::Metrics::MeterProvider) &&
+        ::OpenTelemetry.meter_provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
+      ::OpenTelemetry.meter_provider.shutdown
+    end
   end
 
   describe 'Basic Functionality' do

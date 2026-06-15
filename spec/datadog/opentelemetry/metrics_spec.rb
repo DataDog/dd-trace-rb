@@ -30,6 +30,15 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
   after do
     # Ensures background threads collecting metrics are shutdown.
     provider.shutdown if provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
+    # OpenTelemetry::SDK.configure (called from setup_metrics) also runs the
+    # logs configurator patch, which spawns a BatchLogRecordProcessor thread.
+    # Shut it down here so it doesn't outlive the example. Guard with
+    # defined? + is_a? because the logs SDK gem is optional.
+    if defined?(::OpenTelemetry::SDK::Logs::LoggerProvider) &&
+        ::OpenTelemetry.respond_to?(:logger_provider) &&
+        ::OpenTelemetry.logger_provider.is_a?(::OpenTelemetry::SDK::Logs::LoggerProvider)
+      ::OpenTelemetry.logger_provider.shutdown
+    end
   end
 
   def agent_host

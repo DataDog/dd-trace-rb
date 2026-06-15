@@ -3,6 +3,23 @@ require 'opentelemetry/sdk'
 require 'datadog/opentelemetry'
 
 RSpec.describe Datadog::OpenTelemetry do
+  # Shut down the metrics and logs providers spawned by OpenTelemetry::SDK.configure
+  # so their background threads (PeriodicMetricReader / BatchLogRecordProcessor)
+  # don't outlive the example. Each provider only has a shutdown method on the
+  # real SDK class; the Noop default returned when the corresponding SDK gem
+  # isn't loaded does not, so guard with defined? + is_a?.
+  def shutdown_otel_providers
+    if defined?(::OpenTelemetry::SDK::Metrics::MeterProvider) &&
+        ::OpenTelemetry.meter_provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
+      ::OpenTelemetry.meter_provider.shutdown
+    end
+    if defined?(::OpenTelemetry::SDK::Logs::LoggerProvider) &&
+        ::OpenTelemetry.respond_to?(:logger_provider) &&
+        ::OpenTelemetry.logger_provider.is_a?(::OpenTelemetry::SDK::Logs::LoggerProvider)
+      ::OpenTelemetry.logger_provider.shutdown
+    end
+  end
+
   context 'with Datadog TraceProvider' do
     let(:otel_tracer) { OpenTelemetry.tracer_provider.tracer('otel-tracer') }
     let(:writer) { get_test_writer }
@@ -26,6 +43,14 @@ RSpec.describe Datadog::OpenTelemetry do
 
     after do
       ::OpenTelemetry.logger = nil
+      # OpenTelemetry::SDK.configure triggers every configured signal's hook,
+      # not just traces. The opentelemetry-metrics-sdk patch instantiates a
+      # PeriodicMetricReader (spawns a thread) and the opentelemetry-logs-sdk
+      # patch instantiates a BatchLogRecordProcessor (spawns a thread). Without
+      # shutting them down here, those threads outlive each example and the
+      # spec_helper leak detector reports them on subsequent examples until
+      # the 3-report cap.
+      shutdown_otel_providers
     end
 
     it 'returns the same tracer on successive calls' do
@@ -967,12 +992,23 @@ RSpec.describe Datadog::OpenTelemetry do
           c.tracing.writer = writer_
         end
 
+        # The outer 'with Datadog TraceProvider' before block already ran
+        # OpenTelemetry::SDK.configure, which spawned MeterProvider and
+        # LoggerProvider background threads. Re-configuring here without
+        # shutting them down first orphans those threads (the global
+        # provider gets replaced; the previous one's threads keep running).
+        shutdown_otel_providers
+
         ::OpenTelemetry::SDK.configure do |c|
         end
       end
 
       after do
         ::OpenTelemetry.logger = nil
+        # See the parallel after block above: SDK.configure triggers metrics
+        # and logs configurator patches as well, each spawning a background
+        # thread that has to be shut down with the example.
+        shutdown_otel_providers
       end
 
       describe 'baggage operations' do
