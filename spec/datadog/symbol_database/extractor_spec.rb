@@ -2688,11 +2688,13 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       it 'does not emit a scope under the stale (removed) original name' do
         scopes = extract_all_clean
 
-        # The original FQN must not appear anywhere because it no longer
-        # resolves. The surviving alias is a known limitation of the
-        # Module#name cache (mod.name still reports "ExtractAllAliasOriginal"),
-        # so neither name appearing in output is acceptable — what's not
-        # acceptable is emitting under the stale name.
+        # The test forbids one outcome: emitting a scope under the stale
+        # (removed) name "ExtractAllAliasOriginal". Two outcomes are
+        # acceptable and both depend on the enumeration strategy:
+        #   - the class is absent entirely (Module#name's cache reports the
+        #     stale name, so an enumeration that filters by current binding
+        #     drops it); or
+        #   - the class surfaces under the surviving alias.
         stale_emitted = scopes.any? do |file_scope|
           next false unless file_scope.scope_type == 'FILE'
           file_scope.scopes.any? { |child| child.name == 'ExtractAllAliasOriginal' }
