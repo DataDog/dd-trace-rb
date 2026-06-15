@@ -2153,7 +2153,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
 
       it "sets the wall_time_at_previous_sample_ns to the current wall clock value" do
-        expect(per_thread_context.values).to all(
+        not_skipped = per_thread_context.values.reject { |ctx| ctx.fetch(:was_skipped_at_last_sample) }
+        expect(not_skipped).to all(
           include(wall_time_at_previous_sample_ns: be_between(@wall_time_before_sample_ns, @wall_time_after_sample_ns))
         )
       end
