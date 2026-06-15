@@ -170,6 +170,7 @@ RSpec.describe Datadog::Profiling::Component do
             settings.profiling.advanced.gc_enabled = true
 
             stub_const("RUBY_VERSION", testing_version)
+            stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
           end
 
           ["2.7.0", "3.1.4", "3.2.3", "3.2.10", "3.3.0"].each do |fixed_ruby|
@@ -240,6 +241,7 @@ RSpec.describe Datadog::Profiling::Component do
             end
 
             stub_const("RUBY_VERSION", testing_version)
+            stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
           end
 
           context "on Ruby 2.x" do
@@ -345,6 +347,7 @@ RSpec.describe Datadog::Profiling::Component do
             settings.profiling.advanced.experimental_heap_enabled = true
             settings.profiling.advanced.gc_enabled = false # Disable this to avoid any additional warnings coming from it
             stub_const("RUBY_VERSION", testing_version)
+            stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
           end
 
           context "on a Ruby older than 3.1" do
@@ -1128,7 +1131,10 @@ RSpec.describe Datadog::Profiling::Component do
     subject(:can_apply_exec_monkey_patch?) { described_class.send(:can_apply_exec_monkey_patch?, settings) }
 
     context "on Ruby < 2.7" do
-      before { stub_const("RUBY_VERSION", "2.6.9") }
+      before do
+        stub_const("RUBY_VERSION", "2.6.9")
+        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
+      end
 
       it "returns false and does not require the monkey patch" do
         expect(described_class).to_not receive(:require)
@@ -1140,6 +1146,7 @@ RSpec.describe Datadog::Profiling::Component do
     context "on Ruby >= 2.7" do
       before do
         stub_const("RUBY_VERSION", "2.7.0")
+        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
       end
 
       context "when exec workaround is disabled" do
