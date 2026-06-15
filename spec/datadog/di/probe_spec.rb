@@ -1,5 +1,7 @@
 require "datadog/di/spec_helper"
 require "datadog/di/probe"
+require "datadog/di/capture_expression"
+require "datadog/di/el"
 
 RSpec.describe Datadog::DI::Probe do
   di_test
@@ -200,7 +202,7 @@ RSpec.describe Datadog::DI::Probe do
 
   describe "capture expressions" do
     let(:capture_expression) do
-      Datadog::DI::CaptureExpression.new(name: "x", expr: nil)
+      Datadog::DI::CaptureExpression.new(name: "x", expr: instance_double(Datadog::DI::EL::Expression))
     end
 
     context "no capture_expressions argument" do
