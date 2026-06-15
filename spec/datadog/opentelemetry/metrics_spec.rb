@@ -31,10 +31,6 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
   end
 
   after do
-    # Shuts down both the metrics provider and the logs provider that
-    # OpenTelemetry::SDK.configure (called from setup_metrics) instantiates
-    # via its configurator patches. Each spawns a background thread which
-    # would otherwise outlive the example.
     shutdown_otel_providers
   end
 

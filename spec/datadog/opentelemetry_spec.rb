@@ -29,13 +29,6 @@ RSpec.describe Datadog::OpenTelemetry do
 
     after do
       ::OpenTelemetry.logger = nil
-      # OpenTelemetry::SDK.configure triggers every configured signal's hook,
-      # not just traces. The opentelemetry-metrics-sdk patch instantiates a
-      # PeriodicMetricReader (spawns a thread) and the opentelemetry-logs-sdk
-      # patch instantiates a BatchLogRecordProcessor (spawns a thread). Without
-      # shutting them down here, those threads outlive each example and the
-      # spec_helper leak detector reports them on subsequent examples until
-      # the 3-report cap.
       shutdown_otel_providers
     end
 
@@ -978,11 +971,9 @@ RSpec.describe Datadog::OpenTelemetry do
           c.tracing.writer = writer_
         end
 
-        # The outer 'with Datadog TraceProvider' before block already ran
-        # OpenTelemetry::SDK.configure, which spawned MeterProvider and
-        # LoggerProvider background threads. Re-configuring here without
-        # shutting them down first orphans those threads (the global
-        # provider gets replaced; the previous one's threads keep running).
+        # Reconfiguring without shutdown would orphan the outer 'with
+        # Datadog TraceProvider' before block's MeterProvider/LoggerProvider
+        # threads (the global provider gets replaced; old threads keep running).
         shutdown_otel_providers
 
         ::OpenTelemetry::SDK.configure do |c|
@@ -991,9 +982,6 @@ RSpec.describe Datadog::OpenTelemetry do
 
       after do
         ::OpenTelemetry.logger = nil
-        # See the parallel after block above: SDK.configure triggers metrics
-        # and logs configurator patches as well, each spawning a background
-        # thread that has to be shut down with the example.
         shutdown_otel_providers
       end
 
