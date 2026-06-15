@@ -2594,6 +2594,105 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
     end
 
+    context 'class marked with private_constant' do
+      # Coverage parity with ObjectSpace.each_object(Module). A class marked
+      # with `private_constant` is still a fully-loaded user class with
+      # methods; DI should still serve its methods to the autocomplete UI.
+      #
+      # ObjectSpace iterates by object identity, so private_constant'd
+      # classes are reached regardless of name visibility. Any alternative
+      # enumeration that relies on Module#constants must include private
+      # constants too — `Module#constants(false)` excludes them by default,
+      # which is the trap this regression test guards against.
+      before do
+        @file = create_test_file('private_constant_host.rb', <<~RUBY)
+          class ExtractAllPrivateConstantHost
+            class Worker
+              def do_work
+              end
+            end
+            private_constant :Worker
+          end
+        RUBY
+        load @file
+      end
+
+      after do
+        if Object.const_defined?(:ExtractAllPrivateConstantHost, false)
+          Object.send(:remove_const, :ExtractAllPrivateConstantHost)
+        end
+      end
+
+      it 'includes the private inner class in extract_all output' do
+        scopes = extract_all_clean
+
+        file_scope = scopes.find { |s| s.scope_type == 'FILE' && s.name == @file }
+        expect(file_scope).not_to be_nil
+
+        host = file_scope.scopes.find { |s| s.name == 'ExtractAllPrivateConstantHost' }
+        expect(host).not_to be_nil
+
+        worker = host.scopes.find { |s| s.name == 'ExtractAllPrivateConstantHost::Worker' }
+        expect(worker).not_to be_nil
+        expect(worker.scopes.map(&:name)).to include('do_work')
+      end
+    end
+
+    context 'class aliased to a second constant after the original constant is removed' do
+      # CRuby caches Module#name on first assignment and never invalidates it.
+      # If a class is assigned to constant :A, then aliased as :B, and then
+      # :A is removed, the class stays reachable via :B but `mod.name` still
+      # returns "A" — a name that no longer resolves.
+      #
+      # extract_all must not emit a scope under the stale name "A". The
+      # current implementation filters this via `resolves_to_same_module?`
+      # inside `build_per_file_index`, which segment-walks "A" from Object
+      # and finds the const removed. Any alternative enumeration that
+      # trusts Module#name without re-validating against the current
+      # binding regresses on this case.
+      before do
+        @file = create_test_file('aliased_after_remove_const.rb', <<~RUBY)
+          class ExtractAllAliasOriginal
+            def aliased_method
+            end
+          end
+        RUBY
+        load @file
+
+        # Alias under a second constant, then remove the original.
+        # The class object stays reachable via :ExtractAllAliasSurvivor,
+        # but `mod.name` continues to report the cached "ExtractAllAliasOriginal".
+        Object.const_set(:ExtractAllAliasSurvivor, ExtractAllAliasOriginal)
+        @survivor = ExtractAllAliasSurvivor
+        Object.send(:remove_const, :ExtractAllAliasOriginal)
+      end
+
+      after do
+        if Object.const_defined?(:ExtractAllAliasSurvivor, false)
+          Object.send(:remove_const, :ExtractAllAliasSurvivor)
+        end
+        if Object.const_defined?(:ExtractAllAliasOriginal, false)
+          Object.send(:remove_const, :ExtractAllAliasOriginal)
+        end
+      end
+
+      it 'does not emit a scope under the stale (removed) original name' do
+        scopes = extract_all_clean
+
+        # The original FQN must not appear anywhere because it no longer
+        # resolves. The surviving alias is a known limitation of the
+        # Module#name cache (mod.name still reports "ExtractAllAliasOriginal"),
+        # so neither name appearing in output is acceptable — what's not
+        # acceptable is emitting under the stale name.
+        stale_emitted = scopes.any? do |file_scope|
+          next false unless file_scope.scope_type == 'FILE'
+          file_scope.scopes.any? { |child| child.name == 'ExtractAllAliasOriginal' }
+        end
+
+        expect(stale_emitted).to be(false)
+      end
+    end
+
     context 'namespace-only module entry with empty method list' do
       # Regression guard for the Pass 1 → Pass 2 stale-method recheck in
       # build_file_scope. Pass 1 records namespace-only modules (no own
