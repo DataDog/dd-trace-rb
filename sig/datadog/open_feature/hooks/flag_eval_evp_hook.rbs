@@ -1,0 +1,25 @@
+module Datadog
+  module OpenFeature
+    module Hooks
+      class FlagEvalEVPHook
+        include ::OpenFeature::SDK::Hooks::Hook
+
+        @writer: FlagEvaluation::Writer?
+
+        def self.available?: () -> bool
+
+        def initialize: (FlagEvaluation::Writer? writer) -> void
+
+        def finally: (
+          hook_context: untyped,
+          evaluation_details: untyped,
+          **untyped _opts
+        ) -> void
+
+        private
+
+        def extract_allocation_key: (untyped evaluation_details) -> ::String?
+      end
+    end
+  end
+end
