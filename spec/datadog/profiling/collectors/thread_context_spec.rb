@@ -1595,8 +1595,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   describe "#sample_allocation" do
     let(:single_sample) do
-      expect(samples.size).to be 1
-      samples.first
+      sample_for_thread(samples, Thread.current)
     end
 
     it "samples the caller thread" do
@@ -1655,7 +1654,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         after { Datadog::Tracing.shutdown! }
 
         it 'gathers the "local root span id", "span id" and "trace endpoint"' do
-          expect(single_sample.labels).to include(
+          expect(sample_for_thread(samples, t1).labels).to include(
             "local root span id": @t1_local_root_span_id.to_i,
             "span id": @t1_span_id.to_i,
             "trace endpoint": "trace_resource",
@@ -1749,8 +1748,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   describe "#sample_skipped_allocation_samples" do
     let(:single_sample) do
-      expect(samples.size).to be 1
-      samples.first
+      alloc_samples = samples.select { |s| s.values[:"alloc-samples"]&.positive? }
+      expect(alloc_samples.size).to be 1
+      alloc_samples.first
     end
     before { sample_skipped_allocation_samples(123) }
 
