@@ -220,7 +220,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
       # I opted to join these two expects to avoid running the `load` above more than once
       it "matches the Ruby backtrace API AND has a sleeping frame at the top of the stack" do
-        if RubyVersion.is?("~> 4.0")
+        if RubyVersion.is?(">= 4")
           # In Ruby 4, due to https://bugs.ruby-lang.org/issues/20968 while internally Integer#times has the path
           # `<internal:numeric>` (and this is what the profiler observes), Ruby actually hides this and "blames" it
           # on the last ruby file/line that was on the stack.
@@ -533,7 +533,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       context "when sampling a thread blocked on Monitor#synchronize" do
         let(:expected_method_name) do
           # On older Rubies Monitor is implemented using Mutex instead of natively
-          if RubyVersion.is?("~> 2.5.0") || RubyVersion.is?("~> 2.6.0")
+          if RubyVersion.is?("< 2.7")
             "lock"
           else
             "synchronize"
@@ -626,7 +626,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
       context "when sampling a thread waiting on a ConditionVariable object" do
         # In Ruby 4, we can directly match on ConditionVariable; for Ruby 2 & 3, wait delegates to sleep so we can't match as directly
-        let(:expected_method_name) { RubyVersion.is?("~> 4.0") ? "wait" : "sleep" }
+        let(:expected_method_name) { RubyVersion.is?(">= 4") ? "wait" : "sleep" }
         let(:do_in_background_thread) do
           proc do |ready_queue|
             ready_queue << true

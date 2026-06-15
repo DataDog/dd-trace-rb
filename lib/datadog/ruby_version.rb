@@ -7,8 +7,7 @@ module Datadog
   # `true` on 3.2.10 and 3.2.11, since those sort *before* "3.2.3" as strings.
   #
   # @example
-  #   RubyVersion.is?("~> 3.0.0")            # => true on Ruby 3.0.x only
-  #   RubyVersion.is?("~> 3.2.0", "< 3.2.3") # => true on Ruby 3.2.0, 3.2.1, 3.2.2 (NOT 3.2.3+, NOT 3.2.10+)
+  #   RubyVersion.is?(">= 3.2", "< 3.2.3") # => true on Ruby 3.2.0, 3.2.1, 3.2.2 (NOT 3.2.3+, NOT 3.2.10+)
   module RubyVersion
     extend RubyVersion # steep currently needs this (instead of extend self or def self.is?) for the inline rbs to work
 
@@ -16,7 +15,7 @@ module Datadog
     private_constant :CURRENT_RUBY_VERSION
 
     # Returns `true` when the running Ruby satisfies ALL of the given requirements. Each uses the
-    # same syntax as a gem dependency (e.g. `">= 3.1"`, `"~> 3.2.0"`, `"< 3.2.3"`).
+    # same syntax as a gem dependency (e.g. `">= 3.1"`, `">= 3.2"`, `"< 3.2.3"`).
     #
     # @rbs (*String requirements, ?ruby_version: ::Gem::Version) -> bool
     def is?(*requirements, ruby_version: CURRENT_RUBY_VERSION)

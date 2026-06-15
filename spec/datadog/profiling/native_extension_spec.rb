@@ -157,7 +157,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
           # I was able to see this even on both Linux with 3.0.3 and macOS with 3.0.4. Thus, I decided to skip this
           # spec on Ruby 3.0. We can always run it manually if we change something around this helper; and we have
           # coverage on 3.1+ anyway.
-          skip "Ruby 3.0 Ractors are too buggy to run this spec" if RubyVersion.is?("~> 3.0.0")
+          skip "Ruby 3.0 Ractors are too buggy to run this spec" if RubyVersion.is?(">= 3", "< 3.1")
         end
 
         subject(:ddtrace_rb_ractor_main_p) do
@@ -260,7 +260,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     subject(:safe_object_info) { described_class::Testing._native_safe_object_info(object_to_inspect) }
 
     # Yes, 3.4 dropped it and it came back in 4.0, you're reading right ;)
-    let(:has_object_info) { RubyVersion.is?("~> 2.5.0") || RubyVersion.is?("~> 3.3.0") || RubyVersion.is?("~> 4.0.0") }
+    let(:has_object_info) { RubyVersion.is?("< 2.6") || RubyVersion.is?(">= 3.3", "< 3.4") || RubyVersion.is?(">= 4") }
 
     context "on a Ruby with rb_obj_info" do
       before { skip "Behavior does not apply to current Ruby version" if has_object_info }
