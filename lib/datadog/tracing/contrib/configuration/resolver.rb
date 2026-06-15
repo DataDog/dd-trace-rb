@@ -108,11 +108,6 @@ module Datadog
             # retrieved in `cached_callable_method_entry` (https://github.com/ruby/ruby/blob/76cca827ab52a/vm_method.c#L1430-L1433).
             #
             # Using an identity-based {Hash} avoids {Hash#key?} calls.
-            #
-            # We should attempt to remove this workaround once we only support Ruby 4+,
-            # as large change around the crash site was done in that version (https://github.com/ruby/ruby/pull/14039/changes#diff-884a5a8a369ef1b4c7597e00aa65974cec8c5f54f25f03ad5d24848f64892869R1740-R1743),
-            # where the call-cache table (the `tbl` in `tbl->capa`) became a GC-managed object,
-            # instead of the C struct in Ruby < 4.
             @cache.compare_by_identity
           end
 
