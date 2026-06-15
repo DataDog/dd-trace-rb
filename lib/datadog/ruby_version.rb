@@ -10,7 +10,7 @@ module Datadog
   #   RubyVersion.is?("~> 3.0.0")            # => true on Ruby 3.0.x only
   #   RubyVersion.is?("~> 3.2.0", "< 3.2.3") # => true on Ruby 3.2.0, 3.2.1, 3.2.2 (NOT 3.2.3+, NOT 3.2.10+)
   module RubyVersion
-    extend RubyVersion # steep currently needs this for the inline rbs to work
+    extend RubyVersion # steep currently needs this (instead of extend self or def.self_is?) for the inline rbs to work
 
     CURRENT_RUBY_VERSION = Gem::Version.new(RUBY_VERSION) #: ::Gem::Version
     private_constant :CURRENT_RUBY_VERSION
