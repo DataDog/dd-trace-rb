@@ -110,7 +110,9 @@ module Datadog
           until @queue.empty?
             begin
               event = @queue.pop(true)
-              @aggregator.record(**event)
+              # event is the untyped keyword hash pushed by #enqueue; its required keys
+              # cannot be statically verified after the SizedQueue round-trip.
+              @aggregator.record(**event) # steep:ignore
             rescue ThreadError
               break
             end
@@ -187,6 +189,7 @@ module Datadog
         end
 
         def build_event(flag_key:, variant:, allocation_key:, reason:, targeting_key:, entry:, now_ms:, tier:)
+          # @type var event: ::Hash[::String, untyped]
           event = {
             'timestamp' => now_ms,
             'flag' => {'key' => flag_key},

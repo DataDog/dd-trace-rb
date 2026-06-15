@@ -3,6 +3,42 @@ module Datadog
     class Provider
       NAME: ::String
 
+      class EvpEvalContext < ::Struct[untyped]
+        attr_accessor targeting_key: ::String?
+
+        attr_accessor attributes: ::Hash[::String, untyped]?
+
+        def self.new: (
+          ?::String? targeting_key,
+          ?::Hash[::String, untyped]? attributes
+        ) -> EvpEvalContext
+      end
+
+      class HookContext < ::Struct[untyped]
+        attr_accessor flag_key: ::String?
+
+        attr_accessor evaluation_context: EvpEvalContext?
+
+        def self.new: (
+          ?::String? flag_key,
+          ?EvpEvalContext? evaluation_context
+        ) -> HookContext
+      end
+
+      class HookDetails < ::Struct[untyped]
+        attr_accessor variant: ::String?
+
+        attr_accessor reason: ::String?
+
+        attr_accessor flag_metadata: ::Hash[::String, untyped]?
+
+        def self.new: (
+          ?::String? variant,
+          ?::String? reason,
+          ?::Hash[::String, untyped]? flag_metadata
+        ) -> HookDetails
+      end
+
       attr_reader metadata: ::OpenFeature::SDK::Provider::ProviderMetadata
 
       def initialize: () -> void
