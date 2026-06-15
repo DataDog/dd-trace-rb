@@ -85,14 +85,18 @@ RSpec.describe 'Symbol Database Configuration', :symdb_supported_platforms do
 
     context 'default tracks dynamic_instrumentation.enabled' do
       context 'when dynamic_instrumentation.enabled is true' do
+        # environment_supported? is stubbed here for the same reason it is
+        # stubbed in the "not supported" sibling context below: the default
+        # consults the predicate, and the predicate's real implementation
+        # checks several runtime conditions (development mode, MRI engine,
+        # Ruby version, libdatadog_api C extension presence) that are not
+        # uniformly true across the rake tasks this spec runs under — in
+        # particular, `spec:main` does not compile libdatadog_api. Stubbing
+        # the predicate isolates the layering being tested (default tracks
+        # DI's runtime gate) from the predicate's internal mechanics.
         before do
           settings.dynamic_instrumentation.enabled = true
-          # The default consults DI::Component.environment_supported?, which
-          # checks Datadog::Core::Environment::Execution.development? — true
-          # under rspec. Set the documented dev-mode escape hatch so DI's
-          # gate evaluates to true, matching what a customer running DI in
-          # development would set.
-          settings.dynamic_instrumentation.internal.development = true
+          allow(Datadog::DI::Component).to receive(:environment_supported?).and_return(true)
         end
 
         it 'defaults symbol_database.enabled to true' do
