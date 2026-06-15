@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# Needed since this file can be loaded without core
+require_relative '../../ruby_version'
+
 module Datadog
   module Kit
     module Tracing

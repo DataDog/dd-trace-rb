@@ -10,6 +10,9 @@
 
 require_relative 'code_tracker'
 
+# Needed since this file can be loaded without core
+require_relative '../ruby_version'
+
 module Datadog
   # Namespace for Datadog dynamic instrumentation.
   #
