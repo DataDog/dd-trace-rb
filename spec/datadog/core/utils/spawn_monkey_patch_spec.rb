@@ -274,7 +274,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
     it 'delegates perfectly to the original method' do
       expect_in_fork do
         checker = double
-        if RUBY_VERSION < '2.7'
+        if RubyVersion.is?('< 2.7')
           # 2.6 splits Symbol & non-Symbol kwargs so we have to test just *args
           checker.define_singleton_method :spawn do |*args|
             checker.check(*args)

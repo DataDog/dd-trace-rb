@@ -4,7 +4,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
   reset_at_fork_monkey_patch_for_components!
 
   before(:all) do
-    if RUBY_VERSION < '2.6'
+    if RubyVersion.is?('< 2.6')
       # The tests here are flaking in CI on Ruby 2.5.
       # Once I add diagnostics to investigate why they are failing, they
       # stop failing.

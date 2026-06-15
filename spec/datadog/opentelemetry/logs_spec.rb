@@ -3,7 +3,7 @@
 require 'spec_helper'
 
 # OpenTelemetry logs SDK requires Ruby >= 3.1
-if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.1')
+if RubyVersion.is?('>= 3.1')
   require 'opentelemetry/sdk'
   require 'opentelemetry-logs-sdk'
   require 'opentelemetry/exporter/otlp_logs'

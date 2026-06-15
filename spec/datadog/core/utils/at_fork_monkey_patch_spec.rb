@@ -16,7 +16,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
       let(:toplevel_receiver) { TOPLEVEL_BINDING.receiver }
 
       context 'on Ruby 3.0 or below' do
-        before { skip 'Test applies only to Ruby 3.0 or below' if RUBY_VERSION >= '3.1' }
+        before { skip 'Test applies only to Ruby 3.0 or below' unless RubyVersion.is?('< 3.1') }
 
         it 'applies the monkey patch' do
           expect_in_fork do
@@ -36,7 +36,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
       end
 
       context 'on Ruby 3.1 or above' do
-        before { skip 'Test applies only to Ruby 3.1 or above' if RUBY_VERSION < '3.1' }
+        before { skip 'Test applies only to Ruby 3.1 or above' unless RubyVersion.is?('>= 3.1') }
 
         it 'applies the monkey patch' do
           expect_in_fork do
