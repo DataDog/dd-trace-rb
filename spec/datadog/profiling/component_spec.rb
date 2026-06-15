@@ -235,7 +235,9 @@ RSpec.describe Datadog::Profiling::Component do
 
             # Since RUBY_VERSION is used to test if the ExecMonkeyPatch should be applied, mocking it below on an old
             # Ruby would cause it to wrongly be triggered, so we avoid running these specs there.
-            skip "Behavior does not apply to current Ruby version" if RubyVersion.is?("< 2.7") && RubyVersion.is?(">= 3", ruby_version: testing_version)
+            if RubyVersion.is?("< 2.7") && RubyVersion.is?(">= 3", ruby_version: Gem::Version.new(testing_version))
+              skip "Behavior does not apply to current Ruby version"
+            end
 
             stub_const("RUBY_VERSION", testing_version)
           end

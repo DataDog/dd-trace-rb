@@ -12,12 +12,15 @@ module Datadog
   module RubyVersion
     extend RubyVersion # steep currently needs this for the inline rbs to work
 
+    CURRENT_RUBY_VERSION = Gem::Version.new(RUBY_VERSION) #: ::Gem::Version
+    private_constant :CURRENT_RUBY_VERSION
+
     # Returns `true` when the running Ruby satisfies ALL of the given requirements. Each uses the
     # same syntax as a gem dependency (e.g. `">= 3.1"`, `"~> 3.2.0"`, `"< 3.2.3"`).
     #
-    # @rbs (*String requirements, ?ruby_version: String) -> bool
-    def is?(*requirements, ruby_version: RUBY_VERSION)
-      Gem::Requirement.new(*requirements).satisfied_by?(Gem::Version.new(ruby_version))
+    # @rbs (*String requirements, ?ruby_version: ::Gem::Version) -> bool
+    def is?(*requirements, ruby_version: CURRENT_RUBY_VERSION)
+      Gem::Requirement.new(*requirements).satisfied_by?(ruby_version)
     end
   end
 end

@@ -4,7 +4,7 @@ require 'datadog/ruby_version'
 
 RSpec.describe Datadog::RubyVersion do
   describe '.is' do
-    subject(:is) { described_class.is?(*requirements, ruby_version: ruby_version) }
+    subject(:is) { described_class.is?(*requirements, ruby_version: Gem::Version.new(ruby_version)) }
 
     context 'with a single requirement' do
       let(:requirements) { ['~> 3.0.0'] }
