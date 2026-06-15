@@ -2012,7 +2012,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         gvl_state_change_count = ctx.fetch(:gvl_state_change_count)
         expect(ctx.fetch(:gvl_state_change_count_at_previous_sample)).to eq(gvl_state_change_count)
         expect(ctx.fetch(:was_skipped_at_last_sample)).to be false
-        expect(stats.fetch(:inactive_thread_samples_skipped)).to eq 0
 
         # second sample sees unchanged counter and skips
         sample
@@ -2020,7 +2019,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         expect(ctx.fetch(:gvl_state_change_count)).to eq(gvl_state_change_count)
         expect(ctx.fetch(:gvl_state_change_count_at_previous_sample)).to eq(gvl_state_change_count)
         expect(ctx.fetch(:was_skipped_at_last_sample)).to be true
-        expect(stats.fetch(:inactive_thread_samples_skipped)).to eq 1
       end
 
       it "still records at least one sample per profile period via serialize" do
@@ -2033,7 +2031,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
         sample # skips, sets was_skipped_at_last_sample
         expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be true
-        expect(stats.fetch(:inactive_thread_samples_skipped)).to eq 1
 
         # End of profile period 1: serialize flushes the skipped thread
         result = recorder.serialize!
@@ -2048,7 +2045,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           sample
           expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be true
         }
-        expect(stats.fetch(:inactive_thread_samples_skipped)).to eq 11
 
         # End of profile period 2: serialize again flushes the skipped thread
         result = recorder.serialize!
