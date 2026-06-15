@@ -240,13 +240,27 @@ module Datadog
               entry_capture_expressions = nil
               entry_capture_evaluation_errors = nil
               if probe.capture_expressions? && probe.evaluate_at == :entry && !probe.capture_snapshot?
-                entry_context = Context.new(
-                  probe: probe, settings: settings, serializer: serializer,
-                  target_self: self,
-                  locals: serializer.combine_args(args, kwargs, self),
-                )
-                entry_capture_expressions, entry_capture_evaluation_errors =
-                  instrumenter.capture_expression_evaluator.evaluate(probe, entry_context)
+                begin
+                  entry_context = Context.new(
+                    probe: probe, settings: settings, serializer: serializer,
+                    target_self: self,
+                    locals: serializer.combine_args(args, kwargs, self),
+                  )
+                  entry_capture_expressions, entry_capture_evaluation_errors =
+                    instrumenter.capture_expression_evaluator.evaluate(probe, entry_context)
+                rescue => exc
+                  # Per-expression StandardError is caught inside the
+                  # evaluator; reaching this rescue means a non-evaluator
+                  # failure (e.g. building the entry Context or combining
+                  # args raised). Mirror the condition-evaluation pattern
+                  # above: surface in tests via propagate_all_exceptions,
+                  # otherwise log + telemetry and continue with no entry
+                  # block stashed.
+                  raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                  instrumenter.logger.debug { "di: error evaluating entry-time capture expressions: #{exc.class}: #{exc.message}" }
+                  instrumenter.telemetry&.report(exc, description: "Error evaluating entry-time capture expressions")
+                end
               end
               # We intentionally do not use Core::Utils::Time.get_time
               # here because the time provider may be overridden by the
