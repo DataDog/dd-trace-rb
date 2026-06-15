@@ -2669,10 +2669,10 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         load @file
 
         # Alias under a second constant, then remove the original.
-        # The class object stays reachable via :ExtractAllAliasSurvivor,
-        # but `mod.name` continues to report the cached "ExtractAllAliasOriginal".
+        # The :ExtractAllAliasSurvivor binding on Object keeps the class
+        # alive through the after hook; no separate @ivar is needed.
+        # `mod.name` continues to report the cached "ExtractAllAliasOriginal".
         Object.const_set(:ExtractAllAliasSurvivor, ExtractAllAliasOriginal)
-        @survivor = ExtractAllAliasSurvivor
         Object.send(:remove_const, :ExtractAllAliasOriginal)
       end
 
