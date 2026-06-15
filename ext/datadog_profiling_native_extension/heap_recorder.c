@@ -306,7 +306,7 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder) {
   // simply be noticed on next heap_recorder_prepare_iteration.
   //
   // There is one small caveat though: fork only preserves one thread and in a Ruby app, that
-  // will be the thread holding on to the GVL. Since we support iteration on the heap recorder
+  // will be the thread holding the GVL. Since we support iteration on the heap recorder
   // outside of the GVL, any state specific to that interaction may be inconsistent after fork
   // (e.g. an acquired lock for thread safety). Iteration operates on object_records_snapshot
   // though and that one will be updated on next heap_recorder_prepare_iteration so we really
