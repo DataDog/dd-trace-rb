@@ -1,7 +1,7 @@
 $LOAD_PATH.unshift File.expand_path('..', __dir__)
 $LOAD_PATH.unshift File.expand_path('../lib', __dir__)
 
-Thread.main.name = 'Thread.main' unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+Thread.main.name = 'Thread.main'
 
 require 'pry'
 require 'rspec/collection_matchers'
@@ -357,7 +357,7 @@ require 'spec/support/thread_helpers'
 if ENV.key?('CI')
   ThreadHelpers.with_leaky_thread_creation('Deadline thread') do
     Thread.new do
-      Thread.current.name = 'spec_helper.rb CI debugging Deadline thread' unless RubyVersion.is?('~> 2.1.0') || RubyVersion.is?('~> 2.2.0')
+      Thread.current.name = 'spec_helper.rb CI debugging Deadline thread'
 
       sleep_time = 30 * 60 # 30 minutes
       sleep(sleep_time)
