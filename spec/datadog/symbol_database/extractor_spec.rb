@@ -2624,9 +2624,15 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'includes the private inner class in extract_all output' do
-        # Ensure this fixture is actually using a private constant (Module#constants(false) excludes it).
+        # Preconditions: verify the fixture is actually exercising private-constant
+        # visibility. Module#constants(false) excludes private constants; an attempt to
+        # access Worker via :: raises NameError with a "private constant" message. If
+        # either of these stops holding (typo in the fixture, Ruby semantics change),
+        # the test fails fast on the precondition rather than passing for the wrong
+        # reason. Module#private_constants is not a real method on any Ruby version, so
+        # the visibility-raise is the direct way to assert what private_constant does.
         expect(ExtractAllPrivateConstantHost.constants(false)).not_to include(:Worker)
-        expect(ExtractAllPrivateConstantHost.private_constants(false)).to include(:Worker)
+        expect { ExtractAllPrivateConstantHost::Worker }.to raise_error(NameError, /private constant/)
 
         scopes = extract_all_clean
         file_scope = scopes.find { |s| s.scope_type == 'FILE' && s.name == @file }
