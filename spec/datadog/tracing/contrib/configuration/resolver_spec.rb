@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'datadog/tracing/contrib/configuration/resolver'
@@ -91,6 +93,7 @@ RSpec.describe Datadog::Tracing::Contrib::Configuration::CachingResolver do
   let(:resolver_class) do
     Class.new(Datadog::Tracing::Contrib::Configuration::Resolver) do
       prepend Datadog::Tracing::Contrib::Configuration::CachingResolver
+      attr_reader :cache
 
       def resolve(key)
         @invoked ||= 0
@@ -101,6 +104,12 @@ RSpec.describe Datadog::Tracing::Contrib::Configuration::CachingResolver do
       def invocations
         @invoked ||= 0
       end
+    end
+  end
+
+  describe '#cache' do
+    it 'compares keys by identity' do
+      expect(resolver.cache).to be_compare_by_identity
     end
   end
 
@@ -120,6 +129,17 @@ RSpec.describe Datadog::Tracing::Contrib::Configuration::CachingResolver do
       resolver.resolve(key)
 
       expect(resolver.invocations).to eq(1)
+    end
+
+    context 'with distinct Hash objects that match by #eql?' do
+      let(:key) { {adapter: 'adapter'} }
+
+      it 'matches using hash equality but caches by identity' do
+        expect(resolver.resolve({adapter: 'adapter'})).to eq(value)
+        expect(resolver.resolve({adapter: 'adapter'})).to eq(value)
+
+        expect(resolver.invocations).to eq(2)
+      end
     end
 
     context 'when a matcher key is added' do

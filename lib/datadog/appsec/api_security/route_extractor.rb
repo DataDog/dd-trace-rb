@@ -50,6 +50,12 @@ module Datadog
         #          In Rails < 7.1 it also will not be set even if a route was found,
         #          but in this case `action_dispatch.request.path_parameters` won't be empty.
         def self.route_pattern(request)
+          # NOTE: Requests from contribs like AWS Lambda don't provide a usable
+          #       `::Rack::Request#env`, so infer the route from the path instead
+          unless request.respond_to?(:env)
+            return Tracing::Contrib::Rack::RouteInference.infer(request.path.to_s)
+          end
+
           if request.env.key?(GRAPE_ROUTE_KEY)
             pattern = request.env[GRAPE_ROUTE_KEY][:route_info]&.pattern&.origin
             "#{request.script_name}#{pattern}"

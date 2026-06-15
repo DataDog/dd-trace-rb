@@ -278,6 +278,26 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
       end
     end
 
+    context 'when request does not respond to env' do
+      context 'when path has a dynamic segment' do
+        let(:request) { double('Lambda::Request', path: '/users/1') }
+
+        it { expect(described_class.route_pattern(request)).to eq('/users/{param:int}') }
+      end
+
+      context 'when path is root' do
+        let(:request) { double('Lambda::Request', path: '/') }
+
+        it { expect(described_class.route_pattern(request)).to eq('/') }
+      end
+
+      context 'when path is nil' do
+        let(:request) { double('Lambda::Request', path: nil) }
+
+        it { expect(described_class.route_pattern(request)).to eq('/') }
+      end
+    end
+
     context 'when multiple framework routes are present' do
       context 'when Sinatra and Grape routes are present' do
         let(:route_info) do

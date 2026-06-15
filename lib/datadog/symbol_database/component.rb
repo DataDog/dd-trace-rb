@@ -470,8 +470,17 @@ module Datadog
           @logger.trace { "symdb: starting extraction and upload" }
           start_time = Datadog::Core::Utils::Time.get_time
 
+          extracted_count = 0
+          targetable_count = 0
+          consume = lambda do |scope|
+            @scope_batcher.add_scope(scope)
+            extracted_count += 1
+            targetable_count += count_targetable_methods_in_scope(scope)
+            log_scope_tree(scope, 0)
+          end
+
           if @initial_extraction_done
-            file_scopes = extract_hot_load_buffer
+            extract_hot_load_buffer.each(&consume)
             mode_label = "hot-load"
           else
             # Discard any TracePoint events captured between hook install and
@@ -479,21 +488,15 @@ module Datadog
             # covers everything loaded at this moment. Anything loaded during
             # or after extract_all stays buffered for the next drain.
             @hot_load_buffer_mutex.synchronize { @hot_load_buffer.clear }
-            # extract_all handles ObjectSpace iteration, filtering, and FQN-based nesting.
-            file_scopes = @extractor.extract_all
+            # Stream form of extract_all yields one FILE scope at a time and frees
+            # the per-file intermediate tree as it goes — the full Array<Scope> is
+            # never materialized, keeping peak memory bounded for large workspaces.
+            @extractor.extract_all(&consume)
             @initial_extraction_done = true
             mode_label = "initial"
           end
 
-          extracted_count = 0
-          file_scopes.each do |scope|
-            @scope_batcher.add_scope(scope)
-            extracted_count += 1
-            log_scope_tree(scope, 0)
-          end
-
           extraction_duration = Datadog::Core::Utils::Time.get_time - start_time
-          targetable_count = count_targetable_methods(file_scopes)
           @logger.debug { "symdb: #{mode_label} extracted #{extracted_count} scopes (#{targetable_count} methods with targetable lines) in #{'%.2f' % extraction_duration}s" }
 
           # Flush any remaining scopes (triggers upload)
@@ -597,13 +600,14 @@ module Datadog
         scope.scopes&.each { |child| log_scope_tree(child, depth + 1) }
       end
 
-      def count_targetable_methods(file_scopes)
+      # Count METHOD scopes with targetable lines inside one FILE scope. Used by
+      # extract_and_upload to accumulate the count while streaming, without
+      # retaining the Array<Scope> just to compute the total at the end.
+      def count_targetable_methods_in_scope(file_scope)
         count = 0
-        file_scopes.each do |file_scope|
-          file_scope.scopes&.each do |class_or_module|
-            class_or_module.scopes&.each do |method_scope|
-              count += 1 if method_scope.scope_type == 'METHOD' && method_scope.targetable_lines?
-            end
+        file_scope.scopes&.each do |class_or_module|
+          class_or_module.scopes&.each do |method_scope|
+            count += 1 if method_scope.scope_type == 'METHOD' && method_scope.targetable_lines?
           end
         end
         count
