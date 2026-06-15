@@ -562,13 +562,9 @@ module Datadog
               # that location here.
               []
             end
-            # Depth 2 skips: this method (run_method_probe) and the
-            # wrapper define_method block. The first returned frame is
-            # the user's call site. Pinned by the regression test
-            # "caller_locations capture > captures the test call site
-            # as the frame after the synthetic method frame". The `|| []`
-            # guards Steep — caller_locations is typed as nilable, but at
-            # depth 2 with two known callers above us it never returns nil.
+            # depth 2 skips run_method_probe and the wrapper define_method
+            # block, leaving the user's call site as the first returned frame.
+            # caller_locations is RBS-nilable but never nil at this depth.
             caller_locs = method_frame + (caller_locations(2) || [])
             # TODO capture arguments at exit
 
