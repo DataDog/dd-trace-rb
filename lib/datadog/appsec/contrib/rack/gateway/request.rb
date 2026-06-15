@@ -14,6 +14,12 @@ module Datadog
         module Gateway
           # Gateway Request argument. Normalized extration of data from Rack::Request
           class Request < Instrumentation::Gateway::Argument
+            def self.rewind_rack_input?
+              return @rewind_rack_input if defined?(@rewind_rack_input)
+
+              @rewind_rack_input = Gem::Version.new(::Rack.release) < Gem::Version.new('3')
+            end
+
             attr_reader :env
 
             def initialize(env)
@@ -129,11 +135,12 @@ module Datadog
             # Peeks the body up to limit + 1 bytes to measure its size without parsing,
             # then restores `rack.input` for downstream reads
             #
-            # NOTE: We never rewind. The Rack 3+ rewind contract is unreliable
-            #       (Falcon's `rewind` returns `true` without repositioning).
+            # NOTE: Rack 2 requires `rack.input` to stay rewindable.
             #
-            #       We always replace `rack.input` with a replay over the bytes
-            #       already read: {BufferedInput} over the limit, {StringIO} otherwise.
+            # NOTE: Rack 3+ rewind contract is unreliable. Falcon's `rewind`
+            #       returns `true` without repositioning. We always replace
+            #       `rack.input` with a replay over the bytes already read:
+            #       {BufferedInput} over the limit, {StringIO} otherwise.
             #
             # Returns the byte size within the limit, or `nil` when over it.
             def measure_body!(io, limit:)
@@ -147,13 +154,19 @@ module Datadog
                 buffer << chunk
               end
 
-              if buffer.bytesize > limit
+              over_limit = buffer.bytesize > limit
+
+              if self.class.rewind_rack_input? && io.respond_to?(:rewind)
+                io.rewind
+              elsif over_limit
                 env['rack.input'] = BufferedInput.new(io, buffer: StringIO.new(buffer))
-                return
+              else
+                env['rack.input'] = StringIO.new(buffer)
               end
 
-              env['rack.input'] = StringIO.new(buffer)
-              buffer.bytesize
+              # NOTE: Once the peek crosses the limit, we stop reading and leave
+              #       the rest for downstream code. AppSec cannot use a partial body
+              over_limit ? nil : buffer.bytesize
             end
           end
         end

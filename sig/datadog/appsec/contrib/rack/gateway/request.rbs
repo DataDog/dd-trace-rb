@@ -4,43 +4,47 @@ module Datadog
       module Rack
         module Gateway
           class Request < Instrumentation::Gateway::Argument
-            @env: ::Hash[::String, any]
+            self.@rewind_rack_input: bool
 
-            attr_reader env: ::Hash[::String, any]
+            @env: Hash[String, any]
 
-            def initialize: (::Hash[::String, any] env) -> void
+            def self.rewind_rack_input?: () -> bool
 
-            def request: () -> ::Rack::Request
+            attr_reader env: Hash[String, any]
 
-            def query: () -> ::Hash[::String, any]
+            def initialize: (Hash[String, any] env) -> void
 
-            def headers: () -> ::Hash[::String, ::String]
+            def request: () -> RackRequest
 
-            def body: () -> ::String
+            def query: () -> Hash[String, any]
 
-            def method: () -> ::String
+            def headers: () -> Hash[String, String]
 
-            def url: () -> ::String
+            def body: () -> String
 
-            def cookies: () -> ::Hash[::String, ::String]
+            def method: () -> String
 
-            def host: () -> ::String
+            def url: () -> String
 
-            def user_agent: () -> ::String
+            def cookies: () -> Hash[String, String]
 
-            def remote_addr: () -> ::String
+            def host: () -> String
 
-            def form_hash: () -> ::Hash[::String, any]?
+            def user_agent: () -> String
 
-            def body_bytesize: (::Integer limit) -> ::Integer?
+            def remote_addr: () -> String
+
+            def form_hash: () -> Hash[String, any]?
+
+            def body_bytesize: (Integer limit) -> Integer?
 
             def collectable_body?: () -> bool
 
-            def client_ip: () -> ::String?
+            def client_ip: () -> String?
 
             private
 
-            def measure_body!: (untyped io, limit: ::Integer) -> ::Integer?
+            def measure_body!: (untyped io, limit: Integer) -> Integer?
           end
         end
       end

@@ -468,6 +468,73 @@ RSpec.describe 'Rails integration tests', execute_in_fork: Rails.version.to_i >=
             it_behaves_like 'a trace with AppSec api security tags'
           end
         end
+
+        unless Gem.loaded_specs['rack-test'].version.to_s < '0.7'
+          context 'with an event-triggering request in a multipart body of unknown length' do
+            subject(:response) { post url, nil, env }
+
+            let(:boundary) { Rack::Test::MULTIPART_BOUNDARY }
+
+            let(:headers) do
+              {
+                'CONTENT_TYPE' => "multipart/form-data; boundary=#{boundary}",
+                'HTTP_TRANSFER_ENCODING' => 'chunked',
+                :input => unknown_length_input
+              }
+            end
+
+            let(:multipart_body) do
+              "--#{boundary}\r\n" \
+                "Content-Disposition: form-data; name=\"q\"\r\n\r\n" \
+                "1 OR 1;\r\n" \
+                "--#{boundary}--\r\n"
+            end
+
+            let(:unknown_length_input) do
+              Class.new do
+                def initialize(data)
+                  @io = StringIO.new(data)
+                end
+
+                def read(length = nil, outbuf = nil)
+                  @io.read(length, outbuf)
+                end
+
+                def gets(*args)
+                  @io.gets(*args)
+                end
+
+                def each(&block)
+                  @io.each(&block)
+                end
+
+                def rewind
+                  @io.rewind
+                end
+
+                def set_encoding(*args)
+                  @io.set_encoding(*args)
+                end
+              end.new(multipart_body)
+            end
+
+            it { is_expected.to be_ok }
+
+            it_behaves_like 'a POST 200 span'
+            it_behaves_like 'a trace with AppSec tags'
+            it_behaves_like 'a trace with AppSec events'
+
+            context 'and a blocking rule' do
+              let(:appsec_ruleset) { crs_942_100 }
+
+              it { is_expected.to be_forbidden }
+
+              it_behaves_like 'a POST 403 span'
+              it_behaves_like 'a trace with AppSec tags'
+              it_behaves_like 'a trace with AppSec events', {blocking: true}
+            end
+          end
+        end
       end
 
       describe 'Nested apps' do

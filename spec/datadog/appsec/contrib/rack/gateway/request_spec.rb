@@ -203,15 +203,14 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
         request.env['rack.input'] = body_io
       end
 
-      context 'and the body is a streaming input that cannot be rewound' do
-        let(:body_io) do
-          StringIO.new('name=john').tap do |io|
-            allow(io).to receive(:respond_to?).and_call_original
-            allow(io).to receive(:respond_to?).with(:size).and_return(false)
-            allow(io).to receive(:rewind).and_return(true)
-          end
+      let(:body_io) do
+        StringIO.new('name=john').tap do |io|
+          allow(io).to receive(:respond_to?).and_call_original
+          allow(io).to receive(:respond_to?).with(:size).and_return(false)
         end
+      end
 
+      if Gem::Version.new(::Rack.release) >= Gem::Version.new('3')
         context 'and it fits within the limit' do
           it 'buffers the whole body and keeps it readable' do
             expect(request.body_bytesize(100)).to eq(9)
@@ -240,6 +239,34 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
           it 'treats it as over the limit and returns nil' do
             expect(request.body_bytesize(8)).to be_nil
             expect(request.env['rack.input']).to be_a(Datadog::AppSec::Contrib::Rack::BufferedInput)
+            expect(request.env['rack.input'].read).to eq('name=john')
+          end
+        end
+
+        context 'when the input exposes rewind anyway' do
+          before { allow(body_io).to receive(:rewind) }
+
+          it 'does not rely on rewind to restore the body' do
+            request.body_bytesize(4)
+
+            expect(body_io).not_to have_received(:rewind)
+          end
+        end
+      end
+
+      if Gem::Version.new(::Rack.release) < Gem::Version.new('3')
+        context 'and it fits within the limit' do
+          it 'rewinds the input in place and returns the size' do
+            expect(request.body_bytesize(100)).to eq(9)
+            expect(request.env['rack.input']).to be(body_io)
+            expect(request.env['rack.input'].read).to eq('name=john')
+          end
+        end
+
+        context 'and it exceeds the limit' do
+          it 'rewinds the input in place and returns nil' do
+            expect(request.body_bytesize(4)).to be_nil
+            expect(request.env['rack.input']).to be(body_io)
             expect(request.env['rack.input'].read).to eq('name=john')
           end
         end

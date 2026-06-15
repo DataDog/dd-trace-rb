@@ -28,18 +28,15 @@ module Datadog
                     'server.request.path_params' => gateway_request.route_params
                   }
 
-                  # NOTE: Specification requires measuring the body size,
-                  #       preferring the raw data over the Content-Length header
-                  body_io = gateway_request.request.body
-                  byte_length = body_io.respond_to?(:size) ? body_io.size : gateway_request.request.content_length
+                  measurement = gateway_request.measure_body(Datadog.configuration.appsec.body_parsing_size_limit)
 
-                  if byte_length&.positive?
-                    persistent_data['server.request.body.byte_length'] = byte_length
+                  if measurement.byte_length&.positive?
+                    persistent_data['server.request.body.byte_length'] = measurement.byte_length
+                  end
 
-                    if byte_length <= Datadog.configuration.appsec.body_parsing_size_limit
-                      body = gateway_request.parsed_body
-                      persistent_data['server.request.body'] = body if body
-                    end
+                  if measurement.collect_body
+                    body = gateway_request.parsed_body
+                    persistent_data['server.request.body'] = body unless body.nil? || body.empty?
                   end
 
                   result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)

@@ -101,6 +101,12 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Watcher do
 
           expect(context).not_to have_received(:run_waf)
         end
+
+        it 'keeps rack input compatible with form parsing' do
+          gateway.push('rack.request.body', gateway_request)
+
+          expect(::Rack::Request.new(gateway_request.env).POST).to eq('name' => 'john')
+        end
       end
 
       context 'and body collection is disabled' do
