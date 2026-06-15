@@ -7,7 +7,7 @@ RSpec.describe Datadog::RubyVersion do
     subject(:is) { described_class.is?(*requirements, ruby_version: Gem::Version.new(ruby_version)) }
 
     context 'with a single requirement' do
-      let(:requirements) { ['>= 3'] }
+      let(:requirements) { ['< 4'] }
 
       context 'when the version matches' do
         let(:ruby_version) { '3.0.5' }
