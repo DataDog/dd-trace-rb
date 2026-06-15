@@ -18,6 +18,9 @@ module Datadog
             # The `service` mode propagates service configuration
             SERVICE = 'service'
 
+            # The `dynamic_service` mode propagates service configuration + DBM service hash
+            DYNAMIC_SERVICE = 'dynamic_service'
+
             # The `full` mode propagates service configuration + trace context
             FULL = 'full'
 

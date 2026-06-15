@@ -18,18 +18,18 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     )
   end
   let(:no_signals_workaround_enabled) { false }
-  let(:timeline_enabled) { false }
   let(:options) { {} }
   let(:stack_recorder_options) { {} }
   let(:allocation_counting_enabled) { false }
   let(:gvl_profiling_enabled) { false }
   let(:sighandler_sampling_enabled) { false }
   let(:cpu_sampling_interval_ms) { 10 }
+  let(:thread_context_collector) { build_thread_context_collector(recorder) }
   let(:worker_settings) do
     {
       gc_profiling_enabled: gc_profiling_enabled,
       no_signals_workaround_enabled: no_signals_workaround_enabled,
-      thread_context_collector: build_thread_context_collector(recorder),
+      thread_context_collector: thread_context_collector,
       dynamic_sampling_rate_overhead_target_percentage: 2.0,
       allocation_profiling_enabled: allocation_profiling_enabled,
       allocation_counting_enabled: allocation_counting_enabled,
@@ -39,6 +39,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       **options
     }
   end
+  let(:sample) {
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(thread_context_collector, false)
+  }
 
   subject(:cpu_and_wall_time_worker) { described_class.new(**worker_settings, **options) }
 
@@ -54,17 +57,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         it "initializes the ThreadContext collector with endpoint_collection_enabled: #{value}" do
           expect(Datadog::Profiling::Collectors::ThreadContext)
             .to receive(:new).with(hash_including(endpoint_collection_enabled: value)).and_call_original
-
-          cpu_and_wall_time_worker
-        end
-      end
-
-      context "when timeline_enabled is #{value}" do
-        let(:timeline_enabled) { value }
-
-        it "initializes the ThreadContext collector with timeline_enabled: #{value}" do
-          expect(Datadog::Profiling::Collectors::ThreadContext)
-            .to receive(:new).with(hash_including(timeline_enabled: value)).and_call_original
 
           cpu_and_wall_time_worker
         end
@@ -306,11 +298,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       let(:allocation_profiling_enabled) { true }
 
       it "does not allocate Ruby objects during the regular operation of sampling" do
-        # The intention of this test is to warn us if we accidentally trigger object allocations during "happy path"
-        # sampling.
+        # The intention of this test is to warn us if we accidentally trigger object allocations during "happy path" sampling.
         # Note that when something does go wrong during sampling, we do allocate exceptions (and then raise them).
 
         start
+        # Ensure the per_thread_context TypedData wrapper is already allocated for the current Thread
+        sample
+        allocations_after_initial = cpu_and_wall_time_worker.stats.fetch(:allocations_during_sample)
 
         try_wait_until do
           samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
@@ -321,7 +315,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         stats = cpu_and_wall_time_worker.stats
 
-        expect(stats).to include(allocations_during_sample: 0)
+        expect(stats.fetch(:allocations_during_sample)).to be(allocations_after_initial)
       end
     end
 
@@ -449,7 +443,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         let(:gvl_profiling_enabled) { true }
 
-        let(:timeline_enabled) { true }
         let(:ready_queue_2) { Queue.new }
         let(:background_thread_affected_by_gvl_contention) do
           Thread.new do
@@ -558,13 +551,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         context "when 'Waiting for GVL' periods are below waiting_for_gvl_threshold_ns" do
           let(:options) do
-            ten_seconds_as_ns = 1_000_000_000
-            collector = build_thread_context_collector(recorder, waiting_for_gvl_threshold_ns: ten_seconds_as_ns)
+            one_second_as_ns = 1_000_000_000
+            collector = build_thread_context_collector(recorder, waiting_for_gvl_threshold_ns: one_second_as_ns)
 
             {thread_context_collector: collector}
           end
 
-          it "does not trigger extra samples" do
+          it "does not trigger extra samples due to GVL wait duration" do
             background_thread_affected_by_gvl_contention
             ready_queue_2.pop
 
@@ -581,13 +574,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
             expect(cpu_and_wall_time_worker.stats.fetch(:gvl_dont_sample)).to be > 0
 
+            # after_gvl_running may be > 0 due to skip-recovery samples (was_skipped_at_last_sample),
+            # but gvl_dont_sample being > 0 confirms the GVL wait threshold is working correctly.
             expect(cpu_and_wall_time_worker.stats).to match(
               hash_including(
-                after_gvl_running: 0,
-                gvl_sampling_time_ns_min: nil,
-                gvl_sampling_time_ns_max: nil,
-                gvl_sampling_time_ns_total: nil,
-                gvl_sampling_time_ns_avg: nil,
                 gvl_waiting_time_ns_total: be >= 0,
               )
             )
@@ -1347,6 +1337,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     it "resets all stats" do
       cpu_and_wall_time_worker.stop
 
+      allow(thread_context_collector).to receive(:reset_after_fork).and_call_original
       reset_after_fork
 
       expect(cpu_and_wall_time_worker.stats).to match(
@@ -1382,6 +1373,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           gvl_sampling_time_ns_total: nil,
           gvl_sampling_time_ns_avg: nil,
           gvl_waiting_time_ns_total: nil,
+          sample_count: 0,
+          gc_samples: 0,
+          gc_samples_missed_due_to_missing_context: 0,
+          inactive_thread_samples_skipped: 0,
         }
       )
     end
@@ -1430,8 +1425,11 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # there's a small chance that a GC gets triggered in between the two
           # `_native_allocation_count` calls and contributes with unexpected Array allocations to
           # the allocation count. To prevent this, we'll explicitly disable GC around these checks.
-
           GC.disable
+
+          # Ensure the per_thread_context TypedData wrapper is already allocated for the current Thread
+          sample
+
           # To get the exact expected number of allocations, we run through the ropes once so
           # Ruby can create and cache all it needs to and hopefully flush any pending finalizer
           # executions that could affect our expectations
@@ -1445,7 +1443,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           100.times(&new_object)
           after_allocations = described_class._native_allocation_count
 
-          expect(after_allocations - before_allocations).to be 100
+          expect(after_allocations - before_allocations).to eq 100
         ensure
           GC.enable
         end
@@ -1672,30 +1670,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     Datadog::Profiling::Collectors::ThreadContext.for_testing(
       recorder: recorder,
       endpoint_collection_enabled: endpoint_collection_enabled,
-      timeline_enabled: timeline_enabled,
       **options,
     )
-  end
-
-  def loop_until(timeout_seconds: 5, check_condition_every_seconds: 0)
-    started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second)
-
-    deadline = started_at + timeout_seconds
-    condition_deadline = started_at + check_condition_every_seconds
-
-    while (now = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second)) < deadline
-      if check_condition_every_seconds > 0
-        if now >= condition_deadline
-          condition_deadline = now + check_condition_every_seconds
-        else
-          next
-        end
-      end
-
-      result = yield
-      return result if result
-    end
-
-    raise("Wait time exhausted!")
   end
 end

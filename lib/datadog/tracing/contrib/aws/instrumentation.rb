@@ -32,6 +32,7 @@ module Datadog
           # rubocop:disable Metrics/MethodLength
           def annotate!(span, context)
             span.service = configuration[:service_name]
+            span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
             span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
             span.name = Ext::SPAN_COMMAND
             span.resource = context.safely(:resource)

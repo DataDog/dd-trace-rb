@@ -174,8 +174,8 @@ $defs << "-DUSE_RACTOR_INTERNAL_APIS_DIRECTLY" if RUBY_VERSION < "3.3"
 # On older Rubies, there was no GVL instrumentation API and APIs created to support it
 $defs << "-DNO_GVL_INSTRUMENTATION" if RUBY_VERSION < "3.2"
 
-# Supporting GVL instrumentation on 3.2 needs some workarounds
-$defs << "-DUSE_GVL_PROFILING_3_2_WORKAROUNDS" if RUBY_VERSION.start_with?("3.2")
+# rb_internal_thread_specific_*()
+$defs << "-DHAVE_RUBY_THREAD_STORAGE_API" if RUBY_VERSION >= "3.3"
 
 # On older Rubies, there was no struct rb_native_thread. See private_vm_api_acccess.c for details.
 $defs << "-DNO_RB_NATIVE_THREAD" if RUBY_VERSION < "3.2"

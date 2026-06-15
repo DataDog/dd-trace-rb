@@ -2,6 +2,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'active_record'
 require 'datadog/tracing/contrib/active_record/configuration/resolver'
+require 'datadog/tracing/contrib/active_record/utils'
 
 RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver do
   subject(:resolver) do
@@ -229,6 +230,33 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
 
           it_behaves_like 'a matching pattern'
         end
+      end
+    end
+
+    context 'with an ActiveRecord connection configuration hash' do
+      let(:connection_config) do
+        {
+          adapter: 'adapter',
+          host: 'host',
+          port: 123,
+          database: 'database',
+          username: 'username'
+        }
+      end
+      let(:connection) do
+        ::ActiveRecord::ConnectionAdapters::AbstractAdapter.allocate.tap do |adapter|
+          adapter.instance_variable_set(:@config, connection_config)
+        end
+      end
+      let(:actual) { Datadog::Tracing::Contrib::ActiveRecord::Utils.connection_config(connection) }
+      let(:matcher) { actual }
+
+      it 'caches repeated lookups' do
+        allow(resolver).to receive(:resolve_connection_key).and_call_original
+
+        expect(resolver.resolve(actual)).to be(matcher)
+        expect(resolver.resolve(Datadog::Tracing::Contrib::ActiveRecord::Utils.connection_config(connection))).to be(matcher)
+        expect(resolver).to have_received(:resolve_connection_key).once
       end
     end
 

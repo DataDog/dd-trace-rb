@@ -134,6 +134,13 @@ module Datadog
                 end
               end
 
+              # NOTE: A value of 0 (or less) disables request body collection
+              option :body_parsing_size_limit do |o|
+                o.type :int
+                o.env 'DD_APPSEC_BODY_PARSING_SIZE_LIMIT' # bytes
+                o.default 10_485_760
+              end
+
               option :waf_debug do |o|
                 o.env 'DD_APPSEC_WAF_DEBUG'
                 o.default false

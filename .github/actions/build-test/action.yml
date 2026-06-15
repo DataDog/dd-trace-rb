@@ -29,6 +29,7 @@ runs:
     shell: bash
     env:
       COVERAGE_DIR: coverage/versions/${{ inputs.alias }}/${{ inputs.container-id }}
+      CI_TEST_SEED: "${{ github.run_id }}"
 
   - name: Display debug info
     if: ${{ !cancelled() }}
@@ -38,7 +39,7 @@ runs:
 
   - name: Debug with SSH connection
     if: ${{ failure() && runner.debug == '1' }}
-    uses: mxschmitt/action-tmate@c0afd6f790e3a5564914980036ebf83216678101 # v3.19.0
+    uses: mxschmitt/action-tmate@35b54afac29c97fb54faba5b513f8fbd1882f113 # v3.24
     with:
       limit-access-to-actor: true
       # This mode will wait at the end of the job for a user to connect and then to terminate the tmate session.

@@ -68,6 +68,19 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
     end
 
     context 'when Rails routing is present' do
+      context 'when datadog.action_dispatch.route is set' do
+        before { allow(request).to receive(:env).and_return({'datadog.action_dispatch.route' => datadog_route}) }
+
+        let(:datadog_route) do
+          spec = instance_double('ActionDispatch::Journey::Nodes::Cat', to_s: '/users/:id(.:format)')
+          path_pattern = instance_double('ActionDispatch::Journey::Path::Pattern', spec: spec)
+
+          instance_double('ActionDispatch::Journey::Route', path: path_pattern)
+        end
+
+        it { expect(described_class.route_pattern(request)).to eq('/users/:id') }
+      end
+
       context 'when action_dispatch.route_uri_pattern is set' do
         context 'when route has format suffix' do
           before do
@@ -119,6 +132,32 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
           before { allow(request).to receive(:env).and_return({'action_dispatch.route' => route_double}) }
 
           it { expect(described_class.route_pattern(request)).to eq('/users/:id') }
+        end
+      end
+
+      context 'when both datadog and native rails route keys are present' do
+        before do
+          allow(request).to receive(:env).and_return(
+            {'datadog.action_dispatch.route' => datadog_route, 'action_dispatch.route' => native_route}
+          )
+        end
+
+        let(:datadog_route) do
+          spec = instance_double('ActionDispatch::Journey::Nodes::Cat', to_s: '/tracer/:id(.:format)')
+          path_pattern = instance_double('ActionDispatch::Journey::Path::Pattern', spec: spec)
+
+          instance_double('ActionDispatch::Journey::Route', path: path_pattern)
+        end
+
+        let(:native_route) do
+          spec = instance_double('ActionDispatch::Journey::Nodes::Cat', to_s: '/native/:id(.:format)')
+          path_pattern = instance_double('ActionDispatch::Journey::Path::Pattern', spec: spec)
+
+          instance_double('ActionDispatch::Journey::Route', path: path_pattern)
+        end
+
+        it 'chooses the datadog key' do
+          expect(described_class.route_pattern(request)).to eq('/tracer/:id')
         end
       end
 
@@ -236,6 +275,26 @@ RSpec.describe Datadog::AppSec::APISecurity::RouteExtractor do
         before { allow(request).to receive(:env).and_return({'PATH_INFO' => '/some/other/path'}) }
 
         it { expect(described_class.route_pattern(request)).to eq('/some/other/path') }
+      end
+    end
+
+    context 'when request does not respond to env' do
+      context 'when path has a dynamic segment' do
+        let(:request) { double('Lambda::Request', path: '/users/1') }
+
+        it { expect(described_class.route_pattern(request)).to eq('/users/{param:int}') }
+      end
+
+      context 'when path is root' do
+        let(:request) { double('Lambda::Request', path: '/') }
+
+        it { expect(described_class.route_pattern(request)).to eq('/') }
+      end
+
+      context 'when path is nil' do
+        let(:request) { double('Lambda::Request', path: nil) }
+
+        it { expect(described_class.route_pattern(request)).to eq('/') }
       end
     end
 

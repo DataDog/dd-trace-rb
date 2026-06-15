@@ -15,17 +15,22 @@ concurrency:
 permissions: {}
 
 jobs:
-  rails-seven:
-    name: rails-seven (Ruby ${{ matrix.ruby }})
+  rails:
+    name: ${{ matrix.app }} (Ruby ${{ matrix.ruby }})
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        ruby:
-          - "3.4"
+        include:
+          - app: rails-five
+            ruby: "2.7"
+          - app: rails-six
+            ruby: "3.3"
+          - app: rails-seven
+            ruby: "3.4"
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
 
@@ -45,16 +50,58 @@ jobs:
       - name: Build integration base image
         run: ./integration/script/build-images -v ${{ matrix.ruby }}
 
-      - name: Build rails-seven image
-        run: ./integration/apps/rails-seven/script/build-images -v ${{ matrix.ruby }}
+      - name: Build ${{ matrix.app }} image
+        run: ./integration/apps/${{ matrix.app }}/script/build-images -v ${{ matrix.ruby }}
 
-      - name: Run rails-seven integration tests
-        run: ./integration/apps/rails-seven/script/ci -v ${{ matrix.ruby }}
+      - name: Run ${{ matrix.app }} integration tests
+        run: ./integration/apps/${{ matrix.app }}/script/ci -v ${{ matrix.ruby }}
+
+  other-apps:
+    name: ${{ matrix.app }} (Ruby ${{ matrix.ruby }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: rack
+            ruby: "3.4"
+          - app: sinatra2-classic
+            ruby: "3.4"
+          - app: sinatra2-modular
+            ruby: "3.4"
+          - app: hanami
+            ruby: "2.7"
+          - app: opentelemetry
+            ruby: "3.4"
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Shim docker-compose to Compose v2
+        run: |
+          shim=/usr/local/bin/docker-compose
+          sudo tee "$shim" >/dev/null <<'SHIM'
+          #!/bin/bash
+          exec docker compose "$@"
+          SHIM
+          sudo chmod +x "$shim"
+
+      - name: Build integration base image
+        run: ./integration/script/build-images -v ${{ matrix.ruby }}
+
+      - name: Build ${{ matrix.app }} image
+        run: ./integration/apps/${{ matrix.app }}/script/build-images -v ${{ matrix.ruby }}
+
+      - name: Run ${{ matrix.app }} integration tests
+        run: ./integration/apps/${{ matrix.app }}/script/ci -v ${{ matrix.ruby }}
 
   complete:
     name: Integration Apps (complete)
     needs:
-      - rails-seven
+      - rails
+      - other-apps
     runs-on: ubuntu-24.04
     steps:
       - run: echo "Done"

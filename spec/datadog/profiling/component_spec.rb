@@ -90,8 +90,6 @@ RSpec.describe Datadog::Profiling::Component do
 
           expect(settings.profiling.advanced)
             .to receive(:max_frames).and_return(:max_frames_config)
-          expect(settings.profiling.advanced)
-            .to receive(:timeline_enabled).at_least(:once).and_return(:timeline_enabled_config)
           expect(settings.profiling.advanced.endpoint.collection)
             .to receive(:enabled).and_return(:endpoint_collection_enabled_config)
           expect(settings.profiling.advanced)
@@ -104,7 +102,6 @@ RSpec.describe Datadog::Profiling::Component do
             max_frames: :max_frames_config,
             tracer: tracer,
             endpoint_collection_enabled: :endpoint_collection_enabled_config,
-            timeline_enabled: :timeline_enabled_config,
             waiting_for_gvl_threshold_ns: :threshold_ns_config,
             otel_context_enabled: false,
             native_filenames_enabled: :native_filenames_enabled_config,
@@ -443,28 +440,6 @@ RSpec.describe Datadog::Profiling::Component do
           end
         end
 
-        context "when timeline is enabled" do
-          before { settings.profiling.advanced.timeline_enabled = true }
-
-          it "sets up the StackRecorder with timeline_enabled: true" do
-            expect(Datadog::Profiling::StackRecorder)
-              .to receive(:new).with(hash_including(timeline_enabled: true)).and_call_original
-
-            build_profiler_component
-          end
-        end
-
-        context "when timeline is disabled" do
-          before { settings.profiling.advanced.timeline_enabled = false }
-
-          it "sets up the StackRecorder with timeline_enabled: false" do
-            expect(Datadog::Profiling::StackRecorder)
-              .to receive(:new).with(hash_including(timeline_enabled: false)).and_call_original
-
-            build_profiler_component
-          end
-        end
-
         context "when heap_clean_after_gc_enabled is enabled" do
           before { settings.profiling.advanced.heap_clean_after_gc_enabled = true }
 
@@ -509,13 +484,11 @@ RSpec.describe Datadog::Profiling::Component do
           allow(Datadog::Profiling::StackRecorder).to receive(:new)
 
           expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(:no_signals_result)
-          expect(settings.profiling.advanced).to receive(:timeline_enabled).at_least(:once).and_return(:timeline_result)
           expect(settings.profiling.advanced).to receive(:experimental_heap_sample_rate).and_return(456)
           expect(Datadog::Profiling::Exporter).to receive(:new).with(
             hash_including(
               internal_metadata: {
                 no_signals_workaround_enabled: :no_signals_result,
-                timeline_enabled: :timeline_result,
                 heap_sample_every: 456,
               }
             )
@@ -735,26 +708,11 @@ RSpec.describe Datadog::Profiling::Component do
         context "on Ruby >= 3.2" do
           before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.2." }
 
-          context "when timeline is enabled" do
-            before { settings.profiling.advanced.timeline_enabled = true }
+          it "enables GVL profiling" do
+            expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
+              .to receive(:new).with(hash_including(gvl_profiling_enabled: true))
 
-            it "enables GVL profiling" do
-              expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
-                .to receive(:new).with(hash_including(gvl_profiling_enabled: true))
-
-              build_profiler_component
-            end
-          end
-
-          context "when timeline is disabled" do
-            before { settings.profiling.advanced.timeline_enabled = false }
-
-            it "does not enable GVL profiling" do
-              expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
-                .to receive(:new).with(hash_including(gvl_profiling_enabled: false))
-
-              build_profiler_component
-            end
+            build_profiler_component
           end
         end
       end

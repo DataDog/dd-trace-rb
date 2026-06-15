@@ -29,16 +29,15 @@ void private_raise_exception(VALUE exception, const char *static_message) {
   rb_exc_raise(exception);
 }
 
-// Helper for raising pre-formatted exceptions
-void private_raise_error_formatted(VALUE exception_class, const char *detailed_message, const char *static_message) {
-  VALUE exception = rb_exc_new_cstr(exception_class, detailed_message);
-  private_raise_exception(exception, static_message);
-}
-
 // Use `raise_error` the macro instead, as it provides additional argument checks.
 void private_raise_error(VALUE exception_class, const char *fmt, ...) {
-  FORMAT_VA_ERROR_MESSAGE(detailed_message, fmt);
-  private_raise_error_formatted(exception_class, detailed_message, fmt);
+  va_list args;
+  va_start(args, fmt);
+  VALUE detailed_message = rb_vsprintf(fmt, args);
+  va_end(args);
+
+  VALUE exception = rb_exc_new_str(exception_class, detailed_message);
+  private_raise_exception(exception, fmt);
 }
 
 VALUE datadog_gem_version(void) {

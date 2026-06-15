@@ -1,5 +1,5 @@
+require 'ostruct' # graphql 1.13 uses OpenStruct without requiring ostruct itself
 require 'graphql'
-require 'ostruct'
 
 require_relative 'test_helpers'
 

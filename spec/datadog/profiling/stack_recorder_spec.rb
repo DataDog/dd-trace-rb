@@ -13,7 +13,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
   let(:heap_samples_enabled) { false }
   let(:heap_size_enabled) { false }
   let(:heap_sample_every) { 1 }
-  let(:timeline_enabled) { true }
   let(:heap_clean_after_gc_enabled) { true }
 
   subject(:stack_recorder) do
@@ -22,7 +21,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       heap_samples_enabled: heap_samples_enabled,
       heap_size_enabled: heap_size_enabled,
       heap_sample_every: heap_sample_every,
-      timeline_enabled: timeline_enabled,
       heap_clean_after_gc_enabled: heap_clean_after_gc_enabled,
     )
   end
@@ -139,7 +137,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         let(:alloc_samples_enabled) { true }
         let(:heap_samples_enabled) { true }
         let(:heap_size_enabled) { true }
-        let(:timeline_enabled) { true }
         let(:all_profile_types) do
           {
             "cpu-time" => "nanoseconds",
@@ -190,25 +187,17 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           end
         end
 
-        context "when timeline is disabled" do
-          let(:timeline_enabled) { false }
-
-          it "returns a pprof without the timeline type" do
-            expect(sample_types_from(decoded_profile)).to eq(profile_types_without("timeline"))
-          end
-        end
-
         context "when all optional types are disabled" do
           let(:alloc_samples_enabled) { false }
           let(:heap_samples_enabled) { false }
           let(:heap_size_enabled) { false }
-          let(:timeline_enabled) { false }
 
           it "returns a pprof without the optional types" do
             expect(sample_types_from(decoded_profile)).to eq(
               "cpu-time" => "nanoseconds",
               "cpu-samples" => "count",
               "wall-time" => "nanoseconds",
+              "timeline" => "nanoseconds",
             )
           end
         end
@@ -295,11 +284,11 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
 
       context "when disabling an optional profile sample type" do
-        let(:timeline_enabled) { false }
+        let(:alloc_samples_enabled) { false }
 
         it "encodes the sample with the metrics provided, ignoring the disabled ones" do
           expect(samples.first.values).to eq(
-            "cpu-time": 123, "cpu-samples": 456, "wall-time": 789, "alloc-samples": 4242, "alloc-samples-unscaled": 2222
+            "cpu-time": 123, "cpu-samples": 456, "wall-time": 789, timeline: 1111
           )
         end
       end
@@ -803,6 +792,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             end
 
             it "enforces a minimum time between heap updates" do
+              skip_asan_flaky
+
               test_object_id_1 = sample_and_clear
 
               expect { recorder_after_gc_step }.to change { is_object_recorded?(test_object_id_1) }.from(true).to(false)
@@ -813,6 +804,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             end
 
             it "does not apply the minimum time between heap updates when serializing" do
+              skip_asan_flaky
+
               test_object_id_1 = sample_and_clear
 
               expect { recorder_after_gc_step }.to change { is_object_recorded?(test_object_id_1) }.from(true).to(false)

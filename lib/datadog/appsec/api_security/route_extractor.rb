@@ -15,6 +15,7 @@ module Datadog
         RAILS_ROUTES_KEY = 'action_dispatch.routes'
         RAILS_PATH_PARAMS_KEY = 'action_dispatch.request.path_parameters'
         RAILS_FORMAT_SUFFIX = '(.:format)'
+        DATADOG_RAILS_ROUTE_KEY = 'datadog.action_dispatch.route'
 
         # HACK: We rely on the fact that each contrib will modify `request.env`
         #       and store information sufficient to compute the canonical
@@ -49,12 +50,20 @@ module Datadog
         #          In Rails < 7.1 it also will not be set even if a route was found,
         #          but in this case `action_dispatch.request.path_parameters` won't be empty.
         def self.route_pattern(request)
+          # NOTE: Requests from contribs like AWS Lambda don't provide a usable
+          #       `::Rack::Request#env`, so infer the route from the path instead
+          unless request.respond_to?(:env)
+            return Tracing::Contrib::Rack::RouteInference.infer(request.path.to_s)
+          end
+
           if request.env.key?(GRAPE_ROUTE_KEY)
             pattern = request.env[GRAPE_ROUTE_KEY][:route_info]&.pattern&.origin
             "#{request.script_name}#{pattern}"
           elsif request.env.key?(SINATRA_ROUTE_KEY)
             pattern = request.env[SINATRA_ROUTE_KEY].split(SINATRA_ROUTE_SEPARATOR, 2)[1]
             "#{request.script_name}#{pattern}"
+          elsif request.env.key?(DATADOG_RAILS_ROUTE_KEY)
+            request.env[DATADOG_RAILS_ROUTE_KEY].path.spec.to_s.delete_suffix(RAILS_FORMAT_SUFFIX)
           elsif request.env.key?(RAILS_ROUTE_KEY)
             request.env[RAILS_ROUTE_KEY].path.spec.to_s.delete_suffix(RAILS_FORMAT_SUFFIX)
           elsif request.env.key?(RAILS_ROUTE_URI_PATTERN_KEY)

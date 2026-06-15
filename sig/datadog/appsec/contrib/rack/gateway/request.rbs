@@ -32,6 +32,8 @@ module Datadog
 
             def form_hash: () -> ::Hash[::String, any]
 
+            def collectable_body?: () -> bool
+
             def client_ip: () -> ::String?
           end
         end

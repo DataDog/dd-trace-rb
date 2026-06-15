@@ -1,12 +1,15 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/svc_src_examples'
 require 'sucker_punch'
 require 'datadog'
 
 RSpec.describe 'sucker_punch instrumentation' do
+  let(:configuration_options) { {} }
+
   before do
     Datadog.configure do |c|
-      c.tracing.instrument :sucker_punch
+      c.tracing.instrument :sucker_punch, configuration_options
     end
 
     SuckerPunch::RUNNING.make_true
@@ -72,6 +75,18 @@ RSpec.describe 'sucker_punch instrumentation' do
       is_expected.to be true
       try_wait_until { get_spans_count == 2 }
       expect(spans.length).to eq(2)
+    end
+
+    context 'when service_name is overridden' do
+      let(:configuration_options) { {service_name: 'custom-sucker_punch'} }
+
+      it_behaves_like 'tags _dd.svc_src', 'sucker_punch' do
+        let(:span) { spans.find { |s| s.resource[/PROCESS/] } }
+        before do
+          dummy_worker_success
+          try_wait_until { get_spans_count == 2 }
+        end
+      end
     end
 
     it 'instruments successful job' do
