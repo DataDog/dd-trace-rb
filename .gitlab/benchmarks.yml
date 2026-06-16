@@ -261,7 +261,7 @@ microbenchmarks:
         exit 1
       fi
     - cd platform
-    - bp-runner bp-runner.yml --debug
+    - bp-runner ../.gitlab/benchmarks/bp-runner.microbenchmarks.yml --debug
   artifacts:
     name: "artifacts"
     when: always
