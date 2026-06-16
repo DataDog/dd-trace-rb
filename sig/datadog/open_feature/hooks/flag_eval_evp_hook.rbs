@@ -19,6 +19,8 @@ module Datadog
         private
 
         def extract_allocation_key: (untyped evaluation_details) -> ::String?
+
+        def extract_error_message: (untyped evaluation_details) -> ::String?
       end
     end
   end

@@ -52,15 +52,21 @@ module Datadog
           flag_key: ::String,
           variant: ::String?,
           allocation_key: ::String?,
-          reason: ::String?,
           targeting_key: ::String?,
           eval_time_ms: ::Integer,
-          attrs: ::Hash[::String, untyped]?
+          attrs: ::Hash[::String, untyped]?,
+          ?error_message: ::String?
         ) -> void
 
         def flush_and_reset: () -> ::Hash[::Symbol, untyped]
 
         def prune_context: (::Hash[::String, untyped]? attrs) -> ::Hash[::String, untyped]
+
+        def self.prune_context: (::Hash[::String, untyped]? attrs) -> ::Hash[::String, untyped]
+
+        def self.flatten_context: (::Hash[::String, untyped]? attrs) -> ::Hash[::String, untyped]
+
+        def self.flatten_value: (::String prefix, untyped value, ::Hash[::String, untyped] out) -> void
 
         def canonical_context_key: (::Hash[::String, untyped]? attrs) -> ::String
 
@@ -73,6 +79,7 @@ module Datadog
         def new_entry: (
           ::Integer eval_ms,
           runtime_default: bool,
+          ?error_message: ::String?,
           ?targeting_key: ::String?,
           ?context_attrs: ::Hash[::String, untyped]?
         ) -> ::Hash[::Symbol, untyped]
@@ -83,9 +90,9 @@ module Datadog
           ::String flag_key,
           ::String variant,
           ::String allocation_key,
-          ::String reason,
-          ::Integer eval_ms,
-          bool runtime_default
+          bool runtime_default,
+          ::String error_message,
+          ::Integer eval_ms
         ) -> void
       end
     end

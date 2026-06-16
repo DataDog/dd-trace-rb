@@ -60,7 +60,6 @@ module Datadog
           flag_key: ::String,
           variant: ::String?,
           allocation_key: ::String?,
-          reason: ::String?,
           targeting_key: ::String?,
           entry: ::Hash[::Symbol, untyped],
           now_ms: ::Integer,
