@@ -186,8 +186,22 @@ module Datadog
       ]
 
       # Input can be a string or a symbol.
+      #
+      # Hash keys captured in snapshots often originate from a Rack environment
+      # (Rack/Rails/Sinatra middleware and controllers all keep `env` in scope).
+      # Rack rewrites incoming HTTP header names to the CGI form
+      # `HTTP_<HEADER>` with dashes converted to underscores — for example,
+      # `Authorization` becomes `HTTP_AUTHORIZATION`, `Cookie` becomes
+      # `HTTP_COOKIE`, `X-API-Key` becomes `HTTP_X_API_KEY`. Without stripping
+      # the prefix here, those keys normalize to `httpauthorization`,
+      # `httpcookie`, `httpxapikey`, etc., none of which appear in the default
+      # identifier list — so the values would not be matched against entries
+      # like `authorization`, `cookie`, or `xapikey`. The prefix strip runs
+      # before the punctuation gsub so it only matches the literal CGI form
+      # (a leading `http_` after downcase) and not arbitrary identifiers that
+      # happen to begin with the letters `http`.
       def normalize(str)
-        str.to_s.strip.downcase.gsub(/[-_$@]/, "")
+        str.to_s.strip.downcase.sub(/\Ahttp_/, "").gsub(/[-_$@]/, "")
       end
     end
   end
