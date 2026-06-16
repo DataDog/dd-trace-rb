@@ -47,6 +47,12 @@ module Datadog
       class AlreadyInstrumented < Error
       end
 
+      # Raised when a probe targets a class or module that the tracer
+      # refuses to instrument (for example, anything in the Datadog
+      # namespace, which the tracer itself uses internally).
+      class ProbeTargetForbidden < Error
+      end
+
       # Raised when installing a line probe and multiple files match the
       # specified path suffix.
       # A probe must be installed into one file only, since UI only
