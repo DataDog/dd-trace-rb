@@ -555,7 +555,8 @@ RSpec.shared_examples 'Trace Context distributed format' do
       end
 
       # HTTP frameworks (Rack and friends) hand header values to applications tagged
-      # as ASCII-8BIT. msgpack-ruby serializes those as `bin` rather than `str`,
+      # as ASCII-8BIT. See https://github.com/rack/rack/blob/5f06728c28f651a12eba6201e408474d30f79d3d/SPEC.rdoc?plain=1#L17
+      # msgpack-ruby serializes those as `bin` rather than `str`,
       # which the agent's wire schema rejects for `SpanLinks[N].Tracestate`.
       context 'with an ASCII-8BIT-tagged tracestate header' do
         let(:tracestate) do

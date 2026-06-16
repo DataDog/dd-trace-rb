@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative '../../core/utils'
 require_relative 'helpers'
 
 module Datadog
@@ -400,7 +401,7 @@ module Datadog
             tracestate = tracestate.chop
           end
 
-          tracestate = Helpers.force_utf8_encoding(tracestate)
+          tracestate = ::Datadog::Core::Utils.utf8_encode(tracestate, placeholder: nil)
           return unless tracestate
 
           vendors = tracestate.split(',', TRACESTATE_MAX_LIST_MEMBERS + 1)
