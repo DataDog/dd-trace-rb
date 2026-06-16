@@ -79,6 +79,9 @@ RSpec.describe Datadog::Core::FeatureFlags do
           expect(result.value).to eq({'feature' => 'enabled', 'color' => 'blue', 'count' => 42})
           expect(result.variant).to eq('treatment')
           expect(result.allocation_key).to eq('test-allocation')
+          # serial_id is bound via the libdatadog FFI as an optional i32; this
+          # fixture's split carries no serial id, so the NONE tag maps to nil.
+          expect(result.serial_id).to be_nil
           expect(result.reason).to eq('TARGETING_MATCH')
           expect(result.log?).to be(true)
           expect(result.error?).to be(false)
@@ -113,6 +116,7 @@ RSpec.describe Datadog::Core::FeatureFlags do
           expect(result.value).to be_nil
           expect(result.variant).to be_nil
           expect(result.allocation_key).to be_nil
+          expect(result.serial_id).to be_nil
           expect(result.error?).to be(false)
           expect(result.log?).to be(false)
         end

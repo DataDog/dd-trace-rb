@@ -31,6 +31,8 @@ module Datadog
 
         def allocation_key: () -> ::String?
 
+        def serial_id: () -> ::Integer?
+
         def reason: () -> ::String
 
         def error_code: () -> ::String?

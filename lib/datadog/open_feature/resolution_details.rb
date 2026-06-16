@@ -15,6 +15,7 @@ module Datadog
       :error_message,
       :flag_metadata,
       :allocation_key,
+      :serial_id,
       :extra_logging,
       :log?,
       :error?,
@@ -27,7 +28,8 @@ module Datadog
           error_message: error_message,
           reason: reason,
           error?: true,
-          log?: false
+          log?: false,
+          serial_id: nil
         ).freeze
       end
     end

@@ -136,11 +136,26 @@ module Datadog
       end
 
       def build_flag_metadata(result)
-        metadata = result.flag_metadata || {}
+        original = result.flag_metadata || {}
+        metadata = original
         allocation_key = result.allocation_key
         if allocation_key && !allocation_key.empty?
           metadata = metadata.dup
           metadata['__dd_allocation_key'] = allocation_key
+        end
+
+        # Thread the split serial id and do-log flag for APM span enrichment.
+        #
+        # These are read directly off the ResolutionDetails Struct (populated by
+        # the libdatadog FFI bindings) rather than from `flag_metadata`, because
+        # the native flag-metadata path is currently disabled (FFL-1450). The
+        # span-enrichment hook reads these `__dd_` keys from the evaluation
+        # details' flag metadata.
+        serial_id = result.serial_id
+        unless serial_id.nil?
+          metadata = metadata.dup if metadata.equal?(original)
+          metadata['__dd_split_serial_id'] = serial_id
+          metadata['__dd_do_log'] = result.log? || false
         end
 
         metadata

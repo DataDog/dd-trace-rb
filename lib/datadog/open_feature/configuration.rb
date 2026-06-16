@@ -20,6 +20,16 @@ module Datadog
                 o.env 'DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED'
                 o.default false
               end
+
+              # Opt-in gate for APM feature-flag span enrichment. When enabled,
+              # the provider attaches `ffe_*` tags to the local root APM span on
+              # finish. Distinct from `:enabled` (the provider gate) and off by
+              # default so it can be rolled out independently.
+              option :span_enrichment_enabled do |o|
+                o.type :bool
+                o.env 'DD_EXPERIMENTAL_FLAGGING_PROVIDER_SPAN_ENRICHMENT_ENABLED'
+                o.default false
+              end
             end
           end
         end
