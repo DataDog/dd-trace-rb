@@ -61,8 +61,12 @@ module Datadog
           module_function
 
           # ULEB128: 7 bits per byte, MSB set marks continuation.
+          # The buffer MUST be binary (ASCII-8BIT): `String#<<` with an Integer on a
+          # UTF-8 string appends a Unicode *codepoint*, so any byte >= 0x80 would be
+          # re-encoded as a 2-byte UTF-8 sequence and corrupt the varint (e.g. serial
+          # 2312 -> bytes 88 12, but UTF-8 would emit C2 88 12 = 296002 on decode).
           def encode_varint(value)
-            bytes = +''
+            bytes = (+'').b
             while value > 0x7F
               bytes << ((value & 0x7F) | 0x80)
               value >>= 7
@@ -77,7 +81,7 @@ module Datadog
             sorted = serial_ids.to_a.sort
             return '' if sorted.empty?
 
-            bytes = +''
+            bytes = (+'').b
             prev = 0
             sorted.each do |id|
               bytes << encode_varint(id - prev)

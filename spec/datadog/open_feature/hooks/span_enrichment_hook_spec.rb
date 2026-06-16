@@ -63,6 +63,37 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
       expect(codec.encode_delta_varint(Set[130, 100, 128, 108, 100])).to eq('ZAgUAg==')
     end
 
+    # Regression: a delta >= 0x80 produces a varint with a continuation byte (>= 0x80).
+    # The byte buffer must be binary; a UTF-8 buffer would re-encode 0x88 as the 2-byte
+    # sequence 0xC2 0x88, so serial 2312 (bytes 88 12) would corrupt to 296002 on decode.
+    it 'encodes serial ids with continuation bytes (>= 0x80) as raw bytes' do
+      encoded = codec.encode_delta_varint(Set[2312])
+      expect(encoded).to eq('iBI=')
+      expect(Base64.strict_decode64(encoded).bytes).to eq([0x88, 0x12])
+    end
+
+    it 'round-trips serial ids whose deltas exceed 0x7F' do
+      ids = [100, 2312, 296_002]
+      encoded = codec.encode_delta_varint(Set.new(ids))
+      bytes = Base64.strict_decode64(encoded).bytes
+      decoded = []
+      prev = 0
+      shift = 0
+      acc = 0
+      bytes.each do |byte|
+        acc |= (byte & 0x7F) << shift
+        if (byte & 0x80).zero?
+          prev += acc
+          decoded << prev
+          acc = 0
+          shift = 0
+        else
+          shift += 7
+        end
+      end
+      expect(decoded).to eq(ids)
+    end
+
     it 'round-trips through delta decode' do
       encoded = codec.encode_delta_varint(Set[100, 108, 128, 130])
       bytes = Base64.strict_decode64(encoded).bytes
