@@ -294,6 +294,54 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
       expect(trace_op.get_tag('ffe_subjects_enc')).to be_nil
       expect(trace_op.get_tag('ffe_runtime_defaults')).to be_nil
     end
+
+    # Regression for CR-01: a child span finishing BEFORE the local root must not
+    # destroy the trace's accumulated state. `span_before_finish` fires for every
+    # span, and in any nested trace the child finishes first; cleanup must only
+    # run when the local root is the span finishing, never on a child finish.
+    it 'still writes ffe_* tags on the root when a child span finishes first' do
+      trace_op.measure('root') do
+        hook.finally(
+          hook_context: hook_context(targeting_key: 'user-123'),
+          evaluation_details: details(variant: 'on', serial_id: 100, do_log: true)
+        )
+
+        # A nested child span that opens and finishes entirely inside the root.
+        # Its `span_before_finish` fires before the root's, exercising CR-01.
+        trace_op.measure('child') do
+          # No additional captures inside the child — the point is only that the
+          # child finishes (and publishes span_before_finish) before the root.
+        end
+      end
+
+      # Despite the child finishing first, the root keeps the accumulated data.
+      expect(trace_op.get_tag('ffe_flags_enc')).to eq('ZA==')
+      subjects = JSON.parse(trace_op.get_tag('ffe_subjects_enc'))
+      expect(subjects[Digest::SHA256.hexdigest('user-123')]).to eq('ZA==')
+
+      # State is cleaned up exactly once, when the root finishes (no leak).
+      expect(accumulator_store.fetch(trace_op)).to be_nil
+    end
+
+    # Companion to the above: a capture that happens AFTER a child has already
+    # finished must also survive to the root write. This guards against keying or
+    # cleanup that resurrects/drops state mid-trace.
+    it 'writes ffe_* tags when a flag is evaluated after a child span finished' do
+      trace_op.measure('root') do
+        trace_op.measure('child') do
+          # Child finishes first; no capture yet.
+        end
+
+        # Evaluate the flag only after the child has finished.
+        hook.finally(
+          hook_context: hook_context,
+          evaluation_details: details(variant: 'on', serial_id: 100)
+        )
+      end
+
+      expect(trace_op.get_tag('ffe_flags_enc')).to eq('ZA==')
+      expect(accumulator_store.fetch(trace_op)).to be_nil
+    end
   end
 
   describe '#shutdown' do
