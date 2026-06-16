@@ -1,0 +1,312 @@
+# frozen_string_literal: true
+
+require 'spec_helper'
+
+require 'json'
+require 'digest'
+require 'base64'
+
+# Tests run under the openfeature appraisal which includes the real OpenFeature SDK
+require 'open_feature/sdk'
+require 'datadog/open_feature/hooks/span_enrichment_hook'
+
+RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
+  subject(:hook) { described_class.new(accumulator_store) }
+
+  let(:accumulator_store) { Datadog::OpenFeature::Hooks::SpanEnrichmentHook::AccumulatorStore.new }
+
+  # The local root span operation is resolved off the active trace at capture
+  # time. Tests stub Datadog::Tracing.active_trace to control the seam.
+  let(:trace_op) { Datadog::Tracing::TraceOperation.new }
+
+  before { allow(Datadog::Tracing).to receive(:active_trace).and_return(trace_op) }
+
+  def hook_context(flag_key: 'flag-a', targeting_key: 'user-123')
+    evaluation_context =
+      if targeting_key
+        instance_double('OpenFeature::SDK::EvaluationContext', targeting_key: targeting_key)
+      end
+    instance_double(
+      'OpenFeature::SDK::Hooks::HookContext',
+      flag_key: flag_key,
+      evaluation_context: evaluation_context
+    )
+  end
+
+  def details(variant:, value: 'on', serial_id: nil, do_log: false, flag_metadata: nil)
+    metadata = flag_metadata
+    if metadata.nil?
+      metadata = {}
+      metadata['__dd_split_serial_id'] = serial_id unless serial_id.nil?
+      metadata['__dd_do_log'] = do_log
+    end
+    instance_double(
+      'OpenFeature::SDK::EvaluationDetails',
+      variant: variant,
+      value: value,
+      flag_metadata: metadata
+    )
+  end
+
+  describe 'codec' do
+    let(:codec) { Datadog::OpenFeature::Hooks::SpanEnrichmentHook::Codec }
+
+    it 'encodes the golden vector' do
+      expect(codec.encode_delta_varint(Set[100, 108, 128, 130])).to eq('ZAgUAg==')
+    end
+
+    it 'encodes an empty set to an empty string (tag omitted)' do
+      expect(codec.encode_delta_varint(Set[])).to eq('')
+    end
+
+    it 'dedupes and sorts before encoding (Set semantics, order-independent)' do
+      expect(codec.encode_delta_varint(Set[130, 100, 128, 108, 100])).to eq('ZAgUAg==')
+    end
+
+    it 'round-trips through delta decode' do
+      encoded = codec.encode_delta_varint(Set[100, 108, 128, 130])
+      bytes = Base64.strict_decode64(encoded).bytes
+      # Decode ULEB128 deltas and reconstruct the absolute ids.
+      ids = []
+      prev = 0
+      shift = 0
+      acc = 0
+      bytes.each do |byte|
+        acc |= (byte & 0x7F) << shift
+        if (byte & 0x80).zero?
+          prev += acc
+          ids << prev
+          acc = 0
+          shift = 0
+        else
+          shift += 7
+        end
+      end
+      expect(ids).to eq([100, 108, 128, 130])
+    end
+
+    it 'hashes the targeting key as lowercase hex SHA256' do
+      expect(codec.hash_targeting_key('user-123'))
+        .to eq('fcdec6df4d44dbc637c7c5b58efface52a7f8a88535423430255be0bb89bedd8')
+    end
+  end
+
+  describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook::Accumulator do
+    subject(:accumulator) { described_class.new }
+
+    describe '#add_serial_id' do
+      it 'accumulates and dedupes serial ids' do
+        accumulator.add_serial_id(100)
+        accumulator.add_serial_id(100)
+        accumulator.add_serial_id(108)
+
+        tags = accumulator.to_span_tags
+        expect(tags['ffe_flags_enc']).to eq(Datadog::OpenFeature::Hooks::SpanEnrichmentHook::Codec.encode_delta_varint(Set[100, 108]))
+      end
+
+      it 'enforces the 200 serial id limit' do
+        250.times { |i| accumulator.add_serial_id(i) }
+        decoded = Base64.strict_decode64(accumulator.to_span_tags['ffe_flags_enc']).bytes
+        # 200 single-byte deltas (all ids < 128 so one byte each, deltas of 1).
+        count = decoded.count { |b| (b & 0x80).zero? }
+        expect(count).to eq(200)
+      end
+    end
+
+    describe '#add_subject' do
+      it 'emits ffe_subjects_enc as a JSON object of {sha256hex => base64}' do
+        accumulator.add_serial_id(100)
+        accumulator.add_subject('user-123', 100)
+
+        subjects = JSON.parse(accumulator.to_span_tags['ffe_subjects_enc'])
+        hashed = Digest::SHA256.hexdigest('user-123')
+        expect(subjects.keys).to eq([hashed])
+        expect(subjects[hashed]).to eq(Datadog::OpenFeature::Hooks::SpanEnrichmentHook::Codec.encode_delta_varint(Set[100]))
+      end
+
+      it 'enforces the 10 subject limit' do
+        accumulator.add_serial_id(1)
+        12.times { |i| accumulator.add_subject("user-#{i}", 1) }
+        subjects = JSON.parse(accumulator.to_span_tags['ffe_subjects_enc'])
+        expect(subjects.size).to eq(10)
+      end
+
+      it 'enforces the 20 experiments-per-subject limit' do
+        25.times { |i| accumulator.add_serial_id(i) }
+        25.times { |i| accumulator.add_subject('user-123', i) }
+        subjects = JSON.parse(accumulator.to_span_tags['ffe_subjects_enc'])
+        hashed = Digest::SHA256.hexdigest('user-123')
+        decoded = Base64.strict_decode64(subjects[hashed]).bytes
+        count = decoded.count { |b| (b & 0x80).zero? }
+        expect(count).to eq(20)
+      end
+    end
+
+    describe '#add_default' do
+      it 'emits ffe_runtime_defaults as a JSON object string' do
+        accumulator.add_default('flag-a', 'control')
+        defaults = JSON.parse(accumulator.to_span_tags['ffe_runtime_defaults'])
+        expect(defaults).to eq('flag-a' => 'control')
+      end
+
+      it 'JSON-encodes object defaults (not [object Object]/inspect)' do
+        accumulator.add_default('flag-obj', {'feature' => 'enabled', 'count' => 42})
+        defaults = JSON.parse(accumulator.to_span_tags['ffe_runtime_defaults'])
+        expect(JSON.parse(defaults['flag-obj'])).to eq('feature' => 'enabled', 'count' => 42)
+      end
+
+      it 'is first-wins for a repeated flag key' do
+        accumulator.add_default('flag-a', 'first')
+        accumulator.add_default('flag-a', 'second')
+        defaults = JSON.parse(accumulator.to_span_tags['ffe_runtime_defaults'])
+        expect(defaults['flag-a']).to eq('first')
+      end
+
+      it 'truncates default values longer than 64 chars' do
+        accumulator.add_default('flag-a', 'x' * 100)
+        defaults = JSON.parse(accumulator.to_span_tags['ffe_runtime_defaults'])
+        expect(defaults['flag-a'].length).to eq(64)
+      end
+
+      it 'enforces the 5 defaults limit' do
+        7.times { |i| accumulator.add_default("flag-#{i}", 'v') }
+        defaults = JSON.parse(accumulator.to_span_tags['ffe_runtime_defaults'])
+        expect(defaults.size).to eq(5)
+      end
+    end
+
+    describe '#has_data?' do
+      it 'is false when empty' do
+        expect(accumulator.has_data?).to be(false)
+      end
+
+      it 'is true with serial ids' do
+        accumulator.add_serial_id(1)
+        expect(accumulator.has_data?).to be(true)
+      end
+
+      it 'is true with defaults' do
+        accumulator.add_default('flag-a', 'v')
+        expect(accumulator.has_data?).to be(true)
+      end
+    end
+
+    describe '#to_span_tags' do
+      it 'omits ffe_flags_enc when there are no serial ids' do
+        accumulator.add_default('flag-a', 'v')
+        expect(accumulator.to_span_tags).not_to have_key('ffe_flags_enc')
+      end
+    end
+  end
+
+  describe '#finally' do
+    it 'accumulates a serial id for the active root span' do
+      hook.finally(
+        hook_context: hook_context,
+        evaluation_details: details(variant: 'on', serial_id: 100)
+      )
+
+      state = accumulator_store.fetch(trace_op)
+      expect(state.has_data?).to be(true)
+      expect(state.to_span_tags['ffe_flags_enc']).to eq('ZA==')
+    end
+
+    it 'adds a subject only when do_log is true and a targeting key is present' do
+      hook.finally(
+        hook_context: hook_context(targeting_key: 'user-123'),
+        evaluation_details: details(variant: 'on', serial_id: 100, do_log: true)
+      )
+
+      state = accumulator_store.fetch(trace_op)
+      expect(state.to_span_tags).to have_key('ffe_subjects_enc')
+    end
+
+    it 'does not add a subject when do_log is false' do
+      hook.finally(
+        hook_context: hook_context(targeting_key: 'user-123'),
+        evaluation_details: details(variant: 'on', serial_id: 100, do_log: false)
+      )
+
+      state = accumulator_store.fetch(trace_op)
+      expect(state.to_span_tags).not_to have_key('ffe_subjects_enc')
+    end
+
+    it 'detects a runtime default via a missing variant' do
+      hook.finally(
+        hook_context: hook_context(flag_key: 'flag-default'),
+        evaluation_details: details(variant: nil, value: 'control')
+      )
+
+      state = accumulator_store.fetch(trace_op)
+      defaults = JSON.parse(state.to_span_tags['ffe_runtime_defaults'])
+      expect(defaults).to eq('flag-default' => 'control')
+    end
+
+    it 'does not raise when there is no active root span' do
+      allow(Datadog::Tracing).to receive(:active_trace).and_return(nil)
+
+      expect do
+        hook.finally(
+          hook_context: hook_context,
+          evaluation_details: details(variant: 'on', serial_id: 100)
+        )
+      end.not_to raise_error
+    end
+
+    it 'does not raise on malformed evaluation details (error isolation)' do
+      broken = instance_double('OpenFeature::SDK::EvaluationDetails')
+      allow(broken).to receive(:flag_metadata).and_raise(StandardError, 'boom')
+
+      expect do
+        hook.finally(hook_context: hook_context, evaluation_details: broken)
+      end.not_to raise_error
+    end
+  end
+
+  describe 'root-span write integration' do
+    it 'writes ffe_* tags on the local root span on finish and clears state' do
+      trace_op.measure('root') do
+        hook.finally(
+          hook_context: hook_context(targeting_key: 'user-123'),
+          evaluation_details: details(variant: 'on', serial_id: 100, do_log: true)
+        )
+        hook.finally(
+          hook_context: hook_context(flag_key: 'flag-default'),
+          evaluation_details: details(variant: nil, value: 'control')
+        )
+      end
+
+      expect(trace_op.get_tag('ffe_flags_enc')).to eq('ZA==')
+      subjects = JSON.parse(trace_op.get_tag('ffe_subjects_enc'))
+      expect(subjects[Digest::SHA256.hexdigest('user-123')]).to eq('ZA==')
+      expect(JSON.parse(trace_op.get_tag('ffe_runtime_defaults'))).to eq('flag-default' => 'control')
+
+      # State cleaned up after the root span finishes (DG-005 / no leak).
+      expect(accumulator_store.fetch(trace_op)).to be_nil
+    end
+
+    it 'writes no tags when the finished root span accumulated no data' do
+      trace_op.measure('root') do
+        # No captures.
+      end
+
+      expect(trace_op.get_tag('ffe_flags_enc')).to be_nil
+      expect(trace_op.get_tag('ffe_subjects_enc')).to be_nil
+      expect(trace_op.get_tag('ffe_runtime_defaults')).to be_nil
+    end
+  end
+
+  describe '#shutdown' do
+    it 'clears all accumulated state' do
+      hook.finally(
+        hook_context: hook_context,
+        evaluation_details: details(variant: 'on', serial_id: 100)
+      )
+      expect(accumulator_store.fetch(trace_op)).not_to be_nil
+
+      hook.shutdown
+
+      expect(accumulator_store.fetch(trace_op)).to be_nil
+    end
+  end
+end
