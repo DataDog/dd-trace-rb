@@ -4,13 +4,6 @@ module Datadog
       module Rails
         module Gateway
           class Request < Instrumentation::Gateway::Argument
-            class BodyMeasurement
-              attr_accessor byte_length: Integer?
-              attr_accessor collect_body: bool
-
-              def initialize: (Integer? byte_length, bool collect_body) -> void
-            end
-
             self.@rewind_rack_input: bool
 
             def self.rewind_rack_input?: () -> bool
@@ -33,11 +26,9 @@ module Datadog
 
             def route_params: () -> ::Hash[::Symbol, untyped]
 
-            def measure_body: (Integer limit) -> BodyMeasurement
+            def body_bytesize: (Integer limit) -> Integer?
 
             private
-
-            def body_parameters_parsed?: () -> bool
 
             def measure_body!: (untyped io, limit: Integer) -> Integer?
           end

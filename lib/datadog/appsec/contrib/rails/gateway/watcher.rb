@@ -23,20 +23,23 @@ module Datadog
               def watch_request_action(gateway = Instrumentation.gateway)
                 gateway.watch('rails.request.action') do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
+                  limit = Datadog.configuration.appsec.body_parsing_size_limit
 
                   persistent_data = {
                     'server.request.path_params' => gateway_request.route_params
                   }
 
-                  measurement = gateway_request.measure_body(Datadog.configuration.appsec.body_parsing_size_limit)
+                  unless limit.zero?
+                    byte_length = gateway_request.body_bytesize(limit)
 
-                  if measurement.byte_length&.positive?
-                    persistent_data['server.request.body.byte_length'] = measurement.byte_length
-                  end
+                    if byte_length
+                      persistent_data['server.request.body.byte_length'] = byte_length if byte_length.positive?
 
-                  if measurement.collect_body
-                    body = gateway_request.parsed_body
-                    persistent_data['server.request.body'] = body unless body.nil? || body.empty?
+                      if byte_length <= limit
+                        body = gateway_request.parsed_body
+                        persistent_data['server.request.body'] = body unless body.nil? || body.empty?
+                      end
+                    end
                   end
 
                   result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)

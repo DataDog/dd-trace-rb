@@ -12,8 +12,6 @@ module Datadog
         module Gateway
           # Gateway Request argument. Normalized extration of data from ActionDispatch::Request
           class Request < Instrumentation::Gateway::Argument
-            BodyMeasurement = Struct.new(:byte_length, :collect_body)
-
             def self.rewind_rack_input?
               return @rewind_rack_input if defined?(@rewind_rack_input)
 
@@ -71,55 +69,34 @@ module Datadog
               end
             end
 
-            # Measures the request body size in bytes and decides whether the body
-            # may be collected, decoupling the two because the Rails watcher runs
-            # in the controller, after Rails has already parsed the body
+            # Returns the request body size in bytes using all available methods,
+            # or nil when the size cannot be measured within the limit
             #
             # NOTE: The priority of the measurement is the following:
             #       raw posted data, raw form vars, size if known, raw
-            #       Content-Length, then buffering to the limit if unknown-length.
-            #       When the size is unrecoverable but the body was already parsed,
-            #       the parsed body is still collected without a byte length.
-            def measure_body(limit)
-              return BodyMeasurement.new(nil, false) if limit.zero?
-
+            #       Content-Length, then buffering to the limit if unknown-length
+            def body_bytesize(limit)
               raw_body = env['RAW_POST_DATA']
-              if raw_body
-                byte_length = raw_body.bytesize
-                return BodyMeasurement.new(byte_length, byte_length <= limit)
-              end
+              return raw_body.bytesize if raw_body
 
               form_vars = env['rack.request.form_vars']
-              if form_vars
-                byte_length = form_vars.bytesize
-                return BodyMeasurement.new(byte_length, byte_length <= limit)
-              end
+              return form_vars.bytesize if form_vars
 
               io = request.body
-              return BodyMeasurement.new(0, false) unless io
+              return 0 unless io
+              return io.size if io.respond_to?(:size)
 
-              if io.respond_to?(:size)
-                byte_length = io.size
-                return BodyMeasurement.new(byte_length, byte_length <= limit)
-              end
-
+              # NOTE: Read raw `CONTENT_LENGTH` as {ActionDispatch::Request#content_length}
+              #       drains `rack.input` into `RAW_POST_DATA` on chunked Transfer-Encoding
               content_length = env['CONTENT_LENGTH']
-              if content_length
-                byte_length = content_length.to_i
-                return BodyMeasurement.new(byte_length, byte_length <= limit)
-              end
+              return content_length.to_i if content_length
 
-              return BodyMeasurement.new(nil, true) if body_parameters_parsed? && !self.class.rewind_rack_input?
-
-              byte_length = measure_body!(io, limit: limit)
-              BodyMeasurement.new(byte_length, !byte_length.nil?)
+              # NOTE: An already-read body (e.g. late-parsed multipart on Rack 3+) peeks
+              #       as 0, so we skip byte_length but still collect the parsed body.
+              measure_body!(io, limit: limit)
             end
 
             private
-
-            def body_parameters_parsed?
-              env.key?('action_dispatch.request.request_parameters')
-            end
 
             # Peeks the body up to limit + 1 bytes to measure its size without parsing,
             # then restores `rack.input` for downstream reads
@@ -133,6 +110,18 @@ module Datadog
             #
             # Returns the byte size within the limit, or `nil` when over it.
             def measure_body!(io, limit:)
+              rewindable = self.class.rewind_rack_input? && io.respond_to?(:rewind)
+
+              # NOTE: Rails runs in the controller, so the input may already be at EOF.
+              #       Rewind first to measure from the start; bail out if it refuses.
+              if rewindable
+                begin
+                  io.rewind
+                rescue StandardError
+                  return
+                end
+              end
+
               buffer = +''
               max = limit + 1
 
@@ -145,7 +134,7 @@ module Datadog
 
               over_limit = buffer.bytesize > limit
 
-              if self.class.rewind_rack_input? && io.respond_to?(:rewind)
+              if rewindable
                 io.rewind
               elsif over_limit
                 env['rack.input'] = Rack::BufferedInput.new(io, buffer: StringIO.new(buffer))

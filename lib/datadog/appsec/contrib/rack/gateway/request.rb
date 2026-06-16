@@ -108,6 +108,8 @@ module Datadog
               return 0 unless io
               return io.size if io.respond_to?(:size)
 
+              # NOTE: {::Rack::Request#content_length} is a plain `CONTENT_LENGTH`
+              #       getter forces no body read
               content_length = request.content_length
               return content_length.to_i if content_length
 

@@ -31,7 +31,8 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
   describe '.watch_request_action' do
     before do
       described_class.watch_request_action(gateway)
-      allow(gateway_request).to receive(:measure_body).and_return(measurement)
+      allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(100)
+      allow(gateway_request).to receive(:body_bytesize).and_return(9)
     end
 
     let(:gateway_request) do
@@ -42,10 +43,6 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
         parsed_body: {'name' => 'john'},
         request: instance_double(ActionDispatch::Request)
       )
-    end
-
-    let(:measurement) do
-      Datadog::AppSec::Contrib::Rails::Gateway::Request::BodyMeasurement.new(9, true)
     end
 
     context 'when the body is collectable and within the limit' do
@@ -63,9 +60,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
     end
 
     context 'when the body exceeds the parsing size limit' do
-      let(:measurement) do
-        Datadog::AppSec::Contrib::Rails::Gateway::Request::BodyMeasurement.new(9, false)
-      end
+      before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(4) }
 
       it 'runs WAF with path params and byte length but without the body' do
         gateway.push('rails.request.action', gateway_request)
@@ -85,10 +80,8 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
       end
     end
 
-    context 'when the body size is unknown but it was already parsed' do
-      let(:measurement) do
-        Datadog::AppSec::Contrib::Rails::Gateway::Request::BodyMeasurement.new(nil, true)
-      end
+    context 'when the body was parsed but its size is zero' do
+      before { allow(gateway_request).to receive(:body_bytesize).and_return(0) }
 
       it 'runs WAF with path params and the parsed body but without a byte length' do
         gateway.push('rails.request.action', gateway_request)
@@ -102,10 +95,8 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
       end
     end
 
-    context 'when the body size is zero' do
-      let(:measurement) do
-        Datadog::AppSec::Contrib::Rails::Gateway::Request::BodyMeasurement.new(0, false)
-      end
+    context 'when the body size is unknown and over the limit' do
+      before { allow(gateway_request).to receive(:body_bytesize).and_return(nil) }
 
       it 'runs WAF with only the path params' do
         gateway.push('rails.request.action', gateway_request)
@@ -119,6 +110,24 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
         gateway.push('rails.request.action', gateway_request)
 
         expect(gateway_request).not_to have_received(:parsed_body)
+      end
+    end
+
+    context 'when body collection is disabled' do
+      before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(0) }
+
+      it 'runs WAF with only the path params' do
+        gateway.push('rails.request.action', gateway_request)
+
+        expect(context).to have_received(:run_waf).with(
+          {'server.request.path_params' => {id: '1'}}, {}, anything
+        )
+      end
+
+      it 'does not measure the body' do
+        gateway.push('rails.request.action', gateway_request)
+
+        expect(gateway_request).not_to have_received(:body_bytesize)
       end
     end
 
