@@ -20,6 +20,7 @@ RSpec.describe Datadog::AppSec::Component do
       context 'when using ffi version that is known to leak memory with Ruby >= 3.3.0' do
         before do
           stub_const('RUBY_VERSION', '3.3.0')
+          stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new(RUBY_VERSION))
           allow(Gem).to receive(:loaded_specs).and_return('ffi' => double(version: Gem::Version.new('1.15.4')))
         end
 
