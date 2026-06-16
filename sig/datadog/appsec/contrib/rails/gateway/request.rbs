@@ -4,10 +4,6 @@ module Datadog
       module Rails
         module Gateway
           class Request < Instrumentation::Gateway::Argument
-            self.@rewind_rack_input: bool
-
-            def self.rewind_rack_input?: () -> bool
-
             attr_reader request: untyped
 
             def initialize: (untyped request) -> void
@@ -27,10 +23,6 @@ module Datadog
             def route_params: () -> ::Hash[::Symbol, untyped]
 
             def body_bytesize: (Integer limit) -> Integer?
-
-            private
-
-            def measure_body!: (untyped io, limit: Integer) -> Integer?
           end
         end
       end

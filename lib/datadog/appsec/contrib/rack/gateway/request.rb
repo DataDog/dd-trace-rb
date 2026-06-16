@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'stringio'
-
-require_relative '../buffered_input'
+require_relative '../input_peeker'
 require_relative '../../../instrumentation/gateway/argument'
 require_relative '../../../../core/header_collection'
 require_relative '../../../../tracing/client_ip'
@@ -14,12 +12,6 @@ module Datadog
         module Gateway
           # Gateway Request argument. Normalized extration of data from Rack::Request
           class Request < Instrumentation::Gateway::Argument
-            def self.rewind_rack_input?
-              return @rewind_rack_input if defined?(@rewind_rack_input)
-
-              @rewind_rack_input = Gem::Version.new(::Rack.release) < Gem::Version.new('3')
-            end
-
             attr_reader :env
 
             def initialize(env)
@@ -113,7 +105,7 @@ module Datadog
               content_length = request.content_length
               return content_length.to_i if content_length
 
-              measure_body!(io, limit: limit)
+              InputPeeker.peek_bytesize(env, limit: limit)
             end
 
             # Whether a request body can be collected without forcing a parse:
@@ -130,45 +122,6 @@ module Datadog
               header_collection = Datadog::Core::HeaderCollection.from_hash(headers)
 
               Datadog::Tracing::ClientIp.extract_client_ip(header_collection, remote_ip)
-            end
-
-            private
-
-            # Peeks the body up to limit + 1 bytes to measure its size without parsing,
-            # then restores `rack.input` for downstream reads
-            #
-            # NOTE: Rack 2 requires `rack.input` to stay rewindable.
-            #
-            # NOTE: Rack 3+ rewind contract is unreliable. Falcon's `rewind`
-            #       returns `true` without repositioning. We always replace
-            #       `rack.input` with a replay over the bytes already read:
-            #       {BufferedInput} over the limit, {StringIO} otherwise.
-            #
-            # Returns the byte size within the limit, or `nil` when over it.
-            def measure_body!(io, limit:)
-              buffer = +''
-              max = limit + 1
-
-              while buffer.bytesize <= limit
-                chunk = io.read(max - buffer.bytesize)
-                break if chunk.nil? || chunk.empty?
-
-                buffer << chunk
-              end
-
-              over_limit = buffer.bytesize > limit
-
-              if self.class.rewind_rack_input? && io.respond_to?(:rewind)
-                io.rewind
-              elsif over_limit
-                env['rack.input'] = BufferedInput.new(io, buffer: StringIO.new(buffer))
-              else
-                env['rack.input'] = StringIO.new(buffer)
-              end
-
-              # NOTE: Once the peek crosses the limit, we stop reading and leave
-              #       the rest for downstream code. AppSec cannot use a partial body
-              over_limit ? nil : buffer.bytesize
             end
           end
         end

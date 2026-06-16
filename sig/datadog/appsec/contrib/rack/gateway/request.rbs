@@ -4,17 +4,13 @@ module Datadog
       module Rack
         module Gateway
           class Request < Instrumentation::Gateway::Argument
-            self.@rewind_rack_input: bool
-
             @env: Hash[String, any]
-
-            def self.rewind_rack_input?: () -> bool
 
             attr_reader env: Hash[String, any]
 
             def initialize: (Hash[String, any] env) -> void
 
-            def request: () -> RackRequest
+            def request: () -> ::Rack::Request
 
             def query: () -> Hash[String, any]
 
@@ -41,10 +37,6 @@ module Datadog
             def collectable_body?: () -> bool
 
             def client_ip: () -> String?
-
-            private
-
-            def measure_body!: (untyped io, limit: Integer) -> Integer?
           end
         end
       end

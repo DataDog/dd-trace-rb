@@ -11,7 +11,31 @@ module Rack
 
     def env: () -> ::Hash[::String, untyped]
 
+    def query_string: () -> ::String
+
+    def request_method: () -> ::String
+
+    def content_type: () -> ::String?
+
+    def content_length: () -> ::String?
+
+    def url: () -> ::String
+
+    def fullpath: () -> ::String
+
+    def cookies: () -> ::Hash[::String, ::String]
+
+    def host: () -> ::String
+
+    def user_agent: () -> ::String
+
     def params: () -> ::Hash[::String, untyped]
+
+    def POST: () -> ::Hash[::String, untyped]
+
+    def form_data?: () -> bool
+
+    def parseable_data?: () -> bool
 
     def body: () -> untyped
 
