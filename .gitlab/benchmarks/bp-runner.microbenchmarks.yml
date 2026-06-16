@@ -26,6 +26,14 @@ experiments:
           # Strip .rb to normalize naming between baseline and candidate.
           BENCHMARK_NAME="${PARALLEL_ITEM%.rb}"
 
+          if [ "$PARALLEL_ITEM" = "open_feature_flagevaluation.rb" ]; then
+            BASELINE_BRANCH="${CI_MERGE_REQUEST_TARGET_BRANCH_NAME:-master}"
+            if ! git cat-file -e "origin/${BASELINE_BRANCH}:benchmarks/$PARALLEL_ITEM" 2>/dev/null; then
+              echo "Skipping benchmark absent from comparison baseline: $PARALLEL_ITEM"
+              exit 0
+            fi
+          fi
+
           if [ ! -f "benchmarks/$PARALLEL_ITEM" ]; then
             if [ "$BASELINE_OR_CANDIDATE" = "baseline" ]; then
               echo "Skipping benchmark absent from baseline: $PARALLEL_ITEM"
