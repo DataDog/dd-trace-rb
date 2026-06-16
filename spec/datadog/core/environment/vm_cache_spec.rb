@@ -37,7 +37,7 @@ RSpec.describe Datadog::Core::Environment::VMCache do
       subject(:global_method_state) { described_class.global_method_state }
 
       context 'on Ruby 2.x' do
-        before { skip('Test only runs on Ruby 2.x') unless RubyVersion.is?('~> 2.0') }
+        before { skip('Test only runs on Ruby 2.x') if RubyVersion.is?('>= 3') }
 
         it { is_expected.to be_a_kind_of(Integer) }
       end

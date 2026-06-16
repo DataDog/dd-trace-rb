@@ -273,7 +273,7 @@ RSpec.describe 'Method probe dispatch semantics' do
       skip "Ractor requires Ruby 3.0+" unless RubyVersion.is?('>= 3.0')
       # Ruby 3.0 Ractors have known bugs causing CI instability — matches the skip
       # pattern used in spec/datadog/profiling/native_extension_spec.rb.
-      skip "Ruby 3.0 Ractors are too buggy to run this spec" if RubyVersion.is?('~> 3.0.0')
+      skip "Ruby 3.0 Ractors are too buggy to run this spec" if RubyVersion.is?('< 3.1')
     end
 
     after { instrumenter.unhook(probe) if probe }

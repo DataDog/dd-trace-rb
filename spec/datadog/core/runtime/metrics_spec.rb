@@ -149,7 +149,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
         end
 
         context 'with Ruby 2.x' do
-          before { skip('Test only runs on Ruby 2.x') unless RubyVersion.is?('~> 2.0') }
+          before { skip('Test only runs on Ruby 2.x') if RubyVersion.is?('>= 3') }
 
           it 'records the global_constant_state and global_method_state metrics' do
             flush
@@ -165,7 +165,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
         end
 
         context 'with Ruby 3.0 and 3.1' do
-          before { skip('Test only runs on Ruby 3.0 and 3.1') unless RubyVersion.is?('~> 3.0.0') || RubyVersion.is?('~> 3.1.0') }
+          before { skip('Test only runs on Ruby 3.0 and 3.1') unless RubyVersion.is?('>= 3', '< 3.2') }
 
           it 'records only the constant_global_state metric' do
             flush
