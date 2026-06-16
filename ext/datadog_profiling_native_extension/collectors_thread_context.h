@@ -18,7 +18,9 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance);
 void thread_context_collector_on_gc_start(VALUE self_instance);
 __attribute__((warn_unused_result)) bool thread_context_collector_on_gc_finish(VALUE self_instance);
 VALUE enforce_thread_context_collector_instance(VALUE object);
-
+void thread_context_collector_stats(VALUE self_instance, VALUE stats_hash);
+void thread_context_collector_stats_reset_not_thread_safe(VALUE self_instance);
+void thread_context_collector_on_serialize(VALUE self_instance);
 
 #ifndef NO_GVL_INSTRUMENTATION
   typedef enum {
@@ -33,6 +35,7 @@ VALUE enforce_thread_context_collector_instance(VALUE object);
   } on_gvl_running_result;
 
   void thread_context_collector_on_gvl_waiting(per_thread_context *thread_context);
-  __attribute__((warn_unused_result)) on_gvl_running_result thread_context_collector_on_gvl_running(VALUE self_instance, per_thread_context *thread_context);
+  __attribute__((warn_unused_result)) on_gvl_running_result thread_context_collector_on_gvl_running(VALUE self_instance, VALUE thread, per_thread_context *thread_context);
   VALUE thread_context_collector_sample_after_gvl_running(VALUE self_instance, VALUE current_thread, long current_monotonic_wall_time_ns);
+  void thread_context_collector_on_gvl_released(per_thread_context *thread_context);
 #endif

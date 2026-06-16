@@ -89,7 +89,7 @@ GEM
       mime-types-data (~> 3.2025, >= 3.2025.0507)
     mime-types-data (3.2025.0924)
     minitest (5.15.0)
-    msgpack (1.8.1)
+    msgpack (1.8.3)
     multi_test (0.1.2)
     os (1.1.4)
     pry (0.15.2)

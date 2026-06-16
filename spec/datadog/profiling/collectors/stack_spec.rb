@@ -83,7 +83,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     let(:background_thread) { Thread.new(ready_queue, &do_in_background_thread) }
     let(:expected_eval_path) do
       # Starting in Ruby 3.3, the path on evals went from being "(eval)" to being "(eval at some_file.rb:line)"
-      (RUBY_VERSION < "3.3.") ? "(eval)" : match(/\(eval at .+stack_spec.rb:\d+\)/)
+      RubyVersion.is?("< 3.3") ? "(eval)" : match(/\(eval at .+stack_spec.rb:\d+\)/)
     end
 
     before do
@@ -220,7 +220,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
       # I opted to join these two expects to avoid running the `load` above more than once
       it "matches the Ruby backtrace API AND has a sleeping frame at the top of the stack" do
-        if RUBY_VERSION.start_with?("4.")
+        if RubyVersion.is?(">= 4")
           # In Ruby 4, due to https://bugs.ruby-lang.org/issues/20968 while internally Integer#times has the path
           # `<internal:numeric>` (and this is what the profiler observes), Ruby actually hides this and "blames" it
           # on the last ruby file/line that was on the stack.
@@ -533,7 +533,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       context "when sampling a thread blocked on Monitor#synchronize" do
         let(:expected_method_name) do
           # On older Rubies Monitor is implemented using Mutex instead of natively
-          if RUBY_VERSION.start_with?("2.5", "2.6")
+          if RubyVersion.is?("< 2.7")
             "lock"
           else
             "synchronize"
@@ -626,7 +626,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
       context "when sampling a thread waiting on a ConditionVariable object" do
         # In Ruby 4, we can directly match on ConditionVariable; for Ruby 2 & 3, wait delegates to sleep so we can't match as directly
-        let(:expected_method_name) { RUBY_VERSION.start_with?("4.") ? "wait" : "sleep" }
+        let(:expected_method_name) { RubyVersion.is?(">= 4") ? "wait" : "sleep" }
         let(:do_in_background_thread) do
           proc do |ready_queue|
             ready_queue << true
