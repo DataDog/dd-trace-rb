@@ -246,18 +246,27 @@ module Datadog
         end
 
         def write_tags_on_root(span_op, trace_op)
-          # Only act when the local root span is the one finishing.
+          # `span_before_finish` fires for EVERY span in the trace, and in any
+          # nested trace the child spans finish before the local root. Only the
+          # local root's finish may write tags AND clean up per-trace state:
+          # cleaning up on a child finish would wipe the accumulator before the
+          # root is written (CR-01). The cleanup therefore lives inside this
+          # root-only branch, never in an unconditional `ensure` that would also
+          # run for child finishes.
           return unless span_op.equal?(trace_op.send(:root_span))
 
-          state = @store.fetch(trace_op)
-          return unless state&.has_data?
-
-          state.to_span_tags.each { |key, value| span_op.set_tag(key, value) if value }
+          begin
+            state = @store.fetch(trace_op)
+            state.to_span_tags.each { |key, value| span_op.set_tag(key, value) if value } if state&.has_data?
+          ensure
+            # Delete only on the local root span's finish (mirrors the Node
+            # reference's `spanStates.delete(span)` and the Python sibling's
+            # `_on_span_finish` pop). A child finish never reaches here.
+            @store.delete(trace_op)
+            @subscribed.delete(trace_op)
+          end
         rescue => e
           Datadog.logger.debug { "Error writing span enrichment tags: #{e.class}: #{e.message}" }
-        ensure
-          @store.delete(trace_op)
-          @subscribed.delete(trace_op)
         end
       end
     end
