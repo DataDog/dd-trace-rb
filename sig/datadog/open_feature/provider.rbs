@@ -28,14 +28,14 @@ module Datadog
       class HookDetails < ::Struct[untyped]
         attr_accessor variant: ::String?
 
-        attr_accessor reason: ::String?
-
         attr_accessor flag_metadata: ::Hash[::String, untyped]?
+
+        attr_accessor error_message: ::String?
 
         def self.new: (
           ?::String? variant,
-          ?::String? reason,
-          ?::Hash[::String, untyped]? flag_metadata
+          ?::Hash[::String, untyped]? flag_metadata,
+          ?::String? error_message
         ) -> HookDetails
       end
 
