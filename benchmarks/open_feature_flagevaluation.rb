@@ -4,7 +4,6 @@ VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
 require_relative 'benchmarks_helper'
-require 'open_feature/sdk'
 require 'datadog/open_feature/flagevaluation/aggregator'
 require 'datadog/open_feature/flagevaluation/writer'
 require 'datadog/open_feature/hooks/flag_eval_evp_hook'
