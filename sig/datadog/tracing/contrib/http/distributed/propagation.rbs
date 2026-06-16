@@ -4,7 +4,12 @@ module Datadog
       module HTTP
         module Distributed
           class Propagation < Tracing::Distributed::Propagation
-            def initialize: () -> void
+            def initialize: (
+              propagation_style_inject: ::Array[::String],
+              propagation_style_extract: ::Array[::String],
+              propagation_extract_first: bool,
+              propagation_behavior_extract: String
+            ) -> void
           end
         end
       end

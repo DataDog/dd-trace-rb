@@ -23,8 +23,8 @@ module Datadog
       #   The type of the currently active span.
       #   @return [String]
       # @!attribute [r] span_links
-      #   Potential links to a parent span.
-      #   @return [Array<SpanLink>]
+      #   Span links associated with this trace context.
+      #   @return [Array<Datadog::Tracing::SpanLink>, nil]
       # @!attribute [r] trace_distributed_tags
       #   Datadog-specific tags that support richer distributed tracing association.
       #   @return [Hash<String,String>]

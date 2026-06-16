@@ -58,6 +58,7 @@ module Datadog
 
       # Creates a new TraceOperation.
       #
+      # @param span_links [Array<Datadog::Tracing::SpanLink>, nil] links to attach to the local root span.
       # @param auto_finish [Boolean] when true, automatically finishes the trace when the local root span finishes.
       #   When false, the trace remains unfinished until {#finish!} is called.
       #   This is useful when this {TraceOperation} represents the continuation of a remote {TraceDigest},
