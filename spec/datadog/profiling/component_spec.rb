@@ -170,9 +170,10 @@ RSpec.describe Datadog::Profiling::Component do
             settings.profiling.advanced.gc_enabled = true
 
             stub_const("RUBY_VERSION", testing_version)
+            stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
           end
 
-          ["2.7.0", "3.1.4", "3.2.3", "3.3.0"].each do |fixed_ruby|
+          ["2.7.0", "3.1.4", "3.2.3", "3.2.10", "3.3.0"].each do |fixed_ruby|
             context "on a Ruby version not affected by https://bugs.ruby-lang.org/issues/18464 (#{fixed_ruby})" do
               let(:testing_version) { fixed_ruby }
 
@@ -235,9 +236,12 @@ RSpec.describe Datadog::Profiling::Component do
 
             # Since RUBY_VERSION is used to test if the ExecMonkeyPatch should be applied, mocking it below on an old
             # Ruby would cause it to wrongly be triggered, so we avoid running these specs there.
-            skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "2.7" && testing_version >= "3"
+            if RubyVersion.is?("< 2.7") && RubyVersion.is?(">= 3", ruby_version: Gem::Version.new(testing_version))
+              skip "Behavior does not apply to current Ruby version"
+            end
 
             stub_const("RUBY_VERSION", testing_version)
+            stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
           end
 
           context "on Ruby 2.x" do
@@ -343,6 +347,7 @@ RSpec.describe Datadog::Profiling::Component do
             settings.profiling.advanced.experimental_heap_enabled = true
             settings.profiling.advanced.gc_enabled = false # Disable this to avoid any additional warnings coming from it
             stub_const("RUBY_VERSION", testing_version)
+            stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
           end
 
           context "on a Ruby older than 3.1" do
@@ -610,7 +615,7 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         context "on Ruby >= 3.4" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.4." }
+          before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?("< 3.4") }
 
           it "is never applied" do
             expect(Datadog::Profiling::Ext::DirMonkeyPatches).to_not receive(:apply!)
@@ -620,7 +625,7 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         context "on Ruby < 3.4" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.4." }
+          before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?(">= 3.4") }
 
           it "is applied by default" do
             expect(Datadog::Profiling::Ext::DirMonkeyPatches).to receive(:apply!)
@@ -695,7 +700,7 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         context "on Ruby < 3.2" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.2." }
+          before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?(">= 3.2") }
 
           it "does not enable GVL profiling" do
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
@@ -706,7 +711,7 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         context "on Ruby >= 3.2" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.2." }
+          before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?("< 3.2") }
 
           it "enables GVL profiling" do
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
@@ -723,7 +728,7 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         context "on Ruby >= 3.2" do
-          before { skip "On Ruby < 3.2 you can't enable the feature, it's always disabled" if RUBY_VERSION < "3.2." }
+          before { skip "On Ruby < 3.2 you can't enable the feature, it's always disabled" if RubyVersion.is?("< 3.2") }
 
           it "disables GVL profiling" do
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
@@ -832,7 +837,7 @@ RSpec.describe Datadog::Profiling::Component do
       it { is_expected.to be false }
 
       context "on Ruby 2.5 and below" do
-        before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "2.6." }
+        before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?(">= 2.6") }
 
         it "logs a warning message mentioning that this is is not recommended" do
           expect(logger).to receive(:warn).with(
@@ -844,7 +849,7 @@ RSpec.describe Datadog::Profiling::Component do
       end
 
       context "on Ruby 2.6 and above" do
-        before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "2.6." }
+        before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?("< 2.6") }
 
         it "logs a warning message mentioning that the no signals mode has been disabled" do
           expect(logger).to receive(:warn).with('Profiling "no signals" workaround disabled via configuration')
@@ -871,13 +876,13 @@ RSpec.describe Datadog::Profiling::Component do
 
     shared_examples "no_signals_workaround_enabled :auto behavior" do
       context "on Ruby 2.5 and below" do
-        before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "2.6." }
+        before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?(">= 2.6") }
 
         it { is_expected.to be true }
       end
 
       context "on Ruby 2.6 and above" do
-        before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "2.6." }
+        before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?("< 2.6") }
 
         context "when mysql2 gem is available" do
           include_context("loaded gems", mysql2: Gem::Version.new("0.5.5"), rugged: nil)
@@ -1126,7 +1131,10 @@ RSpec.describe Datadog::Profiling::Component do
     subject(:can_apply_exec_monkey_patch?) { described_class.send(:can_apply_exec_monkey_patch?, settings) }
 
     context "on Ruby < 2.7" do
-      before { stub_const("RUBY_VERSION", "2.6.9") }
+      before do
+        stub_const("RUBY_VERSION", "2.6.9")
+        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
+      end
 
       it "returns false and does not require the monkey patch" do
         expect(described_class).to_not receive(:require)
@@ -1138,6 +1146,7 @@ RSpec.describe Datadog::Profiling::Component do
     context "on Ruby >= 2.7" do
       before do
         stub_const("RUBY_VERSION", "2.7.0")
+        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new(RUBY_VERSION))
       end
 
       context "when exec workaround is disabled" do

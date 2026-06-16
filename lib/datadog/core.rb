@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative 'ruby_version'
 require_relative 'core/deprecations'
 require_relative 'core/configuration/config_helper'
 require_relative 'core/extensions'

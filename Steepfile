@@ -8,9 +8,10 @@ target :datadog do
 
   check 'lib/'
 
-  # Profiling files that use inline RBS type annotations instead of sig/*.rbs.
+  # Files that use inline RBS type annotations instead of sig/*.rbs.
   # Inline checking requires Steep 2.0+. Some profiling files still need some
   # info that can't yet live on the .rb, so we keep the sig/*.rbs.
+  check 'lib/datadog/ruby_version.rb', inline: true
   check 'lib/datadog/profiling/encoded_profile.rb', inline: true
   check 'lib/datadog/profiling/exporter.rb', inline: true
   check 'lib/datadog/profiling/ext.rb', inline: true
