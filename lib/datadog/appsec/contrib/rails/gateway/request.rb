@@ -114,13 +114,7 @@ module Datadog
 
               # NOTE: Rails runs in the controller, so the input may already be at EOF.
               #       Rewind first to measure from the start; bail out if it refuses.
-              if rewindable
-                begin
-                  io.rewind
-                rescue StandardError
-                  return
-                end
-              end
+              io.rewind if rewindable
 
               buffer = +''
               max = limit + 1
@@ -143,6 +137,8 @@ module Datadog
               end
 
               over_limit ? nil : buffer.bytesize
+            rescue => e
+              Datadog.logger.debug { "AppSec: Failed to measure Rails request body: #{e.class}: #{e.message}" }
             end
           end
         end
