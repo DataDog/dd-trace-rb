@@ -9,6 +9,8 @@ module Datadog
         def label: () -> String?
       end
 
+      DATADOG_NAMESPACE_TYPE_NAME: ::Regexp
+
       @settings: Datadog::Core::Configuration::Settings
 
       @serializer: Serializer

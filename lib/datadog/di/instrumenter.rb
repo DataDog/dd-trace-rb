@@ -684,18 +684,20 @@ module Datadog
         raise Error::DITargetNotDefined, "Class not defined: #{cls_name}: #{exc.class}: #{exc.message}"
       end
 
+      # Matches a class name in the Datadog namespace, with an optional
+      # leading "::" (Ruby's root-namespace prefix). Anchored at \A so the
+      # match decides in O(prefix length) without scanning.
+      DATADOG_NAMESPACE_TYPE_NAME = /\A(?:::)?Datadog(?:::|\z)/
+      private_constant :DATADOG_NAMESPACE_TYPE_NAME
+
       # Returns true when +cls_name+ names the +Datadog+ module itself or
       # any class/module under it (e.g. +Datadog::Tracing::SpanOperation+).
       # The check is purely textual on the probe's declared type name; it
-      # does not require the class to be loaded.
-      #
-      # A leading +::+ (Ruby's root-namespace prefix) is stripped before
-      # the comparison, so +"::Datadog::Tracing::SpanOperation"+ and
-      # +"Datadog::Tracing::SpanOperation"+ are treated the same.
+      # does not require the class to be loaded. A leading +::+ is treated
+      # the same as the bare form.
       def datadog_namespace_type_name?(cls_name)
         return false if cls_name.nil?
-        normalized = cls_name.sub(/\A::/, "")
-        normalized == "Datadog" || normalized.start_with?("Datadog::")
+        DATADOG_NAMESPACE_TYPE_NAME.match?(cls_name)
       end
     end
   end
