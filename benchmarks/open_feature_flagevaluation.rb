@@ -69,11 +69,18 @@ class OpenFeatureFlagevaluationBenchmark
       x.report('hook#finally (eval-thread capture + enqueue)') do
         @hook.finally(hook_context: @hook_context, evaluation_details: @details)
         # Keep the bounded queue from filling during the benchmark (drain cheaply).
-        @writer.instance_variable_get(:@queue).clear
+        drain_writer_queue
       end
       x.save!("#{File.basename(__FILE__, ".rb")}-results.json") unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
+  end
+
+  def drain_writer_queue
+    queue = @writer.instance_variable_get(:@queue)
+    queue.pop(true) until queue.empty?
+  rescue ThreadError
+    # Nonblocking pop raises when another consumer drains the queue first.
   end
 
   # Worker hot path: full aggregation of one event (flatten + prune + canonical key + bucket).
