@@ -2,6 +2,8 @@ module Datadog
   module DI
     module EL
       class Evaluator
+        MATCHES_TIMEOUT_SECONDS: Float
+
         @context: Context
 
         def initialize: (Context context) -> void

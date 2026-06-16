@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'timeout' if RUBY_VERSION < '3.2'
+
 module Datadog
   module DI
     module EL
@@ -7,6 +9,12 @@ module Datadog
       #
       # @api private
       class Evaluator
+        # Maximum wall-clock time allowed for evaluating a single `matches`
+        # operator. Pathological regexp patterns (catastrophic backtracking)
+        # can otherwise run for many seconds on short inputs and stall the
+        # thread executing the probe.
+        MATCHES_TIMEOUT_SECONDS = 0.5
+
         def ref(var)
           @context.fetch(var)
         end
@@ -49,8 +57,21 @@ module Datadog
         end
 
         def matches(haystack, needle)
-          re = Regexp.compile(needle)
-          !!(haystack =~ re)
+          # Ruby 3.2+ supports the in-engine `timeout:` keyword on
+          # Regexp.new, which interrupts the matcher at every backtrack
+          # step. On older Rubies we fall back to Timeout.timeout, which
+          # uses Thread#raise; Onigmo on those versions polls for pending
+          # interrupts during matching so this also bounds the runtime,
+          # though with ~100ms granularity.
+          if RUBY_VERSION >= '3.2'
+            re = Regexp.new(needle, timeout: MATCHES_TIMEOUT_SECONDS)
+            !!(haystack =~ re)
+          else
+            re = Regexp.compile(needle)
+            Timeout.timeout(MATCHES_TIMEOUT_SECONDS) do
+              !!(haystack =~ re)
+            end
+          end
         end
 
         def getmember(object, field)
