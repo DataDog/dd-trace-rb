@@ -10,7 +10,7 @@ module Datadog
       # in the background by the FlagEvaluation::Writer.
       #
       # OTel non-regression: hooks/flag_eval_hook.rb and metrics/flag_eval_metrics.rb
-      # are byte-for-byte untouched. This hook is wired ALONGSIDE the existing OTel hook.
+      # stay on the OTel path. This hook is driven directly by the provider for EVP.
       class FlagEvalEVPHook
         # Include the Hook module if available (SDK >= 0.5.0) for interface documentation
         # and default implementations of other hook methods (before, after, error)
@@ -40,8 +40,8 @@ module Datadog
           writer.enqueue(
             flag_key: hook_context.flag_key,
             variant: evaluation_details.variant, # nil = absent = runtime default
-            reason: evaluation_details.reason.to_s,
             allocation_key: extract_allocation_key(evaluation_details),
+            error_message: extract_error_message(evaluation_details),
             targeting_key: hook_context.evaluation_context&.targeting_key,
             eval_time_ms: eval_time_ms,
             attrs: hook_context.evaluation_context&.attributes || {},
@@ -56,6 +56,12 @@ module Datadog
           return unless metadata.is_a?(Hash)
 
           metadata['__dd_allocation_key']
+        end
+
+        def extract_error_message(evaluation_details)
+          return unless evaluation_details.respond_to?(:error_message)
+
+          evaluation_details.error_message
         end
       end
     end

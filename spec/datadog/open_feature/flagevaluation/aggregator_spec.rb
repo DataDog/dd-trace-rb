@@ -87,6 +87,12 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       expect(pruned.keys).to include('other')
     end
 
+    it 'flattens nested hashes and arrays with dot-notation keys' do
+      attrs = {'profile' => {'plan' => 'pro'}, 'groups' => ['beta', 'staff']}
+      pruned = aggregator.prune_context(attrs)
+      expect(pruned).to include('profile.plan' => 'pro', 'groups.0' => 'beta', 'groups.1' => 'staff')
+    end
+
     it 'keeps string values of exactly 256 chars' do
       exact_value = 'x' * 256
       attrs = {'key' => exact_value}
@@ -113,7 +119,6 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
         flag_key: 'my-flag',
         variant: 'on',
         allocation_key: 'alloc-1',
-        reason: 'TARGETING_MATCH',
         targeting_key: 'user-123',
         eval_time_ms: 1_700_000_000_000,
         attrs: {'env' => 'prod'},
@@ -203,11 +208,11 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       it 'increments dropped counter beyond degradedCap' do
         # First event: goes to full tier (cap=1, one slot)
         aggregator.record(**base_event.merge(attrs: {'x' => 1}))
-        # Second event: different context, full tier full → goes to degraded with reason TARGETING_MATCH
+        # Second event: different context, full tier full → goes to degraded.
         # creates the one allowed degraded bucket
         aggregator.record(**base_event.merge(attrs: {'x' => 2}))
-        # Third event: different reason → different degraded key → degraded full → DROPPED
-        aggregator.record(**base_event.merge(attrs: {'x' => 3}, reason: 'DEFAULT'))
+        # Third event: different schema-visible error.message → degraded full → DROPPED
+        aggregator.record(**base_event.merge(attrs: {'x' => 3}, error_message: 'boom'))
 
         expect(aggregator.dropped_degraded_overflow).to be >= 1
       end
@@ -235,7 +240,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
   describe '#flush_and_reset' do
     it 'resets full and degraded maps after flush' do
       aggregator.record(
-        flag_key: 'f', variant: 'v', allocation_key: '', reason: 'DEFAULT',
+        flag_key: 'f', variant: 'v', allocation_key: '',
         targeting_key: '', eval_time_ms: 1000, attrs: {},
       )
       aggregator.flush_and_reset
@@ -246,9 +251,9 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
 
     it 'resets dropped_degraded_overflow counter after flush' do
       aggregator_small = described_class.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 1)
-      aggregator_small.record(flag_key: 'f', variant: 'v', allocation_key: '', reason: 'R', targeting_key: '', eval_time_ms: 1, attrs: {'x' => 1})
-      aggregator_small.record(flag_key: 'f', variant: 'v', allocation_key: '', reason: 'R', targeting_key: '', eval_time_ms: 2, attrs: {'x' => 2})
-      aggregator_small.record(flag_key: 'f', variant: 'v', allocation_key: '', reason: 'R', targeting_key: '', eval_time_ms: 3, attrs: {'x' => 3})
+      aggregator_small.record(flag_key: 'f', variant: 'v', allocation_key: '', targeting_key: '', eval_time_ms: 1, attrs: {'x' => 1})
+      aggregator_small.record(flag_key: 'f', variant: 'v', allocation_key: '', targeting_key: '', eval_time_ms: 2, attrs: {'x' => 2})
+      aggregator_small.record(flag_key: 'f', variant: 'v', allocation_key: '', targeting_key: '', eval_time_ms: 3, attrs: {'x' => 3})
       aggregator_small.flush_and_reset
       expect(aggregator_small.dropped_degraded_overflow).to eq(0)
     end
@@ -257,9 +262,12 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
     # reset (not reset-without-emit). The count must equal what dropped at flush time.
     it 'returns the degraded-overflow count in the snapshot so it can be emitted before reset' do
       aggregator_small = described_class.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 1)
-      aggregator_small.record(flag_key: 'f', variant: 'v', allocation_key: '', reason: 'R', targeting_key: '', eval_time_ms: 1, attrs: {'x' => 1})
-      aggregator_small.record(flag_key: 'f', variant: 'v', allocation_key: '', reason: 'R', targeting_key: '', eval_time_ms: 2, attrs: {'x' => 2})
-      aggregator_small.record(flag_key: 'f', variant: 'v', allocation_key: '', reason: 'DEFAULT', targeting_key: '', eval_time_ms: 3, attrs: {'x' => 3})
+      aggregator_small.record(flag_key: 'f', variant: 'v', allocation_key: '', targeting_key: '', eval_time_ms: 1, attrs: {'x' => 1})
+      aggregator_small.record(flag_key: 'f', variant: 'v', allocation_key: '', targeting_key: '', eval_time_ms: 2, attrs: {'x' => 2})
+      aggregator_small.record(
+        flag_key: 'f', variant: 'v', allocation_key: '', error_message: 'boom',
+        targeting_key: '', eval_time_ms: 3, attrs: {'x' => 3}
+      )
 
       snapshot = aggregator_small.flush_and_reset
       expect(snapshot[:dropped_degraded_overflow]).to be >= 1

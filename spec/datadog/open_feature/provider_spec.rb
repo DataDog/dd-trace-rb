@@ -133,23 +133,17 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
     context 'when OpenFeature component is configured' do
       let(:flag_eval_hook) { instance_double(Datadog::OpenFeature::Hooks::FlagEvalHook) }
-      let(:flag_eval_evp_hook) { instance_double(Datadog::OpenFeature::Hooks::FlagEvalEVPHook) }
-
       before do
         allow(components).to receive(:open_feature).and_return(open_feature_component)
         allow(open_feature_component).to receive(:flag_eval_hook).and_return(flag_eval_hook)
-        allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(flag_eval_evp_hook)
       end
 
-      it 'returns array with both the OTel flag eval hook and the EVP flag eval hook' do
-        expect(provider.hooks).to eq([flag_eval_hook, flag_eval_evp_hook])
+      it 'returns only the OTel flag eval hook to avoid EVP lifecycle double-counting' do
+        expect(open_feature_component).not_to receive(:flag_eval_evp_hook)
+        expect(provider.hooks).to eq([flag_eval_hook])
       end
 
       context 'when EVP hook is disabled (killswitch)' do
-        before do
-          allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(nil)
-        end
-
         it 'returns array with only the OTel flag eval hook' do
           expect(provider.hooks).to eq([flag_eval_hook])
         end
@@ -204,7 +198,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         expect(hook_context.evaluation_context.targeting_key).to eq('user-1')
         expect(hook_context.evaluation_context.attributes).to eq('env' => 'prod')
         expect(evaluation_details.variant).to eq('variant-a')
-        expect(evaluation_details.reason).to eq('TARGETING_MATCH')
+        expect(evaluation_details.error_message).to be_nil
       end
     end
 
@@ -293,7 +287,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         allow(evp_hook).to receive(:finally)
       end
 
-      it 'engine error path: drives the EVP hook with the error reason + nil variant' do
+      it 'engine error path: drives the EVP hook with error_message + nil variant' do
         result = Datadog::OpenFeature::ResolutionDetails.new(
           value: 'default', reason: 'ERROR', variant: nil, error_code: 'FLAG_NOT_FOUND',
           error_message: 'nope', flag_metadata: {}, allocation_key: nil, extra_logging: {},
@@ -305,8 +299,8 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
         expect(res.value).to eq('default')
         expect(evp_hook).to have_received(:finally) do |evaluation_details:, **|
-          expect(evaluation_details.reason).to eq('ERROR')
           expect(evaluation_details.variant).to be_nil
+          expect(evaluation_details.error_message).to eq('nope')
         end
       end
 

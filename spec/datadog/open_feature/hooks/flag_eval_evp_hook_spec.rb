@@ -22,7 +22,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       instance_double(
         'OpenFeature::SDK::EvaluationDetails',
         variant: 'on',
-        reason: 'TARGETING_MATCH',
+        error_message: nil,
         flag_metadata: {'__dd_allocation_key' => 'alloc-9', 'dd.eval.timestamp_ms' => 1_700_000_000_000},
       )
     end
@@ -46,16 +46,25 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
     end
 
-    it 'enqueues flag_key, reason, targeting_key and attrs' do
-      expect(writer).to receive(:enqueue).with(
-        hash_including(
+    it 'enqueues flag_key, targeting_key and attrs without reason' do
+      expect(writer).to receive(:enqueue) do |event|
+        expect(event).to include(
           flag_key: 'my-flag',
-          reason: 'TARGETING_MATCH',
           targeting_key: 'user-7',
           attrs: {'env' => 'prod'},
         )
-      )
+        expect(event).not_to have_key(:reason)
+      end
       hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
+    end
+
+    it 'enqueues error_message when present' do
+      details = instance_double(
+        'OpenFeature::SDK::EvaluationDetails',
+        variant: nil, error_message: 'flag not found', flag_metadata: {},
+      )
+      expect(writer).to receive(:enqueue).with(hash_including(error_message: 'flag not found'))
+      hook.finally(hook_context: hook_context, evaluation_details: details)
     end
 
     it 'does NOT touch the aggregator on the hook path (only enqueues — async boundary)' do
@@ -71,7 +80,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
     it 'falls back to a real hook-fire timestamp when dd.eval.timestamp_ms is absent' do
       details = instance_double(
         'OpenFeature::SDK::EvaluationDetails',
-        variant: 'on', reason: 'STATIC', flag_metadata: {},
+        variant: 'on', error_message: nil, flag_metadata: {},
       )
       Datadog::Core::Utils::Time.now_provider = -> { ::Time.at(1_650_000_000) }
       expect(writer).to receive(:enqueue).with(hash_including(eval_time_ms: 1_650_000_000_000))
@@ -84,7 +93,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
     it 'passes a nil variant through unchanged (runtime-default signal preserved)' do
       details = instance_double(
         'OpenFeature::SDK::EvaluationDetails',
-        variant: nil, reason: 'DEFAULT', flag_metadata: {},
+        variant: nil, error_message: nil, flag_metadata: {},
       )
       expect(writer).to receive(:enqueue).with(hash_including(variant: nil))
       hook.finally(hook_context: hook_context, evaluation_details: details)
@@ -93,7 +102,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
     it 'handles a nil evaluation_context without raising' do
       details = instance_double(
         'OpenFeature::SDK::EvaluationDetails',
-        variant: 'v', reason: 'STATIC', flag_metadata: {},
+        variant: 'v', error_message: nil, flag_metadata: {},
       )
       ctx = double('HookContext', flag_key: 'f', evaluation_context: nil)
       expect(writer).to receive(:enqueue).with(hash_including(targeting_key: nil, attrs: {}))

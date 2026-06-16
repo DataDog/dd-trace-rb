@@ -11,9 +11,8 @@ module Datadog
     # Requires openfeature-sdk >= 0.5.1 for flag evaluation metrics support.
     #
     # Hook lifecycle note: the Ruby openfeature-sdk (through at least 0.5.x) does not invoke
-    # provider hooks during evaluation. FlagEvalEVPHook is registered for forward compatibility
-    # but is also called directly from #evaluate to ensure EVP flag-evaluation events are
-    # emitted regardless of SDK version. See call_evp_hook for details.
+    # provider hooks during evaluation. FlagEvalEVPHook is called directly from #evaluate and is
+    # not returned from #hooks, so future SDK lifecycle support cannot double-count EVP rows.
     #
     # Implementation follows the OpenFeature contract of Provider SDK.
     # For details see:
@@ -70,13 +69,13 @@ module Datadog
       #   hook_context.evaluation_context&.attributes  (Hash of non-targeting_key fields)
       #   evaluation_details.flag_metadata
       #   evaluation_details.variant
-      #   evaluation_details.reason
+      #   evaluation_details.error_message
       #
       # ::OpenFeature::SDK::EvaluationContext exposes #fields (all fields including targeting_key)
       # and #targeting_key, but NOT #attributes. EvpEvalContext adapts fields -> attributes.
       EvpEvalContext = Struct.new(:targeting_key, :attributes)
       HookContext = Struct.new(:flag_key, :evaluation_context)
-      HookDetails = Struct.new(:variant, :reason, :flag_metadata)
+      HookDetails = Struct.new(:variant, :flag_metadata, :error_message)
 
       attr_reader :metadata
 
@@ -95,8 +94,7 @@ module Datadog
       def hooks
         component = Datadog.send(:components).open_feature
         otel_hook = component&.flag_eval_hook
-        evp_hook = component&.flag_eval_evp_hook
-        [otel_hook, evp_hook].compact
+        [otel_hook].compact
       end
 
       def fetch_boolean_value(flag_key:, default_value:, evaluation_context: nil)
@@ -196,8 +194,8 @@ module Datadog
 
       # Call the EVP hook directly — the Ruby openfeature-sdk (through at least 0.5.x) does not
       # invoke provider hooks during evaluation, so we must drive it ourselves. The hook is still
-      # registered via #hooks for forward compatibility with future SDK versions that do support
-      # the full hook lifecycle. This method is idempotent: if the killswitch is on or the
+      # not registered via #hooks because future SDK versions may invoke provider hooks and would
+      # double-count EVP rows. This method is idempotent: if the killswitch is on or the
       # component is absent, flag_eval_evp_hook is nil and this is a no-op.
       #
       # ::OpenFeature::SDK::EvaluationContext has #fields and #targeting_key but NOT #attributes.
@@ -215,7 +213,7 @@ module Datadog
 
         hook.finally(
           hook_context: HookContext.new(flag_key, evp_ctx),
-          evaluation_details: HookDetails.new(result.variant, result.reason, flag_metadata),
+          evaluation_details: HookDetails.new(result.variant, flag_metadata, result.error_message),
         )
       rescue => e
         # Best-effort: EVP emission must never raise into the evaluation hot path.

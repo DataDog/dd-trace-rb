@@ -33,7 +33,6 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         flag_key: 'my-flag',
         variant: 'on',
         allocation_key: '',
-        reason: 'TARGETING_MATCH',
         targeting_key: 'user-1',
         eval_time_ms: 1_234_567_890_000,
         attrs: {},
@@ -67,7 +66,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       # Worker is now alive and waiting on the condition variable (effectively sleeping).
       writer.enqueue(
         flag_key: 'shutdown-flag', variant: 'on', allocation_key: '',
-        reason: 'TARGETING_MATCH', targeting_key: 'u1', eval_time_ms: 1_000, attrs: {},
+        targeting_key: 'u1', eval_time_ms: 1_000, attrs: {},
       )
 
       # stop() must wake the sleeping worker immediately, drain, and final-flush (no 10s wait).
@@ -95,7 +94,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       # Fill the queue to capacity, then overflow it.
       capacity = described_class::QUEUE_SIZE
       event = {
-        flag_key: 'f', variant: 'on', allocation_key: '', reason: 'R',
+        flag_key: 'f', variant: 'on', allocation_key: '',
         targeting_key: 't', eval_time_ms: 1, attrs: {},
       }
       capacity.times { writer.enqueue(**event) }
@@ -112,6 +111,24 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
       expect(logged.join).to match(/queue_overflow=3/)
       expect(writer.dropped_queue_overflow).to eq(0)
+    end
+
+    it 'stores a bounded context snapshot before buffering' do
+      allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
+      writer = described_class.new(transport: transport, logger: logger)
+      raw = {'profile' => {'plan' => 'pro'}, 'oversized' => 'x' * 257}
+      300.times { |i| raw["z#{format("%03d", i)}"] = 'v' }
+
+      writer.enqueue(
+        flag_key: 'f', variant: 'on', allocation_key: '',
+        targeting_key: 't', eval_time_ms: 1, attrs: raw,
+      )
+
+      queued = writer.instance_variable_get(:@queue).pop(true)
+      expect(queued[:attrs].size).to eq(256)
+      expect(queued[:attrs]).to have_key('profile.plan')
+      expect(queued[:attrs]).not_to have_key('oversized')
+      expect(queued[:attrs]).not_to have_key('profile')
     end
   end
 
@@ -135,7 +152,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       payload = captured_payload do |writer|
         writer.enqueue(
           flag_key: 'schema-flag', variant: 'on', allocation_key: 'alloc-1',
-          reason: 'TARGETING_MATCH', targeting_key: 'user-42',
+          targeting_key: 'user-42',
           eval_time_ms: realistic_eval_ms, attrs: {'env' => 'prod', 'tier' => 'gold'},
         )
       end
@@ -157,11 +174,11 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         small = Datadog::OpenFeature::FlagEvaluation::Aggregator.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 10)
         writer.instance_variable_set(:@aggregator, small)
         writer.enqueue(
-          flag_key: 'deg-flag', variant: 'a', allocation_key: 'alloc-x', reason: 'SPLIT',
+          flag_key: 'deg-flag', variant: 'a', allocation_key: 'alloc-x',
           targeting_key: 'u1', eval_time_ms: realistic_eval_ms, attrs: {'x' => 1},
         )
         writer.enqueue(
-          flag_key: 'deg-flag', variant: 'a', allocation_key: 'alloc-x', reason: 'SPLIT',
+          flag_key: 'deg-flag', variant: 'a', allocation_key: 'alloc-x',
           targeting_key: 'u2', eval_time_ms: realistic_eval_ms, attrs: {'x' => 2},
         )
       end
@@ -184,7 +201,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       payload = captured_payload do |writer|
         writer.enqueue(
           flag_key: 'prune-flag', variant: 'on', allocation_key: '',
-          reason: 'STATIC', targeting_key: 't', eval_time_ms: realistic_eval_ms, attrs: raw,
+          targeting_key: 't', eval_time_ms: realistic_eval_ms, attrs: raw,
         )
       end
 
@@ -194,6 +211,56 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       # Deterministic subset = sorted-first 256 keys (so 'k000'..'k253' kept, 'keep'/'k254'+ cut).
       expect(emitted).to have_key('k000')
       expect(emitted).not_to have_key('k299')
+    end
+
+    it 'emits schema-visible error.message when present' do
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: 'error-flag', variant: nil, allocation_key: '',
+          error_message: 'flag not found', targeting_key: 'user-42',
+          eval_time_ms: realistic_eval_ms, attrs: {},
+        )
+      end
+
+      row = payload['flagEvaluations'].first
+      expect(row['runtime_default_used']).to be(true)
+      expect(row['error']).to eq('message' => 'flag not found')
+      expect(row).not_to have_key('reason')
+
+      errors = JSON::Validator.fully_validate(worker_schema_path, JSON.parse(JSON.generate(payload)))
+      expect(errors).to be_empty, "schema errors: #{errors.join("\n")}"
+    end
+
+    it 'rejects a top-level reason field under the real worker schema' do
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: 'schema-flag', variant: 'on', allocation_key: '',
+          targeting_key: 'user-42', eval_time_ms: realistic_eval_ms, attrs: {},
+        )
+      end
+      payload['flagEvaluations'].first['reason'] = 'TARGETING_MATCH'
+
+      errors = JSON::Validator.fully_validate(worker_schema_path, JSON.parse(JSON.generate(payload)))
+      expect(errors.join("\n")).to include("The property '#/flagEvaluations/0' contains additional properties [\"reason\"]")
+    end
+
+    it 'does not split aggregates when only stale reason inputs differ' do
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: 'reasonless-flag', variant: 'on', allocation_key: 'alloc-1',
+          reason: 'TARGETING_MATCH', targeting_key: 'user-42',
+          eval_time_ms: realistic_eval_ms, attrs: {'env' => 'prod'},
+        )
+        writer.enqueue(
+          flag_key: 'reasonless-flag', variant: 'on', allocation_key: 'alloc-1',
+          reason: 'DEFAULT', targeting_key: 'user-42',
+          eval_time_ms: realistic_eval_ms + 1, attrs: {'env' => 'prod'},
+        )
+      end
+
+      expect(payload['flagEvaluations'].size).to eq(1)
+      expect(payload['flagEvaluations'].first['evaluation_count']).to eq(2)
+      expect(payload['flagEvaluations'].first).not_to have_key('reason')
     end
   end
 

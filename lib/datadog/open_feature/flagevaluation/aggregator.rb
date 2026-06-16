@@ -6,8 +6,8 @@ module Datadog
       # Two-tier aggregation for EVP flagevaluation events.
       #
       # Two-tier design:
-      # - full-tier  key: (flag_key, variant, allocation_key, reason, targeting_key, canonical_context_key)
-      # - degraded-tier key: (flag_key, variant, allocation_key, reason) — exactly OTel cardinality
+      # - full-tier  key: (flag_key, variant, allocation_key, runtime_default, error_message, targeting_key, canonical_context_key)
+      # - degraded-tier key: (flag_key, variant, allocation_key, runtime_default, error_message)
       # - Drop-and-count when degraded tier is full (no ultra-degraded tier)
       # - canonical_context_key: sorted type-tagged length-delimited encoding (no hash digest)
       # - Caps: globalCap=131_072 / perFlagCap=10_000 / degradedCap=32_768
@@ -42,23 +42,23 @@ module Datadog
           @dropped_degraded_overflow = 0
         end
 
-        # Record one evaluation event. Thread-safe. Called from the hook's finally stage.
-        # All aggregation is done here — the hook itself only calls record.
-        def record(flag_key:, variant:, allocation_key:, reason:, targeting_key:, eval_time_ms:, attrs:)
+        # Record one evaluation event. Thread-safe. Called from the background writer.
+        def record(flag_key:, variant:, allocation_key:, targeting_key:, eval_time_ms:, attrs:, error_message: nil)
           # Runtime default: primary signal is absent/nil variant (not reason alone)
           runtime_default = variant.nil?
 
           # Normalize nil/empty strings
           variant = variant.to_s
           allocation_key = allocation_key.to_s
-          reason = reason.to_s
+          error_message = error_message.to_s
           targeting_key = targeting_key.to_s
 
-          # Context pruning + canonical key (see prune_context and canonical_context_key)
+          # Context pruning + canonical key (see prune_context and canonical_context_key).
+          # Writer#enqueue already bounds attrs before buffering; this remains defensive.
           pruned = prune_context(attrs)
           ctx_key = canonical_context_key(pruned)
 
-          full_key = [flag_key, variant, allocation_key, reason, targeting_key, ctx_key]
+          full_key = [flag_key, variant, allocation_key, runtime_default, error_message, targeting_key, ctx_key]
           eval_ms = eval_time_ms.to_i
 
           @mutex.synchronize do
@@ -73,13 +73,19 @@ module Datadog
               @per_flag_full[flag_key] < @per_flag_cap
 
             if full_ok
-              e = new_entry(eval_ms, runtime_default: runtime_default, targeting_key: targeting_key, context_attrs: pruned)
+              e = new_entry(
+                eval_ms,
+                runtime_default: runtime_default,
+                error_message: error_message,
+                targeting_key: targeting_key,
+                context_attrs: pruned
+              )
               @full[full_key] = e
               @per_flag_full[flag_key] += 1
               @global_count += 1
             else
               # Route to degraded tier
-              add_to_degraded(flag_key, variant, allocation_key, reason, eval_ms, runtime_default)
+              add_to_degraded(flag_key, variant, allocation_key, runtime_default, error_message, eval_ms)
             end
           end
         end
@@ -107,19 +113,34 @@ module Datadog
         # Prune context: keep first MAX_CONTEXT_FIELDS fields (sorted), skip string values >256 chars.
         # Keys are sorted before pruning to ensure deterministic subset selection.
         def prune_context(attrs)
-          return {} if attrs.nil? || attrs.empty?
+          self.class.prune_context(attrs)
+        end
+
+        def self.prune_context(attrs)
+          flat = flatten_context(attrs)
+          return {} if flat.empty?
 
           out = {}
           count = 0
-          attrs.keys.sort.each do |k|
+          flat.keys.sort.each do |k|
             break if count >= MAX_CONTEXT_FIELDS
 
-            v = attrs[k]
-            # Skip oversized string values (mirrors Go: worker.ts pruneFields behavior)
+            v = flat[k]
+            # Skip oversized string values (mirrors flageval-worker pruning behavior).
             next if v.is_a?(String) && v.length > MAX_FIELD_LENGTH
 
             out[k] = v
             count += 1
+          end
+          out
+        end
+
+        def self.flatten_context(attrs)
+          return {} unless attrs.is_a?(Hash) && !attrs.empty?
+
+          out = {}
+          attrs.each do |k, v|
+            flatten_value(k.to_s, v, out)
           end
           out
         end
@@ -140,14 +161,26 @@ module Datadog
           buf
         end
 
-        private
-
         # Type tags so values of different Ruby types never collide in the canonical key.
         CTX_TAG_STRING = 's'
         CTX_TAG_BOOL = 'b'
         CTX_TAG_INTEGER = 'i'
         CTX_TAG_FLOAT = 'f'
         CTX_TAG_OTHER = 'o'
+
+        def self.flatten_value(prefix, value, out)
+          case value
+          when Hash
+            value.each { |k, v| flatten_value("#{prefix}.#{k}", v, out) }
+          when Array
+            value.each_with_index { |v, i| flatten_value("#{prefix}.#{i}", v, out) }
+          else
+            out[prefix] = value unless value.nil?
+          end
+        end
+        private_class_method :flatten_value
+
+        private
 
         def context_value_bytes(v)
           tag, encoded = case v
@@ -170,12 +203,13 @@ module Datadog
           len_bytes + bytes
         end
 
-        def new_entry(eval_ms, runtime_default:, targeting_key: nil, context_attrs: nil)
+        def new_entry(eval_ms, runtime_default:, error_message: nil, targeting_key: nil, context_attrs: nil)
           {
             count: 1,
             first_evaluation: eval_ms,
             last_evaluation: eval_ms,
             runtime_default: runtime_default,
+            error_message: error_message,
             targeting_key: targeting_key,
             context_attrs: context_attrs,
           }
@@ -187,8 +221,8 @@ module Datadog
           entry[:last_evaluation] = eval_ms if eval_ms > entry[:last_evaluation]
         end
 
-        def add_to_degraded(flag_key, variant, allocation_key, reason, eval_ms, runtime_default)
-          deg_key = [flag_key, variant, allocation_key, reason]
+        def add_to_degraded(flag_key, variant, allocation_key, runtime_default, error_message, eval_ms)
+          deg_key = [flag_key, variant, allocation_key, runtime_default, error_message]
 
           if (e = @degraded[deg_key])
             observe(e, eval_ms)
@@ -203,7 +237,11 @@ module Datadog
           end
 
           # Degraded entry omits targeting_key + context_attrs (schema omitempty fields)
-          @degraded[deg_key] = new_entry(eval_ms, runtime_default: runtime_default)
+          @degraded[deg_key] = new_entry(
+            eval_ms,
+            runtime_default: runtime_default,
+            error_message: error_message
+          )
         end
       end
     end
