@@ -1,8 +1,11 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'open_feature/sdk'
 require 'datadog/open_feature/provider'
 require 'datadog/open_feature/evaluation_engine'
+require 'datadog/open_feature/hooks/flag_eval_hook'
+require 'datadog/open_feature/hooks/span_enrichment_hook'
 
 RSpec.describe Datadog::OpenFeature::Provider do
   before do
@@ -131,10 +134,23 @@ RSpec.describe Datadog::OpenFeature::Provider do
       before do
         allow(components).to receive(:open_feature).and_return(open_feature_component)
         allow(open_feature_component).to receive(:flag_eval_hook).and_return(flag_eval_hook)
+        allow(open_feature_component).to receive(:span_enrichment_hook).and_return(nil)
       end
 
       it 'returns array with the flag eval hook' do
         expect(provider.hooks).to eq([flag_eval_hook])
+      end
+
+      context 'when the span enrichment hook is present' do
+        let(:span_enrichment_hook) { instance_double(Datadog::OpenFeature::Hooks::SpanEnrichmentHook) }
+
+        before do
+          allow(open_feature_component).to receive(:span_enrichment_hook).and_return(span_enrichment_hook)
+        end
+
+        it 'returns both hooks' do
+          expect(provider.hooks).to eq([flag_eval_hook, span_enrichment_hook])
+        end
       end
     end
 

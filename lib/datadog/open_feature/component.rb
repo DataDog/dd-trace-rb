@@ -12,7 +12,7 @@ module Datadog
   module OpenFeature
     # This class is the entry point for the OpenFeature component
     class Component
-      attr_reader :engine, :flag_eval_hook
+      attr_reader :engine, :flag_eval_hook, :span_enrichment_hook
 
       def self.build(settings, agent_settings, logger:, telemetry:)
         return unless settings.respond_to?(:open_feature) && settings.open_feature.enabled
@@ -54,11 +54,16 @@ module Datadog
 
         @telemetry = telemetry
         @logger = logger
+        @settings = settings
         @flag_eval_hook = create_flag_eval_hook
+        @span_enrichment_hook = create_span_enrichment_hook
       end
 
       def shutdown!
         @worker.graceful_shutdown
+        # Symmetric teardown: drop any accumulated span-enrichment state and
+        # subscriptions (Ruby CLAUDE.md mandates closing resources).
+        @span_enrichment_hook&.shutdown
       end
 
       private
@@ -69,6 +74,20 @@ module Datadog
 
         metrics = Metrics::FlagEvalMetrics.new(telemetry: @telemetry, logger: @logger)
         Hooks::FlagEvalHook.new(metrics)
+      rescue LoadError
+        nil
+      end
+
+      # Construct the span-enrichment hook only when the opt-in gate is on, so
+      # there is no idle per-span overhead when disabled (DG-005).
+      def create_span_enrichment_hook
+        return unless @settings.open_feature.span_enrichment_enabled
+
+        require_relative 'hooks/span_enrichment_hook'
+        return unless Hooks::SpanEnrichmentHook.available?
+
+        store = Hooks::SpanEnrichmentHook::AccumulatorStore.new
+        Hooks::SpanEnrichmentHook.new(store)
       rescue LoadError
         nil
       end

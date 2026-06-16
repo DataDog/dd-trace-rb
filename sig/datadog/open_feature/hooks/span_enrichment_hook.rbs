@@ -1,0 +1,99 @@
+module Datadog
+  module OpenFeature
+    module Hooks
+      class SpanEnrichmentHook
+        include ::OpenFeature::SDK::Hooks::Hook
+
+        MAX_SERIAL_IDS: ::Integer
+
+        MAX_SUBJECTS: ::Integer
+
+        MAX_EXPERIMENTS_PER_SUBJECT: ::Integer
+
+        MAX_DEFAULTS: ::Integer
+
+        MAX_DEFAULT_VALUE_LENGTH: ::Integer
+
+        TAG_FLAGS_ENC: ::String
+
+        TAG_SUBJECTS_ENC: ::String
+
+        TAG_RUNTIME_DEFAULTS: ::String
+
+        METADATA_SERIAL_ID: ::String
+
+        METADATA_DO_LOG: ::String
+
+        module Codec
+          def self?.encode_varint: (::Integer value) -> ::String
+
+          def self?.encode_delta_varint: (Set[::Integer] serial_ids) -> ::String
+
+          def self?.hash_targeting_key: (::String targeting_key) -> ::String
+        end
+
+        class Accumulator
+          @serial_ids: Set[::Integer]
+
+          @subjects: ::Hash[::String, Set[::Integer]]
+
+          @defaults: ::Hash[::String, ::String]
+
+          def initialize: () -> void
+
+          def add_serial_id: (::Integer serial_id) -> void
+
+          def add_subject: (::String targeting_key, ::Integer serial_id) -> void
+
+          def add_default: (::String flag_key, untyped value) -> void
+
+          def has_data?: () -> bool
+
+          def to_span_tags: () -> ::Hash[::String, ::String]
+        end
+
+        # Keyed by the active trace operation via object identity. Typed as
+        # `untyped` because `Datadog::Tracing.active_trace` is declared to return
+        # a `TraceSegment` while at runtime the open trace is a `TraceOperation`;
+        # the store only uses the value as an identity key.
+        class AccumulatorStore
+          @states: ::Hash[untyped, Accumulator]
+
+          def initialize: () -> void
+
+          def fetch: (untyped trace_op) -> Accumulator?
+
+          def fetch_or_create: (untyped trace_op) -> Accumulator
+
+          def delete: (untyped trace_op) -> Accumulator?
+
+          def clear: () -> void
+        end
+
+        @store: AccumulatorStore
+
+        @subscribed: ::Hash[untyped, bool]
+
+        def self.available?: () -> bool
+
+        def initialize: (AccumulatorStore accumulator_store) -> void
+
+        def finally: (
+          hook_context: ::OpenFeature::SDK::Hooks::HookContext,
+          evaluation_details: ::OpenFeature::SDK::EvaluationDetails,
+          **untyped _opts
+        ) -> void
+
+        def shutdown: () -> void
+
+        private
+
+        def state_for: (untyped trace_op) -> Accumulator
+
+        def subscribe_root_finish: (untyped trace_op) -> void
+
+        def write_tags_on_root: (untyped span_op, untyped trace_op) -> void
+      end
+    end
+  end
+end

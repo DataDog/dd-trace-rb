@@ -2,6 +2,8 @@
 
 require 'spec_helper'
 require 'datadog/open_feature/component'
+require 'open_feature/sdk'
+require 'datadog/open_feature/hooks/span_enrichment_hook'
 
 RSpec.describe Datadog::OpenFeature::Component do
   before do
@@ -37,6 +39,35 @@ RSpec.describe Datadog::OpenFeature::Component do
           expect(component.engine).to be_a(Datadog::OpenFeature::EvaluationEngine)
 
           expect(Datadog::OpenFeature::Exposures::Reporter).to have_received(:new)
+        end
+
+        describe 'span enrichment hook gate (DG-005)' do
+          context 'when span enrichment is disabled (default)' do
+            it 'does not construct the span enrichment hook' do
+              expect(component.span_enrichment_hook).to be_nil
+            end
+
+            it 'never loads the span enrichment hook (no idle overhead)' do
+              expect(Datadog::OpenFeature::Hooks::SpanEnrichmentHook).not_to receive(:new)
+
+              component
+            end
+          end
+
+          context 'when span enrichment is enabled' do
+            before do
+              settings.open_feature.span_enrichment_enabled = true
+              # The real OpenFeature Hooks::Hook module only exists on SDK >= 0.5.0;
+              # stub availability so the construction logic is exercised regardless
+              # of the SDK version resolved by the appraisal.
+              allow(Datadog::OpenFeature::Hooks::SpanEnrichmentHook).to receive(:available?).and_return(true)
+            end
+
+            it 'constructs the span enrichment hook' do
+              expect(component.span_enrichment_hook)
+                .to be_a(Datadog::OpenFeature::Hooks::SpanEnrichmentHook)
+            end
+          end
         end
 
         context 'when libdatadog is unavailable' do
@@ -90,6 +121,21 @@ RSpec.describe Datadog::OpenFeature::Component do
       expect(worker).to receive(:graceful_shutdown)
 
       component.shutdown!
+    end
+
+    context 'when span enrichment is enabled' do
+      before do
+        stub_const('Datadog::Core::LIBDATADOG_API_FAILURE', nil)
+        settings.open_feature.span_enrichment_enabled = true
+        allow(worker).to receive(:graceful_shutdown)
+        allow(Datadog::OpenFeature::Hooks::SpanEnrichmentHook).to receive(:available?).and_return(true)
+      end
+
+      it 'shuts down the span enrichment hook (symmetric teardown)' do
+        expect(component.span_enrichment_hook).to receive(:shutdown)
+
+        component.shutdown!
+      end
     end
   end
 end

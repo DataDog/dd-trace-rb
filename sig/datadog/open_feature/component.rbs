@@ -15,9 +15,13 @@ module Datadog
 
       @flag_eval_hook: Hooks::FlagEvalHook?
 
+      @span_enrichment_hook: Hooks::SpanEnrichmentHook?
+
       attr_reader engine: EvaluationEngine
 
       attr_reader flag_eval_hook: Hooks::FlagEvalHook?
+
+      attr_reader span_enrichment_hook: Hooks::SpanEnrichmentHook?
 
       def self.build: (
         Core::Configuration::Settings settings,
@@ -40,6 +44,8 @@ module Datadog
       private
 
       def create_flag_eval_hook: () -> Hooks::FlagEvalHook?
+
+      def create_span_enrichment_hook: () -> Hooks::SpanEnrichmentHook?
     end
   end
 end

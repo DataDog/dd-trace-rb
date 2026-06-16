@@ -178,6 +178,10 @@ module Datadog
 
         interface _OpenFeature
           def enabled: () -> bool
+
+          def span_enrichment_enabled: () -> bool
+
+          def span_enrichment_enabled=: (bool) -> void
         end
 
         interface _SymbolDatabase
