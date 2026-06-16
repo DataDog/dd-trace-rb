@@ -4,6 +4,8 @@ module Rack
   type response = [::Integer, headers, ::Array[::String]]
   type app = ^(env) -> response
 
+  def self.release: () -> ::String
+
   class Request
     def initialize: (::Hash[::String, untyped] env) -> void
 

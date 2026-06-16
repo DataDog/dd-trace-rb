@@ -1,0 +1,21 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rack
+        module InputPeeker
+          @rewind: bool
+
+          def self?.peek_bytesize: (::Rack::env env, limit: Integer) -> Integer?
+
+          private
+
+          def self?.rewind?: () -> bool
+
+          def self?.rewind: (untyped io) -> bool
+
+          def self?.peek: (untyped io, Integer limit) -> String
+        end
+      end
+    end
+  end
+end
