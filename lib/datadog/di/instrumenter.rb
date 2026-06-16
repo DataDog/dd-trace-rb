@@ -688,9 +688,14 @@ module Datadog
       # any class/module under it (e.g. +Datadog::Tracing::SpanOperation+).
       # The check is purely textual on the probe's declared type name; it
       # does not require the class to be loaded.
+      #
+      # A leading +::+ (Ruby's root-namespace prefix) is stripped before
+      # the comparison, so +"::Datadog::Tracing::SpanOperation"+ and
+      # +"Datadog::Tracing::SpanOperation"+ are treated the same.
       def datadog_namespace_type_name?(cls_name)
         return false if cls_name.nil?
-        cls_name == "Datadog" || cls_name.start_with?("Datadog::")
+        normalized = cls_name.sub(/\A::/, "")
+        normalized == "Datadog" || normalized.start_with?("Datadog::")
       end
     end
   end

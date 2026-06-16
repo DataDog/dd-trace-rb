@@ -823,6 +823,11 @@ RSpec.describe Datadog::DI::Instrumenter do
       it_behaves_like 'rejects the probe', 'Datadog::Tracing::SpanOperation'
       it_behaves_like 'rejects the probe', 'Datadog::DI::Instrumenter'
 
+      # A leading "::" is Ruby's root-namespace prefix; the check normalizes it
+      # away so users cannot bypass the rejection by typing the root form.
+      it_behaves_like 'rejects the probe', '::Datadog'
+      it_behaves_like 'rejects the probe', '::Datadog::Tracing::SpanOperation'
+
       context 'when the Datadog-namespaced class does not exist' do
         let(:probe_args) do
           # If the rejection happened after class resolution, this would
@@ -844,6 +849,21 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         # Class does not exist, so we expect the normal not-defined error
         # rather than the forbidden-namespace error.
+        it 'does not reject as Datadog namespace' do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
+        end
+      end
+
+      context 'when type_name is root-prefixed but does not name the Datadog namespace' do
+        let(:probe_args) do
+          {type_name: '::DatadogLike', method_name: 'some_method'}
+        end
+
+        # The leading "::" is stripped before the comparison; the result is
+        # "DatadogLike", which is not in the Datadog namespace.
         it 'does not reject as Datadog namespace' do
           expect do
             hook_method(probe) do |payload|
