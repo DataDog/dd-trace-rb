@@ -58,7 +58,7 @@ class OpenFeatureFlagevaluationBenchmark
 
     @record_args = {
       flag_key: 'bench-flag', variant: 'variant-on', allocation_key: 'allocation-7',
-      reason: 'TARGETING_MATCH', targeting_key: 'user-12345', eval_time_ms: 1_760_000_000_000,
+      targeting_key: 'user-12345', eval_time_ms: 1_760_000_000_000,
       attrs: {'env' => 'prod', 'plan' => 'enterprise', 'region' => 'us1'},
     }
   end
