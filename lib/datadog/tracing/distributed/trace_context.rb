@@ -286,7 +286,7 @@ module Datadog
         end
 
         # @return [nil] when the tracestate is absent or has no vendor entries.
-        # @return [String] when no `dd=` entry is present — the joined vendor list.
+        # @return [String] when no `dd=` entry is present, the joined vendor list.
         # @return [Array(String, Integer, String, String, Hash, String)] when a `dd=`
         #   entry is present: [tracestate without `dd=`, sampling_priority, origin,
         #   ts_parent_id, tags, unknown_fields]. All elements past the first may be nil.

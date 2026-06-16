@@ -158,16 +158,11 @@ module Datadog
           # Handle baggage after all other styles if present
           extracted_trace_digest = propagate_baggage(data, extracted_trace_digest) if @baggage_propagator
 
-          # continue behavior: return the upstream digest unchanged so the new trace adopts the incoming trace_id/span_id.
-          # restart behavior when the digest does not have a trace_id: return the extracted trace digest unchanged.
+          # Default mode: Current digest continues the upstream trace.
           return extracted_trace_digest if @propagation_behavior_extract != Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_RESTART || extracted_trace_digest&.trace_id.nil?
 
-          # Restart a new trace, linking back to the extracted context.
-          # The trace id and root span are generated fresh by the trace operation
-          # (`trace_id`/`span_id` are intentionally left unset so the new root span has no parent).
-          #
-          # Only fires when a real trace context was extracted: a baggage-only digest has no
-          # `trace_id`, so it falls through to `continue` and baggage keeps propagating.
+          # Restart mode: start a new local digest and create a Span Link on
+          # the service-entry span with the original propagation data.
           link = SpanLink.new(
             extracted_trace_digest,
             attributes: {
