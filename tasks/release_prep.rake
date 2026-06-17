@@ -30,7 +30,6 @@ module ReleasePrep
   # Reject anything that is not MAJOR.MINOR.PATCH with an optional suffix.
   def validate_version!(version)
     fail!("Invalid version '#{version}' (expected e.g. 2.36.0)") unless version.match?(/\A\d+\.\d+\.\d+([._-].+)?\z/)
-    puts "Version '#{version}' is valid"
   end
 
   # The previous released version, read from the existing [Unreleased] compare
@@ -41,9 +40,7 @@ module ReleasePrep
     match = content.match(%r{\[Unreleased\]: #{Regexp.escape(REPO_URL)}/compare/v(.+?)\.\.\.master})
     fail!("Could not find the [Unreleased] compare link in #{CHANGELOG_FILE}") unless match
 
-    previous = match[1]
-    puts "Using previous version: #{previous}"
-    previous
+    match[1]
   end
 
   # Fetch the approved draft release for tag vX.Y.Z and return its changelog body.
@@ -63,7 +60,6 @@ module ReleasePrep
     fail!("No draft release found with tag #{tag}. Please create and approve a draft release first.") unless draft
 
     body = draft['body'].to_s
-    puts "Read draft release body for #{tag} (#{body.length} chars)"
 
     # Highlights (release-page only) precede the marker; the changelog follows
     # it. Fall back to the whole body when the marker is absent.
