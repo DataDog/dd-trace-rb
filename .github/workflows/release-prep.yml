@@ -15,10 +15,6 @@ on: # yamllint disable-line rule:truthy
         description: "Release version, without the v prefix (e.g. 2.36.0)"
         required: true
         type: string
-      previous_version:
-        description: "Previous released version for the CHANGELOG compare link (e.g. 2.35.0). Defaults to the latest v* tag."
-        required: false
-        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.inputs.version }}
@@ -37,7 +33,6 @@ jobs:
       id-token: write
     env:
       VERSION: ${{ inputs.version }}
-      PREVIOUS_VERSION: ${{ inputs.previous_version }}
       BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
       BUNDLE_FROZEN: "true"
     steps:
@@ -52,7 +47,6 @@ jobs:
         with:
           persist-credentials: true # required for `git` operations in later steps
           token: ${{ steps.generate-token.outputs.token }}
-          fetch-depth: 0 # need tags to derive previous_version
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@89f90524b88a01fe6e0b732220432cc6142926af # v1.313.0

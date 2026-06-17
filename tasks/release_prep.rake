@@ -9,9 +9,11 @@ require 'net/http'
 #
 # Inputs come from the standard GitHub Actions environment:
 #   VERSION           release version, no "v" prefix (e.g. "2.36.0")          [required]
-#   PREVIOUS_VERSION  previous released version (optional; defaults to latest v* tag)
 #   GITHUB_TOKEN      token used to read the draft release (dd-octo-sts output)
 #   GITHUB_REPOSITORY / GITHUB_SERVER_URL / GITHUB_API_URL  provided by Actions
+#
+# The previous version is read from the existing [Unreleased] compare link in
+# the changelog, so it does not need to be passed in.
 #
 # Ports FastCastle's FileEditor.insert_after / FileEditor.replace semantics.
 module ReleasePrep
@@ -27,15 +29,15 @@ module ReleasePrep
     puts "Version '#{version}' is valid"
   end
 
-  # The explicit input when given, otherwise the latest v* tag.
+  # The previous released version, read from the existing [Unreleased] compare
+  # link (".../compare/vX.Y.Z...master"): before this release, its base is the
+  # last release. Capture this before editing the changelog.
   def previous_version
-    previous = ENV['PREVIOUS_VERSION'].to_s.strip
-    if previous.empty?
-      tags = `git tag --list 'v*' --sort=-version:refname`.lines.map(&:strip).reject(&:empty?)
-      previous = tags.first.to_s.sub(/\Av/, '')
-    end
-    fail!('Could not determine previous version (no v* tags found); pass previous_version explicitly') if previous.empty?
+    content = File.read(changelog_file)
+    match = content.match(%r{\[Unreleased\]: #{Regexp.escape(repo_url)}/compare/v(.+?)\.\.\.master})
+    fail!("Could not find the [Unreleased] compare link in #{changelog_file}") unless match
 
+    previous = match[1]
     puts "Using previous version: #{previous}"
     previous
   end
