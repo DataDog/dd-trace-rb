@@ -60,7 +60,7 @@ module Datadog
       def check_and_disable_if_exceeded: (Probe probe, untyped responder, Float di_start_time, ?Float accumulated_duration) -> void
 
       def symbolize_class_name: (String? cls_name) -> Module
-      def datadog_namespace_type_name?: (::String? cls_name) -> bool
+      def datadog_namespace_type_name?: (::String cls_name) -> bool
       def raise_if_probe_in_loaded_features: (Probe probe, Integer line_no, CodeTracker? code_tracker) -> void
     end
   end

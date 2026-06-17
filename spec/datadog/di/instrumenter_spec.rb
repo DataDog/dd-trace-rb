@@ -823,8 +823,9 @@ RSpec.describe Datadog::DI::Instrumenter do
       it_behaves_like 'rejects the probe', 'Datadog::Tracing::SpanOperation'
       it_behaves_like 'rejects the probe', 'Datadog::DI::Instrumenter'
 
-      # A leading "::" is Ruby's root-namespace prefix; the check normalizes it
-      # away so users cannot bypass the rejection by typing the root form.
+      # A leading "::" is Ruby's root-namespace prefix; the rejection regex
+      # accepts both "Datadog" and "::Datadog" forms, so users cannot bypass
+      # the rejection by typing the root form.
       it_behaves_like 'rejects the probe', '::Datadog'
       it_behaves_like 'rejects the probe', '::Datadog::Tracing::SpanOperation'
 
@@ -862,8 +863,9 @@ RSpec.describe Datadog::DI::Instrumenter do
           {type_name: '::DatadogLike', method_name: 'some_method'}
         end
 
-        # The leading "::" is stripped before the comparison; the result is
-        # "DatadogLike", which is not in the Datadog namespace.
+        # "::DatadogLike" does not match the rejection regex (no "::" or
+        # end-of-string follows "Datadog"), so it falls through to normal
+        # class resolution.
         it 'does not reject as Datadog namespace' do
           expect do
             hook_method(probe) do |payload|

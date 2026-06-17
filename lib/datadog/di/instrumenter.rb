@@ -101,9 +101,10 @@ module Datadog
         # would let DI's own code paths re-enter the probe wrapper. Line
         # probes are unaffected (TracePoint is self-disabling during its
         # callback) and are not rejected here.
-        if datadog_namespace_type_name?(probe.type_name)
+        type_name = probe.type_name
+        if type_name && datadog_namespace_type_name?(type_name)
           raise Error::ProbeTargetForbidden,
-            "Method probes on the Datadog namespace are not permitted: #{probe.type_name}##{probe.method_name}"
+            "Method probes on the Datadog namespace are not permitted: #{type_name}##{probe.method_name}"
         end
 
         lock.synchronize do
@@ -696,7 +697,6 @@ module Datadog
       # does not require the class to be loaded. A leading +::+ is treated
       # the same as the bare form.
       def datadog_namespace_type_name?(cls_name)
-        return false if cls_name.nil?
         DATADOG_NAMESPACE_TYPE_NAME.match?(cls_name)
       end
     end
