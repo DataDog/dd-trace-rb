@@ -7,16 +7,19 @@ require 'net/http'
 # Release-prep logic for the `release_prep:prepare` task, invoked by
 # `.github/workflows/release-prep.yml`.
 #
-# Inputs come from the standard GitHub Actions environment:
-#   VERSION           release version, no "v" prefix (e.g. "2.36.0")          [required]
-#   GITHUB_TOKEN      token used to read the draft release (dd-octo-sts output)
-#   GITHUB_REPOSITORY / GITHUB_SERVER_URL / GITHUB_API_URL  provided by Actions
+# Inputs come from the environment:
+#   VERSION       release version, no "v" prefix (e.g. "2.36.0")          [required]
+#   GITHUB_TOKEN  token used to read the draft release (dd-octo-sts output)
 #
 # The previous version is read from the existing [Unreleased] compare link in
 # the changelog, so it does not need to be passed in.
 #
 # Ports FastCastle's FileEditor.insert_after / FileEditor.replace semantics.
 module ReleasePrep
+  REPO = 'DataDog/dd-trace-rb'
+  REPO_URL = "https://github.com/#{REPO}"
+  API_URL = 'https://api.github.com'
+
   # Separates release "highlights" (release-page only) from the changelog body in
   # the draft release. When the marker is absent we fall back to the whole body.
   CHANGELOG_MARKER = '<!-- changelog -->'
@@ -34,7 +37,7 @@ module ReleasePrep
   # last release. Capture this before editing the changelog.
   def previous_version
     content = File.read(changelog_file)
-    match = content.match(%r{\[Unreleased\]: #{Regexp.escape(repo_url)}/compare/v(.+?)\.\.\.master})
+    match = content.match(%r{\[Unreleased\]: #{Regexp.escape(REPO_URL)}/compare/v(.+?)\.\.\.master})
     fail!("Could not find the [Unreleased] compare link in #{changelog_file}") unless match
 
     previous = match[1]
@@ -65,10 +68,10 @@ module ReleasePrep
 
   # Rewrite the [Unreleased]/[X.Y.Z] compare links in the changelog footer.
   def rewrite_footer(previous)
-    pattern = %r{\[Unreleased\]: #{Regexp.escape(repo_url)}/compare/.*?\.\.\.master}
+    pattern = %r{\[Unreleased\]: #{Regexp.escape(REPO_URL)}/compare/.*?\.\.\.master}
     replacement =
-      "[Unreleased]: #{repo_url}/compare/v#{version}...master\n" \
-      "[#{version}]: #{repo_url}/compare/v#{previous}...v#{version}"
+      "[Unreleased]: #{REPO_URL}/compare/v#{version}...master\n" \
+      "[#{version}]: #{REPO_URL}/compare/v#{previous}...v#{version}"
 
     content = File.read(changelog_file)
     fail!("Could not find [Unreleased] compare link in #{changelog_file}") unless content.match?(pattern)
@@ -82,7 +85,7 @@ module ReleasePrep
   end
 
   def releases
-    uri = URI("#{api_url}/repos/#{repo_slug}/releases?per_page=100")
+    uri = URI("#{API_URL}/repos/#{REPO}/releases?per_page=100")
 
     request = Net::HTTP::Get.new(uri)
     request['Authorization'] = "Bearer #{require_env('GITHUB_TOKEN')}"
@@ -96,26 +99,12 @@ module ReleasePrep
     JSON.parse(response.body)
   end
 
-  # --- GitHub Actions environment -------------------------------------------
-
   def version
     require_env('VERSION')
   end
 
   def changelog_file
     ENV.fetch('CHANGELOG_FILE', 'CHANGELOG.md')
-  end
-
-  def repo_slug
-    ENV.fetch('GITHUB_REPOSITORY', 'DataDog/dd-trace-rb')
-  end
-
-  def repo_url
-    "#{ENV.fetch('GITHUB_SERVER_URL', 'https://github.com')}/#{repo_slug}"
-  end
-
-  def api_url
-    ENV.fetch('GITHUB_API_URL', 'https://api.github.com')
   end
 
   def require_env(name)
