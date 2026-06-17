@@ -19,6 +19,7 @@ module ReleasePrep
   REPO = 'DataDog/dd-trace-rb'
   REPO_URL = "https://github.com/#{REPO}"
   API_URL = 'https://api.github.com'
+  CHANGELOG_FILE = 'CHANGELOG.md'
 
   # Separates release "highlights" (release-page only) from the changelog body in
   # the draft release. When the marker is absent we fall back to the whole body.
@@ -36,9 +37,9 @@ module ReleasePrep
   # link (".../compare/vX.Y.Z...master"): before this release, its base is the
   # last release. Capture this before editing the changelog.
   def previous_version
-    content = File.read(changelog_file)
+    content = File.read(CHANGELOG_FILE)
     match = content.match(%r{\[Unreleased\]: #{Regexp.escape(REPO_URL)}/compare/v(.+?)\.\.\.master})
-    fail!("Could not find the [Unreleased] compare link in #{changelog_file}") unless match
+    fail!("Could not find the [Unreleased] compare link in #{CHANGELOG_FILE}") unless match
 
     previous = match[1]
     puts "Using previous version: #{previous}"
@@ -62,12 +63,12 @@ module ReleasePrep
 
   # Insert the new "## [X.Y.Z] - <date>" section right after the [Unreleased] marker.
   def insert_changelog(version, changelog)
-    content = File.read(changelog_file)
+    content = File.read(CHANGELOG_FILE)
     match = content.match(/\[Unreleased\]/)
-    fail!("Could not find [Unreleased] marker in #{changelog_file}") unless match
+    fail!("Could not find [Unreleased] marker in #{CHANGELOG_FILE}") unless match
 
     section = "\n## [#{version}] - #{Date.today}\n\n#{changelog}".rstrip
-    File.write(changelog_file, content.insert(match.end(0), "\n#{section}"))
+    File.write(CHANGELOG_FILE, content.insert(match.end(0), "\n#{section}"))
   end
 
   # Rewrite the [Unreleased]/[X.Y.Z] compare links in the changelog footer.
@@ -77,17 +78,17 @@ module ReleasePrep
       "[Unreleased]: #{REPO_URL}/compare/v#{version}...master\n" \
       "[#{version}]: #{REPO_URL}/compare/v#{previous}...v#{version}"
 
-    content = File.read(changelog_file)
-    fail!("Could not find [Unreleased] compare link in #{changelog_file}") unless content.match?(pattern)
+    content = File.read(CHANGELOG_FILE)
+    fail!("Could not find [Unreleased] compare link in #{CHANGELOG_FILE}") unless content.match?(pattern)
 
-    File.write(changelog_file, content.sub(pattern, replacement))
+    File.write(CHANGELOG_FILE, content.sub(pattern, replacement))
   end
 
   def releases
     uri = URI("#{API_URL}/repos/#{REPO}/releases?per_page=100")
 
     request = Net::HTTP::Get.new(uri)
-    request['Authorization'] = "Bearer #{require_env('GITHUB_TOKEN')}"
+    request['Authorization'] = "Bearer #{ENV['GITHUB_TOKEN']}"
     request['Accept'] = 'application/vnd.github+json'
     request['X-GitHub-Api-Version'] = '2022-11-28'
     request['User-Agent'] = 'dd-trace-rb-release-prep'
@@ -96,16 +97,6 @@ module ReleasePrep
     fail!("GitHub API request failed: #{response.code} #{response.body}") unless response.is_a?(Net::HTTPSuccess)
 
     JSON.parse(response.body)
-  end
-
-  def changelog_file
-    ENV.fetch('CHANGELOG_FILE', 'CHANGELOG.md')
-  end
-
-  def require_env(name)
-    value = ENV[name].to_s
-    fail!("Missing required environment variable #{name}") if value.empty?
-    value
   end
 
   # Emit a GitHub Actions error annotation and fail the step.
