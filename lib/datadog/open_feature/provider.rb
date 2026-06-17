@@ -123,11 +123,13 @@ module Datadog
           )
         end
 
-        # Drive APM span enrichment directly from the evaluation path. The
-        # supported OpenFeature Ruby SDK versions do not dispatch provider hooks
+        # Drive APM span enrichment directly from the evaluation path. Older
+        # OpenFeature Ruby SDKs (< 0.6) do not dispatch provider hooks at all
         # (`Client#fetch_details` never invokes hooks), so dispatching here is the
-        # only reliable way to attach `ffe_*` tags. Guarded so enrichment can
-        # never break flag evaluation.
+        # only reliable way to attach `ffe_*` tags on those versions. On SDKs that
+        # do dispatch hooks (>= 0.6) the `finally` hook also runs, but it is
+        # idempotent with this path (the accumulators dedupe), so tags are emitted
+        # exactly once. Guarded so enrichment can never break flag evaluation.
         enrich_span(flag_key, result, evaluation_context)
 
         ::OpenFeature::SDK::Provider::ResolutionDetails.new(

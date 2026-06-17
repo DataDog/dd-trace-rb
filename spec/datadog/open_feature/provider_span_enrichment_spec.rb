@@ -12,13 +12,16 @@ require 'set'
 # -> enrichment dispatch -> `ffe_*` tags on the local root APM span.
 #
 # This exercises the highest-risk behavior the unit specs cannot: that real Ruby
-# evaluations actually trigger enrichment. The supported OpenFeature Ruby SDKs
-# (>= 0.3.1) do NOT dispatch provider/client hooks at all, so enrichment is
-# driven directly from the provider's evaluation path (`Provider#enrich_span`),
-# not from the `finally` hook. Only the native evaluation (`EvaluationEngine`)
-# and the active-trace seam are stubbed — everything from the OpenFeature client
-# through the provider down to the root-span write is the production code path.
-# No native ext / libdatadog / Docker required.
+# evaluations actually trigger enrichment. Older OpenFeature Ruby SDKs (< 0.6) do
+# NOT dispatch provider/client hooks at all, so enrichment is driven directly
+# from the provider's evaluation path (`Provider#enrich_span`). Newer SDKs (>= 0.6)
+# DO dispatch the provider hooks (and set the provider asynchronously), so the
+# span-enrichment `finally` hook also runs; it is idempotent with the direct
+# dispatch (Set/Hash accumulators dedupe), so `ffe_*` is emitted exactly once on
+# every supported version. Only the native evaluation (`EvaluationEngine`) and the
+# active-trace seam are stubbed — everything from the OpenFeature client through
+# the provider down to the root-span write is the production code path. No native
+# ext / libdatadog / Docker required.
 require 'open_feature/sdk'
 require 'datadog/open_feature'
 require 'datadog/open_feature/provider'
@@ -38,6 +41,11 @@ RSpec.describe 'OpenFeature provider span enrichment (end-to-end)' do
     instance_double(
       Datadog::OpenFeature::Component,
       engine: engine,
+      # Newer OpenFeature SDKs (>= 0.6) dispatch provider hooks during
+      # `Client#fetch_details`, which calls `Provider#hooks` -> `flag_eval_hook`.
+      # Stub it (nil -> compacted out) so the verifying double accepts the call
+      # on every supported SDK version.
+      flag_eval_hook: nil,
       span_enrichment_hook: span_enrichment_hook
     )
   end
@@ -57,7 +65,7 @@ RSpec.describe 'OpenFeature provider span enrichment (end-to-end)' do
     allow(Datadog).to receive(:send).and_call_original
     allow(Datadog).to receive(:send).with(:components).and_return(components)
 
-    OpenFeature::SDK.set_provider(provider)
+    install_provider(provider)
   end
 
   after do
@@ -86,6 +94,17 @@ RSpec.describe 'OpenFeature provider span enrichment (end-to-end)' do
   def client(targeting_key: nil)
     context = OpenFeature::SDK::EvaluationContext.new(targeting_key: targeting_key) if targeting_key
     OpenFeature::SDK.build_client(evaluation_context: context)
+  end
+
+  # OpenFeature SDK >= 0.6 sets the provider asynchronously (spawns a background
+  # init thread); use the synchronous variant when available so the test does not
+  # leak that thread. Older SDKs (< 0.6) set the provider synchronously already.
+  def install_provider(provider)
+    if OpenFeature::SDK.respond_to?(:set_provider_and_wait)
+      OpenFeature::SDK.set_provider_and_wait(provider)
+    else
+      OpenFeature::SDK.set_provider(provider)
+    end
   end
 
   context 'when the gate is ON' do
@@ -192,7 +211,7 @@ RSpec.describe 'OpenFeature provider span enrichment (end-to-end)' do
         .and_return(resolution(value: 'on', variant: 'enabled', serial_id: 100))
 
       # Reconfigure with a fresh provider instance reusing the same component/hook.
-      OpenFeature::SDK.set_provider(Datadog::OpenFeature::Provider.new)
+      install_provider(Datadog::OpenFeature::Provider.new)
 
       trace_op.measure('root') do
         OpenFeature::SDK.build_client.fetch_string_value(flag_key: 'flag-a', default_value: 'off')
@@ -208,6 +227,7 @@ RSpec.describe 'OpenFeature provider span enrichment (end-to-end)' do
       instance_double(
         Datadog::OpenFeature::Component,
         engine: engine,
+        flag_eval_hook: nil,
         span_enrichment_hook: nil
       )
     end
