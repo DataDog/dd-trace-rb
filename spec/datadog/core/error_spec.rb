@@ -140,7 +140,7 @@ RSpec.describe Datadog::Core::Error do
             expect(error.backtrace.each_line.reject { |l| l.start_with?("\tfrom") }).to have(2).items
           end
 
-          it 'reports errors only once', if: RubyVersion.is?('>= 2.6.0') &&
+          it 'reports errors only once', if: RubyVersion.is?('>= 2.6') &&
             PlatformHelpers.mri? do
             expect(error.type).to eq('ArgumentError')
             expect(error.message).to eq('circular causes')
@@ -152,7 +152,7 @@ RSpec.describe Datadog::Core::Error do
             expect(error.backtrace.each_line.reject { |l| l.start_with?("\tfrom") }).to have(2).items
           end
 
-          it 'reports errors only once', if: RubyVersion.is?('>= 2.6.0') &&
+          it 'reports errors only once', if: RubyVersion.is?('>= 2.6') &&
             PlatformHelpers.jruby? &&
             Gem::Version.new(RUBY_ENGINE_VERSION) < '9.3.7.0' do # rubocop:disable Layout/LineLength
             expect(error.type).to eq('RuntimeError')
