@@ -53,7 +53,11 @@ module ReleasePrep
 
     body = draft['body'].to_s
     puts "Read draft release body for #{tag} (#{body.length} chars)"
-    extract_changelog(body)
+
+    # Highlights (release-page only) precede the marker; the changelog follows
+    # it. Fall back to the whole body when the marker is absent.
+    changelog = body.include?(CHANGELOG_MARKER) ? body.split(CHANGELOG_MARKER, 2).last : body
+    changelog.strip
   end
 
   # Insert the new "## [X.Y.Z] - <date>" section right after the [Unreleased] marker.
@@ -77,11 +81,6 @@ module ReleasePrep
     fail!("Could not find [Unreleased] compare link in #{changelog_file}") unless content.match?(pattern)
 
     File.write(changelog_file, content.sub(pattern, replacement))
-  end
-
-  def extract_changelog(body)
-    section = body.include?(CHANGELOG_MARKER) ? body.split(CHANGELOG_MARKER, 2).last : body
-    section.strip
   end
 
   def releases
