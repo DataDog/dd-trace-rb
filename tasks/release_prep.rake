@@ -7,12 +7,12 @@ require 'net/http'
 # Release-prep logic for the `release_prep:prepare` task, invoked by
 # `.github/workflows/release-prep.yml`.
 #
-# Inputs come from the environment:
-#   VERSION       release version, no "v" prefix (e.g. "2.36.0")          [required]
-#   GITHUB_TOKEN  token used to read the draft release (dd-octo-sts output)
+# The version is passed as a task argument, e.g.
+#   rake "release_prep:prepare[2.36.0]"
 #
-# The previous version is read from the existing [Unreleased] compare link in
-# the changelog, so it does not need to be passed in.
+# GITHUB_TOKEN (the dd-octo-sts output) is read from the environment to read the
+# draft release. The previous version is read from the existing [Unreleased]
+# compare link in the changelog, so it does not need to be passed in.
 #
 # Ports FastCastle's FileEditor.insert_after / FileEditor.replace semantics.
 module ReleasePrep
@@ -27,7 +27,7 @@ module ReleasePrep
   module_function
 
   # Reject anything that is not MAJOR.MINOR.PATCH with an optional suffix.
-  def validate_version!
+  def validate_version!(version)
     fail!("Invalid version '#{version}' (expected e.g. 2.36.0)") unless version.match?(/\A\d+\.\d+\.\d+([._-].+)?\z/)
     puts "Version '#{version}' is valid"
   end
@@ -46,7 +46,7 @@ module ReleasePrep
   end
 
   # Fetch the approved draft release for tag vX.Y.Z and return its changelog body.
-  def draft_changelog
+  def draft_changelog(version)
     tag = "v#{version}"
     draft = releases.find { |release| release['tag_name'] == tag && release['draft'] == true }
     fail!("No draft release found with tag #{tag}. Please create and approve a draft release first.") unless draft
@@ -57,7 +57,7 @@ module ReleasePrep
   end
 
   # Insert the new "## [X.Y.Z] - <date>" section right after the [Unreleased] marker.
-  def insert_changelog(changelog)
+  def insert_changelog(version, changelog)
     content = File.read(changelog_file)
     match = content.match(/\[Unreleased\]/)
     fail!("Could not find [Unreleased] marker in #{changelog_file}") unless match
@@ -67,7 +67,7 @@ module ReleasePrep
   end
 
   # Rewrite the [Unreleased]/[X.Y.Z] compare links in the changelog footer.
-  def rewrite_footer(previous)
+  def rewrite_footer(version, previous)
     pattern = %r{\[Unreleased\]: #{Regexp.escape(REPO_URL)}/compare/.*?\.\.\.master}
     replacement =
       "[Unreleased]: #{REPO_URL}/compare/v#{version}...master\n" \
@@ -99,10 +99,6 @@ module ReleasePrep
     JSON.parse(response.body)
   end
 
-  def version
-    require_env('VERSION')
-  end
-
   def changelog_file
     ENV.fetch('CHANGELOG_FILE', 'CHANGELOG.md')
   end
@@ -120,17 +116,19 @@ module ReleasePrep
 end
 
 namespace :release_prep do
-  desc 'Prepare a release: write the changelog and bump the gem version'
-  task :prepare do
-    ReleasePrep.validate_version!
-    previous = ReleasePrep.previous_version
-    changelog = ReleasePrep.draft_changelog
+  desc 'Prepare a release: write the changelog and bump the gem version (e.g. release_prep:prepare[2.36.0])'
+  task :prepare, [:version] do |_t, args|
+    version = args[:version] || raise(ArgumentError, 'Please provide a version, e.g. rake "release_prep:prepare[2.36.0]"')
 
-    ReleasePrep.insert_changelog(changelog)
+    ReleasePrep.validate_version!(version)
+    previous = ReleasePrep.previous_version
+    changelog = ReleasePrep.draft_changelog(version)
+
+    ReleasePrep.insert_changelog(version, changelog)
     Rake::Task['changelog:format'].invoke
-    ReleasePrep.rewrite_footer(previous)
+    ReleasePrep.rewrite_footer(version, previous)
 
     # `version:bump` also asserts the resulting gemspec matches the version.
-    Rake::Task['version:bump'].invoke(ReleasePrep.version)
+    Rake::Task['version:bump'].invoke(version)
   end
 end

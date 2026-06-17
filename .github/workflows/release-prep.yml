@@ -32,7 +32,6 @@ jobs:
       pull-requests: write
       id-token: write
     env:
-      VERSION: ${{ inputs.version }}
       BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
       BUNDLE_FROZEN: "true"
     steps:
@@ -60,7 +59,8 @@ jobs:
       - name: Prepare the release
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
-        run: bundle exec rake release_prep:prepare
+          VERSION: ${{ inputs.version }}
+        run: bundle exec rake "release_prep:prepare[${VERSION}]"
 
       - name: Update supported integration versions
         run: bundle exec ruby .github/scripts/update_supported_versions.rb
