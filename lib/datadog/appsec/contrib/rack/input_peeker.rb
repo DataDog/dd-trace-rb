@@ -46,8 +46,6 @@ module Datadog
               #       a partially consumed body. Treat it as not safely collectable
               return unless rewind(rack_input)
             else
-              # NOTE: Rack 3 input may be forward-only, so replace `rack.input` with a
-              #       replay stream over the bytes already peeked
               env['rack.input'] = if over_limit
                 BufferedInput.new(rack_input, buffer: StringIO.new(buffer))
               else

@@ -4,11 +4,11 @@ module Datadog
       module Rack
         module Gateway
           class Request < Instrumentation::Gateway::Argument
-            @env: Hash[String, any]
+            @env: ::Rack::env
 
-            attr_reader env: Hash[String, any]
+            attr_reader env: ::Rack::env
 
-            def initialize: (Hash[String, any] env) -> void
+            def initialize: (::Rack::env env) -> void
 
             def request: () -> ::Rack::Request
 
