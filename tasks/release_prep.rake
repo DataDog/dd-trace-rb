@@ -129,7 +129,7 @@ module ReleasePrep
 end
 
 namespace :release_prep do
-  desc 'Prepare a release: write the changelog, integration versions, and version bump'
+  desc 'Prepare a release: write the changelog and bump the gem version'
   task :prepare do
     ReleasePrep.validate_version!
     previous = ReleasePrep.previous_version
@@ -138,8 +138,6 @@ namespace :release_prep do
     ReleasePrep.insert_changelog(changelog)
     Rake::Task['changelog:format'].invoke
     ReleasePrep.rewrite_footer(previous)
-
-    sh 'bundle exec ruby .github/scripts/update_supported_versions.rb'
 
     # `version:bump` also asserts the resulting gemspec matches the version.
     Rake::Task['version:bump'].invoke(ReleasePrep.version)

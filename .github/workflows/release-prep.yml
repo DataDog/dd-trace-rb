@@ -61,12 +61,15 @@ jobs:
 
       - run: bundle install
 
-      # Reads the approved draft release, writes the changelog + footer, updates
-      # integration versions, and bumps the gem version. See tasks/release_prep.rake.
+      # Reads the approved draft release, writes the changelog + footer, and
+      # bumps the gem version. See tasks/release_prep.rake.
       - name: Prepare the release
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
         run: bundle exec rake release_prep:prepare
+
+      - name: Update supported integration versions
+        run: bundle exec ruby .github/scripts/update_supported_versions.rb
 
       - name: Create release Pull Request
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
