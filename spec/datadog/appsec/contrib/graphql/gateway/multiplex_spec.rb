@@ -294,19 +294,19 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
           GraphQL::Query.new(
             schema,
             <<~END_OF_QUERY
-              fragment UserSearch on Query {
+              fragment UserSearch on Query @custom(value: "$definitionattack") {
                 namedUser: userByName(name: "$namedattack") {
                   id
                 }
               }
 
               query MyTestQuery {
-                ... on Query {
-                  userByName(name: "$testattack") {
+                ... on Query @custom(value: "$testattack") {
+                  userByName(name: "$inlinefieldattack") {
                     id
                   }
                 }
-                ...UserSearch
+                ...UserSearch @custom(value: "$spreadattack")
               }
             END_OF_QUERY
           )
@@ -316,7 +316,12 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
       it 'returns arguments from inline and named fragments' do
         expect(dd_multiplex.arguments).to(
           eq(
-            'userByName' => [{'name' => '$testattack'}],
+            'Query' => [{'custom' => {'value' => '$testattack'}}],
+            'userByName' => [{'name' => '$inlinefieldattack'}],
+            'UserSearch' => [
+              {'custom' => {'value' => '$spreadattack'}},
+              {'custom' => {'value' => '$definitionattack'}}
+            ],
             'namedUser' => [{'name' => '$namedattack'}]
           )
         )

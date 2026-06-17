@@ -75,14 +75,21 @@ module GraphQL
       end
 
       class InlineFragment < AbstractNode
+        def directives: () -> Array[Directive]
         def selections: () -> Array[AbstractNode]
+        def type: () -> TypeName
       end
 
       class FragmentSpread < AbstractNode
+        def directives: () -> Array[Directive]
       end
 
       class FragmentDefinition < AbstractNode
+        def directives: () -> Array[Directive]
         def selections: () -> Array[AbstractNode]
+      end
+
+      class TypeName < AbstractNode
       end
 
       class Directive < AbstractNode
