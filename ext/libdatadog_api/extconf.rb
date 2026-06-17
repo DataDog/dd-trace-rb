@@ -92,6 +92,10 @@ EXTENSION_NAME = "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}".fr
 
 have_func('rb_iseq_type')
 
+# Keyword-argument call API (rb_funcallv_kw / RB_PASS_KEYWORDS) is Ruby 2.7+.
+# Defines HAVE_RB_FUNCALLV_KW so trace_exporter.c can fall back on older Rubies.
+have_func('rb_funcallv_kw')
+
 create_makefile(EXTENSION_NAME)
 
 # rubocop:enable Style/GlobalVars
