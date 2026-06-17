@@ -4,17 +4,6 @@ require 'date'
 require 'json'
 require 'net/http'
 
-# Release-prep logic for the `release_prep:prepare` task, invoked by
-# `.github/workflows/release-prep.yml`.
-#
-# The version is passed as a task argument, e.g.
-#   rake "release_prep:prepare[2.36.0]"
-#
-# GITHUB_TOKEN (the dd-octo-sts output) is read from the environment to read the
-# draft release. The previous version is read from the existing [Unreleased]
-# compare link in the changelog, so it does not need to be passed in.
-#
-# Ports FastCastle's FileEditor.insert_after / FileEditor.replace semantics.
 module ReleasePrep
   REPO = 'DataDog/dd-trace-rb'
   REPO_URL = "https://github.com/#{REPO}"
@@ -32,9 +21,6 @@ module ReleasePrep
     fail!("Invalid version '#{version}' (expected e.g. 2.36.0)") unless version.match?(/\A\d+\.\d+\.\d+([._-].+)?\z/)
   end
 
-  # The previous released version, read from the existing [Unreleased] compare
-  # link (".../compare/vX.Y.Z...master"): before this release, its base is the
-  # last release. Capture this before editing the changelog.
   def previous_version
     content = File.read(CHANGELOG_FILE)
     match = content.match(%r{\[Unreleased\]: #{Regexp.escape(REPO_URL)}/compare/v(.+?)\.\.\.master})
@@ -43,7 +29,6 @@ module ReleasePrep
     match[1]
   end
 
-  # Fetch the approved draft release for tag vX.Y.Z and return its changelog body.
   def draft_changelog(version)
     uri = URI("#{API_URL}/repos/#{REPO}/releases?per_page=100")
     request = Net::HTTP::Get.new(uri)
@@ -67,7 +52,6 @@ module ReleasePrep
     changelog.strip
   end
 
-  # Insert the new "## [X.Y.Z] - <date>" section right after the [Unreleased] marker.
   def insert_changelog(version, changelog)
     content = File.read(CHANGELOG_FILE)
     match = content.match(/\[Unreleased\]/)
@@ -77,7 +61,6 @@ module ReleasePrep
     File.write(CHANGELOG_FILE, content.insert(match.end(0), "\n#{section}"))
   end
 
-  # Rewrite the [Unreleased]/[X.Y.Z] compare links in the changelog footer.
   def rewrite_footer(version, previous)
     pattern = %r{\[Unreleased\]: #{Regexp.escape(REPO_URL)}/compare/.*?\.\.\.master}
     replacement =
@@ -90,11 +73,16 @@ module ReleasePrep
     File.write(CHANGELOG_FILE, content.sub(pattern, replacement))
   end
 
-  # Emit a GitHub Actions error annotation and fail the step.
   def fail!(message)
     abort "::error::#{message}"
   end
 end
+
+# Release-prep logic for the `release_prep:prepare` task, invoked by
+# `.github/workflows/release-prep.yml`.
+#
+# The version is passed as a task argument, e.g.
+#   rake "release_prep:prepare[2.36.0]"
 
 namespace :release_prep do
   desc 'Prepare a release: write the changelog and bump the gem version (e.g. release_prep:prepare[2.36.0])'
