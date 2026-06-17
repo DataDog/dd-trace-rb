@@ -61,32 +61,12 @@ jobs:
 
       - run: bundle install
 
-      - name: Validate version input
-        run: bundle exec rake release_prep:validate_version
-
-      - name: Resolve previous version
-        run: bundle exec rake release_prep:resolve_previous_version
-
-      - name: Read approved draft release body
+      # Reads the approved draft release, writes the changelog + footer, updates
+      # integration versions, and bumps the gem version. See tasks/release_prep.rake.
+      - name: Prepare the release
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
-        run: bundle exec rake release_prep:read_draft_release
-
-      - name: Insert changelog section
-        run: bundle exec rake release_prep:insert_changelog
-
-      - name: Format the changelog
-        run: bundle exec rake changelog:format
-
-      - name: Rewrite changelog footer
-        run: bundle exec rake release_prep:rewrite_footer
-
-      - name: Update supported integration versions
-        run: bundle exec ruby .github/scripts/update_supported_versions.rb
-
-      # `version:bump` already asserts the resulting gemspec matches the version.
-      - name: Bump gem version
-        run: bundle exec rake "version:bump[${VERSION}]"
+        run: bundle exec rake release_prep:prepare
 
       - name: Create release Pull Request
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
