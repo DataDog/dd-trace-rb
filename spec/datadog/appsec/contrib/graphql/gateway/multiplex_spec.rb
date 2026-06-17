@@ -288,6 +288,41 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
       end
     end
 
+    context 'query with arguments inside fragments' do
+      let(:queries) do
+        [
+          GraphQL::Query.new(
+            schema,
+            <<~END_OF_QUERY
+              fragment UserSearch on Query {
+                namedUser: userByName(name: "$namedattack") {
+                  id
+                }
+              }
+
+              query MyTestQuery {
+                ... on Query {
+                  userByName(name: "$testattack") {
+                    id
+                  }
+                }
+                ...UserSearch
+              }
+            END_OF_QUERY
+          )
+        ]
+      end
+
+      it 'returns arguments from inline and named fragments' do
+        expect(dd_multiplex.arguments).to(
+          eq(
+            'userByName' => [{'name' => '$testattack'}],
+            'namedUser' => [{'name' => '$namedattack'}]
+          )
+        )
+      end
+    end
+
     context 'mutation' do
       let(:queries) do
         [

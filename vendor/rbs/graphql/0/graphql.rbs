@@ -4,6 +4,7 @@ module GraphQL
     def selected_operation_name: () -> String?
     def query_string: () -> String
     def variables: () -> untyped
+    def fragments: () -> Hash[String, Language::Nodes::FragmentDefinition]
     def context: () -> untyped
 
     class Result
@@ -62,7 +63,7 @@ module GraphQL
       class OperationDefinition < AbstractNode
         def name: () -> String?
         def operation_type: () -> Symbol?
-        def selections: () -> Array[Field]
+        def selections: () -> Array[AbstractNode]
         def directives: () -> Array[Directive]
       end
 
@@ -70,7 +71,18 @@ module GraphQL
         def alias: () -> String?
         def arguments: () -> Array[Argument]
         def directives: () -> Array[Directive]
-        def selections: () -> Array[Field]
+        def selections: () -> Array[AbstractNode]
+      end
+
+      class InlineFragment < AbstractNode
+        def selections: () -> Array[AbstractNode]
+      end
+
+      class FragmentSpread < AbstractNode
+      end
+
+      class FragmentDefinition < AbstractNode
+        def selections: () -> Array[AbstractNode]
       end
 
       class Directive < AbstractNode

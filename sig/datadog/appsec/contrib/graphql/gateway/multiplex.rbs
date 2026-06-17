@@ -20,7 +20,15 @@ module Datadog
 
             def build_arguments_hash: () -> ::Hash[::String, ::Array[::Hash[::String, any]]]
 
-            def arguments_from_selections: (::Array[::GraphQL::Language::Nodes::Field] selections, any query_variables, ::Hash[::String, ::Array[::Hash[::String, any]]] args_hash) -> void
+            def arguments_from_selections: (
+              ::Array[::GraphQL::Language::Nodes::AbstractNode] selections,
+              any query_variables,
+              ::Hash[::String, ::Array[::Hash[::String, any]]] args_hash,
+              ::Hash[::String, ::GraphQL::Language::Nodes::FragmentDefinition] fragments,
+              ?::Hash[::String, bool] visited_fragments
+            ) -> void
+
+            def node_selections: (::GraphQL::Language::Nodes::AbstractNode node) -> ::Array[::GraphQL::Language::Nodes::AbstractNode]
 
             def arguments_from_directives: (::Array[::GraphQL::Language::Nodes::Directive] directives, any query_variables) -> ::Hash[::String, ::Hash[::String, any]]
 

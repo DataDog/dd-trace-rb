@@ -50,28 +50,53 @@ module Datadog
                 selected_operation = query.selected_operation
                 next unless selected_operation
 
-                arguments_from_selections(selected_operation.selections, query.variables, args_hash)
+                arguments_from_selections(selected_operation.selections, query.variables, args_hash, query.fragments)
               end
             end
 
-            def arguments_from_selections(selections, query_variables, args_hash)
+            def arguments_from_selections(selections, query_variables, args_hash, fragments, visited_fragments = {})
               selections.each do |selection|
-                # rubocop:disable Style/ClassEqualityComparison
-                next unless selection.class.name == Integration::AST_NODE_CLASS_NAMES[:field]
-                # rubocop:enable Style/ClassEqualityComparison
+                case selection
+                when ::GraphQL::Language::Nodes::FragmentSpread
+                  fragment_name = selection.name
+                  next if visited_fragments[fragment_name]
 
-                selection_name = selection.alias || selection.name
+                  fragment = fragments[fragment_name]
+                  next unless fragment
 
-                if !selection.arguments.empty? || !selection.directives.empty?
-                  args_hash[selection_name] ||= []
-                  args_hash[selection_name] <<
-                    arguments_hash(selection.arguments, query_variables).merge!(
-                      arguments_from_directives(selection.directives, query_variables)
-                    )
+                  visited_fragments[fragment_name] = true
+                  arguments_from_selections(
+                    fragment.selections, query_variables, args_hash, fragments, visited_fragments
+                  )
+                  visited_fragments.delete(fragment_name)
+                  next
+                when ::GraphQL::Language::Nodes::Field
+                  selection_name = selection.alias || selection.name
+
+                  if selection.arguments.any? || selection.directives.any?
+                    args_hash[selection_name] ||= []
+                    args_hash[selection_name] <<
+                      arguments_hash(selection.arguments, query_variables).merge!(
+                        arguments_from_directives(selection.directives, query_variables)
+                      )
+                  end
+
+                  arguments_from_selections(
+                    node_selections(selection), query_variables, args_hash, fragments, visited_fragments
+                  )
+                else
+                  arguments_from_selections(
+                    node_selections(selection), query_variables, args_hash, fragments, visited_fragments
+                  )
                 end
-
-                arguments_from_selections(selection.selections, query_variables, args_hash)
               end
+            end
+
+            def node_selections(node)
+              return [] unless node.respond_to?(:selections)
+
+              # @type var node: untyped
+              node.selections
             end
 
             def arguments_from_directives(directives, query_variables)
