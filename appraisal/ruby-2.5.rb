@@ -226,7 +226,7 @@ build_coverage_matrix('elasticsearch', [7])
 build_coverage_matrix('faraday', min: '0.14.0')
 build_coverage_matrix('excon')
 build_coverage_matrix('rest-client')
-build_coverage_matrix('mongo', min: '2.1.0')
+build_coverage_matrix('mongo', min: '2.11.0')
 build_coverage_matrix('dalli')
 build_coverage_matrix('devise', min: '3.2.1', meta: { min: { 'bigdecimal' => '1.3.4' } })
 
