@@ -52,31 +52,43 @@ module Datadog
           def to_span_tags: () -> ::Hash[::String, ::String]
         end
 
-        # Keyed by the active trace operation via object identity. Typed as
+        # Keyed WEAKLY by the active trace operation via object identity. Typed as
         # `untyped` because `Datadog::Tracing.active_trace` is declared to return
         # a `TraceSegment` while at runtime the open trace is a `TraceOperation`;
         # the store only uses the value as an identity key.
         class AccumulatorStore
-          @states: ::Hash[untyped, Accumulator]
+          # `ObjectSpace::WeakMap` has no generic RBS declaration in rbs core, so
+          # the backing store is typed `untyped`; the public methods below carry
+          # the precise contract.
+          @states: untyped
 
           def initialize: () -> void
 
           def fetch: (untyped trace_op) -> Accumulator?
 
-          def fetch_or_create: (untyped trace_op) -> Accumulator
+          def fetch_or_create: (untyped trace_op) -> [ Accumulator, bool ]
 
-          def delete: (untyped trace_op) -> Accumulator?
+          def delete: (untyped trace_op) -> void
 
           def clear: () -> void
         end
 
         @store: AccumulatorStore
 
-        @subscribed: ::Hash[untyped, bool]
+        @mutex: Thread::Mutex
 
         def self.available?: () -> bool
 
         def initialize: (AccumulatorStore accumulator_store) -> void
+
+        def capture: (
+          flag_key: ::String,
+          variant: ::String?,
+          value: untyped,
+          serial_id: ::Integer?,
+          do_log: bool,
+          targeting_key: ::String?
+        ) -> void
 
         def finally: (
           hook_context: ::OpenFeature::SDK::Hooks::HookContext,
@@ -90,9 +102,9 @@ module Datadog
 
         def state_for: (untyped trace_op) -> Accumulator
 
-        def subscribe_root_finish: (untyped trace_op) -> void
+        def subscribe_root_finish: (untyped trace_op, Accumulator accumulator) -> void
 
-        def write_tags_on_root: (untyped span_op, untyped trace_op) -> void
+        def write_tags_on_root: (untyped span_op, untyped trace_op, Accumulator accumulator) -> void
       end
     end
   end

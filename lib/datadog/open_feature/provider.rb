@@ -123,6 +123,13 @@ module Datadog
           )
         end
 
+        # Drive APM span enrichment directly from the evaluation path. The
+        # supported OpenFeature Ruby SDK versions do not dispatch provider hooks
+        # (`Client#fetch_details` never invokes hooks), so dispatching here is the
+        # only reliable way to attach `ffe_*` tags. Guarded so enrichment can
+        # never break flag evaluation.
+        enrich_span(flag_key, result, evaluation_context)
+
         ::OpenFeature::SDK::Provider::ResolutionDetails.new(
           value: result.value,
           variant: result.variant,
@@ -162,6 +169,31 @@ module Datadog
         end
 
         metadata
+      end
+
+      # Dispatch span enrichment from the evaluation path in a never-throw
+      # wrapper. Reads the split serial id / do-log flag directly off the Datadog
+      # `ResolutionDetails` struct (same source as `build_flag_metadata`) and the
+      # targeting key off the built evaluation context. A nil hook (gate off or
+      # component absent) is a no-op.
+      def enrich_span(flag_key, result, evaluation_context)
+        hook = span_enrichment_hook
+        return unless hook
+
+        hook.capture(
+          flag_key: flag_key,
+          variant: result.variant,
+          value: result.value,
+          serial_id: result.serial_id,
+          do_log: result.log? || false,
+          targeting_key: evaluation_context&.targeting_key,
+        )
+      rescue => e
+        Datadog.logger.debug { "OpenFeature: span enrichment dispatch failed: #{e.class}: #{e.message}" }
+      end
+
+      def span_enrichment_hook
+        Datadog.send(:components).open_feature&.span_enrichment_hook
       end
 
       def component_not_configured_default(value)

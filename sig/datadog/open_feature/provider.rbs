@@ -65,6 +65,14 @@ module Datadog
       def build_flag_metadata: (
         (ResolutionDetails | Core::FeatureFlags::ResolutionDetails) result
       ) -> ::Hash[::String, ::String]
+
+      def enrich_span: (
+        ::String flag_key,
+        (ResolutionDetails | Core::FeatureFlags::ResolutionDetails) result,
+        ::OpenFeature::SDK::EvaluationContext? evaluation_context
+      ) -> void
+
+      def span_enrichment_hook: () -> Hooks::SpanEnrichmentHook?
     end
   end
 end
