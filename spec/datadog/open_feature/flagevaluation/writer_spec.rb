@@ -48,9 +48,6 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
     end
   end
 
-  # #stop must drain + final-flush even when the worker is mid-wait (sleeping). The worker
-  # waits on a ConditionVariable up to FLUSH_INTERVAL_SECONDS (10s); #stop must wake it and the
-  # transport must actually RECEIVE the drained events — proven without sleeping in the test.
   describe '#stop drains and flushes a sleeping worker' do
     let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
     let(:logger) { instance_double(Logger, debug: nil) }
@@ -78,6 +75,48 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(payload['flagEvaluations'].first['flag']['key']).to eq('shutdown-flag')
       # Shutdown returned well under the 10s flush interval (proves the wait was interrupted).
       expect(elapsed).to be < 9
+    end
+  end
+
+  describe '#background drain' do
+    let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
+    let(:logger) { instance_double(Logger, debug: nil) }
+
+    it 'accumulates more events than the bounded queue can hold before flushing' do
+      stub_const("#{described_class}::QUEUE_SIZE", 8)
+      stub_const("#{described_class}::DRAIN_INTERVAL_SECONDS", 0.01)
+      stub_const("#{described_class}::FLUSH_INTERVAL_SECONDS", 3600)
+
+      received = Queue.new
+      allow(transport).to receive(:send_flag_evaluations) do |payload|
+        received << payload if payload['flagEvaluations']&.any?
+      end
+
+      writer = described_class.new(transport: transport, logger: logger)
+      writer.instance_variable_set(
+        :@aggregator,
+        Datadog::OpenFeature::FlagEvaluation::Aggregator.new(global_cap: 100, per_flag_cap: 12, degraded_cap: 10)
+      )
+      queue = writer.instance_variable_get(:@queue)
+
+      14.times do |i|
+        try_wait_until(attempts: 100, backoff: 0.001) { queue.length < described_class::QUEUE_SIZE }
+        writer.enqueue(
+          flag_key: 'natural-degrade', variant: 'on', allocation_key: 'alloc',
+          targeting_key: "user-#{i}", eval_time_ms: realistic_eval_ms + i, attrs: {'bucket' => i},
+        )
+      end
+
+      writer.stop
+
+      payload = try_wait_until(seconds: 1) { received.pop(true) unless received.empty? }
+      rows = payload['flagEvaluations']
+      degraded = rows.find { |row| row['flag']['key'] == 'natural-degrade' && !row.key?('targeting_key') }
+
+      expect(writer.dropped_queue_overflow).to eq(0)
+      expect(rows.sum { |row| row['evaluation_count'] }).to eq(14)
+      expect(degraded).not_to be_nil
+      expect(degraded['evaluation_count']).to eq(2)
     end
   end
 

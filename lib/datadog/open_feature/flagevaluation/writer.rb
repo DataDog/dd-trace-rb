@@ -19,6 +19,7 @@ module Datadog
       # sleep, so #stop can wake the worker immediately and still drain + final-flush.
       class Writer
         FLUSH_INTERVAL_SECONDS = 10
+        DRAIN_INTERVAL_SECONDS = 0.1
         QUEUE_SIZE = 4_096
 
         # Service context fields for the batch wrapper.
@@ -83,13 +84,22 @@ module Datadog
 
         def start_background_thread
           Thread.new do
-            until stopped?
+            last_flush = Core::Utils::Time.get_time
+
+            loop do
               wait_for_next_cycle
               begin
-                drain_and_flush
+                drain_queue
+                now = Core::Utils::Time.get_time
+                if stopped? || now - last_flush >= FLUSH_INTERVAL_SECONDS
+                  flush_once
+                  last_flush = now
+                end
               rescue => e
                 @logger.debug { "OpenFeature EVP: writer error: #{e.class}: #{e.message}" }
               end
+
+              break if stopped?
             end
 
             # Final drain + flush on shutdown so queued events are not lost.
@@ -105,17 +115,20 @@ module Datadog
           @stop_mutex.synchronize { @stopped }
         end
 
-        # Interruptible wait: sleeps up to FLUSH_INTERVAL_SECONDS but returns immediately when
-        # #stop broadcasts. Replaces a bare sleep so shutdown does not block for a full interval.
         def wait_for_next_cycle
           @stop_mutex.synchronize do
             return if @stopped
 
-            @stop_cond.wait(@stop_mutex, FLUSH_INTERVAL_SECONDS)
+            @stop_cond.wait(@stop_mutex, DRAIN_INTERVAL_SECONDS)
           end
         end
 
         def drain_and_flush
+          drain_queue
+          flush_once
+        end
+
+        def drain_queue
           # Drain async queue into aggregator (background thread only)
           until @queue.empty?
             begin
@@ -127,8 +140,6 @@ module Datadog
               break
             end
           end
-
-          flush_once
         end
 
         def flush_once
