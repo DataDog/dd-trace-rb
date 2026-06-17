@@ -62,61 +62,27 @@ jobs:
       - run: bundle install
 
       - name: Validate version input
-        run: |
-          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([._-].+)?$'; then
-            echo "::error::Invalid version '$VERSION' (expected e.g. 2.36.0)"
-            exit 1
-          fi
+        run: ruby .github/scripts/release/release_prep.rb validate-version
 
       - name: Resolve previous version
-        run: |
-          prev="$PREVIOUS_VERSION"
-          if [ -z "$prev" ]; then
-            prev="$(git tag --list 'v*' --sort=-version:refname | head -n1 | sed 's/^v//')"
-          fi
-          if [ -z "$prev" ]; then
-            echo "::error::Could not determine previous version (no v* tags found); pass previous_version explicitly"
-            exit 1
-          fi
-          echo "Using previous version: $prev"
-          echo "PREVIOUS_VERSION=$prev" >> "$GITHUB_ENV"
+        run: ruby .github/scripts/release/release_prep.rb resolve-previous-version
 
       - name: Read approved draft release body
         env:
-          GEM_VERSION: ${{ inputs.version }}
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        with:
-          script: |
-            const fs = require('fs');
-            const { data: releases } = await github.rest.repos.listReleases({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            });
-
-            const versionTag = `v${process.env.GEM_VERSION}`;
-            const draftRelease = releases.find(
-              release => release.tag_name === versionTag && release.draft === true
-            );
-
-            if (!draftRelease) {
-              core.setFailed(`No draft release found with tag ${versionTag}. Please create and approve a draft release first.`);
-              return;
-            }
-
-            const body = draftRelease.body || '';
-            fs.writeFileSync(`${process.env.RUNNER_TEMP}/release_body.md`, body);
-            console.log(`Wrote draft release body for ${versionTag} (${body.length} chars)`);
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+          BODY_FILE: ${{ runner.temp }}/release_body.md
+        run: ruby .github/scripts/release/release_prep.rb read-draft-release
 
       - name: Insert changelog section
         env:
           BODY_FILE: ${{ runner.temp }}/release_body.md
-        run: bundle exec ruby .github/scripts/release/update_changelog.rb insert
+        run: ruby .github/scripts/release/release_prep.rb insert-changelog
 
       - name: Format the changelog
         run: bundle exec rake changelog:format
 
       - name: Rewrite changelog footer
-        run: bundle exec ruby .github/scripts/release/update_changelog.rb footer
+        run: ruby .github/scripts/release/release_prep.rb rewrite-footer
 
       - name: Update supported integration versions
         run: bundle exec ruby .github/scripts/update_supported_versions.rb
@@ -125,13 +91,7 @@ jobs:
         run: bundle exec rake "version:bump[${VERSION}]"
 
       - name: Verify gemspec version matches
-        run: |
-          actual="$(ruby -e 'puts Gem::Specification.load(Dir.glob("*.gemspec").first).version')"
-          if [ "$actual" != "$VERSION" ]; then
-            echo "::error::Gemspec version '$actual' does not match requested version '$VERSION'"
-            exit 1
-          fi
-          echo "Gemspec version '$actual' matches the requested version"
+        run: ruby .github/scripts/release/release_prep.rb verify-version
 
       - name: Create release Pull Request
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
