@@ -11,9 +11,9 @@ module Datadog
 
           def self?.rewind?: () -> bool
 
-          def self?.rewind: (untyped io) -> bool
+          def self?.rewind: (_RewindableIO io) -> bool
 
-          def self?.peek: (untyped io, Integer limit) -> String
+          def self?.peek: (_ReadableIO io, Integer limit) -> String
         end
       end
     end

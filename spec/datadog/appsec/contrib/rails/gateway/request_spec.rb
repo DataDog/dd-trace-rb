@@ -10,7 +10,11 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Request do
   let(:env) do
     Rack::MockRequest.env_for(
       'http://example.com:8080/',
-      {:method => 'POST', :input => 'name=john', 'CONTENT_TYPE' => 'application/x-www-form-urlencoded'}
+      {
+        :method => 'POST',
+        :input => 'name=john',
+        'CONTENT_TYPE' => 'application/x-www-form-urlencoded'
+      }
     )
   end
 
@@ -70,11 +74,19 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Request do
         end
       end
 
-      if Gem::Version.new(::Rack.release) >= Gem::Version.new('3')
+      context 'when Rack 3 or later is used' do
+        before { skip 'Rack 3 or later behavior' if Gem::Version.new(::Rack.release) < Gem::Version.new('3') }
+
         it { expect(request.body_bytesize(100)).to eq(0) }
-      else
+      end
+
+      context 'when Rack 2 or earlier is used' do
+        before { skip 'Rack 2 or earlier behavior' if Gem::Version.new(::Rack.release) >= Gem::Version.new('3') }
+
         it 'rewinds the input and measures the full body' do
           expect(request.body_bytesize(100)).to eq(9)
+          expect(env['rack.input']).to be(consumed_io)
+          expect(env['rack.input'].read).to eq('name=john')
         end
       end
     end
@@ -92,8 +104,24 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Request do
         end
       end
 
-      if Gem::Version.new(::Rack.release) >= Gem::Version.new('3')
-        context 'and the body fits within the limit' do
+      context 'when peeking the input fails' do
+        before do
+          allow(Datadog).to receive(:logger).and_return(logger)
+          allow(Datadog::AppSec::Contrib::Rack::InputPeeker).to receive(:peek_bytesize).and_raise(IOError, 'cannot peek')
+        end
+
+        let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }
+
+        it 'returns nil and logs the failure' do
+          expect(request.body_bytesize(100)).to be_nil
+          expect(logger).to have_received(:debug)
+        end
+      end
+
+      context 'when Rack 3 or later is used' do
+        before { skip 'Rack 3 or later behavior' if Gem::Version.new(::Rack.release) < Gem::Version.new('3') }
+
+        context 'when the body fits within the limit' do
           it 'buffers the body and returns its byte length' do
             expect(request.body_bytesize(100)).to eq(9)
             expect(env['rack.input']).to be_a(StringIO)
@@ -101,7 +129,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Request do
           end
         end
 
-        context 'and the body exceeds the limit' do
+        context 'when the body exceeds the limit' do
           it 'wraps the body in a forward-only input and returns nil' do
             expect(request.body_bytesize(4)).to be_nil
             expect(env['rack.input']).to be_a(Datadog::AppSec::Contrib::Rack::BufferedInput)
@@ -110,8 +138,10 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Request do
         end
       end
 
-      if Gem::Version.new(::Rack.release) < Gem::Version.new('3')
-        context 'and the body fits within the limit' do
+      context 'when Rack 2 or earlier is used' do
+        before { skip 'Rack 2 or earlier behavior' if Gem::Version.new(::Rack.release) >= Gem::Version.new('3') }
+
+        context 'when the body fits within the limit' do
           it 'rewinds the input in place and returns its byte length' do
             expect(request.body_bytesize(100)).to eq(9)
             expect(env['rack.input']).to be(body_io)
@@ -119,7 +149,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Request do
           end
         end
 
-        context 'and the body exceeds the limit' do
+        context 'when the body exceeds the limit' do
           it 'rewinds the input in place and returns nil' do
             expect(request.body_bytesize(4)).to be_nil
             expect(env['rack.input']).to be(body_io)
@@ -129,5 +159,4 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Request do
       end
     end
   end
-
 end

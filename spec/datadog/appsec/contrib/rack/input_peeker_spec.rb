@@ -43,23 +43,12 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::InputPeeker do
     end
 
     context 'when the input returns short reads' do
-      let(:rack_input) do
-        klass = Class.new do
-          def initialize(data)
-            @io = StringIO.new(data)
-          end
+      before do
+        read = rack_input.method(:read)
 
-          def read(length = nil, outbuf = nil)
-            length = [length, 5].min if length
-            @io.read(length, outbuf)
-          end
-
-          def rewind
-            @io.rewind
-          end
+        allow(rack_input).to receive(:read) do |length = nil, *args|
+          read.call(length && [length, 5].min, *args)
         end
-
-        klass.new('name=john')
       end
 
       it 'returns the full body bytesize and keeps the body readable' do
@@ -68,8 +57,10 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::InputPeeker do
       end
     end
 
-    if Gem::Version.new(::Rack.release) >= Gem::Version.new('3')
-      context 'when Rack 3 input fits within the limit' do
+    context 'when Rack 3 or later is used' do
+      before { skip 'Rack 3 or later behavior' if Gem::Version.new(::Rack.release) < Gem::Version.new('3') }
+
+      context 'when the body fits within the limit' do
         it 'replaces rack.input with a replay of the full body' do
           expect(bytesize).to eq(9)
           expect(env['rack.input']).to be_a(StringIO)
@@ -77,7 +68,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::InputPeeker do
         end
       end
 
-      context 'when Rack 3 input exceeds the limit' do
+      context 'when the body exceeds the limit' do
         subject(:bytesize) { described_class.peek_bytesize(env, limit: 4) }
 
         it 'replaces rack.input with a buffered replay over the original stream' do
@@ -87,7 +78,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::InputPeeker do
         end
       end
 
-      context 'when Rack 3 input responds to rewind' do
+      context 'when the input responds to rewind' do
         before { allow(rack_input).to receive(:rewind) }
 
         it 'does not rely on rewind to restore downstream reads' do
@@ -98,8 +89,10 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::InputPeeker do
       end
     end
 
-    if Gem::Version.new(::Rack.release) < Gem::Version.new('3')
-      context 'when Rack 2 input was already consumed' do
+    context 'when Rack 2 or earlier is used' do
+      before { skip 'Rack 2 or earlier behavior' if Gem::Version.new(::Rack.release) >= Gem::Version.new('3') }
+
+      context 'when the input was already consumed' do
         before { rack_input.read }
 
         it 'rewinds before peeking and after peeking' do
@@ -109,28 +102,13 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::InputPeeker do
         end
       end
 
-      context 'when Rack 2 input rewind fails' do
-        before { allow(Datadog).to receive(:logger).and_return(logger) }
+      context 'when rewinding the input fails' do
+        before do
+          allow(Datadog).to receive(:logger).and_return(logger)
+          allow(rack_input).to receive(:rewind).and_raise(IOError, 'cannot rewind')
+        end
 
         let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }
-
-        let(:rack_input) do
-          klass = Class.new do
-            def initialize(data)
-              @io = StringIO.new(data)
-            end
-
-            def read(length = nil, outbuf = nil)
-              @io.read(length, outbuf)
-            end
-
-            def rewind
-              raise IOError, 'cannot rewind'
-            end
-          end
-
-          klass.new('name=john')
-        end
 
         it 'returns nil and logs the rewind failure' do
           expect(bytesize).to be_nil

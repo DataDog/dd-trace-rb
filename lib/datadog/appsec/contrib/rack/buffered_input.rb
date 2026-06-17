@@ -5,15 +5,15 @@ module Datadog
     module Contrib
       module Rack
         # Wraps a `rack.input` stream with a buffer placed in front of it.
-        # Every read drains the buffer first, then continues from the stream.
+        # Every read drains the buffer first, then continues from the stream
         #
         # NOTE: Forward-only: no rewind, no seek
         #
-        # NOTE: Rack 3 dropped the rewind requirement from the input stream contract.
+        # NOTE: Rack 3 dropped the rewind requirement from the input stream contract
         # @see https://github.com/rack/rack/blob/v3.2.6/SPEC.rdoc
         class BufferedInput
           # NOTE: Rack's multipart parser reads in 1 MiB chunks, used to bound
-          #       {#each} the same way.
+          #       {#each} the same way
           # @see https://github.com/rack/rack/blob/v3.2.6/lib/rack/multipart/parser.rb#L54
           READ_BUFSIZE_BYTES = 1_048_576
 
@@ -39,7 +39,7 @@ module Datadog
               return more if more && !more.empty?
 
               # NOTE: Match `IO#read(length, outbuf)` at EOF. Return nil and clear
-              #       the caller's buffer so stale bytes are not mistaken for data.
+              #       the caller's buffer so stale bytes are not mistaken for data
               outbuf&.clear
               return
             end
@@ -73,6 +73,7 @@ module Datadog
 
           def close
             @buffer.close
+          ensure
             @stream.close
           end
         end

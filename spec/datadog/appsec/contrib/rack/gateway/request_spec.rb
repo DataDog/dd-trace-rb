@@ -160,7 +160,11 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
       described_class.new(
         Rack::MockRequest.env_for(
           'http://example.com:8080/',
-          {:method => 'POST', :input => 'name=john', 'CONTENT_TYPE' => 'application/x-www-form-urlencoded'}
+          {
+            :method => 'POST',
+            :input => 'name=john',
+            'CONTENT_TYPE' => 'application/x-www-form-urlencoded'
+          }
         )
       )
     end
@@ -210,8 +214,10 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
         end
       end
 
-      if Gem::Version.new(::Rack.release) >= Gem::Version.new('3')
-        context 'and it fits within the limit' do
+      context 'when Rack 3 or later is used' do
+        before { skip 'Rack 3 or later behavior' if Gem::Version.new(::Rack.release) < Gem::Version.new('3') }
+
+        context 'when the body fits within the limit' do
           it 'buffers the whole body and keeps it readable' do
             expect(request.body_bytesize(100)).to eq(9)
             expect(request.env['rack.input']).to be_a(StringIO)
@@ -219,7 +225,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
           end
         end
 
-        context 'and it exceeds the limit' do
+        context 'when the body exceeds the limit' do
           it 'wraps the body in a forward-only input and returns nil' do
             expect(request.body_bytesize(4)).to be_nil
             expect(request.env['rack.input']).to be_a(Datadog::AppSec::Contrib::Rack::BufferedInput)
@@ -227,7 +233,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
           end
         end
 
-        context 'and its size is exactly the limit' do
+        context 'when the body size is exactly the limit' do
           it 'treats it as within the limit and returns the size' do
             expect(request.body_bytesize(9)).to eq(9)
             expect(request.env['rack.input']).to be_a(StringIO)
@@ -235,7 +241,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
           end
         end
 
-        context 'and its size is one byte over the limit' do
+        context 'when the body size is one byte over the limit' do
           it 'treats it as over the limit and returns nil' do
             expect(request.body_bytesize(8)).to be_nil
             expect(request.env['rack.input']).to be_a(Datadog::AppSec::Contrib::Rack::BufferedInput)
@@ -243,7 +249,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
           end
         end
 
-        context 'when the input exposes rewind anyway' do
+        context 'when the input exposes rewind' do
           before { allow(body_io).to receive(:rewind) }
 
           it 'does not rely on rewind to restore the body' do
@@ -254,8 +260,10 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
         end
       end
 
-      if Gem::Version.new(::Rack.release) < Gem::Version.new('3')
-        context 'and it fits within the limit' do
+      context 'when Rack 2 or earlier is used' do
+        before { skip 'Rack 2 or earlier behavior' if Gem::Version.new(::Rack.release) >= Gem::Version.new('3') }
+
+        context 'when the body fits within the limit' do
           it 'rewinds the input in place and returns the size' do
             expect(request.body_bytesize(100)).to eq(9)
             expect(request.env['rack.input']).to be(body_io)
@@ -263,7 +271,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
           end
         end
 
-        context 'and it exceeds the limit' do
+        context 'when the body exceeds the limit' do
           it 'rewinds the input in place and returns nil' do
             expect(request.body_bytesize(4)).to be_nil
             expect(request.env['rack.input']).to be(body_io)
@@ -272,7 +280,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
         end
       end
 
-      context 'and the streaming input returns short reads' do
+      context 'when the streaming input returns short reads' do
         let(:body_io) do
           StringIO.new('name=john').tap do |io|
             allow(io).to receive(:respond_to?).and_call_original
@@ -285,10 +293,8 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
         end
 
         it 'reads the whole body across reads and returns the full size' do
-          aggregate_failures 'a short read does not truncate the measurement or the body' do
-            expect(request.body_bytesize(100)).to eq(9)
-            expect(request.env['rack.input'].read).to eq('name=john')
-          end
+          expect(request.body_bytesize(100)).to eq(9)
+          expect(request.env['rack.input'].read).to eq('name=john')
         end
       end
     end

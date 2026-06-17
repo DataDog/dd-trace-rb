@@ -32,7 +32,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
     before do
       described_class.watch_request_action(gateway)
       allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(100)
-      allow(gateway_request).to receive(:body_bytesize).and_return(9)
+      allow(gateway_request).to receive(:body_bytesize).with(100).and_return(9)
     end
 
     let(:gateway_request) do
@@ -60,7 +60,10 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
     end
 
     context 'when the body exceeds the parsing size limit' do
-      before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(4) }
+      before do
+        allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(4)
+        allow(gateway_request).to receive(:body_bytesize).with(4).and_return(9)
+      end
 
       it 'runs WAF with path params and byte length but without the body' do
         gateway.push('rails.request.action', gateway_request)
@@ -81,7 +84,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
     end
 
     context 'when the body was parsed but its size is zero' do
-      before { allow(gateway_request).to receive(:body_bytesize).and_return(0) }
+      before { allow(gateway_request).to receive(:body_bytesize).with(100).and_return(0) }
 
       it 'runs WAF with path params and the parsed body but without a byte length' do
         gateway.push('rails.request.action', gateway_request)
@@ -95,8 +98,8 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Watcher do
       end
     end
 
-    context 'when the body size is unknown and over the limit' do
-      before { allow(gateway_request).to receive(:body_bytesize).and_return(nil) }
+    context 'when the body size cannot be measured within the limit' do
+      before { allow(gateway_request).to receive(:body_bytesize).with(100).and_return(nil) }
 
       it 'runs WAF with only the path params' do
         gateway.push('rails.request.action', gateway_request)

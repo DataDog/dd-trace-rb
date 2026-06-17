@@ -2,14 +2,31 @@ module Datadog
   module AppSec
     module Contrib
       module Rack
+        interface _ReadableIO
+          def read: (?Integer? length, ?String? outbuf) -> String?
+
+          def gets: () -> String?
+
+          def close: () -> void
+        end
+
+        interface _RewindableIO
+          include _ReadableIO
+
+          def rewind: () -> Integer
+        end
+
         class BufferedInput
           READ_BUFSIZE_BYTES: Integer
 
-          @stream: untyped
+          @stream: _ReadableIO
 
+          # NOTE: StringIO supports explicit nil output buffers at runtime, but
+          #       released RBS signatures do not model it yet.
+          #       See: https://github.com/ruby/rbs/pull/3002
           @buffer: untyped
 
-          def initialize: (untyped stream, buffer: untyped) -> void
+          def initialize: (_ReadableIO stream, buffer: (_ReadableIO | StringIO)) -> void
 
           def read: (?Integer? length, ?String? outbuf) -> String?
 

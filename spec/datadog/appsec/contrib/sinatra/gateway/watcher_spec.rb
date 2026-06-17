@@ -30,7 +30,10 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
   end
 
   describe '.watch_request_dispatch' do
-    before { described_class.watch_request_dispatch(gateway) }
+    before do
+      described_class.watch_request_dispatch(gateway)
+      allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(100)
+    end
 
     let(:gateway_request) do
       Datadog::AppSec::Contrib::Sinatra::Gateway::Request.new(
@@ -53,6 +56,12 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         expect(context).to have_received(:run_waf).with(
           {'server.request.body' => {'name' => 'john'}, 'server.request.body.byte_length' => 9}, {}, anything
         )
+      end
+
+      it 'sets the web framework state' do
+        gateway.push('sinatra.request.dispatch', gateway_request)
+
+        expect(context.state[:web_framework]).to eq('sinatra')
       end
     end
 
@@ -84,7 +93,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         end
       end
 
-      context 'and the body fits within the limit' do
+      context 'when the body fits within the limit' do
         it 'runs WAF with the body and its measured byte length' do
           gateway.push('sinatra.request.dispatch', gateway_request)
 
@@ -94,7 +103,7 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         end
       end
 
-      context 'and the body exceeds the limit' do
+      context 'when the body exceeds the limit' do
         before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(4) }
 
         it 'does not run WAF' do
@@ -102,15 +111,29 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
 
           expect(context).not_to have_received(:run_waf)
         end
+
+        it 'does not parse the form body' do
+          allow(gateway_request).to receive(:form_hash)
+          gateway.push('sinatra.request.dispatch', gateway_request)
+
+          expect(gateway_request).not_to have_received(:form_hash)
+        end
       end
 
-      context 'and body collection is disabled' do
+      context 'when body collection is disabled' do
         before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(0) }
 
         it 'does not run WAF' do
           gateway.push('sinatra.request.dispatch', gateway_request)
 
           expect(context).not_to have_received(:run_waf)
+        end
+
+        it 'does not measure the body' do
+          allow(gateway_request).to receive(:body_bytesize)
+          gateway.push('sinatra.request.dispatch', gateway_request)
+
+          expect(gateway_request).not_to have_received(:body_bytesize)
         end
       end
     end
@@ -142,6 +165,13 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         gateway.push('sinatra.request.dispatch', gateway_request)
 
         expect(context).not_to have_received(:run_waf)
+      end
+
+      it 'does not measure the body' do
+        allow(gateway_request).to receive(:body_bytesize)
+        gateway.push('sinatra.request.dispatch', gateway_request)
+
+        expect(gateway_request).not_to have_received(:body_bytesize)
       end
     end
 
