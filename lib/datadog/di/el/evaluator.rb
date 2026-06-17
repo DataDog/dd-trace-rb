@@ -56,20 +56,42 @@ module Datadog
           end
         end
 
+        # Apply a regexp match between two strings. Bounded at
+        # MATCHES_TIMEOUT_SECONDS wall-clock per call to defend against
+        # catastrophic-backtracking patterns. The bound is enforced by
+        # the regexp engine on Ruby 3.2+ and is best-effort via
+        # Timeout.timeout on older Rubies (see comment in method body).
+        #
+        # Uses Regexp#match? rather than =~ so that the thread-local
+        # match data ($~, $1, ...) is not mutated as a side effect of
+        # DI expression evaluation.
+        #
+        # @param haystack [String] string to match against.
+        # @param needle [String] regexp source.
+        # @return [Boolean] whether the haystack matches the regexp.
+        # @raise [Regexp::TimeoutError] (Ruby 3.2+) regexp engine
+        #   exceeded MATCHES_TIMEOUT_SECONDS.
+        # @raise [Timeout::Error] (Ruby < 3.2) Timeout.timeout fired.
         def matches(haystack, needle)
           # Ruby 3.2+ supports the in-engine `timeout:` keyword on
           # Regexp.new, which interrupts the matcher at every backtrack
-          # step. On older Rubies we fall back to Timeout.timeout, which
-          # uses Thread#raise; Onigmo on those versions polls for pending
-          # interrupts during matching so this also bounds the runtime,
-          # though with ~100ms granularity.
+          # step and reliably bounds matcher runtime regardless of
+          # pattern shape.
+          #
+          # On older Rubies we fall back to Timeout.timeout, which uses
+          # Thread#raise. Onigmo polls for pending interrupts at certain
+          # points during matching, so this bounds the runtime for many
+          # patterns but is best-effort: pattern shapes that do not
+          # reach an interrupt-poll point during their hot loop (see
+          # Ruby bug #18144) can still run well past the configured
+          # timeout. Migrating to Ruby 3.2+ is the only complete fix.
           if RUBY_VERSION >= '3.2'
             re = Regexp.new(needle, timeout: MATCHES_TIMEOUT_SECONDS)
-            !!(haystack =~ re)
+            re.match?(haystack)
           else
             re = Regexp.compile(needle)
             Timeout.timeout(MATCHES_TIMEOUT_SECONDS) do
-              !!(haystack =~ re)
+              re.match?(haystack)
             end
           end
         end
