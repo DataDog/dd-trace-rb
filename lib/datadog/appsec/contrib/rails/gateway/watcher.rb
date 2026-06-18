@@ -33,6 +33,9 @@ module Datadog
                     byte_length = gateway_request.body_bytesize(limit)
 
                     if byte_length
+                      # NOTE: Params may be parsed before this hook, leaving the
+                      #       body stream at EOF. Keep byte_length unset for that
+                      #       case, but still inspect cached params
                       persistent_data['server.request.body.byte_length'] = byte_length if byte_length.positive?
 
                       if byte_length <= limit

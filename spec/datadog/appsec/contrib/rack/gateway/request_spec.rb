@@ -225,6 +225,15 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
           end
         end
 
+        context 'when the body was already parsed upstream' do
+          before do
+            request.env['rack.request.form_hash'] = {'name' => 'john'}
+            body_io.read
+          end
+
+          it { expect(request.body_bytesize(100)).to be_nil }
+        end
+
         context 'when the body exceeds the limit' do
           it 'wraps the body in a forward-only input and returns nil' do
             expect(request.body_bytesize(4)).to be_nil

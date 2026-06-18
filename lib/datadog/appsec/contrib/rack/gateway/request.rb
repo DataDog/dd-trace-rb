@@ -105,6 +105,10 @@ module Datadog
               content_length = request.content_length
               return content_length.to_i if content_length
 
+              # NOTE: A parsed-body cache without a raw byte count means the input
+              #       stream was consumed before measurement, consider it unknown-length
+              return if env.key?('rack.request.form_hash')
+
               InputPeeker.peek_bytesize(env, limit: limit)
             end
 

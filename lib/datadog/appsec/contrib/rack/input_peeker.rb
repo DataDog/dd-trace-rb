@@ -74,7 +74,7 @@ module Datadog
             # NOTE: Read one byte past the limit to distinguish an exact-limit body
             #       from an over-limit body without reading the whole stream.
             max = limit + 1
-            buffer = +''
+            buffer = +''.b
 
             while buffer.bytesize <= limit
               chunk = io.read(max - buffer.bytesize)

@@ -68,6 +68,16 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::InputPeeker do
         end
       end
 
+      context 'when the body has binary encoding' do
+        let(:rack_input) { StringIO.new('name=john'.b) }
+
+        it 'preserves the encoding on the replayed body' do
+          bytesize
+
+          expect(env['rack.input'].read.encoding).to eq(Encoding::BINARY)
+        end
+      end
+
       context 'when the body exceeds the limit' do
         subject(:bytesize) { described_class.peek_bytesize(env, limit: 4) }
 
@@ -75,6 +85,18 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::InputPeeker do
           expect(bytesize).to be_nil
           expect(env['rack.input']).to be_a(Datadog::AppSec::Contrib::Rack::BufferedInput)
           expect(env['rack.input'].read).to eq('name=john')
+        end
+      end
+
+      context 'when an over-limit body has binary encoding' do
+        subject(:bytesize) { described_class.peek_bytesize(env, limit: 4) }
+
+        let(:rack_input) { StringIO.new('name=john'.b) }
+
+        it 'preserves the encoding on the buffered replay' do
+          bytesize
+
+          expect(env['rack.input'].read.encoding).to eq(Encoding::BINARY)
         end
       end
 

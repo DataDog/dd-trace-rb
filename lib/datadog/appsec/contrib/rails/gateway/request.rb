@@ -84,7 +84,7 @@ module Datadog
               return content_length.to_i if content_length
 
               # NOTE: An already-read body (e.g. late-parsed multipart on Rack 3+) peeks
-              #       as 0, so we skip byte_length but still collect the parsed body.
+              #       as 0, so we skip byte_length but still collect the parsed body
               begin
                 Rack::InputPeeker.peek_bytesize(env, limit: limit)
               rescue => e
