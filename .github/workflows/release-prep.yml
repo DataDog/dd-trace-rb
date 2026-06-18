@@ -54,8 +54,6 @@ jobs:
 
       - run: bundle install
 
-      # Reads the approved draft release, writes the changelog + footer, and
-      # bumps the gem version. See tasks/release_prep.rake.
       - name: Prepare the release
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
