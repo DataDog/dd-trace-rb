@@ -123,6 +123,10 @@ RSpec.describe Datadog::DI::Redactor do
         ["excluded identifier with different case", "PASSWORD", false],
         ["excluded identifier with punctuation", "pass_word", false],
         ["non-excluded default identifier", "secret", true],
+        # The HTTP_ prefix strip applies to the excluded list too, so
+        # excluding the bare name also suppresses redaction of the Rack
+        # CGI form.
+        ["excluded default identifier in Rack CGI form", "HTTP_PASSWORD", false],
       ]
 
       define_cases(cases)
