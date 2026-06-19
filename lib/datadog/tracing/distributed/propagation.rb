@@ -3,6 +3,7 @@
 require_relative '../configuration/ext'
 require_relative '../trace_digest'
 require_relative '../trace_operation'
+require_relative '../span_link'
 require_relative '../../core/telemetry/logger'
 require_relative 'baggage'
 
@@ -13,6 +14,8 @@ module Datadog
       class Propagation
         # @param propagation_styles [Hash<String,Object>]
         #  a map of propagation styles to their corresponding implementations
+        # @param propagation_behavior_extract [String]
+        #   the behavior to apply when extracting distributed trace data
         # @param propagation_style_inject [Array<String>]
         #   a list of styles to use when injecting distributed trace data
         # @param propagation_style_extract [Array<String>]
@@ -23,9 +26,11 @@ module Datadog
           propagation_styles:,
           propagation_style_inject:,
           propagation_style_extract:,
+          propagation_behavior_extract:,
           propagation_extract_first:
         )
           @propagation_styles = propagation_styles
+          @propagation_behavior_extract = propagation_behavior_extract
           @propagation_extract_first = propagation_extract_first
           @propagation_style_inject = propagation_style_inject.map { |style| propagation_styles[style] }
           @propagation_style_extract = propagation_style_extract.map { |style| propagation_styles[style] }
@@ -97,12 +102,20 @@ module Datadog
           return unless data
           return if data.empty?
 
+          if @propagation_behavior_extract == Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_IGNORE
+            return nil
+          end
+
           extracted_trace_digest = nil
+          # Name of the propagation style that first produced a trace context.
+          # Used as the `context_headers` span-link attribute when restarting a trace.
+          extracted_style_name = nil
 
           @propagation_style_extract.each do |propagator|
             # First extraction?
             unless extracted_trace_digest
               extracted_trace_digest = propagator.extract(data)
+              extracted_style_name = @propagation_styles.key(propagator) if extracted_trace_digest
               next
             end
 
@@ -145,7 +158,26 @@ module Datadog
           # Handle baggage after all other styles if present
           extracted_trace_digest = propagate_baggage(data, extracted_trace_digest) if @baggage_propagator
 
-          extracted_trace_digest
+          # Default mode: Current digest continues the upstream trace.
+          return extracted_trace_digest if @propagation_behavior_extract != Tracing::Configuration::Ext::Distributed::PROPAGATION_BEHAVIOR_EXTRACT_RESTART || extracted_trace_digest&.trace_id.nil?
+
+          # Restart mode: start a new local digest and create a Span Link on
+          # the service-entry span with the original propagation data.
+          link = SpanLink.new(
+            extracted_trace_digest,
+            attributes: {
+              'reason' => 'propagation_behavior_extract',
+              'context_headers' => extracted_style_name,
+            }
+          )
+          baggage_tags = extracted_trace_digest.trace_distributed_tags&.select { |k, _| k.start_with?('baggage.') }
+          baggage_tags = nil if baggage_tags&.empty?
+          TraceDigest.new(
+            span_links: [link],
+            baggage: extracted_trace_digest.baggage,
+            trace_distributed_tags: baggage_tags,
+            span_remote: false,
+          )
         end
 
         private
