@@ -16,6 +16,7 @@ module Datadog
           AST_NODE_CLASS_NAMES = {
             field: 'GraphQL::Language::Nodes::Field',
             directive: 'GraphQL::Language::Nodes::Directive',
+            fragment_spread: 'GraphQL::Language::Nodes::FragmentSpread',
             variable_identifier: 'GraphQL::Language::Nodes::VariableIdentifier',
             input_object: 'GraphQL::Language::Nodes::InputObject',
           }.freeze
