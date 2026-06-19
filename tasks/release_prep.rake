@@ -14,6 +14,9 @@ module ReleasePrep
   # the draft release. When the marker is absent we fall back to the whole body.
   CHANGELOG_MARKER = '<!-- changelog -->'
 
+  PREVIOUS_VERSION_PATTERN = %r{\[Unreleased\]: #{Regexp.escape(REPO_URL)}/compare/v(.+?)\.\.\.master}
+  UNRELEASED_FOOTER_PATTERN = %r{\[Unreleased\]: #{Regexp.escape(REPO_URL)}/compare/.*?\.\.\.master}
+
   module_function
 
   # Reject anything that is not MAJOR.MINOR.PATCH with an optional suffix.
@@ -23,7 +26,7 @@ module ReleasePrep
 
   def previous_version
     content = File.read(CHANGELOG_FILE)
-    match = content.match(%r{\[Unreleased\]: #{Regexp.escape(REPO_URL)}/compare/v(.+?)\.\.\.master})
+    match = content.match(PREVIOUS_VERSION_PATTERN)
     fail!("Could not find the [Unreleased] compare link in #{CHANGELOG_FILE}") unless match
 
     match[1]
@@ -62,7 +65,7 @@ module ReleasePrep
   end
 
   def rewrite_footer(version, previous)
-    pattern = %r{\[Unreleased\]: #{Regexp.escape(REPO_URL)}/compare/.*?\.\.\.master}
+    pattern = UNRELEASED_FOOTER_PATTERN
     replacement =
       "[Unreleased]: #{REPO_URL}/compare/v#{version}...master\n" \
       "[#{version}]: #{REPO_URL}/compare/v#{previous}...v#{version}"
