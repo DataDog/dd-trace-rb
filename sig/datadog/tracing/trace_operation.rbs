@@ -8,6 +8,7 @@ module Datadog
       RECONSIDERABLE_DECISIONS: ::Array[::String]
 
       @logger: Core::Logger
+      @span_links: ::Array[SpanLink]?
 
       attr_reader logger: Core::Logger
 
@@ -32,7 +33,35 @@ module Datadog
       attr_writer sampled: untyped
       attr_writer service: untyped
 
-      def initialize: (?logger: untyped, ?agent_sample_rate: untyped?, ?events: untyped?, ?hostname: untyped?, ?id: untyped?, ?max_length: untyped, ?name: untyped?, ?origin: untyped?, ?parent_span_id: untyped?, ?rate_limiter_rate: untyped?, ?resource: untyped?, ?rule_sample_rate: untyped?, ?sample_rate: untyped?, ?sampled: untyped?, ?sampling_priority: untyped?, ?service: untyped?, ?profiling_enabled: untyped?, ?apm_tracing_enabled: untyped?, ?tags: untyped?, ?metrics: untyped?, ?trace_state: untyped?, ?trace_state_unknown_fields: untyped?, ?remote_parent: untyped?, ?tracer: untyped?, ?baggage: untyped?, ?auto_finish: bool) -> void
+      def initialize: (
+        ?logger: untyped,
+        ?agent_sample_rate: untyped?,
+        ?events: untyped?,
+        ?hostname: untyped?,
+        ?id: untyped?,
+        ?max_length: untyped,
+        ?name: untyped?,
+        ?origin: untyped?,
+        ?parent_span_id: untyped?,
+        ?span_links: ::Array[SpanLink]?,
+        ?rate_limiter_rate: untyped?,
+        ?resource: untyped?,
+        ?rule_sample_rate: untyped?,
+        ?sample_rate: untyped?,
+        ?sampled: untyped?,
+        ?sampling_priority: untyped?,
+        ?service: untyped?,
+        ?profiling_enabled: untyped?,
+        ?apm_tracing_enabled: untyped?,
+        ?tags: untyped?,
+        ?metrics: untyped?,
+        ?trace_state: untyped?,
+        ?trace_state_unknown_fields: untyped?,
+        ?remote_parent: untyped?,
+        ?tracer: untyped?,
+        ?baggage: untyped?,
+        ?auto_finish: bool
+      ) -> void
 
       def finish!: -> void
 

@@ -6,6 +6,7 @@ module Datadog
       attr_reader span_resource: untyped
       attr_reader span_service: untyped
       attr_reader span_type: untyped
+      attr_reader span_links: Array[SpanLink]?
       attr_reader trace_distributed_tags: untyped
       attr_reader trace_hostname: untyped
       attr_reader trace_id: untyped
@@ -23,7 +24,7 @@ module Datadog
       attr_reader span_remote: untyped
       attr_reader baggage: untyped
 
-      def initialize: (?span_id: untyped?, ?span_name: untyped?, ?span_resource: untyped?, ?span_service: untyped?, ?span_type: untyped?, ?trace_distributed_tags: untyped?, ?trace_hostname: untyped?, ?trace_id: untyped?, ?trace_name: untyped?, ?trace_origin: untyped?, ?trace_process_id: untyped?, ?trace_resource: untyped?, ?trace_runtime_id: untyped?, ?trace_sampling_priority: untyped?, ?trace_service: untyped?, ?trace_distributed_id: untyped?, ?trace_flags: untyped?, ?trace_state: untyped?, ?trace_state_unknown_fields: untyped?, ?span_remote: untyped?, ?baggage: untyped?) -> void
+      def initialize: (?span_id: untyped?, ?span_name: untyped?, ?span_resource: untyped?, ?span_service: untyped?, ?span_type: untyped?, ?span_links: ::Array[SpanLink]?, ?trace_distributed_tags: untyped?, ?trace_hostname: untyped?, ?trace_id: untyped?, ?trace_name: untyped?, ?trace_origin: untyped?, ?trace_process_id: untyped?, ?trace_resource: untyped?, ?trace_runtime_id: untyped?, ?trace_sampling_priority: untyped?, ?trace_service: untyped?, ?trace_distributed_id: untyped?, ?trace_flags: untyped?, ?trace_state: untyped?, ?trace_state_unknown_fields: untyped?, ?span_remote: untyped?, ?baggage: untyped?) -> void
 
       def merge: (Hash[String, String] field_value_pairs) -> Datadog::Tracing::TraceDigest
     end

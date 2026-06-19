@@ -1850,6 +1850,13 @@
         "default": "presto"
       }
     ],
+    "DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT": [
+      {
+        "version": "B",
+        "type": "string",
+        "default": "continue"
+      }
+    ],
     "DD_TRACE_PROPAGATION_EXTRACT_FIRST": [
       {
         "version": "A",

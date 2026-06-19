@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative '../../rack/input_peeker'
 require_relative '../../../instrumentation/gateway/argument'
 
 module Datadog
@@ -57,6 +58,38 @@ module Datadog
 
               request.env['action_dispatch.request.path_parameters'].reject do |k, _v|
                 excluded.include?(k)
+              end
+            end
+
+            # Returns the request body size in bytes using all available methods,
+            # or nil when the size cannot be measured within the limit
+            #
+            # NOTE: The priority of the measurement is the following:
+            #       raw posted data, raw form vars, size if known, raw
+            #       Content-Length, then buffering to the limit if unknown-length
+            def body_bytesize(limit)
+              raw_body = env['RAW_POST_DATA']
+              return raw_body.bytesize if raw_body
+
+              form_vars = env['rack.request.form_vars']
+              return form_vars.bytesize if form_vars
+
+              io = request.body
+              return 0 unless io
+              return io.size if io.respond_to?(:size)
+
+              # NOTE: Read raw `CONTENT_LENGTH` as {ActionDispatch::Request#content_length}
+              #       drains `rack.input` into `RAW_POST_DATA` on chunked Transfer-Encoding
+              content_length = env['CONTENT_LENGTH']
+              return content_length.to_i if content_length
+
+              # NOTE: An already-read body (e.g. late-parsed multipart on Rack 3+) peeks
+              #       as 0, so we skip byte_length but still collect the parsed body
+              begin
+                Rack::InputPeeker.peek_bytesize(env, limit: limit)
+              rescue => e
+                Datadog.logger.debug { "AppSec: Failed to measure Rails request body: #{e.class}: #{e.message}" }
+                nil
               end
             end
           end
