@@ -8,7 +8,7 @@ module Datadog
       # Two-tier design:
       # - full-tier  key: (flag_key, variant, allocation_key, runtime_default, error_message, targeting_key, canonical_context_key)
       # - degraded-tier key: (flag_key, variant, allocation_key, runtime_default, error_message)
-      # - Drop-and-count when degraded tier is full (no ultra-degraded tier)
+      # - Drop-and-count when degraded tier is full
       # - canonical_context_key: sorted type-tagged length-delimited encoding (no hash digest)
       # - Caps: globalCap=131_072 / perFlagCap=10_000 / degradedCap=32_768
       # - Context pruning: 256 fields / 256 chars (matches flageval-worker backend limits)
@@ -16,8 +16,17 @@ module Datadog
         MAX_CONTEXT_FIELDS = 256
         MAX_FIELD_LENGTH = 256
 
+        EVAL_SCALE_TARGET_FLAGS = 2_500
+        EVAL_SCALE_FULL_BUCKETS_PER_FLAG = 50
+        EVAL_SCALE_USERS_PER_FLAG = 1_000
+        EVAL_SCALE_PER_FLAG_HEADROOM_MULTIPLIER = 10
+        EVAL_SCALE_DEGRADED_BUCKETS_PER_FLAG = 10
+        EVAL_SCALE_FULL_BUCKET_TARGET = EVAL_SCALE_TARGET_FLAGS * EVAL_SCALE_FULL_BUCKETS_PER_FLAG
+        EVAL_SCALE_PER_FLAG_BUCKET_TARGET = EVAL_SCALE_PER_FLAG_HEADROOM_MULTIPLIER * EVAL_SCALE_USERS_PER_FLAG
+        EVAL_SCALE_DEGRADED_BUCKET_TARGET = EVAL_SCALE_TARGET_FLAGS * EVAL_SCALE_DEGRADED_BUCKETS_PER_FLAG
+
         DEFAULT_GLOBAL_CAP = 131_072
-        DEFAULT_PER_FLAG_CAP = 10_000
+        DEFAULT_PER_FLAG_CAP = EVAL_SCALE_PER_FLAG_BUCKET_TARGET
         DEFAULT_DEGRADED_CAP = 32_768
 
         attr_reader :dropped_degraded_overflow
@@ -68,11 +77,17 @@ module Datadog
               return
             end
 
-            # Check caps before adding new full bucket
-            full_ok = @global_count < @global_cap &&
-              @per_flag_full[flag_key] < @per_flag_cap
+            per_flag_count = @per_flag_full[flag_key]
+            if per_flag_count >= @per_flag_cap
+              add_to_degraded(flag_key, variant, allocation_key, runtime_default, error_message, eval_ms)
+              return
+            end
 
-            if full_ok
+            # Count the full-tier attempt before checking the global cap so per-flag overflow stays
+            # active even when the global full-tier cap is already saturated.
+            @per_flag_full[flag_key] = per_flag_count + 1
+
+            if @global_count < @global_cap
               e = new_entry(
                 eval_ms,
                 runtime_default: runtime_default,
@@ -81,7 +96,6 @@ module Datadog
                 context_attrs: pruned
               )
               @full[full_key] = e
-              @per_flag_full[flag_key] += 1
               @global_count += 1
             else
               # Route to degraded tier

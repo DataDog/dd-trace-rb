@@ -16,6 +16,17 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
   let(:per_flag_cap) { 10_000 }
   let(:degraded_cap) { 32_768 }
 
+  describe 'default cap sizing' do
+    it 'uses named scale constants without changing default caps' do
+      expect(described_class::EVAL_SCALE_FULL_BUCKET_TARGET).to eq(125_000)
+      expect(described_class::EVAL_SCALE_PER_FLAG_BUCKET_TARGET).to eq(10_000)
+      expect(described_class::EVAL_SCALE_DEGRADED_BUCKET_TARGET).to eq(25_000)
+      expect(described_class::DEFAULT_GLOBAL_CAP).to eq(131_072)
+      expect(described_class::DEFAULT_PER_FLAG_CAP).to eq(10_000)
+      expect(described_class::DEFAULT_DEGRADED_CAP).to eq(32_768)
+    end
+  end
+
   # ─── canonical_context_key ───────────────────────────────────────────────────
 
   describe '#canonical_context_key' do
@@ -181,6 +192,15 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
         snapshot = aggregator.flush_and_reset
         expect(snapshot[:full].size).to eq(2)
         expect(snapshot[:degraded].size).to eq(1)
+      end
+
+      it 'counts full-tier attempts before global cap routing' do
+        aggregator.record(**base_event.merge(attrs: {'x' => 1}))
+        aggregator.record(**base_event.merge(attrs: {'x' => 2}))
+        aggregator.record(**base_event.merge(attrs: {'x' => 3}))
+
+        per_flag_full = aggregator.instance_variable_get(:@per_flag_full)
+        expect(per_flag_full['my-flag']).to eq(3)
       end
     end
 

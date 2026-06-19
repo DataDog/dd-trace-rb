@@ -6,6 +6,22 @@ module Datadog
 
         MAX_FIELD_LENGTH: ::Integer
 
+        EVAL_SCALE_TARGET_FLAGS: ::Integer
+
+        EVAL_SCALE_FULL_BUCKETS_PER_FLAG: ::Integer
+
+        EVAL_SCALE_USERS_PER_FLAG: ::Integer
+
+        EVAL_SCALE_PER_FLAG_HEADROOM_MULTIPLIER: ::Integer
+
+        EVAL_SCALE_DEGRADED_BUCKETS_PER_FLAG: ::Integer
+
+        EVAL_SCALE_FULL_BUCKET_TARGET: ::Integer
+
+        EVAL_SCALE_PER_FLAG_BUCKET_TARGET: ::Integer
+
+        EVAL_SCALE_DEGRADED_BUCKET_TARGET: ::Integer
+
         DEFAULT_GLOBAL_CAP: ::Integer
 
         DEFAULT_PER_FLAG_CAP: ::Integer

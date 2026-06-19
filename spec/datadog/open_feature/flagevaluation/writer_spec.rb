@@ -207,6 +207,28 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(errors).to be_empty, "schema errors: #{errors.join("\n")}"
     end
 
+    it 'uses flush time for timestamp and evaluation time for first/last bounds' do
+      payload = nil
+      transport = instance_double(Datadog::OpenFeature::Transport::HTTP)
+      allow(transport).to receive(:send_flag_evaluations) { |p| payload = p }
+      allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
+      writer = described_class.new(transport: transport, logger: logger)
+
+      writer.enqueue(
+        flag_key: 'time-flag', variant: 'on', allocation_key: 'alloc-1',
+        targeting_key: 'user-42', eval_time_ms: realistic_eval_ms, attrs: {},
+      )
+
+      before_flush = (Datadog::Core::Utils::Time.now.to_f * 1000).to_i
+      writer.send(:drain_and_flush)
+      after_flush = (Datadog::Core::Utils::Time.now.to_f * 1000).to_i
+
+      row = payload['flagEvaluations'].first
+      expect(row['timestamp']).to be_between(before_flush, after_flush)
+      expect(row['first_evaluation']).to eq(realistic_eval_ms)
+      expect(row['last_evaluation']).to eq(realistic_eval_ms)
+    end
+
     it 'validates a degraded-tier row (no targeting_key, no context)' do
       payload = captured_payload do |writer|
         # Force overflow into the degraded tier with a tiny-capped aggregator.

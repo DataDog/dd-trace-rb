@@ -7,7 +7,7 @@ module Datadog
   module OpenFeature
     module FlagEvaluation
       # Background writer that drains the two-tier aggregation maps and POSTs
-      # batches to /evp_proxy/v2/api/v2/flagevaluations every FLUSH_INTERVAL_SECONDS.
+      # batches to /evp_proxy/v2/api/v2/flagevaluation every FLUSH_INTERVAL_SECONDS.
       #
       # The writer owns the aggregation cycle:
       #   1. Hook calls enqueue (non-blocking) — never aggregates inline.
@@ -185,14 +185,14 @@ module Datadog
         # Build flagEvaluationEvent list from aggregation snapshot.
         # Full-tier entries include all optional fields; degraded entries omit targeting_key + context.
         def build_events(snapshot)
-          now_ms = (Core::Utils::Time.now.to_f * 1000).to_i
+          flush_time_ms = (Core::Utils::Time.now.to_f * 1000).to_i
           events = []
 
           snapshot[:full].each do |key, entry|
             flag_key, variant, allocation_key, _runtime_default, _error_message, targeting_key, _ctx_key = key
             event = build_event(
               flag_key: flag_key, variant: variant, allocation_key: allocation_key,
-              targeting_key: targeting_key, entry: entry, now_ms: now_ms, tier: :full,
+              targeting_key: targeting_key, entry: entry, flush_time_ms: flush_time_ms, tier: :full,
             )
             events << event
           end
@@ -201,7 +201,7 @@ module Datadog
             flag_key, variant, allocation_key, _runtime_default, _error_message = key
             event = build_event(
               flag_key: flag_key, variant: variant, allocation_key: allocation_key,
-              targeting_key: nil, entry: entry, now_ms: now_ms, tier: :degraded,
+              targeting_key: nil, entry: entry, flush_time_ms: flush_time_ms, tier: :degraded,
             )
             events << event
           end
@@ -209,10 +209,10 @@ module Datadog
           events
         end
 
-        def build_event(flag_key:, variant:, allocation_key:, targeting_key:, entry:, now_ms:, tier:)
+        def build_event(flag_key:, variant:, allocation_key:, targeting_key:, entry:, flush_time_ms:, tier:)
           # @type var event: ::Hash[::String, untyped]
           event = {
-            'timestamp' => now_ms,
+            'timestamp' => flush_time_ms,
             'flag' => {'key' => flag_key},
             'first_evaluation' => entry[:first_evaluation],
             'last_evaluation' => entry[:last_evaluation],

@@ -4,6 +4,8 @@ module Datadog
       class Writer
         FLUSH_INTERVAL_SECONDS: ::Integer
 
+        DRAIN_INTERVAL_SECONDS: ::Float
+
         QUEUE_SIZE: ::Integer
 
         @transport: Transport::HTTP
@@ -48,6 +50,8 @@ module Datadog
 
         def drain_and_flush: () -> void
 
+        def drain_queue: () -> void
+
         def flush_once: () -> void
 
         def take_dropped_queue_overflow: () -> ::Integer
@@ -62,7 +66,7 @@ module Datadog
           allocation_key: ::String?,
           targeting_key: ::String?,
           entry: ::Hash[::Symbol, untyped],
-          now_ms: ::Integer,
+          flush_time_ms: ::Integer,
           tier: ::Symbol
         ) -> ::Hash[::String, untyped]
       end

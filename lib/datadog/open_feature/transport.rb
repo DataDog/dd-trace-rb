@@ -32,13 +32,13 @@ module Datadog
           end
         end
 
-        # API spec for the EVP flagevaluations endpoint.
-        # Path: /evp_proxy/v2/api/v2/flagevaluations
+        # API spec for the EVP flagevaluation endpoint.
+        # Path: /evp_proxy/v2/api/v2/flagevaluation
         # Header: X-Datadog-EVP-Subdomain: event-platform-intake (same as exposures)
         class FlagevaluationsSpec
           def initialize
             @endpoint = Core::Transport::HTTP::API::Endpoint.new(
-              :post, '/evp_proxy/v2/api/v2/flagevaluations'
+              :post, '/evp_proxy/v2/api/v2/flagevaluation'
             )
           end
 
@@ -60,7 +60,7 @@ module Datadog
           ) { |t| t.api('exposures', HTTP::Spec.new) }.to_transport(self)
         end
 
-        # Build a transport instance for the flagevaluations EVP endpoint.
+        # Build a transport instance for the flagevaluation EVP endpoint.
         def self.build_flagevaluations(agent_settings:, logger:)
           Core::Transport::HTTP.build(
             agent_settings: agent_settings,
@@ -92,7 +92,7 @@ module Datadog
           Core::Transport::InternalErrorResponse.new(e)
         end
 
-        # POST a flag evaluations batch to /evp_proxy/v2/api/v2/flagevaluations.
+        # POST a flag evaluations batch to /evp_proxy/v2/api/v2/flagevaluation.
         # Mirrors send_exposures; uses the FlagevaluationsSpec endpoint.
         def send_flag_evaluations(payload)
           encoder = Core::Encoding::JSONEncoder
