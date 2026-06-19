@@ -8,7 +8,7 @@ stages:
   # For now they will run in parallel with the macrobenchmarks setup
   - ruby-acme-parallel
   - ruby-acme-parallel-slo
-
+ #test
 include:
   - local: ".gitlab/one-pipeline.locked.yml"
   - local: ".gitlab/benchmarks.yml"
