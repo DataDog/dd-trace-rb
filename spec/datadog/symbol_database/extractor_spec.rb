@@ -2456,7 +2456,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       # autoload is conservatively treated as stale and dropped. That is the
       # documented fallback behavior and is unavoidable without the 2.7+ API.
       before(:all) do
-        skip 'requires Module#autoload?(name, inherit) — Ruby 2.7+' if RUBY_VERSION < '2.7'
+        skip 'requires Module#autoload?(name, inherit) — Ruby 2.7+' unless RubyVersion.is?('>= 2.7')
       end
 
       before do

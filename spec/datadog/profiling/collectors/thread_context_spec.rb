@@ -114,6 +114,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_on_gvl_running(thread_context_collector, thread)
   end
 
+  def on_gvl_released(thread)
+    described_class::Testing._native_on_gvl_released(thread)
+  end
+
   def sample_after_gvl_running(thread, allow_exception: false)
     described_class::Testing._native_sample_after_gvl_running(thread_context_collector, thread, allow_exception)
   end
@@ -1591,8 +1595,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   describe "#sample_allocation" do
     let(:single_sample) do
-      expect(samples.size).to be 1
-      samples.first
+      sample_for_thread(samples, Thread.current)
     end
 
     it "samples the caller thread" do
@@ -1651,7 +1654,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         after { Datadog::Tracing.shutdown! }
 
         it 'gathers the "local root span id", "span id" and "trace endpoint"' do
-          expect(single_sample.labels).to include(
+          expect(sample_for_thread(samples, t1).labels).to include(
             "local root span id": @t1_local_root_span_id.to_i,
             "span id": @t1_span_id.to_i,
             "trace endpoint": "trace_resource",
@@ -1745,8 +1748,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   describe "#sample_skipped_allocation_samples" do
     let(:single_sample) do
-      expect(samples.size).to be 1
-      samples.first
+      alloc_samples = samples.select { |s| s.values[:"alloc-samples"]&.positive? }
+      expect(alloc_samples.size).to be 1
+      alloc_samples.first
     end
     before { sample_skipped_allocation_samples(123) }
 
@@ -1872,6 +1876,44 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         end
       end
     end
+
+    context "when thread had skipped samples (was_skipped_at_last_sample)" do
+      let(:waiting_for_gvl_threshold_ns) { 1_000_000_000 }
+
+      before do
+        sample
+        on_gvl_released(t1)
+        sample # first sample updates the snapshot to the suspended counter
+        sample # second sample sees unchanged counter, skips and sets was_skipped_at_last_sample
+        expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be true
+
+        on_gvl_waiting(t1)
+      end
+
+      it "flags that a sample is needed to cut the accumulated idle wall-time" do
+        expect(on_gvl_running(t1)).to be true
+      end
+
+      it "produces a sample via sample_after_gvl_running that consumes the accumulated idle wall-time" do
+        wall_time_before = per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)
+
+        on_gvl_running(t1)
+        sample_after_gvl_running(t1)
+
+        wall_time_after = per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)
+        expect(wall_time_after).to be > wall_time_before
+      end
+
+      it "produces a sample via sample_after_gvl_running that consumes the accumulated CPU time" do
+        apply_delta_to_cpu_time_at_previous_sample_ns(t1, -12345) # Rewind back to ensure it's > 0
+
+        on_gvl_running(t1)
+        sample_after_gvl_running(t1)
+
+        latest_sample = samples_for_thread(samples_from_pprof(recorder.serialize!), t1).last
+        expect(latest_sample.values.fetch(:"cpu-time")).to be >= 12345
+      end
+    end
   end
 
   describe "#sample_after_gvl_running" do
@@ -1950,6 +1992,71 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
   end
 
+  describe "SUSPENDED-skip optimization" do
+    before { skip_if_gvl_profiling_not_supported(self) }
+
+    context "when a thread is suspended (does not hold the GVL)" do
+      before do
+        sample # create thread context
+        recorder.serialize! # flush the initial sample
+        on_gvl_released(t1)
+      end
+
+      it "skips per-tick samples for the suspended thread" do
+        ctx = per_thread_context.fetch(t1)
+        expect(ctx.fetch(:gvl_state_change_count_at_previous_sample)).to_not eq(ctx.fetch(:gvl_state_change_count))
+
+        # first sample updates the snapshot to the suspended counter
+        sample
+        ctx = per_thread_context.fetch(t1)
+        gvl_state_change_count = ctx.fetch(:gvl_state_change_count)
+        expect(ctx.fetch(:gvl_state_change_count_at_previous_sample)).to eq(gvl_state_change_count)
+        expect(ctx.fetch(:was_skipped_at_last_sample)).to be false
+
+        # second sample sees unchanged counter and skips
+        sample
+        ctx = per_thread_context.fetch(t1)
+        expect(ctx.fetch(:gvl_state_change_count)).to eq(gvl_state_change_count)
+        expect(ctx.fetch(:gvl_state_change_count_at_previous_sample)).to eq(gvl_state_change_count)
+        expect(ctx.fetch(:was_skipped_at_last_sample)).to be true
+      end
+
+      it "still records at least one sample per profile period via serialize" do
+        # We test that the optimization applies with consecutive samples, that serialize causes an extra sample,
+        # and also that the optimization applies again after serialize,
+        # causing only 1 sample per profile period if the thread does not acquire the GVL
+
+        sample # updates the snapshot
+        expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be false
+
+        sample # skips, sets was_skipped_at_last_sample
+        expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be true
+
+        # End of profile period 1: serialize flushes the skipped thread
+        result = recorder.serialize!
+        expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be false
+        t1_samples = samples_for_thread(samples_from_pprof(result), t1)
+        # 2 samples: the first sample (updates snapshot) + the on-serialize flush
+        expect(t1_samples.size).to eq(2)
+        expect(t1_samples.sum { |s| s.values.fetch(:"wall-time") }).to be > 0
+
+        # All of these are skipped
+        10.times {
+          sample
+          expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be true
+        }
+
+        # End of profile period 2: serialize again flushes the skipped thread
+        result = recorder.serialize!
+        expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be false
+        t1_samples = samples_for_thread(samples_from_pprof(result), t1)
+        # Exactly 1 sample from the on-serialize flush
+        expect(t1_samples.size).to eq(1)
+        expect(t1_samples.sum { |s| s.values.fetch(:"wall-time") }).to be > 0
+      end
+    end
+  end
+
   describe "#prepare_sample_inside_signal_handler" do
     let(:trigger_context_creation) { true }
 
@@ -2024,7 +2131,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         end
 
         context "on Ruby >= 3.1" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.1." }
+          before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?("< 3.1") }
 
           # Thread#native_thread_id was added on 3.1
           it "contains the native thread ids of all sampled threads" do
@@ -2035,7 +2142,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         end
 
         context "on Ruby < 3.1" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.1." }
+          before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?(">= 3.1") }
 
           it "contains a fallback native thread id" do
             per_thread_context.each do |_thread, context|
@@ -2046,7 +2153,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
 
       it "sets the wall_time_at_previous_sample_ns to the current wall clock value" do
-        expect(per_thread_context.values).to all(
+        not_skipped = per_thread_context.values.reject { |ctx| ctx.fetch(:was_skipped_at_last_sample) }
+        expect(not_skipped).to all(
           include(wall_time_at_previous_sample_ns: be_between(@wall_time_before_sample_ns, @wall_time_after_sample_ns))
         )
       end

@@ -4,7 +4,7 @@ PATH
     datadog (2.36.0.dev)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
-      libdatadog (~> 33.0.0.1.0)
+      libdatadog (~> 35.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
@@ -42,10 +42,10 @@ GEM
     io-console (0.8.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (33.0.0.1.0)
-    libdatadog (33.0.0.1.0-aarch64-linux)
-    libdatadog (33.0.0.1.0-arm64-darwin)
-    libdatadog (33.0.0.1.0-x86_64-linux)
+    libdatadog (35.0.0.1.0)
+    libdatadog (35.0.0.1.0-aarch64-linux)
+    libdatadog (35.0.0.1.0-arm64-darwin)
+    libdatadog (35.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.2-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.2-arm64-darwin)
@@ -57,7 +57,7 @@ GEM
     logger (1.7.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    msgpack (1.8.1)
+    msgpack (1.8.3)
     os (1.1.4)
     pry (0.16.0)
       coderay (~> 1.1)
@@ -95,7 +95,7 @@ GEM
       simplecov_json_formatter (~> 0.1)
     simplecov-html (0.13.2)
     simplecov_json_formatter (0.1.4)
-    stripe (19.2.0)
+    stripe (19.2.1)
       bigdecimal
       logger
     warning (1.6.0)

@@ -122,6 +122,12 @@ RSpec.describe 'Symbol Database Integration' do
         expect(parsed_method['injectible_lines']).to be_an(Array)
         expect(parsed_method['injectible_lines']).not_to be_empty
       ensure
+        # add_scope spawns the ScopeBatcher timer thread via ensure_timer_running
+        # (scope_batcher.rb:228). flush uploads the current batch but leaves the
+        # timer thread running — only shutdown signals @timer_stopped and joins
+        # the thread. Without this, the timer thread outlives the example and the
+        # spec_helper leak detector reports it across subsequent examples.
+        context&.shutdown
         Object.send(:remove_const, :IntegrationTestModule) if defined?(IntegrationTestModule)
       end
     end

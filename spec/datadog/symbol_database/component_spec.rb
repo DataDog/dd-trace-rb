@@ -50,6 +50,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     it 'returns true on MRI Ruby 2.6+' do
       stub_const('RUBY_ENGINE', 'ruby')
       stub_const('RUBY_VERSION', '3.2.0')
+      stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new(RUBY_VERSION))
       expect(described_class.send(:environment_supported?, logger)).to be true
     end
 
@@ -62,6 +63,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     it 'returns false and logs on Ruby < 2.6' do
       stub_const('RUBY_ENGINE', 'ruby')
       stub_const('RUBY_VERSION', '2.5.0')
+      stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new(RUBY_VERSION))
       expect(raw_logger).to receive(:debug) { |&block| expect(block.call).to match(/requires Ruby 2.6\+/) }
       expect(described_class.send(:environment_supported?, logger)).to be false
     end
@@ -495,15 +497,31 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     it 'clears scheduler thread reference and pending schedule' do
       # start_upload assigns @scheduler_thread synchronously inside
       # @scheduler_mutex via ensure_scheduler_thread, so the ivar is non-nil
-      # by the time start_upload returns — no wait needed.
+      # by the time start_upload returns — no wait needed. Capture the
+      # thread reference before after_fork! nils it so we can terminate it
+      # in the ensure block below.
       component.start_upload
-      expect(component.instance_variable_get(:@scheduler_thread)).not_to be_nil
+      scheduler_thread = component.instance_variable_get(:@scheduler_thread)
+      expect(scheduler_thread).not_to be_nil
 
       component.after_fork!
 
       expect(component.instance_variable_get(:@scheduler_thread)).to be_nil
       expect(component.instance_variable_get(:@scheduled_at)).to be_nil
       expect(component.instance_variable_get(:@scheduler_signaled)).to be false
+    ensure
+      # In a real fork, the kernel destroys the parent's scheduler thread in
+      # the child, so the after_fork! contract assumes the underlying thread
+      # is already gone. Simulating fork by calling after_fork! on the parent
+      # in-process leaves the scheduler thread alive and orphaned: it's
+      # bound by closure to the pre-after_fork! @scheduler_mutex /
+      # @scheduler_cv, which nothing else references — it would block in
+      # scheduler_loop's @scheduler_cv.wait forever. shutdown! cannot clean
+      # it up (it acts on the post-after_fork! mutex/cv and the now-nil
+      # @scheduler_thread). Kill the captured reference directly so the
+      # leak detector doesn't report it across subsequent examples.
+      scheduler_thread&.kill
+      scheduler_thread&.join(5)
     end
 
     it 'clears the hot-load buffer and the initial-extraction flag' do

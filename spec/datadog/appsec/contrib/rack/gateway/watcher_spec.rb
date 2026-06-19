@@ -70,16 +70,53 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Watcher do
       end
     end
 
-    context 'when the body size cannot be determined' do
+    context 'when the body size is unknown' do
       before do
-        allow(gateway_request.request).to receive(:body).and_return(Object.new)
-        allow(gateway_request.request).to receive(:content_length).and_return(nil)
+        gateway_request.env.delete('CONTENT_LENGTH')
+        gateway_request.env['rack.input'] = unsized_io
       end
 
-      it 'does not run WAF' do
-        gateway.push('rack.request.body', gateway_request)
+      let(:unsized_io) do
+        StringIO.new('name=john').tap do |io|
+          allow(io).to receive(:respond_to?).and_call_original
+          allow(io).to receive(:respond_to?).with(:size).and_return(false)
+        end
+      end
 
-        expect(context).not_to have_received(:run_waf)
+      context 'and the body fits within the limit' do
+        it 'runs WAF with the body and its measured byte length' do
+          gateway.push('rack.request.body', gateway_request)
+
+          expect(context).to have_received(:run_waf).with(
+            {'server.request.body' => {'name' => 'john'}, 'server.request.body.byte_length' => 9}, {}, anything
+          )
+        end
+      end
+
+      context 'and the body exceeds the limit' do
+        before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(4) }
+
+        it 'does not run WAF' do
+          gateway.push('rack.request.body', gateway_request)
+
+          expect(context).not_to have_received(:run_waf)
+        end
+
+        it 'keeps rack input compatible with form parsing' do
+          gateway.push('rack.request.body', gateway_request)
+
+          expect(::Rack::Request.new(gateway_request.env).POST).to eq('name' => 'john')
+        end
+      end
+
+      context 'and body collection is disabled' do
+        before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(0) }
+
+        it 'does not run WAF' do
+          gateway.push('rack.request.body', gateway_request)
+
+          expect(context).not_to have_received(:run_waf)
+        end
       end
     end
 
@@ -106,12 +143,10 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Watcher do
     context 'when the parsing size limit is zero' do
       before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(0) }
 
-      it 'runs WAF with only the byte length' do
+      it 'does not run WAF' do
         gateway.push('rack.request.body', gateway_request)
 
-        expect(context).to have_received(:run_waf).with(
-          {'server.request.body.byte_length' => 9}, {}, anything
-        )
+        expect(context).not_to have_received(:run_waf)
       end
     end
 

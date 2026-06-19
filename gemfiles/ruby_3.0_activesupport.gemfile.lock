@@ -4,7 +4,7 @@ PATH
     datadog (2.36.0.dev)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
-      libdatadog (~> 33.0.0.1.0)
+      libdatadog (~> 35.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
@@ -99,10 +99,10 @@ GEM
       addressable (>= 2.4)
     jsonapi-renderer (0.2.2)
     king_konf (1.0.1)
-    libdatadog (33.0.0.1.0)
-    libdatadog (33.0.0.1.0-aarch64-linux)
-    libdatadog (33.0.0.1.0-arm64-darwin)
-    libdatadog (33.0.0.1.0-x86_64-linux)
+    libdatadog (35.0.0.1.0)
+    libdatadog (35.0.0.1.0-aarch64-linux)
+    libdatadog (35.0.0.1.0-arm64-darwin)
+    libdatadog (35.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.2-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.2-arm64-darwin)
@@ -124,7 +124,7 @@ GEM
     method_source (1.1.0)
     mini_portile2 (2.8.4)
     minitest (5.20.0)
-    msgpack (1.8.1)
+    msgpack (1.8.3)
     mustermann (3.0.0)
       ruby2_keywords (~> 0.0.1)
     mustermann-grape (1.0.2)

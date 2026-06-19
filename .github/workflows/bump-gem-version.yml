@@ -48,7 +48,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
+        uses: ruby/setup-ruby@89f90524b88a01fe6e0b732220432cc6142926af # v1.313.0
         with:
           ruby-version: "4.0.1"
 
@@ -58,6 +58,11 @@ jobs:
         run: |
           echo "Updating version to ${NEXT_VERSION}"
           bundle exec rake "version:bump[${NEXT_VERSION}]"
+
+      # Post-release cleanup: reset the forced-tests list to its canonical empty
+      # state from the template. Idempotent - a no-op (no diff) when already reset.
+      - name: Reset forced tests list
+        run: cp .github/forced-tests-list.cfg.template .github/forced-tests-list.cfg
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
@@ -70,7 +75,7 @@ jobs:
           commit-message: "[🤖] Update datadog gem version to ${{ inputs.version }}"
           delete-branch: true
           sign-commits: true
-          add-paths: gemfiles,tools/*.lock,lib/datadog/version.rb
+          add-paths: gemfiles,tools/*.lock,lib/datadog/version.rb,.github/forced-tests-list.cfg
           body: |
             _This is an auto-generated PR from [here](${{github.server_url}}/${{ github.repository }}/blob/master/.github/workflows/bump-datadog-gem-version.yml)_
             The PR updates the version of datadog gem to ${{ inputs.version }}
