@@ -177,7 +177,7 @@ GEM
     stringio (3.2.0)
     tsort (0.2.0)
     warning (1.6.0)
-    waterdrop (2.10.1)
+    waterdrop (2.10.2)
       karafka-core (>= 2.5.12, < 3.0.0)
       karafka-rdkafka (>= 0.24.0)
       zeitwerk (~> 2.3)
