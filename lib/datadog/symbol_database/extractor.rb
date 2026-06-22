@@ -244,7 +244,7 @@ module Datadog
         current = Object
         mod_name.split('::').each do |seg|
           sym = seg.to_sym
-          pending_autoload = if RUBY_VERSION >= '2.7'
+          pending_autoload = if RubyVersion.is?('>= 2.7')
             current.autoload?(sym, false)
           else
             current.autoload?(sym)

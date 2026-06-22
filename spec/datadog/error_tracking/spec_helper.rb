@@ -5,7 +5,7 @@ module ErrorTrackingHelpers
         skip 'Error Tracking is not supported on JRuby'
       end
     end
-    if RUBY_VERSION < '2.7'
+    if RubyVersion.is?('< 2.7')
       before(:all) do
         skip 'Error Tracking requires Ruby 2.7 or higher'
       end

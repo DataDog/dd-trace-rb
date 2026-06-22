@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require_relative '../../core/utils'
+require_relative 'helpers'
+
 module Datadog
   module Tracing
     module Distributed
@@ -282,8 +285,11 @@ module Datadog
           trace_flags & TRACE_FLAGS_SAMPLED
         end
 
-        # @return [Array<String,Integer,String,String,Hash>] returns 4 values:
-        # tracestate, sampling_priority, ts_parent_id, origin, tags.
+        # @return [nil] when the tracestate is absent or has no vendor entries.
+        # @return [String] when no `dd=` entry is present, the joined vendor list.
+        # @return [Array(String, Integer, String, String, Hash, String)] when a `dd=`
+        #   entry is present: [tracestate without `dd=`, sampling_priority, origin,
+        #   ts_parent_id, tags, unknown_fields]. All elements past the first may be nil.
         def extract_tracestate(tracestate)
           vendors = split_tracestate(tracestate)
           return unless vendors && !vendors.empty?
@@ -394,6 +400,9 @@ module Datadog
             tracestate = tracestate.byteslice(0, TRACESTATE_MAX_SIZE_LIMIT + 1) #: String
             tracestate = tracestate.chop
           end
+
+          tracestate = ::Datadog::Core::Utils.utf8_encode(tracestate, placeholder: nil)
+          return unless tracestate
 
           vendors = tracestate.split(',', TRACESTATE_MAX_LIST_MEMBERS + 1)
           if vendors.length > TRACESTATE_MAX_LIST_MEMBERS || remove_last_member
