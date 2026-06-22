@@ -3,10 +3,10 @@
 module Datadog
   module AppSec
     module RouteNormalizer
-      # Percent-encodes static route text, leaving param templates untouched.
+      # Percent-encodes route text, leaving param templates untouched
       #
       # @api private
-      module Encoder
+      module RouteText
         DISALLOWED_CHARS = %r{[^\w.~/-]}
 
         # Per-byte percent-encoding lookup, indexed by byte value (0-255)
@@ -29,7 +29,17 @@ module Datadog
 
         module_function
 
-        def encode_static(text)
+        # Escapes literal route text into normalized-route form
+        #
+        # Example:
+        #
+        #  a+b => a%2Bb
+        #  café => caf%C3%A9
+        #  /users/path => /users/path
+        #
+        # NOTE: {URI::Parser#escape} with {DISALLOWED_CHARS} gives the same output,
+        #       but the generic gsub/sprintf path is slower and allocates more per request
+        def escape(text)
           return text unless text.match?(DISALLOWED_CHARS)
 
           buffer = String.new(capacity: text.bytesize * MAX_ENCODED_BYTE_SIZE, encoding: Encoding::UTF_8)
@@ -38,7 +48,7 @@ module Datadog
         # NOTE: Defensive only — this can never happen. {String#each_byte} yields
         #       integers in 0-255 and {BYTE_ENCODING_TABLE} has an entry for every one
         rescue IndexError => e
-          AppSec.telemetry&.report(e, description: 'AppSec: Route segment byte outside 0-255 encoding table')
+          AppSec.telemetry&.report(e, description: 'AppSec: Route text byte outside 0-255 escape table')
           '~invalid~'
         end
       end

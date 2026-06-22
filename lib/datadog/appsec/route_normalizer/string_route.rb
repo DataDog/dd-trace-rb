@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'encoder'
+require_relative 'route_text'
 
 module Datadog
   module AppSec
@@ -68,10 +68,10 @@ module Datadog
             memo << '/' unless memo.empty? && segment.empty?
             next if segment.empty?
 
-            next memo << Encoder.encode_static(segment) unless segment.match?(PARAM_SIGILS)
+            next memo << RouteText.escape(segment) unless segment.match?(PARAM_SIGILS)
 
             tokens = segment.scan(PARAM_TOKEN)
-            next memo << Encoder.encode_static(segment) if tokens.empty?
+            next memo << RouteText.escape(segment) if tokens.empty?
 
             names = tokens.map do |token|
               (token.length > 1) ? token[1..-1] : "param#{nameless_counter += 1}"

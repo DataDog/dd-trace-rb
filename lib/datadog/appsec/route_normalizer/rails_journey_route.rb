@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'string_route'
-require_relative 'encoder'
+require_relative 'route_text'
 
 module Datadog
   module AppSec
@@ -30,7 +30,7 @@ module Datadog
         def normalize_ast
           if @route.path.names.empty?
             spec_string = @route.path.spec.to_s
-            return Encoder.encode_static(spec_string) unless spec_string.include?('(')
+            return RouteText.escape(spec_string) unless spec_string.include?('(')
           end
 
           @result = +''
@@ -68,7 +68,7 @@ module Datadog
 
         def flush_segment
           @result << '/' if @parts > 0
-          @result << (@has_param ? render_params : Encoder.encode_static(@static))
+          @result << (@has_param ? render_params : RouteText.escape(@static))
           @parts += 1
 
           @static.clear
