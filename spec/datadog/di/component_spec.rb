@@ -54,8 +54,10 @@ RSpec.describe Datadog::DI::Component do
       end
 
       context 'without DD_DYNAMIC_INSTRUMENTATION_ENABLED set' do
-        it 'returns nil and logs at debug only' do
-          expect(logger).to receive(:debug)
+        it 'returns nil and logs the RC-disabled reason at debug' do
+          expect(logger).to receive(:debug).with(
+            a_string_matching(%r{Remote Configuration is not enabled.*docs\.datadoghq\.com/agent/remote_config})
+          )
           expect(logger).not_to receive(:warn)
           expect(described_class.build(settings, agent_settings, logger)).to be nil
         end
@@ -78,8 +80,8 @@ RSpec.describe Datadog::DI::Component do
       end
 
       context 'without DD_DYNAMIC_INSTRUMENTATION_ENABLED set' do
-        it 'returns nil and logs at debug only' do
-          expect(logger).to receive(:debug)
+        it 'returns nil and logs the MRI-required reason at debug' do
+          expect(logger).to receive(:debug).with(a_string_matching(/MRI is required.*jruby/))
           expect(logger).not_to receive(:warn)
           expect(described_class.build(settings, agent_settings, logger)).to be nil
         end
@@ -106,8 +108,8 @@ RSpec.describe Datadog::DI::Component do
       end
 
       context 'without DD_DYNAMIC_INSTRUMENTATION_ENABLED set' do
-        it 'returns nil and logs at debug only' do
-          expect(logger).to receive(:debug)
+        it 'returns nil and logs the Ruby-version reason at debug' do
+          expect(logger).to receive(:debug).with(a_string_matching(/Ruby 2\.6\+ is required.*2\.5\.0/))
           expect(logger).not_to receive(:warn)
           expect(described_class.build(settings, agent_settings, logger)).to be nil
         end
@@ -131,8 +133,8 @@ RSpec.describe Datadog::DI::Component do
       end
 
       context 'without DD_DYNAMIC_INSTRUMENTATION_ENABLED set' do
-        it 'returns nil and logs at debug only' do
-          expect(logger).to receive(:debug)
+        it 'returns nil and logs the C-extension-absent reason at debug' do
+          expect(logger).to receive(:debug).with(a_string_matching(/C extension is not available/))
           expect(logger).not_to receive(:warn)
           expect(described_class.build(settings, agent_settings, logger)).to be nil
         end
