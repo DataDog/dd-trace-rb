@@ -313,7 +313,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         expect(evp_hook).not_to have_received(:finally)
       end
 
-      it 'rescued provider exception: returns the error default and never raises into the caller' do
+      it 'rescued provider exception: drives the EVP hook with error_message + nil variant' do
         allow(engine).to receive(:fetch_value).and_raise(RuntimeError, 'boom')
 
         res = nil
@@ -321,8 +321,12 @@ RSpec.describe Datadog::OpenFeature::Provider do
           .not_to raise_error
         expect(res.value).to eq('d')
         expect(res.reason).to eq('ERROR')
-        # The exception is raised before call_evp_hook, so the hook is correctly not driven.
-        expect(evp_hook).not_to have_received(:finally)
+        expect(evp_hook).to have_received(:finally) do |hook_context:, evaluation_details:, **|
+          expect(hook_context.flag_key).to eq('boom-flag')
+          expect(evaluation_details.variant).to be_nil
+          expect(evaluation_details.error_message).to eq('RuntimeError: boom')
+          expect(evaluation_details.flag_metadata).to include('dd.eval.timestamp_ms')
+        end
       end
     end
 

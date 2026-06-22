@@ -127,54 +127,76 @@ module Datadog
         # Stamp evaluation entry time once, here on the eval thread. The EVP path uses this for
         # accurate first/last_evaluation bounds instead of a later hook-fire clock read.
         eval_time_ms = (Core::Utils::Time.now.to_f * 1000).to_i
+        evp_hook_called = false
 
         engine = OpenFeature.engine
         return component_not_configured_default(default_value) if engine.nil?
 
-        result = engine.fetch_value(
+        result = fetch_engine_value(engine, flag_key, default_value, expected_type, evaluation_context)
+
+        # Build metadata before branching so EVP and the success path share one call.
+        flag_meta = build_flag_metadata(result, eval_time_ms)
+
+        if result.error?
+          # Drive EVP hook directly: the Ruby openfeature-sdk does not invoke provider hooks,
+          # so we call it here to cover both success and error paths (finally semantics).
+          call_evp_hook(flag_key, result, evaluation_context, flag_meta)
+          evp_hook_called = true
+
+          return sdk_error_details(default_value, result.error_code, result.error_message, result.reason)
+        end
+
+        details = sdk_success_details(result, flag_meta)
+
+        call_evp_hook(flag_key, result, evaluation_context, flag_meta)
+        evp_hook_called = true
+        details
+      rescue => e
+        error_message = "#{e.class}: #{e.message}"
+        error_result = Datadog::OpenFeature::ResolutionDetails.build_error(
+          value: default_value,
+          error_code: Ext::GENERAL,
+          error_message: error_message
+        )
+        unless evp_hook_called
+          error_flag_meta = build_flag_metadata(error_result, eval_time_ms || (Core::Utils::Time.now.to_f * 1000).to_i)
+          call_evp_hook(flag_key, error_result, evaluation_context, error_flag_meta)
+        end
+
+        sdk_error_details(default_value, Ext::GENERAL, error_message, Ext::ERROR)
+      end
+
+      def fetch_engine_value(engine, flag_key, default_value, expected_type, evaluation_context)
+        engine.fetch_value(
           flag_key,
           default_value: default_value,
           expected_type: expected_type,
           evaluation_context: evaluation_context
         )
+      end
 
-        # Build metadata before branching so EVP and the success path share one call.
-        flag_meta = build_flag_metadata(result, eval_time_ms)
-
-        # Drive EVP hook directly: the Ruby openfeature-sdk does not invoke provider hooks,
-        # so we call it here to cover both success and error paths (finally semantics).
-        call_evp_hook(flag_key, result, evaluation_context, flag_meta)
-
-        if result.error?
-          return ::OpenFeature::SDK::Provider::ResolutionDetails.new(
-            value: default_value,
-            error_code: result.error_code,
-            error_message: result.error_message,
-            reason: result.reason
-          )
-        end
-
+      def sdk_success_details(result, flag_meta)
         ::OpenFeature::SDK::Provider::ResolutionDetails.new(
           value: result.value,
           variant: result.variant,
           reason: result.reason,
           flag_metadata: flag_meta,
         )
-      rescue => e
+      end
+
+      def sdk_error_details(default_value, error_code, error_message, reason)
         ::OpenFeature::SDK::Provider::ResolutionDetails.new(
           value: default_value,
-          error_code: Ext::GENERAL,
-          error_message: "#{e.class}: #{e.message}",
-          reason: Ext::ERROR
+          error_code: error_code,
+          error_message: error_message,
+          reason: reason
         )
       end
 
       def build_flag_metadata(result, eval_time_ms)
         metadata = (result.flag_metadata || {}).dup
         allocation_key = result.allocation_key
-        if allocation_key && !allocation_key.empty?
-          metadata['__dd_allocation_key'] = allocation_key
-        end
+        metadata['__dd_allocation_key'] = allocation_key if allocation_key && !allocation_key.empty?
 
         # Eval-time stamped at provider entry; the EVP hook reads 'dd.eval.timestamp_ms' for
         # accurate first/last_evaluation bounds (it falls back to hook-fire time when absent).
@@ -204,12 +226,7 @@ module Datadog
         hook = Datadog.send(:components).open_feature&.flag_eval_evp_hook
         return unless hook
 
-        evp_ctx = if evaluation_context
-          targeting_key = evaluation_context.targeting_key
-          # attributes: all fields except targeting_key (mirrors how exposures builds context)
-          attrs = evaluation_context.fields.reject { |k, _| k == ::OpenFeature::SDK::EvaluationContext::TARGETING_KEY }
-          EvpEvalContext.new(targeting_key, attrs)
-        end
+        evp_ctx = build_evp_eval_context(evaluation_context)
 
         hook.finally(
           hook_context: HookContext.new(flag_key, evp_ctx),
@@ -218,6 +235,15 @@ module Datadog
       rescue => e
         # Best-effort: EVP emission must never raise into the evaluation hot path.
         Datadog.logger.debug { "OpenFeature EVP: call_evp_hook error: #{e.class}: #{e.message}" }
+      end
+
+      def build_evp_eval_context(evaluation_context)
+        return unless evaluation_context
+
+        targeting_key = evaluation_context.targeting_key
+        # attributes: all fields except targeting_key (mirrors how exposures builds context)
+        attrs = evaluation_context.fields.reject { |k, _| k == ::OpenFeature::SDK::EvaluationContext::TARGETING_KEY }
+        EvpEvalContext.new(targeting_key, attrs)
       end
     end
   end
