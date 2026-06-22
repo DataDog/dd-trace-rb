@@ -36,7 +36,7 @@ module Datadog
         RESERVED_PATTERN_CHARS = '():*./'
 
         # Rails uses `(...)`; Mustermann uses `(...)?`.
-        # Fallback keeps optional contents and removes only group markers.
+        OPTIONAL_GROUP_START = '('
         OPTIONAL_GROUP_MARKERS = '()?'
 
         # Upper bound on request path length we will scan to resolve optionals.
@@ -45,10 +45,10 @@ module Datadog
 
         def initialize(pattern)
           @pattern = pattern
-          @fallback_pattern = if pattern.include?('(') || pattern.include?('?')
-            pattern.delete(OPTIONAL_GROUP_MARKERS)
-          else
-            pattern
+          @pattern_without_optional_groups = pattern
+
+          if pattern.include?(OPTIONAL_GROUP_START)
+            @pattern_without_optional_groups = pattern.delete(OPTIONAL_GROUP_MARKERS)
           end
         end
 
@@ -58,13 +58,13 @@ module Datadog
             return render_pattern(resolved) if resolved
           end
 
-          render_pattern(@fallback_pattern)
+          render_pattern(@pattern_without_optional_groups)
         end
 
         private
 
         def resolve_optionals?(request_path)
-          request_path && @pattern.include?('(') && request_path.length <= MAX_RESOLVE_LENGTH
+          request_path && @pattern.include?(OPTIONAL_GROUP_START) && request_path.length <= MAX_RESOLVE_LENGTH
         end
 
         def render_pattern(pattern)
