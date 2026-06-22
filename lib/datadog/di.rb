@@ -106,7 +106,7 @@ module Datadog
         if RUBY_ENGINE != 'ruby'
           return "MRI is required, but running on #{RUBY_ENGINE}"
         end
-        if RUBY_VERSION < '2.6'
+        if Datadog::RubyVersion.is?('< 2.6')
           return "Ruby 2.6+ is required, but running on #{RUBY_VERSION}"
         end
         unless respond_to?(:exception_message)

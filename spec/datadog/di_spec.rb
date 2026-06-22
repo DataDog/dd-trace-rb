@@ -150,8 +150,13 @@ RSpec.describe(Datadog::DI) do
       # stub this test would fail on Ruby 2.5 (which is otherwise
       # supported by spec:main). The test's subject is the precondition
       # logic itself, not the actual platform.
+      #
+      # Stub both RUBY_VERSION (used in the error message interpolation)
+      # AND Datadog::RubyVersion::CURRENT_RUBY_VERSION (the cached value
+      # RubyVersion.is? compares against, captured at module load time).
       before do
         stub_const('RUBY_VERSION', '3.0.0')
+        stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new('3.0.0'))
         allow(described_class).to receive(:respond_to?).and_call_original
         allow(described_class).to receive(:respond_to?).with(:exception_message).and_return(true)
       end
@@ -198,7 +203,10 @@ RSpec.describe(Datadog::DI) do
     end
 
     context 'when running on Ruby older than 2.6' do
-      before { stub_const('RUBY_VERSION', '2.5.9') }
+      before do
+        stub_const('RUBY_VERSION', '2.5.9')
+        stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new('2.5.9'))
+      end
 
       it 'names the version' do
         expect(described_class.unsupported_reason(settings))
@@ -208,10 +216,12 @@ RSpec.describe(Datadog::DI) do
 
     context 'when the C extension is not loaded' do
       before do
-        # Neutralize the earlier RUBY_VERSION < '2.6' check so this context
+        # Neutralize the earlier Ruby-version check so this context
         # reaches the C-extension branch when the spec runs on Ruby 2.5.
         # Same pattern as the non-MRI context's stub_const('RUBY_ENGINE', ...).
+        # Stub both RUBY_VERSION (message) and CURRENT_RUBY_VERSION (gate).
         stub_const('RUBY_VERSION', '3.0.0')
+        stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new('3.0.0'))
         allow(described_class).to receive(:respond_to?).and_call_original
         allow(described_class).to receive(:respond_to?).with(:exception_message).and_return(false)
       end
