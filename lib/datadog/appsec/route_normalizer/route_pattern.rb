@@ -55,10 +55,10 @@ module Datadog
         def normalize(request_path: nil)
           if resolve_optionals?(request_path)
             resolved = resolve_optionals(request_path)
-            return build_template(resolved) if resolved
+            return render_pattern(resolved) if resolved
           end
 
-          build_template(@fallback_pattern)
+          render_pattern(@fallback_pattern)
         end
 
         private
@@ -67,10 +67,10 @@ module Datadog
           request_path && @pattern.include?('(') && request_path.length <= MAX_RESOLVE_LENGTH
         end
 
-        def build_template(route)
+        def render_pattern(pattern)
           nameless_counter = 0
 
-          result = route.split('/', -1).each_with_object(+'') do |segment, memo|
+          result = pattern.split('/', -1).each_with_object(+'') do |segment, memo|
             memo << '/' unless memo.empty? && segment.empty?
             next if segment.empty?
 
