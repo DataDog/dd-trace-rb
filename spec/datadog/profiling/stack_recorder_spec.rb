@@ -460,7 +460,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         before do
-          skip "Heap profiling is only supported on Ruby >= 2.7" if RubyVersion.is?("< 2.7")
+          skip "Heap profiling is only supported on Ruby >= 2.7" unless RubyVersion.is?(">= 2.7")
         end
 
         it "include the stack and sample counts for the objects still left alive" do
@@ -1022,7 +1022,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       let(:heap_size_enabled) { true }
 
       before do
-        skip "Heap profiling is only supported on Ruby >= 2.7" if RubyVersion.is?("< 2.7")
+        skip "Heap profiling is only supported on Ruby >= 2.7" unless RubyVersion.is?(">= 2.7")
       end
 
       def sample_allocation(obj)
