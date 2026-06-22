@@ -143,7 +143,6 @@ RSpec.describe Datadog::DI::Remote do
         expect { described_class.handle_rc_enablement(true) }.not_to raise_error
       end
     end
-
   end
 
   describe '.handle_rc_enablement settings invariant' do
