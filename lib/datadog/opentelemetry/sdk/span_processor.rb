@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'trace/span'
+require_relative '../../core/utils'
 require_relative '../../tracing/span_link'
 require_relative '../../tracing/span_event'
 require_relative '../../tracing/trace_digest'
@@ -101,12 +102,14 @@ module Datadog
 
           unless span.links.nil?
             datadog_span.links = span.links.map do |link|
+              tracestate = link.span_context.tracestate&.to_s
+
               Datadog::Tracing::SpanLink.new(
                 Datadog::Tracing::TraceDigest.new(
                   trace_id: link.span_context.hex_trace_id.to_i(16),
                   span_id: link.span_context.hex_span_id.to_i(16),
                   trace_sampling_priority: (link.span_context.trace_flags&.sampled? ? 1 : 0),
-                  trace_state: link.span_context.tracestate&.to_s,
+                  trace_state: tracestate && ::Datadog::Core::Utils.utf8_encode(tracestate, placeholder: nil),
                   span_remote: link.span_context.remote?,
                 ),
                 attributes: link.attributes

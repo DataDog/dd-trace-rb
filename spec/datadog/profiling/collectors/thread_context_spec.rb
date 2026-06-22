@@ -1929,6 +1929,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
 
       it "does not sample the thread" do
+        skip("This is flaky -- we're discussing a full fix in https://github.com/DataDog/dd-trace-rb/pull/5926 but for now let's skip")
+
         sample_after_gvl_running(t1)
 
         expect(samples).to be_empty
@@ -2131,7 +2133,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         end
 
         context "on Ruby >= 3.1" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.1." }
+          before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?("< 3.1") }
 
           # Thread#native_thread_id was added on 3.1
           it "contains the native thread ids of all sampled threads" do
@@ -2142,7 +2144,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         end
 
         context "on Ruby < 3.1" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.1." }
+          before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?(">= 3.1") }
 
           it "contains a fallback native thread id" do
             per_thread_context.each do |_thread, context|

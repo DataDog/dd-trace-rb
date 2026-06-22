@@ -23,22 +23,25 @@ module Datadog
               def watch_request_action(gateway = Instrumentation.gateway)
                 gateway.watch('rails.request.action') do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
+                  limit = Datadog.configuration.appsec.body_parsing_size_limit
 
                   persistent_data = {
                     'server.request.path_params' => gateway_request.route_params
                   }
 
-                  # NOTE: Specification requires measuring the body size,
-                  #       preferring the raw data over the Content-Length header
-                  body_io = gateway_request.request.body
-                  byte_length = body_io.respond_to?(:size) ? body_io.size : gateway_request.request.content_length
+                  unless limit.zero?
+                    byte_length = gateway_request.body_bytesize(limit)
 
-                  if byte_length&.positive?
-                    persistent_data['server.request.body.byte_length'] = byte_length
+                    if byte_length
+                      # NOTE: Params may be parsed before this hook, leaving the
+                      #       body stream at EOF. Keep byte_length unset for that
+                      #       case, but still inspect cached params
+                      persistent_data['server.request.body.byte_length'] = byte_length if byte_length.positive?
 
-                    if byte_length <= Datadog.configuration.appsec.body_parsing_size_limit
-                      body = gateway_request.parsed_body
-                      persistent_data['server.request.body'] = body if body
+                      if byte_length <= limit
+                        body = gateway_request.parsed_body
+                        persistent_data['server.request.body'] = body unless body.nil? || body.empty?
+                      end
                     end
                   end
 
