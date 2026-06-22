@@ -711,7 +711,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
     # the env var directly, and carrying "implicit" forward would override
     # a user's explicit disable on reconfiguration.
 
-    context 'when DI component is started via env var (settings.enabled true)' do
+    context 'when DI is started and the env var was explicitly set' do
+      # Represents the env-var-driven enablement path: customer set
+      # DD_DYNAMIC_INSTRUMENTATION_ENABLED=true, Components#startup! called
+      # component.start!. #state must capture this as explicit (not implicit),
+      # so a subsequent reconfigure with the env var unset does not
+      # accidentally restart DI.
       let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: true, shutdown!: nil) }
 
       before do
@@ -724,11 +729,15 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
     end
 
-    context 'when DI component is started via RC (settings.enabled false)' do
+    context 'when DI is started and the customer never touched the env var' do
+      # Represents the RC-driven enablement path: customer never set the
+      # env var, but Remote.handle_rc_enablement received an enable signal
+      # and started the component. #state must capture this as implicit,
+      # so the next Components rebuild carries the started state forward.
       let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: true, shutdown!: nil) }
 
       before do
-        # settings.dynamic_instrumentation.enabled left at default (false)
+        # settings.dynamic_instrumentation.enabled left at default (using_default? => true)
         allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
       end
 
