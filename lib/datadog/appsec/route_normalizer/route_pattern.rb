@@ -24,20 +24,20 @@ module Datadog
       #
       # @api private
       class RoutePattern
-        PARAM_TOKEN = /:\w+|(?<!\w)\*\w*/
-        PARAM_SIGILS = /[:\*]/
-        WORD_CHAR = /\w/
+        PARAM_TOKEN_PATTERN = /:\w+|(?<!\w)\*\w*/
+        PARAM_SIGIL_PATTERN = /[:\*]/
+        WORD_CHAR_PATTERN = /\w/
 
-        # A param value ends at the next segment boundary in the request path.
-        SEGMENT_BOUNDARY = %r{[./]}
+        # A param value ends at the next path or format boundary in the request path.
+        PARAM_BOUNDARY_PATTERN = %r{[./]}
 
         # Pattern characters that are never custom segment delimiters: `.` and
         # `/` are the default boundaries, `():*` are structural.
         RESERVED_PATTERN_CHARS = '():*./'
 
         # Rails uses `(...)`; Mustermann uses `(...)?`.
-        OPTIONAL_GROUP_START = '('
-        OPTIONAL_GROUP_MARKERS = '()?'
+        OPTIONAL_GROUP_START_CHAR = '('
+        OPTIONAL_GROUP_MARKER_CHARS = '()?'
 
         # Upper bound on request path length we will scan to resolve optionals.
         # Beyond it we flatten instead, trading exactness for bounded work.
@@ -47,8 +47,8 @@ module Datadog
           @pattern = pattern
           @pattern_without_optional_groups = pattern
 
-          if pattern.include?(OPTIONAL_GROUP_START)
-            @pattern_without_optional_groups = pattern.delete(OPTIONAL_GROUP_MARKERS)
+          if pattern.include?(OPTIONAL_GROUP_START_CHAR)
+            @pattern_without_optional_groups = pattern.delete(OPTIONAL_GROUP_MARKER_CHARS)
           end
         end
 
@@ -64,7 +64,8 @@ module Datadog
         private
 
         def resolve_optionals?(request_path)
-          request_path && @pattern.include?(OPTIONAL_GROUP_START) && request_path.length <= MAX_RESOLVE_LENGTH
+          request_path && @pattern.include?(OPTIONAL_GROUP_START_CHAR) &&
+            request_path.length <= MAX_RESOLVE_LENGTH
         end
 
         def render_pattern(pattern)
@@ -74,9 +75,9 @@ module Datadog
             memo << '/' unless memo.empty? && segment.empty?
             next if segment.empty?
 
-            next memo << RouteText.escape(segment) unless segment.match?(PARAM_SIGILS)
+            next memo << RouteText.escape(segment) unless segment.match?(PARAM_SIGIL_PATTERN)
 
-            tokens = segment.scan(PARAM_TOKEN)
+            tokens = segment.scan(PARAM_TOKEN_PATTERN)
             next memo << RouteText.escape(segment) if tokens.empty?
 
             names = tokens.map do |token|
@@ -115,7 +116,7 @@ module Datadog
               pattern_pos += 1
             when ':', '*'
               name_end = pattern_pos + 1
-              name_end += 1 while name_end < pattern_len && WORD_CHAR.match?(@pattern[name_end])
+              name_end += 1 while name_end < pattern_len && WORD_CHAR_PATTERN.match?(@pattern[name_end])
 
               if char == ':' && name_end == pattern_pos + 1
                 return unless url_pos < url_len && request_path[url_pos] == ':'
@@ -141,7 +142,7 @@ module Datadog
         end
 
         def consume_value(request_path, from, next_pattern_char)
-          default_stop = request_path.index(SEGMENT_BOUNDARY, from) || request_path.length
+          default_stop = request_path.index(PARAM_BOUNDARY_PATTERN, from) || request_path.length
           return default_stop unless custom_delimiter?(next_pattern_char)
 
           custom_stop = request_path.index(next_pattern_char, from) || request_path.length
@@ -150,7 +151,7 @@ module Datadog
 
         def custom_delimiter?(char)
           return false if char.nil?
-          return false if WORD_CHAR.match?(char)
+          return false if WORD_CHAR_PATTERN.match?(char)
 
           !RESERVED_PATTERN_CHARS.include?(char)
         end
