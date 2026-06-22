@@ -18,6 +18,10 @@ module Datadog
       class MissingLineNumber < Error
       end
 
+      # Probe does not contain a method name (i.e., is not a method probe).
+      class MissingMethodName < Error
+      end
+
       # Failed to communicate to the local Datadog agent (e.g. to send
       # probe status or a snapshot).
       class AgentCommunicationError < Error

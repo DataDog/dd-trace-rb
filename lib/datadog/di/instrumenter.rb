@@ -103,9 +103,9 @@ module Datadog
         end
 
         cls = symbolize_class_name(probe.type_name)
-        method_name = probe.method_name
+        method_name = probe.method_name!
         loc = begin
-          cls.instance_method(method_name).source_location # steep:ignore ArgumentTypeMismatch
+          cls.instance_method(method_name).source_location
         rescue NameError
           # The target method is not defined.
           # This could be because it will be explicitly defined later
@@ -118,11 +118,17 @@ module Datadog
 
         mod = Module.new do
           define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore NoMethod
-            # Re-entrancy guard: if we are already inside a DI probe
+            # Re-entrancy guard: if we are already inside a DI method-probe
             # callback, skip DI processing and call the original method
-            # directly. This prevents SystemStackError when a probe is
-            # set on a stdlib method that DI itself calls during
+            # directly. This prevents SystemStackError when a method probe is
+            # set on a stdlib method that DI itself calls during method-probe
             # snapshot building (e.g., String#length, Hash#each).
+            #
+            # Scope: this guard protects method-probe → method-probe
+            # re-entrancy only. Line probes do not enter the guard — they
+            # rely on Ruby's TracePoint, which self-disables during its own
+            # callback. A method probe on a stdlib method called while a
+            # line probe is processing its snapshot will still fire.
             #
             # Inline the splat dispatch directly here so the guarded
             # path allocates no Proc and makes no Proc#call dispatch.
@@ -191,16 +197,11 @@ module Datadog
             # block (see the kwargs narrowing note above); the call site
             # therefore can't satisfy run_method_probe's `::Hash[::Symbol, untyped]`
             # parameter and Steep falls back to any.
-            # ArgumentTypeMismatch: method_name's static type is the
-            # `Symbol | String` of probe.method_name read at line 106;
-            # run_method_probe declares `::String`. The probe contract
-            # is that method_name is always a String at this point, but
-            # Steep can't prove it from the input type.
             instrumenter.run_method_probe(
               args, kwargs, target_block, # steep:ignore FallbackAny
               self, do_super,
               probe, responder,
-              loc, method_name, # steep:ignore ArgumentTypeMismatch
+              loc, method_name,
             )
           end
         end
@@ -437,7 +438,7 @@ module Datadog
       # @param probe [Datadog::DI::Probe] the probe whose callback this invocation runs
       # @param responder [#probe_executed_callback, #probe_condition_evaluation_failed_callback] callback target invoked with the built Context
       # @param loc [Array(String, Integer), nil] source location of the probed method, or nil for virtual/lazily-defined methods
-      # @param method_name [String, Symbol] name of the probed method, used as the synthetic top stack frame label
+      # @param method_name [String] name of the probed method, used as the synthetic top stack frame label
       # @return [Object] the original method's return value, or re-raises its exception
       def run_method_probe(args, kwargs, target_block, target_self, do_super,
         probe, responder, loc, method_name)

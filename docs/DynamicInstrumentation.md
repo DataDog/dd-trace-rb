@@ -363,9 +363,16 @@ line, including lines in standard library files.
 
 The tracer guarantees that probes on such methods do not cause runaway
 recursion or stack overflow. When the tracer calls a probed method
-while processing another probe firing, the probe is suppressed for
-that internal call and does not count towards the rate limit. Customer
-code calls to the same method fire the probe normally.
+while processing another method probe firing, the probe is suppressed
+for that internal call and does not count towards the rate limit.
+Customer code calls to the same method fire the probe normally.
+
+Line probes rely on Ruby's TracePoint, which self-disables during its
+own callback, so a line probe cannot trigger runaway recursion on
+itself. A method probe on a standard library method called while a
+line probe is processing its snapshot is not suppressed by the
+method-probe re-entrancy guard, but the call is rate-limited by the
+standard probe rate limit.
 
 Known limitation: on Ruby 3.3 and later, method probes on
 `Kernel#lambda` are not supported and may raise `ArgumentError` when
