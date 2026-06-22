@@ -50,7 +50,13 @@ module Datadog
 
           content.applied
 
-          Datadog.send(:components).telemetry.client_configuration_change!(env_vars)
+          # allow_initialization: false because process_config runs on the
+          # remote-config worker thread. If components haven't been built yet
+          # (e.g. during a teardown/reset window), the default `true` would
+          # synchronously build the entire component tree from this thread.
+          # The &. chain matches the pattern used by DI::Remote.handle_rc_enablement
+          # in the same dispatch path.
+          Datadog.send(:components, allow_initialization: false)&.telemetry&.client_configuration_change!(env_vars)
         rescue => e
           content.errored("#{e.class}: #{e.message}: #{Array(e.backtrace).join("\n")}")
         end
