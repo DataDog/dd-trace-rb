@@ -81,10 +81,19 @@ module Datadog
           end
         rescue => e
           Datadog.logger.debug { "di: error handling implicit enablement: #{e.class}: #{e.message}" }
-          Datadog.send(:components, allow_initialization: false)&.telemetry&.report(
-            e,
-            description: "Error handling DI implicit enablement",
-          )
+          # Defensive: telemetry lookup must never propagate to the caller
+          # (Tracing::Remote.process_config), which would defeat the DI contract
+          # that DI never raises into the tracer's RC dispatch. If components
+          # lookup itself raises (extremely unlikely once components is
+          # initialized, but possible during teardown races), swallow it.
+          begin
+            Datadog.send(:components, allow_initialization: false)&.telemetry&.report(
+              e,
+              description: "Error handling DI implicit enablement",
+            )
+          rescue => telemetry_error
+            Datadog.logger.debug { "di: telemetry report failed in implicit enablement rescue: #{telemetry_error.class}: #{telemetry_error.message}" }
+          end
         end
 
         # Symmetric to {DI::Component.explicitly_enabled?} (see there for why
