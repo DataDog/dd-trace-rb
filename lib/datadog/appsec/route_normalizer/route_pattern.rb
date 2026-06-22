@@ -23,7 +23,7 @@ module Datadog
       #       optional markers are flattened and kept as if present.
       #
       # @api private
-      class StringRoute
+      class RoutePattern
         PARAM_TOKEN = /:\w+|(?<!\w)\*\w*/
         PARAM_SIGILS = /[:\*]/
         WORD_CHAR = /\w/
@@ -46,9 +46,9 @@ module Datadog
           @pattern = pattern
         end
 
-        def normalized(for_path: nil)
-          if resolve_optionals?(for_path)
-            resolved = resolve_optionals(for_path)
+        def normalize(request_path: nil)
+          if resolve_optionals?(request_path)
+            resolved = resolve_optionals(request_path)
             return build_template(resolved) if resolved
           end
 

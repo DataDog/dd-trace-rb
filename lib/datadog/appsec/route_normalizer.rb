@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'route_normalizer/string_route'
+require_relative 'route_normalizer/route_pattern'
 require_relative 'route_normalizer/rails_journey_route'
 
 module Datadog
@@ -137,12 +137,12 @@ module Datadog
         if env.key?(GRAPE_ROUTE_KEY)
           route_string = env[GRAPE_ROUTE_KEY][:route_info]&.pattern&.origin
           return unless route_string
-          StringRoute.new(route_string).normalized
+          RoutePattern.new(route_string).normalize
 
         elsif env.key?(SINATRA_ROUTE_KEY)
           route_string = env[SINATRA_ROUTE_KEY].split(' ', 2)[1]
           return unless route_string
-          StringRoute.new(route_string).normalized
+          RoutePattern.new(route_string).normalize
 
         elsif (route = env[DATADOG_ROUTE_KEY] || env[RAILS_ROUTE_KEY])
           path_params = env.fetch(PATH_PARAMS_KEY, {})
@@ -157,7 +157,7 @@ module Datadog
         elsif defined?(Tracing) && (trace = Tracing.active_trace)
           route_string = trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
           return unless route_string
-          StringRoute.new(route_string).normalized
+          RoutePattern.new(route_string).normalize
         end
       rescue => e
         AppSec.telemetry&.report(e, description: 'Could not compute normalized route')

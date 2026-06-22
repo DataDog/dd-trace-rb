@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'string_route'
+require_relative 'route_pattern'
 require_relative 'route_text'
 
 module Datadog
@@ -100,7 +100,7 @@ module Datadog
         end
 
         def normalize_string
-          StringRoute.new(resolve_optionals(@route_string)).normalized
+          RoutePattern.new(resolve_optionals(@route_string)).normalize
         end
 
         def resolve_optionals(route_string)
