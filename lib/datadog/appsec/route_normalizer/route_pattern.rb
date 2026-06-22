@@ -35,8 +35,9 @@ module Datadog
         # `/` are the default boundaries, `():*` are structural.
         RESERVED_PATTERN_CHARS = '():*./'
 
-        # Pattern characters used to define optional path parameters
-        OPTIONAL_PATTERN_CHARS = '()?'
+        # Rails uses `(...)`; Mustermann uses `(...)?`.
+        # Fallback keeps optional contents and removes only group markers.
+        OPTIONAL_GROUP_MARKERS = '()?'
 
         # Upper bound on request path length we will scan to resolve optionals.
         # Beyond it we flatten instead, trading exactness for bounded work.
@@ -44,6 +45,11 @@ module Datadog
 
         def initialize(pattern)
           @pattern = pattern
+          @fallback_pattern = if pattern.include?('(') || pattern.include?('?')
+            pattern.delete(OPTIONAL_GROUP_MARKERS)
+          else
+            pattern
+          end
         end
 
         def normalize(request_path: nil)
@@ -52,7 +58,7 @@ module Datadog
             return build_template(resolved) if resolved
           end
 
-          build_template(@pattern.delete(OPTIONAL_PATTERN_CHARS))
+          build_template(@fallback_pattern)
         end
 
         private
