@@ -173,12 +173,18 @@ typedef struct {
 
 // Tracks per-thread state
 struct per_thread_context {
+  // These **aren't** reset during ThreadContext initialization so they stay around across profiler
+  // restarts / new ThreadContext instances.
   sampling_buffer sampling_buffer;
   char thread_id[THREAD_ID_LIMIT_CHARS];
   ddog_CharSlice thread_id_char_slice;
   char thread_invoke_location[THREAD_INVOKE_LOCATION_LIMIT_CHARS];
   ddog_CharSlice thread_invoke_location_char_slice;
   thread_cpu_time_id thread_cpu_time_id;
+
+  // These are reset during ThreadContext initialization so we don't get leftover state and in particular we don't push
+  // weird samples representing periods where the profiler was stopped.
+  // Make sure to update `reset_context_state` when adding new fields here.
   long cpu_time_at_previous_sample_ns;  // Can be INVALID_TIME until initialized or if getting it fails for another reason
   long wall_time_at_previous_sample_ns; // Can be INVALID_TIME until initialized
 
@@ -290,6 +296,7 @@ static void trigger_sample_for_thread(
 static VALUE _native_thread_list(VALUE self);
 static per_thread_context *get_or_create_context_for(VALUE thread, thread_context_collector_state *state);
 static void initialize_context(VALUE thread, per_thread_context *thread_context, thread_context_collector_state *state);
+static void reset_context_state(per_thread_context *thread_context);
 static VALUE _native_inspect(VALUE self, VALUE collector_instance);
 static VALUE per_thread_context_to_ruby_hash(per_thread_context *thread_context);
 static VALUE stats_to_ruby_hash(thread_context_collector_state *state, VALUE hash);
@@ -583,6 +590,17 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
     // In this case, we can't really escape this because as of this writing, ruby master still calls `rb_to_id` inside
     // the implementation of Thread#[]= so any symbol that gets used as a key there will already be prevented from GC.
     state->tracer_context_key = rb_to_id(tracer_context_key);
+  }
+
+  // Reset per_thread_context state for all live threads. Since per_thread_context is stored in a global TLS key
+  // (not per-collector), a previous profiler instance may have left behind state that could cause unexpected
+  // behavior in this new instance, such as very large wall/cpu-time samples or a stale was_skipped_at_last_sample.
+  VALUE threads = thread_list(state);
+  const long thread_count = RARRAY_LEN(threads);
+  for (long i = 0; i < thread_count; i++) {
+    VALUE thread = RARRAY_AREF(threads, i);
+    per_thread_context *thread_context = get_per_thread_context(thread);
+    if (thread_context != NULL) reset_context_state(thread_context);
   }
 
   return Qtrue;
@@ -1207,16 +1225,18 @@ static void initialize_context(VALUE thread, per_thread_context *thread_context,
 
   thread_context->thread_cpu_time_id = thread_cpu_time_id_for(thread);
 
-  // These will get initialized during actual sampling
+  reset_context_state(thread_context);
+}
+
+static void reset_context_state(per_thread_context *thread_context) {
   thread_context->cpu_time_at_previous_sample_ns = INVALID_TIME;
   thread_context->wall_time_at_previous_sample_ns = INVALID_TIME;
-
-  // These will only be used during a GC operation
   thread_context->gc_tracking.cpu_time_at_start_ns = INVALID_TIME;
   thread_context->gc_tracking.wall_time_at_start_ns = INVALID_TIME;
-
   thread_context->gvl_waiting_at = 0;
   thread_context->gvl_state_change_count = 0;
+  thread_context->gvl_state_change_count_at_previous_sample = 0;
+  thread_context->was_skipped_at_last_sample = false;
 }
 
 static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {

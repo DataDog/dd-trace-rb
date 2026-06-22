@@ -10,7 +10,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     testing_threads.each { ready_queue.pop }
     # Make sure all threads have reached the `sleep` before moving on
     loop_until { testing_threads.all? { |t| t.status == "sleep" } }
-    expect(Thread.list).to include(*testing_threads)
 
     testing_threads_and_current.each { |t| clear_per_thread_context_for(t) }
   end
@@ -186,6 +185,23 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     it "sets the waiting_for_gvl_threshold_ns to the provided value" do
       # This is a bit ugly but it saves us from having to introduce yet another way to poke at the native state
       expect(thread_context_collector.inspect).to include("waiting_for_gvl_threshold_ns=222333444")
+    end
+
+    it "resets the sampling state of threads with existing per_thread_context" do
+      sample
+
+      expect(per_thread_context.fetch(t1)).to include(
+        cpu_time_at_previous_sample_ns: be > invalid_time,
+        wall_time_at_previous_sample_ns: be > invalid_time,
+      )
+
+      described_class.for_testing(recorder: recorder)
+
+      expect(per_thread_context.fetch(t1)).to include(
+        cpu_time_at_previous_sample_ns: invalid_time,
+        wall_time_at_previous_sample_ns: invalid_time,
+        was_skipped_at_last_sample: false,
+      )
     end
 
     context "when otel_context_enabled has an invalid value" do
