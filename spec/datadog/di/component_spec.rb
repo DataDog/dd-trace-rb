@@ -345,6 +345,65 @@ RSpec.describe Datadog::DI::Component do
     end
   end
 
+  describe '@lifecycle_mutex serialization' do
+    # The mutex serializes start!, stop!, and shutdown! so concurrent RC
+    # callbacks (which run on the remote-config worker thread) cannot race
+    # a foreground operation.
+    #
+    # The behavioral guarantee — "two threads calling start!/stop!
+    # concurrently are serialized" — is provided by Ruby's Mutex#synchronize.
+    # We do not re-test Ruby's mutex here. What we test is the mechanism:
+    # each lifecycle method must wrap its body in @lifecycle_mutex.synchronize,
+    # so that Ruby's guarantee actually applies.
+    #
+    # Without the mutex (or with a refactor that accidentally drops it from
+    # one method), a stop! called during start!'s critical section would
+    # observe @started == false, short-circuit on `return unless @started`,
+    # and silently no-op — losing the customer's stop! intent.
+
+    let(:settings) do
+      settings = Datadog::Core::Configuration::Settings.new
+      settings.dynamic_instrumentation.internal.development = true
+      settings.remote.enabled = true
+      settings
+    end
+
+    let(:agent_settings) { instance_double_agent_settings_with_stubs }
+    let(:logger) { instance_double(Logger) }
+    let(:component) { described_class.build(settings, agent_settings, logger) }
+    let(:mutex) { component.instance_variable_get(:@lifecycle_mutex) }
+
+    before do
+      # Stub the lifecycle method bodies so the test asserts only on the
+      # mutex acquisition, not on the worker/probe-manager side effects
+      # (already covered by the #start! and #stop! describe above).
+      allow(component.probe_notifier_worker).to receive(:start)
+      allow(component.probe_notifier_worker).to receive(:stop)
+      allow(component.probe_manager).to receive(:reopen)
+      allow(component.probe_manager).to receive(:stop)
+      allow(component.probe_manager).to receive(:clear_hooks)
+      allow(component.probe_manager).to receive(:close)
+    end
+
+    after { component&.shutdown! }
+
+    it 'start! acquires @lifecycle_mutex' do
+      expect(mutex).to receive(:synchronize).and_call_original
+      component.start!
+    end
+
+    it 'stop! acquires @lifecycle_mutex' do
+      component.start!
+      expect(mutex).to receive(:synchronize).and_call_original
+      component.stop!
+    end
+
+    it 'shutdown! acquires @lifecycle_mutex' do
+      expect(mutex).to receive(:synchronize).and_call_original
+      component.shutdown!
+    end
+  end
+
   describe '#parse_probe_spec_and_notify' do
     let(:settings) do
       settings = Datadog::Core::Configuration::Settings.new
