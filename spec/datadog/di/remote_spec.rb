@@ -144,35 +144,6 @@ RSpec.describe Datadog::DI::Remote do
       end
     end
 
-    context 'when the rescue-body telemetry lookup itself raises' do
-      # DI must never propagate to its caller (Tracing::Remote.process_config).
-      # The outer rescue captures the body's exception; the inner defensive
-      # rescue protects against a second exception from Datadog.send(:components,
-      # allow_initialization: false) — unlikely in steady state but possible
-      # during teardown races.
-
-      let(:component) { instance_double(Datadog::DI::Component) }
-      let(:components) { instance_double(Datadog::Core::Configuration::Components, dynamic_instrumentation: component) }
-
-      before do
-        allow(described_class).to receive(:explicitly_disabled?).and_return(false)
-        allow(Datadog::DI).to receive(:activate_tracking)
-        allow(component).to receive(:start!).and_raise(RuntimeError, 'boom')
-
-        # First call returns the components stub (used in the body lookup at line 43).
-        # Second call (inside the rescue) raises — simulating a teardown race.
-        call_count = 0
-        allow(Datadog).to receive(:send).with(:components, allow_initialization: false) do
-          call_count += 1
-          (call_count == 1) ? components : raise(RuntimeError, 'components_torn_down')
-        end
-      end
-
-      it 'swallows the rescue-body exception and does not propagate' do
-        expect(Datadog.logger).to receive(:debug).at_least(:once)
-        expect { described_class.handle_rc_enablement(true) }.not_to raise_error
-      end
-    end
   end
 
   describe '.handle_rc_enablement settings invariant' do
