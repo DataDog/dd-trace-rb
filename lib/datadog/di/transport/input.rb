@@ -113,7 +113,7 @@ module Datadog
                 send_input_chunk(chunked_payload, serialized_tags)
               rescue Exception => exc # standard:disable Lint/RescueException
                 Datadog::DI.reraise_if_fatal(exc)
-                logger.debug { "di: failed to send snapshot chunk: #{exc.class}: #{exc.message} (at #{exc.backtrace.first})" }
+                logger.debug { "di: failed to send snapshot chunk: #{exc.class}: #{exc.message} (at #{exc.backtrace&.first})" }
                 telemetry&.report(exc, description: "Error sending snapshot chunk")
               end
             end
