@@ -2,6 +2,12 @@ module Datadog
   module DI
     module EL
       class Compiler
+        @regexps: Array[Regexp]
+
+        def initialize: () -> void
+
+        attr_reader regexps: Array[Regexp]
+
         def compile: (untyped ast) -> String
 
         private
@@ -18,6 +24,8 @@ module Datadog
         def var_name_maybe: (untyped target) -> String
 
         def escape: (String needle) -> String
+
+        def precompile_regexp: (String needle) -> Integer?
       end
     end
   end

@@ -15,6 +15,17 @@ module Datadog
         # thread executing the probe.
         MATCHES_TIMEOUT_SECONDS = 0.5
 
+        # Regexps precompiled from literal `matches` needles at
+        # expression-compile time (see Compiler#precompile_regexp). The
+        # compiler emits matches_compiled(<haystack>, <index>) and this
+        # array is the index lookup. Assigned by Expression after the
+        # evaluator is instantiated; empty for expressions that use no
+        # literal `matches` needle.
+        def regexps
+          @regexps ||= []
+        end
+        attr_writer :regexps
+
         def ref(var)
           @context.fetch(var)
         end
@@ -56,45 +67,81 @@ module Datadog
           end
         end
 
-        # Apply a regexp match between two strings. Bounded at
-        # MATCHES_TIMEOUT_SECONDS wall-clock per call to defend against
-        # catastrophic-backtracking patterns. The bound is enforced by
-        # the regexp engine on Ruby 3.2+ and is best-effort via
-        # Timeout.timeout on older Rubies (see comment in method body).
+        # Build a Regexp from a pattern string. On Ruby 3.2+ the per-match
+        # timeout (MATCHES_TIMEOUT_SECONDS) is baked into the compiled
+        # Regexp via the in-engine `timeout:` keyword, which interrupts the
+        # matcher at every backtrack step and reliably bounds matcher
+        # runtime regardless of pattern shape. On older Rubies the Regexp
+        # carries no timeout; the bound is applied at match time by
+        # #apply_match instead.
         #
-        # Uses Regexp#match? rather than =~ so that the thread-local
-        # match data ($~, $1, ...) is not mutated as a side effect of
-        # DI expression evaluation.
+        # Called at expression-compile time for literal needles (see
+        # Compiler#precompile_regexp) and at evaluation time for
+        # dynamically-computed needles (see #matches).
+        #
+        # @param needle [String] regexp source.
+        # @return [Regexp] compiled regexp, with baked-in timeout on Ruby 3.2+.
+        def self.compile_regexp(needle)
+          if RUBY_VERSION >= '3.2'
+            Regexp.new(needle, timeout: MATCHES_TIMEOUT_SECONDS)
+          else
+            Regexp.compile(needle)
+          end
+        end
+
+        # Apply a regexp match where the needle is computed at evaluation
+        # time, so the Regexp cannot be precompiled. Literal needles are
+        # precompiled by the Compiler and dispatched to #matches_compiled.
         #
         # @param haystack [String] string to match against.
         # @param needle [String] regexp source.
         # @return [Boolean] whether the haystack matches the regexp.
-        # @raise [Regexp::TimeoutError] (Ruby 3.2+) regexp engine
-        #   exceeded MATCHES_TIMEOUT_SECONDS.
+        # @raise [Regexp::TimeoutError] (Ruby 3.2+) regexp engine exceeded MATCHES_TIMEOUT_SECONDS.
         # @raise [Timeout::Error] (Ruby < 3.2) Timeout.timeout fired.
         def matches(haystack, needle)
-          # Ruby 3.2+ supports the in-engine `timeout:` keyword on
-          # Regexp.new, which interrupts the matcher at every backtrack
-          # step and reliably bounds matcher runtime regardless of
-          # pattern shape.
-          #
-          # On older Rubies we fall back to Timeout.timeout, which uses
-          # Thread#raise. Onigmo polls for pending interrupts at certain
-          # points during matching, so this bounds the runtime for many
-          # patterns but is best-effort: pattern shapes that do not
-          # reach an interrupt-poll point during their hot loop (see
-          # Ruby bug #18144) can still run well past the configured
-          # timeout. Migrating to Ruby 3.2+ is the only complete fix.
+          apply_match(Evaluator.compile_regexp(needle), haystack)
+        end
+
+        # Apply a Regexp precompiled at expression-compile time, looked up
+        # by index in +regexps+. Avoids recompiling the pattern on every
+        # probe firing.
+        #
+        # @param haystack [String] string to match against.
+        # @param index [Integer] position of the precompiled Regexp in +regexps+.
+        # @return [Boolean] whether the haystack matches the regexp.
+        # @raise [Regexp::TimeoutError] (Ruby 3.2+) regexp engine exceeded MATCHES_TIMEOUT_SECONDS.
+        # @raise [Timeout::Error] (Ruby < 3.2) Timeout.timeout fired.
+        def matches_compiled(haystack, index)
+          apply_match(regexps.fetch(index), haystack)
+        end
+
+        # Apply +re+ to +haystack+, bounded at MATCHES_TIMEOUT_SECONDS
+        # wall-clock. Uses Regexp#match? rather than =~ so that the
+        # thread-local match data ($~, $1, ...) is not mutated as a side
+        # effect of DI expression evaluation.
+        #
+        # On Ruby 3.2+ the bound is enforced by the regexp engine itself
+        # (baked into +re+ by .compile_regexp). On older Rubies we wrap the
+        # match in Timeout.timeout, which uses Thread#raise: Onigmo polls
+        # for pending interrupts at certain points during matching, so this
+        # bounds the runtime for many patterns but is best-effort -- pattern
+        # shapes that never reach an interrupt-poll point during their hot
+        # loop (see Ruby bug #18144) can still overrun the timeout.
+        # Migrating to Ruby 3.2+ is the only complete fix.
+        #
+        # @param re [Regexp] regexp to apply.
+        # @param haystack [String] string to match against.
+        # @return [Boolean] whether the haystack matches the regexp.
+        def apply_match(re, haystack)
           if RUBY_VERSION >= '3.2'
-            re = Regexp.new(needle, timeout: MATCHES_TIMEOUT_SECONDS)
             re.match?(haystack)
           else
-            re = Regexp.compile(needle)
             Timeout.timeout(MATCHES_TIMEOUT_SECONDS) do
               re.match?(haystack)
             end
           end
         end
+        private :apply_match
 
         def getmember(object, field)
           object.instance_variable_get("@#{field}")

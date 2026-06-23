@@ -16,6 +16,16 @@ module Datadog
       #
       # @api private
       class Compiler
+        def initialize
+          @regexps = []
+        end
+
+        # Regexps precompiled from literal `matches` needles during
+        # compilation. Passed to Expression so the compiled expression can
+        # look them up by index (see Evaluator#matches_compiled) instead of
+        # recompiling the pattern on every probe firing.
+        attr_reader :regexps
+
         def compile(ast)
           compile_partial(ast)
         end
@@ -95,6 +105,22 @@ module Datadog
             when *SINGLE_ARG_METHODS
               method_name = op.gsub(/[A-Z]/) { |m| "_#{m.downcase}" }
               "#{method_name}(#{compile_partial(target)}, '#{var_name_maybe(target)}')"
+            when 'matches'
+              unless Array === target && target.length == 2
+                raise DI::Error::InvalidExpression, "Improper matches syntax"
+              end
+              first, second = target
+              if String === second && (index = precompile_regexp(second))
+                # Literal needle: compile the Regexp once, now, at
+                # expression-compile time, so it is not recompiled on every
+                # probe firing.
+                "matches_compiled(#{compile_partial(first)}, #{index})"
+              else
+                # Needle is computed at evaluation time (or is an invalid
+                # literal that must raise at evaluation time, as before):
+                # compile per call.
+                "matches(#{compile_partial(first)}, (#{compile_partial(second)}))"
+              end
             when *TWO_ARG_METHODS
               method_name = op.gsub(/[A-Z]/) { |m| "_#{m.downcase}" }
               unless Array === target && target.length == 2
@@ -161,6 +187,22 @@ module Datadog
 
         def escape(needle)
           needle.gsub("\\") { "\\\\" }.gsub('"') { "\\\"" }.gsub('#') { "\\#" }
+        end
+
+        # Precompile a literal regexp +needle+ at expression-compile time and
+        # record it in +regexps+, returning its index for
+        # Evaluator#matches_compiled to look up. Returns nil for an invalid
+        # pattern so the caller falls back to compiling at evaluation time,
+        # preserving the eval-time RegexpError the runtime path would raise.
+        #
+        # @param needle [String] regexp source.
+        # @return [Integer, nil] index into +regexps+, or nil if invalid.
+        def precompile_regexp(needle)
+          index = @regexps.length
+          @regexps << Evaluator.compile_regexp(needle)
+          index
+        rescue RegexpError
+          nil
         end
       end
     end

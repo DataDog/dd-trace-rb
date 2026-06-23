@@ -7,7 +7,12 @@ module Datadog
       #
       # @api private
       class Expression
-        def initialize(dsl_expr, compiled_expr)
+        # @param dsl_expr [String] human-readable DSL form, kept for debugging.
+        # @param compiled_expr [String] Ruby source produced by Compiler#compile.
+        # @param regexps [Array<Regexp>] regexps precompiled from literal
+        #   `matches` needles (Compiler#regexps), looked up by the compiled
+        #   expression via Evaluator#matches_compiled.
+        def initialize(dsl_expr, compiled_expr, regexps = [])
           unless String === compiled_expr
             raise ArgumentError, "compiled_expr must be a string"
           end
@@ -24,6 +29,7 @@ module Datadog
             RUBY
           end
           @evaluator = cls.new
+          @evaluator.regexps = regexps
         end
 
         attr_reader :dsl_expr

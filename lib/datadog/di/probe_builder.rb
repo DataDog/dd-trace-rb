@@ -35,8 +35,9 @@ module Datadog
           unless cond_spec['dsl'] && cond_spec['json']
             raise ArgumentError, "Malformed condition specification for probe: #{config}"
           end
-          compiled = EL::Compiler.new.compile(cond_spec['json'])
-          EL::Expression.new(cond_spec['dsl'], compiled)
+          compiler = EL::Compiler.new
+          compiled = compiler.compile(cond_spec['json'])
+          EL::Expression.new(cond_spec['dsl'], compiled, compiler.regexps)
         end
         Probe.new(
           id: config.fetch("id"),
@@ -70,8 +71,9 @@ module Datadog
               unless dsl = segment['dsl']
                 raise ArgumentError, "Missing dsl for json in segment: #{segment}"
               end
-              compiled = EL::Compiler.new.compile(ast)
-              EL::Expression.new(dsl, compiled)
+              compiler = EL::Compiler.new
+              compiled = compiler.compile(ast)
+              EL::Expression.new(dsl, compiled, compiler.regexps)
             else
               # TODO report to telemetry?
             end
