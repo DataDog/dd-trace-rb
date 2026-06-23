@@ -1,6 +1,7 @@
 require 'spec_helper'
 require 'opentelemetry/sdk'
 require 'datadog/opentelemetry'
+require 'datadog/opentelemetry/spec_helper'
 
 RSpec.describe Datadog::OpenTelemetry do
   context 'with Datadog TraceProvider' do
@@ -26,6 +27,7 @@ RSpec.describe Datadog::OpenTelemetry do
 
     after do
       ::OpenTelemetry.logger = nil
+      OpenTelemetryHelpers.shutdown_otel_providers
     end
 
     it 'returns the same tracer on successive calls' do
@@ -1004,12 +1006,18 @@ RSpec.describe Datadog::OpenTelemetry do
           c.tracing.writer = writer_
         end
 
+        # Reconfiguring without shutdown would orphan the outer 'with
+        # Datadog TraceProvider' before block's MeterProvider/LoggerProvider
+        # threads (the global provider gets replaced; old threads keep running).
+        OpenTelemetryHelpers.shutdown_otel_providers
+
         ::OpenTelemetry::SDK.configure do |c|
         end
       end
 
       after do
         ::OpenTelemetry.logger = nil
+        OpenTelemetryHelpers.shutdown_otel_providers
       end
 
       describe 'baggage operations' do
