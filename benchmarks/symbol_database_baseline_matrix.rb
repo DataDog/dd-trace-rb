@@ -1,4 +1,3 @@
-#
 # Symbol Database baseline-matrix benchmark.
 #
 # Reproduces the shape of the 50/75/100% baseline-CPU matrix recorded in
@@ -24,8 +23,6 @@
 # For each baseline, two arms run sequentially with a full GC pass between:
 #   - no_extractor   — workload thread alone
 #   - with_extractor — same workload + a bg thread looping on extract_all
-#
-# Output: symbol_database_baseline_matrix-results.json
 #
 # Known limitation: in a single-thread microbenchmark on a host with CPU
 # frequency scaling, the no_extractor arm's CPU may idle down during the

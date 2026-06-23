@@ -1,4 +1,3 @@
-#
 # Symbol Database extraction benchmark.
 #
 # Generates 2500 user-code classes in a tmpdir, requires them, then loops
@@ -8,8 +7,6 @@
 # Acceptance thresholds (from projects/symdb/requirements.md):
 #   - memory overhead during extraction < 50 MB
 #   - CPU overhead during extraction    < 5%
-#
-# Output: symbol_database_extraction-results.json
 #
 # Notes on measurement:
 #   - A single extract_all on 2500 classes finishes in ~0.3s without
@@ -27,7 +24,6 @@
 #     peak − baseline (post-GC.start).
 #   - CPU: (utime + stime) / wall time across the whole window,
 #     expressed as percent of one core.
-#
 
 VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
 

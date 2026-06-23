@@ -1,4 +1,3 @@
-#
 # Symbol Database background-impact benchmark.
 #
 # Measures how SymDB extraction running on a background thread impacts a
@@ -13,26 +12,7 @@
 # Reported statistic: p99_ratio = treatment_p99 / baseline_pre_p99.
 # A ratio near 1.0 means extraction is non-blocking from the main thread's
 # perspective; a large ratio means extraction substantially delays the main
-# thread. The threshold is decided by the results doc, not this script.
-#
-# This is the synthetic-workload counterpart to the request-load test that
-# requirements.md item 23 ("Extraction must not block the application's
-# request handling") asks for — which was originally scoped to require Rails
-# and deferred. A pure-Ruby CPU-bound workload is sufficient: the impact
-# vector is GVL hold time during ObjectSpace traversal.
-#
-# Design choices:
-#   - Background extraction is driven directly via Extractor#extract_all on
-#     a benchmark-owned Thread rather than through Component#start_upload.
-#     The GVL contention on the main thread is identical either way, and this
-#     avoids the 5s debounce, force_upload plumbing, and uploader stubbing
-#     that Component would require.
-#   - Samples are timestamped against MONOTONIC and filtered to those that
-#     fell inside the extraction window. This isolates the treatment effect
-#     even when the main loop runs longer than extraction.
-#
-# Output: symbol_database_background_impact-results.json
-#
+# thread.
 
 VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
 
@@ -54,11 +34,7 @@ class SymbolDatabaseBackgroundImpactBenchmark
   # extraction window.
   WORKLOAD_ITERATIONS = VALIDATE_BENCHMARK_MODE ? 200 : 1_000_000
 
-  # Warmup iteration count run before the first measured arm. Stabilizes
-  # JIT, inline caches, and GC heap state so the first arm doesn't pay
-  # cold-start costs the later arms have already amortized. Without this,
-  # baseline_pre p99 is inflated by cold-GC noise and the
-  # p99-treatment-over-baseline ratio understates the extraction impact.
+  # Warmup iteration count run before the first measured arm.
   WARMUP_ITERATIONS = VALIDATE_BENCHMARK_MODE ? 100 : 500_000
 
   # Minimum fraction of treatment-arm samples that must fall inside the
@@ -144,8 +120,6 @@ class SymbolDatabaseBackgroundImpactBenchmark
       settings: StubSettings.new
     )
 
-    # Warmup pass — discarded. Without this, the first measured arm pays for
-    # cold-GC and cold-JIT costs the later arms don't, biasing the comparison.
     WARMUP_ITERATIONS.times { |i| workload_op(i) }
 
     3.times { GC.start }
@@ -331,8 +305,8 @@ class SymbolDatabaseBackgroundImpactBenchmark
     File.write("#{File.basename(__FILE__, '.rb')}-results.json", json)
   end
 
-  # Reference values for requirements.md line 23 ("extraction must not block
-  # request handling"). A regression that removes the in-extractor throttle
+  # Reference values for acceptable impact on customer applications.
+  # A regression that removes the in-extractor throttle
   # would push p99_ratio toward ~2.0 and throughput_ratio toward ~0.7 on a
   # Rails 2,500-class workload (per
   # projects/symdb/reports/extraction-stress-test-2026-05-18.md). In the
