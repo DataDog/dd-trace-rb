@@ -3,7 +3,7 @@
 module OpenTelemetryHelpers
   # Guards exist because the Noop providers returned when the metrics-sdk /
   # logs-sdk gems aren't loaded don't have #shutdown.
-  def shutdown_otel_providers
+  def self.shutdown_otel_providers
     if defined?(::OpenTelemetry::SDK::Metrics::MeterProvider) &&
         ::OpenTelemetry.meter_provider.is_a?(::OpenTelemetry::SDK::Metrics::MeterProvider)
       ::OpenTelemetry.meter_provider.shutdown

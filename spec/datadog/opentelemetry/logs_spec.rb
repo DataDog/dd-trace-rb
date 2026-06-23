@@ -16,8 +16,6 @@ require 'net/http'
 require 'json'
 
 RSpec.describe 'OpenTelemetry Logs Integration', ruby: '>= 3.1' do
-  include OpenTelemetryHelpers
-
   let(:provider) { ::OpenTelemetry.logger_provider }
   let(:processor) { provider.instance_variable_get(:@log_record_processors)&.first }
   let(:exporter) { processor&.instance_variable_get(:@exporter) }
@@ -53,7 +51,7 @@ RSpec.describe 'OpenTelemetry Logs Integration', ruby: '>= 3.1' do
   end
 
   after do
-    shutdown_otel_providers
+    OpenTelemetryHelpers.shutdown_otel_providers
   end
 
   describe 'Basic Functionality' do

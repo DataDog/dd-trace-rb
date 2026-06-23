@@ -16,8 +16,6 @@ require 'json'
 require 'datadog/opentelemetry/spec_helper'
 
 RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
-  include OpenTelemetryHelpers
-
   let(:default_otlp_http_port) { 4318 }
   let(:provider) { ::OpenTelemetry.meter_provider }
   let(:reader) { provider.metric_readers.first }
@@ -31,7 +29,7 @@ RSpec.describe 'OpenTelemetry Metrics Integration', ruby: '>= 3.1' do
   end
 
   after do
-    shutdown_otel_providers
+    OpenTelemetryHelpers.shutdown_otel_providers
   end
 
   def agent_host
