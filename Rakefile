@@ -595,19 +595,6 @@ namespace :coverage do
   end
 end
 
-# pimpmychangelog is only needed for release preparation, which runs on the
-# latest Ruby (.github/workflows/release-prep.yml). It is declared only in
-# gemfiles/ruby-4.0.gemfile, so guard the task on its availability.
-if Gem.loaded_specs.key?('pimpmychangelog')
-  namespace :changelog do
-    task :format do
-      require 'pimpmychangelog'
-
-      PimpMyChangelog::CLI.run!
-    end
-  end
-end
-
 NATIVE_EXTS = [
   Rake::ExtensionTask.new("libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}") do |ext|
     ext.ext_dir = 'ext/libdatadog_api'
