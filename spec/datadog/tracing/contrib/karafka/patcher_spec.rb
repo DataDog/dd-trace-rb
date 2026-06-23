@@ -212,8 +212,10 @@ RSpec.describe 'Karafka patcher' do
     around do |example|
       # Reset before and after each example; don't allow global state to linger.
       Datadog.registry[:waterdrop].reset_configuration!
+      reset_activate_framework_once!
       example.run
       Datadog.registry[:waterdrop].reset_configuration!
+      reset_activate_framework_once!
 
       # reset Karafka internal state as well
       Karafka::App.config.internal.status.reset!
@@ -222,6 +224,10 @@ RSpec.describe 'Karafka patcher' do
     end
 
     let(:producer_middlewares) { Karafka.producer.middleware.instance_variable_get(:@steps) }
+
+    def reset_activate_framework_once!
+      Datadog::Tracing::Contrib::Karafka::Patcher::ACTIVATE_FRAMEWORK_ONLY_ONCE.send(:reset_ran_once_state_for_tests)
+    end
 
     def waterdrop_compatible?
       Datadog::Tracing::Contrib::WaterDrop::Integration.compatible?
