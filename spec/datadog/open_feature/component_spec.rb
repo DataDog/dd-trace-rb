@@ -102,6 +102,16 @@ RSpec.describe Datadog::OpenFeature::Component do
       it 'creates the EVP hook' do
         expect(component.flag_eval_evp_hook).to be_a(Datadog::OpenFeature::Hooks::FlagEvalEVPHook)
       end
+
+      it 'passes telemetry to the EVP writer' do
+        expect(Datadog::OpenFeature::FlagEvaluation::Writer).to receive(:new).with(
+          transport: transport,
+          logger: logger,
+          telemetry: telemetry,
+        ).and_call_original
+
+        component
+      end
     end
 
     context 'when evaluation_counts_enabled is false' do

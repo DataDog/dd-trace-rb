@@ -90,7 +90,7 @@ module Datadog
           logger: @logger,
         )
         require_relative 'flagevaluation/writer'
-        @flag_eval_evp_writer = FlagEvaluation::Writer.new(transport: evp_transport, logger: @logger)
+        @flag_eval_evp_writer = FlagEvaluation::Writer.new(transport: evp_transport, logger: @logger, telemetry: @telemetry)
         Hooks::FlagEvalEVPHook.new(@flag_eval_evp_writer)
       rescue LoadError
         nil

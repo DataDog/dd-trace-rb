@@ -7,6 +7,10 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
   # A first/last_evaluation value above the schema's minimum (Oct 2025).
   let(:realistic_eval_ms) { 1_760_000_000_000 }
 
+  def expect_telemetry_count(telemetry, metric_name, value, tags = {})
+    expect(telemetry).to have_received(:inc).with('tracers', metric_name, value, tags: tags)
+  end
+
   # Regression guard: rescue inside until...end (without begin) is a Ruby SyntaxError.
   # If writer.rb fails to parse, the EVP component silently falls back to nil and no
   # events are ever delivered to mock-intake.
@@ -120,10 +124,11 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
   describe '#enqueue queue-overflow backpressure' do
     let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP, send_flag_evaluations: nil) }
     let(:logger) { instance_double(Logger, debug: nil) }
+    let(:telemetry) { spy('telemetry') }
 
     it 'increments dropped_queue_overflow and emits the count on flush' do
       allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
-      writer = described_class.new(transport: transport, logger: logger)
+      writer = described_class.new(transport: transport, logger: logger, telemetry: telemetry)
 
       # Fill the queue to capacity, then overflow it.
       capacity = described_class::QUEUE_SIZE
@@ -144,6 +149,12 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       writer.send(:flush_once)
 
       expect(logged.join).to match(/queue_overflow=3/)
+      expect_telemetry_count(
+        telemetry,
+        'flagevaluation.rows.dropped',
+        3,
+        {reason: 'queue_overflow'}
+      )
       expect(writer.dropped_queue_overflow).to eq(0)
     end
 
@@ -219,6 +230,22 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(row['last_evaluation']).to eq(realistic_eval_ms)
     end
 
+    it 'does not emit flagevaluation telemetry counters for the normal path' do
+      telemetry = spy('telemetry')
+      transport = instance_double(Datadog::OpenFeature::Transport::HTTP)
+      allow(transport).to receive(:send_flag_evaluations)
+      allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
+      writer = described_class.new(transport: transport, logger: logger, telemetry: telemetry)
+
+      writer.enqueue(
+        flag_key: 'normal-flag', variant: 'on', allocation_key: 'alloc-1',
+        targeting_key: 'user-42', eval_time_ms: realistic_eval_ms, attrs: {'env' => 'prod'},
+      )
+      writer.send(:drain_and_flush)
+
+      expect(telemetry).not_to have_received(:inc)
+    end
+
     it 'emits a degraded-tier row without targeting_key or context' do
       payload = captured_payload do |writer|
         # Force overflow into the degraded tier with a tiny-capped aggregator.
@@ -238,6 +265,35 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(degraded_row).not_to be_nil
       expect(degraded_row['variant']).to eq('key' => 'a')
       expect(degraded_row['allocation']).to eq('key' => 'alloc-x')
+    end
+
+    it 'emits a degraded counter for rows routed to the degraded tier' do
+      telemetry = spy('telemetry')
+      transport = instance_double(Datadog::OpenFeature::Transport::HTTP)
+      allow(transport).to receive(:send_flag_evaluations)
+      allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
+      writer = described_class.new(transport: transport, logger: logger, telemetry: telemetry)
+      small = Datadog::OpenFeature::FlagEvaluation::Aggregator.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 10)
+      writer.instance_variable_set(:@aggregator, small)
+
+      writer.enqueue(
+        flag_key: 'deg-flag', variant: 'a', allocation_key: 'alloc-x',
+        targeting_key: 'u1', eval_time_ms: realistic_eval_ms, attrs: {'x' => 1},
+      )
+      3.times do |i|
+        writer.enqueue(
+          flag_key: 'deg-flag', variant: 'a', allocation_key: 'alloc-x',
+          targeting_key: "u#{i + 2}", eval_time_ms: realistic_eval_ms + i + 1, attrs: {'x' => i + 2},
+        )
+      end
+      writer.send(:drain_and_flush)
+
+      expect_telemetry_count(
+        telemetry,
+        'flagevaluation.rows.degraded',
+        3,
+        {reason: 'cardinality_cap'}
+      )
     end
 
     # The emitted context must hold the PRUNED attrs (oversized strings removed, <=256 fields),
@@ -297,12 +353,13 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
   end
 
   describe 'payload size limit' do
-    subject(:writer) { described_class.new(transport: transport, logger: logger) }
+    subject(:writer) { described_class.new(transport: transport, logger: logger, telemetry: telemetry) }
 
     let(:payloads) { [] }
     let(:logged) { [] }
     let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
     let(:logger) { instance_double(Logger) }
+    let(:telemetry) { spy('telemetry') }
 
     before do
       allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
@@ -329,6 +386,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
       expect(payloads.size).to be > 1
       expect(payloads).to all(satisfy { |payload| encoded_payload_size(payload) <= described_class::PAYLOAD_SIZE_LIMIT_BYTES })
+      expect_telemetry_count(telemetry, 'flagevaluation.payload.splits', payloads.size - 1)
     end
 
     it 'degrades a full row before dropping it for the configured payload limit' do
@@ -345,6 +403,12 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(row['flag']).to eq('key' => 'large')
       expect(row).not_to have_key('targeting_key')
       expect(row).not_to have_key('context')
+      expect_telemetry_count(
+        telemetry,
+        'flagevaluation.rows.degraded',
+        1,
+        {reason: 'payload_limit'}
+      )
       expect(logged).to be_empty
     end
 
@@ -359,6 +423,12 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
 
       expect(payloads).to be_empty
       expect(logged.join).to include('payload_oversize=1')
+      expect_telemetry_count(
+        telemetry,
+        'flagevaluation.rows.dropped',
+        1,
+        {reason: 'payload_limit'}
+      )
     end
   end
 
@@ -366,10 +436,11 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
   describe '#flush_once emits degraded-overflow drops' do
     let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP, send_flag_evaluations: nil) }
     let(:logger) { instance_double(Logger) }
+    let(:telemetry) { spy('telemetry') }
 
     it 'logs the degraded_overflow count returned in the aggregator snapshot' do
       allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
-      writer = described_class.new(transport: transport, logger: logger)
+      writer = described_class.new(transport: transport, logger: logger, telemetry: telemetry)
 
       # Inject an aggregator whose flush reports a degraded-overflow drop.
       fake_aggregator = instance_double(Datadog::OpenFeature::FlagEvaluation::Aggregator)
@@ -384,6 +455,12 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       writer.send(:flush_once)
 
       expect(logged.join).to match(/degraded_overflow=7/)
+      expect_telemetry_count(
+        telemetry,
+        'flagevaluation.rows.dropped',
+        7,
+        {reason: 'degraded_cap'}
+      )
     end
   end
 end

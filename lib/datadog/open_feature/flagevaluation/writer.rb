@@ -23,6 +23,15 @@ module Datadog
         DRAIN_INTERVAL_SECONDS = 0.1
         QUEUE_SIZE = 4_096
         PAYLOAD_SIZE_LIMIT_BYTES = 5 * 1024 * 1024
+        TELEMETRY_NAMESPACE = 'tracers'
+        ROWS_DROPPED_METRIC = 'flagevaluation.rows.dropped'
+        ROWS_DEGRADED_METRIC = 'flagevaluation.rows.degraded'
+        PAYLOAD_SPLITS_METRIC = 'flagevaluation.payload.splits'
+
+        REASON_QUEUE_OVERFLOW = 'queue_overflow'
+        REASON_DEGRADED_CAP = 'degraded_cap'
+        REASON_CARDINALITY_CAP = 'cardinality_cap'
+        REASON_PAYLOAD_LIMIT = 'payload_limit'
 
         # Service context fields for the batch wrapper.
         attr_reader :service_context
@@ -31,9 +40,10 @@ module Datadog
         # Reset to 0 each flush after being emitted, mirroring the aggregator's overflow counter.
         attr_reader :dropped_queue_overflow
 
-        def initialize(transport:, logger:)
+        def initialize(transport:, logger:, telemetry: nil)
           @transport = transport
           @logger = logger
+          @telemetry = telemetry
           @aggregator = Aggregator.new
           @queue = SizedQueue.new(QUEUE_SIZE)
           @stop_mutex = Mutex.new
@@ -152,6 +162,7 @@ module Datadog
           emit_drop_counts(dropped_queue, dropped_overflow)
 
           events = build_events(snapshot)
+          emit_degraded_counts(snapshot[:degraded].values.sum { |entry| entry[:count].to_i })
           return if events.empty?
 
           send_payload_batches(events)
@@ -173,10 +184,17 @@ module Datadog
         def emit_drop_counts(dropped_queue, dropped_overflow)
           return if dropped_queue.zero? && dropped_overflow.zero?
 
+          record_rows_dropped(REASON_QUEUE_OVERFLOW, dropped_queue)
+          record_rows_dropped(REASON_DEGRADED_CAP, dropped_overflow)
+
           @logger.debug do
             'OpenFeature EVP: dropped events ' \
               "queue_overflow=#{dropped_queue} degraded_overflow=#{dropped_overflow}"
           end
+        end
+
+        def emit_degraded_counts(degraded_count)
+          record_rows_degraded(REASON_CARDINALITY_CAP, degraded_count)
         end
 
         # Build flagEvaluationEvent list from aggregation snapshot.
@@ -245,15 +263,18 @@ module Datadog
           batch = []
           batch_size = base_payload_size
           dropped_oversized = 0
+          payload_limit_degraded = 0
+          payload_splits = 0
 
           events.each do |event|
             encoded_event = encoded_event_for_payload(event, base_payload_size)
             unless encoded_event
-              dropped_oversized += 1
+              dropped_oversized += event_count(event)
               next
             end
 
-            event_hash, event_size = encoded_event
+            event_hash, event_size, degraded_for_payload_limit = encoded_event
+            payload_limit_degraded += event_count(event_hash) if degraded_for_payload_limit
             separator_size = batch.empty? ? 0 : 1
 
             if !batch.empty? && batch_size + separator_size + event_size > self.class::PAYLOAD_SIZE_LIMIT_BYTES
@@ -261,6 +282,7 @@ module Datadog
               batch = []
               batch_size = base_payload_size
               separator_size = 0
+              payload_splits += 1
             end
 
             batch << event_hash
@@ -268,6 +290,9 @@ module Datadog
           end
 
           send_payload_batch(batch) unless batch.empty?
+          record_rows_degraded(REASON_PAYLOAD_LIMIT, payload_limit_degraded)
+          record_rows_dropped(REASON_PAYLOAD_LIMIT, dropped_oversized)
+          record_payload_splits(payload_splits)
           emit_payload_oversize_drops(dropped_oversized) if dropped_oversized.positive?
         end
 
@@ -282,13 +307,13 @@ module Datadog
 
         def encoded_event_for_payload(event, base_payload_size)
           event_hash, event_size = encoded_event(event)
-          return [event_hash, event_size] if event_fits_payload?(event_size, base_payload_size)
+          return [event_hash, event_size, false] if event_fits_payload?(event_size, base_payload_size)
 
           degraded = degrade_event_for_payload_limit(event)
           return unless degraded
 
           degraded_hash, degraded_size = encoded_event(degraded)
-          [degraded_hash, degraded_size] if event_fits_payload?(degraded_size, base_payload_size)
+          [degraded_hash, degraded_size, true] if event_fits_payload?(degraded_size, base_payload_size)
         end
 
         def encoded_event(event)
@@ -310,6 +335,32 @@ module Datadog
 
         def emit_payload_oversize_drops(dropped_oversized)
           @logger.debug { "OpenFeature EVP: dropped events payload_oversize=#{dropped_oversized}" }
+        end
+
+        def event_count(event)
+          count = event['evaluation_count'].to_i
+          count.positive? ? count : 1
+        end
+
+        def record_rows_dropped(reason, count)
+          record_telemetry_count(ROWS_DROPPED_METRIC, count, reason: reason)
+        end
+
+        def record_rows_degraded(reason, count)
+          record_telemetry_count(ROWS_DEGRADED_METRIC, count, reason: reason)
+        end
+
+        def record_payload_splits(count)
+          record_telemetry_count(PAYLOAD_SPLITS_METRIC, count)
+        end
+
+        def record_telemetry_count(metric_name, count, reason: nil)
+          return unless @telemetry && count.positive?
+
+          tags = reason ? {reason: reason} : {}
+          @telemetry.inc(TELEMETRY_NAMESPACE, metric_name, count, tags: tags)
+        rescue => e
+          @logger.debug { "OpenFeature EVP: telemetry error: #{e.class}: #{e.message}" }
         end
       end
     end
