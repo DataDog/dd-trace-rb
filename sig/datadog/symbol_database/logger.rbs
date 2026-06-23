@@ -1,8 +1,6 @@
 module Datadog
   module SymbolDatabase
     class Logger
-      extend Forwardable
-
       @settings: untyped
 
       @target: ::Logger
@@ -13,7 +11,8 @@ module Datadog
 
       attr_reader target: ::Logger
 
-      # debug/warn accept either a positional message or a block (delegated to ::Logger)
+      # debug/warn accept either a positional message or a block (delegated to ::Logger).
+      # Both swallow exceptions raised by the wrapped target.
       def debug: (?untyped? message) ?{ () -> untyped } -> void
       def warn: (?untyped? message) ?{ () -> untyped } -> void
       def trace: () { () -> untyped } -> void
