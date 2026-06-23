@@ -664,6 +664,16 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
 
     it 'extracts a class defined after the initial upload completes' do
+      # REPRODUCER (do not merge): force extract_all to sleep 12s — longer than the
+      # combined budget of both wait_for_idle(timeout: 5) calls. The first wait_for_idle
+      # times out at T=5s; the test ignores the return value and proceeds. The second
+      # wait_for_idle starts with start_time = @last_upload_time = nil (initial extract
+      # is still sleeping) and also times out — but the test ignores that too and asserts
+      # on extracted_modules, which is empty because the hot-load extract pass has not
+      # had a chance to run. This forces the race that on macOS-15 Ruby 3.2 surfaced
+      # naturally because the initial extract_all over ObjectSpace ran long enough to
+      # blow past the 5s timeout.
+      allow_any_instance_of(Datadog::SymbolDatabase::Extractor).to receive(:extract_all) { sleep 12 }
       extracted_modules = []
       allow_any_instance_of(Datadog::SymbolDatabase::Extractor).to receive(:extract) do |_inst, mod|
         extracted_modules << mod
