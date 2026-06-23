@@ -4,10 +4,10 @@ require 'spec_helper'
 
 # Tests run under the openfeature appraisal which includes the real OpenFeature SDK
 require 'open_feature/sdk'
-require 'datadog/open_feature/hooks/flag_eval_logging_hook'
+require 'datadog/open_feature/hooks/flag_eval_evp_hook'
 require 'datadog/open_feature/flagevaluation/writer'
 
-RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalLoggingHook do
+RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
   subject(:hook) { described_class.new(writer) }
 
   let(:writer) { instance_double(Datadog::OpenFeature::FlagEvaluation::Writer, enqueue: nil) }

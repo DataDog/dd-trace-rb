@@ -11,7 +11,7 @@ module Datadog
       #
       # OTel non-regression: hooks/flag_eval_metrics_hook.rb and metrics/flag_eval_metrics.rb
       # stay on the OTel path. This hook is driven directly by the provider for EVP.
-      class FlagEvalLoggingHook
+      class FlagEvalEVPHook
         # Include the Hook module if available (SDK >= 0.5.0) for interface documentation
         # and default implementations of other hook methods (before, after, error)
         include ::OpenFeature::SDK::Hooks::Hook if defined?(::OpenFeature::SDK::Hooks::Hook)

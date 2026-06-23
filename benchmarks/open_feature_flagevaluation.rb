@@ -6,7 +6,7 @@ return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 require_relative 'benchmarks_helper'
 require 'datadog/open_feature/flagevaluation/aggregator'
 require 'datadog/open_feature/flagevaluation/writer'
-require 'datadog/open_feature/hooks/flag_eval_logging_hook'
+require 'datadog/open_feature/hooks/flag_eval_evp_hook'
 
 # Benchmarks the EVP flagevaluation eval-time hot path:
 #   1. the OpenFeature `finally` hook (cheap capture + non-blocking enqueue) — what the user's
@@ -43,7 +43,7 @@ class OpenFeatureFlagevaluationBenchmark
     @writer.instance_variable_set(:@stop_mutex, Mutex.new)
     @writer.instance_variable_set(:@dropped_queue_overflow, 0)
 
-    @hook = Datadog::OpenFeature::Hooks::FlagEvalLoggingHook.new(@writer)
+    @hook = Datadog::OpenFeature::Hooks::FlagEvalEVPHook.new(@writer)
     @aggregator = Datadog::OpenFeature::FlagEvaluation::Aggregator.new
 
     @hook_context = HookContext.new(

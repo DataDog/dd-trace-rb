@@ -4,7 +4,7 @@ require 'spec_helper'
 require 'datadog/open_feature/provider'
 require 'datadog/open_feature/evaluation_engine'
 require 'datadog/open_feature/hooks/flag_eval_metrics_hook'
-require 'datadog/open_feature/hooks/flag_eval_logging_hook'
+require 'datadog/open_feature/hooks/flag_eval_evp_hook'
 require 'datadog/open_feature/flagevaluation/writer'
 
 RSpec.describe Datadog::OpenFeature::Provider do
@@ -12,7 +12,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
     allow(telemetry).to receive(:report)
     allow(reporter).to receive(:report)
     allow(Datadog::OpenFeature).to receive(:engine).and_return(engine)
-    # call_evp_hook drives the logging hook directly (Ruby openfeature-sdk does not invoke provider
+    # call_evp_hook drives the EVP hook directly (Ruby openfeature-sdk does not invoke provider
     # hooks during evaluation). Stub it as a no-op for tests not specifically testing EVP emission.
     allow(provider).to receive(:call_evp_hook)
   end
@@ -139,11 +139,11 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
 
       it 'returns only the OTel flag eval hook to avoid EVP lifecycle double-counting' do
-        expect(open_feature_component).not_to receive(:flag_eval_logging_hook)
+        expect(open_feature_component).not_to receive(:flag_eval_evp_hook)
         expect(provider.hooks).to eq([flag_eval_metrics_hook])
       end
 
-      context 'when logging hook is disabled (killswitch)' do
+      context 'when EVP hook is disabled (killswitch)' do
         it 'returns array with only the OTel flag eval hook' do
           expect(provider.hooks).to eq([flag_eval_metrics_hook])
         end
@@ -168,7 +168,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
     let(:components) { instance_double(Datadog::Core::Configuration::Components) }
     let(:open_feature_component) { instance_double(Datadog::OpenFeature::Component) }
-    let(:flag_eval_logging_hook) { instance_double(Datadog::OpenFeature::Hooks::FlagEvalLoggingHook) }
+    let(:flag_eval_evp_hook) { instance_double(Datadog::OpenFeature::Hooks::FlagEvalEVPHook) }
     let(:evaluation_context) do
       ::OpenFeature::SDK::EvaluationContext.new(targeting_key: 'user-1', env: 'prod')
     end
@@ -176,8 +176,8 @@ RSpec.describe Datadog::OpenFeature::Provider do
     before do
       allow(Datadog).to receive(:send).with(:components).and_return(components)
       allow(components).to receive(:open_feature).and_return(open_feature_component)
-      allow(open_feature_component).to receive(:flag_eval_logging_hook).and_return(flag_eval_logging_hook)
-      allow(flag_eval_logging_hook).to receive(:finally)
+      allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(flag_eval_evp_hook)
+      allow(flag_eval_evp_hook).to receive(:finally)
     end
 
     it 'is called during fetch_string_value evaluation' do
@@ -193,7 +193,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         flag_key: 'my-flag', default_value: 'default', evaluation_context: evaluation_context
       )
 
-      expect(flag_eval_logging_hook).to have_received(:finally) do |hook_context:, evaluation_details:, **|
+      expect(flag_eval_evp_hook).to have_received(:finally) do |hook_context:, evaluation_details:, **|
         expect(hook_context.flag_key).to eq('my-flag')
         expect(hook_context.evaluation_context.targeting_key).to eq('user-1')
         expect(hook_context.evaluation_context.attributes).to eq('env' => 'prod')
@@ -202,9 +202,9 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    context 'when logging hook is nil (killswitch off)' do
+    context 'when EVP hook is nil (killswitch off)' do
       before do
-        allow(open_feature_component).to receive(:flag_eval_logging_hook).and_return(nil)
+        allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(nil)
       end
 
       it 'does not raise and returns the evaluation result' do
@@ -238,19 +238,19 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    # The logging hook fires on the SDK's real evaluation entrypoint, which is the provider's
+    # The EVP hook fires on the SDK's real evaluation entrypoint, which is the provider's
     # #evaluate (the Ruby openfeature-sdk does not auto-run provider hooks). Proven against a
     # real Writer (no stub of the hook): enqueue must actually happen on a successful eval.
     context 'fires on the real evaluation path (drives a real Writer)' do
       let(:writer) { Datadog::OpenFeature::FlagEvaluation::Writer.new(transport: evp_transport, logger: logger) }
       let(:evp_transport) { instance_double(Datadog::OpenFeature::Transport::HTTP, send_flag_evaluations: nil) }
-      let(:real_flag_eval_logging_hook) { Datadog::OpenFeature::Hooks::FlagEvalLoggingHook.new(writer) }
+      let(:real_flag_eval_evp_hook) { Datadog::OpenFeature::Hooks::FlagEvalEVPHook.new(writer) }
 
       before do
         # No bare sleep in shutdown synchronization: stub the background thread, drive flush manually.
         allow_any_instance_of(Datadog::OpenFeature::FlagEvaluation::Writer)
           .to receive(:start_background_thread).and_return(nil)
-        allow(open_feature_component).to receive(:flag_eval_logging_hook).and_return(real_flag_eval_logging_hook)
+        allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(real_flag_eval_evp_hook)
         allow(logger).to receive(:debug)
       end
 
@@ -280,14 +280,14 @@ RSpec.describe Datadog::OpenFeature::Provider do
       end
     end
 
-    # ALL evaluation exit paths must reach (or safely bypass) the logging hook.
+    # ALL evaluation exit paths must reach (or safely bypass) the EVP hook.
     context 'evaluation exit paths' do
       before do
         allow(provider).to receive(:call_evp_hook).and_call_original
-        allow(flag_eval_logging_hook).to receive(:finally)
+        allow(flag_eval_evp_hook).to receive(:finally)
       end
 
-      it 'engine error path: drives the logging hook with error_message + nil variant' do
+      it 'engine error path: drives the EVP hook with error_message + nil variant' do
         result = Datadog::OpenFeature::ResolutionDetails.new(
           value: 'default', reason: 'ERROR', variant: nil, error_code: 'FLAG_NOT_FOUND',
           error_message: 'nope', flag_metadata: {}, allocation_key: nil, extra_logging: {},
@@ -298,22 +298,22 @@ RSpec.describe Datadog::OpenFeature::Provider do
         res = provider.fetch_string_value(flag_key: 'err-flag', default_value: 'default')
 
         expect(res.value).to eq('default')
-        expect(flag_eval_logging_hook).to have_received(:finally) do |evaluation_details:, **|
+        expect(flag_eval_evp_hook).to have_received(:finally) do |evaluation_details:, **|
           expect(evaluation_details.variant).to be_nil
           expect(evaluation_details.error_message).to eq('nope')
         end
       end
 
-      it 'no-engine early return: does NOT drive the logging hook (scoped out — no eval occurred)' do
+      it 'no-engine early return: does NOT drive the EVP hook (scoped out — no eval occurred)' do
         allow(Datadog::OpenFeature).to receive(:engine).and_return(nil)
 
         res = provider.fetch_string_value(flag_key: 'no-engine', default_value: 'd')
 
         expect(res.error_message).to match(/must be configured/)
-        expect(flag_eval_logging_hook).not_to have_received(:finally)
+        expect(flag_eval_evp_hook).not_to have_received(:finally)
       end
 
-      it 'rescued provider exception: drives the logging hook with error_message + nil variant' do
+      it 'rescued provider exception: drives the EVP hook with error_message + nil variant' do
         allow(engine).to receive(:fetch_value).and_raise(RuntimeError, 'boom')
 
         res = nil
@@ -321,7 +321,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
           .not_to raise_error
         expect(res.value).to eq('d')
         expect(res.reason).to eq('ERROR')
-        expect(flag_eval_logging_hook).to have_received(:finally) do |hook_context:, evaluation_details:, **|
+        expect(flag_eval_evp_hook).to have_received(:finally) do |hook_context:, evaluation_details:, **|
           expect(hook_context.flag_key).to eq('boom-flag')
           expect(evaluation_details.variant).to be_nil
           expect(evaluation_details.error_message).to eq('RuntimeError: boom')
@@ -331,7 +331,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
     end
 
     # Provider stamps 'dd.eval.timestamp_ms' into flag metadata at eval entry, which the
-    # logging hook reads for first/last_evaluation. Proven by inspecting the metadata the hook sees.
+    # EVP hook reads for first/last_evaluation. Proven by inspecting the metadata the hook sees.
     context 'eval-time metadata stamping' do
       # Override the configurable time provider (no Timecop dependency). The provider lambda runs
       # with self == Datadog::Core::Utils::Time, so capture the frozen value in a local closure.
@@ -343,18 +343,18 @@ RSpec.describe Datadog::OpenFeature::Provider do
         Datadog::Core::Utils::Time.now_provider = -> { Time.now }
       end
 
-      it "stamps dd.eval.timestamp_ms into the metadata the logging hook receives" do
+      it "stamps dd.eval.timestamp_ms into the metadata the EVP hook receives" do
         result = Datadog::OpenFeature::ResolutionDetails.new(
           value: 'v', reason: 'STATIC', variant: 'v',
           flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false
         )
         allow(engine).to receive(:fetch_value).and_return(result)
         allow(provider).to receive(:call_evp_hook).and_call_original
-        allow(flag_eval_logging_hook).to receive(:finally)
+        allow(flag_eval_evp_hook).to receive(:finally)
 
         provider.fetch_string_value(flag_key: 'ts-flag', default_value: 'd')
 
-        expect(flag_eval_logging_hook).to have_received(:finally) do |evaluation_details:, **|
+        expect(flag_eval_evp_hook).to have_received(:finally) do |evaluation_details:, **|
           expect(evaluation_details.flag_metadata['dd.eval.timestamp_ms']).to eq(1_700_000_000_000)
         end
       end

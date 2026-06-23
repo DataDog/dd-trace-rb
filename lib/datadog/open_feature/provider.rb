@@ -11,7 +11,7 @@ module Datadog
     # Requires openfeature-sdk >= 0.5.1 for flag evaluation metrics support.
     #
     # Hook lifecycle note: the Ruby openfeature-sdk (through at least 0.5.x) does not invoke
-    # provider hooks during evaluation. FlagEvalLoggingHook is called directly from #evaluate and is
+    # provider hooks during evaluation. FlagEvalEVPHook is called directly from #evaluate and is
     # not returned from #hooks, so future SDK lifecycle support cannot double-count EVP rows.
     #
     # Implementation follows the OpenFeature contract of Provider SDK.
@@ -60,7 +60,7 @@ module Datadog
     class Provider
       NAME = 'Datadog Feature Flagging Provider'
 
-      # Lightweight duck-typed wrappers used to call FlagEvalLoggingHook#finally directly,
+      # Lightweight duck-typed wrappers used to call FlagEvalEVPHook#finally directly,
       # bypassing the openfeature-sdk hook lifecycle (which is not invoked in sdk <= 0.5.x).
       #
       # The hook accesses:
@@ -138,7 +138,7 @@ module Datadog
         flag_meta = build_flag_metadata(result, eval_time_ms)
 
         if result.error?
-          # Drive logging hook directly: the Ruby openfeature-sdk does not invoke provider hooks,
+          # Drive the EVP hook directly: the Ruby openfeature-sdk does not invoke provider hooks,
           # so we call it here to cover both success and error paths (finally semantics).
           call_evp_hook(flag_key, result, evaluation_context, flag_meta)
           evp_hook_called = true
@@ -198,7 +198,7 @@ module Datadog
         allocation_key = result.allocation_key
         metadata['__dd_allocation_key'] = allocation_key if allocation_key && !allocation_key.empty?
 
-        # Eval-time stamped at provider entry; the logging hook reads 'dd.eval.timestamp_ms' for
+        # Eval-time stamped at provider entry; the EVP hook reads 'dd.eval.timestamp_ms' for
         # accurate first/last_evaluation bounds (it falls back to hook-fire time when absent).
         metadata['dd.eval.timestamp_ms'] = eval_time_ms
 
@@ -214,16 +214,16 @@ module Datadog
         )
       end
 
-      # Call the logging hook directly — the Ruby openfeature-sdk (through at least 0.5.x) does not
+      # Call the EVP hook directly — the Ruby openfeature-sdk (through at least 0.5.x) does not
       # invoke provider hooks during evaluation, so we must drive it ourselves. The hook is still
       # not registered via #hooks because future SDK versions may invoke provider hooks and would
       # double-count EVP rows. This method is idempotent: if the killswitch is on or the
-      # component is absent, flag_eval_logging_hook is nil and this is a no-op.
+      # component is absent, flag_eval_evp_hook is nil and this is a no-op.
       #
       # ::OpenFeature::SDK::EvaluationContext has #fields and #targeting_key but NOT #attributes.
       # We adapt it into EvpEvalContext which provides the #attributes interface the hook expects.
       def call_evp_hook(flag_key, result, evaluation_context, flag_metadata)
-        hook = Datadog.send(:components).open_feature&.flag_eval_logging_hook
+        hook = Datadog.send(:components).open_feature&.flag_eval_evp_hook
         return unless hook
 
         evp_ctx = build_evp_eval_context(evaluation_context)
