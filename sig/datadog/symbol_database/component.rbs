@@ -1,7 +1,7 @@
 module Datadog
   module SymbolDatabase
     class Component
-      EXTRACT_DEBOUNCE_INTERVAL: Integer
+      EXTRACT_DEBOUNCE_INTERVAL: ::Numeric
       MODULE_SINGLETON_CLASS_PRED: ::UnboundMethod
 
       @settings: Datadog::Core::Configuration::Settings
@@ -71,7 +71,7 @@ module Datadog
 
       def log_scope_tree: (Scope scope, ::Integer depth) -> void
 
-      def count_targetable_methods: (::Array[Scope] file_scopes) -> ::Integer
+      def count_targetable_methods_in_scope: (Scope file_scope) -> ::Integer
     end
   end
 end

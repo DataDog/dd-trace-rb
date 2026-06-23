@@ -58,7 +58,7 @@ typedef struct {
   heap_frame frames[];
 } heap_record;
 static heap_record* heap_record_new(heap_recorder*, ddog_prof_Slice_Location);
-static void heap_record_free(heap_recorder*, heap_record*);
+static void heap_record_free(heap_recorder*, heap_record*, bool should_unintern);
 
 #if MAX_FRAMES_LIMIT > UINT16_MAX
   #error Frames len type not compatible with MAX_FRAMES_LIMIT
@@ -75,7 +75,7 @@ typedef struct {
   live_object_data object_data;
 } object_record;
 static object_record* object_record_new(long, heap_record*, live_object_data);
-static void object_record_free(heap_recorder*, object_record*);
+static void object_record_free(heap_recorder*, object_record*, bool should_unintern);
 static VALUE object_record_inspect(heap_recorder*, object_record*);
 static object_record SKIPPED_RECORD = {0};
 
@@ -196,8 +196,8 @@ typedef struct {
 static heap_record* get_or_create_heap_record(heap_recorder*, ddog_prof_Slice_Location);
 static void cleanup_heap_record_if_unused(heap_recorder*, heap_record*);
 static void on_committed_object_record_cleanup(heap_recorder *heap_recorder, object_record *record);
-static int st_heap_record_entry_free(st_data_t, st_data_t, st_data_t);
-static int st_object_record_entry_free(st_data_t, st_data_t, st_data_t);
+static int st_heap_record_entry_free_no_unintern(st_data_t, st_data_t, st_data_t);
+static int st_object_record_entry_free_no_unintern(st_data_t, st_data_t, st_data_t);
 static int st_object_record_update(st_data_t, st_data_t, st_data_t);
 static int st_object_records_iterate(st_data_t, st_data_t, st_data_t);
 static int st_object_records_debug(st_data_t key, st_data_t value, st_data_t extra);
@@ -250,17 +250,24 @@ void heap_recorder_free(heap_recorder *heap_recorder) {
     heap_recorder_finish_iteration(heap_recorder);
   }
 
+  // NOTE: We don't unintern the strings referenced by the records we're about to free, thus we use
+  // `..._no_unintern` and `should_unintern: false`. This is intentional: `heap_recorder_free` is only ever called as part of
+  // tearing down the entire stack recorder, and the caller drops the whole managed string storage right after
+  // (see `stack_recorder_typed_data_free`), so there's no need to spend effort updating the managed string table.
+  // Crucially, this also keeps us from crashing: this code runs from the stack recorder's GC free callback, and
+  // because uninterning can fail, we can't raise exceptions in the middle of a dfree.
+
   // Clean-up all object records
-  st_foreach(heap_recorder->object_records, st_object_record_entry_free, (st_data_t) heap_recorder);
+  st_foreach(heap_recorder->object_records, st_object_record_entry_free_no_unintern, (st_data_t) heap_recorder);
   st_free_table(heap_recorder->object_records);
 
   // Clean-up all heap records (this includes those only referred to by queued_samples)
-  st_foreach(heap_recorder->heap_records, st_heap_record_entry_free, (st_data_t) heap_recorder);
+  st_foreach(heap_recorder->heap_records, st_heap_record_entry_free_no_unintern, (st_data_t) heap_recorder);
   st_free_table(heap_recorder->heap_records);
 
   if (heap_recorder->active_recording != NULL && heap_recorder->active_recording != &SKIPPED_RECORD) {
     // If there's a partial object record, clean it up as well
-    object_record_free(heap_recorder, heap_recorder->active_recording);
+    object_record_free(heap_recorder, heap_recorder->active_recording, false);
   }
 
   ruby_xfree(heap_recorder->reusable_locations);
@@ -306,7 +313,7 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder) {
   // simply be noticed on next heap_recorder_prepare_iteration.
   //
   // There is one small caveat though: fork only preserves one thread and in a Ruby app, that
-  // will be the thread holding on to the GVL. Since we support iteration on the heap recorder
+  // will be the thread holding the GVL. Since we support iteration on the heap recorder
   // outside of the GVL, any state specific to that interaction may be inconsistent after fork
   // (e.g. an acquired lock for thread safety). Iteration operates on object_records_snapshot
   // though and that one will be updated on next heap_recorder_prepare_iteration so we really
@@ -714,15 +721,17 @@ VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder) {
 // ==========================
 // Heap Recorder Internal API
 // ==========================
-static int st_heap_record_entry_free(st_data_t key, DDTRACE_UNUSED st_data_t value, st_data_t extra_arg) {
+// NOTE: Only expected to be used from heap_recorder_free, which will separately destroy the string table
+static int st_heap_record_entry_free_no_unintern(st_data_t key, DDTRACE_UNUSED st_data_t value, st_data_t extra_arg) {
   heap_recorder *recorder = (heap_recorder *) extra_arg;
-  heap_record_free(recorder, (heap_record *) key);
+  heap_record_free(recorder, (heap_record *) key, false);
   return ST_DELETE;
 }
 
-static int st_object_record_entry_free(DDTRACE_UNUSED st_data_t key, st_data_t value, st_data_t extra_arg) {
+// NOTE: Only expected to be used from heap_recorder_free, which will separately destroy the string table
+static int st_object_record_entry_free_no_unintern(DDTRACE_UNUSED st_data_t key, st_data_t value, st_data_t extra_arg) {
   heap_recorder *recorder = (heap_recorder *) extra_arg;
-  object_record_free(recorder, (object_record *) value);
+  object_record_free(recorder, (object_record *) value, false);
   return ST_DELETE;
 }
 
@@ -888,7 +897,7 @@ static heap_record* get_or_create_heap_record(heap_recorder *heap_recorder, ddog
   heap_record *new_or_existing_record = NULL; // Will be set inside update_heap_record_entry_with_new_allocation
   bool existing = st_update(heap_recorder->heap_records, (st_data_t) stack, update_heap_record_entry_with_new_allocation, (st_data_t) &new_or_existing_record);
   if (existing) {
-    heap_record_free(heap_recorder, stack);
+    heap_record_free(heap_recorder, stack, true);
   }
 
   return new_or_existing_record;
@@ -903,7 +912,7 @@ static void cleanup_heap_record_if_unused(heap_recorder *heap_recorder, heap_rec
   if (!st_delete(heap_recorder->heap_records, (st_data_t*) &heap_record, NULL)) {
     raise_error(rb_eRuntimeError, "Attempted to cleanup an untracked heap_record");
   };
-  heap_record_free(heap_recorder, heap_record);
+  heap_record_free(heap_recorder, heap_record, true);
 }
 
 static void on_committed_object_record_cleanup(heap_recorder *heap_recorder, object_record *record) {
@@ -925,7 +934,7 @@ static void on_committed_object_record_cleanup(heap_recorder *heap_recorder, obj
   // One less object using this heap record, it may have become unused...
   cleanup_heap_record_if_unused(heap_recorder, heap_record);
 
-  object_record_free(heap_recorder, record);
+  object_record_free(heap_recorder, record, true);
 }
 
 // =================
@@ -939,8 +948,12 @@ object_record* object_record_new(long obj_id, heap_record *heap_record, live_obj
   return record;
 }
 
-void object_record_free(heap_recorder *recorder, object_record *record) {
-  unintern_or_raise(recorder, record->object_data.class);
+void object_record_free(heap_recorder *recorder, object_record *record, bool should_unintern) {
+  // When tearing down the whole recorder state, we skip uninterning as it's not needed (the managed
+  // string table is going to be destroyed anyway) and if there's any failures we can't raise
+  // in the middle of a dfree callback.
+  if (should_unintern) unintern_or_raise(recorder, record->object_data.class);
+
   free(record); // See "note on calloc vs ruby_xcalloc use" above
 }
 
@@ -1012,15 +1025,20 @@ heap_record* heap_record_new(heap_recorder *recorder, ddog_prof_Slice_Location l
   return stack;
 }
 
-void heap_record_free(heap_recorder *recorder, heap_record *stack) {
-  ddog_prof_ManagedStringId *ids = recorder->reusable_ids;
+void heap_record_free(heap_recorder *recorder, heap_record *stack, bool should_unintern) {
+  // When tearing down the whole recorder state, we skip uninterning as it's not needed (the managed
+  // string table is going to be destroyed anyway) and if there's any failures we can't raise
+  // in the middle of a dfree callback.
+  if (should_unintern) {
+    ddog_prof_ManagedStringId *ids = recorder->reusable_ids;
 
-  // Put all the ids in the same array; doesn't really matter the order
-  for (u_int16_t i = 0; i < stack->frames_len; i++) {
-    ids[i] = stack->frames[i].filename;
-    ids[i + stack->frames_len] = stack->frames[i].name;
+    // Put all the ids in the same array; doesn't really matter the order
+    for (u_int16_t i = 0; i < stack->frames_len; i++) {
+      ids[i] = stack->frames[i].filename;
+      ids[i + stack->frames_len] = stack->frames[i].name;
+    }
+    unintern_all_or_raise(recorder, (ddog_prof_Slice_ManagedStringId) { .ptr = ids, .len = stack->frames_len * 2 });
   }
-  unintern_all_or_raise(recorder, (ddog_prof_Slice_ManagedStringId) { .ptr = ids, .len = stack->frames_len * 2 });
 
   free(stack); // See "note on calloc vs ruby_xcalloc use" above
 }

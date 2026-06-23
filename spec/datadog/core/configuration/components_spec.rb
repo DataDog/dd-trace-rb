@@ -122,7 +122,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
       context 'DI is enabled' do
         before(:all) do
-          skip 'DI is disabled due to Ruby version < 2.5' if RUBY_VERSION < '2.6'
+          skip 'DI is disabled due to Ruby version < 2.6' if RubyVersion.is?('< 2.6')
         end
 
         before do
@@ -185,7 +185,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
       context 'when symbol_database is enabled with remote config' do
         before(:all) do
-          skip 'Symbol database requires MRI Ruby 2.6+' if PlatformHelpers.jruby? || RUBY_VERSION < '2.6'
+          skip 'Symbol database requires MRI Ruby 2.6+' if PlatformHelpers.jruby? || RubyVersion.is?('< 2.6')
         end
 
         before do
@@ -640,6 +640,30 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         startup!
       end
+    end
+  end
+
+  describe '#after_fork' do
+    subject(:after_fork) { components.after_fork }
+
+    before do
+      allow(telemetry).to receive(:after_fork)
+      allow(remote).to receive(:after_fork)
+      allow(Datadog::Core::ProcessDiscovery).to receive(:after_fork)
+    end
+
+    it 'dispatches after_fork! to the symbol_database when present' do
+      symbol_database = instance_double(Datadog::SymbolDatabase::Component)
+      allow(components).to receive(:symbol_database).and_return(symbol_database)
+      expect(symbol_database).to receive(:after_fork!)
+
+      after_fork
+    end
+
+    it 'does not raise when symbol_database is nil' do
+      allow(components).to receive(:symbol_database).and_return(nil)
+
+      expect { after_fork }.not_to raise_error
     end
   end
 

@@ -80,6 +80,14 @@
 
 **Note:** Call `OpenTelemetry::SDK.configure` after `Datadog.configure` and call it again whenever Datadog configuration changes to update the meter provider.
 
+> [!WARNING]
+> `OpenTelemetry::SDK.configure` does not shut down the previously-installed providers. The replaced provider's background threads (`PeriodicMetricReader` for metrics, `BatchLogRecordProcessor` for logs) keep running until garbage collected. Before calling `OpenTelemetry::SDK.configure` again, shut down the existing providers explicitly:
+>
+> ```ruby
+> OpenTelemetry.meter_provider.shutdown
+> OpenTelemetry.logger_provider.shutdown
+> ```
+
 **Configuration Options:**
 
 - `DD_METRICS_OTEL_ENABLED` - Enable metrics export (default: false)

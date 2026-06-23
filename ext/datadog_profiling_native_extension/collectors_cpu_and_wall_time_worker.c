@@ -182,6 +182,11 @@ typedef struct {
     unsigned int allocations_during_sample;
 
     // # GVL profiling stats
+    // Note that this tracks two kind of samples from RESUMED:
+    // * samples when Waiting for GVL for more than the threshold
+    // * samples for the skip-samples-while-without-GVL optimization,
+    //   which are needed to attribute the time without GVL to the correct Ruby stack
+
     // How many times we triggered the after_gvl_running sampling
     unsigned int after_gvl_running;
     // How many times we skipped the after_gvl_running sampling
@@ -808,8 +813,7 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
 
   state->stats.cpu_sampled++;
 
-  VALUE profiler_overhead_stack_thread = state->owner_thread; // Used to attribute profiler overhead to a different stack
-  thread_context_collector_sample(state->thread_context_collector_instance, wall_time_ns_before_sample, profiler_overhead_stack_thread);
+  thread_context_collector_sample(state->thread_context_collector_instance, wall_time_ns_before_sample);
 
   long wall_time_ns_after_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
   long delta_ns = wall_time_ns_after_sample - wall_time_ns_before_sample;
@@ -870,6 +874,7 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
         (
           // For now we're only asking for these events, even though there's more
           // (e.g. check docs or gvl-tracing gem)
+          RUBY_INTERNAL_THREAD_EVENT_SUSPENDED | /* released gvl */
           RUBY_INTERNAL_THREAD_EVENT_READY /* waiting for gvl */ |
           RUBY_INTERNAL_THREAD_EVENT_RESUMED /* running/runnable */
         ),
@@ -1128,6 +1133,9 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("gvl_waiting_time_ns_total")),  /* => */ state->gvl_profiling_enabled ? ULL2NUM(state->stats.vm_metrics.gvl_waiting_time_ns_total) : Qnil,
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
+
+  thread_context_collector_stats(state->thread_context_collector_instance, stats_as_hash);
+
   return stats_as_hash;
 }
 
@@ -1135,6 +1143,7 @@ static VALUE _native_stats_reset_not_thread_safe(DDTRACE_UNUSED VALUE self, VALU
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
   reset_stats_not_thread_safe(state);
+  thread_context_collector_stats_reset_not_thread_safe(state->thread_context_collector_instance);
   return Qnil;
 }
 
@@ -1444,7 +1453,9 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     if (!thread_context) return;
     // If non-NULL the thread is profiled and from the main Ractor
 
-    if (event_id == RUBY_INTERNAL_THREAD_EVENT_READY) { /* waiting for gvl */
+    if (event_id == RUBY_INTERNAL_THREAD_EVENT_SUSPENDED) { /* released gvl */
+      thread_context_collector_on_gvl_released(thread_context);
+    } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_READY) { /* waiting for gvl */
       thread_context_collector_on_gvl_waiting(thread_context);
     } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_RESUMED) { /* running/runnable */
       // Interesting note: A RUBY_INTERNAL_THREAD_EVENT_RESUMED is guaranteed to be called with the GVL being acquired
@@ -1454,7 +1465,17 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
       cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
       if (state == NULL) return; // This should not happen, but just in case...
 
-      on_gvl_running_result result = thread_context_collector_on_gvl_running(state->thread_context_collector_instance, thread_context);
+      // on_gvl_running prepares a stack sample so we need to gate it with `during_sample_enter` to avoid a
+      // SIGPROF signal coming in during that function and potentially causing a corrupted final state.
+      //
+      // TODO: Currently, the sample prepared in on_gvl_running can still be clobbered if the signal handler runs
+      // after `during_sample_exit` but before `after_gvl_running_from_postponed_job` gets to run. We'll need to fix
+      // that next.
+      during_sample_enter(state);
+
+      on_gvl_running_result result = thread_context_collector_on_gvl_running(state->thread_context_collector_instance, target_thread, thread_context);
+
+      during_sample_exit(state);
 
       if (result.waiting_for_gvl_duration_ns > 0) {
         state->stats.vm_metrics.gvl_waiting_time_ns_total += (uint64_t) result.waiting_for_gvl_duration_ns;
@@ -1470,8 +1491,7 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
         state->stats.gvl_dont_sample++;
       }
     } else {
-      // This is a very delicate time and it's hard for us to raise an exception so let's at least complain to stderr
-      fprintf(stderr, "[ddtrace] Unexpected value in on_gvl_event (%d)\n", event_id);
+      rb_bug("[ddtrace] Unexpected value in on_gvl_event (%d)\n", event_id);
     }
   }
 

@@ -226,42 +226,54 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
         symdb_logger
       )
 
-      # Step 1: initial load runs.
-      GC.start
-      component.start_upload
-      component.wait_for_idle(timeout: 5)
+      begin
+        # Step 1: initial load runs. Timeout matches the other e2e test in
+        # this file (line 84). On Ruby 2.6, extract_all is slow under heavy
+        # monkey-patching (see extractor.rb build_per_file_index
+        # comment about Module#name on singleton classes being O(ancestors)),
+        # so 5s is too short when an AppSec spec ran just before this one.
+        # Check the return value so a timeout fails the test loudly here
+        # instead of silently producing "captured_forms.size == 0" below.
+        GC.start
+        component.start_upload
+        expect(component.wait_for_idle(timeout: 30)).to be true
 
-      initial_form_count = captured_forms.size
-      expect(initial_form_count).to be >= 1
+        initial_form_count = captured_forms.size
+        expect(initial_form_count).to be >= 1
 
-      # Step 2: hot-load class is not in any initial upload.
-      expect(uploaded_class_names_across(captured_forms)).not_to include('HotLoadE2ETestClass')
+        # Step 2: hot-load class is not in any initial upload.
+        expect(uploaded_class_names_across(captured_forms)).not_to include('HotLoadE2ETestClass')
 
-      # Step 3: define the class via a real file so its source_location
-      # passes user_code_path? (eval-defined classes get `'(eval)'` and are
-      # filtered out by the extractor).
-      Dir.mktmpdir('hot_load_e2e') do |hot_dir|
-        hot_file = File.join(hot_dir, "hot_load_e2e_#{Time.now.to_i}_#{rand(10000)}.rb")
-        File.write(hot_file, "class HotLoadE2ETestClass; def hello; 42; end; end\n")
-        hot_file = File.realpath(hot_file)
+        # Step 3: define the class via a real file so its source_location
+        # passes user_code_path? (eval-defined classes get `'(eval)'` and are
+        # filtered out by the extractor).
+        Dir.mktmpdir('hot_load_e2e') do |hot_dir|
+          hot_file = File.join(hot_dir, "hot_load_e2e_#{Time.now.to_i}_#{rand(10000)}.rb")
+          File.write(hot_file, "class HotLoadE2ETestClass; def hello; 42; end; end\n")
+          hot_file = File.realpath(hot_file)
 
-        begin
-          load hot_file
+          begin
+            load hot_file
 
-          # Step 4: event-driven wait — wait_for_idle blocks on
-          # @last_upload_time_cv until @last_upload_time advances past the
-          # value captured at entry. No sleep.
-          expect(component.wait_for_idle(timeout: 5)).to be true
+            # Step 4: event-driven wait — wait_for_idle blocks on
+            # @last_upload_time_cv until @last_upload_time advances past the
+            # value captured at entry. No sleep.
+            expect(component.wait_for_idle(timeout: 30)).to be true
 
-          # Step 5: a new upload landed, and it contains the new class.
-          expect(captured_forms.size).to be > initial_form_count
-          expect(uploaded_class_names_across(captured_forms)).to include('HotLoadE2ETestClass')
-        ensure
-          Object.send(:remove_const, :HotLoadE2ETestClass) if defined?(HotLoadE2ETestClass)
+            # Step 5: a new upload landed, and it contains the new class.
+            expect(captured_forms.size).to be > initial_form_count
+            expect(uploaded_class_names_across(captured_forms)).to include('HotLoadE2ETestClass')
+          ensure
+            Object.send(:remove_const, :HotLoadE2ETestClass) if defined?(HotLoadE2ETestClass)
+          end
         end
+      ensure
+        # Always shut down — a mid-test failure must not leak the scheduler
+        # thread. A leaked thread continues running extract_all and can race
+        # ObjectSpace iteration with later specs in the same rspec process,
+        # producing cascading "file_scope is nil" failures in extractor_spec.
+        component.shutdown!
       end
-
-      component.shutdown!
     end
   end
 

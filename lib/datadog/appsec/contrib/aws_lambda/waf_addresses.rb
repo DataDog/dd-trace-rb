@@ -15,6 +15,10 @@ module Datadog
         # Extracts WAF input addresses from normalized AWS Lambda API Gateway event payloads.
         # @api private
         module WAFAddresses
+          BASE64_CHARS_PER_GROUP = 4
+          BASE64_BYTES_PER_GROUP = 3
+          BASE64_PADDING_BYTE = "=".ord
+
           module_function
 
           def from_request(payload)
@@ -27,10 +31,11 @@ module Datadog
               'server.request.uri.raw' => build_fullpath(payload),
               'server.request.headers' => headers,
               'server.request.headers.no_cookies' => headers.dup.tap { |h| h.delete('cookie') },
-              'http.client_ip' => extract_client_ip(payload['source_ip'], headers),
               'server.request.method' => payload['method'],
               'server.request.body' => parse_body(payload, headers),
-              'server.request.path_params' => payload['path_params']
+              'server.request.body.byte_length' => body_byte_length(payload),
+              'server.request.path_params' => payload['path_params'],
+              'http.client_ip' => extract_client_ip(payload['source_ip'], headers)
             }
 
             data.compact!
@@ -44,7 +49,9 @@ module Datadog
             data = {
               'server.response.status' => payload['status_code']&.to_s,
               'server.response.headers' => headers,
-              'server.response.headers.no_cookies' => headers.dup.tap { |h| h.delete('set-cookie') }
+              'server.response.headers.no_cookies' => headers.dup.tap { |h| h.delete('set-cookie') },
+              'server.response.body' => parse_body(payload, headers),
+              'server.response.body.byte_length' => body_byte_length(payload)
             }
 
             data.compact!
@@ -94,7 +101,9 @@ module Datadog
             body = payload['body']
             return unless body
 
-            body = Core::Utils::Base64Codec.strict_decode64(body) if payload['base64_encoded']
+            if (byte_length = body_byte_length(payload))
+              return if byte_length > Datadog.configuration.appsec.body_parsing_size_limit
+            end
 
             content_type = headers['content-type']
             return unless content_type
@@ -102,7 +111,31 @@ module Datadog
             media_type = AppSec::Utils::HTTP::MediaType.parse(content_type)
             return unless media_type
 
+            body = Core::Utils::Base64Codec.strict_decode64(body) if payload['base64_encoded']
             AppSec::Utils::HTTP::Body.parse(body, media_type: media_type)
+          rescue ArgumentError => e
+            AppSec.telemetry.report(e, description: 'AppSec: Failed to decode base64 body')
+
+            nil
+          end
+
+          def body_byte_length(payload)
+            body = payload['body']
+
+            return unless body
+            return body.bytesize unless payload['base64_encoded']
+
+            # NOTE: Base64 packs every 3 bytes into 4 characters and pads the last
+            #       group with up to two "=" bytes. The decoded length is therefore
+            #       derivable from the encoded length, letting us measure the raw
+            #       body size without allocating the decoded string.
+            padding = 0
+            if body.getbyte(-1) == BASE64_PADDING_BYTE
+              padding = 1
+              padding = 2 if body.getbyte(-2) == BASE64_PADDING_BYTE
+            end
+
+            body.bytesize / BASE64_CHARS_PER_GROUP * BASE64_BYTES_PER_GROUP - padding
           end
         end
       end

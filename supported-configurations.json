@@ -123,6 +123,13 @@
         "default": "identification"
       }
     ],
+    "DD_APPSEC_BODY_PARSING_SIZE_LIMIT": [
+      {
+        "version": "B",
+        "type": "int",
+        "default": "10485760"
+      }
+    ],
     "DD_APPSEC_ENABLED": [
       {
         "version": "A",
@@ -1843,6 +1850,13 @@
         "version": "A",
         "type": "string",
         "default": "presto"
+      }
+    ],
+    "DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT": [
+      {
+        "version": "B",
+        "type": "string",
+        "default": "continue"
       }
     ],
     "DD_TRACE_PROPAGATION_EXTRACT_FIRST": [

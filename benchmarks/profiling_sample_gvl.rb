@@ -18,16 +18,12 @@ end
 # This benchmark measures the performance of the main stack sampling loop of the profiler
 
 class ProfilerSampleGvlBenchmark
-  # This is needed because we're directly invoking the collector through a testing interface; in normal
-  # use a profiler thread is automatically used.
-  PROFILER_OVERHEAD_STACK_THREAD = Thread.new { sleep }
-
   def initialize
     create_profiler
     @target_thread = thread_with_very_deep_stack
 
     # Sample once to trigger thread context creation for all threads (including @target_thread)
-    Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD, false)
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, false)
   end
 
   def create_profiler
@@ -60,15 +56,7 @@ class ProfilerSampleGvlBenchmark
       x.report("gvl benchmark samples") do
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gvl_waiting(@target_thread)
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gvl_running(@collector, @target_thread)
-
-        # Benchmark backwards compatibility
-        if Datadog::Profiling::Collectors::ThreadContext::Testing.method(:_native_sample_after_gvl_running).arity == 3
-          # New version since https://github.com/DataDog/dd-trace-rb/pull/5076
-          Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gvl_running(@collector, @target_thread, false)
-        else
-          # Old version, this can be deleted after, say, 2026-02-01
-          Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gvl_running(@collector, @target_thread)
-        end
+        Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gvl_running(@collector, @target_thread, false)
       end
 
       x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
