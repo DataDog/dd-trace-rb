@@ -146,7 +146,7 @@ RSpec.configure do |config|
   # To run a spec on an otherwise-skipped platform, tag it with
   # `symdb_supported_platforms: true`. This opt-out exists for tests that validate the
   # platform-guard behavior itself (e.g. that the Component refuses to initialize on
-  # JRuby) — those tests must run on JRuby/<2.6 to be meaningful.
+  # JRuby) — those tests must run on JRuby/<2.7 to be meaningful.
   #
   #    describe 'Component build on unsupported platform', symdb_supported_platforms: true do
   #      ...
