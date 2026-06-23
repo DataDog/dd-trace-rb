@@ -37,47 +37,11 @@ module Datadog
               option :enabled do |o|
                 o.type :bool
                 o.env 'DD_SYMBOL_DATABASE_UPLOAD_ENABLED'
-                # Symbol Database and Dynamic Instrumentation are independently
-                # configured features: symbol_database.enabled and
-                # dynamic_instrumentation.enabled are separate flags, and either
-                # can be set explicitly without the other. DI happens to be the
-                # canonical consumer of uploaded symbols, but symdb has no hard
-                # dependency on a running DI component — a user who wants
-                # symbols without DI can set DD_SYMBOL_DATABASE_UPLOAD_ENABLED=true
-                # directly.
-                #
-                # This default is a UX convenience for the common case where
-                # symbol_database.enabled has not been set. It tracks DI's full
-                # runtime readiness so that an app which sets
-                # DD_DYNAMIC_INSTRUMENTATION_ENABLED=true and nothing else gets
-                # symbol upload alongside DI without having to opt in twice,
-                # and so that environments where DI itself refuses to start
-                # (Rails development mode, missing DI C extension, non-MRI
-                # engine, ...) don't silently produce ObjectSpace extraction
-                # with no DI consumer to use it.
-                #
-                # The default has two layers:
-                # 1. The DI setting itself. symdb's Settings are loaded
-                #    unconditionally from core (settings.rb requires this
-                #    file). DI's Settings are extended lazily by
-                #    lib/datadog/di.rb, which not all load paths reach before
-                #    the symdb default fires; the respond_to? guard returns
-                #    false in that case.
-                # 2. DI::Component.environment_supported? — the same predicate
-                #    DI::Component.build runs to decide whether to start.
-                #    dynamic_instrumentation.enabled = true is a user intent,
-                #    not a runtime fact; consulting environment_supported? at
-                #    default-resolution time keeps the default in lockstep
-                #    with DI's actual start gate. NULL_LOGGER suppresses the
-                #    "di: ..." warnings that environment_supported? would
-                #    otherwise emit — DI::Component.build will run with the
-                #    operational logger and emit them once at the right layer.
-                #
-                # Explicit values bypass this default. Setting
-                # DD_SYMBOL_DATABASE_UPLOAD_ENABLED=true (or programmatic
-                # settings.symbol_database.enabled = true) enables symdb
-                # regardless of DI's state; the false counterpart disables
-                # symdb even when DI is on.
+                # Symbol Database is enabled by default when DI is enabled
+                # and its runtime prerequisites are met.
+                # The idea is to enable SymDB when DI is on, but without
+                # consulting runtime DI state (which is not available when
+                # the settings are processed)>
                 o.default do
                   config = Datadog.configuration
                   if config.respond_to?(:dynamic_instrumentation) &&

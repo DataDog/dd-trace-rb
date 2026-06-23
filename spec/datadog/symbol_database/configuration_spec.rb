@@ -85,15 +85,9 @@ RSpec.describe 'Symbol Database Configuration', :symdb_supported_platforms do
 
     context 'default tracks dynamic_instrumentation.enabled' do
       context 'when dynamic_instrumentation.enabled is true' do
-        # environment_supported? is stubbed here for the same reason it is
-        # stubbed in the "not supported" sibling context below: the default
-        # consults the predicate, and the predicate's real implementation
-        # checks several runtime conditions (development mode, MRI engine,
-        # Ruby version, libdatadog_api C extension presence) that are not
-        # uniformly true across the rake tasks this spec runs under — in
-        # particular, `spec:main` does not compile libdatadog_api. Stubbing
-        # the predicate isolates the layering being tested (default tracks
-        # DI's runtime gate) from the predicate's internal mechanics.
+        # environment_supported? is stubbed here to unit test the
+        # configuration logic without the complexity of DI prerequisite
+        # conditions.
         before do
           settings.dynamic_instrumentation.enabled = true
           allow(Datadog::DI::Component).to receive(:environment_supported?).and_return(true)
@@ -126,15 +120,6 @@ RSpec.describe 'Symbol Database Configuration', :symdb_supported_platforms do
       end
 
       context 'when dynamic_instrumentation.enabled is true but DI environment is not supported' do
-        # PR #5828 codex review: the default ties symdb to DI at the
-        # default-value layer, not at Component.build. The DI setting
-        # alone is not enough — dynamic_instrumentation.enabled = true is
-        # a user intent, not a runtime fact. DI::Component.build refuses
-        # to start in Rails dev mode, on non-MRI engines, when the DI C
-        # extension is missing, etc. The default consults
-        # DI::Component.environment_supported? so it stays in lockstep
-        # with DI's actual start gate; an explicit
-        # DD_SYMBOL_DATABASE_UPLOAD_ENABLED override bypasses both layers.
         before do
           settings.dynamic_instrumentation.enabled = true
           allow(Datadog::DI::Component).to receive(:environment_supported?).and_return(false)
