@@ -35,26 +35,6 @@ jobs:
         id: bundle-cache
         uses: ./.github/actions/bundle-cache
 
-  rubocop:
-    name: rubocop/lint
-    runs-on: ubuntu-24.04
-    needs: ['build']
-    container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
-      env:
-        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
-        BUNDLE_FROZEN: "true"
-    steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-      - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
-        with:
-          lockfile: ${{ needs.build.outputs.lockfile }}
-          cache-key: ${{ needs.build.outputs.cache-key }}
-      - run: bundle exec rake rubocop
-
   standard:
     name: standard/lint
     runs-on: ubuntu-24.04
@@ -189,7 +169,6 @@ jobs:
     name: Static Analysis (complete)
     needs:
       - 'steep'
-      - 'rubocop'
       - 'standard'
       - 'semgrep'
       - 'zizmor'
