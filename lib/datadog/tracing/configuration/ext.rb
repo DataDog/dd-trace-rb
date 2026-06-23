@@ -62,6 +62,19 @@ module Datadog
 
           ENV_PROPAGATION_STYLE_EXTRACT = 'DD_TRACE_PROPAGATION_STYLE_EXTRACT'
 
+          PROPAGATION_BEHAVIOR_EXTRACT_CONTINUE = 'continue'
+          PROPAGATION_BEHAVIOR_EXTRACT_RESTART = 'restart'
+          PROPAGATION_BEHAVIOR_EXTRACT_IGNORE = 'ignore'
+
+          PROPAGATION_BEHAVIOR_EXTRACT_SUPPORTED = [
+            PROPAGATION_BEHAVIOR_EXTRACT_CONTINUE,
+            PROPAGATION_BEHAVIOR_EXTRACT_RESTART,
+            PROPAGATION_BEHAVIOR_EXTRACT_IGNORE,
+          ].freeze
+
+          # Behavior applied to a distributed-trace context extracted from incoming requests.
+          ENV_PROPAGATION_BEHAVIOR_EXTRACT = 'DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT'
+
           # A no-op propagator. Compatible with OpenTelemetry's `none` propagator.
           # @see https://opentelemetry.io/docs/concepts/sdk-configuration/general-sdk-configuration/#get_otel__propagators
           PROPAGATION_STYLE_NONE = 'none'

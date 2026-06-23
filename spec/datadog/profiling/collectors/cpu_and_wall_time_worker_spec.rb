@@ -232,12 +232,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       it "triggers sampling and records the results", :memcheck_valgrind_skip do
         start
 
-        all_samples = loop_until do
+        loop_until do
           samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
-          samples if samples.any?
+          samples_for_thread(samples, Thread.current).any?
         end
-
-        expect(samples_for_thread(all_samples, Thread.current)).to_not be_empty
       end
 
       it(
@@ -247,15 +245,15 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       ) do
         start
 
-        all_samples = loop_until do
-          samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
+        current_thread_samples = loop_until do
+          samples = samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
           samples if samples.any?
         end
 
         cpu_and_wall_time_worker.stop
 
         sample_count =
-          samples_for_thread(all_samples, Thread.current)
+          current_thread_samples
             .map { |it| it.values.fetch(:"cpu-samples") }
             .reduce(:+)
 
@@ -886,7 +884,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         allow(Datadog.logger).to receive(:warn)
         expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
 
-        skip "Heap profiling is only supported on Ruby >= 2.7" if RubyVersion.is?("< 2.7")
+        skip "Heap profiling is only supported on Ruby >= 2.7" unless RubyVersion.is?(">= 2.7")
       end
 
       after do |example|
