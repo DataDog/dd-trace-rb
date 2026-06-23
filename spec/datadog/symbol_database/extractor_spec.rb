@@ -2679,4 +2679,161 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
     end
   end
+
+  # Reflection during extraction is dispatched through cached unbound methods
+  # (and safe_mod_name) so application overrides of name/superclass/ancestors/
+  # included_modules/class/is_a?/const_get/constants/autoload? can neither
+  # intercept extraction nor run as a side effect of it.
+  describe 'immunity to customer-overridden reflection' do
+    describe '#build_class_language_specifics' do
+      it 'reads the real superclass name when the superclass overrides .name' do
+        base = stub_const('FindingTwoBase', Class.new)
+        base.define_singleton_method(:name) { raise 'hostile superclass #name' }
+        derived = stub_const('FindingTwoDerived', Class.new(base))
+
+        specifics = extractor.send(:build_class_language_specifics, derived)
+
+        expect(specifics[:super_classes]).to eq(['FindingTwoBase'])
+      end
+
+      it 'reads the real included-module name when the module overrides .name' do
+        stub_const('FindingTwoMixin', Module.new)
+        FindingTwoMixin.define_singleton_method(:name) { raise 'hostile mixin #name' }
+        klass = stub_const('FindingTwoIncluder', Class.new { include FindingTwoMixin })
+
+        specifics = extractor.send(:build_class_language_specifics, klass)
+
+        expect(specifics[:included_modules]).to include('FindingTwoMixin')
+      end
+
+      it 'reads the real prepended-module name when the module overrides .name' do
+        stub_const('FindingTwoPrepend', Module.new)
+        FindingTwoPrepend.define_singleton_method(:name) { raise 'hostile prepend #name' }
+        klass = stub_const('FindingTwoPrepender', Class.new { prepend FindingTwoPrepend })
+
+        specifics = extractor.send(:build_class_language_specifics, klass)
+
+        expect(specifics[:prepended_modules]).to include('FindingTwoPrepend')
+      end
+
+      it 'is immune to a class overriding superclass/included_modules/ancestors' do
+        stub_const('FindingTwoRealMixin', Module.new)
+        klass = stub_const('FindingTwoHostileReflection', Class.new { include FindingTwoRealMixin })
+        klass.define_singleton_method(:superclass) { raise 'hostile #superclass' }
+        klass.define_singleton_method(:included_modules) { raise 'hostile #included_modules' }
+        klass.define_singleton_method(:ancestors) { raise 'hostile #ancestors' }
+
+        specifics = extractor.send(:build_class_language_specifics, klass)
+
+        expect(specifics[:included_modules]).to include('FindingTwoRealMixin')
+      end
+    end
+
+    describe '#extract_scope_symbols' do
+      it 'records the real class of a constant value whose #class is overridden' do
+        value = +'a string constant'
+        value.define_singleton_method(:class) { raise 'hostile value #class' }
+        mod = Module.new
+        mod.const_set(:FINDING_TWO_HOSTILE, value)
+
+        symbols = extractor.send(:extract_scope_symbols, mod)
+        sym = symbols.find { |s| s.name == 'FINDING_TWO_HOSTILE' }
+
+        expect(sym).not_to be_nil
+        expect(sym.type).to eq('String')
+      end
+
+      it 'does not misclassify a constant value that lies via #is_a?' do
+        value = Object.new
+        value.define_singleton_method(:is_a?) { |*| true }
+        mod = Module.new
+        mod.const_set(:FINDING_TWO_FAKE_MODULE, value)
+
+        symbols = extractor.send(:extract_scope_symbols, mod)
+
+        # `Module === value` is false even though value.is_a?(Module) lies true,
+        # so it is emitted as a STATIC_FIELD rather than skipped as a module.
+        expect(symbols.map(&:name)).to include('FINDING_TWO_FAKE_MODULE')
+      end
+
+      it 'enumerates constants when the module overrides .constants and .const_get' do
+        mod = Module.new
+        mod.const_set(:FINDING_TWO_REAL, 42)
+        mod.define_singleton_method(:constants) { |*| raise 'hostile #constants' }
+        mod.define_singleton_method(:const_get) { |*| raise 'hostile #const_get' }
+
+        symbols = extractor.send(:extract_scope_symbols, mod)
+        sym = symbols.find { |s| s.name == 'FINDING_TWO_REAL' }
+
+        expect(sym).not_to be_nil
+        expect(sym.type).to eq('Integer')
+      end
+
+      it 'classifies a BasicObject constant value without invoking its methods' do
+        mod = Module.new
+        mod.const_set(:FINDING_TWO_BASIC, BasicObject.new)
+
+        symbols = extractor.send(:extract_scope_symbols, mod)
+        sym = symbols.find { |s| s.name == 'FINDING_TWO_BASIC' }
+
+        expect(sym).not_to be_nil
+        expect(sym.type).to eq('BasicObject')
+      end
+
+      it 'skips autoloaded constants without triggering the autoload' do
+        mod = Module.new
+        mod.autoload(:FindingTwoLazy, '/nonexistent/finding_two_extract.rb')
+
+        symbols = extractor.send(:extract_scope_symbols, mod)
+
+        expect(symbols.map(&:name)).not_to include('FindingTwoLazy')
+        expect(mod.autoload?(:FindingTwoLazy)).to eq('/nonexistent/finding_two_extract.rb')
+      end
+    end
+
+    describe '#resolve_scope_type' do
+      it 'does not trigger an autoload while classifying' do
+        ns = stub_const('FindingTwoResolveNs', Module.new)
+        ns.autoload(:FindingTwoResolveLazy, '/nonexistent/finding_two_resolve.rb')
+
+        result = extractor.send(:resolve_scope_type, 'FindingTwoResolveNs::FindingTwoResolveLazy')
+
+        expect(result).to eq('MODULE')
+        expect(ns.autoload?(:FindingTwoResolveLazy)).to eq('/nonexistent/finding_two_resolve.rb')
+      end
+
+      it 'classifies a nested class' do
+        ns = stub_const('FindingTwoNestNs', Module.new)
+        ns.const_set(:Inner, Class.new)
+
+        expect(extractor.send(:resolve_scope_type, 'FindingTwoNestNs::Inner')).to eq('CLASS')
+      end
+    end
+
+    describe '#extract' do
+      it 'extracts a user-code class that overrides is_a?' do
+        file = create_user_code_file(<<~RUBY)
+          class FindingTwoHostileIsA
+            def self.is_a?(*)
+              raise 'hostile #is_a?'
+            end
+
+            def real_method; end
+          end
+        RUBY
+        load file
+
+        begin
+          scope = extractor.extract(FindingTwoHostileIsA)
+          expect(scope).not_to be_nil
+          class_scope = scope.scopes.first
+          expect(class_scope.scope_type).to eq('CLASS')
+          expect(class_scope.scopes.map(&:name)).to include('real_method')
+        ensure
+          Object.send(:remove_const, :FindingTwoHostileIsA) if defined?(FindingTwoHostileIsA)
+          cleanup_user_code_file(file)
+        end
+      end
+    end
+  end
 end
