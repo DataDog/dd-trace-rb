@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'aggregator'
+require_relative '../../core/encoding'
 require_relative '../../core/utils/time'
 
 module Datadog
@@ -21,6 +22,7 @@ module Datadog
         FLUSH_INTERVAL_SECONDS = 10
         DRAIN_INTERVAL_SECONDS = 0.1
         QUEUE_SIZE = 4_096
+        PAYLOAD_SIZE_LIMIT_BYTES = 5 * 1024 * 1024
 
         # Service context fields for the batch wrapper.
         attr_reader :service_context
@@ -152,12 +154,7 @@ module Datadog
           events = build_events(snapshot)
           return if events.empty?
 
-          payload = {
-            'context' => @service_context,
-            'flagEvaluations' => events,
-          }
-
-          @transport.send_flag_evaluations(payload)
+          send_payload_batches(events)
         rescue => e
           @logger.debug { "OpenFeature EVP: flush error: #{e.class}: #{e.message}" }
         end
@@ -237,6 +234,82 @@ module Datadog
           end
 
           event
+        end
+
+        def send_payload_batches(events)
+          context_json = Core::Encoding::JSONEncoder.encode(@service_context)
+          payload_prefix = "{\"context\":#{context_json},\"flagEvaluations\":["
+          payload_suffix = ']}'
+          base_payload_size = payload_prefix.bytesize + payload_suffix.bytesize
+
+          batch = []
+          batch_size = base_payload_size
+          dropped_oversized = 0
+
+          events.each do |event|
+            encoded_event = encoded_event_for_payload(event, base_payload_size)
+            unless encoded_event
+              dropped_oversized += 1
+              next
+            end
+
+            event_hash, event_size = encoded_event
+            separator_size = batch.empty? ? 0 : 1
+
+            if !batch.empty? && batch_size + separator_size + event_size > self.class::PAYLOAD_SIZE_LIMIT_BYTES
+              send_payload_batch(batch)
+              batch = []
+              batch_size = base_payload_size
+              separator_size = 0
+            end
+
+            batch << event_hash
+            batch_size += separator_size + event_size
+          end
+
+          send_payload_batch(batch) unless batch.empty?
+          emit_payload_oversize_drops(dropped_oversized) if dropped_oversized.positive?
+        end
+
+        def send_payload_batch(events)
+          @transport.send_flag_evaluations(
+            {
+              'context' => @service_context,
+              'flagEvaluations' => events,
+            }
+          )
+        end
+
+        def encoded_event_for_payload(event, base_payload_size)
+          event_hash, event_size = encoded_event(event)
+          return [event_hash, event_size] if event_fits_payload?(event_size, base_payload_size)
+
+          degraded = degrade_event_for_payload_limit(event)
+          return unless degraded
+
+          degraded_hash, degraded_size = encoded_event(degraded)
+          [degraded_hash, degraded_size] if event_fits_payload?(degraded_size, base_payload_size)
+        end
+
+        def encoded_event(event)
+          [event, Core::Encoding::JSONEncoder.encode(event).bytesize]
+        end
+
+        def event_fits_payload?(event_size, base_payload_size)
+          base_payload_size + event_size <= self.class::PAYLOAD_SIZE_LIMIT_BYTES
+        end
+
+        def degrade_event_for_payload_limit(event)
+          return unless event.key?('targeting_key') || event.key?('context')
+
+          degraded = event.dup
+          degraded.delete('targeting_key')
+          degraded.delete('context')
+          degraded
+        end
+
+        def emit_payload_oversize_drops(dropped_oversized)
+          @logger.debug { "OpenFeature EVP: dropped events payload_oversize=#{dropped_oversized}" }
         end
       end
     end

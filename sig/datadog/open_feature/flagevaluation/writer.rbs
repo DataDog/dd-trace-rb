@@ -8,6 +8,8 @@ module Datadog
 
         QUEUE_SIZE: ::Integer
 
+        PAYLOAD_SIZE_LIMIT_BYTES: ::Integer
+
         @transport: Transport::HTTP
 
         @logger: Core::Logger
@@ -69,6 +71,25 @@ module Datadog
           flush_time_ms: ::Integer,
           tier: ::Symbol
         ) -> ::Hash[::String, untyped]
+
+        def send_payload_batches: (::Array[::Hash[::String, untyped]] events) -> void
+
+        def send_payload_batch: (::Array[::Hash[::String, untyped]] events) -> void
+
+        def encoded_event_for_payload: (
+          ::Hash[::String, untyped] event,
+          ::Integer base_payload_size
+        ) -> [::Hash[::String, untyped], ::Integer]?
+
+        def encoded_event: (::Hash[::String, untyped] event) -> [::Hash[::String, untyped], ::Integer]
+
+        def event_fits_payload?: (::Integer event_size, ::Integer base_payload_size) -> bool
+
+        def degrade_event_for_payload_limit: (
+          ::Hash[::String, untyped] event
+        ) -> ::Hash[::String, untyped]?
+
+        def emit_payload_oversize_drops: (::Integer dropped_oversized) -> void
       end
     end
   end

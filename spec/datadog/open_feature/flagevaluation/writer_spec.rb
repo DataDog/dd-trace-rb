@@ -296,6 +296,72 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
     end
   end
 
+  describe 'payload size limit' do
+    subject(:writer) { described_class.new(transport: transport, logger: logger) }
+
+    let(:payloads) { [] }
+    let(:logged) { [] }
+    let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
+    let(:logger) { instance_double(Logger) }
+
+    before do
+      allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
+      allow(transport).to receive(:send_flag_evaluations) { |payload| payloads << payload }
+      allow(logger).to receive(:debug) { |&blk| logged << blk.call }
+    end
+
+    def encoded_payload_size(payload)
+      Datadog::Core::Encoding::JSONEncoder.encode(payload).bytesize
+    end
+
+    it 'splits aggregate payloads so each request stays under the configured payload limit' do
+      stub_const("#{described_class}::PAYLOAD_SIZE_LIMIT_BYTES", 520)
+
+      writer.enqueue(
+        flag_key: 'flag-a', variant: 'on', allocation_key: 'alloc',
+        targeting_key: 'user-a', eval_time_ms: realistic_eval_ms, attrs: {'blob' => 'a' * 180},
+      )
+      writer.enqueue(
+        flag_key: 'flag-b', variant: 'on', allocation_key: 'alloc',
+        targeting_key: 'user-b', eval_time_ms: realistic_eval_ms, attrs: {'blob' => 'b' * 180},
+      )
+      writer.send(:drain_and_flush)
+
+      expect(payloads.size).to be > 1
+      expect(payloads).to all(satisfy { |payload| encoded_payload_size(payload) <= described_class::PAYLOAD_SIZE_LIMIT_BYTES })
+    end
+
+    it 'degrades a full row before dropping it for the configured payload limit' do
+      stub_const("#{described_class}::PAYLOAD_SIZE_LIMIT_BYTES", 350)
+
+      writer.enqueue(
+        flag_key: 'large', variant: 'on', allocation_key: 'alloc',
+        targeting_key: 'user-large', eval_time_ms: realistic_eval_ms, attrs: {'blob' => 'x' * 256},
+      )
+      writer.send(:drain_and_flush)
+
+      expect(payloads).to contain_exactly(satisfy { |payload| encoded_payload_size(payload) <= described_class::PAYLOAD_SIZE_LIMIT_BYTES })
+      row = payloads.first['flagEvaluations'].first
+      expect(row['flag']).to eq('key' => 'large')
+      expect(row).not_to have_key('targeting_key')
+      expect(row).not_to have_key('context')
+      expect(logged).to be_empty
+    end
+
+    it 'drops an already-degraded row that still exceeds the configured payload limit' do
+      stub_const("#{described_class}::PAYLOAD_SIZE_LIMIT_BYTES", 128)
+
+      writer.enqueue(
+        flag_key: 'f' * 256, variant: 'on', allocation_key: 'alloc',
+        targeting_key: '', eval_time_ms: realistic_eval_ms, attrs: {},
+      )
+      writer.send(:drain_and_flush)
+
+      expect(payloads).to be_empty
+      expect(logged.join).to include('payload_oversize=1')
+    end
+  end
+
   # The aggregator's degraded-overflow count must be EMITTED before reset (not reset-without-emit).
   describe '#flush_once emits degraded-overflow drops' do
     let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP, send_flag_evaluations: nil) }
