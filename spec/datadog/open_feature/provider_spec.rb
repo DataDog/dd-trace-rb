@@ -168,7 +168,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
     let(:components) { instance_double(Datadog::Core::Configuration::Components) }
     let(:open_feature_component) { instance_double(Datadog::OpenFeature::Component) }
-    let(:evp_hook) { instance_double(Datadog::OpenFeature::Hooks::FlagEvalLoggingHook) }
+    let(:flag_eval_logging_hook) { instance_double(Datadog::OpenFeature::Hooks::FlagEvalLoggingHook) }
     let(:evaluation_context) do
       ::OpenFeature::SDK::EvaluationContext.new(targeting_key: 'user-1', env: 'prod')
     end
@@ -176,8 +176,8 @@ RSpec.describe Datadog::OpenFeature::Provider do
     before do
       allow(Datadog).to receive(:send).with(:components).and_return(components)
       allow(components).to receive(:open_feature).and_return(open_feature_component)
-      allow(open_feature_component).to receive(:flag_eval_logging_hook).and_return(evp_hook)
-      allow(evp_hook).to receive(:finally)
+      allow(open_feature_component).to receive(:flag_eval_logging_hook).and_return(flag_eval_logging_hook)
+      allow(flag_eval_logging_hook).to receive(:finally)
     end
 
     it 'is called during fetch_string_value evaluation' do
@@ -193,7 +193,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         flag_key: 'my-flag', default_value: 'default', evaluation_context: evaluation_context
       )
 
-      expect(evp_hook).to have_received(:finally) do |hook_context:, evaluation_details:, **|
+      expect(flag_eval_logging_hook).to have_received(:finally) do |hook_context:, evaluation_details:, **|
         expect(hook_context.flag_key).to eq('my-flag')
         expect(hook_context.evaluation_context.targeting_key).to eq('user-1')
         expect(hook_context.evaluation_context.attributes).to eq('env' => 'prod')
@@ -244,13 +244,13 @@ RSpec.describe Datadog::OpenFeature::Provider do
     context 'fires on the real evaluation path (drives a real Writer)' do
       let(:writer) { Datadog::OpenFeature::FlagEvaluation::Writer.new(transport: evp_transport, logger: logger) }
       let(:evp_transport) { instance_double(Datadog::OpenFeature::Transport::HTTP, send_flag_evaluations: nil) }
-      let(:real_evp_hook) { Datadog::OpenFeature::Hooks::FlagEvalLoggingHook.new(writer) }
+      let(:real_flag_eval_logging_hook) { Datadog::OpenFeature::Hooks::FlagEvalLoggingHook.new(writer) }
 
       before do
         # No bare sleep in shutdown synchronization: stub the background thread, drive flush manually.
         allow_any_instance_of(Datadog::OpenFeature::FlagEvaluation::Writer)
           .to receive(:start_background_thread).and_return(nil)
-        allow(open_feature_component).to receive(:flag_eval_logging_hook).and_return(real_evp_hook)
+        allow(open_feature_component).to receive(:flag_eval_logging_hook).and_return(real_flag_eval_logging_hook)
         allow(logger).to receive(:debug)
       end
 
@@ -284,7 +284,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
     context 'evaluation exit paths' do
       before do
         allow(provider).to receive(:call_evp_hook).and_call_original
-        allow(evp_hook).to receive(:finally)
+        allow(flag_eval_logging_hook).to receive(:finally)
       end
 
       it 'engine error path: drives the logging hook with error_message + nil variant' do
@@ -298,7 +298,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         res = provider.fetch_string_value(flag_key: 'err-flag', default_value: 'default')
 
         expect(res.value).to eq('default')
-        expect(evp_hook).to have_received(:finally) do |evaluation_details:, **|
+        expect(flag_eval_logging_hook).to have_received(:finally) do |evaluation_details:, **|
           expect(evaluation_details.variant).to be_nil
           expect(evaluation_details.error_message).to eq('nope')
         end
@@ -310,7 +310,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
         res = provider.fetch_string_value(flag_key: 'no-engine', default_value: 'd')
 
         expect(res.error_message).to match(/must be configured/)
-        expect(evp_hook).not_to have_received(:finally)
+        expect(flag_eval_logging_hook).not_to have_received(:finally)
       end
 
       it 'rescued provider exception: drives the logging hook with error_message + nil variant' do
@@ -321,7 +321,7 @@ RSpec.describe Datadog::OpenFeature::Provider do
           .not_to raise_error
         expect(res.value).to eq('d')
         expect(res.reason).to eq('ERROR')
-        expect(evp_hook).to have_received(:finally) do |hook_context:, evaluation_details:, **|
+        expect(flag_eval_logging_hook).to have_received(:finally) do |hook_context:, evaluation_details:, **|
           expect(hook_context.flag_key).to eq('boom-flag')
           expect(evaluation_details.variant).to be_nil
           expect(evaluation_details.error_message).to eq('RuntimeError: boom')
@@ -350,11 +350,11 @@ RSpec.describe Datadog::OpenFeature::Provider do
         )
         allow(engine).to receive(:fetch_value).and_return(result)
         allow(provider).to receive(:call_evp_hook).and_call_original
-        allow(evp_hook).to receive(:finally)
+        allow(flag_eval_logging_hook).to receive(:finally)
 
         provider.fetch_string_value(flag_key: 'ts-flag', default_value: 'd')
 
-        expect(evp_hook).to have_received(:finally) do |evaluation_details:, **|
+        expect(flag_eval_logging_hook).to have_received(:finally) do |evaluation_details:, **|
           expect(evaluation_details.flag_metadata['dd.eval.timestamp_ms']).to eq(1_700_000_000_000)
         end
       end
