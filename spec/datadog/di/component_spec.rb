@@ -385,7 +385,13 @@ RSpec.describe Datadog::DI::Component do
       allow(component.probe_manager).to receive(:close)
     end
 
-    after { component&.shutdown! }
+    # Targeted cleanup: remove the component from DI.current_components without
+    # going through shutdown!, because shutdown! itself acquires @lifecycle_mutex
+    # and would be counted against the mock expectations below. The before block
+    # stubs all worker/probe_manager side effects, so no thread/hook needs
+    # stopping — the only state that escapes the example is the entry that
+    # Component.build added to DI.current_components via add_current_component.
+    after { Datadog::DI.remove_current_component(component) if component }
 
     it 'start! acquires @lifecycle_mutex' do
       expect(mutex).to receive(:synchronize).and_call_original
