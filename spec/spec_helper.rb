@@ -140,7 +140,7 @@ RSpec.configure do |config|
   end
 
   # Skip all symbol_database specs on unsupported platforms. Symbol database requires
-  # MRI Ruby 2.6+; on JRuby and Ruby <2.6 the entire suite is skipped wholesale so that
+  # MRI Ruby 2.7+; on JRuby and Ruby <2.7 the entire suite is skipped wholesale so that
   # individual specs do not need to repeat the platform guard.
   #
   # To run a spec on an otherwise-skipped platform, tag it with
@@ -163,10 +163,10 @@ RSpec.configure do |config|
     end
   end
 
-  if RubyVersion.is?('< 2.6')
+  if RubyVersion.is?('< 2.7')
     config.before(:each) do |example|
       if example.file_path.include?('/symbol_database/') && !example.metadata[:symdb_supported_platforms]
-        skip 'Symbol database requires Ruby 2.6+'
+        skip 'Symbol database requires Ruby 2.7+'
       end
     end
   end
