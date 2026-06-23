@@ -5,6 +5,7 @@ require_relative 'logger'
 require_relative 'scope_batcher'
 require_relative 'uploader'
 require_relative '../core/utils/time'
+require_relative '../di/fatal_exceptions'
 
 module Datadog
   module SymbolDatabase
@@ -198,7 +199,8 @@ module Datadog
           @scheduler_cv.signal
           ensure_scheduler_thread
         end
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: error scheduling upload: #{e.class}: #{e.message}" }
         @telemetry&.report(e, description: 'symdb: error scheduling upload')
       end
@@ -454,7 +456,8 @@ module Datadog
 
           extract_and_upload
         end
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: scheduler error: #{e.class}: #{e.message}" }
         @telemetry&.report(e, description: 'symdb: scheduler error')
       end
@@ -507,7 +510,8 @@ module Datadog
             @last_upload_scope_count = extracted_count
             @last_upload_time_cv.broadcast
           end
-        rescue => e
+        rescue Exception => e # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(e)
           @logger.debug { "symdb: extraction error: #{e.class}: #{e.message}" }
           @telemetry&.report(e, description: 'symdb: extraction error')
           @mutex.synchronize do
@@ -557,7 +561,8 @@ module Datadog
           mod = tp.self
           next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
           component.send(:enqueue_hot_load, mod)
-        rescue => e
+        rescue Exception => e # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(e)
           # Logger or telemetry can themselves raise (custom logger
           # implementation, telemetry worker in an unexpected state). The
           # :class TracePoint fires inside customer class bodies, so the
@@ -566,7 +571,8 @@ module Datadog
           begin
             logger.debug { "symdb: hot-load hook error: #{e.class}: #{e.message}" }
             telemetry&.report(e, description: 'symdb: hot-load hook error')
-          rescue
+          rescue Exception => report_exc # standard:disable Lint/RescueException
+            Datadog::DI.reraise_if_fatal(report_exc)
             nil
           end
         end
