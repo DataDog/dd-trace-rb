@@ -2,6 +2,7 @@
 
 require_relative 'aggregator'
 require_relative '../../core/encoding'
+require_relative '../../core/evp'
 require_relative '../../core/utils/time'
 
 module Datadog
@@ -22,7 +23,7 @@ module Datadog
         FLUSH_INTERVAL_SECONDS = 10
         DRAIN_INTERVAL_SECONDS = 0.1
         QUEUE_SIZE = 4_096
-        PAYLOAD_SIZE_LIMIT_BYTES = 5 * 1024 * 1024
+        PAYLOAD_SIZE_LIMIT_BYTES = Core::EVP::PAYLOAD_SIZE_LIMIT_BYTES
         TELEMETRY_NAMESPACE = 'tracers'
         ROWS_DROPPED_METRIC = 'flagevaluation.rows.dropped'
         ROWS_DEGRADED_METRIC = 'flagevaluation.rows.degraded'

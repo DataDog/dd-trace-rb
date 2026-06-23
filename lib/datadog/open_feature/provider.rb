@@ -93,7 +93,7 @@ module Datadog
 
       def hooks
         component = Datadog.send(:components).open_feature
-        otel_hook = component&.flag_eval_hook
+        otel_hook = component&.flag_eval_metrics_hook
         [otel_hook].compact
       end
 

@@ -47,7 +47,7 @@ module Datadog
 
       def shutdown: () -> void
 
-      def hooks: () -> ::Array[Hooks::FlagEvalHook]
+      def hooks: () -> ::Array[Hooks::FlagEvalMetricsHook]
 
       def fetch_boolean_value: (
         flag_key: ::String,

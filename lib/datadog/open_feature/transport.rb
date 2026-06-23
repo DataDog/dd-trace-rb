@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../core/encoding'
+require_relative '../core/evp'
 require_relative '../core/transport/http'
 require_relative '../core/transport/http/env'
 require_relative '../core/transport/http/api/endpoint'
@@ -24,7 +25,8 @@ module Datadog
           def call(env, &block)
             @endpoint.call(env) do |request_env|
               request_env.headers['Content-Type'] = env.request.parcel.content_type
-              request_env.headers['X-Datadog-EVP-Subdomain'] = 'event-platform-intake'
+              request_env.headers[Core::EVP::SUBDOMAIN_HEADER_NAME] =
+                Core::EVP::EVENT_PLATFORM_INTAKE_SUBDOMAIN
               request_env.body = env.request.parcel.data
 
               block.call(request_env)
@@ -45,7 +47,8 @@ module Datadog
           def call(env, &block)
             @endpoint.call(env) do |request_env|
               request_env.headers['Content-Type'] = env.request.parcel.content_type
-              request_env.headers['X-Datadog-EVP-Subdomain'] = 'event-platform-intake'
+              request_env.headers[Core::EVP::SUBDOMAIN_HEADER_NAME] =
+                Core::EVP::EVENT_PLATFORM_INTAKE_SUBDOMAIN
               request_env.body = env.request.parcel.data
 
               block.call(request_env)

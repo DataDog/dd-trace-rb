@@ -13,7 +13,7 @@ module Datadog
 
       @worker: Exposures::Worker
 
-      @flag_eval_hook: Hooks::FlagEvalHook?
+      @flag_eval_metrics_hook: Hooks::FlagEvalMetricsHook?
 
       @flag_eval_evp_hook: Hooks::FlagEvalEVPHook?
 
@@ -21,7 +21,7 @@ module Datadog
 
       attr_reader engine: EvaluationEngine
 
-      attr_reader flag_eval_hook: Hooks::FlagEvalHook?
+      attr_reader flag_eval_metrics_hook: Hooks::FlagEvalMetricsHook?
 
       attr_reader flag_eval_evp_hook: Hooks::FlagEvalEVPHook?
 
@@ -43,7 +43,7 @@ module Datadog
 
       private
 
-      def create_flag_eval_hook: () -> Hooks::FlagEvalHook?
+      def create_flag_eval_metrics_hook: () -> Hooks::FlagEvalMetricsHook?
 
       def create_flag_eval_evp_hook: () -> Hooks::FlagEvalEVPHook?
     end

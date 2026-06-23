@@ -3,7 +3,7 @@
 require 'spec_helper'
 require 'datadog/open_feature/provider'
 require 'datadog/open_feature/evaluation_engine'
-require 'datadog/open_feature/hooks/flag_eval_hook'
+require 'datadog/open_feature/hooks/flag_eval_metrics_hook'
 require 'datadog/open_feature/hooks/flag_eval_evp_hook'
 require 'datadog/open_feature/flagevaluation/writer'
 
@@ -132,20 +132,20 @@ RSpec.describe Datadog::OpenFeature::Provider do
     end
 
     context 'when OpenFeature component is configured' do
-      let(:flag_eval_hook) { instance_double(Datadog::OpenFeature::Hooks::FlagEvalHook) }
+      let(:flag_eval_metrics_hook) { instance_double(Datadog::OpenFeature::Hooks::FlagEvalMetricsHook) }
       before do
         allow(components).to receive(:open_feature).and_return(open_feature_component)
-        allow(open_feature_component).to receive(:flag_eval_hook).and_return(flag_eval_hook)
+        allow(open_feature_component).to receive(:flag_eval_metrics_hook).and_return(flag_eval_metrics_hook)
       end
 
       it 'returns only the OTel flag eval hook to avoid EVP lifecycle double-counting' do
         expect(open_feature_component).not_to receive(:flag_eval_evp_hook)
-        expect(provider.hooks).to eq([flag_eval_hook])
+        expect(provider.hooks).to eq([flag_eval_metrics_hook])
       end
 
       context 'when EVP hook is disabled (killswitch)' do
         it 'returns array with only the OTel flag eval hook' do
-          expect(provider.hooks).to eq([flag_eval_hook])
+          expect(provider.hooks).to eq([flag_eval_metrics_hook])
         end
       end
     end

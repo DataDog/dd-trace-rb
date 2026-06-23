@@ -119,7 +119,7 @@ RSpec.describe Datadog::OpenFeature::Component do
 
       it 'does not create the EVP hook (killswitch), leaving the OTel hook intact' do
         expect(component.flag_eval_evp_hook).to be_nil
-        expect(component.flag_eval_hook).to be_a(Datadog::OpenFeature::Hooks::FlagEvalHook)
+        expect(component.flag_eval_metrics_hook).to be_a(Datadog::OpenFeature::Hooks::FlagEvalMetricsHook)
       end
     end
   end

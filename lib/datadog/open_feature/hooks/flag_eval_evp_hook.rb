@@ -3,13 +3,13 @@
 module Datadog
   module OpenFeature
     module Hooks
-      # EVP flagevaluation hook — structural copy of FlagEvalHook for the new EVP path.
+      # EVP flagevaluation hook — structural copy of FlagEvalMetricsHook for the new EVP path.
       #
       # This hook does ONLY cheap capture + non-blocking enqueue on the caller's eval thread.
       # All aggregation (canonical key, tier routing, cap enforcement) is performed
       # in the background by the FlagEvaluation::Writer.
       #
-      # OTel non-regression: hooks/flag_eval_hook.rb and metrics/flag_eval_metrics.rb
+      # OTel non-regression: hooks/flag_eval_metrics_hook.rb and metrics/flag_eval_metrics.rb
       # stay on the OTel path. This hook is driven directly by the provider for EVP.
       class FlagEvalEVPHook
         # Include the Hook module if available (SDK >= 0.5.0) for interface documentation
