@@ -34,8 +34,13 @@ module Datadog
         # @param enabled [Boolean] desired state from RC: true to start DI,
         #   false to stop it. The `DD_DYNAMIC_INSTRUMENTATION_ENABLED=false`
         #   env var blocks an enable here (see {.explicitly_disabled?}).
+        # @param repository [Datadog::Core::Remote::Configuration::Repository, nil]
+        #   the RC repository, passed by {Datadog::Tracing::Remote.process_config}
+        #   so that a stopped->started transition can reconcile against probes that
+        #   were delivered in an earlier poll. nil when called outside the RC
+        #   dispatch path (e.g. unit tests), in which case no reconcile happens.
         # @return [void]
-        def handle_rc_enablement(enabled)
+        def handle_rc_enablement(enabled, repository = nil)
           # allow_initialization: false because this runs on the remote-config
           # thread (a callback context). The default `true` would synchronously
           # build the entire component tree from the wrong thread if the RC
@@ -75,7 +80,16 @@ module Datadog
             # passed, which is the same condition under which di/base.rb is loaded
             # and DI.activate_tracking is defined.
             DI.activate_tracking
+            was_started = component.started?
             component.start!
+            # A probe delivered in an earlier poll while the component was stopped
+            # was dropped by #receivers (which ignores changes while !started?) and
+            # never entered the probe repository. RC dispatch only re-delivers a
+            # config when its content hash changes (Core::Remote::Client#apply_config
+            # skips unchanged content), so the probe would otherwise stay dropped
+            # until the customer edits it. On the stopped->started transition,
+            # reconcile against the current LIVE_DEBUGGING contents so it installs now.
+            replay_current_probes(repository, component) if repository && !was_started
           else
             component.stop!
           end
@@ -110,7 +124,14 @@ module Datadog
               changes.each do |change|
                 case change.type
                 when :insert
-                  add_probe(change.content, component) # steep:ignore NoMethod
+                  # A stopped->started reconcile (#replay_current_probes) may have
+                  # installed this probe earlier in the same dispatch — the enable
+                  # signal is carried by the Tracing receiver, which runs before the
+                  # DI receiver. Skip the redundant install rather than letting
+                  # probe_manager raise AlreadyInstrumented and report a false error.
+                  unless probe_in_content_known?(change.content, component) # steep:ignore NoMethod
+                    add_probe(change.content, component) # steep:ignore NoMethod
+                  end
                 when :update
                   # We do not implement updates at the moment, remove the
                   # probe and reinstall.
@@ -190,6 +211,50 @@ module Datadog
 
           # TODO assert content state (errored for this example)
           content.errored("Error applying dynamic instrumentation configuration: #{exc.class}: #{exc.message}")
+        end
+
+        # Reconciles the DI probe repository against the LIVE_DEBUGGING configs
+        # currently held by the RC repository. Called on the stopped->started
+        # transition to install probes that arrived while DI was stopped: those
+        # were dropped by {.receivers} and RC will not re-dispatch them because
+        # their content hash is unchanged.
+        #
+        # Probes already tracked by the component (installed, pending, or failed)
+        # are skipped, so a probe handled in the same dispatch by {.receivers} is
+        # not added twice.
+        def replay_current_probes(repository, component)
+          repository.contents.each do |content|
+            next unless content.path.product == PRODUCT
+
+            begin
+              probe_id = parse_content(content)["id"]
+            rescue => exc
+              component.logger.debug { "di: skipping unparseable LIVE_DEBUGGING content on enable reconcile: #{exc.class}: #{exc.message}" }
+              next
+            end
+
+            next if probe_id && probe_known?(probe_id, component)
+
+            add_probe(content, component)
+          end
+        end
+
+        def probe_known?(probe_id, component)
+          repo = component.probe_manager.probe_repository
+          !!(repo.find_installed(probe_id) ||
+            repo.find_pending(probe_id) ||
+            repo.find_failed(probe_id))
+        end
+
+        # True when the probe carried by +content+ is already tracked by the
+        # component. Returns false when the id cannot be determined, so add_probe
+        # still runs and reports the parse error through its own handling.
+        def probe_in_content_known?(content, component)
+          probe_id = parse_content(content)["id"]
+          !!(probe_id && probe_known?(probe_id, component))
+        rescue => exc
+          component.logger.debug { "di: could not check probe id for insert dedup: #{exc.class}: #{exc.message}" }
+          false
         end
 
         # This method does not mark +previous_content+ as succeeded or errored,

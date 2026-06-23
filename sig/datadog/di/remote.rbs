@@ -7,7 +7,7 @@ module Datadog
 
       def self.capabilities: () -> ::Array[Integer]
 
-      def self.handle_rc_enablement: (bool enabled) -> void
+      def self.handle_rc_enablement: (bool enabled, ?Core::Remote::Configuration::Repository? repository) -> void
 
       def self.explicitly_disabled?: () -> bool
 
@@ -18,6 +18,10 @@ module Datadog
       private
 
       def self.parse_content: (untyped content) -> Hash[String, untyped]
+
+      def self.replay_current_probes: (Core::Remote::Configuration::Repository repository, Component component) -> void
+      def self.probe_known?: (untyped probe_id, Component component) -> bool
+      def self.probe_in_content_known?: (untyped content, Component component) -> bool
 
       def self.add_probe: (untyped content, Component component) -> void
       def self.remove_probe: (untyped previous_content, Component component) -> void

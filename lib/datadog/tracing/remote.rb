@@ -30,7 +30,7 @@ module Datadog
           CAPABILITIES
         end
 
-        def process_config(config, content)
+        def process_config(config, content, repository = nil)
           lib_config = config['lib_config']
 
           env_vars = Datadog::Tracing::Configuration::Dynamic::OPTIONS.map do |name, env_var, option|
@@ -45,7 +45,10 @@ module Datadog
           end
 
           if (di_enabled = lib_config['dynamic_instrumentation_enabled']) != nil # rubocop:disable Style/NonNilCheck
-            Datadog::DI::Remote.handle_rc_enablement(di_enabled)
+            # repository is forwarded so that an enable signal can reconcile DI
+            # against probes delivered in an earlier poll while DI was stopped
+            # (see Datadog::DI::Remote.handle_rc_enablement).
+            Datadog::DI::Remote.handle_rc_enablement(di_enabled, repository)
           end
 
           content.applied
@@ -70,7 +73,7 @@ module Datadog
               case content.path.product
               when PRODUCT
                 config = parse_content(content)
-                process_config(config, content)
+                process_config(config, content, repository)
               end
             end
           end

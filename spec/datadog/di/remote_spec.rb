@@ -43,7 +43,7 @@ RSpec.describe Datadog::DI::Remote do
     # arrives in an APM_TRACING payload. This is the entire entry
     # point for the implicit-enablement feature.
 
-    let(:component) { instance_double(Datadog::DI::Component) }
+    let(:component) { instance_double(Datadog::DI::Component, started?: false) }
     let(:components) { instance_double(Datadog::Core::Configuration::Components, dynamic_instrumentation: component) }
 
     before do
@@ -152,7 +152,7 @@ RSpec.describe Datadog::DI::Remote do
     # through start!/stop!. If a future change accidentally routes a settings
     # update through this path, this snapshot diff catches it.
 
-    let(:component) { instance_double(Datadog::DI::Component, start!: nil, stop!: nil) }
+    let(:component) { instance_double(Datadog::DI::Component, start!: nil, stop!: nil, started?: false) }
     let(:components) { instance_double(Datadog::Core::Configuration::Components, dynamic_instrumentation: component) }
     let(:settings) do
       Datadog::Core::Configuration::Settings.new.tap do |s|
@@ -301,7 +301,9 @@ RSpec.describe Datadog::DI::Remote do
 
       let(:component) do
         instance_double(Datadog::DI::Component).tap do |component|
-          expect(component).to receive(:probe_manager).and_return(probe_manager)
+          # at_least(:once): the receiver consults probe_manager once for the
+          # insert-dedup guard (probe_in_content_known?) and again to add_probe.
+          expect(component).to receive(:probe_manager).at_least(:once).and_return(probe_manager)
           allow(component).to receive(:settings).and_return(settings)
           allow(component).to receive(:started?).and_return(true)
         end

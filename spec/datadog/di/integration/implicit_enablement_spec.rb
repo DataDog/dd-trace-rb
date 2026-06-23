@@ -309,4 +309,74 @@ RSpec.describe 'DI implicit enablement integration' do
       expect(component.probe_manager.probe_repository.installed_probes.length).to eq 1
     end
   end
+
+  describe 'probe delivered in an earlier poll while stopped, enable in a later poll' do
+    # Regression test for the edge case raised in PR review: a probe can land in
+    # one RC poll while DI is stopped and the enable signal arrive in a *separate*
+    # later poll. The DI receiver drops the probe while stopped, and
+    # Core::Remote::Client#apply_config marks the now-unchanged probe content
+    # `same` on the later poll, so it is never re-dispatched. handle_rc_enablement
+    # reconciles against the current LIVE_DEBUGGING contents on the
+    # stopped->started transition so the probe installs without the customer
+    # having to edit it.
+
+    let(:probe_spec) do
+      {
+        id: 'test-probe-earlier-poll',
+        name: 'bar',
+        type: 'LOG_PROBE',
+        where: {
+          typeName: 'ImplicitEnablementSpecTargetClass',
+          methodName: 'target_method',
+        },
+      }
+    end
+
+    let(:transport) { double(Datadog::Core::Remote::Transport::Config) }
+    let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry) }
+    let(:client) { Datadog::Core::Remote::Client.new(transport, capabilities, settings: settings, logger: logger) }
+
+    # Poll N: only the LIVE_DEBUGGING probe (DI still stopped).
+    let(:poll_with_probe_only) do
+      DIHelpers::TestRemoteConfigGenerator.new(
+        {'datadog/2/LIVE_DEBUGGING/foo/bar' => probe_spec}
+      ).mock_response
+    end
+
+    # Poll N+1: the same (unchanged) probe plus the APM_TRACING enable signal.
+    let(:poll_with_enable) do
+      DIHelpers::TestRemoteConfigGenerator.new(
+        {
+          'datadog/2/LIVE_DEBUGGING/foo/bar' => probe_spec,
+          'datadog/2/APM_TRACING/lib_config/config' => {'lib_config' => {'dynamic_instrumentation_enabled' => true}},
+        }
+      ).mock_response
+    end
+
+    before do
+      allow(Datadog::DI).to receive(:component).and_return(component)
+      allow(Datadog::DI).to receive(:activate_tracking)
+    end
+
+    it 'installs the probe once DI is enabled, without waiting for redelivery' do
+      expect(component.started?).to be false
+
+      # Poll N: probe arrives while DI is stopped — dropped, not in the repository.
+      expect(transport).to receive(:send_config).and_return(poll_with_probe_only)
+      client.sync
+      expect(component.started?).to be false
+      expect(component.probe_manager.probe_repository.installed_probes.length).to eq 0
+      expect(component.probe_manager.probe_repository.pending_probes.length).to eq 0
+
+      # Poll N+1: enable arrives; the probe content is unchanged so the DI
+      # receiver is not re-invoked for it. The enable-path reconcile installs it.
+      expect(transport).to receive(:send_config).and_return(poll_with_enable)
+      client.sync
+      component.probe_notifier_worker.flush
+
+      expect(component.started?).to be true
+      expect(component.probe_manager.probe_repository.installed_probes.length).to eq 1
+      expect(component.probe_manager.probe_repository.installed_probes.keys).to include('test-probe-earlier-poll')
+    end
+  end
 end
