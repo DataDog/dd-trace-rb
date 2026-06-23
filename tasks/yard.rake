@@ -1,4 +1,4 @@
-if Gem.loaded_specs["yard"]
+if Gem.loaded_specs.key?('yard')
   require 'yard'
 else
   warn "'yard' gem not loaded: skipping tasks..." if Rake.verbose == true
