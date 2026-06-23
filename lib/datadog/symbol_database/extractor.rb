@@ -898,12 +898,12 @@ module Datadog
         if leaf
           # Node exists (was created as intermediate or from another entry).
           # Update type and mod — the actual module object is authoritative.
-          leaf[:type] = Class === mod ? 'CLASS' : 'MODULE'
+          leaf[:type] = (Class === mod) ? 'CLASS' : 'MODULE'
           leaf[:mod] = mod
         else
           leaf = {
             name: mod_name,
-            type: Class === mod ? 'CLASS' : 'MODULE',
+            type: (Class === mod) ? 'CLASS' : 'MODULE',
             children: {}, methods: [],
             mod: mod, source_file: file_path,
             fqn: mod_name
@@ -932,7 +932,7 @@ module Datadog
           return 'MODULE' unless MODULE_CONST_DEFINED.bind(current).call(sym, false)
           current = MODULE_CONST_GET.bind(current).call(sym, false)
         end
-        Class === current ? 'CLASS' : 'MODULE'
+        (Class === current) ? 'CLASS' : 'MODULE'
       rescue => e
         @logger.debug { "symdb: resolve_scope_type(#{fqn}) failed: #{e.class}: #{e.message}, defaulting to MODULE" }
         'MODULE'
