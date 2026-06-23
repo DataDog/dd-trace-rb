@@ -16,18 +16,21 @@ module Datadog
       #
       # @api private
       class Compiler
-        def initialize
-          @regexps = []
-        end
-
-        # Regexps precompiled from literal `matches` needles during
-        # compilation. Passed to Expression so the compiled expression can
-        # look them up by index (see Evaluator#matches_compiled) instead of
-        # recompiling the pattern on every probe firing.
-        attr_reader :regexps
-
+        # Compiles +ast+ into eval'able Ruby source plus the Regexps
+        # precompiled from any literal `matches` needles. The regexps are
+        # returned alongside the source rather than retained as compiler
+        # state; the compiled code looks them up by index at evaluation time
+        # (see Evaluator#matches_compiled). A Compiler instance holds no
+        # per-compilation state and is safe to reuse.
+        #
+        # @param ast [untyped] expression AST from the probe definition.
+        # @return [Array(String, Array<Regexp>)] the compiled Ruby source and
+        #   the precompiled regexps, indexed in the order the compiled code
+        #   references them.
         def compile(ast)
-          compile_partial(ast)
+          regexps = []
+          code = compile_partial(ast, regexps)
+          [code, regexps]
         end
 
         private
@@ -59,7 +62,12 @@ module Datadog
           'or' => '||',
         }.freeze
 
-        def compile_partial(ast)
+        # @param ast [untyped] AST node to compile.
+        # @param regexps [Array<Regexp>] accumulator for regexps precompiled
+        #   from literal `matches` needles; threaded through the recursion so
+        #   the compiler need not hold this state on the instance.
+        # @return [String] compiled Ruby source for +ast+.
+        def compile_partial(ast, regexps)
           case ast
           when Hash
             if ast.length != 1
@@ -104,22 +112,22 @@ module Datadog
               end
             when *SINGLE_ARG_METHODS
               method_name = op.gsub(/[A-Z]/) { |m| "_#{m.downcase}" }
-              "#{method_name}(#{compile_partial(target)}, '#{var_name_maybe(target)}')"
+              "#{method_name}(#{compile_partial(target, regexps)}, '#{var_name_maybe(target)}')"
             when 'matches'
               unless Array === target && target.length == 2
                 raise DI::Error::InvalidExpression, "Improper matches syntax"
               end
               first, second = target
-              if String === second && (index = precompile_regexp(second))
+              if String === second && (index = precompile_regexp(second, regexps))
                 # Literal needle: compile the Regexp once, now, at
                 # expression-compile time, so it is not recompiled on every
                 # probe firing.
-                "matches_compiled(#{compile_partial(first)}, #{index})"
+                "matches_compiled(#{compile_partial(first, regexps)}, #{index})"
               else
                 # Needle is computed at evaluation time (or is an invalid
                 # literal that must raise at evaluation time, as before):
                 # compile per call.
-                "matches(#{compile_partial(first)}, (#{compile_partial(second)}))"
+                "matches(#{compile_partial(first, regexps)}, (#{compile_partial(second, regexps)}))"
               end
             when *TWO_ARG_METHODS
               method_name = op.gsub(/[A-Z]/) { |m| "_#{m.downcase}" }
@@ -127,13 +135,13 @@ module Datadog
                 raise DI::Error::InvalidExpression, "Improper #{op} syntax"
               end
               first, second = target
-              "#{method_name}(#{compile_partial(first)}, (#{compile_partial(second)}))"
+              "#{method_name}(#{compile_partial(first, regexps)}, (#{compile_partial(second, regexps)}))"
             when *MULTI_ARG_METHODS.keys
               unless Array === target && target.length >= 1
                 raise DI::Error::InvalidExpression, "Improper #{op} syntax"
               end
               compiled_targets = target.map do |item|
-                "(#{compile_partial(item)})"
+                "(#{compile_partial(item, regexps)})"
               end
               compiled_op = MULTI_ARG_METHODS[op]
               "(#{compiled_targets.join(" #{compiled_op} ")})"
@@ -141,18 +149,18 @@ module Datadog
               unless Array === target && target.length == 3
                 raise DI::Error::InvalidExpression, "Improper #{op} syntax"
               end
-              "#{op}(#{target.map { |arg| "(#{compile_partial(arg)})" }.join(", ")})"
+              "#{op}(#{target.map { |arg| "(#{compile_partial(arg, regexps)})" }.join(", ")})"
             when 'not'
-              "!(#{compile_partial(target)})"
+              "!(#{compile_partial(target, regexps)})"
             when *OPERATORS.keys
               unless Array === target && target.length == 2
                 raise DI::Error::InvalidExpression, "Improper #{op} syntax"
               end
               first, second = target
               operator = OPERATORS.fetch(op)
-              "(#{compile_partial(first)}) #{operator} (#{compile_partial(second)})"
+              "(#{compile_partial(first, regexps)}) #{operator} (#{compile_partial(second, regexps)})"
             when 'any', 'all', 'filter'
-              "#{op}(#{compile_partial(target.first)}) { |current_item, current_key, current_value| #{compile_partial(target.last)} }"
+              "#{op}(#{compile_partial(target.first, regexps)}) { |current_item, current_key, current_value| #{compile_partial(target.last, regexps)} }"
             else
               raise DI::Error::InvalidExpression, "Unknown operation: #{op}"
             end
@@ -190,16 +198,18 @@ module Datadog
         end
 
         # Precompile a literal regexp +needle+ at expression-compile time and
-        # record it in +regexps+, returning its index for
+        # append it to +regexps+, returning its index for
         # Evaluator#matches_compiled to look up. Returns nil for an invalid
         # pattern so the caller falls back to compiling at evaluation time,
         # preserving the eval-time RegexpError the runtime path would raise.
         #
         # @param needle [String] regexp source.
+        # @param regexps [Array<Regexp>] accumulator to append the compiled
+        #   regexp to.
         # @return [Integer, nil] index into +regexps+, or nil if invalid.
-        def precompile_regexp(needle)
-          index = @regexps.length
-          @regexps << Evaluator.compile_regexp(needle)
+        def precompile_regexp(needle, regexps)
+          index = regexps.length
+          regexps << Evaluator.compile_regexp(needle)
           index
         rescue RegexpError
           nil

@@ -2,13 +2,7 @@ module Datadog
   module DI
     module EL
       class Compiler
-        @regexps: Array[Regexp]
-
-        def initialize: () -> void
-
-        attr_reader regexps: Array[Regexp]
-
-        def compile: (untyped ast) -> String
+        def compile: (untyped ast) -> [ String, Array[Regexp] ]
 
         private
 
@@ -20,12 +14,12 @@ module Datadog
 
         MULTI_ARG_METHODS: { "and" => "&&", "or" => "||" }
 
-        def compile_partial: (untyped ast) -> String
+        def compile_partial: (untyped ast, Array[Regexp] regexps) -> String
         def var_name_maybe: (untyped target) -> String
 
         def escape: (String needle) -> String
 
-        def precompile_regexp: (String needle) -> Integer?
+        def precompile_regexp: (String needle, Array[Regexp] regexps) -> Integer?
       end
     end
   end

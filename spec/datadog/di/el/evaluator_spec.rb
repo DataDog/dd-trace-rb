@@ -157,25 +157,25 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     let(:compiler) { described_class.new }
 
     it 'precompiles a literal matches needle at compile time' do
-      code = compiler.compile({'matches' => [{'ref' => 'var'}, 'hello[a-z]']})
+      code, regexps = compiler.compile({'matches' => [{'ref' => 'var'}, 'hello[a-z]']})
 
       expect(code).to eq("matches_compiled(ref('var'), 0)")
-      expect(compiler.regexps.length).to eq(1)
-      expect(compiler.regexps.first).to be_a(Regexp)
+      expect(regexps.length).to eq(1)
+      expect(regexps.first).to be_a(Regexp)
     end
 
     it 'compiles a dynamically-computed matches needle at evaluation time' do
-      code = compiler.compile({'matches' => [{'ref' => 'var'}, {'ref' => 'pat'}]})
+      code, regexps = compiler.compile({'matches' => [{'ref' => 'var'}, {'ref' => 'pat'}]})
 
       expect(code).to eq("matches(ref('var'), (ref('pat')))")
-      expect(compiler.regexps).to be_empty
+      expect(regexps).to be_empty
     end
 
     it 'falls back to evaluation-time compilation for an invalid literal needle' do
-      code = compiler.compile({'matches' => [{'ref' => 'var'}, '[invalid']})
+      code, regexps = compiler.compile({'matches' => [{'ref' => 'var'}, '[invalid']})
 
       expect(code).to eq("matches(ref('var'), (\"[invalid\"))")
-      expect(compiler.regexps).to be_empty
+      expect(regexps).to be_empty
     end
   end
 end
