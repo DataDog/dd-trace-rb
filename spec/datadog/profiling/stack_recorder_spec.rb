@@ -486,6 +486,32 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           expect(hash_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_hash) * sample_rate)
         end
 
+        # Regression test for https://github.com/DataDog/dd-trace-rb/issues/5936: on Ruby 4+, sizing a class/module
+        # walks the per-namespace class extensions and could crash the VM (SIGSEGV) when the object was resurrected
+        # via _id2ref. We now skip sizing class objects on Ruby 4+, so their reported size is 0; older Rubies are
+        # unchanged. The test asserts a class is still tracked (no crash) and that its size is safe for this Ruby.
+        context "for class objects" do
+          let(:a_class) { Class.new }
+
+          before do
+            sample_allocation(a_class)
+            GC.start # Age the class past the current GC gen so it is reported as a live heap object (gen_age > 0)
+          end
+
+          it "tracks the class without crashing and reports a size that is safe for the current Ruby" do
+            skip_asan_flaky
+
+            class_sample = heap_samples.find { |s| s.labels[:"allocation class"] == "Class" }
+            expect(class_sample).to_not be_nil
+
+            if RubyVersion.is?(">= 4")
+              expect(class_sample.values[:"heap-live-size"]).to eq(0)
+            else
+              expect(class_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_class) * sample_rate)
+            end
+          end
+        end
+
         it "include accurate object ages" do
           string_sample = heap_samples.find { |s| s.labels[:"allocation class"] == "String" }
           string_age = string_sample.labels[:"gc gen age"]

@@ -162,9 +162,16 @@ size_t rb_obj_memsize_of(VALUE obj);
 size_t ruby_obj_memsize_of(VALUE obj) {
   switch (rb_type(obj)) {
     case T_OBJECT:
+    // On Ruby 4+, computing the size of a class/module/iclass is not safe: `rb_obj_memsize_of` walks the
+    // per-namespace class extensions (`rb_class_classext_foreach` -> `classext_memsize` -> `rb_id_table_memsize`)
+    // and can crash the VM when called on objects resurrected via `ObjectSpace._id2ref` during heap profiling.
+    // See https://github.com/DataDog/dd-trace-rb/issues/5936. Class objects contribute negligibly to heap size,
+    // so we skip them (fall through to the `default` branch, returning 0) rather than risk a SIGSEGV.
+    #ifndef NO_SAFE_CLASS_MEMSIZE
     case T_MODULE:
     case T_CLASS:
     case T_ICLASS:
+    #endif
     case T_STRING:
     case T_ARRAY:
     case T_HASH:
