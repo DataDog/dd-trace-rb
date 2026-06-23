@@ -4,6 +4,7 @@ require_relative 'aggregator'
 require_relative '../../core/encoding'
 require_relative '../../core/evp'
 require_relative '../../core/utils/time'
+require_relative '../../core/workers/async'
 
 module Datadog
   module OpenFeature
@@ -20,6 +21,8 @@ module Datadog
       # The flush loop waits on a ConditionVariable (interruptible) rather than a bare
       # sleep, so #stop can wake the worker immediately and still drain + final-flush.
       class Writer
+        include Core::Workers::Async::Thread
+
         FLUSH_INTERVAL_SECONDS = 10
         DRAIN_INTERVAL_SECONDS = 0.1
         QUEUE_SIZE = 4_096
@@ -52,8 +55,10 @@ module Datadog
           @stopped = false
           @dropped_queue_overflow = 0
 
+          self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_RESTART
+
           @service_context = build_service_context
-          @thread = start_background_thread
+          start_background_thread
         end
 
         # Non-blocking enqueue from the finally hook. Drops + counts on overflow.
@@ -69,6 +74,7 @@ module Datadog
             attrs: Aggregator.prune_context(event[:attrs] || {}),
           }
           @queue.push(bounded_event, true)
+          start_background_thread unless running?
         rescue ThreadError
           # Queue full — drop and count (best-effort, same as Go: drop-and-count). The count is
           # emitted on the next flush so backpressure is observable, not silently lost.
@@ -82,7 +88,7 @@ module Datadog
             @stopped = true
             @stop_cond.broadcast
           end
-          @thread&.join(5)
+          join(5)
         end
 
         private
@@ -96,31 +102,33 @@ module Datadog
         end
 
         def start_background_thread
-          Thread.new do
-            last_flush = Core::Utils::Time.get_time
+          perform
+        end
 
-            loop do
-              wait_for_next_cycle
-              begin
-                drain_queue
-                now = Core::Utils::Time.get_time
-                if stopped? || now - last_flush >= FLUSH_INTERVAL_SECONDS
-                  flush_once
-                  last_flush = now
-                end
-              rescue => e
-                @logger.debug { "OpenFeature EVP: writer error: #{e.class}: #{e.message}" }
-              end
+        def perform
+          last_flush = Core::Utils::Time.get_time
 
-              break if stopped?
-            end
-
-            # Final drain + flush on shutdown so queued events are not lost.
+          loop do
+            wait_for_next_cycle
             begin
-              drain_and_flush
+              drain_queue
+              now = Core::Utils::Time.get_time
+              if stopped? || now - last_flush >= FLUSH_INTERVAL_SECONDS
+                flush_once
+                last_flush = now
+              end
             rescue => e
-              @logger.debug { "OpenFeature EVP: writer final-flush error: #{e.class}: #{e.message}" }
+              @logger.debug { "OpenFeature EVP: writer error: #{e.class}: #{e.message}" }
             end
+
+            break if stopped?
+          end
+
+          # Final drain + flush on shutdown so queued events are not lost.
+          begin
+            drain_and_flush
+          rescue => e
+            @logger.debug { "OpenFeature EVP: writer final-flush error: #{e.class}: #{e.message}" }
           end
         end
 

@@ -119,6 +119,55 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
     end
   end
 
+  describe 'prefork worker restart' do
+    let(:logger) { Logger.new(File::NULL) }
+    let(:transport_class) do
+      Class.new do
+        attr_reader :payloads
+
+        def initialize
+          @payloads = []
+        end
+
+        def send_flag_evaluations(payload)
+          @payloads << payload
+        end
+      end
+    end
+
+    it 'restarts the background worker in the child and flushes child evaluations' do
+      skip 'Fork not supported on current platform' unless Process.respond_to?(:fork)
+
+      stub_const("#{described_class}::DRAIN_INTERVAL_SECONDS", 0.01)
+
+      transport = transport_class.new
+      writer = described_class.new(transport: transport, logger: logger)
+      try_wait_until { writer.running? }
+
+      expect_in_fork do
+        expect(writer).to be_forked
+        expect(writer).not_to be_running
+
+        writer.enqueue(
+          flag_key: 'prefork-flag', variant: 'on', allocation_key: 'alloc',
+          targeting_key: 'prefork-user', eval_time_ms: realistic_eval_ms, attrs: {'worker' => 'child'},
+        )
+        writer.stop
+
+        rows = transport.payloads.flat_map { |payload| payload['flagEvaluations'] }
+        expect(rows).to contain_exactly(
+          include(
+            'flag' => {'key' => 'prefork-flag'},
+            'targeting_key' => 'prefork-user',
+            'evaluation_count' => 1
+          )
+        )
+      end
+    ensure
+      writer&.stop
+    end
+  end
+
   # Backpressure must be OBSERVABLE. When the hand-off queue overflows, enqueue increments an
   # observable counter that is emitted (logged) on the next flush — not silently dropped.
   describe '#enqueue queue-overflow backpressure' do

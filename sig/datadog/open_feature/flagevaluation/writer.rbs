@@ -2,6 +2,8 @@ module Datadog
   module OpenFeature
     module FlagEvaluation
       class Writer
+        include Core::Workers::Async::Thread
+
         FLUSH_INTERVAL_SECONDS: ::Integer
 
         DRAIN_INTERVAL_SECONDS: ::Float
@@ -46,8 +48,6 @@ module Datadog
 
         @service_context: ::Hash[::String, ::String]
 
-        @thread: ::Thread?
-
         attr_reader service_context: ::Hash[::String, ::String]
 
         attr_reader dropped_queue_overflow: ::Integer
@@ -66,7 +66,11 @@ module Datadog
 
         def build_service_context: () -> ::Hash[::String, ::String]
 
-        def start_background_thread: () -> ::Thread
+        def start_background_thread: () -> void
+
+        def running?: () -> bool
+
+        def perform: () -> void
 
         def stopped?: () -> bool
 
