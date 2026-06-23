@@ -12,7 +12,12 @@ on: # yamllint disable-line rule:truthy
 permissions: {}
 
 jobs:
+  gate:
+    uses: ./.github/workflows/_deps_gate.yml
+
   test-yjit:
+    needs: gate
+    if: ${{ needs.gate.outputs.proceed == 'true' }}
     strategy:
       fail-fast: false
       matrix:
