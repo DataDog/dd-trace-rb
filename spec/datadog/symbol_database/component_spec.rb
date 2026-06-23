@@ -671,7 +671,16 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       end
 
       component = described_class.build(settings, agent_settings, logger)
-      component.wait_for_idle(timeout: 5)
+      # Assert wait_for_idle returned true (not timed out). The previous form
+      # discarded the return value: on a runner where the initial extract_all
+      # over ObjectSpace takes longer than the timeout, the call returns false
+      # and the test silently proceeds with @last_upload_time still nil. The
+      # second wait_for_idle below would then either time out as well, or wake
+      # on the initial extract's eventual advance — either way, the hot-load
+      # extract has not yet run and extracted_modules is empty. 30s matches
+      # wait_for_idle's default timeout and gives slow CI runners (observed:
+      # macOS-15 Ruby 3.2) enough headroom for the initial ObjectSpace walk.
+      expect(component.wait_for_idle(timeout: 30)).to be(true)
 
       begin
         # Define a class — `class Foo` opens a class body, which fires
@@ -679,7 +688,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         # drains and calls Extractor#extract.
         eval('class SymdbHotLoadSpecNewClass; def hello; end; end', binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
 
-        component.wait_for_idle(timeout: 5)
+        expect(component.wait_for_idle(timeout: 30)).to be(true)
 
         expect(extracted_modules.map(&:name)).to include('SymdbHotLoadSpecNewClass')
       ensure
