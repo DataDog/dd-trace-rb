@@ -16,17 +16,8 @@ concurrency:
 permissions: {}
 
 jobs:
-  gate:
-    uses: ./.github/workflows/_deps_gate.yml
-
-  # Gating `build` transitively skips the bundler-dependent jobs (standard, steep,
-  # frozen_string_literal) on a dependency PR whose lockfiles are still stale. The
-  # lock-independent jobs (semgrep, zizmor, actionlint, yaml-lint) do not need
-  # `build`, so they keep running.
   build:
     name: build
-    needs: gate
-    if: ${{ needs.gate.outputs.proceed == 'true' }}
     runs-on: ubuntu-24.04
     container:
       image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
