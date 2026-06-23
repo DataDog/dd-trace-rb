@@ -595,14 +595,6 @@ namespace :coverage do
   end
 end
 
-namespace :changelog do
-  task :format do
-    require 'pimpmychangelog'
-
-    PimpMyChangelog::CLI.run!
-  end
-end
-
 NATIVE_EXTS = [
   Rake::ExtensionTask.new("libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}") do |ext|
     ext.ext_dir = 'ext/libdatadog_api'
