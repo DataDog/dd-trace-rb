@@ -545,8 +545,6 @@ module Datadog
         component = self
         logger = @logger
         telemetry = @telemetry
-        # DIAG (REVERT): count enabled TracePoints right before installing this one.
-        STDERR.puts "[symdb-diag install] pid=#{Process.pid} existing_enabled_tracepoints=#{ObjectSpace.each_object(TracePoint).count(&:enabled?)} thread=#{Thread.current.object_id} main?=#{Thread.current == Thread.main}"
         @hot_load_tracepoint = TracePoint.new(:class) do |tp|
           # The :class TracePoint fires inside the customer's class body —
           # any exception that escapes this block surfaces at the customer's
@@ -557,8 +555,6 @@ module Datadog
           # backtraces through `<class:CustomerClass>` in Ruby 3.x.
 
           mod = tp.self
-          # DIAG (REVERT): log which hook is firing on what class, in what thread, with how many other live tracepoints.
-          STDERR.puts "[symdb-diag hook-fired] mod=#{mod.name.inspect} thread=#{Thread.current.object_id} main?=#{Thread.current == Thread.main} report_on_exception=#{Thread.current.report_on_exception} enabled_tracepoints=#{ObjectSpace.each_object(TracePoint).count(&:enabled?)}"
           next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
           component.send(:enqueue_hot_load, mod)
         rescue => e
@@ -567,23 +563,12 @@ module Datadog
           # :class TracePoint fires inside customer class bodies, so the
           # error boundary must hold even when error reporting fails;
           # nothing useful to do if logging is broken.
-          # DIAG (REVERT): log when the outer rescue handler is entered and what it caught.
-          STDERR.puts "[symdb-diag outer-rescue] caught #{e.class}: #{e.message} thread=#{Thread.current.object_id} main?=#{Thread.current == Thread.main}"
           begin
-            # DIAG (REVERT): log immediately before calling logger.debug, so we know we reached the inner begin.
-            STDERR.puts "[symdb-diag pre-debug] thread=#{Thread.current.object_id} main?=#{Thread.current == Thread.main} report=#{Thread.current.report_on_exception} logger_class=#{logger.class} target_class=#{logger.instance_variable_get(:@target).class}"
             logger.debug { "symdb: hot-load hook error: #{e.class}: #{e.message}" }
             telemetry&.report(e, description: 'symdb: hot-load hook error')
-          rescue => __inner_e
-            # DIAG (REVERT): log if and when the inner rescue traps an exception.
-            STDERR.puts "[symdb-diag inner-rescue] caught #{__inner_e.class}: #{__inner_e.message}"
-            STDERR.puts "[symdb-diag inner-rescue] thread=#{Thread.current.object_id} main?=#{Thread.current == Thread.main} report=#{Thread.current.report_on_exception}"
-            STDERR.puts "[symdb-diag inner-rescue] tracepoints_total=#{ObjectSpace.each_object(TracePoint).count} enabled=#{ObjectSpace.each_object(TracePoint).count(&:enabled?)}"
-            STDERR.puts "[symdb-diag inner-rescue] backtrace.first(5)=#{__inner_e.backtrace&.first(5)&.join(' | ')}"
+          rescue
             nil
           end
-          # DIAG (REVERT): log when the outer rescue handler completes normally (no exception escaped to here).
-          STDERR.puts "[symdb-diag outer-rescue-done] thread=#{Thread.current.object_id} main?=#{Thread.current == Thread.main}"
         end
         @hot_load_tracepoint.enable # steep:ignore NoMethod
       end
