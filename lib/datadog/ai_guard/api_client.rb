@@ -17,11 +17,13 @@ module Datadog
 
         @endpoint_uri = if endpoint
           URI(endpoint) #: URI::HTTP
+        elsif Datadog.configuration.site
+          host = Datadog.configuration.site.dup
+          host.prepend("app.") if host.count(".") == 1
+
+          URI::HTTPS.build(host: host, path: DEFAULT_PATH)
         else
-          URI::HTTPS.build(
-            host: Datadog.configuration.site || DEFAULT_SITE,
-            path: DEFAULT_PATH
-          )
+          URI::HTTPS.build(host: DEFAULT_SITE, path: DEFAULT_PATH)
         end
 
         @headers = {
