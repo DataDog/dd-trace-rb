@@ -77,7 +77,8 @@ module Datadog
                 next
               end
               encoded_snapshots << encoded
-            rescue => exc
+            rescue Exception => exc # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(exc)
               # Serialization failed for this snapshot - report via callback
               # This catches JSON::GeneratorError, Encoding errors, TypeError, etc.
               probe_id = snapshot.dig(:debugger, :snapshot, :probe, :id)
@@ -87,7 +88,8 @@ module Datadog
               if probe_id
                 begin
                   on_serialization_error.call(probe_id, exc)
-                rescue => callback_exc
+                rescue Exception => callback_exc # standard:disable Lint/RescueException
+                  Datadog::DI.reraise_if_fatal(callback_exc)
                   logger.debug { "di: error in serialization error callback for probe #{probe_id}: #{callback_exc.class}: #{callback_exc.message}" }
                   telemetry&.report(callback_exc, description: "Error in serialization error callback")
                 end
@@ -109,7 +111,8 @@ module Datadog
               # subsequent chunks are attempted to be sent.
               begin
                 send_input_chunk(chunked_payload, serialized_tags)
-              rescue => exc
+              rescue Exception => exc # standard:disable Lint/RescueException
+                Datadog::DI.reraise_if_fatal(exc)
                 logger.debug { "di: failed to send snapshot chunk: #{exc.class}: #{exc.message} (at #{exc.backtrace.first})" }
                 telemetry&.report(exc, description: "Error sending snapshot chunk")
               end

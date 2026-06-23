@@ -89,7 +89,8 @@ module Datadog
             # message.
             # TODO assert content state (errored for this example)
             content.errored("Error applying dynamic instrumentation configuration: #{exc.class}: #{exc.message}")
-          rescue => exc
+          rescue Exception => exc # standard:disable Lint/RescueException
+            Datadog::DI.reraise_if_fatal(exc)
             raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
             component.logger.debug { "di: unhandled exception adding #{probe.type} probe at #{probe.location} (#{probe.id}) in DI remote receiver: #{exc.class}: #{exc.message}" }
@@ -114,7 +115,8 @@ module Datadog
           # try to remove instrumentation that is still supposed to be
           # active.
           #current_probe_ids[probe_spec.fetch('id')] = true
-        rescue => exc
+        rescue Exception => exc # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(exc)
           raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
           component.logger.debug { "di: unhandled exception handling a probe in DI remote receiver: #{exc.class}: #{exc.message}" }
@@ -133,7 +135,8 @@ module Datadog
           probe_spec = parse_content(previous_content)
           probe_id = probe_spec.fetch('id')
           component.probe_manager.remove_probe(probe_id)
-        rescue => exc
+        rescue Exception => exc # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(exc)
           raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
           component.logger.debug { "di: unhandled exception removing probes in DI remote receiver: #{exc.class}: #{exc.message}" }

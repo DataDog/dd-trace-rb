@@ -44,8 +44,11 @@ module Datadog
     class Serializer
       # Exception classes that should never be caught during serialization.
       # These represent fatal conditions (signals, interrupts, system exit)
-      # that must propagate to the caller.
-      FATAL_EXCEPTION_CLASSES = [SignalException, Interrupt, SystemExit].freeze
+      # that must propagate to the caller. NoMemoryError is deliberately
+      # excluded (unlike DI::FATAL_EXCEPTION_CLASSES): serialization of large
+      # or deeply recursive objects can exhaust memory, and the serializer must
+      # return a safe stub rather than tear the process down.
+      SERIALIZER_FATAL_EXCEPTION_CLASSES = [SystemExit, SignalException].freeze
 
       # Third-party library integration / custom serializers.
       #
@@ -177,7 +180,9 @@ module Datadog
             if condition
               begin
                 condition_result = condition.call(value)
-              rescue => e
+              rescue Exception => e # standard:disable Lint/RescueException
+                raise if SERIALIZER_FATAL_EXCEPTION_CLASSES.any? { |klass| e.is_a?(klass) }
+
                 # If a custom serializer condition raises an exception (e.g., regex match
                 # against invalid UTF-8), skip it and continue with the next serializer.
                 # We don't want custom serializer conditions to break the entire serialization.
@@ -331,7 +336,7 @@ module Datadog
         rescue Exception => exc # standard:disable Lint/RescueException
           # Re-raise fatal exceptions that should not be caught
           # (signals, interrupts, system exit)
-          raise if FATAL_EXCEPTION_CLASSES.any? { |klass| exc.is_a?(klass) }
+          raise if SERIALIZER_FATAL_EXCEPTION_CLASSES.any? { |klass| exc.is_a?(klass) }
 
           # Catch all other exceptions including SystemStackError and NoMemoryError.
           # These inherit from Exception (not StandardError) but can occur during
@@ -429,7 +434,9 @@ module Datadog
           end
           "#<#{class_name(value.class)}#{serialized}>"
         end
-      rescue => exc
+      rescue Exception => exc # standard:disable Lint/RescueException
+        raise if SERIALIZER_FATAL_EXCEPTION_CLASSES.any? { |klass| exc.is_a?(klass) }
+
         telemetry&.report(exc, description: "Error serializing for message")
         # TODO class_name(foo) can also fail, which we don't handle here.
         # Telemetry reporting could potentially also fail?
