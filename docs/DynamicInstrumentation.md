@@ -106,6 +106,9 @@ the entire method execution.
   (defined via `def self.method_name`, `class << self`, or `module_function`)
   cannot be instrumented with method probes. Line probes inside class
   methods still work since line probes are not method-bound.
+- On Ruby 3.3 and later, method probes on `Kernel#lambda` are not supported
+due to Ruby language limitations.
+
 
 **Additional considerations:**
 - Stack traces are always captured, but methods defined via
@@ -366,20 +369,6 @@ recursion or stack overflow. When the tracer calls a probed method
 while processing another method probe firing, the probe is suppressed
 for that internal call and does not count towards the rate limit.
 Customer code calls to the same method fire the probe normally.
-
-Line probes rely on Ruby's TracePoint, which self-disables during its
-own callback, so a line probe cannot trigger runaway recursion on
-itself. A method probe on a standard library method called while a
-line probe is processing its snapshot is not suppressed by the
-method-probe re-entrancy guard, but the call is rate-limited by the
-standard probe rate limit.
-
-Known limitation: on Ruby 3.3 and later, method probes on
-`Kernel#lambda` are not supported and may raise `ArgumentError` when
-the probed call site passes a non-literal block. This is a language
-behavior in Ruby 3.3+ that affects how the probe's wrapper invokes
-the original method; the tracer cannot work around it. Avoid setting
-probes on `Kernel#lambda` on Ruby 3.3+.
 
 ## Getting Help
 
