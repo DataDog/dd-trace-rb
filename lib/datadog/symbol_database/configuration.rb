@@ -41,16 +41,11 @@ module Datadog
                 # and its runtime prerequisites are met.
                 # The idea is to enable SymDB when DI is on, but without
                 # consulting runtime DI state (which is not available when
-                # the settings are processed)>
+                # the settings are processed).
                 o.default do
                   config = Datadog.configuration
-                  if config.respond_to?(:dynamic_instrumentation) &&
-                      config.dynamic_instrumentation.enabled &&
-                      defined?(::Datadog::DI::Component)
+                  config.dynamic_instrumentation.enabled &&
                     ::Datadog::DI::Component.environment_supported?(config, ::Datadog::Core::NULL_LOGGER)
-                  else
-                    false
-                  end
                 end
               end
 
