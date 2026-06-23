@@ -189,18 +189,6 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
     # Assign a unique sentinel to every skip_telemetry option and assert no sentinel
     # reaches a reported configuration value. Covers new sensitive options automatically.
     context 'with sentinel values assigned to every skip_telemetry option' do
-      # Yield every leaf (non-settings) option in the live settings tree.
-      def each_leaf_option(settings, &block)
-        settings.class.options.each_key do |name|
-          option = settings.send(:resolve_option, name)
-          if option.settings?
-            each_leaf_option(option.get, &block)
-          else
-            block.call(option)
-          end
-        end
-      end
-
       # Every leaf option that opts out of telemetry.
       let(:skip_telemetry_options) do
         [].tap do |options|

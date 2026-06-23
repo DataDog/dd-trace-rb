@@ -7,18 +7,6 @@ require 'json'
 # fails loudly. Compared on env-var-backed options only; skip_telemetry options without an
 # env var (e.g. logger.instance, tracing.writer_options) have no registry key.
 RSpec.describe 'sensitive configuration registry drift' do
-  # Yield every leaf (non-settings) option in the live settings tree.
-  def each_leaf_option(settings, &block)
-    settings.class.options.each_key do |name|
-      option = settings.send(:resolve_option, name)
-      if option.settings?
-        each_leaf_option(option.get, &block)
-      else
-        block.call(option)
-      end
-    end
-  end
-
   # Recursively collect registry keys that have any version marked sensitive.
   def collect_sensitive_registry_keys(object)
     keys = []
