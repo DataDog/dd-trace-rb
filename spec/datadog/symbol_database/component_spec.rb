@@ -752,7 +752,6 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
 
     it 'does not propagate exceptions when logger.debug itself raises' do
-      skip 'flaky on CI'
       # If the rescue handler's own logger call raises (custom logger
       # implementation, IO error), it would escape the outer rescue and
       # surface in the customer's class body. The inner rescue contains
