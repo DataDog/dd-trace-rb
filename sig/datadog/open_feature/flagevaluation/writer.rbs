@@ -10,9 +10,27 @@ module Datadog
 
         PAYLOAD_SIZE_LIMIT_BYTES: ::Integer
 
+        TELEMETRY_NAMESPACE: ::String
+
+        ROWS_DROPPED_METRIC: ::String
+
+        ROWS_DEGRADED_METRIC: ::String
+
+        PAYLOAD_SPLITS_METRIC: ::String
+
+        REASON_QUEUE_OVERFLOW: ::String
+
+        REASON_DEGRADED_CAP: ::String
+
+        REASON_CARDINALITY_CAP: ::String
+
+        REASON_PAYLOAD_LIMIT: ::String
+
         @transport: Transport::HTTP
 
         @logger: Core::Logger
+
+        @telemetry: Core::Telemetry::Component?
 
         @aggregator: Aggregator
 
@@ -34,7 +52,11 @@ module Datadog
 
         attr_reader dropped_queue_overflow: ::Integer
 
-        def initialize: (transport: Transport::HTTP, logger: Core::Logger) -> void
+        def initialize: (
+          transport: Transport::HTTP,
+          logger: Core::Logger,
+          ?telemetry: Core::Telemetry::Component?
+        ) -> void
 
         def enqueue: (**untyped event) -> void
 
@@ -60,6 +82,8 @@ module Datadog
 
         def emit_drop_counts: (::Integer dropped_queue, ::Integer dropped_overflow) -> void
 
+        def emit_degraded_counts: (::Integer degraded_count) -> void
+
         def build_events: (::Hash[::Symbol, untyped] snapshot) -> ::Array[::Hash[::String, untyped]]
 
         def build_event: (
@@ -79,7 +103,7 @@ module Datadog
         def encoded_event_for_payload: (
           ::Hash[::String, untyped] event,
           ::Integer base_payload_size
-        ) -> [::Hash[::String, untyped], ::Integer]?
+        ) -> [::Hash[::String, untyped], ::Integer, bool]?
 
         def encoded_event: (::Hash[::String, untyped] event) -> [::Hash[::String, untyped], ::Integer]
 
@@ -90,6 +114,20 @@ module Datadog
         ) -> ::Hash[::String, untyped]?
 
         def emit_payload_oversize_drops: (::Integer dropped_oversized) -> void
+
+        def event_count: (::Hash[::String, untyped] event) -> ::Integer
+
+        def record_rows_dropped: (::String reason, ::Integer count) -> void
+
+        def record_rows_degraded: (::String reason, ::Integer count) -> void
+
+        def record_payload_splits: (::Integer count) -> void
+
+        def record_telemetry_count: (
+          ::String metric_name,
+          ::Integer count,
+          ?reason: ::String?
+        ) -> void
       end
     end
   end
