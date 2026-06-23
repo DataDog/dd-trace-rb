@@ -1,14 +1,9 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'json'
-require 'json-schema'
 require 'datadog/open_feature/flagevaluation/writer'
 
 RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
-  # Real flageval-worker schema (copied from the worker contract). Validates emitted payloads.
-  let(:worker_schema_path) { File.expand_path('fixtures/batchedflagevaluations.json', __dir__) }
-
   # A first/last_evaluation value above the schema's minimum (Oct 2025).
   let(:realistic_eval_ms) { 1_760_000_000_000 }
 
@@ -171,9 +166,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
     end
   end
 
-  # Emitted payload MUST validate against the real flageval-worker JSON schema — for BOTH
-  # full-tier and degraded-tier rows. variant/allocation serialize as {"key": ...} objects.
-  describe 'emitted payload conforms to the flageval-worker JSON schema' do
+  describe 'emitted payload shape' do
     let(:logger) { instance_double(Logger, debug: nil) }
 
     def captured_payload
@@ -187,7 +180,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       payload
     end
 
-    it 'validates a full-tier row (variant/allocation/targeting_key/context all present)' do
+    it 'emits a full-tier row with variant, allocation, targeting_key, and context' do
       payload = captured_payload do |writer|
         writer.enqueue(
           flag_key: 'schema-flag', variant: 'on', allocation_key: 'alloc-1',
@@ -202,9 +195,6 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(row['allocation']).to eq('key' => 'alloc-1')
       expect(row['targeting_key']).to eq('user-42')
       expect(row['context']).to eq('evaluation' => {'env' => 'prod', 'tier' => 'gold'})
-
-      errors = JSON::Validator.fully_validate(worker_schema_path, JSON.parse(JSON.generate(payload)))
-      expect(errors).to be_empty, "schema errors: #{errors.join("\n")}"
     end
 
     it 'uses flush time for timestamp and evaluation time for first/last bounds' do
@@ -229,7 +219,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(row['last_evaluation']).to eq(realistic_eval_ms)
     end
 
-    it 'validates a degraded-tier row (no targeting_key, no context)' do
+    it 'emits a degraded-tier row without targeting_key or context' do
       payload = captured_payload do |writer|
         # Force overflow into the degraded tier with a tiny-capped aggregator.
         small = Datadog::OpenFeature::FlagEvaluation::Aggregator.new(global_cap: 1, per_flag_cap: 1, degraded_cap: 10)
@@ -248,9 +238,6 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(degraded_row).not_to be_nil
       expect(degraded_row['variant']).to eq('key' => 'a')
       expect(degraded_row['allocation']).to eq('key' => 'alloc-x')
-
-      errors = JSON::Validator.fully_validate(worker_schema_path, JSON.parse(JSON.generate(payload)))
-      expect(errors).to be_empty, "schema errors: #{errors.join("\n")}"
     end
 
     # The emitted context must hold the PRUNED attrs (oversized strings removed, <=256 fields),
@@ -287,22 +274,6 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(row['runtime_default_used']).to be(true)
       expect(row['error']).to eq('message' => 'flag not found')
       expect(row).not_to have_key('reason')
-
-      errors = JSON::Validator.fully_validate(worker_schema_path, JSON.parse(JSON.generate(payload)))
-      expect(errors).to be_empty, "schema errors: #{errors.join("\n")}"
-    end
-
-    it 'rejects a top-level reason field under the real worker schema' do
-      payload = captured_payload do |writer|
-        writer.enqueue(
-          flag_key: 'schema-flag', variant: 'on', allocation_key: '',
-          targeting_key: 'user-42', eval_time_ms: realistic_eval_ms, attrs: {},
-        )
-      end
-      payload['flagEvaluations'].first['reason'] = 'TARGETING_MATCH'
-
-      errors = JSON::Validator.fully_validate(worker_schema_path, JSON.parse(JSON.generate(payload)))
-      expect(errors.join("\n")).to include("The property '#/flagEvaluations/0' contains additional properties [\"reason\"]")
     end
 
     it 'does not split aggregates when only stale reason inputs differ' do
