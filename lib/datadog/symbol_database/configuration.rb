@@ -42,10 +42,23 @@ module Datadog
                 # The idea is to enable SymDB when DI is on, but without
                 # consulting runtime DI state (which is not available when
                 # the settings are processed).
+                #
+                # This setting lives in core, but the dynamic_instrumentation
+                # settings group and DI::Component only exist once datadog/di
+                # is loaded. Loading datadog/core on its own and calling
+                # Datadog.configure reads this default while building the
+                # symbol database component (SymbolDatabase::Component.build),
+                # so the DI-absent case must be handled here: with DI not
+                # loaded it is off, so SymDB defaults to off too.
                 o.default do
                   config = Datadog.configuration
-                  config.dynamic_instrumentation.enabled &&
+                  if config.respond_to?(:dynamic_instrumentation) &&
+                      config.dynamic_instrumentation.enabled &&
+                      defined?(::Datadog::DI::Component)
                     ::Datadog::DI::Component.environment_supported?(config, ::Datadog::Core::NULL_LOGGER)
+                  else
+                    false
+                  end
                 end
               end
 
