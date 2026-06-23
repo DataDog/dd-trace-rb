@@ -15,7 +15,7 @@ module Datadog
 
       @flag_eval_metrics_hook: Hooks::FlagEvalMetricsHook?
 
-      @flag_eval_evp_hook: Hooks::FlagEvalEVPHook?
+      @flag_eval_logging_hook: Hooks::FlagEvalLoggingHook?
 
       @flag_eval_evp_writer: FlagEvaluation::Writer?
 
@@ -23,7 +23,7 @@ module Datadog
 
       attr_reader flag_eval_metrics_hook: Hooks::FlagEvalMetricsHook?
 
-      attr_reader flag_eval_evp_hook: Hooks::FlagEvalEVPHook?
+      attr_reader flag_eval_logging_hook: Hooks::FlagEvalLoggingHook?
 
       def self.build: (
         Core::Configuration::Settings settings,
@@ -45,7 +45,7 @@ module Datadog
 
       def create_flag_eval_metrics_hook: () -> Hooks::FlagEvalMetricsHook?
 
-      def create_flag_eval_evp_hook: () -> Hooks::FlagEvalEVPHook?
+      def create_flag_eval_logging_hook: () -> Hooks::FlagEvalLoggingHook?
     end
   end
 end

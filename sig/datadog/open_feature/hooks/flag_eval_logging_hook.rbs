@@ -1,7 +1,7 @@
 module Datadog
   module OpenFeature
     module Hooks
-      class FlagEvalEVPHook
+      class FlagEvalLoggingHook
         include ::OpenFeature::SDK::Hooks::Hook
 
         @writer: FlagEvaluation::Writer?
