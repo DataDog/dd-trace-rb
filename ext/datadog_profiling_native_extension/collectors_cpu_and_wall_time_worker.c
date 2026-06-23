@@ -1465,7 +1465,17 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
       cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
       if (state == NULL) return; // This should not happen, but just in case...
 
+      // on_gvl_running prepares a stack sample so we need to gate it with `during_sample_enter` to avoid a
+      // SIGPROF signal coming in during that function and potentially causing a corrupted final state.
+      //
+      // TODO: Currently, the sample prepared in on_gvl_running can still be clobbered if the signal handler runs
+      // after `during_sample_exit` but before `after_gvl_running_from_postponed_job` gets to run. We'll need to fix
+      // that next.
+      during_sample_enter(state);
+
       on_gvl_running_result result = thread_context_collector_on_gvl_running(state->thread_context_collector_instance, target_thread, thread_context);
+
+      during_sample_exit(state);
 
       if (result.waiting_for_gvl_duration_ns > 0) {
         state->stats.vm_metrics.gvl_waiting_time_ns_total += (uint64_t) result.waiting_for_gvl_duration_ns;

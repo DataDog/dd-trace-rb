@@ -386,7 +386,7 @@ module Datadog
           logger.debug { "symdb: not supported on #{RUBY_ENGINE}, skipping" }
           return false
         end
-        if RUBY_VERSION < '2.6'
+        if RubyVersion.is?('< 2.6')
           logger.debug { "symdb: requires Ruby 2.6+, running #{RUBY_VERSION}, skipping" }
           return false
         end

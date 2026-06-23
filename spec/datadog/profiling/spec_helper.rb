@@ -4,9 +4,6 @@ if Datadog::Profiling.supported?
   require "zstd-ruby"
 end
 
-# Expose the version helper to profiling specs as a bare `RubyVersion` (alias for Datadog::RubyVersion).
-RubyVersion = Datadog::RubyVersion
-
 module ProfileHelpers
   Sample = Struct.new(:locations, :values, :labels) do |_sample_class| # rubocop:disable Lint/StructNewOverride
     def value?(type)
