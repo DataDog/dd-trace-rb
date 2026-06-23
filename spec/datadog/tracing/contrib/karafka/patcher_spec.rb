@@ -233,9 +233,9 @@ RSpec.describe 'Karafka patcher' do
       end
 
       it 'automatically enables WaterDrop instrumentation' do
-         Karafka::App.setup do |c|
-           c.kafka = {"bootstrap.servers": '127.0.0.1:9092'}
-         end
+        Karafka::App.setup do |c|
+          c.kafka = {"bootstrap.servers": '127.0.0.1:9092'}
+        end
 
         expect(Datadog.configuration.tracing[:waterdrop][:enabled]).to be true
         expect(Datadog.configuration.tracing[:waterdrop][:distributed_tracing]).to be true
