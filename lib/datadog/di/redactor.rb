@@ -196,10 +196,11 @@ module Datadog
       # the prefix here, those keys normalize to `httpauthorization`,
       # `httpcookie`, `httpxapikey`, etc., none of which appear in the default
       # identifier list — so the values would not be matched against entries
-      # like `authorization`, `cookie`, or `xapikey`. The prefix strip runs
-      # before the punctuation gsub so it only matches the literal CGI form
-      # (a leading `http_` after downcase) and not arbitrary identifiers that
-      # happen to begin with the letters `http`.
+      # like `authorization`, `cookie`, or `xapikey`. The `\Ahttp_` anchor
+      # limits the strip to the literal CGI form, so identifiers that merely
+      # begin with the letters `http` (e.g. `httpinfo`) are unaffected. The
+      # strip must run before the punctuation gsub: the gsub removes the
+      # underscore, after which `\Ahttp_` could never match.
       def normalize(str)
         str.to_s.strip.downcase.sub(/\Ahttp_/, "").gsub(/[-_$@]/, "")
       end
