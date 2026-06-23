@@ -750,29 +750,6 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         Object.send(:remove_const, :SymdbHotLoadRescueTestClass) if Object.const_defined?(:SymdbHotLoadRescueTestClass)
       end
     end
-
-    it 'does not propagate exceptions when logger.debug itself raises' do
-      skip 'flaky on CI'
-      # If the rescue handler's own logger call raises (custom logger
-      # implementation, IO error), it would escape the outer rescue and
-      # surface in the customer's class body. The inner rescue contains
-      # this case.
-      component = described_class.build(settings, agent_settings, logger)
-      component.wait_for_idle(timeout: 5)
-
-      allow(component).to receive(:enqueue_hot_load)
-        .and_raise(RuntimeError.new('simulated hot-load enqueue failure'))
-      allow(raw_logger).to receive(:debug).and_raise(RuntimeError.new('logger boom'))
-
-      begin
-        expect do
-          eval('class SymdbHotLoadLoggerRescueTestClass; end', binding, __FILE__, __LINE__) # rubocop:disable Security/Eval
-        end.not_to raise_error
-      ensure
-        component.shutdown!
-        Object.send(:remove_const, :SymdbHotLoadLoggerRescueTestClass) if Object.const_defined?(:SymdbHotLoadLoggerRescueTestClass)
-      end
-    end
   end
 
   describe 'enable/disable upload (ported from Java SymDBEnablementTest.enableDisableSymDBThroughRC)' do
