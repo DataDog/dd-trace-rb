@@ -268,7 +268,9 @@ module Datadog
             #   1. resource renaming is enabled
             #   2. AppSec is enabled and resource renaming is disabled (by default, not explicitly)
             if Datadog.configuration.tracing.resource_renaming.enabled ||
-                Datadog.configuration.appsec.enabled && Datadog.configuration.tracing.resource_renaming.options[:enabled].default_precedence?
+                Datadog.configuration.respond_to?(:appsec) &&
+                    Datadog.configuration.appsec&.enabled &&
+                    Datadog.configuration.tracing.resource_renaming.options[:enabled].default_precedence?
               request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ENDPOINT, value)
             end
           end

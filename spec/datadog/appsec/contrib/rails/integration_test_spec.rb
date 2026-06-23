@@ -417,30 +417,29 @@ RSpec.describe 'Rails integration tests', execute_in_fork: Rails.version.to_i >=
           end
         end
 
-        unless Gem.loaded_specs['rack-test'].version.to_s < '0.7'
-          context 'with an event-triggering request in multipart/form-data body' do
-            let(:params) { Rack::Test::Utils.build_multipart({q: '1 OR 1;'}, true, true) }
-            let(:headers) { {'CONTENT_TYPE' => "multipart/form-data; boundary=#{Rack::Test::MULTIPART_BOUNDARY}"} }
+        context 'with an event-triggering request in multipart/form-data body',
+          skip: ('requires rack-test >= 0.7' if Gem.loaded_specs['rack-test'].version < Gem::Version.new('0.7')) do
+          let(:params) { Rack::Test::Utils.build_multipart({q: '1 OR 1;'}, true, true) }
+          let(:headers) { {'CONTENT_TYPE' => "multipart/form-data; boundary=#{Rack::Test::MULTIPART_BOUNDARY}"} }
 
-            it { is_expected.to be_ok }
+          it { is_expected.to be_ok }
+
+          it_behaves_like 'normal with tracing disable'
+          it_behaves_like 'a POST 200 span'
+          it_behaves_like 'a trace with AppSec tags'
+          it_behaves_like 'a trace with AppSec events'
+          it_behaves_like 'a trace with AppSec api security tags'
+
+          context 'and a blocking rule' do
+            let(:appsec_ruleset) { crs_942_100 }
+
+            it { is_expected.to be_forbidden }
 
             it_behaves_like 'normal with tracing disable'
-            it_behaves_like 'a POST 200 span'
+            it_behaves_like 'a POST 403 span'
             it_behaves_like 'a trace with AppSec tags'
-            it_behaves_like 'a trace with AppSec events'
+            it_behaves_like 'a trace with AppSec events', {blocking: true}
             it_behaves_like 'a trace with AppSec api security tags'
-
-            context 'and a blocking rule' do
-              let(:appsec_ruleset) { crs_942_100 }
-
-              it { is_expected.to be_forbidden }
-
-              it_behaves_like 'normal with tracing disable'
-              it_behaves_like 'a POST 403 span'
-              it_behaves_like 'a trace with AppSec tags'
-              it_behaves_like 'a trace with AppSec events', {blocking: true}
-              it_behaves_like 'a trace with AppSec api security tags'
-            end
           end
         end
 
@@ -466,6 +465,50 @@ RSpec.describe 'Rails integration tests', execute_in_fork: Rails.version.to_i >=
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace with AppSec events', {blocking: true}
             it_behaves_like 'a trace with AppSec api security tags'
+          end
+        end
+
+        context 'with an event-triggering request in a multipart body of unknown length',
+          skip: ('requires rack-test >= 0.7' if Gem.loaded_specs['rack-test'].version < Gem::Version.new('0.7')) do
+          subject(:response) { post url, nil, env }
+
+          let(:headers) do
+            {
+              'CONTENT_TYPE' => "multipart/form-data; boundary=#{Rack::Test::MULTIPART_BOUNDARY}",
+              'HTTP_TRANSFER_ENCODING' => 'chunked',
+              :input => unknown_length_input
+            }
+          end
+
+          let(:multipart_body) do
+            "--#{Rack::Test::MULTIPART_BOUNDARY}\r\n" \
+              "Content-Disposition: form-data; name=\"q\"\r\n\r\n" \
+              "1 OR 1;\r\n" \
+              "--#{Rack::Test::MULTIPART_BOUNDARY}--\r\n"
+          end
+
+          let(:unknown_length_input) do
+            StringIO.new(multipart_body).tap do |io|
+              class << io
+                undef_method :size
+              end
+            end
+          end
+
+          it { is_expected.to be_ok }
+
+          it_behaves_like 'a POST 200 span'
+          it_behaves_like 'a trace with AppSec tags'
+          it_behaves_like 'a trace with AppSec events'
+
+          context 'with a blocking rule' do
+            let(:appsec_ruleset) { crs_942_100 }
+
+            it { is_expected.to be_forbidden }
+
+            it_behaves_like 'a POST 403 span'
+            it_behaves_like 'a trace with AppSec tags'
+            it_behaves_like 'a trace with AppSec events', {blocking: true}
           end
         end
       end

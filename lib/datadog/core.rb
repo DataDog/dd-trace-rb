@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# Keep this at the top, this is needed at require-time by some files
+require_relative 'ruby_version'
+
 require_relative 'core/deprecations'
 require_relative 'core/configuration/config_helper'
 require_relative 'core/extensions'
