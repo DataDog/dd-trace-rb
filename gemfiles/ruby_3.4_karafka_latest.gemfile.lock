@@ -24,7 +24,7 @@ GEM
     cgi (0.5.1)
     climate_control (1.2.0)
     coderay (1.1.3)
-    concurrent-ruby (1.3.6)
+    concurrent-ruby (1.3.7)
     crack (1.0.1)
       bigdecimal
       rexml
@@ -159,7 +159,7 @@ GEM
     stringio (3.2.0)
     tsort (0.2.0)
     warning (1.6.0)
-    waterdrop (2.10.1)
+    waterdrop (2.10.2)
       karafka-core (>= 2.5.12, < 3.0.0)
       karafka-rdkafka (>= 0.24.0)
       zeitwerk (~> 2.3)

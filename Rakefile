@@ -1,6 +1,5 @@
 require 'bundler/gem_tasks'
 require 'datadog/version'
-require 'rubocop/rake_task' if Gem.loaded_specs.key? 'rubocop'
 require 'standard/rake' if Gem.loaded_specs.key? 'standard'
 require 'rspec/core/rake_task'
 require 'rake/extensiontask'
@@ -562,11 +561,6 @@ namespace :spec do
   task profiling: [:"profiling:all"]
 end
 
-if defined?(RuboCop::RakeTask)
-  RuboCop::RakeTask.new(:rubocop) do |_t|
-  end
-end
-
 # Jobs are parallelized if running in CI.
 desc 'CI task; it runs all tests for current version of Ruby'
 task ci: 'test:all'
@@ -598,14 +592,6 @@ namespace :coverage do
         formatter SimpleCov::Formatter::HTMLFormatter
       end
     end
-  end
-end
-
-namespace :changelog do
-  task :format do
-    require 'pimpmychangelog'
-
-    PimpMyChangelog::CLI.run!
   end
 end
 
@@ -650,8 +636,8 @@ namespace :native_dev do
   CLEAN.concat(NATIVE_CLEAN)
 end
 
-desc 'Runs rubocop + main test suite'
-task default: ['lint:all', 'rubocop', 'standard', 'typecheck', 'spec:main']
+desc 'Runs lint + main test suite'
+task default: ['lint:all', 'standard', 'typecheck', 'spec:main']
 
 desc 'Runs the default task in parallel'
-multitask fastdefault: ['lint:all', 'rubocop', 'standard', 'typecheck', 'spec:main']
+multitask fastdefault: ['lint:all', 'standard', 'typecheck', 'spec:main']
