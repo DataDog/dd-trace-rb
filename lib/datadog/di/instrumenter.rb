@@ -685,17 +685,27 @@ module Datadog
         raise Error::DITargetNotDefined, "Class not defined: #{cls_name}: #{exc.class}: #{exc.message}"
       end
 
-      # Matches a class name in the Datadog namespace, with an optional
-      # leading "::" (Ruby's root-namespace prefix). Anchored at \A so the
-      # match decides in O(prefix length) without scanning.
-      DATADOG_NAMESPACE_TYPE_NAME = /\A(?:::)?Datadog(?:::|\z)/
+      # Matches a class name in the Datadog namespace, tolerating the alias
+      # forms that Object.const_get resolves to the same top-level constants.
+      # Two such forms exist: an optional leading "::" (Ruby's root-namespace
+      # prefix), and any number of leading "Object::" segments. Top-level
+      # constants are constants of Object, so "Object::Datadog::DI::Instrumenter"
+      # resolves to Datadog::DI::Instrumenter; without stripping "Object::" a
+      # probe could name a tracer-internal class through an Object:: alias and
+      # bypass the rejection, then get prepended onto tracer internals. These
+      # are the only alias paths to the top-level Datadog: "Foo::Datadog" does
+      # not resolve through const_get for an arbitrary Foo. Anchored at \A so
+      # the match decides in O(prefix length) without scanning.
+      DATADOG_NAMESPACE_TYPE_NAME = /\A(?:::)?(?:Object::)*Datadog(?:::|\z)/
       private_constant :DATADOG_NAMESPACE_TYPE_NAME
 
       # Returns true when +cls_name+ names the +Datadog+ module itself or
       # any class/module under it (e.g. +Datadog::Tracing::SpanOperation+).
       # The check is purely textual on the probe's declared type name; it
-      # does not require the class to be loaded. A leading +::+ is treated
-      # the same as the bare form.
+      # does not require the class to be loaded. A leading +::+ and any
+      # number of leading +Object::+ segments are treated the same as the
+      # bare form, since Object.const_get resolves those aliases to the same
+      # top-level constants.
       def datadog_namespace_type_name?(cls_name)
         DATADOG_NAMESPACE_TYPE_NAME.match?(cls_name)
       end
