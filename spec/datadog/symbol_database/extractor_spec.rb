@@ -2602,8 +2602,9 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       # ObjectSpace iterates by object identity, so private_constant'd
       # classes are reached regardless of name visibility. Any alternative
       # enumeration that relies on Module#constants must include private
-      # constants too — `Module#constants(false)` excludes them by default,
-      # which is the trap this regression test guards against.
+      # constants too — `Module#constants` never returns them regardless of
+      # the inherit argument (there is no public API to list private
+      # constants), which is the trap this regression test guards against.
       before do
         @file = create_test_file('private_constant_host.rb', <<~RUBY)
           class ExtractAllPrivateConstantHost
