@@ -51,6 +51,9 @@ module Datadog
               # In case of error parsing, don't store `nil` key
               # as it wouldn't be useful for matching configuration
               # hashes in `#resolve`.
+              # TODO: Move this protective invalid matcher rejection to the base resolver,
+              # as invalid matchers are not useful configuration keys, not only
+              # for ActiveRecord. This would allow Resolver#add to be typed more strictly.
               super(parsed, value) if parsed
             end
 
@@ -59,8 +62,7 @@ module Datadog
 
               hash = normalize_for_resolve(active_record_config)
 
-              # Hashes in Ruby maintain insertion order
-              _, config = @configurations.reverse_each.find do |matcher, _|
+              _, config = ordered_config.find do |matcher, _|
                 matcher.none? do |key, value|
                   value != hash[key]
                 end

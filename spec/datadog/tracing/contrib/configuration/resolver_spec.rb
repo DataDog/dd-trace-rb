@@ -60,6 +60,34 @@ RSpec.describe Datadog::Tracing::Contrib::Configuration::Resolver do
       add
       expect(resolver.configurations).to eq(matcher => config)
     end
+
+    context 'with a subclass' do
+      subject(:resolver) { resolver_class.new }
+
+      let(:resolver_class) do
+        Class.new(described_class) do
+          def ordered_configuration
+            ordered_config
+          end
+        end
+      end
+
+      it 'ordered configuration has latest entries first' do
+        resolver.add(:first, :v1)
+        resolver.add(:second, :v2)
+
+        expect(resolver.ordered_configuration).to eq([[:second, :v2], [:first, :v1]])
+      end
+
+      it 'key order not changed on value replacement' do
+        resolver.add(:first, :v1)
+        resolver.add(:second, :v2)
+        resolver.add(:first, :v3)
+
+        expect(resolver.configurations).to eq(first: :v3, second: :v2)
+        expect(resolver.ordered_configuration).to eq([[:second, :v2], [:first, :v3]])
+      end
+    end
   end
 
   describe '#get' do
