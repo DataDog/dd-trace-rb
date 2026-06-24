@@ -147,15 +147,17 @@ module Datadog
 
               resolved << @pattern[@pattern_index...param_name_end_index]
 
-              terminator_char = find_param_value_stop_char(param_name_end_index: param_name_end_index)
+              terminator_char = find_param_value_terminator_char(param_name_end_index: param_name_end_index)
               @path_index = find_param_value_end_index(terminator_char: terminator_char)
 
               @pattern_index = param_name_end_index
             when GLOB_PARAM_PREFIX_CHAR
               param_name_end_index = find_next_param_name_end_index
+              terminator_char = find_param_value_terminator_char(param_name_end_index: param_name_end_index)
+
               resolved << @pattern[@pattern_index...param_name_end_index]
 
-              @path_index = @path_length
+              @path_index = find_glob_value_end_index(terminator_char: terminator_char)
               @pattern_index = param_name_end_index
             else
               unless expected_path_char?(char)
@@ -205,7 +207,7 @@ module Datadog
           current_index
         end
 
-        def find_param_value_stop_char(param_name_end_index:)
+        def find_param_value_terminator_char(param_name_end_index:)
           char = @pattern[param_name_end_index]
 
           char == GROUP_OPEN_CHAR ? @pattern[param_name_end_index + 1] : char
@@ -225,6 +227,13 @@ module Datadog
           end
 
           terminator_indexes.empty? ? @request_path.length : terminator_indexes.min
+        end
+
+        def find_glob_value_end_index(terminator_char:)
+          return @path_length unless terminator_char
+          return @path_length if EXCLUDED_PARAM_NAME_TERMINATOR_CHARS.include?(terminator_char)
+
+          @request_path.index(terminator_char, @path_index) || @path_length
         end
 
         def find_next_optional_group_end_index
