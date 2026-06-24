@@ -94,6 +94,8 @@ RSpec.describe Datadog::AppSec::RouteNormalizer::RoutePattern2 do
       it { expect(described_class.new('/files/*').normalize).to eq('/files/{param1}') }
       it { expect(described_class.new('/download/*.*').normalize).to eq('/download/{param1+param2}') }
       it { expect(described_class.new('/say/*/to/*').normalize).to eq('/say/{param1}/to/{param2}') }
+      it { expect(described_class.new('/posts/:id.?:format?').normalize(request_path: '/posts/1')).to eq('/posts/{id}') }
+      it { expect(described_class.new('/posts/:id.?:format?').normalize(request_path: '/posts/1.json')).to eq('/posts/{id+format}') }
     end
 
     context 'with Grape-style patterns' do

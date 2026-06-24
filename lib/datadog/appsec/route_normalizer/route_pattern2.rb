@@ -92,8 +92,13 @@ module Datadog
         private
 
         def resolve_pattern_optionals(request_path)
-          return @pattern unless @pattern.include?(GROUP_OPEN_CHAR)
-          return remove_optional_group_sigils(@pattern) unless resolve_pattern_optionals?(request_path)
+          return @pattern unless @pattern.include?(GROUP_OPEN_CHAR) || @pattern.include?(OPTIONAL_GROUP_SUFFIX_CHAR)
+
+          unless resolve_pattern_optionals?(request_path)
+            return remove_optional_group_sigils(@pattern) if @pattern.include?(GROUP_OPEN_CHAR)
+
+            return @pattern
+          end
 
           resolved = +''
           checkpoints = []
@@ -120,6 +125,8 @@ module Datadog
             when GROUP_CLOSE_CHAR
               @pattern_index += 1
               @pattern_index += 1 if @pattern[@pattern_index] == OPTIONAL_GROUP_SUFFIX_CHAR
+            when OPTIONAL_GROUP_SUFFIX_CHAR
+              @pattern_index += 1
             when NAMED_PARAM_PREFIX_CHAR
               param_name_end_index = find_next_param_name_end_index
 
@@ -145,6 +152,15 @@ module Datadog
                 next
               end
 
+              # NOTE: A trailing `?` makes the param optional
+              #
+              #       Example:
+              #         `/posts/:id.?:format?` with `/posts/1` skips `:format?`
+              if @pattern[param_name_end_index] == OPTIONAL_GROUP_SUFFIX_CHAR && @path_index >= @path_length
+                @pattern_index = param_name_end_index + 1
+                next
+              end
+
               resolved << @pattern[@pattern_index...param_name_end_index]
 
               terminator_char = find_param_value_terminator_char(param_name_end_index: param_name_end_index)
@@ -161,6 +177,11 @@ module Datadog
               @pattern_index = param_name_end_index
             else
               unless expected_path_char?(char)
+                if @pattern[@pattern_index + 1] == OPTIONAL_GROUP_SUFFIX_CHAR
+                  @pattern_index += 2
+                  next
+                end
+
                 checkpoint = restore_checkpoint!(resolved, checkpoints)
                 return remove_optional_group_sigils(@pattern) unless checkpoint
 
