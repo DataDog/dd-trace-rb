@@ -2,6 +2,13 @@ require "datadog/profiling/spec_helper"
 require "datadog/profiling/collectors/thread_context"
 
 RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
+  before :all do
+    # Ensure the first ThreadContext instance is created early on, before touching `per_thread_context`s,
+    # otherwise the first ThreadContext might be created after #remove_per_thread_context_for(thread)
+    # and create the `per_thread_context` for that thread unintentionally.
+    described_class.for_testing(recorder: Datadog::Profiling::StackRecorder.for_testing)
+  end
+
   before do
     @clean_threads_required = false
     skip_if_profiling_not_supported
@@ -80,6 +87,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   def clear_per_thread_context_for(thread)
     described_class::Testing._native_clear_per_thread_context_for(thread)
+  end
+
+  def remove_per_thread_context_for(thread)
+    described_class::Testing._native_remove_per_thread_context_for(thread)
   end
 
   def on_gc_start
@@ -1342,7 +1353,16 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
 
     context "when a thread is frozen" do
-      it "does not raise and skips the frozen thread" do
+      it "samples the frozen thread using the per-thread context created before freeze" do
+        t1.freeze
+
+        sample
+
+        expect(samples_for_thread(samples, t1)).to_not be_empty
+      end
+
+      it "raises FrozenError if the thread is frozen before the first ThreadContext.new or before the TracePoint runs" do
+        remove_per_thread_context_for(t1)
         t1.freeze
 
         expect {
@@ -1353,7 +1373,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   describe "#on_gc_start" do
-    context "if a thread has not been sampled before" do
+    context "if a thread does not have per-thread context" do
+      before { remove_per_thread_context_for(Thread.current) }
+
       it "does not record anything in the caller thread's context" do
         on_gc_start
 
@@ -1390,7 +1412,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   describe "#on_gc_finish" do
-    context "when thread has not been sampled before" do
+    context "when thread does not have per-thread context" do
+      before { remove_per_thread_context_for(Thread.current) }
+
       it "does not record anything in the caller thread's context" do
         on_gc_start
 
@@ -1775,7 +1799,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   describe "#on_gvl_waiting" do
     before { skip_if_gvl_profiling_not_supported(self) }
 
-    context "if thread has not been sampled before" do
+    context "if thread does not have per-thread context" do
+      before { remove_per_thread_context_for(t1) }
+
       it "does not trigger the creation of the thread context" do
         on_gvl_waiting(t1)
 
@@ -1801,7 +1827,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   describe "#on_gvl_running" do
     before { skip_if_gvl_profiling_not_supported(self) }
 
-    context "if thread has not been sampled before" do
+    context "if thread does not have per-thread context" do
+      before { remove_per_thread_context_for(t1) }
+
       it "does not trigger the creation of the thread context" do
         on_gvl_running(t1)
 
@@ -1919,10 +1947,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   describe "#sample_after_gvl_running" do
     before { skip_if_gvl_profiling_not_supported(self) }
 
-    context "if thread has not been sampled before" do
-      before do
-        expect(gvl_waiting_at_for(t1)).to be_nil
-      end
+    context "if thread does not have per-thread context" do
+      before { remove_per_thread_context_for(t1) }
 
       it do
         expect(sample_after_gvl_running(t1)).to be false
@@ -2060,10 +2086,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   describe "#prepare_sample_inside_signal_handler" do
-    let(:trigger_context_creation) { true }
-
     def prepare_and_sample
-      sample if trigger_context_creation
+      sample
 
       prepare_sample_inside_signal_handler
       recorder.serialize! # ensure there are no samples recorded
@@ -2094,11 +2118,15 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       )
     end
 
-    context "when context did not exist" do
-      let(:trigger_context_creation) { false }
-
+    context "when thread does not have per-thread context" do
       it "does not sample the stack" do
-        prepare_and_sample
+        remove_per_thread_context_for(Thread.current)
+
+        prepare_sample_inside_signal_handler
+        recorder.serialize!
+
+        clear_per_thread_context_for(Thread.current)
+        sample
 
         result = sample_for_thread(samples.reject { |it| it.labels.include?(:"profiler overhead") }, Thread.current)
 
@@ -2290,8 +2318,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       sample
     end
 
-    it "clears the current Thread per_thread_context" do
-      expect { reset_after_fork }.to change { per_thread_context.key?(Thread.current) }.from(true).to(false)
+    it "resets the current Thread per_thread_context" do
+      expect { reset_after_fork }.to change {
+        per_thread_context.dig(Thread.current, :cpu_time_at_previous_sample_ns)
+      }.to(-1)
     end
 
     it "clears the stats" do
