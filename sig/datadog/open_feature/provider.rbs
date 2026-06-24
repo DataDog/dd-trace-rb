@@ -3,42 +3,6 @@ module Datadog
     class Provider
       NAME: ::String
 
-      class EvpEvalContext < ::Struct[untyped]
-        attr_accessor targeting_key: ::String?
-
-        attr_accessor attributes: ::Hash[::String, untyped]?
-
-        def self.new: (
-          ?::String? targeting_key,
-          ?::Hash[::String, untyped]? attributes
-        ) -> EvpEvalContext
-      end
-
-      class HookContext < ::Struct[untyped]
-        attr_accessor flag_key: ::String?
-
-        attr_accessor evaluation_context: EvpEvalContext?
-
-        def self.new: (
-          ?::String? flag_key,
-          ?EvpEvalContext? evaluation_context
-        ) -> HookContext
-      end
-
-      class HookDetails < ::Struct[untyped]
-        attr_accessor variant: ::String?
-
-        attr_accessor flag_metadata: ::Hash[::String, untyped]?
-
-        attr_accessor error_message: ::String?
-
-        def self.new: (
-          ?::String? variant,
-          ?::Hash[::String, untyped]? flag_metadata,
-          ?::String? error_message
-        ) -> HookDetails
-      end
-
       attr_reader metadata: ::OpenFeature::SDK::Provider::ProviderMetadata
 
       def initialize: () -> void
@@ -47,7 +11,7 @@ module Datadog
 
       def shutdown: () -> void
 
-      def hooks: () -> ::Array[Hooks::FlagEvalMetricsHook]
+      def hooks: () -> ::Array[Hooks::FlagEvalMetricsHook | Hooks::FlagEvalEVPHook]
 
       def fetch_boolean_value: (
         flag_key: ::String,
@@ -95,7 +59,8 @@ module Datadog
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def component_not_configured_default: (
-        ::OpenFeature::SDK::Provider::ResolutionDetails::value_t value
+        ::OpenFeature::SDK::Provider::ResolutionDetails::value_t value,
+        ::Integer eval_time_ms
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def fetch_engine_value: (
@@ -115,7 +80,8 @@ module Datadog
         ::OpenFeature::SDK::Provider::ResolutionDetails::value_t default_value,
         ::String? error_code,
         ::String? error_message,
-        ::String? reason
+        ::String? reason,
+        ?::Hash[::String, untyped] flag_meta
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def build_flag_metadata: (
@@ -123,16 +89,6 @@ module Datadog
         ::Integer eval_time_ms
       ) -> ::Hash[::String, untyped]
 
-      def call_evp_hook: (
-        ::String flag_key,
-        (ResolutionDetails | Core::FeatureFlags::ResolutionDetails) result,
-        ::OpenFeature::SDK::EvaluationContext? evaluation_context,
-        ::Hash[::String, untyped] flag_metadata
-      ) -> void
-
-      def build_evp_eval_context: (
-        ::OpenFeature::SDK::EvaluationContext? evaluation_context
-      ) -> EvpEvalContext?
     end
   end
 end

@@ -12,9 +12,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
 
   let(:writer) { instance_double(Datadog::OpenFeature::FlagEvaluation::Writer, enqueue: nil) }
 
-  # The hook receives a duck-typed context exposing #targeting_key + #attributes (the provider adapts
-  # the real EvaluationContext into Provider::EvpEvalContext, which is exactly this shape).
-  let(:eval_context) { double('EvpEvalContext', targeting_key: 'user-7', attributes: {'env' => 'prod'}) }
+  let(:eval_context) { ::OpenFeature::SDK::EvaluationContext.new(targeting_key: 'user-7', env: 'prod') }
   let(:hook_context) { double('HookContext', flag_key: 'my-flag', evaluation_context: eval_context) }
 
   describe '#finally — captures cheaply and enqueues (async boundary)' do
@@ -56,6 +54,14 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
         expect(event).not_to have_key(:reason)
       end
       hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
+    end
+
+    it 'also accepts duck-typed contexts that expose attributes' do
+      ctx = double('EvpEvalContext', targeting_key: 'user-9', attributes: {'tier' => 'gold'})
+      hook_ctx = double('HookContext', flag_key: 'my-flag', evaluation_context: ctx)
+
+      expect(writer).to receive(:enqueue).with(hash_including(targeting_key: 'user-9', attrs: {'tier' => 'gold'}))
+      hook.finally(hook_context: hook_ctx, evaluation_details: evaluation_details)
     end
 
     it 'enqueues error_message when present' do

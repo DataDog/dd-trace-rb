@@ -8,11 +8,11 @@ module Datadog
   module OpenFeature
     # OpenFeature feature flagging provider backed by Datadog Remote Configuration.
     #
-    # Requires openfeature-sdk >= 0.5.1 for flag evaluation metrics support.
+    # Requires openfeature-sdk >= 0.5.1 for flag evaluation metrics and EVP hook support.
     #
-    # Hook lifecycle note: the Ruby openfeature-sdk (through at least 0.5.x) does not invoke
-    # provider hooks during evaluation. FlagEvalEVPHook is called directly from #evaluate and is
-    # not returned from #hooks, so future SDK lifecycle support cannot double-count EVP rows.
+    # Hook lifecycle note: FlagEvalEVPHook is returned from #hooks so EVP uses the SDK-final
+    # EvaluationDetails. This matches FlagEvalMetricsHook and records defaults/errors produced
+    # by OpenFeature hook failures or post-provider type validation.
     #
     # Implementation follows the OpenFeature contract of Provider SDK.
     # For details see:
@@ -60,23 +60,6 @@ module Datadog
     class Provider
       NAME = 'Datadog Feature Flagging Provider'
 
-      # Lightweight duck-typed wrappers used to call FlagEvalEVPHook#finally directly,
-      # bypassing the openfeature-sdk hook lifecycle (which is not invoked in sdk <= 0.5.x).
-      #
-      # The hook accesses:
-      #   hook_context.flag_key
-      #   hook_context.evaluation_context&.targeting_key
-      #   hook_context.evaluation_context&.attributes  (Hash of non-targeting_key fields)
-      #   evaluation_details.flag_metadata
-      #   evaluation_details.variant
-      #   evaluation_details.error_message
-      #
-      # ::OpenFeature::SDK::EvaluationContext exposes #fields (all fields including targeting_key)
-      # and #targeting_key, but NOT #attributes. EvpEvalContext adapts fields -> attributes.
-      EvpEvalContext = Struct.new(:targeting_key, :attributes)
-      HookContext = Struct.new(:flag_key, :evaluation_context)
-      HookDetails = Struct.new(:variant, :flag_metadata, :error_message)
-
       attr_reader :metadata
 
       def initialize
@@ -94,7 +77,8 @@ module Datadog
       def hooks
         component = Datadog.send(:components).open_feature
         otel_hook = component&.flag_eval_metrics_hook
-        [otel_hook].compact
+        evp_hook = component&.flag_eval_evp_hook
+        [otel_hook, evp_hook].compact
       end
 
       def fetch_boolean_value(flag_key:, default_value:, evaluation_context: nil)
@@ -127,30 +111,20 @@ module Datadog
         # Stamp evaluation entry time once, here on the eval thread. The EVP path uses this for
         # accurate first/last_evaluation bounds instead of a later hook-fire clock read.
         eval_time_ms = (Core::Utils::Time.now.to_f * 1000).to_i
-        evp_hook_called = false
 
         engine = OpenFeature.engine
-        return component_not_configured_default(default_value) if engine.nil?
+        return component_not_configured_default(default_value, eval_time_ms) if engine.nil?
 
         result = fetch_engine_value(engine, flag_key, default_value, expected_type, evaluation_context)
 
-        # Build metadata before branching so EVP and the success path share one call.
+        # Build metadata before branching so provider-returned details carry eval-entry time.
         flag_meta = build_flag_metadata(result, eval_time_ms)
 
         if result.error?
-          # Drive the EVP hook directly: the Ruby openfeature-sdk does not invoke provider hooks,
-          # so we call it here to cover both success and error paths (finally semantics).
-          call_evp_hook(flag_key, result, evaluation_context, flag_meta)
-          evp_hook_called = true
-
-          return sdk_error_details(default_value, result.error_code, result.error_message, result.reason)
+          return sdk_error_details(default_value, result.error_code, result.error_message, result.reason, flag_meta)
         end
 
-        details = sdk_success_details(result, flag_meta)
-
-        call_evp_hook(flag_key, result, evaluation_context, flag_meta)
-        evp_hook_called = true
-        details
+        sdk_success_details(result, flag_meta)
       rescue => e
         error_message = "#{e.class}: #{e.message}"
         error_result = Datadog::OpenFeature::ResolutionDetails.build_error(
@@ -158,12 +132,9 @@ module Datadog
           error_code: Ext::GENERAL,
           error_message: error_message
         )
-        unless evp_hook_called
-          error_flag_meta = build_flag_metadata(error_result, eval_time_ms || (Core::Utils::Time.now.to_f * 1000).to_i)
-          call_evp_hook(flag_key, error_result, evaluation_context, error_flag_meta)
-        end
+        error_flag_meta = build_flag_metadata(error_result, eval_time_ms || (Core::Utils::Time.now.to_f * 1000).to_i)
 
-        sdk_error_details(default_value, Ext::GENERAL, error_message, Ext::ERROR)
+        sdk_error_details(default_value, Ext::GENERAL, error_message, Ext::ERROR, error_flag_meta)
       end
 
       def fetch_engine_value(engine, flag_key, default_value, expected_type, evaluation_context)
@@ -184,12 +155,13 @@ module Datadog
         )
       end
 
-      def sdk_error_details(default_value, error_code, error_message, reason)
+      def sdk_error_details(default_value, error_code, error_message, reason, flag_meta = {})
         ::OpenFeature::SDK::Provider::ResolutionDetails.new(
           value: default_value,
           error_code: error_code,
           error_message: error_message,
-          reason: reason
+          reason: reason,
+          flag_metadata: flag_meta
         )
       end
 
@@ -205,45 +177,14 @@ module Datadog
         metadata
       end
 
-      def component_not_configured_default(value)
+      def component_not_configured_default(value, eval_time_ms)
         ::OpenFeature::SDK::Provider::ResolutionDetails.new(
           value: value,
           error_code: Ext::PROVIDER_FATAL,
           error_message: "Datadog's OpenFeature component must be configured",
-          reason: Ext::ERROR
+          reason: Ext::ERROR,
+          flag_metadata: {'dd.eval.timestamp_ms' => eval_time_ms}
         )
-      end
-
-      # Call the EVP hook directly — the Ruby openfeature-sdk (through at least 0.5.x) does not
-      # invoke provider hooks during evaluation, so we must drive it ourselves. The hook is still
-      # not registered via #hooks because future SDK versions may invoke provider hooks and would
-      # double-count EVP rows. This method is idempotent: if the killswitch is on or the
-      # component is absent, flag_eval_evp_hook is nil and this is a no-op.
-      #
-      # ::OpenFeature::SDK::EvaluationContext has #fields and #targeting_key but NOT #attributes.
-      # We adapt it into EvpEvalContext which provides the #attributes interface the hook expects.
-      def call_evp_hook(flag_key, result, evaluation_context, flag_metadata)
-        hook = Datadog.send(:components).open_feature&.flag_eval_evp_hook
-        return unless hook
-
-        evp_ctx = build_evp_eval_context(evaluation_context)
-
-        hook.finally(
-          hook_context: HookContext.new(flag_key, evp_ctx),
-          evaluation_details: HookDetails.new(result.variant, flag_metadata, result.error_message),
-        )
-      rescue => e
-        # Best-effort: EVP emission must never raise into the evaluation hot path.
-        Datadog.logger.debug { "OpenFeature EVP: call_evp_hook error: #{e.class}: #{e.message}" }
-      end
-
-      def build_evp_eval_context(evaluation_context)
-        return unless evaluation_context
-
-        targeting_key = evaluation_context.targeting_key
-        # attributes: all fields except targeting_key (mirrors how exposures builds context)
-        attrs = evaluation_context.fields.reject { |k, _| k == ::OpenFeature::SDK::EvaluationContext::TARGETING_KEY }
-        EvpEvalContext.new(targeting_key, attrs)
       end
     end
   end

@@ -10,7 +10,8 @@ module Datadog
       # in the background by the FlagEvaluation::Writer.
       #
       # OTel non-regression: hooks/flag_eval_metrics_hook.rb and metrics/flag_eval_metrics.rb
-      # stay on the OTel path. This hook is driven directly by the provider for EVP.
+      # stay on the OTel path. This hook is registered as a provider hook so it receives
+      # the SDK-final EvaluationDetails after hook failures and type validation.
       class FlagEvalEVPHook
         # Include the Hook module if available (SDK >= 0.5.0) for interface documentation
         # and default implementations of other hook methods (before, after, error)
@@ -42,13 +43,34 @@ module Datadog
             variant: evaluation_details.variant, # nil = absent = runtime default
             allocation_key: extract_allocation_key(evaluation_details),
             error_message: extract_error_message(evaluation_details),
-            targeting_key: hook_context.evaluation_context&.targeting_key,
+            targeting_key: extract_targeting_key(hook_context.evaluation_context),
             eval_time_ms: eval_time_ms,
-            attrs: hook_context.evaluation_context&.attributes || {},
+            attrs: extract_attributes(hook_context.evaluation_context),
           )
         end
 
         private
+
+        def extract_targeting_key(evaluation_context)
+          return unless evaluation_context&.respond_to?(:targeting_key)
+
+          evaluation_context.targeting_key
+        end
+
+        def extract_attributes(evaluation_context)
+          return {} unless evaluation_context
+
+          if evaluation_context.respond_to?(:attributes)
+            return evaluation_context.attributes || {}
+          end
+
+          return {} unless evaluation_context.respond_to?(:fields)
+
+          fields = evaluation_context.fields
+          return {} unless fields.is_a?(Hash)
+
+          fields.reject { |k, _| k.to_s == ::OpenFeature::SDK::EvaluationContext::TARGETING_KEY }
+        end
 
         # Same key as OTel hook ('__dd_allocation_key') — do not diverge.
         def extract_allocation_key(evaluation_details)

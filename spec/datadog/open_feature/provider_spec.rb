@@ -12,9 +12,6 @@ RSpec.describe Datadog::OpenFeature::Provider do
     allow(telemetry).to receive(:report)
     allow(reporter).to receive(:report)
     allow(Datadog::OpenFeature).to receive(:engine).and_return(engine)
-    # call_evp_hook drives the EVP hook directly (Ruby openfeature-sdk does not invoke provider
-    # hooks during evaluation). Stub it as a no-op for tests not specifically testing EVP emission.
-    allow(provider).to receive(:call_evp_hook)
   end
 
   let(:engine) { Datadog::OpenFeature::EvaluationEngine.new(reporter, telemetry: telemetry, logger: logger) }
@@ -133,17 +130,21 @@ RSpec.describe Datadog::OpenFeature::Provider do
 
     context 'when OpenFeature component is configured' do
       let(:flag_eval_metrics_hook) { instance_double(Datadog::OpenFeature::Hooks::FlagEvalMetricsHook) }
+      let(:flag_eval_evp_hook) { instance_double(Datadog::OpenFeature::Hooks::FlagEvalEVPHook) }
+
       before do
         allow(components).to receive(:open_feature).and_return(open_feature_component)
         allow(open_feature_component).to receive(:flag_eval_metrics_hook).and_return(flag_eval_metrics_hook)
+        allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(flag_eval_evp_hook)
       end
 
-      it 'returns only the OTel flag eval hook to avoid EVP lifecycle double-counting' do
-        expect(open_feature_component).not_to receive(:flag_eval_evp_hook)
-        expect(provider.hooks).to eq([flag_eval_metrics_hook])
+      it 'returns OTel and EVP hooks so both observe SDK-final details' do
+        expect(provider.hooks).to eq([flag_eval_metrics_hook, flag_eval_evp_hook])
       end
 
       context 'when EVP hook is disabled (killswitch)' do
+        before { allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(nil) }
+
         it 'returns array with only the OTel flag eval hook' do
           expect(provider.hooks).to eq([flag_eval_metrics_hook])
         end
@@ -161,87 +162,118 @@ RSpec.describe Datadog::OpenFeature::Provider do
     end
   end
 
-  describe '#call_evp_hook (EVP direct dispatch)' do
-    # Ruby openfeature-sdk (through at least 0.5.x) does not invoke provider hooks during
-    # evaluation. call_evp_hook is called directly from #evaluate to ensure EVP events are
-    # emitted on every evaluation.
-
+  describe 'SDK-final EVP hook dispatch' do
     let(:components) { instance_double(Datadog::Core::Configuration::Components) }
     let(:open_feature_component) { instance_double(Datadog::OpenFeature::Component) }
-    let(:flag_eval_evp_hook) { instance_double(Datadog::OpenFeature::Hooks::FlagEvalEVPHook) }
+    let(:flag_eval_metrics_hook) do
+      double('FlagEvalMetricsHook', before: nil, after: nil, error: nil, finally: nil)
+    end
+    let(:flag_eval_evp_hook) do
+      double('FlagEvalEVPHook', before: nil, after: nil, error: nil, finally: nil)
+    end
     let(:evaluation_context) do
       ::OpenFeature::SDK::EvaluationContext.new(targeting_key: 'user-1', env: 'prod')
     end
+    let(:client) { ::OpenFeature::SDK::Client.new(provider: provider) }
 
     before do
       allow(Datadog).to receive(:send).with(:components).and_return(components)
       allow(components).to receive(:open_feature).and_return(open_feature_component)
+      allow(open_feature_component).to receive(:flag_eval_metrics_hook).and_return(flag_eval_metrics_hook)
       allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(flag_eval_evp_hook)
-      allow(flag_eval_evp_hook).to receive(:finally)
     end
 
-    it 'is called during fetch_string_value evaluation' do
+    it 'passes provider success details to the EVP hook after SDK finalization' do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: 'variant-a', reason: 'TARGETING_MATCH', variant: 'variant-a',
         flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false
       )
       allow(engine).to receive(:fetch_value).and_return(result)
-      # Unset the global no-op stub for this context so we test the real method
-      allow(provider).to receive(:call_evp_hook).and_call_original
 
-      provider.fetch_string_value(
+      details = client.fetch_string_details(
         flag_key: 'my-flag', default_value: 'default', evaluation_context: evaluation_context
       )
 
+      expect(details.value).to eq('variant-a')
       expect(flag_eval_evp_hook).to have_received(:finally) do |hook_context:, evaluation_details:, **|
         expect(hook_context.flag_key).to eq('my-flag')
         expect(hook_context.evaluation_context.targeting_key).to eq('user-1')
-        expect(hook_context.evaluation_context.attributes).to eq('env' => 'prod')
         expect(evaluation_details.variant).to eq('variant-a')
         expect(evaluation_details.error_message).to be_nil
+        expect(evaluation_details.flag_metadata).to include('dd.eval.timestamp_ms')
       end
     end
 
-    context 'when EVP hook is nil (killswitch off)' do
-      before do
-        allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(nil)
-      end
+    it 'passes SDK-final type mismatch details to the EVP hook' do
+      result = Datadog::OpenFeature::ResolutionDetails.new(
+        value: 123, reason: 'TARGETING_MATCH', variant: 'variant-a',
+        flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false
+      )
+      allow(engine).to receive(:fetch_value).and_return(result)
 
-      it 'does not raise and returns the evaluation result' do
-        result = Datadog::OpenFeature::ResolutionDetails.new(
-          value: 'default', reason: 'ERROR', variant: nil,
-          flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: true,
-          error_code: 'FLAG_NOT_FOUND', error_message: 'not found'
-        )
-        allow(engine).to receive(:fetch_value).and_return(result)
-        allow(provider).to receive(:call_evp_hook).and_call_original
+      details = client.fetch_string_details(
+        flag_key: 'type-mismatch-flag', default_value: 'default', evaluation_context: evaluation_context
+      )
 
-        res = provider.fetch_string_value(flag_key: 'x', default_value: 'default')
-        expect(res.value).to eq('default')
-      end
-    end
-
-    context 'when component is absent' do
-      before do
-        allow(components).to receive(:open_feature).and_return(nil)
-      end
-
-      it 'does not raise' do
-        result = Datadog::OpenFeature::ResolutionDetails.new(
-          value: 'v', reason: 'STATIC', variant: 'v',
-          flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false
-        )
-        allow(engine).to receive(:fetch_value).and_return(result)
-        allow(provider).to receive(:call_evp_hook).and_call_original
-
-        expect { provider.fetch_string_value(flag_key: 'y', default_value: 'v') }.not_to raise_error
+      expect(details.value).to eq('default')
+      expect(details.error_code).to eq('TYPE_MISMATCH')
+      expect(details.reason).to eq('ERROR')
+      expect(flag_eval_evp_hook).to have_received(:finally) do |evaluation_details:, **|
+        expect(evaluation_details.value).to eq('default')
+        expect(evaluation_details.error_code).to eq('TYPE_MISMATCH')
+        expect(evaluation_details.reason).to eq('ERROR')
+        expect(evaluation_details.flag_metadata).to include('dd.eval.timestamp_ms')
       end
     end
 
-    # The EVP hook fires on the SDK's real evaluation entrypoint, which is the provider's
-    # #evaluate (the Ruby openfeature-sdk does not auto-run provider hooks). Proven against a
-    # real Writer (no stub of the hook): enqueue must actually happen on a successful eval.
-    context 'fires on the real evaluation path (drives a real Writer)' do
+    it 'passes SDK-final after-hook failure details to the EVP hook' do
+      result = Datadog::OpenFeature::ResolutionDetails.new(
+        value: 'variant-a', reason: 'TARGETING_MATCH', variant: 'variant-a',
+        flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false
+      )
+      failing_after_hook = double('FailingAfterHook', before: nil, error: nil, finally: nil)
+      allow(failing_after_hook).to receive(:after).and_raise(RuntimeError, 'after boom')
+      allow(engine).to receive(:fetch_value).and_return(result)
+
+      details = client.fetch_string_details(
+        flag_key: 'after-hook-flag',
+        default_value: 'default',
+        evaluation_context: evaluation_context,
+        hooks: [failing_after_hook]
+      )
+
+      expect(details.value).to eq('default')
+      expect(details.reason).to eq('ERROR')
+      expect(details.error_message).to eq('after boom')
+      expect(flag_eval_evp_hook).to have_received(:finally) do |hook_context:, evaluation_details:, **|
+        expect(hook_context.flag_key).to eq('after-hook-flag')
+        expect(evaluation_details.value).to eq('default')
+        expect(evaluation_details.variant).to be_nil
+        expect(evaluation_details.reason).to eq('ERROR')
+        expect(evaluation_details.error_message).to eq('after boom')
+      end
+    end
+
+    it 'passes provider error details to the EVP hook' do
+      result = Datadog::OpenFeature::ResolutionDetails.new(
+        value: 'default', reason: 'ERROR', variant: nil, error_code: 'FLAG_NOT_FOUND',
+        error_message: 'nope', flag_metadata: {}, allocation_key: nil, extra_logging: {},
+        log?: false, error?: true
+      )
+      allow(engine).to receive(:fetch_value).and_return(result)
+
+      details = client.fetch_string_details(flag_key: 'err-flag', default_value: 'default')
+
+      expect(details.value).to eq('default')
+      expect(details.error_message).to eq('nope')
+      expect(flag_eval_evp_hook).to have_received(:finally) do |evaluation_details:, **|
+        expect(evaluation_details.variant).to be_nil
+        expect(evaluation_details.error_message).to eq('nope')
+        expect(evaluation_details.flag_metadata).to include('dd.eval.timestamp_ms')
+      end
+    end
+
+    context 'with a real EVP hook and Writer' do
       let(:writer) { Datadog::OpenFeature::FlagEvaluation::Writer.new(transport: evp_transport, logger: logger) }
       let(:evp_transport) { instance_double(Datadog::OpenFeature::Transport::HTTP, send_flag_evaluations: nil) }
       let(:real_flag_eval_evp_hook) { Datadog::OpenFeature::Hooks::FlagEvalEVPHook.new(writer) }
@@ -250,19 +282,19 @@ RSpec.describe Datadog::OpenFeature::Provider do
         # No bare sleep in shutdown synchronization: stub the background thread, drive flush manually.
         allow_any_instance_of(Datadog::OpenFeature::FlagEvaluation::Writer)
           .to receive(:start_background_thread).and_return(nil)
+        allow(open_feature_component).to receive(:flag_eval_metrics_hook).and_return(nil)
         allow(open_feature_component).to receive(:flag_eval_evp_hook).and_return(real_flag_eval_evp_hook)
         allow(logger).to receive(:debug)
       end
 
-      it 'enqueues an event into the Writer when fetch_string_value succeeds' do
+      it 'enqueues an event into the Writer when the SDK client evaluates successfully' do
         result = Datadog::OpenFeature::ResolutionDetails.new(
           value: 'variant-a', reason: 'TARGETING_MATCH', variant: 'variant-a',
           flag_metadata: {}, allocation_key: 'alloc-9', extra_logging: {}, log?: false, error?: false
         )
         allow(engine).to receive(:fetch_value).and_return(result)
-        allow(provider).to receive(:call_evp_hook).and_call_original
 
-        provider.fetch_string_value(
+        client.fetch_string_value(
           flag_key: 'real-flag', default_value: 'default', evaluation_context: evaluation_context
         )
 
@@ -274,104 +306,54 @@ RSpec.describe Datadog::OpenFeature::Provider do
           expect(row['flag']['key']).to eq('real-flag')
           expect(row['variant']).to eq('key' => 'variant-a')
           expect(row['allocation']).to eq('key' => 'alloc-9')
+          expect(row['targeting_key']).to eq('user-1')
+          expect(row['context']).to eq('evaluation' => {'env' => 'prod'})
         end
       ensure
         writer.stop
       end
     end
+  end
 
-    # ALL evaluation exit paths must reach (or safely bypass) the EVP hook.
-    context 'evaluation exit paths' do
-      before do
-        allow(provider).to receive(:call_evp_hook).and_call_original
-        allow(flag_eval_evp_hook).to receive(:finally)
-      end
-
-      it 'engine error path: drives the EVP hook with error_message + nil variant' do
-        result = Datadog::OpenFeature::ResolutionDetails.new(
-          value: 'default', reason: 'ERROR', variant: nil, error_code: 'FLAG_NOT_FOUND',
-          error_message: 'nope', flag_metadata: {}, allocation_key: nil, extra_logging: {},
-          log?: false, error?: true
-        )
-        allow(engine).to receive(:fetch_value).and_return(result)
-
-        res = provider.fetch_string_value(flag_key: 'err-flag', default_value: 'default')
-
-        expect(res.value).to eq('default')
-        expect(flag_eval_evp_hook).to have_received(:finally) do |evaluation_details:, **|
-          expect(evaluation_details.variant).to be_nil
-          expect(evaluation_details.error_message).to eq('nope')
-        end
-      end
-
-      it 'no-engine early return: does NOT drive the EVP hook (scoped out — no eval occurred)' do
-        allow(Datadog::OpenFeature).to receive(:engine).and_return(nil)
-
-        res = provider.fetch_string_value(flag_key: 'no-engine', default_value: 'd')
-
-        expect(res.error_message).to match(/must be configured/)
-        expect(flag_eval_evp_hook).not_to have_received(:finally)
-      end
-
-      it 'rescued provider exception: drives the EVP hook with error_message + nil variant' do
-        allow(engine).to receive(:fetch_value).and_raise(RuntimeError, 'boom')
-
-        res = nil
-        expect { res = provider.fetch_string_value(flag_key: 'boom-flag', default_value: 'd') }
-          .not_to raise_error
-        expect(res.value).to eq('d')
-        expect(res.reason).to eq('ERROR')
-        expect(flag_eval_evp_hook).to have_received(:finally) do |hook_context:, evaluation_details:, **|
-          expect(hook_context.flag_key).to eq('boom-flag')
-          expect(evaluation_details.variant).to be_nil
-          expect(evaluation_details.error_message).to eq('RuntimeError: boom')
-          expect(evaluation_details.flag_metadata).to include('dd.eval.timestamp_ms')
-        end
-      end
+  # Provider stamps 'dd.eval.timestamp_ms' into flag metadata at eval entry, which the
+  # EVP hook reads for first/last_evaluation.
+  context 'eval-time metadata stamping' do
+    # Override the configurable time provider (no Timecop dependency). The provider lambda runs
+    # with self == Datadog::Core::Utils::Time, so capture the frozen value in a local closure.
+    around do |example|
+      frozen = Time.at(1_700_000_000)
+      Datadog::Core::Utils::Time.now_provider = -> { frozen }
+      example.run
+    ensure
+      Datadog::Core::Utils::Time.now_provider = -> { Time.now }
     end
 
-    # Provider stamps 'dd.eval.timestamp_ms' into flag metadata at eval entry, which the
-    # EVP hook reads for first/last_evaluation. Proven by inspecting the metadata the hook sees.
-    context 'eval-time metadata stamping' do
-      # Override the configurable time provider (no Timecop dependency). The provider lambda runs
-      # with self == Datadog::Core::Utils::Time, so capture the frozen value in a local closure.
-      around do |example|
-        frozen = Time.at(1_700_000_000)
-        Datadog::Core::Utils::Time.now_provider = -> { frozen }
-        example.run
-      ensure
-        Datadog::Core::Utils::Time.now_provider = -> { Time.now }
-      end
+    it "exposes the stamped timestamp on the success-path ResolutionDetails metadata" do
+      result = Datadog::OpenFeature::ResolutionDetails.new(
+        value: 'v', reason: 'STATIC', variant: 'v',
+        flag_metadata: {'existing' => 'kept'}, allocation_key: nil, extra_logging: {},
+        log?: false, error?: false
+      )
+      allow(engine).to receive(:fetch_value).and_return(result)
 
-      it "stamps dd.eval.timestamp_ms into the metadata the EVP hook receives" do
-        result = Datadog::OpenFeature::ResolutionDetails.new(
-          value: 'v', reason: 'STATIC', variant: 'v',
-          flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false
-        )
-        allow(engine).to receive(:fetch_value).and_return(result)
-        allow(provider).to receive(:call_evp_hook).and_call_original
-        allow(flag_eval_evp_hook).to receive(:finally)
+      res = provider.fetch_string_value(flag_key: 'ts-flag2', default_value: 'd')
 
-        provider.fetch_string_value(flag_key: 'ts-flag', default_value: 'd')
+      expect(res.flag_metadata['dd.eval.timestamp_ms']).to eq(1_700_000_000_000)
+      expect(res.flag_metadata['existing']).to eq('kept')
+    end
 
-        expect(flag_eval_evp_hook).to have_received(:finally) do |evaluation_details:, **|
-          expect(evaluation_details.flag_metadata['dd.eval.timestamp_ms']).to eq(1_700_000_000_000)
-        end
-      end
+    it "exposes the stamped timestamp on provider error metadata" do
+      result = Datadog::OpenFeature::ResolutionDetails.new(
+        value: 'd', reason: 'ERROR', variant: nil, error_code: 'FLAG_NOT_FOUND',
+        error_message: 'missing', flag_metadata: {}, allocation_key: nil, extra_logging: {},
+        log?: false, error?: true
+      )
+      allow(engine).to receive(:fetch_value).and_return(result)
 
-      it "exposes the stamped timestamp on the success-path ResolutionDetails metadata" do
-        result = Datadog::OpenFeature::ResolutionDetails.new(
-          value: 'v', reason: 'STATIC', variant: 'v',
-          flag_metadata: {'existing' => 'kept'}, allocation_key: nil, extra_logging: {},
-          log?: false, error?: false
-        )
-        allow(engine).to receive(:fetch_value).and_return(result)
+      res = provider.fetch_string_value(flag_key: 'ts-err', default_value: 'd')
 
-        res = provider.fetch_string_value(flag_key: 'ts-flag2', default_value: 'd')
-
-        expect(res.flag_metadata['dd.eval.timestamp_ms']).to eq(1_700_000_000_000)
-        expect(res.flag_metadata['existing']).to eq('kept')
-      end
+      expect(res.flag_metadata['dd.eval.timestamp_ms']).to eq(1_700_000_000_000)
+      expect(res.error_message).to eq('missing')
     end
   end
 end

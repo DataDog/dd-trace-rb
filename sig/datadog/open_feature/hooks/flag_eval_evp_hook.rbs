@@ -18,6 +18,10 @@ module Datadog
 
         private
 
+        def extract_targeting_key: (untyped evaluation_context) -> ::String?
+
+        def extract_attributes: (untyped evaluation_context) -> ::Hash[::String, untyped]
+
         def extract_allocation_key: (untyped evaluation_details) -> ::String?
 
         def extract_error_message: (untyped evaluation_details) -> ::String?
