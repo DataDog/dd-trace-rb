@@ -90,11 +90,26 @@ module Datadog
           result.start_with?('/') ? result : "/#{result}"
         end
 
-        # Walks the route pattern and the request path together, dropping
-        # optional groups the path did not match. Returns the resolved pattern
-        # string, or nil when the path diverges from the pattern (caller then
-        # flattens). Backtrack-free: each character of both strings is visited
-        # at most once and param values are skipped via C-level String#index.
+        # String pattern fallback, best-effort:
+        #
+        #  Rails:
+        #    /posts/:id(.:format), path /posts/1.json  -> /posts/{id+format}
+        #    /posts/:id(.:format), path /posts/1       -> /posts/{id}
+        #    /posts/:id(-:slug), path /posts/1-hello   -> /posts/{id+slug}
+        #    /posts/:id(.:format), no path             -> /posts/{id+format}
+        #
+        #  Sinatra:
+        #    /users/:id                                -> /users/{id}
+        #    /files/*                                  -> /files/{param1}
+        #
+        #  Grape:
+        #    /api/:version/users/:id                   -> /api/{version}/users/{id}
+        #
+        #  Rack/http:
+        #    /users/1                                  -> /users/1
+        #
+        # Optional resolution expects literal-led groups such as `(/:id)`,
+        # `(.:format)`, `(-:slug)`. This is not a full Rails or Mustermann parser.
         def resolve_optionals(request_path)
           resolved = +''
           pattern_pos = 0
