@@ -50,9 +50,13 @@ module Datadog
           len isEmpty isUndefined
         ].freeze # steep:ignore IncompatibleAssignment
 
+        # `matches` is also a two-argument method but is special-cased in
+        # #compile_partial so that literal needles can be precompiled, so it
+        # is not listed here.
+        #
         # Steep: https://github.com/soutaro/steep/issues/363
         TWO_ARG_METHODS = %w[
-          startsWith endsWith contains matches
+          startsWith endsWith contains
           getmember index instanceof
         ].freeze # steep:ignore IncompatibleAssignment
 

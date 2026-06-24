@@ -32,9 +32,9 @@ module Datadog
 
         def matches: (String haystack, String needle) -> bool
 
-        def matches_compiled: (untyped haystack, Integer index) -> bool
+        def matches_compiled: (String haystack, Integer index) -> bool
 
-        private def apply_match: (Regexp re, untyped haystack) -> bool
+        private def apply_match: (Regexp re, String haystack) -> bool
 
         def getmember: (untyped object, (Symbol | String) field) -> untyped
 
