@@ -254,7 +254,10 @@ module Datadog
           return @path_length unless terminator_char
           return @path_length if EXCLUDED_PARAM_NAME_TERMINATOR_CHARS.include?(terminator_char)
 
-          @request_path.index(terminator_char, @path_index) || @path_length
+          terminator_index = @request_path.rindex(terminator_char)
+          return @path_length unless terminator_index && terminator_index >= @path_index
+
+          terminator_index
         end
 
         def find_next_optional_group_end_index

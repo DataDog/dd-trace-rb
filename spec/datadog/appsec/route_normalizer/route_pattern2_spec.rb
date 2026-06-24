@@ -86,6 +86,13 @@ RSpec.describe Datadog::AppSec::RouteNormalizer::RoutePattern2 do
       it { expect(described_class.new('/posts/:id(.:format)').normalize(request_path: '/users/42')).to eq('/posts/{id+format}') }
       it { expect(described_class.new('/posts(/:id)/edit').normalize(request_path: '/posts/edit')).to eq('/posts/edit') }
       it { expect(described_class.new('/files/*path(.:format)').normalize(request_path: '/files/a.txt')).to eq('/files/{path+format}') }
+
+      it 'lets glob params span to a following segment' do
+        expect(
+          described_class.new('/books/*section/:title(.:format)').normalize(request_path: '/books/some/section/last-words.json')
+        ).to eq('/books/{section}/{title+format}')
+      end
+
       it { expect(described_class.new('/posts/:id(.:format)').normalize(request_path: "/posts/#{'a' * 9000}")).to eq('/posts/{id+format}') }
     end
 
