@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+## [2.36.0] - 2026-06-24
+
+### Added
+
+* Tracing: Add `DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT` to control trace extraction behavior with `continue`, `restart`, and `ignore` modes ([#5844][])
+* AppSec: Add `DD_APPSEC_BODY_PARSING_SIZE_LIMIT` to control processing of request and response body size; set to 0 to disable ([#5877][])
+* AppSec: Detect attacks from inline fragments in GraphQL queries ([#5916][])
+* Dynamic Instrumentation: Show lazily loaded classes in UI ([#5697][])
+
+### Changed
+
+* Dynamic Instrumentation: Reduce peak memory usage during Symbol Database extraction ([#5883][])
+* Profiling: Reduce profiler overhead by up to 50% by skipping redundant samples for threads without the GVL ([#5777][])
+* Profiling: Remove overhead when cleaning up dead threads ([#5816][])
+
+### Fixed
+
+* Tracing: Workaround Ruby VM bug causing segmentation faults inside CachingResolver ([#5719][], [#5890][])
+* Dynamic Instrumentation: Prevent uploading stale class definitions for apps using `remove_const`-then-redefine patterns ([#5872][])
+* Profiling: Fix GC profiling being incorrectly disabled on Ruby 3.2.10 and 3.2.11 ([#5894][])
+* Profiling: Fix over-counting of the first allocation sample at profiler startup ([#5881][])
+* Profiling: Fix rare profiler crash during shutdown in heap profiling cleanup ([#5920][])
+* Core: Fix exception message formatting from native extensions ([#5857][])
+
 ## [2.35.0] - 2026-06-03
 
 ### Added
@@ -3634,7 +3658,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.35.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.36.0...master
+[2.36.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.35.0...v2.36.0
 [2.35.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.34.0...v2.35.0
 [2.34.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.33.0...v2.34.0
 [2.33.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.32.0...v2.33.0
@@ -5379,8 +5404,10 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#5681]: https://github.com/DataDog/dd-trace-rb/issues/5681
 [#5687]: https://github.com/DataDog/dd-trace-rb/issues/5687
 [#5689]: https://github.com/DataDog/dd-trace-rb/issues/5689
+[#5697]: https://github.com/DataDog/dd-trace-rb/issues/5697
 [#5705]: https://github.com/DataDog/dd-trace-rb/issues/5705
 [#5717]: https://github.com/DataDog/dd-trace-rb/issues/5717
+[#5719]: https://github.com/DataDog/dd-trace-rb/issues/5719
 [#5723]: https://github.com/DataDog/dd-trace-rb/issues/5723
 [#5724]: https://github.com/DataDog/dd-trace-rb/issues/5724
 [#5750]: https://github.com/DataDog/dd-trace-rb/issues/5750
@@ -5389,10 +5416,22 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#5762]: https://github.com/DataDog/dd-trace-rb/issues/5762
 [#5768]: https://github.com/DataDog/dd-trace-rb/issues/5768
 [#5773]: https://github.com/DataDog/dd-trace-rb/issues/5773
+[#5777]: https://github.com/DataDog/dd-trace-rb/issues/5777
 [#5811]: https://github.com/DataDog/dd-trace-rb/issues/5811
 [#5812]: https://github.com/DataDog/dd-trace-rb/issues/5812
+[#5816]: https://github.com/DataDog/dd-trace-rb/issues/5816
 [#5830]: https://github.com/DataDog/dd-trace-rb/issues/5830
 [#5836]: https://github.com/DataDog/dd-trace-rb/issues/5836
+[#5844]: https://github.com/DataDog/dd-trace-rb/issues/5844
+[#5857]: https://github.com/DataDog/dd-trace-rb/issues/5857
+[#5872]: https://github.com/DataDog/dd-trace-rb/issues/5872
+[#5877]: https://github.com/DataDog/dd-trace-rb/issues/5877
+[#5881]: https://github.com/DataDog/dd-trace-rb/issues/5881
+[#5883]: https://github.com/DataDog/dd-trace-rb/issues/5883
+[#5890]: https://github.com/DataDog/dd-trace-rb/issues/5890
+[#5894]: https://github.com/DataDog/dd-trace-rb/issues/5894
+[#5916]: https://github.com/DataDog/dd-trace-rb/issues/5916
+[#5920]: https://github.com/DataDog/dd-trace-rb/issues/5920
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
