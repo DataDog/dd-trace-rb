@@ -13,12 +13,12 @@ module Datadog
         #
         # Example:
         #
-        #  32 => %20   (space)
-        #  33 => %21   (!)
-        #  47 => /     (passthrough)
-        #  65 => A     (passthrough)
-        # 195 => %C3   (UTF-8 lead byte)
-        # 169 => %A9   (UTF-8 continuation byte)
+        #   32 => %20   (space)
+        #   33 => %21   (!)
+        #   47 => /     (passthrough)
+        #   65 => A     (passthrough)
+        #  195 => %C3   (UTF-8 lead byte)
+        #  169 => %A9   (UTF-8 continuation byte)
         BYTE_ENCODING_TABLE = Array.new(256) do |byte|
           char = byte.chr
           char.match?(DISALLOWED_CHARS) ? -('%%%02X' % byte) : -char
@@ -33,9 +33,9 @@ module Datadog
         #
         # Example:
         #
-        #  a+b => a%2Bb
-        #  café => caf%C3%A9
-        #  /users/path => /users/path
+        #   a+b => a%2Bb
+        #   café => caf%C3%A9
+        #   /users/path => /users/path
         #
         # NOTE: {URI::Parser#escape} with {DISALLOWED_CHARS} gives the same output,
         #       but the generic gsub/sprintf path is slower and allocates more per request

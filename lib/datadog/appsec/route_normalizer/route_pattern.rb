@@ -63,7 +63,7 @@ module Datadog
         #   :id      -> yes
         #   user-:id -> yes
         #   *        -> yes
-        #   foo:     -> yes, validated later by {PARAM_TOKENS}
+        #   foo:     -> yes (validated later by {PARAM_TOKENS})
         PARAM_START_SIGILS = /[:\*]/
         PARAM_TOKENS = /:\w+|(?<!\w)\*\w*/
 
