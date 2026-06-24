@@ -174,7 +174,7 @@ module Datadog
           # returns [key, value] on a non-empty hash and nil when empty, so the
           # `while (pair = ...)` form is the drain. Indexing pair[0]/pair[1] rather
           # than destructuring avoids introducing names into method scope that would
-          # then shadow the else-branch's block parameters on Ruby 2.5/2.6.
+          # then shadow the else-branch's block parameters.
           while (pair = index.shift)
             scope = build_file_scope(pair[0], pair[1])
             yield scope if scope
@@ -228,15 +228,10 @@ module Datadog
       #    subclass with its own binding resolves through the binding, an
       #    inherited autoload triggers nothing.
       #
-      # Ruby 2.7+ adds an inherit parameter to Module#autoload? —
-      # `current.autoload?(sym, false)` cleanly asks "is there an autoload
-      # registered directly on this namespace?". On Ruby 2.5 and 2.6 that
-      # parameter doesn't exist (per Ruby 2.7.0 NEWS), so the fallback
-      # branch uses `current.autoload?(sym)` which also reports inherited
-      # autoloads. The consequence on 2.5/2.6: a subclass binding whose
-      # name collides with an ancestor's pending autoload is conservatively
-      # treated as stale and dropped from extraction. The minimum supported
-      # Ruby is 2.5 per lib/datadog/version.rb, so this fallback ships.
+      # Uses `current.autoload?(sym, false)` (the inherit=false form, added
+      # in Ruby 2.7) so the question is strictly "is there an autoload
+      # registered directly on this namespace?" and ancestors' pending
+      # autoloads at the same name do not affect the result.
       # @param mod_name [String]
       # @param mod [Module]
       # @return [Boolean]
@@ -244,12 +239,7 @@ module Datadog
         current = Object
         mod_name.split('::').each do |seg|
           sym = seg.to_sym
-          pending_autoload = if RUBY_VERSION >= '2.7'
-            current.autoload?(sym, false)
-          else
-            current.autoload?(sym)
-          end
-          return false if pending_autoload
+          return false if current.autoload?(sym, false)
           return false unless current.const_defined?(sym, false)
           current = current.const_get(sym, false)
         end
@@ -324,14 +314,9 @@ module Datadog
       # AR models get filtered out as gem code.
       #
       # For namespace-only modules (no instance or singleton methods), falls back to
-      # Module#const_source_location (Ruby 2.7+) to locate the module via its constants.
+      # Module#const_source_location to locate the module via its constants.
       # This handles patterns like `module ApplicationCable; class Channel...; end; end`
       # where the namespace module itself has no methods but defines user-code classes.
-      #
-      # On Ruby 2.6 (where const_source_location is unavailable), namespace-only modules
-      # and classes whose only methods are generated (e.g., AR models with only associations)
-      # may not be found — the extraction silently omits them. This is a graceful degradation:
-      # fewer symbols uploaded, no errors.
       #
       # @param mod [Module] The module
       # @return [String, nil] Source file path or nil
@@ -362,12 +347,12 @@ module Datadog
           fallback ||= path # steep:ignore
         end
 
-        # Try const_source_location (Ruby 2.7+) to find where this class/module is declared.
+        # Use const_source_location to find where this class/module is declared.
         # This handles two cases:
         #   1. Classes with no user-defined methods (e.g. AR models with only associations) whose
         #      generated methods point to gem code — we find the `class Foo` declaration instead.
         #   2. Namespace-only modules (`module Foo; class Bar; end; end`) with no methods at all.
-        if Module.method_defined?(:const_source_location) && mod.name
+        if mod.name
           # Look up the class/module by its last name component in its enclosing namespace.
           parts = mod.name.split('::')
           const_name = parts.last
@@ -743,11 +728,7 @@ module Datadog
         ObjectSpace.each_object(Module) do |mod|
           # Singleton classes (per-object metaclasses) are never user-code classes.
           # They're not const-referenced, DI cannot instrument methods on a singular
-          # object instance, and on Ruby 2.6 specifically, Module#name on unnamed
-          # singleton classes with long ancestor chains (e.g. through monkey-patches
-          # prepended into Kernel, common in dd-trace-rb test processes) is O(ancestors)
-          # — measured ~20ms per call, which dominates extract_all on heavily-loaded
-          # processes. Ruby 2.7+ optimized this path; the skip is a no-op there.
+          # object instance, so skipping them is both correct and cheap.
           next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
 
           seen += 1

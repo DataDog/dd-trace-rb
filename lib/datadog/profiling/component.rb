@@ -141,15 +141,14 @@ module Datadog
         # that causes a segmentation fault during garbage collection of Ractors
         # (https://bugs.ruby-lang.org/issues/18464). We don't allow enabling gc profiling on such Rubies.
         # This bug is fixed on Ruby versions 3.1.4, 3.2.3 and 3.3.0.
-        if RUBY_VERSION.start_with?("3.0.") ||
-            (RUBY_VERSION.start_with?("3.1.") && RUBY_VERSION < "3.1.4") ||
-            (RUBY_VERSION.start_with?("3.2.") && RUBY_VERSION < "3.2.3")
+        if RubyVersion.is?(">= 3", "< 3.1.4") ||
+            RubyVersion.is?(">= 3.2", "< 3.2.3")
           logger.warn(
             "Current Ruby version (#{RUBY_VERSION}) has a VM bug where enabling GC profiling would cause " \
             "crashes (https://bugs.ruby-lang.org/issues/18464). GC profiling has been disabled."
           )
           return false
-        elsif RUBY_VERSION.start_with?("3.")
+        elsif RubyVersion.is?(">= 3", "< 4")
           logger.debug(
             "Using Ractors may result in GC profiling unexpectedly " \
             "stopping (https://bugs.ruby-lang.org/issues/19112). Note that this stop has no impact in your " \
@@ -177,7 +176,7 @@ module Datadog
         # Ruby 3.2.0 to 3.2.2 have a bug in the newobj tracepoint (https://bugs.ruby-lang.org/issues/19482,
         # https://github.com/ruby/ruby/pull/7464) that makes this crash in any configuration. This bug is
         # fixed on Ruby versions 3.2.3 and 3.3.0.
-        if RUBY_VERSION.start_with?("3.2.") && RUBY_VERSION < "3.2.3"
+        if RubyVersion.is?(">= 3.2", "< 3.2.3")
           logger.warn(
             "Allocation profiling is not supported in Ruby versions 3.2.0, 3.2.1 and 3.2.2 and will be forcibly " \
             "disabled. This is due to a VM bug that can lead to crashes (https://bugs.ruby-lang.org/issues/19482). " \
@@ -191,9 +190,8 @@ module Datadog
         # that causes a segmentation fault during garbage collection of Ractors
         # (https://bugs.ruby-lang.org/issues/18464). We don't recommend using this feature on such Rubies.
         # This bug is fixed on Ruby versions 3.1.4, 3.2.3 and 3.3.0.
-        if RUBY_VERSION.start_with?("3.0.") ||
-            (RUBY_VERSION.start_with?("3.1.") && RUBY_VERSION < "3.1.4") ||
-            (RUBY_VERSION.start_with?("3.2.") && RUBY_VERSION < "3.2.3")
+        if RubyVersion.is?(">= 3", "< 3.1.4") ||
+            RubyVersion.is?(">= 3.2", "< 3.2.3")
           logger.warn(
             "Current Ruby version (#{RUBY_VERSION}) has a VM bug where enabling allocation profiling while using " \
             "Ractors may cause unexpected issues, including crashes (https://bugs.ruby-lang.org/issues/18464). " \
@@ -202,7 +200,7 @@ module Datadog
         # ANNOYANCE - Only with Ractors
         # On all known versions of Ruby 3.x, due to https://bugs.ruby-lang.org/issues/19112, when a ractor gets
         # garbage collected, Ruby will disable all active tracepoints, which this feature internally relies on.
-        elsif RUBY_VERSION.start_with?("3.")
+        elsif RubyVersion.is?(">= 3", "< 4")
           logger.debug(
             "Using Ractors may result in allocation profiling " \
             "stopping (https://bugs.ruby-lang.org/issues/19112). Note that this stop has no impact in your " \
@@ -220,7 +218,7 @@ module Datadog
 
         return false unless heap_profiling_enabled
 
-        if RUBY_VERSION < "3.1"
+        if RubyVersion.is?("< 3.1")
           logger.warn(
             "Current Ruby version (#{RUBY_VERSION}) cannot support heap profiling due to VM limitations. " \
             "Please upgrade to Ruby >= 3.1 in order to use this feature. Heap profiling has been disabled."
@@ -262,7 +260,7 @@ module Datadog
         end
 
         if setting_value == false
-          if RUBY_VERSION.start_with?("2.5.")
+          if RubyVersion.is?("< 2.6")
             logger.warn(
               'The profiling "no signals" workaround has been disabled via configuration on Ruby 2.5. ' \
               "This is not recommended " \
@@ -288,7 +286,7 @@ module Datadog
         # Setting is in auto mode. Let's probe to see if we should enable it:
 
         # We don't warn users in this situation because "upgrade your Ruby" is not a great warning
-        return true if RUBY_VERSION.start_with?("2.5.")
+        return true if RubyVersion.is?("< 2.6")
 
         if Gem.loaded_specs["mysql2"] && incompatible_libmysqlclient_version?(settings, logger)
           logger.warn(
@@ -450,13 +448,13 @@ module Datadog
       end
 
       private_class_method def self.dir_interruption_workaround_enabled?(settings, no_signals_workaround_enabled)
-        return false if no_signals_workaround_enabled || RUBY_VERSION >= "3.4"
+        return false if no_signals_workaround_enabled || RubyVersion.is?(">= 3.4")
 
         settings.profiling.advanced.dir_interruption_workaround_enabled
       end
 
       private_class_method def self.can_apply_exec_monkey_patch?(settings)
-        return false if RUBY_VERSION < "2.7"
+        return false if RubyVersion.is?("< 2.7")
 
         # This file is 2.7+ only so we only require it here once we've checked the Ruby version
         require "datadog/profiling/ext/exec_monkey_patch"
@@ -465,7 +463,7 @@ module Datadog
       end
 
       private_class_method def self.enable_gvl_profiling?(settings, logger)
-        RUBY_VERSION >= "3.2" && settings.profiling.advanced.gvl_enabled
+        RubyVersion.is?(">= 3.2") && settings.profiling.advanced.gvl_enabled
       end
     end
   end

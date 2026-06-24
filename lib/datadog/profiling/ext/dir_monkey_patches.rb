@@ -28,7 +28,7 @@ module Datadog
         end
       end
 
-      if RUBY_VERSION.start_with?("2.")
+      if RubyVersion.is?("< 3")
         # Monkey patches for Dir.singleton_class (Ruby 2 version). See DirMonkeyPatches above for more details.
         module DirClassMonkeyPatches
           # Steep: Workaround that defines args and block only for Ruby 2.x.
@@ -270,7 +270,7 @@ module Datadog
         end
       end
 
-      if RUBY_VERSION.start_with?("2.")
+      if RubyVersion.is?("< 3")
         # Monkey patches for Dir (Ruby 2 version). See DirMonkeyPatches above for more details.
         module DirInstanceMonkeyPatches
           # Steep: Workaround that defines args and block only for Ruby 2.x.
@@ -300,7 +300,7 @@ module Datadog
             end
           end
 
-          unless RUBY_VERSION.start_with?("2.5.") # This is Ruby 2.6+
+          if RubyVersion.is?(">= 2.6.0") # This method is Ruby 2.6+
             # See note on methods that yield above.
             def each_child(*args, &block)
               if block

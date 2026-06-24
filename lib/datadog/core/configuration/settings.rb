@@ -617,8 +617,7 @@ module Datadog
               o.type :bool
               o.env 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED'
               o.default do
-                Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.2.5') &&
-                  !(RUBY_VERSION.start_with?('3.3.') && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.3.4'))
+                RubyVersion.is?('>= 3.2.5') && !RubyVersion.is?('>= 3.3', '< 3.3.4')
               end
             end
 

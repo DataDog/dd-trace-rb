@@ -15,6 +15,7 @@ alwaysApply: true
 
 - Use `DATADOG_ENV`, never `ENV`: ENV.[]/fetch/key? -> DATADOG_ENV.[]/fetch/key?. See `docs/AccessEnvironmentVariables.md` if in doubt.
   - Run `rake local_config_map:generate` every time you add new env var.
+- Prefer the shortest unambiguous constant path; qualify for cross-product or external-library references, or to avoid shadowing.
 
 ## Type checking
 

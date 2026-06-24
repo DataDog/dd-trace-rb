@@ -903,31 +903,46 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         subject(:sighandler_sampling_enabled) { settings.profiling.advanced.sighandler_sampling_enabled }
 
         context 'on Ruby 3.2.4 and below' do
-          before { stub_const('RUBY_VERSION', '3.2.4') }
+          before do
+            stub_const('RUBY_VERSION', '3.2.4')
+            stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new(RUBY_VERSION))
+          end
 
           it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED', default: false
         end
 
         context 'on Ruby 3.3 < 3.3.4' do
-          before { stub_const('RUBY_VERSION', '3.3.3') }
+          before do
+            stub_const('RUBY_VERSION', '3.3.3')
+            stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new(RUBY_VERSION))
+          end
 
           it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED', default: false
         end
 
         context 'on Ruby 3.2 >= 3.2.5' do
-          before { stub_const('RUBY_VERSION', '3.2.5') }
+          before do
+            stub_const('RUBY_VERSION', '3.2.5')
+            stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new(RUBY_VERSION))
+          end
 
           it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED', default: true
         end
 
         context 'on Ruby 3.3 >= 3.3.4' do
-          before { stub_const('RUBY_VERSION', '3.3.4') }
+          before do
+            stub_const('RUBY_VERSION', '3.3.4')
+            stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new(RUBY_VERSION))
+          end
 
           it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED', default: true
         end
 
         context 'on Ruby 3.4' do
-          before { stub_const('RUBY_VERSION', '3.4.0') }
+          before do
+            stub_const('RUBY_VERSION', '3.4.0')
+            stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new(RUBY_VERSION))
+          end
 
           it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED', default: true
         end

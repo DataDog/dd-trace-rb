@@ -128,7 +128,7 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
       let(:change) { mock_change(type: :insert, data: '{"upload_symbols": true}') }
 
       context 'when symbol_database component is not built' do
-        # Component.build returns nil on JRuby, Ruby 2.5, when symbol_database
+        # Component.build returns nil on JRuby, Ruby < 2.7, when symbol_database
         # is disabled, or when RC is disabled without force_upload. The receiver
         # block must not raise — it is stored and invoked later via
         # Dispatcher::Receiver#call, so a `return` would raise LocalJumpError.

@@ -3,13 +3,14 @@
 require 'spec_helper'
 
 # OpenTelemetry logs SDK requires Ruby >= 3.1
-if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.1')
+if RubyVersion.is?('>= 3.1')
   require 'opentelemetry/sdk'
   require 'opentelemetry-logs-sdk'
   require 'opentelemetry/exporter/otlp_logs'
 end
 
 require 'datadog/opentelemetry'
+require 'datadog/opentelemetry/spec_helper'
 require 'datadog/core/configuration/settings'
 require 'net/http'
 require 'json'
@@ -50,7 +51,7 @@ RSpec.describe 'OpenTelemetry Logs Integration', ruby: '>= 3.1' do
   end
 
   after do
-    provider.shutdown if provider.is_a?(::OpenTelemetry::SDK::Logs::LoggerProvider)
+    OpenTelemetryHelpers.shutdown_otel_providers
   end
 
   describe 'Basic Functionality' do

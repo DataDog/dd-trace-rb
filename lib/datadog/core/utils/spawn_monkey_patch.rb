@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../../ruby_version'
+
 module Datadog
   module Core
     module Utils
@@ -19,7 +21,7 @@ module Datadog
         # Prepends `Process.spawn` to merge `env_provider` output into the child's environment hash.
         module ProcessSpawnPatch
           # The One and Only Correct Delegation Pattern
-          if RUBY_VERSION >= '3'
+          if RubyVersion.is?('>= 3')
             def spawn(*args, **kwargs) # steep:ignore DifferentMethodParameterKind
               super(*SpawnMonkeyPatch.inject_envs(args), **kwargs)
             end

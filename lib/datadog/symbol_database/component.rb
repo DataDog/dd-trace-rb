@@ -68,7 +68,7 @@ module Datadog
           return
         end
 
-        # Symbol database requires MRI Ruby 2.6+.
+        # Symbol database requires MRI Ruby 2.7+.
         # Configuration accessors (settings.symbol_database.*) remain available on all
         # platforms — only the component (upload) is disabled on unsupported engines/versions.
         # environment_supported? logs the specific reason (engine or version) internally.
@@ -375,7 +375,7 @@ module Datadog
       private
 
       # Check whether the runtime environment supports symbol database upload.
-      # Only MRI Ruby 2.6+ is supported. JRuby and TruffleRuby are not supported
+      # Only MRI Ruby 2.7+ is supported. JRuby and TruffleRuby are not supported
       # because ObjectSpace iteration and Method#source_location behave differently.
       # Configuration accessors remain available on all platforms — this only gates
       # the component (upload) itself.
@@ -386,8 +386,8 @@ module Datadog
           logger.debug { "symdb: not supported on #{RUBY_ENGINE}, skipping" }
           return false
         end
-        if RUBY_VERSION < '2.6'
-          logger.debug { "symdb: requires Ruby 2.6+, running #{RUBY_VERSION}, skipping" }
+        if RubyVersion.is?('< 2.7')
+          logger.debug { "symdb: requires Ruby 2.7+, running #{RUBY_VERSION}, skipping" }
           return false
         end
         true
