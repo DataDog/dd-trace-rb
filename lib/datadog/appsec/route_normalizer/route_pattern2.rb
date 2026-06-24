@@ -13,6 +13,7 @@ module Datadog
         OPTIONAL_GROUP_SIGILS = "#{GROUP_OPEN_CHAR}#{GROUP_CLOSE_CHAR}#{OPTIONAL_GROUP_SUFFIX_CHAR}"
         NAMED_PARAM_PREFIX_CHAR = ':'
         GLOB_PARAM_PREFIX_CHAR = '*'
+        MAX_RESOLVE_LENGTH = 8192
 
         # Param sigils mark where dynamic route syntax may start
         #
@@ -65,8 +66,7 @@ module Datadog
 
           return pattern unless pattern.include?(GROUP_OPEN_CHAR)
 
-          # NOTE: Without request path, treat optional groups as present
-          return remove_optional_group_sigils(pattern) unless request_path
+          return remove_optional_group_sigils(pattern) unless resolve_pattern_optionals?(request_path)
 
           resolved = +''
 
@@ -131,6 +131,10 @@ module Datadog
           end
 
           resolved
+        end
+
+        def resolve_pattern_optionals?(request_path)
+          request_path && request_path.length <= MAX_RESOLVE_LENGTH
         end
 
         def remove_optional_group_sigils(pattern)

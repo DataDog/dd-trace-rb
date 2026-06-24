@@ -84,6 +84,8 @@ RSpec.describe Datadog::AppSec::RouteNormalizer::RoutePattern2 do
       it { expect(described_class.new('/posts/:id(-:slug)').normalize(request_path: '/posts/42-hello')).to eq('/posts/{id+slug}') }
       it { expect(described_class.new('/posts(/:year(/:month))').normalize(request_path: '/posts/2024')).to eq('/posts/{year}') }
       it { expect(described_class.new('/posts/:id(.:format)').normalize(request_path: '/users/42')).to eq('/posts/{id+format}') }
+      it { expect(described_class.new('/posts(/:id)/edit').normalize(request_path: '/posts/edit')).to eq('/posts/edit') }
+      it { expect(described_class.new('/posts/:id(.:format)').normalize(request_path: "/posts/#{'a' * 9000}")).to eq('/posts/{id+format}') }
     end
 
     context 'with Sinatra-style patterns' do
