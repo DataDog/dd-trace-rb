@@ -185,7 +185,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
       context 'when symbol_database is enabled with remote config' do
         before(:all) do
-          skip 'Symbol database requires MRI Ruby 2.6+' if PlatformHelpers.jruby? || RubyVersion.is?('< 2.6')
+          skip 'Symbol database requires MRI Ruby 2.7+' if PlatformHelpers.jruby? || RubyVersion.is?('< 2.7')
         end
 
         before do

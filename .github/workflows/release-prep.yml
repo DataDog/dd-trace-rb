@@ -58,6 +58,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
           VERSION: ${{ inputs.version }}
+          BUNDLE_FROZEN: "false"
         run: bundle exec rake "release_prep:prepare[${VERSION}]"
 
       - name: Update supported integration versions

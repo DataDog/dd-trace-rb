@@ -2980,7 +2980,7 @@ When Dynamic Instrumentation is enabled, the tracer can extract and upload symbo
 |---|---|---|---|
 | `c.symbol_database.enabled` | `Boolean` | Enable or disable symbol database upload. | `false` |
 
-Symbol Database requires MRI Ruby 2.6+ and Remote Configuration (enabled by default). For details on what is extracted, which code is included, and behavior differences across Ruby versions, see [Dynamic Instrumentation — Symbol Database](DynamicInstrumentation.md#symbol-database).
+Symbol Database requires MRI Ruby 2.7+ and Remote Configuration (enabled by default). For details on what is extracted, which code is included, and behavior differences across Ruby versions, see [Dynamic Instrumentation — Symbol Database](DynamicInstrumentation.md#symbol-database).
 
 ## Known issues and suggested configurations
 

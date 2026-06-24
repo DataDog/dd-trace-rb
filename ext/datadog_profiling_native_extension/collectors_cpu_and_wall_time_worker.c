@@ -1267,9 +1267,8 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
 
   per_thread_context *thread_context = get_per_thread_context(current_thread);
   if (!thread_context) {
-    // No per_thread_context yet on this Thread, we can't use get_or_create_context_for() as that allocates,
-    // and we are inside on_newobj_event where we MUST NOT allocate.
-    // So we don't sample allocations until another hook allocates the per_thread_context.
+    // Context is created eagerly via on_thread_begin_event, so this should not normally be NULL.
+    // We keep the guard since we can't allocate here (inside on_newobj_event).
     return;
   }
 

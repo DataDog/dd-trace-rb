@@ -55,6 +55,8 @@ jobs:
       - run: bundle install
 
       - name: Update version file
+        env:
+          BUNDLE_FROZEN: "false"
         run: |
           echo "Updating version to ${NEXT_VERSION}"
           bundle exec rake "version:bump[${NEXT_VERSION}]"
