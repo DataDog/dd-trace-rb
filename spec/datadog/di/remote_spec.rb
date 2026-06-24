@@ -19,10 +19,11 @@ RSpec.describe Datadog::DI::Remote do
     expect(remote.products).to contain_exactly('LIVE_DEBUGGING')
   end
 
-  it 'declares no capabilities' do
-    # DI enablement capability (bit 38) is declared by Tracing::Remote,
-    # not DI::Remote, because it's an APM_TRACING capability.
-    expect(remote.capabilities).to eq []
+  it 'declares the DI enablement capability (bit 38)' do
+    # Bit 38 (APM_TRACING_ENABLE_DYNAMIC_INSTRUMENTATION) is declared here, not
+    # in Tracing::Remote, so Capabilities#register only advertises it when the
+    # DI block is registered (i.e. DI is not explicitly disabled).
+    expect(remote.capabilities).to eq [1 << 38]
   end
 
   it 'declares matches that match APM_TRACING' do
@@ -93,6 +94,7 @@ RSpec.describe Datadog::DI::Remote do
         # visibility a customer who set DD_DYNAMIC_INSTRUMENTATION_ENABLED
         # would have gotten at boot.
         it 'does not activate tracking and warns naming the unsupported reason' do
+          allow(described_class).to receive(:explicitly_disabled?).and_return(false)
           allow(Datadog::DI).to receive(:unsupported_reason).and_return("MRI is required, but running on jruby")
           expect(Datadog::DI).not_to receive(:activate_tracking)
           expect(Datadog.logger).to receive(:warn).with(
@@ -101,7 +103,17 @@ RSpec.describe Datadog::DI::Remote do
           described_class.handle_rc_enablement(true)
         end
 
+        it 'warns about explicit disable when DD_DYNAMIC_INSTRUMENTATION_ENABLED=false' do
+          allow(described_class).to receive(:explicitly_disabled?).and_return(true)
+          expect(Datadog::DI).not_to receive(:activate_tracking)
+          expect(Datadog.logger).to receive(:warn).with(
+            a_string_matching(/cannot enable dynamic instrumentation.*DD_DYNAMIC_INSTRUMENTATION_ENABLED is explicitly set to false/)
+          )
+          described_class.handle_rc_enablement(true)
+        end
+
         it 'falls back to a generic message when no reason is available' do
+          allow(described_class).to receive(:explicitly_disabled?).and_return(false)
           allow(Datadog::DI).to receive(:unsupported_reason).and_return(nil)
           expect(Datadog.logger).to receive(:warn).with(
             a_string_matching(/cannot enable dynamic instrumentation via remote configuration.*was not initialized at startup/)
@@ -246,6 +258,14 @@ RSpec.describe Datadog::DI::Remote do
 
       it 'returns false (explicitly enabled — RC may also try to enable)' do
         expect(described_class.explicitly_disabled?).to be false
+      end
+    end
+
+    context 'when passed an explicit settings argument' do
+      it 'uses the given settings rather than the global configuration' do
+        other = Datadog::Core::Configuration::Settings.new
+        other.dynamic_instrumentation.enabled = false
+        expect(described_class.explicitly_disabled?(other)).to be true
       end
     end
   end

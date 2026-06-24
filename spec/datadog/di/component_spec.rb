@@ -141,17 +141,18 @@ RSpec.describe Datadog::DI::Component do
       end
     end
 
-    context 'regardless of DD_DYNAMIC_INSTRUMENTATION_ENABLED' do
+    context 'when DD_DYNAMIC_INSTRUMENTATION_ENABLED is explicitly false' do
       before do
         settings.remote.enabled = true
         settings.dynamic_instrumentation.enabled = false
       end
 
-      it 'still builds the component' do
-        component = described_class.build(settings, agent_settings, logger)
-        expect(component).to be_a(described_class)
-        expect(component.started?).to be false
-        component.shutdown!
+      it 'returns nil and logs at debug without building a component' do
+        expect(logger).to receive(:debug).with(
+          a_string_matching(/explicitly disabled.*DD_DYNAMIC_INSTRUMENTATION_ENABLED=false/)
+        )
+        expect(logger).not_to receive(:warn)
+        expect(described_class.build(settings, agent_settings, logger)).to be nil
       end
     end
   end

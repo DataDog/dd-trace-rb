@@ -17,6 +17,15 @@ module Datadog
         def build(settings, agent_settings, logger, telemetry: nil)
           return unless settings.respond_to?(:dynamic_instrumentation)
 
+          # Explicit DD_DYNAMIC_INSTRUMENTATION_ENABLED=false: do not build the
+          # component at all. This is customer intent, not a failure — log at
+          # debug and emit no telemetry error. Capabilities#register skips the
+          # DI RC block under the same condition, so no enable signal arrives.
+          if Remote.explicitly_disabled?(settings)
+            logger.debug("di: dynamic instrumentation is explicitly disabled (DD_DYNAMIC_INSTRUMENTATION_ENABLED=false); not building component")
+            return
+          end
+
           reason = DI.unsupported_reason(settings)
           if reason
             # Log level mirrors customer intent: if the customer explicitly

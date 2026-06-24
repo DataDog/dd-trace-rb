@@ -11,10 +11,18 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
   end
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
-  shared_examples 'matches tracing capabilities only' do
-    it 'matches tracing capabilities only' do
-      # Bits 12, 13, 14, 29 (tracing) + 38 (DI enablement)
+  shared_examples 'tracing and DI capabilities' do
+    it 'includes tracing capabilities and the DI enablement bit' do
+      # Bits 12, 13, 14, 29 (tracing) + 38 (DI enablement, registered with the DI block)
       expect(capabilities.base64_capabilities).to eq('QCAAcAA=')
+    end
+  end
+
+  shared_examples 'tracing capabilities only' do
+    it 'includes only tracing capabilities (DI not registered)' do
+      # Bits 12, 13, 14, 29 (tracing). Bit 38 lives in the DI block, which is
+      # not registered here (DI settings absent or explicitly disabled).
+      expect(capabilities.base64_capabilities).to eq('IABwAA==')
     end
   end
 
@@ -37,7 +45,9 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       end
 
       describe '#base64_capabilities' do
-        include_examples 'matches tracing capabilities only'
+        # DI settings present and not explicitly disabled, so the DI block
+        # (bit 38) is registered alongside the tracing capabilities.
+        include_examples 'tracing and DI capabilities'
       end
     end
 
@@ -53,7 +63,9 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       end
 
       describe '#base64_capabilities' do
-        include_examples 'matches tracing capabilities only'
+        # Settings double responds to nothing, so neither AppSec nor DI is
+        # registered — tracing capabilities only.
+        include_examples 'tracing capabilities only'
       end
     end
 
@@ -89,16 +101,17 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
   end
 
   context 'DI component' do
-    context 'when disabled' do
+    context 'when explicitly disabled' do
       let(:settings) do
         settings = Datadog::Core::Configuration::Settings.new
         settings.dynamic_instrumentation.enabled = false
         settings
       end
 
-      it 'always registers capabilities, products, and receivers' do
-        expect(capabilities.products).to include('LIVE_DEBUGGING')
-        expect(capabilities.receivers).to include(
+      it 'does not register DI capabilities, products, or receivers' do
+        expect(capabilities.capabilities).to_not include(1 << 38)
+        expect(capabilities.products).to_not include('LIVE_DEBUGGING')
+        expect(capabilities.receivers).to_not include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse('datadog/2/LIVE_DEBUGGING/_/_')
           }
@@ -106,7 +119,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       end
 
       describe '#base64_capabilities' do
-        include_examples 'matches tracing capabilities only'
+        include_examples 'tracing capabilities only'
       end
     end
 
@@ -121,13 +134,13 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       end
 
       describe '#base64_capabilities' do
-        # DI settings not present → no DI capabilities registered.
-        # But tracing still declares bit 38 (APM_TRACING_ENABLE_DYNAMIC_INSTRUMENTATION).
-        include_examples 'matches tracing capabilities only'
+        # DI settings not present → no DI capabilities registered, and bit 38
+        # now lives in the DI block, so it is absent too.
+        include_examples 'tracing capabilities only'
       end
     end
 
-    context 'when enabled' do
+    context 'when enabled or left at default' do
       let(:settings) do
         settings = Datadog::Core::Configuration::Settings.new
         settings.dynamic_instrumentation.enabled = true
@@ -135,6 +148,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       end
 
       it 'registers capabilities, products, and receivers' do
+        expect(capabilities.capabilities).to include(1 << 38)
         expect(capabilities.products).to include('LIVE_DEBUGGING')
         expect(capabilities.receivers).to include(
           lambda { |r|
@@ -144,7 +158,20 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       end
 
       describe '#base64_capabilities' do
-        include_examples 'matches tracing capabilities only'
+        include_examples 'tracing and DI capabilities'
+      end
+    end
+
+    context 'when left at default (env var unset)' do
+      let(:settings) { Datadog::Core::Configuration::Settings.new }
+
+      it 'registers DI so remote configuration can enable it' do
+        expect(capabilities.capabilities).to include(1 << 38)
+        expect(capabilities.products).to include('LIVE_DEBUGGING')
+      end
+
+      describe '#base64_capabilities' do
+        include_examples 'tracing and DI capabilities'
       end
     end
   end
@@ -158,10 +185,9 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         settings
       end
 
-      # Symbol database registration is now decoupled from the DI
-      # env-var-enabled flag — symbol_database registers based on its own
-      # `enabled` setting alone, matching DI's own always-register policy.
-      # This lets RC enable DI without re-running setup for symbol_database.
+      # Symbol database registration is decoupled from DI: symbol_database
+      # registers based on its own `enabled` setting alone, even when DI is
+      # explicitly disabled and the DI block is skipped entirely.
       it 'registers symbol database product' do
         expect(capabilities.products).to include('LIVE_DEBUGGING_SYMBOL_DB')
       end
@@ -201,7 +227,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
 
   context 'Tracing component' do
     it 'register capabilities, products, and receivers' do
-      expect(capabilities.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29, 1 << 38)
+      expect(capabilities.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29)
       expect(capabilities.products).to include('APM_TRACING')
       expect(capabilities.receivers).to include(
         lambda { |r|

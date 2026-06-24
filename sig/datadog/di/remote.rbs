@@ -3,13 +3,15 @@ module Datadog
     module Remote
       PRODUCT: "LIVE_DEBUGGING"
 
+      CAPABILITIES: ::Array[Integer]
+
       def self.products: () -> ::Array[String]
 
       def self.capabilities: () -> ::Array[Integer]
 
       def self.handle_rc_enablement: (bool enabled, ?Core::Remote::Configuration::Repository? repository) -> void
 
-      def self.explicitly_disabled?: () -> bool
+      def self.explicitly_disabled?: (?Datadog::Core::Configuration::Settings settings) -> bool
 
       def self.receivers: (Core::Telemetry::Component? telemetry) -> ::Array[Core::Remote::Dispatcher::Receiver]
 

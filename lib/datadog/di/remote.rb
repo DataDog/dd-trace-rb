@@ -15,6 +15,15 @@ module Datadog
       class << self
         PRODUCT = 'LIVE_DEBUGGING'
 
+        # Declared here (not in Tracing::Remote::CAPABILITIES) so it is
+        # registered only with the gated DI block in Capabilities#register:
+        # when DI is explicitly disabled that block — including this bit — is
+        # skipped. The enable signal itself is delivered in APM_TRACING
+        # payloads and routed here by Tracing::Remote.process_config.
+        CAPABILITIES = [
+          1 << 38, # APM_TRACING_ENABLE_DYNAMIC_INSTRUMENTATION: Implicit DI enablement
+        ].freeze
+
         def products
           # TODO: do not send our product on unsupported runtimes
           # (Ruby 2.5 / JRuby)
@@ -22,7 +31,7 @@ module Datadog
         end
 
         def capabilities
-          []
+          CAPABILITIES
         end
 
         # Entry point for the RC-driven DI enable/disable path.
@@ -58,11 +67,18 @@ module Datadog
             # gets the same visibility a customer who set
             # DD_DYNAMIC_INSTRUMENTATION_ENABLED would have gotten at boot.
             if enabled
-              reason = DI.unsupported_reason
-              Datadog.logger.warn(
-                "di: cannot enable dynamic instrumentation via remote configuration: " \
-                "#{reason || "dynamic instrumentation was not initialized at startup"}",
-              )
+              if explicitly_disabled?
+                Datadog.logger.warn(
+                  "di: cannot enable dynamic instrumentation via remote configuration " \
+                  "because DD_DYNAMIC_INSTRUMENTATION_ENABLED is explicitly set to false",
+                )
+              else
+                reason = DI.unsupported_reason
+                Datadog.logger.warn(
+                  "di: cannot enable dynamic instrumentation via remote configuration: " \
+                  "#{reason || "dynamic instrumentation was not initialized at startup"}",
+                )
+              end
             end
             return
           end
@@ -104,11 +120,19 @@ module Datadog
         # Symmetric to {DI::Component.explicitly_enabled?} (see there for why
         # using_default? rather than options[:enabled].default_precedence?).
         #
+        # Canonical home for the explicit-disable check: it gates
+        # {DI::Component.build} and the DI block in
+        # {Core::Remote::Client::Capabilities#register}. The latter runs before
+        # DI::Component is loaded, so the check lives here on DI::Remote (always
+        # required by capabilities.rb) rather than on DI::Component. The
+        # `settings` argument lets those startup callers pass the settings being
+        # configured; the RC handler omits it and reads the global config.
+        #
+        # @param settings [Datadog::Core::Configuration::Settings]
         # @return [Boolean] true when the customer set
         #   `DD_DYNAMIC_INSTRUMENTATION_ENABLED=false` (or the programmatic
-        #   equivalent), which blocks RC-driven enablement.
-        def explicitly_disabled?
-          settings = Datadog.configuration
+        #   equivalent), which blocks DI build and RC-driven enablement.
+        def explicitly_disabled?(settings = Datadog.configuration)
           !settings.dynamic_instrumentation.using_default?(:enabled) &&
             !settings.dynamic_instrumentation.enabled
         end

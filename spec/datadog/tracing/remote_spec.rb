@@ -8,8 +8,8 @@ RSpec.describe Datadog::Tracing::Remote do
     expect(remote.products).to contain_exactly('APM_TRACING')
   end
 
-  it 'declares tracing and DI enablement capabilities' do
-    expect(remote.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29, 1 << 38)
+  it 'declares tracing capabilities (DI enablement bit 38 lives in DI::Remote)' do
+    expect(remote.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29)
   end
 
   it 'declares matches that match APM_TRACING' do
