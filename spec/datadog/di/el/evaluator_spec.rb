@@ -119,9 +119,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
     # 3.2+, and stored in +regexps+ -- mirroring how the Compiler
     # precompiles literal needles at expression-compile time.
     let(:evaluator) do
-      described_class.new.tap do |e|
-        e.regexps = [described_class.compile_regexp(compiled_pattern)]
-      end
+      described_class.new([described_class.compile_regexp(compiled_pattern)])
     end
 
     context 'with a well-formed pattern' do

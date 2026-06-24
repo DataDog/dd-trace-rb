@@ -6,15 +6,13 @@ module Datadog
 
         @context: Context
 
-        @regexps: Array[Regexp]?
+        @regexps: Array[Regexp]
 
-        def initialize: (Context context) -> void
+        def initialize: (?Array[Regexp] regexps) -> void
 
         def evaluate: (Context compiled) -> untyped
 
         def regexps: () -> Array[Regexp]
-
-        def regexps=: (Array[Regexp]) -> Array[Regexp]
 
         def self.compile_regexp: (String needle) -> Regexp
 

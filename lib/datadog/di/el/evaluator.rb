@@ -15,16 +15,17 @@ module Datadog
         # thread executing the probe.
         MATCHES_TIMEOUT_SECONDS = 0.5
 
-        # Regexps precompiled from literal `matches` needles at
-        # expression-compile time (see Compiler#precompile_regexp). The
-        # compiler emits matches_compiled(<haystack>, <index>) and this
-        # array is the index lookup. Assigned by Expression after the
-        # evaluator is instantiated; empty for expressions that use no
-        # literal `matches` needle.
-        def regexps
-          @regexps ||= []
+        # @param regexps [Array<Regexp>] regexps precompiled from literal
+        #   `matches` needles at expression-compile time (see
+        #   Compiler#precompile_regexp), looked up by index by
+        #   #matches_compiled (the compiler emits
+        #   matches_compiled(<haystack>, <index>) referencing this array).
+        #   Empty for expressions that use no literal `matches` needle.
+        def initialize(regexps = [])
+          @regexps = regexps
         end
-        attr_writer :regexps
+
+        attr_reader :regexps
 
         def ref(var)
           @context.fetch(var)
