@@ -27,6 +27,13 @@ module Datadog
           GROUP_CLOSE_CHAR
         ].join
 
+        PARAM_NAME_CHARS = [*'a'..'z', *'A'..'Z', *'0'..'9', '_'].join
+
+        EXCLUDED_PARAM_NAME_TERMINATOR_CHARS = [
+          PARAM_NAME_CHARS,
+          PATTERN_STRUCTURE_CHARS
+        ].join
+
         MAX_RESOLVE_LENGTH = 8192
 
         Checkpoint = Struct.new(:resolved_length, :pattern_index, :path_index)
@@ -121,8 +128,8 @@ module Datadog
               #       Example:
               #         `/foo:` must match a literal `:`, not a param
               if param_name_end_index == @pattern_index + 1
-                if !expected_path_char?(NAMED_PARAM_PREFIX_CHAR)
-                  checkpoint = restore_checkpoint(resolved, checkpoints)
+                unless expected_path_char?(NAMED_PARAM_PREFIX_CHAR)
+                  checkpoint = restore_checkpoint!(resolved, checkpoints)
                   return remove_optional_group_sigils(@pattern) unless checkpoint
 
                   @pattern_index = checkpoint.pattern_index
@@ -140,19 +147,19 @@ module Datadog
 
               resolved << @pattern[@pattern_index...param_name_end_index]
 
-              stop_at_char = find_param_value_stop_char(param_name_end_index: param_name_end_index)
-              @path_index = find_param_value_end_index(stop_at_char: stop_at_char)
+              terminator_char = find_param_value_stop_char(param_name_end_index: param_name_end_index)
+              @path_index = find_param_value_end_index(terminator_char: terminator_char)
 
               @pattern_index = param_name_end_index
             when GLOB_PARAM_PREFIX_CHAR
               param_name_end_index = find_next_param_name_end_index
-
               resolved << @pattern[@pattern_index...param_name_end_index]
+
               @path_index = @path_length
               @pattern_index = param_name_end_index
             else
-              if !expected_path_char?(char)
-                checkpoint = restore_checkpoint(resolved, checkpoints)
+              unless expected_path_char?(char)
+                checkpoint = restore_checkpoint!(resolved, checkpoints)
                 return remove_optional_group_sigils(@pattern) unless checkpoint
 
                 @pattern_index = checkpoint.pattern_index
@@ -162,6 +169,7 @@ module Datadog
               end
 
               resolved << char
+
               @path_index += 1
               @pattern_index += 1
             end
@@ -178,7 +186,7 @@ module Datadog
           @path_index < @path_length && @request_path[@path_index] == char
         end
 
-        def restore_checkpoint(resolved, checkpoints)
+        def restore_checkpoint!(resolved, checkpoints)
           checkpoint = checkpoints.pop
           return unless checkpoint
 
@@ -203,45 +211,44 @@ module Datadog
           char == GROUP_OPEN_CHAR ? @pattern[param_name_end_index + 1] : char
         end
 
-        def find_param_value_end_index(stop_at_char:)
-          stops = []
+        def find_param_value_end_index(terminator_char:)
+          terminator_indexes = []
           slash_index = @request_path.index('/', @path_index)
           dot_index = @request_path.index('.', @path_index)
 
-          stops << slash_index if slash_index
-          stops << dot_index if dot_index
+          terminator_indexes << slash_index if slash_index
+          terminator_indexes << dot_index if dot_index
 
-          if stop_at_char && !stop_at_char.match?(/\w/) && !PATTERN_STRUCTURE_CHARS.include?(stop_at_char)
-            custom_index = @request_path.index(stop_at_char, @path_index)
-            stops << custom_index if custom_index
+          if terminator_char && !EXCLUDED_PARAM_NAME_TERMINATOR_CHARS.include?(terminator_char)
+            custom_index = @request_path.index(terminator_char, @path_index)
+            terminator_indexes << custom_index if custom_index
           end
 
-          stops.empty? ? @request_path.length : stops.min
+          terminator_indexes.empty? ? @request_path.length : terminator_indexes.min
         end
 
         def find_next_optional_group_end_index
           depth = 0
-          current_index = @pattern_index
+          index = @pattern_index
 
-          while current_index < @pattern_length
-            char = @pattern[current_index]
+          while index < @pattern_length
+            char = @pattern[index]
+            depth += 1 if char == GROUP_OPEN_CHAR
 
-            if char == GROUP_OPEN_CHAR
-              depth += 1
-            elsif char == GROUP_CLOSE_CHAR
+            if char == GROUP_CLOSE_CHAR
               depth -= 1
 
               if depth.zero?
-                next_index = current_index + 1
+                next_index = index + 1
 
-                return (@pattern[next_index] == OPTIONAL_GROUP_SUFFIX_CHAR) ? next_index : current_index
+                return @pattern[next_index] == OPTIONAL_GROUP_SUFFIX_CHAR ? next_index : index
               end
             end
 
-            current_index += 1
+            index += 1
           end
 
-          current_index
+          index
         end
       end
     end
