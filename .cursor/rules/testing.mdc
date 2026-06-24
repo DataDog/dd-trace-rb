@@ -13,6 +13,7 @@ alwaysApply: false
 - If new files in the repository are created, run `git add -A` before running tests (otherwise `release_gem_spec.rb` will fail)
 - Do not use `instance_variable_set` and `instance_variable_get` in tests, use mocking when needed
 - Do not make changes to `release_gem_spec.rb` if not asked
+- Prefer literals for expectation assertions on strings and well-known integers (e.g. `404`); does not apply to opaque or machine-generated values.
 
 ### RSpec Style
 - Rule of thumb is trying to have a 1:1 filename mapping between `lib/**/*.rb` and `spec/**/*_spec.rb`; sometimes this is not possible but should be justified (e.g integration tests), ask for guidance and explain rationale when deviating form the rule.

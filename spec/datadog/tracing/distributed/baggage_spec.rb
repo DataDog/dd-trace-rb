@@ -286,7 +286,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
 
         it 'records successful injection telemetry' do
           expect(telemetry).to receive(:inc).with(
-            'instrumentation_telemetry_data.tracers',
+            'tracers',
             'context_header_style.injected',
             1,
             tags: {'header_style' => 'baggage'}
@@ -305,13 +305,13 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
 
         it 'records item count truncation telemetry' do
           expect(telemetry).to receive(:inc).with(
-            'instrumentation_telemetry_data.tracers',
+            'tracers',
             'context_header.truncated',
             1,
             tags: {'header_style' => 'baggage', 'truncation_reason' => 'baggage_item_count_exceeded'}
           )
           expect(telemetry).to receive(:inc).with(
-            'instrumentation_telemetry_data.tracers',
+            'tracers',
             'context_header_style.injected',
             1,
             tags: {'header_style' => 'baggage'}
@@ -332,13 +332,13 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
 
         it 'records byte count truncation telemetry' do
           expect(telemetry).to receive(:inc).with(
-            'instrumentation_telemetry_data.tracers',
+            'tracers',
             'context_header.truncated',
             1,
             tags: {'header_style' => 'baggage', 'truncation_reason' => 'baggage_byte_count_exceeded'}
           )
           expect(telemetry).to receive(:inc).with(
-            'instrumentation_telemetry_data.tracers',
+            'tracers',
             'context_header_style.injected',
             1,
             tags: {'header_style' => 'baggage'}
@@ -377,7 +377,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
 
         it 'records successful extraction telemetry' do
           expect(telemetry).to receive(:inc).with(
-            'instrumentation_telemetry_data.tracers',
+            'tracers',
             'context_header_style.extracted',
             1,
             tags: {'header_style' => 'baggage'}
@@ -392,7 +392,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
 
         it 'records malformed header telemetry' do
           expect(telemetry).to receive(:inc).with(
-            'instrumentation_telemetry_data.tracers',
+            'tracers',
             'context_header_style.malformed',
             1,
             tags: {'header_style' => 'baggage'}
@@ -414,7 +414,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
 
         it 'returns empty baggage and records malformed telemetry, never raises' do
           expect(telemetry).to receive(:inc).with(
-            'instrumentation_telemetry_data.tracers',
+            'tracers',
             'context_header_style.malformed',
             1,
             tags: {'header_style' => 'baggage'}
@@ -434,7 +434,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
 
         it 'returns empty baggage and records malformed telemetry, never raises' do
           expect(telemetry).to receive(:inc).with(
-            'instrumentation_telemetry_data.tracers',
+            'tracers',
             'context_header_style.malformed',
             1,
             tags: {'header_style' => 'baggage'}
@@ -454,7 +454,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
 
         it 'parses normally' do
           expect(telemetry).to receive(:inc).with(
-            'instrumentation_telemetry_data.tracers',
+            'tracers',
             'context_header_style.extracted',
             1,
             tags: {'header_style' => 'baggage'}
@@ -470,7 +470,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
 
         it 'skips the empty item' do
           expect(telemetry).to receive(:inc).with(
-            'instrumentation_telemetry_data.tracers',
+            'tracers',
             'context_header_style.extracted',
             1,
             tags: {'header_style' => 'baggage'}
@@ -501,13 +501,13 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
 
         it 'records item count truncation telemetry' do
           expect(telemetry).to receive(:inc).with(
-            'instrumentation_telemetry_data.tracers',
+            'tracers',
             'context_header.truncated',
             1,
             tags: {'header_style' => 'baggage', 'truncation_reason' => 'baggage_item_count_exceeded'}
           )
           expect(telemetry).to receive(:inc).with(
-            'instrumentation_telemetry_data.tracers',
+            'tracers',
             'context_header_style.extracted',
             1,
             tags: {'header_style' => 'baggage'}
@@ -523,7 +523,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
 
           it 'limits extraction by headers ingested, not stored' do
             expect(telemetry).to receive(:inc).with(
-              'instrumentation_telemetry_data.tracers',
+              'tracers',
               'context_header.truncated',
               1,
               tags: {'header_style' => 'baggage', 'truncation_reason' => 'baggage_item_count_exceeded'}
@@ -550,7 +550,7 @@ RSpec.describe Datadog::Tracing::Distributed::Baggage do
 
           it 'records byte count truncation telemetry' do
             expect(telemetry).to receive(:inc).with(
-              'instrumentation_telemetry_data.tracers',
+              'tracers',
               'context_header.truncated',
               1,
               tags: {'header_style' => 'baggage', 'truncation_reason' => 'baggage_byte_count_exceeded'}
