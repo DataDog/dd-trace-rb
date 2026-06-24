@@ -40,7 +40,7 @@ static void set_file_info_for_cfunc(
   st_table *native_filenames_cache
 );
 static const char *get_or_compute_native_filename(void *function, st_table *native_filenames_cache);
-static void add_truncated_frames_placeholder(sampling_buffer* buffer);
+static void add_truncated_frames_placeholder(ddog_prof_Location *locations);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
 static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice);
 
@@ -98,7 +98,7 @@ typedef struct {
   sample_values values;
   sample_labels labels;
   VALUE thread;
-  ddog_prof_Location *locations;
+  sample_locations locations;
   sampling_buffer *buffer;
   bool native_filenames_enabled;
   st_table *native_filenames_cache;
@@ -175,7 +175,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
 
   ddog_prof_Location *locations = ruby_xcalloc(max_frames_requested, sizeof(ddog_prof_Location));
   sampling_buffer buffer;
-  sampling_buffer_initialize(&buffer, max_frames_requested, locations);
+  sampling_buffer_initialize(&buffer, max_frames_requested);
 
   ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = labels_count};
 
@@ -185,7 +185,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
     .values = values,
     .labels = (sample_labels) {.labels = slice_labels, .state_label = state_label, .is_gvl_waiting_state = is_gvl_waiting_state == Qtrue},
     .thread = thread,
-    .locations = locations,
+    .locations = (sample_locations) {.ptr = locations, .len = max_frames_requested},
     .buffer = &buffer,
     .native_filenames_enabled = native_filenames_enabled == Qtrue,
     .native_filenames_cache = st_init_numtable(),
@@ -208,6 +208,7 @@ static VALUE native_sample_do(VALUE args) {
     sample_thread(
       args_struct->thread,
       args_struct->buffer,
+      args_struct->locations,
       args_struct->recorder_instance,
       args_struct->values,
       args_struct->labels,
@@ -222,7 +223,7 @@ static VALUE native_sample_do(VALUE args) {
 static VALUE native_sample_ensure(VALUE args) {
   native_sample_args *args_struct = (native_sample_args *) args;
 
-  ruby_xfree(args_struct->locations);
+  ruby_xfree(args_struct->locations.ptr);
   sampling_buffer_free(args_struct->buffer);
   st_free_table(args_struct->native_filenames_cache);
 
@@ -243,6 +244,7 @@ static VALUE native_sample_ensure(VALUE args) {
 void sample_thread(
   VALUE thread,
   sampling_buffer* buffer,
+  sample_locations locations,
   VALUE recorder_instance,
   sample_values values,
   sample_labels labels,
@@ -250,10 +252,20 @@ void sample_thread(
   st_table *native_filenames_cache
 ) {
   // If we already prepared a sample, we use it below; if not, we prepare it now.
-  if (!buffer->pending_sample) prepare_sample_thread(thread, buffer);
+  if (!buffer->pending_sample) {
+    // Reconcile the sampling_buffer's max_frames with the locations size
+    if (buffer->max_frames != locations.len) {
+      sampling_buffer_reinitialize(buffer, locations.len);
+    }
+    prepare_sample_thread(thread, buffer);
+  }
 
   buffer->pending_sample = false;
   int captured_frames = buffer->pending_sample_result;
+
+  // The per_thread_context's sampling_buffer may have been created by a previous collector with a
+  // different (larger) max_frames. Cap to the locations array size to prevent out-of-bounds writes.
+  if (captured_frames > (int) locations.len) captured_frames = (int) locations.len;
 
   if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
     record_placeholder_stack_in_native_code(recorder_instance, values, labels);
@@ -389,25 +401,30 @@ void sample_thread(
 
     int libdatadog_stores_stacks_flipped_from_rb_profile_frames_index = top_of_stack_position - i;
 
-    buffer->locations[libdatadog_stores_stacks_flipped_from_rb_profile_frames_index] = (ddog_prof_Location) {
+    locations.ptr[libdatadog_stores_stacks_flipped_from_rb_profile_frames_index] = (ddog_prof_Location) {
       .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
       .function = (ddog_prof_Function) {.name = name_slice, .filename = filename_slice},
       .line = line,
     };
   }
 
-  // If we filled up the buffer, some frames may have been omitted. In that case, we'll add a placeholder frame
+  // If we filled up the locations, some frames may have been omitted. In that case, we'll add a placeholder frame
   // with that info.
-  if (captured_frames == (long) buffer->max_frames) {
-    add_truncated_frames_placeholder(buffer);
+  if (captured_frames == (long) locations.len) {
+    add_truncated_frames_placeholder(locations.ptr);
   }
 
   record_sample(
     recorder_instance,
-    (ddog_prof_Slice_Location) {.ptr = buffer->locations, .len = captured_frames},
+    (ddog_prof_Slice_Location) {.ptr = locations.ptr, .len = captured_frames},
     values,
     labels
   );
+
+  // Reconcile the sampling_buffer's max_frames with the locations size for future samples
+  if (buffer->max_frames != locations.len) {
+    sampling_buffer_reinitialize(buffer, locations.len);
+  }
 }
 
 #if (defined(HAVE_DLADDR1) && HAVE_DLADDR1) || (defined(HAVE_DLADDR) && HAVE_DLADDR)
@@ -538,10 +555,10 @@ static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_Char
   name_slice->len = pos;
 }
 
-static void add_truncated_frames_placeholder(sampling_buffer* buffer) {
+static void add_truncated_frames_placeholder(ddog_prof_Location *locations) {
   // Important note: The strings below are static so we don't need to worry about their lifetime. If we ever want to change
   // this to non-static strings, don't forget to check that lifetimes are properly respected.
-  buffer->locations[0] = (ddog_prof_Location) {
+  locations[0] = (ddog_prof_Location) {
     .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
     .function = {.name = DDOG_CHARSLICE_C("Truncated Frames"), .filename = DDOG_CHARSLICE_C(""), .filename_id = {}},
     .line = 0,
@@ -618,27 +635,29 @@ uint16_t sampling_buffer_check_max_frames(int max_frames) {
   return max_frames;
 }
 
-void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames, ddog_prof_Location *locations) {
+void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames) {
   sampling_buffer_check_max_frames(max_frames);
 
   buffer->max_frames = max_frames;
-  buffer->locations = locations;
   buffer->stack_buffer = ruby_xcalloc(max_frames, sizeof(frame_info));
   buffer->pending_sample = false;
   buffer->is_marking = false;
   buffer->pending_sample_result = 0;
 }
 
+void sampling_buffer_reinitialize(sampling_buffer *buffer, uint16_t max_frames) {
+  sampling_buffer_free(buffer);
+  sampling_buffer_initialize(buffer, max_frames);
+}
+
 void sampling_buffer_free(sampling_buffer *buffer) {
-  if (buffer->max_frames == 0 || buffer->locations == NULL || buffer->stack_buffer == NULL) {
+  if (buffer->max_frames == 0 || buffer->stack_buffer == NULL) {
     raise_error(rb_eArgError, "sampling_buffer_free called with invalid buffer");
   }
 
   ruby_xfree(buffer->stack_buffer);
-  // Note: buffer->locations are owned by whoever called sampling_buffer_initialize, not by the buffer itself
 
   buffer->max_frames = 0;
-  buffer->locations = NULL;
   buffer->stack_buffer = NULL;
   buffer->pending_sample = false;
   buffer->is_marking = false;

@@ -10,14 +10,14 @@ RSpec.describe Datadog::AppSec::DefaultHeaderTags do
   describe '.tag_request' do
     before { described_class.tag_request(span, Datadog::Core::HeaderCollection.from_hash(headers)) }
 
-    context 'when a vendor header is present' do
+    context 'when a tracked request header is present' do
       let(:headers) { {'x-amzn-trace-id' => 'trace-123'} }
 
       it { expect(span).to have_received(:set_tag).with('http.request.headers.x-amzn-trace-id', 'trace-123') }
     end
 
-    context 'when no vendor header is present' do
-      let(:headers) { {'user-agent' => 'curl'} }
+    context 'when an untracked request header is present' do
+      let(:headers) { {'authorization' => 'Bearer token'} }
 
       it { expect(span).not_to have_received(:set_tag) }
     end

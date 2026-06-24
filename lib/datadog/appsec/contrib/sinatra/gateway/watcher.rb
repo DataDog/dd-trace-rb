@@ -27,9 +27,26 @@ module Datadog
 
                   context.state[:web_framework] = 'sinatra'
 
-                  persistent_data = {
-                    'server.request.body' => gateway_request.form_hash
-                  }
+                  request = gateway_request.request
+                  next stack.call(request) unless gateway_request.collectable_body?
+
+                  # NOTE: A limit of 0 disables request body collection entirely.
+                  limit = Datadog.configuration.appsec.body_parsing_size_limit
+                  next stack.call(request) if limit.zero?
+
+                  persistent_data = {}
+                  byte_length = gateway_request.body_bytesize(limit)
+
+                  if byte_length
+                    persistent_data['server.request.body.byte_length'] = byte_length
+
+                    if byte_length <= limit
+                      body = gateway_request.form_hash
+                      persistent_data['server.request.body'] = body if body
+                    end
+                  end
+
+                  next stack.call(request) if persistent_data.empty?
 
                   result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 

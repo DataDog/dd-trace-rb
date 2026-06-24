@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../../../ruby_version'
+
 module Datadog
   module Tracing
     module Contrib
@@ -48,7 +50,7 @@ module Datadog
             nil
           end
 
-          if RUBY_VERSION >= '2.6.'
+          if RubyVersion.is?('>= 2.6')
             def split(path, pattern = nil, &block)
               path.split(pattern, &block)
             end

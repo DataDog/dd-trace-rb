@@ -10,6 +10,7 @@ require 'sprockets/railtie'
 require 'rails/test_unit/railtie'
 
 require 'logger'
+require 'ostruct' # graphql 1.13 uses OpenStruct without requiring ostruct itself
 require 'graphql'
 require 'rack/test'
 

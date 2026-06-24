@@ -24,11 +24,12 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:gvl_profiling_enabled) { false }
   let(:sighandler_sampling_enabled) { false }
   let(:cpu_sampling_interval_ms) { 10 }
+  let(:thread_context_collector) { build_thread_context_collector(recorder) }
   let(:worker_settings) do
     {
       gc_profiling_enabled: gc_profiling_enabled,
       no_signals_workaround_enabled: no_signals_workaround_enabled,
-      thread_context_collector: build_thread_context_collector(recorder),
+      thread_context_collector: thread_context_collector,
       dynamic_sampling_rate_overhead_target_percentage: 2.0,
       allocation_profiling_enabled: allocation_profiling_enabled,
       allocation_counting_enabled: allocation_counting_enabled,
@@ -38,6 +39,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       **options
     }
   end
+  let(:sample) {
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(thread_context_collector, false)
+  }
 
   subject(:cpu_and_wall_time_worker) { described_class.new(**worker_settings, **options) }
 
@@ -158,7 +162,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     context "when gvl_profiling_enabled is true on an unsupported Ruby" do
-      before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.2." }
+      before { skip "Behavior does not apply to current Ruby version" if RubyVersion.is?(">= 3.2") }
 
       let(:gvl_profiling_enabled) { true }
 
@@ -228,12 +232,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       it "triggers sampling and records the results", :memcheck_valgrind_skip do
         start
 
-        all_samples = loop_until do
+        loop_until do
           samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
-          samples if samples.any?
+          samples_for_thread(samples, Thread.current).any?
         end
-
-        expect(samples_for_thread(all_samples, Thread.current)).to_not be_empty
       end
 
       it(
@@ -243,15 +245,15 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       ) do
         start
 
-        all_samples = loop_until do
-          samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
+        current_thread_samples = loop_until do
+          samples = samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
           samples if samples.any?
         end
 
         cpu_and_wall_time_worker.stop
 
         sample_count =
-          samples_for_thread(all_samples, Thread.current)
+          current_thread_samples
             .map { |it| it.values.fetch(:"cpu-samples") }
             .reduce(:+)
 
@@ -294,11 +296,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       let(:allocation_profiling_enabled) { true }
 
       it "does not allocate Ruby objects during the regular operation of sampling" do
-        # The intention of this test is to warn us if we accidentally trigger object allocations during "happy path"
-        # sampling.
+        # The intention of this test is to warn us if we accidentally trigger object allocations during "happy path" sampling.
         # Note that when something does go wrong during sampling, we do allocate exceptions (and then raise them).
 
         start
+        # Ensure the per_thread_context TypedData wrapper is already allocated for the current Thread
+        sample
+        allocations_after_initial = cpu_and_wall_time_worker.stats.fetch(:allocations_during_sample)
 
         try_wait_until do
           samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
@@ -309,7 +313,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         stats = cpu_and_wall_time_worker.stats
 
-        expect(stats).to include(allocations_during_sample: 0)
+        expect(stats.fetch(:allocations_during_sample)).to be(allocations_after_initial)
       end
     end
 
@@ -545,13 +549,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         context "when 'Waiting for GVL' periods are below waiting_for_gvl_threshold_ns" do
           let(:options) do
-            ten_seconds_as_ns = 1_000_000_000
-            collector = build_thread_context_collector(recorder, waiting_for_gvl_threshold_ns: ten_seconds_as_ns)
+            one_second_as_ns = 1_000_000_000
+            collector = build_thread_context_collector(recorder, waiting_for_gvl_threshold_ns: one_second_as_ns)
 
             {thread_context_collector: collector}
           end
 
-          it "does not trigger extra samples" do
+          it "does not trigger extra samples due to GVL wait duration" do
             background_thread_affected_by_gvl_contention
             ready_queue_2.pop
 
@@ -568,13 +572,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
             expect(cpu_and_wall_time_worker.stats.fetch(:gvl_dont_sample)).to be > 0
 
+            # after_gvl_running may be > 0 due to skip-recovery samples (was_skipped_at_last_sample),
+            # but gvl_dont_sample being > 0 confirms the GVL wait threshold is working correctly.
             expect(cpu_and_wall_time_worker.stats).to match(
               hash_including(
-                after_gvl_running: 0,
-                gvl_sampling_time_ns_min: nil,
-                gvl_sampling_time_ns_max: nil,
-                gvl_sampling_time_ns_total: nil,
-                gvl_sampling_time_ns_avg: nil,
                 gvl_waiting_time_ns_total: be >= 0,
               )
             )
@@ -621,7 +622,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         #
         expect(sample_count).to be >= 8, "sample_count: #{sample_count}, stats: #{stats}, debug_failures: #{debug_failures}"
 
-        if RUBY_VERSION >= "3.3.0"
+        if RubyVersion.is?(">= 3.3")
           expect(trigger_sample_attempts).to be >= sample_count
         else
           # @ivoanjo: We've seen this assertion become flaky once in CI for Ruby 3.1, where
@@ -715,7 +716,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(allocation_sample.values).to include("alloc-samples": test_num_allocated_object)
         # For Ruby 4 onwards, new is inlined into the bytecode of the caller and there's no "new"
         # frame at the top of the stack, see https://github.com/ruby/ruby/pull/13080
-        expect((RUBY_VERSION >= "4.0.0") ? allocation_sample.locations[0] : allocation_sample.locations[1])
+        expect(RubyVersion.is?(">= 4") ? allocation_sample.locations[0] : allocation_sample.locations[1])
           .to match(have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: allocation_line))
       end
 
@@ -810,7 +811,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         end
 
         context "on Ruby 2.x" do
-          before { skip "Behavior only applies on Ruby 2.x" unless RUBY_VERSION.start_with?("2.") }
+          before { skip "Behavior only applies on Ruby 2.x" unless RubyVersion.is?("< 3") }
 
           it "records internal VM objects, not including their specific kind" do
             start
@@ -828,7 +829,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         end
 
         context "on Ruby 3.x" do
-          before { skip "Behavior only applies on Ruby 3.x" if RUBY_VERSION.start_with?("2.") }
+          before { skip "Behavior only applies on Ruby 3.x" if RubyVersion.is?("< 3") }
 
           it "records internal VM objects, including their specific kind" do
             start
@@ -883,7 +884,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         allow(Datadog.logger).to receive(:warn)
         expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
 
-        skip "Heap profiling is only supported on Ruby >= 2.7" if RUBY_VERSION < "2.7"
+        skip "Heap profiling is only supported on Ruby >= 2.7" unless RubyVersion.is?(">= 2.7")
       end
 
       after do |example|
@@ -920,7 +921,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         relevant_samples = samples_from_pprof(recorder.serialize!).select do |sample|
           # From Ruby 4 onwards, new is inlined into the bytecode of the caller and there's no "new"
           # frame at the top of the stack, see https://github.com/ruby/ruby/pull/13080
-          allocation_trigger_frame = (RUBY_VERSION >= "4.0.0") ? sample.locations[0] : sample.locations[1]
+          allocation_trigger_frame = RubyVersion.is?(">= 4") ? sample.locations[0] : sample.locations[1]
           next unless allocation_trigger_frame
 
           allocation_trigger_frame.lineno == allocation_line &&
@@ -1087,9 +1088,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       def skip_if_signal_handler_sampling_not_supported
         return unless sighandler_sampling_enabled
 
-        ruby_version = Gem::Version.new(RUBY_VERSION)
-        if ruby_version < Gem::Version.new("3.2.5") ||
-            (ruby_version >= Gem::Version.new("3.3.0") && ruby_version < Gem::Version.new("3.3.4"))
+        if RubyVersion.is?("< 3.2.5") ||
+            RubyVersion.is?(">= 3.3", "< 3.3.4")
           # In practice, many older Rubies are OK to sample from the signal handler, but for the purposes of testing
           # this is a safe simplification (these versions all include https://github.com/ruby/ruby/pull/11036)
           skip "Not safe to enable signal handler sampling on Ruby < 3.2.5 / Ruby < 3.3.4"
@@ -1147,10 +1147,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
   describe "Ractor safety" do
     before do
-      skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3."
+      skip "Behavior does not apply to current Ruby version" if RubyVersion.is?("< 3")
 
       # See native_extension_spec.rb for more details on the issues we saw on 3.0
-      skip "Ruby 3.0 Ractors are too buggy to run this spec" if RUBY_VERSION.start_with?("3.0.")
+      skip "Ruby 3.0 Ractors are too buggy to run this spec" if RubyVersion.is?(">= 3", "< 3.1")
     end
 
     shared_examples_for "does not trigger a sample" do |run_ractor|
@@ -1185,7 +1185,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               Ractor.new do
                 Thread.current.name = "background ractor"
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_handle_sampling_signal
-              end.yield_self { |r| (RUBY_VERSION < "4") ? r.take : r.value }
+              end.yield_self { |r| RubyVersion.is?("< 4") ? r.take : r.value }
             end
           )
       end
@@ -1197,7 +1197,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               Ractor.new do
                 Thread.current.name = "background ractor"
                 Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_sample_from_postponed_job
-              end.yield_self { |r| (RUBY_VERSION < "4") ? r.take : r.value }
+              end.yield_self { |r| RubyVersion.is?("< 4") ? r.take : r.value }
             end
           )
       end
@@ -1334,6 +1334,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     it "resets all stats" do
       cpu_and_wall_time_worker.stop
 
+      allow(thread_context_collector).to receive(:reset_after_fork).and_call_original
       reset_after_fork
 
       expect(cpu_and_wall_time_worker.stats).to match(
@@ -1369,6 +1370,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           gvl_sampling_time_ns_total: nil,
           gvl_sampling_time_ns_avg: nil,
           gvl_waiting_time_ns_total: nil,
+          sample_count: 0,
+          gc_samples: 0,
+          gc_samples_missed_due_to_missing_context: 0,
+          inactive_thread_samples_skipped: 0,
         }
       )
     end
@@ -1417,8 +1422,11 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # there's a small chance that a GC gets triggered in between the two
           # `_native_allocation_count` calls and contributes with unexpected Array allocations to
           # the allocation count. To prevent this, we'll explicitly disable GC around these checks.
-
           GC.disable
+
+          # Ensure the per_thread_context TypedData wrapper is already allocated for the current Thread
+          sample
+
           # To get the exact expected number of allocations, we run through the ropes once so
           # Ruby can create and cache all it needs to and hopefully flush any pending finalizer
           # executions that could affect our expectations
@@ -1432,7 +1440,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           100.times(&new_object)
           after_allocations = described_class._native_allocation_count
 
-          expect(after_allocations - before_allocations).to be 100
+          expect(after_allocations - before_allocations).to eq 100
         ensure
           GC.enable
         end

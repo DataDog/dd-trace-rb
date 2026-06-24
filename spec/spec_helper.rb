@@ -1,7 +1,7 @@
 $LOAD_PATH.unshift File.expand_path('..', __dir__)
 $LOAD_PATH.unshift File.expand_path('../lib', __dir__)
 
-Thread.main.name = 'Thread.main' unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+Thread.main.name = 'Thread.main'
 
 require 'pry'
 require 'rspec/collection_matchers'
@@ -24,6 +24,10 @@ end
 require 'datadog/core/encoding'
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/span'
+
+# Expose the version helper to specs as a bare `RubyVersion` (alias for Datadog::RubyVersion).
+require 'datadog/ruby_version'
+RubyVersion = Datadog::RubyVersion
 
 require 'support/core_helpers'
 require 'support/environment_helpers'
@@ -159,7 +163,7 @@ RSpec.configure do |config|
     end
   end
 
-  if RUBY_VERSION < '2.6'
+  if RubyVersion.is?('< 2.6')
     config.before(:each) do |example|
       if example.file_path.include?('/symbol_database/') && !example.metadata[:symdb_supported_platforms]
         skip 'Symbol database requires Ruby 2.6+'
@@ -170,6 +174,22 @@ RSpec.configure do |config|
   config.before(:example, ractors: true) do
     unless config.filter_manager.inclusions[:ractors]
       skip 'Skipping ractor tests. Use rake spec:profiling:ractors or pass -t ractors to rspec to run.'
+    end
+  end
+
+  # Repeat each example N times to flush out transient failures.
+  # Usage: RSPEC_REPEAT=100 bundle exec rspec spec/path/to_spec.rb:123
+  if (repeat_count = Integer(ENV['RSPEC_REPEAT'] || 1)) > 1
+    config.around do |example|
+      repeat_count.times do |i|
+        example.run
+        if example.exception
+          warn "Failed on repetition #{i + 1}/#{repeat_count}"
+          break
+        end
+        example.example_group_instance.send(:__init_memoized)
+        example.instance_variable_set(:@exception, nil)
+      end
     end
   end
 
@@ -337,7 +357,7 @@ require 'spec/support/thread_helpers'
 if ENV.key?('CI')
   ThreadHelpers.with_leaky_thread_creation('Deadline thread') do
     Thread.new do
-      Thread.current.name = 'spec_helper.rb CI debugging Deadline thread' unless RUBY_VERSION.start_with?('2.1.', '2.2.')
+      Thread.current.name = 'spec_helper.rb CI debugging Deadline thread'
 
       sleep_time = 30 * 60 # 30 minutes
       sleep(sleep_time)

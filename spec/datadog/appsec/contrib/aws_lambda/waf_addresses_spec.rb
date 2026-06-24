@@ -132,6 +132,104 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
       it { expect(result).not_to have_key('server.request.body') }
     end
 
+    context 'when body exceeds the parsing size limit' do
+      before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(4) }
+
+      let(:payload) do
+        {
+          'headers' => {'Content-Type' => 'application/json'},
+          'body' => '{"key":"value"}',
+          'base64_encoded' => false,
+        }
+      end
+
+      it { expect(result).not_to have_key('server.request.body') }
+      it { expect(result['server.request.body.byte_length']).to eq(15) }
+    end
+
+    context 'when the parsing size limit is zero' do
+      before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(0) }
+
+      let(:payload) do
+        {
+          'headers' => {'Content-Type' => 'application/json'},
+          'body' => '{"key":"value"}',
+          'base64_encoded' => false,
+        }
+      end
+
+      it { expect(result).not_to have_key('server.request.body') }
+      it { expect(result['server.request.body.byte_length']).to eq(15) }
+    end
+
+    context 'when payload has plain JSON body' do
+      let(:payload) do
+        {
+          'headers' => {'Content-Type' => 'application/json'},
+          'body' => '{"key":"value"}',
+          'base64_encoded' => false,
+        }
+      end
+
+      it { expect(result['server.request.body.byte_length']).to eq(15) }
+    end
+
+    context 'when payload has base64-encoded body' do
+      let(:payload) do
+        {
+          'headers' => {'Content-Type' => 'application/json'},
+          'body' => 'eyJrZXkiOiJ2YWx1ZSJ9',
+          'base64_encoded' => true,
+        }
+      end
+
+      it { expect(result['server.request.body.byte_length']).to eq(15) }
+    end
+
+    context 'when payload has no body' do
+      let(:payload) { {'headers' => {}} }
+
+      it { expect(result).not_to have_key('server.request.body.byte_length') }
+    end
+
+    context 'when base64-encoded body is malformed' do
+      before { allow(Datadog::AppSec.telemetry).to receive(:report) }
+
+      let(:payload) do
+        {
+          'headers' => {'Content-Type' => 'application/json'},
+          'body' => '!!!!',
+          'base64_encoded' => true,
+        }
+      end
+
+      it { expect(result).not_to have_key('server.request.body') }
+      it { expect(result['server.request.body.byte_length']).to eq(3) }
+
+      it 'reports the decode error to telemetry' do
+        result
+
+        expect(Datadog::AppSec.telemetry).to have_received(:report).with(
+          kind_of(ArgumentError), description: 'AppSec: Failed to decode base64 body'
+        )
+      end
+    end
+
+    context 'when base64-encoded body exceeds the parsing size limit' do
+      before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(4) }
+
+      let(:payload) do
+        {
+          'headers' => {'Content-Type' => 'application/json'},
+          'body' => 'eyJrZXkiOiJ2YWx1ZSJ9',
+          'base64_encoded' => true,
+        }
+      end
+
+      it { expect(result).not_to have_key('server.request.body') }
+      it { expect(result['server.request.body.byte_length']).to eq(15) }
+    end
+
     context 'when payload has body with no content-type' do
       let(:payload) do
         {
@@ -245,6 +343,40 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
       let(:payload) { {'headers' => {}} }
 
       it { expect(result).not_to have_key('server.response.status') }
+    end
+
+    context 'when payload has a body' do
+      let(:payload) do
+        {
+          'headers' => {'Content-Type' => 'application/json'},
+          'body' => '{"key":"value"}',
+          'base64_encoded' => false,
+        }
+      end
+
+      it { expect(result['server.response.body']).to eq('key' => 'value') }
+      it { expect(result['server.response.body.byte_length']).to eq(15) }
+    end
+
+    context 'when body exceeds the parsing size limit' do
+      before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(4) }
+
+      let(:payload) do
+        {
+          'headers' => {'Content-Type' => 'application/json'},
+          'body' => '{"key":"value"}',
+          'base64_encoded' => false,
+        }
+      end
+
+      it { expect(result).not_to have_key('server.response.body') }
+      it { expect(result['server.response.body.byte_length']).to eq(15) }
+    end
+
+    context 'when payload has no body' do
+      let(:payload) { {'headers' => {}} }
+
+      it { expect(result).not_to have_key('server.response.body.byte_length') }
     end
   end
 end

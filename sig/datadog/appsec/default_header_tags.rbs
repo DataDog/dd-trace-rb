@@ -1,7 +1,7 @@
 module Datadog
   module AppSec
     module DefaultHeaderTags
-      WAF_VENDOR_HEADERS_TAGS: Array[String]
+      REQUEST_HEADERS_TAGS: Array[String]
 
       RESPONSE_HEADERS_TAGS: Array[String]
 

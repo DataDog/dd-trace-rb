@@ -71,11 +71,8 @@ module ProfileHelpers
   end
 
   def object_id_from(thread_id)
-    if thread_id != "GC"
-      Integer(thread_id.match(/\d+ \((?<object_id>\d+)\)/)[:object_id])
-    else
-      -1
-    end
+    match = thread_id.match(/\d+ \((?<object_id>\d+)\)/)
+    match ? Integer(match[:object_id]) : -1
   end
 
   def samples_for_thread(samples, thread, expected_size: nil)
@@ -106,7 +103,7 @@ module ProfileHelpers
   end
 
   def skip_if_gvl_profiling_not_supported(testcase)
-    if RUBY_VERSION < "3.2."
+    if RubyVersion.is?("< 3.2")
       testcase.skip "GVL profiling is only supported on Ruby >= 3.2"
     end
   end

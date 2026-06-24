@@ -16,11 +16,23 @@ module Datadog
 
       def extract: (Module mod) -> Scope?
 
-      def extract_all: () -> Array[Scope]
+      def extract_all: () -> ::Array[Scope]
+                     | () { (Scope) -> void } -> nil
 
       private
 
+      def build_per_file_index: () -> ::Hash[::String, ::Array[[::String, Module, ::Array[::Symbol]]]]
+
+      def collect_method_names_by_file: (Module mod) -> ::Hash[::String, ::Array[::Symbol]]
+
+      def build_file_scope: (::String file_path, ::Array[[::String, Module, ::Array[::Symbol]]] entries) -> Scope?
+
+      def convert_tree_to_scope: (::String file_path, untyped root) -> Scope
+
+
       def safe_mod_name: (Module mod) -> String?
+
+      def resolves_to_same_module?: (String mod_name, Module mod) -> bool
 
       def user_code_module?: (Module mod) -> bool
 
@@ -50,17 +62,9 @@ module Datadog
 
       def extract_method_parameters: (UnboundMethod method) -> Array[Symbol]
 
-      def collect_extractable_modules: () -> Hash[String, untyped]
-
-      def group_methods_by_file: (Module mod) -> Hash[String, Array[untyped]]
-
-      def build_file_trees: (Hash[String, untyped] entries) -> Hash[String, untyped]
-
       def place_in_tree: (untyped root, Array[String] name_parts, Module mod, String mod_name, Array[untyped] methods, String file_path) -> void
 
       def resolve_scope_type: (String fqn) -> String
-
-      def convert_trees_to_scopes: (Hash[String, untyped] file_trees) -> Array[Scope]
 
       def convert_node_to_scope: (untyped node) -> Scope
 

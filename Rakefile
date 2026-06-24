@@ -1,6 +1,5 @@
 require 'bundler/gem_tasks'
 require 'datadog/version'
-require 'rubocop/rake_task' if Gem.loaded_specs.key? 'rubocop'
 require 'standard/rake' if Gem.loaded_specs.key? 'standard'
 require 'rspec/core/rake_task'
 require 'rake/extensiontask'
@@ -94,7 +93,7 @@ namespace :spec do
     :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
     :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
     :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
-    :profiling, :core_with_libdatadog_api, :"di:di_with_ext", :error_tracking, :open_feature, :core_with_rails, :environment, :ai_guard]
+    :profiling, :core_with_libdatadog_api, :"di:di_with_ext", :"di:ractors", :error_tracking, :open_feature, :core_with_rails, :environment, :ai_guard]
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
@@ -477,7 +476,19 @@ namespace :spec do
     RSpec::Core::RakeTask.new(:di_with_ext) do |t, args|
       t.pattern = DI_WITH_EXT.join(', ')
       t.exclude_pattern = 'spec/datadog/di/contrib/**/*_spec.rb'
-      t.rspec_opts = args.to_a.join(' ')
+      t.rspec_opts = [*args.to_a, '-t ~ractors'].join(' ')
+    end.tap do |t|
+      Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
+    end
+
+    # Ractor creation transitions the entire Ruby VM into multi-ractor mode permanently
+    # and can introduce order-dependent side effects on later examples. Splitting these
+    # examples into a dedicated task mirrors spec:profiling:ractors (see Rakefile around
+    # spec:profiling:main / :ractors) and keeps the regular DI job from mutating VM mode.
+    RSpec::Core::RakeTask.new(:ractors) do |t, args|
+      t.pattern = DI_WITH_EXT.join(', ')
+      t.exclude_pattern = 'spec/datadog/di/contrib/**/*_spec.rb'
+      t.rspec_opts = [*args.to_a, '-t ractors'].join(' ')
     end.tap do |t|
       Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
     end
@@ -550,11 +561,6 @@ namespace :spec do
   task profiling: [:"profiling:all"]
 end
 
-if defined?(RuboCop::RakeTask)
-  RuboCop::RakeTask.new(:rubocop) do |_t|
-  end
-end
-
 # Jobs are parallelized if running in CI.
 desc 'CI task; it runs all tests for current version of Ruby'
 task ci: 'test:all'
@@ -586,14 +592,6 @@ namespace :coverage do
         formatter SimpleCov::Formatter::HTMLFormatter
       end
     end
-  end
-end
-
-namespace :changelog do
-  task :format do
-    require 'pimpmychangelog'
-
-    PimpMyChangelog::CLI.run!
   end
 end
 
@@ -638,8 +636,8 @@ namespace :native_dev do
   CLEAN.concat(NATIVE_CLEAN)
 end
 
-desc 'Runs rubocop + main test suite'
-task default: ['lint:all', 'rubocop', 'standard', 'typecheck', 'spec:main']
+desc 'Runs lint + main test suite'
+task default: ['lint:all', 'standard', 'typecheck', 'spec:main']
 
 desc 'Runs the default task in parallel'
-multitask fastdefault: ['lint:all', 'rubocop', 'standard', 'typecheck', 'spec:main']
+multitask fastdefault: ['lint:all', 'standard', 'typecheck', 'spec:main']

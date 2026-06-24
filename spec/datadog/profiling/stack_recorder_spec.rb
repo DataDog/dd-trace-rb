@@ -460,7 +460,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         before do
-          skip "Heap profiling is only supported on Ruby >= 2.7" if RUBY_VERSION < "2.7"
+          skip "Heap profiling is only supported on Ruby >= 2.7" unless RubyVersion.is?(">= 2.7")
         end
 
         it "include the stack and sample counts for the objects still left alive" do
@@ -792,6 +792,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             end
 
             it "enforces a minimum time between heap updates" do
+              skip_asan_flaky
+
               test_object_id_1 = sample_and_clear
 
               expect { recorder_after_gc_step }.to change { is_object_recorded?(test_object_id_1) }.from(true).to(false)
@@ -802,6 +804,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             end
 
             it "does not apply the minimum time between heap updates when serializing" do
+              skip_asan_flaky
+
               test_object_id_1 = sample_and_clear
 
               expect { recorder_after_gc_step }.to change { is_object_recorded?(test_object_id_1) }.from(true).to(false)
@@ -1018,7 +1022,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       let(:heap_size_enabled) { true }
 
       before do
-        skip "Heap profiling is only supported on Ruby >= 2.7" if RUBY_VERSION < "2.7"
+        skip "Heap profiling is only supported on Ruby >= 2.7" unless RubyVersion.is?(">= 2.7")
       end
 
       def sample_allocation(obj)

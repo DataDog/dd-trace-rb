@@ -152,6 +152,30 @@ bundle exec rake dependency:lock['/app/gemfiles/ruby_3.4_stripe_*.gemfile']
 bundle exec rake dependency:lock['/app/gemfiles/ruby_3.4_stripe_latest.gemfile']
 ```
 
+**Lockfile layout**
+
+Under `gemfiles/` there are two layers of lockfiles:
+
+1. **Parent locks** — `gemfiles/ruby-X.Y.gemfile.lock`, one per supported Ruby. Holds the shared development tooling plus the `datadog.gemspec` runtime dependencies.
+2. **Appraisal locks** — `gemfiles/ruby_X_Y_<group>.gemfile.lock`, one per integration group. Each adds the integration under test on top of the parent's gem set.
+
+The two layers are independent Bundler resolutions of overlapping gem sets and will drift on shared gems without active sync.
+
+**Task surfaces**
+
+Two rake namespaces, with different intents:
+
+- `tasks/dependency.rake` (`rake -T dependency:`) — keeps lockfiles consistent with the current gemfile constraints, including propagating parent-layer movement into appraisal locks. Does not move versions on its own.
+- `tasks/edge.rake` (`rake -T edge:`) — intentionally moves versions toward the latest within constraints. Includes an allowlist for integration libraries we explicitly want tracking latest; appraisals outside the allowlist stay where their gemfile pins them.
+
+**CI automation**
+
+Three workflows exercise the above; you should rarely need to run the tasks by hand. The workflow YAML and per-step `name:` fields are the source of truth for what each one does — only the high-level role is captured here.
+
+- `.github/workflows/lock-dependency.yml` — on-PR. Runs whenever a dependency-relevant file changes (see `.github/dependency_filters.yml`). Keeps the appraisal layer consistent with the parent layer and with any gemfile changes the PR introduced, and commits the result back to the PR.
+- `.github/workflows/update-latest-dependency.yml` — Sunday cron + manual dispatch. Moves versions forward and opens a single aggregated PR. That PR then triggers `lock-dependency.yml`, so propagation runs in the same PR.
+- `.github/workflows/bump-gem-version.yml` — invoked from the release flow to rewrite the datadog version pin everywhere it appears.
+
 **How to add a new dependency group**
 
 > [!IMPORTANT]
@@ -316,20 +340,8 @@ https://github.com/datadog/dd-apm-test-agent#readme
 
 **Linting**
 
-Most of the library uses Rubocop to enforce [code style](https://github.com/bbatsov/ruby-style-guide) and quality. To check, run:
-
-```
-bundle exec rake rubocop
-```
-
-To change your code to the version that rubocop wants, run:
-
-```
-bundle exec rake rubocop -A
-```
-
-Profiling and Dynamic Instrumentation use [standard](https://github.com/standardrb/standard)
-instead of Rubocop. To check files with standard, run:
+The library uses [standard](https://github.com/standardrb/standard) to enforce code style and quality.
+Custom cops (under the `CustomCops/` namespace) run as part of the same check. To check, run:
 
 ```
 bundle exec rake standard

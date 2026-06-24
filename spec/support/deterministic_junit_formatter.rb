@@ -24,9 +24,12 @@ class DeterministicJunitFormatter < RspecJunitFormatter
     # ISO 8601 timestamp: "2026-04-02 14:19:20.830733764 +0000" → <timestamp>
     [/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}[\d. +-]*/, '<timestamp>'],
     # Time.now.to_i → <time>
-    [/\b\d{10}\b/, '<time>'],
+    [/\b\d{10}(\.\d+)?\b/, '<time>'],
     # hostname=>"15c5f63b0f37" → hostname=>"<hostname>"
     [/hostname=>"[0-9a-f]{12}"/, 'hostname=>"<hostname>"'],
+    # "time_unix_nano" => 1779815589385879876 → time_unix_nano => <time_unix_nano>
+    [/"time_unix_nano" ?=> ?\d{15,}/, 'time_unix_nano => <time_unix_nano>'],
+
   ]
 
   private

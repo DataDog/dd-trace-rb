@@ -28,6 +28,7 @@ gem "rails", git: "https://github.com/DataDog/rails", ref: "592dfae8747db3bb28c3
 gem "pg", "< 1.0"
 gem "sprockets", "< 4"
 gem "lograge", "~> 0.11"
+gem "bigdecimal", "< 2"
 
 group :dev do
 

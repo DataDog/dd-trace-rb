@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.35.0)
+    datadog (2.36.0)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
-      libdatadog (~> 33.0.0.1.0)
+      libdatadog (~> 35.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
@@ -12,18 +12,18 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    addressable (2.8.8)
+    addressable (2.9.0)
       public_suffix (>= 2.0.2, < 8.0)
-    benchmark-ips (2.14.0)
+    benchmark-ips (2.15.1)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
-    bigdecimal (4.0.1)
+    bigdecimal (4.1.2)
     builder (3.3.0)
     byebug (11.1.3)
     cgi (0.5.1)
     climate_control (1.2.0)
     coderay (1.1.3)
-    concurrent-ruby (1.3.6)
+    concurrent-ruby (1.3.7)
     crack (1.0.1)
       bigdecimal
       rexml
@@ -56,16 +56,25 @@ GEM
     docile (1.4.1)
     dogstatsd-ruby (5.7.1)
     ffi (1.17.2-aarch64-linux-gnu)
+    ffi (1.17.2-arm64-darwin)
+    ffi (1.17.2-x86_64-darwin)
     ffi (1.17.2-x86_64-linux-gnu)
     google-protobuf (3.19.1)
+    google-protobuf (3.19.1-x86_64-darwin)
     google-protobuf (3.19.1-x86_64-linux)
     hashdiff (1.2.1)
     io-console (0.8.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (33.0.0.1.0-aarch64-linux)
-    libdatadog (33.0.0.1.0-x86_64-linux)
+    libdatadog (35.0.0.1.0)
+    libdatadog (35.0.0.1.0-aarch64-linux)
+    libdatadog (35.0.0.1.0-arm64-darwin)
+    libdatadog (35.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.2-aarch64-linux)
+      ffi (~> 1.0)
+    libddwaf (1.30.0.0.2-arm64-darwin)
+      ffi (~> 1.0)
+    libddwaf (1.30.0.0.2-x86_64-darwin)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.2-x86_64-linux)
       ffi (~> 1.0)
@@ -78,7 +87,7 @@ GEM
       mime-types-data (~> 3.2025, >= 3.2025.0507)
     mime-types-data (3.2025.0924)
     minitest (5.25.4)
-    msgpack (1.8.1)
+    msgpack (1.8.3)
     multi_test (1.1.0)
     os (1.1.4)
     pry (0.16.0)
@@ -86,7 +95,7 @@ GEM
       method_source (~> 1.0)
       reline (>= 0.6.0)
     public_suffix (5.1.1)
-    rake (13.3.1)
+    rake (13.4.2)
     rake-compiler (1.3.1)
       rake
     reline (0.6.3)
@@ -103,10 +112,10 @@ GEM
     rspec-expectations (3.13.5)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
-    rspec-mocks (3.13.7)
+    rspec-mocks (3.13.8)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.13.0)
-    rspec-support (3.13.6)
+    rspec-support (3.13.7)
     rspec-wait (0.0.10)
       rspec (>= 3.0)
     rspec_junit_formatter (0.6.0)
@@ -121,15 +130,17 @@ GEM
     sys-uname (1.4.0)
       ffi (~> 1.1)
       memoist (~> 0.16.2)
-    warning (1.5.0)
-    webmock (3.26.1)
+    warning (1.6.0)
+    webmock (3.26.2)
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
-    zstd-ruby (2.0.5)
+    zstd-ruby (2.0.6)
 
 PLATFORMS
   aarch64-linux
+  arm64-darwin
+  x86_64-darwin
   x86_64-linux
 
 DEPENDENCIES

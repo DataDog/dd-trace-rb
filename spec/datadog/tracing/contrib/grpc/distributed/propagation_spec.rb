@@ -14,13 +14,15 @@ RSpec.describe Datadog::Tracing::Contrib::GRPC::Distributed::Propagation do
     described_class.new(
       propagation_style_inject: propagation_style_inject,
       propagation_style_extract: propagation_style_extract,
-      propagation_extract_first: propagation_extract_first
+      propagation_extract_first: propagation_extract_first,
+      propagation_behavior_extract: propagation_behavior_extract
     )
   end
 
   let(:propagation_style_inject) { ['datadog', 'tracecontext', 'baggage'] }
   let(:propagation_style_extract) { ['datadog', 'tracecontext', 'baggage'] }
   let(:propagation_extract_first) { false }
+  let(:propagation_behavior_extract) { 'continue' }
 
   it 'contains default inject propagation styles in its propagation styles list' do
     expect(propagation.instance_variable_get(:@propagation_styles).keys)

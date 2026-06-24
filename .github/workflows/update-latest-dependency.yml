@@ -46,18 +46,24 @@ jobs:
         BUNDLE_GEMFILE: gemfiles/${{ matrix.engine.name }}-${{ matrix.engine.version }}.gemfile
     steps:
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
       - name: Bundle
         run: bundle install
-      - name: Update latest
+      - name: Ensure parent lockfile platforms
+        run: bundle lock --add-platform x86_64-linux aarch64-linux arm64-darwin x86_64-darwin
+      - name: Update (parent level)
+        run: bundle update
+      - name: Update (child level)
         run: bundle exec rake edge:gemspec edge:update
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: 'gha${{ github.run_id }}-datadog-gem-${{ matrix.engine.name }}-${{ matrix.engine.version }}'
-          path: gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}_*
+          path: |
+            gemfiles/${{ matrix.engine.name }}-${{ matrix.engine.version }}.gemfile.lock
+            gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}_*
           retention-days: 1
 
   aggregate:
@@ -67,7 +73,7 @@ jobs:
       id-token: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
@@ -78,6 +84,10 @@ jobs:
           pattern: gha${{ github.run_id }}-datadog-gem-*
           merge-multiple: true
 
+      # Use dd-octo-sts (not GITHUB_TOKEN) so the PR opens with a token that
+      # triggers downstream workflows. lock-dependency.yml must fire on this PR
+      # for `dependency:propagate` to run; PRs created with GITHUB_TOKEN do not
+      # dispatch workflows, so swapping the token would silently break propagation.
       - name: Get GitHub Token via dd-octo-sts
         id: generate-token
         uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4

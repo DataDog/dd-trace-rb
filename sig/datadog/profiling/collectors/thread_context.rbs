@@ -21,6 +21,7 @@ module Datadog
           waiting_for_gvl_threshold_ns: ::Integer,
           otel_context_enabled: (::Symbol? | bool),
           native_filenames_enabled: bool,
+          overhead_filename: ::String,
         ) -> void
 
         def self.for_testing: (

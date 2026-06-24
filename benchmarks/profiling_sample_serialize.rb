@@ -13,10 +13,6 @@ puts "Libdatadog from: #{Libdatadog.pkgconfig_folder}"
 # the profiler and/or libdatadog that may impact both individual samples, as well as samples over time (e.g. timeline).
 
 class ProfilerSampleSerializeBenchmark
-  # This is needed because we're directly invoking the collector through a testing interface; in normal
-  # use a profiler thread is automatically used.
-  PROFILER_OVERHEAD_STACK_THREAD = Thread.new { sleep }
-
   def create_profiler
     @recorder = Datadog::Profiling::StackRecorder.for_testing
     @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder)
@@ -32,7 +28,7 @@ class ProfilerSampleSerializeBenchmark
         simulate_seconds = 60
 
         (samples_per_second * simulate_seconds).times do
-          Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD, false)
+          Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, false)
         end
 
         @recorder.serialize

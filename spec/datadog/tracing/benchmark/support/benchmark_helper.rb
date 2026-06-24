@@ -195,7 +195,7 @@ RSpec.shared_context 'benchmark' do
     # CPU profiling report
     context 'RubyProf report' do
       before do
-        if PlatformHelpers.jruby? || Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.4.0')
+        if PlatformHelpers.jruby?
           skip("'ruby-prof' not supported")
         end
       end
