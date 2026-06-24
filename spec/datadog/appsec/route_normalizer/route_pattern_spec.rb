@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'datadog/appsec/route_normalizer'
+require 'datadog/appsec/route_normalizer/route_pattern'
 
 RSpec.describe Datadog::AppSec::RouteNormalizer::RoutePattern do
   describe '#normalize' do
@@ -81,7 +81,19 @@ RSpec.describe Datadog::AppSec::RouteNormalizer::RoutePattern do
     context 'when a request path resolves optional groups' do
       it { expect(described_class.new('/posts/:id(.:format)').normalize(request_path: '/posts/42.json')).to eq('/posts/{id+format}') }
       it { expect(described_class.new('/posts/:id(.:format)').normalize(request_path: '/posts/42')).to eq('/posts/{id}') }
+      it { expect(described_class.new('/posts/:id(-:slug)').normalize(request_path: '/posts/42-hello')).to eq('/posts/{id+slug}') }
       it { expect(described_class.new('/posts(/:year(/:month))').normalize(request_path: '/posts/2024')).to eq('/posts/{year}') }
+      it { expect(described_class.new('/posts/:id(.:format)').normalize(request_path: '/users/42')).to eq('/posts/{id+format}') }
+      it { expect(described_class.new('/posts(/:id)/edit').normalize(request_path: '/posts/edit')).to eq('/posts/edit') }
+      it { expect(described_class.new('/files/*path(.:format)').normalize(request_path: '/files/a.txt')).to eq('/files/{path+format}') }
+
+      it 'lets glob params span to a following segment' do
+        expect(
+          described_class.new('/books/*section/:title(.:format)').normalize(request_path: '/books/some/section/last-words.json')
+        ).to eq('/books/{section}/{title+format}')
+      end
+
+      it { expect(described_class.new('/posts/:id(.:format)').normalize(request_path: "/posts/#{'a' * 9000}")).to eq('/posts/{id+format}') }
     end
 
     context 'with Sinatra-style patterns' do
@@ -89,6 +101,8 @@ RSpec.describe Datadog::AppSec::RouteNormalizer::RoutePattern do
       it { expect(described_class.new('/files/*').normalize).to eq('/files/{param1}') }
       it { expect(described_class.new('/download/*.*').normalize).to eq('/download/{param1+param2}') }
       it { expect(described_class.new('/say/*/to/*').normalize).to eq('/say/{param1}/to/{param2}') }
+      it { expect(described_class.new('/posts/:id.?:format?').normalize(request_path: '/posts/1')).to eq('/posts/{id}') }
+      it { expect(described_class.new('/posts/:id.?:format?').normalize(request_path: '/posts/1.json')).to eq('/posts/{id+format}') }
     end
 
     context 'with Grape-style patterns' do
