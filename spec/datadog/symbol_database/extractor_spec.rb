@@ -2535,6 +2535,117 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
     end
 
+    context 'class marked with private_constant' do
+      # Coverage parity with ObjectSpace.each_object(Module). A class marked
+      # with `private_constant` is still a fully-loaded user class with
+      # methods; DI should still serve its methods to the autocomplete UI.
+      #
+      # ObjectSpace iterates by object identity, so private_constant'd
+      # classes are reached regardless of name visibility. Any alternative
+      # enumeration that relies on Module#constants must include private
+      # constants too — `Module#constants` never returns them regardless of
+      # the inherit argument (there is no public API to list private
+      # constants), which is the trap this regression test guards against.
+      before do
+        @file = create_test_file('private_constant_host.rb', <<~RUBY)
+          class ExtractAllPrivateConstantHost
+            class Worker
+              def do_work
+              end
+            end
+            private_constant :Worker
+          end
+        RUBY
+        load @file
+      end
+
+      after do
+        if Object.const_defined?(:ExtractAllPrivateConstantHost, false)
+          Object.send(:remove_const, :ExtractAllPrivateConstantHost)
+        end
+      end
+
+      it 'includes the private inner class in extract_all output' do
+        # Preconditions: verify the fixture is actually exercising private-constant
+        # visibility. Module#constants(false) excludes private constants; an attempt to
+        # access Worker via :: raises NameError with a "private constant" message. If
+        # either of these stops holding (typo in the fixture, Ruby semantics change),
+        # the test fails fast on the precondition rather than passing for the wrong
+        # reason. Module#private_constants is not a real method on any Ruby version, so
+        # the visibility-raise is the direct way to assert what private_constant does.
+        expect(ExtractAllPrivateConstantHost.constants(false)).not_to include(:Worker)
+        expect { ExtractAllPrivateConstantHost::Worker }.to raise_error(NameError, /private constant/)
+
+        scopes = extract_all_clean
+        file_scope = scopes.find { |s| s.scope_type == 'FILE' && s.name == @file }
+        expect(file_scope).not_to be_nil
+
+        host = file_scope.scopes.find { |s| s.name == 'ExtractAllPrivateConstantHost' }
+        expect(host).not_to be_nil
+
+        worker = host.scopes.find { |s| s.name == 'ExtractAllPrivateConstantHost::Worker' }
+        expect(worker).not_to be_nil
+        expect(worker.scopes.map(&:name)).to include('do_work')
+      end
+    end
+
+    context 'class aliased to a second constant after the original constant is removed' do
+      # CRuby caches Module#name on first assignment and never invalidates it.
+      # If a class is assigned to constant :A, then aliased as :B, and then
+      # :A is removed, the class stays reachable via :B but `mod.name` still
+      # returns "A" — a name that no longer resolves.
+      #
+      # extract_all must not emit a scope under the stale name "A". The
+      # current implementation filters this via `resolves_to_same_module?`
+      # inside `build_per_file_index`, which segment-walks "A" from Object
+      # and finds the const removed. Any alternative enumeration that
+      # trusts Module#name without re-validating against the current
+      # binding regresses on this case.
+      before do
+        @file = create_test_file('aliased_after_remove_const.rb', <<~RUBY)
+          class ExtractAllAliasOriginal
+            def aliased_method
+            end
+          end
+        RUBY
+        load @file
+
+        # Alias under a second constant, then remove the original.
+        # The :ExtractAllAliasSurvivor binding on Object keeps the class
+        # alive through the after hook; no separate @ivar is needed.
+        # `mod.name` continues to report the cached "ExtractAllAliasOriginal".
+        Object.const_set(:ExtractAllAliasSurvivor, ExtractAllAliasOriginal)
+        Object.send(:remove_const, :ExtractAllAliasOriginal)
+      end
+
+      after do
+        if Object.const_defined?(:ExtractAllAliasSurvivor, false)
+          Object.send(:remove_const, :ExtractAllAliasSurvivor)
+        end
+        if Object.const_defined?(:ExtractAllAliasOriginal, false)
+          Object.send(:remove_const, :ExtractAllAliasOriginal)
+        end
+      end
+
+      it 'does not emit a scope under the stale (removed) original name' do
+        scopes = extract_all_clean
+
+        # The test forbids one outcome: emitting a scope under the stale
+        # (removed) name "ExtractAllAliasOriginal". Two outcomes are
+        # acceptable and both depend on the enumeration strategy:
+        #   - the class is absent entirely (Module#name's cache reports the
+        #     stale name, so an enumeration that filters by current binding
+        #     drops it); or
+        #   - the class surfaces under the surviving alias.
+        stale_emitted = scopes.any? do |file_scope|
+          next false unless file_scope.scope_type == 'FILE'
+          file_scope.scopes.any? { |child| child.name == 'ExtractAllAliasOriginal' }
+        end
+
+        expect(stale_emitted).to be(false)
+      end
+    end
+
     context 'namespace-only module entry with empty method list' do
       # Regression guard for the Pass 1 → Pass 2 stale-method recheck in
       # build_file_scope. Pass 1 records namespace-only modules (no own
