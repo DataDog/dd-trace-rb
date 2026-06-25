@@ -117,8 +117,8 @@ module Datadog
         cls = symbolize_class_name(probe.type_name)
         serializer = self.serializer
         method_name = probe.method_name
-        loc = begin
-          cls.instance_method(method_name).source_location # steep:ignore ArgumentTypeMismatch
+        target_method = begin
+          cls.instance_method(method_name) # steep:ignore ArgumentTypeMismatch
         rescue NameError
           # The target method is not defined.
           # This could be because it will be explicitly defined later
@@ -126,7 +126,26 @@ module Datadog
           # or the method is virtual (provided by a method_missing handler).
           # In these cases we do not have a source location for the
           # target method here.
+          nil
         end
+
+        # Reject method probes whose target method resolves to Kernel#lambda,
+        # including inherited targets. Every class inherits Kernel#lambda, so a
+        # probe naming any type that does not override lambda (Object#lambda,
+        # String#lambda, a plain user class, ...) prepends the wrapper ahead of
+        # Kernel#lambda and reaches the wrapper's super(&block) path. On
+        # Ruby 3.3+ that path raises ArgumentError for every lambda { ... }
+        # call site passing a captured block, breaking lambda creation
+        # process-wide. Resolving the method owner catches the inherited case
+        # that a textual "Kernel" name match misses; a type that defines its
+        # own lambda has a different owner and is left alone. Probing lambda
+        # creation has no legitimate customer use case. See #5560.
+        if method_name == "lambda" && target_method&.owner == ::Kernel
+          raise Error::ProbeTargetForbidden,
+            "Method probes on Kernel#lambda are not permitted: #{probe.type_name}##{method_name}"
+        end
+
+        loc = target_method&.source_location
         rate_limiter = probe.rate_limiter
         settings = self.settings
         instrumenter = self
