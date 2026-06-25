@@ -622,11 +622,24 @@ module Datadog
       # that pass a hash positionally (e.g. `m(opts)`) still expect it shown
       # as a keyword argument, consistent with Ruby 2.x serialization.
       #
+      # The trailing-element test goes through IS_A_UNBOUND rather than
+      # `last.is_a?(Hash)`: kwargs_from_splat runs before the re-entrancy
+      # guard is set, so a customer method probe on Kernel#is_a? would
+      # otherwise re-enter the wrapper and recurse.
+      #
       # Defined only on Ruby < 3; the Ruby 3+ wrapper captures keyword
       # arguments directly and never calls this.
       if RUBY_VERSION < '3'
+        # Captured at load time, before any probe can prepend an is_a?
+        # override. Invoking the original through the unbound method bypasses
+        # a customer probe on Kernel#is_a?, avoiding recursion (see above).
+        IS_A_UNBOUND = ::Kernel.instance_method(:is_a?)
+
         def kwargs_from_splat(args)
-          if !DI.array_empty?(args) && (last = args.last).is_a?(Hash)
+          return [args, {}] if DI.array_empty?(args)
+
+          last = args.last
+          if IS_A_UNBOUND.bind(last).call(::Hash)
             [args[0...-1], last]
           else
             [args, {}]
