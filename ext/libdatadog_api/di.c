@@ -169,6 +169,23 @@ static VALUE hash_empty_p(DDTRACE_UNUSED VALUE _self, VALUE obj) {
 
 /*
  * call-seq:
+ *   DI.hash?(obj) -> true | false
+ *
+ * Returns whether the given object is a Hash via a direct type check
+ * (RB_TYPE_P), bypassing Kernel#is_a? method dispatch. Used in the method
+ * probe wrapper (the Ruby < 3 argument-serialization split) to test whether
+ * the trailing argument is a hash without giving a user-installed method
+ * probe on Kernel#is_a? a chance to recurse. Matches Hash and its
+ * subclasses, like is_a?(Hash), since their instances are still T_HASH.
+ *
+ * @api private
+ */
+static VALUE is_hash(DDTRACE_UNUSED VALUE _self, VALUE obj) {
+  return RB_TYPE_P(obj, T_HASH) ? Qtrue : Qfalse;
+}
+
+/*
+ * call-seq:
  *   DI.invoke_proc(proc, *args) -> Object
  *
  * Invokes a Proc with the given positional arguments, bypassing Proc#call
@@ -248,6 +265,7 @@ void di_init(VALUE datadog_module) {
   rb_define_singleton_method(di_module, "leave_probe", leave_probe, 0);
   rb_define_singleton_method(di_module, "array_empty?", array_empty_p, 1);
   rb_define_singleton_method(di_module, "hash_empty?", hash_empty_p, 1);
+  rb_define_singleton_method(di_module, "hash?", is_hash, 1);
   rb_define_singleton_method(di_module, "invoke_proc", invoke_proc, -1);
 #ifdef HAVE_RB_ISEQ_TYPE
   rb_define_singleton_method(di_module, "iseq_type", iseq_type, 1);

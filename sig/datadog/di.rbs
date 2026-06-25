@@ -21,6 +21,9 @@ module Datadog
     # predicates that never read array elements or hash values.
     def self.array_empty?: (::Array[untyped]) -> bool
     def self.hash_empty?: (::Hash[untyped, untyped]) -> bool
+    # accepts any object: this is a type predicate that tests whether the
+    # argument is a Hash, so the parameter is intentionally untyped.
+    def self.hash?: (untyped) -> bool
     # args and return are untyped: variadic forwarding to a customer-supplied
     # Proc whose signature and return value are unknown to this primitive.
     def self.invoke_proc: (::Proc proc, *untyped args) -> untyped

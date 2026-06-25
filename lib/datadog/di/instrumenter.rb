@@ -156,7 +156,7 @@ module Datadog
                 return super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
               end
 
-              do_super = ->(a, k, blk) { super(*a, **k, &blk) } # steep:ignore FallbackAny
+              do_super = ->(a, k, blk) { super(*a, **k, &blk) }
 
               instrumenter.run_method_probe(
                 args, kwargs, target_block, # steep:ignore FallbackAny
@@ -185,7 +185,7 @@ module Datadog
                 loc, method_name,
               )
             end
-            ruby2_keywords(method_name) if respond_to?(:ruby2_keywords, true)
+            ruby2_keywords(method_name) if respond_to?(:ruby2_keywords, true) # steep:ignore NoMethod
           end
         end
 
@@ -622,25 +622,21 @@ module Datadog
       # that pass a hash positionally (e.g. `m(opts)`) still expect it shown
       # as a keyword argument, consistent with Ruby 2.x serialization.
       #
-      # The trailing-element test goes through IS_A_UNBOUND rather than
-      # `last.is_a?(Hash)`: kwargs_from_splat runs before the re-entrancy
-      # guard is set, so a customer method probe on Kernel#is_a? would
-      # otherwise re-enter the wrapper and recurse.
+      # The trailing-element test goes through DI.hash? (a C type check)
+      # rather than `last.is_a?(Hash)`: kwargs_from_splat runs before the
+      # re-entrancy guard is set, so a customer method probe on Kernel#is_a?
+      # would otherwise re-enter the wrapper and recurse. DI.hash? is a
+      # singleton method and cannot be targeted by a method probe.
       #
       # Defined only on Ruby < 3; the Ruby 3+ wrapper captures keyword
       # arguments directly and never calls this.
       if RUBY_VERSION < '3'
-        # Captured at load time, before any probe can prepend an is_a?
-        # override. Invoking the original through the unbound method bypasses
-        # a customer probe on Kernel#is_a?, avoiding recursion (see above).
-        IS_A_UNBOUND = ::Kernel.instance_method(:is_a?)
-
         def kwargs_from_splat(args)
           return [args, {}] if DI.array_empty?(args)
 
           last = args.last
-          if IS_A_UNBOUND.bind(last).call(::Hash)
-            [args[0...-1], last]
+          if DI.hash?(last)
+            [args[0...-1] || [], last]
           else
             [args, {}]
           end
