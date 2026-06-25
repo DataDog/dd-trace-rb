@@ -54,6 +54,10 @@ module Datadog
       # #probe_disabled_callback) with no shared base class to name.
       def run_method_probe: (::Array[untyped] args, ::Hash[::Symbol, untyped] kwargs, ::Proc? target_block, untyped target_self, ::Proc do_super, Probe probe, untyped responder, [::String, ::Integer]? loc, ::String method_name) -> untyped
 
+      # Ruby < 3 only. Splits a splat-captured argument list into
+      # [positional_args, kwargs]; the trailing hash, if any, becomes kwargs.
+      def kwargs_from_splat: (::Array[untyped] args) -> [::Array[untyped], ::Hash[untyped, untyped]]
+
       private
 
       attr_reader lock: Mutex
