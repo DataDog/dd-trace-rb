@@ -272,21 +272,16 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         expect(class_scope.name).to eq('TestNamespace::TestInnerClass')
       end
 
-      it 'extracts namespace-only module via const_source_location fallback (Ruby 2.7+)' do
+      it 'extracts namespace-only module via const_source_location fallback' do
         # TestNamespace has no methods but has a constant (TestInnerClass).
-        # On Ruby 2.7+, const_source_location finds the module's source via its constants.
+        # const_source_location finds the module's source via its constants.
         file_scope = extractor.extract(TestNamespace)
 
-        if Module.method_defined?(:const_source_location) || TestNamespace.respond_to?(:const_source_location)
-          expect(file_scope).not_to be_nil
-          expect(file_scope.scope_type).to eq('FILE')
-          module_scope = file_scope.scopes.first
-          expect(module_scope.scope_type).to eq('MODULE')
-          expect(module_scope.name).to eq('TestNamespace')
-        else
-          # Ruby < 2.7: const_source_location unavailable, module not extractable
-          expect(file_scope).to be_nil
-        end
+        expect(file_scope).not_to be_nil
+        expect(file_scope.scope_type).to eq('FILE')
+        module_scope = file_scope.scopes.first
+        expect(module_scope.scope_type).to eq('MODULE')
+        expect(module_scope.name).to eq('TestNamespace')
       end
     end
 
@@ -413,40 +408,32 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
 
   describe '.extract edge cases' do
     context 'empty and minimal classes' do
-      it 'extracts empty top-level class as a CLASS scope with no methods (Ruby 2.7+)' do
+      it 'extracts empty top-level class as a CLASS scope with no methods' do
         # Matches Java/NET: empty classes are uploaded so they appear in the probe modal.
         # const_source_location finds the class declaration even with no methods.
         filename = create_user_code_file("class TestEmptyClass; end")
         load filename
         scope = extractor.extract(TestEmptyClass)
-        if Module.method_defined?(:const_source_location)
-          expect(scope).not_to be_nil
-          expect(scope.scope_type).to eq('FILE')
-          expect(scope.scopes.first.scope_type).to eq('CLASS')
-          expect(scope.scopes.first.scopes).to be_empty
-        else
-          expect(scope).to be_nil
-        end
+        expect(scope).not_to be_nil
+        expect(scope.scope_type).to eq('FILE')
+        expect(scope.scopes.first.scope_type).to eq('CLASS')
+        expect(scope.scopes.first.scopes).to be_empty
         Object.send(:remove_const, :TestEmptyClass)
         cleanup_user_code_file(filename)
       end
 
-      it 'extracts empty top-level module as a MODULE scope with no methods (Ruby 2.7+)' do
+      it 'extracts empty top-level module as a MODULE scope with no methods' do
         filename = create_user_code_file("module TestEmptyModule; end")
         load filename
         scope = extractor.extract(TestEmptyModule)
-        if Module.method_defined?(:const_source_location)
-          expect(scope).not_to be_nil
-          expect(scope.scope_type).to eq('FILE')
-          expect(scope.scopes.first.scope_type).to eq('MODULE')
-        else
-          expect(scope).to be_nil
-        end
+        expect(scope).not_to be_nil
+        expect(scope.scope_type).to eq('FILE')
+        expect(scope.scopes.first.scope_type).to eq('MODULE')
         Object.send(:remove_const, :TestEmptyModule)
         cleanup_user_code_file(filename)
       end
 
-      it 'handles top-level class with only constants on Ruby 2.7+' do
+      it 'handles top-level class with only constants' do
         filename = create_user_code_file(<<~RUBY)
           class TestConstOnlyClass
             SOME_CONST = 42
@@ -454,15 +441,10 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         RUBY
         load filename
 
+        # const_source_location finds source via constants.
         scope = extractor.extract(TestConstOnlyClass)
-        if TestConstOnlyClass.respond_to?(:const_source_location)
-          # Ruby 2.7+: const_source_location finds source via constants
-          expect(scope).not_to be_nil
-          expect(scope.scope_type).to eq('FILE')
-        else
-          # Ruby 2.5/2.6: no const_source_location, cannot find source
-          expect(scope).to be_nil
-        end
+        expect(scope).not_to be_nil
+        expect(scope.scope_type).to eq('FILE')
 
         Object.send(:remove_const, :TestConstOnlyClass)
         cleanup_user_code_file(filename)
@@ -497,40 +479,29 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       end
 
       it 'extracts namespace modules via const_source_location when they have nested constants' do
-        # On Ruby 2.7+: TestA has const TestB (a module), TestA::TestB has const TestC (a class).
+        # TestA has const TestB (a module), TestA::TestB has const TestC (a class).
         # const_source_location finds the source file via these constants, so both modules ARE extracted.
-        if TestA.respond_to?(:const_source_location)
-          expect(extractor.extract(TestA)).not_to be_nil
-          expect(extractor.extract(TestA::TestB)).not_to be_nil
-        else
-          # Ruby < 2.7: no const_source_location, namespace modules without methods return nil
-          expect(extractor.extract(TestA)).to be_nil
-          expect(extractor.extract(TestA::TestB)).to be_nil
-        end
+        expect(extractor.extract(TestA)).not_to be_nil
+        expect(extractor.extract(TestA::TestB)).not_to be_nil
       end
 
-      it 'extracts all scopes in the namespace chain (Ruby 2.7+)' do
-        # TestA, TestA::TestB, TestA::TestB::TestC all get extracted on Ruby 2.7+
-        # because const_source_location propagates source file through the chain.
+      it 'extracts all scopes in the namespace chain' do
+        # TestA, TestA::TestB, TestA::TestB::TestC all get extracted because
+        # const_source_location propagates the source file through the chain.
         # Use explicit module list rather than ObjectSpace to avoid cross-test pollution.
         mods = [TestA, TestA::TestB, TestA::TestB::TestC]
         extracted = Datadog::Core::Utils::EnumerableCompat.filter_map(mods) { |mod| extractor.extract(mod) }
 
         # All scopes are FILE-wrapped. Inner scope names distinguish modules from classes.
-        if TestA.respond_to?(:const_source_location)
-          expect(extracted.size).to eq(3)
-          # All root scopes are FILE
-          expect(extracted.map(&:scope_type).uniq).to eq(['FILE'])
-          # Inner scopes: TestA and TestA::TestB are modules, TestA::TestB::TestC is a class
-          inner_names = extracted.map { |s| s.scopes.first&.name }
-          expect(inner_names).to include('TestA', 'TestA::TestB')
-          tc_file = extracted.find { |s| s.scopes.first&.name == 'TestA::TestB::TestC' }
-          expect(tc_file).not_to be_nil
-          expect(tc_file.scopes.first.scope_type).to eq('CLASS')
-        else
-          expect(extracted.size).to eq(1)
-          expect(extracted.first.scope_type).to eq('FILE')
-        end
+        expect(extracted.size).to eq(3)
+        # All root scopes are FILE
+        expect(extracted.map(&:scope_type).uniq).to eq(['FILE'])
+        # Inner scopes: TestA and TestA::TestB are modules, TestA::TestB::TestC is a class
+        inner_names = extracted.map { |s| s.scopes.first&.name }
+        expect(inner_names).to include('TestA', 'TestA::TestB')
+        tc_file = extracted.find { |s| s.scopes.first&.name == 'TestA::TestB::TestC' }
+        expect(tc_file).not_to be_nil
+        expect(tc_file.scopes.first.scope_type).to eq('CLASS')
       end
     end
 
@@ -538,8 +509,8 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       it 'extracts class whose only methods come from gem paths — finds declaration via const_source_location' do
         # Simulates ActiveRecord model with only associations (belongs_to, has_many).
         # Methods are all gem-generated with gem source paths. The class declaration
-        # is in user code. On Ruby 2.7+ we find it via const_source_location and upload
-        # an empty CLASS scope, matching Java/.NET behavior.
+        # is in user code. const_source_location finds it and we upload an empty
+        # CLASS scope, matching Java/.NET behavior.
         filename = create_user_code_file(<<~RUBY)
           class TestARStyleModel
           end
@@ -556,14 +527,10 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         allow(TestARStyleModel).to receive(:singleton_methods).with(false).and_return([])
 
         scope = extractor.extract(TestARStyleModel)
-        if Module.method_defined?(:const_source_location)
-          expect(scope).not_to be_nil
-          expect(scope.scope_type).to eq('FILE')
-          expect(scope.scopes.first.scope_type).to eq('CLASS')
-          expect(scope.scopes.first.scopes).to be_empty
-        else
-          expect(scope).to be_nil
-        end
+        expect(scope).not_to be_nil
+        expect(scope.scope_type).to eq('FILE')
+        expect(scope.scopes.first.scope_type).to eq('CLASS')
+        expect(scope.scopes.first.scopes).to be_empty
 
         Object.send(:remove_const, :TestARStyleModel)
         cleanup_user_code_file(filename)
@@ -571,7 +538,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
 
       it 'extracts class with only Forwardable-delegated methods (def_delegators)' do
         # def_delegators creates methods whose source_location points to forwardable.rb (stdlib).
-        # The class declaration is in user code. Should extract as empty CLASS scope on Ruby 2.7+.
+        # The class declaration is in user code. Should extract as empty CLASS scope.
         filename = create_user_code_file(<<~RUBY)
           require 'forwardable'
           class TestForwardableModel
@@ -582,17 +549,13 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         load filename
 
         scope = extractor.extract(TestForwardableModel)
-        if Module.method_defined?(:const_source_location)
-          expect(scope).not_to be_nil
-          expect(scope.scope_type).to eq('FILE')
-          inner = scope.scopes.first
-          expect(inner.scope_type).to eq('CLASS')
-          # Delegated methods point to forwardable.rb (stdlib) — not user code, not extracted
-          method_names = inner.scopes.map(&:name)
-          expect(method_names).not_to include('name', 'email')
-        else
-          expect(scope).to be_nil
-        end
+        expect(scope).not_to be_nil
+        expect(scope.scope_type).to eq('FILE')
+        inner = scope.scopes.first
+        expect(inner.scope_type).to eq('CLASS')
+        # Delegated methods point to forwardable.rb (stdlib) — not user code, not extracted
+        method_names = inner.scopes.map(&:name)
+        expect(method_names).not_to include('name', 'email')
 
         Object.send(:remove_const, :TestForwardableModel)
         cleanup_user_code_file(filename)
@@ -600,7 +563,7 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
     end
 
     context 'class with only class variables (no methods)' do
-      it 'extracts class with only class variables on Ruby 2.7+ via const_source_location' do
+      it 'extracts class with only class variables via const_source_location' do
         # @@class_var is not a constant, so constants(false) returns nothing.
         # But const_source_location on the class name itself finds the declaration.
         filename = create_user_code_file(<<~RUBY)
@@ -610,20 +573,16 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         RUBY
         load filename
         scope = extractor.extract(TestClassVarOnly)
-        if Module.method_defined?(:const_source_location)
-          expect(scope).not_to be_nil
-          expect(scope.scope_type).to eq('FILE')
-          expect(scope.scopes.first.scope_type).to eq('CLASS')
-        else
-          expect(scope).to be_nil
-        end
+        expect(scope).not_to be_nil
+        expect(scope.scope_type).to eq('FILE')
+        expect(scope.scopes.first.scope_type).to eq('CLASS')
         Object.send(:remove_const, :TestClassVarOnly)
         cleanup_user_code_file(filename)
       end
     end
 
     context 'module with only non-class-value constants' do
-      it 'is extracted on Ruby 2.7+ via const_source_location (non-class constants count)' do
+      it 'is extracted via const_source_location (non-class constants count)' do
         # const_source_location works for any constant including VALUE constants (FOO = 42),
         # not just class/module constants. So a module with only value constants IS found.
         filename = create_user_code_file(<<~RUBY)
@@ -634,15 +593,11 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         RUBY
         load filename
         file_scope = extractor.extract(TestValueConstModule)
-        if TestValueConstModule.respond_to?(:const_source_location)
-          expect(file_scope).not_to be_nil
-          expect(file_scope.scope_type).to eq('FILE')
-          module_scope = file_scope.scopes.first
-          expect(module_scope.scope_type).to eq('MODULE')
-          expect(module_scope.name).to eq('TestValueConstModule')
-        else
-          expect(file_scope).to be_nil
-        end
+        expect(file_scope).not_to be_nil
+        expect(file_scope.scope_type).to eq('FILE')
+        module_scope = file_scope.scopes.first
+        expect(module_scope.scope_type).to eq('MODULE')
+        expect(module_scope.name).to eq('TestValueConstModule')
         Object.send(:remove_const, :TestValueConstModule)
         cleanup_user_code_file(filename)
       end
@@ -661,15 +616,10 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
 
         scope = extractor.extract(TestNsFileHash)
 
-        if Module.method_defined?(:const_source_location)
-          # Ruby 2.7+: const_source_location finds the module via its constants
-          expect(scope).not_to be_nil
-          expect(scope.language_specifics[:file_hash]).not_to be_nil
-          expect(scope.language_specifics[:file_hash]).to match(/\A[0-9a-f]{40}\z/)
-        else
-          # Ruby < 2.7: namespace module with no methods is not extractable
-          expect(scope).to be_nil
-        end
+        # const_source_location finds the module via its constants.
+        expect(scope).not_to be_nil
+        expect(scope.language_specifics[:file_hash]).not_to be_nil
+        expect(scope.language_specifics[:file_hash]).to match(/\A[0-9a-f]{40}\z/)
 
         Object.send(:remove_const, :TestNsFileHash)
         cleanup_user_code_file(filename)
@@ -2374,8 +2324,9 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         RUBY
         load @file
         # Force singleton classes to materialize so ObjectSpace contains them.
-        # On Ruby 2.6, asking Module#name on these takes ~20ms each — extract_all
-        # must skip them to avoid O(singleton_count) wall-clock cost.
+        # extract_all must skip these regardless: they're never user-code classes
+        # and `Module#name` on unnamed singletons can be costly under monkey-patched
+        # ancestor chains.
         @objs = Array.new(10) { Object.new.tap { |o| o.singleton_class } }
       end
 
@@ -2449,16 +2400,6 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
       # detects the direct subclass binding first, and const_get(sym, false)
       # returns it without triggering the ancestor's autoload.
       #
-      # Requires Module#autoload?(name, inherit) — the `inherit` parameter was
-      # added in Ruby 2.7 (Ruby 2.7.0 NEWS). On Ruby 2.5/2.6 the fallback in
-      # resolves_to_same_module? uses autoload?(name) which checks ancestors,
-      # so a subclass binding that collides with an ancestor's pending
-      # autoload is conservatively treated as stale and dropped. That is the
-      # documented fallback behavior and is unavoidable without the 2.7+ API.
-      before(:all) do
-        skip 'requires Module#autoload?(name, inherit) — Ruby 2.7+' unless RubyVersion.is?('>= 2.7')
-      end
-
       before do
         @parent_file = create_test_file('autoload_parent.rb', <<~RUBY)
           class ExtractAllAutoloadParent
@@ -2591,6 +2532,117 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         expect(host).not_to be_nil
         expect(host.scopes.map(&:name)).to include('new_method')
         expect(host.scopes.map(&:name)).not_to include('old_method')
+      end
+    end
+
+    context 'class marked with private_constant' do
+      # Coverage parity with ObjectSpace.each_object(Module). A class marked
+      # with `private_constant` is still a fully-loaded user class with
+      # methods; DI should still serve its methods to the autocomplete UI.
+      #
+      # ObjectSpace iterates by object identity, so private_constant'd
+      # classes are reached regardless of name visibility. Any alternative
+      # enumeration that relies on Module#constants must include private
+      # constants too — `Module#constants` never returns them regardless of
+      # the inherit argument (there is no public API to list private
+      # constants), which is the trap this regression test guards against.
+      before do
+        @file = create_test_file('private_constant_host.rb', <<~RUBY)
+          class ExtractAllPrivateConstantHost
+            class Worker
+              def do_work
+              end
+            end
+            private_constant :Worker
+          end
+        RUBY
+        load @file
+      end
+
+      after do
+        if Object.const_defined?(:ExtractAllPrivateConstantHost, false)
+          Object.send(:remove_const, :ExtractAllPrivateConstantHost)
+        end
+      end
+
+      it 'includes the private inner class in extract_all output' do
+        # Preconditions: verify the fixture is actually exercising private-constant
+        # visibility. Module#constants(false) excludes private constants; an attempt to
+        # access Worker via :: raises NameError with a "private constant" message. If
+        # either of these stops holding (typo in the fixture, Ruby semantics change),
+        # the test fails fast on the precondition rather than passing for the wrong
+        # reason. Module#private_constants is not a real method on any Ruby version, so
+        # the visibility-raise is the direct way to assert what private_constant does.
+        expect(ExtractAllPrivateConstantHost.constants(false)).not_to include(:Worker)
+        expect { ExtractAllPrivateConstantHost::Worker }.to raise_error(NameError, /private constant/)
+
+        scopes = extract_all_clean
+        file_scope = scopes.find { |s| s.scope_type == 'FILE' && s.name == @file }
+        expect(file_scope).not_to be_nil
+
+        host = file_scope.scopes.find { |s| s.name == 'ExtractAllPrivateConstantHost' }
+        expect(host).not_to be_nil
+
+        worker = host.scopes.find { |s| s.name == 'ExtractAllPrivateConstantHost::Worker' }
+        expect(worker).not_to be_nil
+        expect(worker.scopes.map(&:name)).to include('do_work')
+      end
+    end
+
+    context 'class aliased to a second constant after the original constant is removed' do
+      # CRuby caches Module#name on first assignment and never invalidates it.
+      # If a class is assigned to constant :A, then aliased as :B, and then
+      # :A is removed, the class stays reachable via :B but `mod.name` still
+      # returns "A" — a name that no longer resolves.
+      #
+      # extract_all must not emit a scope under the stale name "A". The
+      # current implementation filters this via `resolves_to_same_module?`
+      # inside `build_per_file_index`, which segment-walks "A" from Object
+      # and finds the const removed. Any alternative enumeration that
+      # trusts Module#name without re-validating against the current
+      # binding regresses on this case.
+      before do
+        @file = create_test_file('aliased_after_remove_const.rb', <<~RUBY)
+          class ExtractAllAliasOriginal
+            def aliased_method
+            end
+          end
+        RUBY
+        load @file
+
+        # Alias under a second constant, then remove the original.
+        # The :ExtractAllAliasSurvivor binding on Object keeps the class
+        # alive through the after hook; no separate @ivar is needed.
+        # `mod.name` continues to report the cached "ExtractAllAliasOriginal".
+        Object.const_set(:ExtractAllAliasSurvivor, ExtractAllAliasOriginal)
+        Object.send(:remove_const, :ExtractAllAliasOriginal)
+      end
+
+      after do
+        if Object.const_defined?(:ExtractAllAliasSurvivor, false)
+          Object.send(:remove_const, :ExtractAllAliasSurvivor)
+        end
+        if Object.const_defined?(:ExtractAllAliasOriginal, false)
+          Object.send(:remove_const, :ExtractAllAliasOriginal)
+        end
+      end
+
+      it 'does not emit a scope under the stale (removed) original name' do
+        scopes = extract_all_clean
+
+        # The test forbids one outcome: emitting a scope under the stale
+        # (removed) name "ExtractAllAliasOriginal". Two outcomes are
+        # acceptable and both depend on the enumeration strategy:
+        #   - the class is absent entirely (Module#name's cache reports the
+        #     stale name, so an enumeration that filters by current binding
+        #     drops it); or
+        #   - the class surfaces under the surviving alias.
+        stale_emitted = scopes.any? do |file_scope|
+          next false unless file_scope.scope_type == 'FILE'
+          file_scope.scopes.any? { |child| child.name == 'ExtractAllAliasOriginal' }
+        end
+
+        expect(stale_emitted).to be(false)
       end
     end
 

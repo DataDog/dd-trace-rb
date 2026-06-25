@@ -833,6 +833,103 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
+    context 'when targeting a class in the Datadog namespace' do
+      shared_examples 'rejects the probe' do |type_name|
+        let(:probe_args) do
+          {type_name: type_name, method_name: 'some_method'}
+        end
+
+        it "raises ProbeTargetForbidden for #{type_name}" do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::ProbeTargetForbidden,
+            /Method probes on the Datadog namespace are not permitted: #{Regexp.escape(type_name)}#some_method/)
+        end
+      end
+
+      it_behaves_like 'rejects the probe', 'Datadog'
+      it_behaves_like 'rejects the probe', 'Datadog::Tracing::SpanOperation'
+      it_behaves_like 'rejects the probe', 'Datadog::DI::Instrumenter'
+
+      # A leading "::" is Ruby's root-namespace prefix; the rejection regex
+      # accepts both "Datadog" and "::Datadog" forms, so users cannot bypass
+      # the rejection by typing the root form.
+      it_behaves_like 'rejects the probe', '::Datadog'
+      it_behaves_like 'rejects the probe', '::Datadog::Tracing::SpanOperation'
+
+      # Top-level constants are constants of Object, so Object.const_get
+      # resolves "Object::Datadog::DI::Instrumenter" to the real class. The
+      # rejection regex strips any leading "Object::" segments so these
+      # aliases cannot bypass it. Object:: is the only alias path to the
+      # top-level Datadog ("Foo::Datadog" does not resolve through const_get).
+      it_behaves_like 'rejects the probe', 'Object::Datadog'
+      it_behaves_like 'rejects the probe', 'Object::Datadog::DI::Instrumenter'
+      it_behaves_like 'rejects the probe', '::Object::Datadog::Tracing::SpanOperation'
+      it_behaves_like 'rejects the probe', 'Object::Object::Datadog'
+
+      context 'when the Datadog-namespaced class does not exist' do
+        let(:probe_args) do
+          # If the rejection happened after class resolution, this would
+          # raise DITargetNotDefined instead of ProbeTargetForbidden.
+          {type_name: 'Datadog::NotARealClass::AtAll', method_name: 'noop'}
+        end
+
+        it 'rejects before attempting to resolve the class' do
+          expect do
+            hook_method(probe) { |_| }
+          end.to raise_error(Datadog::DI::Error::ProbeTargetForbidden)
+        end
+      end
+
+      context 'when type_name only happens to start with "Datadog" without the separator' do
+        let(:probe_args) do
+          {type_name: 'DatadogLike', method_name: 'some_method'}
+        end
+
+        # Class does not exist, so we expect the normal not-defined error
+        # rather than the forbidden-namespace error.
+        it 'does not reject as Datadog namespace' do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
+        end
+      end
+
+      context 'when type_name is root-prefixed but does not name the Datadog namespace' do
+        let(:probe_args) do
+          {type_name: '::DatadogLike', method_name: 'some_method'}
+        end
+
+        # "::DatadogLike" does not match the rejection regex (no "::" or
+        # end-of-string follows "Datadog"), so it falls through to normal
+        # class resolution.
+        it 'does not reject as Datadog namespace' do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
+        end
+      end
+
+      context 'when type_name has an Object:: prefix but does not name the Datadog namespace' do
+        let(:probe_args) do
+          {type_name: 'Object::DatadogLike', method_name: 'some_method'}
+        end
+
+        # The "Object::" stripping only applies before "Datadog" followed by
+        # "::" or end-of-string; "Object::DatadogLike" does not match, so it
+        # falls through to normal class resolution.
+        it 'does not reject as Datadog namespace' do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
+        end
+      end
+    end
+
     describe 'stack trace' do
       before do
         # Reload the test class because when methods are instrumented,

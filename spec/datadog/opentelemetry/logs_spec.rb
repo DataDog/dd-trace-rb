@@ -10,6 +10,7 @@ if RubyVersion.is?('>= 3.1')
 end
 
 require 'datadog/opentelemetry'
+require 'datadog/opentelemetry/spec_helper'
 require 'datadog/core/configuration/settings'
 require 'net/http'
 require 'json'
@@ -50,7 +51,7 @@ RSpec.describe 'OpenTelemetry Logs Integration', ruby: '>= 3.1' do
   end
 
   after do
-    provider.shutdown if provider.is_a?(::OpenTelemetry::SDK::Logs::LoggerProvider)
+    OpenTelemetryHelpers.shutdown_otel_providers
   end
 
   describe 'Basic Functionality' do

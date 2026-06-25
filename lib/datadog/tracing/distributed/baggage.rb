@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative '../ext'
 require_relative '../metadata/ext'
 require_relative '../trace_digest'
 require_relative 'datadog_tags_codec'
@@ -243,7 +244,7 @@ module Datadog
         # Record telemetry metrics for baggage operations
         def record_telemetry_metric(metric_name, value, tags)
           telemetry = ::Datadog.send(:components).telemetry
-          telemetry.inc('instrumentation_telemetry_data.tracers', metric_name, value, tags: tags)
+          telemetry.inc(Tracing::Ext::TELEMETRY_METRICS_NAMESPACE, metric_name, value, tags: tags)
         end
       end
     end
