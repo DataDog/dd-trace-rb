@@ -57,10 +57,13 @@ module Datadog
                 enabled: !!components.profiler,
               },
               dynamic_instrumentation: {
-                # The DI component object exists whenever the runtime
-                # supports it, so its presence is not a customer-observable
-                # signal. started? reflects whether DI was actually enabled
-                # by env var or by implicit enablement via remote config.
+                # With always-build, the DI component is constructed by
+                # default (when the runtime supports DI, RC is available, and
+                # DI is not explicitly disabled) regardless of whether the
+                # customer turned DI on. Its presence therefore no longer
+                # indicates the enabled state. started? reflects whether DI was
+                # actually enabled by env var or by implicit enablement via
+                # remote config.
                 enabled: components.dynamic_instrumentation&.started? || false,
               }
             }
