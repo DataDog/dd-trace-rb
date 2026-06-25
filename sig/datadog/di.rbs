@@ -9,6 +9,8 @@ module Datadog
 
     def self.unsupported_reason: (?Datadog::Core::Configuration::Settings settings) -> String?
 
+    def self.supported_runtime?: () -> bool
+
     def self.all_iseqs: () -> Array[RubyVM::InstructionSequence]
     def self.file_iseqs: () -> Array[RubyVM::InstructionSequence]
     def self.exception_message: (Exception exception) -> untyped

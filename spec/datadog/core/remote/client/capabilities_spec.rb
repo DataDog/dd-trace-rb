@@ -11,6 +11,14 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
   end
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
+  before do
+    # Most of this spec asserts DI registration, which only happens on a
+    # runtime that can run DI. Stub the platform check so the assertions hold
+    # across the full Ruby matrix (the real check is false on JRuby and Ruby
+    # 2.5). The unsupported-runtime path is covered explicitly below.
+    allow(Datadog::DI).to receive(:supported_runtime?).and_return(true)
+  end
+
   shared_examples 'tracing and DI capabilities' do
     it 'includes tracing capabilities and the DI enablement bit' do
       # Bits 12, 13, 14, 29 (tracing) + 38 (DI enablement, registered with the DI block)
@@ -172,6 +180,32 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
 
       describe '#base64_capabilities' do
         include_examples 'tracing and DI capabilities'
+      end
+    end
+
+    context 'on an unsupported runtime (JRuby or Ruby 2.5)' do
+      let(:settings) do
+        settings = Datadog::Core::Configuration::Settings.new
+        settings.dynamic_instrumentation.enabled = true
+        settings
+      end
+
+      before do
+        allow(Datadog::DI).to receive(:supported_runtime?).and_return(false)
+      end
+
+      it 'does not register DI capabilities, products, or receivers even when enabled' do
+        expect(capabilities.capabilities).to_not include(1 << 38)
+        expect(capabilities.products).to_not include('LIVE_DEBUGGING')
+        expect(capabilities.receivers).to_not include(
+          lambda { |r|
+            r.match? Datadog::Core::Remote::Configuration::Path.parse('datadog/2/LIVE_DEBUGGING/_/_')
+          }
+        )
+      end
+
+      describe '#base64_capabilities' do
+        include_examples 'tracing capabilities only'
       end
     end
   end

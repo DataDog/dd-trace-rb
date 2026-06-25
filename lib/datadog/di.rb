@@ -115,6 +115,23 @@ module Datadog
         nil
       end
 
+      # Whether the current Ruby runtime can run dynamic instrumentation:
+      # MRI (CRuby) on Ruby 2.6 or later.
+      #
+      # This is the platform-support subset of {unsupported_reason}. It
+      # deliberately excludes the C extension and configuration checks
+      # (Remote Configuration, development environment) so it can be
+      # evaluated without settings and before the extension is compiled —
+      # specifically, to decide whether to advertise the LIVE_DEBUGGING
+      # product and the DI enablement capability to Remote Configuration.
+      # Advertising those on JRuby or Ruby 2.5 would ask the backend to send
+      # probe configs and enable signals the tracer can never act on.
+      #
+      # @return [Boolean]
+      def supported_runtime?
+        RUBY_ENGINE == 'ruby' && Datadog::RubyVersion.is?('>= 2.6')
+      end
+
       # Returns iseqs that correspond to loaded files (filtering out eval'd code).
       #
       # There are several types of iseqs returned by +all_iseqs+:

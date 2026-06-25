@@ -240,4 +240,40 @@ RSpec.describe(Datadog::DI) do
       end
     end
   end
+
+  describe '.supported_runtime?' do
+    # Platform-support subset of unsupported_reason: MRI on Ruby 2.6+.
+    # Independent of the C extension (a build artifact) and of settings, so it
+    # can gate LIVE_DEBUGGING product registration wherever it is decided.
+
+    context 'on MRI 2.6+' do
+      before do
+        stub_const('RUBY_ENGINE', 'ruby')
+        allow(Datadog::RubyVersion).to receive(:is?).with('>= 2.6').and_return(true)
+      end
+
+      it 'returns true' do
+        expect(described_class.supported_runtime?).to be true
+      end
+    end
+
+    context 'on JRuby' do
+      before { stub_const('RUBY_ENGINE', 'jruby') }
+
+      it 'returns false' do
+        expect(described_class.supported_runtime?).to be false
+      end
+    end
+
+    context 'on MRI older than 2.6' do
+      before do
+        stub_const('RUBY_ENGINE', 'ruby')
+        allow(Datadog::RubyVersion).to receive(:is?).with('>= 2.6').and_return(false)
+      end
+
+      it 'returns false' do
+        expect(described_class.supported_runtime?).to be false
+      end
+    end
+  end
 end
