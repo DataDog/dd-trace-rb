@@ -902,30 +902,30 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
 
     context 'when targeting Kernel#lambda' do
-      shared_examples 'rejects the probe' do |type_name|
-        let(:probe_args) do
-          {type_name: type_name, method_name: 'lambda'}
-        end
-
-        it "raises ProbeTargetForbidden for #{type_name}" do
-          expect do
-            hook_method(probe) do |payload|
-            end
-          end.to raise_error(Datadog::DI::Error::ProbeTargetForbidden,
-            /Method probes on Kernel#lambda are not permitted: #{Regexp.escape(type_name)}#lambda/)
-        end
-      end
-
-      it_behaves_like 'rejects the probe', 'Kernel'
-
       # A leading "::" is Ruby's root-namespace prefix and any number of
       # leading "Object::" segments resolve through Object.const_get to the
       # same top-level Kernel module, so users cannot bypass the rejection by
       # naming Kernel through one of these aliases.
-      it_behaves_like 'rejects the probe', '::Kernel'
-      it_behaves_like 'rejects the probe', 'Object::Kernel'
-      it_behaves_like 'rejects the probe', '::Object::Kernel'
-      it_behaves_like 'rejects the probe', 'Object::Object::Kernel'
+      [
+        'Kernel',
+        '::Kernel',
+        'Object::Kernel',
+        '::Object::Kernel',
+        'Object::Object::Kernel',
+      ].each do |type_name|
+        context "with type name #{type_name.inspect}" do
+          let(:probe_args) do
+            {type_name: type_name, method_name: 'lambda'}
+          end
+
+          it 'raises ProbeTargetForbidden' do
+            expect do
+              hook_method(probe) { |_| }
+            end.to raise_error(Datadog::DI::Error::ProbeTargetForbidden,
+              /Method probes on Kernel#lambda are not permitted: #{Regexp.escape(type_name)}#lambda/)
+          end
+        end
+      end
 
       context 'when targeting Kernel but not the lambda method' do
         let(:probe_args) do
