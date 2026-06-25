@@ -71,16 +71,16 @@ module Datadog
           @pattern = pattern
         end
 
-        def normalize(request_path: nil)
+        def normalize(path: nil)
           @path_index = 0
           @pattern_index = 0
 
-          @request_path = request_path
-          @path_length = request_path ? request_path.length : 0
+          @path = path || ''
+          @path_length = @path.length
           @pattern_length = @pattern.length
 
           nameless_counter = 0
-          pattern = resolve_pattern_optionals(request_path)
+          pattern = resolve_pattern_optionals(path)
 
           result = pattern.split('/', -1).each_with_object(+'') do |segment, memo|
             memo << '/' unless memo.empty? && segment.empty?
@@ -139,10 +139,10 @@ module Datadog
         #   path:    /posts/edit
         #                 ^
         #                 `:id` cannot consume `edit`, so we rewind after `(/:id)`
-        def resolve_pattern_optionals(request_path)
+        def resolve_pattern_optionals(path)
           return @pattern if !@pattern.include?(GROUP_OPEN_CHAR) && !@pattern.include?(OPTIONAL_GROUP_SUFFIX_CHAR)
 
-          unless resolve_pattern_optionals?(request_path)
+          unless resolve_pattern_optionals?(path)
             return remove_optional_group_sigils(@pattern) if @pattern.include?(GROUP_OPEN_CHAR)
 
             return @pattern
@@ -152,7 +152,7 @@ module Datadog
           checkpoints = []
 
           while @pattern_index < @pattern_length
-            char = @pattern[@pattern_index]
+            char = @pattern[@pattern_index] # : String
 
             case char
             when GROUP_OPEN_CHAR
@@ -163,7 +163,7 @@ module Datadog
               #
               #       Example: `/posts/edit` request path starts like `(/:id)` in pattern
               #                `/posts(/:id)/edit`, but `:id` must be skipped
-              if @path_index < @path_length && @request_path[@path_index] == @pattern[@pattern_index + 1]
+              if @path_index < @path_length && @path[@path_index] == @pattern[@pattern_index + 1]
                 checkpoints << Checkpoint.new(resolved.length, optional_group_end_index + 1, @path_index)
                 @pattern_index += 1
               else
@@ -175,7 +175,7 @@ module Datadog
             when OPTIONAL_GROUP_SUFFIX_CHAR
               @pattern_index += 1
             when NAMED_PARAM_PREFIX_CHAR
-              param_name_end_index = find_next_param_name_end_index
+              param_name_end_index = find_param_name_end_index(@pattern_index)
 
               # NOTE: A ':' without a param name is literal text
               #       Example: `/foo:` must match a literal `:`, not a param
@@ -204,17 +204,19 @@ module Datadog
                 next
               end
 
-              resolved << @pattern[@pattern_index...param_name_end_index]
+              param_token = @pattern[@pattern_index...param_name_end_index] # : String
+              resolved << param_token
 
               terminator_char = find_param_value_terminator_char(param_name_end_index: param_name_end_index)
               @path_index = find_param_value_end_index(terminator_char: terminator_char)
 
               @pattern_index = param_name_end_index
             when GLOB_PARAM_PREFIX_CHAR
-              param_name_end_index = find_next_param_name_end_index
+              param_name_end_index = find_param_name_end_index(@pattern_index)
               terminator_char = find_param_value_terminator_char(param_name_end_index: param_name_end_index)
 
-              resolved << @pattern[@pattern_index...param_name_end_index]
+              param_token = @pattern[@pattern_index...param_name_end_index] # : String
+              resolved << param_token
 
               @path_index = find_glob_value_end_index(terminator_char: terminator_char)
               @pattern_index = param_name_end_index
@@ -224,6 +226,8 @@ module Datadog
                   @pattern_index += 2
                   next
                 end
+
+                next if skip_char_with_optional_param?
 
                 checkpoint = restore_checkpoint!(resolved, checkpoints)
                 return remove_optional_group_sigils(@pattern) unless checkpoint
@@ -244,12 +248,14 @@ module Datadog
           resolved
         end
 
-        def resolve_pattern_optionals?(request_path)
-          request_path && @path_length <= MAX_RESOLVE_LENGTH
+        def resolve_pattern_optionals?(path)
+          return false unless path
+
+          @path_length <= MAX_RESOLVE_LENGTH
         end
 
         def expected_path_char?(char)
-          @path_index < @path_length && @request_path[@path_index] == char
+          @path_index < @path_length && @path[@path_index] == char
         end
 
         def restore_checkpoint!(resolved, checkpoints)
@@ -264,9 +270,43 @@ module Datadog
           pattern.delete(OPTIONAL_GROUP_SIGILS)
         end
 
-        def find_next_param_name_end_index
-          current_index = @pattern_index + 1
-          current_index += 1 while current_index < @pattern_length && @pattern[current_index].match?(/\w/)
+        # NOTE: When the path ends before a char that prefixes an optional param,
+        #       skip both the char and that param
+        #
+        #       Example:
+        #         pattern: /posts/:id?
+        #         path:    /posts
+        #         skip:          ^^^^^
+        #
+        #         pattern: /a.:b?
+        #         path:    /a
+        #         skip:      ^^^^
+        def skip_char_with_optional_param?
+          return false if @path_index < @path_length
+
+          param_start_index = @pattern_index + 1
+          return false unless param_start_char?(param_start_index)
+
+          param_name_end_index = find_param_name_end_index(param_start_index)
+          return false unless @pattern[param_name_end_index] == OPTIONAL_GROUP_SUFFIX_CHAR
+
+          @pattern_index = param_name_end_index + 1
+          true
+        end
+
+        def param_start_char?(index)
+          @pattern[index] == NAMED_PARAM_PREFIX_CHAR || @pattern[index] == GLOB_PARAM_PREFIX_CHAR
+        end
+
+        def find_param_name_end_index(param_start_index)
+          current_index = param_start_index + 1
+
+          while current_index < @pattern_length
+            char = @pattern[current_index] # : String
+            break unless PARAM_NAME_CHARS.include?(char)
+
+            current_index += 1
+          end
 
           current_index
         end
@@ -283,25 +323,25 @@ module Datadog
 
         def find_param_value_end_index(terminator_char:)
           terminator_indexes = []
-          slash_index = @request_path.index('/', @path_index)
-          dot_index = @request_path.index('.', @path_index)
+          slash_index = @path.index('/', @path_index)
+          dot_index = @path.index('.', @path_index)
 
           terminator_indexes << slash_index if slash_index
           terminator_indexes << dot_index if dot_index
 
           if terminator_char && !EXCLUDED_PARAM_NAME_TERMINATOR_CHARS.include?(terminator_char)
-            custom_index = @request_path.index(terminator_char, @path_index)
+            custom_index = @path.index(terminator_char, @path_index)
             terminator_indexes << custom_index if custom_index
           end
 
-          terminator_indexes.empty? ? @request_path.length : terminator_indexes.min
+          terminator_indexes.empty? ? @path.length : terminator_indexes.min
         end
 
         def find_glob_value_end_index(terminator_char:)
           return @path_length unless terminator_char
           return @path_length if EXCLUDED_PARAM_NAME_TERMINATOR_CHARS.include?(terminator_char)
 
-          terminator_index = @request_path.rindex(terminator_char)
+          terminator_index = @path.rindex(terminator_char)
           return @path_length unless terminator_index && terminator_index >= @path_index
 
           terminator_index

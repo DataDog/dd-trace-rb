@@ -13,9 +13,9 @@ RSpec.describe Datadog::AppSec::RouteNormalizer::RailsRoutePattern do
     route_set.routes.first
   end
 
-  def normalize(path_spec, path_params, request_path)
+  def normalize(path_spec, path_params, path)
     route = build_route(path_spec)
-    described_class.new(route).normalize(path_params: path_params, request_path: request_path)
+    described_class.new(route).normalize(path_params: path_params, path: path)
   end
 
   describe '#normalize' do
@@ -125,8 +125,8 @@ RSpec.describe Datadog::AppSec::RouteNormalizer::RailsRoutePattern do
   end
 
   describe '#normalize with route_string' do
-    def normalize_string(route_string, path_params, request_path)
-      described_class.new(route_string).normalize(path_params: path_params, request_path: request_path)
+    def normalize_string(route_string, path_params, path)
+      described_class.new(route_string).normalize(path_params: path_params, path: path)
     end
 
     context 'when route has optional format present in URL' do

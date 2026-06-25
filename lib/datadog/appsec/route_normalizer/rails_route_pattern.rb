@@ -23,9 +23,9 @@ module Datadog
           @pattern = pattern
         end
 
-        def normalize(path_params:, request_path:)
+        def normalize(path_params:, path:)
           @path_params = path_params
-          @request_path = request_path
+          @path = path
           @nameless_param_count = 0
 
           @segments = []
@@ -36,14 +36,14 @@ module Datadog
             # NOTE: Journey groups without route params are never kept
             #       Example: `/foo(/bar)` with request `/foo/bar` normalizes to `/foo`
             pattern = remove_paramless_optional_groups(@pattern)
-            return RoutePattern.new(pattern).normalize(request_path: request_path)
+            return RoutePattern.new(pattern).normalize(path: path)
           end
 
           route_path = @pattern.path
           route_spec = route_path.spec
 
           unless route_spec.respond_to?(:type)
-            return RoutePattern.new(route_spec.to_s).normalize(request_path: request_path)
+            return RoutePattern.new(route_spec.to_s).normalize(path: path)
           end
 
           if route_path.names.empty?
@@ -64,7 +64,8 @@ module Datadog
 
           loop do
             substituted = result.gsub(OPTIONAL_GROUP_PATTERN) do
-              group = ::Regexp.last_match(1)
+              # NOTE: OPTIONAL_GROUP_PATTERN always captures a string for each gsub match
+              group = ::Regexp.last_match(1) # : String
               optional_group_has_route_params?(group) ? "(#{group})" : ''
             end
 
@@ -106,7 +107,7 @@ module Datadog
         end
 
         def render_segment_params(params)
-          names = params.map do |name|
+          names = params.map do |name| # $ String
             next name unless name.empty?
 
             @nameless_param_count += 1
@@ -120,19 +121,19 @@ module Datadog
           param_names = collect_group_param_names(node, [])
           return false if param_names.empty?
 
-          param_names.all? { |name| param_matched_request_path?(name.to_sym) }
+          param_names.all? { |name| param_matched_path?(name.to_sym) }
         end
 
-        def param_matched_request_path?(name)
+        def param_matched_path?(name)
           return @path_params[name].is_a?(String) unless name == :format
 
           format = @path_params[:format]
           return false if !format.is_a?(String) || format.empty?
 
-          dot_index = @request_path.length - format.length - 1
-          return false if dot_index < 0 || @request_path[dot_index] != DOT_CHAR
+          dot_index = @path.length - format.length - 1
+          return false if dot_index < 0 || @path[dot_index] != DOT_CHAR
 
-          @request_path.end_with?(format)
+          @path.end_with?(format)
         end
 
         def collect_group_param_names(node, memo)

@@ -202,16 +202,21 @@ module Datadog
           end
 
           def add_normalized_route_tag(context, env)
+            return unless AppSec::APISecurity.enabled?
+
             span = context.span
             return unless span
 
+            pattern = context.trace&.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
+            return unless pattern
+
             # NOTE: To build full path that covers mounted engines we need to add
             #       pre-computed by Tracer route path tag to the normalized route
-            route_path = context.trace&.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH) || env['SCRIPT_NAME']
-            normalized_route = RouteNormalizer.normalized_route(env, request_path_prefix: route_path)
+            prefix = context.trace&.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH) || env['SCRIPT_NAME']
+            normalized_route = RouteNormalizer.extract_normalized_route(env, prefix: prefix, pattern: pattern)
             return unless normalized_route
 
-            span.set_tag(AppSec::Ext::TAG_NORMALIZED_ROUTE, "#{route_path}#{normalized_route}")
+            span.set_tag(AppSec::Ext::TAG_NORMALIZED_ROUTE, "#{prefix}#{normalized_route}")
           end
 
           def oneshot_tags_sent?
