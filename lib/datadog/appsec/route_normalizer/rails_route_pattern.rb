@@ -1,125 +1,154 @@
 # frozen_string_literal: true
 
-require_relative 'route_pattern'
 require_relative 'route_text'
+require_relative 'route_pattern'
 
 module Datadog
   module AppSec
     module RouteNormalizer
+      # Normalizes Rails route patterns into route format, inspired by
+      # OpenAPI v3 path templating
+      #
+      # NOTE: Uses the parsed Journey AST when available
+      #
+      # @api private
       class RailsRoutePattern
+        DOT_CHAR = '.'
         GROUP_OPEN_CHAR = '('
         OPTIONAL_GROUP_PATTERN = /\(([^()]*)\)/
-        PARAM_PATTERN = /(?<=:|(?<!\w)\*)\w+/
+        NAMED_PARAM_PREFIX_CHAR = ':'
+        GLOB_PARAM_PREFIX_CHAR = '*'
 
         def initialize(pattern)
           @pattern = pattern
         end
 
         def normalize(path_params:, request_path:)
-          param_present = lambda do |name|
-            if name == :format
-              format = path_params[:format]
-              format.is_a?(String) && request_path.end_with?(".#{format}")
-            else
-              path_params[name].is_a?(String)
-            end
-          end
+          @path_params = path_params
+          @request_path = request_path
+          @nameless_param_count = 0
+
+          @segments = []
+          @segment_text = +''
+          @segment_params = []
 
           if @pattern.is_a?(String)
-            route_string = @pattern.dup
-
-            while route_string.include?(GROUP_OPEN_CHAR)
-              substituted = route_string.gsub(OPTIONAL_GROUP_PATTERN) do
-                group_content = ::Regexp.last_match(1)
-                param_names = group_content.scan(PARAM_PATTERN).map(&:to_sym)
-
-                if param_names.empty? || !param_names.all? { |name| param_present.call(name) }
-                  ''
-                else
-                  group_content
-                end
-              end
-              break if substituted == route_string
-
-              route_string = substituted
-            end
-
-            return RoutePattern.new(route_string).normalize
+            # NOTE: Journey groups without route params are never kept
+            #       Example: `/foo(/bar)` with request `/foo/bar` normalizes to `/foo`
+            pattern = remove_paramless_optional_groups(@pattern)
+            return RoutePattern.new(pattern).normalize(request_path: request_path)
           end
 
-          if @pattern.path.names.empty?
-            route_string = @pattern.path.spec.to_s
+          route_path = @pattern.path
+          route_spec = route_path.spec
+
+          unless route_spec.respond_to?(:type)
+            return RoutePattern.new(route_spec.to_s).normalize(request_path: request_path)
+          end
+
+          if route_path.names.empty?
+            route_string = route_spec.to_s
             return RouteText.escape(route_string) unless route_string.include?(GROUP_OPEN_CHAR)
           end
 
-          result = +''
-          segment_static = +''
-          segment_params = []
-          segment_count = 0
-          nameless_param_count = 0
+          visit_route_node(route_spec)
+          finish_segment
 
-          flush_segment = lambda do
-            result << '/' if segment_count > 0
+          "/#{@segments.join('/')}"
+        end
 
-            if segment_params.empty?
-              result << RouteText.escape(segment_static)
-            else
-              names = segment_params.map do |name|
-                next name unless name.empty?
+        private
 
-                nameless_param_count += 1
-                "param#{nameless_param_count}"
-              end
+        def remove_paramless_optional_groups(pattern)
+          result = pattern
 
-              result << "{#{names.join('+')}}"
+          loop do
+            substituted = result.gsub(OPTIONAL_GROUP_PATTERN) do
+              group = ::Regexp.last_match(1)
+              optional_group_has_route_params?(group) ? "(#{group})" : ''
             end
 
-            segment_count += 1
-            segment_static.clear
-            segment_params.clear
+            return result if substituted == result
+
+            result = substituted
+          end
+        end
+
+        def visit_route_node(node)
+          case node.type
+          when :CAT
+            visit_route_node(node.left)
+            visit_route_node(node.right)
+          when :SLASH
+            finish_segment
+          when :LITERAL
+            @segment_text << node.left
+          when :DOT
+            @segment_text << DOT_CHAR
+          when :SYMBOL, :STAR
+            @segment_params << node.name
+          when :GROUP
+            visit_route_node(node.left) if group_present?(node.left)
+          end
+        end
+
+        def finish_segment
+          return if @segment_text.empty? && @segment_params.empty?
+
+          @segments << if @segment_params.empty?
+            RouteText.escape(@segment_text)
+          else
+            render_segment_params(@segment_params)
           end
 
-          collect_direct_params = nil
-          collect_direct_params = lambda do |node, names|
-            case node.type
-            when :SYMBOL, :STAR
-              names << node.name
-            when :CAT
-              collect_direct_params.call(node.left, names)
-              collect_direct_params.call(node.right, names)
-            end
+          @segment_text = +''
+          @segment_params.clear
+        end
 
-            names
+        def render_segment_params(params)
+          names = params.map do |name|
+            next name unless name.empty?
+
+            @nameless_param_count += 1
+            "param#{@nameless_param_count}"
           end
 
-          group_present = lambda do |node|
-            names = collect_direct_params.call(node, [])
-            !names.empty? && names.all? { |name| param_present.call(name.to_sym) }
+          "{#{names.join('+')}}"
+        end
+
+        def group_present?(node)
+          param_names = collect_group_param_names(node, [])
+          return false if param_names.empty?
+
+          param_names.all? { |name| param_matched_request_path?(name.to_sym) }
+        end
+
+        def param_matched_request_path?(name)
+          return @path_params[name].is_a?(String) unless name == :format
+
+          format = @path_params[:format]
+          return false if !format.is_a?(String) || format.empty?
+
+          dot_index = @request_path.length - format.length - 1
+          return false if dot_index < 0 || @request_path[dot_index] != DOT_CHAR
+
+          @request_path.end_with?(format)
+        end
+
+        def collect_group_param_names(node, memo)
+          case node.type
+          when :SYMBOL, :STAR
+            memo << node.name
+          when :CAT
+            collect_group_param_names(node.left, memo)
+            collect_group_param_names(node.right, memo)
           end
 
-          visit = nil
-          visit = lambda do |node|
-            case node.type
-            when :CAT
-              visit.call(node.left)
-              visit.call(node.right)
-            when :SLASH
-              flush_segment.call
-            when :LITERAL
-              segment_static << node.left
-            when :DOT
-              segment_static << '.'
-            when :SYMBOL, :STAR
-              segment_params << node.name
-            when :GROUP
-              visit.call(node.left) if group_present.call(node.left)
-            end
-          end
+          memo
+        end
 
-          visit.call(@pattern.path.spec)
-          flush_segment.call
-
-          result.start_with?('/') ? result : "/#{result}"
+        def optional_group_has_route_params?(group)
+          group.include?(NAMED_PARAM_PREFIX_CHAR) || group.include?(GLOB_PARAM_PREFIX_CHAR)
         end
       end
     end

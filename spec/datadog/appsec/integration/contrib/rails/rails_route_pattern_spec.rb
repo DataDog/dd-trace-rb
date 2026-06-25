@@ -140,5 +140,14 @@ RSpec.describe Datadog::AppSec::RouteNormalizer::RailsRoutePattern do
     context 'when route has nested optionals' do
       it { expect(normalize_string('/archive(/:year(/:month))', {year: '2024'}, '/archive/2024')).to eq('/archive/{year}') }
     end
+
+    context 'when route string path params disagree with request path' do
+      it { expect(normalize_string('/books(/:category)', {category: 'fiction'}, '/books')).to eq('/books') }
+      it { expect(normalize_string('/books(/:category)', {}, '/books/fiction')).to eq('/books/{category}') }
+    end
+
+    context 'when route string has an optional group without params' do
+      it { expect(normalize_string('/foo(/bar)', {}, '/foo/bar')).to eq('/foo') }
+    end
   end
 end

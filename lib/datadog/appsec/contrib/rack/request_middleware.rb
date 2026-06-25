@@ -205,12 +205,12 @@ module Datadog
             span = context.span
             return unless span
 
-            normalized_route = RouteNormalizer.normalized_route(env)
-            return unless normalized_route
-
             # NOTE: To build full path that covers mounted engines we need to add
             #       pre-computed by Tracer route path tag to the normalized route
             route_path = context.trace&.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH) || env['SCRIPT_NAME']
+            normalized_route = RouteNormalizer.normalized_route(env, request_path_prefix: route_path)
+            return unless normalized_route
+
             span.set_tag(AppSec::Ext::TAG_NORMALIZED_ROUTE, "#{route_path}#{normalized_route}")
           end
 

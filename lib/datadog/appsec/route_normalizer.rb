@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'route_normalizer/route_pattern'
-require_relative 'route_normalizer/rails_journey_route'
+require_relative 'route_normalizer/rails_route_pattern'
 
 module Datadog
   module AppSec
@@ -133,7 +133,9 @@ module Datadog
 
       module_function
 
-      def normalized_route(env)
+      def normalized_route(env, request_path_prefix: nil)
+        request_path_prefix ||= env['SCRIPT_NAME']
+
         if env.key?(GRAPE_ROUTE_KEY)
           route_string = env[GRAPE_ROUTE_KEY][:route_info]&.pattern&.origin
           return unless route_string
@@ -146,13 +148,13 @@ module Datadog
 
         elsif (route = env[DATADOG_ROUTE_KEY] || env[RAILS_ROUTE_KEY])
           path_params = env.fetch(PATH_PARAMS_KEY, {})
-          request_path = env['PATH_INFO'].to_s
-          RailsJourneyRoute.new(path_params, request_path, route: route).normalize
+          request_path = request_path_without_prefix(env['PATH_INFO'].to_s, request_path_prefix)
+          RailsRoutePattern.new(route).normalize(path_params: path_params, request_path: request_path)
 
         elsif env.key?(RAILS_ROUTE_URI_PATTERN_KEY)
           path_params = env.fetch(PATH_PARAMS_KEY, {})
-          request_path = env['PATH_INFO'].to_s
-          RailsJourneyRoute.new(path_params, request_path, route_string: env[RAILS_ROUTE_URI_PATTERN_KEY]).normalize
+          request_path = request_path_without_prefix(env['PATH_INFO'].to_s, request_path_prefix)
+          RailsRoutePattern.new(env[RAILS_ROUTE_URI_PATTERN_KEY]).normalize(path_params: path_params, request_path: request_path)
 
         elsif defined?(Tracing) && (trace = Tracing.active_trace)
           route_string = trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
@@ -162,6 +164,20 @@ module Datadog
       rescue => e
         AppSec.telemetry&.report(e, description: 'Could not compute normalized route')
         nil
+      end
+
+      def request_path_without_prefix(request_path, prefix)
+        return request_path unless prefix
+
+        prefix = prefix.to_s
+        return request_path if prefix.empty? || prefix == '/'
+        return request_path unless request_path.start_with?(prefix)
+
+        next_char = request_path[prefix.length]
+        return request_path if next_char && next_char != '/'
+
+        stripped = request_path[prefix.length..-1]
+        stripped.empty? ? '/' : stripped
       end
     end
   end

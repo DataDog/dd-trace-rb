@@ -402,6 +402,44 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
 
         it { expect(result).to eq('/posts/{year}') }
       end
+
+      context 'when path params disagree with request path' do
+        let(:env) do
+          {
+            'action_dispatch.route_uri_pattern' => '/books(/:category)',
+            'action_dispatch.request.path_parameters' => {category: 'fiction'},
+            'PATH_INFO' => '/books'
+          }
+        end
+
+        it { expect(result).to eq('/books') }
+      end
+
+      context 'when request path has a mount prefix' do
+        subject(:result) { described_class.normalized_route(env, request_path_prefix: '/api/v2') }
+
+        let(:env) do
+          {
+            'action_dispatch.route_uri_pattern' => '/users/:id(.:format)',
+            'action_dispatch.request.path_parameters' => {id: '42', format: nil},
+            'PATH_INFO' => '/api/v2/users/42'
+          }
+        end
+
+        it { expect(result).to eq('/users/{id}') }
+      end
+
+      context 'when route has an optional group without params' do
+        let(:env) do
+          {
+            'action_dispatch.route_uri_pattern' => '/foo(/bar)',
+            'action_dispatch.request.path_parameters' => {},
+            'PATH_INFO' => '/foo/bar'
+          }
+        end
+
+        it { expect(result).to eq('/foo') }
+      end
     end
 
     context 'with trace tag fallback' do

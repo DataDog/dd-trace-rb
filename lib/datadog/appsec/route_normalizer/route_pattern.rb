@@ -5,8 +5,8 @@ require_relative 'route_text'
 module Datadog
   module AppSec
     module RouteNormalizer
-      # Normalizes a route spec pattern into the normalized route format,
-      # inspired by OpenAPI v3 path templating (best effort)
+      # Normalizes a route spec pattern into the route format, inspired by
+      # OpenAPI v3 path templating (best effort)
       #
       # Example:
       #
