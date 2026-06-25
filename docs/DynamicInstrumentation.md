@@ -106,9 +106,6 @@ the entire method execution.
   (defined via `def self.method_name`, `class << self`, or `module_function`)
   cannot be instrumented with method probes. Line probes inside class
   methods still work since line probes are not method-bound.
-- On Ruby 3.3 and later, method probes on `Kernel#lambda` are not supported
-due to Ruby language limitations.
-
 
 **Additional considerations:**
 - Stack traces are always captured, but methods defined via
