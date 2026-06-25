@@ -27,7 +27,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
   # RegexpError. Timeout::Error (used on older Rubies) inherits from
   # RuntimeError. The expected class is selected by Ruby version.
   let(:expected_timeout_error) do
-    if RUBY_VERSION >= '3.2'
+    if Datadog::RubyVersion.is?('>= 3.2')
       Regexp::TimeoutError
     else
       Timeout::Error
