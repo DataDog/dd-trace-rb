@@ -117,92 +117,75 @@ module Datadog
         instrumenter = self
 
         mod = Module.new do
-          define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore NoMethod
-            # Re-entrancy guard: if we are already inside a DI method-probe
-            # callback, skip DI processing and call the original method
-            # directly. This prevents SystemStackError when a method probe is
-            # set on a stdlib method that DI itself calls during method-probe
-            # snapshot building (e.g., String#length, Hash#each).
-            #
-            # Scope: this guard protects method-probe → method-probe
-            # re-entrancy only. Line probes do not enter the guard — they
-            # rely on Ruby's TracePoint, which self-disables during its own
-            # callback. A method probe on a stdlib method called while a
-            # line probe is processing its snapshot will still fire.
-            #
-            # Inline the splat dispatch directly here so the guarded
-            # path allocates no Proc and makes no Proc#call dispatch.
-            # super in this branch resolves to the prepended class's
-            # original method without going through Proc#call, so a
-            # user probe on Proc#call cannot intercept it.
-            #
-            # Nested invocations during DI processing bypass the rate
-            # limiter entirely — they are not user-observable probe
-            # firings, just internal calls that happen to land on a
-            # probed method, so they must not count towards the rate limit.
-            #
-            # Storage is fiber-local. The DI.in_probe?/enter_probe/leave_probe
-            # methods are implemented in C and access the storage directly via
-            # rb_thread_local_aref / rb_thread_local_aset, bypassing Thread#[]
-            # / Thread#[]= method dispatch — so user method probes on those
-            # Thread methods cannot intercept guard reads/writes and recurse.
-            #
-            # The `# steep:ignore FallbackAny` directives below suppress
-            # Steep diagnostics that arise because Steep cannot narrow the
-            # `**kwargs` parameter inside this define_method block — it
-            # falls through to `untyped`, which makes both the `hash_empty?`
-            # arg and the `super(**kwargs, ...)` splat untyped.
-            if DI.in_probe?
-              if !DI.array_empty?(args)
-                if !DI.hash_empty?(kwargs) # steep:ignore FallbackAny
-                  return super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
-                else
-                  return super(*args, &target_block)
-                end
-              elsif !DI.hash_empty?(kwargs) # steep:ignore FallbackAny
-                return super(**kwargs, &target_block) # steep:ignore FallbackAny
-              else
-                return super(&target_block)
+          # Argument delegation follows docs/Delegation.md: on Ruby 3+
+          # positional and keyword arguments are captured and forwarded
+          # separately; on Ruby < 3 everything is captured into a single
+          # splat that ruby2_keywords flags, which is the only way to forward
+          # a trailing hash while preserving its positional-vs-keyword
+          # identity. The pre-3 branch is what lets an empty trailing hash
+          # (e.g. foo('x', {})) reach the original method intact.
+          #
+          # Re-entrancy guard: if we are already inside a DI method-probe
+          # callback, skip DI processing and call the original method
+          # directly. This prevents SystemStackError when a method probe is
+          # set on a stdlib method that DI itself calls during method-probe
+          # snapshot building (e.g., String#length, Hash#each). Line probes
+          # do not enter the guard — they rely on Ruby's TracePoint, which
+          # self-disables during its own callback. Nested invocations during
+          # DI processing also bypass the rate limiter: they are not
+          # user-observable probe firings, just internal calls that happen to
+          # land on a probed method. Guard storage is fiber-local;
+          # DI.in_probe?/enter_probe/leave_probe are implemented in C and
+          # access it directly, bypassing Thread#[]/Thread#[]= method dispatch
+          # so user probes on those cannot recurse.
+          #
+          # do_super invokes the original method via super. The lambda
+          # captures super's binding from inside this define_method block —
+          # the only place super resolves to the prepended-on class's method.
+          # #run_method_probe receives it and calls it (via DI.invoke_proc,
+          # which bypasses Proc#call dispatch so a user probe on Proc#call
+          # cannot intercept the trampoline) instead of using super directly.
+          # It is allocated only after the guard check so the guarded path
+          # skips the allocation.
+          if RUBY_VERSION >= '3'
+            define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore NoMethod
+              # steep:ignore FallbackAny below: Steep cannot narrow the
+              # **kwargs parameter inside this define_method block, so it
+              # falls back to untyped at the super and run_method_probe sites.
+              if DI.in_probe?
+                return super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
               end
+
+              do_super = ->(a, k, blk) { super(*a, **k, &blk) } # steep:ignore FallbackAny
+
+              instrumenter.run_method_probe(
+                args, kwargs, target_block, # steep:ignore FallbackAny
+                self, do_super,
+                probe, responder,
+                loc, method_name,
+              )
             end
-
-            # do_super invokes the original method via super. The lambda
-            # captures super's binding from inside this define_method
-            # block — that's the only place super resolves to the
-            # prepended-on class's method. The four splat shapes are
-            # centralized here; #run_method_probe receives this lambda
-            # and calls it instead of using super directly.
-            #
-            # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
-            # for methods defined via method_missing — kwargs forwarding
-            # requires the explicit shape match below.
-            #
-            # Allocated only after the guard check above so the guarded
-            # path skips this allocation entirely.
-            do_super = ->(a, k, blk) {
-              if !DI.array_empty?(a)
-                if !DI.hash_empty?(k)
-                  super(*a, **k, &blk)
-                else
-                  super(*a, &blk)
-                end
-              elsif !DI.hash_empty?(k)
-                super(**k, &blk)
-              else
-                super(&blk)
+          else
+            define_method(method_name) do |*args, &target_block| # steep:ignore NoMethod
+              if DI.in_probe?
+                return super(*args, &target_block)
               end
-            }
 
-            # FallbackAny: kwargs is `untyped` inside this define_method
-            # block (see the kwargs narrowing note above); the call site
-            # therefore can't satisfy run_method_probe's `::Hash[::Symbol, untyped]`
-            # parameter and Steep falls back to any.
-            instrumenter.run_method_probe(
-              args, kwargs, target_block, # steep:ignore FallbackAny
-              self, do_super,
-              probe, responder,
-              loc, method_name,
-            )
+              # do_super replays the original *args (closed over here) so the
+              # ruby2_keywords-flagged trailing hash keeps its identity. The
+              # a/k parameters it receives from run_method_probe are the
+              # serialization-split arguments and are unused for forwarding.
+              do_super = ->(_a, _k, blk) { super(*args, &blk) }
+
+              pos_args, kwargs = instrumenter.kwargs_from_splat(args)
+              instrumenter.run_method_probe(
+                pos_args, kwargs, target_block,
+                self, do_super,
+                probe, responder,
+                loc, method_name,
+              )
+            end
+            ruby2_keywords(method_name) if respond_to?(:ruby2_keywords, true)
           end
         end
 
@@ -434,7 +417,7 @@ module Datadog
       # @param kwargs [Hash{Symbol => Object}] keyword arguments passed to the probed method
       # @param target_block [Proc, nil] block argument passed to the probed method
       # @param target_self [Object] the receiver of the probed method invocation
-      # @param do_super [Proc] lambda that invokes the original method via super; takes (args, kwargs, block) and dispatches the four splat shapes
+      # @param do_super [Proc] lambda that invokes the original method via super; takes (args, kwargs, block). On Ruby 3+ it forwards `super(*args, **kwargs, &block)`; on Ruby < 3 it ignores these parameters and replays the wrapper's original splat (which carries the ruby2_keywords-flagged trailing hash)
       # @param probe [Datadog::DI::Probe] the probe whose callback this invocation runs
       # @param responder [#probe_executed_callback, #probe_condition_evaluation_failed_callback] callback target invoked with the built Context
       # @param loc [Array(String, Integer), nil] source location of the probed method, or nil for virtual/lazily-defined methods
@@ -625,6 +608,35 @@ module Datadog
       # set the re-entrancy guard, causing infinite recursion. Calling the
       # method directly avoids `Object#send` dispatch entirely.
       public :run_method_probe
+
+      # Splits a Ruby < 3 splat-captured argument list into positional
+      # arguments and the trailing keyword-argument hash, for argument
+      # serialization only. Returns `[positional_args, kwargs]`. Forwarding
+      # does not use this — the wrapper's do_super replays the original
+      # splat so the trailing hash keeps its keyword identity.
+      #
+      # A trailing hash is treated as keyword arguments regardless of how it
+      # was passed at the call site, matching the previous `**kwargs`
+      # capture (which, on Ruby 2.x, absorbed a trailing hash into kwargs).
+      # The ruby2_keywords flag is intentionally not consulted here: callers
+      # that pass a hash positionally (e.g. `m(opts)`) still expect it shown
+      # as a keyword argument, consistent with Ruby 2.x serialization.
+      #
+      # Defined only on Ruby < 3; the Ruby 3+ wrapper captures keyword
+      # arguments directly and never calls this.
+      if RUBY_VERSION < '3'
+        def kwargs_from_splat(args)
+          if !DI.array_empty?(args) && (last = args.last).is_a?(Hash)
+            [args[0...-1], last]
+          else
+            [args, {}]
+          end
+        end
+        # Lexically public for the same reason as #run_method_probe: the
+        # prepended wrapper must call it without `.send`, which a customer
+        # probe on Object#send could intercept.
+        public :kwargs_from_splat
+      end
 
       def line_trace_point_callback(probe, iseq, responder, tp)
         di_start_time = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID)
