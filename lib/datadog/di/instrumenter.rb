@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../core/utils/time'
+require_relative '../ruby_version'
 
 # rubocop:disable Lint/AssignmentInCondition
 # rubocop:disable Style/AndOr
@@ -159,7 +160,7 @@ module Datadog
           # cannot intercept the trampoline) instead of using super directly.
           # It is allocated only after the guard check so the guarded path
           # skips the allocation.
-          if RUBY_VERSION >= '3'
+          if RubyVersion.is?('>= 3')
             define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore NoMethod
               # steep:ignore FallbackAny below: Steep cannot narrow the
               # **kwargs parameter inside this define_method block, so it
@@ -642,7 +643,7 @@ module Datadog
       #
       # Defined only on Ruby < 3; the Ruby 3+ wrapper captures keyword
       # arguments directly and never calls this.
-      if RUBY_VERSION < '3'
+      if RubyVersion.is?('< 3')
         def kwargs_from_splat(args)
           return [args, {}] if DI.array_empty?(args)
 

@@ -837,8 +837,8 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
     end
 
     it "does not self-recurse during do_super construction in another probed method" do
-      skip "Kernel#lambda prepend interception requires Ruby 3.0+" if RUBY_VERSION < "3.0"
-      skip "probing Kernel#lambda on Ruby 3.3+ raises ArgumentError on super(&blk)" if RUBY_VERSION >= "3.3"
+      skip "Kernel#lambda prepend interception requires Ruby 3.0+" if Datadog::RubyVersion.is?("< 3.0")
+      skip "probing Kernel#lambda on Ruby 3.3+ raises ArgumentError on super(&blk)" if Datadog::RubyVersion.is?(">= 3.3")
 
       payloads = []
       allow(component.probe_notifier_worker).to receive(:add_snapshot) do |payload|
