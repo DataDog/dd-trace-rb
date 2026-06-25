@@ -902,16 +902,24 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
 
     context 'when targeting Kernel#lambda' do
-      # A leading "::" is Ruby's root-namespace prefix and any number of
-      # leading "Object::" segments resolve through Object.const_get to the
-      # same top-level Kernel module, so users cannot bypass the rejection by
-      # naming Kernel through one of these aliases.
+      # The first group is the Kernel module named directly: a leading "::" is
+      # Ruby's root-namespace prefix and any number of leading "Object::"
+      # segments resolve through Object.const_get to the same top-level Kernel
+      # module, so users cannot bypass the rejection by naming Kernel through
+      # one of these aliases.
+      #
+      # The second group names other types that inherit Kernel#lambda without
+      # overriding it: every class inherits it, so the target method resolves
+      # to Kernel#lambda regardless of the type name. These are rejected by
+      # resolving the method owner, not by matching the type name.
       [
         'Kernel',
         '::Kernel',
         'Object::Kernel',
         '::Object::Kernel',
         'Object::Object::Kernel',
+        'Object',
+        'String',
       ].each do |type_name|
         context "with type name #{type_name.inspect}" do
           let(:probe_args) do
@@ -956,6 +964,29 @@ RSpec.describe Datadog::DI::Instrumenter do
             hook_method(probe) do |payload|
             end
           end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
+        end
+      end
+
+      context 'when the target type defines its own lambda method' do
+        before do
+          stub_const('OverridesLambda', Class.new do
+            def lambda
+              :not_kernel
+            end
+          end)
+        end
+
+        let(:probe_args) do
+          {type_name: 'OverridesLambda', method_name: 'lambda'}
+        end
+
+        # The owner of OverridesLambda#lambda is OverridesLambda, not Kernel,
+        # so this is an ordinary user method and the probe installs normally.
+        it 'is not rejected and instruments the user-defined method' do
+          observed = []
+          hook_method(probe) { |payload| observed << payload }
+          expect(OverridesLambda.new.lambda).to eq(:not_kernel)
+          expect(observed.length).to eq(1)
         end
       end
     end

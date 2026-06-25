@@ -107,17 +107,6 @@ module Datadog
             "Method probes on the Datadog namespace are not permitted: #{type_name}##{probe.method_name}"
         end
 
-        # Reject method probes targeting Kernel#lambda. The method-probe
-        # wrapper invokes the original method via super(&block); on Ruby 3.3+
-        # the original Kernel#lambda raises ArgumentError when reached this way
-        # with a non-literal block, so a probe on it would break every
-        # lambda { ... } call site that passes a captured block. Probing lambda
-        # creation has no legitimate customer use case. See #5560.
-        if type_name && probe.method_name == "lambda" && kernel_type_name?(type_name)
-          raise Error::ProbeTargetForbidden,
-            "Method probes on Kernel#lambda are not permitted: #{type_name}##{probe.method_name}"
-        end
-
         lock.synchronize do
           if probe.instrumentation_module
             # Already instrumented, warn?
@@ -128,8 +117,8 @@ module Datadog
         cls = symbolize_class_name(probe.type_name)
         serializer = self.serializer
         method_name = probe.method_name
-        loc = begin
-          cls.instance_method(method_name).source_location # steep:ignore ArgumentTypeMismatch
+        target_method = begin
+          cls.instance_method(method_name) # steep:ignore ArgumentTypeMismatch
         rescue NameError
           # The target method is not defined.
           # This could be because it will be explicitly defined later
@@ -137,7 +126,26 @@ module Datadog
           # or the method is virtual (provided by a method_missing handler).
           # In these cases we do not have a source location for the
           # target method here.
+          nil
         end
+
+        # Reject method probes whose target method resolves to Kernel#lambda,
+        # including inherited targets. Every class inherits Kernel#lambda, so a
+        # probe naming any type that does not override lambda (Object#lambda,
+        # String#lambda, a plain user class, ...) prepends the wrapper ahead of
+        # Kernel#lambda and reaches the wrapper's super(&block) path. On
+        # Ruby 3.3+ that path raises ArgumentError for every lambda { ... }
+        # call site passing a captured block, breaking lambda creation
+        # process-wide. Resolving the method owner catches the inherited case
+        # that a textual "Kernel" name match misses; a type that defines its
+        # own lambda has a different owner and is left alone. Probing lambda
+        # creation has no legitimate customer use case. See #5560.
+        if method_name == "lambda" && target_method&.owner == ::Kernel
+          raise Error::ProbeTargetForbidden,
+            "Method probes on Kernel#lambda are not permitted: #{probe.type_name}##{method_name}"
+        end
+
+        loc = target_method&.source_location
         rate_limiter = probe.rate_limiter
         settings = self.settings
         instrumenter = self
@@ -719,21 +727,6 @@ module Datadog
       # top-level constants.
       def datadog_namespace_type_name?(cls_name)
         DATADOG_NAMESPACE_TYPE_NAME.match?(cls_name)
-      end
-
-      # Matches the Kernel module by name, tolerating the same alias forms as
-      # DATADOG_NAMESPACE_TYPE_NAME: an optional leading "::" and any number
-      # of leading "Object::" segments, both of which Object.const_get
-      # resolves to the top-level Kernel module. Anchored at both ends so it
-      # matches Kernel itself and not a class merely named "KernelFoo".
-      KERNEL_TYPE_NAME = /\A(?:::)?(?:Object::)*Kernel\z/
-      private_constant :KERNEL_TYPE_NAME
-
-      # Returns true when +cls_name+ names the top-level +Kernel+ module,
-      # accounting for the +::+ and +Object::+ alias forms that resolve to it.
-      # The check is purely textual and does not require Kernel to be loaded.
-      def kernel_type_name?(cls_name)
-        KERNEL_TYPE_NAME.match?(cls_name)
       end
     end
   end
