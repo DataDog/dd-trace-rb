@@ -901,6 +901,65 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
+    context 'when targeting Kernel#lambda' do
+      shared_examples 'rejects the probe' do |type_name|
+        let(:probe_args) do
+          {type_name: type_name, method_name: 'lambda'}
+        end
+
+        it "raises ProbeTargetForbidden for #{type_name}" do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::ProbeTargetForbidden,
+            /Method probes on Kernel#lambda are not permitted: #{Regexp.escape(type_name)}#lambda/)
+        end
+      end
+
+      it_behaves_like 'rejects the probe', 'Kernel'
+
+      # A leading "::" is Ruby's root-namespace prefix and any number of
+      # leading "Object::" segments resolve through Object.const_get to the
+      # same top-level Kernel module, so users cannot bypass the rejection by
+      # naming Kernel through one of these aliases.
+      it_behaves_like 'rejects the probe', '::Kernel'
+      it_behaves_like 'rejects the probe', 'Object::Kernel'
+      it_behaves_like 'rejects the probe', '::Object::Kernel'
+      it_behaves_like 'rejects the probe', 'Object::Object::Kernel'
+
+      context 'when targeting Kernel but not the lambda method' do
+        let(:probe_args) do
+          {type_name: 'Kernel', method_name: 'definitely_not_lambda'}
+        end
+
+        it 'is not rejected as a forbidden target' do
+          # Stub prepend so the wrapper module is not installed onto the real
+          # Kernel for the rest of the suite; this example only asserts that
+          # the forbidden check does not fire for a non-lambda Kernel method.
+          allow(Kernel).to receive(:prepend)
+          expect do
+            hook_method(probe) { |_| }
+          end.not_to raise_error
+        end
+      end
+
+      context 'when targeting a lambda method on a non-Kernel type' do
+        let(:probe_args) do
+          {type_name: 'KernelLike', method_name: 'lambda'}
+        end
+
+        # "KernelLike" is not the Kernel module, so a "lambda" method on it is
+        # an ordinary user method; the class does not exist here, so we expect
+        # the normal not-defined error rather than the forbidden error.
+        it 'does not reject as Kernel#lambda' do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
+        end
+      end
+    end
+
     describe 'stack trace' do
       before do
         # Reload the test class because when methods are instrumented,

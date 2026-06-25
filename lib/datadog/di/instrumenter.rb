@@ -107,6 +107,17 @@ module Datadog
             "Method probes on the Datadog namespace are not permitted: #{type_name}##{probe.method_name}"
         end
 
+        # Reject method probes targeting Kernel#lambda. The method-probe
+        # wrapper invokes the original method via super(&block); on Ruby 3.3+
+        # the original Kernel#lambda raises ArgumentError when reached this way
+        # with a non-literal block, so a probe on it would break every
+        # lambda { ... } call site that passes a captured block. Probing lambda
+        # creation has no legitimate customer use case. See #5560.
+        if type_name && probe.method_name == "lambda" && kernel_type_name?(type_name)
+          raise Error::ProbeTargetForbidden,
+            "Method probes on Kernel#lambda are not permitted: #{type_name}##{probe.method_name}"
+        end
+
         lock.synchronize do
           if probe.instrumentation_module
             # Already instrumented, warn?
@@ -708,6 +719,21 @@ module Datadog
       # top-level constants.
       def datadog_namespace_type_name?(cls_name)
         DATADOG_NAMESPACE_TYPE_NAME.match?(cls_name)
+      end
+
+      # Matches the Kernel module by name, tolerating the same alias forms as
+      # DATADOG_NAMESPACE_TYPE_NAME: an optional leading "::" and any number
+      # of leading "Object::" segments, both of which Object.const_get
+      # resolves to the top-level Kernel module. Anchored at both ends so it
+      # matches Kernel itself and not a class merely named "KernelFoo".
+      KERNEL_TYPE_NAME = /\A(?:::)?(?:Object::)*Kernel\z/
+      private_constant :KERNEL_TYPE_NAME
+
+      # Returns true when +cls_name+ names the top-level +Kernel+ module,
+      # accounting for the +::+ and +Object::+ alias forms that resolve to it.
+      # The check is purely textual and does not require Kernel to be loaded.
+      def kernel_type_name?(cls_name)
+        KERNEL_TYPE_NAME.match?(cls_name)
       end
     end
   end

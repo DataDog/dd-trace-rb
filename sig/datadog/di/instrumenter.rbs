@@ -11,6 +11,8 @@ module Datadog
 
       DATADOG_NAMESPACE_TYPE_NAME: ::Regexp
 
+      KERNEL_TYPE_NAME: ::Regexp
+
       @settings: Datadog::Core::Configuration::Settings
 
       @serializer: Serializer
@@ -61,6 +63,7 @@ module Datadog
 
       def symbolize_class_name: (String? cls_name) -> Module
       def datadog_namespace_type_name?: (::String cls_name) -> bool
+      def kernel_type_name?: (::String cls_name) -> bool
       def raise_if_probe_in_loaded_features: (Probe probe, Integer line_no, CodeTracker? code_tracker) -> void
     end
   end
