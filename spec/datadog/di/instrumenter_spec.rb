@@ -609,6 +609,35 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
+    context 'empty hash as last argument' do
+      let(:probe_args) do
+        {type_name: 'HookTestClass', method_name: 'positional_and_squashed'}
+      end
+
+      let(:target_call) do
+        expect(HookTestClass.new.positional_and_squashed('hello', {})).to eq(['hello', {}])
+      end
+
+      it 'invokes callback and forwards the empty hash' do
+        hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        target_call
+
+        expect(observed_calls.length).to eq 1
+        expect(observed_calls.first).to be_a(Datadog::DI::Context)
+        expect(observed_calls.first.return_value).to eq(['hello', {}])
+        expect(observed_calls.first.duration).to be_a(Float)
+      end
+
+      context 'when rate limited' do
+        let(:rate_limit) { 0 }
+
+        include_examples 'does not invoke callback but invokes target method'
+      end
+    end
+
     context 'keyword arguments squashed into a hash' do
       ruby_2_only
 
