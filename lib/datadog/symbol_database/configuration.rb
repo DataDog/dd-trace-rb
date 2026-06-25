@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../core/null_logger'
-
 module Datadog
   module SymbolDatabase
     # Configuration for symbol database
@@ -9,15 +7,11 @@ module Datadog
       # Configuration settings for symbol database upload feature.
       #
       # Public environment variable:
-      # - DD_SYMBOL_DATABASE_UPLOAD_ENABLED - Feature gate. Independent of
-      #   dynamic_instrumentation.enabled — can be set explicitly without DI.
-      #   When unset, defaults to true only when DI's setting is enabled AND
-      #   DI::Component.environment_supported? returns true; false otherwise.
-      #   See the inline comment on the :enabled option for the full rationale.
+      # - DD_SYMBOL_DATABASE_UPLOAD_ENABLED - Feature gate, tri-state
+      #   (true/false/nil). See the :enabled option.
       #
       # Extended into: Core::Configuration::Settings (via extend)
       # Accessed as: Datadog.configuration.symbol_database.enabled
-      # Used by: Component.build (checks if feature enabled)
       module Settings
         # Hook called when this module is extended into a class.
         # @param base [Class, Module] The class or module being extended
@@ -34,19 +28,15 @@ module Datadog
           base.class_eval do
             # steep:ignore:start
             settings :symbol_database do
+              # @return [Boolean, nil]
+              # When nil (the default), symbol database upload follows whether
+              # Dynamic Instrumentation is enabled. Set true/false explicitly
+              # via DD_SYMBOL_DATABASE_UPLOAD_ENABLED or c.symbol_database.enabled
+              # to override.
               option :enabled do |o|
-                o.type :bool
                 o.env 'DD_SYMBOL_DATABASE_UPLOAD_ENABLED'
-                # Symbol Database is enabled by default when DI is enabled
-                # and its runtime prerequisites are met.
-                # The idea is to enable SymDB when DI is on, but without
-                # consulting runtime DI state (which is not available when
-                # the settings are processed).
-                o.default do
-                  config = Datadog.configuration
-                  config.dynamic_instrumentation.enabled &&
-                    ::Datadog::DI::Component.environment_supported?(config, ::Datadog::Core::NULL_LOGGER)
-                end
+                o.default nil
+                o.type :bool, nilable: true
               end
 
               # Settings in the 'internal' group are for internal Datadog

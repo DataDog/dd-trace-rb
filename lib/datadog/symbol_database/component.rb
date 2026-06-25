@@ -58,12 +58,14 @@ module Datadog
       # @param settings [Configuration::Settings] Tracer settings
       # @param agent_settings [Configuration::AgentSettings] Agent configuration
       # @param logger [Logger] Logger instance
+      # @param enabled [Boolean] Resolved feature gate (caller resolves the
+      #   symbol_database.enabled tri-state); when false, no component is built
       # @param telemetry [Core::Telemetry::Component, nil] Telemetry component for error reporting
       # @return [Component, nil] Component instance or nil if not enabled/requirements not met
-      def self.build(settings, agent_settings, logger, telemetry: nil)
+      def self.build(settings, agent_settings, logger, enabled:, telemetry: nil)
         symdb_logger = SymbolDatabase::Logger.new(settings, logger)
 
-        unless settings.respond_to?(:symbol_database) && settings.symbol_database.enabled
+        unless enabled
           symdb_logger.debug("symdb: symbol database upload not enabled, skipping")
           return
         end

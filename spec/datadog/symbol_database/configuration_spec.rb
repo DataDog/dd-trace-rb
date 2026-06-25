@@ -9,14 +9,6 @@ require 'datadog/symbol_database/configuration'
 RSpec.describe 'Symbol Database Configuration', :symdb_supported_platforms do
   subject(:settings) { Datadog::Core::Configuration::Settings.new }
 
-  # The default for symbol_database.enabled is a block that reads
-  # Datadog.configuration.dynamic_instrumentation.enabled. Route the global
-  # lookup to the per-example fixture so tests don't leak state across each
-  # other.
-  before do
-    allow(Datadog).to receive(:configuration).and_return(settings)
-  end
-
   describe 'symbol_database' do
     context 'programmatic configuration' do
       [
@@ -83,63 +75,9 @@ RSpec.describe 'Symbol Database Configuration', :symdb_supported_platforms do
       end
     end
 
-    context 'default tracks dynamic_instrumentation.enabled' do
-      context 'when dynamic_instrumentation.enabled is true' do
-        # environment_supported? is stubbed here to unit test the
-        # configuration logic without the complexity of DI prerequisite
-        # conditions.
-        before do
-          settings.dynamic_instrumentation.enabled = true
-          allow(Datadog::DI::Component).to receive(:environment_supported?).and_return(true)
-        end
-
-        it 'defaults symbol_database.enabled to true' do
-          expect(settings.symbol_database.enabled).to be(true)
-        end
-      end
-
-      context 'when dynamic_instrumentation.enabled is false' do
-        before { settings.dynamic_instrumentation.enabled = false }
-
-        it 'defaults symbol_database.enabled to false' do
-          expect(settings.symbol_database.enabled).to be(false)
-        end
-      end
-
-      context 'when DD_SYMBOL_DATABASE_UPLOAD_ENABLED is set' do
-        around do |example|
-          ClimateControl.modify('DD_SYMBOL_DATABASE_UPLOAD_ENABLED' => 'true') do
-            example.run
-          end
-        end
-
-        it 'env wins over the dynamic_instrumentation-derived default' do
-          settings.dynamic_instrumentation.enabled = false
-          expect(settings.symbol_database.enabled).to be(true)
-        end
-      end
-
-      context 'when dynamic_instrumentation.enabled is true but DI environment is not supported' do
-        before do
-          settings.dynamic_instrumentation.enabled = true
-          allow(Datadog::DI::Component).to receive(:environment_supported?).and_return(false)
-        end
-
-        it 'defaults symbol_database.enabled to false' do
-          expect(settings.symbol_database.enabled).to be(false)
-        end
-
-        context 'with explicit DD_SYMBOL_DATABASE_UPLOAD_ENABLED=true' do
-          around do |example|
-            ClimateControl.modify('DD_SYMBOL_DATABASE_UPLOAD_ENABLED' => 'true') do
-              example.run
-            end
-          end
-
-          it 'explicit env value enables symdb regardless of DI environment' do
-            expect(settings.symbol_database.enabled).to be(true)
-          end
-        end
+    context 'default' do
+      it 'is nil (unconfigured; resolution happens in Components)' do
+        expect(settings.symbol_database.enabled).to be_nil
       end
     end
 

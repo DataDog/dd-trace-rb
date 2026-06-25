@@ -29,7 +29,7 @@ module Datadog
       @hot_load_tracepoint: ::TracePoint?
       @initial_extraction_done: bool
 
-      def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, ::Logger logger, ?telemetry: Datadog::Core::Telemetry::Component?) -> Component?
+      def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, ::Logger logger, enabled: bool, ?telemetry: Datadog::Core::Telemetry::Component?) -> Component?
 
       def initialize: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, SymbolDatabase::Logger logger, ?telemetry: Datadog::Core::Telemetry::Component?) -> void
 

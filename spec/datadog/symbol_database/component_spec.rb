@@ -74,7 +74,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       before { settings.symbol_database.enabled = false }
 
       it 'returns nil' do
-        result = described_class.build(settings, agent_settings, logger)
+        result = described_class.build(settings, agent_settings, logger, enabled: settings.symbol_database.enabled)
         expect(result).to be_nil
       end
     end
@@ -86,7 +86,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       end
 
       it 'returns nil' do
-        result = described_class.build(settings, agent_settings, logger)
+        result = described_class.build(settings, agent_settings, logger, enabled: settings.symbol_database.enabled)
         expect(result).to be_nil
       end
     end
@@ -95,7 +95,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       before { settings.remote.enabled = true }
 
       it 'returns a Component' do
-        result = described_class.build(settings, agent_settings, logger)
+        result = described_class.build(settings, agent_settings, logger, enabled: settings.symbol_database.enabled)
         expect(result).to be_a(described_class)
       end
     end
@@ -104,21 +104,21 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       before { settings.symbol_database.internal.force_upload = true }
 
       it 'returns a Component' do
-        result = described_class.build(settings, agent_settings, logger)
+        result = described_class.build(settings, agent_settings, logger, enabled: settings.symbol_database.enabled)
         expect(result).to be_a(described_class)
         result.shutdown!
       end
 
       it 'calls schedule_deferred_upload' do
         expect_any_instance_of(described_class).to receive(:schedule_deferred_upload)
-        described_class.build(settings, agent_settings, logger)
+        described_class.build(settings, agent_settings, logger, enabled: settings.symbol_database.enabled)
       end
     end
 
     context 'without force_upload' do
       it 'does not call schedule_deferred_upload' do
         expect_any_instance_of(described_class).not_to receive(:schedule_deferred_upload)
-        described_class.build(settings, agent_settings, logger)
+        described_class.build(settings, agent_settings, logger, enabled: settings.symbol_database.enabled)
       end
     end
   end
@@ -639,11 +639,11 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         extraction_count += 1
       end
 
-      component_a = described_class.build(settings, agent_settings, logger)
+      component_a = described_class.build(settings, agent_settings, logger, enabled: settings.symbol_database.enabled)
       component_a.wait_for_idle(timeout: 5)
       component_a.shutdown!
 
-      component_b = described_class.build(settings, agent_settings, logger)
+      component_b = described_class.build(settings, agent_settings, logger, enabled: settings.symbol_database.enabled)
       component_b.wait_for_idle(timeout: 5)
 
       expect(extraction_count).to eq(2)
@@ -670,7 +670,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         nil
       end
 
-      component = described_class.build(settings, agent_settings, logger)
+      component = described_class.build(settings, agent_settings, logger, enabled: settings.symbol_database.enabled)
       component.wait_for_idle(timeout: 5)
 
       begin
@@ -700,7 +700,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         end
       RUBY
 
-      component = described_class.build(settings, agent_settings, logger)
+      component = described_class.build(settings, agent_settings, logger, enabled: settings.symbol_database.enabled)
       component.wait_for_idle(timeout: 5)
 
       buffered = nil
@@ -729,7 +729,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       # empirically: backtrace includes `<class:CustomerClass>`). The rescue
       # in install_hot_load_hook contains the failure, logs at debug, and
       # reports via telemetry.
-      component = described_class.build(settings, agent_settings, logger)
+      component = described_class.build(settings, agent_settings, logger, enabled: settings.symbol_database.enabled)
       component.wait_for_idle(timeout: 5)
 
       injected_error = RuntimeError.new('simulated hot-load enqueue failure')
@@ -756,7 +756,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       # implementation, IO error), it would escape the outer rescue and
       # surface in the customer's class body. The inner rescue contains
       # this case.
-      component = described_class.build(settings, agent_settings, logger)
+      component = described_class.build(settings, agent_settings, logger, enabled: settings.symbol_database.enabled)
       component.wait_for_idle(timeout: 5)
 
       allow(component).to receive(:enqueue_hot_load)

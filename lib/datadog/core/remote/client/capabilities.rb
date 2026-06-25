@@ -40,8 +40,10 @@ module Datadog
               register_products(Datadog::DI::Remote.products)
               register_receivers(Datadog::DI::Remote.receivers(@telemetry))
 
-              # Symbol Database
-              if settings.respond_to?(:symbol_database) && settings.symbol_database.enabled
+              # Symbol Database. enabled is tri-state; nil (unconfigured)
+              # follows DI, which is enabled in this branch, so only an
+              # explicit false opts out.
+              if settings.respond_to?(:symbol_database) && settings.symbol_database.enabled != false
                 register_capabilities(Datadog::SymbolDatabase::Remote.capabilities)
                 register_products(Datadog::SymbolDatabase::Remote.products)
                 register_receivers(Datadog::SymbolDatabase::Remote.receivers(@telemetry))

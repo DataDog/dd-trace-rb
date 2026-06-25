@@ -191,6 +191,18 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         )
       end
     end
+
+    context 'when DI is enabled and symbol_database is unset (nil)' do
+      let(:settings) do
+        settings = Datadog::Core::Configuration::Settings.new
+        settings.dynamic_instrumentation.enabled = true
+        settings
+      end
+
+      it 'registers symbol database product (nil follows DI)' do
+        expect(capabilities.products).to include('LIVE_DEBUGGING_SYMBOL_DB')
+      end
+    end
   end
 
   context 'Tracing component' do

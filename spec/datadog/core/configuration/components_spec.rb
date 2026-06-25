@@ -202,6 +202,43 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
   end
 
+  describe '::symbol_database_enabled?' do
+    subject(:enabled?) { described_class.symbol_database_enabled?(settings) }
+
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+
+    context 'when symbol_database.enabled is explicitly true' do
+      before { settings.symbol_database.enabled = true }
+
+      it { is_expected.to be true }
+    end
+
+    context 'when symbol_database.enabled is explicitly false' do
+      before do
+        settings.dynamic_instrumentation.enabled = true
+        settings.symbol_database.enabled = false
+      end
+
+      it 'returns false even when DI is enabled' do
+        is_expected.to be false
+      end
+    end
+
+    context 'when symbol_database.enabled is unset (nil)' do
+      context 'and dynamic_instrumentation.enabled is true' do
+        before { settings.dynamic_instrumentation.enabled = true }
+
+        it { is_expected.to be true }
+      end
+
+      context 'and dynamic_instrumentation.enabled is false' do
+        before { settings.dynamic_instrumentation.enabled = false }
+
+        it { is_expected.to be false }
+      end
+    end
+  end
+
   describe '::build_health_metrics' do
     subject(:build_health_metrics) { described_class.build_health_metrics(settings, logger, telemetry) }
 

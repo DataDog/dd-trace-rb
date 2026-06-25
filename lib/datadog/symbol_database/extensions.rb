@@ -13,3 +13,5 @@ module Datadog
     end
   end
 end
+
+Datadog::SymbolDatabase::Extensions.activate!

@@ -3,7 +3,6 @@
 require_relative 'di/configuration'
 require_relative 'di/extensions'
 require_relative 'di/remote'
-require_relative 'symbol_database/extensions'
 
 module Datadog
   # Namespace for Datadog dynamic instrumentation.
@@ -172,9 +171,3 @@ module Datadog
     Extensions.activate!
   end
 end
-
-# Symbol database settings are registered on the DI load path, not in core,
-# so that symbol_database.enabled's default can read
-# dynamic_instrumentation.enabled without guarding for an absent DI settings
-# group. See Datadog::SymbolDatabase::Extensions.
-Datadog::SymbolDatabase::Extensions.activate!

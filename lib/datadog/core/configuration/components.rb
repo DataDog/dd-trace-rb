@@ -46,6 +46,16 @@ module Datadog
             Core::Diagnostics::Health::Metrics.new(telemetry: telemetry, logger: logger, **options)
           end
 
+          # Resolves symbol_database.enabled, a tri-state setting: true/false are
+          # explicit; nil follows dynamic_instrumentation.enabled.
+          # @return [Boolean]
+          def symbol_database_enabled?(settings)
+            configured = settings.symbol_database.enabled if settings.respond_to?(:symbol_database)
+            return configured unless configured.nil?
+
+            settings.respond_to?(:dynamic_instrumentation) && settings.dynamic_instrumentation.enabled
+          end
+
           def build_logger(settings)
             logger = settings.logger.instance || Core::Logger.new($stderr)
             logger.level = settings.diagnostics.debug ? ::Logger::DEBUG : settings.logger.level
@@ -174,7 +184,10 @@ module Datadog
           @ai_guard = Datadog::AIGuard::Component.build(settings, logger: @logger, telemetry: telemetry)
           @open_feature = OpenFeature::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
-          @symbol_database = Datadog::SymbolDatabase::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
+          @symbol_database = Datadog::SymbolDatabase::Component.build(
+            settings, agent_settings, @logger,
+            enabled: self.class.symbol_database_enabled?(settings), telemetry: telemetry,
+          )
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
           @data_streams = self.class.build_data_streams(settings, agent_settings, @logger, @agent_info)
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
