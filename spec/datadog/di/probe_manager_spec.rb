@@ -286,7 +286,7 @@ RSpec.describe Datadog::DI::ProbeManager do
   end
 
   describe '#stop then #reopen' do
-    # Round-trip the codex review scenario on PR #5525: RC toggles
+    # Round-trip the RC toggle scenario: RC toggles
     # dynamic_instrumentation_enabled from true to false, then back to true
     # with the same LIVE_DEBUGGING content. The remote client only
     # redispatches receivers on a content hash change, so the LIVE_DEBUGGING

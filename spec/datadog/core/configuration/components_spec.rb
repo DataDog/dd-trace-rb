@@ -889,7 +889,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
 
     context 'env var was previously true and user reconfigures with enabled=false' do
-      # Round-trip the scenario from the codex P2 review comment: a process
+      # Round-trip the reconfigure-to-disabled scenario: a process
       # boots with DD_DYNAMIC_INSTRUMENTATION_ENABLED=true, which starts DI;
       # the user later calls Datadog.configure to explicitly disable DI. The
       # new component must NOT auto-start. The bug was that #state captured

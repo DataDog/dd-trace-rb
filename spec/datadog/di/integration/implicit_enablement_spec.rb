@@ -250,7 +250,7 @@ RSpec.describe 'DI implicit enablement integration' do
   end
 
   describe 'combined RC transaction: LIVE_DEBUGGING + APM_TRACING dispatched together' do
-    # Regression test for the dispatch-order bug raised in PR review: when a
+    # Regression test for the dispatch-order bug: when a
     # single RC response contains both a LIVE_DEBUGGING probe insert AND an
     # APM_TRACING `dynamic_instrumentation_enabled=true` toggle, the receiver
     # registered first wins control of dispatch. If the DI receiver ran first
@@ -311,7 +311,7 @@ RSpec.describe 'DI implicit enablement integration' do
   end
 
   describe 'probe delivered in an earlier poll while stopped, enable in a later poll' do
-    # Regression test for the edge case raised in PR review: a probe can land in
+    # Regression test for the cross-poll edge case: a probe can land in
     # one RC poll while DI is stopped and the enable signal arrive in a *separate*
     # later poll. The DI receiver drops the probe while stopped, and
     # Core::Remote::Client#apply_config marks the now-unchanged probe content
