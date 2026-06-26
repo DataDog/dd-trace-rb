@@ -1442,12 +1442,12 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     // (as documented on rb_internal_thread_add_event_hook(), and this is notably the case for READY on Ruby 4.0),
     // so be careful with native thread locals that are not directly tied to the thread object and the like.
 
-    // On Ruby 3.2 the event does not carry the thread, but all events always fire on the event thread on Ruby 3.2.
-    // However, during early thread startup rb_thread_current() can crash because the execution context (Fiber) isn't
-    // stored in TLS yet; ruby_native_thread_p() guards against this.
     #ifdef HAVE_RUBY_THREAD_STORAGE_API
       VALUE target_thread = event_data->thread;
     #else
+      // On Ruby 3.2 the event does not carry the thread, but all events fire on the thread itself.
+      // However, during early thread startup rb_thread_current() can crash because the execution context (Fiber) isn't
+      // stored in TLS yet; ruby_native_thread_p() guards against this.
       if (!ruby_native_thread_p()) return;
       VALUE target_thread = rb_thread_current();
     #endif
