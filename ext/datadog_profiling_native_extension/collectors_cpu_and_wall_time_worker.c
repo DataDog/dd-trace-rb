@@ -1060,9 +1060,6 @@ static VALUE _native_simulate_sample_from_postponed_job(DDTRACE_UNUSED VALUE sel
 //
 // In the future, if we add more other components with tracepoints, we will need to coordinate stopping all such
 // tracepoints before doing the other cleaning steps.
-//
-// Note that tests call this method directly in the same process without forking,
-// and in such a case non-current Threads keep running.
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance) {
   cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);

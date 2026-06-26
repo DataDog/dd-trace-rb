@@ -1605,17 +1605,14 @@ static bool should_collect_resource(VALUE root_span) {
 //
 // Assumption: This method gets called BEFORE restarting profiling -- e.g. there are no components attempting to
 // trigger samples at the same time.
-//
-// Note that tests call this method directly in the same process without forking,
-// and in such a case non-current Threads keep running.
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   state->stats = (struct stats) {}; // Resets all stats back to zero
 
-  // Clear any leftover state from parent process in the current thread; all other threads are assumed dead
-  _native_clear_per_thread_context_for(Qnil, rb_thread_current());
+  // In the past, we had here code to clean-up the per-thread context, but now the CpuAndWallTimeWorker always cleans
+  // it up unconditionally on every start/restart and that includes after a fork so no work needed here.
 
   rb_funcall(state->recorder_instance, rb_intern("reset_after_fork"), 0);
 

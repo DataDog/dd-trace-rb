@@ -2322,12 +2322,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       sample
     end
 
-    it "resets the current Thread per_thread_context" do
-      expect { reset_after_fork }.to change {
-        per_thread_context.dig(Thread.current, :cpu_time_at_previous_sample_ns)
-      }.to(-1)
-    end
-
     it "clears the stats" do
       # Simulate a GC sample, so the gc_samples stat will go to 1
       on_gc_start
