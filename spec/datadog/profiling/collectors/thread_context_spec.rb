@@ -2,13 +2,6 @@ require "datadog/profiling/spec_helper"
 require "datadog/profiling/collectors/thread_context"
 
 RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
-  before :all do
-    # Ensure the first ThreadContext instance is created early on, before touching `per_thread_context`s,
-    # otherwise the first ThreadContext might be created after #remove_per_thread_context_for(thread)
-    # and create the `per_thread_context` for that thread unintentionally.
-    described_class.for_testing(recorder: Datadog::Profiling::StackRecorder.for_testing)
-  end
-
   before do
     @clean_threads_required = false
     skip_if_profiling_not_supported
@@ -1375,7 +1368,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   describe "#on_gc_start" do
     context "if a thread does not have per-thread context" do
-      before { remove_per_thread_context_for(Thread.current) }
+      before do
+        thread_context_collector
+        remove_per_thread_context_for(Thread.current)
+      end
 
       it "does not record anything in the caller thread's context" do
         on_gc_start
@@ -1414,7 +1410,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   describe "#on_gc_finish" do
     context "when thread does not have per-thread context" do
-      before { remove_per_thread_context_for(Thread.current) }
+      before do
+        thread_context_collector
+        remove_per_thread_context_for(Thread.current)
+      end
 
       it "does not record anything in the caller thread's context" do
         on_gc_start
@@ -1829,7 +1828,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     before { skip_if_gvl_profiling_not_supported(self) }
 
     context "if thread does not have per-thread context" do
-      before { remove_per_thread_context_for(t1) }
+      before do
+        thread_context_collector
+        remove_per_thread_context_for(t1)
+      end
 
       it "does not trigger the creation of the thread context" do
         on_gvl_running(t1)
@@ -2333,39 +2335,13 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   describe "when a new collector is created with a smaller max_frames" do
+    let(:max_frames) { 5 }
+
     it "caps the number of frames to the new max_frames" do
-      large_max_frames = 400
-      first_collector = described_class.new(
-        recorder: recorder,
-        max_frames: large_max_frames,
-        tracer: tracer,
-        endpoint_collection_enabled: endpoint_collection_enabled,
-        waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
-        otel_context_enabled: otel_context_enabled,
-        native_filenames_enabled: native_filenames_enabled,
-      )
-      described_class::Testing._native_sample(first_collector, false)
+      sample
 
-      # Second collector with much smaller max_frames — its locations array is smaller,
-      # but the existing per_thread_context still has a sampling_buffer sized for large_max_frames.
-      small_max_frames = 5
-      second_recorder = Datadog::Profiling::StackRecorder.for_testing(alloc_samples_enabled: true)
-      second_collector = described_class.new(
-        recorder: second_recorder,
-        max_frames: small_max_frames,
-        tracer: tracer,
-        endpoint_collection_enabled: endpoint_collection_enabled,
-        waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
-        otel_context_enabled: otel_context_enabled,
-        native_filenames_enabled: native_filenames_enabled,
-      )
-      described_class::Testing._native_sample(second_collector, false)
-
-      second_samples = samples_from_pprof(second_recorder.serialize!)
-      current_thread_samples = samples_for_thread(second_samples, Thread.current)
-      main_sample = current_thread_samples.find { |s| !s.labels.key?(:"profiler overhead") }
-
-      expect(main_sample.locations.size).to be <= small_max_frames
+      main_sample = samples_for_thread(samples, Thread.current).find { |it| !it.labels.key?(:"profiler overhead") }
+      expect(main_sample.locations.size).to eq(max_frames)
     end
   end
 

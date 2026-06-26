@@ -185,7 +185,8 @@ typedef struct {
 // The state is created early on for all threads on the main Ractor
 // (enabling a TracePoint only enables it for the current Ractor).
 // The state is either created when the Thread starts running (via the RUBY_EVENT_THREAD_BEGIN TracePoint),
-// or the first time we create a ThreadContext by iterating Thread.list.
+// or via `thread_context_collector_global_reset_per_thread_context` when the profiler starts.
+//
 // Unfortunately that RUBY_EVENT_THREAD_BEGIN TracePoint still fires after some other events:
 // * RUBY_INTERNAL_THREAD_EVENT_RESUMED for the Thread acquiring the GVL for the first time
 // * an early SIGPROF calling handle_sampling_signal()
