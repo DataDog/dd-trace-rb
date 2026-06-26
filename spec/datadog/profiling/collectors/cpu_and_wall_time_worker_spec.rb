@@ -24,6 +24,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:gvl_profiling_enabled) { false }
   let(:sighandler_sampling_enabled) { false }
   let(:cpu_sampling_interval_ms) { 10 }
+  let(:one_second_in_ns) { 1_000_000_000 }
   let(:thread_context_collector) { build_thread_context_collector(recorder) }
   let(:worker_settings) do
     {
@@ -287,7 +288,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(sampling_time_ns_min).to be <= sampling_time_ns_max
       expect(sampling_time_ns_max).to be <= sampling_time_ns_total
       expect(sampling_time_ns_avg).to be >= sampling_time_ns_min
-      one_second_in_ns = 1_000_000_000
       expect(sampling_time_ns_max).to be < one_second_in_ns, "A single sample should not take longer than 1s, #{stats}"
     end
 
@@ -549,9 +549,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         context "when 'Waiting for GVL' periods are below waiting_for_gvl_threshold_ns" do
           let(:options) do
-            one_second_as_ns = 1_000_000_000
-            collector = build_thread_context_collector(recorder, waiting_for_gvl_threshold_ns: one_second_as_ns)
-
+            collector = build_thread_context_collector(recorder, waiting_for_gvl_threshold_ns: one_second_in_ns)
             {thread_context_collector: collector}
           end
 
@@ -749,7 +747,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           expect(sampling_time_ns_min).to be <= sampling_time_ns_max
           expect(sampling_time_ns_max).to be <= sampling_time_ns_total
           expect(sampling_time_ns_avg).to be >= sampling_time_ns_min
-          one_second_in_ns = 1_000_000_000
           expect(sampling_time_ns_max).to be < one_second_in_ns, "A single sample should not take longer than 1s, #{stats}"
         end
 
@@ -1141,6 +1138,37 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         cpu_and_wall_time_worker.start(on_failure_proc: proc { proc_called << true })
 
         proc_called.pop
+      end
+    end
+
+    context "when restarting after having been stopped" do
+      it "resets leftover per-thread state, so it's not attributed to the new session's samples" do
+        one_hour_ns = 60 * 60 * one_second_in_ns
+
+        # Make sure there's existing state from sampling the main thread
+        start
+        try_wait_until do
+          samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current).any?
+        end
+        cpu_and_wall_time_worker.stop
+        recorder.serialize!
+
+        # Roll back the clock to make it really obvious if this is not cleaned up
+        Datadog::Profiling::Collectors::ThreadContext::Testing
+          ._native_apply_delta_to_cpu_time_at_previous_sample_ns(Thread.current, -(60 * 60 * one_second_in_ns))
+
+        before_restart_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
+        cpu_and_wall_time_worker.start
+        wait_until_running
+        new_samples = try_wait_until do
+          samples = samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
+          samples if samples.any?
+        end
+        cpu_and_wall_time_worker.stop
+        elapsed_ns = Datadog::Core::Utils::Time.get_time(:nanosecond) - before_restart_ns
+
+        cpu_time_ns = new_samples.sum { |it| it.values.fetch(:"cpu-time") }
+        expect(cpu_time_ns).to be <= elapsed_ns
       end
     end
   end
