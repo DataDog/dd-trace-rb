@@ -1279,6 +1279,11 @@ static void initialize_context(VALUE thread, per_thread_context *thread_context)
 
 // This MUST be called before profiling starts, so that a new profiler session starts from a fresh state and never
 // observes or includes any leftover stale state from a previous session.
+//
+// Assumption: Can only be called when the CpuAndWallTimeWorker is stopped (e.g. no tracepoints active, no signals
+// triggering samples, no gvl hooks, etc).
+// Assumption: Must be called after the "latest" ThreadContext instance has been created (so the sampling buffer gets
+// correctly recreated with the correct global `latest_max_frames` value).
 void thread_context_collector_global_reset_per_thread_context(VALUE self_instance) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
