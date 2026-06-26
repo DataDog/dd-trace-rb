@@ -26,11 +26,6 @@ module Datadog
         def normalize(path_params:, path:)
           @path_params = path_params
           @path = path
-          @nameless_param_count = 0
-
-          @segments = []
-          @segment_text = +''
-          @segment_params = []
 
           if @pattern.is_a?(String)
             # NOTE: Journey groups without route params are never kept
@@ -51,10 +46,9 @@ module Datadog
             return RouteText.escape(route_string) unless route_string.include?(GROUP_OPEN_CHAR)
           end
 
-          visit_route_node(route_spec)
-          finish_segment
-
-          "/#{@segments.join('/')}"
+          buffer = Buffer.new
+          visit_route_node(route_spec, buffer)
+          buffer.to_path
         end
 
         private
@@ -75,46 +69,22 @@ module Datadog
           end
         end
 
-        def visit_route_node(node)
+        def visit_route_node(node, buffer)
           case node.type
           when :CAT
-            visit_route_node(node.left)
-            visit_route_node(node.right)
+            visit_route_node(node.left, buffer)
+            visit_route_node(node.right, buffer)
           when :SLASH
-            finish_segment
+            buffer.flush
           when :LITERAL
-            @segment_text << node.left
+            buffer.add_literal(node.left)
           when :DOT
-            @segment_text << DOT_CHAR
+            buffer.add_literal(DOT_CHAR)
           when :SYMBOL, :STAR
-            @segment_params << node.name
+            buffer.add_param(node.name)
           when :GROUP
-            visit_route_node(node.left) if group_present?(node.left)
+            visit_route_node(node.left, buffer) if group_present?(node.left)
           end
-        end
-
-        def finish_segment
-          return if @segment_text.empty? && @segment_params.empty?
-
-          @segments << if @segment_params.empty?
-            RouteText.escape(@segment_text)
-          else
-            render_segment_params(@segment_params)
-          end
-
-          @segment_text = +''
-          @segment_params.clear
-        end
-
-        def render_segment_params(params)
-          names = params.map do |name| # $ String
-            next name unless name.empty?
-
-            @nameless_param_count += 1
-            "param#{@nameless_param_count}"
-          end
-
-          "{#{names.join('+')}}"
         end
 
         def group_present?(node)
@@ -150,6 +120,55 @@ module Datadog
 
         def optional_group_has_route_params?(group)
           group.include?(NAMED_PARAM_PREFIX_CHAR) || group.include?(GLOB_PARAM_PREFIX_CHAR)
+        end
+
+        class Buffer
+          def initialize
+            @segments = []
+            @text = +''
+            @params = []
+            @nameless_param_count = 0
+          end
+
+          def add_literal(text)
+            @text << text
+          end
+
+          def add_param(name)
+            @params << name
+          end
+
+          def flush
+            return if @text.empty? && @params.empty?
+
+            @segments << if @params.empty?
+              RouteText.escape(@text)
+            else
+              render_params(@params)
+            end
+
+            @text = +''
+            @params.clear
+          end
+
+          def to_path
+            flush
+
+            "/#{@segments.join('/')}"
+          end
+
+          private
+
+          def render_params(params)
+            names = params.map do |name| # $ String
+              next name unless name.empty?
+
+              @nameless_param_count += 1
+              "param#{@nameless_param_count}"
+            end
+
+            "{#{names.join('+')}}"
+          end
         end
       end
     end

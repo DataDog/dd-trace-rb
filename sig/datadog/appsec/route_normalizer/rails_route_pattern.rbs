@@ -18,14 +18,6 @@ module Datadog
 
         @path: String
 
-        @nameless_param_count: Integer
-
-        @segments: Array[String]
-
-        @segment_text: String
-
-        @segment_params: Array[String]
-
         def initialize: (untyped pattern) -> void
 
         def normalize: (path_params: Hash[Symbol, untyped], path: String) -> String
@@ -34,11 +26,7 @@ module Datadog
 
         def remove_paramless_optional_groups: (String pattern) -> String
 
-        def visit_route_node: (untyped node) -> void
-
-        def finish_segment: () -> void
-
-        def render_segment_params: (Array[String] params) -> String
+        def visit_route_node: (untyped node, Buffer buffer) -> void
 
         def group_present?: (untyped node) -> bool
 
@@ -47,6 +35,28 @@ module Datadog
         def collect_group_param_names: (untyped node, Array[String] memo) -> Array[String]
 
         def optional_group_has_route_params?: (String group) -> bool
+
+        class Buffer
+          @segments: Array[String]
+
+          @text: String
+
+          @params: Array[String]
+
+          @nameless_param_count: Integer
+
+          def add_literal: (String text) -> void
+
+          def add_param: (String name) -> void
+
+          def flush: () -> void
+
+          def to_path: () -> String
+
+          private
+
+          def render_params: (Array[String] params) -> String
+        end
       end
     end
   end
