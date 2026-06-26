@@ -1143,9 +1143,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
     context "when restarting after having been stopped" do
       it "resets leftover per-thread state, so it's not attributed to the new session's samples" do
-        one_hour_ns = 60 * 60 * one_second_in_ns
-
-        # Make sure there's existing state from sampling the main thread
+        # Seed state from sampling
         start
         try_wait_until do
           samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current).any?

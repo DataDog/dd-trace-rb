@@ -2371,7 +2371,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           was_skipped_at_last_sample: false,
           thread_id: include(thread.object_id.to_s),
           thread_invoke_location: before_reset.fetch(thread).fetch(:thread_invoke_location),
-          "thread_cpu_time_id_valid?": true,
+          thread_cpu_time_id_valid?: true,
           thread_cpu_time_id: before_reset.fetch(thread).fetch(:thread_cpu_time_id),
         )
       end
