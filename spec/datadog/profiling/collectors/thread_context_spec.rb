@@ -1956,8 +1956,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
 
       it "does not sample the thread" do
-        skip("This is flaky -- we're discussing a full fix in https://github.com/DataDog/dd-trace-rb/pull/5926 but for now let's skip")
-
         sample_after_gvl_running(t1)
 
         expect(samples).to be_empty
