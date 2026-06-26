@@ -374,6 +374,7 @@ static VALUE _native_system_epoch_time_now_ns(DDTRACE_UNUSED VALUE self, VALUE c
 static VALUE _native_prepare_sample_inside_signal_handler(DDTRACE_UNUSED VALUE self);
 static VALUE _native_clear_per_thread_context_for(DDTRACE_UNUSED VALUE self, VALUE thread);
 static VALUE _native_remove_per_thread_context_for(DDTRACE_UNUSED VALUE self, VALUE thread);
+static VALUE _native_global_reset_per_thread_context(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 static bool skip_sample(thread_context_collector_state *state, per_thread_context *thread_context, bool is_gvl_waiting_state, bool force_sample_suspended);
 static void on_thread_begin_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
 
@@ -412,6 +413,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_prepare_sample_inside_signal_handler", _native_prepare_sample_inside_signal_handler, 0);
   rb_define_singleton_method(testing_module, "_native_clear_per_thread_context_for", _native_clear_per_thread_context_for, 1);
   rb_define_singleton_method(testing_module, "_native_remove_per_thread_context_for", _native_remove_per_thread_context_for, 1);
+  rb_define_singleton_method(testing_module, "_native_global_reset_per_thread_context", _native_global_reset_per_thread_context, 1);
   #ifndef NO_GVL_INSTRUMENTATION
     rb_define_singleton_method(testing_module, "_native_on_gvl_waiting", _native_on_gvl_waiting, 1);
     rb_define_singleton_method(testing_module, "_native_gvl_waiting_at_for", _native_gvl_waiting_at_for, 1);
@@ -530,6 +532,11 @@ static VALUE _native_remove_per_thread_context_for(DDTRACE_UNUSED VALUE self, VA
     set_per_thread_context(thread, NULL);
     rb_ivar_set(thread, dd_per_thread_context_id, Qnil);
   }
+  return Qnil;
+}
+
+static VALUE _native_global_reset_per_thread_context(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
+  thread_context_collector_global_reset_per_thread_context(collector_instance);
   return Qnil;
 }
 
@@ -1284,6 +1291,25 @@ static void initialize_context(VALUE thread, per_thread_context *thread_context)
 
   thread_context->gvl_waiting_at = 0;
   thread_context->gvl_state_change_count = 0;
+}
+
+// This MUST be called before profiling starts, so that a new profiler session starts from a fresh state and never
+// observes or includes any leftover stale state from a previous session.
+void thread_context_collector_global_reset_per_thread_context(VALUE self_instance) {
+  thread_context_collector_state *state;
+  TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
+
+  VALUE threads = thread_list(state);
+  const long thread_count = RARRAY_LEN(threads);
+  for (long i = 0; i < thread_count; i++) {
+    VALUE thread = rb_ary_entry(threads, i);
+    per_thread_context *thread_context = get_per_thread_context(thread);
+    if (thread_context == NULL) continue;
+
+    sampling_buffer_free(&thread_context->sampling_buffer);
+    memset(thread_context, 0, sizeof(per_thread_context));
+    initialize_context(thread, thread_context);
+  }
 }
 
 static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {

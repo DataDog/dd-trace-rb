@@ -93,6 +93,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_remove_per_thread_context_for(thread)
   end
 
+  def global_reset_per_thread_context
+    described_class::Testing._native_global_reset_per_thread_context(thread_context_collector)
+  end
+
   def on_gc_start
     described_class::Testing._native_on_gc_start(thread_context_collector)
   end
@@ -2374,6 +2378,39 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       main_sample = current_thread_samples.find { |s| !s.labels.key?(:"profiler overhead") }
 
       expect(main_sample.locations.size).to be <= small_max_frames
+    end
+  end
+
+  describe "#thread_context_collector_global_reset_per_thread_context" do
+    it "resets every existing per-thread context back to its clean initial state" do
+      sample
+
+      before_reset = per_thread_context
+      [t1, Thread.current].each do |thread|
+        expect(before_reset.fetch(thread)).to include(
+          cpu_time_at_previous_sample_ns: be > invalid_time,
+          wall_time_at_previous_sample_ns: be > invalid_time,
+        )
+      end
+
+      global_reset_per_thread_context
+
+      [t1, Thread.current].each do |thread|
+        expect(per_thread_context.fetch(thread)).to match(
+          cpu_time_at_previous_sample_ns: invalid_time,
+          wall_time_at_previous_sample_ns: invalid_time,
+          "gc_tracking.cpu_time_at_start_ns": invalid_time,
+          "gc_tracking.wall_time_at_start_ns": invalid_time,
+          gvl_waiting_at: 0,
+          gvl_state_change_count: 0,
+          gvl_state_change_count_at_previous_sample: 0,
+          was_skipped_at_last_sample: false,
+          thread_id: include(thread.object_id.to_s),
+          thread_invoke_location: before_reset.fetch(thread).fetch(:thread_invoke_location),
+          "thread_cpu_time_id_valid?": true,
+          thread_cpu_time_id: before_reset.fetch(thread).fetch(:thread_cpu_time_id),
+        )
+      end
     end
   end
 end

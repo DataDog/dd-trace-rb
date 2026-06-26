@@ -535,6 +535,10 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   long now = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
   discrete_dynamic_sampler_reset(&state->allocation_sampler, now);
 
+  // Reset per-thread state, if any. This ensures there's no leftover state from a previous profiler run that would
+  // affect or be included in samples taken by this profiler about to run.
+  thread_context_collector_global_reset_per_thread_context(state->thread_context_collector_instance);
+
   // This write to a global is thread-safe BECAUSE we're still holding on to the global VM lock at this point
   active_sampler_instance_state = state;
   active_sampler_instance = instance;
