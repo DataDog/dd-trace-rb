@@ -18,8 +18,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     # Make sure all threads have reached the `sleep` before moving on
     loop_until { testing_threads.all? { |t| t.status == "sleep" } }
     expect(Thread.list).to include(*testing_threads)
-
-    testing_threads_and_current.each { |t| clear_per_thread_context_for(t) }
   end
 
   let(:recorder) do
@@ -61,7 +59,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:native_filenames_enabled) { false }
 
   subject(:thread_context_collector) do
-    described_class.new(
+    collector = described_class.new(
       recorder: recorder,
       max_frames: max_frames,
       tracer: tracer,
@@ -70,6 +68,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       otel_context_enabled: otel_context_enabled,
       native_filenames_enabled: native_filenames_enabled,
     )
+    # This simulates how every profiling start/restart also resets the state.
+    described_class::Testing._native_global_reset_per_thread_context(collector)
+    collector
   end
 
   after do
@@ -83,10 +84,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   def sample(allow_exception: false)
     described_class::Testing._native_sample(thread_context_collector, allow_exception)
-  end
-
-  def clear_per_thread_context_for(thread)
-    described_class::Testing._native_clear_per_thread_context_for(thread)
   end
 
   def remove_per_thread_context_for(thread)
@@ -2129,7 +2126,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         prepare_sample_inside_signal_handler
         recorder.serialize!
 
-        clear_per_thread_context_for(Thread.current)
         sample
 
         result = sample_for_thread(samples.reject { |it| it.labels.include?(:"profiler overhead") }, Thread.current)
