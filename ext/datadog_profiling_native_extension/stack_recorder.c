@@ -905,9 +905,6 @@ static ddog_Timespec system_epoch_now_timespec(void) {
 //
 // Assumption: This method gets called BEFORE restarting profiling -- e.g. there are no components attempting to
 // trigger samples at the same time.
-//
-// Note that tests call this method directly in the same process without forking,
-// and in such a case non-current Threads keep running.
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
