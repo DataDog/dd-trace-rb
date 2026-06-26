@@ -627,14 +627,6 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   if (thread_begin_tracepoint == Qnil) {
     thread_begin_tracepoint = rb_tracepoint_new(Qnil, RUBY_EVENT_THREAD_BEGIN, on_thread_begin_event, NULL);
     rb_tracepoint_enable(thread_begin_tracepoint);
-
-    VALUE thread_list = rb_ary_new();
-    ddtrace_thread_list(thread_list);
-    long thread_count = RARRAY_LEN(thread_list);
-    for (long i = 0; i < thread_count; i++) {
-      get_or_create_context_for(RARRAY_AREF(thread_list, i));
-    }
-    RB_GC_GUARD(thread_list);
   }
 
   return Qtrue;
@@ -1296,11 +1288,14 @@ void thread_context_collector_global_reset_per_thread_context(VALUE self_instanc
   for (long i = 0; i < thread_count; i++) {
     VALUE thread = rb_ary_entry(threads, i);
     per_thread_context *thread_context = get_per_thread_context(thread);
-    if (thread_context == NULL) continue;
-
-    sampling_buffer_free(&thread_context->sampling_buffer);
-    memset(thread_context, 0, sizeof(per_thread_context));
-    initialize_context(thread, thread_context);
+    if (thread_context != NULL) {
+      sampling_buffer_free(&thread_context->sampling_buffer);
+      memset(thread_context, 0, sizeof(per_thread_context));
+      initialize_context(thread, thread_context);
+    } else {
+      // If thread didn't have a context, let's trigger its creation
+      get_or_create_context_for(thread);
+    }
   }
 }
 
