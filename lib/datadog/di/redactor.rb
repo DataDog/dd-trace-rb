@@ -202,7 +202,7 @@ module Datadog
       # strip must run before the punctuation gsub: the gsub removes the
       # underscore, after which `\Ahttp_` could never match.
       def normalize(str)
-        str.to_s.strip.downcase.sub(/\Ahttp_/, "").gsub(/[-_$@]/, "")
+        str.to_s.strip.downcase.sub(/\Ahttp_/, "").tr("-_$@", "")
       end
     end
   end
