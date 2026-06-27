@@ -8,6 +8,8 @@ module Datadog
 
         DRAIN_INTERVAL_SECONDS: ::Float
 
+        SHUTDOWN_TIMEOUT_SECONDS: ::Integer
+
         QUEUE_SIZE: ::Integer
 
         PAYLOAD_SIZE_LIMIT_BYTES: ::Integer
@@ -60,9 +62,11 @@ module Datadog
 
         def enqueue: (**untyped event) -> void
 
-        def stop: () -> void
+        def stop: () -> bool
 
         private
+
+        def after_fork: () -> void
 
         def build_service_context: () -> ::Hash[::String, ::String]
 
@@ -102,7 +106,7 @@ module Datadog
 
         def send_payload_batches: (::Array[::Hash[::String, untyped]] events) -> void
 
-        def send_payload_batch: (::Array[::Hash[::String, untyped]] events) -> void
+        def send_payload_batch: (::Array[::Hash[::String, untyped]] events) -> untyped
 
         def encoded_event_for_payload: (
           ::Hash[::String, untyped] event,
@@ -120,12 +124,6 @@ module Datadog
         def emit_payload_oversize_drops: (::Integer dropped_oversized) -> void
 
         def event_count: (::Hash[::String, untyped] event) -> ::Integer
-
-        def record_rows_dropped: (::String reason, ::Integer count) -> void
-
-        def record_rows_degraded: (::String reason, ::Integer count) -> void
-
-        def record_payload_splits: (::Integer count) -> void
 
         def record_telemetry_count: (
           ::String metric_name,

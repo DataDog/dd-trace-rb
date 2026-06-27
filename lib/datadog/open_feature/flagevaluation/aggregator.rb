@@ -16,6 +16,13 @@ module Datadog
         MAX_CONTEXT_FIELDS = 256
         MAX_FIELD_LENGTH = 256
 
+        # Type tags so values of different Ruby types never collide in the canonical key.
+        CTX_TAG_STRING = 's'
+        CTX_TAG_BOOL = 'b'
+        CTX_TAG_INTEGER = 'i'
+        CTX_TAG_FLOAT = 'f'
+        CTX_TAG_OTHER = 'o'
+
         EVAL_SCALE_TARGET_FLAGS = 2_500
         EVAL_SCALE_FULL_BUCKETS_PER_FLAG = 50
         EVAL_SCALE_USERS_PER_FLAG = 1_000
@@ -52,9 +59,12 @@ module Datadog
         end
 
         # Record one evaluation event. Thread-safe. Called from the background writer.
-        def record(flag_key:, variant:, allocation_key:, targeting_key:, eval_time_ms:, attrs:, error_message: nil)
-          # Runtime default: primary signal is absent/nil variant (not reason alone)
-          runtime_default = variant.nil?
+        def record(
+          flag_key:, variant:, allocation_key:, targeting_key:, eval_time_ms:, attrs:, error_message: nil,
+          runtime_default: nil
+        )
+          runtime_default = variant.nil? if runtime_default.nil?
+          runtime_default = !!runtime_default
 
           # Normalize nil/empty strings
           variant = variant.to_s
@@ -63,7 +73,7 @@ module Datadog
           targeting_key = targeting_key.to_s
 
           # Context pruning + canonical key (see prune_context and canonical_context_key).
-          # Writer#enqueue already bounds attrs before buffering; this remains defensive.
+          # Runs in the background writer so caller eval threads do not pay the flatten/prune cost.
           pruned = prune_context(attrs)
           ctx_key = canonical_context_key(pruned)
 
@@ -174,13 +184,6 @@ module Datadog
           end
           buf
         end
-
-        # Type tags so values of different Ruby types never collide in the canonical key.
-        CTX_TAG_STRING = 's'
-        CTX_TAG_BOOL = 'b'
-        CTX_TAG_INTEGER = 'i'
-        CTX_TAG_FLOAT = 'f'
-        CTX_TAG_OTHER = 'o'
 
         def self.flatten_value(prefix, value, out)
           case value

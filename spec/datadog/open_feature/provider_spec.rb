@@ -312,6 +312,27 @@ RSpec.describe Datadog::OpenFeature::Provider do
       ensure
         writer.stop
       end
+
+      it 'marks SDK-final type mismatches as runtime defaults in the emitted row' do
+        result = Datadog::OpenFeature::ResolutionDetails.new(
+          value: 123, reason: 'TARGETING_MATCH', variant: 'variant-a',
+          flag_metadata: {}, allocation_key: nil, extra_logging: {}, log?: false, error?: false
+        )
+        allow(engine).to receive(:fetch_value).and_return(result)
+
+        client.fetch_string_value(
+          flag_key: 'typed-default-flag', default_value: 'default', evaluation_context: evaluation_context
+        )
+
+        writer.send(:drain_and_flush)
+        expect(evp_transport).to have_received(:send_flag_evaluations) do |payload|
+          row = payload['flagEvaluations'].first
+          expect(row['flag']['key']).to eq('typed-default-flag')
+          expect(row['runtime_default_used']).to be(true)
+        end
+      ensure
+        writer.stop
+      end
     end
   end
 

@@ -13,6 +13,8 @@ module Datadog
       # stay on the OTel path. This hook is registered as a provider hook so it receives
       # the SDK-final EvaluationDetails after hook failures and type validation.
       class FlagEvalEVPHook
+        TYPE_MISMATCH_ERROR_CODE = 'TYPE_MISMATCH'
+
         # Include the Hook module if available (SDK >= 0.5.0) for interface documentation
         # and default implementations of other hook methods (before, after, error)
         include ::OpenFeature::SDK::Hooks::Hook if defined?(::OpenFeature::SDK::Hooks::Hook)
@@ -40,9 +42,10 @@ module Datadog
 
           writer.enqueue(
             flag_key: hook_context.flag_key,
-            variant: evaluation_details.variant, # nil = absent = runtime default
+            variant: evaluation_details.variant,
             allocation_key: extract_allocation_key(evaluation_details),
             error_message: extract_error_message(evaluation_details),
+            runtime_default: runtime_default?(evaluation_details),
             targeting_key: extract_targeting_key(hook_context.evaluation_context),
             eval_time_ms: eval_time_ms,
             attrs: extract_attributes(hook_context.evaluation_context),
@@ -84,6 +87,13 @@ module Datadog
           return unless evaluation_details.respond_to?(:error_message)
 
           evaluation_details.error_message
+        end
+
+        def runtime_default?(evaluation_details)
+          return true if evaluation_details.variant.nil?
+          return false unless evaluation_details.respond_to?(:error_code)
+
+          evaluation_details.error_code.to_s == TYPE_MISMATCH_ERROR_CODE
         end
       end
     end

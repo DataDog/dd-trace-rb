@@ -25,6 +25,7 @@ module Datadog
 
         FLUSH_INTERVAL_SECONDS = 10
         DRAIN_INTERVAL_SECONDS = 0.1
+        SHUTDOWN_TIMEOUT_SECONDS = 5
         QUEUE_SIZE = 4_096
         PAYLOAD_SIZE_LIMIT_BYTES = Core::EVP::PAYLOAD_SIZE_LIMIT_BYTES
         TELEMETRY_NAMESPACE = 'tracers'
@@ -62,16 +63,21 @@ module Datadog
         end
 
         # Non-blocking enqueue from the finally hook. Drops + counts on overflow.
-        # Context is flattened/pruned before the bounded queue so queued snapshots stay bounded.
+        # Context flattening/pruning runs in the background writer, not on the caller eval thread.
         def enqueue(**event)
+          start_background_thread if forked?
+
+          attrs = event[:attrs]
+          attrs = attrs.is_a?(Hash) ? attrs.dup : {}
           bounded_event = {
             flag_key: event[:flag_key],
             variant: event[:variant],
             allocation_key: event[:allocation_key],
             error_message: event[:error_message],
+            runtime_default: event[:runtime_default],
             targeting_key: event[:targeting_key],
             eval_time_ms: event[:eval_time_ms],
-            attrs: Aggregator.prune_context(event[:attrs] || {}),
+            attrs: attrs,
           }
           @queue.push(bounded_event, true)
           start_background_thread unless running?
@@ -88,7 +94,22 @@ module Datadog
             @stopped = true
             @stop_cond.broadcast
           end
-          join(5)
+
+          return true if join(SHUTDOWN_TIMEOUT_SECONDS)
+
+          @logger.debug { 'OpenFeature EVP: writer did not stop gracefully; terminating worker thread' }
+          terminate
+        end
+
+        protected
+
+        def after_fork
+          @aggregator = Aggregator.new
+          @queue = SizedQueue.new(QUEUE_SIZE)
+          @stop_mutex = Mutex.new
+          @stop_cond = ConditionVariable.new
+          @stopped = false
+          @dropped_queue_overflow = 0
         end
 
         private
@@ -193,8 +214,8 @@ module Datadog
         def emit_drop_counts(dropped_queue, dropped_overflow)
           return if dropped_queue.zero? && dropped_overflow.zero?
 
-          record_rows_dropped(REASON_QUEUE_OVERFLOW, dropped_queue)
-          record_rows_dropped(REASON_DEGRADED_CAP, dropped_overflow)
+          record_telemetry_count(ROWS_DROPPED_METRIC, dropped_queue, reason: REASON_QUEUE_OVERFLOW)
+          record_telemetry_count(ROWS_DROPPED_METRIC, dropped_overflow, reason: REASON_DEGRADED_CAP)
 
           @logger.debug do
             'OpenFeature EVP: dropped events ' \
@@ -203,7 +224,7 @@ module Datadog
         end
 
         def emit_degraded_counts(degraded_count)
-          record_rows_degraded(REASON_CARDINALITY_CAP, degraded_count)
+          record_telemetry_count(ROWS_DEGRADED_METRIC, degraded_count, reason: REASON_CARDINALITY_CAP)
         end
 
         # Build flagEvaluationEvent list from aggregation snapshot.
@@ -299,19 +320,23 @@ module Datadog
           end
 
           send_payload_batch(batch) unless batch.empty?
-          record_rows_degraded(REASON_PAYLOAD_LIMIT, payload_limit_degraded)
-          record_rows_dropped(REASON_PAYLOAD_LIMIT, dropped_oversized)
-          record_payload_splits(payload_splits)
+          record_telemetry_count(ROWS_DEGRADED_METRIC, payload_limit_degraded, reason: REASON_PAYLOAD_LIMIT)
+          record_telemetry_count(ROWS_DROPPED_METRIC, dropped_oversized, reason: REASON_PAYLOAD_LIMIT)
+          record_telemetry_count(PAYLOAD_SPLITS_METRIC, payload_splits)
           emit_payload_oversize_drops(dropped_oversized) if dropped_oversized.positive?
         end
 
         def send_payload_batch(events)
-          @transport.send_flag_evaluations(
+          response = @transport.send_flag_evaluations(
             {
               'context' => @service_context,
               'flagEvaluations' => events,
             }
           )
+          if response.respond_to?(:ok?) && !response.ok?
+            @logger.debug { "OpenFeature EVP: transport response was not OK: #{response.inspect}" }
+          end
+          response
         end
 
         def encoded_event_for_payload(event, base_payload_size)
@@ -349,18 +374,6 @@ module Datadog
         def event_count(event)
           count = event['evaluation_count'].to_i
           count.positive? ? count : 1
-        end
-
-        def record_rows_dropped(reason, count)
-          record_telemetry_count(ROWS_DROPPED_METRIC, count, reason: reason)
-        end
-
-        def record_rows_degraded(reason, count)
-          record_telemetry_count(ROWS_DEGRADED_METRIC, count, reason: reason)
-        end
-
-        def record_payload_splits(count)
-          record_telemetry_count(PAYLOAD_SPLITS_METRIC, count)
         end
 
         def record_telemetry_count(metric_name, count, reason: nil)

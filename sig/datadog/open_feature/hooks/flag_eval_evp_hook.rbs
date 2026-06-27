@@ -4,6 +4,8 @@ module Datadog
       class FlagEvalEVPHook
         include ::OpenFeature::SDK::Hooks::Hook
 
+        TYPE_MISMATCH_ERROR_CODE: ::String
+
         @writer: FlagEvaluation::Writer?
 
         def self.available?: () -> bool
@@ -25,6 +27,8 @@ module Datadog
         def extract_allocation_key: (untyped evaluation_details) -> ::String?
 
         def extract_error_message: (untyped evaluation_details) -> ::String?
+
+        def runtime_default?: (untyped evaluation_details) -> bool
       end
     end
   end

@@ -15,12 +15,20 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
   let(:eval_context) { ::OpenFeature::SDK::EvaluationContext.new(targeting_key: 'user-7', env: 'prod') }
   let(:hook_context) { double('HookContext', flag_key: 'my-flag', evaluation_context: eval_context) }
 
+  def build_evaluation_details(variant:, error_message: nil, error_code: nil, flag_metadata: {})
+    instance_double(
+      'OpenFeature::SDK::EvaluationDetails',
+      variant: variant,
+      error_message: error_message,
+      error_code: error_code,
+      flag_metadata: flag_metadata,
+    )
+  end
+
   describe '#finally — captures cheaply and enqueues (async boundary)' do
     let(:evaluation_details) do
-      instance_double(
-        'OpenFeature::SDK::EvaluationDetails',
+      build_evaluation_details(
         variant: 'on',
-        error_message: nil,
         flag_metadata: {'__dd_allocation_key' => 'alloc-9', 'dd.eval.timestamp_ms' => 1_700_000_000_000},
       )
     end
@@ -29,6 +37,11 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
     # The hook is never given the evaluated value, so it cannot accidentally emit it.
     it 'enqueues the variant from evaluation_details.variant' do
       expect(writer).to receive(:enqueue).with(hash_including(variant: 'on'))
+      hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
+    end
+
+    it 'enqueues runtime_default false for a successful variant result' do
+      expect(writer).to receive(:enqueue).with(hash_including(runtime_default: false))
       hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
     end
 
@@ -57,7 +70,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
     end
 
     it 'also accepts duck-typed contexts that expose attributes' do
-      ctx = double('EvpEvalContext', targeting_key: 'user-9', attributes: {'tier' => 'gold'})
+      ctx = Struct.new(:targeting_key, :attributes).new('user-9', {'tier' => 'gold'})
       hook_ctx = double('HookContext', flag_key: 'my-flag', evaluation_context: ctx)
 
       expect(writer).to receive(:enqueue).with(hash_including(targeting_key: 'user-9', attrs: {'tier' => 'gold'}))
@@ -65,10 +78,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
     end
 
     it 'enqueues error_message when present' do
-      details = instance_double(
-        'OpenFeature::SDK::EvaluationDetails',
-        variant: nil, error_message: 'flag not found', flag_metadata: {},
-      )
+      details = build_evaluation_details(variant: nil, error_message: 'flag not found')
       expect(writer).to receive(:enqueue).with(hash_including(error_message: 'flag not found'))
       hook.finally(hook_context: hook_context, evaluation_details: details)
     end
@@ -84,10 +94,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
   describe '#finally — runtime-default + missing-metadata edge cases' do
     # Fallback: when the provider did not stamp a timestamp, fall back to hook-fire time.
     it 'falls back to a real hook-fire timestamp when dd.eval.timestamp_ms is absent' do
-      details = instance_double(
-        'OpenFeature::SDK::EvaluationDetails',
-        variant: 'on', error_message: nil, flag_metadata: {},
-      )
+      details = build_evaluation_details(variant: 'on')
       Datadog::Core::Utils::Time.now_provider = -> { ::Time.at(1_650_000_000) }
       expect(writer).to receive(:enqueue).with(hash_including(eval_time_ms: 1_650_000_000_000))
       hook.finally(hook_context: hook_context, evaluation_details: details)
@@ -97,19 +104,19 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
 
     # Concern: detect runtime default from ABSENT variant, passed through as nil (aggregator decides).
     it 'passes a nil variant through unchanged (runtime-default signal preserved)' do
-      details = instance_double(
-        'OpenFeature::SDK::EvaluationDetails',
-        variant: nil, error_message: nil, flag_metadata: {},
-      )
-      expect(writer).to receive(:enqueue).with(hash_including(variant: nil))
+      details = build_evaluation_details(variant: nil)
+      expect(writer).to receive(:enqueue).with(hash_including(variant: nil, runtime_default: true))
+      hook.finally(hook_context: hook_context, evaluation_details: details)
+    end
+
+    it 'marks type mismatch as runtime default even when the SDK exposes a variant' do
+      details = build_evaluation_details(variant: 'variant-a', error_code: 'TYPE_MISMATCH')
+      expect(writer).to receive(:enqueue).with(hash_including(variant: 'variant-a', runtime_default: true))
       hook.finally(hook_context: hook_context, evaluation_details: details)
     end
 
     it 'handles a nil evaluation_context without raising' do
-      details = instance_double(
-        'OpenFeature::SDK::EvaluationDetails',
-        variant: 'v', error_message: nil, flag_metadata: {},
-      )
+      details = build_evaluation_details(variant: 'v')
       ctx = double('HookContext', flag_key: 'f', evaluation_context: nil)
       expect(writer).to receive(:enqueue).with(hash_including(targeting_key: nil, attrs: {}))
       expect { hook.finally(hook_context: ctx, evaluation_details: details) }.not_to raise_error

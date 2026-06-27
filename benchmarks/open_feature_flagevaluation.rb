@@ -27,7 +27,7 @@ class OpenFeatureFlagevaluationBenchmark
   # Duck-typed hook inputs (mirror Provider::EvpEvalContext / HookContext / HookDetails).
   EvpEvalContext = Struct.new(:targeting_key, :attributes)
   HookContext = Struct.new(:flag_key, :evaluation_context)
-  HookDetails = Struct.new(:variant, :reason, :flag_metadata)
+  HookDetails = Struct.new(:variant, :reason, :error_code, :flag_metadata)
 
   def benchmark_time(time: 12, warmup: 2)
     VALIDATE_BENCHMARK_MODE ? {time: 0.001, warmup: 0} : {time: time, warmup: warmup}
@@ -42,6 +42,7 @@ class OpenFeatureFlagevaluationBenchmark
     @writer.instance_variable_set(:@queue, SizedQueue.new(Datadog::OpenFeature::FlagEvaluation::Writer::QUEUE_SIZE))
     @writer.instance_variable_set(:@stop_mutex, Mutex.new)
     @writer.instance_variable_set(:@dropped_queue_overflow, 0)
+    @writer.define_singleton_method(:start_background_thread) {}
 
     @hook = Datadog::OpenFeature::Hooks::FlagEvalEVPHook.new(@writer)
     @aggregator = Datadog::OpenFeature::FlagEvaluation::Aggregator.new
@@ -50,7 +51,7 @@ class OpenFeatureFlagevaluationBenchmark
       'bench-flag',
       EvpEvalContext.new('user-12345', {'env' => 'prod', 'plan' => 'enterprise', 'region' => 'us1'}),
     )
-    @details = HookDetails.new('variant-on', 'TARGETING_MATCH', {
+    @details = HookDetails.new('variant-on', 'TARGETING_MATCH', nil, {
       '__dd_allocation_key' => 'allocation-7',
       'dd.eval.timestamp_ms' => 1_760_000_000_000,
     })

@@ -75,6 +75,16 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       # Shutdown returned well under the 10s flush interval (proves the wait was interrupted).
       expect(elapsed).to be < 9
     end
+
+    it 'terminates the worker when graceful shutdown times out' do
+      allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
+      writer = described_class.new(transport: transport, logger: logger)
+
+      allow(writer).to receive(:join).with(described_class::SHUTDOWN_TIMEOUT_SECONDS).and_return(false)
+      expect(writer).to receive(:terminate).and_return(true)
+
+      expect(writer.stop).to be(true)
+    end
   end
 
   describe '#background drain' do
@@ -166,6 +176,29 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
     ensure
       writer&.stop
     end
+
+    it 'drops inherited parent buffers before the child worker restarts' do
+      allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
+      transport = transport_class.new
+      writer = described_class.new(transport: transport, logger: logger)
+
+      writer.enqueue(
+        flag_key: 'parent-flag', variant: 'on', allocation_key: 'alloc',
+        targeting_key: 'parent-user', eval_time_ms: realistic_eval_ms, attrs: {'worker' => 'parent'},
+      )
+      writer.instance_variable_set(:@dropped_queue_overflow, 3)
+
+      writer.send(:after_fork)
+      writer.enqueue(
+        flag_key: 'child-flag', variant: 'on', allocation_key: 'alloc',
+        targeting_key: 'child-user', eval_time_ms: realistic_eval_ms, attrs: {'worker' => 'child'},
+      )
+      writer.send(:drain_and_flush)
+
+      rows = transport.payloads.flat_map { |payload| payload['flagEvaluations'] }
+      expect(rows).to contain_exactly(include('flag' => {'key' => 'child-flag'}))
+      expect(writer.dropped_queue_overflow).to eq(0)
+    end
   end
 
   # Backpressure must be OBSERVABLE. When the hand-off queue overflows, enqueue increments an
@@ -207,22 +240,23 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(writer.dropped_queue_overflow).to eq(0)
     end
 
-    it 'stores a bounded context snapshot before buffering' do
+    it 'does not flatten or prune context before buffering' do
       allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
       writer = described_class.new(transport: transport, logger: logger)
       raw = {'profile' => {'plan' => 'pro'}, 'oversized' => 'x' * 257}
       300.times { |i| raw["z#{format("%03d", i)}"] = 'v' }
 
+      expect(Datadog::OpenFeature::FlagEvaluation::Aggregator).not_to receive(:prune_context)
       writer.enqueue(
         flag_key: 'f', variant: 'on', allocation_key: '',
         targeting_key: 't', eval_time_ms: 1, attrs: raw,
       )
 
       queued = writer.instance_variable_get(:@queue).pop(true)
-      expect(queued[:attrs].size).to eq(256)
-      expect(queued[:attrs]).to have_key('profile.plan')
-      expect(queued[:attrs]).not_to have_key('oversized')
-      expect(queued[:attrs]).not_to have_key('profile')
+      expect(queued[:attrs].size).to eq(302)
+      expect(queued[:attrs]).to have_key('profile')
+      expect(queued[:attrs]).to have_key('oversized')
+      expect(queued[:attrs]).not_to have_key('profile.plan')
     end
   end
 
@@ -381,6 +415,20 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       expect(row).not_to have_key('reason')
     end
 
+    it 'emits runtime_default_used when the hook marks a typed default with a variant' do
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: 'typed-default-flag', variant: 'variant-a', allocation_key: '',
+          runtime_default: true, targeting_key: 'user-42',
+          eval_time_ms: realistic_eval_ms, attrs: {},
+        )
+      end
+
+      row = payload['flagEvaluations'].first
+      expect(row['variant']).to eq('key' => 'variant-a')
+      expect(row['runtime_default_used']).to be(true)
+    end
+
     it 'does not split aggregates when only stale reason inputs differ' do
       payload = captured_payload do |writer|
         writer.enqueue(
@@ -478,6 +526,22 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         1,
         {reason: 'payload_limit'}
       )
+    end
+  end
+
+  describe '#send_payload_batch' do
+    let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
+    let(:logger) { instance_double(Logger, debug: nil) }
+
+    it 'checks non-OK transport responses and returns the response' do
+      allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
+      response = double('TransportResponse')
+      allow(response).to receive(:ok?).and_return(false)
+      allow(transport).to receive(:send_flag_evaluations).and_return(response)
+      writer = described_class.new(transport: transport, logger: logger)
+
+      expect(writer.send(:send_payload_batch, [])).to be(response)
+      expect(response).to have_received(:ok?)
     end
   end
 

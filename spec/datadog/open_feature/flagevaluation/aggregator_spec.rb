@@ -117,6 +117,15 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       expect(pruned.size).to eq(256)
     end
 
+    it 'drops keys after the sorted 256-field cap' do
+      attrs = 257.times.each_with_object({}) { |i, h| h["k#{format("%03d", i)}"] = 'v' }
+      pruned = aggregator.prune_context(attrs)
+
+      expect(pruned).to have_key('k000')
+      expect(pruned).to have_key('k255')
+      expect(pruned).not_to have_key('k256')
+    end
+
     it 'returns empty hash for nil input' do
       expect(aggregator.prune_context(nil)).to eq({})
     end
@@ -176,6 +185,14 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
         entry = snapshot[:full].values.first
         expect(entry[:runtime_default]).to be(false)
       end
+
+      it 'uses an explicit runtime_default signal when the SDK returns a typed default' do
+        aggregator.record(**base_event.merge(runtime_default: true))
+
+        snapshot = aggregator.flush_and_reset
+        entry = snapshot[:full].values.first
+        expect(entry[:runtime_default]).to be(true)
+      end
     end
 
     context 'full-tier globalCap overflow routes to degraded' do
@@ -234,7 +251,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
         # Third event: different schema-visible error.message → degraded full → DROPPED
         aggregator.record(**base_event.merge(attrs: {'x' => 3}, error_message: 'boom'))
 
-        expect(aggregator.dropped_degraded_overflow).to be >= 1
+        expect(aggregator.dropped_degraded_overflow).to eq(1)
       end
     end
 

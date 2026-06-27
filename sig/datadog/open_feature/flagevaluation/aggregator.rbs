@@ -71,7 +71,8 @@ module Datadog
           targeting_key: ::String?,
           eval_time_ms: ::Integer,
           attrs: ::Hash[::String, untyped]?,
-          ?error_message: ::String?
+          ?error_message: ::String?,
+          ?runtime_default: bool?
         ) -> void
 
         def flush_and_reset: () -> ::Hash[::Symbol, untyped]
