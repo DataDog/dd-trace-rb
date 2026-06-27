@@ -140,13 +140,13 @@ RSpec.configure do |config|
   end
 
   # Skip all symbol_database specs on unsupported platforms. Symbol database requires
-  # MRI Ruby 2.6+; on JRuby and Ruby <2.6 the entire suite is skipped wholesale so that
+  # MRI Ruby 2.7+; on JRuby and Ruby <2.7 the entire suite is skipped wholesale so that
   # individual specs do not need to repeat the platform guard.
   #
   # To run a spec on an otherwise-skipped platform, tag it with
   # `symdb_supported_platforms: true`. This opt-out exists for tests that validate the
   # platform-guard behavior itself (e.g. that the Component refuses to initialize on
-  # JRuby) — those tests must run on JRuby/<2.6 to be meaningful.
+  # JRuby) — those tests must run on JRuby/<2.7 to be meaningful.
   #
   #    describe 'Component build on unsupported platform', symdb_supported_platforms: true do
   #      ...
@@ -163,10 +163,10 @@ RSpec.configure do |config|
     end
   end
 
-  if RubyVersion.is?('< 2.6')
+  if RubyVersion.is?('< 2.7')
     config.before(:each) do |example|
       if example.file_path.include?('/symbol_database/') && !example.metadata[:symdb_supported_platforms]
-        skip 'Symbol database requires Ruby 2.6+'
+        skip 'Symbol database requires Ruby 2.7+'
       end
     end
   end
@@ -259,20 +259,6 @@ RSpec.configure do |config|
       end
 
       unless background_threads.empty?
-        # TODO: Temporarily disabled for `spec/datadog/tracing/workers`
-        # was meaningful changes are required to address clean
-        # teardown in those tests.
-        # They currently flood the output, making our test
-        # suite output unreadable.
-        if example.file_path.start_with?(
-          './spec/datadog/core/workers/',
-          './spec/datadog/tracing/workers/'
-        )
-          puts # Add newline so we get better output when the progress formatter is being used
-          RSpec.warning("FIXME: #{example.file_path}:#{example.metadata[:line_number]} is leaking threads")
-          next
-        end
-
         info = background_threads.each_with_index.flat_map do |t, idx|
           backtrace = t.backtrace
           if backtrace.nil? && t.alive? # Maybe the thread hasn't run yet? Let's give it a second chance

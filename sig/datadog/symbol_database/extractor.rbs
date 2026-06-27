@@ -7,6 +7,15 @@ module Datadog
       TARGETABLE_LINE_EVENTS: Array[::Symbol]
       MODULE_SINGLETON_CLASS_PRED: ::UnboundMethod
       MODULE_NAME: ::UnboundMethod
+      CLASS_SUPERCLASS: ::UnboundMethod
+      MODULE_INCLUDED_MODULES: ::UnboundMethod
+      MODULE_ANCESTORS: ::UnboundMethod
+      MODULE_CLASS_VARIABLES: ::UnboundMethod
+      MODULE_CONSTANTS: ::UnboundMethod
+      MODULE_AUTOLOAD_P: ::UnboundMethod
+      MODULE_CONST_GET: ::UnboundMethod
+      MODULE_CONST_DEFINED: ::UnboundMethod
+      KERNEL_CLASS: ::UnboundMethod
       SLEEP_EVERY_N_MODULES: Integer
       SLEEP_SECONDS: Float
 

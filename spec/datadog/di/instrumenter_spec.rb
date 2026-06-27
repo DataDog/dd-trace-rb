@@ -804,6 +804,193 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
+    context 'when targeting a class in the Datadog namespace' do
+      shared_examples 'rejects the probe' do |type_name|
+        let(:probe_args) do
+          {type_name: type_name, method_name: 'some_method'}
+        end
+
+        it "raises ProbeTargetForbidden for #{type_name}" do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::ProbeTargetForbidden,
+            /Method probes on the Datadog namespace are not permitted: #{Regexp.escape(type_name)}#some_method/)
+        end
+      end
+
+      it_behaves_like 'rejects the probe', 'Datadog'
+      it_behaves_like 'rejects the probe', 'Datadog::Tracing::SpanOperation'
+      it_behaves_like 'rejects the probe', 'Datadog::DI::Instrumenter'
+
+      # A leading "::" is Ruby's root-namespace prefix; the rejection regex
+      # accepts both "Datadog" and "::Datadog" forms, so users cannot bypass
+      # the rejection by typing the root form.
+      it_behaves_like 'rejects the probe', '::Datadog'
+      it_behaves_like 'rejects the probe', '::Datadog::Tracing::SpanOperation'
+
+      # Top-level constants are constants of Object, so Object.const_get
+      # resolves "Object::Datadog::DI::Instrumenter" to the real class. The
+      # rejection regex strips any leading "Object::" segments so these
+      # aliases cannot bypass it. Object:: is the only alias path to the
+      # top-level Datadog ("Foo::Datadog" does not resolve through const_get).
+      it_behaves_like 'rejects the probe', 'Object::Datadog'
+      it_behaves_like 'rejects the probe', 'Object::Datadog::DI::Instrumenter'
+      it_behaves_like 'rejects the probe', '::Object::Datadog::Tracing::SpanOperation'
+      it_behaves_like 'rejects the probe', 'Object::Object::Datadog'
+
+      context 'when the Datadog-namespaced class does not exist' do
+        let(:probe_args) do
+          # If the rejection happened after class resolution, this would
+          # raise DITargetNotDefined instead of ProbeTargetForbidden.
+          {type_name: 'Datadog::NotARealClass::AtAll', method_name: 'noop'}
+        end
+
+        it 'rejects before attempting to resolve the class' do
+          expect do
+            hook_method(probe) { |_| }
+          end.to raise_error(Datadog::DI::Error::ProbeTargetForbidden)
+        end
+      end
+
+      context 'when type_name only happens to start with "Datadog" without the separator' do
+        let(:probe_args) do
+          {type_name: 'DatadogLike', method_name: 'some_method'}
+        end
+
+        # Class does not exist, so we expect the normal not-defined error
+        # rather than the forbidden-namespace error.
+        it 'does not reject as Datadog namespace' do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
+        end
+      end
+
+      context 'when type_name is root-prefixed but does not name the Datadog namespace' do
+        let(:probe_args) do
+          {type_name: '::DatadogLike', method_name: 'some_method'}
+        end
+
+        # "::DatadogLike" does not match the rejection regex (no "::" or
+        # end-of-string follows "Datadog"), so it falls through to normal
+        # class resolution.
+        it 'does not reject as Datadog namespace' do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
+        end
+      end
+
+      context 'when type_name has an Object:: prefix but does not name the Datadog namespace' do
+        let(:probe_args) do
+          {type_name: 'Object::DatadogLike', method_name: 'some_method'}
+        end
+
+        # The "Object::" stripping only applies before "Datadog" followed by
+        # "::" or end-of-string; "Object::DatadogLike" does not match, so it
+        # falls through to normal class resolution.
+        it 'does not reject as Datadog namespace' do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
+        end
+      end
+    end
+
+    context 'when targeting Kernel#lambda' do
+      # The first group is the Kernel module named directly: a leading "::" is
+      # Ruby's root-namespace prefix and any number of leading "Object::"
+      # segments resolve through Object.const_get to the same top-level Kernel
+      # module, so users cannot bypass the rejection by naming Kernel through
+      # one of these aliases.
+      #
+      # The second group names other types that inherit Kernel#lambda without
+      # overriding it: every class inherits it, so the target method resolves
+      # to Kernel#lambda regardless of the type name. These are rejected by
+      # resolving the method owner, not by matching the type name.
+      [
+        'Kernel',
+        '::Kernel',
+        'Object::Kernel',
+        '::Object::Kernel',
+        'Object::Object::Kernel',
+        'Object',
+        'String',
+      ].each do |type_name|
+        context "with type name #{type_name.inspect}" do
+          let(:probe_args) do
+            {type_name: type_name, method_name: 'lambda'}
+          end
+
+          it 'raises ProbeTargetForbidden' do
+            expect do
+              hook_method(probe) { |_| }
+            end.to raise_error(Datadog::DI::Error::ProbeTargetForbidden,
+              /Method probes on Kernel#lambda are not permitted: #{Regexp.escape(type_name)}#lambda/)
+          end
+        end
+      end
+
+      context 'when targeting Kernel but not the lambda method' do
+        let(:probe_args) do
+          {type_name: 'Kernel', method_name: 'definitely_not_lambda'}
+        end
+
+        it 'is not rejected as a forbidden target' do
+          # Stub prepend so the wrapper module is not installed onto the real
+          # Kernel for the rest of the suite; this example only asserts that
+          # the forbidden check does not fire for a non-lambda Kernel method.
+          allow(Kernel).to receive(:prepend)
+          expect do
+            hook_method(probe) { |_| }
+          end.not_to raise_error
+        end
+      end
+
+      context 'when targeting a lambda method on a non-Kernel type' do
+        let(:probe_args) do
+          {type_name: 'KernelLike', method_name: 'lambda'}
+        end
+
+        # "KernelLike" is not the Kernel module, so a "lambda" method on it is
+        # an ordinary user method; the class does not exist here, so we expect
+        # the normal not-defined error rather than the forbidden error.
+        it 'does not reject as Kernel#lambda' do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
+        end
+      end
+
+      context 'when the target type defines its own lambda method' do
+        before do
+          stub_const('OverridesLambda', Class.new do
+            def lambda
+              :not_kernel
+            end
+          end)
+        end
+
+        let(:probe_args) do
+          {type_name: 'OverridesLambda', method_name: 'lambda'}
+        end
+
+        # The owner of OverridesLambda#lambda is OverridesLambda, not Kernel,
+        # so this is an ordinary user method and the probe installs normally.
+        it 'is not rejected and instruments the user-defined method' do
+          observed = []
+          hook_method(probe) { |payload| observed << payload }
+          expect(OverridesLambda.new.lambda).to eq(:not_kernel)
+          expect(observed.length).to eq(1)
+        end
+      end
+    end
+
     describe 'stack trace' do
       before do
         # Reload the test class because when methods are instrumented,

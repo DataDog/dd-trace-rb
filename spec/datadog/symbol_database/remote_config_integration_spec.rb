@@ -228,12 +228,11 @@ RSpec.describe 'Symbol Database Remote Config Integration' do
 
       begin
         # Step 1: initial load runs. Timeout matches the other e2e test in
-        # this file (line 84). On Ruby 2.6, extract_all is slow under heavy
-        # monkey-patching (see extractor.rb build_per_file_index
-        # comment about Module#name on singleton classes being O(ancestors)),
-        # so 5s is too short when an AppSec spec ran just before this one.
-        # Check the return value so a timeout fails the test loudly here
-        # instead of silently producing "captured_forms.size == 0" below.
+        # this file (line 84). Generous timeout protects against slow runners
+        # and noisy preceding specs that can leave extract_all walking a large
+        # ObjectSpace. Check the return value so a timeout fails the test
+        # loudly here instead of silently producing "captured_forms.size == 0"
+        # below.
         GC.start
         component.start_upload
         expect(component.wait_for_idle(timeout: 30)).to be true

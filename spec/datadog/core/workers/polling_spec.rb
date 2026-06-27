@@ -65,6 +65,10 @@ RSpec.describe Datadog::Core::Workers::Polling do
       context 'when the worker has been started' do
         include_context 'graceful stop'
 
+        # +join+ is stubbed, so +stop+ returns before the background thread
+        # is reaped. Terminate it explicitly to avoid leaking the thread.
+        after { worker.terminate }
+
         before do
           worker.perform
           try_wait_until { worker.running? && worker.run_loop? }
@@ -260,6 +264,10 @@ RSpec.describe Datadog::Core::Workers::Polling do
       context 'given shutdown timeout' do
         subject(:stop) { worker.stop(false, 1000) }
         include_context 'graceful stop'
+
+        # +join+ is stubbed, so +stop+ returns before the background thread
+        # is reaped. Terminate it explicitly to avoid leaking the thread.
+        after { worker.terminate }
 
         before do
           expect(worker).to receive(:join)

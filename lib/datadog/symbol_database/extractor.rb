@@ -89,6 +89,26 @@ module Datadog
       # so we bind the original Module#name to get the real module name safely.
       MODULE_NAME = Module.instance_method(:name)
 
+      # Cached UnboundMethods for the remaining class/module/object introspection
+      # used during extraction. Like MODULE_NAME, these bind the original
+      # implementations and are dispatched explicitly so that application code
+      # which overrides any of them (per-class, on a subclass, or in a singleton
+      # class) can neither intercept extraction nor be executed as a side effect
+      # of it. KERNEL_CLASS recovers an object's real class without calling a
+      # possibly-overridden #class.
+      CLASS_SUPERCLASS = Class.instance_method(:superclass)
+      MODULE_INCLUDED_MODULES = Module.instance_method(:included_modules)
+      MODULE_ANCESTORS = Module.instance_method(:ancestors)
+      MODULE_CLASS_VARIABLES = Module.instance_method(:class_variables)
+      MODULE_CONSTANTS = Module.instance_method(:constants)
+      MODULE_AUTOLOAD_P = Module.instance_method(:autoload?)
+      MODULE_CONST_GET = Module.instance_method(:const_get)
+      MODULE_CONST_DEFINED = Module.instance_method(:const_defined?)
+      KERNEL_CLASS = ::Kernel.instance_method(:class)
+      private_constant :CLASS_SUPERCLASS, :MODULE_INCLUDED_MODULES, :MODULE_ANCESTORS,
+        :MODULE_CLASS_VARIABLES, :MODULE_CONSTANTS, :MODULE_AUTOLOAD_P, :MODULE_CONST_GET,
+        :MODULE_CONST_DEFINED, :KERNEL_CLASS
+
       # @param logger [Logger] Logger instance (SymbolDatabase::Logger facade or compatible)
       # @param settings [Configuration::Settings] Tracer settings
       def initialize(logger:, settings:)
@@ -109,7 +129,7 @@ module Datadog
       # @param mod [Module, Class] The module or class to extract from
       # @return [Scope, nil] FILE scope wrapping extracted scope, or nil if filtered out
       def extract(mod)
-        return nil unless mod.is_a?(Module)
+        return nil unless Module === mod
         mod_name = safe_mod_name(mod)
         return nil unless mod_name
 
@@ -118,7 +138,7 @@ module Datadog
         source_file = find_source_file(mod)
         return nil unless source_file
 
-        inner_scope = if mod.is_a?(Class)
+        inner_scope = if Class === mod
           extract_class_scope(mod)
         else
           extract_module_scope(mod)
@@ -174,7 +194,7 @@ module Datadog
           # returns [key, value] on a non-empty hash and nil when empty, so the
           # `while (pair = ...)` form is the drain. Indexing pair[0]/pair[1] rather
           # than destructuring avoids introducing names into method scope that would
-          # then shadow the else-branch's block parameters on Ruby 2.5/2.6.
+          # then shadow the else-branch's block parameters.
           while (pair = index.shift)
             scope = build_file_scope(pair[0], pair[1])
             yield scope if scope
@@ -228,15 +248,10 @@ module Datadog
       #    subclass with its own binding resolves through the binding, an
       #    inherited autoload triggers nothing.
       #
-      # Ruby 2.7+ adds an inherit parameter to Module#autoload? —
-      # `current.autoload?(sym, false)` cleanly asks "is there an autoload
-      # registered directly on this namespace?". On Ruby 2.5 and 2.6 that
-      # parameter doesn't exist (per Ruby 2.7.0 NEWS), so the fallback
-      # branch uses `current.autoload?(sym)` which also reports inherited
-      # autoloads. The consequence on 2.5/2.6: a subclass binding whose
-      # name collides with an ancestor's pending autoload is conservatively
-      # treated as stale and dropped from extraction. The minimum supported
-      # Ruby is 2.5 per lib/datadog/version.rb, so this fallback ships.
+      # Uses `current.autoload?(sym, false)` (the inherit=false form, added
+      # in Ruby 2.7) so the question is strictly "is there an autoload
+      # registered directly on this namespace?" and ancestors' pending
+      # autoloads at the same name do not affect the result.
       # @param mod_name [String]
       # @param mod [Module]
       # @return [Boolean]
@@ -244,17 +259,12 @@ module Datadog
         current = Object
         mod_name.split('::').each do |seg|
           sym = seg.to_sym
-          pending_autoload = if RubyVersion.is?('>= 2.7')
-            current.autoload?(sym, false)
-          else
-            current.autoload?(sym)
-          end
-          return false if pending_autoload
-          return false unless current.const_defined?(sym, false)
-          current = current.const_get(sym, false)
+          return false if MODULE_AUTOLOAD_P.bind(current).call(sym, false)
+          return false unless MODULE_CONST_DEFINED.bind(current).call(sym, false)
+          current = MODULE_CONST_GET.bind(current).call(sym, false)
         end
         current.equal?(mod)
-      rescue NameError, ArgumentError
+      rescue NameError, ArgumentError, TypeError
         # Expected "no" outcome for stale/detached classes — the whole point
         # of this predicate. Per the rescue convention in this file's header
         # comment: inner per-item rescues are expected failures, no logging.
@@ -324,14 +334,9 @@ module Datadog
       # AR models get filtered out as gem code.
       #
       # For namespace-only modules (no instance or singleton methods), falls back to
-      # Module#const_source_location (Ruby 2.7+) to locate the module via its constants.
+      # Module#const_source_location to locate the module via its constants.
       # This handles patterns like `module ApplicationCable; class Channel...; end; end`
       # where the namespace module itself has no methods but defines user-code classes.
-      #
-      # On Ruby 2.6 (where const_source_location is unavailable), namespace-only modules
-      # and classes whose only methods are generated (e.g., AR models with only associations)
-      # may not be found — the extraction silently omits them. This is a graceful degradation:
-      # fewer symbols uploaded, no errors.
       #
       # @param mod [Module] The module
       # @return [String, nil] Source file path or nil
@@ -362,18 +367,19 @@ module Datadog
           fallback ||= path # steep:ignore
         end
 
-        # Try const_source_location (Ruby 2.7+) to find where this class/module is declared.
+        # Use const_source_location to find where this class/module is declared.
         # This handles two cases:
         #   1. Classes with no user-defined methods (e.g. AR models with only associations) whose
         #      generated methods point to gem code — we find the `class Foo` declaration instead.
         #   2. Namespace-only modules (`module Foo; class Bar; end; end`) with no methods at all.
-        if Module.method_defined?(:const_source_location) && mod.name
+        mod_name = safe_mod_name(mod)
+        if mod_name
           # Look up the class/module by its last name component in its enclosing namespace.
-          parts = mod.name.split('::')
+          parts = mod_name.split('::')
           const_name = parts.last
           namespace = if parts.length > 1
             begin
-              Object.const_get(parts[0..-2].join('::')) # steep:ignore
+              MODULE_CONST_GET.bind(Object).call(parts[0..-2].join('::')) # steep:ignore
             rescue NameError
               nil
             end
@@ -397,7 +403,7 @@ module Datadog
           end
 
           # Also scan constants defined by mod itself (namespace-only modules).
-          mod.constants(false).each do |child_const_name|
+          MODULE_CONSTANTS.bind(mod).call(false).each do |child_const_name|
             location = begin
               mod.const_source_location(child_const_name)
             rescue => e
@@ -453,7 +459,7 @@ module Datadog
 
         Scope.new(
           scope_type: 'MODULE',
-          name: mod.name,
+          name: safe_mod_name(mod),
           source_file: source_file,
           start_line: UNKNOWN_MIN_LINE,
           end_line: UNKNOWN_MAX_LINE,
@@ -471,7 +477,7 @@ module Datadog
 
         Scope.new(
           scope_type: 'CLASS',
-          name: klass.name,
+          name: safe_mod_name(klass),
           source_file: source_file,
           start_line: start_line,
           end_line: end_line,
@@ -503,7 +509,7 @@ module Datadog
 
         [starts.min, ends.max]
       rescue => e
-        @logger.debug { "symdb: error calculating line range for #{klass.name}: #{e.class}: #{e.message}" }
+        @logger.debug { "symdb: error calculating line range for #{safe_mod_name(klass)}: #{e.class}: #{e.message}" }
         [UNKNOWN_MIN_LINE, UNKNOWN_MAX_LINE]
       end
 
@@ -517,8 +523,9 @@ module Datadog
         # Emitted as an array named super_classes — consistent with Java, .NET, and Python.
         # Array allows for multiple entries if future Ruby versions or mixins expand the chain.
         # Anonymous superclasses (class Foo < Class.new { ... }) have nil name; compact to skip.
-        if klass.superclass && klass.superclass != Object && klass.superclass != BasicObject
-          super_name = klass.superclass.name # steep:ignore
+        superclass = CLASS_SUPERCLASS.bind(klass).call
+        if superclass && !superclass.equal?(Object) && !superclass.equal?(BasicObject)
+          super_name = safe_mod_name(superclass)
           specifics[:super_classes] = [super_name] if super_name
         end
 
@@ -526,7 +533,7 @@ module Datadog
         # included_modules returns the entire ancestor chain's mixins, not only directly
         # included ones. This is intentional: the field reports "modules this class
         # responds to," which is what the consumer (UI navigation, probe context) needs.
-        included = klass.included_modules.map(&:name).reject do |name|
+        included = MODULE_INCLUDED_MODULES.bind(klass).call.map { |m| safe_mod_name(m) }.reject do |name|
           name.nil? || EXCLUDED_COMMON_MODULES.any? { |prefix| name.start_with?(prefix) }
         end
         specifics[:included_modules] = included unless included.empty?
@@ -537,16 +544,16 @@ module Datadog
         # Single-pass collection avoids the intermediate arrays from take_while.map.compact.
         # Test coverage: spec/datadog/symbol_database/extractor_spec.rb tests prepend behavior.
         prepended = []
-        klass.ancestors.each do |a|
-          break if a == klass
-          name = a.name
+        MODULE_ANCESTORS.bind(klass).call.each do |a|
+          break if a.equal?(klass)
+          name = safe_mod_name(a)
           prepended << name if name
         end
         specifics[:prepended_modules] = prepended unless prepended.empty?
 
         specifics
       rescue => e
-        @logger.debug { "symdb: error building language specifics for #{klass.name}: #{e.class}: #{e.message}" }
+        @logger.debug { "symdb: error building language specifics for #{safe_mod_name(klass)}: #{e.class}: #{e.message}" }
         {}
       end
 
@@ -569,7 +576,7 @@ module Datadog
 
         scopes
       rescue => e
-        @logger.debug { "symdb: failed to extract methods from #{klass.name}: #{e.class}: #{e.message}" }
+        @logger.debug { "symdb: failed to extract methods from #{safe_mod_name(klass)}: #{e.class}: #{e.message}" }
         []
       end
 
@@ -604,7 +611,7 @@ module Datadog
           symbols: extract_method_parameters(method)
         )
       rescue => e
-        @logger.debug { "symdb: failed to extract method #{klass.name}##{method_name}: #{e.class}: #{e.message}" }
+        @logger.debug { "symdb: failed to extract method #{safe_mod_name(klass)}##{method_name}: #{e.class}: #{e.message}" }
         nil
       end
 
@@ -743,11 +750,7 @@ module Datadog
         ObjectSpace.each_object(Module) do |mod|
           # Singleton classes (per-object metaclasses) are never user-code classes.
           # They're not const-referenced, DI cannot instrument methods on a singular
-          # object instance, and on Ruby 2.6 specifically, Module#name on unnamed
-          # singleton classes with long ancestor chains (e.g. through monkey-patches
-          # prepended into Kernel, common in dd-trace-rb test processes) is O(ancestors)
-          # — measured ~20ms per call, which dominates extract_all on heavily-loaded
-          # processes. Ruby 2.7+ optimized this path; the skip is a no-op there.
+          # object instance, so skipping them is both correct and cheap.
           next if MODULE_SINGLETON_CLASS_PRED.bind(mod).call
 
           seen += 1
@@ -895,12 +898,12 @@ module Datadog
         if leaf
           # Node exists (was created as intermediate or from another entry).
           # Update type and mod — the actual module object is authoritative.
-          leaf[:type] = mod.is_a?(Class) ? 'CLASS' : 'MODULE'
+          leaf[:type] = (Class === mod) ? 'CLASS' : 'MODULE'
           leaf[:mod] = mod
         else
           leaf = {
             name: mod_name,
-            type: mod.is_a?(Class) ? 'CLASS' : 'MODULE',
+            type: (Class === mod) ? 'CLASS' : 'MODULE',
             children: {}, methods: [],
             mod: mod, source_file: file_path,
             fqn: mod_name
@@ -917,8 +920,19 @@ module Datadog
       # @param fqn [String] Fully-qualified name (e.g. "Authentication::Strategies")
       # @return [String] 'CLASS' or 'MODULE'
       def resolve_scope_type(fqn)
-        const = Object.const_get(fqn)
-        const.is_a?(Class) ? 'CLASS' : 'MODULE'
+        current = Object
+        fqn.split('::').each do |seg|
+          sym = seg.to_sym
+          pending_autoload = if RubyVersion.is?('>= 2.7')
+            MODULE_AUTOLOAD_P.bind(current).call(sym, false)
+          else
+            MODULE_AUTOLOAD_P.bind(current).call(sym)
+          end
+          return 'MODULE' if pending_autoload
+          return 'MODULE' unless MODULE_CONST_DEFINED.bind(current).call(sym, false)
+          current = MODULE_CONST_GET.bind(current).call(sym, false)
+        end
+        (Class === current) ? 'CLASS' : 'MODULE'
       rescue => e
         @logger.debug { "symdb: resolve_scope_type(#{fqn}) failed: #{e.class}: #{e.message}, defaulting to MODULE" }
         'MODULE'
@@ -1028,8 +1042,8 @@ module Datadog
         symbols = []
 
         # Class variables (only for classes)
-        if mod.is_a?(Class)
-          mod.class_variables(false).each do |var_name|
+        if Class === mod
+          MODULE_CLASS_VARIABLES.bind(mod).call(false).each do |var_name|
             symbols << Symbol.new(
               symbol_type: 'STATIC_FIELD',
               name: var_name.to_s,
@@ -1040,23 +1054,24 @@ module Datadog
 
         # Constants (excluding nested modules/classes).
         # Skip autoloaded constants to avoid triggering loading as a side effect.
-        mod.constants(false).each do |const_name|
-          next if mod.autoload?(const_name)
-          const_value = mod.const_get(const_name)
-          next if const_value.is_a?(Module)
+        MODULE_CONSTANTS.bind(mod).call(false).each do |const_name|
+          next if MODULE_AUTOLOAD_P.bind(mod).call(const_name)
+          const_value = MODULE_CONST_GET.bind(mod).call(const_name)
+          next if Module === const_value
 
           symbols << Symbol.new(
             symbol_type: 'STATIC_FIELD',
             name: const_name.to_s,
             line: UNKNOWN_MIN_LINE,
-            type: const_value.class.name
+            type: safe_mod_name(KERNEL_CLASS.bind(const_value).call)
           )
-        rescue NameError, LoadError, NoMethodError => e # standard:disable Lint/ShadowedException
-          # Expected: constant removed/undefined, autoload failure, or const value missing
-          # #class. Logged separately from unexpected errors so the latter stand out in triage.
-          # Lint/ShadowedException disabled: NameError/NoMethodError do descend from
-          # StandardError, but Ruby's rescue-clause-order semantics ensure the bare rescue
-          # below only catches exceptions not matched here.
+        rescue NameError, LoadError, NoMethodError, TypeError => e # standard:disable Lint/ShadowedException
+          # Expected: constant removed/undefined (NameError), autoload failure (LoadError),
+          # or a value whose class cannot be read (NoMethodError/TypeError). Skipping one
+          # constant here keeps the rest of the module's symbols. Logged separately from
+          # unexpected errors so the latter stand out in triage. Lint/ShadowedException
+          # disabled: these descend from StandardError, but Ruby's rescue-clause-order
+          # semantics ensure the bare rescue below only catches exceptions not matched here.
           @logger.debug { "symdb: skipping module constant #{const_name}: #{e.class}: #{e.message}" }
         rescue => e
           @logger.debug { "symdb: unexpected error reading module constant #{const_name}: #{e.class}: #{e.message}" }
