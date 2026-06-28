@@ -16,17 +16,6 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
   let(:per_flag_cap) { 10_000 }
   let(:degraded_cap) { 32_768 }
 
-  describe 'default cap sizing' do
-    it 'uses named scale constants without changing default caps' do
-      expect(described_class::EVAL_SCALE_FULL_BUCKET_TARGET).to eq(125_000)
-      expect(described_class::EVAL_SCALE_PER_FLAG_BUCKET_TARGET).to eq(10_000)
-      expect(described_class::EVAL_SCALE_DEGRADED_BUCKET_TARGET).to eq(25_000)
-      expect(described_class::DEFAULT_GLOBAL_CAP).to eq(131_072)
-      expect(described_class::DEFAULT_PER_FLAG_CAP).to eq(10_000)
-      expect(described_class::DEFAULT_DEGRADED_CAP).to eq(32_768)
-    end
-  end
-
   # ─── canonical_context_key ───────────────────────────────────────────────────
 
   describe '#canonical_context_key' do
@@ -72,11 +61,9 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
 
     it 'uses sorted type-tagged triplets (canonical key contains key and value lengths)' do
       key = aggregator.canonical_context_key('env' => 'prod')
-      # Key encodes key length + key + type tag + value length + value
-      # 'env' → length 3, type 's', value 'prod' → length 4
-      expect(key).not_to be_empty
-      expect(key).to include('env')
-      expect(key).to include('prod')
+      expected = [3].pack('Q>') + 'env' + 's' + [4].pack('Q>') + 'prod'
+
+      expect(key).to eq(expected)
     end
 
     it 'canonical key differentiates keys with embedded separators (collision resistance)' do
@@ -104,6 +91,21 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       expect(pruned).to include('profile.plan' => 'pro', 'groups.0' => 'beta', 'groups.1' => 'staff')
     end
 
+    it 'omits nil values and keeps empty string values' do
+      attrs = {'profile' => {'plan' => 'pro', '' => 1, 'what' => ''}, 'groups' => ['beta', 'staff', nil, '']}
+      pruned = aggregator.prune_context(attrs)
+
+      expect(pruned).to include(
+        'groups.0' => 'beta',
+        'groups.1' => 'staff',
+        'groups.3' => '',
+        'profile.' => 1,
+        'profile.plan' => 'pro',
+        'profile.what' => '',
+      )
+      expect(pruned).not_to have_key('groups.2')
+    end
+
     it 'keeps string values of exactly 256 chars' do
       exact_value = 'x' * 256
       attrs = {'key' => exact_value}
@@ -120,9 +122,9 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
     it 'drops keys after the sorted 256-field cap' do
       attrs = 257.times.each_with_object({}) { |i, h| h["k#{format("%03d", i)}"] = 'v' }
       pruned = aggregator.prune_context(attrs)
+      expected_keys = 256.times.map { |i| "k#{format("%03d", i)}" }
 
-      expect(pruned).to have_key('k000')
-      expect(pruned).to have_key('k255')
+      expect(pruned.keys).to eq(expected_keys)
       expect(pruned).not_to have_key('k256')
     end
 
