@@ -16,6 +16,12 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
   let(:per_flag_cap) { 10_000 }
   let(:degraded_cap) { 32_768 }
 
+  def expected_context_key(*fields)
+    fields.map do |key, tag, value|
+      [key.bytesize].pack('Q>') + key + tag + [value.bytesize].pack('Q>') + value
+    end.join
+  end
+
   # ─── canonical_context_key ───────────────────────────────────────────────────
 
   describe '#canonical_context_key' do
@@ -27,50 +33,38 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       expect(aggregator.canonical_context_key({})).to eq('')
     end
 
-    it 'differentiates integer 1 from string "1" (type-tag prevents collisions)' do
-      key_int = aggregator.canonical_context_key('x' => 1)
-      key_string = aggregator.canonical_context_key('x' => '1')
-      expect(key_int).not_to eq(key_string)
-    end
-
-    it 'differentiates boolean from string "true"' do
-      key_bool = aggregator.canonical_context_key('x' => true)
-      key_string = aggregator.canonical_context_key('x' => 'true')
-      expect(key_bool).not_to eq(key_string)
-    end
-
-    it 'differentiates float from integer' do
-      key_float = aggregator.canonical_context_key('x' => 1.0)
-      key_int = aggregator.canonical_context_key('x' => 1)
-      expect(key_float).not_to eq(key_int)
+    it 'encodes scalar values with explicit type tags' do
+      expect(aggregator.canonical_context_key('x' => '1'))
+        .to eq(expected_context_key(['x', 's', '1']))
+      expect(aggregator.canonical_context_key('x' => true))
+        .to eq(expected_context_key(['x', 'b', 'true']))
+      expect(aggregator.canonical_context_key('x' => 1))
+        .to eq(expected_context_key(['x', 'i', '1']))
+      expect(aggregator.canonical_context_key('x' => 1.0))
+        .to eq(expected_context_key(['x', 'f', '1.0']))
     end
 
     it 'is deterministic for the same attrs regardless of insertion order' do
       key_ab = aggregator.canonical_context_key('a' => 'v1', 'b' => 'v2')
       key_ba = aggregator.canonical_context_key('b' => 'v2', 'a' => 'v1')
-      expect(key_ab).to eq(key_ba)
-    end
+      expected = expected_context_key(['a', 's', 'v1'], ['b', 's', 'v2'])
 
-    it 'does NOT call Digest::MD5 (canonical key must be collision-free string, not a hash digest)' do
-      source_path = File.join(Dir.pwd, 'lib/datadog/open_feature/flagevaluation/aggregator.rb')
-      # Strip comment lines, then verify no MD5 call remains in executable code
-      source = File.read(source_path)
-      code_lines = source.lines.reject { |l| l.strip.start_with?('#') }.join
-      expect(code_lines).not_to match(/Digest\s*::\s*MD5/i)
+      expect(key_ab).to eq(expected)
+      expect(key_ba).to eq(expected)
     end
 
     it 'uses sorted type-tagged triplets (canonical key contains key and value lengths)' do
       key = aggregator.canonical_context_key('env' => 'prod')
-      expected = [3].pack('Q>') + 'env' + 's' + [4].pack('Q>') + 'prod'
+      expected = expected_context_key(['env', 's', 'prod'])
 
       expect(key).to eq(expected)
     end
 
-    it 'canonical key differentiates keys with embedded separators (collision resistance)' do
-      # Ensures length-delimited encoding prevents collisions via embedded separators
-      key_a = aggregator.canonical_context_key('a=b' => 'c')
-      key_b = aggregator.canonical_context_key('a' => 'b=c')
-      expect(key_a).not_to eq(key_b)
+    it 'length-delimits keys and values with embedded separators' do
+      expect(aggregator.canonical_context_key('a=b' => 'c'))
+        .to eq(expected_context_key(['a=b', 's', 'c']))
+      expect(aggregator.canonical_context_key('a' => 'b=c'))
+        .to eq(expected_context_key(['a', 's', 'b=c']))
     end
   end
 
