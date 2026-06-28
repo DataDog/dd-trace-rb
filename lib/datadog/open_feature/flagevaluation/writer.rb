@@ -377,10 +377,10 @@ module Datadog
         end
 
         def record_telemetry_count(metric_name, count, reason: nil)
-          return unless @telemetry && count.positive?
+          return unless count.positive?
 
           tags = reason ? {reason: reason} : {}
-          @telemetry.inc(TELEMETRY_NAMESPACE, metric_name, count, tags: tags)
+          @telemetry&.inc(TELEMETRY_NAMESPACE, metric_name, count, tags: tags)
         rescue => e
           @logger.debug { "OpenFeature EVP: telemetry error: #{e.class}: #{e.message}" }
         end
