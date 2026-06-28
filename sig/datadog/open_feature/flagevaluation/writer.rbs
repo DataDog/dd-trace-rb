@@ -76,7 +76,11 @@ module Datadog
 
         def snapshot_context_key: (untyped key) -> untyped
 
-        def snapshot_context_value: (untyped value) -> untyped
+        def snapshot_context_value: (
+          untyped value,
+          ::Hash[::Integer, bool] seen,
+          ::Integer depth
+        ) -> untyped
 
         def start_background_thread: () -> void
 

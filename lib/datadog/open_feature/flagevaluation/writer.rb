@@ -126,21 +126,31 @@ module Datadog
         def snapshot_context_attrs(attrs)
           return {} unless attrs.is_a?(Hash)
 
-          snapshot_context_value(attrs)
+          snapshot_context_value(attrs, {}, 0) || {}
         end
 
         def snapshot_context_key(key)
           key.is_a?(String) ? key.dup : key
         end
 
-        def snapshot_context_value(value)
+        def snapshot_context_value(value, seen, depth)
+          return if depth > Aggregator::MAX_CONTEXT_DEPTH
+
           case value
           when Hash
+            object_id = value.object_id
+            return if seen[object_id]
+
+            seen[object_id] = true
             value.each_with_object({}) do |(k, v), h|
-              h[snapshot_context_key(k)] = snapshot_context_value(v)
-            end
+              h[snapshot_context_key(k)] = snapshot_context_value(v, seen, depth + 1)
+            end.tap { seen.delete(object_id) }
           when Array
-            value.map { |v| snapshot_context_value(v) }
+            object_id = value.object_id
+            return if seen[object_id]
+
+            seen[object_id] = true
+            value.map { |v| snapshot_context_value(v, seen, depth + 1) }.tap { seen.delete(object_id) }
           when String
             value.dup
           else

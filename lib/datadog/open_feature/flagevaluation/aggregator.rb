@@ -15,6 +15,7 @@ module Datadog
       class Aggregator
         MAX_CONTEXT_FIELDS = 256
         MAX_FIELD_LENGTH = 256
+        MAX_CONTEXT_DEPTH = 32
 
         # Type tags so values of different Ruby types never collide in the canonical key.
         CTX_TAG_STRING = 's'
@@ -163,8 +164,9 @@ module Datadog
           return {} unless attrs.is_a?(Hash) && !attrs.empty?
 
           out = {}
+          seen = {attrs.object_id => true}
           attrs.each do |k, v|
-            flatten_value(k.to_s, v, out)
+            flatten_value(k.to_s, v, out, seen, 0)
           end
           out
         end
@@ -185,12 +187,24 @@ module Datadog
           buf
         end
 
-        def self.flatten_value(prefix, value, out)
+        def self.flatten_value(prefix, value, out, seen, depth)
+          return if depth > MAX_CONTEXT_DEPTH
+
           case value
           when Hash
-            value.each { |k, v| flatten_value("#{prefix}.#{k}", v, out) }
+            object_id = value.object_id
+            return if seen[object_id]
+
+            seen[object_id] = true
+            value.each { |k, v| flatten_value("#{prefix}.#{k}", v, out, seen, depth + 1) }
+            seen.delete(object_id)
           when Array
-            value.each_with_index { |v, i| flatten_value("#{prefix}.#{i}", v, out) }
+            object_id = value.object_id
+            return if seen[object_id]
+
+            seen[object_id] = true
+            value.each_with_index { |v, i| flatten_value("#{prefix}.#{i}", v, out, seen, depth + 1) }
+            seen.delete(object_id)
           else
             out[prefix] = value unless value.nil?
           end

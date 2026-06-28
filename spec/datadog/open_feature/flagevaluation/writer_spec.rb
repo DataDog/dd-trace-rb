@@ -70,10 +70,47 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       writer.stop
       elapsed = Datadog::Core::Utils::Time.get_time - start
 
-      payload = received.pop # blocks until the drained flush arrives; fails the example if it never does
+      payload = try_wait_until(seconds: 1) { received.pop(true) unless received.empty? }
       expect(payload['flagEvaluations'].first['flag']['key']).to eq('shutdown-flag')
       # Shutdown returned well under the 10s flush interval (proves the wait was interrupted).
       expect(elapsed).to be < 9
+    end
+
+    it 'flushes an event enqueued after stop starts but before the final drain' do
+      drain_started = Queue.new
+      release_drain = Queue.new
+      received = Queue.new
+      allow(transport).to receive(:send_flag_evaluations) do |payload|
+        received << payload if payload['flagEvaluations']&.any?
+      end
+
+      writer = described_class.new(transport: transport, logger: logger)
+      drain_calls = 0
+      allow(writer).to receive(:drain_queue).and_wrap_original do |method, *args, **kwargs|
+        drain_calls += 1
+        if drain_calls == 1
+          drain_started << true
+          release_drain.pop
+        end
+        kwargs.empty? ? method.call(*args) : method.call(*args, **kwargs)
+      end
+
+      stop_thread = Thread.new { writer.stop }
+      drain_started.pop
+
+      writer.enqueue(
+        flag_key: 'late-shutdown-flag', variant: 'on', allocation_key: '',
+        targeting_key: 'u2', eval_time_ms: 2_000, attrs: {},
+      )
+      release_drain << true
+      stop_thread.join
+
+      payload = try_wait_until(seconds: 1) { received.pop(true) unless received.empty? }
+      expect(payload['flagEvaluations'].first['flag']['key']).to eq('late-shutdown-flag')
+    ensure
+      release_drain << true if release_drain&.empty?
+      stop_thread&.join
+      writer&.stop
     end
 
     it 'terminates the worker when graceful shutdown times out' do
@@ -449,6 +486,24 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
         'groups.0' => 'beta',
         'name' => 'alice',
       )
+    end
+
+    it 'emits non-cyclic context attrs when attrs contain cycles' do
+      raw = {'keep' => 'ok'}
+      raw['self'] = raw
+      raw['array'] = []
+      raw['array'] << raw['array']
+
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: 'cyclic-context-flag', variant: 'on', allocation_key: '',
+          targeting_key: 't', eval_time_ms: realistic_eval_ms, attrs: raw,
+        )
+      end
+
+      emitted = payload['flagEvaluations'].first['context']['evaluation']
+      expect(emitted).to include('keep' => 'ok')
+      expect(emitted.keys.grep(/self|array/)).to be_empty
     end
 
     it 'emits schema-visible error.message when present' do

@@ -6,6 +6,8 @@ module Datadog
 
         MAX_FIELD_LENGTH: ::Integer
 
+        MAX_CONTEXT_DEPTH: ::Integer
+
         EVAL_SCALE_TARGET_FLAGS: ::Integer
 
         EVAL_SCALE_FULL_BUCKETS_PER_FLAG: ::Integer
@@ -83,7 +85,13 @@ module Datadog
 
         def self.flatten_context: (::Hash[::String, untyped]? attrs) -> ::Hash[::String, untyped]
 
-        def self.flatten_value: (::String prefix, untyped value, ::Hash[::String, untyped] out) -> void
+        def self.flatten_value: (
+          ::String prefix,
+          untyped value,
+          ::Hash[::String, untyped] out,
+          ::Hash[::Integer, bool] seen,
+          ::Integer depth
+        ) -> void
 
         def canonical_context_key: (::Hash[::String, untyped]? attrs) -> ::String
 

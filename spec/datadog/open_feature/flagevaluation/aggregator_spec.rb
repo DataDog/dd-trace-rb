@@ -125,6 +125,30 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
     it 'returns empty hash for nil input' do
       expect(aggregator.prune_context(nil)).to eq({})
     end
+
+    it 'does not recurse forever on cyclic hashes and arrays' do
+      attrs = {'keep' => 'ok'}
+      attrs['self'] = attrs
+      attrs['array'] = []
+      attrs['array'] << attrs['array']
+
+      pruned = aggregator.prune_context(attrs)
+
+      expect(pruned).to include('keep' => 'ok')
+      expect(pruned.keys.grep(/self|array/)).to be_empty
+    end
+
+    it 'drops context branches beyond the maximum nesting depth' do
+      attrs = {'root' => {}}
+      cursor = attrs['root']
+      (described_class::MAX_CONTEXT_DEPTH + 2).times do |i|
+        cursor["level#{i}"] = {}
+        cursor = cursor["level#{i}"]
+      end
+      cursor['leaf'] = 'too-deep'
+
+      expect(aggregator.prune_context(attrs)).to eq({})
+    end
   end
 
   # ─── record + two-tier aggregation ──────────────────────────────────────────

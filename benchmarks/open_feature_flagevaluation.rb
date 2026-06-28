@@ -44,6 +44,10 @@ class OpenFeatureFlagevaluationBenchmark
     VALIDATE_BENCHMARK_MODE ? {time: 0.001, warmup: 0} : {time: time, warmup: warmup}
   end
 
+  def benchmark_results_file(suffix)
+    "#{File.basename(__FILE__, ".rb")}-#{suffix}-results.json"
+  end
+
   def initialize
     @writer = Datadog::OpenFeature::FlagEvaluation::Writer.allocate
     # Build the writer without starting the real background thread (we drive aggregation directly).
@@ -108,7 +112,7 @@ class OpenFeatureFlagevaluationBenchmark
         end
       end
 
-      x.save!("#{File.basename(__FILE__, ".rb")}-results.json") unless VALIDATE_BENCHMARK_MODE
+      x.save!(benchmark_results_file('hook-finally')) unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end
@@ -145,7 +149,7 @@ class OpenFeatureFlagevaluationBenchmark
         end
       end
 
-      x.save!("#{File.basename(__FILE__, ".rb")}-results.json") unless VALIDATE_BENCHMARK_MODE
+      x.save!(benchmark_results_file('aggregator-record')) unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end
@@ -194,7 +198,7 @@ class OpenFeatureFlagevaluationBenchmark
         worker_count.times { jobs << records_per_worker }
         worker_count.times { done.pop }
       end
-      x.save!("#{File.basename(__FILE__, ".rb")}-results.json") unless VALIDATE_BENCHMARK_MODE
+      x.save!(benchmark_results_file('aggregator-record-parallel')) unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   ensure
