@@ -88,7 +88,7 @@ GEM
       faraday (>= 1.0, < 3)
       multi_json
     os (1.1.4)
-    pp (0.6.3)
+    pp (0.6.4)
       prettyprint
     prettyprint (0.2.0)
     prism (1.9.0)

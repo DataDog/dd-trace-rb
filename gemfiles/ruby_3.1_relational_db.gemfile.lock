@@ -92,7 +92,7 @@ GEM
     mysql2 (0.5.5)
     os (1.1.4)
     pg (1.5.4)
-    pp (0.6.3)
+    pp (0.6.4)
       prettyprint
     prettyprint (0.2.0)
     prism (1.9.0)
