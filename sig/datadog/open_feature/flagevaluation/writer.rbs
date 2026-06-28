@@ -12,6 +12,8 @@ module Datadog
 
         QUEUE_SIZE: ::Integer
 
+        MAX_DRAIN_EVENTS_PER_CYCLE: ::Integer
+
         PAYLOAD_SIZE_LIMIT_BYTES: ::Integer
 
         TELEMETRY_NAMESPACE: ::String
@@ -70,6 +72,12 @@ module Datadog
 
         def build_service_context: () -> ::Hash[::String, ::String]
 
+        def snapshot_context_attrs: (untyped attrs) -> ::Hash[untyped, untyped]
+
+        def snapshot_context_key: (untyped key) -> untyped
+
+        def snapshot_context_value: (untyped value) -> untyped
+
         def start_background_thread: () -> void
 
         def running?: () -> bool
@@ -82,7 +90,7 @@ module Datadog
 
         def drain_and_flush: () -> void
 
-        def drain_queue: () -> void
+        def drain_queue: (?max_events: ::Integer?) -> ::Integer
 
         def flush_once: () -> void
 

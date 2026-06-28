@@ -91,6 +91,31 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
     let(:transport) { instance_double(Datadog::OpenFeature::Transport::HTTP) }
     let(:logger) { instance_double(Logger, debug: nil) }
 
+    it 'flushes a bounded drain cycle before the queue is empty' do
+      stub_const("#{described_class}::MAX_DRAIN_EVENTS_PER_CYCLE", 2)
+      allow_any_instance_of(described_class).to receive(:start_background_thread).and_return(nil)
+      allow(transport).to receive(:send_flag_evaluations)
+      writer = described_class.new(transport: transport, logger: logger)
+
+      5.times do |i|
+        writer.enqueue(
+          flag_key: 'bounded-drain', variant: 'on', allocation_key: '',
+          targeting_key: "user-#{i}", eval_time_ms: realistic_eval_ms + i, attrs: {'bucket' => i},
+        )
+      end
+
+      writer.send(:drain_queue)
+      expect(writer.instance_variable_get(:@queue).length).to eq(3)
+
+      writer.send(:flush_once)
+      expect(transport).to have_received(:send_flag_evaluations) do |payload|
+        rows = payload['flagEvaluations']
+        expect(rows.sum { |row| row['evaluation_count'] }).to eq(2)
+      end
+    ensure
+      writer&.stop
+    end
+
     it 'accumulates more events than the bounded queue can hold before flushing' do
       stub_const("#{described_class}::QUEUE_SIZE", 8)
       stub_const("#{described_class}::DRAIN_INTERVAL_SECONDS", 0.01)
@@ -398,6 +423,32 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       # Deterministic subset = sorted-first 256 keys (so 'k000'..'k253' kept, 'keep'/'k254'+ cut).
       expect(emitted).to have_key('k000')
       expect(emitted).not_to have_key('k299')
+    end
+
+    it 'emits an enqueue-time snapshot of nested context attrs' do
+      raw = {
+        'profile' => {'plan' => 'pro'},
+        'groups' => ['beta'],
+        'name' => +'alice',
+      }
+
+      payload = captured_payload do |writer|
+        writer.enqueue(
+          flag_key: 'snapshot-flag', variant: 'on', allocation_key: '',
+          targeting_key: 't', eval_time_ms: realistic_eval_ms, attrs: raw,
+        )
+
+        raw['profile']['plan'] = 'enterprise'
+        raw['groups'][0] = 'ga'
+        raw['name'].replace('bob')
+      end
+
+      emitted = payload['flagEvaluations'].first['context']['evaluation']
+      expect(emitted).to include(
+        'profile.plan' => 'pro',
+        'groups.0' => 'beta',
+        'name' => 'alice',
+      )
     end
 
     it 'emits schema-visible error.message when present' do

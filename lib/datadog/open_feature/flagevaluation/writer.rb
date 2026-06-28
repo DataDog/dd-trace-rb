@@ -27,6 +27,7 @@ module Datadog
         DRAIN_INTERVAL_SECONDS = 0.1
         SHUTDOWN_TIMEOUT_SECONDS = 5
         QUEUE_SIZE = 4_096
+        MAX_DRAIN_EVENTS_PER_CYCLE = 1_024
         PAYLOAD_SIZE_LIMIT_BYTES = Core::EVP::PAYLOAD_SIZE_LIMIT_BYTES
         TELEMETRY_NAMESPACE = 'tracers'
         ROWS_DROPPED_METRIC = 'flagevaluation.rows.dropped'
@@ -68,7 +69,7 @@ module Datadog
           start_background_thread if forked?
 
           attrs = event[:attrs]
-          attrs = attrs.is_a?(Hash) ? attrs.dup : {}
+          attrs = snapshot_context_attrs(attrs)
           bounded_event = {
             flag_key: event[:flag_key],
             variant: event[:variant],
@@ -122,6 +123,35 @@ module Datadog
           ctx
         end
 
+        def snapshot_context_attrs(attrs)
+          return {} unless attrs.is_a?(Hash)
+
+          snapshot_context_value(attrs)
+        end
+
+        def snapshot_context_key(key)
+          key.is_a?(String) ? key.dup : key
+        end
+
+        def snapshot_context_value(value)
+          case value
+          when Hash
+            value.each_with_object({}) do |(k, v), h|
+              h[snapshot_context_key(k)] = snapshot_context_value(v)
+            end
+          when Array
+            value.map { |v| snapshot_context_value(v) }
+          when String
+            value.dup
+          else
+            begin
+              value.dup
+            rescue TypeError
+              value
+            end
+          end
+        end
+
         def start_background_thread
           perform
         end
@@ -166,22 +196,28 @@ module Datadog
         end
 
         def drain_and_flush
-          drain_queue
+          drain_queue(max_events: nil)
           flush_once
         end
 
-        def drain_queue
-          # Drain async queue into aggregator (background thread only)
+        def drain_queue(max_events: MAX_DRAIN_EVENTS_PER_CYCLE)
+          # Drain async queue into aggregator (background thread only).
+          # Normal cycles are bounded so flush cadence cannot starve under sustained producers.
+          drained = 0
           until @queue.empty?
+            break if max_events && drained >= max_events
+
             begin
               event = @queue.pop(true)
               # event is the untyped keyword hash pushed by #enqueue; its required keys
               # cannot be statically verified after the SizedQueue round-trip.
               @aggregator.record(**event) # steep:ignore
+              drained += 1
             rescue ThreadError
               break
             end
           end
+          drained
         end
 
         def flush_once
