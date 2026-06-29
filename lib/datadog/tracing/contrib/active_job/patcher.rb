@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../patcher'
+require_relative 'data_streams'
 require_relative 'ext'
 require_relative 'events'
 require_relative 'log_injection'
@@ -22,6 +23,7 @@ module Datadog
           def patch
             Events.subscribe!
             inject_log_correlation
+            inject_data_streams
           end
 
           def inject_log_correlation
@@ -31,6 +33,13 @@ module Datadog
               else
                 include LogInjection::PerformNowPatch
               end
+            end
+          end
+
+          def inject_data_streams
+            ::ActiveSupport.on_load(:active_job) do
+              prepend DataStreams::SerializePatch
+              prepend DataStreams::DeserializePatch
             end
           end
         end

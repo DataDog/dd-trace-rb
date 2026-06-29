@@ -10,6 +10,8 @@ module Datadog
           def self?.patch: () -> untyped
 
           def self?.inject_log_correlation: () -> untyped
+
+          def self?.inject_data_streams: () -> untyped
         end
       end
     end

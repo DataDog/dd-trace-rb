@@ -1,0 +1,17 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveJob
+        module DataStreams
+          module SerializePatch
+            def serialize: () -> ::Hash[::String, untyped]
+          end
+
+          module DeserializePatch
+            def deserialize: (::Hash[::String, untyped] job_data) -> void
+          end
+        end
+      end
+    end
+  end
+end
