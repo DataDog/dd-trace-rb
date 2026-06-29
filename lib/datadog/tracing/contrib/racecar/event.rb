@@ -56,33 +56,9 @@ module Datadog
               span.set_tag(Ext::TAG_FIRST_OFFSET, payload[:first_offset]) if payload.key?(:first_offset)
               span.set_tag(Ext::TAG_MESSAGE_COUNT, payload[:message_count]) if payload.key?(:message_count)
               span.set_error(payload[:exception_object]) if payload[:exception_object]
-
-              set_data_streams_checkpoint(payload) if Datadog::DataStreams.enabled?
-            end
-
-            # Sets a Data Streams Monitoring consume checkpoint for the event.
-            # Events that consume messages (e.g. message, batch) override this;
-            # by default it is a no-op (e.g. the main loop event).
-            def consume_checkpoint(_payload)
-            end
-
-            # Tracks the consumed offset for Data Streams Monitoring consumer
-            # lag, when the payload carries the necessary coordinates.
-            def track_consumer_lag(topic, partition, offset)
-              return unless topic && partition && offset
-
-              Datadog::DataStreams.track_kafka_consume(topic, partition, offset)
             end
 
             private
-
-            # DSM must never disrupt message processing, so any failure while
-            # setting checkpoints is swallowed and logged at debug level.
-            def set_data_streams_checkpoint(payload)
-              consume_checkpoint(payload)
-            rescue => e
-              Datadog.logger.debug { "Error setting DSM consume checkpoint: #{e.class}: #{e.message}" }
-            end
 
             # Context objects are thread-bound.
             # If Racecar re-uses threads, context from a previous trace
