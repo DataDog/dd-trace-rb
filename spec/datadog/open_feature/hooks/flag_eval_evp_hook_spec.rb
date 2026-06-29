@@ -5,7 +5,7 @@ require 'spec_helper'
 # Tests run under the openfeature appraisal which includes the real OpenFeature SDK
 require 'open_feature/sdk'
 require 'datadog/open_feature/hooks/flag_eval_evp_hook'
-require 'datadog/open_feature/flagevaluation/writer'
+require 'datadog/open_feature/flag_evaluation/writer'
 
 RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
   subject(:hook) { described_class.new(writer) }
@@ -13,15 +13,27 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
   let(:writer) { instance_double(Datadog::OpenFeature::FlagEvaluation::Writer, enqueue: nil) }
 
   let(:eval_context) { ::OpenFeature::SDK::EvaluationContext.new(targeting_key: 'user-7', env: 'prod') }
-  let(:hook_context) { double('HookContext', flag_key: 'my-flag', evaluation_context: eval_context) }
+  let(:hook_context) { build_hook_context }
+
+  def build_hook_context(flag_key: 'my-flag', evaluation_context: eval_context)
+    ::OpenFeature::SDK::Hooks::HookContext.new(
+      flag_key: flag_key,
+      flag_value_type: :string,
+      default_value: 'default',
+      evaluation_context: evaluation_context,
+    )
+  end
 
   def build_evaluation_details(variant:, error_message: nil, error_code: nil, flag_metadata: {})
-    instance_double(
-      'OpenFeature::SDK::EvaluationDetails',
-      variant: variant,
-      error_message: error_message,
-      error_code: error_code,
-      flag_metadata: flag_metadata,
+    ::OpenFeature::SDK::EvaluationDetails.new(
+      flag_key: 'my-flag',
+      resolution_details: ::OpenFeature::SDK::Provider::ResolutionDetails.new(
+        value: 'default',
+        variant: variant,
+        error_message: error_message,
+        error_code: error_code,
+        flag_metadata: flag_metadata,
+      ),
     )
   end
 
@@ -69,9 +81,9 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       hook.finally(hook_context: hook_context, evaluation_details: evaluation_details)
     end
 
-    it 'also accepts duck-typed contexts that expose attributes' do
-      ctx = Struct.new(:targeting_key, :attributes).new('user-9', {'tier' => 'gold'})
-      hook_ctx = double('HookContext', flag_key: 'my-flag', evaluation_context: ctx)
+    it 'extracts targeting key and attrs from a real SDK evaluation context' do
+      sdk_context = ::OpenFeature::SDK::EvaluationContext.new(targeting_key: 'user-9', tier: 'gold')
+      hook_ctx = build_hook_context(evaluation_context: sdk_context)
 
       expect(writer).to receive(:enqueue).with(hash_including(targeting_key: 'user-9', attrs: {'tier' => 'gold'}))
       hook.finally(hook_context: hook_ctx, evaluation_details: evaluation_details)
@@ -110,14 +122,17 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
     end
 
     it 'marks type mismatch as runtime default even when the SDK exposes a variant' do
-      details = build_evaluation_details(variant: 'variant-a', error_code: 'TYPE_MISMATCH')
+      details = build_evaluation_details(
+        variant: 'variant-a',
+        error_code: ::OpenFeature::SDK::Provider::ErrorCode::TYPE_MISMATCH,
+      )
       expect(writer).to receive(:enqueue).with(hash_including(variant: 'variant-a', runtime_default: true))
       hook.finally(hook_context: hook_context, evaluation_details: details)
     end
 
     it 'handles a nil evaluation_context without raising' do
       details = build_evaluation_details(variant: 'v')
-      ctx = double('HookContext', flag_key: 'f', evaluation_context: nil)
+      ctx = build_hook_context(flag_key: 'f', evaluation_context: nil)
       expect(writer).to receive(:enqueue).with(hash_including(targeting_key: nil, attrs: {}))
       expect { hook.finally(hook_context: ctx, evaluation_details: details) }.not_to raise_error
     end

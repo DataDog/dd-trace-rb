@@ -4,8 +4,8 @@ VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
 require_relative 'benchmarks_helper'
-require 'datadog/open_feature/flagevaluation/aggregator'
-require 'datadog/open_feature/flagevaluation/writer'
+require 'datadog/open_feature/flag_evaluation/aggregator'
+require 'datadog/open_feature/flag_evaluation/writer'
 require 'datadog/open_feature/hooks/flag_eval_evp_hook'
 
 # Benchmarks the EVP flagevaluation eval-time hot path:

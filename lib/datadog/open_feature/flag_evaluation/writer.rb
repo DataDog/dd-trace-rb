@@ -69,7 +69,7 @@ module Datadog
           start_background_thread if forked?
 
           attrs = event[:attrs]
-          attrs = snapshot_context_attrs(attrs)
+          attrs = attrs.is_a?(Hash) ? snapshot_context_value(attrs, {}, 0) || {} : {}
           bounded_event = {
             flag_key: event[:flag_key],
             variant: event[:variant],
@@ -123,16 +123,6 @@ module Datadog
           ctx
         end
 
-        def snapshot_context_attrs(attrs)
-          return {} unless attrs.is_a?(Hash)
-
-          snapshot_context_value(attrs, {}, 0) || {}
-        end
-
-        def snapshot_context_key(key)
-          key.is_a?(String) ? key.dup : key
-        end
-
         def snapshot_context_value(value, seen, depth)
           return if depth > Aggregator::MAX_CONTEXT_DEPTH
 
@@ -142,15 +132,15 @@ module Datadog
             return if seen[object_id]
 
             seen[object_id] = true
-            value.each_with_object({}) do |(k, v), h|
-              h[snapshot_context_key(k)] = snapshot_context_value(v, seen, depth + 1)
+            value.each_with_object({}) do |(key, child_value), snapshot|
+              snapshot[key.is_a?(String) ? key.dup : key] = snapshot_context_value(child_value, seen, depth + 1)
             end.tap { seen.delete(object_id) }
           when Array
             object_id = value.object_id
             return if seen[object_id]
 
             seen[object_id] = true
-            value.map { |v| snapshot_context_value(v, seen, depth + 1) }.tap { seen.delete(object_id) }
+            value.map { |child_value| snapshot_context_value(child_value, seen, depth + 1) }.tap { seen.delete(object_id) }
           when String
             value.dup
           else
@@ -219,9 +209,16 @@ module Datadog
 
             begin
               event = @queue.pop(true)
-              # event is the untyped keyword hash pushed by #enqueue; its required keys
-              # cannot be statically verified after the SizedQueue round-trip.
-              @aggregator.record(**event) # steep:ignore
+              @aggregator.record(
+                flag_key: event[:flag_key].to_s,
+                variant: event[:variant],
+                allocation_key: event[:allocation_key],
+                targeting_key: event[:targeting_key],
+                eval_time_ms: event[:eval_time_ms].to_i,
+                attrs: event[:attrs].is_a?(Hash) ? event[:attrs] : {},
+                error_message: event[:error_message],
+                runtime_default: event[:runtime_default],
+              )
               drained += 1
             rescue ThreadError
               break
@@ -249,9 +246,9 @@ module Datadog
         # Read-and-reset the queue-overflow drop counter under the stop mutex.
         def take_dropped_queue_overflow
           @stop_mutex.synchronize do
-            n = @dropped_queue_overflow
+            count = @dropped_queue_overflow
             @dropped_queue_overflow = 0
-            n
+            count
           end
         end
 

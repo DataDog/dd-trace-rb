@@ -3,7 +3,7 @@
 require 'spec_helper'
 require 'open_feature/sdk'
 require 'datadog/open_feature/component'
-require 'datadog/open_feature/flagevaluation/writer'
+require 'datadog/open_feature/flag_evaluation/writer'
 require 'datadog/open_feature/hooks/flag_eval_evp_hook'
 
 RSpec.describe Datadog::OpenFeature::Component do

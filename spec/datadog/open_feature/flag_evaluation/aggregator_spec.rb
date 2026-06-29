@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'datadog/open_feature/flagevaluation/aggregator'
+require 'datadog/open_feature/flag_evaluation/aggregator'
 
 RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
   subject(:aggregator) do
@@ -22,7 +22,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
     end.join
   end
 
-  # ─── canonical_context_key ───────────────────────────────────────────────────
+  # canonical_context_key
 
   describe '#canonical_context_key' do
     it 'returns empty string for nil attrs' do
@@ -68,7 +68,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
     end
   end
 
-  # ─── context pruning ─────────────────────────────────────────────────────────
+  # context pruning
 
   describe '#prune_context' do
     it 'skips string values exceeding 256 chars' do
@@ -151,7 +151,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
     end
   end
 
-  # ─── record + two-tier aggregation ──────────────────────────────────────────
+  # record + two-tier aggregation
 
   describe '#record' do
     let(:base_event) do
@@ -215,11 +215,11 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       end
     end
 
-    context 'full-tier globalCap overflow routes to degraded' do
+    context 'full-tier global_cap overflow routes to degraded' do
       let(:global_cap) { 2 }
       let(:per_flag_cap) { 10 }
 
-      it 'routes to degraded when globalCap is reached with a new bucket' do
+      it 'routes to degraded when global_cap is reached with a new bucket' do
         # First two fill the full tier
         aggregator.record(**base_event.merge(attrs: {'x' => 1}))
         aggregator.record(**base_event.merge(attrs: {'x' => 2}))
@@ -241,14 +241,14 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       end
     end
 
-    context 'full-tier perFlagCap overflow routes to degraded' do
+    context 'full-tier per_flag_cap overflow routes to degraded' do
       let(:global_cap) { 131_072 }
       let(:per_flag_cap) { 2 }
 
-      it 'routes to degraded when perFlagCap is reached for a flag' do
+      it 'routes to degraded when per_flag_cap is reached for a flag' do
         aggregator.record(**base_event.merge(attrs: {'x' => 1}))
         aggregator.record(**base_event.merge(attrs: {'x' => 2}))
-        # Third bucket for same flag — perFlagCap exceeded
+        # Third bucket for same flag: per_flag_cap exceeded
         aggregator.record(**base_event.merge(attrs: {'x' => 3}))
 
         snapshot = aggregator.flush_and_reset
@@ -257,12 +257,12 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
       end
     end
 
-    context 'degraded-tier degradedCap overflow increments dropped counter' do
+    context 'degraded-tier degraded_cap overflow increments dropped counter' do
       let(:global_cap) { 1 }    # force overflow to degraded immediately
       let(:per_flag_cap) { 1 }
       let(:degraded_cap) { 1 }  # then degrade overflows
 
-      it 'increments dropped counter beyond degradedCap' do
+      it 'increments dropped counter beyond degraded_cap' do
         # First event: goes to full tier (cap=1, one slot)
         aggregator.record(**base_event.merge(attrs: {'x' => 1}))
         # Second event: different context, full tier full → goes to degraded.
@@ -292,7 +292,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
     end
   end
 
-  # ─── flush_and_reset ─────────────────────────────────────────────────────────
+  # flush_and_reset
 
   describe '#flush_and_reset' do
     it 'resets full and degraded maps after flush' do

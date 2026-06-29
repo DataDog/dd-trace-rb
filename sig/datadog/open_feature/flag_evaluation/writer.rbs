@@ -72,10 +72,6 @@ module Datadog
 
         def build_service_context: () -> ::Hash[::String, ::String]
 
-        def snapshot_context_attrs: (untyped attrs) -> ::Hash[untyped, untyped]
-
-        def snapshot_context_key: (untyped key) -> untyped
-
         def snapshot_context_value: (
           untyped value,
           ::Hash[::Integer, bool] seen,

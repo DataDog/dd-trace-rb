@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'datadog/open_feature/flagevaluation/writer'
+require 'datadog/open_feature/flag_evaluation/writer'
 
 RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
   # A first/last_evaluation value above the schema's minimum (Oct 2025).

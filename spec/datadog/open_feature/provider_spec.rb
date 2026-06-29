@@ -5,7 +5,7 @@ require 'datadog/open_feature/provider'
 require 'datadog/open_feature/evaluation_engine'
 require 'datadog/open_feature/hooks/flag_eval_metrics_hook'
 require 'datadog/open_feature/hooks/flag_eval_evp_hook'
-require 'datadog/open_feature/flagevaluation/writer'
+require 'datadog/open_feature/flag_evaluation/writer'
 
 RSpec.describe Datadog::OpenFeature::Provider do
   before do

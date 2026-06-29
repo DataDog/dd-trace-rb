@@ -10,7 +10,7 @@ module Datadog
       # - degraded-tier key: (flag_key, variant, allocation_key, runtime_default, error_message)
       # - Drop-and-count when degraded tier is full
       # - canonical_context_key: sorted type-tagged length-delimited encoding (no hash digest)
-      # - Caps: globalCap=131_072 / perFlagCap=10_000 / degradedCap=32_768
+      # - Caps: global_cap=131_072 / per_flag_cap=10_000 / degraded_cap=32_768
       # - Context pruning: 256 fields / 256 chars (matches flageval-worker backend limits)
       class Aggregator
         MAX_CONTEXT_FIELDS = 256
@@ -53,7 +53,7 @@ module Datadog
           @full = {}
           # degraded-tier: Array key -> Hash entry
           @degraded = {}
-          # per-flag full-bucket count for perFlagCap enforcement
+          # per-flag full-bucket count for per_flag_cap enforcement
           @per_flag_full = Hash.new(0)
           @global_count = 0
           @dropped_degraded_overflow = 0
@@ -75,22 +75,22 @@ module Datadog
 
           # Context pruning + canonical key (see prune_context and canonical_context_key).
           # Runs in the background writer so caller eval threads do not pay the flatten/prune cost.
-          pruned = prune_context(attrs)
-          ctx_key = canonical_context_key(pruned)
+          pruned_context = prune_context(attrs)
+          context_key = canonical_context_key(pruned_context)
 
-          full_key = [flag_key, variant, allocation_key, runtime_default, error_message, targeting_key, ctx_key]
-          eval_ms = eval_time_ms.to_i
+          full_key = [flag_key, variant, allocation_key, runtime_default, error_message, targeting_key, context_key]
+          evaluation_time_ms = eval_time_ms.to_i
 
           @mutex.synchronize do
             # --- Full tier ---
-            if (e = @full[full_key])
-              observe(e, eval_ms)
+            if (entry = @full[full_key])
+              observe(entry, evaluation_time_ms)
               return
             end
 
             per_flag_count = @per_flag_full[flag_key]
             if per_flag_count >= @per_flag_cap
-              add_to_degraded(flag_key, variant, allocation_key, runtime_default, error_message, eval_ms)
+              add_to_degraded(flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms)
               return
             end
 
@@ -99,18 +99,18 @@ module Datadog
             @per_flag_full[flag_key] = per_flag_count + 1
 
             if @global_count < @global_cap
-              e = new_entry(
-                eval_ms,
+              entry = new_entry(
+                evaluation_time_ms,
                 runtime_default: runtime_default,
                 error_message: error_message,
                 targeting_key: targeting_key,
-                context_attrs: pruned
+                context_attrs: pruned_context
               )
-              @full[full_key] = e
+              @full[full_key] = entry
               @global_count += 1
             else
               # Route to degraded tier
-              add_to_degraded(flag_key, variant, allocation_key, runtime_default, error_message, eval_ms)
+              add_to_degraded(flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms)
             end
           end
         end
@@ -121,9 +121,9 @@ module Datadog
         # reset — the count is never reset-without-emit (backpressure stays observable).
         def flush_and_reset
           @mutex.synchronize do
-            full_snap = @full
-            degraded_snap = @degraded
-            dropped_snap = @dropped_degraded_overflow
+            full_snapshot = @full
+            degraded_snapshot = @degraded
+            dropped_snapshot = @dropped_degraded_overflow
 
             @full = {}
             @degraded = {}
@@ -131,7 +131,7 @@ module Datadog
             @global_count = 0
             @dropped_degraded_overflow = 0
 
-            {full: full_snap, degraded: degraded_snap, dropped_degraded_overflow: dropped_snap}
+            {full: full_snapshot, degraded: degraded_snapshot, dropped_degraded_overflow: dropped_snapshot}
           end
         end
 
@@ -142,33 +142,33 @@ module Datadog
         end
 
         def self.prune_context(attrs)
-          flat = flatten_context(attrs)
-          return {} if flat.empty?
+          flattened_context = flatten_context(attrs)
+          return {} if flattened_context.empty?
 
-          out = {}
+          pruned_context = {}
           count = 0
-          flat.keys.sort.each do |k|
+          flattened_context.keys.sort.each do |key|
             break if count >= MAX_CONTEXT_FIELDS
 
-            v = flat[k]
+            value = flattened_context[key]
             # Skip oversized string values (mirrors flageval-worker pruning behavior).
-            next if v.is_a?(String) && v.length > MAX_FIELD_LENGTH
+            next if value.is_a?(String) && value.length > MAX_FIELD_LENGTH
 
-            out[k] = v
+            pruned_context[key] = value
             count += 1
           end
-          out
+          pruned_context
         end
 
         def self.flatten_context(attrs)
           return {} unless attrs.is_a?(Hash) && !attrs.empty?
 
-          out = {}
+          flattened_context = {}
           seen = {attrs.object_id => true}
-          attrs.each do |k, v|
-            flatten_value(k.to_s, v, out, seen, 0)
+          attrs.each do |key, value|
+            flatten_value(key.to_s, value, flattened_context, seen, 0)
           end
-          out
+          flattened_context
         end
 
         # Canonical context key: sorted type-tagged length-delimited encoding.
@@ -178,16 +178,16 @@ module Datadog
         def canonical_context_key(attrs)
           return '' if attrs.nil? || attrs.empty?
 
-          buf = String.new('', encoding: Encoding::BINARY)
-          attrs.keys.sort.each do |k|
-            v = attrs[k]
-            buf << length_delimited(k.to_s)
-            buf << context_value_bytes(v)
+          buffer = String.new('', encoding: Encoding::BINARY)
+          attrs.keys.sort.each do |key|
+            value = attrs[key]
+            buffer << length_delimited(key.to_s)
+            buffer << context_value_bytes(value)
           end
-          buf
+          buffer
         end
 
-        def self.flatten_value(prefix, value, out, seen, depth)
+        def self.flatten_value(prefix, value, output, seen, depth)
           return if depth > MAX_CONTEXT_DEPTH
 
           case value
@@ -196,49 +196,55 @@ module Datadog
             return if seen[object_id]
 
             seen[object_id] = true
-            value.each { |k, v| flatten_value("#{prefix}.#{k}", v, out, seen, depth + 1) }
+            value.each do |key, child_value|
+              flatten_value("#{prefix}.#{key}", child_value, output, seen, depth + 1)
+            end
             seen.delete(object_id)
           when Array
             object_id = value.object_id
             return if seen[object_id]
 
             seen[object_id] = true
-            value.each_with_index { |v, i| flatten_value("#{prefix}.#{i}", v, out, seen, depth + 1) }
+            value.each_with_index do |child_value, index|
+              flatten_value("#{prefix}.#{index}", child_value, output, seen, depth + 1)
+            end
             seen.delete(object_id)
           else
-            out[prefix] = value unless value.nil?
+            output[prefix] = value unless value.nil?
           end
         end
         private_class_method :flatten_value
 
         private
 
-        def context_value_bytes(v)
-          tag, encoded = case v
-          when String then [CTX_TAG_STRING, v.to_s]
-          when TrueClass, FalseClass then [CTX_TAG_BOOL, v.to_s]
-          when Integer then [CTX_TAG_INTEGER, v.to_s]
-          when Float then [CTX_TAG_FLOAT, v.to_s]
-          else [CTX_TAG_OTHER, v.to_s]
+        def context_value_bytes(value)
+          tag, encoded = case value
+          when String then [CTX_TAG_STRING, value.to_s]
+          when TrueClass, FalseClass then [CTX_TAG_BOOL, value.to_s]
+          when Integer then [CTX_TAG_INTEGER, value.to_s]
+          when Float then [CTX_TAG_FLOAT, value.to_s]
+          else [CTX_TAG_OTHER, value.to_s]
           end
           String.new(tag, encoding: Encoding::BINARY) + length_delimited(encoded)
         end
 
         # 8-byte big-endian length prefix + raw bytes. Unambiguous field boundary.
-        def length_delimited(s)
-          bytes = s.encode(Encoding::BINARY, invalid: :replace, undef: :replace)
-          n = bytes.bytesize
+        def length_delimited(string)
+          bytes = string.encode(Encoding::BINARY, invalid: :replace, undef: :replace)
+          byte_length = bytes.bytesize
           # Build 8-byte big-endian length
-          len_bytes = String.new('', encoding: Encoding::BINARY)
-          8.times { |i| len_bytes.prepend(((n >> (8 * i)) & 0xFF).chr(Encoding::BINARY)) }
-          len_bytes + bytes
+          length_bytes = String.new('', encoding: Encoding::BINARY)
+          8.times do |index|
+            length_bytes.prepend(((byte_length >> (8 * index)) & 0xFF).chr(Encoding::BINARY))
+          end
+          length_bytes + bytes
         end
 
-        def new_entry(eval_ms, runtime_default:, error_message: nil, targeting_key: nil, context_attrs: nil)
+        def new_entry(evaluation_time_ms, runtime_default:, error_message: nil, targeting_key: nil, context_attrs: nil)
           {
             count: 1,
-            first_evaluation: eval_ms,
-            last_evaluation: eval_ms,
+            first_evaluation: evaluation_time_ms,
+            last_evaluation: evaluation_time_ms,
             runtime_default: runtime_default,
             error_message: error_message,
             targeting_key: targeting_key,
@@ -246,21 +252,21 @@ module Datadog
           }
         end
 
-        def observe(entry, eval_ms)
+        def observe(entry, evaluation_time_ms)
           entry[:count] += 1
-          entry[:first_evaluation] = eval_ms if eval_ms < entry[:first_evaluation]
-          entry[:last_evaluation] = eval_ms if eval_ms > entry[:last_evaluation]
+          entry[:first_evaluation] = evaluation_time_ms if evaluation_time_ms < entry[:first_evaluation]
+          entry[:last_evaluation] = evaluation_time_ms if evaluation_time_ms > entry[:last_evaluation]
         end
 
-        def add_to_degraded(flag_key, variant, allocation_key, runtime_default, error_message, eval_ms)
-          deg_key = [flag_key, variant, allocation_key, runtime_default, error_message]
+        def add_to_degraded(flag_key, variant, allocation_key, runtime_default, error_message, evaluation_time_ms)
+          degraded_key = [flag_key, variant, allocation_key, runtime_default, error_message]
 
-          if (e = @degraded[deg_key])
-            observe(e, eval_ms)
+          if (entry = @degraded[degraded_key])
+            observe(entry, evaluation_time_ms)
             return
           end
 
-          # New degraded bucket — check degradedCap (terminal tier)
+          # New degraded bucket — check degraded_cap (terminal tier)
           if @degraded.size >= @degraded_cap
             # Terminal tier full — drop and count (explicit overflow counter)
             @dropped_degraded_overflow += 1
@@ -268,8 +274,8 @@ module Datadog
           end
 
           # Degraded entry omits targeting_key + context_attrs (schema omitempty fields)
-          @degraded[deg_key] = new_entry(
-            eval_ms,
+          @degraded[degraded_key] = new_entry(
+            evaluation_time_ms,
             runtime_default: runtime_default,
             error_message: error_message
           )

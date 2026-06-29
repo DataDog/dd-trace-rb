@@ -88,7 +88,7 @@ module Datadog
         def self.flatten_value: (
           ::String prefix,
           untyped value,
-          ::Hash[::String, untyped] out,
+          ::Hash[::String, untyped] output,
           ::Hash[::Integer, bool] seen,
           ::Integer depth
         ) -> void
@@ -97,19 +97,19 @@ module Datadog
 
         private
 
-        def context_value_bytes: (untyped v) -> ::String
+        def context_value_bytes: (untyped value) -> ::String
 
-        def length_delimited: (::String s) -> ::String
+        def length_delimited: (::String string) -> ::String
 
         def new_entry: (
-          ::Integer eval_ms,
+          ::Integer evaluation_time_ms,
           runtime_default: bool,
           ?error_message: ::String?,
           ?targeting_key: ::String?,
           ?context_attrs: ::Hash[::String, untyped]?
         ) -> ::Hash[::Symbol, untyped]
 
-        def observe: (::Hash[::Symbol, untyped] entry, ::Integer eval_ms) -> void
+        def observe: (::Hash[::Symbol, untyped] entry, ::Integer evaluation_time_ms) -> void
 
         def add_to_degraded: (
           ::String flag_key,
@@ -117,7 +117,7 @@ module Datadog
           ::String allocation_key,
           bool runtime_default,
           ::String error_message,
-          ::Integer eval_ms
+          ::Integer evaluation_time_ms
         ) -> void
       end
     end
