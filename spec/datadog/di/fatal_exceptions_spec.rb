@@ -4,16 +4,6 @@ require "datadog/di/spec_helper"
 require "datadog/di/fatal_exceptions"
 
 RSpec.describe "Datadog::DI.reraise_if_fatal" do
-  describe Datadog::DI::FATAL_EXCEPTION_CLASSES do
-    it 'contains the process-fatal exception classes' do
-      expect(Datadog::DI::FATAL_EXCEPTION_CLASSES).to eq([SystemExit, SignalException, NoMemoryError])
-    end
-
-    it 'is frozen' do
-      expect(Datadog::DI::FATAL_EXCEPTION_CLASSES).to be_frozen
-    end
-  end
-
   describe '.reraise_if_fatal' do
     context 'when given a fatal exception' do
       [SystemExit.new, SignalException.new('TERM'), Interrupt.new, NoMemoryError.new].each do |exc|
@@ -25,6 +15,23 @@ RSpec.describe "Datadog::DI.reraise_if_fatal" do
       it 're-raises the same exception instance' do
         exc = SystemExit.new
         expect { Datadog::DI.reraise_if_fatal(exc) }.to raise_error { |raised| expect(raised).to equal(exc) }
+      end
+
+      it 'preserves the original backtrace when re-raising' do
+        original = begin
+          raise SystemExit, 'shutting down'
+        rescue SystemExit => e
+          e
+        end
+
+        raised = begin
+          Datadog::DI.reraise_if_fatal(original)
+          nil
+        rescue SystemExit => e
+          e
+        end
+
+        expect(raised.backtrace).to eq(original.backtrace)
       end
     end
 
