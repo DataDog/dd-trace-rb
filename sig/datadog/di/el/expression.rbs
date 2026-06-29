@@ -6,7 +6,7 @@ module Datadog
 
         @evaluator: Evaluator
 
-        def initialize: (String dsl_expr, String compiled_expr, ?Array[Regexp] regexps) -> void
+        def initialize: (::String dsl_expr, ::String compiled_expr, ?::Array[::Regexp] regexps) -> void
 
         attr_reader dsl_expr: String
 
