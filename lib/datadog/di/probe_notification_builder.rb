@@ -2,6 +2,8 @@
 
 # rubocop:disable Lint/AssignmentInCondition
 
+require_relative 'fatal_exceptions'
+
 module Datadog
   module DI
     # Builds probe status notification and snapshot payloads.

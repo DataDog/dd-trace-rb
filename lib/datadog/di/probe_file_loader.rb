@@ -2,6 +2,8 @@
 
 require 'json'
 
+require_relative 'fatal_exceptions'
+
 module Datadog
   module DI
     module ProbeFileLoader

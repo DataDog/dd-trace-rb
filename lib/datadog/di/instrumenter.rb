@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../core/utils/time'
+require_relative 'fatal_exceptions'
 
 # rubocop:disable Lint/AssignmentInCondition
 # rubocop:disable Style/AndOr

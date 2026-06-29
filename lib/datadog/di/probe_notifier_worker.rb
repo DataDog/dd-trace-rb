@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../core/semaphore'
+require_relative 'fatal_exceptions'
 
 module Datadog
   module DI

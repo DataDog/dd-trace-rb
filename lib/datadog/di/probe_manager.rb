@@ -2,6 +2,8 @@
 
 # rubocop:disable Lint/AssignmentInCondition
 
+require_relative 'fatal_exceptions'
+
 module Datadog
   module DI
     # Orchestrates probe lifecycle: installation, removal, and execution callbacks.

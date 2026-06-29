@@ -3,6 +3,7 @@
 # rubocop:disable Lint/AssignmentInCondition
 
 require_relative 'error'
+require_relative 'fatal_exceptions'
 
 module Datadog
   module DI

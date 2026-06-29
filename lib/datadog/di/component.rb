@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'fatal_exceptions'
+
 module Datadog
   module DI
     # Component for dynamic instrumentation.
