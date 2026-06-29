@@ -1,0 +1,31 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Racecar
+        module Instrumentation
+          module Producer
+            def self.inject_pathway_context: (untyped topic, untyped headers) -> untyped
+
+            module Consumer
+              def self.prepended: (untyped base) -> untyped
+
+              module InstanceMethods
+                def produce: (untyped payload, topic: untyped, ?headers: untyped, **untyped kwargs) -> untyped
+              end
+            end
+
+            module Standalone
+              def self.prepended: (untyped base) -> untyped
+
+              module InstanceMethods
+                def produce_async: (value: untyped, topic: untyped, **untyped options) -> untyped
+
+                def produce_sync: (value: untyped, topic: untyped, **untyped options) -> untyped
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+end
