@@ -132,6 +132,11 @@ module Datadog
         # loop (see Ruby bug #18144) can still overrun the timeout.
         # Migrating to Ruby 3.2+ is the only complete fix.
         #
+        # The Timeout.timeout wrap is safe only because re.match?(haystack)
+        # is a side-effect-free pure computation: Thread#raise can interrupt
+        # at any point, so do not widen this block to include mutation, IO,
+        # or resource cleanup.
+        #
         # @param re [Regexp] regexp to apply.
         # @param haystack [String] string to match against.
         # @return [Boolean] whether the haystack matches the regexp.
