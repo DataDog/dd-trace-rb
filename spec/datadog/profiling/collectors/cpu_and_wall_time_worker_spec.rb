@@ -1693,6 +1693,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     Datadog::Profiling::Collectors::ThreadContext.for_testing(
       recorder: recorder,
       endpoint_collection_enabled: endpoint_collection_enabled,
+      # The worker triggers the global reset itself when it starts, so we don't want `for_testing` to also do it here
+      # (it would interfere with the state these tests carefully set up).
+      trigger_global_reset: false,
       **options,
     )
   end
