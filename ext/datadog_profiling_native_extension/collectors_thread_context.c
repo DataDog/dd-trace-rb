@@ -109,7 +109,13 @@ static ID server_id;      // id of :server in Ruby
 static ID otel_context_storage_id; // id of :__opentelemetry_context_storage__ in Ruby
 static ID otel_fiber_context_storage_id; // id of :@opentelemetry_context in Ruby
 
-// This is mutable and gets set last-writer-wins style whenever a new `ThreadContext` is created.
+// This is mutable and gets set last-writer-wins style by
+// `thread_context_collector_global_reset_per_thread_context`, which is called whenever
+// profiling is starting or restating.
+//
+// Note: We must be careful to not change this value while the profiler is still running,
+// otherwise new threads can get the new value and cause profiling to stop with an
+// exception due to the mismatched size.
 //
 // The initial value should be kept in sync with the default for DD_PROFILING_MAX_FRAMES
 // in settings.rb. See `initialize_context` for details on why this is needed/used.
@@ -592,7 +598,6 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   ENFORCE_TYPE(overhead_filename, T_STRING);
 
   uint16_t max_frame_int = sampling_buffer_check_max_frames(NUM2INT(max_frames));
-  latest_max_frames = max_frame_int;
 
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
@@ -1229,10 +1234,9 @@ static bool is_logging_gem_monkey_patch(VALUE invoke_file_location) {
 }
 
 static void initialize_context(VALUE thread, per_thread_context *thread_context) {
-  // We always create per_thread_context's with latest_max_frames because
-  // 1) we don't always have access to the ThreadContext object (e.g. in a TracePoint).
-  // 2) the per_thread_context's are global and so might not match the ThreadContext#max_frames anyway.
-  // This is fine because sample_thread() handles when they don't match and resizes as needed.
+  // We always create per_thread_context's with latest_max_frames; that value is kept in sync with the
+  // active profiler's max_frames by the global reset that runs when profiling starts
+  // so we expect to always see here the latest correct value to be used.
   sampling_buffer_initialize(&thread_context->sampling_buffer, latest_max_frames);
 
   snprintf(thread_context->thread_id, THREAD_ID_LIMIT_CHARS, "%"PRIu64" (%lu)", native_thread_id_for(thread), (unsigned long) thread_id_for(thread));
@@ -1281,13 +1285,18 @@ static void initialize_context(VALUE thread, per_thread_context *thread_context)
 // This MUST be called before profiling starts, so that a new profiler session starts from a fresh state and never
 // observes or includes any leftover stale state from a previous session.
 //
+// It updates the global `latest_max_frames` from the given (latest) ThreadContext and (re)creates every per-thread
+// context's sampling buffer sized accordingly, so the buffers always match the collector that's about to start
+// sampling -- even if a previous session used a different max_frames.
+//
 // Assumption: Can only be called when the CpuAndWallTimeWorker is stopped (e.g. no tracepoints active, no signals
 // triggering samples, no gvl hooks, etc).
-// Assumption: Must be called after the "latest" ThreadContext instance has been created (so the sampling buffer gets
-// correctly recreated with the correct global `latest_max_frames` value).
 void thread_context_collector_global_reset_per_thread_context(VALUE self_instance) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
+
+  // Update global max frames to be used when allocating sampling buffers
+  latest_max_frames = state->locations.len;
 
   VALUE threads = thread_list(state);
   const long thread_count = RARRAY_LEN(threads);

@@ -252,8 +252,9 @@ void sample_thread(
   st_table *native_filenames_cache
 ) {
   if (buffer->max_frames != locations.len) {
-    // This shouldn't happen as thread_context_collector_global_reset_per_thread_context must always be called
-    // before starting/restarting profiling (and after a new size has been set in `latest_max_frames`).
+    // This shouldn't happen as thread_context_collector_global_reset_per_thread_context (which resizes every
+    // per-thread sampling buffer to match the collector's max_frames) must always be called before starting or
+    // restarting profiling.
     raise_error(
       rb_eRuntimeError,
       "Unexpected: sampling buffer max_frames (%d) doesn't match locations len (%d)",
