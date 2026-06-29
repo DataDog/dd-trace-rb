@@ -363,6 +363,25 @@ RSpec.describe Datadog::OpenFeature::Provider do
       expect(res.flag_metadata['existing']).to eq('kept')
     end
 
+    it "does not mutate the engine result metadata when stamping evaluation metadata" do
+      metadata = {'existing' => 'kept'}
+      result = Datadog::OpenFeature::ResolutionDetails.new(
+        value: 'v', reason: 'STATIC', variant: 'v',
+        flag_metadata: metadata, allocation_key: 'alloc-9', extra_logging: {},
+        log?: false, error?: false
+      )
+      allow(engine).to receive(:fetch_value).and_return(result)
+
+      res = provider.fetch_string_value(flag_key: 'ts-flag3', default_value: 'd')
+
+      expect(res.flag_metadata).to include(
+        'dd.eval.timestamp_ms' => 1_700_000_000_000,
+        '__dd_allocation_key' => 'alloc-9'
+      )
+      expect(res.flag_metadata).not_to equal(metadata)
+      expect(metadata).to eq('existing' => 'kept')
+    end
+
     it "exposes the stamped timestamp on provider error metadata" do
       result = Datadog::OpenFeature::ResolutionDetails.new(
         value: 'd', reason: 'ERROR', variant: nil, error_code: 'FLAG_NOT_FOUND',
