@@ -31,16 +31,19 @@ module Datadog
         #         uses `sinatra.route` with a string like "GET /users/:id"
         #       Grape
         #         uses `grape.routing_args` with a hash with a `:route_info` key
-        #         that contains a `Grape::Router::Route` object that contains
-        #         `Grape::Router::Pattern` object with an `origin` method
+        #         that contains a {Grape::Router::Route} object that contains
+        #         {Grape::Router::Pattern} object with an `origin` method
+        #       Rails with `action_pack` tracing contrib (fast path)
+        #         `datadog.action_dispatch.route` stores the {Journey::Route}
+        #         object set by the tracer at routing time
         #       Rails < 7.1 (slow path)
-        #         uses `action_dispatch.routes` to store `ActionDispatch::Routing::RouteSet`
+        #         uses `action_dispatch.routes` to store {ActionDispatch::Routing::RouteSet}
         #         which can recognize requests
         #       Rails > 7.1 (fast path)
         #         uses `action_dispatch.route_uri_pattern` with a string like
         #         "/users/:id(.:format)"
         #       Rails > 8.1.1 (fast path)
-        #         uses `action_dispatch.route` to store the ActionDispatch::Journey::Route
+        #         uses `action_dispatch.route` to store the {ActionDispatch::Journey::Route}
         #         that matched when the request was routed
         #
         # WARNING: This method works only *after* the request has been routed.

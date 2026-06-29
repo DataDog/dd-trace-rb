@@ -77,7 +77,7 @@ jobs:
   test:
     needs:
       - build
-    uses: DataDog/system-tests/.github/workflows/system-tests.yml@153bc29d098f6fb9d3727711ecd010c1b0d9eeb2  # Automated: Updated by .github/workflows/update-system-tests.yml.
+    uses: DataDog/system-tests/.github/workflows/system-tests.yml@267b2392d8a5b94d216556ae6c4b46950ace604a  # Automated: Updated by .github/workflows/update-system-tests.yml.
     permissions:
       contents: read
       id-token: write
@@ -87,7 +87,7 @@ jobs:
       binaries_artifact: dd-trace-rb
       desired_execution_time: 300 # 5 minutes
       scenarios_groups: tracer_release
-      ref: 153bc29d098f6fb9d3727711ecd010c1b0d9eeb2 # Automated: Updated by .github/workflows/update-system-tests.yml.
+      ref: 267b2392d8a5b94d216556ae6c4b46950ace604a # Automated: Updated by .github/workflows/update-system-tests.yml.
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8
       push_to_test_optimization: true
