@@ -8,6 +8,8 @@ module Datadog
           def self?.target_version: () -> untyped
 
           def self?.patch: () -> untyped
+
+          def self?.patch_producer: () -> untyped
         end
       end
     end
