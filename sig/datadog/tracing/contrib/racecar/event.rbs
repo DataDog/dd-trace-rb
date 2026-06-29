@@ -13,13 +13,7 @@ module Datadog
 
             def process: (untyped span, untyped event, untyped _id, untyped payload) -> untyped
 
-            def consume_checkpoint: (untyped payload) -> void
-
-            def track_consumer_lag: (untyped topic, untyped partition, untyped offset) -> void
-
             private
-            def set_data_streams_checkpoint: (untyped payload) -> void
-
             def ensure_clean_context!: () -> (nil | untyped)
           end
         end

@@ -30,17 +30,6 @@ module Datadog
                        Tracing::Metadata::Ext::TAG_KIND => Tracing::Metadata::Ext::SpanKind::TAG_CONSUMER}
               )
             end
-
-            def consume_checkpoint(payload)
-              headers = payload[:headers] || {}
-              Datadog::DataStreams.set_consume_checkpoint(
-                type: Ext::TAG_MESSAGING_SYSTEM,
-                source: payload[:topic],
-                auto_instrumentation: true,
-              ) { |key| headers[key] }
-
-              track_consumer_lag(payload[:topic], payload[:partition], payload[:offset])
-            end
           end
         end
       end

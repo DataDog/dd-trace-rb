@@ -13,8 +13,6 @@ module Datadog
             def self?.span_name: () -> untyped
 
             def self?.span_options: () -> untyped
-
-            def self?.consume_checkpoint: (untyped payload) -> void
           end
         end
       end

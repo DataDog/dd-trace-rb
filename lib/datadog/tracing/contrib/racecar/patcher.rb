@@ -23,7 +23,14 @@ module Datadog
             Events.subscribe!
 
             # Apply monkey patches for additional instrumentation (e.g., DSM)
+            patch_consumer
             patch_producer
+          end
+
+          def patch_consumer
+            require_relative 'instrumentation/consumer'
+
+            ::Racecar::Runner.prepend(Instrumentation::Consumer) if defined?(::Racecar::Runner)
           end
 
           def patch_producer
