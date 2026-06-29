@@ -84,10 +84,16 @@ module Datadog
         #
         # @param needle [String] regexp source.
         # @return [Regexp] compiled regexp, with baked-in timeout on Ruby 3.2+.
-        def self.compile_regexp(needle)
-          if Datadog::RubyVersion.is?('>= 3.2')
+        #
+        # The running Ruby version is fixed for the process, so the branch is
+        # resolved once at load time by defining the method per-version rather
+        # than checking the version on every call.
+        if Datadog::RubyVersion.is?('>= 3.2')
+          def self.compile_regexp(needle)
             Regexp.new(needle, timeout: MATCHES_TIMEOUT_SECONDS)
-          else
+          end
+        else
+          def self.compile_regexp(needle)
             Regexp.compile(needle)
           end
         end
@@ -140,10 +146,15 @@ module Datadog
         # @param re [Regexp] regexp to apply.
         # @param haystack [String] string to match against.
         # @return [Boolean] whether the haystack matches the regexp.
-        def apply_match(re, haystack)
-          if Datadog::RubyVersion.is?('>= 3.2')
+        #
+        # Defined per-version at load time (see .compile_regexp) so the
+        # version branch is not re-evaluated on every match.
+        if Datadog::RubyVersion.is?('>= 3.2')
+          def apply_match(re, haystack)
             re.match?(haystack)
-          else
+          end
+        else
+          def apply_match(re, haystack)
             Timeout.timeout(MATCHES_TIMEOUT_SECONDS) do
               re.match?(haystack)
             end
