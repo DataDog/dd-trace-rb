@@ -23,7 +23,10 @@ module Datadog
           # Allows subgroupings of settings to be defined.
           # e.g. `settings :foo { option :bar }` --> `config.foo.bar`
           # @param [Symbol] name option name. Methods will be created based on this name.
-          def settings(name, &block)
+          # @param [Hash] attributes option definition attributes forwarded to the underlying
+          #   settings option (e.g. `skip_telemetry: true` to exclude the whole subgrouping,
+          #   including every option nested under it, from configuration telemetry).
+          def settings(name, attributes = {}, &block)
             nested_settings_path = settings_path ? "#{settings_path}.#{name}" : name.to_s
             settings_class = new_settings_class(name, nested_settings_path, &block)
             # Record the child settings class on the owning class so
@@ -38,7 +41,7 @@ module Datadog
             # nested class to "tracing.active_support.cache_key" as well.
             settings_children[name] = settings_class
 
-            option(name, is_settings: true) do |o|
+            option(name, {**attributes, is_settings: true}) do |o|
               o.default { settings_class.new }
 
               o.resetter do |value|

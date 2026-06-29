@@ -55,6 +55,22 @@ RSpec.describe Datadog::Core::Configuration::Base do
           end
         end
 
+        context 'given option definition attributes' do
+          let(:name) { :debug }
+          let(:block) { proc { option :enabled } }
+
+          subject(:settings) { base_class.send(:settings, name, skip_telemetry: true, &block) }
+
+          it 'forwards the attributes to the underlying settings option definition' do
+            settings
+
+            expect(base_class.options[name]).to have_attributes(
+              is_settings: true,
+              skip_telemetry: true,
+            )
+          end
+        end
+
         context 'given nested settings' do
           let(:name) { :debug }
           let(:block) do

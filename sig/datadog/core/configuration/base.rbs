@@ -10,7 +10,7 @@ module Datadog
         def self.included: (Class | Module base) -> void
 
         interface _ClassMethods
-          def settings: (Symbol | String name) ?{ () [self: _DslContext] -> untyped } -> ::Class
+          def settings: (Symbol | String name, ?OptionDefinition::attributes attributes) ?{ () [self: _DslContext] -> untyped } -> ::Class
 
           def new_settings_class: (Symbol | String name, ::String settings_path) ?{ () [self: _DslContext] -> untyped } -> ::Class
         end

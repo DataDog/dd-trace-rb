@@ -462,4 +462,37 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       expect(reported_values).to_not include(a_string_including('SENTINEL_HEARTBEAT_OTLP'))
     end
   end
+
+  # A settings subgrouping marked `skip_telemetry: true` must be excluded from the
+  # configuration payload in full — both options collected by the recursive walk and
+  # the entries AppStarted emits through dedicated code paths (e.g. writer_options,
+  # logger.instance). This guards the `settings :ci, skip_telemetry: true` use case.
+  describe '#config_path_skipped?' do
+    let(:settings_class) do
+      Class.new do
+        include Datadog::Core::Configuration::Base
+
+        settings :skipped_group, skip_telemetry: true do
+          option :leaf
+        end
+
+        settings :kept_group do
+          option :leaf
+        end
+      end
+    end
+    let(:custom_settings) { settings_class.new }
+
+    it 'reports a path nested under a skipped settings group as skipped' do
+      expect(event.send(:config_path_skipped?, custom_settings, 'skipped_group.leaf')).to be true
+    end
+
+    it 'does not skip a path nested under a normal settings group' do
+      expect(event.send(:config_path_skipped?, custom_settings, 'kept_group.leaf')).to be false
+    end
+
+    it 'does not skip a top-level path that is not a settings group' do
+      expect(event.send(:config_path_skipped?, custom_settings, 'instrumentation_source')).to be false
+    end
+  end
 end

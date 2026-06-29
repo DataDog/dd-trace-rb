@@ -90,18 +90,22 @@ module Datadog
             ]
 
             # Set by the customer application (eg. `require 'datadog/auto_instrument'`)
-            auto_instrument_enabled = !defined?(Datadog::AutoInstrument::LOADED).nil?
-            list << conf_value(
-              'tracing.auto_instrument.enabled',
-              auto_instrument_enabled,
-              auto_instrument_enabled ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT
-            )
-            opentelemetry_enabled = !defined?(Datadog::OpenTelemetry::LOADED).nil?
-            list << conf_value(
-              'tracing.opentelemetry.enabled',
-              opentelemetry_enabled,
-              opentelemetry_enabled ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT
-            )
+            unless config_path_skipped?(settings, 'tracing.auto_instrument.enabled')
+              auto_instrument_enabled = !defined?(Datadog::AutoInstrument::LOADED).nil?
+              list << conf_value(
+                'tracing.auto_instrument.enabled',
+                auto_instrument_enabled,
+                auto_instrument_enabled ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT
+              )
+            end
+            unless config_path_skipped?(settings, 'tracing.opentelemetry.enabled')
+              opentelemetry_enabled = !defined?(Datadog::OpenTelemetry::LOADED).nil?
+              list << conf_value(
+                'tracing.opentelemetry.enabled',
+                opentelemetry_enabled,
+                opentelemetry_enabled ? Configuration::Option::Precedence::PROGRAMMATIC : Configuration::Option::Precedence::DEFAULT
+              )
+            end
 
             # Track ssi configurations
             instrumentation_source = if Datadog.const_defined?(:SingleStepInstrument, false) &&
@@ -131,23 +135,25 @@ module Datadog
             )
 
             # Extract writer options as separate configuration payloads.
-            resolve_option(settings, 'tracing.writer_options').values_per_precedence.each do |precedence, value|
-              list << conf_value(
-                'tracing.writer_options.buffer_size',
-                # Steep: Value is always a hash for writer_options (ensured by o.type :hash)
-                to_telemetry_value(value[:buffer_size]), # steep:ignore NoMethod
-                precedence
-              )
-              list << conf_value(
-                'tracing.writer_options.flush_interval',
-                # Steep: Value is always a hash for writer_options (ensured by o.type :hash)
-                to_telemetry_value(value[:flush_interval]), # steep:ignore NoMethod
-                precedence
-              )
+            unless config_path_skipped?(settings, 'tracing.writer_options')
+              resolve_option(settings, 'tracing.writer_options').values_per_precedence.each do |precedence, value|
+                list << conf_value(
+                  'tracing.writer_options.buffer_size',
+                  # Steep: Value is always a hash for writer_options (ensured by o.type :hash)
+                  to_telemetry_value(value[:buffer_size]), # steep:ignore NoMethod
+                  precedence
+                )
+                list << conf_value(
+                  'tracing.writer_options.flush_interval',
+                  # Steep: Value is always a hash for writer_options (ensured by o.type :hash)
+                  to_telemetry_value(value[:flush_interval]), # steep:ignore NoMethod
+                  precedence
+                )
+              end
             end
 
             # Add some more custom additional payload values here
-            if settings.logger.instance
+            if settings.logger.instance && !config_path_skipped?(settings, 'logger.instance')
               logger_instance_option = resolve_option(settings, 'logger.instance')
               logger_instance_option.values_per_precedence.each do |precedence, value|
                 list << conf_value(option_telemetry_name(logger_instance_option), value.nil? ? nil : value.class.to_s, precedence)
@@ -272,6 +278,32 @@ module Datadog
 
             parent_setting = settings.dig(*split_option)
             parent_setting.send(:resolve_option, option_name.to_sym)
+          end
+
+          # True when a settings subgrouping along `config_path` is marked
+          # `skip_telemetry` (e.g. `settings :ci, skip_telemetry: true`). The entries
+          # emitted above are resolved through dedicated code paths outside the recursive
+          # walk in #collect_configuration_options_from, so they consult this to stay
+          # consistent with a skipped parent group.
+          #
+          # Only ancestor settings groups are checked, not the leaf option: some leaves
+          # (e.g. `logger.instance`, `tracing.writer_options`) carry `skip_telemetry`
+          # themselves to suppress the recursive walk while still being emitted here.
+          def config_path_skipped?(settings, config_path)
+            segments = config_path.split('.')
+            segments.pop # drop the leaf option; only ancestor groups gate the manual emission
+
+            node = settings
+            segments.each do |segment|
+              return false unless node.class.respond_to?(:options) && node.class.options.key?(segment.to_sym)
+
+              option = node.send(:resolve_option, segment.to_sym)
+              return true if option.definition.skip_telemetry
+              return false unless option.settings?
+
+              node = option.get
+            end
+            false
           end
 
           def implements_to_s?(value)
