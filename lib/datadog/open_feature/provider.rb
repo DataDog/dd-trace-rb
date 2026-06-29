@@ -166,7 +166,7 @@ module Datadog
       end
 
       def build_flag_metadata(result, eval_time_ms)
-        metadata = (result.flag_metadata || {}).dup
+        metadata = result.flag_metadata&.dup || {}
         allocation_key = result.allocation_key
         metadata['__dd_allocation_key'] = allocation_key if allocation_key && !allocation_key.empty?
 
