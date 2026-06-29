@@ -34,15 +34,15 @@ module Datadog
             end
 
             # rdkafka returns consumed headers keyed by String (>= 0.13) or by
-            # Symbol (<= 0.12), so look the propagation key up both ways.
+            # Symbol (<= 0.12). Fall back to a stringified-key match rather than
+            # interning the lookup key, since symbols from dynamic input were not
+            # garbage collected on older Rubies.
             def self.header_value(headers, key)
               return unless headers
+              return headers[key] if headers.key?(key)
 
-              if headers.key?(key)
-                headers[key]
-              else
-                headers[key.to_sym]
-              end
+              pair = headers.find { |header_key, _| header_key.to_s == key }
+              pair&.last
             end
 
             def self.prepended(base)
