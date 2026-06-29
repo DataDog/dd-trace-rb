@@ -62,6 +62,7 @@ module Datadog
       # @return [void]
       def start
         return if @thread && @pid == Process.pid
+        @stop_requested = false
         logger.trace { "di: starting probe notifier: pid #{$$}" }
         @thread = Thread.new do
           loop do
