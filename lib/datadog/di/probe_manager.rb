@@ -2,6 +2,8 @@
 
 # rubocop:disable Lint/AssignmentInCondition
 
+require_relative 'fatal_exceptions'
+
 module Datadog
   module DI
     # Orchestrates probe lifecycle: installation, removal, and execution callbacks.
@@ -28,7 +30,8 @@ module Datadog
 
         @definition_trace_point = TracePoint.new(:end) do |tp|
           install_pending_method_probes(tp.self)
-        rescue => exc
+        rescue Exception => exc # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(exc)
           raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
           logger.debug { "di: unhandled exception in definition trace point: #{exc.class}: #{exc.message}" }
           telemetry&.report(exc, description: "Unhandled exception in definition trace point")
@@ -181,7 +184,8 @@ module Datadog
             false
           end
         end
-      rescue => exc
+      rescue Exception => exc # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(exc)
         # In "propagate all exceptions" mode we will try to instrument again.
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
@@ -212,7 +216,8 @@ module Datadog
           begin
             instrumenter.unhook(probe)
             probe_repository.remove_installed(probe_id)
-          rescue => exc
+          rescue Exception => exc # standard:disable Lint/RescueException
+            Datadog::DI.reraise_if_fatal(exc)
             raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
             # Silence all exceptions?
             # TODO should we propagate here and rescue upstream?
@@ -242,7 +247,8 @@ module Datadog
                   break
                 rescue Error::DITargetNotDefined
                   # This should not happen... try installing again later?
-                rescue => exc
+                rescue Exception => exc # standard:disable Lint/RescueException
+                  Datadog::DI.reraise_if_fatal(exc)
                   raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
                   logger.debug { "di: error installing #{probe.type} probe at #{probe.location} (#{probe.id}) after class is defined: #{exc.class}: #{exc.message}" }

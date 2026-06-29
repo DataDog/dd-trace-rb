@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'fatal_exceptions'
+
 module Datadog
   module DI
     # Component for dynamic instrumentation.
@@ -184,14 +186,16 @@ module Datadog
 
       def parse_probe_spec_and_notify(probe_spec)
         probe = ProbeBuilder.build_from_remote_config(probe_spec)
-      rescue => exc
+      rescue Exception => exc # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(exc)
         begin
           probe = Struct.new(:id).new(
             probe_spec['id'],
           )
           payload = probe_notification_builder.build_errored(probe, exc)
           probe_notifier_worker.add_status(payload)
-        rescue => nested_exc
+        rescue Exception => nested_exc # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(nested_exc)
           logger.debug { "di: failed to build error notification: #{nested_exc.class}: #{nested_exc.message}" }
           telemetry&.report(nested_exc, description: 'Error building probe error notification')
           raise
