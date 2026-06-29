@@ -16,6 +16,9 @@ module Datadog
     # Re-raise +exc+ when it is fatal (see FATAL_EXCEPTION_CLASSES). Call this as
     # the first statement of a `rescue Exception` handler so that fatal
     # conditions are not accidentally swallowed by a broad rescue.
+    #
+    # @param exc [Exception] the currently-handled exception
+    # @return [nil] when +exc+ is not fatal; otherwise re-raises +exc+
     def self.reraise_if_fatal(exc)
       raise exc if FATAL_EXCEPTION_CLASSES.any? { |klass| exc.is_a?(klass) }
     end
