@@ -1,0 +1,23 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Racecar
+        module Instrumentation
+          module Consumer
+            def self.set_consume_checkpoint: (untyped message) -> void
+
+            def self.header_value: (untyped headers, untyped key) -> untyped
+
+            def self.prepended: (untyped base) -> untyped
+
+            module InstanceMethods
+              def process: (untyped message) -> untyped
+
+              def process_batch: (untyped messages) -> untyped
+            end
+          end
+        end
+      end
+    end
+  end
+end
