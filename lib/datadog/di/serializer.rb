@@ -48,7 +48,7 @@ module Datadog
       # excluded (unlike DI::FATAL_EXCEPTION_CLASSES): serialization of large
       # or deeply recursive objects can exhaust memory, and the serializer must
       # return a safe stub rather than tear the process down.
-      SERIALIZER_FATAL_EXCEPTION_CLASSES = [SystemExit, SignalException].freeze
+      SERIALIZABLE_FATAL_EXCEPTION_CLASSES = [SystemExit, SignalException].freeze
 
       # Third-party library integration / custom serializers.
       #
@@ -181,7 +181,7 @@ module Datadog
               begin
                 condition_result = condition.call(value)
               rescue Exception => e # standard:disable Lint/RescueException
-                raise if SERIALIZER_FATAL_EXCEPTION_CLASSES.any? { |klass| e.is_a?(klass) }
+                raise if SERIALIZABLE_FATAL_EXCEPTION_CLASSES.any? { |klass| e.is_a?(klass) }
 
                 # If a custom serializer condition raises an exception (e.g., regex match
                 # against invalid UTF-8), skip it and continue with the next serializer.
@@ -336,7 +336,7 @@ module Datadog
         rescue Exception => exc # standard:disable Lint/RescueException
           # Re-raise fatal exceptions that should not be caught
           # (signals, interrupts, system exit)
-          raise if SERIALIZER_FATAL_EXCEPTION_CLASSES.any? { |klass| exc.is_a?(klass) }
+          raise if SERIALIZABLE_FATAL_EXCEPTION_CLASSES.any? { |klass| exc.is_a?(klass) }
 
           # Catch all other exceptions including SystemStackError and NoMemoryError.
           # These inherit from Exception (not StandardError) but can occur during
@@ -435,7 +435,7 @@ module Datadog
           "#<#{class_name(value.class)}#{serialized}>"
         end
       rescue Exception => exc # standard:disable Lint/RescueException
-        raise if SERIALIZER_FATAL_EXCEPTION_CLASSES.any? { |klass| exc.is_a?(klass) }
+        raise if SERIALIZABLE_FATAL_EXCEPTION_CLASSES.any? { |klass| exc.is_a?(klass) }
 
         telemetry&.report(exc, description: "Error serializing for message")
         # TODO class_name(foo) can also fail, which we don't handle here.
