@@ -21,7 +21,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
   # Mock agent
   # ---------------------------------------------------------------------------
 
-  class NativeTransportMockAgent
+  class NativeTransportMockAgent # rubocop:disable Lint/ConstantDefinitionInBlock
     attr_reader :port
 
     def initialize(status: 200, body: '{"rate_by_service":{"service:,env:":1.0}}')
@@ -34,7 +34,11 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
 
     def stop
       @running = false
-      @server.close rescue nil
+      begin
+        @server.close
+      rescue
+        nil
+      end
       @thread.join(2)
     end
 
@@ -43,7 +47,11 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
     def run
       @running = true
       while @running
-        client = @server.accept rescue break
+        client = begin
+          @server.accept
+        rescue
+          break
+        end
         handle(client)
       end
     end
@@ -68,7 +76,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
       client.print @body
       client.close
     rescue => e
-      $stderr.puts "MockAgent error: #{e}" if ENV['DEBUG']
+      warn "MockAgent error: #{e}" if ENV['DEBUG']
       client&.close
     end
   end
@@ -97,7 +105,7 @@ RSpec.describe Datadog::Tracing::Transport::Native::Transport do
 
   after { built_transports.each { |t| NativeTransportForkIsolation.dispose(t) } }
 
-  let(:logger) { Logger.new('/dev/null') }
+  let(:logger) { Logger.new(File::NULL) }
 
   def make_trace_segment(*span_names)
     trace_id = rand(1 << 62)

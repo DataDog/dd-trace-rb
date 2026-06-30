@@ -84,14 +84,14 @@ class TracingTransportE2EBenchmark
         .new(agent_url, :net_http, false, '127.0.0.1', @mock_agent.port, nil, 5)
       Datadog::Tracing::Transport::HTTP.default(
         agent_settings: agent_settings,
-        logger: Logger.new('/dev/null'),
+        logger: Logger.new(File::NULL),
       )
     when :native
       require 'datadog/tracing/transport/native'
       agent_settings = Struct.new(:url).new(agent_url)
       Datadog::Tracing::Transport::Native::Transport.new(
         agent_settings: agent_settings,
-        logger: Logger.new('/dev/null'),
+        logger: Logger.new(File::NULL),
       )
     end
   end
@@ -127,14 +127,22 @@ class TracingTransportE2EBenchmark
                 client.print response
               rescue # rubocop:disable Lint/SuppressedException
               ensure
-                client.close rescue nil
+                begin
+                  client.close
+                rescue
+                  nil
+                end
               end
             end
           end
         end
 
         loop do
-          client = server.accept rescue break
+          client = begin
+            server.accept
+          rescue
+            break
+          end
           queue.push(client)
         end
       end
@@ -143,8 +151,16 @@ class TracingTransportE2EBenchmark
     end
 
     def stop
-      Process.kill('TERM', @pid) rescue nil
-      Process.wait(@pid) rescue nil
+      begin
+        Process.kill('TERM', @pid)
+      rescue
+        nil
+      end
+      begin
+        Process.wait(@pid)
+      rescue
+        nil
+      end
     end
   end
 end

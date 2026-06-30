@@ -32,16 +32,24 @@ RSpec.describe 'Native transport fork safety and cancellation' do
   # Uses SIGKILL (which cannot be trapped/ignored, unlike SIGTERM which the
   # child may inherit a handler for from the RSpec process) and reaps with a
   # bounded, non-blocking poll so cleanup can never hang the suite.
-  module ForkSpecHelpers
+  module ForkSpecHelpers # rubocop:disable Lint/ConstantDefinitionInBlock
     module_function
 
     def reap_process(pid)
       return if pid.nil?
 
-      Process.kill('KILL', pid) rescue nil
+      begin
+        Process.kill('KILL', pid)
+      rescue
+        nil
+      end
       deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 5
       loop do
-        reaped = (Process.wait(pid, Process::WNOHANG) rescue pid) # treat ECHILD as done
+        reaped = begin
+          Process.wait(pid, Process::WNOHANG)
+        rescue
+          pid
+        end # treat ECHILD as done
         break if reaped
         break if Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
 
@@ -52,7 +60,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
 
   # Accepts connections and answers every request with `200 OK` plus a small
   # JSON body shaped like the agent's `rate_by_service` response.
-  class RespondingMockAgent
+  class RespondingMockAgent # rubocop:disable Lint/ConstantDefinitionInBlock
     attr_reader :port
 
     def initialize
@@ -65,22 +73,28 @@ RSpec.describe 'Native transport fork safety and cancellation' do
                    "Content-Type: application/json\r\n\r\n#{body}"
 
         loop do
-          client = server.accept rescue break
+          client = begin
+            server.accept
+          rescue
+            break
+          end
           Thread.new(client) do |c|
+            request_line = c.gets
+            next c.close if request_line.nil?
+
+            content_length = 0
+            while (line = c.gets) && line != "\r\n"
+              content_length = line.split(': ', 2).last.to_i if line.downcase.start_with?('content-length')
+            end
+            c.read(content_length) if content_length > 0
+
+            c.print response
+          rescue # rubocop:disable Lint/SuppressedException
+          ensure
             begin
-              request_line = c.gets
-              next c.close if request_line.nil?
-
-              content_length = 0
-              while (line = c.gets) && line != "\r\n"
-                content_length = line.split(': ', 2).last.to_i if line.downcase.start_with?('content-length')
-              end
-              c.read(content_length) if content_length > 0
-
-              c.print response
-            rescue # rubocop:disable Lint/SuppressedException
-            ensure
-              c.close rescue nil
+              c.close
+            rescue
+              nil
             end
           end
         end
@@ -98,7 +112,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
   # in-flight send blocks waiting for the HTTP response. Each accepted
   # connection writes one byte to a pipe so the parent can observe that a
   # send actually reached the agent (is in-flight) before interrupting it.
-  class SilentMockAgent
+  class SilentMockAgent # rubocop:disable Lint/ConstantDefinitionInBlock
     attr_reader :port
 
     def initialize
@@ -110,9 +124,17 @@ RSpec.describe 'Native transport fork safety and cancellation' do
         @read_io.close
         held = [] # keep accepted sockets open (never respond)
         loop do
-          client = server.accept rescue break
+          client = begin
+            server.accept
+          rescue
+            break
+          end
           held << client
-          @write_io.write('x') rescue nil
+          begin
+            @write_io.write('x')
+          rescue
+            nil
+          end
         end
       end
 
@@ -130,7 +152,11 @@ RSpec.describe 'Native transport fork safety and cancellation' do
 
     def stop
       ForkSpecHelpers.reap_process(@pid)
-      @read_io.close rescue nil
+      begin
+        @read_io.close
+      rescue
+        nil
+      end
     end
   end
 
@@ -139,7 +165,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
   # test fork WHILE a send is mid-flight (the agent has received the request but
   # not yet replied), so the fork's `:before` hook must wait for the in-flight
   # send to drain before tearing down the runtime.
-  class DelayingMockAgent
+  class DelayingMockAgent # rubocop:disable Lint/ConstantDefinitionInBlock
     attr_reader :port
 
     def initialize(delay:)
@@ -154,27 +180,37 @@ RSpec.describe 'Native transport fork safety and cancellation' do
                    "Content-Type: application/json\r\n\r\n#{body}"
 
         loop do
-          client = server.accept rescue break
+          client = begin
+            server.accept
+          rescue
+            break
+          end
           Thread.new(client) do |c|
+            request_line = c.gets
+            next c.close if request_line.nil?
+
+            content_length = 0
+            while (line = c.gets) && line != "\r\n"
+              content_length = line.split(': ', 2).last.to_i if line.downcase.start_with?('content-length')
+            end
+            c.read(content_length) if content_length > 0
+
+            # Signal that the request has arrived and is in-flight, THEN delay
+            # before replying so the send stays in-flight for `delay` seconds.
             begin
-              request_line = c.gets
-              next c.close if request_line.nil?
+              @write_io.write('x')
+            rescue
+              nil
+            end
+            sleep delay
 
-              content_length = 0
-              while (line = c.gets) && line != "\r\n"
-                content_length = line.split(': ', 2).last.to_i if line.downcase.start_with?('content-length')
-              end
-              c.read(content_length) if content_length > 0
-
-              # Signal that the request has arrived and is in-flight, THEN delay
-              # before replying so the send stays in-flight for `delay` seconds.
-              @write_io.write('x') rescue nil
-              sleep delay
-
-              c.print response
-            rescue # rubocop:disable Lint/SuppressedException
-            ensure
-              c.close rescue nil
+            c.print response
+          rescue # rubocop:disable Lint/SuppressedException
+          ensure
+            begin
+              c.close
+            rescue
+              nil
             end
           end
         end
@@ -194,7 +230,11 @@ RSpec.describe 'Native transport fork safety and cancellation' do
 
     def stop
       ForkSpecHelpers.reap_process(@pid)
-      @read_io.close rescue nil
+      begin
+        @read_io.close
+      rescue
+        nil
+      end
     end
   end
 
@@ -205,7 +245,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
   # Save/restore the global AtForkMonkeyPatch registries. Defined as module
   # functions so they are callable from `before(:all)`/`after(:all)` hooks,
   # which run outside example scope.
-  module AtForkRegistryHelpers
+  module AtForkRegistryHelpers # rubocop:disable Lint/ConstantDefinitionInBlock
     module_function
 
     STAGES = {
@@ -264,7 +304,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
       agent_settings = Struct.new(:url).new("http://127.0.0.1:#{@mock_agent.port}")
       @transport = Datadog::Tracing::Transport::Native::Transport.new(
         agent_settings: agent_settings,
-        logger: Logger.new('/dev/null'),
+        logger: Logger.new(File::NULL),
       )
     end
 
@@ -344,7 +384,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
       agent_settings = Struct.new(:url).new("http://127.0.0.1:#{@mock_agent.port}")
       @transport = Datadog::Tracing::Transport::Native::Transport.new(
         agent_settings: agent_settings,
-        logger: Logger.new('/dev/null'),
+        logger: Logger.new(File::NULL),
       )
     end
 
@@ -416,7 +456,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
   describe 'fork while a send is in-flight' do
     # Keep the delay comfortably larger than the slack we allow when asserting
     # the fork blocked for the send to drain.
-    AGENT_DELAY = 1.0
+    AGENT_DELAY = 1.0 # rubocop:disable Lint/ConstantDefinitionInBlock
 
     before(:all) do
       # Isolate the global registries so only our transport's hooks fire, and
@@ -432,7 +472,7 @@ RSpec.describe 'Native transport fork safety and cancellation' do
       agent_settings = Struct.new(:url).new("http://127.0.0.1:#{@mock_agent.port}")
       @transport = Datadog::Tracing::Transport::Native::Transport.new(
         agent_settings: agent_settings,
-        logger: Logger.new('/dev/null'),
+        logger: Logger.new(File::NULL),
       )
     end
 

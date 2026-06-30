@@ -17,7 +17,7 @@ RSpec.describe 'Native transport configuration' do
     let(:agent_settings) do
       double('agent_settings', url: 'http://127.0.0.1:8126')
     end
-    let(:logger) { Logger.new('/dev/null') }
+    let(:logger) { Logger.new(File::NULL) }
 
     before { allow(Datadog).to receive(:logger).and_return(logger) }
 

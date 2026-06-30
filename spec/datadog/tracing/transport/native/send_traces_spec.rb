@@ -22,7 +22,7 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
   # background agent-info worker) and trace endpoints.
   # ---------------------------------------------------------------------------
 
-  class MockAgent
+  class MockAgent # rubocop:disable Lint/ConstantDefinitionInBlock
     attr_reader :port, :requests
 
     def initialize(status: 200, body: '{"rate_by_service":{"service:,env:":1.0}}')
@@ -36,7 +36,11 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
 
     def stop
       @running = false
-      @server.close rescue nil
+      begin
+        @server.close
+      rescue
+        nil
+      end
       @thread.join(2)
     end
 
@@ -45,7 +49,11 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
     def run
       @running = true
       while @running
-        client = @server.accept rescue break
+        client = begin
+          @server.accept
+        rescue
+          break
+        end
         handle(client)
       end
     end
@@ -61,9 +69,9 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       end
 
       body_len = (headers['content-length'] || 0).to_i
-      body = body_len > 0 ? client.read(body_len) : ''
+      body = (body_len > 0) ? client.read(body_len) : ''
 
-      @requests << { request_line: request_line.strip, headers: headers, body: body }
+      @requests << {request_line: request_line.strip, headers: headers, body: body}
 
       response_body = @body
       client.print "HTTP/1.1 #{@status} OK\r\n"
@@ -73,7 +81,7 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TraceExporter#_native_send_
       client.print response_body
       client.close
     rescue => e
-      $stderr.puts "MockAgent error: #{e}" if ENV['DEBUG']
+      warn "MockAgent error: #{e}" if ENV['DEBUG']
       client&.close
     end
   end

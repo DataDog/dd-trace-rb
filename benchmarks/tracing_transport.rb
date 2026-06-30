@@ -59,7 +59,7 @@ class TracingTransportBenchmark
           resource: "GET /bench/#{i}",
           type: 'web',
           id: rand(1 << 62),
-          parent_id: i == 0 ? 0 : rand(1 << 62),
+          parent_id: (i == 0) ? 0 : rand(1 << 62),
           trace_id: trace_id,
         ).tap do |span|
           span.set_tag('http.method', 'GET')
@@ -84,7 +84,7 @@ class TracingTransportBenchmark
   def build_http_transport
     Datadog::Tracing::Transport::HTTP.default(
       agent_settings: agent_settings,
-      logger: Logger.new('/dev/null'),
+      logger: Logger.new(File::NULL),
     )
   end
 
@@ -99,7 +99,7 @@ class TracingTransportBenchmark
 
     Datadog::Tracing::Transport::Native::Transport.new(
       agent_settings: agent_settings,
-      logger: Logger.new('/dev/null'),
+      logger: Logger.new(File::NULL),
     )
   end
 
@@ -141,14 +141,22 @@ class TracingTransportBenchmark
                 client.print response
               rescue # rubocop:disable Lint/SuppressedException
               ensure
-                client.close rescue nil
+                begin
+                  client.close
+                rescue
+                  nil
+                end
               end
             end
           end
         end
 
         loop do
-          client = server.accept rescue break
+          client = begin
+            server.accept
+          rescue
+            break
+          end
           queue.push(client)
         end
       end
@@ -158,8 +166,16 @@ class TracingTransportBenchmark
     end
 
     def stop
-      Process.kill('TERM', @pid) rescue nil
-      Process.wait(@pid) rescue nil
+      begin
+        Process.kill('TERM', @pid)
+      rescue
+        nil
+      end
+      begin
+        Process.wait(@pid)
+      rescue
+        nil
+      end
     end
   end
 end

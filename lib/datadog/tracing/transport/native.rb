@@ -23,7 +23,7 @@ module Datadog
         UNSUPPORTED_REASON = begin
           require 'datadog/core'
           Datadog::Core::LIBDATADOG_API_FAILURE
-        rescue StandardError => e
+        rescue => e
           e.message
         end
 
@@ -60,15 +60,19 @@ module Datadog
             # fork-safety note below.
             @send_mutex = Mutex.new
 
-            url                  = agent_settings.url
-            tracer_version       = tracer_version_string
-            language             = Core::Environment::Ext::LANG
-            language_version     = Core::Environment::Ext::LANG_VERSION
+            url = agent_settings.url
+            tracer_version = tracer_version_string
+            language = Core::Environment::Ext::LANG
+            language_version = Core::Environment::Ext::LANG_VERSION
             language_interpreter = Core::Environment::Ext::LANG_INTERPRETER
-            hostname             = Core::Environment::Socket.hostname rescue nil
-            env                  = Datadog.configuration.env
-            service              = Datadog.configuration.service
-            version              = Datadog.configuration.version
+            hostname = begin
+              Core::Environment::Socket.hostname
+            rescue
+              nil
+            end
+            env = Datadog.configuration.env
+            service = Datadog.configuration.service
+            version = Datadog.configuration.version
 
             @exporter = Native::TraceExporter._native_new(
               url: url,
@@ -137,14 +141,14 @@ module Datadog
               # fork. Held across the fork; released in :parent/:child.
               exporter._native_before_fork
             rescue => e
-              Datadog.logger.warn { "Native transport before-fork preparation failed; traces may not be sent to Datadog: #{e}" }
+              Datadog.logger.warn { "Native transport before-fork preparation failed; traces may not be sent to Datadog: #{e.class}: #{e.message}" }
             ensure
               send_mutex.lock
             end
             parent_hook = Core::Utils::AtForkMonkeyPatch.at_fork(:parent) do
               exporter._native_after_fork_in_parent
             rescue => e
-              Datadog.logger.warn { "Native transport after-fork reset failed; traces may not be sent to Datadog: #{e}" }
+              Datadog.logger.warn { "Native transport after-fork reset failed; traces may not be sent to Datadog: #{e.class}: #{e.message}" }
             ensure
               # The forking thread owns the lock here; the guard avoids raising
               # if :before failed to acquire it. Released even if the native
@@ -154,7 +158,7 @@ module Datadog
             child_hook = Core::Utils::AtForkMonkeyPatch.at_fork(:child) do
               exporter._native_after_fork_in_child
             rescue => e
-              Datadog.logger.warn { "Native transport after-fork reset failed; traces may not be sent to Datadog: #{e}" }
+              Datadog.logger.warn { "Native transport after-fork reset failed; traces may not be sent to Datadog: #{e.class}: #{e.message}" }
             ensure
               # The forking thread is the lone surviving thread in the child and
               # owns the lock; the guard avoids raising if :before failed.
@@ -237,7 +241,7 @@ module Datadog
 
             responses
           rescue => e
-            logger.debug { "Native transport error: #{e.class.name} #{e.message}" }
+            logger.debug { "Native transport error: #{e.class} #{e.message}" }
             update_stats_from_exception!(e)
             [InternalErrorResponse.new(e)]
           end
@@ -258,15 +262,41 @@ module Datadog
             @error = error
           end
 
-          def ok?;             false; end
-          def internal_error?; true;  end
-          def server_error?;   false; end
-          def client_error?;   false; end
-          def not_found?;      false; end
-          def unsupported?;    false; end
-          def payload;         nil;   end
-          def trace_count;     0;     end
-          def service_rates;   nil;   end
+          def ok?
+            false
+          end
+
+          def internal_error?
+            true
+          end
+
+          def server_error?
+            false
+          end
+
+          def client_error?
+            false
+          end
+
+          def not_found?
+            false
+          end
+
+          def unsupported?
+            false
+          end
+
+          def payload
+            nil
+          end
+
+          def trace_count
+            0
+          end
+
+          def service_rates
+            nil
+          end
 
           def inspect
             "#<#{self.class} error=#{error.inspect}>"

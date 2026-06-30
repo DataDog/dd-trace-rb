@@ -15,7 +15,7 @@ module Datadog
           attr_reader :trace_count, :payload
 
           def initialize(ok:, internal_error: false, server_error: false, client_error: false,
-                         not_found: false, unsupported: false, trace_count: 0, payload: nil)
+            not_found: false, unsupported: false, trace_count: 0, payload: nil)
             @ok = ok
             @internal_error = internal_error
             @server_error = server_error
