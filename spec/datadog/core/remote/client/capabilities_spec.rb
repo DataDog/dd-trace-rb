@@ -199,7 +199,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         settings
       end
 
-      it 'registers symbol database product (nil follows DI)' do
+      it 'registers symbol database product' do
         expect(capabilities.products).to include('LIVE_DEBUGGING_SYMBOL_DB')
       end
     end
