@@ -828,8 +828,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           end
         end
 
-        context "on Ruby 3.x" do
-          before { skip "Behavior only applies on Ruby 3.x" if RubyVersion.is?("< 3") }
+        context "on Ruby 3+" do
+          before { skip "Behavior only applies on Ruby 3+" if RubyVersion.is?("< 3") }
 
           it "records internal VM objects, including their specific kind" do
             start
@@ -848,7 +848,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
             # a known member of the imemo_type enum (even if we don't exactly match on which one)
             expect(imemo_samples.map { |s| s.labels.fetch(:"allocation class") }).to all(
               match(
-                /(env|cref|svar|throw_data|ifunc|memo|ment|iseq|tmpbuf|ast|parser_strterm|callinfo|callcache|constcache)/
+                /(env|cref|svar|throw_data|ifunc|memo|ment|iseq|tmpbuf|ast|parser_strterm|callinfo|callcache|constcache|fields)/
               )
             )
           end
