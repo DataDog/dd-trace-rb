@@ -62,10 +62,8 @@ module Datadog
             # it absent, in which case the feature cannot be enabled.
             return false unless settings.respond_to?(:symbol_database)
 
-            configured = settings.symbol_database.enabled
-            return configured unless configured.nil?
-
-            !dynamic_instrumentation.nil?
+            # nil (the default) follows DI's runtime readiness: its built component.
+            Datadog::SymbolDatabase.resolve_enabled(settings.symbol_database.enabled, !dynamic_instrumentation.nil?)
           end
 
           def build_logger(settings)

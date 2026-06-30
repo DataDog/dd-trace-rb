@@ -45,5 +45,16 @@ module Datadog
     # Reference: Symbol Database Backend RFC, section "Scope" and "Edge Cases"
     # @see https://www.postgresql.org/docs/current/datatype-numeric.html
     UNKNOWN_MAX_LINE = 2147483647
+
+    # Collapses the symbol_database.enabled tri-state setting to a boolean.
+    # An explicit true/false wins; nil (unconfigured) yields the caller-supplied
+    # fallback, letting each layer decide what "follow Dynamic Instrumentation"
+    # means (its built component, or its setting).
+    # @param setting_value [Boolean, nil] the symbol_database.enabled setting
+    # @param di_fallback [Boolean] value used when the setting is unconfigured
+    # @return [Boolean]
+    def self.resolve_enabled(setting_value, di_fallback)
+      setting_value.nil? ? di_fallback : setting_value
+    end
   end
 end

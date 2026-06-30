@@ -4,6 +4,7 @@ require_relative '../../utils/base64_codec'
 require_relative '../../../appsec/remote'
 require_relative '../../../tracing/remote'
 require_relative '../../../di/remote'
+require_relative '../../../symbol_database'
 require_relative '../../../symbol_database/remote'
 require_relative '../../../open_feature/remote'
 
@@ -59,12 +60,10 @@ module Datadog
             end
 
             if settings.respond_to?(:symbol_database)
-              symbol_database_enabled = settings.symbol_database.enabled
-              if symbol_database_enabled.nil?
-                symbol_database_enabled = settings.respond_to?(:dynamic_instrumentation) && settings.dynamic_instrumentation.enabled
-              end
-
-              if symbol_database_enabled
+              # nil (the default) follows the DI setting; the component tree, which
+              # makes the runtime-gated decision, does not exist yet at this layer.
+              di_enabled = settings.respond_to?(:dynamic_instrumentation) && settings.dynamic_instrumentation.enabled
+              if Datadog::SymbolDatabase.resolve_enabled(settings.symbol_database.enabled, di_enabled)
                 register_capabilities(Datadog::SymbolDatabase::Remote.capabilities)
                 register_products(Datadog::SymbolDatabase::Remote.products)
                 register_receivers(Datadog::SymbolDatabase::Remote.receivers(@telemetry))
