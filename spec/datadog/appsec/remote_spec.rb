@@ -177,6 +177,75 @@ RSpec.describe Datadog::AppSec::Remote do
 
           expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
         end
+
+        context 'when the ASM_DD ruleset path changes' do
+          let(:rules_v2) do
+            {
+              version: '2.2',
+              metadata: {
+                rules_version: '2.0.0'
+              },
+              rules: []
+            }.to_json
+          end
+
+          let(:content_v1) do
+            Datadog::Core::Remote::Configuration::Content.parse(
+              {
+                path: 'datadog/603646/ASM_DD/v1/config',
+                content: rules,
+              }
+            )
+          end
+
+          let(:content_v2) do
+            Datadog::Core::Remote::Configuration::Content.parse(
+              {
+                path: 'datadog/603646/ASM_DD/v2/config',
+                content: rules_v2,
+              }
+            )
+          end
+
+          let(:target_v2) do
+            Datadog::Core::Remote::Configuration::Target.parse(
+              {
+                'custom' => {
+                  'v' => 1,
+                },
+                'hashes' => {'sha256' => Digest::SHA256.hexdigest(rules_v2)},
+                'length' => rules_v2.length
+              }
+            )
+          end
+
+          before do
+            repository.transaction do |_, txn|
+              txn.insert(content_v1.path, target, content_v1)
+            end
+          end
+
+          it 'processes deletes before inserts regardless of changeset order' do
+            changeset = repository.transaction do |_, txn|
+              txn.insert(content_v2.path, target_v2, content_v2)
+              txn.delete(content_v1.path)
+            end
+
+            engine = Datadog::AppSec.security_engine
+            call_order = []
+
+            allow(engine).to receive(:remove_config_at_path) { |path| call_order << [:remove, path] }
+            allow(engine).to receive(:add_or_update_config) { |_, path:| call_order << [:add, path] }
+            allow(Datadog::AppSec).to receive(:reconfigure!)
+
+            receiver.call(repository, changeset)
+
+            expect(call_order).to eq([
+              [:remove, 'datadog/603646/ASM_DD/v1/config'],
+              [:add, 'datadog/603646/ASM_DD/v2/config'],
+            ])
+          end
+        end
       end
     end
   end
