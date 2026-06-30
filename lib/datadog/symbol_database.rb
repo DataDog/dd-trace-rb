@@ -52,11 +52,9 @@ module Datadog
       # because ObjectSpace iteration and Method#source_location behave
       # differently, and extraction relies on introspection added in 2.7.
       #
-      # Gates both whether the component runs (see
-      # {Component.environment_supported?}) and whether the
-      # LIVE_DEBUGGING_SYMBOL_DB product is advertised to Remote Configuration.
-      # Advertising it on an unsupported runtime would invite symbol-upload
-      # configs the component can never serve.
+      # Gates whether the component runs (see {Component.environment_supported?})
+      # and whether LIVE_DEBUGGING_SYMBOL_DB is advertised to Remote
+      # Configuration (see Capabilities#register).
       #
       # @return [Boolean]
       def supported_runtime?
