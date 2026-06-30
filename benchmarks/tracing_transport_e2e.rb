@@ -39,9 +39,11 @@ class TracingTransportE2EBenchmark
         eval(@trace_code) # standard:disable Security/Eval
       end
 
-      configure_tracer(:native)
-      x.report("#{@depth} span trace - Native transport") do
-        eval(@trace_code) # standard:disable Security/Eval
+      if native_supported?
+        configure_tracer(:native)
+        x.report("#{@depth} span trace - Native transport") do
+          eval(@trace_code) # standard:disable Security/Eval
+        end
       end
 
       x.save! "#{File.basename(__FILE__, '.rb')}-results.json" unless VALIDATE_BENCHMARK_MODE
@@ -62,6 +64,16 @@ class TracingTransportE2EBenchmark
 
   def agent_url
     "http://127.0.0.1:#{@mock_agent.port}"
+  end
+
+  def native_supported?
+    require 'datadog/tracing/transport/native'
+
+    return true if Datadog::Tracing::Transport::Native.supported?
+
+    puts "WARNING: Native transport not available: #{Datadog::Tracing::Transport::Native::UNSUPPORTED_REASON}"
+    puts "Skipping native transport benchmark."
+    false
   end
 
   def configure_tracer(mode)
