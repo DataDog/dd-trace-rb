@@ -48,8 +48,7 @@ module Datadog
 
     # Collapses the symbol_database.enabled tri-state setting to a boolean.
     # An explicit true/false wins; nil (unconfigured) yields the caller-supplied
-    # fallback, letting each layer decide what "follow Dynamic Instrumentation"
-    # means (its built component, or its setting).
+    # fallback.
     # @param setting_value [Boolean, nil] the symbol_database.enabled setting
     # @param di_fallback [Boolean] value used when the setting is unconfigured
     # @return [Boolean]
