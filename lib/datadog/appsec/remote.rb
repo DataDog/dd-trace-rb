@@ -78,9 +78,8 @@ module Datadog
             engine = AppSec.security_engine
             next unless engine
 
-            # Process deletes before inserts/updates so that when a path changes (e.g. ASM_DD
-            # ruleset path rename), the old config is removed from the WAF builder before the
-            # new one is added, preventing duplicate-rule errors.
+            # We must process delete operations before insert and update operations
+            # to prevent duplicate-rule errors when the config name changes
             changes.each do |change|
               next unless change.type == :delete
 
