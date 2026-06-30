@@ -210,7 +210,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
 
       it "disables native filenames" do
-        expect(described_class).to receive(:_native_initialize).with(hash_including(native_filenames_enabled: false))
+        expect(described_class)
+          .to receive(:_native_initialize).with(hash_including(native_filenames_enabled: false)).and_call_original
 
         thread_context_collector
       end

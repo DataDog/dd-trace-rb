@@ -1296,6 +1296,10 @@ void thread_context_collector_global_reset_per_thread_context(VALUE self_instanc
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   // Update global max frames to be used when allocating sampling buffers
+  if (state->locations.len == 0) {
+    raise_error(rb_eRuntimeError, "BUG: Unexpected locations.len == 0. Is this ThreadContext not initialized?");
+  }
+
   latest_max_frames = state->locations.len;
 
   VALUE threads = thread_list(state);
