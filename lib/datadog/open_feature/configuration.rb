@@ -20,6 +20,14 @@ module Datadog
                 o.env 'DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED'
                 o.default false
               end
+
+              # Killswitch for the EVP `flagevaluation` emission path only. Default on; when
+              # disabled the existing OTel `feature_flag.evaluations` metric is unaffected.
+              option :evaluation_counts_enabled do |o|
+                o.type :bool
+                o.env 'DD_FLAGGING_EVALUATION_COUNTS_ENABLED'
+                o.default true
+              end
             end
           end
         end

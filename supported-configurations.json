@@ -329,6 +329,13 @@
         "default": null
       }
     ],
+    "DD_FLAGGING_EVALUATION_COUNTS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
+      }
+    ],
     "DD_ERROR_TRACKING_HANDLED_ERRORS": [
       {
         "version": "A",
