@@ -61,7 +61,11 @@ module Datadog
               register_receivers(Datadog::DI::Remote.receivers(@telemetry))
             end
 
-            if settings.respond_to?(:symbol_database) && settings.symbol_database.enabled
+            # Skip symbol database registration on runtimes that cannot run it
+            # (JRuby, Ruby < 2.7): advertising LIVE_DEBUGGING_SYMBOL_DB there
+            # would invite symbol-upload configs the component can never serve.
+            if settings.respond_to?(:symbol_database) && settings.symbol_database.enabled &&
+                Datadog::SymbolDatabase.supported_runtime?
               register_capabilities(Datadog::SymbolDatabase::Remote.capabilities)
               register_products(Datadog::SymbolDatabase::Remote.products)
               register_receivers(Datadog::SymbolDatabase::Remote.receivers(@telemetry))

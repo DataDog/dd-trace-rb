@@ -12,11 +12,12 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
   before do
-    # Most of this spec asserts DI registration, which only happens on a
-    # runtime that can run DI. Stub the platform check so the assertions hold
-    # across the full Ruby matrix (the real check is false on JRuby and Ruby
-    # 2.5). The unsupported-runtime path is covered explicitly below.
+    # Most of this spec asserts DI / symbol database registration, which only
+    # happens on a runtime that can run them. Stub the platform checks so the
+    # assertions hold across the full Ruby matrix (the real checks are false on
+    # JRuby and old Rubies). The unsupported-runtime paths are covered below.
     allow(Datadog::DI).to receive(:supported_runtime?).and_return(true)
+    allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(true)
   end
 
   shared_examples 'tracing and DI capabilities' do
@@ -251,6 +252,28 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       it 'registers symbol database product and a receiver matching its path' do
         expect(capabilities.products).to include('LIVE_DEBUGGING_SYMBOL_DB')
         expect(capabilities.receivers).to include(
+          lambda { |r|
+            r.match? Datadog::Core::Remote::Configuration::Path.parse('datadog/2/LIVE_DEBUGGING_SYMBOL_DB/_/_')
+          }
+        )
+      end
+    end
+
+    context 'on an unsupported runtime (JRuby or Ruby < 2.7)' do
+      let(:settings) do
+        settings = Datadog::Core::Configuration::Settings.new
+        settings.dynamic_instrumentation.enabled = true
+        settings.symbol_database.enabled = true
+        settings
+      end
+
+      before do
+        allow(Datadog::SymbolDatabase).to receive(:supported_runtime?).and_return(false)
+      end
+
+      it 'does not register the symbol database product or receiver even when enabled' do
+        expect(capabilities.products).to_not include('LIVE_DEBUGGING_SYMBOL_DB')
+        expect(capabilities.receivers).to_not include(
           lambda { |r|
             r.match? Datadog::Core::Remote::Configuration::Path.parse('datadog/2/LIVE_DEBUGGING_SYMBOL_DB/_/_')
           }
