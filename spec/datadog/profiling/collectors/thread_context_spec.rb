@@ -2085,6 +2085,65 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
   end
 
+  describe "profiler-internal thread skipping" do
+    def mark_thread_as_profiler_internal(thread)
+      described_class::Testing._native_mark_thread_as_profiler_internal(thread)
+    end
+
+    before do
+      sample # initialize cpu/wall timestamps (they start as INVALID_TIME)
+      recorder.serialize! # flush initial samples
+      mark_thread_as_profiler_internal(t1)
+    end
+
+    it "skips per-tick samples for profiler-internal threads" do
+      expect { sample }.to change { stats.fetch(:profiler_thread_samples_skipped) }.by(1)
+      expect(per_thread_context.fetch(t1).fetch(:is_profiler_internal_thread)).to be true
+    end
+
+    it "does not go through the inactive-thread skip path" do
+      sample
+      expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be false
+    end
+
+    it "reports profiler-internal threads in the first reporting period" do
+      # This test does NOT use the before block's sample/serialize — it marks the thread
+      # as profiler-internal without any prior sample, to verify that marking alone seeds
+      # the timestamps (they would otherwise be INVALID_TIME, producing a zero-value sample).
+      t2 = Thread.new { sleep }
+      mark_thread_as_profiler_internal(t2)
+
+      sample
+      result = recorder.serialize!
+      t2_samples = samples_for_thread(samples_from_pprof(result), t2)
+      expect(t2_samples.size).to eq(1)
+      expect(t2_samples.first.values.fetch(:"wall-time")).to be > 0
+    ensure
+      t2&.kill
+      t2&.join
+    end
+
+    it "still records one sample per profile period via serialize" do
+      cpu_before = per_thread_context.fetch(t1).fetch(:cpu_time_at_previous_sample_ns)
+      wall_before = per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)
+
+      # Rewind cpu-clock by a known amount so we can verify the final sample covers it
+      apply_delta_to_cpu_time_at_previous_sample_ns(t1, -1_000_000)
+
+      10.times { sample }
+
+      # Timestamps are never updated by per-tick sampling since the thread is skipped
+      expect(per_thread_context.fetch(t1).fetch(:cpu_time_at_previous_sample_ns)).to eq(cpu_before - 1_000_000)
+      expect(per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)).to eq(wall_before)
+
+      result = recorder.serialize!
+      t1_samples = samples_for_thread(samples_from_pprof(result), t1)
+      expect(t1_samples.size).to eq(1)
+      expect(t1_samples.first.values.fetch(:"cpu-time")).to be >= 1_000_000
+      expect(t1_samples.first.values.fetch(:"wall-time")).to be > 0
+    end
+  end
+
   describe "#prepare_sample_inside_signal_handler" do
     def prepare_and_sample
       sample
