@@ -8,7 +8,7 @@ module Datadog
 
       def self.capabilities: () -> ::Array[Integer]
 
-      def self.process_config: (Hash[String, untyped] config, Core::Remote::Configuration::Content content) -> void
+      def self.process_config: (Hash[String, untyped] config, Core::Remote::Configuration::Content content, ?Core::Remote::Configuration::Repository? repository) -> void
 
       def self.receivers: (Datadog::Core::Telemetry::Component) -> ::Array[Core::Remote::Dispatcher::Receiver]
 

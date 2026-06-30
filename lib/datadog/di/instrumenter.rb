@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../core/utils/time'
+require_relative 'fatal_exceptions'
 
 # rubocop:disable Lint/AssignmentInCondition
 # rubocop:disable Style/AndOr
@@ -95,6 +96,18 @@ module Datadog
       # are not reachable via prepend on the class itself. Line probes are
       # unaffected since they install via TracePoint, not method dispatch.
       def hook_method(probe, responder)
+        # Reject method probes targeting any class or module in the Datadog
+        # namespace. The tracer uses these classes internally while building
+        # and dispatching probe snapshots; allowing a method probe on them
+        # would let DI's own code paths re-enter the probe wrapper. Line
+        # probes are unaffected (TracePoint is self-disabling during its
+        # callback) and are not rejected here.
+        type_name = probe.type_name
+        if type_name && datadog_namespace_type_name?(type_name)
+          raise Error::ProbeTargetForbidden,
+            "Method probes on the Datadog namespace are not permitted: #{type_name}##{probe.method_name}"
+        end
+
         lock.synchronize do
           if probe.instrumentation_module
             # Already instrumented, warn?
@@ -105,8 +118,8 @@ module Datadog
         cls = symbolize_class_name(probe.type_name)
         serializer = self.serializer
         method_name = probe.method_name
-        loc = begin
-          cls.instance_method(method_name).source_location # steep:ignore ArgumentTypeMismatch
+        target_method = begin
+          cls.instance_method(method_name) # steep:ignore ArgumentTypeMismatch
         rescue NameError
           # The target method is not defined.
           # This could be because it will be explicitly defined later
@@ -114,7 +127,26 @@ module Datadog
           # or the method is virtual (provided by a method_missing handler).
           # In these cases we do not have a source location for the
           # target method here.
+          nil
         end
+
+        # Reject method probes whose target method resolves to Kernel#lambda,
+        # including inherited targets. Every class inherits Kernel#lambda, so a
+        # probe naming any type that does not override lambda (Object#lambda,
+        # String#lambda, a plain user class, ...) prepends the wrapper ahead of
+        # Kernel#lambda and reaches the wrapper's super(&block) path. On
+        # Ruby 3.3+ that path raises ArgumentError for every lambda { ... }
+        # call site passing a captured block, breaking lambda creation
+        # process-wide. Resolving the method owner catches the inherited case
+        # that a textual "Kernel" name match misses; a type that defines its
+        # own lambda has a different owner and is left alone. Probing lambda
+        # creation has no legitimate customer use case. See #5560.
+        if method_name == "lambda" && target_method&.owner == ::Kernel
+          raise Error::ProbeTargetForbidden,
+            "Method probes on Kernel#lambda are not permitted: #{probe.type_name}##{method_name}"
+        end
+
+        loc = target_method&.source_location
         rate_limiter = probe.rate_limiter
         settings = self.settings
         instrumenter = self
@@ -138,7 +170,8 @@ module Datadog
                     probe: probe, settings: settings, serializer: serializer,
                   )
                   continue = condition.satisfied?(context)
-                rescue => exc
+                rescue Exception => exc # standard:disable Lint/RescueException
+                  Datadog::DI.reraise_if_fatal(exc)
                   # Evaluation error exception can be raised for "expected"
                   # errors, we probably need another setting to control whether
                   # these exceptions are propagated.
@@ -152,7 +185,8 @@ module Datadog
                     # the probe notifier builder requires a context.
                     begin
                       responder.probe_condition_evaluation_failed_callback(context, exc)
-                    rescue => nested_exc
+                    rescue Exception => nested_exc # standard:disable Lint/RescueException
+                      Datadog::DI.reraise_if_fatal(nested_exc)
                       raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
                       instrumenter.logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
@@ -203,11 +237,10 @@ module Datadog
                 else
                   super(&target_block)
                 end
-              rescue NoMemoryError, Interrupt, SystemExit
-                raise
               rescue Exception => exc # standard:disable Lint/RescueException
-                # We will raise the exception captured here later, after
-                # the instrumentation callback runs.
+                Datadog::DI.reraise_if_fatal(exc)
+                # We will raise the (non-fatal) exception captured here later,
+                # after the instrumentation callback runs.
               end
 
               end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -247,7 +280,8 @@ module Datadog
                 responder.probe_executed_callback(context)
 
                 instrumenter.send(:check_and_disable_if_exceeded, probe, responder, di_start_time, di_duration)
-              rescue => di_exc
+              rescue Exception => di_exc # standard:disable Lint/RescueException
+                Datadog::DI.reraise_if_fatal(di_exc)
                 raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
                 instrumenter.logger.debug { "di: unhandled exception in method probe: #{di_exc.class}: #{di_exc.message}" }
@@ -528,7 +562,8 @@ module Datadog
           begin
             context = build_trace_point_context(probe, tp)
             return unless condition.satisfied?(context)
-          rescue => exc
+          rescue Exception => exc # standard:disable Lint/RescueException
+            Datadog::DI.reraise_if_fatal(exc)
             # Evaluation error exception can be raised for "expected"
             # errors, we probably need another setting to control whether
             # these exceptions are propagated.
@@ -542,7 +577,8 @@ module Datadog
               # the probe notifier builder requires a context.
               begin
                 responder.probe_condition_evaluation_failed_callback(context, condition, exc)
-              rescue => nested_exc
+              rescue Exception => nested_exc # standard:disable Lint/RescueException
+                Datadog::DI.reraise_if_fatal(nested_exc)
                 raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
                 logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
@@ -575,7 +611,8 @@ module Datadog
         responder.probe_executed_callback(context)
 
         check_and_disable_if_exceeded(probe, responder, di_start_time)
-      rescue => exc
+      rescue Exception => exc # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(exc)
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
         logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc.message}" }
         telemetry&.report(exc, description: "Unhandled exception in line trace point")
@@ -671,6 +708,31 @@ module Datadog
         Object.const_get(cls_name) # steep:ignore ArgumentTypeMismatch
       rescue NameError => exc
         raise Error::DITargetNotDefined, "Class not defined: #{cls_name}: #{exc.class}: #{exc.message}"
+      end
+
+      # Matches a class name in the Datadog namespace, tolerating the alias
+      # forms that Object.const_get resolves to the same top-level constants.
+      # Two such forms exist: an optional leading "::" (Ruby's root-namespace
+      # prefix), and any number of leading "Object::" segments. Top-level
+      # constants are constants of Object, so "Object::Datadog::DI::Instrumenter"
+      # resolves to Datadog::DI::Instrumenter; without stripping "Object::" a
+      # probe could name a tracer-internal class through an Object:: alias and
+      # bypass the rejection, then get prepended onto tracer internals. These
+      # are the only alias paths to the top-level Datadog: "Foo::Datadog" does
+      # not resolve through const_get for an arbitrary Foo. Anchored at \A so
+      # the match decides in O(prefix length) without scanning.
+      DATADOG_NAMESPACE_TYPE_NAME = /\A(?:::)?(?:Object::)*Datadog(?:::|\z)/
+      private_constant :DATADOG_NAMESPACE_TYPE_NAME
+
+      # Returns true when +cls_name+ names the +Datadog+ module itself or
+      # any class/module under it (e.g. +Datadog::Tracing::SpanOperation+).
+      # The check is purely textual on the probe's declared type name; it
+      # does not require the class to be loaded. A leading +::+ and any
+      # number of leading +Object::+ segments are treated the same as the
+      # bare form, since Object.const_get resolves those aliases to the same
+      # top-level constants.
+      def datadog_namespace_type_name?(cls_name)
+        DATADOG_NAMESPACE_TYPE_NAME.match?(cls_name)
       end
     end
   end

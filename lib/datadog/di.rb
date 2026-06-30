@@ -71,6 +71,50 @@ module Datadog
         Datadog.configuration.dynamic_instrumentation.enabled
       end
 
+      # Returns a human-readable reason why dynamic instrumentation cannot run
+      # under the given settings, or nil if all build-time preconditions are met.
+      #
+      # Single source of truth for the preconditions checked in
+      # {Component.build} and reported back by {Remote.handle_rc_enablement}
+      # when an implicit enablement signal arrives but the component was not
+      # built at startup. Checks are ordered from most-actionable to
+      # platform-constraint so the most useful reason wins.
+      #
+      # The settings argument is optional so the helper can be called from
+      # contexts that don't have settings in scope (e.g. the RC handler).
+      #
+      # @param settings [Datadog::Core::Configuration::Settings]
+      # @return [String, nil] reason string or nil when supported
+      def unsupported_reason(settings = Datadog.configuration)
+        # Symmetric to the respond_to?(:remote) guard below: in unusual
+        # configurations (test doubles, partial Settings) the DI namespace
+        # may be absent. Returning a reason here lets callers — most
+        # importantly Remote.handle_rc_enablement — emit the customer-facing
+        # warn instead of raising NoMethodError on the unguarded access at
+        # line 92 (`settings.dynamic_instrumentation.internal.development`).
+        unless settings.respond_to?(:dynamic_instrumentation)
+          return "dynamic instrumentation settings are not available"
+        end
+        unless settings.respond_to?(:remote) && settings.remote.enabled
+          return "Remote Configuration is not enabled. See https://docs.datadoghq.com/agent/remote_config"
+        end
+        unless settings.dynamic_instrumentation.internal.development
+          if Datadog::Core::Environment::Execution.development?
+            return "development environment detected"
+          end
+        end
+        if RUBY_ENGINE != 'ruby'
+          return "MRI is required, but running on #{RUBY_ENGINE}"
+        end
+        if Datadog::RubyVersion.is?('< 2.6')
+          return "Ruby 2.6+ is required, but running on #{RUBY_VERSION}"
+        end
+        unless respond_to?(:exception_message)
+          return "C extension is not available"
+        end
+        nil
+      end
+
       # Returns iseqs that correspond to loaded files (filtering out eval'd code).
       #
       # There are several types of iseqs returned by +all_iseqs+:

@@ -953,4 +953,58 @@ RSpec.describe Datadog::DI::CodeTracker do
       expect(tracker.send(:per_method_registry)).to be_empty
     end
   end
+
+  describe 'registry survives Component#stop!' do
+    # Guards the "no registry clearing" decision: when DI is stopped
+    # via RC and later restarted (RC disable → enable),
+    # the code tracker must retain its registry of pre-loaded iseqs.
+    # Otherwise a line probe targeting a file loaded earlier in process
+    # life would silently fail after a stop!/start! cycle, because
+    # backfill_registry on the second start only sees still-reachable
+    # whole-file iseqs (most of which are GC'd shortly after load).
+
+    let(:settings) do
+      Datadog::Core::Configuration::Settings.new.tap do |s|
+        s.remote.enabled = true
+        s.dynamic_instrumentation.internal.development = true
+      end
+    end
+
+    let(:agent_settings) { instance_double_agent_settings_with_stubs }
+    let(:logger) { instance_double(Logger) }
+
+    let(:component) do
+      Datadog::DI::Component.build(settings, agent_settings, logger).tap do |c|
+        raise "Component failed to build" if c.nil?
+      end
+    end
+
+    before do
+      Datadog::DI.deactivate_tracking!
+    end
+
+    after do
+      component.shutdown!
+      Datadog::DI.deactivate_tracking!
+    end
+
+    it 'preserves the registry across stop!/start! cycles' do
+      Datadog::DI.activate_tracking
+      tracker = Datadog::DI.code_tracker
+      # load (not require) so this fixture is re-loaded even if another
+      # test in the suite has already required it, ensuring the
+      # :script_compiled trace point sees it.
+      load File.join(File.dirname(__FILE__), 'code_tracker_load_class.rb')
+      registry_before = tracker.send(:registry).keys.dup
+      expect(registry_before).not_to be_empty
+
+      component.start!
+      component.stop!
+      component.start!
+
+      registry_after = tracker.send(:registry).keys
+      # Every path tracked before stop! must still be tracked after restart.
+      expect(registry_after).to include(*registry_before)
+    end
+  end
 end

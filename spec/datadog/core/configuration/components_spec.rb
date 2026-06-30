@@ -24,6 +24,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
   let(:logger) do
     instance_double(Datadog::Core::Logger).tap do |logger|
       allow(logger).to receive(:debug)
+      # DI::Component.build is now invoked unconditionally during Components
+      # construction. When the DI C extension is not compiled (the default
+      # for `test:main`), build emits a customer-actionable warn that is
+      # unrelated to whatever the surrounding test is exercising.
+      allow(logger).to receive(:warn).with(/C extension is not available/)
     end
   end
   let(:settings) { Datadog::Core::Configuration::Settings.new }
@@ -31,7 +36,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   let(:agent_info) { Datadog::Core::Environment::AgentInfo.new(agent_settings, logger: logger) }
 
   let(:profiler_setup_task) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Tasks::Setup) : nil }
-  let(:remote) { instance_double(Datadog::Core::Remote::Component, start: nil, shutdown!: nil) }
+  let(:remote) { instance_double(Datadog::Core::Remote::Component, start: nil, shutdown!: nil, started?: false) }
   let(:telemetry) do
     instance_double(Datadog::Core::Telemetry::Component).tap do |telemetry|
       allow(telemetry).to receive(:start)
@@ -114,8 +119,23 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       context 'DI is not enabled' do
-        it 'reports DI as disabled' do
-          expect(components.dynamic_instrumentation).to be nil
+        # The DI component is now always built when settings respond to
+        # dynamic_instrumentation (regardless of the env-var enabled flag),
+        # so it can be started later by remote config if the customer turns
+        # it on from the UI. With the env-var unset, the component is built
+        # but stays stopped (not started?), and the env logger reports the
+        # customer-configured value as false.
+        let(:stub_di_component) do
+          instance_double(Datadog::DI::Component, started?: false, shutdown!: nil)
+        end
+
+        before do
+          allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
+        end
+
+        it 'builds the component but reports DI as disabled' do
+          expect(components.dynamic_instrumentation).to be(stub_di_component)
+          expect(components.dynamic_instrumentation.started?).to be false
           expect(extra).to eq(dynamic_instrumentation_enabled: false)
         end
       end
@@ -138,11 +158,16 @@ RSpec.describe Datadog::Core::Configuration::Components do
         context 'MRI with C extension' do
           before(:all) do
             skip 'Test requires MRI' if PlatformHelpers.jruby?
-            skip 'Test requires DI C extension' unless Datadog::DI.respond_to?(:exception_message)
+          end
+
+          let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: true, shutdown!: nil) }
+
+          before do
+            allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
           end
 
           it 'reports DI as enabled' do
-            expect(components.dynamic_instrumentation).to be_a(Datadog::DI::Component)
+            expect(components.dynamic_instrumentation).to be(stub_di_component)
             expect(extra).to eq(dynamic_instrumentation_enabled: true)
           end
         end
@@ -150,7 +175,16 @@ RSpec.describe Datadog::Core::Configuration::Components do
         context 'MRI without C extension' do
           before(:all) do
             skip 'Test requires MRI' if PlatformHelpers.jruby?
-            skip 'Test requires C extension to be absent' if Datadog::DI.respond_to?(:exception_message)
+          end
+
+          before do
+            # Make Component.build behave as if the C extension is absent: the
+            # real build path checks `DI.respond_to?(:exception_message)` and
+            # warns + returns nil when the method is missing. Stubbing
+            # respond_to? lets the test exercise that branch regardless of
+            # whether the C extension is actually compiled in this build.
+            allow(Datadog::DI).to receive(:respond_to?).and_call_original
+            allow(Datadog::DI).to receive(:respond_to?).with(:exception_message).and_return(false)
           end
 
           it 'reports DI as disabled' do
@@ -166,7 +200,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           end
 
           it 'reports DI as disabled' do
-            expect(logger).to receive(:warn).with(/cannot enable dynamic instrumentation/)
+            expect(logger).to receive(:warn).with(/MRI is required.*jruby/)
             expect(components.dynamic_instrumentation).to be nil
             expect(extra).to eq(dynamic_instrumentation_enabled: false)
           end
@@ -763,6 +797,221 @@ RSpec.describe Datadog::Core::Configuration::Components do
       allow(components).to receive(:symbol_database).and_return(nil)
 
       expect { after_fork }.not_to raise_error
+    end
+  end
+
+  describe '#state' do
+    # The implicit-enablement carry-over rides on ComponentsState. When
+    # Datadog.configure rebuilds the tree, the old tree's #state is read
+    # by the new tree's #startup! to decide whether to start DI.
+    # di_implicitly_enabled? must reflect whether DI was started *because of*
+    # RC (implicit) — not just whether it was started for any reason. An
+    # env-var-driven start is explicit; the new settings will re-evaluate
+    # the env var directly, and carrying "implicit" forward would override
+    # a user's explicit disable on reconfiguration.
+
+    context 'when DI is started and the env var was explicitly set' do
+      # Represents the env-var-driven enablement path: customer set
+      # DD_DYNAMIC_INSTRUMENTATION_ENABLED=true, Components#startup! called
+      # component.start!. #state must capture this as explicit (not implicit),
+      # so a subsequent reconfigure with the env var unset does not
+      # accidentally restart DI.
+      let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: true, shutdown!: nil) }
+
+      before do
+        settings.dynamic_instrumentation.enabled = true
+        allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
+      end
+
+      it 'captures di_implicitly_enabled? as false (start was explicit)' do
+        expect(components.state.di_implicitly_enabled?).to be false
+      end
+    end
+
+    context 'when DI is started and the customer never touched the env var' do
+      # Represents the RC-driven enablement path: customer never set the
+      # env var, but Remote.handle_rc_enablement received an enable signal
+      # and started the component. #state must capture this as implicit,
+      # so the next Components rebuild carries the started state forward.
+      let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: true, shutdown!: nil) }
+
+      before do
+        # settings.dynamic_instrumentation.enabled left at default (using_default? => true)
+        allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
+      end
+
+      it 'captures di_implicitly_enabled? as true (start was implicit)' do
+        expect(components.state.di_implicitly_enabled?).to be true
+      end
+    end
+
+    context 'when DI component is stopped' do
+      let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: false, shutdown!: nil) }
+
+      before do
+        allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
+      end
+
+      it 'captures di_implicitly_enabled? as false' do
+        expect(components.dynamic_instrumentation&.started?).to be false
+        expect(components.state.di_implicitly_enabled?).to be false
+      end
+    end
+
+    context 'when DI component is nil (unsupported environment)' do
+      before do
+        allow(Datadog::DI::Component).to receive(:build).and_return(nil)
+      end
+
+      it 'captures di_implicitly_enabled? as false' do
+        expect(components.dynamic_instrumentation).to be nil
+        expect(components.state.di_implicitly_enabled?).to be false
+      end
+    end
+
+    # Regression: prior to using `using_default?`, #state branched on
+    # `!@settings.dynamic_instrumentation.enabled`. Datadog.configure mutates
+    # the singleton settings BEFORE the old tree's #state is read; an explicit
+    # `enabled = false` would arrive at #state on the OLD components and the
+    # `!enabled` check would compute di_implicit=true, causing the new tree's
+    # #startup! to OR-restart DI that the customer just explicitly disabled.
+    # The fix uses using_default? to detect "customer never touched the setting".
+    context 'when settings.enabled is explicitly false (customer disabled after RC enable)' do
+      let(:stub_di_component) { instance_double(Datadog::DI::Component, started?: true, shutdown!: nil) }
+
+      before do
+        settings.dynamic_instrumentation.enabled = false
+        allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
+      end
+
+      it 'captures di_implicitly_enabled? as false (customer explicitly disabled — do not carry over)' do
+        expect(components.state.di_implicitly_enabled?).to be false
+      end
+    end
+  end
+
+  describe '#startup! with old_state carrying DI implicit enablement' do
+    # The other side of the ComponentsState round-trip: given an old_state
+    # whose di_implicitly_enabled? is true, #startup! must start DI on the
+    # new tree even when settings.dynamic_instrumentation.enabled is false
+    # (no env var). The env-var-only path and the no-carry path are also
+    # covered to make the precedence explicit.
+
+    # Ruby 2.5 does not load di/base.rb, so Datadog::DI.activate_tracking is
+    # not defined. These tests stub Component.build to return a non-nil double,
+    # which makes startup! reach the DI.activate_tracking call that's normally
+    # unreachable on 2.5 (Component.build returns nil there). The semantic being
+    # tested (state carry-over across Components rebuild) is platform-agnostic.
+    before(:all) { skip 'requires Ruby >= 2.6 (DI.activate_tracking not loaded on 2.5)' if RUBY_VERSION < '2.6' }
+
+    subject(:startup!) { components.startup!(settings, old_state: old_state) }
+
+    # State-aware double so start!/stop! transitions show up in started?.
+    # Avoids needing the real DI C extension while still exercising the
+    # exact lifecycle Components#startup! drives.
+    let(:di_state) { {started: false} }
+    let(:stub_di_component) do
+      instance_double(Datadog::DI::Component).tap do |dbl|
+        allow(dbl).to receive(:started?) { di_state[:started] }
+        allow(dbl).to receive(:start!) { di_state[:started] = true }
+        allow(dbl).to receive(:stop!) { di_state[:started] = false }
+        allow(dbl).to receive(:shutdown!) { di_state[:started] = false }
+      end
+    end
+
+    before do
+      settings.dynamic_instrumentation.internal.development = true
+      allow(Datadog::Profiling::Component).to receive(:build_profiler_component)
+        .and_return([nil, environment_logger_extra])
+      allow(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!)
+      allow(Datadog::Core::ProcessDiscovery).to receive(:publish)
+      allow(Datadog::DI::Component).to receive(:build).and_return(stub_di_component)
+      allow(Datadog::DI).to receive(:activate_tracking)
+    end
+
+    context 'old_state.di_implicitly_enabled? is true, env var not set' do
+      let(:old_state) do
+        Datadog::Core::Configuration::ComponentsState.new(
+          telemetry_enabled: true,
+          remote_started: false,
+          di_implicitly_enabled: true,
+        )
+      end
+
+      it 'starts the DI component on the new tree' do
+        expect(components.dynamic_instrumentation).not_to be_nil
+        expect(components.dynamic_instrumentation.started?).to be false
+        startup!
+        expect(components.dynamic_instrumentation.started?).to be true
+      end
+    end
+
+    context 'old_state.di_implicitly_enabled? is false, env var not set' do
+      let(:old_state) do
+        Datadog::Core::Configuration::ComponentsState.new(
+          telemetry_enabled: true,
+          remote_started: false,
+          di_implicitly_enabled: false,
+        )
+      end
+
+      it 'leaves the DI component stopped on the new tree' do
+        startup!
+        expect(components.dynamic_instrumentation.started?).to be false
+      end
+    end
+
+    context 'old_state.di_implicitly_enabled? is false, env var explicitly true' do
+      let(:old_state) do
+        Datadog::Core::Configuration::ComponentsState.new(
+          telemetry_enabled: true,
+          remote_started: false,
+          di_implicitly_enabled: false,
+        )
+      end
+
+      before { settings.dynamic_instrumentation.enabled = true }
+
+      it 'starts the DI component on the new tree (env-var path)' do
+        startup!
+        expect(components.dynamic_instrumentation.started?).to be true
+      end
+    end
+
+    context 'no old_state (initial startup)' do
+      let(:old_state) { nil }
+
+      it 'leaves the DI component stopped when env var is not set' do
+        startup!
+        expect(components.dynamic_instrumentation.started?).to be false
+      end
+    end
+
+    context 'env var was previously true and user reconfigures with enabled=false' do
+      # Round-trip the reconfigure-to-disabled scenario: a process
+      # boots with DD_DYNAMIC_INSTRUMENTATION_ENABLED=true, which starts DI;
+      # the user later calls Datadog.configure to explicitly disable DI. The
+      # new component must NOT auto-start. The bug was that #state captured
+      # any started DI as "implicitly enabled", so the new tree's #startup!
+      # would OR the old (incorrectly true) implicit flag with the new
+      # (explicitly false) enabled setting and start DI anyway.
+      let(:old_state) do
+        # Construct the state the OLD tree would have produced — env var
+        # had set it to true and DI was started. Per the fixed #state, this
+        # captures di_implicitly_enabled? as FALSE (start was explicit).
+        Datadog::Core::Configuration::ComponentsState.new(
+          telemetry_enabled: true,
+          remote_started: false,
+          di_implicitly_enabled: false,
+        )
+      end
+
+      before { settings.dynamic_instrumentation.enabled = false }
+
+      it 'leaves the DI component stopped on the new tree' do
+        startup!
+        expect(components.dynamic_instrumentation.started?).to be false
+      end
     end
   end
 
