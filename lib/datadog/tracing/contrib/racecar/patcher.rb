@@ -28,9 +28,19 @@ module Datadog
           end
 
           def patch_consumer
-            require_relative 'instrumentation/consumer'
-
-            ::Racecar::Runner.prepend(Instrumentation::Consumer) if defined?(::Racecar::Runner)
+            if defined?(::Racecar::Runner) && ::Racecar::Runner.private_method_defined?(:process)
+              # Racecar 2.x (rdkafka): the runner dispatches each message through
+              # `Runner#process`/`#process_batch`, where the rdkafka messages and
+              # their headers are available for per-message DSM checkpoints.
+              require_relative 'instrumentation/consumer'
+              ::Racecar::Runner.prepend(Instrumentation::Consumer)
+            elsif defined?(::Kafka::Consumer)
+              # Racecar 1.x (ruby-kafka): the runner consumes directly through
+              # `Kafka::Consumer#each_message`/`#each_batch`, so reuse the kafka
+              # integration's consumer instrumentation.
+              require_relative '../kafka/instrumentation/consumer'
+              ::Kafka::Consumer.prepend(Contrib::Kafka::Instrumentation::Consumer)
+            end
           end
 
           def patch_producer
