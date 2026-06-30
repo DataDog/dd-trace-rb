@@ -19,10 +19,6 @@ module Datadog
     def self.in_probe?: () -> bool
     def self.enter_probe: () -> nil
     def self.leave_probe: () -> nil
-    # element / key / value types are untyped: these are generic length-only
-    # predicates that never read array elements or hash values.
-    def self.array_empty?: (::Array[untyped]) -> bool
-    def self.hash_empty?: (::Hash[untyped, untyped]) -> bool
     # accepts any object: this is a type predicate that tests whether the
     # argument is a Hash, so the parameter is intentionally untyped.
     def self.hash?: (untyped) -> bool

@@ -647,11 +647,12 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
   end
 
   context "method probe on Array#empty?" do
-    # The method probe wrapper tests args shape via DI.array_empty?(args),
-    # implemented in C and called as a singleton method on Datadog::DI.
-    # A naive implementation that called args.empty? from Ruby would
-    # self-recurse here: a probe on Array#empty? would intercept the
-    # wrapper's own emptiness check and re-enter the wrapper indefinitely.
+    # A probe on Array#empty? must not self-recurse. The method-probe
+    # wrapper does not call Array#empty? on customer arguments — forwarding
+    # goes straight through super — and any Array#empty? call DI makes
+    # internally during snapshot building is short-circuited by the
+    # re-entrancy guard (DI.in_probe?), so the original method is reached
+    # without re-entering the wrapper.
 
     include_context "permissive settings"
 
@@ -676,9 +677,10 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
   end
 
   context "method probe on Hash#empty?" do
-    # Same reasoning as Array#empty?: the wrapper tests kwargs shape via
-    # DI.hash_empty?(kwargs), implemented in C. A probe on Hash#empty?
-    # cannot intercept that check, so no recursion.
+    # Same reasoning as Array#empty?: the wrapper does not call Hash#empty?
+    # on customer kwargs, and any internal Hash#empty? call during DI
+    # processing is short-circuited by the re-entrancy guard, so a probe on
+    # Hash#empty? does not recurse.
 
     include_context "permissive settings"
 

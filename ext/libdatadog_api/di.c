@@ -131,44 +131,6 @@ static VALUE leave_probe(DDTRACE_UNUSED VALUE _self) {
 
 /*
  * call-seq:
- *   DI.array_empty?(arr) -> true | false
- *
- * Returns whether the given Array is empty by direct length access via
- * RARRAY_LEN, bypassing Array#empty? method dispatch. Used in the method
- * probe wrapper to test args/kwargs shape without giving user-installed
- * method probes on Array#empty? a chance to recurse.
- *
- * Raises TypeError if the argument is not an Array — RARRAY_LEN reads
- * struct fields directly and would return garbage for any other type.
- *
- * @api private
- */
-static VALUE array_empty_p(DDTRACE_UNUSED VALUE _self, VALUE obj) {
-  Check_Type(obj, T_ARRAY);
-  return RARRAY_LEN(obj) == 0 ? Qtrue : Qfalse;
-}
-
-/*
- * call-seq:
- *   DI.hash_empty?(h) -> true | false
- *
- * Returns whether the given Hash is empty by direct size access via
- * RHASH_SIZE, bypassing Hash#empty? method dispatch. Used in the method
- * probe wrapper to test args/kwargs shape without giving user-installed
- * method probes on Hash#empty? a chance to recurse.
- *
- * Raises TypeError if the argument is not a Hash — RHASH_SIZE reads
- * struct fields directly and would return garbage for any other type.
- *
- * @api private
- */
-static VALUE hash_empty_p(DDTRACE_UNUSED VALUE _self, VALUE obj) {
-  Check_Type(obj, T_HASH);
-  return RHASH_SIZE(obj) == 0 ? Qtrue : Qfalse;
-}
-
-/*
- * call-seq:
  *   DI.hash?(obj) -> true | false
  *
  * Returns whether the given object is a Hash via a direct type check
@@ -263,8 +225,6 @@ void di_init(VALUE datadog_module) {
   rb_define_singleton_method(di_module, "in_probe?", in_probe_p, 0);
   rb_define_singleton_method(di_module, "enter_probe", enter_probe, 0);
   rb_define_singleton_method(di_module, "leave_probe", leave_probe, 0);
-  rb_define_singleton_method(di_module, "array_empty?", array_empty_p, 1);
-  rb_define_singleton_method(di_module, "hash_empty?", hash_empty_p, 1);
   rb_define_singleton_method(di_module, "hash?", is_hash, 1);
   rb_define_singleton_method(di_module, "invoke_proc", invoke_proc, -1);
 #ifdef HAVE_RB_ISEQ_TYPE

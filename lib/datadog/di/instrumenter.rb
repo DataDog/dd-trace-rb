@@ -667,8 +667,6 @@ module Datadog
       # arguments directly and never calls this.
       if RubyVersion.is?('< 3')
         def kwargs_from_splat(args)
-          return [args, {}] if DI.array_empty?(args)
-
           last = args.last
           if DI.hash?(last)
             [args[0...-1] || [], last]
