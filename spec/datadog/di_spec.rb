@@ -249,7 +249,8 @@ RSpec.describe(Datadog::DI) do
     context 'on MRI 2.6+' do
       before do
         stub_const('RUBY_ENGINE', 'ruby')
-        allow(Datadog::RubyVersion).to receive(:is?).with('>= 2.6').and_return(true)
+        stub_const('RUBY_VERSION', '2.6.0')
+        stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new('2.6.0'))
       end
 
       it 'returns true' do
@@ -268,7 +269,8 @@ RSpec.describe(Datadog::DI) do
     context 'on MRI older than 2.6' do
       before do
         stub_const('RUBY_ENGINE', 'ruby')
-        allow(Datadog::RubyVersion).to receive(:is?).with('>= 2.6').and_return(false)
+        stub_const('RUBY_VERSION', '2.5.9')
+        stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new('2.5.9'))
       end
 
       it 'returns false' do

@@ -28,6 +28,8 @@ module Datadog
 
     private
 
+    def self.unsupported_platform_reason: () -> ::String?
+
     def self.validate_kind!: (instrumentation_kind kind) -> void
   end
 end

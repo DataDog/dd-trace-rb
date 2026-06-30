@@ -103,11 +103,8 @@ module Datadog
             return "development environment detected"
           end
         end
-        if RUBY_ENGINE != 'ruby'
-          return "MRI is required, but running on #{RUBY_ENGINE}"
-        end
-        if Datadog::RubyVersion.is?('< 2.6')
-          return "Ruby 2.6+ is required, but running on #{RUBY_VERSION}"
+        if (reason = unsupported_platform_reason)
+          return reason
         end
         unless respond_to?(:exception_message)
           return "C extension is not available"
@@ -129,7 +126,21 @@ module Datadog
       #
       # @return [Boolean]
       def supported_runtime?
-        RUBY_ENGINE == 'ruby' && Datadog::RubyVersion.is?('>= 2.6')
+        unsupported_platform_reason.nil?
+      end
+
+      # Reason the current Ruby runtime cannot run dynamic instrumentation, or
+      # nil when the platform is supported. Single source of truth for the
+      # minimum-runtime definition, shared by {unsupported_reason} (which layers
+      # the settings and C-extension checks on top) and {supported_runtime?}.
+      #
+      # @return [String, nil]
+      private def unsupported_platform_reason
+        if RUBY_ENGINE != 'ruby'
+          "MRI is required, but running on #{RUBY_ENGINE}"
+        elsif Datadog::RubyVersion.is?('< 2.6')
+          "Ruby 2.6+ is required, but running on #{RUBY_VERSION}"
+        end
       end
 
       # Returns iseqs that correspond to loaded files (filtering out eval'd code).
