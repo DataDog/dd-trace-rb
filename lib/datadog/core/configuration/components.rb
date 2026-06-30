@@ -46,14 +46,43 @@ module Datadog
             Core::Diagnostics::Health::Metrics.new(telemetry: telemetry, logger: logger, **options)
           end
 
+          # Builds the symbol database component, or returns nil when the feature
+          # is disabled. The orchestration layer owns the cross-feature enablement
+          # decision so that a disabled component is never constructed; symbol
+          # database code itself never references Dynamic Instrumentation.
+          # @param settings [Configuration::Settings] Tracer settings
+          # @param agent_settings [Configuration::AgentSettings] Agent configuration
+          # @param logger [Logger] Logger instance
+          # @param dynamic_instrumentation [DI::Component, nil] the already-built DI
+          #   component, used to resolve the unconfigured default
+          # @param telemetry [Core::Telemetry::Component, nil] Telemetry component
+          # @return [SymbolDatabase::Component, nil]
+          def build_symbol_database(settings, agent_settings, logger, dynamic_instrumentation, telemetry:)
+            return unless symbol_database_enabled?(settings, dynamic_instrumentation)
+
+            Datadog::SymbolDatabase::Component.build(settings, agent_settings, logger, telemetry: telemetry)
+          end
+
           # Resolves symbol_database.enabled, a tri-state setting: true/false are
-          # explicit; nil follows dynamic_instrumentation.enabled.
+          # explicit overrides; nil (the default) follows whether Dynamic
+          # Instrumentation is actually running. dynamic_instrumentation is DI's
+          # build result — nil whenever DI did not start (disabled, Rails
+          # development mode, missing C extension, remote config off, non-MRI),
+          # so the default tracks DI's runtime readiness rather than merely the
+          # DI setting.
+          # @param settings [Configuration::Settings]
+          # @param dynamic_instrumentation [DI::Component, nil]
           # @return [Boolean]
-          def symbol_database_enabled?(settings)
-            configured = settings.symbol_database.enabled if settings.respond_to?(:symbol_database)
+          def symbol_database_enabled?(settings, dynamic_instrumentation)
+            # The symbol_database settings group is only registered on the full
+            # library load path; a partial load (e.g. require 'datadog/di') leaves
+            # it absent, in which case the feature cannot be enabled.
+            return false unless settings.respond_to?(:symbol_database)
+
+            configured = settings.symbol_database.enabled
             return configured unless configured.nil?
 
-            settings.respond_to?(:dynamic_instrumentation) && settings.dynamic_instrumentation.enabled
+            !dynamic_instrumentation.nil?
           end
 
           def build_logger(settings)
@@ -184,9 +213,8 @@ module Datadog
           @ai_guard = Datadog::AIGuard::Component.build(settings, logger: @logger, telemetry: telemetry)
           @open_feature = OpenFeature::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
-          @symbol_database = Datadog::SymbolDatabase::Component.build(
-            settings, agent_settings, @logger,
-            enabled: self.class.symbol_database_enabled?(settings), telemetry: telemetry,
+          @symbol_database = self.class.build_symbol_database(
+            settings, agent_settings, @logger, @dynamic_instrumentation, telemetry: telemetry,
           )
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
           @data_streams = self.class.build_data_streams(settings, agent_settings, @logger, @agent_info)

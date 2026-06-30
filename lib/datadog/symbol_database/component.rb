@@ -54,21 +54,18 @@ module Datadog
       MODULE_SINGLETON_CLASS_PRED = Module.instance_method(:singleton_class?)
       private_constant :MODULE_SINGLETON_CLASS_PRED
 
-      # Build a new Component if feature is enabled and dependencies met.
+      # Build a new Component if the runtime supports it and dependencies are met.
+      # The caller (Core::Configuration::Components) decides whether the feature is
+      # enabled and only invokes build when it is, so a disabled component is never
+      # constructed. This method gates only on symbol database's own requirements
+      # (supported platform, remote config availability).
       # @param settings [Configuration::Settings] Tracer settings
       # @param agent_settings [Configuration::AgentSettings] Agent configuration
       # @param logger [Logger] Logger instance
-      # @param enabled [Boolean] Resolved feature gate (caller resolves the
-      #   symbol_database.enabled tri-state); when false, no component is built
       # @param telemetry [Core::Telemetry::Component, nil] Telemetry component for error reporting
-      # @return [Component, nil] Component instance or nil if not enabled/requirements not met
-      def self.build(settings, agent_settings, logger, enabled:, telemetry: nil)
+      # @return [Component, nil] Component instance or nil if requirements not met
+      def self.build(settings, agent_settings, logger, telemetry: nil)
         symdb_logger = SymbolDatabase::Logger.new(settings, logger)
-
-        unless enabled
-          symdb_logger.debug("symdb: symbol database upload not enabled, skipping")
-          return
-        end
 
         # Symbol database requires MRI Ruby 2.7+.
         # Configuration accessors (settings.symbol_database.*) remain available on all

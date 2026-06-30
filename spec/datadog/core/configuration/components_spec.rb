@@ -203,38 +203,100 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '::symbol_database_enabled?' do
-    subject(:enabled?) { described_class.symbol_database_enabled?(settings) }
+    subject(:enabled?) { described_class.symbol_database_enabled?(settings, dynamic_instrumentation) }
 
     let(:settings) { Datadog::Core::Configuration::Settings.new }
+    # A non-nil DI component stands for "DI is running"; nil stands for "DI did
+    # not start". The resolver never calls a method on it, only checks presence.
+    let(:dynamic_instrumentation) { instance_double(Datadog::DI::Component) }
+
+    context 'when the symbol_database settings group is not registered (partial load)' do
+      # A plain double models a Settings object that lacks the dynamically-added
+      # symbol_database group, e.g. require 'datadog/di' without the full library.
+      let(:settings) { double('settings without symbol_database group') }
+
+      before { allow(settings).to receive(:respond_to?).with(:symbol_database).and_return(false) }
+
+      it 'returns false even when DI is running' do
+        is_expected.to be false
+      end
+    end
 
     context 'when symbol_database.enabled is explicitly true' do
       before { settings.symbol_database.enabled = true }
 
-      it { is_expected.to be true }
+      let(:dynamic_instrumentation) { nil }
+
+      it 'returns true even when DI is not running' do
+        is_expected.to be true
+      end
     end
 
     context 'when symbol_database.enabled is explicitly false' do
-      before do
-        settings.dynamic_instrumentation.enabled = true
-        settings.symbol_database.enabled = false
-      end
+      before { settings.symbol_database.enabled = false }
 
-      it 'returns false even when DI is enabled' do
+      it 'returns false even when DI is running' do
         is_expected.to be false
       end
     end
 
     context 'when symbol_database.enabled is unset (nil)' do
-      context 'and dynamic_instrumentation.enabled is true' do
-        before { settings.dynamic_instrumentation.enabled = true }
+      before { settings.symbol_database.enabled = nil }
+
+      context 'and the DI component is running' do
+        let(:dynamic_instrumentation) { instance_double(Datadog::DI::Component) }
 
         it { is_expected.to be true }
       end
 
-      context 'and dynamic_instrumentation.enabled is false' do
-        before { settings.dynamic_instrumentation.enabled = false }
+      context 'and the DI component is not running (nil)' do
+        let(:dynamic_instrumentation) { nil }
 
         it { is_expected.to be false }
+      end
+
+      context 'and dynamic_instrumentation.enabled is true but DI did not start' do
+        # e.g. Rails development mode or a missing DI C extension: the setting is
+        # true but DI::Component.build returned nil. The default must follow DI's
+        # runtime readiness, not the setting, so no symbol extraction happens.
+        before { settings.dynamic_instrumentation.enabled = true }
+
+        let(:dynamic_instrumentation) { nil }
+
+        it 'returns false' do
+          is_expected.to be false
+        end
+      end
+    end
+  end
+
+  describe '::build_symbol_database' do
+    subject(:build_symbol_database) do
+      described_class.build_symbol_database(settings, agent_settings, logger, dynamic_instrumentation, telemetry: telemetry)
+    end
+
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+    let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettings) }
+    let(:logger) { instance_double(Datadog::Core::Logger) }
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+    let(:dynamic_instrumentation) { instance_double(Datadog::DI::Component) }
+
+    context 'when the feature is disabled' do
+      before { settings.symbol_database.enabled = false }
+
+      it 'does not construct the component' do
+        expect(Datadog::SymbolDatabase::Component).not_to receive(:build)
+        expect(build_symbol_database).to be_nil
+      end
+    end
+
+    context 'when the feature is enabled' do
+      before { settings.symbol_database.enabled = true }
+
+      it 'delegates to SymbolDatabase::Component.build' do
+        expect(Datadog::SymbolDatabase::Component).to receive(:build)
+          .with(settings, agent_settings, logger, telemetry: telemetry).and_return(:built_component)
+        expect(build_symbol_database).to eq(:built_component)
       end
     end
   end
