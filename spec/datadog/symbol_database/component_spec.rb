@@ -8,11 +8,13 @@ require 'datadog/symbol_database/uploader'
 RSpec.describe Datadog::SymbolDatabase::Component do
   # Use a real Settings instance — Settings uses dynamic DSL methods (via
   # Core::Configuration::Options) that instance_double can't verify.
+  let(:remote_enabled) { true }
+
   let(:settings) do
     Datadog::Core::Configuration::Settings.new.tap do |s|
       s.symbol_database.enabled = true
       s.symbol_database.internal.force_upload = false
-      s.remote.enabled = true
+      s.remote.enabled = remote_enabled
       s.service = 'test-service'
       s.env = 'test'
       s.version = '1.0'
@@ -92,7 +94,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
 
     context 'when remote is enabled' do
-      before { settings.remote.enabled = true }
+      let(:remote_enabled) { true }
 
       it 'returns a Component' do
         result = described_class.build(settings, agent_settings, logger, enabled: settings.symbol_database.enabled)
