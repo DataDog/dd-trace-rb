@@ -115,11 +115,6 @@ module Datadog
       # Whether the current Ruby runtime can run dynamic instrumentation:
       # MRI (CRuby) on Ruby 2.6 or later.
       #
-      # The platform-support subset of {unsupported_reason}, excluding the C
-      # extension and settings checks so it can be evaluated without settings
-      # and before the extension is compiled. Gates whether DI is advertised to
-      # Remote Configuration (see Capabilities#register).
-      #
       # @return [Boolean]
       def supported_runtime?
         unsupported_platform_reason.nil?
