@@ -244,6 +244,14 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.products).to include('LIVE_DEBUGGING_SYMBOL_DB')
       end
     end
+
+    context 'when DI is in its default state (unset) and symbol_database is unset (nil)' do
+      let(:settings) { Datadog::Core::Configuration::Settings.new }
+
+      it 'registers symbol database product (follows DI, which is advertised by default for RC enablement)' do
+        expect(capabilities.products).to include('LIVE_DEBUGGING_SYMBOL_DB')
+      end
+    end
   end
 
   context 'Tracing component' do

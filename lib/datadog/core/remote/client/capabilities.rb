@@ -60,9 +60,11 @@ module Datadog
             end
 
             if settings.respond_to?(:symbol_database)
-              # nil (the default) follows the DI setting; the component tree, which
-              # makes the runtime-gated decision, does not exist yet at this layer.
-              di_enabled = settings.respond_to?(:dynamic_instrumentation) && settings.dynamic_instrumentation.enabled
+              # Symbol database follows DI: when unset it advertises whenever DI
+              # advertises (mirror the DI branch above, including the unset/default
+              # case that RC may enable). An explicit symbol_database.enabled wins.
+              di_enabled = settings.respond_to?(:dynamic_instrumentation) &&
+                !Datadog::DI::Remote.explicitly_disabled?(settings)
               if Datadog::SymbolDatabase.resolve_enabled(settings.symbol_database.enabled, di_enabled)
                 register_capabilities(Datadog::SymbolDatabase::Remote.capabilities)
                 register_products(Datadog::SymbolDatabase::Remote.products)
