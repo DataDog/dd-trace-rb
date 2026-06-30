@@ -6,29 +6,6 @@ module Datadog
 
         def self?.supported?: () -> bool
 
-        class Response
-          SERVICE_RATE_KEY: String
-
-          @ok: bool
-          @internal_error: bool
-          @server_error: bool
-          @client_error: bool
-          @not_found: bool
-          @unsupported: bool
-
-          attr_reader trace_count: Integer
-          attr_reader payload: String?
-
-          def initialize: (ok: bool, ?internal_error: bool, ?server_error: bool, ?client_error: bool, ?not_found: bool, ?unsupported: bool, ?trace_count: Integer, ?payload: String?) -> void
-          def ok?: () -> bool
-          def internal_error?: () -> bool
-          def server_error?: () -> bool
-          def client_error?: () -> bool
-          def not_found?: () -> bool
-          def unsupported?: () -> bool
-          def service_rates: () -> (Hash[String, Float] | nil)
-        end
-
         class Transport
           include Statistics
 
