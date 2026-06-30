@@ -486,10 +486,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           expect(hash_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_hash) * sample_rate)
         end
 
-        # Regression test for https://github.com/DataDog/dd-trace-rb/issues/5936: on Ruby 4+, sizing a class/module
-        # walks the per-namespace class extensions and could crash the VM (SIGSEGV) when the object was resurrected
-        # via _id2ref. We now skip sizing class objects on Ruby 4+, so their reported size is 0; older Rubies are
-        # unchanged. The test asserts a class is still tracked (no crash) and that its size is safe for this Ruby.
+        # Regression test for https://github.com/DataDog/dd-trace-rb/issues/5936,
+        # see comments on `ruby_obj_memsize_of` for details
         context "for class objects" do
           let(:a_class) { Class.new }
 
