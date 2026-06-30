@@ -56,7 +56,7 @@ module Datadog
           # @param settings [Configuration::Settings]
           # @param dynamic_instrumentation [DI::Component, nil]
           # @return [Boolean]
-          def symbol_database_enabled?(settings, dynamic_instrumentation)
+          def enable_symbol_database?(settings, dynamic_instrumentation)
             # The symbol_database settings group is only registered on the full
             # library load path; a partial load (e.g. require 'datadog/di') leaves
             # it absent, in which case the feature cannot be enabled.
@@ -199,7 +199,7 @@ module Datadog
           # Only build symbol database when enabled, so a disabled component is
           # never constructed.
           @symbol_database =
-            if self.class.symbol_database_enabled?(settings, @dynamic_instrumentation)
+            if self.class.enable_symbol_database?(settings, @dynamic_instrumentation)
               Datadog::SymbolDatabase::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
             end
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)

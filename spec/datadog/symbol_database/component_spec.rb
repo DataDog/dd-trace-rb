@@ -6,8 +6,6 @@ require 'datadog/symbol_database/scope_batcher'
 require 'datadog/symbol_database/uploader'
 
 RSpec.describe Datadog::SymbolDatabase::Component do
-  # Use a real Settings instance — Settings uses dynamic DSL methods (via
-  # Core::Configuration::Options) that instance_double can't verify.
   let(:remote_enabled) { true }
 
   let(:settings) do
@@ -72,10 +70,6 @@ RSpec.describe Datadog::SymbolDatabase::Component do
   end
 
   describe '.build' do
-    # The enabled/disabled feature gate is resolved by
-    # Core::Configuration::Components (see components_spec), which only calls
-    # build when the feature is enabled. build itself gates only on symbol
-    # database's own requirements (supported platform, remote config).
     context 'when remote is disabled and force_upload is false' do
       before do
         settings.remote.enabled = false

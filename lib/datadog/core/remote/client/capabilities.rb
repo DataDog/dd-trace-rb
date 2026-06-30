@@ -58,17 +58,17 @@ module Datadog
               register_receivers(Datadog::DI::Remote.receivers(@telemetry))
             end
 
-            # Symbol Database is configured independently of Dynamic Instrumentation,
-            # so its registration is not nested in the DI branch: an explicit
-            # symbol_database.enabled = true advertises the product even when DI is
-            # off. At this layer only settings are available (the component tree is
-            # built afterward), so the unconfigured (nil) default follows the DI
-            # setting; whether the component actually runs is decided separately in
-            # Core::Configuration::Components against DI's built component.
-            if settings.respond_to?(:symbol_database) && symbol_database_enabled?(settings)
-              register_capabilities(Datadog::SymbolDatabase::Remote.capabilities)
-              register_products(Datadog::SymbolDatabase::Remote.products)
-              register_receivers(Datadog::SymbolDatabase::Remote.receivers(@telemetry))
+            if settings.respond_to?(:symbol_database)
+              symbol_database_enabled = settings.symbol_database.enabled
+              if symbol_database_enabled.nil?
+                symbol_database_enabled = settings.respond_to?(:dynamic_instrumentation) && settings.dynamic_instrumentation.enabled
+              end
+
+              if symbol_database_enabled
+                register_capabilities(Datadog::SymbolDatabase::Remote.capabilities)
+                register_products(Datadog::SymbolDatabase::Remote.products)
+                register_receivers(Datadog::SymbolDatabase::Remote.receivers(@telemetry))
+              end
             end
 
             if settings.respond_to?(:open_feature) && settings.open_feature.enabled
@@ -76,19 +76,6 @@ module Datadog
               register_products(Datadog::OpenFeature::Remote.products)
               register_receivers(Datadog::OpenFeature::Remote.receivers(@telemetry))
             end
-          end
-
-          # Resolves symbol_database.enabled at the settings layer: true/false are
-          # explicit overrides; nil (the default) follows the Dynamic Instrumentation
-          # setting. This intentionally consults the DI setting rather than DI's
-          # runtime readiness — the component tree is not built when capabilities are
-          # computed. Core::Configuration::Components makes the stricter,
-          # runtime-gated decision about whether the component is actually built.
-          def symbol_database_enabled?(settings)
-            configured = settings.symbol_database.enabled
-            return configured unless configured.nil?
-
-            settings.respond_to?(:dynamic_instrumentation) && settings.dynamic_instrumentation.enabled
           end
 
           def register_capabilities(capabilities)

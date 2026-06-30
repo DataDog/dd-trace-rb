@@ -22,7 +22,6 @@ module Datadog
 
           def register: (Datadog::Core::Configuration::Settings settings) -> void
 
-          def symbol_database_enabled?: (Datadog::Core::Configuration::Settings settings) -> bool
 
           def register_capabilities: (Array[Integer] capabilities) -> void
 

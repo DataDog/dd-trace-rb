@@ -236,8 +236,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
   end
 
-  describe '::symbol_database_enabled?' do
-    subject(:enabled?) { described_class.symbol_database_enabled?(settings, dynamic_instrumentation) }
+  describe '::enable_symbol_database?' do
+    subject(:enabled?) { described_class.enable_symbol_database?(settings, dynamic_instrumentation) }
 
     let(:settings) { Datadog::Core::Configuration::Settings.new }
     # A non-nil DI component stands for "DI is running"; nil stands for "DI did
