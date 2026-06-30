@@ -4,8 +4,6 @@ module Datadog
       class Components
         def self.build_health_metrics: (untyped settings) -> untyped
 
-        def self.build_symbol_database: (untyped settings, untyped agent_settings, untyped logger, untyped dynamic_instrumentation, telemetry: untyped) -> untyped
-
         def self.symbol_database_enabled?: (untyped settings, untyped dynamic_instrumentation) -> bool
 
         def self.build_logger: (untyped settings) -> untyped

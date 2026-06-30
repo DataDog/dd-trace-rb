@@ -304,37 +304,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
   end
 
-  describe '::build_symbol_database' do
-    subject(:build_symbol_database) do
-      described_class.build_symbol_database(settings, agent_settings, logger, dynamic_instrumentation, telemetry: telemetry)
-    end
-
-    let(:settings) { Datadog::Core::Configuration::Settings.new }
-    let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettings) }
-    let(:logger) { instance_double(Datadog::Core::Logger) }
-    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-    let(:dynamic_instrumentation) { instance_double(Datadog::DI::Component) }
-
-    context 'when the feature is disabled' do
-      before { settings.symbol_database.enabled = false }
-
-      it 'does not construct the component' do
-        expect(Datadog::SymbolDatabase::Component).not_to receive(:build)
-        expect(build_symbol_database).to be_nil
-      end
-    end
-
-    context 'when the feature is enabled' do
-      before { settings.symbol_database.enabled = true }
-
-      it 'delegates to SymbolDatabase::Component.build' do
-        expect(Datadog::SymbolDatabase::Component).to receive(:build)
-          .with(settings, agent_settings, logger, telemetry: telemetry).and_return(:built_component)
-        expect(build_symbol_database).to eq(:built_component)
-      end
-    end
-  end
-
   describe '::build_health_metrics' do
     subject(:build_health_metrics) { described_class.build_health_metrics(settings, logger, telemetry) }
 
