@@ -184,7 +184,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       end
     end
 
-    context 'on an unsupported runtime (JRuby or Ruby 2.5)' do
+    context 'on an unsupported runtime' do
       let(:settings) do
         settings = Datadog::Core::Configuration::Settings.new
         settings.dynamic_instrumentation.enabled = true
@@ -259,7 +259,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       end
     end
 
-    context 'on an unsupported runtime (JRuby or Ruby < 2.7)' do
+    context 'on an unsupported runtime' do
       let(:settings) do
         settings = Datadog::Core::Configuration::Settings.new
         settings.dynamic_instrumentation.enabled = true
