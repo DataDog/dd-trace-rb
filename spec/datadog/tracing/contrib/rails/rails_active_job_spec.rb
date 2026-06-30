@@ -268,6 +268,20 @@ RSpec.describe 'ActiveJob', execute_in_fork: Rails.version.to_i >= 8 do
         end
       end
 
+      context 'when DSM is not configured' do
+        it 'reaches the real DataStreams facade and serializes the job' do
+          expect(Datadog::DataStreams.enabled?).to be(false)
+          expect { job.serialize }.not_to raise_error
+          expect(job.serialize).not_to include(pathway_key)
+        end
+
+        it 'reaches the real DataStreams facade and deserializes the job' do
+          job_data = job.serialize
+
+          expect { job_class.new.deserialize(job_data) }.not_to raise_error
+        end
+      end
+
       context 'when a checkpoint raises' do
         before do
           allow(Datadog::DataStreams).to receive(:enabled?).and_return(true)

@@ -3,13 +3,9 @@ module Datadog
     module Contrib
       module ActiveJob
         module DataStreams
-          module SerializePatch
-            def serialize: () -> ::Hash[::String, untyped]
-          end
+          def serialize: () -> ::Hash[::String, untyped]
 
-          module DeserializePatch
-            def deserialize: (::Hash[::String, untyped] job_data) -> void
-          end
+          def deserialize: (::Hash[::String, untyped] job_data) -> void
         end
       end
     end

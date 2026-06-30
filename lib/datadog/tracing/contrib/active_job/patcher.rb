@@ -38,8 +38,7 @@ module Datadog
 
           def inject_data_streams
             ::ActiveSupport.on_load(:active_job) do
-              prepend DataStreams::SerializePatch
-              prepend DataStreams::DeserializePatch
+              prepend DataStreams
             end
           end
         end
