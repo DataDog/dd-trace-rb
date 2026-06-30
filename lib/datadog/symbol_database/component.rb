@@ -377,9 +377,7 @@ module Datadog
       private
 
       # Check whether the runtime environment supports symbol database upload,
-      # logging the reason when it does not. The platform predicate lives in
-      # {SymbolDatabase.supported_runtime?}; this method adds the diagnostic
-      # logging used when gating the component (upload) at build time.
+      # logging the reason when it does not.
       # @param logger [Logger]
       # @return [Boolean]
       def self.environment_supported?(logger)

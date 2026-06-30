@@ -48,13 +48,7 @@ module Datadog
 
     class << self
       # Whether the current Ruby runtime can run symbol database extraction:
-      # MRI (CRuby) on Ruby 2.7 or later. JRuby and TruffleRuby are excluded
-      # because ObjectSpace iteration and Method#source_location behave
-      # differently, and extraction relies on introspection added in 2.7.
-      #
-      # Gates whether the component runs (see {Component.environment_supported?})
-      # and whether LIVE_DEBUGGING_SYMBOL_DB is advertised to Remote
-      # Configuration (see Capabilities#register).
+      # MRI (CRuby) on Ruby 2.7 or later.
       #
       # @return [Boolean]
       def supported_runtime?
