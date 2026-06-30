@@ -17,17 +17,17 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::Response' do
   # mirrors what the C helpers do.
 
   def make_response(ok:, internal_error: false, server_error: false,
-                    client_error: false, not_found: false,
-                    unsupported: false, trace_count: 0, payload: nil)
+    client_error: false, not_found: false,
+    unsupported: false, trace_count: 0, payload: nil)
     resp = response_class.allocate
-    resp.instance_variable_set(:@ok,              ok)
-    resp.instance_variable_set(:@internal_error,  internal_error)
-    resp.instance_variable_set(:@server_error,    server_error)
-    resp.instance_variable_set(:@client_error,    client_error)
-    resp.instance_variable_set(:@not_found,       not_found)
-    resp.instance_variable_set(:@unsupported,     unsupported)
-    resp.instance_variable_set(:@trace_count,     trace_count)
-    resp.instance_variable_set(:@payload,         payload)
+    resp.instance_variable_set(:@ok, ok)
+    resp.instance_variable_set(:@internal_error, internal_error)
+    resp.instance_variable_set(:@server_error, server_error)
+    resp.instance_variable_set(:@client_error, client_error)
+    resp.instance_variable_set(:@not_found, not_found)
+    resp.instance_variable_set(:@unsupported, unsupported)
+    resp.instance_variable_set(:@trace_count, trace_count)
+    resp.instance_variable_set(:@payload, payload)
     resp
   end
 

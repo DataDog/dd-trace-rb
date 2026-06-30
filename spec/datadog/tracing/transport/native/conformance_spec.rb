@@ -23,7 +23,7 @@ RSpec.describe 'Native transport wire-level conformance' do
   # to a pipe so the parent can read and deserialize them.
   # ---------------------------------------------------------------------------
 
-  class CapturingMockAgent
+  class CapturingMockAgent # rubocop:disable Lint/ConstantDefinitionInBlock
     attr_reader :port
 
     def initialize
@@ -40,35 +40,41 @@ RSpec.describe 'Native transport wire-level conformance' do
         pipe_mutex = Mutex.new
 
         loop do
-          client = server.accept rescue break
+          client = begin
+            server.accept
+          rescue
+            break
+          end
           Thread.new(client) do |c|
+            request_line = c.gets
+            next c.close if request_line.nil?
+
+            # Read headers
+            content_length = 0
+            path = request_line.split(' ')[1]
+            while (line = c.gets) && line != "\r\n"
+              content_length = line.split(': ', 2).last.to_i if line.downcase.start_with?('content-length')
+            end
+
+            # Read body
+            request_body = (content_length > 0) ? c.read(content_length) : ''
+            c.print http_response
+
+            # Write captured trace payloads (skip /info requests)
+            if path&.include?('/traces') && !request_body.empty?
+              payload = Marshal.dump(request_body)
+              pipe_mutex.synchronize do
+                @write_io.write([payload.bytesize].pack('N'))
+                @write_io.write(payload)
+                @write_io.flush
+              end
+            end
+          rescue # rubocop:disable Lint/SuppressedException
+          ensure
             begin
-              request_line = c.gets
-              next c.close if request_line.nil?
-
-              # Read headers
-              content_length = 0
-              path = request_line.split(' ')[1]
-              while (line = c.gets) && line != "\r\n"
-                content_length = line.split(': ', 2).last.to_i if line.downcase.start_with?('content-length')
-              end
-
-              # Read body
-              request_body = content_length > 0 ? c.read(content_length) : ''
-              c.print http_response
-
-              # Write captured trace payloads (skip /info requests)
-              if path&.include?('/traces') && !request_body.empty?
-                payload = Marshal.dump(request_body)
-                pipe_mutex.synchronize do
-                  @write_io.write([payload.bytesize].pack('N'))
-                  @write_io.write(payload)
-                  @write_io.flush
-                end
-              end
-            rescue # rubocop:disable Lint/SuppressedException
-            ensure
-              c.close rescue nil
+              c.close
+            rescue
+              nil
             end
           end
         end
@@ -92,9 +98,21 @@ RSpec.describe 'Native transport wire-level conformance' do
     end
 
     def stop
-      Process.kill('TERM', @pid) rescue nil
-      Process.wait(@pid) rescue nil
-      @read_io.close rescue nil
+      begin
+        Process.kill('TERM', @pid)
+      rescue
+        nil
+      end
+      begin
+        Process.wait(@pid)
+      rescue
+        nil
+      end
+      begin
+        @read_io.close
+      rescue
+        nil
+      end
     end
   end
 
@@ -113,7 +131,7 @@ RSpec.describe 'Native transport wire-level conformance' do
     agent_settings = Struct.new(:url).new("http://127.0.0.1:#{@mock_agent.port}")
     @transport = Datadog::Tracing::Transport::Native::Transport.new(
       agent_settings: agent_settings,
-      logger: Logger.new('/dev/null')
+      logger: Logger.new(File::NULL)
     )
   end
 
@@ -239,7 +257,7 @@ RSpec.describe 'Native transport wire-level conformance' do
   describe 'trace ID' do
     it 'preserves 64-bit trace IDs' do
       tid = 0x00000000deadbeef
-      trace = make_trace([{ name: 'op', trace_id: tid }])
+      trace = make_trace([{name: 'op', trace_id: tid}])
       decoded = send_and_decode([trace])
       expect(decoded.first.first['trace_id']).to eq(tid)
     end
@@ -248,7 +266,7 @@ RSpec.describe 'Native transport wire-level conformance' do
       low = 0xdeadbeef12345678
       high = 0x00000001
       tid = (high << 64) | low
-      trace = make_trace([{ name: 'op', trace_id: tid }])
+      trace = make_trace([{name: 'op', trace_id: tid}])
       decoded = send_and_decode([trace])
 
       # The wire format trace_id field is 64-bit (low half only);
@@ -260,9 +278,9 @@ RSpec.describe 'Native transport wire-level conformance' do
   describe 'multiple spans in one trace' do
     it 'preserves all spans in a single chunk' do
       trace = make_trace([
-        { name: 'parent.op', id: 100, parent_id: 0 },
-        { name: 'child.op', id: 200, parent_id: 100 },
-        { name: 'sibling.op', id: 300, parent_id: 100 },
+        {name: 'parent.op', id: 100, parent_id: 0},
+        {name: 'child.op', id: 200, parent_id: 100},
+        {name: 'sibling.op', id: 300, parent_id: 100},
       ])
 
       decoded = send_and_decode([trace])
@@ -275,8 +293,8 @@ RSpec.describe 'Native transport wire-level conformance' do
 
   describe 'multiple trace chunks' do
     it 'sends all chunks in one payload' do
-      trace1 = make_trace([{ name: 'trace1.op' }])
-      trace2 = make_trace([{ name: 'trace2.op' }])
+      trace1 = make_trace([{name: 'trace1.op'}])
+      trace2 = make_trace([{name: 'trace2.op'}])
 
       decoded = send_and_decode([trace1, trace2])
 

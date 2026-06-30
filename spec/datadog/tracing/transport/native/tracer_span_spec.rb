@@ -29,8 +29,8 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TracerSpan' do
       start_time: now,
       duration: 0.025,
       status: 0,
-      meta: { 'http.method' => 'GET', 'http.url' => '/test' },
-      metrics: { '_dd.measured' => 1.0, '_sampling_priority_v1' => 2.0 },
+      meta: {'http.method' => 'GET', 'http.url' => '/test'},
+      metrics: {'_dd.measured' => 1.0, '_sampling_priority_v1' => 2.0},
     }
     Datadog::Tracing::Span.new('web.request', **defaults.merge(overrides))
   end
@@ -93,14 +93,14 @@ RSpec.describe 'Datadog::Tracing::Transport::Native::TracerSpan' do
 
     context 'with non-string meta values (mixed hash)' do
       it 'silently skips non-string entries' do
-        span = make_ruby_span(meta: { 'good' => 'value', 'bad' => 123, nil => 'also_bad' })
+        span = make_ruby_span(meta: {'good' => 'value', 'bad' => 123, nil => 'also_bad'})
         expect { tracer_span_class._native_from_span(span) }.not_to raise_error
       end
     end
 
     context 'with non-numeric metrics values (mixed hash)' do
       it 'silently skips non-numeric entries' do
-        span = make_ruby_span(metrics: { '_dd.measured' => 1.0, 'bad' => 'string' })
+        span = make_ruby_span(metrics: {'_dd.measured' => 1.0, 'bad' => 'string'})
         expect { tracer_span_class._native_from_span(span) }.not_to raise_error
       end
     end
