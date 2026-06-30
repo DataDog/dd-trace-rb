@@ -148,7 +148,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
   end
 
   context 'Symbol Database component' do
-    context 'when DI is disabled' do
+    context 'when DI is disabled and symbol_database is explicitly enabled' do
       let(:settings) do
         settings = Datadog::Core::Configuration::Settings.new
         settings.dynamic_instrumentation.enabled = false
@@ -156,7 +156,19 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         settings
       end
 
-      it 'does not register symbol database product' do
+      it 'registers symbol database product (explicit opt-in is independent of DI)' do
+        expect(capabilities.products).to include('LIVE_DEBUGGING_SYMBOL_DB')
+      end
+    end
+
+    context 'when DI is disabled and symbol_database is unset (nil)' do
+      let(:settings) do
+        settings = Datadog::Core::Configuration::Settings.new
+        settings.dynamic_instrumentation.enabled = false
+        settings
+      end
+
+      it 'does not register symbol database product (nil follows DI setting)' do
         expect(capabilities.products).to_not include('LIVE_DEBUGGING_SYMBOL_DB')
       end
     end
