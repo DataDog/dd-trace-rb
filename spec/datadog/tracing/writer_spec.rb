@@ -219,6 +219,53 @@ RSpec.describe Datadog::Tracing::Writer do
         end
       end
 
+      describe '#stop' do
+        subject(:stop) { writer.stop }
+
+        context 'with a transport that responds to #close (e.g. native transport)' do
+          # The native transport responds to #close; the HTTP transport does
+          # not. A plain double is used here because the verifying double for
+          # the HTTP transport does not implement #close.
+          let(:transport) { double('native-like transport', close: nil) }
+
+          it 'closes the transport when the writer is permanently stopped' do
+            expect(transport).to receive(:close)
+            stop
+          end
+
+          it 'remains safe (idempotent) when stopped more than once' do
+            expect(transport).to receive(:close).twice
+            writer.stop
+            writer.stop
+          end
+
+          context 'when a worker has been started' do
+            let(:worker) { instance_double(Datadog::Tracing::Workers::AsyncTransport, start: nil, stop: nil) }
+
+            before do
+              allow(Datadog::Tracing::Workers::AsyncTransport).to receive(:new).and_return(worker)
+              writer.start
+            end
+
+            it 'stops the worker and closes the transport' do
+              expect(worker).to receive(:stop)
+              expect(transport).to receive(:close)
+              stop
+              expect(writer.worker).to be_nil
+            end
+          end
+        end
+
+        context 'with the default HTTP transport (no #close)' do
+          let(:options) { {} }
+
+          it 'does not error when the transport has no #close' do
+            expect(writer.transport).not_to respond_to(:close)
+            expect { stop }.not_to raise_error
+          end
+        end
+      end
+
       describe '#write' do
         subject(:write) { writer.write(trace) }
 

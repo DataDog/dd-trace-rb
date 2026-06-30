@@ -21,11 +21,31 @@ RSpec.describe 'Native transport configuration' do
 
     before { allow(Datadog).to receive(:logger).and_return(logger) }
 
+    # Some examples build a writer backed by the native transport. Dispose it
+    # afterwards so its exporter is freed during the run rather than surviving
+    # to interpreter exit, where freeing it after a fork can deadlock.
+    let(:built_writers) { [] }
+
+    def build_writer
+      Datadog::Tracing::Component.send(:build_writer, settings, agent_settings).tap do |writer|
+        built_writers << writer
+      end
+    end
+
+    after do
+      built_writers.each do |writer|
+        transport = writer.instance_variable_get(:@transport)
+        next unless transport.is_a?(Datadog::Tracing::Transport::Native::Transport)
+
+        NativeTransportForkIsolation.dispose(transport)
+      end
+    end
+
     context 'when native_transport is false (default)' do
       let(:native_transport_enabled) { false }
 
       it 'builds a writer with the default HTTP transport' do
-        writer = Datadog::Tracing::Component.send(:build_writer, settings, agent_settings)
+        writer = build_writer
         expect(writer).to be_a(Datadog::Tracing::Writer)
         # The transport should NOT be our native one
         transport = writer.instance_variable_get(:@transport)
@@ -37,7 +57,7 @@ RSpec.describe 'Native transport configuration' do
       let(:native_transport_enabled) { true }
 
       it 'builds a writer with the native transport' do
-        writer = Datadog::Tracing::Component.send(:build_writer, settings, agent_settings)
+        writer = build_writer
         expect(writer).to be_a(Datadog::Tracing::Writer)
         transport = writer.instance_variable_get(:@transport)
         expect(transport).to be_a(Datadog::Tracing::Transport::Native::Transport)
@@ -54,7 +74,7 @@ RSpec.describe 'Native transport configuration' do
 
       it 'falls back to the default HTTP transport with a warning' do
         expect(logger).to receive(:warn).with(/not available/)
-        writer = Datadog::Tracing::Component.send(:build_writer, settings, agent_settings)
+        writer = build_writer
         transport = writer.instance_variable_get(:@transport)
         expect(transport).not_to be_a(Datadog::Tracing::Transport::Native::Transport)
       end
