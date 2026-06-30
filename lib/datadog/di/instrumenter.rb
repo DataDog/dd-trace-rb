@@ -2,6 +2,7 @@
 
 require_relative '../core/utils/time'
 require_relative '../ruby_version'
+require_relative 'fatal_exceptions'
 
 # rubocop:disable Lint/AssignmentInCondition
 # rubocop:disable Style/AndOr
@@ -117,8 +118,8 @@ module Datadog
 
         cls = symbolize_class_name(probe.type_name)
         method_name = probe.method_name!
-        loc = begin
-          cls.instance_method(method_name).source_location
+        target_method = begin
+          cls.instance_method(method_name)
         rescue NameError
           # The target method is not defined.
           # This could be because it will be explicitly defined later
@@ -126,7 +127,26 @@ module Datadog
           # or the method is virtual (provided by a method_missing handler).
           # In these cases we do not have a source location for the
           # target method here.
+          nil
         end
+
+        # Reject method probes whose target method resolves to Kernel#lambda,
+        # including inherited targets. Every class inherits Kernel#lambda, so a
+        # probe naming any type that does not override lambda (Object#lambda,
+        # String#lambda, a plain user class, ...) prepends the wrapper ahead of
+        # Kernel#lambda and reaches the wrapper's super(&block) path. On
+        # Ruby 3.3+ that path raises ArgumentError for every lambda { ... }
+        # call site passing a captured block, breaking lambda creation
+        # process-wide. Resolving the method owner catches the inherited case
+        # that a textual "Kernel" name match misses; a type that defines its
+        # own lambda has a different owner and is left alone. Probing lambda
+        # creation has no legitimate customer use case. See #5560.
+        if method_name == "lambda" && target_method&.owner == ::Kernel
+          raise Error::ProbeTargetForbidden,
+            "Method probes on Kernel#lambda are not permitted: #{probe.type_name}##{method_name}"
+        end
+
+        loc = target_method&.source_location
         instrumenter = self
 
         mod = Module.new do
@@ -461,7 +481,8 @@ module Datadog
                 probe: probe, settings: settings, serializer: serializer,
               )
               continue = condition.satisfied?(context)
-            rescue => exc
+            rescue Exception => exc # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(exc)
               # Evaluation error exception can be raised for "expected"
               # errors, we probably need another setting to control whether
               # these exceptions are propagated.
@@ -475,7 +496,8 @@ module Datadog
                 # the probe notifier builder requires a context.
                 begin
                   responder.probe_condition_evaluation_failed_callback(context, exc)
-                rescue => nested_exc
+                rescue Exception => nested_exc # standard:disable Lint/RescueException
+                  Datadog::DI.reraise_if_fatal(nested_exc)
                   raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
                   logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
@@ -524,11 +546,10 @@ module Datadog
               # because the early-return path at the top of the wrapper
               # also relies on invoking do_super without recursion.
               rv = DI.invoke_proc(do_super, args, kwargs, target_block)
-            rescue NoMemoryError, Interrupt, SystemExit
-              raise
             rescue Exception => exc # standard:disable Lint/RescueException
-              # We will raise the exception captured here later, after
-              # the instrumentation callback runs.
+              Datadog::DI.reraise_if_fatal(exc)
+              # We will raise the (non-fatal) exception captured here later,
+              # after the instrumentation callback runs.
             end
 
             # Re-acquire re-entrancy guard for DI post-processing
@@ -575,7 +596,8 @@ module Datadog
               responder.probe_executed_callback(context)
 
               check_and_disable_if_exceeded(probe, responder, di_start_time, di_duration)
-            rescue => di_exc
+            rescue Exception => di_exc # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(di_exc)
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
               logger.debug { "di: unhandled exception in method probe: #{di_exc.class}: #{di_exc.message}" }
@@ -698,7 +720,8 @@ module Datadog
           begin
             context = build_trace_point_context(probe, tp)
             return unless condition.satisfied?(context)
-          rescue => exc
+          rescue Exception => exc # standard:disable Lint/RescueException
+            Datadog::DI.reraise_if_fatal(exc)
             # Evaluation error exception can be raised for "expected"
             # errors, we probably need another setting to control whether
             # these exceptions are propagated.
@@ -712,7 +735,8 @@ module Datadog
               # the probe notifier builder requires a context.
               begin
                 responder.probe_condition_evaluation_failed_callback(context, condition, exc)
-              rescue => nested_exc
+              rescue Exception => nested_exc # standard:disable Lint/RescueException
+                Datadog::DI.reraise_if_fatal(nested_exc)
                 raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
                 logger.debug { "di: error in probe condition evaluation failed callback: #{nested_exc.class}: #{nested_exc.message}" }
@@ -745,7 +769,8 @@ module Datadog
         responder.probe_executed_callback(context)
 
         check_and_disable_if_exceeded(probe, responder, di_start_time)
-      rescue => exc
+      rescue Exception => exc # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(exc)
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
         logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc.message}" }
         telemetry&.report(exc, description: "Unhandled exception in line trace point")
