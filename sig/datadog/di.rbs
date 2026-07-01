@@ -24,7 +24,6 @@ module Datadog
     def self.hash?: (untyped) -> bool
     # args and return are untyped: variadic forwarding to a customer-supplied
     # Proc whose signature and return value are unknown to this primitive.
-    def self.invoke_proc: (::Proc proc, *untyped args) -> untyped
 
     def self.component: () -> Component
 

@@ -146,35 +146,6 @@ static VALUE is_hash(DDTRACE_UNUSED VALUE _self, VALUE obj) {
   return RB_TYPE_P(obj, T_HASH) ? Qtrue : Qfalse;
 }
 
-/*
- * call-seq:
- *   DI.invoke_proc(proc, *args) -> Object
- *
- * Invokes a Proc with the given positional arguments, bypassing Proc#call
- * method dispatch. Used in the method probe wrapper to call the do_super
- * lambda (and other internal lambdas) without giving user-installed method
- * probes on Proc#call a chance to recurse.
- *
- * Implemented via rb_proc_call_with_block, which invokes the Proc's
- * underlying block directly without going through Ruby method lookup. A user
- * probe on Proc#call is therefore not intercepted, even if the Proc passed
- * here is itself a lambda (and thus a Proc instance).
- *
- * Raises TypeError if the first argument is not a Proc.
- *
- * @api private
- */
-static VALUE invoke_proc(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
-  if (argc < 1) {
-    rb_raise(rb_eArgError, "wrong number of arguments (given 0, expected 1+)");
-  }
-  VALUE proc = argv[0];
-  if (!rb_obj_is_proc(proc)) {
-    rb_raise(rb_eTypeError, "wrong argument type (expected Proc)");
-  }
-  return rb_proc_call_with_block(proc, argc - 1, argv + 1, Qnil);
-}
-
 // rb_iseq_type was added in Ruby 3.1 (commit 89a02d89 by Koichi Sasada,
 // 2021-12-19). It returns the iseq type as a Symbol. On Ruby < 3.1 this
 // function does not exist, so have_func('rb_iseq_type') in extconf.rb
@@ -226,7 +197,6 @@ void di_init(VALUE datadog_module) {
   rb_define_singleton_method(di_module, "enter_probe", enter_probe, 0);
   rb_define_singleton_method(di_module, "leave_probe", leave_probe, 0);
   rb_define_singleton_method(di_module, "hash?", is_hash, 1);
-  rb_define_singleton_method(di_module, "invoke_proc", invoke_proc, -1);
 #ifdef HAVE_RB_ISEQ_TYPE
   rb_define_singleton_method(di_module, "iseq_type", iseq_type, 1);
 #endif

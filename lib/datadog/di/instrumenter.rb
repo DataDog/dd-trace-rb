@@ -189,14 +189,14 @@ module Datadog
                 return super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
               end
 
-              do_super = ->(a, k, blk) { super(*a, **k, &blk) }
-
               instrumenter.run_method_probe(
                 args, kwargs, target_block, # steep:ignore FallbackAny
-                self, do_super,
+                self,
                 probe, responder,
                 loc, method_name,
-              )
+              ) do |a, k, blk|
+                super(*a, **k, &blk)
+              end
             end
           else
             define_method(method_name) do |*args, &target_block| # steep:ignore NoMethod
@@ -208,15 +208,15 @@ module Datadog
               # ruby2_keywords-flagged trailing hash keeps its identity. The
               # a/k parameters it receives from run_method_probe are the
               # serialization-split arguments and are unused for forwarding.
-              do_super = ->(_a, _k, blk) { super(*args, &blk) }
-
               pos_args, kwargs = instrumenter.kwargs_from_splat(args)
               instrumenter.run_method_probe(
                 pos_args, kwargs, target_block,
-                self, do_super,
+                self,
                 probe, responder,
                 loc, method_name,
-              )
+              ) do |_a, _k, blk|
+                super(*args, &blk)
+              end
             end
             ruby2_keywords(method_name) if respond_to?(:ruby2_keywords, true) # steep:ignore NoMethod
           end
@@ -456,13 +456,13 @@ module Datadog
       # @param loc [Array(String, Integer), nil] source location of the probed method, or nil for virtual/lazily-defined methods
       # @param method_name [String] name of the probed method, used as the synthetic top stack frame label
       # @return [Object] the original method's return value, or re-raises its exception
-      def run_method_probe(args, kwargs, target_block, target_self, do_super,
+      def run_method_probe(args, kwargs, target_block, target_self,
         probe, responder, loc, method_name)
         # Disabled probe: skip DI processing entirely. enter_probe is not
         # called on this path so the guard is never set — there is no DI
         # work to guard, and any nested probed methods invoked by the
         # original method should fire normally without short-circuit.
-        return DI.invoke_proc(do_super, args, kwargs, target_block) unless probe.enabled?
+        return yield(args, kwargs, target_block) unless probe.enabled?
 
         DI.enter_probe
         begin
@@ -545,7 +545,7 @@ module Datadog
               # normally — but Proc#call must remain bypassed regardless,
               # because the early-return path at the top of the wrapper
               # also relies on invoking do_super without recursion.
-              rv = DI.invoke_proc(do_super, args, kwargs, target_block)
+              rv = yield(args, kwargs, target_block)
             rescue Exception => exc # standard:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(exc)
               # We will raise the (non-fatal) exception captured here later,
@@ -629,7 +629,7 @@ module Datadog
             DI.leave_probe
             # DI.invoke_proc bypasses Proc#call dispatch — see the firing
             # branch above for the same rationale.
-            DI.invoke_proc(do_super, args, kwargs, target_block)
+            yield(args, kwargs, target_block)
           end
         ensure
           DI.leave_probe
