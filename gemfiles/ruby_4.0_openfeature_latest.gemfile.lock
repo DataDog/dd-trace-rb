@@ -63,7 +63,7 @@ GEM
     method_source (1.1.0)
     msgpack (1.8.3)
     mutex_m (0.3.0)
-    openfeature-sdk (0.4.1)
+    openfeature-sdk (0.6.5)
     opentelemetry-api (1.9.0)
       logger
     opentelemetry-common (0.24.0)

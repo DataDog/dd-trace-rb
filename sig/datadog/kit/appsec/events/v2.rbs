@@ -3,40 +3,45 @@ module Datadog
     module AppSec
       module Events
         module V2
-          type attributes = {
-            ?login: ::String?,
-            ?id: ::String?
-          }
+          type attributes = Hash[Symbol, String?]
 
-          type user_or_id = nil | ::String | attributes
+          type user_or_id = nil |
+                            String |
+                            {id: String} & Hash[Symbol, String?]
 
-          LOGIN_SUCCESS_EVENT: ::String
+          type metadata = Hash[Symbol, String]
 
-          LOGIN_FAILURE_EVENT: ::String
+          LOGIN_SUCCESS_EVENT: String
 
-          TELEMETRY_METRICS_NAMESPACE: ::String
+          LOGIN_FAILURE_EVENT: String
 
-          TELEMETRY_METRICS_SDK_EVENT: ::String
+          SIGNUP_EVENT: String
 
-          TELEMETRY_METRICS_SDK_VERSION: ::String
+          TELEMETRY_METRICS_NAMESPACE: String
 
-          TELEMETRY_METRICS_EVENTS_INTO_TYPES: Hash[::String, ::String]
+          TELEMETRY_METRICS_SDK_EVENT: String
 
-          def self.track_user_login_success: (::String login, ?user_or_id user_or_id, ?attributes metadata) -> void
+          TELEMETRY_METRICS_SDK_VERSION: String
 
-          def self.track_user_login_failure: (::String login, ?bool user_exists, ?attributes metadata) -> void
+          TELEMETRY_METRICS_EVENTS_INTO_TYPES: Hash[String, String]
+
+          def self.track_user_login_success: (String login, ?user_or_id user_or_id, ?metadata metadata) -> void
+
+          def self.track_user_signup: (String login, ?user_or_id user_or_id, ?metadata metadata) -> void
+
+          def self.track_user_login_failure: (String login, ?bool user_exists, ?metadata metadata) -> void
 
           private
 
-          def self.service_entry_trace: () -> (::Datadog::Tracing::TraceSegment | ::Datadog::Tracing::TraceOperation)?
+          def self.service_entry_trace: () -> (Datadog::Tracing::TraceSegment | Datadog::Tracing::TraceOperation)?
 
-          def self.service_entry_span: () -> ::Datadog::Tracing::SpanOperation?
+          def self.service_entry_span: () -> Datadog::Tracing::SpanOperation?
 
-          def self.build_user_attributes: (user_or_id? user_or_id, ::String login) -> attributes
+          def self.build_user_attributes: (user_or_id? user_or_id, String login) -> attributes
 
-          def self.set_span_tags: (::Datadog::Tracing::SpanOperation span, ::Hash[::Symbol, untyped] tags, namespace: ::String) -> void
+          def self.set_span_tags: (Datadog::Tracing::SpanOperation span, Hash[Symbol, untyped] tags, namespace: String) -> void
 
-          def self.record_event_telemetry_metric: (::String event) -> void
+          def self.record_event_telemetry_metric: (String event) -> void
         end
       end
     end

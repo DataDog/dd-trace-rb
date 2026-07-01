@@ -180,6 +180,8 @@ module Datadog
 
         interface _OpenFeature
           def enabled: () -> bool
+
+          def evaluation_counts_enabled: () -> bool
         end
 
         interface _SymbolDatabase

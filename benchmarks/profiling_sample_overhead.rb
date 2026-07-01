@@ -40,6 +40,7 @@ samples = data.dig("worker_stats", "cpu_sampled")
 cpu_sampling_time_ns_total = data.dig("worker_stats", "cpu_sampling_time_ns_total")
 serialization_time_ns_total = data.dig("recorder_stats", "serialization_time_ns_total")
 inactive_thread_samples_skipped = data.dig("worker_stats", "inactive_thread_samples_skipped")
+profiler_thread_samples_skipped = data.dig("worker_stats", "profiler_thread_samples_skipped")
 cpu_sampling_overhead = cpu_sampling_time_ns_total / duration_ns
 
 overhead = ->(total) {
@@ -59,6 +60,7 @@ pp({
   sampling_rate: samples / duration,
   sample_every_n_ms: (duration / samples) * 1000,
   inactive_thread_samples_skipped: inactive_thread_samples_skipped,
+  profiler_thread_samples_skipped: profiler_thread_samples_skipped,
 })
 
 unless VALIDATE_BENCHMARK_MODE

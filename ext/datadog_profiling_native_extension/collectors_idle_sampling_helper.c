@@ -6,6 +6,7 @@
 #include "helpers.h"
 #include "ruby_helpers.h"
 #include "collectors_idle_sampling_helper.h"
+#include "collectors_thread_context.h"
 
 // Used by the Collectors::CpuAndWallTimeWorker to gather samples when the Ruby process is idle.
 //
@@ -30,7 +31,9 @@ typedef struct {
 
 static VALUE _native_new(VALUE klass);
 static void reset_state(idle_sampling_loop_state *state);
-static VALUE _native_idle_sampling_loop(DDTRACE_UNUSED VALUE self, VALUE self_instance);
+static VALUE _native_idle_sampling_loop(DDTRACE_UNUSED VALUE self, VALUE self_instance, VALUE thread_context_collector_instance);
+static VALUE idle_sampling_loop_body(VALUE self_instance);
+static VALUE idle_sampling_loop_ensure(VALUE thread_context_collector_instance);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE self, VALUE self_instance);
 static void *run_idle_sampling_loop(void *state_ptr);
 static void interrupt_idle_sampling_loop(void *state_ptr);
@@ -56,7 +59,7 @@ void collectors_idle_sampling_helper_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_idle_sampling_helper_class, _native_new);
 
-  rb_define_singleton_method(collectors_idle_sampling_helper_class, "_native_idle_sampling_loop", _native_idle_sampling_loop, 1);
+  rb_define_singleton_method(collectors_idle_sampling_helper_class, "_native_idle_sampling_loop", _native_idle_sampling_loop, 2);
   rb_define_singleton_method(collectors_idle_sampling_helper_class, "_native_stop", _native_stop, 1);
   rb_define_singleton_method(collectors_idle_sampling_helper_class, "_native_reset", _native_reset, 1);
   rb_define_singleton_method(testing_module, "_native_idle_sampling_helper_request_action", _native_idle_sampling_helper_request_action, 1);
@@ -109,14 +112,25 @@ static VALUE _native_reset(DDTRACE_UNUSED VALUE self, VALUE self_instance) {
   return Qtrue;
 }
 
-static VALUE _native_idle_sampling_loop(DDTRACE_UNUSED VALUE self, VALUE self_instance) {
+static VALUE _native_idle_sampling_loop(DDTRACE_UNUSED VALUE self, VALUE self_instance, VALUE thread_context_collector_instance) {
+  return rb_ensure(idle_sampling_loop_body, self_instance, idle_sampling_loop_ensure, thread_context_collector_instance);
+}
+
+static VALUE idle_sampling_loop_body(VALUE self_instance) {
   idle_sampling_loop_state *state;
   TypedData_Get_Struct(self_instance, idle_sampling_loop_state, &idle_sampling_helper_typed_data, state);
+
+  thread_context_collector_profiler_internal_thread_started();
 
   // Release GVL and run the loop waiting for requests
   rb_thread_call_without_gvl(run_idle_sampling_loop, state, interrupt_idle_sampling_loop, state);
 
   return Qtrue;
+}
+
+static VALUE idle_sampling_loop_ensure(VALUE thread_context_collector_instance) {
+  thread_context_collector_profiler_internal_thread_done(thread_context_collector_instance);
+  return Qnil;
 }
 
 static void *run_idle_sampling_loop(void *state_ptr) {

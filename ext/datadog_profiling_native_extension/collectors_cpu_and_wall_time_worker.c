@@ -530,6 +530,8 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   // situation we stop immediately and never even start the sampling trigger loop.
   if (state->stop_thread == rb_thread_current()) return Qnil;
 
+  thread_context_collector_profiler_internal_thread_started();
+
   // Reset the dynamic sampling rate state, if any (reminder: the monotonic clock reference may change after a fork)
   dynamic_sampling_rate_reset(&state->cpu_dynamic_sampling_rate);
   long now = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
@@ -892,6 +894,8 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
 
   // If we stopped sampling due to an exception, re-raise it (now in the worker thread)
   if (state->failure_exception != Qnil) rb_exc_raise(state->failure_exception);
+
+  thread_context_collector_profiler_internal_thread_done(state->thread_context_collector_instance);
 
   return Qnil;
 }

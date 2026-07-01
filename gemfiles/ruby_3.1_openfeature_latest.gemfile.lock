@@ -80,7 +80,7 @@ GEM
     memory_profiler (0.9.14)
     method_source (1.1.0)
     msgpack (1.8.3)
-    openfeature-sdk (0.4.1)
+    openfeature-sdk (0.5.1)
     opentelemetry-api (1.8.0)
       logger
     opentelemetry-common (0.23.0)

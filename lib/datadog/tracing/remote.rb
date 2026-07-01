@@ -17,8 +17,7 @@ module Datadog
           1 << 29, # APM_TRACING_SAMPLE_RULES: Dynamic trace sampling rules configuration
           # APM_TRACING_ENABLE_DYNAMIC_INSTRUMENTATION (bit 38) is declared in
           # DI::Remote.capabilities, not here, so it is registered only when DI
-          # is not explicitly disabled. The enable signal is still delivered in
-          # APM_TRACING payloads and routed by process_config below.
+          # is not explicitly disabled and the runtime supports DI.
         ].freeze
 
         def products
