@@ -78,7 +78,13 @@ module Datadog
                 # We could format to a string here but what if customer
                 # has @duration as part of an expression and wants
                 # to retain it as a number?
-                "(context.duration * 1000)"
+                #
+                # At entry-time evaluation (evaluate_at: :entry) the duration
+                # is not yet known and context.duration is nil; guarding the
+                # multiplication makes @duration resolve to nil (undefined)
+                # instead of raising NoMethodError on nil * 1000, matching how
+                # @return and @exception resolve to nil in the entry context.
+                "(context.duration && context.duration * 1000)"
               when '@exception'
                 "context.exception"
               else

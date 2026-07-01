@@ -641,6 +641,50 @@ RSpec.describe 'Instrumentation integration' do
         end
       end
 
+      context 'with @duration capture expression and evaluateAt: ENTRY' do
+        let(:probe) do
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
+        end
+
+        # At entry time the duration is not yet known (context.duration is nil).
+        # @duration must resolve to nil (undefined) rather than raising, so the
+        # key is captured as a null value instead of being dropped with an
+        # evaluation error.
+        let(:probe_spec) do
+          {
+            id: '1234',
+            type: 'LOG_PROBE',
+            where: {typeName: 'InstrumentationSpecTestClass', methodName: 'mutating_method'},
+            evaluateAt: 'ENTRY',
+            captureExpressions: [
+              {name: 'duration_at_entry', expr: {dsl: '@duration', json: {ref: '@duration'}}},
+            ],
+          }
+        end
+
+        it 'captures @duration as an undefined (nil) value without an evaluation error' do
+          expect(diagnostics_transport).to receive(:send_diagnostics)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          InstrumentationSpecTestClass.new.mutating_method(+'hello world')
+          component.probe_notifier_worker.flush
+
+          snapshot = payload.fetch(:debugger).fetch(:snapshot)
+          captures = snapshot.fetch(:captures)
+          # The key is present with a null value, not omitted.
+          expect(captures.fetch(:entry).fetch(:captureExpressions)).to eq(
+            "duration_at_entry" => {type: 'NilClass', isNull: true},
+          )
+          expect(captures).not_to have_key(:return)
+          # No evaluation error is recorded for the expression.
+          expect(snapshot.fetch(:evaluationErrors, [])).to be_empty
+        end
+      end
+
       context 'with capture expression and evaluateAt: EXIT (explicit, same as default)' do
         let(:probe) do
           Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
