@@ -25,7 +25,7 @@ module Datadog
 
       # @param settings [Datadog::Core::Configuration::Settings]
       # @param serializer [Datadog::DI::Serializer]
-      # @param logger [Datadog::Core::Logger]
+      # @param logger [Datadog::DI::Logger]
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] nil is
       #   legitimate — Component.build accepts nil telemetry when DI is used
       #   outside a telemetry-configured environment, and Component threads
@@ -49,7 +49,7 @@ module Datadog
 
       # Logger used for debug-level reporting of per-expression evaluation
       # failures.
-      # @return [Datadog::Core::Logger]
+      # @return [Datadog::DI::Logger]
       attr_reader :logger
 
       # Telemetry component used to report capture-expression timeouts (inc)

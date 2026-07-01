@@ -15,7 +15,7 @@ module Datadog
       #   read at payload-build time for service/env/version/tags fields.
       # @param serializer [Datadog::DI::Serializer] serializer used for snapshot
       #   values (captures, return, throwable).
-      # @param logger [Datadog::Core::Logger] logger forwarded to the internal
+      # @param logger [Datadog::DI::Logger] logger forwarded to the internal
       #   CaptureExpressionEvaluator for per-expression evaluation failures.
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] telemetry
       #   forwarded to the internal CaptureExpressionEvaluator. nil when DI was
@@ -39,7 +39,7 @@ module Datadog
       attr_reader :serializer
 
       # Logger; passed through to CaptureExpressionEvaluator at construction.
-      # @return [Datadog::Core::Logger]
+      # @return [Datadog::DI::Logger]
       attr_reader :logger
 
       # Telemetry; passed through to CaptureExpressionEvaluator at construction.
