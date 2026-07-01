@@ -81,7 +81,7 @@ module CoreHelpers
     return if Datadog::Core::LIBDATADOG_API_FAILURE.nil?
 
     raise "Libdatadog does not seem to be available: #{Datadog::Core::LIBDATADOG_API_FAILURE}. " \
-      "Try running `bundle exec rake compile` before running this test."
+      "Try running `bundle exec rake clean compile` before running this test."
   end
 
   module ClassMethods

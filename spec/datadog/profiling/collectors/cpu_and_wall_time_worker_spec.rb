@@ -271,8 +271,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       start
 
       try_wait_until do
-        samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
-        samples if samples.any?
+        recorder.serialize!
+        cpu_and_wall_time_worker.stats.fetch(:cpu_sampled) > 0
       end
 
       cpu_and_wall_time_worker.stop
@@ -289,6 +289,30 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(sampling_time_ns_avg).to be >= sampling_time_ns_min
       one_second_in_ns = 1_000_000_000
       expect(sampling_time_ns_max).to be < one_second_in_ns, "A single sample should not take longer than 1s, #{stats}"
+    end
+
+    it "profiler-internal threads flush themselves on stop" do
+      start
+
+      try_wait_until do
+        recorder.serialize!
+        cpu_and_wall_time_worker.stats.fetch(:cpu_sampled) > 0
+      end
+
+      worker_thread = cpu_and_wall_time_worker.instance_variable_get(:@worker_thread)
+      idle_helper = cpu_and_wall_time_worker.instance_variable_get(:@idle_sampling_helper)
+      idle_helper_thread = idle_helper.instance_variable_get(:@worker_thread)
+
+      # Drain all existing samples
+      recorder.serialize!
+
+      cpu_and_wall_time_worker.stop
+
+      # The final serialize should include samples for both profiler-internal threads,
+      # recorded by the threads themselves before exiting
+      all_samples = samples_from_pprof(recorder.serialize!)
+      expect(samples_for_thread(all_samples, worker_thread)).to_not be_empty
+      expect(samples_for_thread(all_samples, idle_helper_thread)).to_not be_empty
     end
 
     context "with allocation profiling enabled" do
@@ -828,8 +852,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           end
         end
 
-        context "on Ruby 3.x" do
-          before { skip "Behavior only applies on Ruby 3.x" if RubyVersion.is?("< 3") }
+        context "on Ruby 3+" do
+          before { skip "Behavior only applies on Ruby 3+" if RubyVersion.is?("< 3") }
 
           it "records internal VM objects, including their specific kind" do
             start
@@ -848,7 +872,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
             # a known member of the imemo_type enum (even if we don't exactly match on which one)
             expect(imemo_samples.map { |s| s.labels.fetch(:"allocation class") }).to all(
               match(
-                /(env|cref|svar|throw_data|ifunc|memo|ment|iseq|tmpbuf|ast|parser_strterm|callinfo|callcache|constcache)/
+                /(env|cref|svar|throw_data|ifunc|memo|ment|iseq|tmpbuf|ast|parser_strterm|callinfo|callcache|constcache|fields)/
               )
             )
           end
@@ -1374,6 +1398,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           gc_samples: 0,
           gc_samples_missed_due_to_missing_context: 0,
           inactive_thread_samples_skipped: 0,
+          profiler_thread_samples_skipped: 0,
         }
       )
     end
@@ -1516,13 +1541,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       wait_until_running
 
       try_wait_until do
-        # Wait until we get CPU/Wall time samples. Since we have allocation
-        # profiling enabled, not adding the extra reject could lead us to
-        # prematurely stop waiting as soon as we get an allocation sample
-        # which would result in us reaching our expectation with cpu_sampled = 0
-        samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
-          .reject { |sample| sample.values[:"alloc-samples"] > 0 }
-        samples if samples.any?
+        recorder.serialize!
+        cpu_and_wall_time_worker.stats.fetch(:cpu_sampled) > 0
       end
 
       stub_const("CpuAndWallTimeWorkerSpec::TestStruct", Struct.new(:foo))

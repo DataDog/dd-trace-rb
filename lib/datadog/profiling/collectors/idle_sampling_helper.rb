@@ -10,6 +10,7 @@ module Datadog
       class IdleSamplingHelper
         # @rbs @worker_thread: untyped
         # @rbs @start_stop_mutex: ::Thread::Mutex
+        # @rbs @thread_context_collector: Datadog::Profiling::Collectors::ThreadContext?
 
         private
 
@@ -17,10 +18,11 @@ module Datadog
 
         public
 
-        #: () -> void
-        def initialize
+        #: (thread_context_collector: Datadog::Profiling::Collectors::ThreadContext) -> void
+        def initialize(thread_context_collector:)
           @worker_thread = nil
           @start_stop_mutex = Mutex.new
+          @thread_context_collector = thread_context_collector
         end
 
         #: () -> (nil | true)
@@ -37,7 +39,7 @@ module Datadog
             @worker_thread = Thread.new do
               Thread.current.name = self.class.name
 
-              self.class._native_idle_sampling_loop(self)
+              self.class._native_idle_sampling_loop(self, @thread_context_collector)
 
               Datadog.logger.debug("IdleSamplingHelper thread stopping cleanly")
             rescue Exception => e # rubocop:disable Lint/RescueException
