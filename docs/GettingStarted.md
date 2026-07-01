@@ -2970,7 +2970,7 @@ Alternatively, set DI parameters inside a `Datadog.configure` block:
 
 #### Symbol Database
 
-When Dynamic Instrumentation is enabled, the tracer can extract and upload symbol information (class names, method signatures, parameter names) from your application to enable auto-completion in the DI UI. Symbol Database upload tracks the Dynamic Instrumentation feature gate: it is enabled by default when Dynamic Instrumentation is enabled and disabled by default otherwise. When enabled, it activates automatically using Remote Configuration.
+When Dynamic Instrumentation is enabled, the tracer can extract and upload symbol information (class names, method signatures, parameter names) from your application to enable auto-completion in the DI UI. Symbol Database upload follows the Dynamic Instrumentation setting: it's enabled by default when Dynamic Instrumentation is enabled and disabled by default otherwise. When enabled, it activates automatically using Remote Configuration.
 
 | Environment variable | Type | Description | Default |
 |---|---|---|---|
