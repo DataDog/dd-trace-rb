@@ -185,7 +185,39 @@ RSpec.describe Datadog::AppSec::Remote do
               metadata: {
                 rules_version: '2.0.0'
               },
-              rules: []
+              rules: [
+                {
+                  id: 'rasp-003-001',
+                  name: 'SQL Injection',
+                  tags: {
+                    type: 'sql_injection',
+                    category: 'exploit',
+                    module: 'rasp'
+                  },
+                  conditions: [
+                    {
+                      operator: 'sqli_detector',
+                      parameters: {
+                        resource: [{address: 'server.db.statement'}],
+                        params: [{address: 'server.request.query'}],
+                        db_type: [{address: 'server.db.system'}]
+                      }
+                    }
+                  ],
+                  on_match: ['block-sqli']
+                }
+              ],
+              actions: [
+                {
+                  id: 'block-sqli',
+                  type: 'block',
+                  parameters: {
+                    status_code: '418',
+                    grpc_status_code: '42',
+                    type: 'auto'
+                  }
+                }
+              ]
             }.to_json
           end
 
@@ -234,15 +266,23 @@ RSpec.describe Datadog::AppSec::Remote do
             engine = Datadog::AppSec.security_engine
             call_order = []
 
-            allow(engine).to receive(:remove_config_at_path) { |path| call_order << [:remove, path] }
-            allow(engine).to receive(:add_or_update_config) { |_, path:| call_order << [:add, path] }
-            allow(Datadog::AppSec).to receive(:reconfigure!)
+            allow(engine).to receive(:remove_config_at_path).and_wrap_original do |original, path|
+              call_order << [:remove, path]
+              original.call(path)
+            end
+            allow(engine).to receive(:add_or_update_config).and_wrap_original do |original, config, **kwargs|
+              call_order << [:add, kwargs.fetch(:path)]
+              original.call(config, **kwargs)
+            end
 
             receiver.call(repository, changeset)
+
+            engine.reconfigure!
 
             expect(call_order).to eq([
               [:remove, 'datadog/603646/ASM_DD/v1/config'],
               [:add, 'datadog/603646/ASM_DD/v2/config'],
+              [:remove, 'ASM_DD/default']
             ])
           end
         end
