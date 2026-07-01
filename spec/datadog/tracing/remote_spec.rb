@@ -94,6 +94,7 @@ RSpec.describe Datadog::Tracing::Remote do
 
           it 'replays any deferred Symbol Database upload' do
             expect(symbol_database).to receive(:resume_pending_upload)
+            expect(symbol_database).not_to receive(:stop_for_di_disable)
 
             process_config
 
@@ -104,7 +105,8 @@ RSpec.describe Datadog::Tracing::Remote do
         context 'to false' do
           let(:config) { {'lib_config' => {'dynamic_instrumentation_enabled' => false}} }
 
-          it 'does not replay Symbol Database upload' do
+          it 'stops Symbol Database (follows-DI case) and does not replay' do
+            expect(symbol_database).to receive(:stop_for_di_disable)
             expect(symbol_database).not_to receive(:resume_pending_upload)
 
             process_config

@@ -56,6 +56,12 @@ module Datadog
               # probe replay in handle_rc_enablement above. allow_initialization:
               # false because this runs on the remote-config worker thread.
               Datadog.send(:components, allow_initialization: false)&.symbol_database&.resume_pending_upload
+            else
+              # DI was disabled via remote configuration. In the nil-default
+              # (follows-DI) case, stop Symbol Database too so its TracePoint and
+              # scheduler don't keep uploading while DI is off. An explicit
+              # symbol_database.enabled = true is independent and keeps running.
+              Datadog.send(:components, allow_initialization: false)&.symbol_database&.stop_for_di_disable
             end
           end
 

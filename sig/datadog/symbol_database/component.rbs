@@ -51,6 +51,8 @@ module Datadog
 
       def resume_pending_upload: () -> void
 
+      def stop_for_di_disable: () -> void
+
       def wait_for_idle: (?timeout: ::Numeric) -> bool
 
       def shutdown!: () -> void
@@ -60,6 +62,8 @@ module Datadog
       private
 
       def upload_allowed?: () -> bool
+
+      def deferred_by_di_gate?: () -> bool
 
       def self.environment_supported?: (SymbolDatabase::Logger logger) -> bool
 

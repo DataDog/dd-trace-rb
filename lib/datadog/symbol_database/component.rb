@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative '../symbol_database'
 require_relative 'extractor'
 require_relative 'logger'
 require_relative 'scope_batcher'
@@ -194,14 +195,20 @@ module Datadog
           return if @shutdown
 
           unless upload_allowed?
-            # Remote config requested an upload (upload_symbols: true) but this is
-            # the nil-default case where Symbol Database mirrors Dynamic
-            # Instrumentation, and DI is not active. Defer: record the request and
-            # re-attempt via resume_pending_upload when DI is enabled. Without this
-            # gate the tracer would extract and upload symbols for applications
-            # that never enabled Dynamic Instrumentation.
-            @upload_pending = true
-            @logger.debug("symdb: upload requested but Dynamic Instrumentation is not active; deferring")
+            if deferred_by_di_gate?
+              # nil-default case: Symbol Database mirrors Dynamic Instrumentation
+              # and DI is not active. Defer and re-attempt via resume_pending_upload
+              # when DI is enabled. Without this gate the tracer would extract and
+              # upload symbols for applications that never enabled DI.
+              @upload_pending = true
+              @logger.debug("symdb: upload requested but Dynamic Instrumentation is not active; deferring until DI is enabled")
+            else
+              # Explicit symbol_database.enabled = false: the feature is disabled,
+              # not merely waiting on DI. Do not mark pending — resume_pending_upload
+              # must not retry a disabled feature.
+              @upload_pending = false
+              @logger.debug("symdb: upload requested but symbol database upload is disabled; skipping")
+            end
             return
           end
           @upload_pending = false
@@ -263,6 +270,20 @@ module Datadog
       def resume_pending_upload
         pending = @scheduler_mutex.synchronize { @upload_pending }
         start_upload if pending
+      end
+
+      # Stop uploading when Dynamic Instrumentation is disabled via remote
+      # configuration. Only the nil-default (follows-DI) case stops; an explicit
+      # symbol_database.enabled = true and force_upload are independent of DI and
+      # keep running. Called from the orchestration layer (Tracing::Remote) so
+      # Symbol Database's TracePoint and scheduler don't keep uploading after DI
+      # is turned off. No-op if uploads were never started.
+      # @return [void]
+      def stop_for_di_disable
+        return if @settings.symbol_database.internal.force_upload
+        return unless @settings.symbol_database.enabled.nil?
+
+        stop_upload
       end
 
       # Block until this Component finishes an extract+upload after this call,
@@ -430,6 +451,19 @@ module Datadog
         end
       end
 
+      # Whether upload is currently blocked specifically by the nil-default
+      # DI-active gate — the only case that defers and retries via
+      # resume_pending_upload. An explicit symbol_database.enabled = false is a
+      # disabled feature, not a deferral, and must not be marked pending.
+      # @return [bool]
+      def deferred_by_di_gate?
+        return false if @settings.symbol_database.internal.force_upload
+        return false unless @settings.symbol_database.enabled.nil?
+
+        # steep:ignore NoMethod — Steep does not narrow @di_active to non-nil after the .nil? check
+        !(@di_active.nil? || @di_active.call) # steep:ignore NoMethod
+      end
+
       # Check whether the runtime environment supports symbol database upload.
       # Only MRI Ruby 2.7+ is supported. JRuby and TruffleRuby are not supported
       # because ObjectSpace iteration and Method#source_location behave differently.
@@ -438,15 +472,14 @@ module Datadog
       # @param logger [Logger]
       # @return [Boolean]
       def self.environment_supported?(logger)
+        return true if SymbolDatabase.supported?
+
         if RUBY_ENGINE != 'ruby'
           logger.debug { "symdb: not supported on #{RUBY_ENGINE}, skipping" }
-          return false
-        end
-        if RubyVersion.is?('< 2.7')
+        else
           logger.debug { "symdb: requires Ruby 2.7+, running #{RUBY_VERSION}, skipping" }
-          return false
         end
-        true
+        false
       end
       private_class_method :environment_supported?
 

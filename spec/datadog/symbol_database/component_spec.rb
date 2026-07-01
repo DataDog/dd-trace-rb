@@ -312,6 +312,60 @@ RSpec.describe Datadog::SymbolDatabase::Component do
         expect(component.wait_for_idle(timeout: 5)).to be true
       end
     end
+
+    context 'when symbol_database.enabled is explicitly false' do
+      before { settings.symbol_database.enabled = false }
+
+      it 'skips the upload without marking it pending' do
+        expect(component).not_to receive(:extract_and_upload)
+
+        component.start_upload
+
+        expect(component.instance_variable_get(:@scheduled_at)).to be_nil
+        expect(component.instance_variable_get(:@upload_pending)).to be false
+      end
+    end
+  end
+
+  describe '#stop_for_di_disable' do
+    let(:component) do
+      described_class.new(settings, agent_settings, logger, di_active: -> { true })
+    end
+
+    after { component.shutdown! }
+
+    context 'when symbol_database.enabled is nil (follows DI)' do
+      before { settings.symbol_database.enabled = nil }
+
+      it 'stops uploading' do
+        expect(component).to receive(:stop_upload)
+
+        component.stop_for_di_disable
+      end
+    end
+
+    context 'when symbol_database.enabled is explicitly true' do
+      before { settings.symbol_database.enabled = true }
+
+      it 'keeps uploading (explicit opt-in is independent of DI)' do
+        expect(component).not_to receive(:stop_upload)
+
+        component.stop_for_di_disable
+      end
+    end
+
+    context 'when force_upload is set' do
+      before do
+        settings.symbol_database.enabled = nil
+        settings.symbol_database.internal.force_upload = true
+      end
+
+      it 'keeps uploading (force_upload is independent of DI)' do
+        expect(component).not_to receive(:stop_upload)
+
+        component.stop_for_di_disable
+      end
+    end
   end
 
   describe '#wait_for_idle' do
