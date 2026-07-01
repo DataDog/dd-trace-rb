@@ -282,6 +282,29 @@ RSpec.describe Datadog::SymbolDatabase::Component do
           expect(component.wait_for_idle(timeout: 5)).to be true
         end
       end
+
+      context 'after an upload has run and Dynamic Instrumentation is later disabled then re-enabled' do
+        before { di_active_state[:active] = true }
+
+        it 'restarts the upload on resume even though remote config does not re-send the config' do
+          allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
+
+          # Initial upload while DI is active.
+          component.start_upload
+          expect(component.wait_for_idle(timeout: 5)).to be true
+
+          # DI disabled via remote config: uploads are suspended, but the request
+          # is remembered so it can restart when DI comes back.
+          component.stop_for_di_disable
+          expect(component.instance_variable_get(:@upload_requested)).to be true
+
+          # DI re-enabled. Remote config does not re-dispatch the unchanged
+          # symbol-database config, so only resume_pending_upload runs; it must
+          # restart the upload from the retained desire.
+          component.resume_pending_upload
+          expect(component.wait_for_idle(timeout: 5)).to be true
+        end
+      end
     end
 
     context 'when symbol_database.enabled is explicitly true' do
@@ -337,8 +360,8 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     context 'when symbol_database.enabled is nil (follows DI)' do
       before { settings.symbol_database.enabled = nil }
 
-      it 'stops uploading' do
-        expect(component).to receive(:stop_upload)
+      it 'suspends uploading (preserving the request for a later resume)' do
+        expect(component).to receive(:suspend_scheduling)
 
         component.stop_for_di_disable
       end
@@ -348,7 +371,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       before { settings.symbol_database.enabled = true }
 
       it 'keeps uploading (explicit opt-in is independent of DI)' do
-        expect(component).not_to receive(:stop_upload)
+        expect(component).not_to receive(:suspend_scheduling)
 
         component.stop_for_di_disable
       end
@@ -361,7 +384,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       end
 
       it 'keeps uploading (force_upload is independent of DI)' do
-        expect(component).not_to receive(:stop_upload)
+        expect(component).not_to receive(:suspend_scheduling)
 
         component.stop_for_di_disable
       end

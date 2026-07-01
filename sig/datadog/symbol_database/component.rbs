@@ -30,6 +30,7 @@ module Datadog
       @initial_extraction_done: bool
       @di_active: (^() -> bool)?
       @upload_pending: bool
+      @upload_requested: bool
 
       def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, ::Logger logger, ?telemetry: Datadog::Core::Telemetry::Component?, ?di_active: (^() -> bool)?) -> Component?
 
@@ -60,6 +61,8 @@ module Datadog
       def after_fork!: () -> void
 
       private
+
+      def suspend_scheduling: () -> void
 
       def upload_allowed?: () -> bool
 

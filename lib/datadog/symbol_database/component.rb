@@ -145,9 +145,18 @@ module Datadog
         @initial_extraction_done = false
 
         # Set when a remote-config upload signal arrives while the DI-active gate
-        # is closed (nil-default case, DI not yet active). resume_pending_upload
-        # re-attempts the upload once DI is enabled.
+        # is closed (nil-default case, DI not yet active). Distinguishes the
+        # deferred case from an explicit disable for logging only.
         @upload_pending = false
+
+        # Sticky record of "remote config (or force mode) wants symbols
+        # uploaded", independent of whether DI is currently active. Set when an
+        # upload is requested and either allowed or deferred by the DI gate;
+        # cleared only when RC explicitly disables uploads (stop_upload). Unlike
+        # @upload_pending it survives stop_for_di_disable, so resume_pending_upload
+        # can restart uploads after a DI disable->re-enable cycle even though RC
+        # does not re-dispatch the unchanged symbol-database config.
+        @upload_requested = false
       end
 
       # Schedule a deferred upload that waits for app boot to complete.
@@ -197,20 +206,23 @@ module Datadog
           unless upload_allowed?
             if deferred_by_di_gate?
               # nil-default case: Symbol Database mirrors Dynamic Instrumentation
-              # and DI is not active. Defer and re-attempt via resume_pending_upload
-              # when DI is enabled. Without this gate the tracer would extract and
-              # upload symbols for applications that never enabled DI.
+              # and DI is not active. Record the desire and defer; resume_pending_upload
+              # re-attempts when DI is enabled. Without this gate the tracer would
+              # extract and upload symbols for applications that never enabled DI.
+              @upload_requested = true
               @upload_pending = true
               @logger.debug("symdb: upload requested but Dynamic Instrumentation is not active; deferring until DI is enabled")
             else
               # Explicit symbol_database.enabled = false: the feature is disabled,
-              # not merely waiting on DI. Do not mark pending — resume_pending_upload
-              # must not retry a disabled feature.
+              # not merely waiting on DI. Clear the desire so resume_pending_upload
+              # does not retry a disabled feature.
+              @upload_requested = false
               @upload_pending = false
               @logger.debug("symdb: upload requested but symbol database upload is disabled; skipping")
             end
             return
           end
+          @upload_requested = true
           @upload_pending = false
 
           if @owner_pid != Process.pid
@@ -235,41 +247,31 @@ module Datadog
         @telemetry&.report(e, description: 'symdb: error scheduling upload')
       end
 
-      # Stop symbol upload (cancel the scheduler) and suppress further hot-load
-      # extraction. Called when remote config sends upload_symbols: false or
-      # deletes the config. Disables the TracePoint :class hook so post-stop
-      # class loads don't re-arm the scheduler, clears the hot-load buffer, and
-      # resets @initial_extraction_done so a future re-enable performs a fresh
-      # extract_all instead of draining an empty buffer.
+      # Stop symbol upload in response to remote config sending
+      # upload_symbols: false or deleting the config: the customer no longer wants
+      # uploads, so clear the sticky @upload_requested desire (a later
+      # resume_pending_upload must not restart it) and tear down the scheduler and
+      # hot-load hook.
       # Thread-safe: can be called concurrently from multiple remote config updates.
-      # The TracePoint teardown sits inside the same @scheduler_mutex critical
-      # section as the @scheduled_at reset, so it is atomic against a concurrent
-      # start_upload (which installs the TracePoint under @scheduler_mutex). Without
-      # that, a stop interleaved with a start could leave an enabled TracePoint
-      # rooted by the VM after stop_upload returned.
       # @return [void]
       def stop_upload
-        @scheduler_mutex.synchronize do
-          @hot_load_tracepoint&.disable
-          @hot_load_tracepoint = nil
-          @scheduled_at = nil
-          @scheduler_signaled = true
-          @scheduler_cv.signal
-          @upload_pending = false
-        end
-        @hot_load_buffer_mutex.synchronize { @hot_load_buffer.clear }
-        @initial_extraction_done = false
+        @scheduler_mutex.synchronize { @upload_requested = false }
+        suspend_scheduling
       end
 
-      # Re-attempt a symbol upload that was deferred because Dynamic
-      # Instrumentation was not active when the remote-config upload signal
-      # arrived. Called from the orchestration layer (Tracing::Remote) when DI is
-      # enabled via remote configuration (implicit enablement). No-op unless an
-      # upload is pending.
+      # Re-attempt a symbol upload that remote config requested but that is not
+      # currently running because Dynamic Instrumentation was inactive — either
+      # deferred at request time, or suspended by stop_for_di_disable when DI was
+      # turned off. Called from the orchestration layer (Tracing::Remote) when DI
+      # is enabled via remote configuration (implicit enablement). No-op unless an
+      # upload was requested and not since disabled. Mirrors DI's
+      # replay_current_probes: RC does not re-dispatch the unchanged
+      # symbol-database config on DI re-enable, so the tracer restarts the upload
+      # from its own retained desire.
       # @return [void]
       def resume_pending_upload
-        pending = @scheduler_mutex.synchronize { @upload_pending }
-        start_upload if pending
+        requested = @scheduler_mutex.synchronize { @upload_requested }
+        start_upload if requested
       end
 
       # Stop uploading when Dynamic Instrumentation is disabled via remote
@@ -283,7 +285,10 @@ module Datadog
         return if @settings.symbol_database.internal.force_upload
         return unless @settings.symbol_database.enabled.nil?
 
-        stop_upload
+        # Suspend, don't stop: preserve @upload_requested so resume_pending_upload
+        # restarts the upload when DI is re-enabled and RC never re-sends the
+        # (unchanged) symbol-database config.
+        suspend_scheduling
       end
 
       # Block until this Component finishes an extract+upload after this call,
@@ -431,6 +436,31 @@ module Datadog
       end
 
       private
+
+      # Tear down the scheduler and hot-load hook without clearing the sticky
+      # @upload_requested desire, so resume_pending_upload can restart uploads
+      # that RC still wants. Disables the TracePoint :class hook so post-stop
+      # class loads don't re-arm the scheduler, clears the hot-load buffer, and
+      # resets @initial_extraction_done so a future resume performs a fresh
+      # extract_all instead of draining an empty buffer.
+      # The TracePoint teardown sits inside the same @scheduler_mutex critical
+      # section as the @scheduled_at reset, so it is atomic against a concurrent
+      # start_upload (which installs the TracePoint under @scheduler_mutex). Without
+      # that, a stop interleaved with a start could leave an enabled TracePoint
+      # rooted by the VM after this returned.
+      # @return [void]
+      def suspend_scheduling
+        @scheduler_mutex.synchronize do
+          @hot_load_tracepoint&.disable
+          @hot_load_tracepoint = nil
+          @scheduled_at = nil
+          @scheduler_signaled = true
+          @scheduler_cv.signal
+          @upload_pending = false
+        end
+        @hot_load_buffer_mutex.synchronize { @hot_load_buffer.clear }
+        @initial_extraction_done = false
+      end
 
       # Whether a remote-config-triggered upload may proceed now.
       #
