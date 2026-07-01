@@ -347,10 +347,7 @@ Symbol Database upload follows Dynamic Instrumentation. By default it
 uploads symbols only when Dynamic Instrumentation is actually enabled —
 either explicitly (`DD_DYNAMIC_INSTRUMENTATION_ENABLED=true`) or implicitly
 when you open the DI UI for your service (which enables Dynamic
-Instrumentation via Remote Configuration). For an application that never
-enables Dynamic Instrumentation, no symbol extraction or upload occurs.
-No additional configuration is required; when active it uploads using
-Remote Configuration.
+Instrumentation via Remote Configuration).
 
 To upload symbols regardless of Dynamic Instrumentation:
 
