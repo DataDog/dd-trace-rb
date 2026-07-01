@@ -678,9 +678,12 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       it "always simulates signal delivery" do
         start
 
+        # `serialize!` drains the recorder, so `all_samples` is exactly the batch drained by the iteration that
+        # satisfies the wait condition, and `sample_count` below is computed from it. Wait until that batch
+        # contains a main-thread sample so the batch we keep is guaranteed to have one.
         all_samples = try_wait_until do
           samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
-          samples if samples.any?
+          samples if samples_for_thread(samples, Thread.current).any?
         end
 
         cpu_and_wall_time_worker.stop
