@@ -33,6 +33,16 @@ CORE_WITH_LIBDATADOG_API = [
   'spec/datadog/core/datadog_ruby_common_spec.rb',
 ].freeze
 
+# Native trace exporter / transport specs (spec/datadog/tracing/transport/native).
+# They need the libdatadog_api extension but are deliberately kept OUT of
+# CORE_WITH_LIBDATADOG_API: that pool also runs the fork-heavy ProcessDiscovery
+# specs, and a live native exporter (SharedRuntime threads) present at fork time
+# deadlocks the child until fork safety lands (#5835). Running them in their own
+# task keeps them in a separate process.
+NATIVE_TRANSPORT_SPECS = [
+  'spec/datadog/tracing/transport/native/**/*_spec.rb',
+].freeze
+
 DI_WITH_EXT = %w[
   spec/datadog/di/*_spec.rb
   spec/datadog/di/**/*_spec.rb
@@ -93,7 +103,7 @@ namespace :spec do
     :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
     :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
     :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
-    :profiling, :core_with_libdatadog_api, :"di:di_with_ext", :"di:ractors", :error_tracking, :open_feature, :core_with_rails, :environment, :ai_guard]
+    :profiling, :core_with_libdatadog_api, :native_transport, :"di:di_with_ext", :"di:ractors", :error_tracking, :open_feature, :core_with_rails, :environment, :ai_guard]
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
@@ -105,7 +115,8 @@ namespace :spec do
                         ' spec/datadog/di/*_spec.rb,' \
                         ' spec/datadog/di/**/*_spec.rb,' \
                         ' spec/datadog/gem_packaging_spec.rb,' \
-                        + CORE_WITH_LIBDATADOG_API.join(', ')
+                        + CORE_WITH_LIBDATADOG_API.join(', ') + ', ' \
+                        + NATIVE_TRANSPORT_SPECS.join(', ')
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -270,6 +281,17 @@ namespace :spec do
   # - profiling extension is needed for crashtracking runtime stack capture
   Rake::Task['spec:core_with_libdatadog_api'].enhance([:compile])
   Rake::Task['spec:core_with_libdatadog_api_memcheck'].enhance([:compile]) if Gem.loaded_specs.key?('ruby_memcheck')
+
+  desc '' # "Explicitly hiding from `rake -T`"
+  RSpec::Core::RakeTask.new(:native_transport) do |t, args|
+    t.pattern = NATIVE_TRANSPORT_SPECS.join(', ')
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  # Native trace exporter / transport specs need the libdatadog_api extension;
+  # run in their own process (see NATIVE_TRANSPORT_SPECS) to avoid sharing with
+  # the fork-heavy ProcessDiscovery specs.
+  Rake::Task['spec:native_transport'].enhance([:compile])
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:core_with_rails) do |t, args|
