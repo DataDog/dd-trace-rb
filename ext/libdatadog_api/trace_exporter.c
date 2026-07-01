@@ -638,11 +638,10 @@ static VALUE build_and_send_traces(VALUE arg) {
   /* Extract the response body as a Ruby string before freeing. */
   VALUE payload = Qnil;
   if (args.response != NULL) {
-    uintptr_t body_len = 0;
-    const uint8_t *body_ptr =
-        ddog_trace_exporter_response_get_body(args.response, &body_len);
-    if (body_ptr != NULL && body_len > 0) {
-      payload = rb_str_new((const char *)body_ptr, (long)body_len);
+    ddog_ByteSlice body =
+        ddog_trace_exporter_response_get_body(args.response);
+    if (body.len > 0) {
+      payload = rb_str_new((const char *)body.ptr, (long)body.len);
     }
     ddog_trace_exporter_response_free(args.response);
     args.response = NULL;
