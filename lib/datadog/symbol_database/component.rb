@@ -201,7 +201,7 @@ module Datadog
             # gate the tracer would extract and upload symbols for applications
             # that never enabled Dynamic Instrumentation.
             @upload_pending = true
-            @logger.debug { "symdb: upload requested but Dynamic Instrumentation is not active; deferring" }
+            @logger.debug("symdb: upload requested but Dynamic Instrumentation is not active; deferring")
             return
           end
           @upload_pending = false
@@ -425,6 +425,7 @@ module Datadog
         case @settings.symbol_database.enabled
         when true then true
         when false then false
+        # steep:ignore NoMethod — Steep does not narrow @di_active to non-nil after the .nil? check
         else @di_active.nil? || @di_active.call # steep:ignore NoMethod
         end
       end
