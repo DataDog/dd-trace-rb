@@ -2,6 +2,7 @@
 #include <ruby/thread.h>
 #include <stdbool.h>
 #include <datadog/data-pipeline.h>
+#include <datadog/shared-runtime.h>
 
 #include "datadog_ruby_common.h"
 #include "helpers.h"
@@ -20,6 +21,9 @@ static VALUE _native_from_span(VALUE klass, VALUE span);
 /* TraceExporter methods */
 static VALUE _native_exporter_new(int argc, VALUE *argv, VALUE klass);
 static VALUE _native_send_traces(VALUE self, VALUE traces);
+static VALUE _native_before_fork(VALUE self);
+static VALUE _native_after_fork_in_parent(VALUE self);
+static VALUE _native_after_fork_in_child(VALUE self);
 
 /* Response helpers */
 static VALUE create_ok_response(long trace_count, VALUE payload);
@@ -82,6 +86,16 @@ static void tracer_span_dfree(void *ptr) {
   }
 }
 
+/*
+ * The TraceExporter wrapper owns both the Rust exporter and the SharedRuntime
+ * that drives its background workers.  Fork-safety hooks operate on the
+ * runtime, while send/receive operate on the exporter.
+ */
+typedef struct {
+  ddog_TraceExporter       *exporter;
+  const ddog_SharedRuntime *runtime;
+} trace_exporter_t;
+
 static const rb_data_type_t trace_exporter_typed_data = {
   .wrap_struct_name = "Datadog::Tracing::Transport::Native::TraceExporter",
   .function = {
@@ -94,7 +108,14 @@ static const rb_data_type_t trace_exporter_typed_data = {
 
 static void trace_exporter_dfree(void *ptr) {
   if (ptr != NULL) {
-    ddog_trace_exporter_free((ddog_TraceExporter *)ptr);
+    trace_exporter_t *wrapper = (trace_exporter_t *)ptr;
+    if (wrapper->exporter != NULL) {
+      ddog_trace_exporter_free(wrapper->exporter);
+    }
+    if (wrapper->runtime != NULL) {
+      ddog_shared_runtime_free(wrapper->runtime);
+    }
+    ruby_xfree(wrapper);
   }
 }
 
@@ -117,6 +138,24 @@ static inline void check_exporter_error(const char *context,
     snprintf(buf, sizeof(buf), "%s: (unknown error)", context);
   }
   ddog_trace_exporter_error_free(err);
+  raise_error(rb_eRuntimeError, "%s", buf);
+}
+
+/*
+ * If +err+ is non-NULL, copies the message, frees the error struct, and
+ * raises a Ruby RuntimeError.  Does not return on error.
+ */
+static inline void check_shared_runtime_error(const char *context,
+                                              ddog_SharedRuntimeFFIError *err) {
+  if (err == NULL) return;
+
+  char buf[MAX_RAISE_MESSAGE_SIZE];
+  if (err->msg != NULL) {
+    snprintf(buf, sizeof(buf), "%s: %s", context, err->msg);
+  } else {
+    snprintf(buf, sizeof(buf), "%s: (unknown error)", context);
+  }
+  ddog_shared_runtime_error_free(err);
   raise_error(rb_eRuntimeError, "%s", buf);
 }
 
@@ -461,6 +500,34 @@ static VALUE _native_exporter_new(
   ddog_TraceExporterConfig *config = NULL;
   ddog_trace_exporter_config_new(&config);
 
+  /*
+   * Create a SharedRuntime and attach it to the config before building the
+   * exporter.  The exporter holds a clone of the runtime's Arc; we keep our
+   * own handle in the wrapper to drive fork-safety hooks and to free it when
+   * the exporter is collected.
+   */
+  const ddog_SharedRuntime *runtime = NULL;
+  ddog_SharedRuntimeFFIError *rt_err = ddog_shared_runtime_new(&runtime);
+  if (rt_err != NULL) {
+    ddog_trace_exporter_config_free(config);
+    check_shared_runtime_error("Failed to create SharedRuntime", rt_err);
+  }
+
+  /*
+   * Const asymmetry: ddog_shared_runtime_new yields a `const ddog_SharedRuntime *`
+   * but the setter takes a non-const pointer.  The setter only clones the Arc,
+   * so casting away const here is safe.
+   */
+  {
+    ddog_TraceExporterError *attach_err = ddog_trace_exporter_config_set_shared_runtime(
+        config, (ddog_SharedRuntime *)runtime);
+    if (attach_err != NULL) {
+      ddog_trace_exporter_config_free(config);
+      ddog_shared_runtime_free(runtime);
+      check_exporter_error("Failed to attach SharedRuntime to config", attach_err);
+    }
+  }
+
   set_config_field(config, ddog_trace_exporter_config_set_url,               rb_url,                   "url");
   set_config_field(config, ddog_trace_exporter_config_set_tracer_version,    rb_tracer_version,        "tracer_version");
   set_config_field(config, ddog_trace_exporter_config_set_language,          rb_language,              "language");
@@ -478,11 +545,56 @@ static VALUE _native_exporter_new(
   config = NULL;
 
   if (err) {
+    ddog_shared_runtime_free(runtime);
     check_exporter_error("Failed to create TraceExporter", err);
   }
 
+  trace_exporter_t *wrapper = ruby_xmalloc(sizeof(trace_exporter_t));
+  wrapper->exporter = exporter;
+  wrapper->runtime  = runtime;
+
   return TypedData_Wrap_Struct(trace_exporter_class, &trace_exporter_typed_data,
-                               exporter);
+                               wrapper);
+}
+
+/* ========================================================================
+ * Fork safety hooks
+ *
+ * These coordinate the tokio runtime lifecycle around process forks
+ * (Puma, Unicorn, Passenger).
+ * ======================================================================== */
+
+static VALUE _native_before_fork(VALUE self) {
+  trace_exporter_t *wrapper;
+  TypedData_Get_Struct(self, trace_exporter_t, &trace_exporter_typed_data, wrapper);
+  if (wrapper == NULL || wrapper->runtime == NULL) {
+    raise_error(rb_eRuntimeError, "TraceExporter has not been initialized or was already freed");
+  }
+  ddog_SharedRuntimeFFIError *err = ddog_shared_runtime_before_fork(wrapper->runtime);
+  check_shared_runtime_error("Failed to prepare for fork", err);
+  return Qnil;
+}
+
+static VALUE _native_after_fork_in_parent(VALUE self) {
+  trace_exporter_t *wrapper;
+  TypedData_Get_Struct(self, trace_exporter_t, &trace_exporter_typed_data, wrapper);
+  if (wrapper == NULL || wrapper->runtime == NULL) {
+    raise_error(rb_eRuntimeError, "TraceExporter has not been initialized or was already freed");
+  }
+  ddog_SharedRuntimeFFIError *err = ddog_shared_runtime_after_fork_parent(wrapper->runtime);
+  check_shared_runtime_error("Failed to restore after fork in parent", err);
+  return Qnil;
+}
+
+static VALUE _native_after_fork_in_child(VALUE self) {
+  trace_exporter_t *wrapper;
+  TypedData_Get_Struct(self, trace_exporter_t, &trace_exporter_typed_data, wrapper);
+  if (wrapper == NULL || wrapper->runtime == NULL) {
+    raise_error(rb_eRuntimeError, "TraceExporter has not been initialized or was already freed");
+  }
+  ddog_SharedRuntimeFFIError *err = ddog_shared_runtime_after_fork_child(wrapper->runtime);
+  check_shared_runtime_error("Failed to restore after fork in child", err);
+  return Qnil;
 }
 
 /* ========================================================================
@@ -497,6 +609,7 @@ typedef struct {
   const ddog_TraceExporter       *exporter;
   ddog_TracerTraceChunks         *chunks;
   ddog_TraceExporterResponse     *response;
+  ddog_TraceExporterCancelToken  *cancel_token;  /* borrowed, not owned */
   ddog_TraceExporterErrorCode     error_code;
   bool                            failed;
   bool                            send_ran;
@@ -505,7 +618,7 @@ typedef struct {
 static void *send_chunks_without_gvl(void *data) {
   send_chunks_args_t *args = (send_chunks_args_t *)data;
   ddog_TraceExporterError *err = ddog_trace_exporter_send_trace_chunks(
-      args->exporter, args->chunks, &args->response);
+      args->exporter, args->chunks, &args->response, args->cancel_token);
   if (err != NULL) {
     args->error_code = err->code;
     args->failed = true;
@@ -513,6 +626,20 @@ static void *send_chunks_without_gvl(void *data) {
   }
   args->send_ran = true;
   return NULL;
+}
+
+/*
+ * Unblock function: cooperatively cancel an in-flight send.
+ *
+ * Called by Ruby when an interrupt (Thread#kill, shutdown) fires while
+ * the thread is inside rb_thread_call_without_gvl2.  Cancelling the
+ * token causes the Rust HTTP pipeline to abort the in-flight request
+ * and return promptly, which is not possible with RUBY_UBF_IO's
+ * signal-based approach.
+ */
+static void interrupt_exporter_call(void *cancel_token) {
+  ddog_trace_exporter_cancel_token_cancel(
+      (const ddog_TraceExporterCancelToken *)cancel_token);
 }
 
 /*
@@ -607,13 +734,24 @@ static VALUE build_and_send_traces(VALUE arg) {
    * response before any Ruby exception propagates -- otherwise we
    * would leak those Rust-allocated objects.
    *
+   * A cancellation token is created per send call and passed to the
+   * custom unblock function (interrupt_exporter_call).  When Ruby
+   * interrupts the thread (shutdown, Thread#kill), the UBF cancels
+   * the token, which cooperatively aborts the in-flight HTTP request
+   * in the Rust runtime.  This replaces the signal-based RUBY_UBF_IO
+   * which could not actually cancel the Rust HTTP pipeline.
+   *
    * An interrupt (e.g. Thread#kill) may cause gvl2 to return before
    * our function runs, so we loop until it does.
    */
+  ddog_TraceExporterCancelToken *cancel_token =
+      ddog_trace_exporter_cancel_token_new();
+
   send_chunks_args_t args = {
     .exporter     = ctx->exporter,
     .chunks       = ctx->chunks,
     .response     = NULL,
+    .cancel_token = cancel_token,
     .failed       = false,
     .send_ran     = false,
   };
@@ -622,12 +760,14 @@ static VALUE build_and_send_traces(VALUE arg) {
   while (!args.send_ran && !pending_exception) {
     rb_thread_call_without_gvl2(
         send_chunks_without_gvl, &args,
-        RUBY_UBF_IO, NULL);
+        interrupt_exporter_call, cancel_token);
 
     if (!args.send_ran) {
       pending_exception = check_if_pending_exception();
     }
   }
+
+  ddog_trace_exporter_cancel_token_drop(cancel_token);
   /* Only null chunks when the send actually ran and consumed them.
    * If an interrupt fired before the send executed, chunks are still
    * live and the ensure handler must free them. */
@@ -647,6 +787,23 @@ static VALUE build_and_send_traces(VALUE arg) {
     args.response = NULL;
   }
 
+  /*
+   * Re-check for a pending interrupt unconditionally before deciding the
+   * outcome.  In a race, the unblock function (interrupt_exporter_call) can
+   * fire -- cancelling the token -- while the send still completes, so
+   * rb_thread_call_without_gvl2 returns with args.send_ran == true.  In that
+   * case the loop above exits without ever calling check_if_pending_exception(),
+   * leaving the interrupt pending.  If we did not check here, the cancelled
+   * send would fall through and be reported as an ordinary transport error
+   * response, swallowing the interrupt (e.g. Thread#kill / shutdown).
+   *
+   * This runs after the response has already been extracted and freed and
+   * after chunks have been handed off to the ensure handler, so re-raising
+   * here leaks nothing.
+   */
+  if (!pending_exception) {
+    pending_exception = check_if_pending_exception();
+  }
   if (pending_exception) {
     rb_jump_tag(pending_exception);
   }
@@ -676,10 +833,10 @@ static VALUE free_chunks_if_needed(VALUE arg) {
 static VALUE _native_send_traces(VALUE self, VALUE traces) {
   ENFORCE_TYPE(traces, T_ARRAY);
 
-  ddog_TraceExporter *exporter;
-  TypedData_Get_Struct(self, ddog_TraceExporter, &trace_exporter_typed_data,
-                       exporter);
-  if (exporter == NULL) {
+  trace_exporter_t *wrapper;
+  TypedData_Get_Struct(self, trace_exporter_t, &trace_exporter_typed_data,
+                       wrapper);
+  if (wrapper == NULL || wrapper->exporter == NULL) {
     raise_error(rb_eRuntimeError,
                 "TraceExporter has not been initialized or was already freed");
   }
@@ -701,7 +858,7 @@ static VALUE _native_send_traces(VALUE self, VALUE traces) {
   }
 
   send_traces_ctx ctx = {
-    .exporter    = exporter,
+    .exporter    = wrapper->exporter,
     .traces      = traces,
     .trace_count = trace_count,
     .chunks      = chunks,
@@ -747,6 +904,14 @@ void trace_exporter_init(VALUE tracing_module) {
   /* Instance: _native_send_traces(traces) -> Array[Response] */
   rb_define_method(trace_exporter_class, "_native_send_traces",
                    _native_send_traces, 1);
+
+  /* Instance: fork safety hooks */
+  rb_define_method(trace_exporter_class, "_native_before_fork",
+                   _native_before_fork, 0);
+  rb_define_method(trace_exporter_class, "_native_after_fork_in_parent",
+                   _native_after_fork_in_parent, 0);
+  rb_define_method(trace_exporter_class, "_native_after_fork_in_child",
+                   _native_after_fork_in_child, 0);
 
   /* ----------------------------------------------------------------
    * Response class (defined in Ruby, loaded lazily)

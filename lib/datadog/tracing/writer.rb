@@ -173,10 +173,23 @@ module Datadog
       def stop_worker
         @stopped = true
 
-        return if @worker.nil?
+        if @worker
+          @worker.stop
+          @worker = nil
+        end
 
-        @worker.stop
-        @worker = nil
+        # Stopping a writer is permanent: once `@stopped` is set, `#start`
+        # refuses to spin up a new worker, so this writer (and the transport it
+        # owns) is being discarded for good. Forks do not stop the writer
+        # (`#start` re-creates the worker for the new pid while reusing the same
+        # transport), so this only runs on real teardown/reconfiguration.
+        #
+        # Deterministically release transports that hold native resources
+        # (e.g. the native trace exporter's Rust runtime and process-global
+        # fork hooks) instead of waiting on the GC finalizer. The default HTTP
+        # transport has no `#close` and is left untouched. `#close` is
+        # idempotent, so repeated `#stop` calls are safe.
+        @transport.close if @transport.respond_to?(:close)
 
         true
       end
