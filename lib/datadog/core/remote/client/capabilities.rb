@@ -59,7 +59,11 @@ module Datadog
               register_receivers(Datadog::DI::Remote.receivers(@telemetry))
             end
 
-            if settings.respond_to?(:symbol_database)
+            # Only advertise on runtimes where SymbolDatabase::Component can build
+            # (MRI 2.7+). DI supports Ruby 2.6, but Symbol Database does not, so
+            # without this guard the product would be advertised on 2.6 while no
+            # component exists to service the upload config.
+            if settings.respond_to?(:symbol_database) && Datadog::SymbolDatabase.supported?
               # Symbol database follows DI: when unset it advertises whenever DI
               # advertises (mirror the DI branch above, including the unset/default
               # case that RC may enable). An explicit symbol_database.enabled wins.

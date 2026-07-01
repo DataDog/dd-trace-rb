@@ -5,5 +5,7 @@ module Datadog
     UNKNOWN_MAX_LINE: Integer
 
     def self.resolve_enabled: (bool? setting_value, bool di_fallback) -> bool
+
+    def self.supported?: () -> bool
   end
 end

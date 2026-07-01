@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'ruby_version'
+
 module Datadog
   # Namespace for Datadog symbol database upload.
   #
@@ -54,6 +56,15 @@ module Datadog
     # @return [Boolean]
     def self.resolve_enabled(setting_value, di_fallback)
       setting_value.nil? ? di_fallback : setting_value
+    end
+
+    # Whether the current runtime supports symbol database upload (MRI 2.7+),
+    # without logging. Used by the remote-config layer to avoid advertising the
+    # product on runtimes where Component.build would return nil (e.g. Ruby 2.6,
+    # which Dynamic Instrumentation supports but Symbol Database does not).
+    # @return [Boolean]
+    def self.supported?
+      RUBY_ENGINE == 'ruby' && Datadog::RubyVersion.is?('>= 2.7')
     end
   end
 end

@@ -252,6 +252,17 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         expect(capabilities.products).to include('LIVE_DEBUGGING_SYMBOL_DB')
       end
     end
+
+    context 'when the runtime does not support Symbol Database (e.g. Ruby 2.6)' do
+      let(:settings) { Datadog::Core::Configuration::Settings.new }
+
+      before { allow(Datadog::SymbolDatabase).to receive(:supported?).and_return(false) }
+
+      it 'does not register symbol database product but still advertises DI' do
+        expect(capabilities.products).to include('LIVE_DEBUGGING')
+        expect(capabilities.products).to_not include('LIVE_DEBUGGING_SYMBOL_DB')
+      end
+    end
   end
 
   context 'Tracing component' do
