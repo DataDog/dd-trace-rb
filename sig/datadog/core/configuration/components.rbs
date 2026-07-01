@@ -4,7 +4,7 @@ module Datadog
       class Components
         def self.build_health_metrics: (untyped settings) -> untyped
 
-        def self.enable_symbol_database?: (untyped settings, untyped dynamic_instrumentation) -> bool
+        def self.enable_symbol_database?: (untyped settings, Datadog::DI::Component? dynamic_instrumentation) -> bool
 
         def self.build_logger: (untyped settings) -> untyped
 

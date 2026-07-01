@@ -22,7 +22,6 @@ module Datadog
 
           def register: (Datadog::Core::Configuration::Settings settings) -> void
 
-
           def register_capabilities: (Array[Integer] capabilities) -> void
 
           def register_receivers: (Array[Core::Remote::Dispatcher::Receiver] receivers) -> void
