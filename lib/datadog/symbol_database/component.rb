@@ -66,8 +66,8 @@ module Datadog
       # @param telemetry [Core::Telemetry::Component, nil] Telemetry component for error reporting
       # @param di_active [Proc, nil] Predicate returning whether Dynamic
       #   Instrumentation is currently active (started). Gates remote-config
-      #   uploads in the nil-default case; nil means "no gate" (used by tests
-      #   and standalone force_upload contexts).
+      #   uploads in the nil-default case; nil means "no gate" (standalone
+      #   force_upload contexts).
       # @return [Component, nil] Component instance or nil if requirements not met
       def self.build(settings, agent_settings, logger, telemetry: nil, di_active: nil)
         symdb_logger = SymbolDatabase::Logger.new(settings, logger)
