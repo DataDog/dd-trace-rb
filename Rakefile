@@ -42,7 +42,8 @@ DI_WITH_EXT = %w[
 # Add new instrumentation libraries here as they gain DSM support
 DSM_ENABLED_LIBRARIES = [
   :kafka,
-  :karafka
+  :karafka,
+  :racecar
 ].freeze
 
 # rubocop:disable Metrics/BlockLength
