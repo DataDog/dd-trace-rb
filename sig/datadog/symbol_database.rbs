@@ -6,6 +6,6 @@ module Datadog
 
     def self.resolve_enabled: (bool? setting_value, bool di_fallback) -> bool
 
-    def self.supported?: () -> bool
+    def self.supported_runtime?: () -> bool
   end
 end

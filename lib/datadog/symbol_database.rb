@@ -58,13 +58,14 @@ module Datadog
       setting_value.nil? ? di_fallback : setting_value
     end
 
-    # Whether the current runtime supports symbol database upload (MRI 2.7+),
-    # without logging. Used by the remote-config layer to avoid advertising the
-    # product on runtimes where Component.build would return nil (e.g. Ruby 2.6,
-    # which Dynamic Instrumentation supports but Symbol Database does not).
+    # Whether the current Ruby runtime can run symbol database extraction:
+    # MRI (CRuby) on Ruby 2.7 or later. Used by the remote-config layer to avoid
+    # advertising the product on runtimes where Component.build would return nil
+    # (e.g. Ruby 2.6, which Dynamic Instrumentation supports but Symbol Database
+    # does not).
     # @return [Boolean]
-    def self.supported?
-      RUBY_ENGINE == 'ruby' && Datadog::RubyVersion.is?('>= 2.7')
+    def self.supported_runtime?
+      RUBY_ENGINE == 'ruby' && RubyVersion.is?('>= 2.7')
     end
   end
 end
