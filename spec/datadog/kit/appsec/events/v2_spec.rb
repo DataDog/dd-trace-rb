@@ -122,7 +122,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
         let(:components) { instance_double(Datadog::Core::Configuration::Components) }
         let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
-        it 'record telemetry metrics' do
+        it 'records telemetry metrics' do
           expect(telemetry).to receive(:inc)
             .with('appsec', 'sdk.event', 1, tags: {event_type: 'login_success', sdk_version: 'v2'})
 
@@ -144,6 +144,157 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
           expect(logger).to receive(:debug).with(/Telemetry component is unavailable/)
 
           sdk.track_user_login_success('john.snow')
+        end
+      end
+    end
+  end
+
+  describe '#track_user_signup' do
+    context 'when AppSec context is active' do
+      let(:context) { instance_double(Datadog::AppSec::Context, trace: trace, span: span) }
+      let(:trace) { Datadog::Tracing::TraceOperation.new }
+      let(:span) { trace.build_span('root') }
+      let(:gateway) { ::Datadog::AppSec::Instrumentation.gateway }
+
+      before { allow(Datadog::AppSec).to receive(:active_context).and_return(context) }
+
+      it 'raises exception when user key :id is missing' do
+        expect { sdk.track_user_signup('john.snow', {}) }
+          .to raise_error(ArgumentError, 'missing required user key `:id`')
+      end
+
+      it 'raises exception when user key :id is not String' do
+        expect { sdk.track_user_signup('john.snow', {id: 15}) }
+          .to raise_error(TypeError, 'user key `:id` must be a String')
+      end
+
+      it 'raises exception when user id argument is not string' do
+        expect { sdk.track_user_signup('john.snow', 15) }
+          .to raise_error(TypeError, '`user_or_id` argument must be either String or Hash')
+      end
+
+      it 'raises exception when login argument is not string' do
+        expect { sdk.track_user_signup(12, '42') }
+          .to raise_error(TypeError, '`login` argument must be a String')
+      end
+
+      it 'raises exception when metadata argument is not Hash' do
+        expect { sdk.track_user_signup('john.snow', '42', 15) }
+          .to raise_error(TypeError, '`metadata` argument must be a Hash')
+      end
+
+      it 'sets required tags on service entry span' do
+        expect { sdk.track_user_signup('john.snow', '13') }
+          .to change { span.tags }.to include(
+            'usr.id' => '13',
+            'usr.login' => 'john.snow',
+            'appsec.events.users.signup.usr.id' => '13',
+            'appsec.events.users.signup.usr.login' => 'john.snow',
+            'appsec.events.users.signup.track' => 'true',
+            '_dd.appsec.user.collection_mode' => 'sdk',
+            '_dd.appsec.events.users.signup.sdk' => 'true',
+          )
+      end
+
+      context 'when user ID is omitted' do
+        before { allow(gateway).to receive(:push).and_call_original }
+
+        it 'sends login to AppSec for evaluation' do
+          expect(gateway).to receive(:push)
+            .with(
+              'identity.set_user',
+              have_attributes(id: nil, login: 'john.snow', session_id: nil)
+            )
+            .and_call_original
+
+          expect { sdk.track_user_signup('john.snow') }
+            .to change { span.tags }.to include(
+              'appsec.events.users.signup.usr.login' => 'john.snow',
+              'appsec.events.users.signup.track' => 'true',
+              '_dd.appsec.events.users.signup.sdk' => 'true',
+            )
+
+          expect(span.tags).not_to have_key('usr.id')
+          expect(span.tags).not_to have_key('usr.login')
+          expect(span.tags).not_to have_key('_dd.appsec.user.collection_mode')
+        end
+
+        it 'sets metadata as tags on service entry span' do
+          expect { sdk.track_user_signup('john.snow', nil, hello: 'world') }
+            .to change { span.tags }.to include(
+              'appsec.events.users.signup.usr.login' => 'john.snow',
+              'appsec.events.users.signup.hello' => 'world',
+              'appsec.events.users.signup.track' => 'true',
+              '_dd.appsec.events.users.signup.sdk' => 'true',
+            )
+        end
+      end
+
+      it 'sets metadata as tags on service entry span' do
+        expect { sdk.track_user_signup('john.snow', '13', hello: 'world') }
+          .to change { span.tags }.to include(
+            'usr.id' => '13',
+            'usr.login' => 'john.snow',
+            'appsec.events.users.signup.usr.id' => '13',
+            'appsec.events.users.signup.usr.login' => 'john.snow',
+            'appsec.events.users.signup.hello' => 'world',
+            'appsec.events.users.signup.track' => 'true',
+            '_dd.appsec.user.collection_mode' => 'sdk',
+            '_dd.appsec.events.users.signup.sdk' => 'true',
+          )
+      end
+
+      it 'sets user login from argument and overrides it in user object' do
+        expect { sdk.track_user_signup('john.snow', {id: '13', login: 'john.wick'}) }
+          .to change { span.tags }.to include(
+            'usr.id' => '13',
+            'usr.login' => 'john.snow',
+            'appsec.events.users.signup.usr.id' => '13',
+            'appsec.events.users.signup.usr.login' => 'john.snow',
+            'appsec.events.users.signup.track' => 'true',
+            '_dd.appsec.user.collection_mode' => 'sdk',
+            '_dd.appsec.events.users.signup.sdk' => 'true',
+          )
+      end
+
+      it 'sets track to true even if metadata track key is false' do
+        expect { sdk.track_user_signup('john.snow', '42', track: 'false') }
+          .to change { span.tags }.to include(
+            'appsec.events.users.signup.track' => 'true',
+          )
+      end
+
+      context 'when telemetry is available' do
+        before do
+          allow(Datadog).to receive(:components).and_return(components)
+          allow(components).to receive(:telemetry).and_return(telemetry)
+        end
+
+        let(:components) { instance_double(Datadog::Core::Configuration::Components) }
+        let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
+        it 'records telemetry metrics' do
+          expect(telemetry).to receive(:inc)
+            .with('appsec', 'sdk.event', 1, tags: {event_type: 'signup', sdk_version: 'v2'})
+
+          sdk.track_user_signup('john.snow', '13')
+        end
+      end
+
+      context 'when telemetry is not available' do
+        before do
+          allow(Datadog).to receive(:components).and_return(components)
+          allow(components).to receive(:telemetry).and_return(nil)
+          allow(components).to receive(:logger).and_return(logger)
+        end
+
+        let(:logger) { instance_double(Logger) }
+        let(:components) { instance_double(Datadog::Core::Configuration::Components) }
+
+        it 'does not record telemetry metrics' do
+          expect(logger).to receive(:debug).with(/Telemetry component is unavailable/)
+
+          sdk.track_user_signup('john.snow', '13')
         end
       end
     end
