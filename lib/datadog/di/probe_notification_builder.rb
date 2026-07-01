@@ -47,8 +47,9 @@ module Datadog
       # @return [Datadog::Core::Telemetry::Component, nil]
       attr_reader :telemetry
 
-      # Lazily-constructed sub-component that evaluates probe.capture_expressions
-      # during build_snapshot when probe.capture_expressions? is true.
+      # Sub-component that evaluates probe.capture_expressions during
+      # build_snapshot when probe.capture_expressions? is true. Constructed
+      # in the initializer alongside the other collaborators.
       # @return [Datadog::DI::CaptureExpressionEvaluator]
       attr_reader :capture_expression_evaluator
 
