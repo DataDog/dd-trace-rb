@@ -172,14 +172,13 @@ module Datadog
           # access it directly, bypassing Thread#[]/Thread#[]= method dispatch
           # so user probes on those cannot recurse.
           #
-          # do_super invokes the original method via super. The lambda
-          # captures super's binding from inside this define_method block —
-          # the only place super resolves to the prepended-on class's method.
-          # #run_method_probe receives it and calls it (via DI.invoke_proc,
-          # which bypasses Proc#call dispatch so a user probe on Proc#call
-          # cannot intercept the trampoline) instead of using super directly.
-          # It is allocated only after the guard check so the guarded path
-          # skips the allocation.
+          # The original method is invoked via super. That super call lives
+          # in a block passed to #run_method_probe and captures its binding
+          # from inside this define_method block — the only place super
+          # resolves to the prepended-on class's method. #run_method_probe
+          # invokes it with yield, which does not dispatch Proc#call, so a
+          # user probe on Proc#call cannot intercept the trampoline, and no
+          # Proc is allocated for the block.
           if RubyVersion.is?('>= 3')
             define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore NoMethod
               # steep:ignore FallbackAny below: Steep cannot narrow the
@@ -194,8 +193,8 @@ module Datadog
                 self,
                 probe, responder,
                 loc, method_name,
-              ) do |a, k, blk|
-                super(*a, **k, &blk)
+              ) do
+                super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
               end
             end
           else
@@ -204,18 +203,18 @@ module Datadog
                 return super(*args, &target_block)
               end
 
-              # do_super replays the original *args (closed over here) so the
-              # ruby2_keywords-flagged trailing hash keeps its identity. The
-              # a/k parameters it receives from run_method_probe are the
-              # serialization-split arguments and are unused for forwarding.
+              # The super block replays the original *args (closed over here)
+              # so the ruby2_keywords-flagged trailing hash keeps its
+              # identity. run_method_probe receives the serialization-split
+              # arguments separately; forwarding does not use them.
               pos_args, kwargs = instrumenter.kwargs_from_splat(args)
               instrumenter.run_method_probe(
                 pos_args, kwargs, target_block,
                 self,
                 probe, responder,
                 loc, method_name,
-              ) do |_a, _k, blk|
-                super(*args, &blk)
+              ) do
+                super(*args, &target_block)
               end
             end
             ruby2_keywords(method_name) if respond_to?(:ruby2_keywords, true) # steep:ignore NoMethod
@@ -428,16 +427,16 @@ module Datadog
 
       # Body of the method probe wrapper. Extracted from the define_method
       # block in #hook_method so the begin/ensure structure can use normal
-      # indentation. The wrapper invokes the original method via the
-      # do_super lambda — that lambda captures super's binding from inside
-      # the define_method block, the only place super resolves to the
-      # prepended-on class's method.
+      # indentation. The original method is invoked with yield, calling the
+      # block passed by #hook_method; that block captures super's binding
+      # from inside the define_method block, the only place super resolves
+      # to the prepended-on class's method.
       #
-      # Performance: this method takes nine positional parameters, not
+      # Performance: this method takes eight positional parameters, not
       # keyword parameters, deliberately. Every probed method invocation
       # passes through here on the firing/disabled/rate-limited paths.
       # Keyword-argument calls in Ruby allocate a fresh Hash on every call
-      # to materialize the keyword bindings; with nine keyword arguments
+      # to materialize the keyword bindings; with eight keyword arguments
       # (~300-1000 ns of allocation per invocation), that hash dominated
       # the wrapper's per-call overhead. Positional parameters skip the
       # allocation entirely. The cost is a long unlabeled signature and
@@ -450,11 +449,11 @@ module Datadog
       # @param kwargs [Hash{Symbol => Object}] keyword arguments passed to the probed method
       # @param target_block [Proc, nil] block argument passed to the probed method
       # @param target_self [Object] the receiver of the probed method invocation
-      # @param do_super [Proc] lambda that invokes the original method via super; takes (args, kwargs, block). On Ruby 3+ it forwards `super(*args, **kwargs, &block)`; on Ruby < 3 it ignores these parameters and replays the wrapper's original splat (which carries the ruby2_keywords-flagged trailing hash)
       # @param probe [Datadog::DI::Probe] the probe whose callback this invocation runs
       # @param responder [#probe_executed_callback, #probe_condition_evaluation_failed_callback] callback target invoked with the built Context
       # @param loc [Array(String, Integer), nil] source location of the probed method, or nil for virtual/lazily-defined methods
       # @param method_name [String] name of the probed method, used as the synthetic top stack frame label
+      # @yield invokes the original method via super and returns its value
       # @return [Object] the original method's return value, or re-raises its exception
       def run_method_probe(args, kwargs, target_block, target_self,
         probe, responder, loc, method_name)
@@ -462,7 +461,7 @@ module Datadog
         # called on this path so the guard is never set — there is no DI
         # work to guard, and any nested probed methods invoked by the
         # original method should fire normally without short-circuit.
-        return yield(args, kwargs, target_block) unless probe.enabled?
+        return yield unless probe.enabled?
 
         DI.enter_probe
         begin
@@ -538,14 +537,13 @@ module Datadog
 
             rv = nil
             begin
-              # DI.invoke_proc instead of do_super.call: bypasses Proc#call
-              # method dispatch so a user probe on Proc#call cannot
-              # intercept the trampoline. The guard was just released
-              # above so nested probes on the customer method body fire
-              # normally — but Proc#call must remain bypassed regardless,
-              # because the early-return path at the top of the wrapper
-              # also relies on invoking do_super without recursion.
-              rv = yield(args, kwargs, target_block)
+              # yield invokes the super block without dispatching Proc#call,
+              # so a user probe on Proc#call cannot intercept the trampoline.
+              # The guard was just released above so nested probes on the
+              # customer method body fire normally — but Proc#call must
+              # remain bypassed regardless, because the disabled-probe early
+              # return at the top of this method also invokes the block.
+              rv = yield
             rescue Exception => exc # standard:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(exc)
               # We will raise the (non-fatal) exception captured here later,
@@ -616,8 +614,8 @@ module Datadog
             # this branch.)
             #
             # The guard must be released here (not relied on the ensure)
-            # because do_super invokes the customer's method, which may
-            # call other probed methods. Those nested probes should fire
+            # because the super block invokes the customer's method, which
+            # may call other probed methods. Those nested probes should fire
             # normally — they would not if the guard were still set,
             # because the wrapper's early-return short-circuits when
             # DI.in_probe? is true.
@@ -627,9 +625,9 @@ module Datadog
             # a no-op here (guard already cleared) and serves the
             # firing branch above, where post-processing re-enters.
             DI.leave_probe
-            # DI.invoke_proc bypasses Proc#call dispatch — see the firing
-            # branch above for the same rationale.
-            yield(args, kwargs, target_block)
+            # yield bypasses Proc#call dispatch — see the firing branch
+            # above for the same rationale.
+            yield
           end
         ensure
           DI.leave_probe
