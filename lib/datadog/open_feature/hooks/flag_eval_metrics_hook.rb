@@ -8,7 +8,7 @@ module Datadog
       # Compatible with OpenFeature SDK >= 0.5.0 which provides the Hooks::Hook module,
       # but also works with older versions since the SDK uses respond_to?(:finally)
       # to detect hook capabilities.
-      class FlagEvalHook
+      class FlagEvalMetricsHook
         # Include the Hook module if available (SDK >= 0.5.0) for interface documentation
         # and default implementations of other hook methods (before, after, error)
         include ::OpenFeature::SDK::Hooks::Hook if defined?(::OpenFeature::SDK::Hooks::Hook)

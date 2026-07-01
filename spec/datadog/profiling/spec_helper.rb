@@ -34,7 +34,7 @@ module ProfileHelpers
 
     # Ensure profiling was loaded correctly
     raise "Profiling does not seem to be available: #{Datadog::Profiling.unsupported_reason}. " \
-      "Try running `bundle exec rake compile` before running this test."
+      "Try running `bundle exec rake clean compile` before running this test."
   end
 
   def decode_profile(encoded_profile)
