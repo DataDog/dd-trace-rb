@@ -235,6 +235,85 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
   end
 
+  describe '#start_upload Dynamic Instrumentation gate' do
+    let(:di_active_state) { {active: false} }
+    let(:component) do
+      described_class.new(settings, agent_settings, logger, di_active: -> { di_active_state[:active] })
+    end
+
+    after { component.shutdown! }
+
+    context 'when symbol_database.enabled is nil (default)' do
+      before { settings.symbol_database.enabled = nil }
+
+      context 'and Dynamic Instrumentation is not active' do
+        it 'defers the upload instead of scheduling extraction' do
+          expect(component).not_to receive(:extract_and_upload)
+
+          component.start_upload
+
+          expect(component.instance_variable_get(:@scheduled_at)).to be_nil
+          expect(component.instance_variable_get(:@upload_pending)).to be true
+        end
+
+        it 'runs the deferred upload once Dynamic Instrumentation becomes active' do
+          component.start_upload
+          expect(component.instance_variable_get(:@upload_pending)).to be true
+
+          expect(component).to receive(:extract_and_upload).and_call_original
+          allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
+
+          di_active_state[:active] = true
+          component.resume_pending_upload
+
+          expect(component.wait_for_idle(timeout: 5)).to be true
+        end
+      end
+
+      context 'and Dynamic Instrumentation is active' do
+        before { di_active_state[:active] = true }
+
+        it 'schedules extraction' do
+          expect(component).to receive(:extract_and_upload).and_call_original
+          allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
+
+          component.start_upload
+
+          expect(component.wait_for_idle(timeout: 5)).to be true
+        end
+      end
+    end
+
+    context 'when symbol_database.enabled is explicitly true' do
+      before { settings.symbol_database.enabled = true }
+
+      it 'uploads even when Dynamic Instrumentation is not active' do
+        expect(component).to receive(:extract_and_upload).and_call_original
+        allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
+
+        component.start_upload
+
+        expect(component.wait_for_idle(timeout: 5)).to be true
+      end
+    end
+
+    context 'when force_upload is set' do
+      before do
+        settings.symbol_database.enabled = nil
+        settings.symbol_database.internal.force_upload = true
+      end
+
+      it 'uploads even when Dynamic Instrumentation is not active' do
+        expect(component).to receive(:extract_and_upload).and_call_original
+        allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
+
+        component.start_upload
+
+        expect(component.wait_for_idle(timeout: 5)).to be true
+      end
+    end
+  end
+
   describe '#wait_for_idle' do
     let(:component) { described_class.new(settings, agent_settings, logger) }
 

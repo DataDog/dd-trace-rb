@@ -240,8 +240,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
     subject(:enabled?) { described_class.enable_symbol_database?(settings, dynamic_instrumentation) }
 
     let(:settings) { Datadog::Core::Configuration::Settings.new }
-    # A non-nil DI component stands for "DI is running"; nil stands for "DI did
-    # not start". The resolver never calls a method on it, only checks presence.
+    # enable_symbol_database? decides whether to BUILD the component. A non-nil
+    # DI component stands for "DI's component was built" (DI not explicitly
+    # disabled, runtime supported); nil stands for "DI's component was not
+    # built". The resolver never calls a method on it, only checks presence.
+    # Whether a built component actually uploads is gated separately, at upload
+    # time, on DI being active (see Component#upload_allowed?).
     let(:dynamic_instrumentation) { instance_double(Datadog::DI::Component) }
 
     context 'when the symbol_database settings group is not registered (partial load)' do
@@ -277,13 +281,13 @@ RSpec.describe Datadog::Core::Configuration::Components do
     context 'when symbol_database.enabled is unset (nil)' do
       before { settings.symbol_database.enabled = nil }
 
-      context 'and the DI component is running' do
+      context "and DI's component was built" do
         let(:dynamic_instrumentation) { instance_double(Datadog::DI::Component) }
 
         it { is_expected.to be true }
       end
 
-      context 'and the DI component is not running (nil)' do
+      context "and DI's component was not built (nil)" do
         let(:dynamic_instrumentation) { nil }
 
         it { is_expected.to be false }
