@@ -376,23 +376,19 @@ module Datadog
 
       private
 
-      # Check whether the runtime environment supports symbol database upload.
-      # Only MRI Ruby 2.7+ is supported. JRuby and TruffleRuby are not supported
-      # because ObjectSpace iteration and Method#source_location behave differently.
-      # Configuration accessors remain available on all platforms — this only gates
-      # the component (upload) itself.
+      # Check whether the runtime environment supports symbol database upload,
+      # logging the reason when it does not.
       # @param logger [Logger]
       # @return [Boolean]
       def self.environment_supported?(logger)
+        return true if SymbolDatabase.supported_runtime?
+
         if RUBY_ENGINE != 'ruby'
           logger.debug { "symdb: not supported on #{RUBY_ENGINE}, skipping" }
-          return false
-        end
-        if RubyVersion.is?('< 2.7')
+        else
           logger.debug { "symdb: requires Ruby 2.7+, running #{RUBY_VERSION}, skipping" }
-          return false
         end
-        true
+        false
       end
       private_class_method :environment_supported?
 

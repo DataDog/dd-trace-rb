@@ -103,7 +103,8 @@ module Datadog
       end
 
       def extract_schema!
-        waf_result = @waf_runner.run({'waf.context.processor' => {'extract-schema' => true}}, {})
+        persistent_data = {'waf.context.processor' => {'extract-schema' => true}}
+        waf_result = run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
         security_event = AppSec::SecurityEvent.new(waf_result, trace: trace, span: span)
 
         @state[:schema_extracted] = security_event.schema?

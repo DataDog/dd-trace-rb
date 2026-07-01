@@ -3,5 +3,7 @@ module Datadog
     UNKNOWN_MIN_LINE: Integer
 
     UNKNOWN_MAX_LINE: Integer
+
+    def self.supported_runtime?: () -> bool
   end
 end
