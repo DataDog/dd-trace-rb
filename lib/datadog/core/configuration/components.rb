@@ -59,6 +59,8 @@ module Datadog
           # only extracts and uploads when DI is truly active or the customer
           # opted in explicitly. This mirrors DI advertising/building a component
           # by default while installing no probes until it is enabled.
+          # force_upload (internal/testing) always builds, since it uploads
+          # regardless of DI or the enabled setting.
           # @param settings [Configuration::Settings]
           # @param dynamic_instrumentation [DI::Component, nil]
           # @return [Boolean]
@@ -67,6 +69,10 @@ module Datadog
             # library load path; a partial load (e.g. require 'datadog/di') leaves
             # it absent, in which case the feature cannot be enabled.
             return false unless settings.respond_to?(:symbol_database)
+
+            # force_upload uploads unconditionally, so the component must be built
+            # even when the setting is nil and DI's component was not built.
+            return true if settings.symbol_database.internal.force_upload
 
             # nil (the default) follows whether DI's component was built.
             Datadog::SymbolDatabase.resolve_enabled(settings.symbol_database.enabled, !dynamic_instrumentation.nil?)

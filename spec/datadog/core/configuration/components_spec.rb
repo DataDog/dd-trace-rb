@@ -305,6 +305,19 @@ RSpec.describe Datadog::Core::Configuration::Components do
           is_expected.to be false
         end
       end
+
+      context 'and force_upload is set' do
+        # force_upload uploads unconditionally, so the component must be built
+        # even when the setting is nil and DI's component was not built —
+        # otherwise the force-upload path is unreachable.
+        before { settings.symbol_database.internal.force_upload = true }
+
+        let(:dynamic_instrumentation) { nil }
+
+        it 'returns true even when DI is not running' do
+          is_expected.to be true
+        end
+      end
     end
   end
 
