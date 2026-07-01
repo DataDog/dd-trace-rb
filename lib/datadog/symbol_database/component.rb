@@ -64,8 +64,12 @@ module Datadog
       # @param agent_settings [Configuration::AgentSettings] Agent configuration
       # @param logger [Logger] Logger instance
       # @param telemetry [Core::Telemetry::Component, nil] Telemetry component for error reporting
+      # @param di_active [Proc, nil] Predicate returning whether Dynamic
+      #   Instrumentation is currently active (started). Gates remote-config
+      #   uploads in the nil-default case; nil means "no gate" (used by tests
+      #   and standalone force_upload contexts).
       # @return [Component, nil] Component instance or nil if requirements not met
-      def self.build(settings, agent_settings, logger, telemetry: nil)
+      def self.build(settings, agent_settings, logger, telemetry: nil, di_active: nil)
         symdb_logger = SymbolDatabase::Logger.new(settings, logger)
 
         # Symbol database requires MRI Ruby 2.7+.
@@ -80,7 +84,7 @@ module Datadog
           return nil
         end
 
-        new(settings, agent_settings, symdb_logger, telemetry: telemetry).tap do |component|
+        new(settings, agent_settings, symdb_logger, telemetry: telemetry, di_active: di_active).tap do |component|
           # Defer extraction if force upload mode — wait for app boot to complete
           component.schedule_deferred_upload if settings.symbol_database.internal.force_upload
         end
@@ -93,11 +97,13 @@ module Datadog
       # @param agent_settings [Configuration::AgentSettings] Agent configuration
       # @param logger [Logger] Logger instance
       # @param telemetry [Core::Telemetry::Component, nil] Telemetry component for error reporting
-      def initialize(settings, agent_settings, logger, telemetry: nil)
+      # @param di_active [Proc, nil] Predicate returning whether Dynamic Instrumentation is currently active
+      def initialize(settings, agent_settings, logger, telemetry: nil, di_active: nil)
         @settings = settings
         @agent_settings = agent_settings
         @logger = logger
         @telemetry = telemetry
+        @di_active = di_active
 
         @extractor = Extractor.new(logger: logger, settings: settings)
         @uploader = Uploader.new(settings: settings, agent_settings: agent_settings, logger: logger, telemetry: telemetry)
@@ -136,6 +142,11 @@ module Datadog
         @hot_load_buffer_mutex = Mutex.new
         @hot_load_tracepoint = nil
         @initial_extraction_done = false
+
+        # Set when a remote-config upload signal arrives while the DI-active gate
+        # is closed (nil-default case, DI not yet active). resume_pending_upload
+        # re-attempts the upload once DI is enabled.
+        @upload_pending = false
       end
 
       # Schedule a deferred upload that waits for app boot to complete.
@@ -182,6 +193,19 @@ module Datadog
         @scheduler_mutex.synchronize do
           return if @shutdown
 
+          unless upload_allowed?
+            # Remote config requested an upload (upload_symbols: true) but this is
+            # the nil-default case where Symbol Database mirrors Dynamic
+            # Instrumentation, and DI is not active. Defer: record the request and
+            # re-attempt via resume_pending_upload when DI is enabled. Without this
+            # gate the tracer would extract and upload symbols for applications
+            # that never enabled Dynamic Instrumentation.
+            @upload_pending = true
+            @logger.debug { "symdb: upload requested but Dynamic Instrumentation is not active; deferring" }
+            return
+          end
+          @upload_pending = false
+
           if @owner_pid != Process.pid
             # Forked child: claim ownership and clear inherited
             # @upload_in_progress. The inherited flag was the parent's
@@ -224,9 +248,21 @@ module Datadog
           @scheduled_at = nil
           @scheduler_signaled = true
           @scheduler_cv.signal
+          @upload_pending = false
         end
         @hot_load_buffer_mutex.synchronize { @hot_load_buffer.clear }
         @initial_extraction_done = false
+      end
+
+      # Re-attempt a symbol upload that was deferred because Dynamic
+      # Instrumentation was not active when the remote-config upload signal
+      # arrived. Called from the orchestration layer (Tracing::Remote) when DI is
+      # enabled via remote configuration (implicit enablement). No-op unless an
+      # upload is pending.
+      # @return [void]
+      def resume_pending_upload
+        pending = @scheduler_mutex.synchronize { @upload_pending }
+        start_upload if pending
       end
 
       # Block until this Component finishes an extract+upload after this call,
@@ -374,6 +410,24 @@ module Datadog
       end
 
       private
+
+      # Whether a remote-config-triggered upload may proceed now.
+      #
+      # force_upload and an explicit `symbol_database.enabled = true` both mean
+      # "upload regardless of Dynamic Instrumentation". Only the nil-default case
+      # — where Symbol Database mirrors DI — is gated on DI actually being active,
+      # so the tracer never extracts symbols for an application that never
+      # enabled Dynamic Instrumentation.
+      # @return [bool]
+      def upload_allowed?
+        return true if @settings.symbol_database.internal.force_upload
+
+        case @settings.symbol_database.enabled
+        when true then true
+        when false then false
+        else @di_active.nil? || @di_active.call # steep:ignore NoMethod
+        end
+      end
 
       # Check whether the runtime environment supports symbol database upload.
       # Only MRI Ruby 2.7+ is supported. JRuby and TruffleRuby are not supported

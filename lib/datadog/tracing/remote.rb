@@ -48,6 +48,15 @@ module Datadog
             # against probes delivered in an earlier poll while DI was stopped
             # (see Datadog::DI::Remote.handle_rc_enablement).
             Datadog::DI::Remote.handle_rc_enablement(di_enabled, repository)
+
+            if di_enabled
+              # DI was just (implicitly) enabled. A Symbol Database upload signal
+              # received in an earlier poll while DI was inactive was deferred by
+              # the component's DI-active gate; re-attempt it now. Mirrors the DI
+              # probe replay in handle_rc_enablement above. allow_initialization:
+              # false because this runs on the remote-config worker thread.
+              Datadog.send(:components, allow_initialization: false)&.symbol_database&.resume_pending_upload
+            end
           end
 
           content.applied

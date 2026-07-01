@@ -46,13 +46,19 @@ module Datadog
             Core::Diagnostics::Health::Metrics.new(telemetry: telemetry, logger: logger, **options)
           end
 
-          # Resolves symbol_database.enabled, a tri-state setting: true/false are
-          # explicit overrides; nil (the default) follows whether Dynamic
-          # Instrumentation is actually running. dynamic_instrumentation is DI's
-          # build result — nil whenever DI did not start (disabled, Rails
-          # development mode, missing C extension, remote config off, non-MRI),
-          # so the default tracks DI's runtime readiness rather than merely the
-          # DI setting.
+          # Decides whether to build the SymbolDatabase component, for the
+          # tri-state symbol_database.enabled setting: true/false are explicit
+          # overrides; nil (the default) mirrors Dynamic Instrumentation by
+          # building whenever DI's component was built. dynamic_instrumentation
+          # is DI's build result — nil only when DI is explicitly disabled or the
+          # runtime can't support it (Rails development mode, missing C
+          # extension, remote config off, non-MRI). Under the always-build model
+          # it is non-nil even when the DI setting defaults to off, so a built
+          # SymbolDatabase component is inert until an upload is actually
+          # permitted: the component's own gate (see Component#upload_allowed?)
+          # only extracts and uploads when DI is truly active or the customer
+          # opted in explicitly. This mirrors DI advertising/building a component
+          # by default while installing no probes until it is enabled.
           # @param settings [Configuration::Settings]
           # @param dynamic_instrumentation [DI::Component, nil]
           # @return [Boolean]
@@ -198,7 +204,16 @@ module Datadog
           # never constructed.
           @symbol_database =
             if self.class.enable_symbol_database?(settings, @dynamic_instrumentation)
-              Datadog::SymbolDatabase::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
+              # di_active is a live predicate, not a snapshot: DI may start after
+              # this component is built (implicit enablement via remote config).
+              # Symbol Database holds only this opaque proc, never a DI reference,
+              # so the two modules stay independent — the orchestration layer
+              # owns the cross-feature knowledge.
+              Datadog::SymbolDatabase::Component.build(
+                settings, agent_settings, @logger,
+                telemetry: telemetry,
+                di_active: -> { dynamic_instrumentation&.started? || false },
+              )
             end
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
           @data_streams = self.class.build_data_streams(settings, agent_settings, @logger, @agent_info)

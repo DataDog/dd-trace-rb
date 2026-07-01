@@ -29,10 +29,13 @@ module Datadog
             # steep:ignore:start
             settings :symbol_database do
               # @return [Boolean, nil]
-              # When nil (the default), symbol database upload follows whether
-              # Dynamic Instrumentation is enabled. Set true/false explicitly
-              # via DD_SYMBOL_DATABASE_UPLOAD_ENABLED or c.symbol_database.enabled
-              # to override.
+              # When nil (the default), symbol database mirrors Dynamic
+              # Instrumentation: it is advertised and built alongside DI, but
+              # only extracts and uploads symbols when DI is actually enabled
+              # (via DD_DYNAMIC_INSTRUMENTATION_ENABLED or implicit enablement
+              # through the DI UI). Set true/false explicitly via
+              # DD_SYMBOL_DATABASE_UPLOAD_ENABLED or c.symbol_database.enabled to
+              # override: true uploads regardless of DI, false disables entirely.
               option :enabled do |o|
                 o.env 'DD_SYMBOL_DATABASE_UPLOAD_ENABLED'
                 o.default nil

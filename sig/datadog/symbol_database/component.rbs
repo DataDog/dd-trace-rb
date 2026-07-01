@@ -28,10 +28,12 @@ module Datadog
       @hot_load_buffer_mutex: ::Thread::Mutex
       @hot_load_tracepoint: ::TracePoint?
       @initial_extraction_done: bool
+      @di_active: (^() -> bool)?
+      @upload_pending: bool
 
-      def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, ::Logger logger, ?telemetry: Datadog::Core::Telemetry::Component?) -> Component?
+      def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, ::Logger logger, ?telemetry: Datadog::Core::Telemetry::Component?, ?di_active: (^() -> bool)?) -> Component?
 
-      def initialize: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, SymbolDatabase::Logger logger, ?telemetry: Datadog::Core::Telemetry::Component?) -> void
+      def initialize: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, SymbolDatabase::Logger logger, ?telemetry: Datadog::Core::Telemetry::Component?, ?di_active: (^() -> bool)?) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
       attr_reader logger: SymbolDatabase::Logger
@@ -47,6 +49,8 @@ module Datadog
 
       def stop_upload: () -> void
 
+      def resume_pending_upload: () -> void
+
       def wait_for_idle: (?timeout: ::Numeric) -> bool
 
       def shutdown!: () -> void
@@ -54,6 +58,8 @@ module Datadog
       def after_fork!: () -> void
 
       private
+
+      def upload_allowed?: () -> bool
 
       def self.environment_supported?: (SymbolDatabase::Logger logger) -> bool
 
