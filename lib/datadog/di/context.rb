@@ -26,10 +26,8 @@ module Datadog
         @caller_locations = caller_locations
         @serialized_entry_args = serialized_entry_args
         # Capture-expression block + evaluation errors collected at the
-        # entry hook for an evaluate_at: :entry method probe. The exit-time
-        # ProbeNotificationBuilder consumes these instead of re-evaluating
-        # against exit-time scope. nil when the probe is exit-timed or has
-        # no capture expressions.
+        # entry hook for an evaluate_at: :entry method probe. nil when the
+        # probe is exit-timed or has no capture expressions.
         @entry_capture_expressions = entry_capture_expressions
         @entry_capture_evaluation_errors = entry_capture_evaluation_errors
         @return_value = return_value
