@@ -363,7 +363,7 @@ RSpec.describe Datadog::DI::Probe do
 
   describe "#snapshot_serializer_limits" do
     let(:settings) do
-      double("settings", dynamic_instrumentation: double(
+      instance_double(Datadog::Core::Configuration::Settings, dynamic_instrumentation: double(
         max_capture_depth: 3,
         max_capture_attribute_count: 20,
         max_capture_string_length: 255,
