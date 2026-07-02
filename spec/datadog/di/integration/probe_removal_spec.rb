@@ -68,12 +68,12 @@ RSpec.describe 'DI probe removal via remote config' do
     {'datadog/2/LIVE_DEBUGGING/foo/bar' => probe_spec}
   end
 
-  let(:response) do
+  let(:response_with_probe) do
     DIHelpers::TestRemoteConfigGenerator.new(probe_configs).mock_response
   end
 
   # Second poll: the probe is gone from RC.
-  let(:response_two) do
+  let(:empty_rc_response) do
     DIHelpers::TestRemoteConfigGenerator.new({}).mock_response
   end
 
@@ -86,13 +86,13 @@ RSpec.describe 'DI probe removal via remote config' do
   after { component.shutdown! }
 
   def install_probe
-    expect(transport).to receive(:send_config).and_return(response)
+    expect(transport).to receive(:send_config).and_return(response_with_probe)
     client.sync
     component.probe_notifier_worker.flush
   end
 
   def remove_probe
-    expect(transport).to receive(:send_config).and_return(response_two)
+    expect(transport).to receive(:send_config).and_return(empty_rc_response)
     client.sync
     component.probe_notifier_worker.flush
   end
