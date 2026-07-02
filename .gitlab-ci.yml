@@ -12,9 +12,9 @@ stages:
 include:
   - local: ".gitlab/one-pipeline.locked.yml"
   - local: ".gitlab/benchmarks.yml"
-  - project: 'DataDog/apm-reliability/apm-sdks-benchmarks'
-    file: '.gitlab/ci-ruby-acme-parallel.yml'
-    ref: '5f5ca440eaab196afb8f78255c2daf2d0bdcc492' # apm-sdks-benchmarks#209 merge commit
+  - project: "DataDog/apm-reliability/apm-sdks-benchmarks"
+    file: ".gitlab/ci-ruby-acme-parallel.yml"
+    ref: "5f5ca440eaab196afb8f78255c2daf2d0bdcc492" # apm-sdks-benchmarks#209 merge commit
 
 variables:
   RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby
@@ -167,7 +167,7 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: 7bac407189037b3f22eb2f752d52377410119723 # Automated: Updated by .github/workflows/update-system-tests.yml.
+    SYSTEM_TESTS_REF: e591e675491c258d1289325d1d2cf7f61db07ea9 # TEMPORARY: system-tests#7249 (Ruby 4 / Bundler 4). Revert to automated ref before merge.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,simple_onboarding_appsec,lib-injection,docker_ssi"
     SYSTEM_TEST_BUILD_ATTEMPTS: 3
 
