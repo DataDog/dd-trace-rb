@@ -1,0 +1,103 @@
+name: Open or update PR
+
+description: >
+  Regenerate a bot-owned branch from the currently checked-out HEAD and open (or update) a
+  pull request for it. Unlike a real contributor's branch, this branch is treated as fully
+  disposable: on every run with changes, it is force-moved to point at HEAD before a single
+  signed commit is added on top, so the branch always reflects "base + this run's changes"
+  rather than accumulating history across runs. Do not use this for branches that carry
+  independent history you need to preserve (see the signed-commit action for that case).
+
+inputs:
+  repository:
+    description: "owner/repo to commit to and open the PR against"
+    required: false
+    default: ${{ github.repository }}
+  branch:
+    description: "Bot-owned branch to (re)create and open the PR from"
+    required: true
+  base:
+    description: "Branch to open the PR against"
+    required: true
+  title:
+    description: "Pull request title"
+    required: true
+  body:
+    description: "Pull request body"
+    required: true
+  labels:
+    description: "Comma-separated list of labels to apply"
+    required: false
+    default: ""
+  commit-message:
+    description: "Commit message"
+    required: true
+  paths:
+    description: "Space-separated list of pathspecs scoping which changed files are committed"
+    required: false
+    default: "."
+  github-token:
+    description: "Token with contents:write and pull-requests:write on 'repository'"
+    required: true
+
+outputs:
+  changed:
+    description: "'true' if a commit was created, 'false' if there were no matching changes"
+    value: ${{ steps.check.outputs.changed }}
+  pr-number:
+    description: "Number of the opened/updated pull request (empty when changed == 'false')"
+    value: ${{ steps.pr.outputs.pr-number }}
+  pr-url:
+    description: "URL of the opened/updated pull request (empty when changed == 'false')"
+    value: ${{ steps.pr.outputs.pr-url }}
+  commit-sha:
+    description: "SHA of the created commit (empty when changed == 'false')"
+    value: ${{ steps.commit.outputs.commit-sha }}
+  commit-url:
+    description: "URL of the created commit (empty when changed == 'false')"
+    value: ${{ steps.commit.outputs.commit-url }}
+
+runs:
+  using: composite
+  steps:
+    - name: Check for changes
+      id: check
+      shell: bash
+      env:
+        PATHS: ${{ inputs.paths }}
+      run: "$GITHUB_ACTION_PATH/check.sh"
+
+    - name: Reset bot branch to HEAD
+      if: steps.check.outputs.changed == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        REPOSITORY: ${{ inputs.repository }}
+        BRANCH: ${{ inputs.branch }}
+        BASE: ${{ inputs.base }}
+      run: "$GITHUB_ACTION_PATH/reset-branch.sh"
+
+    - name: Commit changes
+      id: commit
+      if: steps.check.outputs.changed == 'true'
+      uses: ./.github/actions/signed-commit
+      with:
+        repository: ${{ inputs.repository }}
+        branch: ${{ inputs.branch }}
+        paths: ${{ inputs.paths }}
+        commit-message: ${{ inputs.commit-message }}
+        github-token: ${{ inputs.github-token }}
+
+    - name: Open or update pull request
+      id: pr
+      if: steps.check.outputs.changed == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        REPOSITORY: ${{ inputs.repository }}
+        BRANCH: ${{ inputs.branch }}
+        BASE: ${{ inputs.base }}
+        TITLE: ${{ inputs.title }}
+        BODY: ${{ inputs.body }}
+        LABELS: ${{ inputs.labels }}
+      run: "$GITHUB_ACTION_PATH/open-or-update-pr.sh"
