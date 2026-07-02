@@ -203,8 +203,8 @@ struct per_thread_context {
   char thread_invoke_location[THREAD_INVOKE_LOCATION_LIMIT_CHARS];
   ddog_CharSlice thread_invoke_location_char_slice;
   thread_cpu_time_id thread_cpu_time_id;
-  long cpu_time_at_previous_sample_ns;  // Can be INVALID_TIME until initialized or if getting it fails for another reason
-  long wall_time_at_previous_sample_ns; // Can be INVALID_TIME until initialized
+  long cpu_time_at_previous_sample_ns;
+  long wall_time_at_previous_sample_ns;
 
   // There are 3 possible states for the GVL (per thread), and 3 transitions for which we receive GVL events:
   // Thread holds the GVL
@@ -1292,9 +1292,8 @@ static void initialize_context(VALUE thread, per_thread_context *thread_context)
 
   thread_context->thread_cpu_time_id = thread_cpu_time_id_for(thread);
 
-  // These will get initialized during actual sampling
-  thread_context->cpu_time_at_previous_sample_ns = INVALID_TIME;
-  thread_context->wall_time_at_previous_sample_ns = INVALID_TIME;
+  thread_context->wall_time_at_previous_sample_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+  thread_context->cpu_time_at_previous_sample_ns = cpu_time_now_ns(thread_context);
 
   // These will only be used during a GC operation
   thread_context->gc_tracking.cpu_time_at_start_ns = INVALID_TIME;
@@ -2061,16 +2060,6 @@ void thread_context_collector_stats_reset_not_thread_safe(VALUE self_instance) {
 
 static void mark_thread_as_profiler_internal(per_thread_context *ctx) {
   ctx->is_profiler_internal_thread = true;
-
-  // Seed timestamps so the first on_serialize produces a real delta instead of zero.
-  // Without this, update_time_since_previous_sample sees INVALID_TIME, sets it to
-  // current_time, and returns 0 — losing the entire first reporting period.
-  if (ctx->wall_time_at_previous_sample_ns == INVALID_TIME) {
-    ctx->wall_time_at_previous_sample_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
-  }
-  if (ctx->cpu_time_at_previous_sample_ns == INVALID_TIME) {
-    ctx->cpu_time_at_previous_sample_ns = cpu_time_now_ns(ctx);
-  }
 }
 
 void thread_context_collector_profiler_internal_thread_started(void) {
