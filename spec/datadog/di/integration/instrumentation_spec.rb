@@ -802,7 +802,7 @@ RSpec.describe 'Instrumentation integration' do
           Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
         end
 
-        # len(undefined) — `undefined` resolves to nil at the EL layer, and
+        # len(undefined) -- `undefined` resolves to nil at the EL layer, and
         # len(nil) raises ExpressionEvaluationError, which the evaluator
         # catches and reports via evaluationErrors.
         let(:probe_spec) do

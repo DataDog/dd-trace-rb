@@ -537,7 +537,7 @@ module Datadog
 
             # Entry-time capture-expression evaluation. For probes with
             # evaluate_at: :entry, evaluate against the pre-super scope
-            # (args/kwargs/self only — @return/@duration/@exception are
+            # (args/kwargs/self only -- @return/@duration/@exception are
             # nil at this point) and store the result. The Context built
             # below carries it through to the notification builder.
             # Skipped when capture_snapshot is also set: the snapshot block
@@ -635,7 +635,7 @@ module Datadog
             # arg references when the probe has capture expressions; values
             # may reflect in-place mutation by the method body, matching the
             # return-time scope semantics.
-            # Skip when capture_snapshot is also set — the snapshot wins at
+            # Skip when capture_snapshot is also set -- the snapshot wins at
             # build time, so the combined hash would be discarded.
             capture_expression_locals = if probe.capture_expressions? && !probe.capture_snapshot?
               serializer.combine_args(args, kwargs, target_self)

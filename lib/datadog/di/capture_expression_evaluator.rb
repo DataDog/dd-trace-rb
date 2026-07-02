@@ -28,7 +28,7 @@ module Datadog
       # @param serializer [Datadog::DI::Serializer]
       # @param logger [Datadog::DI::Logger]
       # @param telemetry [Datadog::Core::Telemetry::Component, nil] nil is
-      #   legitimate — Component.build accepts nil telemetry when DI is used
+      #   legitimate -- Component.build accepts nil telemetry when DI is used
       #   outside a telemetry-configured environment, and Component threads
       #   the nil through to here. All telemetry calls below are nil-guarded.
       def initialize(settings:, serializer:, logger:, telemetry: nil)

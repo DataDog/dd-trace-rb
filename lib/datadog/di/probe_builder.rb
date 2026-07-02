@@ -148,8 +148,8 @@ module Datadog
       end
 
       # Parses the RC payload's `evaluateAt` string into the
-      # +Datadog::DI::Probe+ symbol form. "ENTRY" → :entry, "EXIT" → :exit,
-      # "DEFAULT" → :exit (Java sends this; libdatadog also treats it as
+      # +Datadog::DI::Probe+ symbol form. "ENTRY" -> :entry, "EXIT" -> :exit,
+      # "DEFAULT" -> :exit (Java sends this; libdatadog also treats it as
       # Exit). Absent or unrecognized values coerce to :exit and emit a
       # debug log; the runtime never raises on an unknown evaluateAt because
       # such payloads should still install as conventional EXIT-timed probes.

@@ -203,7 +203,7 @@ module Datadog
       # @param settings [Datadog::Core::Configuration::Settings] tracer settings
       #   providing the dynamic_instrumentation.max_capture_* fallback values.
       # @return [Hash{Symbol => Integer}] hash with keys :depth, :attribute_count,
-      #   :length, :collection_size — all values are Integers (no nils).
+      #   :length, :collection_size -- all values are Integers (no nils).
       def snapshot_serializer_limits(settings)
         di = settings.dynamic_instrumentation
         {

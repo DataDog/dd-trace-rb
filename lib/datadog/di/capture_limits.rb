@@ -48,7 +48,7 @@ module Datadog
       #
       #     expr_limits.X ?? probe.max_capture_X ?? settings.dynamic_instrumentation.max_capture_X
       #
-      # Resolved independently per field — a missing field on the
+      # Resolved independently per field -- a missing field on the
       # expression's limits falls through to the probe level, then to
       # the language-wide default, without affecting the other fields.
       #
