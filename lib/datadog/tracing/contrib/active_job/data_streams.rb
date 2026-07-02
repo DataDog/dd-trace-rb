@@ -14,6 +14,10 @@ module Datadog
         # The DSM calls are rescued in isolation so a checkpoint failure can never
         # break a job, while a genuine error raised by the underlying serialization
         # still propagates.
+        #
+        # Only prepended on ActiveJob 5.0+, where `serialize`/`deserialize` are instance
+        # methods the framework routes through. ActiveJob 4.2 deserializes via a class
+        # method, so the pathway cannot be propagated there.
         module DataStreams
           def serialize
             job_data = super

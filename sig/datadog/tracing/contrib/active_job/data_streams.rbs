@@ -2,10 +2,19 @@ module Datadog
   module Tracing
     module Contrib
       module ActiveJob
-        module DataStreams
-          def serialize: () -> ::Hash[::String, untyped]
+        module DataStreams : _Job
+          # The host ActiveJob class this module is prepended onto.
+          interface _Job
+            def serialize: () -> ::Hash[::String, any]
 
-          def deserialize: (::Hash[::String, untyped] job_data) -> void
+            def deserialize: (::Hash[::String, any] job_data) -> void
+
+            def queue_name: () -> ::String
+          end
+
+          def serialize: () -> ::Hash[::String, any]
+
+          def deserialize: (::Hash[::String, any] job_data) -> void
         end
       end
     end

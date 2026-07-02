@@ -204,6 +204,12 @@ RSpec.describe 'ActiveJob', execute_in_fork: Rails.version.to_i >= 8 do
     end
 
     context 'Data Streams Monitoring' do
+      before do
+        unless Datadog::Tracing::Contrib::ActiveJob::Integration.version >= Gem::Version.new('5.0')
+          skip('DSM propagation requires the instance-level serialize/deserialize hooks added in Rails 5.0')
+        end
+      end
+
       let(:pathway_key) { Datadog::DataStreams::Processor::PROPAGATION_KEY }
       let(:job) { job_class.new.tap { |j| j.queue_name = 'mice' } }
 

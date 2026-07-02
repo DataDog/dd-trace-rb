@@ -11,7 +11,7 @@ module Datadog
 
           def self?.inject_log_correlation: () -> untyped
 
-          def self?.inject_data_streams: () -> untyped
+          def self?.inject_data_streams: () -> void
         end
       end
     end
