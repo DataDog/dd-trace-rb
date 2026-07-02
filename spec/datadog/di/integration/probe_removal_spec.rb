@@ -78,9 +78,9 @@ RSpec.describe 'DI probe removal via remote config' do
   end
 
   before do
-    allow(Datadog::DI).to receive(:component).and_return(component)
     allow(Datadog::DI::Transport::HTTP).to receive(:diagnostics).and_return(diagnostics_transport)
     allow(Datadog::DI::Transport::HTTP).to receive(:input).and_return(input_transport)
+    allow(Datadog::DI).to receive(:component) { component }
   end
 
   after { component.shutdown! }
