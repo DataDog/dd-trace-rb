@@ -4,16 +4,27 @@ module Datadog
       module Racecar
         module Instrumentation
           module Consumer
-            def self.set_consume_checkpoint: (untyped message) -> void
+            # The subset of a consumed Kafka message the instrumentation reads.
+            interface _Message
+              def topic: () -> ::String
 
-            def self.header_value: (untyped headers, untyped key) -> untyped
+              def partition: () -> ::Integer
 
-            def self.prepended: (untyped base) -> untyped
+              def offset: () -> ::Integer
+
+              def headers: () -> ::Hash[(::String | ::Symbol), ::String]?
+            end
+
+            def self.set_consume_checkpoint: (_Message message) -> void
+
+            def self.header_value: (::Hash[(::String | ::Symbol), ::String]? headers, ::String key) -> ::String?
+
+            def self.prepended: (Module base) -> void
 
             module InstanceMethods
-              def process: (untyped message) -> untyped
+              def process: (_Message message) -> void
 
-              def process_batch: (untyped messages) -> untyped
+              def process_batch: (::Array[_Message] messages) -> void
             end
           end
         end
