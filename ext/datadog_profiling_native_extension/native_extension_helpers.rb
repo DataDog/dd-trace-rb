@@ -87,6 +87,12 @@ module Datadog
           "Get in touch with us if you're interested in profiling your app!"
         ].freeze
 
+        MACOS_DEVELOPMENT = [
+          "To compile the profiler for development, set",
+          "`DD_PROFILING_MACOS_TESTING=true` and run `bundle exec rake clean compile`.",
+          "See docs/LibdatadogDevelopment.md for more info."
+        ].freeze
+
         UPGRADE_RUBY = [
           "Upgrade to a modern Ruby to enable profiling for your app."
         ].freeze
@@ -161,7 +167,7 @@ module Datadog
         private_class_method def self.on_macos?
           macos_not_supported = explain_issue(
             "macOS is currently not supported by the Datadog Continuous Profiler.",
-            suggested: GET_IN_TOUCH,
+            suggested: MACOS_DEVELOPMENT,
           )
           # For development only; not supported otherwise
           macos_testing_override = ENV["DD_PROFILING_MACOS_TESTING"] == "true"
