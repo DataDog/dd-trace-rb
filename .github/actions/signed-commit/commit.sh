@@ -27,6 +27,12 @@ else
   head_sha="$base_sha"
 fi
 
+local_head_sha=$(git rev-parse HEAD)
+if [[ "$local_head_sha" != "$head_sha" ]]; then
+  echo "::error::Checked-out HEAD ($local_head_sha) does not match the resolved parent commit for '$BRANCH' ($head_sha), so the changes 'git status' detects would not match what ghcommit applies them on top of. Make sure the caller's checkout step uses 'ref: \${{ github.head_ref }}' (or the equivalent base ref) to check out that exact commit."
+  exit 1
+fi
+
 adds=()
 deletes=()
 
@@ -34,7 +40,7 @@ while IFS= read -r -d $'\0' line; do
   index_status="${line:0:1}"
   tree_status="${line:1:1}"
 
-  # Renamed files have status 'R' and two NUL-separated filenames: old, then new.
+  # Renamed files have status 'R' and two NUL-separated filenames: new, then old.
   if [[ "$index_status" == "R" || "$tree_status" == "R" ]]; then
     IFS= read -r -d $'\0' old_filename
     new_filename="${line:3}"
@@ -69,8 +75,15 @@ output=$(ghcommit "${ghcommit_args[@]}" 2>&1) || {
 }
 echo "$output"
 
-commit_url=$(echo "$output" | grep "Success. New commit:" | awk '{print $NF}')
-commit_sha="${commit_url##*/}"
+commit_line=$(echo "$output" | grep "Success. New commit:" || true)
+if [[ -z "$commit_line" ]]; then
+  echo "::warning::ghcommit exited successfully but its output did not contain the expected 'Success. New commit:' line; commit-sha/commit-url outputs will be empty."
+  commit_url=""
+  commit_sha=""
+else
+  commit_url=$(awk '{print $NF}' <<<"$commit_line")
+  commit_sha="${commit_url##*/}"
+fi
 
 {
   echo "changed=true"
