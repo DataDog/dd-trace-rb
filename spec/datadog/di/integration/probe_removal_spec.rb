@@ -114,12 +114,22 @@ RSpec.describe 'DI probe removal via remote config' do
     expect(Datadog::DI.instrumented_count).to eq 0
   end
 
+  it 'captures a snapshot while the probe is installed' do
+    install_probe
+
+    ProbeRemovalSpecTargetClass.new.target_method
+    component.probe_notifier_worker.flush
+
+    expect(input_transport).to have_received(:send_input).at_least(:once)
+  end
+
   it 'stops capturing snapshots after the probe is removed' do
     install_probe
     remove_probe
 
-    expect(input_transport).not_to receive(:send_input)
     ProbeRemovalSpecTargetClass.new.target_method
     component.probe_notifier_worker.flush
+
+    expect(input_transport).not_to have_received(:send_input)
   end
 end
