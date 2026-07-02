@@ -32,10 +32,10 @@ class DeterministicJunitFormatter < RspecJunitFormatter
     [/"time_unix_nano" ?=> ?\d{15,}/, 'time_unix_nano => <time_unix_nano>'],
 
     # more agressive sanitizers, as many occurence does not have recognizable patterns
-    [/\d+\.\d+/, '<float>'],
-    [/\d{4,}/, '<int>'],
     [/0x[0-9a-f]{2,}/, '<hex>'],
     [/[0-9a-f]{16,}/, '<hex>'],  # 16 to not scrub short words with a-f only
+    [/\d+\.\d+/, '<float>'],
+    [/\d{4,}/, '<int>'],
   ]
 
   private
