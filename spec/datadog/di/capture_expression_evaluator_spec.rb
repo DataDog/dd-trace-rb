@@ -105,6 +105,58 @@ RSpec.describe Datadog::DI::CaptureExpressionEvaluator do
       end
     end
 
+    context "expression evaluation raises a non-StandardError" do
+      # NotImplementedError is not a StandardError, so a plain `rescue => e`
+      # would let it escape into the customer method. The evaluator rescues
+      # Exception and re-raises only fatal exceptions, so a non-fatal
+      # non-StandardError is recorded as an evaluation error like any other.
+      let(:expr) { instance_double(Datadog::DI::EL::Expression) }
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "p1", type: :log, type_name: "F", method_name: "m",
+          capture_expressions: [
+            Datadog::DI::CaptureExpression.new(name: "boom", expr: expr),
+          ],
+        )
+      end
+
+      before do
+        allow(expr).to receive(:evaluate).and_raise(NotImplementedError, "nope")
+      end
+
+      it "catches it, omits the key, and records an evaluation error" do
+        output, errors = evaluator.evaluate(probe, context)
+        expect(output).to eq({})
+        expect(errors.size).to eq(1)
+        expect(errors.first[:expr]).to eq("boom")
+        expect(errors.first[:message]).to include("NotImplementedError")
+      end
+    end
+
+    context "expression evaluation raises a fatal exception" do
+      # Fatal exceptions (process teardown / OOM) must never be swallowed by
+      # the catch-all rescue; reraise_if_fatal propagates them out of #evaluate.
+      let(:expr) { instance_double(Datadog::DI::EL::Expression) }
+
+      let(:probe) do
+        Datadog::DI::Probe.new(
+          id: "p1", type: :log, type_name: "F", method_name: "m",
+          capture_expressions: [
+            Datadog::DI::CaptureExpression.new(name: "boom", expr: expr),
+          ],
+        )
+      end
+
+      before do
+        allow(expr).to receive(:evaluate).and_raise(SystemExit.new)
+      end
+
+      it "re-raises the fatal exception instead of recording an error" do
+        expect { evaluator.evaluate(probe, context) }.to raise_error(SystemExit)
+      end
+    end
+
     context "mixed success and failure" do
       let(:probe) do
         Datadog::DI::Probe.new(

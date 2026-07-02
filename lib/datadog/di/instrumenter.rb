@@ -246,7 +246,8 @@ module Datadog
                   )
                   entry_capture_expressions, entry_capture_evaluation_errors =
                     instrumenter.capture_expression_evaluator.evaluate(probe, entry_context)
-                rescue => exc
+                rescue Exception => exc # standard:disable Lint/RescueException
+                  Datadog::DI.reraise_if_fatal(exc)
                   # Per-expression StandardError is caught inside the
                   # evaluator; reaching this rescue means a non-evaluator
                   # failure (e.g. building the entry Context or combining

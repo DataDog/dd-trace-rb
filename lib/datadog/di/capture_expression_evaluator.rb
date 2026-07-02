@@ -2,6 +2,7 @@
 
 require_relative "capture_expression"
 require_relative "capture_limits"
+require_relative "fatal_exceptions"
 
 module Datadog
   module DI
@@ -98,7 +99,8 @@ module Datadog
               length: limits[:length],
               collection_size: limits[:collection_size],
             )
-          rescue => exc
+          rescue Exception => exc # standard:disable Lint/RescueException
+            Datadog::DI.reraise_if_fatal(exc)
             evaluation_errors << {expr: name, message: "#{exc.class}: #{exc.message}"}
             logger.debug do
               "di: probe #{probe.id}: capture expression #{name}: evaluation failed: #{exc.class}: #{exc.message}"
