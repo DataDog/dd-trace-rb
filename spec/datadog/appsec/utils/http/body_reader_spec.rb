@@ -43,8 +43,19 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::BodyReader do
       it { expect(buffer).to eq('name=john&') }
     end
 
-    context 'when body is a rewindable IO and rewinding is enabled' do
+    context 'when body is a forward-only reader and rewind is required' do
+      before { allow(body).to receive(:read).and_return('name=john', nil) }
+
       let(:buffer) { described_class.read(body, limit: 9, rewind_before_read: true) }
+      let(:body) { double('body') }
+
+      it { expect(buffer).to be_nil }
+    end
+  end
+
+  describe '.read_stream' do
+    context 'when body is a rewindable IO and rewinding is enabled' do
+      let(:buffer) { described_class.read_stream(body, limit: 9, rewind_before_read: true) }
       let(:body) { StringIO.new('name=john') }
 
       it 'returns the body and keeps it readable' do
@@ -56,7 +67,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::BodyReader do
     context 'when body is a rewindable IO and rewinding is not enabled' do
       before { allow(body).to receive(:rewind).and_call_original }
 
-      let(:buffer) { described_class.read(body, limit: 9) }
+      let(:buffer) { described_class.read_stream(body, limit: 9) }
       let(:body) { StringIO.new('name=john') }
 
       it 'returns the body without rewinding' do
@@ -66,7 +77,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::BodyReader do
     end
 
     context 'when body is a rewindable IO, exceeds the limit, and rewinding is enabled' do
-      let(:buffer) { described_class.read(body, limit: 9, rewind_before_read: true) }
+      let(:buffer) { described_class.read_stream(body, limit: 9, rewind_before_read: true) }
       let(:body) { StringIO.new('name=john&role=admin') }
 
       it 'returns one byte over the limit and keeps the body readable' do
@@ -76,7 +87,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::BodyReader do
     end
 
     context 'when body is a rewindable IO with binary encoding' do
-      let(:buffer) { described_class.read(StringIO.new('name=john'.b), limit: 9) }
+      let(:buffer) { described_class.read_stream(StringIO.new('name=john'.b), limit: 9) }
 
       it { expect(buffer.encoding).to eq(Encoding::BINARY) }
     end
@@ -88,7 +99,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::BodyReader do
         end
       end
 
-      let(:buffer) { described_class.read(body, limit: 9, rewind_before_read: true) }
+      let(:buffer) { described_class.read_stream(body, limit: 9, rewind_before_read: true) }
       let(:body) { StringIO.new('name=john') }
 
       it 'returns the full body and keeps it readable' do
@@ -100,7 +111,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::BodyReader do
     context 'when body was already consumed' do
       before { body.read }
 
-      let(:buffer) { described_class.read(body, limit: 9, rewind_before_read: true) }
+      let(:buffer) { described_class.read_stream(body, limit: 9, rewind_before_read: true) }
       let(:body) { StringIO.new('name=john') }
 
       it 'rewinds before reading and after reading' do
@@ -115,7 +126,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::BodyReader do
         allow(body).to receive(:rewind).and_raise(IOError, 'cannot rewind')
       end
 
-      let(:buffer) { described_class.read(body, limit: 9, rewind_before_read: true) }
+      let(:buffer) { described_class.read_stream(body, limit: 9, rewind_before_read: true) }
       let(:body) { StringIO.new('name=john') }
       let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }
 
@@ -134,7 +145,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::BodyReader do
         end
       end
 
-      let(:buffer) { described_class.read(body, limit: 9, rewind_before_read: true) }
+      let(:buffer) { described_class.read_stream(body, limit: 9, rewind_before_read: true) }
       let(:body) { StringIO.new('name=john') }
 
       it 'raises the read failure and keeps the body readable' do
@@ -154,7 +165,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::BodyReader do
         end
       end
 
-      let(:buffer) { described_class.read(body, limit: 9, rewind_before_read: true) }
+      let(:buffer) { described_class.read_stream(body, limit: 9, rewind_before_read: true) }
       let(:body) { StringIO.new('name=john') }
       let(:logger) { instance_double(Datadog::Core::Logger, debug: nil) }
 
@@ -167,7 +178,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::BodyReader do
     context 'when body is a forward-only reader' do
       before { allow(body).to receive(:read).and_return('name=john', nil) }
 
-      let(:buffer) { described_class.read(body, limit: 9) }
+      let(:buffer) { described_class.read_stream(body, limit: 9) }
       let(:body) { double('body') }
 
       it { expect(buffer).to eq('name=john') }
@@ -176,19 +187,10 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::BodyReader do
     context 'when body is a forward-only reader and exceeds the limit' do
       before { allow(body).to receive(:read).and_return('name=john!', nil) }
 
-      let(:buffer) { described_class.read(body, limit: 9) }
+      let(:buffer) { described_class.read_stream(body, limit: 9) }
       let(:body) { double('body') }
 
       it { expect(buffer).to eq('name=john!') }
-    end
-
-    context 'when body is a forward-only reader and rewind is required' do
-      before { allow(body).to receive(:read).and_return('name=john', nil) }
-
-      let(:buffer) { described_class.read(body, limit: 9, rewind_before_read: true) }
-      let(:body) { double('body') }
-
-      it { expect(buffer).to be_nil }
     end
   end
 end

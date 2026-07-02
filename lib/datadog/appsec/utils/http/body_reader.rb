@@ -12,6 +12,11 @@ module Datadog
             return if body.nil? || !body.respond_to?(:read)
             return if rewind_before_read && !body.respond_to?(:rewind)
 
+            read_stream(body, limit: limit, rewind_before_read: rewind_before_read)
+          end
+
+          def read_stream(body, limit:, rewind_before_read: false)
+            # @type var rewound: bool
             rewound = false
 
             if rewind_before_read
