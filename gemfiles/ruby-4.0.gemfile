@@ -21,7 +21,7 @@ gem 'zstd-ruby'
 #       Since most of our customers won't have BUNDLE_FORCE_RUBY_PLATFORM=true, it's not something we want to add
 #       to our CI, so we just shortcut and exclude specific versions that were affecting our CI.
 gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1']
-gem 'json-schema', '< 3' # V3 only works with 2.5+
+gem 'json-schema', '~> 6.2'
 gem 'memory_profiler', '~> 0.9'
 gem 'mutex_m'
 gem 'os', '~> 1.1'
