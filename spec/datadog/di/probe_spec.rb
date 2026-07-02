@@ -323,6 +323,26 @@ RSpec.describe Datadog::DI::Probe do
     end
   end
 
+  describe "#method_name!" do
+    context "method name set" do
+      let(:probe) { described_class.new(id: "x", type: :log, type_name: "Foo", method_name: "bar") }
+
+      it "returns the method name" do
+        expect(probe.method_name!).to eq "bar"
+      end
+    end
+
+    context "nil method name" do
+      let(:probe) { described_class.new(id: "id", type: :log, file: "x", line_no: 5, method_name: nil) }
+
+      it "raises MissingMethodName" do
+        expect do
+          probe.method_name!
+        end.to raise_error(Datadog::DI::Error::MissingMethodName, /does not have a method name/)
+      end
+    end
+  end
+
   describe "#location" do
     context "method probe" do
       include_context "method probe"

@@ -53,6 +53,17 @@ module Datadog
       def self.get_local_variables: (TracePoint trace_point) -> Hash[Symbol, untyped]
       def self.get_instance_variables: (Object self) -> Hash[Symbol, untyped]
 
+      # untyped uses: args/kwargs values, target_self, and the return type
+      # all carry the customer-supplied method's signature, which is unknown
+      # at this layer. responder is a duck-typed interface
+      # (#probe_executed_callback, #probe_condition_evaluation_failed_callback,
+      # #probe_disabled_callback) with no shared base class to name.
+      def run_method_probe: (::Array[untyped] args, ::Hash[::Symbol, untyped] kwargs, ::Proc? target_block, untyped target_self, Probe probe, untyped responder, [::String, ::Integer]? loc, ::String method_name) { () -> untyped } -> untyped
+
+      # Ruby < 3 only. Splits a splat-captured argument list into
+      # [positional_args, kwargs]; the trailing hash, if any, becomes kwargs.
+      def kwargs_from_splat: (::Array[untyped] args) -> [::Array[untyped], ::Hash[untyped, untyped]]
+
       private
 
       attr_reader lock: Mutex

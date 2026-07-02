@@ -245,6 +245,20 @@ module Datadog
         line_no
       end
 
+      # Returns the method name associated with the probe, raising
+      # Error::MissingMethodName if the probe does not have a method name
+      # associated with it.
+      #
+      # This method is used by instrumentation driver to ensure a method name
+      # that is passed into the instrumentation logic is actually a method name
+      # and not nil.
+      def method_name!
+        if method_name.nil?
+          raise Error::MissingMethodName, "Probe #{id} does not have a method name associated with it"
+        end
+        method_name
+      end
+
       # Source code location of the probe, for diagnostic reporting.
       def location
         if method?
