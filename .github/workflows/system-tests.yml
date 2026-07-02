@@ -91,6 +91,7 @@ jobs:
       force_execute: ${{ needs.build.outputs.forced_tests }}
       parametric_job_count: 8
       push_to_test_optimization: true
+      skip_empty_scenarios: true
 
   complete:
     name: System Tests (complete)

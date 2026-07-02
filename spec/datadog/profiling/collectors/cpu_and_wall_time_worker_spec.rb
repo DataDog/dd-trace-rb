@@ -552,8 +552,17 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # it just passes and starts waiting)
 
           # This test should run for at least 200ms, which is how long we sleep for
-          # (unless somehow the missed_by_profiler_time is too big?)
-          expect(total_time).to be >= 200_000_000
+          # but if the profiler misses a whole thread scheduling cycle, we adjust the expectation.
+          # This isn't great, but measuring/causing this kind of effect end-to-end without making the spec really slow
+          # is tricky.
+          if missed_by_profiler_time < 100_000_000
+            expect(total_time).to be >= 200_000_000,
+              "Expected total_time to be >= 200ms, debug_failures: #{debug_failures}"
+          else
+            expect(total_time).to be >= 100_000_000,
+              "Expected total_time to be >= 100ms, debug_failures: #{debug_failures}"
+          end
+
           expect(waiting_for_gvl_time).to be < total_time,
             "Expected #{waiting_for_gvl_time} to be < #{total_time}, debug_failures: #{debug_failures}"
           expect(waiting_for_gvl_time).to be_within(5).percent_of(total_time),
@@ -680,7 +689,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         all_samples = try_wait_until do
           samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
-          samples if samples.any?
+          samples if samples_for_thread(samples, Thread.current).any?
         end
 
         cpu_and_wall_time_worker.stop
