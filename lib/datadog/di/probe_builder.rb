@@ -41,7 +41,7 @@ module Datadog
         "DEFAULT" => :exit,
       }.freeze
 
-      def build_from_remote_config(config)
+      def build_from_remote_config(config, logger:)
         # The validations here are not yet comprehensive.
         type = config.fetch('type')
         type_symbol = PROBE_TYPES[type] or raise ArgumentError, "Unrecognized probe type: #{type}"
@@ -59,7 +59,7 @@ module Datadog
           # drops capture-expression values (snapshot wins), matching
           # Python/Java/Go DI. Logged at debug to make the choice observable
           # without spamming operator logs.
-          Datadog.logger.debug do
+          logger.debug do
             "di: probe #{config["id"]}: captureSnapshot=true wins over captureExpressions (n=#{capture_expressions.size})"
           end
         end
@@ -82,7 +82,7 @@ module Datadog
           max_capture_collection_size: config["capture"]&.[]("maxCollectionSize"),
           max_capture_string_length: config["capture"]&.[]("maxLength"),
           capture_expressions: capture_expressions,
-          evaluate_at: parse_evaluate_at(config["evaluateAt"], config["id"]),
+          evaluate_at: parse_evaluate_at(config["evaluateAt"], config["id"], logger),
           rate_limit: config["sampling"]&.[]("snapshotsPerSecond"),
           condition: cond,
         )
@@ -156,11 +156,13 @@ module Datadog
       #
       # @param raw [String, nil] raw `evaluateAt` value from the RC payload.
       # @param probe_id [String, nil] probe id for the diagnostic log line.
+      # @param logger [Datadog::DI::Logger] injected logger for the diagnostic
+      #   log line emitted on an unrecognized value.
       # @return [Symbol] :entry or :exit.
-      def parse_evaluate_at(raw, probe_id)
+      def parse_evaluate_at(raw, probe_id, logger)
         return :exit if raw.nil?
         EVALUATE_AT_STRINGS[raw] || begin
-          Datadog.logger.debug do
+          logger.debug do
             "di: probe #{probe_id}: unrecognized evaluateAt value #{raw.inspect}, defaulting to :exit"
           end
           :exit

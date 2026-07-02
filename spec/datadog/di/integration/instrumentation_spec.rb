@@ -566,7 +566,7 @@ RSpec.describe 'Instrumentation integration' do
 
       context 'with capture expression referencing a positional argument' do
         let(:probe) do
-          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
         end
 
         let(:probe_spec) do
@@ -602,7 +602,7 @@ RSpec.describe 'Instrumentation integration' do
 
       context 'with capture expression and evaluateAt: ENTRY' do
         let(:probe) do
-          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
         end
 
         let(:probe_spec) do
@@ -643,7 +643,7 @@ RSpec.describe 'Instrumentation integration' do
 
       context 'with @duration capture expression and evaluateAt: ENTRY' do
         let(:probe) do
-          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
         end
 
         # At entry time the duration is not yet known (context.duration is nil).
@@ -687,7 +687,7 @@ RSpec.describe 'Instrumentation integration' do
 
       context 'with capture expression and evaluateAt: EXIT (explicit, same as default)' do
         let(:probe) do
-          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
         end
 
         let(:probe_spec) do
@@ -724,7 +724,7 @@ RSpec.describe 'Instrumentation integration' do
 
       context 'with both captureSnapshot=true and capture_expressions (mutual exclusion)' do
         let(:probe) do
-          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
         end
 
         let(:probe_spec) do
@@ -764,7 +764,7 @@ RSpec.describe 'Instrumentation integration' do
         end
 
         let(:probe) do
-          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
         end
 
         let(:probe_spec) do
@@ -799,7 +799,7 @@ RSpec.describe 'Instrumentation integration' do
 
       context 'with a capture expression that raises during evaluation' do
         let(:probe) do
-          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
         end
 
         # len(undefined) — `undefined` resolves to nil at the EL layer, and
@@ -956,7 +956,7 @@ RSpec.describe 'Instrumentation integration' do
 
       context 'when message template references special variables' do
         let(:probe) do
-          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
         end
 
         let(:probe_spec) do
@@ -1246,7 +1246,7 @@ RSpec.describe 'Instrumentation integration' do
 
         context 'with capture expression referencing a local variable' do
           let(:probe) do
-            Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
+            Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
           end
 
           # Line 40 of the test target reads `a * 2` after `a = 21` on line 33.

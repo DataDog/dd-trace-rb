@@ -1,12 +1,15 @@
 require "datadog/di/spec_helper"
 require "datadog/di/probe_builder"
+require "datadog/di/logger"
 
 RSpec.describe Datadog::DI::ProbeBuilder do
   di_test
 
+  let(:logger) { instance_double(Datadog::DI::Logger).as_null_object }
+
   describe ".build_from_remote_config" do
     let(:probe) do
-      described_class.build_from_remote_config(rc_probe_spec)
+      described_class.build_from_remote_config(rc_probe_spec, logger: logger)
     end
 
     context "typical line probe" do
@@ -291,7 +294,7 @@ RSpec.describe Datadog::DI::ProbeBuilder do
         end
 
         it "logs a debug message about snapshot winning" do
-          expect(Datadog.logger).to receive(:debug) do |&block|
+          expect(logger).to receive(:debug) do |&block|
             expect(block.call).to match(/captureSnapshot=true wins over captureExpressions/)
           end
           probe
@@ -385,7 +388,7 @@ RSpec.describe Datadog::DI::ProbeBuilder do
         end
 
         it "logs a debug message naming the bad value" do
-          expect(Datadog.logger).to receive(:debug) do |&block|
+          expect(logger).to receive(:debug) do |&block|
             expect(block.call).to match(/unrecognized evaluateAt value "AROUND"/)
           end
           probe

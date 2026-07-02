@@ -7,7 +7,7 @@ module Datadog
 
       EVALUATE_AT_STRINGS: Hash[String, Symbol]
 
-      def self?.build_from_remote_config: (Hash[String, untyped] config) -> Probe
+      def self?.build_from_remote_config: (Hash[String, untyped] config, logger: DI::Logger) -> Probe
 
       def self?.build_template_segments: (Array[Hash[String, untyped]]? segments) -> Array[String | DI::EL::Expression]?
 
@@ -15,7 +15,7 @@ module Datadog
 
       def self?.build_capture_limits: (Hash[String, untyped]? raw) -> CaptureLimits?
 
-      def self?.parse_evaluate_at: (String? raw, String? probe_id) -> Symbol
+      def self?.parse_evaluate_at: (String? raw, String? probe_id, DI::Logger logger) -> Symbol
     end
   end
 end

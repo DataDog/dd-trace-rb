@@ -151,7 +151,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         end
 
         let(:probe) do
-          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
+          Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json), logger: logger)
         end
 
         let(:context) do

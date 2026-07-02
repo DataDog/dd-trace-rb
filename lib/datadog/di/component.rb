@@ -185,7 +185,7 @@ module Datadog
       end
 
       def parse_probe_spec_and_notify(probe_spec)
-        probe = ProbeBuilder.build_from_remote_config(probe_spec)
+        probe = ProbeBuilder.build_from_remote_config(probe_spec, logger: logger)
       rescue Exception => exc # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(exc)
         begin
