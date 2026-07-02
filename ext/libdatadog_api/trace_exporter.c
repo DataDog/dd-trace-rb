@@ -185,14 +185,6 @@ static inline void set_config_field(
  * Conversion helpers (Ruby -> C, require the GVL)
  * ======================================================================== */
 
-/* Nullable Ruby String -> ddog_CharSlice (nil -> empty slice) */
-static inline ddog_CharSlice nullable_char_slice(VALUE str) {
-  if (str == Qnil) {
-    return (ddog_CharSlice){.ptr = "", .len = 0};
-  }
-  return char_slice_from_ruby_string(str);
-}
-
 /* Ruby Time -> int64_t nanoseconds since Unix epoch */
 static inline int64_t time_to_nanos(VALUE time) {
   struct timespec ts = rb_time_timespec(time);

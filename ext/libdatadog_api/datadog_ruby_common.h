@@ -66,10 +66,21 @@ NORETURN(
 // Helper to retrieve Datadog::VERSION::STRING
 VALUE datadog_gem_version(void);
 
+// Converts a Ruby String into a borrowed libdatadog string slice.
+// Raises for non-String values.
+// Do not use the returned value beyond the lifetime of `string`.
 static inline ddog_CharSlice char_slice_from_ruby_string(VALUE string) {
   ENFORCE_TYPE(string, T_STRING);
   ddog_CharSlice char_slice = {.ptr = RSTRING_PTR(string), .len = RSTRING_LEN(string)};
   return char_slice;
+}
+
+// Like char_slice_from_ruby_string, but nil becomes an empty slice.
+// Raises for non-String, non-nil values.
+// Do not use the returned value beyond the lifetime of `string`.
+static inline ddog_CharSlice nullable_char_slice(VALUE string) {
+  if (NIL_P(string)) return DDOG_CHARSLICE_C("");
+  return char_slice_from_ruby_string(string);
 }
 
 static inline VALUE log_warning(VALUE warning) {

@@ -315,8 +315,8 @@ void sample_thread(
       VALUE name = rb_iseq_base_label(buffer->stack_buffer[i].as.ruby_frame.iseq);
       VALUE filename = rb_iseq_path(buffer->stack_buffer[i].as.ruby_frame.iseq);
 
-      name_slice = NIL_P(name) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name);
-      filename_slice = NIL_P(filename) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(filename);
+      name_slice = nullable_char_slice(name);
+      filename_slice = nullable_char_slice(filename);
       line = buffer->stack_buffer[i].as.ruby_frame.line;
 
       last_ruby_frame_filename = filename_slice;
@@ -324,7 +324,7 @@ void sample_thread(
     } else {
       VALUE name = rb_id2str(buffer->stack_buffer[i].as.native_frame.method_id);
 
-      name_slice = NIL_P(name) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name);
+      name_slice = nullable_char_slice(name);
 
       set_file_info_for_cfunc(
         &filename_slice,
