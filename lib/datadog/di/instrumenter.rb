@@ -230,10 +230,8 @@ module Datadog
               # Entry-time capture-expression evaluation. For probes with
               # evaluate_at: :entry, evaluate against the pre-super scope
               # (args/kwargs/self only — @return/@duration/@exception are
-              # nil at this point) and stash the result. The Context built
-              # below carries it through to the notification builder, which
-              # emits the block under captures.entry instead of re-running
-              # the evaluator at exit-time scope.
+              # nil at this point) and store the result. The Context built
+              # below carries it through to the notification builder.
               # Skipped when capture_snapshot is also set: the snapshot block
               # wins at fire time, so any pre-computed capture-expression block
               # would be discarded by ProbeNotificationBuilder.
