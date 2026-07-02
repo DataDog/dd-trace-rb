@@ -47,6 +47,7 @@ module Datadog
               body = request.env['action_dispatch.request.request_parameters']
 
               return if body.nil?
+              return body unless request.env['action_dispatch.request.path_parameters']
 
               body.reject do |k, _v|
                 request.env['action_dispatch.request.path_parameters'].key?(k)
@@ -55,6 +56,8 @@ module Datadog
 
             def route_params
               excluded = [:controller, :action]
+
+              return {} unless request.env['action_dispatch.request.path_parameters']
 
               request.env['action_dispatch.request.path_parameters'].reject do |k, _v|
                 excluded.include?(k)
