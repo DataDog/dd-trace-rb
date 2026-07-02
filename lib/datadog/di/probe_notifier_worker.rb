@@ -260,40 +260,56 @@ module Datadog
         # if it has been more than 1 second since the last send of the same
         # event type.
         define_method("add_#{event_type}") do |event, probe: nil|
-          @lock.synchronize do
-            queue = send("#{event_type}_queue")
-            if queue.length > settings.dynamic_instrumentation.internal.snapshot_queue_capacity
-              if event_type == :status && probe
-                status = event.dig(:debugger, :diagnostics, :status)
-                logger.debug { "di: dropping status for #{probe.type} probe at #{probe.location} (#{probe.id}): #{status} because queue is full" }
+          # Enqueueing reads DI configuration and writes debug/trace logs, both
+          # of which can call stdlib methods (e.g. Set#include? via the
+          # configuration layer's supported-configuration lookup). If a customer
+          # has a method probe on such a method, firing it here would re-enter
+          # the worker through probe_executed_callback and deadlock on @lock
+          # (recursive locking). Hold the re-entrancy guard for the duration so
+          # those DI-internal calls reach the original method without firing the
+          # probe. Restore the prior state afterwards so a caller that already
+          # holds the guard (e.g. run_method_probe post-processing calling
+          # add_snapshot) is not cleared early.
+          was_in_probe = Datadog::DI.in_probe?
+          Datadog::DI.enter_probe unless was_in_probe
+          begin
+            @lock.synchronize do
+              queue = send("#{event_type}_queue")
+              if queue.length > settings.dynamic_instrumentation.internal.snapshot_queue_capacity
+                if event_type == :status && probe
+                  status = event.dig(:debugger, :diagnostics, :status)
+                  logger.debug { "di: dropping status for #{probe.type} probe at #{probe.location} (#{probe.id}): #{status} because queue is full" }
+                else
+                  logger.debug { "di: #{self.class.name}: dropping #{event_type} event because queue is full" }
+                end
               else
-                logger.debug { "di: #{self.class.name}: dropping #{event_type} event because queue is full" }
+                if event_type == :status && probe
+                  status = event.dig(:debugger, :diagnostics, :status)
+                  logger.trace { "di: queueing status for #{probe.type} probe at #{probe.location} (#{probe.id}): #{status}" }
+                else
+                  logger.trace { "di: #{self.class.name}: queueing #{event_type} event" }
+                end
+                queue << event
               end
-            else
-              if event_type == :status && probe
-                status = event.dig(:debugger, :diagnostics, :status)
-                logger.trace { "di: queueing status for #{probe.type} probe at #{probe.location} (#{probe.id}): #{status}" }
-              else
-                logger.trace { "di: #{self.class.name}: queueing #{event_type} event" }
+            end
+
+            # Figure out whether to wake up the worker thread.
+            # If minimum send interval has elapsed since the last send,
+            # wake up immediately.
+            @lock.synchronize do
+              unless @wake_scheduled
+                @wake_scheduled = true
+                set_sleep_remaining
+                wake.signal
               end
-              queue << event
             end
-          end
 
-          # Figure out whether to wake up the worker thread.
-          # If minimum send interval has elapsed since the last send,
-          # wake up immediately.
-          @lock.synchronize do
-            unless @wake_scheduled
-              @wake_scheduled = true
-              set_sleep_remaining
-              wake.signal
-            end
+            # Worker could be not running if the process forked - check and
+            # start it again in this case.
+            start
+          ensure
+            Datadog::DI.leave_probe unless was_in_probe
           end
-
-          # Worker could be not running if the process forked - check and
-          # start it again in this case.
-          start
         end
 
         public "add_#{event_type}"
