@@ -11,7 +11,7 @@ module Datadog
 
           def self?.rewind?: () -> bool
 
-          def self?.rewind: (_RewindableIO io) -> bool
+          def self?.rewind: (Utils::HTTP::_RewindableIO io) -> bool
         end
       end
     end

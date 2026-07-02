@@ -2,6 +2,23 @@ module Datadog
   module AppSec
     module Utils
       module HTTP
+        interface _ReadableIO
+          def read: (?Integer? length, ?String? outbuf) -> String?
+        end
+
+        interface _RackInput
+          include _ReadableIO
+
+          def gets: () -> String?
+
+          def close: () -> void
+        end
+
+        interface _RewindableIO
+          include _ReadableIO
+
+          def rewind: () -> Integer
+        end
       end
     end
   end

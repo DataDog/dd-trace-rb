@@ -1,0 +1,19 @@
+module Datadog
+  module AppSec
+    module Utils
+      module HTTP
+        module BodyReader
+          def self?.read: (untyped body, limit: Integer, ?rewind_before_read: bool) -> String?
+
+          def self?.read_stream: (Utils::HTTP::_RewindableIO body, limit: Integer, rewind_before_read: true) -> String?
+                               | (Utils::HTTP::_ReadableIO body, limit: Integer, ?rewind_before_read: false) -> String
+                               | (Utils::HTTP::_RewindableIO body, limit: Integer, rewind_before_read: bool) -> String?
+
+          private
+
+          def self?.rewind: (Utils::HTTP::_RewindableIO body) -> bool
+        end
+      end
+    end
+  end
+end
