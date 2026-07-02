@@ -15,10 +15,8 @@ require 'racecar/cli'
 require 'active_support'
 require 'datadog'
 require 'datadog/tracing/contrib/racecar/instrumentation/consumer'
-require 'datadog/tracing/contrib/racecar/instrumentation/producer'
 
-RSpec.describe 'Racecar Data Streams instrumentation' do
-  let(:configuration_options) { {} }
+RSpec.describe Datadog::Tracing::Contrib::Racecar::Instrumentation::Consumer do
   let(:propagation_key) { Datadog::DataStreams::Processor::PROPAGATION_KEY }
 
   # Stand-in for a single rdkafka message: only the attributes the
@@ -35,8 +33,8 @@ RSpec.describe 'Racecar Data Streams instrumentation' do
 
   before do
     Datadog.configure do |c|
-      c.tracing.instrument :racecar, configuration_options
-      c.data_streams.enabled = true
+      c.tracing.instrument :racecar
+      c.data_streams.enabled = data_streams_enabled
     end
   end
 
@@ -46,6 +44,8 @@ RSpec.describe 'Racecar Data Streams instrumentation' do
     example.run
     Datadog.registry[:racecar].reset_configuration!
   end
+
+  let(:data_streams_enabled) { true }
 
   # Drives the prepended Racecar::Runner#process / #process_batch without a live
   # Kafka connection by stubbing the base methods the instrumentation calls super on.
@@ -165,6 +165,18 @@ RSpec.describe 'Racecar Data Streams instrumentation' do
         expect(runner.processed).to eq([message])
       end
     end
+
+    context 'when Data Streams Monitoring is disabled' do
+      let(:data_streams_enabled) { false }
+      let(:message) { build_message(headers: {propagation_key => 'upstream-context'}) }
+
+      it 'does not set a checkpoint but still processes the message' do
+        expect(Datadog::DataStreams).not_to receive(:set_consume_checkpoint)
+
+        expect { consume }.not_to raise_error
+        expect(runner.processed).to eq([message])
+      end
+    end
   end
 
   describe 'consuming a batch' do
@@ -214,141 +226,6 @@ RSpec.describe 'Racecar Data Streams instrumentation' do
       consume_batch
 
       expect(runner.processed).to eq(messages)
-    end
-  end
-
-  describe 'producing a message from a consumer' do
-    before do
-      skip_if_libdatadog_not_supported
-    end
-
-    let(:consumer_class) do
-      Class.new(::Racecar::Consumer) do
-        def produce_test(headers: nil)
-          captured = nil
-          # Stub the internal producer so we capture what would be sent.
-          producer = Object.new
-          producer.define_singleton_method(:produce) do |**kwargs|
-            captured = kwargs
-            :handle
-          end
-          define_singleton_method(:captured) { captured }
-          @producer = producer
-          @delivery_handles = []
-          @instrumenter = ::Racecar::NullInstrumenter
-
-          send(:produce, 'payload', topic: 'out_topic', headers: headers)
-        end
-      end
-    end
-
-    it 'injects pathway context into the message headers' do
-      consumer = consumer_class.new
-      consumer.produce_test
-
-      headers = consumer.captured[:headers]
-      expect(headers).to be_a(Hash)
-
-      encoded_ctx = headers[propagation_key]
-      expect(encoded_ctx).to be_a(String)
-      expect(encoded_ctx).not_to be_empty
-
-      decoded_ctx = Datadog::DataStreams::PathwayContext.decode_b64(encoded_ctx)
-      expect(decoded_ctx).to be_a(Datadog::DataStreams::PathwayContext)
-      expect(decoded_ctx.hash).to be > 0
-    end
-
-    it 'preserves caller-provided headers' do
-      consumer = consumer_class.new
-      consumer.produce_test(headers: {'custom' => 'value'})
-
-      headers = consumer.captured[:headers]
-      expect(headers['custom']).to eq('value')
-      expect(headers[propagation_key]).to be_a(String)
-    end
-  end
-
-  describe 'producing a message from the standalone producer' do
-    before do
-      skip_if_libdatadog_not_supported
-      # The standalone Racecar::Producer was introduced after the minimum
-      # supported version, so it is not present in every tested version.
-      skip('Racecar::Producer is not available in this version') unless defined?(::Racecar::Producer)
-    end
-
-    let(:producer_class) do
-      Class.new(::Racecar::Producer) do
-        def initialize
-          @internal_producer = Object.new
-          @delivery_handles = []
-          @batching = false
-          @instrumenter = ::Racecar::NullInstrumenter
-          define_captured
-        end
-
-        def define_captured
-          captured = nil
-          @internal_producer.define_singleton_method(:produce) do |**kwargs|
-            captured = kwargs
-            :handle
-          end
-          define_singleton_method(:captured) { captured }
-        end
-      end
-    end
-
-    it 'injects pathway context when producing asynchronously' do
-      producer = producer_class.new
-      producer.produce_async(value: 'payload', topic: 'out_topic')
-
-      headers = producer.captured[:headers]
-      expect(headers).to be_a(Hash)
-      expect(headers[propagation_key]).to be_a(String)
-    end
-  end
-
-  describe 'when DSM is disabled' do
-    before do
-      Datadog.configure do |c|
-        c.tracing.instrument :racecar
-        c.data_streams.enabled = false
-      end
-    end
-
-    let(:consumer_class) do
-      Class.new(::Racecar::Consumer) do
-        def produce_test
-          captured = nil
-          producer = Object.new
-          producer.define_singleton_method(:produce) do |**kwargs|
-            captured = kwargs
-            :handle
-          end
-          define_singleton_method(:captured) { captured }
-          @producer = producer
-          @delivery_handles = []
-          @instrumenter = ::Racecar::NullInstrumenter
-
-          send(:produce, 'payload', topic: 'out_topic', headers: nil)
-        end
-      end
-    end
-
-    it 'does not inject DSM headers when producing' do
-      consumer = consumer_class.new
-      consumer.produce_test
-
-      headers = consumer.captured[:headers]
-      expect(headers).to be_nil.or(satisfy { |h| !h.key?(Datadog::DataStreams::Processor::PROPAGATION_KEY) })
-    end
-
-    it 'does not set a checkpoint when consuming a message with a pathway context' do
-      expect(Datadog::DataStreams).not_to receive(:set_consume_checkpoint)
-
-      message = build_message(headers: {propagation_key => 'some-context'})
-
-      expect { runner.process(message) }.not_to raise_error
-      expect(runner.processed).to eq([message])
     end
   end
 end
