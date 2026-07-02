@@ -422,13 +422,7 @@ static VALUE create_error_response(ddog_TraceExporterErrorCode code,
   rb_hash_aset(kwargs, ID2SYM(rb_intern("server_error")),   code == DDOG_TRACE_EXPORTER_ERROR_CODE_HTTP_SERVER ? Qtrue : Qfalse);
   rb_hash_aset(kwargs, ID2SYM(rb_intern("client_error")),   code == DDOG_TRACE_EXPORTER_ERROR_CODE_HTTP_CLIENT ? Qtrue : Qfalse);
   rb_hash_aset(kwargs, ID2SYM(rb_intern("trace_count")),    LONG2NUM(trace_count));
-#ifdef HAVE_RB_FUNCALLV_KW
   return rb_funcallv_kw(response_class, id_new, 1, &kwargs, RB_PASS_KEYWORDS);
-#else
-  // Ruby < 2.7 has no rb_funcallv_kw/RB_PASS_KEYWORDS; there a trailing Hash is
-  // implicitly passed as keyword arguments.
-  return rb_funcallv(response_class, id_new, 1, &kwargs);
-#endif
 }
 
 /*
@@ -445,13 +439,7 @@ static VALUE create_ok_response(long trace_count, VALUE payload) {
   rb_hash_aset(kwargs, ID2SYM(rb_intern("ok")),          Qtrue);
   rb_hash_aset(kwargs, ID2SYM(rb_intern("trace_count")), LONG2NUM(trace_count));
   rb_hash_aset(kwargs, ID2SYM(rb_intern("payload")),     payload);
-#ifdef HAVE_RB_FUNCALLV_KW
   return rb_funcallv_kw(response_class, id_new, 1, &kwargs, RB_PASS_KEYWORDS);
-#else
-  // Ruby < 2.7 has no rb_funcallv_kw/RB_PASS_KEYWORDS; there a trailing Hash is
-  // implicitly passed as keyword arguments.
-  return rb_funcallv(response_class, id_new, 1, &kwargs);
-#endif
 }
 
 /* ========================================================================
