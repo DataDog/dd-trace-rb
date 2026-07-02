@@ -4,6 +4,14 @@ module Datadog
       module HTTP
         interface _ReadableIO
           def read: (?Integer? length, ?String? outbuf) -> String?
+
+          def respond_to?: (Symbol) -> bool
+        end
+
+        interface _RewindableIO
+          include _ReadableIO
+
+          def rewind: () -> Integer
         end
 
         interface _RackInput
@@ -12,12 +20,6 @@ module Datadog
           def gets: () -> String?
 
           def close: () -> void
-        end
-
-        interface _RewindableIO
-          include _ReadableIO
-
-          def rewind: () -> Integer
         end
       end
     end

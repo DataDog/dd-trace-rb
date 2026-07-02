@@ -21,6 +21,7 @@ module Datadog
 
             if rewind_before_read
               return unless rewind(body)
+
               rewound = true
             end
 
@@ -44,7 +45,10 @@ module Datadog
           end
 
           private_class_method def rewind(body)
-            body.rewind
+            return false unless body.respond_to?(:rewind)
+
+            # NOTE: Steep can't narrow interfaces via `respond_to?` guard-clause
+            body.rewind # steep:ignore
             true
           rescue => e
             Datadog.logger.debug { "AppSec: Failed to rewind body: #{e.class}: #{e.message}" }
