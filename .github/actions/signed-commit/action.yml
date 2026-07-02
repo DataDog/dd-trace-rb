@@ -1,0 +1,69 @@
+name: Signed commit
+
+description: >
+  Commit changed files to a branch as a single GitHub-verified signed commit, using the
+  GraphQL createCommitOnBranch mutation (via planetscale/ghcommit) instead of the Git Data
+  REST API. This keeps commit time independent of file count and requires no GPG/SSH key
+  management, which satisfies repositories that require signed commits.
+
+inputs:
+  repository:
+    description: "owner/repo to commit to"
+    required: false
+    default: ${{ github.repository }}
+  branch:
+    description: "Branch to commit to"
+    required: true
+  base-branch:
+    description: "If set and 'branch' does not exist yet, it is created pointing at this branch's current HEAD"
+    required: false
+    default: ""
+  commit-message:
+    description: "Commit message"
+    required: true
+  paths:
+    description: "Space-separated list of pathspecs scoping which changed files are committed"
+    required: false
+    default: "."
+  github-token:
+    description: "Token with contents:write on 'repository'"
+    required: true
+
+outputs:
+  changed:
+    description: "'true' if a commit was created, 'false' if there were no matching changes"
+    value: ${{ steps.commit.outputs.changed }}
+  commit-sha:
+    description: "SHA of the created commit (empty when changed == 'false')"
+    value: ${{ steps.commit.outputs.commit-sha }}
+  commit-url:
+    description: "URL of the created commit (empty when changed == 'false')"
+    value: ${{ steps.commit.outputs.commit-url }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install ghcommit
+      shell: bash
+      env:
+        GHCOMMIT_VERSION: v0.1.78
+        GHCOMMIT_SHA256: 97b1db204e334a9cc90c7b1d522cc3a9dca8c7b4ca1837862f1e8b77de04807e
+      run: |
+        set -euo pipefail
+        curl -sSLo "$RUNNER_TEMP/ghcommit" "https://github.com/planetscale/ghcommit/releases/download/${GHCOMMIT_VERSION}/ghcommit_linux_amd64"
+        echo "${GHCOMMIT_SHA256}  $RUNNER_TEMP/ghcommit" | sha256sum -c -
+        chmod +x "$RUNNER_TEMP/ghcommit"
+        echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+    - name: Commit changes
+      id: commit
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        REPOSITORY: ${{ inputs.repository }}
+        BRANCH: ${{ inputs.branch }}
+        BASE_BRANCH: ${{ inputs.base-branch }}
+        COMMIT_MESSAGE: ${{ inputs.commit-message }}
+        PATHS: ${{ inputs.paths }}
+      run: "$GITHUB_ACTION_PATH/commit.sh"
