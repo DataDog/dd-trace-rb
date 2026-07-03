@@ -478,14 +478,17 @@ module Datadog
       # Whether upload is currently blocked specifically by the nil-default
       # DI-active gate — the only case that defers and retries via
       # resume_pending_upload. An explicit symbol_database.enabled = false is a
-      # disabled feature, not a deferral, and must not be marked pending.
+      # disabled feature, not a deferral, so it clears @upload_requested and is
+      # not retried. force_upload and explicit true are never gated, so they are
+      # never deferred.
       # @return [bool]
       def deferred_by_di_gate?
         return false if @settings.symbol_database.internal.force_upload
         return false unless @settings.symbol_database.enabled.nil?
 
-        # steep:ignore NoMethod — Steep does not narrow @di_active to non-nil after the .nil? check
-        !(@di_active.nil? || @di_active.call) # steep:ignore NoMethod
+        # After the guards above, upload_allowed? reduces to the DI-active gate,
+        # so a disallowed upload here is precisely a DI-gate deferral.
+        !upload_allowed?
       end
 
       # Check whether the runtime environment supports symbol database upload,
