@@ -129,10 +129,11 @@ module Datadog
 
       # Collapses capture expressions that share a name, keeping the last
       # occurrence for each name. Duplicate names are permitted on the wire and
-      # are forwarded unchanged; resolving them here, at parse time, yields one
-      # value per name and avoids evaluating an expression whose result would be
-      # overwritten when the snapshot is serialized. A collapse is logged at
-      # debug so it stays observable.
+      # are forwarded unchanged. The resulting last-wins output matches
+      # Python/Java/Node.js/PHP; unlike those tracers, which evaluate every
+      # entry and let a later value overwrite an earlier one at snapshot time,
+      # Ruby resolves duplicates here at parse time so a discarded duplicate is
+      # never evaluated. A collapse is logged at debug so it stays observable.
       #
       # @param capture_expressions [Array<Datadog::DI::CaptureExpression>]
       #   parsed capture expressions, in payload order.
