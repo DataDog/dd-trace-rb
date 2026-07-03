@@ -13,6 +13,8 @@ module Datadog
 
       def self?.build_capture_expressions: (Array[Hash[String, untyped]]? raw) -> Array[CaptureExpression]
 
+      def self?.dedup_capture_expressions: (Array[CaptureExpression] capture_expressions, String? probe_id, DI::Logger logger) -> Array[CaptureExpression]
+
       def self?.build_capture_limits: (Hash[String, untyped]? raw) -> CaptureLimits?
 
       def self?.parse_evaluate_at: (String? raw, String? probe_id, DI::Logger logger) -> Symbol

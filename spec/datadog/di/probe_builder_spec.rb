@@ -301,6 +301,29 @@ RSpec.describe Datadog::DI::ProbeBuilder do
         end
       end
 
+      context "duplicate captureExpressions names" do
+        let(:rc_probe_spec) do
+          base_spec.merge("captureExpressions" => [
+            {"name" => "x", "expr" => {"dsl" => "a", "json" => {"ref" => "a"}}},
+            {"name" => "y", "expr" => {"dsl" => "b", "json" => {"ref" => "b"}}},
+            {"name" => "x", "expr" => {"dsl" => "c", "json" => {"ref" => "c"}}},
+          ])
+        end
+
+        it "collapses to one entry per name, keeping the last occurrence" do
+          expect(probe.capture_expressions.map(&:name)).to eq(%w[x y])
+          x = probe.capture_expressions.find { |ce| ce.name == "x" }
+          expect(x.expr.dsl_expr).to eq("c")
+        end
+
+        it "logs a debug message about the collapse" do
+          expect(logger).to receive(:debug) do |&block|
+            expect(block.call).to match(/collapsed duplicate captureExpressions names/)
+          end
+          probe
+        end
+      end
+
       context "captureExpressions is not an array" do
         let(:rc_probe_spec) do
           base_spec.merge("captureExpressions" => {"name" => "x"})

@@ -53,6 +53,7 @@ module Datadog
           EL::Expression.new(cond_spec['dsl'], compiled)
         end
         capture_expressions = build_capture_expressions(config['captureExpressions'])
+        capture_expressions = dedup_capture_expressions(capture_expressions, config["id"], logger)
         if !!config["captureSnapshot"] && !capture_expressions.empty?
           # When both captureSnapshot and captureExpressions are set on the
           # same probe, the runtime emits the snapshot block and silently
@@ -124,6 +125,32 @@ module Datadog
           limits = build_capture_limits(entry['capture'])
           CaptureExpression.new(name: name, expr: expr, limits: limits)
         end
+      end
+
+      # Collapses capture expressions that share a name, keeping the last
+      # occurrence for each name. Duplicate names are permitted on the wire and
+      # are forwarded unchanged; resolving them here, at parse time, yields one
+      # value per name and avoids evaluating an expression whose result would be
+      # overwritten when the snapshot is serialized. A collapse is logged at
+      # debug so it stays observable.
+      #
+      # @param capture_expressions [Array<Datadog::DI::CaptureExpression>]
+      #   parsed capture expressions, in payload order.
+      # @param probe_id [String, nil] probe id for the diagnostic log line.
+      # @param logger [Datadog::DI::Logger] injected logger.
+      # @return [Array<Datadog::DI::CaptureExpression>] one per distinct name,
+      #   with the last occurrence retained for each.
+      def dedup_capture_expressions(capture_expressions, probe_id, logger)
+        return capture_expressions if capture_expressions.size < 2
+        by_name = {}
+        capture_expressions.each do |capture_expression|
+          by_name[capture_expression.name] = capture_expression
+        end
+        return capture_expressions if by_name.size == capture_expressions.size
+        logger.debug do
+          "di: probe #{probe_id}: collapsed duplicate captureExpressions names, kept last per name (#{capture_expressions.size} -> #{by_name.size})"
+        end
+        by_name.values
       end
 
       # Parses a per-expression `capture` block of a remote-config probe payload
