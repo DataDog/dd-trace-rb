@@ -6,20 +6,20 @@ This guide applies to contributors and their AI coding tools working under `lib/
 
 ## Must follow
 
-- Keep PRs under ~1000 added lines and each PR description follows `.github/PULL_REQUEST_TEMPLATE.md` (see [Pull requests](#pull-requests)).
-- Full, descriptive names. Single letters only for block indices, `rescue => e`, or an ignored `_arg`.
-- Comment the *why* in as few words as possible; delete a comment that only restates the code.
+- Keep each PR focused on one thing, under ~1000 added lines, and include tests for the change (see [Pull requests](#pull-requests)).
+- PR description follows `.github/PULL_REQUEST_TEMPLATE.md`, at most three sentences per section — high-level intent, not a file-by-file list.
+- Full, descriptive names. Single letters only for block indices, `rescue => e`, or an ignored `_arg` (see [Naming](#naming)).
+- Comment the *why* in as few words as possible; delete a comment that only restates the code (see [Comments](#comments)).
 - Files and modules follow [Zeitwerk conventions](#file-and-directory-structure): `FlagEvaluation` lives in `flag_evaluation.rb`.
-- No dead code — no method, branch, or class that no current caller reaches.
-- Small, single-purpose methods. A blank line follows a guard clause.
-- Rescue only what you intend to handle. A broad `rescue => e` at a product boundary needs a comment explaining why it must never interrupt the caller.
-- Tests are independent: no reliance on ordering, and singletons like `OpenFeature::API.instance` are reset in `before`/`after`.
-- Every `.rb` file has a matching `.rbs` in `sig/datadog/open_feature/`. Never silently suppress the type checker.
+- No dead code — no method, branch, or class that no current caller reaches (see [Code hygiene](#code-hygiene)).
+- Small, single-purpose methods. A blank line follows a guard clause (see [Methods](#methods)).
+- Rescue only what you intend to handle. A broad `rescue => e` at a product boundary needs a comment explaining why it must never interrupt the caller (see [Error handling](#error-handling)).
+- Tests are independent: no reliance on ordering, and singletons like `OpenFeature::API.instance` are reset in `before`/`after` (see [Tests](#tests)).
+- Every `.rb` file has a matching `.rbs` in `sig/datadog/open_feature/`. Never silently suppress the type checker (see [Types (RBS)](#types-rbs)).
 - Use `instance_double`, not string-name doubles or hand-rolled `Struct` fakes. Assert exact values when you know them.
 - Background threads are fork-safe, use a bounded `SizedQueue`, `join(timeout)` on shutdown, and enqueue non-blocking.
 - Use `Datadog::Core::Utils::Time.now` (never `Time.now`) and read env vars through `Datadog::Core::Environment::VariableHelpers` (never `ENV`).
 - Construct objects through their real constructor, never `.allocate` + `instance_variable_set`.
-- Run `bundle exec rake standard:fix` before pushing (see [Style](#style)).
 
 The sections below explain the reasoning and show the tricky cases. Skim the "bad" examples first — they are the mistakes this guide exists to prevent.
 
@@ -28,8 +28,9 @@ The sections below explain the reasoning and show the tricky cases. Skim the "ba
 ## Pull requests
 
 - Keep each PR focused on one thing — a feature, a refactor, or a bug fix, not all three.
+- **Tests.** Every behavior change ships with test coverage in the same PR. A PR that changes code without a corresponding test change is incomplete, not a follow-up to file later.
 - **Size.** If the resulting diff would exceed roughly 1000 lines of additions, stop and propose a split into smaller, stackable PRs before generating any code.
-- **Description.** Use `.github/PULL_REQUEST_TEMPLATE.md` as the structure. One or two sentences per section — high-level intent, not a file-by-file list. Answer *what* and *why*, and call out any non-obvious trade-off; the reviewer reads the diff for the rest.
+- **Description.** Use `.github/PULL_REQUEST_TEMPLATE.md` as the structure. At most three sentences per section — high-level intent, not a file-by-file list. Answer *what* and *why*, and call out any non-obvious trade-off; the reviewer reads the diff for the rest. Before opening the PR, count the sentences in each section; if a section runs longer, cut it or move the detail to Additional Notes.
 - Respond to every review comment with either a fix or an explanation of why the change is not being made. Do not re-request review with open threads unresolved.
 
 ---
