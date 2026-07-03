@@ -2346,7 +2346,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
   end
 
-  describe "#thread_context_collector_global_reset_per_thread_context" do
+  describe "#thread_context_collector_reset_all_per_thread_contexts" do
     it "resets every existing per-thread context back to its clean initial state" do
       sample
 

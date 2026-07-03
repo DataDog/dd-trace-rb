@@ -252,7 +252,7 @@ void sample_thread(
   st_table *native_filenames_cache
 ) {
   if (buffer->max_frames != locations.len) {
-    // This shouldn't happen as thread_context_collector_global_reset_per_thread_context (which resizes every
+    // This shouldn't happen as thread_context_collector_reset_all_per_thread_contexts (which resizes every
     // per-thread sampling buffer to match the collector's max_frames) must always be called before starting or
     // restarting profiling.
     raise_error(

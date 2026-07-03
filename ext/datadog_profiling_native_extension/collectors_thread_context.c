@@ -110,7 +110,7 @@ static ID otel_context_storage_id; // id of :__opentelemetry_context_storage__ i
 static ID otel_fiber_context_storage_id; // id of :@opentelemetry_context in Ruby
 
 // This is mutable and gets set last-writer-wins style by
-// `thread_context_collector_global_reset_per_thread_context`, which is called whenever
+// `thread_context_collector_reset_all_per_thread_contexts`, which is called whenever
 // profiling is starting or restating.
 //
 // Note: We must be careful to not change this value while the profiler is still running,
@@ -191,7 +191,7 @@ typedef struct {
 // The state is created early on for all threads on the main Ractor
 // (enabling a TracePoint only enables it for the current Ractor).
 // The state is either created when the Thread starts running (via the RUBY_EVENT_THREAD_BEGIN TracePoint),
-// or via `thread_context_collector_global_reset_per_thread_context` when the profiler starts.
+// or via `thread_context_collector_reset_all_per_thread_contexts` when the profiler starts.
 //
 // Unfortunately that RUBY_EVENT_THREAD_BEGIN TracePoint still fires after some other events:
 // * RUBY_INTERNAL_THREAD_EVENT_RESUMED for the Thread acquiring the GVL for the first time
@@ -535,7 +535,7 @@ static VALUE _native_remove_per_thread_context_for(DDTRACE_UNUSED VALUE self, VA
 }
 
 static VALUE _native_global_reset_per_thread_context(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
-  thread_context_collector_global_reset_per_thread_context(collector_instance);
+  thread_context_collector_reset_all_per_thread_contexts(collector_instance);
   return Qnil;
 }
 
@@ -1291,7 +1291,7 @@ static void initialize_context(VALUE thread, per_thread_context *thread_context)
 //
 // Assumption: Can only be called when the CpuAndWallTimeWorker is stopped (e.g. no tracepoints active, no signals
 // triggering samples, no gvl hooks, etc).
-void thread_context_collector_global_reset_per_thread_context(VALUE self_instance) {
+void thread_context_collector_reset_all_per_thread_contexts(VALUE self_instance) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
