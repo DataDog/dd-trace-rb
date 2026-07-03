@@ -45,5 +45,15 @@ module Datadog
     # Reference: Symbol Database Backend RFC, section "Scope" and "Edge Cases"
     # @see https://www.postgresql.org/docs/current/datatype-numeric.html
     UNKNOWN_MAX_LINE = 2147483647
+
+    class << self
+      # Whether the current Ruby runtime can run symbol database extraction:
+      # MRI (CRuby) on Ruby 2.7 or later.
+      #
+      # @return [Boolean]
+      def supported_runtime?
+        RUBY_ENGINE == 'ruby' && RubyVersion.is?('>= 2.7')
+      end
+    end
   end
 end

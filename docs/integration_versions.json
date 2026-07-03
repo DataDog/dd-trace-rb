@@ -66,8 +66,8 @@
     "integration": "concurrent_ruby",
     "package": "concurrent-ruby",
     "source": "rubygems.org",
-    "min_tested": "1.2.2",
-    "max_tested": "1.3.6"
+    "min_tested": "1.3.7",
+    "max_tested": "1.3.7"
   },
   {
     "integration": "dalli",
@@ -88,7 +88,7 @@
     "package": "elasticsearch",
     "source": "rubygems.org",
     "min_tested": "7.17.11",
-    "max_tested": "9.4.0"
+    "max_tested": "9.4.3"
   },
   {
     "integration": "ethon",
@@ -102,14 +102,14 @@
     "package": "excon",
     "source": "rubygems.org",
     "min_tested": "0.109.0",
-    "max_tested": "1.4.2"
+    "max_tested": "1.5.0"
   },
   {
     "integration": "faraday",
     "package": "faraday",
     "source": "rubygems.org",
     "min_tested": "0.14.0",
-    "max_tested": "2.14.2"
+    "max_tested": "2.14.3"
   },
   {
     "integration": "grape",
@@ -141,7 +141,7 @@
   },
   {
     "integration": "http",
-    "package": "net-http",
+    "package": "http",
     "source": "rubygems.org",
     "min_tested": "5.0.1",
     "max_tested": "6.0.2"
@@ -207,7 +207,7 @@
     "integration": "mongo",
     "package": "mongo",
     "source": "rubygems.org",
-    "min_tested": "2.1.0",
+    "min_tested": "2.11.0",
     "max_tested": "2.24.1"
   },
   {
@@ -348,7 +348,7 @@
     "package": "stripe",
     "source": "rubygems.org",
     "min_tested": "5.15.0",
-    "max_tested": "19.2.0"
+    "max_tested": "19.3.0"
   },
   {
     "integration": "sucker_punch",
@@ -369,6 +369,6 @@
     "package": "waterdrop",
     "source": "rubygems.org",
     "min_tested": "2.6.14",
-    "max_tested": "2.10.1"
+    "max_tested": "2.10.2"
   }
 ]

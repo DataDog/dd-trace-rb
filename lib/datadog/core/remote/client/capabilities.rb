@@ -47,18 +47,25 @@ module Datadog
             register_receivers(Datadog::Tracing::Remote.receivers(@telemetry))
 
             # Skip DI registration entirely when DI is explicitly disabled
-            # (DD_DYNAMIC_INSTRUMENTATION_ENABLED=false): no component will be
-            # built, so advertising bit 38 or the LIVE_DEBUGGING product would
-            # invite an enable signal the tracer must refuse. When the env var
-            # is unset (default), DI is registered so RC can enable it.
+            # (DD_DYNAMIC_INSTRUMENTATION_ENABLED=false) or when the runtime
+            # cannot run DI (JRuby, Ruby 2.5): in either case no component will
+            # run, so advertising bit 38 or the LIVE_DEBUGGING product would
+            # invite probe configs and an enable signal the tracer must refuse.
+            # When the env var is unset (default) on a supported runtime, DI is
+            # registered so RC can enable it.
             if settings.respond_to?(:dynamic_instrumentation) &&
-                !Datadog::DI::Remote.explicitly_disabled?(settings)
+                !Datadog::DI::Remote.explicitly_disabled?(settings) &&
+                Datadog::DI.supported_runtime?
               register_capabilities(Datadog::DI::Remote.capabilities)
               register_products(Datadog::DI::Remote.products)
               register_receivers(Datadog::DI::Remote.receivers(@telemetry))
             end
 
-            if settings.respond_to?(:symbol_database) && settings.symbol_database.enabled
+            # Skip symbol database registration on runtimes that cannot run it
+            # (JRuby, Ruby < 2.7): advertising LIVE_DEBUGGING_SYMBOL_DB there
+            # would invite symbol-upload configs the component can never serve.
+            if settings.respond_to?(:symbol_database) && settings.symbol_database.enabled &&
+                Datadog::SymbolDatabase.supported_runtime?
               register_capabilities(Datadog::SymbolDatabase::Remote.capabilities)
               register_products(Datadog::SymbolDatabase::Remote.products)
               register_receivers(Datadog::SymbolDatabase::Remote.receivers(@telemetry))
