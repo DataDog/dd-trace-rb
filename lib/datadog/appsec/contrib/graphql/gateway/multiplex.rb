@@ -72,8 +72,7 @@ module Datadog
                     args_hash, fragment_name, nil, arguments_from_directives(fragment.directives, query_variables)
                   )
 
-                  # Never unmark: re-expanding a reused fragment yields no new arguments but
-                  # allows exponential blow-up from a linear-sized query.
+                  # re-used fragments are not expanded
                   visited_fragments[fragment_name] = true
                   arguments_from_selections(
                     fragment.selections, query_variables, args_hash, fragments, visited_fragments
