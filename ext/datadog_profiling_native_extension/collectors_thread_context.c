@@ -1617,8 +1617,8 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector
 
   state->stats = (struct stats) {}; // Resets all stats back to zero
 
-  // In the past, we had here code to clean-up the per-thread context, but now the CpuAndWallTimeWorker always cleans
-  // it up unconditionally on every start/restart and that includes after a fork so no work needed here.
+  // No need to clean-up the per-thread context because the CpuAndWallTimeWorker always cleans
+  // it up unconditionally on every start/restart and that includes after a fork.
 
   rb_funcall(state->recorder_instance, rb_intern("reset_after_fork"), 0);
 

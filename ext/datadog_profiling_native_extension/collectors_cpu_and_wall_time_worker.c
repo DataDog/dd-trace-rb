@@ -1438,7 +1438,7 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     // This function gets called without the GVL, and potentially from non-main Ractors!
     //
     // Note, even though these events can get called without the GVL, they synchronize-with enabling/disabling of
-    // the hook that calls us using a rwlock. Thus, disabling the hook cannot be concurrent with calling this function,
+    // the hook that calls us using a read-write lock. Thus, disabling the hook cannot be concurrent with calling this function,
     // and once the disable finishes there can't be "late" calls into this function.
 
     // The thread that this event is about may not be the current thread
