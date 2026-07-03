@@ -177,7 +177,14 @@ module Datadog
           @symbol_database = Datadog::SymbolDatabase::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
           @data_streams = self.class.build_data_streams(settings, agent_settings, @logger, @agent_info)
-          @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
+          # Reflects "the customer configured DI to be on" — true iff the
+          # component was built AND the env-var-driven enabled flag is set.
+          # This is the post-initialize / pre-startup value visible to tests
+          # that don't call startup!. Production overwrites this in startup!
+          # below with `dynamic_instrumentation&.started?`, which also accounts
+          # for RC-driven enablement carried over via ComponentsState.
+          @environment_logger_extra[:dynamic_instrumentation_enabled] =
+            !!(@dynamic_instrumentation && settings.dynamic_instrumentation.enabled)
 
           # Configure non-privileged components.
           Datadog::Tracing::Contrib::Component.configure(settings)
@@ -228,10 +235,24 @@ module Datadog
             remote.start
           end
 
+          # Start DI component if enabled by env var or if it was implicitly enabled
+          # (via RC) in the previous Components instance. dynamic_instrumentation is
+          # non-nil only when Component.build's preconditions passed (Ruby 2.6+ MRI,
+          # etc.), which is exactly the condition under which di/base.rb is loaded
+          # and DI.activate_tracking is defined.
+          if dynamic_instrumentation
+            if settings.dynamic_instrumentation.enabled || old_state&.di_implicitly_enabled?
+              DI.activate_tracking
+              dynamic_instrumentation.start!
+            end
+          end
+
           # This should stay here, not in initialize. During reconfiguration, the order of the calls is:
           # initialize new components, shutdown old components, startup new components.
           # Because this is a singleton, if we call it in initialize, it will be shutdown right away.
           Core::ProcessDiscovery.publish(settings)
+
+          @environment_logger_extra[:dynamic_instrumentation_enabled] = dynamic_instrumentation&.started? || false
 
           Core::Diagnostics::EnvironmentLogger.collect_and_log!(@environment_logger_extra)
         end
@@ -309,9 +330,22 @@ module Datadog
 
         # Returns the current state of various components.
         def state
+          # di_implicitly_enabled distinguishes RC-driven start from explicit
+          # start (env var or programmatic) so that an explicit
+          # `enabled = false` on reconfiguration can take effect.
+          #
+          # using_default? — not `!enabled` — because Datadog.configure has
+          # already mutated the singleton settings by the time #state runs,
+          # so `!enabled` would treat a customer's explicit
+          # `enabled = false` as "implicitly enabled" and restart DI.
+          # using_default? asks "did the customer ever touch this setting",
+          # which is the right question for RC carry-over.
+          di_implicit = dynamic_instrumentation&.started? &&
+            @settings.dynamic_instrumentation.using_default?(:enabled)
           ComponentsState.new(
             telemetry_enabled: telemetry.enabled,
             remote_started: remote&.started?,
+            di_implicitly_enabled: di_implicit || false,
           )
         end
       end

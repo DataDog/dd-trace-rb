@@ -9,6 +9,7 @@ require 'datadog/appsec/route_normalizer/rails_route_pattern'
 RSpec.describe Datadog::AppSec::RouteNormalizer::RailsRoutePattern do
   def build_route(path_spec)
     route_set = ActionDispatch::Routing::RouteSet.new
+    route_set.disable_clear_and_finalize = true
     route_set.draw { get path_spec, to: 'test#show' }
     route_set.routes.first
   end

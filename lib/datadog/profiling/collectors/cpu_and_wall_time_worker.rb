@@ -49,7 +49,7 @@ module Datadog
           # profiler overhead!
           dynamic_sampling_rate_enabled: true,
           skip_idle_samples_for_testing: false,
-          idle_sampling_helper: IdleSamplingHelper.new
+          idle_sampling_helper: IdleSamplingHelper.new(thread_context_collector: thread_context_collector)
         )
           unless dynamic_sampling_rate_enabled
             Datadog.logger.warn(
