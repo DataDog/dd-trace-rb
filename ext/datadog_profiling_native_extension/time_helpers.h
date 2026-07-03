@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <time.h>
 
-#include "extconf.h" // Needed for HAVE_CLOCK_MONOTONIC_COARSE
+#include "extconf.h"
 #include "ruby_helpers.h"
 
 #define SECONDS_AS_NS(value) (value * 1000 * 1000 * 1000L)
@@ -33,7 +33,16 @@ static inline long retrieve_clock_as_ns(clockid_t clock_id, raise_on_failure_set
   return clock_value.tv_nsec + SECONDS_AS_NS(clock_value.tv_sec);
 }
 
-static inline long monotonic_wall_time_now_ns(raise_on_failure_setting raise_on_failure) { return retrieve_clock_as_ns(CLOCK_MONOTONIC, raise_on_failure); }
+// CLOCK_MONOTONIC on macOS only has microsecond precision, CLOCK_MONOTONIC_RAW has nanosecond precision
+#ifdef __APPLE__
+  #define CLOCK_MONOTONIC_FOR_PROFILING CLOCK_MONOTONIC_RAW
+  #define CLOCK_MONOTONIC_COARSE_FOR_PROFILING CLOCK_MONOTONIC_RAW_APPROX
+#else
+  #define CLOCK_MONOTONIC_FOR_PROFILING CLOCK_MONOTONIC
+  #define CLOCK_MONOTONIC_COARSE_FOR_PROFILING CLOCK_MONOTONIC_COARSE
+#endif
+
+static inline long monotonic_wall_time_now_ns(raise_on_failure_setting raise_on_failure) { return retrieve_clock_as_ns(CLOCK_MONOTONIC_FOR_PROFILING, raise_on_failure); }
 static inline long system_epoch_time_now_ns(raise_on_failure_setting raise_on_failure)   { return retrieve_clock_as_ns(CLOCK_REALTIME,  raise_on_failure); }
 
 // Coarse instants use CLOCK_MONOTONIC_COARSE on Linux which is expected to provide resolution in the millisecond range:
@@ -47,11 +56,7 @@ typedef struct {
 static inline coarse_instant to_coarse_instant(long timestamp_ns) { return (coarse_instant) {.timestamp_ns = timestamp_ns}; }
 
 static inline coarse_instant monotonic_coarse_wall_time_now_ns(void) {
- #ifdef HAVE_CLOCK_MONOTONIC_COARSE // Linux
-    return to_coarse_instant(retrieve_clock_as_ns(CLOCK_MONOTONIC_COARSE, DO_NOT_RAISE_ON_FAILURE));
-  #else // macOS
-    return to_coarse_instant(retrieve_clock_as_ns(CLOCK_MONOTONIC, DO_NOT_RAISE_ON_FAILURE));
-  #endif
+  return to_coarse_instant(retrieve_clock_as_ns(CLOCK_MONOTONIC_COARSE_FOR_PROFILING, DO_NOT_RAISE_ON_FAILURE));
 }
 
 long monotonic_to_system_epoch_ns(monotonic_to_system_epoch_state *state, long monotonic_wall_time_ns);
