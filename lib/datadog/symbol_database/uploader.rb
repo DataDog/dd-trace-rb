@@ -9,6 +9,7 @@ require_relative '../core/vendor/multipart-post/multipart/post/composite_read_io
 require_relative '../tracing/ext'
 require_relative 'service_version'
 require_relative 'transport/http'
+require_relative '../di/fatal_exceptions'
 
 module Datadog
   module SymbolDatabase
@@ -86,7 +87,8 @@ module Datadog
         end
 
         perform_http_upload(compressed_data, scopes.size, upload_id: upload_id, batch_num: batch_num)
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: upload failed: #{e.class}: #{e.message}" }
         @telemetry&.report(e, description: 'symdb: upload failed')
       end

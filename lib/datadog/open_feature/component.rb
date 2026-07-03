@@ -12,7 +12,7 @@ module Datadog
   module OpenFeature
     # This class is the entry point for the OpenFeature component
     class Component
-      attr_reader :engine, :flag_eval_hook
+      attr_reader :engine, :flag_eval_metrics_hook, :flag_eval_evp_hook
 
       def self.build(settings, agent_settings, logger:, telemetry:)
         return unless settings.respond_to?(:open_feature) && settings.open_feature.enabled
@@ -54,21 +54,44 @@ module Datadog
 
         @telemetry = telemetry
         @logger = logger
-        @flag_eval_hook = create_flag_eval_hook
+        @settings = settings
+        @agent_settings = agent_settings
+        @flag_eval_metrics_hook = create_flag_eval_metrics_hook
+        @flag_eval_evp_hook = create_flag_eval_evp_hook
       end
 
       def shutdown!
         @worker.graceful_shutdown
+        @flag_eval_evp_writer&.stop
       end
 
       private
 
-      def create_flag_eval_hook
-        require_relative 'hooks/flag_eval_hook'
-        return unless Hooks::FlagEvalHook.available?
+      def create_flag_eval_metrics_hook
+        require_relative 'hooks/flag_eval_metrics_hook'
+        return unless Hooks::FlagEvalMetricsHook.available?
 
         metrics = Metrics::FlagEvalMetrics.new(telemetry: @telemetry, logger: @logger)
-        Hooks::FlagEvalHook.new(metrics)
+        Hooks::FlagEvalMetricsHook.new(metrics)
+      rescue LoadError
+        nil
+      end
+
+      # Killswitch: DD_FLAGGING_EVALUATION_COUNTS_ENABLED (default on) gates only the EVP path.
+      # Read through the datadog config registry, not raw ENV.
+      def create_flag_eval_evp_hook
+        return unless @settings.open_feature.evaluation_counts_enabled
+
+        require_relative 'hooks/flag_eval_evp_hook'
+        return unless Hooks::FlagEvalEVPHook.available?
+
+        evp_transport = Transport::HTTP.build_flagevaluations(
+          agent_settings: @agent_settings,
+          logger: @logger,
+        )
+        require_relative 'flag_evaluation/writer'
+        @flag_eval_evp_writer = FlagEvaluation::Writer.new(transport: evp_transport, logger: @logger, telemetry: @telemetry)
+        Hooks::FlagEvalEVPHook.new(@flag_eval_evp_writer)
       rescue LoadError
         nil
       end

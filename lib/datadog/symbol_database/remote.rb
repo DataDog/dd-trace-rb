@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../di/fatal_exceptions'
+
 module Datadog
   module SymbolDatabase
     # Provides remote configuration integration for symbol database.
@@ -44,7 +46,8 @@ module Datadog
             telemetry = lookup_telemetry
             component = begin
               Datadog.send(:components, allow_initialization: false)&.symbol_database
-            rescue => e
+            rescue Exception => e # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(e)
               Datadog.logger.debug { "symdb: failed to look up component in RC receiver: #{e.class}: #{e.message}" }
               telemetry&.report(e, description: 'symdb: failed to look up component in RC receiver')
               nil
@@ -76,7 +79,8 @@ module Datadog
         # @api private
         def lookup_telemetry
           Datadog.send(:components, allow_initialization: false)&.telemetry
-        rescue
+        rescue Exception => e # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(e)
           nil
         end
 
@@ -107,7 +111,8 @@ module Datadog
             # the Repository::Change union type where `Deleted` lacks `content`.
             change.content.errored("Unrecognized change type: #{change.type}") if change.respond_to?(:content) # steep:ignore NoMethod
           end
-        rescue => e
+        rescue Exception => e # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(e)
           component.logger.debug { "symdb: error processing remote config change: #{e.class}: #{e.message}" }
           telemetry&.report(e, description: 'symdb: error processing remote config change')
           # Rescue runs regardless of which branch raised — Steep cannot narrow the

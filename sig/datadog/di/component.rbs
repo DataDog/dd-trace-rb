@@ -25,9 +25,13 @@ module Datadog
 
       @probe_manager: ProbeManager
 
+      @lifecycle_mutex: ::Thread::Mutex
+
+      @started: bool
+
       def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, Core::Logger logger, ?telemetry: Core::Telemetry::Component?) -> Component?
 
-      def self.environment_supported?: (Datadog::Core::Configuration::Settings settings, Core::Logger logger) -> bool
+      def self.explicitly_enabled?: (Datadog::Core::Configuration::Settings settings) -> bool
 
       def initialize: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, Core::Logger logger, ?code_tracker: CodeTracker?, ?telemetry: Core::Telemetry::Component?) -> void
 
@@ -54,6 +58,12 @@ module Datadog
       attr_reader redactor: Redactor
 
       attr_reader serializer: Serializer
+
+      def start!: () -> void
+
+      def stop!: () -> void
+
+      def started?: () -> bool
 
       def shutdown!: (?Component? replacement) -> void
 

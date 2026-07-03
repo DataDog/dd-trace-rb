@@ -1,0 +1,125 @@
+module Datadog
+  module OpenFeature
+    module FlagEvaluation
+      class Aggregator
+        MAX_CONTEXT_FIELDS: ::Integer
+
+        MAX_FIELD_LENGTH: ::Integer
+
+        MAX_CONTEXT_DEPTH: ::Integer
+
+        EVAL_SCALE_TARGET_FLAGS: ::Integer
+
+        EVAL_SCALE_FULL_BUCKETS_PER_FLAG: ::Integer
+
+        EVAL_SCALE_USERS_PER_FLAG: ::Integer
+
+        EVAL_SCALE_PER_FLAG_HEADROOM_MULTIPLIER: ::Integer
+
+        EVAL_SCALE_DEGRADED_BUCKETS_PER_FLAG: ::Integer
+
+        EVAL_SCALE_FULL_BUCKET_TARGET: ::Integer
+
+        EVAL_SCALE_PER_FLAG_BUCKET_TARGET: ::Integer
+
+        EVAL_SCALE_DEGRADED_BUCKET_TARGET: ::Integer
+
+        DEFAULT_GLOBAL_CAP: ::Integer
+
+        DEFAULT_PER_FLAG_CAP: ::Integer
+
+        DEFAULT_DEGRADED_CAP: ::Integer
+
+        CTX_TAG_STRING: ::String
+
+        CTX_TAG_BOOL: ::String
+
+        CTX_TAG_INTEGER: ::String
+
+        CTX_TAG_FLOAT: ::String
+
+        CTX_TAG_OTHER: ::String
+
+        @global_cap: ::Integer
+
+        @per_flag_cap: ::Integer
+
+        @degraded_cap: ::Integer
+
+        @mutex: ::Thread::Mutex
+
+        @full: ::Hash[::Array[untyped], ::Hash[::Symbol, untyped]]
+
+        @degraded: ::Hash[::Array[untyped], ::Hash[::Symbol, untyped]]
+
+        @per_flag_full: ::Hash[::String, ::Integer]
+
+        @global_count: ::Integer
+
+        @dropped_degraded_overflow: ::Integer
+
+        attr_reader dropped_degraded_overflow: ::Integer
+
+        def initialize: (
+          ?global_cap: ::Integer,
+          ?per_flag_cap: ::Integer,
+          ?degraded_cap: ::Integer
+        ) -> void
+
+        def record: (
+          flag_key: ::String,
+          variant: ::String?,
+          allocation_key: ::String?,
+          targeting_key: ::String?,
+          eval_time_ms: ::Integer,
+          attrs: ::Hash[::String, untyped]?,
+          ?error_message: ::String?,
+          ?runtime_default: bool?
+        ) -> void
+
+        def flush_and_reset: () -> ::Hash[::Symbol, untyped]
+
+        def prune_context: (::Hash[::String, untyped]? attrs) -> ::Hash[::String, untyped]
+
+        def self.prune_context: (::Hash[::String, untyped]? attrs) -> ::Hash[::String, untyped]
+
+        def self.flatten_context: (::Hash[::String, untyped]? attrs) -> ::Hash[::String, untyped]
+
+        def self.flatten_value: (
+          ::String prefix,
+          untyped value,
+          ::Hash[::String, untyped] output,
+          ::Hash[::Integer, bool] seen,
+          ::Integer depth
+        ) -> void
+
+        def canonical_context_key: (::Hash[::String, untyped]? attrs) -> ::String
+
+        private
+
+        def context_value_bytes: (untyped value) -> ::String
+
+        def length_delimited: (::String string) -> ::String
+
+        def new_entry: (
+          ::Integer evaluation_time_ms,
+          runtime_default: bool,
+          ?error_message: ::String?,
+          ?targeting_key: ::String?,
+          ?context_attrs: ::Hash[::String, untyped]?
+        ) -> ::Hash[::Symbol, untyped]
+
+        def observe: (::Hash[::Symbol, untyped] entry, ::Integer evaluation_time_ms) -> void
+
+        def add_to_degraded: (
+          ::String flag_key,
+          ::String variant,
+          ::String allocation_key,
+          bool runtime_default,
+          ::String error_message,
+          ::Integer evaluation_time_ms
+        ) -> void
+      end
+    end
+  end
+end

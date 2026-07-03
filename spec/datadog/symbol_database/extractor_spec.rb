@@ -1653,6 +1653,24 @@ RSpec.describe Datadog::SymbolDatabase::Extractor do
         expect(result).to be_nil
         expect(yielded).to be_empty
       end
+
+      it 'returns [] and logs when collection raises a non-StandardError' do
+        # A class overriding #name to raise NotImplementedError (or any other
+        # non-StandardError surfacing during introspection) must not abort the
+        # extraction pass and kill the scheduler thread.
+        allow(extractor).to receive(:build_per_file_index).and_raise(NotImplementedError, 'no name')
+        expect(logger).to receive(:debug) { |&block| expect(block.call).to match(/extract_all.*NotImplementedError.*no name/i) }
+
+        result = extractor.extract_all
+
+        expect(result).to eq([])
+      end
+
+      it 'propagates fatal exceptions instead of swallowing them' do
+        allow(extractor).to receive(:build_per_file_index).and_raise(SystemExit)
+
+        expect { extractor.extract_all }.to raise_error(SystemExit)
+      end
     end
 
     context 'block form' do

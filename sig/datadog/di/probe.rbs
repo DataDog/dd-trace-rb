@@ -62,6 +62,7 @@ module Datadog
       def line?: () -> bool
       def method?: () -> bool
       def line_no!: () -> Integer
+      def method_name!: () -> String
       def location: () -> ::String
       def file_matches?: (String path) -> bool
       def emitting_notified?: () -> bool
