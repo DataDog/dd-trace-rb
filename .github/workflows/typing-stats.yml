@@ -44,6 +44,7 @@ jobs:
       - name: Checkout current branch
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Set up Ruby
@@ -67,6 +68,9 @@ jobs:
           mkdir -p "${{ github.workspace }}/tmp"
           ruby ${{ runner.temp }}/typing_stats_compute.rb >> "${{ runner.temp }}/typing-stats-current.json"
 
+      - name: Collect renamed paths
+        run: git diff --find-renames --diff-filter=R --name-status ${{ github.event.pull_request.base.sha }} HEAD >> "${{ runner.temp }}/typing-stats-renamed-paths.txt"
+
       - name: Checkout base branch
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -84,6 +88,7 @@ jobs:
         env:
           CURRENT_STATS_PATH: ${{ runner.temp }}/typing-stats-current.json
           BASE_STATS_PATH: ${{ runner.temp }}/typing-stats-base.json
+          RENAMED_PATHS_PATH: ${{ runner.temp }}/typing-stats-renamed-paths.txt
         run: ruby ${{ runner.temp }}/typing_stats_compare.rb >> "${{ runner.temp }}/typing-stats-compare.md"
 
       - name: Write comment
