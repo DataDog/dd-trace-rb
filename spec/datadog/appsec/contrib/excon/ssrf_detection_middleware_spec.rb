@@ -10,12 +10,18 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
   let(:context) do
     instance_double(
       Datadog::AppSec::Context,
+      metrics: metrics,
       run_rasp: waf_response,
       downstream_body_sampler: Datadog::AppSec::CounterSampler.new(1.0),
       state: {downstream_body_analyzed_count: 0}
     )
   end
   let(:waf_response) { instance_double(Datadog::AppSec::SecurityEngine::Result::Ok, match?: false) }
+  let(:metrics) do
+    instance_double(
+      Datadog::AppSec::Metrics::Collector, record_ignored_downstream_response_body: nil
+    )
+  end
 
   let(:client) do
     ::Excon.new('http://example.com', mock: true).tap do
@@ -34,13 +40,43 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
         {method: :post, path: '/application-json'},
         body: '{"response":"OK"}',
         status: 200,
-        headers: {'Content-Type' => 'application/json'}
+        headers: {'Content-Type' => 'application/json', 'Content-Length' => '17'}
       )
       ::Excon.stub(
         {method: :post, path: '/invalid-json'},
         body: 'not json',
         status: 200,
+        headers: {'Content-Type' => 'application/json', 'Content-Length' => '8'}
+      )
+      ::Excon.stub(
+        {method: :post, path: '/application-json-no-content-length'},
+        body: '{"response":"OK"}',
+        status: 200,
         headers: {'Content-Type' => 'application/json'}
+      )
+      ::Excon.stub(
+        {method: :post, path: '/application-json-zero-content-length'},
+        body: '{"response":"OK"}',
+        status: 200,
+        headers: {'Content-Type' => 'application/json', 'Content-Length' => '0'}
+      )
+      ::Excon.stub(
+        {method: :post, path: '/application-json-invalid-content-length'},
+        body: '{"response":"OK"}',
+        status: 200,
+        headers: {'Content-Type' => 'application/json', 'Content-Length' => '12, 3'}
+      )
+      ::Excon.stub(
+        {method: :post, path: '/application-json-too-big'},
+        body: '{"response":"OK"}',
+        status: 200,
+        headers: {'Content-Type' => 'application/json', 'Content-Length' => '17'}
+      )
+      ::Excon.stub(
+        {method: :post, path: '/application-json-content-length-lie'},
+        body: '{"response":"OK"}',
+        status: 200,
+        headers: {'Content-Type' => 'application/json', 'Content-Length' => '2'}
       )
       ::Excon.stub(
         {method: :post, path: '/redirect-301'},
@@ -58,7 +94,7 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
         {method: :post, path: '/redirect-no-location'},
         body: '{"redirect":"body"}',
         status: 301,
-        headers: {'Content-Type' => 'application/json'}
+        headers: {'Content-Type' => 'application/json', 'Content-Length' => '19'}
       )
       ::Excon.stub(
         {method: :get, path: '/redirect-chain-start'},
@@ -76,7 +112,7 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
         {method: :get, path: '/redirect-chain-finish'},
         body: '{"final":"response"}',
         status: 200,
-        headers: {'Content-Type' => 'application/json'}
+        headers: {'Content-Type' => 'application/json', 'Content-Length' => '20'}
       )
     end
   end
@@ -301,6 +337,10 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
         'ssrf', {}, hash_including('server.io.net.response.body' => {'response' => 'OK'}), anything, phase: 'response'
       )
     end
+
+    it 'does not record an ignored response body' do
+      expect(metrics).not_to have_received(:record_ignored_downstream_response_body)
+    end
   end
 
   context 'when response body is invalid JSON' do
@@ -328,6 +368,79 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
       expect(context).to have_received(:run_rasp)
         .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
     end
+
+    it 'records the ignored response body' do
+      expect(metrics).to have_received(:record_ignored_downstream_response_body).with(:content_type_invalid).once
+    end
+  end
+
+  context 'when response content-length is missing' do
+    before { client.post(path: '/application-json-no-content-length') }
+
+    it 'does not include body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+    end
+
+    it 'records the ignored response body' do
+      expect(metrics).to have_received(:record_ignored_downstream_response_body).with(:content_length_missing).once
+    end
+  end
+
+  context 'when response content-length is zero' do
+    before { client.post(path: '/application-json-zero-content-length') }
+
+    it 'does not include body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+    end
+
+    it 'records the ignored response body' do
+      expect(metrics).to have_received(:record_ignored_downstream_response_body).with(:content_length_missing).once
+    end
+  end
+
+  context 'when response content-length is invalid' do
+    before { client.post(path: '/application-json-invalid-content-length') }
+
+    it 'does not include body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+    end
+
+    it 'records the ignored response body' do
+      expect(metrics).to have_received(:record_ignored_downstream_response_body).with(:content_length_missing).once
+    end
+  end
+
+  context 'when response content-length exceeds max downstream body bytes' do
+    before do
+      Datadog.configuration.appsec.api_security.downstream_body_analysis.max_downstream_body_bytes = 4
+
+      client.post(path: '/application-json-too-big')
+    end
+
+    it 'does not include body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+    end
+
+    it 'records the ignored response body' do
+      expect(metrics).to have_received(:record_ignored_downstream_response_body).with(:content_length_too_big).once
+    end
+  end
+
+  context 'when response content-length is smaller than the body' do
+    before { client.post(path: '/application-json-content-length-lie') }
+
+    it 'does not include body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+    end
+
+    it 'records the ignored response body' do
+      expect(metrics).to have_received(:record_ignored_downstream_response_body).with(:content_exceed_content_length).once
+    end
   end
 
   describe 'downstream body analysis sampling' do
@@ -343,6 +456,7 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
       let(:context) do
         instance_double(
           Datadog::AppSec::Context,
+          metrics: metrics,
           run_rasp: waf_response,
           downstream_body_sampler: Datadog::AppSec::CounterSampler.new(1.0),
           state: {downstream_body_analyzed_count: 0}
@@ -371,6 +485,7 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
       let(:context) do
         instance_double(
           Datadog::AppSec::Context,
+          metrics: metrics,
           run_rasp: waf_response,
           downstream_body_sampler: Datadog::AppSec::CounterSampler.new(0.5),
           state: {downstream_body_analyzed_count: 0}
@@ -503,7 +618,7 @@ RSpec.describe 'AppSec excon SSRF detection middleware' do
           {method: :get, path: '/redirect-chain-finish'},
           body: '{"final":"response"}',
           status: 200,
-          headers: {'Content-Type' => 'application/json'}
+          headers: {'Content-Type' => 'application/json', 'Content-Length' => '20'}
         )
       end
     end

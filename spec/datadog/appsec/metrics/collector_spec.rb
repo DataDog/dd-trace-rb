@@ -257,4 +257,37 @@ RSpec.describe Datadog::AppSec::Metrics::Collector do
       it { expect(collector.rasp.downstream_requests).to eq(2) }
     end
   end
+
+  describe '#record_ignored_downstream_response_body' do
+    context 'when no ignored response bodies were recorded' do
+      it 'contains all metrics in initial state' do
+        expect(collector.downstream_responses.content_type_invalid).to eq(0)
+        expect(collector.downstream_responses.content_length_missing).to eq(0)
+        expect(collector.downstream_responses.content_length_too_big).to eq(0)
+        expect(collector.downstream_responses.content_exceed_content_length).to eq(0)
+      end
+    end
+
+    context 'when ignored response bodies were recorded' do
+      before do
+        collector.record_ignored_downstream_response_body(:content_type_invalid)
+        collector.record_ignored_downstream_response_body(:content_length_too_big)
+        collector.record_ignored_downstream_response_body(:content_length_too_big)
+        collector.record_ignored_downstream_response_body(:content_exceed_content_length)
+      end
+
+      it 'contains cumulative response body metrics' do
+        expect(collector.downstream_responses.content_type_invalid).to eq(1)
+        expect(collector.downstream_responses.content_length_missing).to eq(0)
+        expect(collector.downstream_responses.content_length_too_big).to eq(2)
+        expect(collector.downstream_responses.content_exceed_content_length).to eq(1)
+      end
+    end
+
+    context 'when reason is unknown' do
+      it do
+        expect { collector.record_ignored_downstream_response_body(:unknown_reason) }.to raise_error(NameError)
+      end
+    end
+  end
 end

@@ -3,7 +3,7 @@
 module Datadog
   module AppSec
     module Metrics
-      # A class responsible for exporting WAF and RASP call metrics.
+      # A class responsible for exporting WAF and RASP call metrics
       module Exporter
         module_function
 
@@ -31,9 +31,15 @@ module Datadog
           end
         end
 
-        # private
+        def export_downstream_response_metrics(metrics, span)
+          metrics.each_pair do |reason, count|
+            next if count.zero?
 
-        def convert_ns_to_us(value)
+            span.set_tag("_dd.appsec.downstream_request.response_body_ignored.#{reason}", count)
+          end
+        end
+
+        private_class_method def convert_ns_to_us(value)
           value / 1000.0
         end
       end
