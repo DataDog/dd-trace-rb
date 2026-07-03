@@ -253,12 +253,12 @@ RSpec.describe Datadog::SymbolDatabase::Component do
           component.start_upload
 
           expect(component.instance_variable_get(:@scheduled_at)).to be_nil
-          expect(component.instance_variable_get(:@upload_pending)).to be true
+          expect(component.instance_variable_get(:@upload_requested)).to be true
         end
 
         it 'runs the deferred upload once Dynamic Instrumentation becomes active' do
           component.start_upload
-          expect(component.instance_variable_get(:@upload_pending)).to be true
+          expect(component.instance_variable_get(:@upload_requested)).to be true
 
           expect(component).to receive(:extract_and_upload).and_call_original
           allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
@@ -339,13 +339,13 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     context 'when symbol_database.enabled is explicitly false' do
       before { settings.symbol_database.enabled = false }
 
-      it 'skips the upload without marking it pending' do
+      it 'skips the upload without recording it for retry' do
         expect(component).not_to receive(:extract_and_upload)
 
         component.start_upload
 
         expect(component.instance_variable_get(:@scheduled_at)).to be_nil
-        expect(component.instance_variable_get(:@upload_pending)).to be false
+        expect(component.instance_variable_get(:@upload_requested)).to be false
       end
     end
   end

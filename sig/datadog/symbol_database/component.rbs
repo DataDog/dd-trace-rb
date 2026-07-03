@@ -29,7 +29,6 @@ module Datadog
       @hot_load_tracepoint: ::TracePoint?
       @initial_extraction_done: bool
       @di_active: (^() -> bool)?
-      @upload_pending: bool
       @upload_requested: bool
 
       def self.build: (Datadog::Core::Configuration::Settings settings, Datadog::Core::Configuration::AgentSettings agent_settings, ::Logger logger, ?telemetry: Datadog::Core::Telemetry::Component?, ?di_active: (^() -> bool)?) -> Component?

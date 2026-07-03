@@ -144,18 +144,14 @@ module Datadog
         @hot_load_tracepoint = nil
         @initial_extraction_done = false
 
-        # Set when a remote-config upload signal arrives while the DI-active gate
-        # is closed (nil-default case, DI not yet active). Distinguishes the
-        # deferred case from an explicit disable for logging only.
-        @upload_pending = false
-
         # Sticky record of "remote config (or force mode) wants symbols
         # uploaded", independent of whether DI is currently active. Set when an
         # upload is requested and either allowed or deferred by the DI gate;
-        # cleared only when RC explicitly disables uploads (stop_upload). Unlike
-        # @upload_pending it survives stop_for_di_disable, so resume_pending_upload
-        # can restart uploads after a DI disable->re-enable cycle even though RC
-        # does not re-dispatch the unchanged symbol-database config.
+        # cleared only when RC explicitly disables uploads (stop_upload). It
+        # survives stop_for_di_disable's scheduler teardown, so
+        # resume_pending_upload can restart uploads after a DI disable->re-enable
+        # cycle even though RC does not re-dispatch the unchanged symbol-database
+        # config.
         @upload_requested = false
       end
 
@@ -210,20 +206,17 @@ module Datadog
               # re-attempts when DI is enabled. Without this gate the tracer would
               # extract and upload symbols for applications that never enabled DI.
               @upload_requested = true
-              @upload_pending = true
               @logger.debug("symdb: upload requested but Dynamic Instrumentation is not active; deferring until DI is enabled")
             else
               # Explicit symbol_database.enabled = false: the feature is disabled,
               # not merely waiting on DI. Clear the desire so resume_pending_upload
               # does not retry a disabled feature.
               @upload_requested = false
-              @upload_pending = false
               @logger.debug("symdb: upload requested but symbol database upload is disabled; skipping")
             end
             return
           end
           @upload_requested = true
-          @upload_pending = false
 
           if @owner_pid != Process.pid
             # Forked child: claim ownership and clear inherited
@@ -272,6 +265,7 @@ module Datadog
       def resume_pending_upload
         requested = @scheduler_mutex.synchronize { @upload_requested }
         start_upload if requested
+        nil
       end
 
       # Stop uploading when Dynamic Instrumentation is disabled via remote
@@ -456,10 +450,10 @@ module Datadog
           @scheduled_at = nil
           @scheduler_signaled = true
           @scheduler_cv.signal
-          @upload_pending = false
         end
         @hot_load_buffer_mutex.synchronize { @hot_load_buffer.clear }
         @initial_extraction_done = false
+        nil
       end
 
       # Whether a remote-config-triggered upload may proceed now.
