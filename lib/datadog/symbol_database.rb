@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'ruby_version'
+
 module Datadog
   # Namespace for Datadog symbol database upload.
   #
@@ -46,14 +48,24 @@ module Datadog
     # @see https://www.postgresql.org/docs/current/datatype-numeric.html
     UNKNOWN_MAX_LINE = 2147483647
 
-    class << self
-      # Whether the current Ruby runtime can run symbol database extraction:
-      # MRI (CRuby) on Ruby 2.7 or later.
-      #
-      # @return [Boolean]
-      def supported_runtime?
-        RUBY_ENGINE == 'ruby' && RubyVersion.is?('>= 2.7')
-      end
+    # Collapses the symbol_database.enabled tri-state setting to a boolean.
+    # An explicit true/false wins; nil (unconfigured) yields the caller-supplied
+    # fallback.
+    # @param setting_value [Boolean, nil] the symbol_database.enabled setting
+    # @param di_fallback [Boolean] value used when the setting is unconfigured
+    # @return [Boolean]
+    def self.resolve_enabled(setting_value, di_fallback)
+      setting_value.nil? ? di_fallback : setting_value
+    end
+
+    # Whether the current Ruby runtime can run symbol database extraction:
+    # MRI (CRuby) on Ruby 2.7 or later. Used by the remote-config layer to avoid
+    # advertising the product on runtimes where Component.build would return nil
+    # (e.g. Ruby 2.6, which Dynamic Instrumentation supports but Symbol Database
+    # does not).
+    # @return [Boolean]
+    def self.supported_runtime?
+      RUBY_ENGINE == 'ruby' && RubyVersion.is?('>= 2.7')
     end
   end
 end

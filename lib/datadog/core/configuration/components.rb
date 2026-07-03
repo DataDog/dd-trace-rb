@@ -46,6 +46,38 @@ module Datadog
             Core::Diagnostics::Health::Metrics.new(telemetry: telemetry, logger: logger, **options)
           end
 
+          # Decides whether to build the SymbolDatabase component, for the
+          # tri-state symbol_database.enabled setting: true/false are explicit
+          # overrides; nil (the default) mirrors Dynamic Instrumentation by
+          # building whenever DI's component was built. dynamic_instrumentation
+          # is DI's build result — nil only when DI is explicitly disabled or the
+          # runtime can't support it (Rails development mode, missing C
+          # extension, remote config off, non-MRI). Under the always-build model
+          # it is non-nil even when the DI setting defaults to off, so a built
+          # SymbolDatabase component is inert until an upload is actually
+          # permitted: the component's own gate (see Component#upload_allowed?)
+          # only extracts and uploads when DI is truly active or the customer
+          # opted in explicitly. This mirrors DI advertising/building a component
+          # by default while installing no probes until it is enabled.
+          # force_upload (internal/testing) always builds, since it uploads
+          # regardless of DI or the enabled setting.
+          # @param settings [Configuration::Settings]
+          # @param dynamic_instrumentation [DI::Component, nil]
+          # @return [Boolean]
+          def enable_symbol_database?(settings, dynamic_instrumentation)
+            # The symbol_database settings group is only registered on the full
+            # library load path; a partial load (e.g. require 'datadog/di') leaves
+            # it absent, in which case the feature cannot be enabled.
+            return false unless settings.respond_to?(:symbol_database)
+
+            # force_upload uploads unconditionally, so the component must be built
+            # even when the setting is nil and DI's component was not built.
+            return true if settings.symbol_database.internal.force_upload
+
+            # nil (the default) follows whether DI's component was built.
+            Datadog::SymbolDatabase.resolve_enabled(settings.symbol_database.enabled, !dynamic_instrumentation.nil?)
+          end
+
           def build_logger(settings)
             logger = settings.logger.instance || Core::Logger.new($stderr)
             logger.level = settings.diagnostics.debug ? ::Logger::DEBUG : settings.logger.level
@@ -174,7 +206,21 @@ module Datadog
           @ai_guard = Datadog::AIGuard::Component.build(settings, logger: @logger, telemetry: telemetry)
           @open_feature = OpenFeature::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
-          @symbol_database = Datadog::SymbolDatabase::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
+          # Only build symbol database when enabled, so a disabled component is
+          # never constructed.
+          @symbol_database =
+            if self.class.enable_symbol_database?(settings, @dynamic_instrumentation)
+              # di_active is a live predicate, not a snapshot: DI may start after
+              # this component is built (implicit enablement via remote config).
+              # Symbol Database holds only this opaque proc, never a DI reference,
+              # so the two modules stay independent — the orchestration layer
+              # owns the cross-feature knowledge.
+              Datadog::SymbolDatabase::Component.build(
+                settings, agent_settings, @logger,
+                telemetry: telemetry,
+                di_active: -> { dynamic_instrumentation&.started? || false },
+              )
+            end
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
           @data_streams = self.class.build_data_streams(settings, agent_settings, @logger, @agent_info)
           # Reflects "the customer configured DI to be on" — true iff the
