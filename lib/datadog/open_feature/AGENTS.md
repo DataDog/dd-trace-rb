@@ -19,6 +19,7 @@ This guide applies to contributors and their AI coding tools working under `lib/
 - Background threads are fork-safe, use a bounded `SizedQueue`, `join(timeout)` on shutdown, and enqueue non-blocking.
 - Use `Datadog::Core::Utils::Time.now` (never `Time.now`) and read env vars through `Datadog::Core::Environment::VariableHelpers` (never `ENV`).
 - Construct objects through their real constructor, never `.allocate` + `instance_variable_set`.
+- Run `bundle exec rake standard:fix` before pushing (see [Style](#style)).
 
 The sections below explain the reasoning and show the tricky cases. Skim the "bad" examples first — they are the mistakes this guide exists to prevent.
 
@@ -126,7 +127,7 @@ result = compute_value # steep:ignore
 result = compute_value #: String
 ```
 
-If a suppression is genuinely unavoidable, comment why and call it out in the PR description. Prefer `Type?` over `(nil | Type)`.
+Every `.rb` file needs a matching `.rbs` in `sig/datadog/open_feature/`, mirroring the same relative path. If a suppression is genuinely unavoidable, comment why and call it out in the PR description. Prefer `Type?` over `(nil | Type)`.
 
 ---
 
