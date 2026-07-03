@@ -6,7 +6,7 @@ module Datadog
           module Producer
             type headers = ::Hash[::String, ::String]
 
-            def self.inject_pathway_context: (::String topic, headers? headers) -> headers
+            def self.inject_pathway_context: (::String topic, headers? headers) -> headers?
 
             module Consumer
               def self.prepended: (Module base) -> void
