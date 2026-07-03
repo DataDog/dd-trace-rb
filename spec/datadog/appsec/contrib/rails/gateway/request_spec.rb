@@ -56,7 +56,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Request do
         env.delete('action_dispatch.request.path_parameters')
       end
 
-      it 'returns the request parameters instead of raising' do
+      it 'returns the request parameters' do
         expect(request.parsed_body).to eq('name' => 'john')
       end
     end
