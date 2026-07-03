@@ -191,4 +191,4 @@ Run `bundle exec rake standard:fix` before pushing. StandardRB is fixed and non-
 
 ---
 
-**Tool note.** Claude Code reads `CLAUDE.md`, not `AGENTS.md`. If you use Claude Code, symlink this file: `ln -s AGENTS.md CLAUDE.md` inside this directory. Codex loads `AGENTS.md` by walking down from the repo root to the current directory, so contributors who start Codex at the repo root will pick this file up via the root `AGENTS.md`'s pointer to it — verify how your specific tool (Cursor, Copilot, etc.) discovers nested guide files.
+**Tool note.** Claude Code reads `CLAUDE.md`, not `AGENTS.md`; this directory's `CLAUDE.md` is a one-line `@AGENTS.md` import, not a copy, so there is a single source of truth. Codex loads `AGENTS.md` by walking down from the repo root to the current directory, so contributors who start Codex at the repo root will pick this file up via the root `AGENTS.md`'s pointer to it — verify how your specific tool (Cursor, Copilot, etc.) discovers nested guide files.
