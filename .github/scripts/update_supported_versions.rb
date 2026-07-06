@@ -6,9 +6,6 @@ LIB_PATH = File.expand_path('../../lib', __dir__).freeze
 GEMFILES_DIR = 'gemfiles/'.freeze
 OUTPUT_DOC = 'docs/integration_versions.md'.freeze
 OUTPUT_DATA = 'docs/integration_versions.json'.freeze
-THIRD_PARTY_URL = {
-  'httpx' => '[3rd-party support](https://honeyryderchuck.gitlab.io/httpx/)',
-}.freeze
 
 $LOAD_PATH.unshift(LIB_PATH) unless $LOAD_PATH.include?(LIB_PATH)
 require 'datadog'
@@ -116,15 +113,7 @@ class GemfileProcessor
   end
 
   def include_hardcoded_versions
-    # `httpx` is maintained externally
-    @supported_versions << {
-      integration: 'httpx',
-      package: nil,
-      source: nil,
-      min_tested: nil,
-      max_tested: nil,
-      support_kind: 'third_party',
-    }
+    @supported_versions.concat(THIRD_PARTY)
 
     # `makara` is part of `activerecord`
     @supported_versions << {
@@ -135,6 +124,22 @@ class GemfileProcessor
       max_tested: @max_gems['ruby']['makara'],
     }
   end
+
+  def self.third_party_integration(integration, support_url)
+    {
+      integration: integration,
+      package: nil,
+      source: nil,
+      min_tested: nil,
+      max_tested: nil,
+      support_kind: 'third_party',
+      _support_md: "[3rd-party support](#{support_url})",
+    }
+  end
+
+  THIRD_PARTY = {
+    'httpx' => 'https://honeyryderchuck.gitlab.io/httpx/',
+  }.map { |name, url| third_party_integration(name, url) }.freeze
 
   def write_markdown_output
     comment = <<~COMMENT
@@ -182,12 +187,15 @@ class GemfileProcessor
   end
 
   def write_json
-    supported_versions = @supported_versions.sort_by { |support| support[:integration].downcase }
+    supported_versions = @supported_versions
+      # Remove internal fields.
+      .map { |support| support.reject { |key, _| key.to_s.start_with?('_') } }
+      .sort_by { |support| support[:integration].downcase }
     File.write(OUTPUT_DATA, "#{JSON.pretty_generate(supported_versions)}\n")
   end
 
   def doc_version(support, key)
-    THIRD_PARTY_URL[support[:integration]] || support[key] || 'None'
+    support[:_support_md] || support[key] || 'None'
   end
 end
 
