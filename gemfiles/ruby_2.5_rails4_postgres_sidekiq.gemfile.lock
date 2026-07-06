@@ -54,7 +54,7 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.37.0.dev)
+    datadog (2.37.0)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
       libdatadog (~> 36.0.0.1.0)
