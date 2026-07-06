@@ -414,6 +414,12 @@ module Datadog
                     o.env 'DD_API_SECURITY_MAX_DOWNSTREAM_REQUEST_BODY_ANALYSIS'
                     o.default 1
                   end
+
+                  option :max_downstream_body_bytes do |o|
+                    o.type :int
+                    o.env 'DD_API_SECURITY_MAX_DOWNSTREAM_BODY_BYTES'
+                    o.default 10_485_760
+                  end
                 end
               end
 

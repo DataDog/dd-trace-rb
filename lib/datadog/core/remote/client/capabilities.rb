@@ -4,6 +4,7 @@ require_relative '../../utils/base64_codec'
 require_relative '../../../appsec/remote'
 require_relative '../../../tracing/remote'
 require_relative '../../../di/remote'
+require_relative '../../../symbol_database'
 require_relative '../../../symbol_database/remote'
 require_relative '../../../open_feature/remote'
 
@@ -62,13 +63,20 @@ module Datadog
             end
 
             # Skip symbol database registration on runtimes that cannot run it
-            # (JRuby, Ruby < 2.7): advertising LIVE_DEBUGGING_SYMBOL_DB there
-            # would invite symbol-upload configs the component can never serve.
-            if settings.respond_to?(:symbol_database) && settings.symbol_database.enabled &&
-                Datadog::SymbolDatabase.supported_runtime?
-              register_capabilities(Datadog::SymbolDatabase::Remote.capabilities)
-              register_products(Datadog::SymbolDatabase::Remote.products)
-              register_receivers(Datadog::SymbolDatabase::Remote.receivers(@telemetry))
+            # (JRuby, Ruby < 2.7): DI supports Ruby 2.6 but Symbol Database does
+            # not, so advertising LIVE_DEBUGGING_SYMBOL_DB there would invite
+            # symbol-upload configs the component can never serve.
+            if settings.respond_to?(:symbol_database) && Datadog::SymbolDatabase.supported_runtime?
+              # Symbol database follows DI: when unset it advertises whenever DI
+              # advertises (mirror the DI branch above, including the unset/default
+              # case that RC may enable). An explicit symbol_database.enabled wins.
+              di_enabled = settings.respond_to?(:dynamic_instrumentation) &&
+                !Datadog::DI::Remote.explicitly_disabled?(settings)
+              if Datadog::SymbolDatabase.resolve_enabled(settings.symbol_database.enabled, di_enabled)
+                register_capabilities(Datadog::SymbolDatabase::Remote.capabilities)
+                register_products(Datadog::SymbolDatabase::Remote.products)
+                register_receivers(Datadog::SymbolDatabase::Remote.receivers(@telemetry))
+              end
             end
 
             if settings.respond_to?(:open_feature) && settings.open_feature.enabled
