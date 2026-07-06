@@ -60,6 +60,20 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Request do
         expect(request.parsed_body).to eq('name' => 'john')
       end
     end
+
+    context 'when body parsing fails' do
+      before do
+        allow(request.request).to receive(:parameters)
+          .and_raise(EOFError, 'bad multipart')
+      end
+
+      it 'returns nil and reports telemetry' do
+        expect(Datadog::AppSec.telemetry).to receive(:report)
+          .with(instance_of(EOFError), description: 'AppSec: Failed to parse request body')
+
+        expect(request.parsed_body).to be_nil
+      end
+    end
   end
 
   describe '#body_bytesize' do

@@ -52,6 +52,11 @@ module Datadog
               body.reject do |k, _v|
                 request.env['action_dispatch.request.path_parameters'].key?(k)
               end
+            rescue => e
+              Datadog.logger.debug { "AppSec: Failed to parse request body: #{e.class}: #{e.message}" }
+              AppSec.telemetry.report(e, description: 'AppSec: Failed to parse request body')
+
+              nil
             end
 
             def route_params
