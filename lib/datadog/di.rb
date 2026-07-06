@@ -71,6 +71,69 @@ module Datadog
         Datadog.configuration.dynamic_instrumentation.enabled
       end
 
+      # Returns a human-readable reason why dynamic instrumentation cannot run
+      # under the given settings, or nil if all build-time preconditions are met.
+      #
+      # Single source of truth for the preconditions checked in
+      # {Component.build} and reported back by {Remote.handle_rc_enablement}
+      # when an implicit enablement signal arrives but the component was not
+      # built at startup. Checks are ordered from most-actionable to
+      # platform-constraint so the most useful reason wins.
+      #
+      # The settings argument is optional so the helper can be called from
+      # contexts that don't have settings in scope (e.g. the RC handler).
+      #
+      # @param settings [Datadog::Core::Configuration::Settings]
+      # @return [String, nil] reason string or nil when supported
+      def unsupported_reason(settings = Datadog.configuration)
+        # Symmetric to the respond_to?(:remote) guard below: in unusual
+        # configurations (test doubles, partial Settings) the DI namespace
+        # may be absent. Returning a reason here lets callers — most
+        # importantly Remote.handle_rc_enablement — emit the customer-facing
+        # warn instead of raising NoMethodError on the unguarded access at
+        # line 92 (`settings.dynamic_instrumentation.internal.development`).
+        unless settings.respond_to?(:dynamic_instrumentation)
+          return "dynamic instrumentation settings are not available"
+        end
+        unless settings.respond_to?(:remote) && settings.remote.enabled
+          return "Remote Configuration is not enabled. See https://docs.datadoghq.com/agent/remote_config"
+        end
+        unless settings.dynamic_instrumentation.internal.development
+          if Datadog::Core::Environment::Execution.development?
+            return "development environment detected"
+          end
+        end
+        if (reason = unsupported_platform_reason)
+          return reason
+        end
+        unless respond_to?(:exception_message)
+          return "C extension is not available"
+        end
+        nil
+      end
+
+      # Whether the current Ruby runtime can run dynamic instrumentation:
+      # MRI (CRuby) on Ruby 2.6 or later.
+      #
+      # @return [Boolean]
+      def supported_runtime?
+        unsupported_platform_reason.nil?
+      end
+
+      # Reason the current Ruby runtime cannot run dynamic instrumentation, or
+      # nil when the platform is supported. Single source of truth for the
+      # minimum-runtime definition, shared by {unsupported_reason} (which layers
+      # the settings and C-extension checks on top) and {supported_runtime?}.
+      #
+      # @return [String, nil]
+      private def unsupported_platform_reason
+        if RUBY_ENGINE != 'ruby'
+          "MRI is required, but running on #{RUBY_ENGINE}"
+        elsif Datadog::RubyVersion.is?('< 2.6')
+          "Ruby 2.6+ is required, but running on #{RUBY_VERSION}"
+        end
+      end
+
       # Returns iseqs that correspond to loaded files (filtering out eval'd code).
       #
       # There are several types of iseqs returned by +all_iseqs+:

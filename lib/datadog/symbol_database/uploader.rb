@@ -6,8 +6,10 @@ require 'zlib'
 require 'stringio'
 require_relative '../core/environment/identity'
 require_relative '../core/vendor/multipart-post/multipart/post/composite_read_io'
+require_relative '../tracing/ext'
 require_relative 'service_version'
 require_relative 'transport/http'
+require_relative '../di/fatal_exceptions'
 
 module Datadog
   module SymbolDatabase
@@ -68,7 +70,11 @@ module Datadog
         compressed_data = Zlib.gzip(json_data)
 
         # Emitted unconditionally so the rare oversized case is observable.
-        @telemetry&.distribution('tracers', 'symbol_database.payload_size', compressed_data.bytesize)
+        @telemetry&.distribution(
+          Tracing::Ext::TELEMETRY_METRICS_NAMESPACE,
+          'symbol_database.payload_size',
+          compressed_data.bytesize
+        )
 
         # Symbols for very large applications (>50MB after gzip) are dropped:
         # the upload is skipped and the customer sees no autocomplete /
@@ -81,7 +87,8 @@ module Datadog
         end
 
         perform_http_upload(compressed_data, scopes.size, upload_id: upload_id, batch_num: batch_num)
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: upload failed: #{e.class}: #{e.message}" }
         @telemetry&.report(e, description: 'symdb: upload failed')
       end

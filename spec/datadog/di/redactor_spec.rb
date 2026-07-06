@@ -68,13 +68,27 @@ RSpec.describe Datadog::DI::Redactor do
       ["uppercase", "PASSWORD", true],
       ["with removed punctiation", "pass_word", true],
       ["with non-removed punctuation", "pass/word", false],
+      # Rack rewrites incoming HTTP headers to CGI form (HTTP_<HEADER>);
+      # the CGI-prefixed key must normalize to the same identifier as the
+      # bare header name, otherwise hash captures of a Rack env emit
+      # bearer tokens, session cookies and API keys in plaintext.
+      ["rack CGI authorization header", "HTTP_AUTHORIZATION", true],
+      ["rack CGI cookie header", "HTTP_COOKIE", true],
+      ["rack CGI X-API-Key header", "HTTP_X_API_KEY", true],
+      ["rack CGI X-Auth-Token header", "HTTP_X_AUTH_TOKEN", true],
+      ["rack CGI Set-Cookie header", "HTTP_SET_COOKIE", true],
+      ["rack CGI non-sensitive header", "HTTP_REFERER", false],
+      ["rack CGI Host header", "HTTP_HOST", false],
+      # The strip only matches the literal CGI form (leading `http_`),
+      # not arbitrary identifiers that happen to begin with `http`.
+      ["identifier starting with http but no underscore", "httpinfo", false],
     ]
 
     define_cases(cases)
 
     context "when user-defined redacted identifiers exist" do
       before do
-        expect(di_settings).to receive(:redacted_identifiers).and_return(%w[foo пароль Ключ @var])
+        expect(di_settings).to receive(:redacted_identifiers).and_return(%w[foo пароль Ключ @var http_custom])
       end
 
       cases = [
@@ -90,6 +104,10 @@ RSpec.describe Datadog::DI::Redactor do
         ["@ in definition but name does not match", "var1", false],
         ["@ in target identifier", "@foo", true],
         ["@ in target identifier but name does not match", "@foo1", false],
+        # User-defined identifiers go through the same normalization, so a
+        # user-provided name starting with `http_` collapses to its tail.
+        ["user-defined identifier with http_ prefix matches CGI form", "HTTP_CUSTOM", true],
+        ["user-defined identifier with http_ prefix matches bare form", "custom", true],
       ]
 
       define_cases(cases)
@@ -105,6 +123,10 @@ RSpec.describe Datadog::DI::Redactor do
         ["excluded identifier with different case", "PASSWORD", false],
         ["excluded identifier with punctuation", "pass_word", false],
         ["non-excluded default identifier", "secret", true],
+        # The HTTP_ prefix strip applies to the excluded list too, so
+        # excluding the bare name also suppresses redaction of the Rack
+        # CGI form.
+        ["excluded default identifier in Rack CGI form", "HTTP_PASSWORD", false],
       ]
 
       define_cases(cases)

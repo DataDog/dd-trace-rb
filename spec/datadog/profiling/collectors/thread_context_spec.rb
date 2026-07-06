@@ -2,6 +2,13 @@ require "datadog/profiling/spec_helper"
 require "datadog/profiling/collectors/thread_context"
 
 RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
+  before :all do
+    # Ensure the first ThreadContext instance is created early on, before touching `per_thread_context`s,
+    # otherwise the first ThreadContext might be created after #remove_per_thread_context_for(thread)
+    # and create the `per_thread_context` for that thread unintentionally.
+    described_class.for_testing(recorder: Datadog::Profiling::StackRecorder.for_testing)
+  end
+
   before do
     @clean_threads_required = false
     skip_if_profiling_not_supported
@@ -80,6 +87,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   def clear_per_thread_context_for(thread)
     described_class::Testing._native_clear_per_thread_context_for(thread)
+  end
+
+  def remove_per_thread_context_for(thread)
+    described_class::Testing._native_remove_per_thread_context_for(thread)
   end
 
   def on_gc_start
@@ -291,8 +302,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
       t1_samples = samples_for_thread(samples, t1)
 
-      wall_time = t1_samples.map(&:values).map { |it| it.fetch(:"wall-time") }.reduce(:+)
-      expect(wall_time).to be(wall_time_at_second_sample - wall_time_at_first_sample)
+      expect(t1_samples.last.values.fetch(:"wall-time")).to be(wall_time_at_second_sample - wall_time_at_first_sample)
     end
 
     it "tags samples with how many times they were seen" do
@@ -1342,7 +1352,16 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
 
     context "when a thread is frozen" do
-      it "does not raise and skips the frozen thread" do
+      it "samples the frozen thread using the per-thread context created before freeze" do
+        t1.freeze
+
+        sample
+
+        expect(samples_for_thread(samples, t1)).to_not be_empty
+      end
+
+      it "raises FrozenError if the thread is frozen before the first ThreadContext.new or before the TracePoint runs" do
+        remove_per_thread_context_for(t1)
         t1.freeze
 
         expect {
@@ -1353,7 +1372,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   describe "#on_gc_start" do
-    context "if a thread has not been sampled before" do
+    context "if a thread does not have per-thread context" do
+      before { remove_per_thread_context_for(Thread.current) }
+
       it "does not record anything in the caller thread's context" do
         on_gc_start
 
@@ -1390,7 +1411,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   describe "#on_gc_finish" do
-    context "when thread has not been sampled before" do
+    context "when thread does not have per-thread context" do
+      before { remove_per_thread_context_for(Thread.current) }
+
       it "does not record anything in the caller thread's context" do
         on_gc_start
 
@@ -1775,7 +1798,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   describe "#on_gvl_waiting" do
     before { skip_if_gvl_profiling_not_supported(self) }
 
-    context "if thread has not been sampled before" do
+    context "if thread does not have per-thread context" do
+      before { remove_per_thread_context_for(t1) }
+
       it "does not trigger the creation of the thread context" do
         on_gvl_waiting(t1)
 
@@ -1801,7 +1826,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   describe "#on_gvl_running" do
     before { skip_if_gvl_profiling_not_supported(self) }
 
-    context "if thread has not been sampled before" do
+    context "if thread does not have per-thread context" do
+      before { remove_per_thread_context_for(t1) }
+
       it "does not trigger the creation of the thread context" do
         on_gvl_running(t1)
 
@@ -1919,10 +1946,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   describe "#sample_after_gvl_running" do
     before { skip_if_gvl_profiling_not_supported(self) }
 
-    context "if thread has not been sampled before" do
-      before do
-        expect(gvl_waiting_at_for(t1)).to be_nil
-      end
+    context "if thread does not have per-thread context" do
+      before { remove_per_thread_context_for(t1) }
 
       it do
         expect(sample_after_gvl_running(t1)).to be false
@@ -2059,11 +2084,65 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
   end
 
-  describe "#prepare_sample_inside_signal_handler" do
-    let(:trigger_context_creation) { true }
+  describe "profiler-internal thread skipping" do
+    def mark_thread_as_profiler_internal(thread)
+      described_class::Testing._native_mark_thread_as_profiler_internal(thread)
+    end
 
+    before do
+      mark_thread_as_profiler_internal(t1)
+    end
+
+    it "skips per-tick samples for profiler-internal threads" do
+      expect { sample }.to change { stats.fetch(:profiler_thread_samples_skipped) }.by(1)
+      expect(per_thread_context.fetch(t1).fetch(:is_profiler_internal_thread)).to be true
+    end
+
+    it "does not go through the inactive-thread skip path" do
+      sample
+      expect(per_thread_context.fetch(t1).fetch(:was_skipped_at_last_sample)).to be false
+    end
+
+    it "reports profiler-internal threads in the first reporting period" do
+      # Timestamps are seeded by initialize_context, so the first on_serialize flush
+      # produces a real wall-time delta even without any prior sample.
+      t2 = Thread.new { sleep }
+      mark_thread_as_profiler_internal(t2)
+
+      sample
+      result = recorder.serialize!
+      t2_samples = samples_for_thread(samples_from_pprof(result), t2)
+      expect(t2_samples.size).to eq(1)
+      expect(t2_samples.first.values.fetch(:"wall-time")).to be > 0
+    ensure
+      t2&.kill
+      t2&.join
+    end
+
+    it "still records one sample per profile period via serialize" do
+      cpu_before = per_thread_context.fetch(t1).fetch(:cpu_time_at_previous_sample_ns)
+      wall_before = per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)
+
+      # Rewind cpu-clock by a known amount so we can verify the final sample covers it
+      apply_delta_to_cpu_time_at_previous_sample_ns(t1, -1_000_000)
+
+      10.times { sample }
+
+      # Timestamps are never updated by per-tick sampling since the thread is skipped
+      expect(per_thread_context.fetch(t1).fetch(:cpu_time_at_previous_sample_ns)).to eq(cpu_before - 1_000_000)
+      expect(per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)).to eq(wall_before)
+
+      result = recorder.serialize!
+      t1_samples = samples_for_thread(samples_from_pprof(result), t1)
+      expect(t1_samples.size).to eq(1)
+      expect(t1_samples.first.values.fetch(:"cpu-time")).to be >= 1_000_000
+      expect(t1_samples.first.values.fetch(:"wall-time")).to be > 0
+    end
+  end
+
+  describe "#prepare_sample_inside_signal_handler" do
     def prepare_and_sample
-      sample if trigger_context_creation
+      sample
 
       prepare_sample_inside_signal_handler
       recorder.serialize! # ensure there are no samples recorded
@@ -2094,11 +2173,15 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       )
     end
 
-    context "when context did not exist" do
-      let(:trigger_context_creation) { false }
-
+    context "when thread does not have per-thread context" do
       it "does not sample the stack" do
-        prepare_and_sample
+        remove_per_thread_context_for(Thread.current)
+
+        prepare_sample_inside_signal_handler
+        recorder.serialize!
+
+        clear_per_thread_context_for(Thread.current)
+        sample
 
         result = sample_for_thread(samples.reject { |it| it.labels.include?(:"profiler overhead") }, Thread.current)
 
@@ -2290,8 +2373,14 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       sample
     end
 
-    it "clears the current Thread per_thread_context" do
-      expect { reset_after_fork }.to change { per_thread_context.key?(Thread.current) }.from(true).to(false)
+    it "resets the current Thread per_thread_context" do
+      apply_delta_to_cpu_time_at_previous_sample_ns(Thread.current, -123_456_789)
+      cpu_time_before = per_thread_context.dig(Thread.current, :cpu_time_at_previous_sample_ns)
+
+      reset_after_fork
+
+      cpu_time_after = per_thread_context.dig(Thread.current, :cpu_time_at_previous_sample_ns)
+      expect(cpu_time_after).to_not eq(cpu_time_before)
     end
 
     it "clears the stats" do

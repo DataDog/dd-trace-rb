@@ -2,6 +2,8 @@
 
 require 'json'
 
+require_relative 'fatal_exceptions'
+
 module Datadog
   module DI
     module ProbeFileLoader
@@ -47,7 +49,8 @@ module Datadog
 
               payload = component.probe_notification_builder.build_errored(probe, exc)
               component.probe_notifier_worker.add_status(payload, probe: probe)
-            rescue => exc
+            rescue Exception => exc # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(exc)
               raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
               component.logger.debug { "di: unhandled exception adding #{probe.type} probe at #{probe.location} (#{probe.id}) in DI probe file loader: #{exc.class}: #{exc.message}" }
@@ -58,7 +61,8 @@ module Datadog
               component.probe_notifier_worker.add_status(payload, probe: probe)
             end
           end
-        rescue => exc
+        rescue Exception => exc # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(exc)
           if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
             should_propagate = true
             raise
@@ -67,7 +71,8 @@ module Datadog
           component.logger.debug { "di: unhandled exception handling a probe in DI probe file loader: #{exc.class}: #{exc.message}" }
           component.telemetry&.report(exc, description: "Unhandled exception handling probe in DI probe file loader")
         end
-      rescue
+      rescue Exception => exc # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(exc)
         # We should generally never get here, but if component tree
         # initialization fails for some unexpected reason, don't nuke
         # the customer application.

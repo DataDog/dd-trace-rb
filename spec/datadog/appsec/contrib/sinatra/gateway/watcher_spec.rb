@@ -103,6 +103,21 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Gateway::Watcher do
         end
       end
 
+      context 'when the body was already parsed upstream' do
+        before do
+          gateway_request.env['rack.request.form_hash'] = {'name' => 'john'}
+          unsized_io.read
+        end
+
+        it 'runs WAF with the cached body without byte length' do
+          gateway.push('sinatra.request.dispatch', gateway_request)
+
+          expect(context).to have_received(:run_waf).with(
+            {'server.request.body' => {'name' => 'john'}}, {}, anything
+          )
+        end
+      end
+
       context 'when the body exceeds the limit' do
         before { allow(Datadog.configuration.appsec).to receive(:body_parsing_size_limit).and_return(4) }
 

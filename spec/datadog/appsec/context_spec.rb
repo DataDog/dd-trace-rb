@@ -193,11 +193,17 @@ RSpec.describe Datadog::AppSec::Context do
   end
 
   describe '#extract_schema!' do
-    it 'calls waf runner with correct addresses and stores new security event' do
+    before { allow(Datadog.configuration.appsec).to receive(:waf_timeout).and_return(42) }
+
+    it 'runs the waf with extract-schema address and the configured timeout' do
       expect_any_instance_of(Datadog::AppSec::SecurityEngine::Runner).to receive(:run)
-        .with({'waf.context.processor' => {'extract-schema' => true}}, {})
+        .with({'waf.context.processor' => {'extract-schema' => true}}, {}, 42)
         .and_call_original
 
+      context.extract_schema!
+    end
+
+    it 'stores a new security event' do
       expect { context.extract_schema! }.to change { context.events.count }.by(1)
     end
 

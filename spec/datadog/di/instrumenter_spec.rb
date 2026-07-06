@@ -609,6 +609,35 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
+    context 'empty hash as last argument' do
+      let(:probe_args) do
+        {type_name: 'HookTestClass', method_name: 'positional_and_squashed'}
+      end
+
+      let(:target_call) do
+        expect(HookTestClass.new.positional_and_squashed('hello', {})).to eq(['hello', {}])
+      end
+
+      it 'invokes callback and forwards the empty hash' do
+        hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        target_call
+
+        expect(observed_calls.length).to eq 1
+        expect(observed_calls.first).to be_a(Datadog::DI::Context)
+        expect(observed_calls.first.return_value).to eq(['hello', {}])
+        expect(observed_calls.first.duration).to be_a(Float)
+      end
+
+      context 'when rate limited' do
+        let(:rate_limit) { 0 }
+
+        include_examples 'does not invoke callback but invokes target method'
+      end
+    end
+
     context 'keyword arguments squashed into a hash' do
       ruby_2_only
 
@@ -801,6 +830,193 @@ RSpec.describe Datadog::DI::Instrumenter do
           hook_method(probe) do |payload|
           end
         end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
+      end
+    end
+
+    context 'when targeting a class in the Datadog namespace' do
+      shared_examples 'rejects the probe' do |type_name|
+        let(:probe_args) do
+          {type_name: type_name, method_name: 'some_method'}
+        end
+
+        it "raises ProbeTargetForbidden for #{type_name}" do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::ProbeTargetForbidden,
+            /Method probes on the Datadog namespace are not permitted: #{Regexp.escape(type_name)}#some_method/)
+        end
+      end
+
+      it_behaves_like 'rejects the probe', 'Datadog'
+      it_behaves_like 'rejects the probe', 'Datadog::Tracing::SpanOperation'
+      it_behaves_like 'rejects the probe', 'Datadog::DI::Instrumenter'
+
+      # A leading "::" is Ruby's root-namespace prefix; the rejection regex
+      # accepts both "Datadog" and "::Datadog" forms, so users cannot bypass
+      # the rejection by typing the root form.
+      it_behaves_like 'rejects the probe', '::Datadog'
+      it_behaves_like 'rejects the probe', '::Datadog::Tracing::SpanOperation'
+
+      # Top-level constants are constants of Object, so Object.const_get
+      # resolves "Object::Datadog::DI::Instrumenter" to the real class. The
+      # rejection regex strips any leading "Object::" segments so these
+      # aliases cannot bypass it. Object:: is the only alias path to the
+      # top-level Datadog ("Foo::Datadog" does not resolve through const_get).
+      it_behaves_like 'rejects the probe', 'Object::Datadog'
+      it_behaves_like 'rejects the probe', 'Object::Datadog::DI::Instrumenter'
+      it_behaves_like 'rejects the probe', '::Object::Datadog::Tracing::SpanOperation'
+      it_behaves_like 'rejects the probe', 'Object::Object::Datadog'
+
+      context 'when the Datadog-namespaced class does not exist' do
+        let(:probe_args) do
+          # If the rejection happened after class resolution, this would
+          # raise DITargetNotDefined instead of ProbeTargetForbidden.
+          {type_name: 'Datadog::NotARealClass::AtAll', method_name: 'noop'}
+        end
+
+        it 'rejects before attempting to resolve the class' do
+          expect do
+            hook_method(probe) { |_| }
+          end.to raise_error(Datadog::DI::Error::ProbeTargetForbidden)
+        end
+      end
+
+      context 'when type_name only happens to start with "Datadog" without the separator' do
+        let(:probe_args) do
+          {type_name: 'DatadogLike', method_name: 'some_method'}
+        end
+
+        # Class does not exist, so we expect the normal not-defined error
+        # rather than the forbidden-namespace error.
+        it 'does not reject as Datadog namespace' do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
+        end
+      end
+
+      context 'when type_name is root-prefixed but does not name the Datadog namespace' do
+        let(:probe_args) do
+          {type_name: '::DatadogLike', method_name: 'some_method'}
+        end
+
+        # "::DatadogLike" does not match the rejection regex (no "::" or
+        # end-of-string follows "Datadog"), so it falls through to normal
+        # class resolution.
+        it 'does not reject as Datadog namespace' do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
+        end
+      end
+
+      context 'when type_name has an Object:: prefix but does not name the Datadog namespace' do
+        let(:probe_args) do
+          {type_name: 'Object::DatadogLike', method_name: 'some_method'}
+        end
+
+        # The "Object::" stripping only applies before "Datadog" followed by
+        # "::" or end-of-string; "Object::DatadogLike" does not match, so it
+        # falls through to normal class resolution.
+        it 'does not reject as Datadog namespace' do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
+        end
+      end
+    end
+
+    context 'when targeting Kernel#lambda' do
+      # The first group is the Kernel module named directly: a leading "::" is
+      # Ruby's root-namespace prefix and any number of leading "Object::"
+      # segments resolve through Object.const_get to the same top-level Kernel
+      # module, so users cannot bypass the rejection by naming Kernel through
+      # one of these aliases.
+      #
+      # The second group names other types that inherit Kernel#lambda without
+      # overriding it: every class inherits it, so the target method resolves
+      # to Kernel#lambda regardless of the type name. These are rejected by
+      # resolving the method owner, not by matching the type name.
+      [
+        'Kernel',
+        '::Kernel',
+        'Object::Kernel',
+        '::Object::Kernel',
+        'Object::Object::Kernel',
+        'Object',
+        'String',
+      ].each do |type_name|
+        context "with type name #{type_name.inspect}" do
+          let(:probe_args) do
+            {type_name: type_name, method_name: 'lambda'}
+          end
+
+          it 'raises ProbeTargetForbidden' do
+            expect do
+              hook_method(probe) { |_| }
+            end.to raise_error(Datadog::DI::Error::ProbeTargetForbidden,
+              /Method probes on Kernel#lambda are not permitted: #{Regexp.escape(type_name)}#lambda/)
+          end
+        end
+      end
+
+      context 'when targeting Kernel but not the lambda method' do
+        let(:probe_args) do
+          {type_name: 'Kernel', method_name: 'definitely_not_lambda'}
+        end
+
+        it 'is not rejected as a forbidden target' do
+          # Stub prepend so the wrapper module is not installed onto the real
+          # Kernel for the rest of the suite; this example only asserts that
+          # the forbidden check does not fire for a non-lambda Kernel method.
+          allow(Kernel).to receive(:prepend)
+          expect do
+            hook_method(probe) { |_| }
+          end.not_to raise_error
+        end
+      end
+
+      context 'when targeting a lambda method on a non-Kernel type' do
+        let(:probe_args) do
+          {type_name: 'KernelLike', method_name: 'lambda'}
+        end
+
+        # "KernelLike" is not the Kernel module, so a "lambda" method on it is
+        # an ordinary user method; the class does not exist here, so we expect
+        # the normal not-defined error rather than the forbidden error.
+        it 'does not reject as Kernel#lambda' do
+          expect do
+            hook_method(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::DITargetNotDefined)
+        end
+      end
+
+      context 'when the target type defines its own lambda method' do
+        before do
+          stub_const('OverridesLambda', Class.new do
+            def lambda
+              :not_kernel
+            end
+          end)
+        end
+
+        let(:probe_args) do
+          {type_name: 'OverridesLambda', method_name: 'lambda'}
+        end
+
+        # The owner of OverridesLambda#lambda is OverridesLambda, not Kernel,
+        # so this is an ordinary user method and the probe installs normally.
+        it 'is not rejected and instruments the user-defined method' do
+          observed = []
+          hook_method(probe) { |payload| observed << payload }
+          expect(OverridesLambda.new.lambda).to eq(:not_kernel)
+          expect(observed.length).to eq(1)
+        end
       end
     end
 
@@ -1019,6 +1235,114 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         include_examples 'does not report the call and reports evaluation failure'
+      end
+    end
+
+    # The wrapper passes caller_locations to run_method_probe so the
+    # snapshot's stack reflects the user's call site, not the wrapper's
+    # internal call chain. This regression test pins the contract: the
+    # frame immediately following the synthetic method_frame must be
+    # this spec's call site. Any change to the wrapper's call chain
+    # (extracting helpers, lambda thunks, etc.) that breaks this stack
+    # capture will fail this test.
+    context 'caller_locations capture' do
+      let(:probe_args) do
+        {type_name: 'HookTestClass', method_name: 'hook_test_method'}
+      end
+
+      it 'captures the test call site as the frame after the synthetic method frame' do
+        hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        HookTestClass.new.hook_test_method
+
+        expect(observed_calls.length).to eq 1
+        caller_locs = observed_calls.first.caller_locations
+        # caller_locs[0] is the synthetic Location for the probed method
+        # (added by run_method_probe). caller_locs[1] is the first real
+        # frame from the user's stack — i.e., this spec.
+        expect(caller_locs[0].path).to end_with('hook_method.rb')
+        expect(caller_locs[0].label).to include('hook_test_method')
+        expect(caller_locs[1].path).to end_with('instrumenter_spec.rb')
+      end
+    end
+
+    # Cover each branch of the re-entrancy guard's early-return splat.
+    # When DI.in_probe? is true, the wrapper must call super with the
+    # exact arg/kwarg shape it received and skip all DI processing.
+    context 'when DI.in_probe? is true (re-entrant call from within DI processing)' do
+      after do
+        # Always clear the guard so leftover state cannot affect the next test.
+        Datadog::DI.leave_probe
+      end
+
+      context 'method takes no args' do
+        let(:probe_args) do
+          {type_name: 'HookTestClass', method_name: 'hook_test_method'}
+        end
+
+        it 'calls super with no args and does not invoke the callback' do
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          Datadog::DI.enter_probe
+          expect(HookTestClass.new.hook_test_method).to eq 42
+
+          expect(observed_calls).to be_empty
+        end
+      end
+
+      context 'method takes a positional arg' do
+        let(:probe_args) do
+          {type_name: 'HookTestClass', method_name: 'hook_test_method_with_arg'}
+        end
+
+        it 'calls super with the positional arg and does not invoke the callback' do
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          Datadog::DI.enter_probe
+          expect(HookTestClass.new.hook_test_method_with_arg(7)).to eq 7
+
+          expect(observed_calls).to be_empty
+        end
+      end
+
+      context 'method takes a keyword arg' do
+        let(:probe_args) do
+          {type_name: 'HookTestClass', method_name: 'hook_test_method_with_kwarg'}
+        end
+
+        it 'calls super with the keyword arg and does not invoke the callback' do
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          Datadog::DI.enter_probe
+          expect(HookTestClass.new.hook_test_method_with_kwarg(kwarg: 9)).to eq 9
+
+          expect(observed_calls).to be_empty
+        end
+      end
+
+      context 'method takes both positional and keyword args' do
+        let(:probe_args) do
+          {type_name: 'HookTestClass', method_name: 'hook_test_method_with_pos_and_kwarg'}
+        end
+
+        it 'calls super with both shapes and does not invoke the callback' do
+          hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          Datadog::DI.enter_probe
+          expect(HookTestClass.new.hook_test_method_with_pos_and_kwarg(1, kwarg: 2)).to eq [1, 2]
+
+          expect(observed_calls).to be_empty
+        end
       end
     end
   end

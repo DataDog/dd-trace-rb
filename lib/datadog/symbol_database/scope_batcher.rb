@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'set'
+require_relative '../di/fatal_exceptions'
 
 module Datadog
   module SymbolDatabase
@@ -122,7 +123,8 @@ module Datadog
 
         # Upload outside mutex (if batch was full)
         perform_upload(scopes_to_upload) if scopes_to_upload
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: failed to add scope: #{e.class}: #{e.message}" }
         # Don't propagate, continue operation
       end
@@ -267,7 +269,8 @@ module Datadog
             flush
           end
         end
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: timer thread error: #{e.class}: #{e.message}" }
       end
 
@@ -279,7 +282,8 @@ module Datadog
 
         @uploader.upload_scopes(scopes)
         @on_upload&.call(scopes)  # Notify tests after upload
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: upload failed: #{e.class}: #{e.message}" }
         # Don't propagate, uploader handles retries
       end

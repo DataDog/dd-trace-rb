@@ -44,6 +44,10 @@ module Datadog
                       body = gateway_request.form_hash
                       persistent_data['server.request.body'] = body if body
                     end
+                  # NOTE: Body was parsed before measurement, keep byte_length unset
+                  elsif gateway_request.env.key?('rack.request.form_hash')
+                    body = gateway_request.env['rack.request.form_hash']
+                    persistent_data['server.request.body'] = body if body
                   end
 
                   next stack.call(request) if persistent_data.empty?

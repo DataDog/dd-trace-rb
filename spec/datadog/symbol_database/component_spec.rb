@@ -6,13 +6,13 @@ require 'datadog/symbol_database/scope_batcher'
 require 'datadog/symbol_database/uploader'
 
 RSpec.describe Datadog::SymbolDatabase::Component do
-  # Use a real Settings instance — Settings uses dynamic DSL methods (via
-  # Core::Configuration::Options) that instance_double can't verify.
+  let(:remote_enabled) { true }
+
   let(:settings) do
     Datadog::Core::Configuration::Settings.new.tap do |s|
       s.symbol_database.enabled = true
       s.symbol_database.internal.force_upload = false
-      s.remote.enabled = true
+      s.remote.enabled = remote_enabled
       s.service = 'test-service'
       s.env = 'test'
       s.version = '1.0'
@@ -47,7 +47,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
   before { stub_const('Datadog::SymbolDatabase::Component::EXTRACT_DEBOUNCE_INTERVAL', 0.05) }
 
   describe '.environment_supported?', :symdb_supported_platforms do
-    it 'returns true on MRI Ruby 2.6+' do
+    it 'returns true on MRI Ruby 2.7+' do
       stub_const('RUBY_ENGINE', 'ruby')
       stub_const('RUBY_VERSION', '3.2.0')
       stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new(RUBY_VERSION))
@@ -60,25 +60,16 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       expect(described_class.send(:environment_supported?, logger)).to be false
     end
 
-    it 'returns false and logs on Ruby < 2.6' do
+    it 'returns false and logs on Ruby < 2.7' do
       stub_const('RUBY_ENGINE', 'ruby')
-      stub_const('RUBY_VERSION', '2.5.0')
+      stub_const('RUBY_VERSION', '2.6.0')
       stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new(RUBY_VERSION))
-      expect(raw_logger).to receive(:debug) { |&block| expect(block.call).to match(/requires Ruby 2.6\+/) }
+      expect(raw_logger).to receive(:debug) { |&block| expect(block.call).to match(/requires Ruby 2.7\+/) }
       expect(described_class.send(:environment_supported?, logger)).to be false
     end
   end
 
   describe '.build' do
-    context 'when symbol_database is disabled' do
-      before { settings.symbol_database.enabled = false }
-
-      it 'returns nil' do
-        result = described_class.build(settings, agent_settings, logger)
-        expect(result).to be_nil
-      end
-    end
-
     context 'when remote is disabled and force_upload is false' do
       before do
         settings.remote.enabled = false
@@ -92,7 +83,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
 
     context 'when remote is enabled' do
-      before { settings.remote.enabled = true }
+      let(:remote_enabled) { true }
 
       it 'returns a Component' do
         result = described_class.build(settings, agent_settings, logger)
@@ -241,6 +232,162 @@ RSpec.describe Datadog::SymbolDatabase::Component do
 
       expect(component.last_upload_time).to be_a(Time)
       expect(component.last_upload_scope_count).to eq(2)
+    end
+  end
+
+  describe '#start_upload Dynamic Instrumentation gate' do
+    let(:di_active_state) { {active: false} }
+    let(:component) do
+      described_class.new(settings, agent_settings, logger, di_active: -> { di_active_state[:active] })
+    end
+
+    after { component.shutdown! }
+
+    context 'when symbol_database.enabled is nil (default)' do
+      before { settings.symbol_database.enabled = nil }
+
+      context 'and Dynamic Instrumentation is not active' do
+        it 'defers the upload instead of scheduling extraction' do
+          expect(component).not_to receive(:extract_and_upload)
+
+          component.start_upload
+
+          expect(component.instance_variable_get(:@scheduled_at)).to be_nil
+          expect(component.instance_variable_get(:@upload_requested)).to be true
+        end
+
+        it 'runs the deferred upload once Dynamic Instrumentation becomes active' do
+          component.start_upload
+          expect(component.instance_variable_get(:@upload_requested)).to be true
+
+          expect(component).to receive(:extract_and_upload).and_call_original
+          allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
+
+          di_active_state[:active] = true
+          component.resume_pending_upload
+
+          expect(component.wait_for_idle(timeout: 5)).to be true
+        end
+      end
+
+      context 'and Dynamic Instrumentation is active' do
+        before { di_active_state[:active] = true }
+
+        it 'schedules extraction' do
+          expect(component).to receive(:extract_and_upload).and_call_original
+          allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
+
+          component.start_upload
+
+          expect(component.wait_for_idle(timeout: 5)).to be true
+        end
+      end
+
+      context 'after an upload has run and Dynamic Instrumentation is later disabled then re-enabled' do
+        before { di_active_state[:active] = true }
+
+        it 'restarts the upload on resume even though remote config does not re-send the config' do
+          allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
+
+          # Initial upload while DI is active.
+          component.start_upload
+          expect(component.wait_for_idle(timeout: 5)).to be true
+
+          # DI disabled via remote config: uploads are suspended, but the request
+          # is remembered so it can restart when DI comes back.
+          component.stop_for_di_disable
+          expect(component.instance_variable_get(:@upload_requested)).to be true
+
+          # DI re-enabled. Remote config does not re-dispatch the unchanged
+          # symbol-database config, so only resume_pending_upload runs; it must
+          # restart the upload from the retained desire.
+          component.resume_pending_upload
+          expect(component.wait_for_idle(timeout: 5)).to be true
+        end
+      end
+    end
+
+    context 'when symbol_database.enabled is explicitly true' do
+      before { settings.symbol_database.enabled = true }
+
+      it 'uploads even when Dynamic Instrumentation is not active' do
+        expect(component).to receive(:extract_and_upload).and_call_original
+        allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
+
+        component.start_upload
+
+        expect(component.wait_for_idle(timeout: 5)).to be true
+      end
+    end
+
+    context 'when force_upload is set' do
+      before do
+        settings.symbol_database.enabled = nil
+        settings.symbol_database.internal.force_upload = true
+      end
+
+      it 'uploads even when Dynamic Instrumentation is not active' do
+        expect(component).to receive(:extract_and_upload).and_call_original
+        allow(component.instance_variable_get(:@extractor)).to receive(:extract_all).and_return([])
+
+        component.start_upload
+
+        expect(component.wait_for_idle(timeout: 5)).to be true
+      end
+    end
+
+    context 'when symbol_database.enabled is explicitly false' do
+      before { settings.symbol_database.enabled = false }
+
+      it 'skips the upload without recording it for retry' do
+        expect(component).not_to receive(:extract_and_upload)
+
+        component.start_upload
+
+        expect(component.instance_variable_get(:@scheduled_at)).to be_nil
+        expect(component.instance_variable_get(:@upload_requested)).to be false
+      end
+    end
+  end
+
+  describe '#stop_for_di_disable' do
+    let(:component) do
+      described_class.new(settings, agent_settings, logger, di_active: -> { true })
+    end
+
+    after { component.shutdown! }
+
+    context 'when symbol_database.enabled is nil (follows DI)' do
+      before { settings.symbol_database.enabled = nil }
+
+      it 'suspends uploading (preserving the request for a later resume)' do
+        expect(component).to receive(:suspend_scheduling)
+
+        component.stop_for_di_disable
+      end
+    end
+
+    context 'when symbol_database.enabled is explicitly true' do
+      before { settings.symbol_database.enabled = true }
+
+      it 'keeps uploading (explicit opt-in is independent of DI)' do
+        expect(component).not_to receive(:suspend_scheduling)
+
+        component.stop_for_di_disable
+      end
+    end
+
+    context 'when force_upload is set' do
+      before do
+        settings.symbol_database.enabled = nil
+        settings.symbol_database.internal.force_upload = true
+      end
+
+      it 'keeps uploading (force_upload is independent of DI)' do
+        expect(component).not_to receive(:suspend_scheduling)
+
+        component.stop_for_di_disable
+      end
     end
   end
 
@@ -752,7 +899,6 @@ RSpec.describe Datadog::SymbolDatabase::Component do
     end
 
     it 'does not propagate exceptions when logger.debug itself raises' do
-      skip 'flaky on CI'
       # If the rescue handler's own logger call raises (custom logger
       # implementation, IO error), it would escape the outer rescue and
       # surface in the customer's class body. The inner rescue contains

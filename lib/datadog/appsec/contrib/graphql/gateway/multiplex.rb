@@ -72,11 +72,11 @@ module Datadog
                     args_hash, fragment_name, nil, arguments_from_directives(fragment.directives, query_variables)
                   )
 
+                  # re-used fragments are not expanded
                   visited_fragments[fragment_name] = true
                   arguments_from_selections(
                     fragment.selections, query_variables, args_hash, fragments, visited_fragments
                   )
-                  visited_fragments.delete(fragment_name)
                 when ::GraphQL::Language::Nodes::Field
                   selection_name = selection.alias || selection.name
                   field_arguments = arguments_hash(selection.arguments, query_variables) unless selection.arguments.empty?

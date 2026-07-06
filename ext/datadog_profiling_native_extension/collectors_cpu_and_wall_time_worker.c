@@ -530,6 +530,8 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   // situation we stop immediately and never even start the sampling trigger loop.
   if (state->stop_thread == rb_thread_current()) return Qnil;
 
+  thread_context_collector_profiler_internal_thread_started();
+
   // Reset the dynamic sampling rate state, if any (reminder: the monotonic clock reference may change after a fork)
   dynamic_sampling_rate_reset(&state->cpu_dynamic_sampling_rate);
   long now = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
@@ -892,6 +894,8 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
 
   // If we stopped sampling due to an exception, re-raise it (now in the worker thread)
   if (state->failure_exception != Qnil) rb_exc_raise(state->failure_exception);
+
+  thread_context_collector_profiler_internal_thread_done(state->thread_context_collector_instance);
 
   return Qnil;
 }
@@ -1267,9 +1271,8 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
 
   per_thread_context *thread_context = get_per_thread_context(current_thread);
   if (!thread_context) {
-    // No per_thread_context yet on this Thread, we can't use get_or_create_context_for() as that allocates,
-    // and we are inside on_newobj_event where we MUST NOT allocate.
-    // So we don't sample allocations until another hook allocates the per_thread_context.
+    // Context is created eagerly via on_thread_begin_event, so this should not normally be NULL.
+    // We keep the guard since we can't allocate here (inside on_newobj_event).
     return;
   }
 

@@ -42,5 +42,35 @@ RSpec.describe Datadog::OpenFeature::Configuration::Settings do
         it { expect(settings.open_feature.enabled).to be(false) }
       end
     end
+
+    # The EVP killswitch is read through the config registry (DD_FLAGGING_EVALUATION_COUNTS_ENABLED),
+    # not raw ENV. Default on; settable in code.
+    describe '#evaluation_counts_enabled' do
+      subject(:evaluation_counts_enabled) { settings.open_feature.evaluation_counts_enabled }
+
+      context 'when DD_FLAGGING_EVALUATION_COUNTS_ENABLED is not defined' do
+        with_env 'DD_FLAGGING_EVALUATION_COUNTS_ENABLED' => nil
+
+        it { expect(evaluation_counts_enabled).to be(true) }
+      end
+
+      context 'when DD_FLAGGING_EVALUATION_COUNTS_ENABLED is defined as false' do
+        with_env 'DD_FLAGGING_EVALUATION_COUNTS_ENABLED' => 'false'
+
+        it { expect(evaluation_counts_enabled).to be(false) }
+      end
+
+      context 'when DD_FLAGGING_EVALUATION_COUNTS_ENABLED is defined as true' do
+        with_env 'DD_FLAGGING_EVALUATION_COUNTS_ENABLED' => 'true'
+
+        it { expect(evaluation_counts_enabled).to be(true) }
+      end
+    end
+
+    describe '#evaluation_counts_enabled=' do
+      before { settings.open_feature.evaluation_counts_enabled = false }
+
+      it { expect(settings.open_feature.evaluation_counts_enabled).to be(false) }
+    end
   end
 end
