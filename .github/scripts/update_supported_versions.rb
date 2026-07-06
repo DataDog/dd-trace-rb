@@ -4,7 +4,6 @@ require 'bundler'
 
 LIB_PATH = File.expand_path('../../lib', __dir__).freeze
 GEMFILES_DIR = 'gemfiles/'.freeze
-CONTRIB_DIR = 'lib/datadog/tracing/contrib/'.freeze
 OUTPUT_DOC = 'docs/integration_versions.md'.freeze
 OUTPUT_DATA = 'docs/integration_versions.json'.freeze
 THIRD_PARTY_URL = {
@@ -15,18 +14,9 @@ $LOAD_PATH.unshift(LIB_PATH) unless $LOAD_PATH.include?(LIB_PATH)
 require 'datadog'
 
 class GemfileProcessor
-  SPECIAL_CASES = {
-    "opensearch" => "OpenSearch", # special case because opensearch = OpenSearch not Opensearch
-  }.freeze
-  EXCLUDED_INTEGRATIONS = ["configuration", "propagation", "utils"].freeze
-
-  def initialize(directory: GEMFILES_DIR, contrib_dir: CONTRIB_DIR)
+  def initialize(directory: GEMFILES_DIR)
     unless Dir.exist?(directory)
       warn("Directory #{directory} does not exist")
-    end
-
-    unless Dir.exist?(contrib_dir)
-      warn("Directory #{contrib_dir} does not exist")
     end
     @directory = directory
     @min_gems = { 'ruby' => {} }
@@ -109,13 +99,11 @@ class GemfileProcessor
     false
   end
 
-
   def process_integrations
-    integrations = Datadog::Tracing::Contrib::REGISTRY.map(&:name).map(&:to_s)
-    integrations.each do |integration|
-      next if EXCLUDED_INTEGRATIONS.include?(integration)
-
-      package = resolve_integration_name(integration)
+    Datadog::Tracing::Contrib::REGISTRY.each do |entry|
+      integration = entry.name.to_s
+      integration_class = entry.klass.class
+      package = integration_class.respond_to?(:gem_name) ? integration_class.gem_name : integration
 
       @supported_versions << {
         integration: integration,
@@ -142,20 +130,10 @@ class GemfileProcessor
     @supported_versions << {
       integration: 'makara',
       package: 'makara',
-      source: 'rubygems.org',
-      min_tested: '0.5.1',
-      max_tested: '0.5.1',
+      source: @gem_sources['ruby']['makara'],
+      min_tested: @min_gems['ruby']['makara'],
+      max_tested: @max_gems['ruby']['makara'],
     }
-  end
-
-  def resolve_integration_name(integration)
-    mod_name = SPECIAL_CASES[integration] || integration.split('_').map(&:capitalize).join
-    module_name = "Datadog::Tracing::Contrib::#{mod_name}"
-    integration_module = Object.const_get(module_name)::Integration
-    integration_module.respond_to?(:gem_name) ? integration_module.gem_name : integration
-  rescue NameError, NoMethodError
-    puts "Fallback for #{integration}: module or gem_name not found."
-    integration
   end
 
   def write_markdown_output
@@ -212,6 +190,5 @@ class GemfileProcessor
     THIRD_PARTY_URL[support[:integration]] || support[key] || 'None'
   end
 end
-
 
 GemfileProcessor.new.process
