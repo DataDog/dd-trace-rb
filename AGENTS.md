@@ -30,7 +30,7 @@ This repository is the source code of a Ruby gem created by Datadog to provide D
 - @lib/datadog/kit - shared product features
 - @lib/datadog/data_streams - Data Streams Monitoring
 - @lib/datadog/di - dynamic instrumentation (`docs/DynamicInstrumentation.md`)
-- @lib/datadog/open_feature - an implementation of OpenFeature Provider https://openfeature.dev/docs/reference/sdks/server/ruby
+- @lib/datadog/open_feature - an implementation of OpenFeature Provider https://openfeature.dev/docs/reference/sdks/server/ruby. See `lib/datadog/open_feature/AGENTS.md` for the coding guide for this subtree.
 - @lib/datadog/opentelemetry - support OpenTelemetry API for tracing and metrics (`docs/OpenTelemetry.md`)
 - @lib/datadog/profiling - profiling
 - @lib/datadog/tracing - distributed tracing
