@@ -24,17 +24,6 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
       end
     end
 
-    context 'when query string parsing failed' do
-      before { allow(::Rack::Utils).to receive(:parse_query).and_raise RangeError, 'too big' }
-
-      it 'falls back to a lenient parse and reports the error' do
-        expect(Datadog::AppSec.telemetry).to receive(:report)
-          .with(instance_of(RangeError), description: 'AppSec: Failed to parse request query string')
-
-        expect(request.query).to eq({'a' => ['foo', 'bar'], 'b' => 'baz'})
-      end
-    end
-
     context 'when the query string contains malformed percent-encoding' do
       let(:request) do
         described_class.new(

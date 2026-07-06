@@ -8,6 +8,10 @@ module Datadog
       module HTTP
         # Module for parsing URL encoded payloads
         module URLEncoded
+          # Matches Rack's default query bytesize limit, so parsing our own
+          # payloads keeps the same guard against CPU/memory exhaustion.
+          BYTESIZE_LIMIT = 4 * 1024 * 1024
+
           # Parses a URL encoded payload (query string or form data) into a hash
           # of keys and values, merging duplicate keys.
           #
@@ -15,36 +19,60 @@ module Datadog
           #
           #   URLEncoded.parse("foo=bar&foo=baz&qux=quux") # => {"foo" => ["bar", "baz"], "qux" => "quux"}
           #
-          # NOTE: Use it in the absence of `Rack::Utils.parse_query`
-          #
-          # WARNING: This method doesn't limit params byte size.
-          #          See: https://github.com/rack/rack/blob/603b799de38b5eb9b2ff1657c8036a20f4c4db7b/lib/rack/query_parser.rb#L231-L233
-          def self.parse(payload)
+          # Parsing stops once +bytesize_limit+ bytes have been read, and the
+          # pair being read at that point is discarded. This returns the pairs
+          # decoded so far rather than raising or discarding the whole payload.
+          def self.parse(payload, bytesize_limit: BYTESIZE_LIMIT)
             return {} if payload.nil? || payload.empty?
 
-            payload.split('&').each_with_object({}) do |pair, memo|
-              next if pair.empty?
+            result = {} #: Hash[::String, (::String | ::Array[::String?])?]
+            key = nil #: ::String?
+            value = +''
+            consumed = 0
+            truncated = false
 
-              # NOTE: Steep has issues with mutation methods
-              #       See https://github.com/ruby/rbs/issues/2819
-              #
-              # @type var key: ::String
-              # @type var value: ::String
-              key, value = pair.split('=', 2).map! do |val|
-                CGI.unescape(val)
-              end #: [::String, ::String]
+            payload.each_char do |char|
+              consumed += char.bytesize
+              if consumed > bytesize_limit
+                truncated = true
+                break
+              end
 
-              if (stored = memo[key])
-                if stored.is_a?(Array)
-                  stored.push(value)
+              case char
+              when '&'
+                set_param_value(result, key, value)
+                key = nil
+                value = +''
+              when '='
+                if key
+                  value << char
                 else
-                  memo[key] = [stored, value]
+                  key = value
+                  value = +''
                 end
               else
-                memo[key] = value
+                value << char
               end
             end
+
+            set_param_value(result, key, value) unless truncated
+
+            result
           end
+
+          def self.set_param_value(result, key, value)
+            return if key.nil? && value.empty?
+
+            decoded_key = CGI.unescape(key || value)
+            decoded_value = key.nil? ? nil : CGI.unescape(value) #: ::String?
+
+            case existing = result[decoded_key]
+            when ::Array then existing.push(decoded_value)
+            when nil then result[decoded_key] = decoded_value
+            else result[decoded_key] = [existing, decoded_value]
+            end
+          end
+          private_class_method :set_param_value
         end
       end
     end

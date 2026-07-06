@@ -3,7 +3,11 @@ module Datadog
     module Utils
       module HTTP
         module URLEncoded
-          def self.parse: (::String?) -> ::Hash[::String, (::String | ::Array[::String])?]
+          BYTESIZE_LIMIT: ::Integer
+
+          def self.parse: (::String?, ?bytesize_limit: ::Integer) -> ::Hash[::String, (::String | ::Array[::String?])?]
+
+          def self.set_param_value: (::Hash[::String, (::String | ::Array[::String?])?], ::String?, ::String) -> void
         end
       end
     end

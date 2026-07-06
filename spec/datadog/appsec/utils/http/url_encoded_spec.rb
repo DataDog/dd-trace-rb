@@ -44,5 +44,15 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::URLEncoded do
     context 'when payload has value with equals sign' do
       it { expect(described_class.parse('key=a=b')).to eq({'key' => 'a=b'}) }
     end
+
+    context 'when payload has malformed percent-encoding' do
+      it { expect(described_class.parse('bad=%&payload=%3Cscript%3E')).to eq({'bad' => '%', 'payload' => '<script>'}) }
+    end
+
+    context 'when payload exceeds the bytesize limit' do
+      it 'returns the fully-read pairs and omits the one crossing the limit' do
+        expect(described_class.parse('a=1&b=2&c=3', bytesize_limit: 10)).to eq({'a' => '1', 'b' => '2'})
+      end
+    end
   end
 end
