@@ -73,6 +73,13 @@
         "default": "true"
       }
     ],
+    "DD_API_SECURITY_MAX_DOWNSTREAM_BODY_BYTES": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "10485760"
+      }
+    ],
     "DD_API_SECURITY_MAX_DOWNSTREAM_REQUEST_BODY_ANALYSIS": [
       {
         "version": "A",
@@ -327,6 +334,13 @@
         "version": "A",
         "type": "string",
         "default": null
+      }
+    ],
+    "DD_FLAGGING_EVALUATION_COUNTS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
       }
     ],
     "DD_ERROR_TRACKING_HANDLED_ERRORS": [

@@ -486,6 +486,30 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           expect(hash_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_hash) * sample_rate)
         end
 
+        # Regression test for https://github.com/DataDog/dd-trace-rb/issues/5936,
+        # see comments on `ruby_obj_memsize_of` for details
+        context "for class objects" do
+          let(:a_class) { Class.new }
+
+          before do
+            sample_allocation(a_class)
+            GC.start # Age the class past the current GC gen so it is reported as a live heap object (gen_age > 0)
+          end
+
+          it "tracks the class without crashing and reports a size that is safe for the current Ruby" do
+            skip_asan_flaky
+
+            class_sample = heap_samples.find { |s| s.labels[:"allocation class"] == "Class" }
+            expect(class_sample).to_not be_nil
+
+            if RubyVersion.is?(">= 4")
+              expect(class_sample.values[:"heap-live-size"]).to eq(0)
+            else
+              expect(class_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_class) * sample_rate)
+            end
+          end
+        end
+
         it "include accurate object ages" do
           string_sample = heap_samples.find { |s| s.labels[:"allocation class"] == "String" }
           string_age = string_sample.labels[:"gc gen age"]

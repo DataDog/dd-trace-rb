@@ -1,0 +1,144 @@
+module Datadog
+  module OpenFeature
+    module FlagEvaluation
+      class Writer
+        include Core::Workers::Async::Thread
+
+        FLUSH_INTERVAL_SECONDS: ::Integer
+
+        DRAIN_INTERVAL_SECONDS: ::Float
+
+        SHUTDOWN_TIMEOUT_SECONDS: ::Integer
+
+        QUEUE_SIZE: ::Integer
+
+        MAX_DRAIN_EVENTS_PER_CYCLE: ::Integer
+
+        PAYLOAD_SIZE_LIMIT_BYTES: ::Integer
+
+        TELEMETRY_NAMESPACE: ::String
+
+        ROWS_DROPPED_METRIC: ::String
+
+        ROWS_DEGRADED_METRIC: ::String
+
+        PAYLOAD_SPLITS_METRIC: ::String
+
+        REASON_QUEUE_OVERFLOW: ::String
+
+        REASON_DEGRADED_CAP: ::String
+
+        REASON_CARDINALITY_CAP: ::String
+
+        REASON_PAYLOAD_LIMIT: ::String
+
+        @transport: Transport::HTTP
+
+        @logger: Core::Logger
+
+        @telemetry: Core::Telemetry::Component?
+
+        @aggregator: Aggregator
+
+        @queue: ::Thread::SizedQueue
+
+        @stop_mutex: ::Thread::Mutex
+
+        @stop_cond: ::Thread::ConditionVariable
+
+        @stopped: bool
+
+        @dropped_queue_overflow: ::Integer
+
+        @service_context: ::Hash[::String, ::String]
+
+        attr_reader service_context: ::Hash[::String, ::String]
+
+        attr_reader dropped_queue_overflow: ::Integer
+
+        def initialize: (
+          transport: Transport::HTTP,
+          logger: Core::Logger,
+          ?telemetry: Core::Telemetry::Component?
+        ) -> void
+
+        def enqueue: (**untyped event) -> void
+
+        def stop: () -> bool
+
+        private
+
+        def after_fork: () -> void
+
+        def build_service_context: () -> ::Hash[::String, ::String]
+
+        def snapshot_context_value: (
+          untyped value,
+          ::Hash[::Integer, bool] seen,
+          ::Integer depth
+        ) -> untyped
+
+        def start_background_thread: () -> void
+
+        def running?: () -> bool
+
+        def perform: () -> void
+
+        def stopped?: () -> bool
+
+        def wait_for_next_cycle: () -> void
+
+        def drain_and_flush: () -> void
+
+        def drain_queue: (?max_events: ::Integer?) -> ::Integer
+
+        def flush_once: () -> void
+
+        def take_dropped_queue_overflow: () -> ::Integer
+
+        def emit_drop_counts: (::Integer dropped_queue, ::Integer dropped_overflow) -> void
+
+        def emit_degraded_counts: (::Integer degraded_count) -> void
+
+        def build_events: (::Hash[::Symbol, untyped] snapshot) -> ::Array[::Hash[::String, untyped]]
+
+        def build_event: (
+          flag_key: ::String,
+          variant: ::String?,
+          allocation_key: ::String?,
+          targeting_key: ::String?,
+          entry: ::Hash[::Symbol, untyped],
+          flush_time_ms: ::Integer,
+          tier: ::Symbol
+        ) -> ::Hash[::String, untyped]
+
+        def send_payload_batches: (::Array[::Hash[::String, untyped]] events) -> void
+
+        def send_payload_batch: (::Array[::Hash[::String, untyped]] events) -> untyped
+
+        def encoded_event_for_payload: (
+          ::Hash[::String, untyped] event,
+          ::Integer base_payload_size
+        ) -> [::Hash[::String, untyped], ::Integer, bool]?
+
+        def encoded_event: (::Hash[::String, untyped] event) -> [::Hash[::String, untyped], ::Integer]
+
+        def event_fits_payload?: (::Integer event_size, ::Integer base_payload_size) -> bool
+
+        def degrade_event_for_payload_limit: (
+          ::Hash[::String, untyped] event
+        ) -> ::Hash[::String, untyped]?
+
+        def emit_payload_oversize_drops: (::Integer dropped_oversized) -> void
+
+        def event_count: (::Hash[::String, untyped] event) -> ::Integer
+
+        def record_telemetry_count: (
+          ::String metric_name,
+          ::Integer count,
+          ?reason: ::String?
+        ) -> void
+      end
+    end
+  end
+end

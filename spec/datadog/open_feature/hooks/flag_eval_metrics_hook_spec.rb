@@ -4,9 +4,9 @@ require 'spec_helper'
 
 # Tests run under the openfeature appraisal which includes the real OpenFeature SDK
 require 'open_feature/sdk'
-require 'datadog/open_feature/hooks/flag_eval_hook'
+require 'datadog/open_feature/hooks/flag_eval_metrics_hook'
 
-RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalHook do
+RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalMetricsHook do
   subject(:hook) { described_class.new(metrics) }
 
   let(:metrics) { instance_double(Datadog::OpenFeature::Metrics::FlagEvalMetrics) }

@@ -153,6 +153,29 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
         expect(request.form_hash).to eq({'name' => 'john'})
       end
     end
+
+    context 'when body parsing fails' do
+      before do
+        allow(request.request).to receive(:POST)
+          .and_raise(EOFError, 'bad multipart')
+      end
+
+      let(:request) do
+        described_class.new(
+          Rack::MockRequest.env_for(
+            'http://example.com:8080/?a=foo',
+            {:method => 'POST', :input => 'name=john', 'REMOTE_ADDR' => '10.10.10.10'}
+          )
+        )
+      end
+
+      it 'returns nil and reports telemetry' do
+        expect(Datadog::AppSec.telemetry).to receive(:report)
+          .with(instance_of(EOFError), description: 'AppSec: Failed to parse request body')
+
+        expect(request.form_hash).to be_nil
+      end
+    end
   end
 
   describe '#body_bytesize' do

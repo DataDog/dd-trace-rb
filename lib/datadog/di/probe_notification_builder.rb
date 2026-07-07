@@ -2,6 +2,8 @@
 
 # rubocop:disable Lint/AssignmentInCondition
 
+require_relative 'fatal_exceptions'
+
 module Datadog
   module DI
     # Builds probe status notification and snapshot payloads.
@@ -366,7 +368,8 @@ module Datadog
           else
             raise ArgumentError, "Invalid template segment type: #{segment}"
           end
-        rescue => exc
+        rescue Exception => exc # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(exc)
           evaluation_errors << {
             message: "#{exc.class}: #{exc.message}",
             expr: segment.dsl_expr, # steep:ignore NoMethod

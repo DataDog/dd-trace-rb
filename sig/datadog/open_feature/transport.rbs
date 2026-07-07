@@ -10,11 +10,24 @@ module Datadog
           def call: (Core::Transport::HTTP::Env) { (Core::Transport::HTTP::Env) -> Core::Transport::Response } -> Core::Transport::Response
         end
 
+        class FlagevaluationsSpec
+          @endpoint: Core::Transport::HTTP::API::Endpoint
+
+          def initialize: () -> void
+
+          def call: (Core::Transport::HTTP::Env) { (Core::Transport::HTTP::Env) -> Core::Transport::Response } -> Core::Transport::Response
+        end
+
         @api: Core::Transport::HTTP::API::Instance
 
         @logger: Core::Logger
 
         def self.build: (
+          agent_settings: Core::Configuration::AgentSettings,
+          logger: Core::Logger
+        ) -> HTTP
+
+        def self.build_flagevaluations: (
           agent_settings: Core::Configuration::AgentSettings,
           logger: Core::Logger
         ) -> HTTP
@@ -26,6 +39,8 @@ module Datadog
         ) -> void
 
         def send_exposures: (::Hash[::Symbol, untyped] payload) -> Core::Transport::Response
+
+        def send_flag_evaluations: (::Hash[::String, untyped] payload) -> Core::Transport::Response
       end
     end
   end

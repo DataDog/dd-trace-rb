@@ -4,6 +4,7 @@ require_relative 'scope'
 require_relative 'symbol'
 require_relative 'file_hash'
 require_relative '../core/utils/enumerable_compat'
+require_relative '../di/fatal_exceptions'
 
 module Datadog
   module SymbolDatabase
@@ -145,7 +146,8 @@ module Datadog
         end
 
         wrap_in_file_scope(source_file, [inner_scope])
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: failed to extract #{mod_name || '<unknown>'}: #{e.class}: #{e.message}" }
         nil
       end
@@ -210,7 +212,8 @@ module Datadog
           end
           result
         end
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: error in extract_all: #{e.class}: #{e.message}" }
         block_given? ? nil : []
       end
@@ -224,7 +227,8 @@ module Datadog
       # @return [String, nil] Module name or nil
       def safe_mod_name(mod)
         MODULE_NAME.bind(mod).call
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: safe_mod_name failed: #{e.class}: #{e.message}" }
         nil
       end
@@ -390,7 +394,8 @@ module Datadog
           if namespace
             location = begin
               namespace.const_source_location(const_name)
-            rescue => e
+            rescue Exception => e # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(e)
               @logger.debug { "symdb: const_source_location(#{const_name}) failed: #{e.class}: #{e.message}" }
               nil
             end
@@ -406,7 +411,8 @@ module Datadog
           MODULE_CONSTANTS.bind(mod).call(false).each do |child_const_name|
             location = begin
               mod.const_source_location(child_const_name)
-            rescue => e
+            rescue Exception => e # standard:disable Lint/RescueException
+              Datadog::DI.reraise_if_fatal(e)
               @logger.debug { "symdb: const_source_location(#{child_const_name}) failed: #{e.class}: #{e.message}" }
               nil
             end
@@ -422,7 +428,8 @@ module Datadog
         end
 
         fallback
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: error finding source file for #{safe_mod_name(mod) || '<unknown>'}: #{e.class}: #{e.message}" }
         nil
       end
@@ -508,7 +515,8 @@ module Datadog
         return [UNKNOWN_MIN_LINE, UNKNOWN_MAX_LINE] if starts.empty?
 
         [starts.min, ends.max]
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: error calculating line range for #{safe_mod_name(klass)}: #{e.class}: #{e.message}" }
         [UNKNOWN_MIN_LINE, UNKNOWN_MAX_LINE]
       end
@@ -552,7 +560,8 @@ module Datadog
         specifics[:prepended_modules] = prepended unless prepended.empty?
 
         specifics
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: error building language specifics for #{safe_mod_name(klass)}: #{e.class}: #{e.message}" }
         {}
       end
@@ -575,7 +584,8 @@ module Datadog
         end
 
         scopes
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: failed to extract methods from #{safe_mod_name(klass)}: #{e.class}: #{e.message}" }
         []
       end
@@ -610,7 +620,8 @@ module Datadog
           },
           symbols: extract_method_parameters(method)
         )
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: failed to extract method #{safe_mod_name(klass)}##{method_name}: #{e.class}: #{e.message}" }
         nil
       end
@@ -688,7 +699,8 @@ module Datadog
       def extract_method_parameters(method)
         method_name = begin
           method.name.to_s
-        rescue => e
+        rescue Exception => e # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(e)
           @logger.debug { "symdb: method.name failed: #{e.class}: #{e.message}" }
           'unknown'
         end
@@ -710,7 +722,8 @@ module Datadog
             line: UNKNOWN_MIN_LINE,  # Parameters available in entire method
           )
         end
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: failed to extract parameters from #{method_name}: #{e.class}: #{e.message}" }
         []
       end
@@ -775,7 +788,8 @@ module Datadog
           file_to_names.each do |file_path, method_names|
             (index[file_path] ||= []) << [mod_name, mod, method_names]
           end
-        rescue => e
+        rescue Exception => e # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(e)
           @logger.debug { "symdb: error indexing #{mod_name || '<unknown>'}: #{e.class}: #{e.message}" }
         end
 
@@ -800,13 +814,15 @@ module Datadog
             next unless user_code_path?(loc[0])
 
             result[loc[0]] << method_name
-          rescue => e
+          rescue Exception => e # standard:disable Lint/RescueException
+            Datadog::DI.reraise_if_fatal(e)
             @logger.debug { "symdb: error indexing method #{method_name}: #{e.class}: #{e.message}" }
           end
         end
 
         result
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: error indexing methods: #{e.class}: #{e.message}" }
         {}
       end
@@ -847,7 +863,8 @@ module Datadog
             loc = method.source_location
             next nil unless loc && loc[0] == file_path
             {name: name, method: method, type: :instance}
-          rescue => e
+          rescue Exception => e # standard:disable Lint/RescueException
+            Datadog::DI.reraise_if_fatal(e)
             @logger.debug { "symdb: error resolving #{mod_name}##{name}: #{e.class}: #{e.message}" }
             nil
           end
@@ -860,7 +877,8 @@ module Datadog
 
           parts = mod_name.split('::')
           place_in_tree(root, parts, mod, mod_name, method_infos, file_path)
-        rescue => e
+        rescue Exception => e # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(e)
           @logger.debug { "symdb: error placing #{mod_name} in tree: #{e.class}: #{e.message}" }
         end
 
@@ -933,7 +951,8 @@ module Datadog
           current = MODULE_CONST_GET.bind(current).call(sym, false)
         end
         (Class === current) ? 'CLASS' : 'MODULE'
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         @logger.debug { "symdb: resolve_scope_type(#{fqn}) failed: #{e.class}: #{e.message}, defaulting to MODULE" }
         'MODULE'
       end
@@ -1028,7 +1047,8 @@ module Datadog
           },
           symbols: extract_method_parameters(method)
         )
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         klass_name = klass ? (safe_mod_name(klass) || '<unknown>') : '<unknown>'
         @logger.debug { "symdb: failed to build method scope #{klass_name}##{method_name}: #{e.class}: #{e.message}" }
         nil
@@ -1071,14 +1091,16 @@ module Datadog
           # constant here keeps the rest of the module's symbols. Logged separately from
           # unexpected errors so the latter stand out in triage. Lint/ShadowedException
           # disabled: these descend from StandardError, but Ruby's rescue-clause-order
-          # semantics ensure the bare rescue below only catches exceptions not matched here.
+          # semantics ensure the catch-all rescue below only catches exceptions not matched here.
           @logger.debug { "symdb: skipping module constant #{const_name}: #{e.class}: #{e.message}" }
-        rescue => e
+        rescue Exception => e # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(e)
           @logger.debug { "symdb: unexpected error reading module constant #{const_name}: #{e.class}: #{e.message}" }
         end
 
         symbols
-      rescue => e
+      rescue Exception => e # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(e)
         mod_name = safe_mod_name(mod) || '<unknown>'
         @logger.debug { "symdb: failed to extract symbols from #{mod_name}: #{e.class}: #{e.message}" }
         []

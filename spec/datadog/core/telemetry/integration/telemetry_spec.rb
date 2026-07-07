@@ -693,11 +693,40 @@ RSpec.describe 'Telemetry integration tests' do
     end
 
     context 'when dynamic instrumentation is fully enabled' do
+      # The fixture stubs Datadog::DI::Component.build to a non-nil fake so
+      # the enabled-DI code path runs in CI configurations without the C
+      # extension. That stub bypasses Component.build's runtime check, so
+      # Components#startup! reaches Datadog::DI.activate_tracking — which
+      # is loaded only from datadog/di/boot.rb under
+      # RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby' (see lib/datadog.rb).
+      # On Ruby 2.5 the method is undefined; "DI fully enabled" is itself
+      # a state that cannot exist on Ruby 2.5 in production (DI requires
+      # MRI 2.6+). Matches the existing pattern at
+      # spec/datadog/core/configuration/components_spec.rb:797.
+      #
+      # before(:all), not before(:each): the outer `before do` block at
+      # line 570 runs Datadog.configure, which reaches DI.activate_tracking
+      # before any inner before(:each) hook fires. before(:all) runs ahead
+      # of all before(:each) hooks in the group, so the skip lands before
+      # the crash.
+      before(:all) { skip 'requires Ruby >= 2.6 (DI.activate_tracking not loaded on 2.5)' if RUBY_VERSION < '2.6' }
+
       let(:product_mock_setup) do
         # DI requires a C extension and MRI Ruby 2.6+, which are not
         # available in all CI configurations. Mock the component build
         # so the test can run everywhere, same approach as profiling.
+        # Components#startup! now calls start! and started? on the DI
+        # component when the customer enabled DI, so the fake must
+        # respond to both (started? reports the customer-observable
+        # state used by app-started telemetry).
         fake_di = Object.new
+        def fake_di.start!
+        end
+
+        def fake_di.started?
+          true
+        end
+
         def fake_di.shutdown!
         end
 
