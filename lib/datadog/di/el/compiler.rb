@@ -23,7 +23,7 @@ module Datadog
         #
         # @param ast [untyped] expression AST from the probe definition.
         # @return [Array(String, Array<Regexp>)] the compiled Ruby source and
-        #   the precompiled regexps, indexed in the order the compiled code
+        #   the precompiled Regexps, indexed in the order the compiled code
         #   references them.
         def compile(ast)
           regexps = []
@@ -49,7 +49,7 @@ module Datadog
         ].freeze # steep:ignore IncompatibleAssignment
 
         # `matches` is also a two-argument method but is special-cased in
-        # #compile_partial so that a literal regexp pattern can be precompiled
+        # #compile_partial so that regular expressions can be precompiled
         # once, so it is not listed here.
         #
         # Steep: https://github.com/soutaro/steep/issues/363
@@ -65,10 +65,8 @@ module Datadog
         }.freeze
 
         # @param ast [untyped] AST node to compile.
-        # @param regexps [Array<Regexp>] output array that collects the Regexps
-        #   precompiled from literal `matches` patterns (see #precompile_regexp
-        #   for why); returned by #compile as the companion to the compiled
-        #   source.
+        # @param regexps [Array<Regexp>] output array that collects the
+        #   companion precompiled Regexp objects.
         # @return [String] compiled Ruby source for +ast+.
         def compile_partial(ast, regexps)
           case ast
@@ -122,15 +120,11 @@ module Datadog
               end
               first, second = target
               if String === second
-                # Literal pattern: compile the Regexp once, now, at
-                # expression-compile time, so it is not recompiled on every
-                # probe firing. A malformed literal is rejected here (see
-                # #precompile_regexp), not deferred to evaluation time.
+                # Match against a literal regular expression (string).
                 index = precompile_regexp(second, regexps)
                 "matches_compiled(#{compile_partial(first, regexps)}, #{index})"
               else
-                # Pattern is a non-literal expression, known only at
-                # evaluation time; compile per call.
+                # Match against a (complex) expression.
                 "matches(#{compile_partial(first, regexps)}, (#{compile_partial(second, regexps)}))"
               end
             when *TWO_ARG_METHODS
@@ -201,23 +195,21 @@ module Datadog
           needle.gsub("\\") { "\\\\" }.gsub('"') { "\\\"" }.gsub('#') { "\\#" }
         end
 
-        # Precompile a literal regexp +needle+ at expression-compile time and
-        # append it to +regexps+, returning its index for
-        # Evaluator#matches_compiled to look up. A malformed pattern is
-        # rejected here, at instrumentation time, rather than deferred to
-        # evaluation time.
+        # Compile a literal regular expression +regexp_str+ at
+        # instrumentation time. Append it to +regexps+, returning its index for
+        # Evaluator#matches_compiled to look up.
         #
         # @param needle [String] regexp source.
         # @param regexps [Array<Regexp>] output array to append the compiled
         #   regexp to.
         # @return [Integer] index into +regexps+.
         # @raise [DI::Error::InvalidExpression] if +needle+ is not a valid regexp.
-        def precompile_regexp(needle, regexps)
+        def precompile_regexp(regexp_str, regexps)
           index = regexps.length
-          regexps << Evaluator.compile_regexp(needle)
+          regexps << Evaluator.compile_regexp(regexp_str)
           index
         rescue RegexpError => exc
-          raise DI::Error::InvalidExpression, "Invalid regexp in matches: #{exc.message}"
+          raise DI::Error::InvalidExpression, "Invalid regular expression in matches: #{exc.message}"
         end
       end
     end

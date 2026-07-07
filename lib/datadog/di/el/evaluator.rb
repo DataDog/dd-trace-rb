@@ -12,15 +12,13 @@ module Datadog
       # @api private
       class Evaluator
         # Maximum wall-clock time allowed for evaluating a single `matches`
-        # operator. Pathological regexp patterns (catastrophic backtracking)
-        # can otherwise run for many seconds on short inputs and stall the
-        # thread executing the probe.
+        # operator.
         MATCHES_TIMEOUT_SECONDS = 0.5
 
         # @param regexps [Array<Regexp>] Regexps precompiled from literal
-        #   `matches` patterns (see Compiler#precompile_regexp), looked up by
-        #   index by #matches_compiled. Empty when the expression has no
-        #   literal `matches` pattern.
+        #   `matches` patterns, looked up by index by #matches_compiled.
+        #    Empty when the expression has no `matches` pattern with
+        #    a direct regular expression argument.
         def initialize(regexps = [])
           @regexps = regexps
         end
@@ -76,16 +74,8 @@ module Datadog
         # carries no timeout; the bound is applied at match time by
         # #apply_match instead.
         #
-        # Called at expression-compile time for literal needles (see
-        # Compiler#precompile_regexp) and at evaluation time for
-        # dynamically-computed needles (see #matches).
-        #
         # @param needle [String] regexp source.
         # @return [Regexp] compiled regexp, with baked-in timeout on Ruby 3.2+.
-        #
-        # The running Ruby version is fixed for the process, so the branch is
-        # resolved once at load time by defining the method per-version rather
-        # than checking the version on every call.
         if Datadog::RubyVersion.is?('>= 3.2')
           def self.compile_regexp(needle)
             Regexp.new(needle, timeout: MATCHES_TIMEOUT_SECONDS)
