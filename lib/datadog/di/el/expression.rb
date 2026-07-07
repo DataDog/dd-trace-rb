@@ -9,9 +9,9 @@ module Datadog
       class Expression
         # @param dsl_expr [String] human-readable DSL form, kept for debugging.
         # @param compiled_expr [String] Ruby source produced by Compiler#compile.
-        # @param regexps [Array<Regexp>] regexps precompiled from literal
-        #   `matches` needles (the second element returned by Compiler#compile),
-        #   looked up by the compiled expression via Evaluator#matches_compiled.
+        # @param regexps [Array<Regexp>] precompiled `matches` regexps (see
+        #   Compiler#precompile_regexp), the second element returned by
+        #   Compiler#compile.
         def initialize(dsl_expr, compiled_expr, regexps = [])
           unless String === compiled_expr
             raise ArgumentError, "compiled_expr must be a string"

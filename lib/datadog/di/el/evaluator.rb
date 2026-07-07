@@ -17,12 +17,10 @@ module Datadog
         # thread executing the probe.
         MATCHES_TIMEOUT_SECONDS = 0.5
 
-        # @param regexps [Array<Regexp>] regexps precompiled from literal
-        #   `matches` needles at expression-compile time (see
-        #   Compiler#precompile_regexp), looked up by index by
-        #   #matches_compiled (the compiler emits
-        #   matches_compiled(<haystack>, <index>) referencing this array).
-        #   Empty for expressions that use no literal `matches` needle.
+        # @param regexps [Array<Regexp>] Regexps precompiled from literal
+        #   `matches` patterns (see Compiler#precompile_regexp), looked up by
+        #   index by #matches_compiled. Empty when the expression has no
+        #   literal `matches` pattern.
         def initialize(regexps = [])
           @regexps = regexps
         end

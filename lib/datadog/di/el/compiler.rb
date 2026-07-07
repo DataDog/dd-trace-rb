@@ -49,8 +49,8 @@ module Datadog
         ].freeze # steep:ignore IncompatibleAssignment
 
         # `matches` is also a two-argument method but is special-cased in
-        # #compile_partial so that literal needles can be precompiled, so it
-        # is not listed here.
+        # #compile_partial so that a literal regexp pattern can be precompiled
+        # once, so it is not listed here.
         #
         # Steep: https://github.com/soutaro/steep/issues/363
         TWO_ARG_METHODS = %w[
@@ -65,8 +65,10 @@ module Datadog
         }.freeze
 
         # @param ast [untyped] AST node to compile.
-        # @param regexps [Array<Regexp>] accumulator for precompiled Regexp
-        #   objects.
+        # @param regexps [Array<Regexp>] output array that collects the Regexps
+        #   precompiled from literal `matches` patterns (see #precompile_regexp
+        #   for why); returned by #compile as the companion to the compiled
+        #   source.
         # @return [String] compiled Ruby source for +ast+.
         def compile_partial(ast, regexps)
           case ast
@@ -120,14 +122,16 @@ module Datadog
               end
               first, second = target
               if String === second && (index = precompile_regexp(second, regexps))
-                # Literal needle: compile the Regexp once, now, at
+                # Literal pattern: compile the Regexp once, now, at
                 # expression-compile time, so it is not recompiled on every
                 # probe firing.
                 "matches_compiled(#{compile_partial(first, regexps)}, #{index})"
               else
-                # Needle is computed at evaluation time (or is an invalid
-                # literal that must raise at evaluation time, as before):
-                # compile per call.
+                # Reached when the pattern is a non-literal expression (only
+                # known at evaluation time) or a literal string that is not a
+                # valid regexp (a malformed probe condition). Both compile per
+                # call; the malformed case raises its RegexpError at evaluation
+                # time, as before this change.
                 "matches(#{compile_partial(first, regexps)}, (#{compile_partial(second, regexps)}))"
               end
             when *TWO_ARG_METHODS
