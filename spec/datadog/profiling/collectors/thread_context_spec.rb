@@ -80,6 +80,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   def remove_per_thread_context_for(thread)
+    # We always touch the subject because initializing the collector will eagerly build/restore contexts (with reset)
+    # and we want to still simulate a missing context (e.g. pretend as if it's a new thread that showed after the reset)
+    thread_context_collector
     described_class::Testing._native_remove_per_thread_context_for(thread)
   end
 
@@ -1368,10 +1371,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   describe "#on_gc_start" do
     context "if a thread does not have per-thread context" do
-      before do
-        thread_context_collector
-        remove_per_thread_context_for(Thread.current)
-      end
+      before { remove_per_thread_context_for(Thread.current) }
 
       it "does not record anything in the caller thread's context" do
         on_gc_start
@@ -1410,10 +1410,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   describe "#on_gc_finish" do
     context "when thread does not have per-thread context" do
-      before do
-        thread_context_collector
-        remove_per_thread_context_for(Thread.current)
-      end
+      before { remove_per_thread_context_for(Thread.current) }
 
       it "does not record anything in the caller thread's context" do
         on_gc_start
@@ -1828,10 +1825,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     before { skip_if_gvl_profiling_not_supported(self) }
 
     context "if thread does not have per-thread context" do
-      before do
-        thread_context_collector
-        remove_per_thread_context_for(t1)
-      end
+      before { remove_per_thread_context_for(t1) }
 
       it "does not trigger the creation of the thread context" do
         on_gvl_running(t1)
