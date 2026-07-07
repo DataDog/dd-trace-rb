@@ -2155,7 +2155,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     it "samples the stack into the sampling_buffer" do
       prepare_and_sample
 
-      result = sample_for_thread(samples.reject { |it| it.labels.include?(:"profiler overhead") }, Thread.current)
+      result = sample_for_thread(samples, Thread.current)
 
       # Because the sample was prepared inside the `_native_prepare_sample_inside_signal_handler`, that should be
       # the method at the top of the stack, even though the sample was only recorded later, inside
@@ -2167,7 +2167,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       prepare_and_sample
       sample
 
-      results = samples_for_thread(samples.reject { |it| it.labels.include?(:"profiler overhead") }, Thread.current)
+      results = samples_for_thread(samples, Thread.current)
 
       expect(results).to contain_exactly(
         have_attributes(locations: include(have_attributes(base_label: "_native_prepare_sample_inside_signal_handler"))),
@@ -2184,7 +2184,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
         sample
 
-        result = sample_for_thread(samples.reject { |it| it.labels.include?(:"profiler overhead") }, Thread.current)
+        result = sample_for_thread(samples, Thread.current)
 
         expect(result.locations.first).to have_attributes(base_label: "_native_sample")
       end
@@ -2396,7 +2396,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     it "caps the number of frames to the new max_frames" do
       sample
 
-      main_sample = samples_for_thread(samples, Thread.current).find { |it| !it.labels.key?(:"profiler overhead") }
+      main_sample = sample_for_thread(samples, Thread.current)
       expect(main_sample.locations.size).to eq(max_frames)
     end
   end
