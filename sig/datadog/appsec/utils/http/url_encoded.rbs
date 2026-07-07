@@ -3,7 +3,7 @@ module Datadog
     module Utils
       module HTTP
         module URLEncoded
-          BYTESIZE_LIMIT: ::Integer
+          DEFAULT_BYTESIZE_LIMIT: ::Integer
 
           AMPERSAND_BYTE: ::Integer
 

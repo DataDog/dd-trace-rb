@@ -34,6 +34,24 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::URLEncoded do
     context 'when payload has key without value' do
       it { expect(described_class.parse('key')).to eq({'key' => nil}) }
       it { expect(described_class.parse('key=')).to eq({'key' => ''}) }
+
+      it 'distinguishes keys without a value from keys with an empty value' do
+        expect(described_class.parse('a&b=')).to eq({'a' => nil, 'b' => ''})
+      end
+    end
+
+    context 'when payload has multi-byte UTF-8 characters' do
+      it 'preserves raw multi-byte characters in keys and values' do
+        expect(described_class.parse('naïve=café&clé=值')).to eq({'naïve' => 'café', 'clé' => '值'})
+      end
+
+      it 'decodes percent-encoded multi-byte characters' do
+        expect(described_class.parse('q=%E5%80%A4')).to eq({'q' => '値'})
+      end
+
+      it 'drops the truncated pair without corrupting kept pairs when the limit falls inside a character' do
+        expect(described_class.parse('aa=1&x=café', bytesize_limit: 10)).to eq({'aa' => '1'})
+      end
     end
 
     context 'when payload has empty pairs' do
@@ -52,6 +70,14 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::URLEncoded do
     context 'when payload exceeds the bytesize limit' do
       it 'returns the fully-read pairs and omits the one crossing the limit' do
         expect(described_class.parse('a=1&b=2&c=3', bytesize_limit: 10)).to eq({'a' => '1', 'b' => '2'})
+      end
+
+      it 'keeps the array entries read before the limit and drops the pair crossing it' do
+        expect(described_class.parse('key=a&key=b&key=c', bytesize_limit: 12)).to eq({'key' => ['a', 'b']})
+      end
+
+      it 'keeps a duplicate key as a string value when the limit drops the second value' do
+        expect(described_class.parse('key=a&key=b', bytesize_limit: 10)).to eq({'key' => 'a'})
       end
     end
   end
