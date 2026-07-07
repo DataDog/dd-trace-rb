@@ -2396,7 +2396,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   describe "#thread_context_collector_reset_all_per_thread_contexts" do
-    it "resets every existing per-thread context" do
+    before do
       sample
 
       [t1, Thread.current].each do |thread|
@@ -2408,7 +2408,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           gvl_state_change_count: be > 0,
         )
       end
+    end
 
+    it "resets every existing per-thread context" do
       global_reset_per_thread_context
 
       [t1, Thread.current].each do |thread|
@@ -2420,11 +2422,16 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
 
     it "keeps the is_profiler_internal_thread flag value" do
+      expect(per_thread_context.fetch(t1)).to include(is_profiler_internal_thread: false)
+
       described_class::Testing._native_mark_thread_as_profiler_internal(t1)
 
       global_reset_per_thread_context
 
-      expect(per_thread_context.fetch(t1)).to include(is_profiler_internal_thread: true)
+      expect(per_thread_context.fetch(t1)).to include(
+        is_profiler_internal_thread: true,
+        gvl_waiting_at: 0,
+      )
     end
 
     # This asserts on everything by design -- this makes sure if we add or remove fields that we're happy with the
