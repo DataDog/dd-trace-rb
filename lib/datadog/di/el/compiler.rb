@@ -16,12 +16,10 @@ module Datadog
       #
       # @api private
       class Compiler
-        # Compiles +ast+ into eval'able Ruby source plus the Regexps
-        # precompiled from any literal `matches` needles. The regexps are
-        # returned alongside the source rather than retained as compiler
-        # state; the compiled code looks them up by index at evaluation time
-        # (see Evaluator#matches_compiled). A Compiler instance holds no
-        # per-compilation state and is safe to reuse.
+        # Compiles +ast+ into eval'able Ruby source.
+        #
+        # Returns the compiled source and companion compiled Regexp
+        # objects.
         #
         # @param ast [untyped] expression AST from the probe definition.
         # @return [Array(String, Array<Regexp>)] the compiled Ruby source and
@@ -67,9 +65,8 @@ module Datadog
         }.freeze
 
         # @param ast [untyped] AST node to compile.
-        # @param regexps [Array<Regexp>] accumulator for regexps precompiled
-        #   from literal `matches` needles; threaded through the recursion so
-        #   the compiler need not hold this state on the instance.
+        # @param regexps [Array<Regexp>] accumulator for precompiled Regexp
+        #   objects.
         # @return [String] compiled Ruby source for +ast+.
         def compile_partial(ast, regexps)
           case ast
