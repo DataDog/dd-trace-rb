@@ -12,6 +12,9 @@ module Datadog
           # payloads keeps the same guard against CPU/memory exhaustion.
           BYTESIZE_LIMIT = 4 * 1024 * 1024
 
+          AMPERSAND_BYTE = 0x26
+          EQUALS_BYTE = 0x3D
+
           # Parses a URL encoded payload (query string or form data) into a hash
           # of keys and values, merging duplicate keys.
           #
@@ -26,50 +29,48 @@ module Datadog
             return {} if payload.nil? || payload.empty?
 
             result = {} #: Hash[::String, (::String | ::Array[::String?])?]
-            key = nil #: ::String?
-            value = +''
-            consumed = 0
-            truncated = false
+            segment_start = 0
+            equals_index = -1
+            index = 0
+            bytesize_limit_reached = false
 
-            payload.each_char do |char|
-              consumed += char.bytesize
-              if consumed > bytesize_limit
-                truncated = true
+            payload.each_byte do |byte|
+              if index >= bytesize_limit
+                bytesize_limit_reached = true
                 break
               end
 
-              case char
-              when '&'
-                set_param_value(result, key, value)
-                key = nil
-                value = +''
-              when '='
-                if key
-                  value << char
-                else
-                  key = value
-                  value = +''
-                end
-              else
-                value << char
+              case byte
+              when AMPERSAND_BYTE
+                set_param_value(result, payload, segment_start, equals_index, index)
+                segment_start = index + 1
+                equals_index = -1
+              when EQUALS_BYTE
+                equals_index = index if equals_index == -1
               end
+
+              index += 1
             end
 
-            set_param_value(result, key, value) unless truncated
+            set_param_value(result, payload, segment_start, equals_index, index) unless bytesize_limit_reached
 
             result
           end
 
-          def self.set_param_value(result, key, value)
-            return if key.nil? && value.empty?
+          def self.set_param_value(result, payload, segment_start, equals_index, segment_end)
+            key_end = equals_index == -1 ? segment_end : equals_index
+            key = payload.byteslice(segment_start, key_end - segment_start) || +''
+            value = equals_index == -1 ? nil : payload.byteslice(equals_index + 1, segment_end - equals_index - 1) #: ::String?
 
-            decoded_key = CGI.unescape(key || value)
-            decoded_value = key.nil? ? nil : CGI.unescape(value) #: ::String?
+            return if key.empty? && value.nil?
 
-            case existing = result[decoded_key]
-            when ::Array then existing.push(decoded_value)
-            when nil then result[decoded_key] = decoded_value
-            else result[decoded_key] = [existing, decoded_value]
+            key = CGI.unescape(key)
+            value = CGI.unescape(value) unless value.nil?
+
+            case existing = result[key]
+            when ::Array then existing.push(value)
+            when nil then result[key] = value
+            else result[key] = [existing, value]
             end
           end
           private_class_method :set_param_value
