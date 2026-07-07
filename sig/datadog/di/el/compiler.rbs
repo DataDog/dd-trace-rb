@@ -19,7 +19,7 @@ module Datadog
 
         def escape: (String needle) -> String
 
-        def precompile_regexp: (::String needle, ::Array[::Regexp] regexps) -> ::Integer?
+        def precompile_regexp: (::String needle, ::Array[::Regexp] regexps) -> ::Integer
       end
     end
   end

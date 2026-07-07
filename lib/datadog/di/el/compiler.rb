@@ -121,17 +121,16 @@ module Datadog
                 raise DI::Error::InvalidExpression, "Improper matches syntax"
               end
               first, second = target
-              if String === second && (index = precompile_regexp(second, regexps))
+              if String === second
                 # Literal pattern: compile the Regexp once, now, at
                 # expression-compile time, so it is not recompiled on every
-                # probe firing.
+                # probe firing. A malformed literal is rejected here (see
+                # #precompile_regexp), not deferred to evaluation time.
+                index = precompile_regexp(second, regexps)
                 "matches_compiled(#{compile_partial(first, regexps)}, #{index})"
               else
-                # Reached when the pattern is a non-literal expression (only
-                # known at evaluation time) or a literal string that is not a
-                # valid regexp (a malformed probe condition). Both compile per
-                # call; the malformed case raises its RegexpError at evaluation
-                # time, as before this change.
+                # Pattern is a non-literal expression, known only at
+                # evaluation time; compile per call.
                 "matches(#{compile_partial(first, regexps)}, (#{compile_partial(second, regexps)}))"
               end
             when *TWO_ARG_METHODS
@@ -204,20 +203,21 @@ module Datadog
 
         # Precompile a literal regexp +needle+ at expression-compile time and
         # append it to +regexps+, returning its index for
-        # Evaluator#matches_compiled to look up. Returns nil for an invalid
-        # pattern so the caller falls back to compiling at evaluation time,
-        # preserving the eval-time RegexpError the runtime path would raise.
+        # Evaluator#matches_compiled to look up. A malformed pattern is
+        # rejected here, at instrumentation time, rather than deferred to
+        # evaluation time.
         #
         # @param needle [String] regexp source.
-        # @param regexps [Array<Regexp>] accumulator to append the compiled
+        # @param regexps [Array<Regexp>] output array to append the compiled
         #   regexp to.
-        # @return [Integer, nil] index into +regexps+, or nil if invalid.
+        # @return [Integer] index into +regexps+.
+        # @raise [DI::Error::InvalidExpression] if +needle+ is not a valid regexp.
         def precompile_regexp(needle, regexps)
           index = regexps.length
           regexps << Evaluator.compile_regexp(needle)
           index
-        rescue RegexpError
-          nil
+        rescue RegexpError => exc
+          raise DI::Error::InvalidExpression, "Invalid regexp in matches: #{exc.message}"
         end
       end
     end

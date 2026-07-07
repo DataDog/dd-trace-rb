@@ -169,11 +169,10 @@ RSpec.describe Datadog::DI::EL::Evaluator do
       expect(regexps).to be_empty
     end
 
-    it 'falls back to evaluation-time compilation for an invalid literal needle' do
-      code, regexps = compiler.compile({'matches' => [{'ref' => 'var'}, '[invalid']})
-
-      expect(code).to eq("matches(ref('var'), (\"[invalid\"))")
-      expect(regexps).to be_empty
+    it 'rejects an invalid literal matches needle at compile time' do
+      expect {
+        compiler.compile({'matches' => [{'ref' => 'var'}, '[invalid']})
+      }.to raise_error(Datadog::DI::Error::InvalidExpression, /Invalid regexp in matches/)
     end
   end
 end
