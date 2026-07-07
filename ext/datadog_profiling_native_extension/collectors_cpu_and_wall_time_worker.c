@@ -154,8 +154,6 @@ typedef struct {
     unsigned int signal_handler_enqueued_sample;
     // How many times we prepared a sample (sampled directly) from the signal handler
     unsigned int signal_handler_prepared_sample;
-    // How many times the signal handler was called from the wrong thread
-    unsigned int signal_handler_wrong_thread;
     // How many times we actually tried to interrupt a thread for sampling
     unsigned int interrupt_thread_attempts;
 
@@ -647,7 +645,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
     !is_current_thread_holding_the_gvl() || // Not safe to enqueue a sample from this thread
     !ddtrace_rb_ractor_main_p() // We're not on the main Ractor; we currently don't support profiling non-main Ractors
   ) {
-    state->stats.signal_handler_wrong_thread++;
+    // Never touch the `state` here -- since we don't have the GVL we may be concurrent with the profiler shutting down and whatnot
     return;
   }
 
@@ -1104,7 +1102,6 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("simulated_signal_delivery")),                  /* => */ UINT2NUM(state->stats.simulated_signal_delivery),
     ID2SYM(rb_intern("signal_handler_enqueued_sample")),             /* => */ UINT2NUM(state->stats.signal_handler_enqueued_sample),
     ID2SYM(rb_intern("signal_handler_prepared_sample")),             /* => */ UINT2NUM(state->stats.signal_handler_prepared_sample),
-    ID2SYM(rb_intern("signal_handler_wrong_thread")),                /* => */ UINT2NUM(state->stats.signal_handler_wrong_thread),
     ID2SYM(rb_intern("interrupt_thread_attempts")),                  /* => */ UINT2NUM(state->stats.interrupt_thread_attempts),
 
     // CPU Stats
