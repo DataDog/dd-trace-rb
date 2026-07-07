@@ -1188,7 +1188,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         Datadog::Profiling::Collectors::ThreadContext::Testing
           ._native_apply_delta_to_cpu_time_at_previous_sample_ns(Thread.current, -(60 * 60 * one_second_in_ns))
 
-        before_restart_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
+        before_restart_ns = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond)
         cpu_and_wall_time_worker.start
         wait_until_running
         new_samples = try_wait_until do
@@ -1196,7 +1196,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           samples if samples.any?
         end
         cpu_and_wall_time_worker.stop
-        elapsed_ns = Datadog::Core::Utils::Time.get_time(:nanosecond) - before_restart_ns
+        elapsed_ns = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond)
 
         cpu_time_ns = new_samples.sum { |it| it.values.fetch(:"cpu-time") }
         expect(cpu_time_ns).to be <= elapsed_ns
