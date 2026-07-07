@@ -83,6 +83,11 @@ module Datadog
               # usually Hash[String, String] but can be a more complex
               # Hash[String, (String|Array|Hash)] when e.g coming from JSON
               env['rack.request.form_hash']
+            rescue => e
+              Datadog.logger.debug { "AppSec: Failed to parse request body: #{e.class}: #{e.message}" }
+              AppSec.telemetry.report(e, description: 'AppSec: Failed to parse request body')
+
+              nil
             end
 
             # Returns the request body size in bytes using all available methods,

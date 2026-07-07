@@ -302,8 +302,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
       t1_samples = samples_for_thread(samples, t1)
 
-      wall_time = t1_samples.map(&:values).map { |it| it.fetch(:"wall-time") }.reduce(:+)
-      expect(wall_time).to be(wall_time_at_second_sample - wall_time_at_first_sample)
+      expect(t1_samples.last.values.fetch(:"wall-time")).to be(wall_time_at_second_sample - wall_time_at_first_sample)
     end
 
     it "tags samples with how many times they were seen" do
@@ -2091,8 +2090,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
 
     before do
-      sample # initialize cpu/wall timestamps (they start as INVALID_TIME)
-      recorder.serialize! # flush initial samples
       mark_thread_as_profiler_internal(t1)
     end
 
@@ -2107,9 +2104,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
 
     it "reports profiler-internal threads in the first reporting period" do
-      # This test does NOT use the before block's sample/serialize — it marks the thread
-      # as profiler-internal without any prior sample, to verify that marking alone seeds
-      # the timestamps (they would otherwise be INVALID_TIME, producing a zero-value sample).
+      # Timestamps are seeded by initialize_context, so the first on_serialize flush
+      # produces a real wall-time delta even without any prior sample.
       t2 = Thread.new { sleep }
       mark_thread_as_profiler_internal(t2)
 
@@ -2378,9 +2374,13 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
 
     it "resets the current Thread per_thread_context" do
-      expect { reset_after_fork }.to change {
-        per_thread_context.dig(Thread.current, :cpu_time_at_previous_sample_ns)
-      }.to(-1)
+      apply_delta_to_cpu_time_at_previous_sample_ns(Thread.current, -123_456_789)
+      cpu_time_before = per_thread_context.dig(Thread.current, :cpu_time_at_previous_sample_ns)
+
+      reset_after_fork
+
+      cpu_time_after = per_thread_context.dig(Thread.current, :cpu_time_at_previous_sample_ns)
+      expect(cpu_time_after).to_not eq(cpu_time_before)
     end
 
     it "clears the stats" do

@@ -21,6 +21,8 @@ module Datadog
 
       attr_reader span: Tracing::SpanOperation
 
+      attr_reader metrics: Metrics::Collector
+
       attr_reader state: ::Hash[::Symbol, any]
 
       attr_reader downstream_body_sampler: CounterSampler

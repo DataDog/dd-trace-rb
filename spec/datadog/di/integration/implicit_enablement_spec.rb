@@ -41,6 +41,19 @@ RSpec.describe 'DI implicit enablement integration' do
     Datadog::DI::Component.build(settings, agent_settings, logger, telemetry: telemetry)
   end
 
+  let(:symbol_database) do
+    # Tracing::Remote.process_config replays (resume_pending_upload) or stops
+    # (stop_for_di_disable) Symbol Database when a dynamic_instrumentation_enabled
+    # signal arrives. This test builds only a DI component, so expose a Symbol
+    # Database stand-in that accepts the two lifecycle calls. The upload behavior
+    # itself is verified in spec/datadog/tracing/remote_spec.rb.
+    instance_double(
+      Datadog::SymbolDatabase::Component,
+      resume_pending_upload: nil,
+      stop_for_di_disable: nil,
+    )
+  end
+
   let(:components) do
     # Stand-in for Core::Configuration::Components. handle_rc_enablement
     # reaches the component via Datadog.send(:components).dynamic_instrumentation
@@ -50,6 +63,7 @@ RSpec.describe 'DI implicit enablement integration' do
       Datadog::Core::Configuration::Components,
       dynamic_instrumentation: component,
       telemetry: telemetry,
+      symbol_database: symbol_database,
     )
   end
 

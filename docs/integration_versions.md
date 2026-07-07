@@ -58,7 +58,7 @@ For a list of available integrations, and their supported version ranges, refer 
 | sidekiq                  | 5.2.8               | 8.0.7               |
 | sinatra                  | 2.2.4               | 4.1.1               |
 | sneakers                 | 2.12.0              | 2.12.0              |
-| stripe                   | 5.15.0              | 19.2.1              |
+| stripe                   | 5.15.0              | 19.3.0              |
 | sucker_punch             | 3.1.0               | 3.2.0               |
 | trilogy                  | 2.6.0               | 2.9.0               |
 | waterdrop                | 2.6.14              | 2.10.2              |

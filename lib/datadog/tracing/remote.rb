@@ -17,8 +17,7 @@ module Datadog
           1 << 29, # APM_TRACING_SAMPLE_RULES: Dynamic trace sampling rules configuration
           # APM_TRACING_ENABLE_DYNAMIC_INSTRUMENTATION (bit 38) is declared in
           # DI::Remote.capabilities, not here, so it is registered only when DI
-          # is not explicitly disabled. The enable signal is still delivered in
-          # APM_TRACING payloads and routed by process_config below.
+          # is not explicitly disabled and the runtime supports DI.
         ].freeze
 
         def products
@@ -48,6 +47,21 @@ module Datadog
             # against probes delivered in an earlier poll while DI was stopped
             # (see Datadog::DI::Remote.handle_rc_enablement).
             Datadog::DI::Remote.handle_rc_enablement(di_enabled, repository)
+
+            if di_enabled
+              # DI was just (implicitly) enabled. A Symbol Database upload signal
+              # received in an earlier poll while DI was inactive was deferred by
+              # the component's DI-active gate; re-attempt it now. Mirrors the DI
+              # probe replay in handle_rc_enablement above. allow_initialization:
+              # false because this runs on the remote-config worker thread.
+              Datadog.send(:components, allow_initialization: false)&.symbol_database&.resume_pending_upload
+            else
+              # DI was disabled via remote configuration. In the nil-default
+              # (follows-DI) case, stop Symbol Database too so its TracePoint and
+              # scheduler don't keep uploading while DI is off. An explicit
+              # symbol_database.enabled = true is independent and keeps running.
+              Datadog.send(:components, allow_initialization: false)&.symbol_database&.stop_for_di_disable
+            end
           end
 
           content.applied

@@ -8,12 +8,20 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
   let(:context) do
     instance_double(
       Datadog::AppSec::Context,
+      metrics: metrics,
       run_rasp: waf_response,
       downstream_body_sampler: Datadog::AppSec::CounterSampler.new(1.0),
       state: {downstream_body_analyzed_count: 0}
     )
   end
-  let(:waf_response) { instance_double(Datadog::AppSec::SecurityEngine::Result::Ok, match?: false) }
+  let(:waf_response) do
+    instance_double(Datadog::AppSec::SecurityEngine::Result::Ok, match?: false)
+  end
+  let(:metrics) do
+    instance_double(
+      Datadog::AppSec::Metrics::Collector, record_ignored_downstream_response_body: nil
+    )
+  end
 
   let(:client) do
     ::Faraday.new('http://example.com') do |faraday|
@@ -31,10 +39,31 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
           ]
         end
         stub.post('/application-json') do |_|
-          [200, {'Content-Type' => 'application/json'}, '{"response":"OK"}']
+          [200, {'Content-Type' => 'application/json', 'Content-Length' => '17'}, '{"response":"OK"}']
+        end
+        stub.post('/application-vnd-json') do |_|
+          [200, {'Content-Type' => 'application/vnd.api+json', 'Content-Length' => '17'}, '{"response":"OK"}']
+        end
+        stub.post('/application-form') do |_|
+          [200, {'Content-Type' => 'application/x-www-form-urlencoded', 'Content-Length' => '17'}, 'key=value&foo=bar']
         end
         stub.post('/invalid-json') do |_|
-          [200, {'Content-Type' => 'application/json'}, 'not json']
+          [200, {'Content-Type' => 'application/json', 'Content-Length' => '8'}, 'not json']
+        end
+        stub.post('/application-json-no-content-length') do |_|
+          [200, {'Content-Type' => 'application/json'}, '{"response":"OK"}']
+        end
+        stub.post('/application-json-zero-content-length') do |_|
+          [200, {'Content-Type' => 'application/json', 'Content-Length' => '0'}, '{"response":"OK"}']
+        end
+        stub.post('/application-json-invalid-content-length') do |_|
+          [200, {'Content-Type' => 'application/json', 'Content-Length' => '12, 3'}, '{"response":"OK"}']
+        end
+        stub.post('/application-json-too-big') do |_|
+          [200, {'Content-Type' => 'application/json', 'Content-Length' => '17'}, '{"response":"OK"}']
+        end
+        stub.post('/application-json-content-length-lie') do |_|
+          [200, {'Content-Type' => 'application/json', 'Content-Length' => '2'}, '{"response":"OK"}']
         end
         stub.post('/redirect-301') do |_|
           [301, {'Location' => 'http://example.com/application-json', 'Content-Type' => 'application/json'}, '{"redirect":"body"}']
@@ -43,7 +72,7 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
           [302, {'Location' => 'http://example.com/application-json', 'Content-Type' => 'text/html'}, '<html>Redirecting...</html>']
         end
         stub.post('/redirect-no-location') do |_|
-          [301, {'Content-Type' => 'application/json'}, '{"redirect":"body"}']
+          [301, {'Content-Type' => 'application/json', 'Content-Length' => '19'}, '{"redirect":"body"}']
         end
         stub.get('/redirect-chain-start') do |_|
           [301, {'Location' => 'http://example.com/redirect-chain-hop', 'Content-Type' => 'application/json'}, '{"hop":"1"}']
@@ -52,7 +81,7 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
           [302, {'Location' => '/redirect-chain-finish', 'Content-Type' => 'application/json'}, '{"hop":"2"}']
         end
         stub.get('/redirect-chain-finish') do |_|
-          [200, {'Content-Type' => 'application/json'}, '{"final":"response"}']
+          [200, {'Content-Type' => 'application/json', 'Content-Length' => '20'}, '{"final":"response"}']
         end
       end
     end
@@ -174,6 +203,29 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
     end
   end
 
+  context 'when request body exceeds max downstream body bytes' do
+    before do
+      Datadog.configuration.appsec.api_security.downstream_body_analysis.max_downstream_body_bytes = 17
+
+      client.post('/application-json', 'key=value&foo=bar&baz=qux', {'Content-Type' => 'application/x-www-form-urlencoded'})
+    end
+
+    it 'does not include request body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'request')
+    end
+
+    it 'includes response body in ephemeral data' do
+      expect(context).to have_received(:run_rasp).with(
+        'ssrf', {}, hash_including('server.io.net.response.body' => {'response' => 'OK'}), anything, phase: 'response'
+      )
+    end
+
+    it 'does not record an ignored response body' do
+      expect(metrics).not_to have_received(:record_ignored_downstream_response_body)
+    end
+  end
+
   context 'when request content-type is not JSON' do
     before { client.post('/application-json', '{"key":"value"}', {'Content-Type' => 'text/plain'}) }
 
@@ -204,6 +256,33 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
         'ssrf', {}, hash_including('server.io.net.response.body' => {'response' => 'OK'}), anything, phase: 'response'
       )
     end
+
+    it 'does not record an ignored response body' do
+      expect(metrics).not_to have_received(:record_ignored_downstream_response_body)
+    end
+  end
+
+  context 'when response body is valid vendor JSON' do
+    before { client.post('/application-vnd-json') }
+
+    it 'includes parsed body in ephemeral data' do
+      expect(context).to have_received(:run_rasp).with(
+        'ssrf', {}, hash_including('server.io.net.response.body' => {'response' => 'OK'}), anything, phase: 'response'
+      )
+    end
+  end
+
+  context 'when response body is a form' do
+    before { client.post('/application-form') }
+
+    it 'includes parsed body in ephemeral data' do
+      expect(context).to have_received(:run_rasp).with(
+        'ssrf', {},
+        hash_including('server.io.net.response.body' => {'key' => 'value', 'foo' => 'bar'}),
+        anything,
+        phase: 'response'
+      )
+    end
   end
 
   context 'when response body is invalid JSON' do
@@ -229,6 +308,79 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
       expect(context).to have_received(:run_rasp)
         .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
     end
+
+    it 'records the ignored response body' do
+      expect(metrics).to have_received(:record_ignored_downstream_response_body).with(:content_type_invalid).once
+    end
+  end
+
+  context 'when response content-length is missing' do
+    before { client.post('/application-json-no-content-length') }
+
+    it 'does not include body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+    end
+
+    it 'records the ignored response body' do
+      expect(metrics).to have_received(:record_ignored_downstream_response_body).with(:content_length_missing).once
+    end
+  end
+
+  context 'when response content-length is zero' do
+    before { client.post('/application-json-zero-content-length') }
+
+    it 'does not include body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+    end
+
+    it 'records the ignored response body' do
+      expect(metrics).to have_received(:record_ignored_downstream_response_body).with(:content_length_missing).once
+    end
+  end
+
+  context 'when response content-length is invalid' do
+    before { client.post('/application-json-invalid-content-length') }
+
+    it 'does not include body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+    end
+
+    it 'records the ignored response body' do
+      expect(metrics).to have_received(:record_ignored_downstream_response_body).with(:content_length_missing).once
+    end
+  end
+
+  context 'when response content-length exceeds max downstream body bytes' do
+    before do
+      Datadog.configuration.appsec.api_security.downstream_body_analysis.max_downstream_body_bytes = 4
+
+      client.post('/application-json-too-big')
+    end
+
+    it 'does not include body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+    end
+
+    it 'records the ignored response body' do
+      expect(metrics).to have_received(:record_ignored_downstream_response_body).with(:content_length_too_big).once
+    end
+  end
+
+  context 'when response content-length is smaller than the body' do
+    before { client.post('/application-json-content-length-lie') }
+
+    it 'does not include body in ephemeral data' do
+      expect(context).to have_received(:run_rasp)
+        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+    end
+
+    it 'records the ignored response body' do
+      expect(metrics).to have_received(:record_ignored_downstream_response_body).with(:content_exceed_content_length).once
+    end
   end
 
   context 'when body sampling max_requests is 1' do
@@ -245,6 +397,7 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
         Datadog::AppSec::Context,
         run_rasp: waf_response,
         downstream_body_sampler: Datadog::AppSec::CounterSampler.new(1.0),
+        metrics: metrics,
         state: {downstream_body_analyzed_count: 0}
       )
     end
@@ -273,6 +426,7 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
         Datadog::AppSec::Context,
         run_rasp: waf_response,
         downstream_body_sampler: Datadog::AppSec::CounterSampler.new(0.5),
+        metrics: metrics,
         state: {downstream_body_analyzed_count: 0}
       )
     end
@@ -394,7 +548,7 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
             [302, {'Location' => '/redirect-chain-finish', 'Content-Type' => 'application/json'}, '{"hop":"2"}']
           end
           stub.get('/redirect-chain-finish') do |_|
-            [200, {'Content-Type' => 'application/json'}, '{"final":"response"}']
+            [200, {'Content-Type' => 'application/json', 'Content-Length' => '20'}, '{"final":"response"}']
           end
         end
       end
@@ -446,7 +600,7 @@ RSpec.describe 'AppSec Faraday SSRF detection middleware' do
             [302, {'Location' => 'http://example.com/redirect-chain-finish', 'Content-Type' => 'application/json'}, '{"hop":"2"}']
           end
           stub.get('/redirect-chain-finish') do |_|
-            [200, {'Content-Type' => 'application/json'}, '{"final":"response"}']
+            [200, {'Content-Type' => 'application/json', 'Content-Length' => '20'}, '{"final":"response"}']
           end
         end
       end

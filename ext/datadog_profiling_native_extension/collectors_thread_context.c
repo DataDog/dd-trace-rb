@@ -203,8 +203,8 @@ struct per_thread_context {
   char thread_invoke_location[THREAD_INVOKE_LOCATION_LIMIT_CHARS];
   ddog_CharSlice thread_invoke_location_char_slice;
   thread_cpu_time_id thread_cpu_time_id;
-  long cpu_time_at_previous_sample_ns;  // Can be INVALID_TIME until initialized or if getting it fails for another reason
-  long wall_time_at_previous_sample_ns; // Can be INVALID_TIME until initialized
+  long cpu_time_at_previous_sample_ns;
+  long wall_time_at_previous_sample_ns;
 
   // There are 3 possible states for the GVL (per thread), and 3 transitions for which we receive GVL events:
   // Thread holds the GVL
@@ -302,7 +302,6 @@ static void update_metrics_and_sample(
   thread_context_collector_state *state,
   VALUE thread_being_sampled,
   per_thread_context *thread_context,
-  sampling_buffer* sampling_buffer,
   long current_cpu_time_ns,
   long current_monotonic_wall_time_ns,
   bool force_sample
@@ -311,7 +310,6 @@ static void trigger_sample_for_thread(
   thread_context_collector_state *state,
   VALUE thread_being_sampled,
   per_thread_context *thread_context,
-  sampling_buffer* sampling_buffer,
   sample_values values,
   long current_monotonic_wall_time_ns,
   ddog_CharSlice *ruby_vm_type,
@@ -359,7 +357,6 @@ static bool handle_gvl_waiting(
   thread_context_collector_state *state,
   VALUE thread_being_sampled,
   per_thread_context *thread_context,
-  sampling_buffer* sampling_buffer,
   long current_cpu_time_ns
 );
 #ifndef NO_GVL_INSTRUMENTATION
@@ -781,7 +778,6 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
       state,
       thread,
       thread_context,
-      &thread_context->sampling_buffer,
       current_cpu_time_ns,
       current_monotonic_wall_time_ns,
       false);
@@ -804,13 +800,12 @@ static void update_metrics_and_sample(
   thread_context_collector_state *state,
   VALUE thread_being_sampled,
   per_thread_context *thread_context,
-  sampling_buffer* sampling_buffer,
   long current_cpu_time_ns,
   long current_monotonic_wall_time_ns,
   bool force_sample
 ) {
   bool is_gvl_waiting_state =
-    handle_gvl_waiting(state, thread_being_sampled, thread_context, sampling_buffer, current_cpu_time_ns);
+    handle_gvl_waiting(state, thread_being_sampled, thread_context, current_cpu_time_ns);
 
   if (skip_sample(state, thread_context, is_gvl_waiting_state, force_sample)) return;
 
@@ -848,7 +843,6 @@ static void update_metrics_and_sample(
     state,
     thread_being_sampled,
     thread_context,
-    sampling_buffer,
     (sample_values) {.cpu_time_ns = cpu_time_elapsed_ns, .cpu_or_wall_samples = 1, .wall_time_ns = wall_time_elapsed_ns},
     current_monotonic_wall_time_ns,
     NULL,
@@ -1057,7 +1051,6 @@ static void trigger_sample_for_thread(
   thread_context_collector_state *state,
   VALUE thread_being_sampled,
   per_thread_context *thread_context,
-  sampling_buffer* sampling_buffer,
   sample_values values,
   long current_monotonic_wall_time_ns,
   // These two labels are only used for allocation profiling; @ivoanjo: may want to refactor this at some point?
@@ -1179,7 +1172,7 @@ static void trigger_sample_for_thread(
 
   sample_thread(
     thread_being_sampled,
-    sampling_buffer,
+    &thread_context->sampling_buffer,
     state->locations,
     state->recorder_instance,
     values,
@@ -1299,9 +1292,8 @@ static void initialize_context(VALUE thread, per_thread_context *thread_context)
 
   thread_context->thread_cpu_time_id = thread_cpu_time_id_for(thread);
 
-  // These will get initialized during actual sampling
-  thread_context->cpu_time_at_previous_sample_ns = INVALID_TIME;
-  thread_context->wall_time_at_previous_sample_ns = INVALID_TIME;
+  thread_context->wall_time_at_previous_sample_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+  thread_context->cpu_time_at_previous_sample_ns = cpu_time_now_ns(thread_context);
 
   // These will only be used during a GC operation
   thread_context->gc_tracking.cpu_time_at_start_ns = INVALID_TIME;
@@ -1728,7 +1720,6 @@ bool thread_context_collector_sample_allocation(VALUE self_instance, per_thread_
     state,
     current_thread,
     thread_context,
-    &thread_context->sampling_buffer,
     (sample_values) {.alloc_samples = sample_weight, .alloc_samples_unscaled = 1, .heap_sample = true},
     INVALID_TIME, // For now we're not collecting timestamps for allocation events, as per profiling team internal discussions
     &ruby_vm_type,
@@ -2069,16 +2060,6 @@ void thread_context_collector_stats_reset_not_thread_safe(VALUE self_instance) {
 
 static void mark_thread_as_profiler_internal(per_thread_context *ctx) {
   ctx->is_profiler_internal_thread = true;
-
-  // Seed timestamps so the first on_serialize produces a real delta instead of zero.
-  // Without this, update_time_since_previous_sample sees INVALID_TIME, sets it to
-  // current_time, and returns 0 — losing the entire first reporting period.
-  if (ctx->wall_time_at_previous_sample_ns == INVALID_TIME) {
-    ctx->wall_time_at_previous_sample_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
-  }
-  if (ctx->cpu_time_at_previous_sample_ns == INVALID_TIME) {
-    ctx->cpu_time_at_previous_sample_ns = cpu_time_now_ns(ctx);
-  }
 }
 
 void thread_context_collector_profiler_internal_thread_started(void) {
@@ -2114,7 +2095,6 @@ void thread_context_collector_profiler_internal_thread_done(VALUE self_instance)
     state,
     current_thread,
     thread_context,
-    &thread_context->sampling_buffer,
     current_cpu_time_ns,
     current_monotonic_wall_time_ns,
     true);
@@ -2142,7 +2122,6 @@ void thread_context_collector_on_serialize(VALUE self_instance) {
         state,
         thread,
         thread_context,
-        &thread_context->sampling_buffer,
         current_cpu_time_ns,
         current_monotonic_wall_time_ns,
         true);
@@ -2273,7 +2252,6 @@ void thread_context_collector_on_serialize(VALUE self_instance) {
       state,
       current_thread,
       thread_context,
-      &thread_context->sampling_buffer,
       cpu_time_for_thread,
       current_monotonic_wall_time_ns,
       false);
@@ -2288,7 +2266,6 @@ void thread_context_collector_on_serialize(VALUE self_instance) {
     thread_context_collector_state *state,
     VALUE thread_being_sampled,
     per_thread_context *thread_context,
-    sampling_buffer* sampling_buffer,
     long current_cpu_time_ns
   ) {
     long gvl_waiting_at = thread_context->gvl_waiting_at;
@@ -2366,7 +2343,6 @@ void thread_context_collector_on_serialize(VALUE self_instance) {
         state,
         thread_being_sampled,
         thread_context,
-        sampling_buffer,
         (sample_values) {.cpu_time_ns = cpu_time_elapsed_ns, .cpu_or_wall_samples = 1, .wall_time_ns = duration_until_start_of_gvl_waiting_ns},
         gvl_waiting_started_wall_time_ns,
         NULL,
@@ -2458,7 +2434,6 @@ void thread_context_collector_on_serialize(VALUE self_instance) {
     DDTRACE_UNUSED thread_context_collector_state *state,
     DDTRACE_UNUSED VALUE thread_being_sampled,
     DDTRACE_UNUSED per_thread_context *thread_context,
-    DDTRACE_UNUSED sampling_buffer* sampling_buffer,
     DDTRACE_UNUSED long current_cpu_time_ns
   ) { return false; }
 

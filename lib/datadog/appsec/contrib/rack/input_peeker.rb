@@ -2,6 +2,7 @@
 
 require 'stringio'
 require_relative 'buffered_input'
+require_relative '../../utils/http/body_reader'
 
 module Datadog
   module AppSec
@@ -38,7 +39,9 @@ module Datadog
             #       in case an upstream framework already consumed part of the stream
             return if rewindable && !rewind(rack_input)
 
-            buffer = peek(rack_input, limit)
+            # NOTE: Read one byte past the limit to distinguish an exact-limit body
+            #       from an over-limit body without reading the whole stream.
+            buffer = Utils::HTTP::BodyReader.read_stream(rack_input, limit: limit)
             over_limit = buffer.bytesize > limit
 
             if rewindable
@@ -68,22 +71,6 @@ module Datadog
           rescue => e
             Datadog.logger.debug { "AppSec: Failed to rewind `rack.input`: #{e.class}: #{e.message}" }
             false
-          end
-
-          private_class_method def peek(io, limit)
-            # NOTE: Read one byte past the limit to distinguish an exact-limit body
-            #       from an over-limit body without reading the whole stream.
-            max = limit + 1
-            buffer = +''.b
-
-            while buffer.bytesize <= limit
-              chunk = io.read(max - buffer.bytesize)
-              break if chunk.nil? || chunk.empty?
-
-              buffer << chunk
-            end
-
-            buffer
           end
         end
       end

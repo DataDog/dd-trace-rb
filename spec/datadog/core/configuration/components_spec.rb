@@ -236,6 +236,91 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
   end
 
+  describe '::enable_symbol_database?' do
+    subject(:enabled?) { described_class.enable_symbol_database?(settings, dynamic_instrumentation) }
+
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
+    # enable_symbol_database? decides whether to BUILD the component. A non-nil
+    # DI component stands for "DI's component was built" (DI not explicitly
+    # disabled, runtime supported); nil stands for "DI's component was not
+    # built". The resolver never calls a method on it, only checks presence.
+    # Whether a built component actually uploads is gated separately, at upload
+    # time, on DI being active (see Component#upload_allowed?).
+    let(:dynamic_instrumentation) { instance_double(Datadog::DI::Component) }
+
+    context 'when the symbol_database settings group is not registered (partial load)' do
+      # A plain double models a Settings object that lacks the dynamically-added
+      # symbol_database group, e.g. require 'datadog/di' without the full library.
+      let(:settings) { double('settings without symbol_database group') }
+
+      before { allow(settings).to receive(:respond_to?).with(:symbol_database).and_return(false) }
+
+      it 'returns false even when DI is running' do
+        is_expected.to be false
+      end
+    end
+
+    context 'when symbol_database.enabled is explicitly true' do
+      before { settings.symbol_database.enabled = true }
+
+      let(:dynamic_instrumentation) { nil }
+
+      it 'returns true even when DI is not running' do
+        is_expected.to be true
+      end
+    end
+
+    context 'when symbol_database.enabled is explicitly false' do
+      before { settings.symbol_database.enabled = false }
+
+      it 'returns false even when DI is running' do
+        is_expected.to be false
+      end
+    end
+
+    context 'when symbol_database.enabled is unset (nil)' do
+      before { settings.symbol_database.enabled = nil }
+
+      context "and DI's component was built" do
+        let(:dynamic_instrumentation) { instance_double(Datadog::DI::Component) }
+
+        it { is_expected.to be true }
+      end
+
+      context "and DI's component was not built (nil)" do
+        let(:dynamic_instrumentation) { nil }
+
+        it { is_expected.to be false }
+      end
+
+      context 'and dynamic_instrumentation.enabled is true but DI did not start' do
+        # e.g. Rails development mode or a missing DI C extension: the setting is
+        # true but DI::Component.build returned nil. The default must follow DI's
+        # runtime readiness, not the setting, so no symbol extraction happens.
+        before { settings.dynamic_instrumentation.enabled = true }
+
+        let(:dynamic_instrumentation) { nil }
+
+        it 'returns false' do
+          is_expected.to be false
+        end
+      end
+
+      context 'and force_upload is set' do
+        # force_upload uploads unconditionally, so the component must be built
+        # even when the setting is nil and DI's component was not built —
+        # otherwise the force-upload path is unreachable.
+        before { settings.symbol_database.internal.force_upload = true }
+
+        let(:dynamic_instrumentation) { nil }
+
+        it 'returns true even when DI is not running' do
+          is_expected.to be true
+        end
+      end
+    end
+  end
+
   describe '::build_health_metrics' do
     subject(:build_health_metrics) { described_class.build_health_metrics(settings, logger, telemetry) }
 
