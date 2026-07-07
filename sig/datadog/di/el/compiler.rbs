@@ -10,7 +10,7 @@ module Datadog
 
         SINGLE_ARG_METHODS: ::Array["len" | "isEmpty" | "isUndefined"]
 
-        TWO_ARG_METHODS: ::Array["startsWith" | "endsWith" | "contains" | "matches" | "getmember" | "index" | "instanceof"]
+        TWO_ARG_METHODS: ::Array["startsWith" | "endsWith" | "contains" | "getmember" | "index" | "instanceof"]
 
         MULTI_ARG_METHODS: { "and" => "&&", "or" => "||" }
 
