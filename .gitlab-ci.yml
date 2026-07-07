@@ -144,6 +144,9 @@ install-dependencies:
   script:
     - export RUBY_PACKAGE_VERSION=$(cat tmp/version)
     - export DATADOG_GEM_LOCATION=$(readlink -f pkg/datadog-*.gem)
+    # TEMPORARY (Ruby 4.0): the centos custom image builds Ruby with devtoolset-10
+    # but defaults to an older gcc at runtime; enable it so native gems (ffi) build.
+    - if [ -f /opt/rh/devtoolset-10/enable ]; then export MANPATH="${MANPATH:-}"; . /opt/rh/devtoolset-10/enable; fi
     - ruby -v
     - gem -v
     - bundler -v
