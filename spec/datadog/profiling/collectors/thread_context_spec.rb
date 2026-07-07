@@ -2402,35 +2402,59 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   describe "#thread_context_collector_reset_all_per_thread_contexts" do
-    it "resets every existing per-thread context back to its clean initial state" do
+    it "resets every existing per-thread context" do
       sample
 
-      before_reset = per_thread_context
       [t1, Thread.current].each do |thread|
-        expect(before_reset.fetch(thread)).to include(
-          cpu_time_at_previous_sample_ns: be > invalid_time,
-          wall_time_at_previous_sample_ns: be > invalid_time,
+        on_gvl_released(thread)
+        on_gvl_waiting(thread)
+
+        expect(per_thread_context.fetch(thread)).to include(
+          gvl_waiting_at: be > 0,
+          gvl_state_change_count: be > 0,
         )
       end
 
       global_reset_per_thread_context
 
       [t1, Thread.current].each do |thread|
-        expect(per_thread_context.fetch(thread)).to match(
-          cpu_time_at_previous_sample_ns: invalid_time,
-          wall_time_at_previous_sample_ns: invalid_time,
-          "gc_tracking.cpu_time_at_start_ns": invalid_time,
-          "gc_tracking.wall_time_at_start_ns": invalid_time,
+        expect(per_thread_context.fetch(thread)).to include(
           gvl_waiting_at: 0,
           gvl_state_change_count: 0,
-          gvl_state_change_count_at_previous_sample: 0,
-          was_skipped_at_last_sample: false,
-          thread_id: include(thread.object_id.to_s),
-          thread_invoke_location: before_reset.fetch(thread).fetch(:thread_invoke_location),
-          thread_cpu_time_id_valid?: true,
-          thread_cpu_time_id: before_reset.fetch(thread).fetch(:thread_cpu_time_id),
         )
       end
+    end
+
+    it "keeps the is_profiler_internal_thread flag value" do
+      described_class::Testing._native_mark_thread_as_profiler_internal(t1)
+
+      global_reset_per_thread_context
+
+      expect(per_thread_context.fetch(t1)).to include(is_profiler_internal_thread: true)
+    end
+
+    # This asserts on everything by design -- this makes sure if we add or remove fields that we're happy with the
+    # reset semantics
+    it "resets the context to the starting state" do
+      before_reset = per_thread_context
+
+      global_reset_per_thread_context
+
+      expect(per_thread_context.fetch(t1)).to match(
+        cpu_time_at_previous_sample_ns: be > 0,
+        wall_time_at_previous_sample_ns: be > 0,
+        "gc_tracking.cpu_time_at_start_ns": invalid_time,
+        "gc_tracking.wall_time_at_start_ns": invalid_time,
+        gvl_waiting_at: 0,
+        is_profiler_internal_thread: false,
+        gvl_state_change_count: 0,
+        gvl_state_change_count_at_previous_sample: 0,
+        was_skipped_at_last_sample: false,
+        thread_id: include(t1.object_id.to_s),
+        thread_invoke_location: before_reset.fetch(t1).fetch(:thread_invoke_location),
+        thread_cpu_time_id_valid?: true,
+        thread_cpu_time_id: before_reset.fetch(t1).fetch(:thread_cpu_time_id),
+      )
     end
   end
 end

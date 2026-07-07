@@ -1324,9 +1324,13 @@ void thread_context_collector_reset_all_per_thread_contexts(VALUE self_instance)
     VALUE thread = rb_ary_entry(threads, i);
     per_thread_context *thread_context = get_per_thread_context(thread);
     if (thread_context != NULL) {
+      bool is_profiler_internal_thread = thread_context->is_profiler_internal_thread;
+
       sampling_buffer_free(&thread_context->sampling_buffer);
       memset(thread_context, 0, sizeof(per_thread_context));
       initialize_context(thread, thread_context);
+
+      thread_context->is_profiler_internal_thread = is_profiler_internal_thread;
     } else {
       // If thread didn't have a context, let's trigger its creation
       get_or_create_context_for(thread);
