@@ -1196,7 +1196,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           samples if samples.any?
         end
         cpu_and_wall_time_worker.stop
-        elapsed_ns = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond)
+        elapsed_ns = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond) - before_restart_ns
 
         cpu_time_ns = new_samples.sum { |it| it.values.fetch(:"cpu-time") }
         expect(cpu_time_ns).to be <= elapsed_ns
