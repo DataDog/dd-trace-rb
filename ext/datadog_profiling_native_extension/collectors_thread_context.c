@@ -365,11 +365,11 @@ static bool handle_gvl_waiting(
   per_thread_context *thread_context,
   long current_cpu_time_ns
 );
+static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread);
+static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread);
 #ifndef NO_GVL_INSTRUMENTATION
-  static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread);
   static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread);
   static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread);
-  static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread);
   static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE allow_exception);
 #endif
 static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE delta_ns);
@@ -426,11 +426,11 @@ void collectors_thread_context_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_remove_per_thread_context_for", _native_remove_per_thread_context_for, 1);
   rb_define_singleton_method(testing_module, "_native_global_reset_per_thread_context", _native_global_reset_per_thread_context, 1);
   rb_define_singleton_method(testing_module, "_native_mark_thread_as_profiler_internal", _native_mark_thread_as_profiler_internal, 1);
+  rb_define_singleton_method(testing_module, "_native_on_gvl_waiting", _native_on_gvl_waiting, 1);
+  rb_define_singleton_method(testing_module, "_native_on_gvl_released", _native_on_gvl_released, 1);
   #ifndef NO_GVL_INSTRUMENTATION
-    rb_define_singleton_method(testing_module, "_native_on_gvl_waiting", _native_on_gvl_waiting, 1);
     rb_define_singleton_method(testing_module, "_native_gvl_waiting_at_for", _native_gvl_waiting_at_for, 1);
     rb_define_singleton_method(testing_module, "_native_on_gvl_running", _native_on_gvl_running, 2);
-    rb_define_singleton_method(testing_module, "_native_on_gvl_released", _native_on_gvl_released, 1);
     rb_define_singleton_method(testing_module, "_native_sample_after_gvl_running", _native_sample_after_gvl_running, 3);
   #endif
   rb_define_singleton_method(testing_module, "_native_apply_delta_to_cpu_time_at_previous_sample_ns", _native_apply_delta_to_cpu_time_at_previous_sample_ns, 2);
@@ -2161,18 +2161,44 @@ void thread_context_collector_on_serialize(VALUE self_instance) {
   }
 }
 
+void thread_context_collector_on_gvl_released(per_thread_context *thread_context) {
+  thread_context->gvl_state_change_count |= GVL_SUSPENDED;
+}
+
+void thread_context_collector_on_gvl_waiting(per_thread_context *thread_context) {
+  long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+  if (current_monotonic_wall_time_ns <= 0) return;
+
+  thread_context->gvl_waiting_at = current_monotonic_wall_time_ns;
+}
+
+static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread) {
+  ENFORCE_THREAD(thread);
+
+  debug_enter_unsafe_context();
+
+  per_thread_context *thread_context = get_per_thread_context(thread);
+  if (thread_context) thread_context_collector_on_gvl_waiting(thread_context);
+
+  debug_leave_unsafe_context();
+
+  return Qnil;
+}
+
+static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread) {
+  ENFORCE_THREAD(thread);
+
+  debug_enter_unsafe_context();
+
+  per_thread_context *thread_context = get_per_thread_context(thread);
+  if (thread_context) thread_context_collector_on_gvl_released(thread_context);
+
+  debug_leave_unsafe_context();
+
+  return Qnil;
+}
+
 #ifndef NO_GVL_INSTRUMENTATION
-  void thread_context_collector_on_gvl_released(per_thread_context *thread_context) {
-    thread_context->gvl_state_change_count |= GVL_SUSPENDED;
-  }
-
-  void thread_context_collector_on_gvl_waiting(per_thread_context *thread_context) {
-    long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
-    if (current_monotonic_wall_time_ns <= 0) return;
-
-    thread_context->gvl_waiting_at = current_monotonic_wall_time_ns;
-  }
-
   // This function runs on the passed thread and has the GVL because it gets called just after the Ruby thread acquired the GVL
   __attribute__((warn_unused_result))
   on_gvl_running_result thread_context_collector_on_gvl_running(VALUE self_instance, VALUE thread, per_thread_context *thread_context) {
@@ -2387,19 +2413,6 @@ void thread_context_collector_on_serialize(VALUE self_instance) {
     return true;
   }
 
-  static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread) {
-    ENFORCE_THREAD(thread);
-
-    debug_enter_unsafe_context();
-
-    per_thread_context *thread_context = get_per_thread_context(thread);
-    if (thread_context) thread_context_collector_on_gvl_waiting(thread_context);
-
-    debug_leave_unsafe_context();
-
-    return Qnil;
-  }
-
   static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread) {
     ENFORCE_THREAD(thread);
 
@@ -2429,19 +2442,6 @@ void thread_context_collector_on_serialize(VALUE self_instance) {
     debug_leave_unsafe_context();
 
     return result;
-  }
-
-  static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread) {
-    ENFORCE_THREAD(thread);
-
-    debug_enter_unsafe_context();
-
-    per_thread_context *thread_context = get_per_thread_context(thread);
-    if (thread_context) thread_context_collector_on_gvl_released(thread_context);
-
-    debug_leave_unsafe_context();
-
-    return Qnil;
   }
 
   static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE allow_exception) {
