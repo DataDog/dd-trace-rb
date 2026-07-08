@@ -32,6 +32,13 @@ RSpec.describe Datadog::Core::KnuthSampler do
       end
     end
 
+    context 'when rate is 0.0' do
+      subject(:sampler) { described_class.new(0.0) }
+
+      it { expect(sampler.sample?(0)).to be(false) }
+      it { expect(sampler.sample?(1)).to be(false) }
+    end
+
     context 'when rate is ~0.0' do
       subject(:sampler) { described_class.new(Float::MIN) }
 

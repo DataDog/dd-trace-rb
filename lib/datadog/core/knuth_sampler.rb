@@ -37,7 +37,7 @@ module Datadog
         end
 
         @rate = rate
-        @threshold = @rate * MAX
+        @threshold = @rate * (MAX + 1)
       end
 
       # Determines if the given input should be sampled.
@@ -49,7 +49,7 @@ module Datadog
       #   Typically a trace ID or incrementing counter.
       # @return [Boolean] +true+ if input should be sampled, +false+ otherwise
       def sample?(input)
-        (((input & MAX) * @knuth_factor) & MAX) <= @threshold
+        (((input & MAX) * @knuth_factor) & MAX) < @threshold
       end
     end
   end
