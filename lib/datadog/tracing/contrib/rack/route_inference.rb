@@ -45,7 +45,7 @@ module Datadog
               end
             end
 
-            result.empty? ? '/' : "/#{result.join('/')}"
+            result.empty? ? '/' : "/#{result.join("/")}"
           rescue
             nil
           end

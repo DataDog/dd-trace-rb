@@ -601,7 +601,7 @@ RSpec.describe 'Telemetry integration tests' do
       requested = configuration[:value]
       running = actual_state.fetch('enabled')
 
-      it "reports #{product_key} as configured #{requested} and actually #{running ? 'enabled' : 'disabled'}" do
+      it "reports #{product_key} as configured #{requested} and actually #{running ? "enabled" : "disabled"}" do
         component.flush
         # There may be more than 3 payloads when component initialization emits
         # telemetry error events (e.g. AppSec logging why it failed to start).

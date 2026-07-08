@@ -154,7 +154,7 @@ module Datadog
           def to_path
             flush
 
-            "/#{@segments.join('/')}"
+            "/#{@segments.join("/")}"
           end
 
           private
@@ -167,7 +167,7 @@ module Datadog
               "param#{@nameless_param_count}"
             end
 
-            "{#{names.join('+')}}"
+            "{#{names.join("+")}}"
           end
         end
       end

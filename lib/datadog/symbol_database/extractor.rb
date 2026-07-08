@@ -148,7 +148,7 @@ module Datadog
         wrap_in_file_scope(source_file, [inner_scope])
       rescue Exception => e # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(e)
-        @logger.debug { "symdb: failed to extract #{mod_name || '<unknown>'}: #{e.class}: #{e.message}" }
+        @logger.debug { "symdb: failed to extract #{mod_name || "<unknown>"}: #{e.class}: #{e.message}" }
         nil
       end
 
@@ -430,7 +430,7 @@ module Datadog
         fallback
       rescue Exception => e # standard:disable Lint/RescueException
         Datadog::DI.reraise_if_fatal(e)
-        @logger.debug { "symdb: error finding source file for #{safe_mod_name(mod) || '<unknown>'}: #{e.class}: #{e.message}" }
+        @logger.debug { "symdb: error finding source file for #{safe_mod_name(mod) || "<unknown>"}: #{e.class}: #{e.message}" }
         nil
       end
 
@@ -662,7 +662,7 @@ module Datadog
         end_line = lines.max || start_line
         ranges = build_targetable_ranges(lines)
         result = ranges.empty? ? nil : ranges
-        @logger.debug { "symdb: #{method.name} targetable lines: #{result ? "#{ranges.size} range(s), lines #{lines.first}..#{lines.last}" : 'none (no matching events)'}" }
+        @logger.debug { "symdb: #{method.name} targetable lines: #{result ? "#{ranges.size} range(s), lines #{lines.first}..#{lines.last}" : "none (no matching events)"}" }
         [result, end_line]
       end
 
@@ -790,7 +790,7 @@ module Datadog
           end
         rescue Exception => e # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(e)
-          @logger.debug { "symdb: error indexing #{mod_name || '<unknown>'}: #{e.class}: #{e.message}" }
+          @logger.debug { "symdb: error indexing #{mod_name || "<unknown>"}: #{e.class}: #{e.message}" }
         end
 
         index

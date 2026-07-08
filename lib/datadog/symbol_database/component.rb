@@ -611,7 +611,7 @@ module Datadog
           end
 
           extraction_duration = Datadog::Core::Utils::Time.get_time - start_time
-          @logger.debug { "symdb: #{mode_label} extracted #{extracted_count} scopes (#{targetable_count} methods with targetable lines) in #{'%.2f' % extraction_duration}s" }
+          @logger.debug { "symdb: #{mode_label} extracted #{extracted_count} scopes (#{targetable_count} methods with targetable lines) in #{"%.2f" % extraction_duration}s" }
 
           # Flush any remaining scopes (triggers upload)
           @scope_batcher.flush

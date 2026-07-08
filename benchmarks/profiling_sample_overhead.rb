@@ -67,7 +67,7 @@ unless VALIDATE_BENCHMARK_MODE
   # Generate output for bp-analyzer parser:
   # https://github.com/DataDog/benchmarking-platform-tools/blob/main/bp-analyzer/cli/src/src/converter/benchmark_ips.py
   require 'json'
-  file = "#{File.basename(__FILE__, '.rb')}-results.json"
+  file = "#{File.basename(__FILE__, ".rb")}-results.json"
   json = [
     {
       # Invert since higher must be better

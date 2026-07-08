@@ -387,7 +387,7 @@ RSpec.shared_examples 'Datadog distributed format' do
           end
 
           context 'with tags too large in bytes' do
-            let(:tags) { "_dd.p.key=#{'é' * 252}" }
+            let(:tags) { "_dd.p.key=#{"é" * 252}" }
 
             it { is_expected.to be_nil }
 

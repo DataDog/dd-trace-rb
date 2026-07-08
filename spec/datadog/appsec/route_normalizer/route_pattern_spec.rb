@@ -95,7 +95,7 @@ RSpec.describe Datadog::AppSec::RouteNormalizer::RoutePattern do
         ).to eq('/books/{section}/{title+format}')
       end
 
-      it { expect(described_class.new('/posts/:id(.:format)').normalize(path: "/posts/#{'a' * 9000}")).to eq('/posts/{id+format}') }
+      it { expect(described_class.new('/posts/:id(.:format)').normalize(path: "/posts/#{"a" * 9000}")).to eq('/posts/{id+format}') }
     end
 
     context 'with Sinatra-style patterns' do

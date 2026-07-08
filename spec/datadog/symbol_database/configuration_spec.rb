@@ -23,7 +23,7 @@ RSpec.describe 'Symbol Database Configuration', :symdb_supported_platforms do
         name = name_
         value = value_
 
-        context "when #{[scope_name, name].compact.join('.')} set to #{value}" do
+        context "when #{[scope_name, name].compact.join(".")} set to #{value}" do
           let(:scope) do
             if scope_name
               settings.symbol_database.public_send(scope_name)
@@ -67,7 +67,7 @@ RSpec.describe 'Symbol Database Configuration', :symdb_supported_platforms do
             end
           end
 
-          it "sets symbol_database.#{[scope_name, setting_name].compact.join('.')}=#{setting_value}" do
+          it "sets symbol_database.#{[scope_name, setting_name].compact.join(".")}=#{setting_value}" do
             scope = scope_name ? settings.symbol_database.public_send(scope_name) : settings.symbol_database
             expect(scope.public_send(setting_name)).to eq(setting_value)
           end

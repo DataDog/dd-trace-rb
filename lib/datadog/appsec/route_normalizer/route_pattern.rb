@@ -106,7 +106,7 @@ module Datadog
               end
             end
 
-            memo << "{#{names.join('+')}}"
+            memo << "{#{names.join("+")}}"
           end
 
           result.start_with?('/') ? result : "/#{result}"

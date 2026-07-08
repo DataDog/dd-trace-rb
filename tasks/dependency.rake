@@ -78,7 +78,7 @@ namespace :dependency do
       next if drifted.empty?
 
       Bundler.with_unbundled_env do
-        sh({'BUNDLE_GEMFILE' => gemfile.to_s}, "bundle lock --update #{drifted.join(' ')}")
+        sh({'BUNDLE_GEMFILE' => gemfile.to_s}, "bundle lock --update #{drifted.join(" ")}")
       end
     end
   end
