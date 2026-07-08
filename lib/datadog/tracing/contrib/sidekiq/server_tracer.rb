@@ -69,7 +69,7 @@ module Datadog
 
               args = job['args']
               if args && !args.empty?
-                span.set_tag(Ext::TAG_JOB_ARGS, Contrib::Utils::Quantization::HashFormatter.format(args, (@quantize[:args] || {})))
+                span.set_tag(Ext::TAG_JOB_ARGS, Contrib::Utils::Quantization::HashFormatter.format(args, @quantize[:args] || {}))
               end
 
               yield

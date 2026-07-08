@@ -18,10 +18,9 @@ module Datadog
 
             def supported?
               Gem.loaded_specs['active_model_serializers'] \
-                && (
-                  Gem.loaded_specs['active_model_serializers'].version >= Gem::Version.new('0.9') \
+                &&
+                Gem.loaded_specs['active_model_serializers'].version >= Gem::Version.new('0.9') \
                   && Gem.loaded_specs['active_model_serializers'].version < Gem::Version.new('0.10')
-                )
             end
 
             def event_name

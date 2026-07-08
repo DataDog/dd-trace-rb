@@ -187,7 +187,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
 
     before do
       allow_any_instance_of(Datadog::Core::Remote::Negotiation).to receive(:endpoint?).and_return(true)
-      allow(component.worker.instance_variable_get("@block")).to receive(:call)
+      allow(component.worker.instance_variable_get(:@block)).to receive(:call)
     end
 
     it { expect { start }.to change { component.started? }.from(false).to(true) }
