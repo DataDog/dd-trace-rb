@@ -170,7 +170,10 @@ module Datadog
 
             @wait_until_running_condition.wait(@wait_until_running_mutex, timeout_seconds)
 
-            # rubocop:disable Style/RedundantCondition -- the `||` form breaks steep's inference of this method's `true` return type
+            # Not using `_native_is_running?(self) || raise(...)` here: `_native_is_running?` is declared
+            # to return `bool`, so steep infers the `||` expression as `bool` too and rejects it against
+            # this method's declared `true` return type. The explicit `if`/`else` type-checks correctly.
+            # rubocop:disable Style/RedundantCondition
             if self.class._native_is_running?(self)
               true
             else
