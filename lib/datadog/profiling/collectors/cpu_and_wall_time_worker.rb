@@ -170,7 +170,13 @@ module Datadog
 
             @wait_until_running_condition.wait(@wait_until_running_mutex, timeout_seconds)
 
-            self.class._native_is_running?(self) || raise("Timeout waiting for #{self.class.name} to start (waited for #{timeout_seconds} seconds)")
+            # rubocop:disable Style/RedundantCondition -- the `||` form breaks steep's inference of this method's `true` return type
+            if self.class._native_is_running?(self)
+              true
+            else
+              raise "Timeout waiting for #{self.class.name} to start (waited for #{timeout_seconds} seconds)"
+            end
+            # rubocop:enable Style/RedundantCondition
           end
         end
 
