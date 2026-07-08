@@ -11,7 +11,7 @@ module Datadog
 
           def self.parse: (::String?, ?limit: ::Integer) -> ::Hash[::String, (::String | ::Array[::String?])?]
 
-          def self.set_param_value: (::Hash[::String, (::String | ::Array[::String?])?], ::String, ::Integer, ::Integer, ::Integer) -> void
+          def self.set_param_value: (::Hash[::String, (::String | ::Array[::String?])?], ::String, segment_start: ::Integer, segment_end: ::Integer, equals_index: ::Integer) -> void
         end
       end
     end

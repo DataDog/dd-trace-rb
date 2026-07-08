@@ -42,7 +42,7 @@ module Datadog
 
               case byte
               when AMPERSAND_BYTE
-                set_param_value(result, payload, segment_start, equals_index, index)
+                set_param_value(result, payload, segment_start: segment_start, segment_end: index, equals_index: equals_index)
                 segment_start = index + 1
                 equals_index = -1
               when EQUALS_BYTE
@@ -52,12 +52,12 @@ module Datadog
               index += 1
             end
 
-            set_param_value(result, payload, segment_start, equals_index, index) unless limit_reached
+            set_param_value(result, payload, segment_start: segment_start, segment_end: index, equals_index: equals_index) unless limit_reached
 
             result
           end
 
-          def self.set_param_value(result, payload, segment_start, equals_index, segment_end)
+          def self.set_param_value(result, payload, segment_start:, segment_end:, equals_index:)
             key_end = (equals_index == -1) ? segment_end : equals_index
             key = payload.byteslice(segment_start, key_end - segment_start) || +''
             value = (equals_index == -1) ? nil : payload.byteslice(equals_index + 1, segment_end - equals_index - 1) #: ::String?
