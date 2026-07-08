@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../input_peeker'
-require_relative '../../../instrumentation/gateway/argument'
-require_relative '../../../../core/header_collection'
-require_relative '../../../../tracing/client_ip'
+require_relative "../input_peeker"
+require_relative "../../../instrumentation/gateway/argument"
+require_relative "../../../../core/header_collection"
+require_relative "../../../../tracing/client_ip"
 
 module Datadog
   module AppSec
@@ -27,7 +27,7 @@ module Datadog
               ::Rack::Utils.parse_query(request.query_string)
             rescue => e
               Datadog.logger.debug { "AppSec: Failed to parse request query string: #{e.class}: #{e.message}" }
-              AppSec.telemetry.report(e, description: 'AppSec: Failed to parse request query string')
+              AppSec.telemetry.report(e, description: "AppSec: Failed to parse request query string")
 
               {}
             end
@@ -38,12 +38,12 @@ module Datadog
 
             def headers
               result = request.env.each_with_object({}) do |(k, v), h|
-                h[k.delete_prefix('HTTP_').tap(&:downcase!).tap { |s| s.tr!('_', '-') }] = v if k.start_with?('HTTP_')
+                h[k.delete_prefix("HTTP_").tap(&:downcase!).tap { |s| s.tr!("_", "-") }] = v if k.start_with?("HTTP_")
               end
 
-              result['content-type'] = request.content_type if request.content_type
+              result["content-type"] = request.content_type if request.content_type
               # Since Rack 3.1, content-length is nil if the body is empty, but we still want to send it to the WAF.
-              result['content-length'] = request.content_length || '0'
+              result["content-length"] = request.content_length || "0"
               result
             end
 
@@ -72,7 +72,7 @@ module Datadog
             end
 
             def remote_addr
-              env['REMOTE_ADDR']
+              env["REMOTE_ADDR"]
             end
 
             def form_hash
@@ -82,10 +82,10 @@ module Datadog
 
               # usually Hash[String, String] but can be a more complex
               # Hash[String, (String|Array|Hash)] when e.g coming from JSON
-              env['rack.request.form_hash']
+              env["rack.request.form_hash"]
             rescue => e
               Datadog.logger.debug { "AppSec: Failed to parse request body: #{e.class}: #{e.message}" }
-              AppSec.telemetry.report(e, description: 'AppSec: Failed to parse request body')
+              AppSec.telemetry.report(e, description: "AppSec: Failed to parse request body")
 
               nil
             end
@@ -112,7 +112,7 @@ module Datadog
 
               # NOTE: A parsed-body cache without a raw byte count means the input
               #       stream was consumed before measurement, consider it unknown-length
-              return if env.key?('rack.request.form_hash')
+              return if env.key?("rack.request.form_hash")
 
               InputPeeker.peek_bytesize(env, limit: limit)
             end
@@ -123,7 +123,7 @@ module Datadog
             # NOTE: Rack does not parse JSON itself, a body parser middleware such as
             #       {Rack::JSONBodyParser} populates the form hash read by {#form_hash}
             def collectable_body?
-              request.form_data? || request.parseable_data? || env.key?('rack.request.form_hash')
+              request.form_data? || request.parseable_data? || env.key?("rack.request.form_hash")
             end
 
             def client_ip

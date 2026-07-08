@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'event'
-require_relative 'deduplicator'
+require_relative "event"
+require_relative "deduplicator"
 
 module Datadog
   module OpenFeature
@@ -30,7 +30,7 @@ module Datadog
           @worker.enqueue(event)
         rescue => e
           @logger.debug { "OpenFeature: Failed to report resolution details: #{e.class}: #{e.message}" }
-          @telemetry.report(e, description: 'OpenFeature: Failed to report resolution details')
+          @telemetry.report(e, description: "OpenFeature: Failed to report resolution details")
 
           false
         end

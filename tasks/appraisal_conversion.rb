@@ -1,4 +1,4 @@
-require 'pathname'
+require "pathname"
 
 # This module translates our custom mapping between appraisal and bundler.
 #
@@ -6,11 +6,11 @@ require 'pathname'
 module AppraisalConversion
   module_function
 
-  @gemfile_dir = 'gemfiles'
-  @definition_dir = 'appraisal'
+  @gemfile_dir = "gemfiles"
+  @definition_dir = "appraisal"
 
   def to_bundle_gemfile(group)
-    gemfile = "#{runtime_identifier}_#{group}.gemfile".tr('-', '_')
+    gemfile = "#{runtime_identifier}_#{group}.gemfile".tr("-", "_")
     path = root_path.join(gemfile_dir, gemfile)
 
     if path.exist?

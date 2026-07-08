@@ -1,7 +1,7 @@
-require 'bundler'
+require "bundler"
 
 module LoadedGem
-  RSpec.shared_context 'loaded gems' do |gems = {}|
+  RSpec.shared_context "loaded gems" do |gems = {}|
     before do
       allow(Gem.loaded_specs).to receive(:[]).and_call_original
 
@@ -33,7 +33,7 @@ module LoadedGem
         end
       end
 
-      Gem::Version.new(segments.join('.'))
+      Gem::Version.new(segments.join("."))
     end
 
     def remove_patch!(integration, patch_key = :patch)
@@ -53,7 +53,7 @@ module LoadedGem
       else
         Datadog
           .registry[integration]
-          .instance_variable_set('@patched', false)
+          .instance_variable_set("@patched", false)
       end
     end
   end

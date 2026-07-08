@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'cgi'
+require "cgi"
 
 module Datadog
   module AppSec
@@ -22,7 +22,7 @@ module Datadog
           def self.parse(payload)
             return {} if payload.nil? || payload.empty?
 
-            payload.split('&').each_with_object({}) do |pair, memo|
+            payload.split("&").each_with_object({}) do |pair, memo|
               next if pair.empty?
 
               # NOTE: Steep has issues with mutation methods
@@ -30,7 +30,7 @@ module Datadog
               #
               # @type var key: ::String
               # @type var value: ::String
-              key, value = pair.split('=', 2).map! do |val|
+              key, value = pair.split("=", 2).map! do |val|
                 CGI.unescape(val)
               end #: [::String, ::String]
 

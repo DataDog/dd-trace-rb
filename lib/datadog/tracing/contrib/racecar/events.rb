@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'events/batch'
-require_relative 'events/message'
-require_relative 'events/consume'
+require_relative "events/batch"
+require_relative "events/message"
+require_relative "events/consume"
 
 module Datadog
   module Tracing

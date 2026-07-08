@@ -17,7 +17,7 @@ module Datadog
             settings :open_feature do
               option :enabled do |o|
                 o.type :bool
-                o.env 'DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED'
+                o.env "DD_EXPERIMENTAL_FLAGGING_PROVIDER_ENABLED"
                 o.default false
               end
 
@@ -25,7 +25,7 @@ module Datadog
               # disabled the existing OTel `feature_flag.evaluations` metric is unaffected.
               option :evaluation_counts_enabled do |o|
                 o.type :bool
-                o.env 'DD_FLAGGING_EVALUATION_COUNTS_ENABLED'
+                o.env "DD_FLAGGING_EVALUATION_COUNTS_ENABLED"
                 o.default true
               end
             end

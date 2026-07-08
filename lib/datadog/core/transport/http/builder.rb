@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../configuration/agent_settings'
-require_relative 'adapters/registry'
-require_relative 'api/map'
+require_relative "../../configuration/agent_settings"
+require_relative "adapters/registry"
+require_relative "api/map"
 
 module Datadog
   module Core
@@ -171,14 +171,14 @@ module Datadog
           # Raised when built without defining APIs.
           class NoApisError < StandardError
             def message
-              'No APIs configured for transport!'
+              "No APIs configured for transport!"
             end
           end
 
           # Raised when client built without defining a default API.
           class NoDefaultApiError < StandardError
             def message
-              'No default API configured for transport!'
+              "No default API configured for transport!"
             end
           end
         end

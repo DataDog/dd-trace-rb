@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'set'
+require "set"
 
 module Datadog
   module Tracing
@@ -8,8 +8,8 @@ module Datadog
       module Redis
         # Quantize contains Redis-specific resource quantization tools.
         module Quantize
-          PLACEHOLDER = '?'
-          TOO_LONG_MARK = '...'
+          PLACEHOLDER = "?"
+          TOO_LONG_MARK = "..."
           VALUE_MAX_LEN = 50
           CMD_MAX_LEN = 500
 
@@ -40,7 +40,7 @@ module Datadog
 
           def format_command_args(command_args)
             command_args = resolve_command_args(command_args)
-            return 'AUTH ?' if auth_command?(command_args)
+            return "AUTH ?" if auth_command?(command_args)
 
             verb, *args = command_args.map { |x| format_arg(x) }
             Core::Utils.truncate("#{verb.upcase} #{args.join(" ")}", CMD_MAX_LEN, TOO_LONG_MARK)

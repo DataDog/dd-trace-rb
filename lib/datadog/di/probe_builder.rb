@@ -3,7 +3,7 @@
 # rubocop:disable Lint/AssignmentInCondition
 
 require_relative "probe"
-require_relative 'el'
+require_relative "el"
 
 module Datadog
   module DI
@@ -22,21 +22,21 @@ module Datadog
     module ProbeBuilder
       # Steep: https://github.com/soutaro/steep/issues/363
       PROBE_TYPES = { # steep:ignore IncompatibleAssignment
-        'LOG_PROBE' => :log,
+        "LOG_PROBE" => :log,
       }.freeze
 
       module_function
 
       def build_from_remote_config(config)
         # The validations here are not yet comprehensive.
-        type = config.fetch('type')
+        type = config.fetch("type")
         type_symbol = PROBE_TYPES[type] or raise ArgumentError, "Unrecognized probe type: #{type}"
-        cond = if cond_spec = config['when']
-          unless cond_spec['dsl'] && cond_spec['json']
+        cond = if cond_spec = config["when"]
+          unless cond_spec["dsl"] && cond_spec["json"]
             raise ArgumentError, "Malformed condition specification for probe: #{config}"
           end
-          compiled = EL::Compiler.new.compile(cond_spec['json'])
-          EL::Expression.new(cond_spec['dsl'], compiled)
+          compiled = EL::Compiler.new.compile(cond_spec["json"])
+          EL::Expression.new(cond_spec["dsl"], compiled)
         end
         Probe.new(
           id: config.fetch("id"),
@@ -50,7 +50,7 @@ module Datadog
           # We should not be using the template for anything - we instead
           # use +segments+ - but keep the template for debugging.
           template: config["template"],
-          template_segments: build_template_segments(config['segments']),
+          template_segments: build_template_segments(config["segments"]),
           capture_snapshot: !!config["captureSnapshot"],
           max_capture_depth: config["capture"]&.[]("maxReferenceDepth"),
           max_capture_attribute_count: config["capture"]&.[]("maxFieldCount"),
@@ -64,10 +64,10 @@ module Datadog
       def build_template_segments(segments)
         segments&.map do |segment|
           if Hash === segment
-            if str = segment['str']
+            if str = segment["str"]
               str
-            elsif ast = segment['json']
-              unless dsl = segment['dsl']
+            elsif ast = segment["json"]
+              unless dsl = segment["dsl"]
                 raise ArgumentError, "Missing dsl for json in segment: #{segment}"
               end
               compiled = EL::Compiler.new.compile(ast)

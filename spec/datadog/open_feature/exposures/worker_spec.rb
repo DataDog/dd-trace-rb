@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'spec_helper'
-require 'datadog/open_feature/transport'
+require "spec_helper"
+require "datadog/open_feature/transport"
 
 RSpec.describe Datadog::OpenFeature::Exposures::Worker do
   after do
@@ -28,16 +28,16 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
   let(:event) do
     {
       timestamp: 1_735_689_600_000,
-      allocation: {key: 'control'},
-      flag: {key: 'demo-flag'},
-      variant: {key: 'v1'},
-      subject: {id: 'user-1', attributes: {'plan' => 'pro'}}
+      allocation: {key: "control"},
+      flag: {key: "demo-flag"},
+      variant: {key: "v1"},
+      subject: {id: "user-1", attributes: {"plan" => "pro"}}
     }
   end
 
-  describe '#start' do
-    context 'when worker is disabled' do
-      it 'does nothing' do
+  describe "#start" do
+    context "when worker is disabled" do
+      it "does nothing" do
         allow(worker).to receive(:enabled?).and_return(false)
 
         worker.start
@@ -48,28 +48,28 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
     end
   end
 
-  describe '#enqueue' do
-    context 'when worker is not started' do
+  describe "#enqueue" do
+    context "when worker is not started" do
       let(:event_2) do
         {
           timestamp: 1_735_689_600_000,
-          allocation: {key: 'control-2'},
-          flag: {key: 'demo-flag2'},
-          variant: {key: 'v2'},
-          subject: {id: 'user-2', attributes: {'plan' => 'pro'}}
+          allocation: {key: "control-2"},
+          flag: {key: "demo-flag2"},
+          variant: {key: "v2"},
+          subject: {id: "user-2", attributes: {"plan" => "pro"}}
         }
       end
       let(:event_3) do
         {
           timestamp: 1_735_689_600_000,
-          allocation: {key: 'control-3'},
-          flag: {key: 'demo-flag3'},
-          variant: {key: 'v3'},
-          subject: {id: 'user-3', attributes: {'plan' => 'pro'}}
+          allocation: {key: "control-3"},
+          flag: {key: "demo-flag3"},
+          variant: {key: "v3"},
+          subject: {id: "user-3", attributes: {"plan" => "pro"}}
         }
       end
 
-      it 'starts on demand and processes buffer' do
+      it "starts on demand and processes buffer" do
         batches_sent = 0
         allow(transport).to receive(:send_exposures) do |payload|
           batches_sent += 1
@@ -87,12 +87,12 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
       end
     end
 
-    context 'when transport response does not have expected interface' do
+    context "when transport response does not have expected interface" do
       before { allow(transport).to receive(:send_exposures).and_return(response) }
 
       let(:response) { nil }
 
-      it 'logs debug message' do
+      it "logs debug message" do
         expect_lazy_log(logger, :debug, /Resolution details upload response was not OK/)
 
         worker.enqueue(event)
@@ -102,12 +102,12 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
       end
     end
 
-    context 'when transport response is not ok' do
+    context "when transport response is not ok" do
       before { allow(transport).to receive(:send_exposures).and_return(response) }
 
       let(:response) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net::Response, ok?: false) }
 
-      it 'logs debug message' do
+      it "logs debug message" do
         expect_lazy_log(logger, :debug, /Resolution details upload response was not OK/)
 
         worker.enqueue(event)
@@ -117,12 +117,12 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
       end
     end
 
-    context 'when transport raises an error' do
+    context "when transport raises an error" do
       before { allow(transport).to receive(:send_exposures).and_raise(error) }
 
-      let(:error) { StandardError.new('Ooops') }
+      let(:error) { StandardError.new("Ooops") }
 
-      it 'logs debug message and swallows the error' do
+      it "logs debug message and swallows the error" do
         expect(telemetry).to receive(:report).with(error, description: /Failed to flush resolution details events/)
         expect_lazy_log(logger, :debug, /Failed to flush resolution details events/)
 
@@ -136,24 +136,24 @@ RSpec.describe Datadog::OpenFeature::Exposures::Worker do
     end
   end
 
-  describe '#graceful_shutdown' do
-    context 'when buffer contains events' do
+  describe "#graceful_shutdown" do
+    context "when buffer contains events" do
       before do
-        stub_const('Datadog::OpenFeature::Exposures::Worker::GRACEFUL_SHUTDOWN_EXTRA_SECONDS', 0.1)
-        stub_const('Datadog::OpenFeature::Exposures::Worker::GRACEFUL_SHUTDOWN_WAIT_INTERVAL_SECONDS', 0.1)
+        stub_const("Datadog::OpenFeature::Exposures::Worker::GRACEFUL_SHUTDOWN_EXTRA_SECONDS", 0.1)
+        stub_const("Datadog::OpenFeature::Exposures::Worker::GRACEFUL_SHUTDOWN_WAIT_INTERVAL_SECONDS", 0.1)
       end
 
       let(:event_2) do
         {
           timestamp: 1_735_689_600_000,
-          allocation: {key: 'control-2'},
-          flag: {key: 'demo-flag2'},
-          variant: {key: 'v2'},
-          subject: {id: 'user-2', attributes: {'plan' => 'pro'}}
+          allocation: {key: "control-2"},
+          flag: {key: "demo-flag2"},
+          variant: {key: "v2"},
+          subject: {id: "user-2", attributes: {"plan" => "pro"}}
         }
       end
 
-      it 'flushes remaining events before stopping' do
+      it "flushes remaining events before stopping" do
         batches_sent = 0
         allow(transport).to receive(:send_exposures) do |payload|
           batches_sent += 1

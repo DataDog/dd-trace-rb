@@ -1,15 +1,15 @@
-require 'spec_helper'
+require "spec_helper"
 
-require 'datadog/core/configuration/agent_settings'
-require 'datadog/tracing/pipeline'
-require 'datadog/tracing/pipeline/span_filter'
-require 'datadog/tracing/span'
-require 'datadog/tracing/sync_writer'
-require 'datadog/tracing/trace_segment'
-require 'datadog/tracing/tracer'
-require 'datadog/tracing/transport/http'
-require 'datadog/tracing/transport/http/traces'
-require 'datadog/tracing/transport/traces'
+require "datadog/core/configuration/agent_settings"
+require "datadog/tracing/pipeline"
+require "datadog/tracing/pipeline/span_filter"
+require "datadog/tracing/span"
+require "datadog/tracing/sync_writer"
+require "datadog/tracing/trace_segment"
+require "datadog/tracing/tracer"
+require "datadog/tracing/transport/http"
+require "datadog/tracing/transport/http/traces"
+require "datadog/tracing/transport/traces"
 
 RSpec.describe Datadog::Tracing::SyncWriter do
   subject(:sync_writer) { described_class.new(transport: transport) }
@@ -22,10 +22,10 @@ RSpec.describe Datadog::Tracing::SyncWriter do
   end
   let(:buffer) { [] }
 
-  describe '::new' do
+  describe "::new" do
     subject(:sync_writer) { described_class.new(**options) }
 
-    context 'given :agent_settings' do
+    context "given :agent_settings" do
       let(:options) { {agent_settings: agent_settings, logger: logger} }
       let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettings) }
       let(:transport) { instance_double(Datadog::Tracing::Transport::Traces::Transport) }
@@ -40,40 +40,40 @@ RSpec.describe Datadog::Tracing::SyncWriter do
       it { is_expected.to have_attributes(transport: transport) }
     end
 
-    context 'when transport options include headers' do
+    context "when transport options include headers" do
       let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettings) }
       let(:options) { {agent_settings: agent_settings, logger: logger, transport_options: transport_options} }
 
-      let(:transport_options) { {headers: {foo: 'bar'}} }
+      let(:transport_options) { {headers: {foo: "bar"}} }
 
-      it 'passes the headers into transport' do
+      it "passes the headers into transport" do
         expect(sync_writer.transport.apis.length).to eq 2
-        expect(sync_writer.transport.apis['v0.4'].headers).to include(foo: 'bar')
-        expect(sync_writer.transport.apis['v0.3'].headers).to include(foo: 'bar')
+        expect(sync_writer.transport.apis["v0.4"].headers).to include(foo: "bar")
+        expect(sync_writer.transport.apis["v0.3"].headers).to include(foo: "bar")
       end
     end
   end
 
-  describe '#write' do
+  describe "#write" do
     subject(:write) { sync_writer.write(trace) }
 
     let(:trace) { get_test_traces(1).first }
 
-    context 'with trace' do
+    context "with trace" do
       before { write }
 
       it { expect(buffer).to have(1).item }
     end
 
-    context 'with filtering' do
-      let(:filtered_trace) { Datadog::Tracing::TraceSegment.new([Datadog::Tracing::Span.new('span_1')]) }
-      let(:unfiltered_trace) { Datadog::Tracing::TraceSegment.new([Datadog::Tracing::Span.new('span_2')]) }
+    context "with filtering" do
+      let(:filtered_trace) { Datadog::Tracing::TraceSegment.new([Datadog::Tracing::Span.new("span_1")]) }
+      let(:unfiltered_trace) { Datadog::Tracing::TraceSegment.new([Datadog::Tracing::Span.new("span_2")]) }
 
       before do
         allow(transport).to receive(:send_traces).and_call_original
 
         Datadog::Tracing::Pipeline.before_flush(
-          Datadog::Tracing::Pipeline::SpanFilter.new { |span| span.name == 'span_1' }
+          Datadog::Tracing::Pipeline::SpanFilter.new { |span| span.name == "span_1" }
         )
 
         sync_writer.write(unfiltered_trace)
@@ -82,7 +82,7 @@ RSpec.describe Datadog::Tracing::SyncWriter do
 
       after { Datadog::Tracing::Pipeline.processors = [] }
 
-      it 'only sends the unfiltered traces' do
+      it "only sends the unfiltered traces" do
         expect(transport).to_not have_received(:send_traces)
           .with([filtered_trace])
 
@@ -91,7 +91,7 @@ RSpec.describe Datadog::Tracing::SyncWriter do
       end
     end
 
-    it 'publishes after_send event' do
+    it "publishes after_send event" do
       expect(sync_writer.events.after_send)
         .to receive(:publish)
         .with(sync_writer, match_array(be_a(Datadog::Tracing::Transport::HTTP::Traces::Response)))
@@ -99,22 +99,22 @@ RSpec.describe Datadog::Tracing::SyncWriter do
     end
   end
 
-  describe '#stop' do
+  describe "#stop" do
     subject(:stop) { sync_writer.stop }
 
     it { is_expected.to eq(true) }
   end
 
-  describe 'integration' do
-    context 'when initializing a tracer' do
+  describe "integration" do
+    context "when initializing a tracer" do
       subject(:tracer) { Datadog::Tracing::Tracer.new(writer: sync_writer) }
 
       it { expect(tracer.writer).to be sync_writer }
 
-      context 'then submitting a trace' do
+      context "then submitting a trace" do
         before do
-          tracer.trace('parent.span') do
-            tracer.trace('child.span') do
+          tracer.trace("parent.span") do
+            tracer.trace("child.span") do
               # Do nothing
             end
           end

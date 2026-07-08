@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
-require_relative 'ext'
-require_relative 'events'
-require_relative 'log_injection'
+require_relative "../patcher"
+require_relative "ext"
+require_relative "events"
+require_relative "log_injection"
 
 module Datadog
   module Tracing
@@ -26,7 +26,7 @@ module Datadog
 
           def inject_log_correlation
             ::ActiveSupport.on_load(:active_job) do
-              if ::ActiveJob.gem_version < Gem::Version.new('6.0.0')
+              if ::ActiveJob.gem_version < Gem::Version.new("6.0.0")
                 include LogInjection::AroundPerformPatch
               else
                 include LogInjection::PerformNowPatch

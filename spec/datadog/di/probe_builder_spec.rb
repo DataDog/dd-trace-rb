@@ -22,7 +22,7 @@ RSpec.describe Datadog::DI::ProbeBuilder do
          "captureSnapshot" => false,
          # Use a value different from our library default to ensure that
          # it is correctly processed.
-         "capture" => {"maxReferenceDepth" => 33, 'maxFieldCount' => 34},
+         "capture" => {"maxReferenceDepth" => 33, "maxFieldCount" => 34},
          # Use a value different from our library default to ensure that
          # it is correctly processed.
          "sampling" => {"snapshotsPerSecond" => 4500},
@@ -134,7 +134,7 @@ RSpec.describe Datadog::DI::ProbeBuilder do
       end
     end
 
-    context 'when conditions are given' do
+    context "when conditions are given" do
       let(:rc_probe_spec) do
         {"id" => "3ecfd456-2d7c-4359-a51f-d4cc44141ffe",
          "version" => 0,

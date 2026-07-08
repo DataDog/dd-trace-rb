@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../di/fatal_exceptions'
+require_relative "../di/fatal_exceptions"
 
 module Datadog
   module SymbolDatabase
@@ -24,7 +24,7 @@ module Datadog
     #
     # @api private
     module Remote
-      PRODUCT = 'LIVE_DEBUGGING_SYMBOL_DB'
+      PRODUCT = "LIVE_DEBUGGING_SYMBOL_DB"
 
       class << self
         # Declare products this receiver handles.
@@ -49,7 +49,7 @@ module Datadog
             rescue Exception => e # standard:disable Lint/RescueException
               Datadog::DI.reraise_if_fatal(e)
               Datadog.logger.debug { "symdb: failed to look up component in RC receiver: #{e.class}: #{e.message}" }
-              telemetry&.report(e, description: 'symdb: failed to look up component in RC receiver')
+              telemetry&.report(e, description: "symdb: failed to look up component in RC receiver")
               nil
             end
 
@@ -114,7 +114,7 @@ module Datadog
         rescue Exception => e # standard:disable Lint/RescueException
           Datadog::DI.reraise_if_fatal(e)
           component.logger.debug { "symdb: error processing remote config change: #{e.class}: #{e.message}" }
-          telemetry&.report(e, description: 'symdb: error processing remote config change')
+          telemetry&.report(e, description: "symdb: error processing remote config change")
           # Rescue runs regardless of which branch raised — Steep cannot narrow the
           # union type from a respond_to? check.
           content_obj = change.respond_to?(:content) ? change.content : change.previous # steep:ignore NoMethod
@@ -133,7 +133,7 @@ module Datadog
             return
           end
 
-          if config['upload_symbols']
+          if config["upload_symbols"]
             component.logger.debug { "symdb: upload enabled via remote config" }
             component.start_upload
           else
@@ -167,7 +167,7 @@ module Datadog
             return nil
           end
 
-          unless config.key?('upload_symbols')
+          unless config.key?("upload_symbols")
             logger.debug { "symdb: missing 'upload_symbols' key in config" }
             return nil
           end

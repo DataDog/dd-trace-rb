@@ -659,8 +659,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           expect(unique_heap_stacks.size).to be 2
 
           stack1, stack2 = unique_heap_stacks
-          unique_line1 = stack1.find { |it| it.base_label == 'introduce_distinct_stacktraces' }
-          unique_line2 = stack2.find { |it| it.base_label == 'introduce_distinct_stacktraces' }
+          unique_line1 = stack1.find { |it| it.base_label == "introduce_distinct_stacktraces" }
+          unique_line2 = stack2.find { |it| it.base_label == "introduce_distinct_stacktraces" }
 
           expect(stack1.reject { |it| it == unique_line1 }).to eq(stack2.reject { |it| it == unique_line2 })
           expect(unique_line1.lineno).to be_within(2).of(unique_line2.lineno)
@@ -766,7 +766,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
           after { GC.enable }
 
-          context 'when heap_clean_after_gc_enabled is true' do
+          context "when heap_clean_after_gc_enabled is true" do
             let(:heap_clean_after_gc_enabled) { true }
 
             it "clears young dead objects with age 1 and 2, but not older objects" do
@@ -842,7 +842,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             end
           end
 
-          context 'when heap_clean_after_gc_enabled is false' do
+          context "when heap_clean_after_gc_enabled is false" do
             let(:heap_clean_after_gc_enabled) { false }
 
             it "does nothing" do

@@ -1,24 +1,24 @@
 # frozen_string_literal: true
 
-require_relative 'logger'
-require_relative 'base'
-require_relative 'error'
-require_relative 'code_tracker'
-require_relative 'component'
-require_relative 'context'
-require_relative 'instrumenter'
-require_relative 'probe'
-require_relative 'probe_builder'
-require_relative 'probe_manager'
-require_relative 'probe_notification_builder'
-require_relative 'probe_notifier_worker'
-require_relative 'probe_repository'
-require_relative 'redactor'
-require_relative 'serializer'
-require_relative 'transport/http'
-require_relative 'utils'
+require_relative "logger"
+require_relative "base"
+require_relative "error"
+require_relative "code_tracker"
+require_relative "component"
+require_relative "context"
+require_relative "instrumenter"
+require_relative "probe"
+require_relative "probe_builder"
+require_relative "probe_manager"
+require_relative "probe_notification_builder"
+require_relative "probe_notifier_worker"
+require_relative "probe_repository"
+require_relative "redactor"
+require_relative "serializer"
+require_relative "transport/http"
+require_relative "utils"
 
-if %w[1 true yes].include?(Datadog::DATADOG_ENV['DD_DYNAMIC_INSTRUMENTATION_ENABLED'])
+if %w[1 true yes].include?(Datadog::DATADOG_ENV["DD_DYNAMIC_INSTRUMENTATION_ENABLED"])
 
   # For initial release of Dynamic Instrumentation, activate code tracking
   # only if DI is explicitly requested in the environment.
@@ -32,13 +32,13 @@ if %w[1 true yes].include?(Datadog::DATADOG_ENV['DD_DYNAMIC_INSTRUMENTATION_ENAB
   Datadog::DI.activate_tracking
 end
 
-require_relative 'contrib'
+require_relative "contrib"
 
 Datadog::DI::Contrib.load_now_or_later
 
-if %w[1 true yes].include?(Datadog::DATADOG_ENV['DD_DYNAMIC_INSTRUMENTATION_ENABLED'])
-  if Datadog::DATADOG_ENV['DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE']
-    require_relative 'probe_file_loader'
+if %w[1 true yes].include?(Datadog::DATADOG_ENV["DD_DYNAMIC_INSTRUMENTATION_ENABLED"])
+  if Datadog::DATADOG_ENV["DD_DYNAMIC_INSTRUMENTATION_PROBE_FILE"]
+    require_relative "probe_file_loader"
     Datadog::DI::ProbeFileLoader.load_now_or_later
   end
 end

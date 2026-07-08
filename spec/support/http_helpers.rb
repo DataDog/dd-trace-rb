@@ -1,6 +1,6 @@
-require 'time'
-require 'net/http'
-require 'spec/support/synchronization_helpers'
+require "time"
+require "net/http"
+require "spec/support/synchronization_helpers"
 
 module HttpHelpers
   def self.wait_http_server(server, delay)
@@ -8,7 +8,7 @@ module HttpHelpers
       uri = URI("#{server}/")
       begin
         res = Net::HTTP.get_response(uri)
-        return true if res.code == '200'
+        return true if res.code == "200"
       rescue => e
         Datadog.logger.error("Failed waiting for http server #{e.message}") if attempts_left < 5
       end

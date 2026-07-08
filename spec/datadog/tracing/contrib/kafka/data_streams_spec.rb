@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/core'
-require 'datadog/core/ddsketch'
-require 'ostruct'
-require 'datadog/tracing/contrib/kafka/integration'
-require 'datadog/tracing/contrib/kafka/instrumentation/producer'
-require 'datadog/tracing/contrib/kafka/instrumentation/consumer'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/core"
+require "datadog/core/ddsketch"
+require "ostruct"
+require "datadog/tracing/contrib/kafka/integration"
+require "datadog/tracing/contrib/kafka/instrumentation/producer"
+require "datadog/tracing/contrib/kafka/instrumentation/consumer"
 
-RSpec.describe 'Kafka Data Streams instrumentation' do
+RSpec.describe "Kafka Data Streams instrumentation" do
   let(:configuration_options) { {} }
 
   before do
@@ -25,7 +25,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
     Datadog.registry[:kafka].reset_configuration!
   end
 
-  describe 'pathway context' do
+  describe "pathway context" do
     before do
       skip_if_libdatadog_not_supported
     end
@@ -50,15 +50,15 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
     end
 
     let(:producer) { test_producer_class.new }
-    let(:message) { OpenStruct.new(topic: 'test_topic', value: 'test_value', headers: {}) }
+    let(:message) { OpenStruct.new(topic: "test_topic", value: "test_value", headers: {}) }
 
-    it 'automatically injects pathway context when producing messages' do
+    it "automatically injects pathway context when producing messages" do
       # Test that the instrumentation automatically injects DSM headers
       producer.pending_message_queue << message
       producer.deliver_messages
 
       # Verify the header was automatically set by instrumentation
-      encoded_ctx = message.headers['dd-pathway-ctx-base64']
+      encoded_ctx = message.headers["dd-pathway-ctx-base64"]
       expect(encoded_ctx).to be_a(String)
       expect(encoded_ctx).not_to be_empty
 
@@ -73,7 +73,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
     end
   end
 
-  describe 'checkpointing' do
+  describe "checkpointing" do
     before do
       skip_if_libdatadog_not_supported
     end
@@ -111,26 +111,26 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
 
     let(:consumer) { test_consumer_class.new }
 
-    it 'automatically processes pathway context when consuming messages' do
+    it "automatically processes pathway context when consuming messages" do
       # Simulate a complete produce → consume flow to test auto-instrumentation
       processor = Datadog::DataStreams.send(:processor)
 
       # Step 1: Produce a message (instrumentation automatically adds pathway context)
-      producer_message = OpenStruct.new(topic: 'test_topic', value: 'test', headers: {})
+      producer_message = OpenStruct.new(topic: "test_topic", value: "test", headers: {})
       test_producer = test_producer_class.new
       test_producer.pending_message_queue << producer_message
       test_producer.deliver_messages
 
       # Capture the producer pathway context
-      producer_ctx_b64 = producer_message.headers['dd-pathway-ctx-base64']
+      producer_ctx_b64 = producer_message.headers["dd-pathway-ctx-base64"]
       producer_ctx = Datadog::DataStreams::PathwayContext.decode_b64(producer_ctx_b64)
 
       # Step 2: Consume the message (instrumentation automatically processes pathway context)
       consumer_message = OpenStruct.new(
-        topic: 'test_topic',
+        topic: "test_topic",
         partition: 0,
         offset: 100,
-        headers: {'dd-pathway-ctx-base64' => producer_ctx_b64}
+        headers: {"dd-pathway-ctx-base64" => producer_ctx_b64}
       )
 
       # Set the message for the consumer to yield
@@ -144,8 +144,8 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
         # 3. Updated the processor's internal pathway context
 
         # Verify the message still has the producer's pathway context in headers
-        expect(msg.headers['dd-pathway-ctx-base64']).to eq(producer_ctx_b64)
-        expect(msg.topic).to eq('test_topic')
+        expect(msg.headers["dd-pathway-ctx-base64"]).to eq(producer_ctx_b64)
+        expect(msg.topic).to eq("test_topic")
 
         # Verify the processor has updated its context after processing this message
         current_ctx = processor.instance_variable_get(:@pathway_context)
@@ -157,7 +157,7 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
     end
   end
 
-  describe 'when DSM is disabled' do
+  describe "when DSM is disabled" do
     before do
       Datadog.configure do |c|
         c.tracing.instrument :kafka
@@ -195,24 +195,24 @@ RSpec.describe 'Kafka Data Streams instrumentation' do
       end
     end
 
-    it 'producer does not inject DSM headers when disabled' do
+    it "producer does not inject DSM headers when disabled" do
       producer = test_producer_class.new
-      message = OpenStruct.new(topic: 'test_topic', value: 'test', headers: {})
+      message = OpenStruct.new(topic: "test_topic", value: "test", headers: {})
 
       producer.pending_message_queue << message
       producer.deliver_messages
 
       # Should not have added DSM header
-      expect(message.headers).not_to include('dd-pathway-ctx-base64')
+      expect(message.headers).not_to include("dd-pathway-ctx-base64")
     end
 
-    it 'consumer does not process DSM headers when disabled' do
+    it "consumer does not process DSM headers when disabled" do
       consumer = test_consumer_class.new
       message = OpenStruct.new(
-        topic: 'test_topic',
+        topic: "test_topic",
         partition: 0,
         offset: 100,
-        headers: {'dd-pathway-ctx-base64' => 'some-context'}
+        headers: {"dd-pathway-ctx-base64" => "some-context"}
       )
 
       consumer.test_message = message

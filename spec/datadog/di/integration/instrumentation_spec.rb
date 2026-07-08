@@ -1,5 +1,5 @@
 require "datadog/di/spec_helper"
-require 'datadog/di'
+require "datadog/di"
 
 # Note: this file contains integration tests for instrumentation.
 # This level of testing requires using ProbeManager in addition to Instrumenter.
@@ -13,7 +13,7 @@ class InstrumentationSpecTestClass
   end
 
   def initialize
-    @ivar = 'start value'
+    @ivar = "start value"
   end
 
   def test_method(a = 1)
@@ -28,15 +28,15 @@ class InstrumentationSpecTestClass
   end
 
   def mutating_method(greeting)
-    greeting.sub!('hello', 'bye')
+    greeting.sub!("hello", "bye")
   end
 
   def ivar_mutating_method
-    @ivar.sub!('start value', 'altered value')
+    @ivar.sub!("start value", "altered value")
   end
 
   def exception_method
-    raise TestException, 'Test exception'
+    raise TestException, "Test exception"
   end
 
   def binary_data_method
@@ -51,7 +51,7 @@ class InstrumentationSpecTestClass
   end
 end
 
-RSpec.describe 'Instrumentation integration' do
+RSpec.describe "Instrumentation integration" do
   di_test
 
   let(:diagnostics_transport) do
@@ -121,38 +121,38 @@ RSpec.describe 'Instrumentation integration' do
   end
 
   let(:expected_installed_payload) do
-    {ddsource: 'dd_debugger',
+    {ddsource: "dd_debugger",
      debugger: {
        diagnostics: {
          parentId: nil,
          probeId: String,
          probeVersion: 0,
          runtimeId: String,
-         status: 'INSTALLED',
+         status: "INSTALLED",
        }
      },
      message: String,
-     service: 'rspec',
+     service: "rspec",
      timestamp: Integer,}
   end
 
   let(:expected_emitting_payload) do
-    {ddsource: 'dd_debugger',
+    {ddsource: "dd_debugger",
      debugger: {
        diagnostics: {
          parentId: nil,
          probeId: String,
          probeVersion: 0,
          runtimeId: String,
-         status: 'EMITTING',
+         status: "EMITTING",
        }
      },
      message: String,
-     service: 'rspec',
+     service: "rspec",
      timestamp: Integer,}
   end
 
-  context 'log probe' do
+  context "log probe" do
     before do
       allow(Datadog::DI).to receive(:current_component).and_return(component)
     end
@@ -161,15 +161,15 @@ RSpec.describe 'Instrumentation integration' do
       instance_double_agent_settings_with_stubs
     end
 
-    context 'method probe' do
-      context 'basic probe' do
+    context "method probe" do
+      context "basic probe" do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
-            type_name: 'InstrumentationSpecTestClass', method_name: 'test_method',
+            type_name: "InstrumentationSpecTestClass", method_name: "test_method",
             capture_snapshot: false,)
         end
 
-        it 'invokes probe' do
+        it "invokes probe" do
           expect(diagnostics_transport).to receive(:send_diagnostics)
           expect(input_transport).to receive(:send_input)
           probe_manager.add_probe(probe)
@@ -197,20 +197,20 @@ RSpec.describe 'Instrumentation integration' do
           expect(snapshot.fetch(:captures)).to eq({})
         end
 
-        it 'assembles expected notification payload which does not include captures' do
+        it "assembles expected notification payload which does not include captures" do
           run_test do
             expect(InstrumentationSpecTestClass.new.test_method).to eq(42)
           end
         end
 
-        context 'when class with target method is defined after probe is added to probe manager' do
+        context "when class with target method is defined after probe is added to probe manager" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              type_name: 'InstrumentationDelayedTestClass', method_name: 'test_method',
+              type_name: "InstrumentationDelayedTestClass", method_name: "test_method",
               capture_snapshot: false,)
           end
 
-          it 'installs probe which then is invoked and creates expected snapshot' do
+          it "installs probe which then is invoked and creates expected snapshot" do
             expect(diagnostics_transport).to receive(:send_diagnostics)
             # add_snapshot expectation replaces assertion on send_input
             expect(probe_manager.add_probe(probe)).to be false
@@ -243,23 +243,23 @@ RSpec.describe 'Instrumentation integration' do
               id: String,
               timestamp: Integer,
               evaluationErrors: [],
-              probe: {id: '1234', version: 0, location: {
-                method: 'test_method', type: 'InstrumentationDelayedTestClass',
+              probe: {id: "1234", version: 0, location: {
+                method: "test_method", type: "InstrumentationDelayedTestClass",
               }},
-              language: 'ruby',
+              language: "ruby",
               stack: Array,
               captures: {},
             )
           end
 
-          context 'when the class is a derived class' do
+          context "when the class is a derived class" do
             let(:probe) do
               Datadog::DI::Probe.new(id: "1234", type: :log,
-                type_name: 'InstrumentationDelayedDerivedTestClass', method_name: 'test_method',
+                type_name: "InstrumentationDelayedDerivedTestClass", method_name: "test_method",
                 capture_snapshot: false,)
             end
 
-            it 'invokes probe and creates expected snapshot' do
+            it "invokes probe and creates expected snapshot" do
               expect(diagnostics_transport).to receive(:send_diagnostics)
               # add_snapshot expectation replaces assertion on send_input
               expect(probe_manager.add_probe(probe)).to be false
@@ -286,10 +286,10 @@ RSpec.describe 'Instrumentation integration' do
                 id: String,
                 timestamp: Integer,
                 evaluationErrors: [],
-                probe: {id: '1234', version: 0, location: {
-                  method: 'test_method', type: 'InstrumentationDelayedDerivedTestClass',
+                probe: {id: "1234", version: 0, location: {
+                  method: "test_method", type: "InstrumentationDelayedDerivedTestClass",
                 }},
-                language: 'ruby',
+                language: "ruby",
                 stack: Array,
                 captures: {},
               )
@@ -297,14 +297,14 @@ RSpec.describe 'Instrumentation integration' do
           end
         end
 
-        context 'when class exists without target method and method is defined after probe is added to probe manager' do
+        context "when class exists without target method and method is defined after probe is added to probe manager" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              type_name: 'InstrumentationDelayedPartialTestClass', method_name: 'test_method',
+              type_name: "InstrumentationDelayedPartialTestClass", method_name: "test_method",
               capture_snapshot: false,)
           end
 
-          it 'invokes probe and creates expected snapshot' do
+          it "invokes probe and creates expected snapshot" do
             class InstrumentationDelayedPartialTestClass # rubocop:disable Lint/ConstantDefinitionInBlock
               # test_method should not be defined here
             end
@@ -332,10 +332,10 @@ RSpec.describe 'Instrumentation integration' do
               id: String,
               timestamp: Integer,
               evaluationErrors: [],
-              probe: {id: '1234', version: 0, location: {
-                method: 'test_method', type: 'InstrumentationDelayedPartialTestClass',
+              probe: {id: "1234", version: 0, location: {
+                method: "test_method", type: "InstrumentationDelayedPartialTestClass",
               }},
-              language: 'ruby',
+              language: "ruby",
               # TODO the stack trace here does not contain the target method
               # as the first frame - see the comment in Instrumenter.
               stack: Array,
@@ -344,14 +344,14 @@ RSpec.describe 'Instrumentation integration' do
           end
         end
 
-        context 'when class exists and target method is virtual' do
+        context "when class exists and target method is virtual" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              type_name: 'InstrumentationVirtualTestClass', method_name: 'test_method',
+              type_name: "InstrumentationVirtualTestClass", method_name: "test_method",
               capture_snapshot: false,)
           end
 
-          it 'invokes probe and creates expected snapshot' do
+          it "invokes probe and creates expected snapshot" do
             class InstrumentationVirtualTestClass # rubocop:disable Lint/ConstantDefinitionInBlock
               def method_missing(name) # rubocop:disable Style/MissingRespondToMissing
                 name
@@ -375,10 +375,10 @@ RSpec.describe 'Instrumentation integration' do
               id: String,
               timestamp: Integer,
               evaluationErrors: [],
-              probe: {id: '1234', version: 0, location: {
-                method: 'test_method', type: 'InstrumentationVirtualTestClass',
+              probe: {id: "1234", version: 0, location: {
+                method: "test_method", type: "InstrumentationVirtualTestClass",
               }},
-              language: 'ruby',
+              language: "ruby",
               # TODO the stack trace here does not contain the target method
               # as the first frame - see the comment in Instrumenter.
               stack: Array,
@@ -388,10 +388,10 @@ RSpec.describe 'Instrumentation integration' do
         end
       end
 
-      context 'enriched probe' do
+      context "enriched probe" do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
-            type_name: 'InstrumentationSpecTestClass', method_name: 'test_method',
+            type_name: "InstrumentationSpecTestClass", method_name: "test_method",
             capture_snapshot: true,)
         end
 
@@ -399,25 +399,25 @@ RSpec.describe 'Instrumentation integration' do
           {
             entry: {arguments: {
               self: {
-                type: 'InstrumentationSpecTestClass',
+                type: "InstrumentationSpecTestClass",
                 fields: {
-                  "@ivar": {type: 'String', value: 'start value'},
+                  "@ivar": {type: "String", value: "start value"},
                 },
               },
             }},
             return: {arguments: {
               self: {
-                type: 'InstrumentationSpecTestClass',
+                type: "InstrumentationSpecTestClass",
                 fields: {
-                  "@ivar": {type: 'String', value: 'start value'},
+                  "@ivar": {type: "String", value: "start value"},
                 },
               },
-              "@return": {type: 'Integer', value: '42'},
+              "@return": {type: "Integer", value: "42"},
             }, throwable: nil},
           }
         end
 
-        it 'invokes probe' do
+        it "invokes probe" do
           expect(diagnostics_transport).to receive(:send_diagnostics)
           expect(input_transport).to receive(:send_input)
           probe_manager.add_probe(probe)
@@ -444,16 +444,16 @@ RSpec.describe 'Instrumentation integration' do
           expect(captures).to eq(expected_captures)
         end
 
-        it 'assembles expected notification payload' do
+        it "assembles expected notification payload" do
           run_test do
             expect(InstrumentationSpecTestClass.new.test_method).to eq(42)
           end
         end
 
-        context 'when argument is mutated by method' do
+        context "when argument is mutated by method" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              type_name: 'InstrumentationSpecTestClass', method_name: 'mutating_method',
+              type_name: "InstrumentationSpecTestClass", method_name: "mutating_method",
               capture_snapshot: true,)
           end
 
@@ -461,11 +461,11 @@ RSpec.describe 'Instrumentation integration' do
             {
               entry: {
                 arguments: {
-                  arg1: {type: 'String', value: 'hello world'},
+                  arg1: {type: "String", value: "hello world"},
                   self: {
-                    type: 'InstrumentationSpecTestClass',
+                    type: "InstrumentationSpecTestClass",
                     fields: {
-                      "@ivar": {type: 'String', value: 'start value'},
+                      "@ivar": {type: "String", value: "start value"},
                     },
                   },
                 },
@@ -473,33 +473,33 @@ RSpec.describe 'Instrumentation integration' do
               return: {
                 arguments: {
                   self: {
-                    type: 'InstrumentationSpecTestClass',
+                    type: "InstrumentationSpecTestClass",
                     fields: {
-                      "@ivar": {type: 'String', value: 'start value'},
+                      "@ivar": {type: "String", value: "start value"},
                     },
                   },
-                  "@return": {type: 'String', value: 'bye world'},
+                  "@return": {type: "String", value: "bye world"},
                 },
                 throwable: nil,
               },
             }
           end
 
-          it 'captures original argument value at entry' do
+          it "captures original argument value at entry" do
             run_test do
-              expect(InstrumentationSpecTestClass.new.mutating_method('hello world')).to eq('bye world')
+              expect(InstrumentationSpecTestClass.new.mutating_method("hello world")).to eq("bye world")
             end
           end
         end
 
-        context 'when method raises an exception' do
+        context "when method raises an exception" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              type_name: 'InstrumentationSpecTestClass', method_name: 'exception_method',
+              type_name: "InstrumentationSpecTestClass", method_name: "exception_method",
               capture_snapshot: true,)
           end
 
-          it 'populates throwable in captures' do
+          it "populates throwable in captures" do
             expect(diagnostics_transport).to receive(:send_diagnostics)
             probe_manager.add_probe(probe)
             payload = nil
@@ -516,17 +516,17 @@ RSpec.describe 'Instrumentation integration' do
             expect(payload).to be_a(Hash)
             captures = payload.fetch(:debugger).fetch(:snapshot).fetch(:captures)
             throwable = captures.fetch(:return).fetch(:throwable)
-            expect(throwable[:type]).to eq('InstrumentationSpecTestClass::TestException')
-            expect(throwable[:message]).to eq('Test exception')
+            expect(throwable[:type]).to eq("InstrumentationSpecTestClass::TestException")
+            expect(throwable[:message]).to eq("Test exception")
             expect(throwable[:stacktrace]).to be_an(Array)
             expect(throwable[:stacktrace]).not_to be_empty
           end
         end
 
-        context 'when instance variable is mutated by method' do
+        context "when instance variable is mutated by method" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              type_name: 'InstrumentationSpecTestClass', method_name: 'ivar_mutating_method',
+              type_name: "InstrumentationSpecTestClass", method_name: "ivar_mutating_method",
               capture_snapshot: true,)
           end
 
@@ -534,39 +534,39 @@ RSpec.describe 'Instrumentation integration' do
             {
               entry: {arguments: {
                 self: {
-                  type: 'InstrumentationSpecTestClass',
+                  type: "InstrumentationSpecTestClass",
                   fields: {
-                    "@ivar": {type: 'String', value: 'start value'},
+                    "@ivar": {type: "String", value: "start value"},
                   },
                 },
               }},
               return: {arguments: {
                 self: {
-                  type: 'InstrumentationSpecTestClass',
+                  type: "InstrumentationSpecTestClass",
                   fields: {
-                    "@ivar": {type: 'String', value: 'altered value'},
+                    "@ivar": {type: "String", value: "altered value"},
                   },
                 },
-                "@return": {type: 'String', value: 'altered value'},
+                "@return": {type: "String", value: "altered value"},
               }, throwable: nil},
             }
           end
 
-          it 'captures original instance variable value at entry' do
+          it "captures original instance variable value at entry" do
             run_test do
-              expect(InstrumentationSpecTestClass.new.ivar_mutating_method).to eq('altered value')
+              expect(InstrumentationSpecTestClass.new.ivar_mutating_method).to eq("altered value")
             end
           end
         end
       end
 
-      context 'when target is invoked' do
+      context "when target is invoked" do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
-            type_name: 'InstrumentationSpecTestClass', method_name: 'test_method')
+            type_name: "InstrumentationSpecTestClass", method_name: "test_method")
         end
 
-        it 'notifies agent that probe is emitting' do
+        it "notifies agent that probe is emitting" do
           expect(component.probe_notifier_worker).to receive(:add_status) do |status|
             expect(status).to match(expected_installed_payload)
           end
@@ -579,8 +579,8 @@ RSpec.describe 'Instrumentation integration' do
           component.probe_notifier_worker.flush
         end
 
-        context 'when target is invoked multiple times' do
-          it 'notifies that probe is emitting only once at first invocation' do
+        context "when target is invoked multiple times" do
+          it "notifies that probe is emitting only once at first invocation" do
             expect(component.probe_notifier_worker).to receive(:add_status) do |status|
               expect(status).to match(expected_installed_payload)
             end
@@ -601,39 +601,39 @@ RSpec.describe 'Instrumentation integration' do
         end
       end
 
-      context 'when message template references special variables' do
+      context "when message template references special variables" do
         let(:probe) do
           Datadog::DI::ProbeBuilder.build_from_remote_config(JSON.parse(probe_spec.to_json))
         end
 
         let(:probe_spec) do
           {
-            id: '1234',
-            type: 'LOG_PROBE',
-            where: {typeName: 'InstrumentationSpecTestClass', methodName: 'test_method'},
+            id: "1234",
+            type: "LOG_PROBE",
+            where: {typeName: "InstrumentationSpecTestClass", methodName: "test_method"},
             segments: segments,
           }
         end
 
-        context '@duration' do
+        context "@duration" do
           let(:segments) do
             [
-              {str: 'hello '},
-              {json: {ref: '@duration'}, dsl: '@duration'},
-              {str: ' ms'},
+              {str: "hello "},
+              {json: {ref: "@duration"}, dsl: "@duration"},
+              {str: " ms"},
             ]
           end
 
           let(:probe_spec) do
             {
-              id: '1234',
-              type: 'LOG_PROBE',
-              where: {typeName: 'InstrumentationSpecTestClass', methodName: 'long_test_method'},
+              id: "1234",
+              type: "LOG_PROBE",
+              where: {typeName: "InstrumentationSpecTestClass", methodName: "long_test_method"},
               segments: segments,
             }
           end
 
-          it 'substitutes the expected value' do
+          it "substitutes the expected value" do
             probe_manager.add_probe(probe)
 
             expect(component.probe_notifier_worker).to receive(:add_status) do |status|
@@ -661,38 +661,38 @@ RSpec.describe 'Instrumentation integration' do
           end
         end
 
-        context '@return' do
+        context "@return" do
           let(:segments) do
             [
-              {str: 'hello '},
-              {json: {ref: '@return'}, dsl: '@return'},
+              {str: "hello "},
+              {json: {ref: "@return"}, dsl: "@return"},
             ]
           end
 
-          it 'substitutes the expected value' do
+          it "substitutes the expected value" do
             probe_manager.add_probe(probe)
 
             expect(component.probe_notifier_worker).to receive(:add_status) do |status|
               expect(status).to match(expected_emitting_payload)
             end
             expect(component.probe_notifier_worker).to receive(:add_snapshot) do |snapshot|
-              expect(snapshot.fetch(:message)).to eq 'hello 42'
+              expect(snapshot.fetch(:message)).to eq "hello 42"
             end
             expect(InstrumentationSpecTestClass.new.test_method).to eq(42)
             component.probe_notifier_worker.flush
           end
         end
 
-        context '@exception' do
+        context "@exception" do
           let(:segments) do
             [
-              {str: 'hello '},
-              {json: {ref: '@exception'}, dsl: '@exception'},
+              {str: "hello "},
+              {json: {ref: "@exception"}, dsl: "@exception"},
             ]
           end
 
-          context 'when method does not raise an exception' do
-            it 'substitutes nil' do
+          context "when method does not raise an exception" do
+            it "substitutes nil" do
               probe_manager.add_probe(probe)
 
               expect(component.probe_notifier_worker).to receive(:add_status) do |status|
@@ -700,31 +700,31 @@ RSpec.describe 'Instrumentation integration' do
               end
               expect(component.probe_notifier_worker).to receive(:add_snapshot) do |snapshot|
                 # TODO should we serialize nil as empty string?
-                expect(snapshot.fetch(:message)).to eq 'hello nil'
+                expect(snapshot.fetch(:message)).to eq "hello nil"
               end
               expect(InstrumentationSpecTestClass.new.test_method).to eq(42)
               component.probe_notifier_worker.flush
             end
           end
 
-          context 'when method does raises an exception' do
+          context "when method does raises an exception" do
             let(:probe_spec) do
               {
-                id: '1234',
-                type: 'LOG_PROBE',
-                where: {typeName: 'InstrumentationSpecTestClass', methodName: 'exception_method'},
+                id: "1234",
+                type: "LOG_PROBE",
+                where: {typeName: "InstrumentationSpecTestClass", methodName: "exception_method"},
                 segments: segments,
               }
             end
 
-            it 'substitutes the expected value' do
+            it "substitutes the expected value" do
               probe_manager.add_probe(probe)
 
               expect(component.probe_notifier_worker).to receive(:add_status) do |status|
                 expect(status).to match(expected_emitting_payload)
               end
               expect(component.probe_notifier_worker).to receive(:add_snapshot) do |snapshot|
-                expect(snapshot.fetch(:message)).to eq 'hello #<InstrumentationSpecTestClass::TestException>'
+                expect(snapshot.fetch(:message)).to eq "hello #<InstrumentationSpecTestClass::TestException>"
               end
               expect do
                 InstrumentationSpecTestClass.new.exception_method
@@ -736,7 +736,7 @@ RSpec.describe 'Instrumentation integration' do
         end
       end
 
-      context 'circuit breaker' do
+      context "circuit breaker" do
         before do
           # Set very low threshold to trigger circuit breaker
           settings.dynamic_instrumentation.internal.max_processing_time = 1e-8
@@ -746,35 +746,35 @@ RSpec.describe 'Instrumentation integration' do
           Datadog::DI::Probe.new(
             id: "circuit-breaker-test",
             type: :log,
-            type_name: 'InstrumentationSpecTestClass',
-            method_name: 'mutating_method',
+            type_name: "InstrumentationSpecTestClass",
+            method_name: "mutating_method",
             capture_snapshot: true,
           )
         end
 
         let(:expected_disabled_payload) do
           {
-            ddsource: 'dd_debugger',
+            ddsource: "dd_debugger",
             debugger: {
               diagnostics: {
                 parentId: nil,
-                probeId: 'circuit-breaker-test',
+                probeId: "circuit-breaker-test",
                 probeVersion: 0,
                 runtimeId: String,
-                status: 'ERROR',
+                status: "ERROR",
                 exception: {
-                  type: 'Error',
+                  type: "Error",
                   message: String,
                 },
               }
             },
             message: /Probe circuit-breaker-test was disabled because it consumed .+ seconds of CPU time in DI processing/,
-            service: 'rspec',
+            service: "rspec",
             timestamp: Integer,
           }
         end
 
-        it 'disables probe after first execution and sends disabled status notification' do
+        it "disables probe after first execution and sends disabled status notification" do
           # Generate a deeply nested hash (10 keys per level, 5 levels deep)
           deep_hash = generate_deep_hash(10, 5)
 
@@ -800,9 +800,9 @@ RSpec.describe 'Instrumentation integration' do
           # Verify we got INSTALLED, EMITTING, and ERROR (disabled) status notifications
           expect(status_payloads.length).to be >= 3
 
-          installed_payload = status_payloads.find { |p| p.dig(:debugger, :diagnostics, :status) == 'INSTALLED' }
-          emitting_payload = status_payloads.find { |p| p.dig(:debugger, :diagnostics, :status) == 'EMITTING' }
-          disabled_payload = status_payloads.find { |p| p.dig(:debugger, :diagnostics, :status) == 'ERROR' }
+          installed_payload = status_payloads.find { |p| p.dig(:debugger, :diagnostics, :status) == "INSTALLED" }
+          emitting_payload = status_payloads.find { |p| p.dig(:debugger, :diagnostics, :status) == "EMITTING" }
+          disabled_payload = status_payloads.find { |p| p.dig(:debugger, :diagnostics, :status) == "ERROR" }
 
           expect(installed_payload).not_to be_nil
           expect(emitting_payload).not_to be_nil
@@ -824,23 +824,23 @@ RSpec.describe 'Instrumentation integration' do
       end
     end
 
-    context 'line probe' do
+    context "line probe" do
       with_code_tracking
 
-      context 'simple log probe' do
+      context "simple log probe" do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
-            file: 'instrumentation_integration_test_class.rb', line_no: 40,
+            file: "instrumentation_integration_test_class.rb", line_no: 40,
             capture_snapshot: false,)
         end
 
         before do
           Object.send(:remove_const, :InstrumentationIntegrationTestClass) rescue nil
-          load File.join(File.dirname(__FILE__), 'instrumentation_integration_test_class.rb')
+          load File.join(File.dirname(__FILE__), "instrumentation_integration_test_class.rb")
         end
 
-        shared_examples 'simple log probe' do
-          it 'invokes probe' do
+        shared_examples "simple log probe" do
+          it "invokes probe" do
             expect(diagnostics_transport).to receive(:send_diagnostics)
             # add_snapshot expectation replaces assertion on send_input
             probe_manager.add_probe(probe)
@@ -850,7 +850,7 @@ RSpec.describe 'Instrumentation integration' do
             expect(InstrumentationIntegrationTestClass.new.test_method).to eq(42)
           end
 
-          describe 'payload' do
+          describe "payload" do
             let(:payload) do
               probe_manager.add_probe(probe)
               payload = nil
@@ -867,7 +867,7 @@ RSpec.describe 'Instrumentation integration' do
               payload.fetch(:debugger).fetch(:snapshot)
             end
 
-            it 'does not have captures' do
+            it "does not have captures" do
               expect(diagnostics_transport).to receive(:send_diagnostics)
               # add_snapshot expectation replaces assertion on send_input
               expect(snapshot.fetch(:captures)).to eq({})
@@ -881,34 +881,34 @@ RSpec.describe 'Instrumentation integration' do
               stack.first
             end
 
-            it 'has instrumented location as top stack frame' do
+            it "has instrumented location as top stack frame" do
               expect(diagnostics_transport).to receive(:send_diagnostics)
               # add_snapshot expectation replaces assertion on send_input
-              expect(File.basename(top_stack_frame.fetch(:fileName))).to eq 'instrumentation_integration_test_class.rb'
+              expect(File.basename(top_stack_frame.fetch(:fileName))).to eq "instrumentation_integration_test_class.rb"
             end
           end
         end
 
-        include_examples 'simple log probe'
+        include_examples "simple log probe"
 
-        context 'target line is the end line of a method' do
+        context "target line is the end line of a method" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 42,
+              file: "instrumentation_integration_test_class.rb", line_no: 42,
               capture_snapshot: false,)
           end
 
-          include_examples 'simple log probe'
+          include_examples "simple log probe"
         end
 
-        context 'target line is the end line of a block' do
+        context "target line is the end line of a block" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 53,
+              file: "instrumentation_integration_test_class.rb", line_no: 53,
               capture_snapshot: false,)
           end
 
-          it 'invokes probe' do
+          it "invokes probe" do
             expect(diagnostics_transport).to receive(:send_diagnostics)
             expect(input_transport).to receive(:send_input)
             probe_manager.add_probe(probe)
@@ -919,7 +919,7 @@ RSpec.describe 'Instrumentation integration' do
             component.probe_notifier_worker.flush
           end
 
-          describe 'payload' do
+          describe "payload" do
             let(:payload) do
               probe_manager.add_probe(probe)
               payload = nil
@@ -936,7 +936,7 @@ RSpec.describe 'Instrumentation integration' do
               payload.fetch(:debugger).fetch(:snapshot)
             end
 
-            it 'does not have captures' do
+            it "does not have captures" do
               expect(diagnostics_transport).to receive(:send_diagnostics)
               # add_snapshot expectation replaces assertion on send_input
               expect(snapshot.fetch(:captures)).to eq({})
@@ -950,16 +950,16 @@ RSpec.describe 'Instrumentation integration' do
               stack.first
             end
 
-            it 'has instrumented location as top stack frame' do
+            it "has instrumented location as top stack frame" do
               expect(diagnostics_transport).to receive(:send_diagnostics)
               # add_snapshot expectation replaces assertion on send_input
-              expect(File.basename(top_stack_frame.fetch(:fileName))).to eq 'instrumentation_integration_test_class.rb'
+              expect(File.basename(top_stack_frame.fetch(:fileName))).to eq "instrumentation_integration_test_class.rb"
             end
           end
         end
 
-        shared_examples 'installs but does not invoke probe' do
-          it 'installs but does not invoke probe' do
+        shared_examples "installs but does not invoke probe" do
+          it "installs but does not invoke probe" do
             expect(diagnostics_transport).to receive(:send_diagnostics)
             expect(input_transport).not_to receive(:send_input)
             probe_manager.add_probe(probe)
@@ -971,10 +971,10 @@ RSpec.describe 'Instrumentation integration' do
           end
         end
 
-        context 'target line is else of a conditional' do
+        context "target line is else of a conditional" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 64,
+              file: "instrumentation_integration_test_class.rb", line_no: 64,
               capture_snapshot: false,)
           end
 
@@ -982,13 +982,13 @@ RSpec.describe 'Instrumentation integration' do
             expect(InstrumentationIntegrationTestClass.new.test_method_with_conditional).to eq(1)
           end
 
-          include_examples 'installs but does not invoke probe'
+          include_examples "installs but does not invoke probe"
         end
 
-        context 'target line is end of a conditional' do
+        context "target line is end of a conditional" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 66,
+              file: "instrumentation_integration_test_class.rb", line_no: 66,
               capture_snapshot: false,)
           end
 
@@ -996,27 +996,27 @@ RSpec.describe 'Instrumentation integration' do
             expect(InstrumentationIntegrationTestClass.new.test_method_with_conditional).to eq(1)
           end
 
-          include_examples 'installs but does not invoke probe'
+          include_examples "installs but does not invoke probe"
         end
 
-        context 'target line contains a comment (no executable code)' do
+        context "target line contains a comment (no executable code)" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 70,
+              file: "instrumentation_integration_test_class.rb", line_no: 70,
               capture_snapshot: false,)
           end
 
           # We currently are not told that the line is not executable.
-          it 'installs probe' do
+          it "installs probe" do
             expect(probe_manager.add_probe(probe)).to be true
             expect(probe_manager.probe_repository.installed_probes.length).to eq 1
           end
         end
 
-        context 'target line is in a loaded file that is not in code tracker' do
+        context "target line is in a loaded file that is not in code tracker" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 53,
+              file: "instrumentation_integration_test_class.rb", line_no: 53,
               capture_snapshot: false,)
           end
 
@@ -1026,9 +1026,9 @@ RSpec.describe 'Instrumentation integration' do
             # use 'require'.
             # Note that the other tests use 'load' because they want the
             # code to always be loaded.
-            require_relative 'instrumentation_integration_test_class'
+            require_relative "instrumentation_integration_test_class"
             expect($LOADED_FEATURES.detect do |path|
-              File.basename(path) == 'instrumentation_integration_test_class.rb'
+              File.basename(path) == "instrumentation_integration_test_class.rb"
             end).to be_truthy
             component.code_tracker.clear
 
@@ -1037,7 +1037,7 @@ RSpec.describe 'Instrumentation integration' do
             settings.dynamic_instrumentation.internal.propagate_all_exceptions = false
           end
 
-          it 'does not install the probe' do
+          it "does not install the probe" do
             expect_lazy_log(probe_manager.logger, :debug, /no surviving iseqs|no per-method iseqs/)
             expect do
               probe_manager.add_probe(probe)
@@ -1047,28 +1047,28 @@ RSpec.describe 'Instrumentation integration' do
         end
       end
 
-      context 'enriched probe' do
+      context "enriched probe" do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
-            file: 'instrumentation_integration_test_class.rb', line_no: 40,
+            file: "instrumentation_integration_test_class.rb", line_no: 40,
             capture_snapshot: true,)
         end
 
         let(:expected_captures) do
           {lines: {40 => {
             locals: {
-              a: {type: 'Integer', value: '21'},
-              password: {type: 'String', notCapturedReason: 'redactedIdent'},
-              redacted: {type: 'Hash', entries: [
-                [{type: 'Symbol', value: 'b'}, {type: 'Integer', value: '33'}],
-                [{type: 'Symbol', value: 'session'}, {type: 'String', notCapturedReason: 'redactedIdent'}],
+              a: {type: "Integer", value: "21"},
+              password: {type: "String", notCapturedReason: "redactedIdent"},
+              redacted: {type: "Hash", entries: [
+                [{type: "Symbol", value: "b"}, {type: "Integer", value: "33"}],
+                [{type: "Symbol", value: "session"}, {type: "String", notCapturedReason: "redactedIdent"}],
               ]},
             },
             arguments: {
               self: {
-                type: 'InstrumentationIntegrationTestClass',
+                type: "InstrumentationIntegrationTestClass",
                 fields: {
-                  "@ivar": {type: 'Integer', value: '51'},
+                  "@ivar": {type: "Integer", value: "51"},
                 },
               },
             },
@@ -1077,10 +1077,10 @@ RSpec.describe 'Instrumentation integration' do
 
         before do
           Object.send(:remove_const, :InstrumentationIntegrationTestClass) rescue nil
-          load File.join(File.dirname(__FILE__), 'instrumentation_integration_test_class.rb')
+          load File.join(File.dirname(__FILE__), "instrumentation_integration_test_class.rb")
         end
 
-        it 'invokes probe' do
+        it "invokes probe" do
           expect(diagnostics_transport).to receive(:send_diagnostics)
           expect(input_transport).to receive(:send_input)
           probe_manager.add_probe(probe)
@@ -1089,8 +1089,8 @@ RSpec.describe 'Instrumentation integration' do
           component.probe_notifier_worker.flush
         end
 
-        shared_examples 'assembles expected notification payload' do
-          it 'assembles expected notification payload' do
+        shared_examples "assembles expected notification payload" do
+          it "assembles expected notification payload" do
             expect(diagnostics_transport).to receive(:send_diagnostics)
             # add_snapshot expectation replaces assertion on send_input
             probe_manager.add_probe(probe)
@@ -1109,12 +1109,12 @@ RSpec.describe 'Instrumentation integration' do
 
         let(:test_method_name) { :test_method }
 
-        include_examples 'assembles expected notification payload'
+        include_examples "assembles expected notification payload"
 
-        context 'when there are instance variables but no local variables' do
+        context "when there are instance variables but no local variables" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 27,
+              file: "instrumentation_integration_test_class.rb", line_no: 27,
               capture_snapshot: true,)
           end
 
@@ -1124,9 +1124,9 @@ RSpec.describe 'Instrumentation integration' do
               locals: {},
               arguments: {
                 self: {
-                  type: 'InstrumentationIntegrationTestClass',
+                  type: "InstrumentationIntegrationTestClass",
                   fields: {
-                    "@ivar": {type: 'Integer', value: '51'},
+                    "@ivar": {type: "Integer", value: "51"},
                   },
                 },
               },
@@ -1135,20 +1135,20 @@ RSpec.describe 'Instrumentation integration' do
 
           let(:test_method_name) { :method_with_no_locals }
 
-          include_examples 'assembles expected notification payload'
+          include_examples "assembles expected notification payload"
         end
       end
 
-      context 'when target file is not loaded initially and is loaded later' do
-        context 'when code tracking is available' do
+      context "when target file is not loaded initially and is loaded later" do
+        context "when code tracking is available" do
           with_code_tracking
 
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class_2.rb', line_no: 10,)
+              file: "instrumentation_integration_test_class_2.rb", line_no: 10,)
           end
 
-          it 'instruments file when it is loaded' do
+          it "instruments file when it is loaded" do
             probe_manager.add_probe(probe)
 
             expect(probe_manager.probe_repository.pending_probes.length).to eq 1
@@ -1158,7 +1158,7 @@ RSpec.describe 'Instrumentation integration' do
             expect(diagnostics_transport).to receive(:send_diagnostics)
             expect(input_transport).to receive(:send_input)
 
-            require_relative 'instrumentation_integration_test_class_2'
+            require_relative "instrumentation_integration_test_class_2"
 
             expect(probe_manager.probe_repository.pending_probes.length).to eq 0
             expect(probe_manager.probe_repository.installed_probes.length).to eq 1
@@ -1171,13 +1171,13 @@ RSpec.describe 'Instrumentation integration' do
           end
         end
 
-        context 'when code tracking is not available' do
+        context "when code tracking is not available" do
           without_code_tracking
 
-          context 'untargeted trace points enabled' do
+          context "untargeted trace points enabled" do
             let(:probe) do
               Datadog::DI::Probe.new(id: "1234", type: :log,
-                file: 'instrumentation_integration_test_class_3.rb', line_no: 10,)
+                file: "instrumentation_integration_test_class_3.rb", line_no: 10,)
             end
 
             before do
@@ -1188,7 +1188,7 @@ RSpec.describe 'Instrumentation integration' do
               settings.dynamic_instrumentation.internal.untargeted_trace_points = false
             end
 
-            it 'instruments file immediately' do
+            it "instruments file immediately" do
               expect(diagnostics_transport).to receive(:send_diagnostics)
               expect(input_transport).to receive(:send_input)
 
@@ -1198,7 +1198,7 @@ RSpec.describe 'Instrumentation integration' do
               expect(probe_manager.probe_repository.installed_probes.length).to eq 1
 
               # This require does not change instrumentation
-              require_relative 'instrumentation_integration_test_class_3'
+              require_relative "instrumentation_integration_test_class_3"
 
               expect(probe_manager.probe_repository.pending_probes.length).to eq 0
               expect(probe_manager.probe_repository.installed_probes.length).to eq 1
@@ -1211,23 +1211,23 @@ RSpec.describe 'Instrumentation integration' do
             end
           end
 
-          context 'untargeted trace points disabled' do
+          context "untargeted trace points disabled" do
             let(:probe) do
               Datadog::DI::Probe.new(id: "1234", type: :log,
-                file: 'instrumentation_integration_test_class_4.rb', line_no: 20,)
+                file: "instrumentation_integration_test_class_4.rb", line_no: 20,)
             end
 
             before do
               settings.dynamic_instrumentation.internal.untargeted_trace_points = false
             end
 
-            it 'does not instrument file when it is loaded' do
+            it "does not instrument file when it is loaded" do
               probe_manager.add_probe(probe)
 
               expect(probe_manager.probe_repository.pending_probes.length).to eq 1
               expect(probe_manager.probe_repository.installed_probes.length).to eq 0
 
-              require_relative 'instrumentation_integration_test_class_4'
+              require_relative "instrumentation_integration_test_class_4"
 
               expect(probe_manager.probe_repository.pending_probes.length).to eq 1
               expect(probe_manager.probe_repository.installed_probes.length).to eq 0
@@ -1242,19 +1242,19 @@ RSpec.describe 'Instrumentation integration' do
         end
       end
 
-      context 'when target is invoked' do
+      context "when target is invoked" do
         before do
           Object.send(:remove_const, :InstrumentationIntegrationTestClass) rescue nil
-          load File.join(File.dirname(__FILE__), 'instrumentation_integration_test_class.rb')
+          load File.join(File.dirname(__FILE__), "instrumentation_integration_test_class.rb")
         end
 
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
-            file: 'instrumentation_integration_test_class.rb', line_no: 40,
+            file: "instrumentation_integration_test_class.rb", line_no: 40,
             capture_snapshot: false,)
         end
 
-        it 'notifies agent that probe is emitting' do
+        it "notifies agent that probe is emitting" do
           expect(component.probe_notifier_worker).to receive(:add_status) do |status|
             expect(status).to match(expected_installed_payload)
           end
@@ -1268,8 +1268,8 @@ RSpec.describe 'Instrumentation integration' do
           component.probe_notifier_worker.flush
         end
 
-        context 'when target is invoked multiple times' do
-          it 'notifies that probe is emitting only once at first invocation' do
+        context "when target is invoked multiple times" do
+          it "notifies that probe is emitting only once at first invocation" do
             expect(component.probe_notifier_worker).to receive(:add_status) do |status|
               expect(status).to match(expected_installed_payload)
             end
@@ -1290,7 +1290,7 @@ RSpec.describe 'Instrumentation integration' do
         end
       end
 
-      context 'circuit breaker' do
+      context "circuit breaker" do
         with_code_tracking
 
         before do
@@ -1298,14 +1298,14 @@ RSpec.describe 'Instrumentation integration' do
           settings.dynamic_instrumentation.internal.max_processing_time = 1e-8
 
           Object.send(:remove_const, :InstrumentationIntegrationTestClass) rescue nil
-          load File.join(File.dirname(__FILE__), 'instrumentation_integration_test_class.rb')
+          load File.join(File.dirname(__FILE__), "instrumentation_integration_test_class.rb")
         end
 
         let(:probe) do
           Datadog::DI::Probe.new(
             id: "circuit-breaker-line-test",
             type: :log,
-            file: 'instrumentation_integration_test_class.rb',
+            file: "instrumentation_integration_test_class.rb",
             line_no: 63,
             capture_snapshot: true,
           )
@@ -1313,27 +1313,27 @@ RSpec.describe 'Instrumentation integration' do
 
         let(:expected_disabled_payload) do
           {
-            ddsource: 'dd_debugger',
+            ddsource: "dd_debugger",
             debugger: {
               diagnostics: {
                 parentId: nil,
-                probeId: 'circuit-breaker-line-test',
+                probeId: "circuit-breaker-line-test",
                 probeVersion: 0,
                 runtimeId: String,
-                status: 'ERROR',
+                status: "ERROR",
                 exception: {
-                  type: 'Error',
+                  type: "Error",
                   message: String,
                 },
               }
             },
             message: /Probe circuit-breaker-line-test was disabled because it consumed .+ seconds of CPU time in DI processing/,
-            service: 'rspec',
+            service: "rspec",
             timestamp: Integer,
           }
         end
 
-        it 'disables probe after first execution and sends disabled status notification' do
+        it "disables probe after first execution and sends disabled status notification" do
           # Generate a deeply nested hash (10 keys per level, 5 levels deep)
           deep_hash = generate_deep_hash(10, 5)
 
@@ -1362,9 +1362,9 @@ RSpec.describe 'Instrumentation integration' do
           # Verify we got INSTALLED, EMITTING, and ERROR (disabled) status notifications
           expect(status_payloads.length).to be >= 3
 
-          installed_payload = status_payloads.find { |p| p.dig(:debugger, :diagnostics, :status) == 'INSTALLED' }
-          emitting_payload = status_payloads.find { |p| p.dig(:debugger, :diagnostics, :status) == 'EMITTING' }
-          disabled_payload = status_payloads.find { |p| p.dig(:debugger, :diagnostics, :status) == 'ERROR' }
+          installed_payload = status_payloads.find { |p| p.dig(:debugger, :diagnostics, :status) == "INSTALLED" }
+          emitting_payload = status_payloads.find { |p| p.dig(:debugger, :diagnostics, :status) == "EMITTING" }
+          disabled_payload = status_payloads.find { |p| p.dig(:debugger, :diagnostics, :status) == "ERROR" }
 
           expect(installed_payload).not_to be_nil
           expect(emitting_payload).not_to be_nil
@@ -1387,21 +1387,21 @@ RSpec.describe 'Instrumentation integration' do
     end
   end
 
-  context 'binary data in snapshots' do
-    context 'with binary data in parameters' do
+  context "binary data in snapshots" do
+    context "with binary data in parameters" do
       let(:probe) do
         Datadog::DI::Probe.new(
           id: "binary-test",
           type: :log,
-          type_name: 'InstrumentationSpecTestClass',
-          method_name: 'binary_data_param_method',
+          type_name: "InstrumentationSpecTestClass",
+          method_name: "binary_data_param_method",
           capture_snapshot: true
         )
       end
 
       let(:binary_string) { "\x80\x81\x82\xFF\xFE".b }
 
-      it 'successfully sends snapshot with binary data through transport' do
+      it "successfully sends snapshot with binary data through transport" do
         expect(diagnostics_transport).to receive(:send_diagnostics)
 
         # Capture the snapshot that goes through transport
@@ -1440,7 +1440,7 @@ RSpec.describe 'Instrumentation integration' do
         expect(json_encoded.encoding).to eq(Encoding::UTF_8)
       end
 
-      it 'escapes binary data in parameters' do
+      it "escapes binary data in parameters" do
         expect(diagnostics_transport).to receive(:send_diagnostics)
 
         # Capture the snapshot before it gets to transport
@@ -1477,18 +1477,18 @@ RSpec.describe 'Instrumentation integration' do
       end
     end
 
-    context 'with binary return value' do
+    context "with binary return value" do
       let(:probe) do
         Datadog::DI::Probe.new(
           id: "binary-return-test",
           type: :log,
-          type_name: 'InstrumentationSpecTestClass',
-          method_name: 'binary_data_method',
+          type_name: "InstrumentationSpecTestClass",
+          method_name: "binary_data_method",
           capture_snapshot: true
         )
       end
 
-      it 'escapes binary return value' do
+      it "escapes binary return value" do
         expect(diagnostics_transport).to receive(:send_diagnostics)
 
         # Capture the snapshot before transport

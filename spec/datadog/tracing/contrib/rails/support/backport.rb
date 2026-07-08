@@ -17,7 +17,7 @@ module Datadog
                 end
                 patterns.each do |pattern|
                   ::ActiveSupport::Notifications.notifier.listeners_for(pattern).each do |listener|
-                    if listener.instance_variable_get('@delegate') == subscriber
+                    if listener.instance_variable_get("@delegate") == subscriber
                       ::ActiveSupport::Notifications.unsubscribe listener
                     end
                   end

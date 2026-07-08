@@ -1,15 +1,15 @@
 # Loaded by the `bin/rails` script in a real Rails application
-require 'rails/command'
+require "rails/command"
 
 # We may not always want to require rails/all, especially when we don't have a database.
 # Require is already always done where Rails test application is used, manually or through rails_helper.
 
-if ENV['USE_SIDEKIQ']
-  require 'sidekiq/testing'
-  require 'datadog/tracing/contrib/sidekiq/server_tracer'
+if ENV["USE_SIDEKIQ"]
+  require "sidekiq/testing"
+  require "datadog/tracing/contrib/sidekiq/server_tracer"
 end
 
-RSpec.shared_context 'Rails 5 test application' do
+RSpec.shared_context "Rails 5 test application" do
   let(:rails_base_application) do
     klass = Class.new(Rails::Application) do
       def config.database_configuration
@@ -22,15 +22,15 @@ RSpec.shared_context 'Rails 5 test application' do
     klass.send(:define_method, :initialize) do |*args|
       super(*args)
       redis_cache =
-        if Gem.loaded_specs['redis-activesupport']
-          [:redis_store, {url: ENV['REDIS_URL']}]
+        if Gem.loaded_specs["redis-activesupport"]
+          [:redis_store, {url: ENV["REDIS_URL"]}]
         else
-          [:redis_cache_store, {url: ENV['REDIS_URL']}]
+          [:redis_cache_store, {url: ENV["REDIS_URL"]}]
         end
-      file_cache = [:file_store, '/tmp/datadog-rb/cache/']
+      file_cache = [:file_store, "/tmp/datadog-rb/cache/"]
 
-      config.secret_key_base = 'f624861242e4ccf20eacb6bb48a886da'
-      config.cache_store = ENV['REDIS_URL'] ? redis_cache : file_cache
+      config.secret_key_base = "f624861242e4ccf20eacb6bb48a886da"
+      config.cache_store = ENV["REDIS_URL"] ? redis_cache : file_cache
       config.eager_load = false
       config.consider_all_requests_local = true
 
@@ -38,7 +38,7 @@ RSpec.shared_context 'Rails 5 test application' do
 
       if defined?(ActiveJob)
         config.active_job.queue_adapter = :inline
-        if ENV['USE_SIDEKIQ']
+        if ENV["USE_SIDEKIQ"]
           config.active_job.queue_adapter = :sidekiq
           # add Sidekiq middleware
           Sidekiq::Testing.server_middleware do |chain|
@@ -56,18 +56,18 @@ RSpec.shared_context 'Rails 5 test application' do
     klass.send(:define_method, :test_initialize!) do
       # we want to disable explicit instrumentation
       # when testing auto patching
-      if ENV['TEST_AUTO_INSTRUMENT'] == 'true'
-        require 'datadog/auto_instrument'
+      if ENV["TEST_AUTO_INSTRUMENT"] == "true"
+        require "datadog/auto_instrument"
       else
         # Enables the auto-instrumentation for the testing application
         Datadog.configure do |c|
           c.tracing.instrument :rails
-          c.tracing.instrument :redis if Gem.loaded_specs['redis'] && defined?(::Redis)
+          c.tracing.instrument :redis if Gem.loaded_specs["redis"] && defined?(::Redis)
         end
       end
 
       if Rails.application.config.respond_to?(:active_job)
-        Rails.application.config.active_job.queue_adapter = if ENV['USE_SIDEKIQ']
+        Rails.application.config.active_job.queue_adapter = if ENV["USE_SIDEKIQ"]
           :sidekiq
         else
           :inline
@@ -108,7 +108,7 @@ RSpec.shared_context 'Rails 5 test application' do
       allow_any_instance_of(::ActionDispatch::DebugExceptions).to receive(:render_exception) do |this, env, exception|
         wrapper = ::ActionDispatch::ExceptionWrapper.new(env, exception)
 
-        this.send(:render, wrapper.status_code, 'Test error response body', 'text/plain')
+        this.send(:render, wrapper.status_code, "Test error response body", "text/plain")
       end
     end
   end

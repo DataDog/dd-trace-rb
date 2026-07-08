@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require 'stringio'
-require 'rest_client'
-require 'datadog/appsec/spec_helper'
-require 'datadog/appsec/counter_sampler'
+require "stringio"
+require "rest_client"
+require "datadog/appsec/spec_helper"
+require "datadog/appsec/counter_sampler"
 
-RSpec.describe 'RestClient::Request patch for SSRF detection' do
+RSpec.describe "RestClient::Request patch for SSRF detection" do
   let(:context) do
     instance_double(
       Datadog::AppSec::Context,
@@ -34,222 +34,222 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
     WebMock.disable_net_connect!(allow: agent_url)
     WebMock.enable!(allow: agent_url)
 
-    stub_request(:post, 'http://example.com/text-plain?z=1')
+    stub_request(:post, "http://example.com/text-plain?z=1")
       .to_return(
         status: 200,
         body: '{"response":"OK"}',
         headers: {
-          'Content-Type' => 'text/plain',
-          'Set-Cookie' => ['a=1', 'b=2'],
-          'Via' => ['1.1 foo.io', '2.2 bar.io'],
-          'Age' => '1'
+          "Content-Type" => "text/plain",
+          "Set-Cookie" => ["a=1", "b=2"],
+          "Via" => ["1.1 foo.io", "2.2 bar.io"],
+          "Age" => "1"
         }
       )
 
-    stub_request(:post, 'http://example.com/application-json')
+    stub_request(:post, "http://example.com/application-json")
       .to_return(
         status: 200,
         body: '{"response":"OK"}',
-        headers: {'Content-Type' => 'application/json', 'Content-Length' => '17'}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "17"}
       )
 
-    stub_request(:post, 'http://example.com/invalid-json')
+    stub_request(:post, "http://example.com/invalid-json")
       .to_return(
         status: 200,
-        body: 'not json',
-        headers: {'Content-Type' => 'application/json', 'Content-Length' => '8'}
+        body: "not json",
+        headers: {"Content-Type" => "application/json", "Content-Length" => "8"}
       )
 
-    stub_request(:post, 'http://example.com/application-json-no-content-length')
-      .to_return(
-        status: 200,
-        body: '{"response":"OK"}',
-        headers: {'Content-Type' => 'application/json'}
-      )
-
-    stub_request(:post, 'http://example.com/application-json-zero-content-length')
+    stub_request(:post, "http://example.com/application-json-no-content-length")
       .to_return(
         status: 200,
         body: '{"response":"OK"}',
-        headers: {'Content-Type' => 'application/json', 'Content-Length' => '0'}
+        headers: {"Content-Type" => "application/json"}
       )
 
-    stub_request(:post, 'http://example.com/application-json-invalid-content-length')
+    stub_request(:post, "http://example.com/application-json-zero-content-length")
       .to_return(
         status: 200,
         body: '{"response":"OK"}',
-        headers: {'Content-Type' => 'application/json', 'Content-Length' => '12, 3'}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "0"}
       )
 
-    stub_request(:post, 'http://example.com/application-json-too-big')
+    stub_request(:post, "http://example.com/application-json-invalid-content-length")
       .to_return(
         status: 200,
         body: '{"response":"OK"}',
-        headers: {'Content-Type' => 'application/json', 'Content-Length' => '17'}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "12, 3"}
       )
 
-    stub_request(:post, 'http://example.com/application-json-content-length-lie')
+    stub_request(:post, "http://example.com/application-json-too-big")
       .to_return(
         status: 200,
         body: '{"response":"OK"}',
-        headers: {'Content-Type' => 'application/json', 'Content-Length' => '2'}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "17"}
       )
 
-    stub_request(:post, 'http://example.com/redirect-301')
+    stub_request(:post, "http://example.com/application-json-content-length-lie")
+      .to_return(
+        status: 200,
+        body: '{"response":"OK"}',
+        headers: {"Content-Type" => "application/json", "Content-Length" => "2"}
+      )
+
+    stub_request(:post, "http://example.com/redirect-301")
       .to_return(
         status: 301,
         body: '{"redirect":"body"}',
-        headers: {'Content-Type' => 'application/json', 'Location' => '/redirect-chain-finish'}
+        headers: {"Content-Type" => "application/json", "Location" => "/redirect-chain-finish"}
       )
 
-    stub_request(:post, 'http://example.com/redirect-302')
+    stub_request(:post, "http://example.com/redirect-302")
       .to_return(
         status: 302,
-        body: '<html>Redirecting...</html>',
-        headers: {'Content-Type' => 'text/html', 'Location' => 'http://example.com/application-json'}
+        body: "<html>Redirecting...</html>",
+        headers: {"Content-Type" => "text/html", "Location" => "http://example.com/application-json"}
       )
 
-    stub_request(:post, 'http://example.com/redirect-no-location')
+    stub_request(:post, "http://example.com/redirect-no-location")
       .to_return(
         status: 301,
         body: '{"redirect":"body"}',
-        headers: {'Content-Type' => 'application/json', 'Content-Length' => '19'}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "19"}
       )
 
-    stub_request(:get, 'http://example.com/redirect-chain-start')
+    stub_request(:get, "http://example.com/redirect-chain-start")
       .to_return(
         status: 301,
         body: '{"hop":"1"}',
-        headers: {'Content-Type' => 'application/json', 'Location' => 'http://example.com/redirect-chain-hop'}
+        headers: {"Content-Type" => "application/json", "Location" => "http://example.com/redirect-chain-hop"}
       )
 
-    stub_request(:get, 'http://example.com/redirect-chain-hop')
+    stub_request(:get, "http://example.com/redirect-chain-hop")
       .to_return(
         status: 302,
         body: '{"hop":"2"}',
-        headers: {'Content-Type' => 'application/json', 'Location' => '/redirect-chain-finish'}
+        headers: {"Content-Type" => "application/json", "Location" => "/redirect-chain-finish"}
       )
 
-    stub_request(:get, 'http://example.com/redirect-chain-finish')
+    stub_request(:get, "http://example.com/redirect-chain-finish")
       .to_return(
         status: 200,
         body: '{"final":"response"}',
-        headers: {'Content-Type' => 'application/json', 'Content-Length' => '20'}
+        headers: {"Content-Type" => "application/json", "Content-Length" => "20"}
       )
   end
 
   after { Datadog.configuration.reset! }
 
-  context 'when RASP is disabled' do
+  context "when RASP is disabled" do
     before { allow(Datadog::AppSec).to receive(:rasp_enabled?).and_return(false) }
 
-    it 'does not call waf when making a request' do
+    it "does not call waf when making a request" do
       expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
 
-      RestClient.post('http://example.com/text-plain?z=1', nil)
+      RestClient.post("http://example.com/text-plain?z=1", nil)
     end
   end
 
-  context 'when there is no active context' do
+  context "when there is no active context" do
     before { allow(Datadog::AppSec).to receive(:active_context).and_return(nil) }
 
-    it 'does not call waf when making a request' do
+    it "does not call waf when making a request" do
       expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
 
-      RestClient.post('http://example.com/text-plain?z=1', nil)
+      RestClient.post("http://example.com/text-plain?z=1", nil)
     end
   end
 
-  context 'when RASP is enabled' do
-    it 'calls waf with correct arguments when making a request' do
+  context "when RASP is enabled" do
+    it "calls waf with correct arguments when making a request" do
       expect(Datadog::AppSec.active_context).to receive(:run_rasp)
         .with(
-          'ssrf',
+          "ssrf",
           {},
           hash_including(
-            'server.io.net.url' => 'http://example.com/text-plain?z=1',
-            'server.io.net.request.method' => 'POST',
-            'server.io.net.request.headers' => hash_including(
-              'cookie' => 'x=1; y=2',
-              'accept' => 'text/plain, application/json',
-              'dnt' => '1'
+            "server.io.net.url" => "http://example.com/text-plain?z=1",
+            "server.io.net.request.method" => "POST",
+            "server.io.net.request.headers" => hash_including(
+              "cookie" => "x=1; y=2",
+              "accept" => "text/plain, application/json",
+              "dnt" => "1"
             )
           ),
           kind_of(Integer),
-          phase: 'request'
+          phase: "request"
         )
 
       expect(Datadog::AppSec.active_context).to receive(:run_rasp)
         .with(
-          'ssrf',
+          "ssrf",
           {},
           hash_including(
-            'server.io.net.response.status' => '200',
-            'server.io.net.response.headers' => hash_including(
-              'set-cookie' => 'a=1, b=2',
-              'via' => '1.1 foo.io, 2.2 bar.io',
-              'age' => '1'
+            "server.io.net.response.status" => "200",
+            "server.io.net.response.headers" => hash_including(
+              "set-cookie" => "a=1, b=2",
+              "via" => "1.1 foo.io, 2.2 bar.io",
+              "age" => "1"
             )
           ),
           kind_of(Integer),
-          phase: 'response'
+          phase: "response"
         )
 
       RestClient.post(
-        'http://example.com/text-plain?z=1',
+        "http://example.com/text-plain?z=1",
         nil,
-        {'Cookie' => 'x=1; y=2', 'Accept' => 'text/plain, application/json', 'DNT' => '1'}
+        {"Cookie" => "x=1; y=2", "Accept" => "text/plain, application/json", "DNT" => "1"}
       )
     end
 
-    it 'returns the http response' do
-      response = RestClient.post('http://example.com/text-plain?z=1', nil)
+    it "returns the http response" do
+      response = RestClient.post("http://example.com/text-plain?z=1", nil)
 
       expect(response.code).to eq(200)
       expect(response.body).to eq('{"response":"OK"}')
     end
   end
 
-  context 'when request body is nil' do
-    before { RestClient.post('http://example.com/application-json', nil, {'Content-Type' => 'application/json'}) }
+  context "when request body is nil" do
+    before { RestClient.post("http://example.com/application-json", nil, {"Content-Type" => "application/json"}) }
 
-    it 'excludes body from ephemeral data' do
+    it "excludes body from ephemeral data" do
       expect(context).to have_received(:run_rasp).with(
-        'ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'request'
+        "ssrf", {}, hash_not_including("server.io.net.request.body"), anything, phase: "request"
       )
     end
   end
 
-  context 'when request body is a String' do
-    context 'when JSON is valid' do
-      before { RestClient.post('http://example.com/application-json', '{"key":"value"}', {'Content-Type' => 'application/json'}) }
+  context "when request body is a String" do
+    context "when JSON is valid" do
+      before { RestClient.post("http://example.com/application-json", '{"key":"value"}', {"Content-Type" => "application/json"}) }
 
-      it 'does not include request body in ephemeral data' do
+      it "does not include request body in ephemeral data" do
         expect(context).to have_received(:run_rasp).with(
-          'ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'request'
+          "ssrf", {}, hash_not_including("server.io.net.request.body"), anything, phase: "request"
         )
       end
     end
 
-    context 'when JSON is invalid' do
+    context "when JSON is invalid" do
       before do
         allow(Datadog::AppSec.telemetry).to receive(:report)
 
-        RestClient.post('http://example.com/application-json', 'not json', {'Content-Type' => 'application/json'})
+        RestClient.post("http://example.com/application-json", "not json", {"Content-Type" => "application/json"})
       end
 
-      it 'does not include body in ephemeral data or report telemetry' do
+      it "does not include body in ephemeral data or report telemetry" do
         expect(context).to have_received(:run_rasp)
-          .with('ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'request')
+          .with("ssrf", {}, hash_not_including("server.io.net.request.body"), anything, phase: "request")
 
         expect(Datadog::AppSec.telemetry).not_to have_received(:report)
       end
     end
   end
 
-  context 'when request body is a non-rewindable stream' do
+  context "when request body is a non-rewindable stream" do
     before do
-      RestClient.post('http://example.com/application-json', non_rewindable_body, {'Content-Type' => 'application/json'})
+      RestClient.post("http://example.com/application-json", non_rewindable_body, {"Content-Type" => "application/json"})
     end
 
     let(:non_rewindable_body) do
@@ -259,173 +259,173 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
       end
     end
 
-    it 'does not include request body in ephemeral data' do
+    it "does not include request body in ephemeral data" do
       expect(context).to have_received(:run_rasp).with(
-        'ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'request'
+        "ssrf", {}, hash_not_including("server.io.net.request.body"), anything, phase: "request"
       )
     end
   end
 
-  context 'when request content-type is not JSON' do
-    before { RestClient.post('http://example.com/application-json', '{"key":"value"}', {'Content-Type' => 'text/plain'}) }
+  context "when request content-type is not JSON" do
+    before { RestClient.post("http://example.com/application-json", '{"key":"value"}', {"Content-Type" => "text/plain"}) }
 
-    it 'does not include request body in ephemeral data' do
+    it "does not include request body in ephemeral data" do
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'request')
+        .with("ssrf", {}, hash_not_including("server.io.net.request.body"), anything, phase: "request")
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'response' => 'OK'}), anything, phase: 'response')
+        .with("ssrf", {}, hash_including("server.io.net.response.body" => {"response" => "OK"}), anything, phase: "response")
     end
   end
 
-  context 'when request content-type is application/x-www-form-urlencoded' do
-    before { RestClient.post('http://example.com/application-json', {key: 'value', foo: 'bar'}) }
+  context "when request content-type is application/x-www-form-urlencoded" do
+    before { RestClient.post("http://example.com/application-json", {key: "value", foo: "bar"}) }
 
-    it 'does not include request body in ephemeral data' do
+    it "does not include request body in ephemeral data" do
       expect(context).to have_received(:run_rasp).with(
-        'ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'request'
+        "ssrf", {}, hash_not_including("server.io.net.request.body"), anything, phase: "request"
       )
     end
   end
 
-  context 'when response body is valid JSON' do
-    before { RestClient.post('http://example.com/application-json', nil) }
+  context "when response body is valid JSON" do
+    before { RestClient.post("http://example.com/application-json", nil) }
 
-    it 'includes parsed body in ephemeral data' do
-      expect(context).to have_received(:run_rasp).with('ssrf', {}, anything, anything, phase: 'request')
+    it "includes parsed body in ephemeral data" do
+      expect(context).to have_received(:run_rasp).with("ssrf", {}, anything, anything, phase: "request")
       expect(context).to have_received(:run_rasp).with(
-        'ssrf', {}, hash_including('server.io.net.response.body' => {'response' => 'OK'}), anything, phase: 'response'
+        "ssrf", {}, hash_including("server.io.net.response.body" => {"response" => "OK"}), anything, phase: "response"
       )
     end
 
-    it 'does not record an ignored response body' do
+    it "does not record an ignored response body" do
       expect(metrics).not_to have_received(:record_ignored_downstream_response_body)
     end
   end
 
-  context 'when response body is invalid JSON' do
+  context "when response body is invalid JSON" do
     before do
       allow(Datadog::AppSec.telemetry).to receive(:report)
 
-      RestClient.post('http://example.com/invalid-json', nil)
+      RestClient.post("http://example.com/invalid-json", nil)
     end
 
-    it 'does not include body in ephemeral data and reports error to telemetry' do
+    it "does not include body in ephemeral data and reports error to telemetry" do
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+        .with("ssrf", {}, hash_not_including("server.io.net.response.body"), anything, phase: "response")
 
       expect(Datadog::AppSec.telemetry).to have_received(:report)
-        .with(an_instance_of(JSON::ParserError), description: 'AppSec: Failed to parse body')
+        .with(an_instance_of(JSON::ParserError), description: "AppSec: Failed to parse body")
     end
   end
 
-  context 'when response content-type is not JSON' do
-    before { RestClient.post('http://example.com/text-plain?z=1', nil) }
+  context "when response content-type is not JSON" do
+    before { RestClient.post("http://example.com/text-plain?z=1", nil) }
 
-    it 'does not include body in ephemeral data' do
+    it "does not include body in ephemeral data" do
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+        .with("ssrf", {}, hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
 
-    it 'records the ignored response body' do
+    it "records the ignored response body" do
       expect(metrics).to have_received(:record_ignored_downstream_response_body).with(:content_type_invalid).once
     end
   end
 
-  context 'when response content-length is missing' do
-    before { RestClient.post('http://example.com/application-json-no-content-length', nil) }
+  context "when response content-length is missing" do
+    before { RestClient.post("http://example.com/application-json-no-content-length", nil) }
 
-    it 'does not include body in ephemeral data' do
+    it "does not include body in ephemeral data" do
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+        .with("ssrf", {}, hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
 
-    it 'records the ignored response body' do
+    it "records the ignored response body" do
       expect(metrics).to have_received(:record_ignored_downstream_response_body).with(:content_length_missing).once
     end
   end
 
-  context 'when response content-length is zero' do
-    before { RestClient.post('http://example.com/application-json-zero-content-length', nil) }
+  context "when response content-length is zero" do
+    before { RestClient.post("http://example.com/application-json-zero-content-length", nil) }
 
-    it 'does not include body in ephemeral data' do
+    it "does not include body in ephemeral data" do
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+        .with("ssrf", {}, hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
 
-    it 'records the ignored response body' do
+    it "records the ignored response body" do
       expect(metrics).to have_received(:record_ignored_downstream_response_body).with(:content_length_missing).once
     end
   end
 
-  context 'when response content-length is invalid' do
-    before { RestClient.post('http://example.com/application-json-invalid-content-length', nil) }
+  context "when response content-length is invalid" do
+    before { RestClient.post("http://example.com/application-json-invalid-content-length", nil) }
 
-    it 'does not include body in ephemeral data' do
+    it "does not include body in ephemeral data" do
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+        .with("ssrf", {}, hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
 
-    it 'records the ignored response body' do
+    it "records the ignored response body" do
       expect(metrics).to have_received(:record_ignored_downstream_response_body).with(:content_length_missing).once
     end
   end
 
-  context 'when response content-length exceeds max downstream body bytes' do
+  context "when response content-length exceeds max downstream body bytes" do
     before do
       Datadog.configuration.appsec.api_security.downstream_body_analysis.max_downstream_body_bytes = 4
 
-      RestClient.post('http://example.com/application-json-too-big', nil)
+      RestClient.post("http://example.com/application-json-too-big", nil)
     end
 
-    it 'does not include body in ephemeral data' do
+    it "does not include body in ephemeral data" do
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+        .with("ssrf", {}, hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
 
-    it 'records the ignored response body' do
+    it "records the ignored response body" do
       expect(metrics).to have_received(:record_ignored_downstream_response_body).with(:content_length_too_big).once
     end
   end
 
-  context 'when response content-length is smaller than the body' do
-    before { RestClient.post('http://example.com/application-json-content-length-lie', nil) }
+  context "when response content-length is smaller than the body" do
+    before { RestClient.post("http://example.com/application-json-content-length-lie", nil) }
 
-    it 'does not include body in ephemeral data' do
+    it "does not include body in ephemeral data" do
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+        .with("ssrf", {}, hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
 
-    it 'records the ignored response body' do
+    it "records the ignored response body" do
       expect(metrics).to have_received(:record_ignored_downstream_response_body).with(:content_exceed_content_length).once
     end
   end
 
-  context 'when body sampling max_requests is 1' do
+  context "when body sampling max_requests is 1" do
     before do
       Datadog.configuration.appsec.api_security.downstream_body_analysis.max_requests = 1
       Datadog.configuration.appsec.api_security.downstream_body_analysis.sample_rate = 1.0
 
-      RestClient.post('http://example.com/application-json', '{"r":"1"}', {'Content-Type' => 'application/json'})
-      RestClient.post('http://example.com/application-json', '{"r":"2"}', {'Content-Type' => 'application/json'})
+      RestClient.post("http://example.com/application-json", '{"r":"1"}', {"Content-Type" => "application/json"})
+      RestClient.post("http://example.com/application-json", '{"r":"2"}', {"Content-Type" => "application/json"})
     end
 
-    it 'analyzes response body only for the first request' do
+    it "analyzes response body only for the first request" do
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'response' => 'OK'}), anything, phase: 'response')
+        .with("ssrf", {}, hash_including("server.io.net.response.body" => {"response" => "OK"}), anything, phase: "response")
 
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+        .with("ssrf", {}, hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
   end
 
-  context 'when body sampling sample_rate is 0.5' do
+  context "when body sampling sample_rate is 0.5" do
     before do
       Datadog.configuration.appsec.api_security.downstream_body_analysis.max_requests = 5
       Datadog.configuration.appsec.api_security.downstream_body_analysis.sample_rate = 0.5
 
-      RestClient.post('http://example.com/application-json', '{"r":"1"}', {'Content-Type' => 'application/json'})
-      RestClient.post('http://example.com/application-json', '{"r":"2"}', {'Content-Type' => 'application/json'})
-      RestClient.post('http://example.com/application-json', '{"r":"3"}', {'Content-Type' => 'application/json'})
+      RestClient.post("http://example.com/application-json", '{"r":"1"}', {"Content-Type" => "application/json"})
+      RestClient.post("http://example.com/application-json", '{"r":"2"}', {"Content-Type" => "application/json"})
+      RestClient.post("http://example.com/application-json", '{"r":"3"}', {"Content-Type" => "application/json"})
     end
 
     let(:context) do
@@ -438,185 +438,185 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
       )
     end
 
-    it 'analyzes one response body' do
+    it "analyzes one response body" do
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'response' => 'OK'}), anything, phase: 'response').once
+        .with("ssrf", {}, hash_including("server.io.net.response.body" => {"response" => "OK"}), anything, phase: "response").once
 
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response').twice
+        .with("ssrf", {}, hash_not_including("server.io.net.response.body"), anything, phase: "response").twice
     end
   end
 
-  context 'when response is 301 redirect with Location header' do
+  context "when response is 301 redirect with Location header" do
     before do
-      RestClient.post('http://example.com/redirect-301', '{"key":"value"}', {'Content-Type' => 'application/json'})
+      RestClient.post("http://example.com/redirect-301", '{"key":"value"}', {"Content-Type" => "application/json"})
     rescue RestClient::MovedPermanently
       # NOTE: RestClient raises exceptions for POST redirects instead of auto-following
     end
 
-    it 'does not include request body in ephemeral data' do
+    it "does not include request body in ephemeral data" do
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_not_including('server.io.net.request.body'), anything, phase: 'request')
+        .with("ssrf", {}, hash_not_including("server.io.net.request.body"), anything, phase: "request")
     end
 
-    it 'does not include redirect response body in ephemeral data' do
+    it "does not include redirect response body in ephemeral data" do
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+        .with("ssrf", {}, hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
 
-    it 'includes redirect response status and headers in ephemeral data' do
+    it "includes redirect response status and headers in ephemeral data" do
       expect(context).to have_received(:run_rasp).with(
-        'ssrf',
+        "ssrf",
         {},
         hash_including(
-          'server.io.net.response.status' => '301',
-          'server.io.net.response.headers' => hash_including('location' => '/redirect-chain-finish')
+          "server.io.net.response.status" => "301",
+          "server.io.net.response.headers" => hash_including("location" => "/redirect-chain-finish")
         ),
         anything,
-        phase: 'response'
+        phase: "response"
       )
     end
   end
 
-  context 'when response is 302 redirect with non-JSON content-type' do
+  context "when response is 302 redirect with non-JSON content-type" do
     before do
-      RestClient.post('http://example.com/redirect-302', '{"key":"value"}', {'Content-Type' => 'application/json'})
+      RestClient.post("http://example.com/redirect-302", '{"key":"value"}', {"Content-Type" => "application/json"})
     rescue RestClient::Found
       # NOTE: RestClient raises exceptions for POST redirects instead of auto-following
     end
 
-    it 'does not include redirect response body in ephemeral data' do
+    it "does not include redirect response body in ephemeral data" do
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_not_including('server.io.net.response.body'), anything, phase: 'response')
+        .with("ssrf", {}, hash_not_including("server.io.net.response.body"), anything, phase: "response")
     end
 
-    it 'includes redirect response status in ephemeral data' do
+    it "includes redirect response status in ephemeral data" do
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_including('server.io.net.response.status' => '302'), anything, phase: 'response')
+        .with("ssrf", {}, hash_including("server.io.net.response.status" => "302"), anything, phase: "response")
     end
   end
 
-  context 'when response is 301 without Location header' do
+  context "when response is 301 without Location header" do
     before do
-      RestClient.post('http://example.com/redirect-no-location', '{"key":"value"}', {'Content-Type' => 'application/json'})
+      RestClient.post("http://example.com/redirect-no-location", '{"key":"value"}', {"Content-Type" => "application/json"})
     rescue RestClient::MovedPermanently
       # NOTE: RestClient raises exceptions for POST redirects instead of auto-following
     end
 
-    it 'includes response body in ephemeral data since it is not a true redirect' do
+    it "includes response body in ephemeral data since it is not a true redirect" do
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'redirect' => 'body'}), anything, phase: 'response')
+        .with("ssrf", {}, hash_including("server.io.net.response.body" => {"redirect" => "body"}), anything, phase: "response")
     end
   end
 
-  context 'when GET request auto-follows redirect chain' do
-    before { RestClient.get('http://example.com/redirect-chain-start') }
+  context "when GET request auto-follows redirect chain" do
+    before { RestClient.get("http://example.com/redirect-chain-start") }
 
-    it 'includes request URL for each hop in ephemeral data' do
+    it "includes request URL for each hop in ephemeral data" do
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com/redirect-chain-start'), anything, phase: 'request')
+        .with("ssrf", {}, hash_including("server.io.net.url" => "http://example.com/redirect-chain-start"), anything, phase: "request")
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com/redirect-chain-hop'), anything, phase: 'request')
+        .with("ssrf", {}, hash_including("server.io.net.url" => "http://example.com/redirect-chain-hop"), anything, phase: "request")
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_including('server.io.net.url' => 'http://example.com/redirect-chain-finish'), anything, phase: 'request')
+        .with("ssrf", {}, hash_including("server.io.net.url" => "http://example.com/redirect-chain-finish"), anything, phase: "request")
     end
 
-    it 'does not include redirect response bodies in ephemeral data' do
+    it "does not include redirect response bodies in ephemeral data" do
       expect(context).not_to have_received(:run_rasp)
-        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'hop' => '1'}), anything, phase: 'response')
+        .with("ssrf", {}, hash_including("server.io.net.response.body" => {"hop" => "1"}), anything, phase: "response")
       expect(context).not_to have_received(:run_rasp)
-        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'hop' => '2'}), anything, phase: 'response')
+        .with("ssrf", {}, hash_including("server.io.net.response.body" => {"hop" => "2"}), anything, phase: "response")
     end
 
-    it 'includes final response body in ephemeral data' do
+    it "includes final response body in ephemeral data" do
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'final' => 'response'}), anything, phase: 'response')
+        .with("ssrf", {}, hash_including("server.io.net.response.body" => {"final" => "response"}), anything, phase: "response")
     end
 
-    it 'clears downstream_redirect_url state after following redirect chain with relative URL' do
+    it "clears downstream_redirect_url state after following redirect chain with relative URL" do
       expect(context.state[:downstream_redirect_url]).to be_nil
     end
   end
 
-  context 'when execute is called with a custom block returning non-Response' do
+  context "when execute is called with a custom block returning non-Response" do
     before do
-      stub_request(:get, 'http://example.com/custom-block')
-        .to_return(status: 200, body: 'OK', headers: {'Content-Type' => 'text/plain'})
+      stub_request(:get, "http://example.com/custom-block")
+        .to_return(status: 200, body: "OK", headers: {"Content-Type" => "text/plain"})
     end
 
     let(:result) do
-      RestClient::Request.execute(method: :get, url: 'http://example.com/custom-block') do |response, _req, _rez|
+      RestClient::Request.execute(method: :get, url: "http://example.com/custom-block") do |response, _req, _rez|
         response.body.upcase
       end
     end
 
-    it 'does not crash and returns the block result' do
-      expect(result).to eq('OK')
+    it "does not crash and returns the block result" do
+      expect(result).to eq("OK")
     end
   end
 
-  context 'when request uses raw_response and raises an exception' do
+  context "when request uses raw_response and raises an exception" do
     before do
-      stub_request(:post, 'http://example.com/raw-redirect')
+      stub_request(:post, "http://example.com/raw-redirect")
         .to_return(
           status: 301,
-          body: 'redirecting',
-          headers: {'Content-Type' => 'text/plain', 'Location' => 'http://example.com/other'}
+          body: "redirecting",
+          headers: {"Content-Type" => "text/plain", "Location" => "http://example.com/other"}
         )
     end
 
-    it 'does not crash on RawResponse' do
+    it "does not crash on RawResponse" do
       expect {
-        RestClient::Request.execute(method: :post, url: 'http://example.com/raw-redirect', raw_response: true)
+        RestClient::Request.execute(method: :post, url: "http://example.com/raw-redirect", raw_response: true)
       }.to raise_error(RestClient::MovedPermanently)
     end
 
-    it 'calls response-phase RASP for RawResponse' do
+    it "calls response-phase RASP for RawResponse" do
       expect(context).to receive(:run_rasp)
-        .with('ssrf', {}, anything, anything, phase: 'request')
+        .with("ssrf", {}, anything, anything, phase: "request")
 
       expect(context).to receive(:run_rasp)
-        .with('ssrf', {}, hash_including('server.io.net.response.status' => '301'), anything, phase: 'response')
+        .with("ssrf", {}, hash_including("server.io.net.response.status" => "301"), anything, phase: "response")
 
-      expect { RestClient::Request.execute(method: :post, url: 'http://example.com/raw-redirect', raw_response: true) }
+      expect { RestClient::Request.execute(method: :post, url: "http://example.com/raw-redirect", raw_response: true) }
         .to raise_error(RestClient::MovedPermanently)
     end
   end
 
-  context 'when request uses raw_response with successful response' do
+  context "when request uses raw_response with successful response" do
     before do
-      stub_request(:get, 'http://example.com/raw-ok')
-        .to_return(status: 200, body: 'raw body', headers: {'Content-Type' => 'text/plain'})
+      stub_request(:get, "http://example.com/raw-ok")
+        .to_return(status: 200, body: "raw body", headers: {"Content-Type" => "text/plain"})
 
-      RestClient::Request.execute(method: :get, url: 'http://example.com/raw-ok', raw_response: true)
+      RestClient::Request.execute(method: :get, url: "http://example.com/raw-ok", raw_response: true)
     end
 
-    it 'calls response-phase RASP for RawResponse' do
+    it "calls response-phase RASP for RawResponse" do
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, anything, anything, phase: 'request')
+        .with("ssrf", {}, anything, anything, phase: "request")
 
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_including('server.io.net.response.status' => '200'), anything, phase: 'response')
+        .with("ssrf", {}, hash_including("server.io.net.response.status" => "200"), anything, phase: "response")
     end
   end
 
-  context 'when manually following redirect after POST exception' do
+  context "when manually following redirect after POST exception" do
     before do
       Datadog.configuration.appsec.api_security.downstream_body_analysis.max_requests = 10
 
       begin
-        RestClient.post('http://example.com/redirect-301', '{"key":"value"}', {'Content-Type' => 'application/json'})
+        RestClient.post("http://example.com/redirect-301", '{"key":"value"}', {"Content-Type" => "application/json"})
       rescue RestClient::MovedPermanently
-        RestClient.get('http://example.com/redirect-chain-finish')
+        RestClient.get("http://example.com/redirect-chain-finish")
       end
     end
 
-    it 'includes final response body in ephemeral data' do
+    it "includes final response body in ephemeral data" do
       expect(context).to have_received(:run_rasp)
-        .with('ssrf', {}, hash_including('server.io.net.response.body' => {'final' => 'response'}), anything, phase: 'response')
+        .with("ssrf", {}, hash_including("server.io.net.response.body" => {"final" => "response"}), anything, phase: "response")
     end
 
-    it 'clears downstream_redirect_url state after following redirect' do
+    it "clears downstream_redirect_url state after following redirect" do
       expect(context.state[:downstream_redirect_url]).to be_nil
     end
   end

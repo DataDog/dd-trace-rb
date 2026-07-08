@@ -1,4 +1,4 @@
-require 'datadog/core/utils/base64_codec'
+require "datadog/core/utils/base64_codec"
 
 module DIHelpers
   class TestRemoteConfigGenerator
@@ -44,11 +44,11 @@ module DIHelpers
     def target_payload_for_value(value)
       encoded = encode_obj(value)
       {
-        'custom' => {
-          'v' => 1,
+        "custom" => {
+          "v" => 1,
         },
-        'hashes' => {'sha256' => Digest::SHA256.hexdigest(encoded)},
-        'length' => encoded.length
+        "hashes" => {"sha256" => Digest::SHA256.hexdigest(encoded)},
+        "length" => encoded.length
       }
     end
 
@@ -60,13 +60,13 @@ module DIHelpers
 
     def targets
       {
-        'signed' => {
-          'expires' => '2022-09-22T09:01:04Z',
-          'targets' => probe_configs.map do |k, v|
+        "signed" => {
+          "expires" => "2022-09-22T09:01:04Z",
+          "targets" => probe_configs.map do |k, v|
             [rc_key_for_probe_id(k), target_payload_for_value(v)]
           end.to_h,
-          'version' => 0,
-          'custom' => {},
+          "version" => 0,
+          "custom" => {},
         },
       }
     end
@@ -107,7 +107,7 @@ module DIHelpers
           skip "Dynamic instrumentation is not supported on JRuby"
         end
       end
-      if RubyVersion.is?('< 2.6')
+      if RubyVersion.is?("< 2.6")
         before(:all) do
           skip "Dynamic instrumentation requires Ruby 2.6 or higher"
         end
@@ -137,7 +137,7 @@ module DIHelpers
 
     def mock_settings_for_di(&block)
       let(:settings) do
-        double('settings').tap do |settings|
+        double("settings").tap do |settings|
           allow(settings).to receive(:dynamic_instrumentation).and_return(di_settings)
           if block
             instance_exec(settings, &block)
@@ -146,14 +146,14 @@ module DIHelpers
       end
 
       let(:di_settings) do
-        double('di settings').tap do |settings|
+        double("di settings").tap do |settings|
           allow(settings).to receive(:internal).and_return(di_internal_settings)
           allow(settings).to receive(:redaction_excluded_identifiers).and_return([])
         end
       end
 
       let(:di_internal_settings) do
-        double('di internal settings')
+        double("di internal settings")
       end
     end
 
@@ -180,7 +180,7 @@ module DIHelpers
     end
 
     def load_yaml_file(path, **opts)
-      if RubyVersion.is?('< 3.1')
+      if RubyVersion.is?("< 3.1")
         opts.delete(:permitted_classes)
       end
       YAML.load_file(path, **opts)
@@ -261,7 +261,7 @@ RSpec.configure do |config|
 
   # DI does not do anything on Ruby < 2.6 therefore there is no need
   # to install a leak detector on lower Ruby versions.
-  if RubyVersion.is?('>= 2.6')
+  if RubyVersion.is?(">= 2.6")
     config.before do
       if defined?(Datadog::DI::ProbeNotifierWorker) && !ProbeNotifierWorkerLeakDetector.installed
         Datadog::DI::ProbeNotifierWorker.send(:prepend, ProbeNotifierWorkerLeakDetector)

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require 'json'
-require 'cgi'
+require "json"
+require "cgi"
 
-require_relative 'url_encoded'
+require_relative "url_encoded"
 
 module Datadog
   module AppSec
@@ -21,13 +21,13 @@ module Datadog
 
             return if content.nil? || content.empty?
 
-            if media_type.subtype == 'json' || media_type.subtype.end_with?('+json')
+            if media_type.subtype == "json" || media_type.subtype.end_with?("+json")
               JSON.parse(content)
-            elsif media_type.subtype == 'x-www-form-urlencoded'
+            elsif media_type.subtype == "x-www-form-urlencoded"
               URLEncoded.parse(content)
             end
           rescue => e
-            AppSec.telemetry.report(e, description: 'AppSec: Failed to parse body')
+            AppSec.telemetry.report(e, description: "AppSec: Failed to parse body")
 
             nil
           end

@@ -1,93 +1,93 @@
-require 'datadog/tracing/contrib/support/spec_helper'
+require "datadog/tracing/contrib/support/spec_helper"
 
-require 'datadog/tracing/contrib/sneakers/integration'
+require "datadog/tracing/contrib/sneakers/integration"
 
 RSpec.describe Datadog::Tracing::Contrib::Sneakers::Integration do
   let(:integration) { described_class.new(:sneakers) }
 
-  describe '.version' do
+  describe ".version" do
     subject(:version) { described_class.version }
 
     context 'when the "sneakers" gem is loaded' do
-      include_context 'loaded gems', sneakers: described_class::MINIMUM_SNEAKERS_VERSION
+      include_context "loaded gems", sneakers: described_class::MINIMUM_SNEAKERS_VERSION
       it { is_expected.to be_a_kind_of(Gem::Version) }
     end
 
     context 'when the "kicks" gem is loaded' do
-      include_context 'loaded gems', kicks: described_class::MINIMUM_KICKS_VERSION
+      include_context "loaded gems", kicks: described_class::MINIMUM_KICKS_VERSION
       it { is_expected.to be_a_kind_of(Gem::Version) }
     end
 
-    context 'when neither gem is not loaded' do
-      include_context 'loaded gems', sneakers: nil, kicks: nil
+    context "when neither gem is not loaded" do
+      include_context "loaded gems", sneakers: nil, kicks: nil
       it { is_expected.to be nil }
     end
   end
 
-  describe '.loaded?' do
+  describe ".loaded?" do
     subject(:loaded?) { described_class.loaded? }
 
-    context 'when Sneakers is defined' do
-      before { stub_const('Sneakers', Class.new) }
+    context "when Sneakers is defined" do
+      before { stub_const("Sneakers", Class.new) }
 
       it { is_expected.to be true }
     end
 
-    context 'when Sneakers is not defined' do
-      before { hide_const('Sneakers') }
+    context "when Sneakers is not defined" do
+      before { hide_const("Sneakers") }
 
       it { is_expected.to be false }
     end
   end
 
-  describe '.compatible?' do
+  describe ".compatible?" do
     subject(:compatible?) { described_class.compatible? }
 
     context 'when "sneakers" gem is loaded with a version' do
-      context 'that is less than the minimum' do
-        include_context 'loaded gems',
+      context "that is less than the minimum" do
+        include_context "loaded gems",
           sneakers: decrement_gem_version(described_class::MINIMUM_SNEAKERS_VERSION),
           kicks: nil
         it { is_expected.to be false }
       end
 
-      context 'that meets the minimum version' do
-        include_context 'loaded gems', sneakers: described_class::MINIMUM_SNEAKERS_VERSION, kicks: nil
+      context "that meets the minimum version" do
+        include_context "loaded gems", sneakers: described_class::MINIMUM_SNEAKERS_VERSION, kicks: nil
         it { is_expected.to be true }
       end
     end
 
     context 'when "kicks" gem is loaded with a version' do
-      context 'that is less than the minimum' do
-        include_context 'loaded gems', sneakers: nil, kicks: decrement_gem_version(described_class::MINIMUM_KICKS_VERSION)
+      context "that is less than the minimum" do
+        include_context "loaded gems", sneakers: nil, kicks: decrement_gem_version(described_class::MINIMUM_KICKS_VERSION)
         it { is_expected.to be false }
       end
 
-      context 'that meets the minimum version' do
-        include_context 'loaded gems', sneakers: nil, kicks: described_class::MINIMUM_KICKS_VERSION
+      context "that meets the minimum version" do
+        include_context "loaded gems", sneakers: nil, kicks: described_class::MINIMUM_KICKS_VERSION
         it { is_expected.to be true }
       end
     end
 
-    context 'when neither gem is not loaded' do
-      include_context 'loaded gems', sneakers: nil, kicks: nil
+    context "when neither gem is not loaded" do
+      include_context "loaded gems", sneakers: nil, kicks: nil
       it { is_expected.to be false }
     end
   end
 
-  describe '#auto_instrument?' do
+  describe "#auto_instrument?" do
     subject(:auto_instrument?) { integration.auto_instrument? }
 
     it { is_expected.to be(true) }
   end
 
-  describe '#default_configuration' do
+  describe "#default_configuration" do
     subject(:default_configuration) { integration.default_configuration }
 
     it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::Sneakers::Configuration::Settings) }
   end
 
-  describe '#patcher' do
+  describe "#patcher" do
     subject(:patcher) { integration.patcher }
 
     it { is_expected.to be Datadog::Tracing::Contrib::Sneakers::Patcher }

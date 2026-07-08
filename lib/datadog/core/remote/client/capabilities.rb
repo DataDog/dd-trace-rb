@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require_relative '../../utils/base64_codec'
-require_relative '../../../appsec/remote'
-require_relative '../../../tracing/remote'
-require_relative '../../../di/remote'
-require_relative '../../../symbol_database'
-require_relative '../../../symbol_database/remote'
-require_relative '../../../open_feature/remote'
+require_relative "../../utils/base64_codec"
+require_relative "../../../appsec/remote"
+require_relative "../../../tracing/remote"
+require_relative "../../../di/remote"
+require_relative "../../../symbol_database"
+require_relative "../../../symbol_database/remote"
+require_relative "../../../open_feature/remote"
 
 module Datadog
   module Core
@@ -99,10 +99,10 @@ module Datadog
           end
 
           def capabilities_to_base64
-            return '' if capabilities.empty?
+            return "" if capabilities.empty?
 
-            cap_to_hexs = capabilities.reduce(:|).to_s(16).tap { |s| s.size.odd? && s.prepend('0') }.scan(/\h\h/)
-            binary = cap_to_hexs.each_with_object([]) { |hex, acc| acc << hex }.map { |e| e.to_i(16) }.pack('C*')
+            cap_to_hexs = capabilities.reduce(:|).to_s(16).tap { |s| s.size.odd? && s.prepend("0") }.scan(/\h\h/)
+            binary = cap_to_hexs.each_with_object([]) { |hex, acc| acc << hex }.map { |e| e.to_i(16) }.pack("C*")
 
             Datadog::Core::Utils::Base64Codec.strict_encode64(binary)
           end

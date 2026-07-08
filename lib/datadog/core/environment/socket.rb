@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'socket'
-require_relative '../utils/forking'
+require "socket"
+require_relative "../utils/forking"
 
 module Datadog
   module Core

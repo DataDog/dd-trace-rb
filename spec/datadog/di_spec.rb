@@ -1,28 +1,28 @@
-require 'spec_helper'
+require "spec_helper"
 
 RSpec.describe(Datadog::DI) do
-  describe 'instrumentation counters' do
+  describe "instrumentation counters" do
     before do
-      described_class.remove_instance_variable('@instrumented_count')
+      described_class.remove_instance_variable("@instrumented_count")
     rescue
       nil
     end
 
     # The retrieval of kind-scoped count is tested in the inc/dec blocks.
-    describe '#instrumented_count' do
-      context 'when the counter is not initialized' do
-        it 'is 0' do
-          expect(described_class.instance_variable_get('@instrumented_count')).to be nil
+    describe "#instrumented_count" do
+      context "when the counter is not initialized" do
+        it "is 0" do
+          expect(described_class.instance_variable_get("@instrumented_count")).to be nil
 
           expect(described_class.instrumented_count).to eq 0
 
-          expect(described_class.instance_variable_get('@instrumented_count')).to be nil
+          expect(described_class.instance_variable_get("@instrumented_count")).to be nil
         end
       end
 
-      context 'when counter is incremented' do
-        it 'is 1' do
-          expect(described_class.instance_variable_get('@instrumented_count')).to be nil
+      context "when counter is incremented" do
+        it "is 1" do
+          expect(described_class.instance_variable_get("@instrumented_count")).to be nil
 
           expect(described_class.instrumented_count).to eq 0
 
@@ -34,9 +34,9 @@ RSpec.describe(Datadog::DI) do
 
       # Important: this test also exercises initialization of state in
       # the increment method.
-      context 'when counter is incremented then decremented' do
-        it 'is 0' do
-          expect(described_class.instance_variable_get('@instrumented_count')).to be nil
+      context "when counter is incremented then decremented" do
+        it "is 0" do
+          expect(described_class.instance_variable_get("@instrumented_count")).to be nil
 
           expect(described_class.instrumented_count).to eq 0
 
@@ -52,9 +52,9 @@ RSpec.describe(Datadog::DI) do
 
       # Important: this test also exercises initialization of state in
       # the decrement method.
-      context 'when counter is decremented then incremented' do
-        it 'is 1' do
-          expect(described_class.instance_variable_get('@instrumented_count')).to be nil
+      context "when counter is decremented then incremented" do
+        it "is 1" do
+          expect(described_class.instance_variable_get("@instrumented_count")).to be nil
 
           expect(described_class.instrumented_count).to eq 0
 
@@ -68,9 +68,9 @@ RSpec.describe(Datadog::DI) do
         end
       end
 
-      context 'when counter is decremented into negative' do
-        it 'is 0 and warns' do
-          expect(described_class.instance_variable_get('@instrumented_count')).to be nil
+      context "when counter is decremented into negative" do
+        it "is 0 and warns" do
+          expect(described_class.instance_variable_get("@instrumented_count")).to be nil
 
           expect(described_class.instrumented_count).to eq 0
 
@@ -81,10 +81,10 @@ RSpec.describe(Datadog::DI) do
       end
     end
 
-    describe '#instrumented_count_inc' do
-      context 'valid kind' do
-        it 'increases only the respective counter' do
-          expect(described_class.instance_variable_get('@instrumented_count')).to be nil
+    describe "#instrumented_count_inc" do
+      context "valid kind" do
+        it "increases only the respective counter" do
+          expect(described_class.instance_variable_get("@instrumented_count")).to be nil
 
           described_class.instrumented_count_inc(:line)
 
@@ -93,8 +93,8 @@ RSpec.describe(Datadog::DI) do
         end
       end
 
-      context 'invalid kind' do
-        it 'raises an exception' do
+      context "invalid kind" do
+        it "raises an exception" do
           expect do
             described_class.instrumented_count_inc(:foo)
           end.to raise_error(ArgumentError, /Invalid kind: foo/)
@@ -102,15 +102,15 @@ RSpec.describe(Datadog::DI) do
       end
     end
 
-    describe '#instrumented_count_dec' do
-      context 'valid kind' do
-        it 'deccreases only the respective counter' do
-          expect(described_class.instance_variable_get('@instrumented_count')).to be nil
+    describe "#instrumented_count_dec" do
+      context "valid kind" do
+        it "deccreases only the respective counter" do
+          expect(described_class.instance_variable_get("@instrumented_count")).to be nil
 
           described_class.instrumented_count_inc(:line)
           described_class.instrumented_count_inc(:method)
 
-          expect(described_class.instance_variable_get('@instrumented_count')).to eq(line: 1, method: 1)
+          expect(described_class.instance_variable_get("@instrumented_count")).to eq(line: 1, method: 1)
 
           described_class.instrumented_count_dec(:line)
 
@@ -119,8 +119,8 @@ RSpec.describe(Datadog::DI) do
         end
       end
 
-      context 'invalid kind' do
-        it 'raises an exception' do
+      context "invalid kind" do
+        it "raises an exception" do
           expect do
             described_class.instrumented_count_inc(:foo)
           end.to raise_error(ArgumentError, /Invalid kind: foo/)
@@ -129,7 +129,7 @@ RSpec.describe(Datadog::DI) do
     end
   end
 
-  describe '.unsupported_reason' do
+  describe ".unsupported_reason" do
     # Single source of truth for DI's build-time preconditions. Consumed by
     # DI::Component.build (for the build-time log) and by
     # DI::Remote.handle_rc_enablement (for the RC-time warn when the
@@ -142,7 +142,7 @@ RSpec.describe(Datadog::DI) do
       end
     end
 
-    context 'when all preconditions are met' do
+    context "when all preconditions are met" do
       # Stub respond_to?(:exception_message) so this test exercises the
       # all-preconditions-met branch on builds without the DI C extension
       # compiled (e.g. spec:main). RUBY_VERSION is stubbed because the
@@ -155,85 +155,85 @@ RSpec.describe(Datadog::DI) do
       # AND Datadog::RubyVersion::CURRENT_RUBY_VERSION (the cached value
       # RubyVersion.is? compares against, captured at module load time).
       before do
-        stub_const('RUBY_VERSION', '3.0.0')
-        stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new('3.0.0'))
+        stub_const("RUBY_VERSION", "3.0.0")
+        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("3.0.0"))
         allow(described_class).to receive(:respond_to?).and_call_original
         allow(described_class).to receive(:respond_to?).with(:exception_message).and_return(true)
       end
 
-      it 'returns nil' do
+      it "returns nil" do
         expect(described_class.unsupported_reason(settings)).to be_nil
       end
     end
 
-    context 'when Remote Configuration is disabled' do
+    context "when Remote Configuration is disabled" do
       before { settings.remote.enabled = false }
 
-      it 'returns the RC reason with the docs URL' do
+      it "returns the RC reason with the docs URL" do
         expect(described_class.unsupported_reason(settings))
           .to match(%r{Remote Configuration is not enabled.*docs\.datadoghq\.com/agent/remote_config})
       end
     end
 
-    context 'when settings does not respond to :dynamic_instrumentation' do
+    context "when settings does not respond to :dynamic_instrumentation" do
       # In unusual configurations (test doubles, partial Settings) the
       # DI namespace may be absent. Without the guard the line
       # `settings.dynamic_instrumentation.internal.development` would
       # raise NoMethodError and prevent Remote.handle_rc_enablement
       # from emitting the customer-facing warn.
-      let(:settings) { double('settings') }
+      let(:settings) { double("settings") }
 
       before do
         allow(settings).to receive(:respond_to?).with(:dynamic_instrumentation).and_return(false)
       end
 
-      it 'returns a DI-not-available reason without raising' do
+      it "returns a DI-not-available reason without raising" do
         expect(described_class.unsupported_reason(settings))
           .to match(/dynamic instrumentation settings are not available/)
       end
     end
 
-    context 'when running on a non-MRI engine' do
-      before { stub_const('RUBY_ENGINE', 'truffleruby') }
+    context "when running on a non-MRI engine" do
+      before { stub_const("RUBY_ENGINE", "truffleruby") }
 
-      it 'names the engine' do
+      it "names the engine" do
         expect(described_class.unsupported_reason(settings))
           .to match(/MRI is required.*truffleruby/)
       end
     end
 
-    context 'when running on Ruby older than 2.6' do
+    context "when running on Ruby older than 2.6" do
       before do
-        stub_const('RUBY_VERSION', '2.5.9')
-        stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new('2.5.9'))
+        stub_const("RUBY_VERSION", "2.5.9")
+        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("2.5.9"))
       end
 
-      it 'names the version' do
+      it "names the version" do
         expect(described_class.unsupported_reason(settings))
           .to match(/Ruby 2\.6\+ is required.*2\.5\.9/)
       end
     end
 
-    context 'when the C extension is not loaded' do
+    context "when the C extension is not loaded" do
       before do
         # Neutralize the earlier Ruby-version check so this context
         # reaches the C-extension branch when the spec runs on Ruby 2.5.
         # Same pattern as the non-MRI context's stub_const('RUBY_ENGINE', ...).
         # Stub both RUBY_VERSION (message) and CURRENT_RUBY_VERSION (gate).
-        stub_const('RUBY_VERSION', '3.0.0')
-        stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new('3.0.0'))
+        stub_const("RUBY_VERSION", "3.0.0")
+        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("3.0.0"))
         allow(described_class).to receive(:respond_to?).and_call_original
         allow(described_class).to receive(:respond_to?).with(:exception_message).and_return(false)
       end
 
-      it 'returns the C-extension reason' do
+      it "returns the C-extension reason" do
         expect(described_class.unsupported_reason(settings))
           .to match(/C extension is not available/)
       end
     end
 
-    context 'when called with no argument' do
-      it 'falls back to Datadog.configuration' do
+    context "when called with no argument" do
+      it "falls back to Datadog.configuration" do
         # The helper must be callable from the RC handler, which doesn't have
         # settings in lexical scope.
         expect { described_class.unsupported_reason }.not_to raise_error
@@ -241,35 +241,35 @@ RSpec.describe(Datadog::DI) do
     end
   end
 
-  describe '.supported_runtime?' do
-    context 'on MRI 2.6+' do
+  describe ".supported_runtime?" do
+    context "on MRI 2.6+" do
       before do
-        stub_const('RUBY_ENGINE', 'ruby')
-        stub_const('RUBY_VERSION', '2.6.0')
-        stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new('2.6.0'))
+        stub_const("RUBY_ENGINE", "ruby")
+        stub_const("RUBY_VERSION", "2.6.0")
+        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("2.6.0"))
       end
 
-      it 'returns true' do
+      it "returns true" do
         expect(described_class.supported_runtime?).to be true
       end
     end
 
-    context 'on JRuby' do
-      before { stub_const('RUBY_ENGINE', 'jruby') }
+    context "on JRuby" do
+      before { stub_const("RUBY_ENGINE", "jruby") }
 
-      it 'returns false' do
+      it "returns false" do
         expect(described_class.supported_runtime?).to be false
       end
     end
 
-    context 'on MRI older than 2.6' do
+    context "on MRI older than 2.6" do
       before do
-        stub_const('RUBY_ENGINE', 'ruby')
-        stub_const('RUBY_VERSION', '2.5.9')
-        stub_const('Datadog::RubyVersion::CURRENT_RUBY_VERSION', Gem::Version.new('2.5.9'))
+        stub_const("RUBY_ENGINE", "ruby")
+        stub_const("RUBY_VERSION", "2.5.9")
+        stub_const("Datadog::RubyVersion::CURRENT_RUBY_VERSION", Gem::Version.new("2.5.9"))
       end
 
-      it 'returns false' do
+      it "returns false" do
         expect(described_class.supported_runtime?).to be false
       end
     end

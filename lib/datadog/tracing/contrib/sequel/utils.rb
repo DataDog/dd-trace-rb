@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../metadata/ext'
-require_relative '../utils/database'
+require_relative "../../metadata/ext"
+require_relative "../utils/database"
 
 module Datadog
   module Tracing
@@ -16,7 +16,7 @@ module Datadog
             def adapter_name(database)
               scheme = database.adapter_scheme.to_s
 
-              if scheme == 'jdbc'
+              if scheme == "jdbc"
                 # The subtype is more important in this case,
                 # otherwise all database adapters will be 'jdbc'.
                 database_type(database)

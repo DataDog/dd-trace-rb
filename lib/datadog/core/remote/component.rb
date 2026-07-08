@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-require_relative 'worker'
-require_relative 'client/capabilities'
-require_relative 'client'
-require_relative 'transport/http'
-require_relative '../remote'
-require_relative 'negotiation'
+require_relative "worker"
+require_relative "client/capabilities"
+require_relative "client"
+require_relative "transport/http"
+require_relative "../remote"
+require_relative "negotiation"
 
 module Datadog
   module Core
@@ -33,7 +33,7 @@ module Datadog
           logger.debug { "new remote configuration client: #{@client.id} products: #{@capabilities.products.sort.join(", ")}" }
 
           @worker = Worker.new(interval: settings.remote.poll_interval_seconds, logger: logger) do
-            unless @healthy || negotiation.endpoint?('/v0.7/config')
+            unless @healthy || negotiation.endpoint?("/v0.7/config")
               @barrier.lift
 
               next
@@ -56,7 +56,7 @@ module Datadog
               # Transient errors due to network or agent. Logged the error but not via telemetry
               logger.error do
                 "remote worker error: #{e.class}: #{e.message} location: #{Array(e.backtrace).first}. " \
-                'resetting client state'
+                "resetting client state"
               end
 
               # client state is unknown, state might be corrupted
@@ -144,7 +144,7 @@ module Datadog
                 #   timeout and an integer otherwise
                 # - before Ruby 3.2, ConditionVariable returns itself
                 # so we have to rely on @once having been set
-                if RubyVersion.is?('>= 3.2')
+                if RubyVersion.is?(">= 3.2")
                   lifted = @condition.wait(@mutex, timeout)
                 else
                   @condition.wait(@mutex, timeout)

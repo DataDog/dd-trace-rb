@@ -1,106 +1,106 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/tracing/contrib/auto_instrument_examples'
+require "datadog/tracing/contrib/support/spec_helper"
+require "datadog/tracing/contrib/auto_instrument_examples"
 
-require 'datadog/tracing/contrib/active_record/integration'
+require "datadog/tracing/contrib/active_record/integration"
 
 RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Integration do
   let(:integration) { described_class.new(:active_record) }
 
-  describe '.version' do
+  describe ".version" do
     subject(:version) { described_class.version }
 
     context 'when the "activerecord" gem is loaded' do
-      include_context 'loaded gems', activerecord: described_class::MINIMUM_VERSION
+      include_context "loaded gems", activerecord: described_class::MINIMUM_VERSION
       it { is_expected.to be_a_kind_of(Gem::Version) }
     end
 
     context 'when "activerecord" gem is not loaded' do
-      include_context 'loaded gems', activerecord: nil
+      include_context "loaded gems", activerecord: nil
       it { is_expected.to be nil }
     end
   end
 
-  describe '.loaded?' do
+  describe ".loaded?" do
     subject(:loaded?) { described_class.loaded? }
 
-    context 'when ActiveRecord is defined' do
-      before { stub_const('ActiveRecord', Class.new) }
+    context "when ActiveRecord is defined" do
+      before { stub_const("ActiveRecord", Class.new) }
 
       it { is_expected.to be true }
     end
 
-    context 'when ActiveRecord is not defined' do
-      before { hide_const('ActiveRecord') }
+    context "when ActiveRecord is not defined" do
+      before { hide_const("ActiveRecord") }
 
       it { is_expected.to be false }
     end
   end
 
-  describe '.compatible?' do
+  describe ".compatible?" do
     subject(:compatible?) { described_class.compatible? }
 
     context 'when "activerecord" gem is loaded with a version' do
-      context 'that is less than the minimum' do
-        include_context 'loaded gems', activerecord: decrement_gem_version(described_class::MINIMUM_VERSION)
+      context "that is less than the minimum" do
+        include_context "loaded gems", activerecord: decrement_gem_version(described_class::MINIMUM_VERSION)
         it { is_expected.to be false }
       end
 
-      context 'that meets the minimum version' do
-        include_context 'loaded gems', activerecord: described_class::MINIMUM_VERSION
+      context "that meets the minimum version" do
+        include_context "loaded gems", activerecord: described_class::MINIMUM_VERSION
         it { is_expected.to be true }
       end
     end
 
-    context 'when gem is not loaded' do
-      include_context 'loaded gems', activerecord: nil
+    context "when gem is not loaded" do
+      include_context "loaded gems", activerecord: nil
       it { is_expected.to be false }
     end
   end
 
-  describe '#auto_instrument?' do
-    it_behaves_like 'rails sub-gem auto_instrument?'
+  describe "#auto_instrument?" do
+    it_behaves_like "rails sub-gem auto_instrument?"
   end
 
-  describe '#default_configuration' do
+  describe "#default_configuration" do
     subject(:default_configuration) { integration.default_configuration }
 
     it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::ActiveRecord::Configuration::Settings) }
   end
 
-  describe '#patcher' do
+  describe "#patcher" do
     subject(:patcher) { integration.patcher }
 
     it { is_expected.to be Datadog::Tracing::Contrib::ActiveRecord::Patcher }
   end
 
-  describe '#resolver' do
+  describe "#resolver" do
     subject(:resolver) { integration.resolver }
 
     it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver) }
   end
 
-  describe '#reset_resolver_cache' do
-    context 'when there is no resolver' do
+  describe "#reset_resolver_cache" do
+    context "when there is no resolver" do
       before do
-        expect(integration.instance_variable_get('@resolver')).to be nil
+        expect(integration.instance_variable_get("@resolver")).to be nil
       end
 
-      it 'does not raise exceptions' do
+      it "does not raise exceptions" do
         expect do
           integration.reset_resolver_cache
         end.not_to raise_error
       end
     end
 
-    context 'when there is a resolver' do
+    context "when there is a resolver" do
       before do
         integration.resolver
-        expect(integration.instance_variable_get('@resolver')).to be_a(
+        expect(integration.instance_variable_get("@resolver")).to be_a(
           Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver
         )
       end
 
-      it 'does not raise exceptions and calls reset_cache on the resolver' do
+      it "does not raise exceptions and calls reset_cache on the resolver" do
         expect(integration.resolver).to receive(:reset_cache)
         expect do
           integration.reset_resolver_cache

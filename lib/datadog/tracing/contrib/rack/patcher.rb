@@ -16,7 +16,7 @@ module Datadog
 
           def patch
             # Patch middleware
-            require_relative 'middlewares'
+            require_relative "middlewares"
           end
         end
 
@@ -51,12 +51,12 @@ module Datadog
               alias_method :__call, :call
 
               def call(env)
-                env['RESPONSE_MIDDLEWARE'] = self.class.to_s
+                env["RESPONSE_MIDDLEWARE"] = self.class.to_s
                 __call(env)
               end
             end
 
-            following = (middleware.instance_variable_get('@app') if middleware.instance_variable_defined?('@app'))
+            following = (middleware.instance_variable_get("@app") if middleware.instance_variable_defined?("@app"))
 
             retain_middleware_name(following)
           end

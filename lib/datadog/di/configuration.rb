@@ -223,7 +223,7 @@ module Datadog
                   # dedicated environment variable in the future but
                   # will likely need a way to turn on remote config
                   # debugging (since DI uses RC for configuration).
-                  o.env 'DD_TRACE_DEBUG'
+                  o.env "DD_TRACE_DEBUG"
                 end
 
                 # If the CPU time consumed by the thread performing instrumentation

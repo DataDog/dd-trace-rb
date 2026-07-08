@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../ruby_version'
+require_relative "../../../ruby_version"
 
 module Datadog
   module Tracing
@@ -17,40 +17,40 @@ module Datadog
           HEX_ID_PARAM_REGEX = /\A(?=.*\d)[A-Fa-f0-9._-]{6,}\z/.freeze
           STRING_PARAM_REGEX = /\A.{20,}|.*[%&'()*+,:=@].*\z/.freeze
 
-          DATADOG_INFERRED_ROUTE_ENV_KEY = 'datadog.inferred_route'
+          DATADOG_INFERRED_ROUTE_ENV_KEY = "datadog.inferred_route"
 
           module_function
 
           def read_or_infer(request_env)
             request_env[DATADOG_INFERRED_ROUTE_ENV_KEY] ||=
-              infer(request_env['SCRIPT_NAME'].to_s + request_env['PATH_INFO'].to_s)
+              infer(request_env["SCRIPT_NAME"].to_s + request_env["PATH_INFO"].to_s)
           end
 
           def infer(path)
             count = 0
             result = []
 
-            split(path, '/') do |segment|
+            split(path, "/") do |segment|
               next if segment.empty?
               break if count >= MAX_NUMBER_OF_SEGMENTS
               count += 1
 
               result << case segment
-              when INT_PARAM_REGEX then '{param:int}'
-              when INT_ID_PARAM_REGEX then '{param:int_id}'
-              when HEX_PARAM_REGEX then '{param:hex}'
-              when HEX_ID_PARAM_REGEX then '{param:hex_id}'
-              when STRING_PARAM_REGEX then '{param:str}'
+              when INT_PARAM_REGEX then "{param:int}"
+              when INT_ID_PARAM_REGEX then "{param:int_id}"
+              when HEX_PARAM_REGEX then "{param:hex}"
+              when HEX_ID_PARAM_REGEX then "{param:hex_id}"
+              when STRING_PARAM_REGEX then "{param:str}"
               else segment
               end
             end
 
-            result.empty? ? '/' : "/#{result.join("/")}"
+            result.empty? ? "/" : "/#{result.join("/")}"
           rescue
             nil
           end
 
-          if RubyVersion.is?('>= 2.6')
+          if RubyVersion.is?(">= 2.6")
             def split(path, pattern = nil, &block)
               path.split(pattern, &block)
             end

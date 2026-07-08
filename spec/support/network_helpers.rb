@@ -12,7 +12,7 @@ module NetworkHelpers
   #
   # @return [Integer] port available for listening
   def available_port
-    server = TCPServer.new('0.0.0.0', 0)
+    server = TCPServer.new("0.0.0.0", 0)
     server.addr[1].tap do
       server.close
     end
@@ -22,14 +22,14 @@ module NetworkHelpers
   #
   # @return [String] agent host
   def agent_host
-    ENV['DD_AGENT_HOST']
+    ENV["DD_AGENT_HOST"]
   end
 
   # Returns the trace agent port to use
   #
   # @return [Integer] agent port
   def agent_port
-    ENV['DD_TRACE_AGENT_PORT']
+    ENV["DD_TRACE_AGENT_PORT"]
   end
 
   # Returns the agent url to use for testing
