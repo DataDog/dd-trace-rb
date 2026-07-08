@@ -22,7 +22,7 @@ module Datadog
     module ProbeBuilder
       # Steep: https://github.com/soutaro/steep/issues/363
       PROBE_TYPES = { # steep:ignore IncompatibleAssignment
-        "LOG_PROBE" => :log,
+        "LOG_PROBE" => :log
       }.freeze
 
       module_function

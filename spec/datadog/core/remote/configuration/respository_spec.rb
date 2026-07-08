@@ -9,7 +9,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Repository do
   let(:raw_target) do
     {
       "custom" => {
-        "v" => 1,
+        "v" => 1
       },
       "hashes" => {"sha256" => Digest::SHA256.hexdigest(raw.to_json)},
       "length" => 645

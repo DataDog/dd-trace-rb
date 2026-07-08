@@ -63,7 +63,7 @@ class OpenFeatureFlagevaluationBenchmark
 
     @details = HookDetails.new("variant-on", "TARGETING_MATCH", nil, {
       "__dd_allocation_key" => "allocation-7",
-      "dd.eval.timestamp_ms" => 1_760_000_000_000,
+      "dd.eval.timestamp_ms" => 1_760_000_000_000
     })
 
     @attrs_by_profile = BENCHMARK_PROFILES.each_with_object({}) do |profile, attrs_by_profile|

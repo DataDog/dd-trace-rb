@@ -69,7 +69,7 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
           "datadog.action_dispatch.route" => "/from-tracer/:id",
           "action_dispatch.route" => "/from-rails/:id",
           "action_dispatch.request.path_parameters" => {id: "42"},
-          "PATH_INFO" => "/from-tracer/42",
+          "PATH_INFO" => "/from-tracer/42"
         }
       end
 
@@ -81,7 +81,7 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
         {
           "action_dispatch.route" => "/users/:id",
           "action_dispatch.request.path_parameters" => {id: "42"},
-          "PATH_INFO" => "/users/42",
+          "PATH_INFO" => "/users/42"
         }
       end
 
@@ -93,7 +93,7 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
         {
           "action_dispatch.route_uri_pattern" => "/posts/:id(.:format)",
           "action_dispatch.request.path_parameters" => {id: "1", format: "json"},
-          "PATH_INFO" => "/posts/1.json",
+          "PATH_INFO" => "/posts/1.json"
         }
       end
 

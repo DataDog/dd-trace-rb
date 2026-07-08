@@ -43,7 +43,7 @@ module Datadog
               Ext::KEY_VERSION => config.version,
               Ext::KEY_HOSTNAME => span_op.get_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME),
               Ext::KEY_DB_NAME => span_op.get_tag(Contrib::Ext::DB::TAG_INSTANCE),
-              Ext::KEY_PEER_SERVICE => peer_service,
+              Ext::KEY_PEER_SERVICE => peer_service
             }
 
             # Add DBM propagation hash to SQL comment when enabled and available.

@@ -210,9 +210,9 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
         debugger: {
           snapshot: {
             probe: {id: "bad-probe"},
-            data: binary_string,
-          },
-        },
+            data: binary_string
+          }
+        }
       }
     end
 
@@ -221,9 +221,9 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
         debugger: {
           snapshot: {
             probe: {id: "good-probe"},
-            data: "valid string",
-          },
-        },
+            data: "valid string"
+          }
+        }
       }
     end
 

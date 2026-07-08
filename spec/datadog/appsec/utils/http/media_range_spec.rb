@@ -38,7 +38,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
         "text/html;foo=bar;baz=qux;q=0.5" => {type: "text", subtype: "html", quality: 0.5, parameters: {"foo" => "bar", "baz" => "qux"}, accept_ext: {}},
         'text/html;foo="bar";baz="qux";q=0.5' => {type: "text", subtype: "html", quality: 0.5, parameters: {"foo" => "bar", "baz" => "qux"}, accept_ext: {}},
         "text/html;foo=bar;q=0.5;baz=qux" => {type: "text", subtype: "html", quality: 0.5, parameters: {"foo" => "bar"}, accept_ext: {"baz" => "qux"}},
-        'text/html;foo="bar";q=0.5;baz="qux"' => {type: "text", subtype: "html", quality: 0.5, parameters: {"foo" => "bar"}, accept_ext: {"baz" => "qux"}},
+        'text/html;foo="bar";q=0.5;baz="qux"' => {type: "text", subtype: "html", quality: 0.5, parameters: {"foo" => "bar"}, accept_ext: {"baz" => "qux"}}
       }
       # rubocop:enable Layout/LineLength
 
@@ -67,7 +67,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
         "text/html;foo=bar;" => parse_error,
         'text/html;foo=bar"' => parse_error,
         'text/html;foo="bar' => parse_error,
-        'text/html;foo="bar""' => parse_error,
+        'text/html;foo="bar""' => parse_error
       }
 
       expectations.each do |str, expected|
@@ -107,7 +107,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
       "text/html;foo=bar;baz=qux;q=0.5" => "text/html;foo=bar;baz=qux;q=0.5",
       'text/html;foo="bar";baz="qux";q=0.5' => "text/html;foo=bar;baz=qux;q=0.5",
       "text/html;foo=bar;q=0.5;baz=qux" => "text/html;foo=bar;q=0.5;baz=qux",
-      'text/html;foo="bar";q=0.5;baz="qux"' => "text/html;foo=bar;q=0.5;baz=qux",
+      'text/html;foo="bar";q=0.5;baz="qux"' => "text/html;foo=bar;q=0.5;baz=qux"
     }
 
     expectations.each do |str, expected|
@@ -121,7 +121,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
     expectations = {
       "*/*" => true,
       "text/*" => true,
-      "text/html" => false,
+      "text/html" => false
     }
 
     expectations.each do |str, expected|
@@ -134,7 +134,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
       expectations = {
         "*/*" => true,
         "text/*" => false,
-        "text/html" => false,
+        "text/html" => false
       }
 
       expectations.each do |str, expected|
@@ -148,7 +148,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
       expectations = {
         "*/*" => true,
         "text/*" => true,
-        "text/html" => false,
+        "text/html" => false
       }
 
       expectations.each do |str, expected|
@@ -170,7 +170,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
       "text/html;foo=bar;q=0.5" => 1,
       "text/html;q=0.5;foo=bar;baz=qux" => 0,
       "text/html;foo=bar;q=0.5;baz=qux" => 1,
-      "text/html;foo=bar;baz=qux;q=0.5" => 2,
+      "text/html;foo=bar;baz=qux;q=0.5" => 2
     }
 
     expectations.each do |str, expected|
@@ -252,7 +252,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
       [
         "text/html",
         "*/*"
-      ] => 1,
+      ] => 1
     }
 
     expectations.each do |(str1, str2), expected|
@@ -304,7 +304,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
           "*/*;q=0.5",
           "text/html;q=0.7",
           "text/html;level=1"
-        ],
+        ]
       }
 
       expectations.each do |array, expected|
@@ -384,7 +384,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
       [
         "text/html",
         "invalid"
-      ] => false,
+      ] => false
     }
 
     expectations.each do |(range, type), expected|

@@ -22,7 +22,7 @@ module Datadog
             Gem.loaded_specs.collect do |name, gem|
               {
                 name: name,
-                version: gem.version.to_s,
+                version: gem.version.to_s
               }
             end
           end

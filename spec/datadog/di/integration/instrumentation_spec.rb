@@ -128,12 +128,12 @@ RSpec.describe "Instrumentation integration" do
          probeId: String,
          probeVersion: 0,
          runtimeId: String,
-         status: "INSTALLED",
+         status: "INSTALLED"
        }
      },
      message: String,
      service: "rspec",
-     timestamp: Integer,}
+     timestamp: Integer}
   end
 
   let(:expected_emitting_payload) do
@@ -144,12 +144,12 @@ RSpec.describe "Instrumentation integration" do
          probeId: String,
          probeVersion: 0,
          runtimeId: String,
-         status: "EMITTING",
+         status: "EMITTING"
        }
      },
      message: String,
      service: "rspec",
-     timestamp: Integer,}
+     timestamp: Integer}
   end
 
   context "log probe" do
@@ -244,7 +244,7 @@ RSpec.describe "Instrumentation integration" do
               timestamp: Integer,
               evaluationErrors: [],
               probe: {id: "1234", version: 0, location: {
-                method: "test_method", type: "InstrumentationDelayedTestClass",
+                method: "test_method", type: "InstrumentationDelayedTestClass"
               }},
               language: "ruby",
               stack: Array,
@@ -287,7 +287,7 @@ RSpec.describe "Instrumentation integration" do
                 timestamp: Integer,
                 evaluationErrors: [],
                 probe: {id: "1234", version: 0, location: {
-                  method: "test_method", type: "InstrumentationDelayedDerivedTestClass",
+                  method: "test_method", type: "InstrumentationDelayedDerivedTestClass"
                 }},
                 language: "ruby",
                 stack: Array,
@@ -333,7 +333,7 @@ RSpec.describe "Instrumentation integration" do
               timestamp: Integer,
               evaluationErrors: [],
               probe: {id: "1234", version: 0, location: {
-                method: "test_method", type: "InstrumentationDelayedPartialTestClass",
+                method: "test_method", type: "InstrumentationDelayedPartialTestClass"
               }},
               language: "ruby",
               # TODO the stack trace here does not contain the target method
@@ -376,7 +376,7 @@ RSpec.describe "Instrumentation integration" do
               timestamp: Integer,
               evaluationErrors: [],
               probe: {id: "1234", version: 0, location: {
-                method: "test_method", type: "InstrumentationVirtualTestClass",
+                method: "test_method", type: "InstrumentationVirtualTestClass"
               }},
               language: "ruby",
               # TODO the stack trace here does not contain the target method
@@ -401,19 +401,19 @@ RSpec.describe "Instrumentation integration" do
               self: {
                 type: "InstrumentationSpecTestClass",
                 fields: {
-                  "@ivar": {type: "String", value: "start value"},
-                },
-              },
+                  "@ivar": {type: "String", value: "start value"}
+                }
+              }
             }},
             return: {arguments: {
               self: {
                 type: "InstrumentationSpecTestClass",
                 fields: {
-                  "@ivar": {type: "String", value: "start value"},
-                },
+                  "@ivar": {type: "String", value: "start value"}
+                }
               },
-              "@return": {type: "Integer", value: "42"},
-            }, throwable: nil},
+              "@return": {type: "Integer", value: "42"}
+            }, throwable: nil}
           }
         end
 
@@ -465,23 +465,23 @@ RSpec.describe "Instrumentation integration" do
                   self: {
                     type: "InstrumentationSpecTestClass",
                     fields: {
-                      "@ivar": {type: "String", value: "start value"},
-                    },
-                  },
-                },
+                      "@ivar": {type: "String", value: "start value"}
+                    }
+                  }
+                }
               },
               return: {
                 arguments: {
                   self: {
                     type: "InstrumentationSpecTestClass",
                     fields: {
-                      "@ivar": {type: "String", value: "start value"},
-                    },
+                      "@ivar": {type: "String", value: "start value"}
+                    }
                   },
-                  "@return": {type: "String", value: "bye world"},
+                  "@return": {type: "String", value: "bye world"}
                 },
-                throwable: nil,
-              },
+                throwable: nil
+              }
             }
           end
 
@@ -536,19 +536,19 @@ RSpec.describe "Instrumentation integration" do
                 self: {
                   type: "InstrumentationSpecTestClass",
                   fields: {
-                    "@ivar": {type: "String", value: "start value"},
-                  },
-                },
+                    "@ivar": {type: "String", value: "start value"}
+                  }
+                }
               }},
               return: {arguments: {
                 self: {
                   type: "InstrumentationSpecTestClass",
                   fields: {
-                    "@ivar": {type: "String", value: "altered value"},
-                  },
+                    "@ivar": {type: "String", value: "altered value"}
+                  }
                 },
-                "@return": {type: "String", value: "altered value"},
-              }, throwable: nil},
+                "@return": {type: "String", value: "altered value"}
+              }, throwable: nil}
             }
           end
 
@@ -611,7 +611,7 @@ RSpec.describe "Instrumentation integration" do
             id: "1234",
             type: "LOG_PROBE",
             where: {typeName: "InstrumentationSpecTestClass", methodName: "test_method"},
-            segments: segments,
+            segments: segments
           }
         end
 
@@ -629,7 +629,7 @@ RSpec.describe "Instrumentation integration" do
               id: "1234",
               type: "LOG_PROBE",
               where: {typeName: "InstrumentationSpecTestClass", methodName: "long_test_method"},
-              segments: segments,
+              segments: segments
             }
           end
 
@@ -713,7 +713,7 @@ RSpec.describe "Instrumentation integration" do
                 id: "1234",
                 type: "LOG_PROBE",
                 where: {typeName: "InstrumentationSpecTestClass", methodName: "exception_method"},
-                segments: segments,
+                segments: segments
               }
             end
 
@@ -764,13 +764,13 @@ RSpec.describe "Instrumentation integration" do
                 status: "ERROR",
                 exception: {
                   type: "Error",
-                  message: String,
-                },
+                  message: String
+                }
               }
             },
             message: /Probe circuit-breaker-test was disabled because it consumed .+ seconds of CPU time in DI processing/,
             service: "rspec",
-            timestamp: Integer,
+            timestamp: Integer
           }
         end
 
@@ -1062,16 +1062,16 @@ RSpec.describe "Instrumentation integration" do
               redacted: {type: "Hash", entries: [
                 [{type: "Symbol", value: "b"}, {type: "Integer", value: "33"}],
                 [{type: "Symbol", value: "session"}, {type: "String", notCapturedReason: "redactedIdent"}]
-              ]},
+              ]}
             },
             arguments: {
               self: {
                 type: "InstrumentationIntegrationTestClass",
                 fields: {
-                  "@ivar": {type: "Integer", value: "51"},
-                },
-              },
-            },
+                  "@ivar": {type: "Integer", value: "51"}
+                }
+              }
+            }
           }}}
         end
 
@@ -1126,10 +1126,10 @@ RSpec.describe "Instrumentation integration" do
                 self: {
                   type: "InstrumentationIntegrationTestClass",
                   fields: {
-                    "@ivar": {type: "Integer", value: "51"},
-                  },
-                },
-              },
+                    "@ivar": {type: "Integer", value: "51"}
+                  }
+                }
+              }
             }}}
           end
 
@@ -1323,13 +1323,13 @@ RSpec.describe "Instrumentation integration" do
                 status: "ERROR",
                 exception: {
                   type: "Error",
-                  message: String,
-                },
+                  message: String
+                }
               }
             },
             message: /Probe circuit-breaker-line-test was disabled because it consumed .+ seconds of CPU time in DI processing/,
             service: "rspec",
-            timestamp: Integer,
+            timestamp: Integer
           }
         end
 

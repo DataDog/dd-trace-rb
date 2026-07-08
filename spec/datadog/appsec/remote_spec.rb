@@ -120,7 +120,7 @@ RSpec.describe Datadog::AppSec::Remote do
           Datadog::Core::Remote::Configuration::Target.parse(
             {
               "custom" => {
-                "v" => 1,
+                "v" => 1
               },
               "hashes" => {"sha256" => Digest::SHA256.hexdigest(rules.to_json)},
               "length" => rules.to_s.length
@@ -132,7 +132,7 @@ RSpec.describe Datadog::AppSec::Remote do
           Datadog::Core::Remote::Configuration::Content.parse(
             {
               path: "datadog/603646/ASM_DD/latest/config",
-              content: rules,
+              content: rules
             }
           )
         end
@@ -225,7 +225,7 @@ RSpec.describe Datadog::AppSec::Remote do
             Datadog::Core::Remote::Configuration::Content.parse(
               {
                 path: "datadog/603646/ASM_DD/v1/config",
-                content: rules,
+                content: rules
               }
             )
           end
@@ -234,7 +234,7 @@ RSpec.describe Datadog::AppSec::Remote do
             Datadog::Core::Remote::Configuration::Content.parse(
               {
                 path: "datadog/603646/ASM_DD/v2/config",
-                content: rules_v2,
+                content: rules_v2
               }
             )
           end
@@ -243,7 +243,7 @@ RSpec.describe Datadog::AppSec::Remote do
             Datadog::Core::Remote::Configuration::Target.parse(
               {
                 "custom" => {
-                  "v" => 1,
+                  "v" => 1
                 },
                 "hashes" => {"sha256" => Digest::SHA256.hexdigest(rules_v2)},
                 "length" => rules_v2.length

@@ -30,7 +30,7 @@ RSpec.describe Datadog::Tracing::SpanEvent do
             "invalid_int2" => -2 << 65,
             "invalid_float1" => Float::NAN,
             "invalid_float2" => Float::INFINITY,
-            "string" => "bar",
+            "string" => "bar"
           }
         end
 

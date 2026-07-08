@@ -66,12 +66,12 @@ module Datadog
         CONTENT_TYPE_TO_FORMAT = {
           "application/json" => :json,
           "text/html" => :html,
-          "text/plain" => :text,
+          "text/plain" => :text
         }.freeze
 
         FORMAT_TO_CONTENT_TYPE = {
           "json" => "application/json",
-          "html" => "text/html",
+          "html" => "text/html"
         }.freeze
 
         DEFAULT_CONTENT_TYPE = "application/json"

@@ -167,7 +167,7 @@ module Datadog
             extracted_trace_digest,
             attributes: {
               "reason" => "propagation_behavior_extract",
-              "context_headers" => extracted_style_name,
+              "context_headers" => extracted_style_name
             }
           )
           baggage_tags = extracted_trace_digest.trace_distributed_tags&.select { |k, _| k.start_with?("baggage.") }

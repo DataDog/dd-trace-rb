@@ -100,7 +100,7 @@ module Datadog
 
                   {
                     path: h[:path].freeze,
-                    content: content.freeze,
+                    content: content.freeze
                   }
                 end.freeze
 
@@ -123,7 +123,7 @@ module Datadog
                     roots: @roots,
                     targets: @targets,
                     target_files: @target_files,
-                    client_configs: @client_configs,
+                    client_configs: @client_configs
                   }}"
               end
 

@@ -24,7 +24,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::Path do
           org_id: org_id.nil? ? org_id : Integer(org_id),
           product: product,
           config_id: config_id,
-          name: name,
+          name: name
         }
       end
 

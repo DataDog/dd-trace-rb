@@ -185,7 +185,7 @@ RSpec.describe Datadog::AppSec::Response do
         "text/*;q=0.7, application/*;q=0.8, */*;q=0.9" => "application/json",
         "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" => "text/html",
         "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8" => "text/html",
-        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7" => "text/html",
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7" => "text/html"
       }.each do |header, expected|
         context "when Accept header is #{header.inspect}" do
           let(:response) { described_class.from_interrupt_params({}, header) }

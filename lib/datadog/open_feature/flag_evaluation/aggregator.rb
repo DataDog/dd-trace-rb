@@ -248,7 +248,7 @@ module Datadog
             runtime_default: runtime_default,
             error_message: error_message,
             targeting_key: targeting_key,
-            context_attrs: context_attrs,
+            context_attrs: context_attrs
           }
         end
 

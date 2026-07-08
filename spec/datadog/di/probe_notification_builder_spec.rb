@@ -60,12 +60,12 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             probeId: "123",
             probeVersion: 0,
             runtimeId: String,
-            status: "RECEIVED",
-          },
+            status: "RECEIVED"
+          }
         },
         message: "Probe 123 has been received correctly",
         service: "test service",
-        timestamp: Integer,
+        timestamp: Integer
       }
     end
 
@@ -89,12 +89,12 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             probeId: "123",
             probeVersion: 0,
             runtimeId: String,
-            status: "INSTALLED",
-          },
+            status: "INSTALLED"
+          }
         },
         message: "Probe 123 has been instrumented correctly",
         service: "test service",
-        timestamp: Integer,
+        timestamp: Integer
       }
     end
 
@@ -118,12 +118,12 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             probeId: "123",
             probeVersion: 0,
             runtimeId: String,
-            status: "EMITTING",
-          },
+            status: "EMITTING"
+          }
         },
         message: "Probe 123 is emitting",
         service: "test service",
-        timestamp: Integer,
+        timestamp: Integer
       }
     end
 
@@ -150,13 +150,13 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             status: "ERROR",
             exception: {
               type: "Exception",
-              message: "Test message",
-            },
-          },
+              message: "Test message"
+            }
+          }
         },
         message: "Instrumentation for probe 123 failed: Test message",
         service: "test service",
-        timestamp: Integer,
+        timestamp: Integer
       }
     end
 
@@ -183,13 +183,13 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             status: "ERROR",
             exception: {
               type: "Error",
-              message: "Probe 123 was disabled because it consumed 0.75 seconds of CPU time in DI processing",
-            },
-          },
+              message: "Probe 123 was disabled because it consumed 0.75 seconds of CPU time in DI processing"
+            }
+          }
         },
         message: "Probe 123 was disabled because it consumed 0.75 seconds of CPU time in DI processing",
         service: "test service",
-        timestamp: Integer,
+        timestamp: Integer
       }
     end
 
@@ -219,13 +219,13 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             status: "ERROR",
             exception: {
               type: "Error",
-              message: "Custom error message",
-            },
-          },
+              message: "Custom error message"
+            }
+          }
         },
         message: "Custom error message",
         service: "test service",
-        timestamp: Integer,
+        timestamp: Integer
       }
     end
 
@@ -267,13 +267,13 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
                 id: "123",
                 location: {
                   file: nil,
-                  lines: ["1"],
+                  lines: ["1"]
                 },
-                version: 0,
+                version: 0
               },
               stack: nil,
-              timestamp: Integer,
-            },
+              timestamp: Integer
+            }
           },
           message: "hello world",
           service: "test service",
@@ -283,10 +283,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             name: "X",
             thread_id: nil,
             thread_name: "Thread.main",
-            version: 2,
+            version: 2
           },
           duration: 0,
-          host: nil,
+          host: nil
         }
       end
 
@@ -318,13 +318,13 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
                 id: "123",
                 location: {
                   file: nil,
-                  lines: ["1"],
+                  lines: ["1"]
                 },
-                version: 0,
+                version: 0
               },
               stack: nil,
-              timestamp: Integer,
-            },
+              timestamp: Integer
+            }
           },
           message: nil,
           service: "test service",
@@ -334,10 +334,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             name: "X",
             thread_id: nil,
             thread_name: "Thread.main",
-            version: 2,
+            version: 2
           },
           duration: 0,
-          host: nil,
+          host: nil
         }
       end
 
@@ -382,10 +382,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
                     locals: serialized_locals,
                     arguments: {self: {
                       type: "Object",
-                      fields: {},
-                    }},
-                  },
-                },
+                      fields: {}
+                    }}
+                  }
+                }
               },
               evaluationErrors: [],
               id: String,
@@ -394,13 +394,13 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
                 id: "123",
                 location: {
                   file: "/foo.rb",
-                  lines: ["1"],
+                  lines: ["1"]
                 },
-                version: 0,
+                version: 0
               },
               stack: nil,
-              timestamp: Integer,
-            },
+              timestamp: Integer
+            }
           },
           message: nil,
           service: "test service",
@@ -410,10 +410,10 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             name: "X",
             thread_id: nil,
             thread_name: "Thread.main",
-            version: 2,
+            version: 2
           },
           duration: 0,
-          host: nil,
+          host: nil
         }
       end
 
@@ -683,7 +683,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         {
           hello: "test",
           # We need double backslash to check for proper sub/gsub usage.
-          world: %("'\\\\a\#{value}),
+          world: %("'\\\\a\#{value})
         }
       end
 

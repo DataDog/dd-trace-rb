@@ -35,7 +35,7 @@ Datadog::DI::Serializer.register(
   # @type var depth: Integer
   value_to_serialize = {
     attributes: value.attributes,
-    new_record: value.new_record?,
+    new_record: value.new_record?
   }
   serializer.serialize_value(value_to_serialize, depth: depth, type: value.class)
 end

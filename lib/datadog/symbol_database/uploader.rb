@@ -151,7 +151,7 @@ module Datadog
 
         {
           "event" => event_upload,
-          "file" => file_upload,
+          "file" => file_upload
         }
       end
 

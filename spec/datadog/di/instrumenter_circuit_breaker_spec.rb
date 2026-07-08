@@ -427,9 +427,9 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
               status: "ERROR",
               exception: {
                 type: "Error",
-                message: String,
-              },
-            },
+                message: String
+              }
+            }
           },
           message: String,
           service: "rspec",

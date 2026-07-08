@@ -140,7 +140,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
               "trace_id_high" => 0xaaaaaaaaaaaaaaaa,
               "attributes" => {"link.name" => "test_link"},
               "flags" => 2147483649,
-              "tracestate" => "vendor1=value,v2=v,dd=s:1",
+              "tracestate" => "vendor1=value,v2=v,dd=s:1"
             },
               {
                 "span_id" => 2,

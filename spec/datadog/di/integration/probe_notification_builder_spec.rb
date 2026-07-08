@@ -59,8 +59,8 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             locals: {local: {type: "String", value: "var"}},
             arguments: {self: {
               type: "Object",
-              fields: {},
-            }},
+              fields: {}
+            }}
           }}}
         end
 
@@ -90,7 +90,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             arg1: {type: "Integer", value: "1"},
             arg2: {type: "String", value: "hello"},
             foo: {type: "Integer", value: "42"},
-            self: {type: "Object", fields: {}},
+            self: {type: "Object", fields: {}}
           }
         end
 
@@ -100,19 +100,19 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
               arg1: {type: "Integer", value: "1"},
               arg2: {type: "String", value: "hello"},
               foo: {type: "Integer", value: "42"},
-              self: {type: "Object", fields: {}},
-            },
+              self: {type: "Object", fields: {}}
+            }
           }, return: {
             arguments: {
               :self => {
                 type: "Object",
-                fields: {},
+                fields: {}
               },
               :@return => {
                 type: "NilClass",
-                isNull: true,
-              },
-            }, throwable: nil,
+                isNull: true
+              }
+            }, throwable: nil
           }}
         end
 
@@ -157,7 +157,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             probe: probe,
             target_self: Object.new,
             locals: {
-              bar: 42,
+              bar: 42
             }
           )
         end

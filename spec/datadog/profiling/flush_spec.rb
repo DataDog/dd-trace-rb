@@ -19,7 +19,7 @@ RSpec.describe Datadog::Profiling::Flush do
           },
           runtime: {
             engine: "ruby"
-          },
+          }
         }
       )
     end

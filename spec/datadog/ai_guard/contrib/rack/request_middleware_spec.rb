@@ -15,7 +15,7 @@ RSpec.describe Datadog::AIGuard::Contrib::Rack::RequestMiddleware do
       "REMOTE_ADDR" => "203.0.113.5",
       "HTTP_X_FORWARDED_FOR" => "198.51.100.42",
       "PATH_INFO" => "/",
-      "REQUEST_METHOD" => "GET",
+      "REQUEST_METHOD" => "GET"
     }
   end
 

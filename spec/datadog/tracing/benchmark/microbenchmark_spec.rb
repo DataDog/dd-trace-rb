@@ -148,7 +148,7 @@ RSpec.describe "Microbenchmark" do
         let(:rule) do
           {
             name: name,
-            sample_rate: 1.0,
+            sample_rate: 1.0
           }
         end
 
@@ -166,7 +166,7 @@ RSpec.describe "Microbenchmark" do
         let(:rule) do
           {
             name: name,
-            sample_rate: 0.0,
+            sample_rate: 0.0
           }
         end
 

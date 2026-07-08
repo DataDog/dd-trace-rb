@@ -104,7 +104,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
           "HTTP_X_DD_PROXY_REQUEST_TIME_MS" => "1757000000000",
           "HTTP_X_DD_PROXY_PATH" => "/api/test",
           "HTTP_X_DD_PROXY_HTTPMETHOD" => "GET",
-          "HTTP_X_DD_PROXY_DOMAIN_NAME" => "example.execute-api.us-east-1.amazonaws.com",
+          "HTTP_X_DD_PROXY_DOMAIN_NAME" => "example.execute-api.us-east-1.amazonaws.com"
         }
       end
 
@@ -126,7 +126,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
           "HTTP_X_DD_PROXY_RESOURCE_PATH" => "/api/{proxy+}",
           "HTTP_X_DD_PROXY_HTTPMETHOD" => "GET",
           "HTTP_X_DD_PROXY_DOMAIN_NAME" => "example.execute-api.us-east-1.amazonaws.com",
-          "HTTP_X_DD_PROXY_STAGE" => "dev",
+          "HTTP_X_DD_PROXY_STAGE" => "dev"
         }
       end
 
@@ -182,7 +182,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
             "HTTP_X_DD_PROXY_RESOURCE_PATH" => "/api/{proxy+}",
             "HTTP_X_DD_PROXY_HTTPMETHOD" => "GET",
             "HTTP_X_DD_PROXY_DOMAIN_NAME" => "example.execute-api.us-east-1.amazonaws.com",
-            "HTTP_X_DD_PROXY_STAGE" => "dev",
+            "HTTP_X_DD_PROXY_STAGE" => "dev"
           }
         end
         let(:inferred_span) { spans.first }
@@ -217,7 +217,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
             "HTTP_X_DD_PROXY" => "aws-apigateway",
             "HTTP_X_DD_PROXY_REQUEST_TIME_MS" => "1757000000000",
             "HTTP_X_DD_PROXY_PATH" => "/api/test",
-            "HTTP_X_DD_PROXY_DOMAIN_NAME" => "example.execute-api.us-east-1.amazonaws.com",
+            "HTTP_X_DD_PROXY_DOMAIN_NAME" => "example.execute-api.us-east-1.amazonaws.com"
           }
         end
         let(:inferred_span) { spans.first }
@@ -236,7 +236,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
             "HTTP_X_DD_PROXY_PATH" => "/api/test",
             "HTTP_X_DD_PROXY_HTTPMETHOD" => "GET",
             "HTTP_X_DD_PROXY_DOMAIN_NAME" => "example.execute-api.us-east-1.amazonaws.com",
-            "HTTP_X_DD_PROXY_STAGE" => "dev",
+            "HTTP_X_DD_PROXY_STAGE" => "dev"
           }
         end
         let(:inferred_span) { spans.first }
@@ -253,7 +253,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
             "HTTP_X_DD_PROXY" => "aws-apigateway",
             "HTTP_X_DD_PROXY_REQUEST_TIME_MS" => "1757000000000",
             "HTTP_X_DD_PROXY_PATH" => "/api/test",
-            "HTTP_X_DD_PROXY_HTTPMETHOD" => "GET",
+            "HTTP_X_DD_PROXY_HTTPMETHOD" => "GET"
           }
         end
 
@@ -270,7 +270,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
             "HTTP_X_DD_PROXY_RESOURCE_PATH" => "/api/{proxy+}",
             "HTTP_X_DD_PROXY_HTTPMETHOD" => "GET",
             "HTTP_X_DD_PROXY_DOMAIN_NAME" => "example.execute-api.us-east-1.amazonaws.com",
-            "HTTP_X_DD_PROXY_STAGE" => "dev",
+            "HTTP_X_DD_PROXY_STAGE" => "dev"
           }
         end
 
@@ -285,7 +285,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
             "HTTP_X_DD_PROXY_REQUEST_TIME_MS" => "abc",
             "HTTP_X_DD_PROXY_PATH" => "/api/test",
             "HTTP_X_DD_PROXY_HTTPMETHOD" => "GET",
-            "HTTP_X_DD_PROXY_DOMAIN_NAME" => "example.execute-api.us-east-1.amazonaws.com",
+            "HTTP_X_DD_PROXY_DOMAIN_NAME" => "example.execute-api.us-east-1.amazonaws.com"
           }
         end
 
@@ -308,7 +308,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
             "HTTP_X_DD_PROXY_ACCOUNT_ID" => "123456789",
             "HTTP_X_DD_PROXY_API_ID" => "abc123",
             "HTTP_X_DD_PROXY_REGION" => "us-east-1",
-            "HTTP_X_DD_PROXY_USER" => "test-user",
+            "HTTP_X_DD_PROXY_USER" => "test-user"
           }
         end
         let(:inferred_span) { spans.first }
@@ -335,7 +335,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
             "HTTP_X_DD_PROXY_ACCOUNT_ID" => "123456789",
             "HTTP_X_DD_PROXY_API_ID" => "abc123",
             "HTTP_X_DD_PROXY_REGION" => "us-east-1",
-            "HTTP_X_DD_PROXY_USER" => "test-user",
+            "HTTP_X_DD_PROXY_USER" => "test-user"
           }
         end
         let(:inferred_span) { spans.first }
@@ -355,7 +355,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
             "HTTP_X_DD_PROXY_DOMAIN_NAME" => "example.execute-api.us-east-1.amazonaws.com",
             "HTTP_X_DD_PROXY_STAGE" => "dev",
             "HTTP_X_DD_PROXY_ACCOUNT_ID" => "123456789",
-            "HTTP_X_DD_PROXY_API_ID" => "abc123",
+            "HTTP_X_DD_PROXY_API_ID" => "abc123"
           }
         end
         let(:inferred_span) { spans.first }
@@ -375,7 +375,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
             "HTTP_X_DD_PROXY_DOMAIN_NAME" => "example.execute-api.us-east-1.amazonaws.com",
             "HTTP_X_DD_PROXY_STAGE" => "dev",
             "HTTP_X_DD_PROXY_ACCOUNT_ID" => "123456789",
-            "HTTP_X_DD_PROXY_REGION" => "us-east-1",
+            "HTTP_X_DD_PROXY_REGION" => "us-east-1"
           }
         end
         let(:inferred_span) { spans.first }
@@ -396,7 +396,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
             "HTTP_X_DD_PROXY_STAGE" => "dev",
             "HTTP_X_DD_PROXY_ACCOUNT_ID" => "123456789",
             "HTTP_X_DD_PROXY_API_ID" => "abc123",
-            "HTTP_X_DD_PROXY_REGION" => "'us-east-1'",
+            "HTTP_X_DD_PROXY_REGION" => "'us-east-1'"
           }
         end
         let(:inferred_span) { spans.first }
@@ -520,7 +520,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceProxyMiddleware do
             "HTTP_X_DD_PROXY_HTTPMETHOD" => "GET",
             "HTTP_X_DD_PROXY_DOMAIN_NAME" => "example.execute-api.us-east-1.amazonaws.com",
             "HTTP_X_DD_PROXY_STAGE" => "dev",
-            "HTTP_X_REQUEST_START" => "1757000000000",
+            "HTTP_X_REQUEST_START" => "1757000000000"
           }
         end
 

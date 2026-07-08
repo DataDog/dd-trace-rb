@@ -67,7 +67,7 @@ RSpec.describe Datadog::DataStreams::Transport::HTTP do
         expect(WebMock).to have_requested(:post, "http://localhost:8126/v0.1/pipeline_stats")
           .with(headers: {
             "Content-Type" => "application/msgpack",
-            "Content-Encoding" => "gzip",
+            "Content-Encoding" => "gzip"
           })
       end
     end

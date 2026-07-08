@@ -225,7 +225,7 @@ RSpec.describe "Rails integration tests", execute_in_fork: Rails.version.to_i >=
         {
           "/success" => "test#success",
           [:post, "/success"] => "test#success",
-          "/set_user" => "test#set_user",
+          "/set_user" => "test#set_user"
         }
       end
 
@@ -535,7 +535,7 @@ RSpec.describe "Rails integration tests", execute_in_fork: Rails.version.to_i >=
 
         let(:routes) do
           {
-            [:mount, rack_app] => "/api",
+            [:mount, rack_app] => "/api"
           }
         end
 

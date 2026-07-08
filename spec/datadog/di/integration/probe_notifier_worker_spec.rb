@@ -129,12 +129,12 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
            probeId: String,
            probeVersion: 0,
            runtimeId: "test runtime id",
-           status: "INSTALLED",
+           status: "INSTALLED"
          }
        },
        message: "test message",
        service: "rspec",
-       timestamp: 1234567890,}.freeze
+       timestamp: 1234567890}.freeze
     end
 
     it "sends expected payload" do
@@ -168,7 +168,7 @@ Content-Transfer-Encoding: binary
       # Use a dummy payload to avoid confusion with respect to whether
       # the contents is correct as far as backend expectations.
       {
-        snapshot: "payload",
+        snapshot: "payload"
       }.freeze
     end
 

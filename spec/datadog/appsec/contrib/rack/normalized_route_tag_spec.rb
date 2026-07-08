@@ -55,7 +55,7 @@ RSpec.describe "Normalized route tag" do
         route_app({
           "datadog.action_dispatch.route" => route_object("/users/:id(.:format)"),
           "action_dispatch.request.path_parameters" => {id: "42", format: nil},
-          "PATH_INFO" => "/users/42",
+          "PATH_INFO" => "/users/42"
         })
       end
 
@@ -69,7 +69,7 @@ RSpec.describe "Normalized route tag" do
         route_app({
           "datadog.action_dispatch.route" => route_object("/posts/:id(.:format)"),
           "action_dispatch.request.path_parameters" => {id: "1", format: "json"},
-          "PATH_INFO" => "/posts/1.json",
+          "PATH_INFO" => "/posts/1.json"
         })
       end
 
@@ -83,7 +83,7 @@ RSpec.describe "Normalized route tag" do
         route_app({
           "datadog.action_dispatch.route" => route_object("/health"),
           "action_dispatch.request.path_parameters" => {},
-          "PATH_INFO" => "/health",
+          "PATH_INFO" => "/health"
         })
       end
 
@@ -97,7 +97,7 @@ RSpec.describe "Normalized route tag" do
         route_app({
           "datadog.action_dispatch.route" => route_object("/posts(/:year(/:month(/:day)))"),
           "action_dispatch.request.path_parameters" => {year: "2024"},
-          "PATH_INFO" => "/posts/2024",
+          "PATH_INFO" => "/posts/2024"
         })
       end
 
@@ -113,7 +113,7 @@ RSpec.describe "Normalized route tag" do
         route_app({
           "action_dispatch.route_uri_pattern" => "/articles/:slug(.:format)",
           "action_dispatch.request.path_parameters" => {slug: "hello-world", format: nil},
-          "PATH_INFO" => "/articles/hello-world",
+          "PATH_INFO" => "/articles/hello-world"
         })
       end
 
@@ -128,7 +128,7 @@ RSpec.describe "Normalized route tag" do
       let(:routes) do
         route_app({
           "sinatra.route" => "GET /users/:id",
-          "PATH_INFO" => "/users/42",
+          "PATH_INFO" => "/users/42"
         })
       end
 
@@ -143,7 +143,7 @@ RSpec.describe "Normalized route tag" do
       let(:routes) do
         route_app({
           "grape.routing_args" => {route_info: grape_route_info("/api/users/:id")},
-          "PATH_INFO" => "/api/users/42",
+          "PATH_INFO" => "/api/users/42"
         })
       end
 
@@ -159,7 +159,7 @@ RSpec.describe "Normalized route tag" do
         route_app({
           "datadog.action_dispatch.route" => route_object("/users/:id(.:format)"),
           "action_dispatch.request.path_parameters" => {id: "42", format: nil},
-          "PATH_INFO" => "/api/v2/users/42",
+          "PATH_INFO" => "/api/v2/users/42"
         }, route_path: "/api/v2")
       end
 
@@ -173,7 +173,7 @@ RSpec.describe "Normalized route tag" do
         route_app({
           "sinatra.route" => "GET /users/:id",
           "PATH_INFO" => "/users/42",
-          "SCRIPT_NAME" => "/myapp",
+          "SCRIPT_NAME" => "/myapp"
         })
       end
 
@@ -196,7 +196,7 @@ RSpec.describe "Normalized route tag" do
       route_app({
         "datadog.action_dispatch.route" => route_object("/users/:id(.:format)"),
         "action_dispatch.request.path_parameters" => {id: "42", format: nil},
-        "PATH_INFO" => "/users/42",
+        "PATH_INFO" => "/users/42"
       }, http_route: nil)
     end
 
@@ -213,7 +213,7 @@ RSpec.describe "Normalized route tag" do
       route_app({
         "datadog.action_dispatch.route" => route_object("/users/:id(.:format)"),
         "action_dispatch.request.path_parameters" => {id: "42", format: nil},
-        "PATH_INFO" => "/users/42",
+        "PATH_INFO" => "/users/42"
       })
     end
 
@@ -230,7 +230,7 @@ RSpec.describe "Normalized route tag" do
       route_app({
         "datadog.action_dispatch.route" => route_object("/users/:id(.:format)"),
         "action_dispatch.request.path_parameters" => {id: "42", format: nil},
-        "PATH_INFO" => "/users/42",
+        "PATH_INFO" => "/users/42"
       })
     end
 

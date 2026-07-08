@@ -14,7 +14,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleLoader do
             "conditions" => [
               {"operation" => "match_regex", "parameters" => {"inputs" => ["value2"], "regex" => "rule1"}}
             ],
-            "action" => "record",
+            "action" => "record"
           }
         ]
       }

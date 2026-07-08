@@ -82,7 +82,7 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         scopes: [],
         upload_id: nil,
         batch_num: nil,
-        final: nil,
+        final: nil
       })
     end
 

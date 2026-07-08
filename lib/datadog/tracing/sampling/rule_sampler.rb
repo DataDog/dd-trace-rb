@@ -74,7 +74,7 @@ module Datadog
                             provenance.to_sym
                           else
                             Rule::PROVENANCE_LOCAL
-                          end,
+                          end
             }
 
             kwargs.compact!

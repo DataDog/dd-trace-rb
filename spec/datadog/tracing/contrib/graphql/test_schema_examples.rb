@@ -184,7 +184,7 @@ RSpec.shared_examples "graphql instrumentation with unified naming convention tr
             "locations" => ["1:14"],
             "message" => "GraphQL error",
             "type" => "GraphQL::ExecutionError",
-            "stacktrace" => include(__FILE__),
+            "stacktrace" => include(__FILE__)
           }
         ),
         a_span_event_with(
@@ -194,7 +194,7 @@ RSpec.shared_examples "graphql instrumentation with unified naming convention tr
             "locations" => ["1:33"],
             "message" => "GraphQL error",
             "type" => "GraphQL::ExecutionError",
-            "stacktrace" => include(__FILE__),
+            "stacktrace" => include(__FILE__)
           }
         )
       )
@@ -220,7 +220,7 @@ RSpec.shared_examples "graphql instrumentation with unified naming convention tr
               "extensions.str" => "1",
               "extensions.array-1-2" => '[1, "2"]',
               "extensions.hash-a-b" => {a: "b"}.to_s, # Hash#to_s changes per Ruby version: 3.3: '{:a=>1}', 3.4: '{a: 1}'
-              "extensions.object" => start_with("#<Object:"),
+              "extensions.object" => start_with("#<Object:")
             }
           )
         )
@@ -245,7 +245,7 @@ RSpec.shared_examples "graphql instrumentation with unified naming convention tr
               "exception.stacktrace" => include(__FILE__),
               "graphql.error.path" => ["err1"],
               "graphql.error.locations" => ["1:14"],
-              "graphql.error.extensions.int" => 1,
+              "graphql.error.extensions.int" => 1
             }
           )
         )

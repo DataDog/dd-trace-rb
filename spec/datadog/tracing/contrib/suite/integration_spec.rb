@@ -64,7 +64,7 @@ RSpec.describe "contrib integration testing", :integration do
       targets = {
         "signed" => {
           "custom" => {},
-          "targets" => targets_targets,
+          "targets" => targets_targets
         }
       }
 
@@ -74,13 +74,13 @@ RSpec.describe "contrib integration testing", :integration do
 
         target_files << {
           "path" => target,
-          "raw" => Datadog::Core::Utils::Base64Codec.strict_encode64(raw),
+          "raw" => Datadog::Core::Utils::Base64Codec.strict_encode64(raw)
         }
 
         targets_targets[target] = {
           "custom" => {"v" => 1},
           "length" => 0,
-          "hashes" => {"sha256" => Digest::SHA256.hexdigest(raw)},
+          "hashes" => {"sha256" => Digest::SHA256.hexdigest(raw)}
         }
         client_configs << target
       end
@@ -88,7 +88,7 @@ RSpec.describe "contrib integration testing", :integration do
       {
         "target_files" => target_files,
         "targets" => Datadog::Core::Utils::Base64Codec.strict_encode64(targets.to_json),
-        "client_configs" => client_configs,
+        "client_configs" => client_configs
       }.to_json
     end
 
@@ -99,7 +99,7 @@ RSpec.describe "contrib integration testing", :integration do
         {
           "log_injection_enabled" => false,
           "tracing_sampling_rate" => tracing_sampling_rate,
-          "tracing_header_tags" => tracing_header_tags,
+          "tracing_header_tags" => tracing_header_tags
         }
       end
 

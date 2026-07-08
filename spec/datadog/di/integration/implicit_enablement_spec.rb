@@ -142,8 +142,8 @@ RSpec.describe "DI implicit enablement integration" do
           type: "LOG_PROBE",
           where: {
             typeName: "ImplicitEnablementSpecTargetClass",
-            methodName: "target_method",
-          },
+            methodName: "target_method"
+          }
         }
       end
 
@@ -220,8 +220,8 @@ RSpec.describe "DI implicit enablement integration" do
           type: "LOG_PROBE",
           where: {
             typeName: "ImplicitEnablementSpecTargetClass",
-            methodName: "target_method",
-          },
+            methodName: "target_method"
+          }
         }
       end
 
@@ -285,8 +285,8 @@ RSpec.describe "DI implicit enablement integration" do
         type: "LOG_PROBE",
         where: {
           typeName: "ImplicitEnablementSpecTargetClass",
-          methodName: "target_method",
-        },
+          methodName: "target_method"
+        }
       }
     end
 
@@ -296,7 +296,7 @@ RSpec.describe "DI implicit enablement integration" do
     let(:combined_configs) do
       {
         "datadog/2/LIVE_DEBUGGING/foo/bar" => probe_spec,
-        "datadog/2/APM_TRACING/lib_config/config" => apm_tracing_payload,
+        "datadog/2/APM_TRACING/lib_config/config" => apm_tracing_payload
       }
     end
     let(:transaction) do
@@ -341,8 +341,8 @@ RSpec.describe "DI implicit enablement integration" do
         type: "LOG_PROBE",
         where: {
           typeName: "ImplicitEnablementSpecTargetClass",
-          methodName: "target_method",
-        },
+          methodName: "target_method"
+        }
       }
     end
 
@@ -362,7 +362,7 @@ RSpec.describe "DI implicit enablement integration" do
       DIHelpers::TestRemoteConfigGenerator.new(
         {
           "datadog/2/LIVE_DEBUGGING/foo/bar" => probe_spec,
-          "datadog/2/APM_TRACING/lib_config/config" => {"lib_config" => {"dynamic_instrumentation_enabled" => true}},
+          "datadog/2/APM_TRACING/lib_config/config" => {"lib_config" => {"dynamic_instrumentation_enabled" => true}}
         }
       ).mock_response
     end

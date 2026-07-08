@@ -126,7 +126,7 @@ RSpec.describe "Datadog integration" do
               if resolved != v
                 new_file_descriptors[k] = {
                   original: v,
-                  resolved: resolved,
+                  resolved: resolved
                 }
               end
             rescue SystemCallError

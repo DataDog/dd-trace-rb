@@ -50,7 +50,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
             config_states: [],            # from scratch, so empty
             has_error: false,             # from scratch, so false
             error: "",                    # from scratch, so blank
-            opaque_backend_state: "",     # from scratch, so blank
+            opaque_backend_state: ""     # from scratch, so blank
           }
         )
       end
@@ -79,7 +79,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
               config_states: state.config_states,
               has_error: state.has_error,
               error: state.error,
-              backend_client_state: state.opaque_backend_state,
+              backend_client_state: state.opaque_backend_state
             },
             id: id,
             products: products,
@@ -91,11 +91,11 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
               tracer_version: Datadog::Core::Environment::Identity.gem_datadog_version,
               service: Datadog.configuration.service,
               env: Datadog.configuration.env,
-              tags: [],
+              tags: []
             },
-            capabilities: Datadog::Core::Utils::Base64Codec.encode64(capabilities_binary).chomp,
+            capabilities: Datadog::Core::Utils::Base64Codec.encode64(capabilities_binary).chomp
           },
-          cached_target_files: [],
+          cached_target_files: []
         }
       end
 

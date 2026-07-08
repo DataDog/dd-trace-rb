@@ -248,7 +248,7 @@ RSpec.describe Datadog::Tracing::Correlation do
                 service: "default-service",
                 version: "default-version",
                 trace_id: "0",
-                span_id: "0",
+                span_id: "0"
               },
               ddsource: "ruby"
             }

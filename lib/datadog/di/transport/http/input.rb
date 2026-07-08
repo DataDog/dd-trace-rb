@@ -31,7 +31,7 @@ module Datadog
                   # could change at any time but probably we should ignore
                   # those changes), therefore serializing the tags
                   # every time would be wasteful.
-                  ddtags: env.request.serialized_tags,
+                  ddtags: env.request.serialized_tags
                 }
 
                 super

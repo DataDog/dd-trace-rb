@@ -139,7 +139,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           "runtime-id" => String,
           "runtime_engine" => String,
           "runtime_platform" => String,
-          "runtime_version" => String,
+          "runtime_version" => String
         }
       end
 
@@ -369,9 +369,9 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           debugger: {
             snapshot: {
               probe: {id: "bad-probe"},
-              captures: {locals: {data: "\x80".force_encoding("ASCII-8BIT")}},
-            },
-          },
+              captures: {locals: {data: "\x80".force_encoding("ASCII-8BIT")}}
+            }
+          }
         }
       end
 

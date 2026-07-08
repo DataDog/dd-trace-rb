@@ -38,7 +38,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         metrics: metrics,
         trace_state: trace_state,
         trace_state_unknown_fields: trace_state_unknown_fields,
-        remote_parent: remote_parent,
+        remote_parent: remote_parent
       }
     end
 

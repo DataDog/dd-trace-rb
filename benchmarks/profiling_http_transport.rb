@@ -59,7 +59,7 @@ class ProfilerHttpTransportBenchmark
       metrics: [],
       tags_as_array: [],
       internal_metadata: {no_signals_workaround_enabled: false},
-      info_json: JSON.generate({profiler: {benchmarking: true}}),
+      info_json: JSON.generate({profiler: {benchmarking: true}})
     }
 
     # This was added as a workaround to allow https://github.com/DataDog/dd-trace-rb/pull/5072 to be merged

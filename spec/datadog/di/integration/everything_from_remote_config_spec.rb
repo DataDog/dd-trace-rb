@@ -105,12 +105,12 @@ RSpec.describe "DI integration from remote config" do
           probeId: "11",
           probeVersion: 0,
           runtimeId: be_valid_uuid,
-          status: "RECEIVED",
-        },
+          status: "RECEIVED"
+        }
       },
       message: "Probe 11 has been received correctly",
       service: "rspec",
-      timestamp: Integer,
+      timestamp: Integer
     }
   end
 
@@ -124,12 +124,12 @@ RSpec.describe "DI integration from remote config" do
           probeId: "11",
           probeVersion: 0,
           runtimeId: be_valid_uuid,
-          status: "INSTALLED",
-        },
+          status: "INSTALLED"
+        }
       },
       message: "Probe 11 has been instrumented correctly",
       service: "rspec",
-      timestamp: Integer,
+      timestamp: Integer
     }
   end
 
@@ -143,12 +143,12 @@ RSpec.describe "DI integration from remote config" do
           probeId: "11",
           probeVersion: 0,
           runtimeId: be_valid_uuid,
-          status: "EMITTING",
-        },
+          status: "EMITTING"
+        }
       },
       message: "Probe 11 is emitting",
       service: "rspec",
-      timestamp: Integer,
+      timestamp: Integer
     }
   end
 
@@ -165,13 +165,13 @@ RSpec.describe "DI integration from remote config" do
           status: "ERROR",
           exception: {
             type: "Datadog::DI::Error::DITargetNotInRegistry",
-            message: String,
-          },
-        },
+            message: String
+          }
+        }
       },
       message: /Instrumentation for probe 11 failed:.*instrumentation_integration_test_class.rb.*no surviving iseqs|no per-method iseqs/,
       service: "rspec",
-      timestamp: Integer,
+      timestamp: Integer
     }
   end
 
@@ -192,13 +192,13 @@ RSpec.describe "DI integration from remote config" do
             id: "11",
             location: {
               method: "target_method",
-              type: "EverythingFromRemoteConfigSpecTestClass",
+              type: "EverythingFromRemoteConfigSpecTestClass"
             },
-            version: 0,
+            version: 0
           },
           stack: Array,
-          timestamp: Integer,
-        },
+          timestamp: Integer
+        }
       },
       ddsource: "dd_debugger",
       duration: Integer,
@@ -208,12 +208,12 @@ RSpec.describe "DI integration from remote config" do
         name: nil,
         thread_id: nil,
         thread_name: "Thread.main",
-        version: 2,
+        version: 2
       },
       message: nil,
       process_tags: String,
       service: "rspec",
-      timestamp: Integer,
+      timestamp: Integer
     }
   end
 
@@ -385,9 +385,9 @@ RSpec.describe "DI integration from remote config" do
         {
           id: "11", name: "bar", type: "LOG_PROBE",
           where: {
-            typeName: "EverythingFromRemoteConfigSpecTestClass", methodName: "target_method",
+            typeName: "EverythingFromRemoteConfigSpecTestClass", methodName: "target_method"
           },
-          when: {json: {foo: "bar"}, dsl: "(expression)"},
+          when: {json: {foo: "bar"}, dsl: "(expression)"}
         }
       end
 
@@ -412,9 +412,9 @@ RSpec.describe "DI integration from remote config" do
               status: "ERROR",
               exception: {
                 type: "Datadog::DI::Error::InvalidExpression",
-                message: String,
-              },
-            },
+                message: String
+              }
+            }
           },
           path: "/debugger/v1/diagnostics",
           service: "rspec",
@@ -432,7 +432,7 @@ RSpec.describe "DI integration from remote config" do
         {
           id: "11", name: "bar", type: "LOG_PROBE",
           where: {
-            typeName: "EverythingFromRemoteConfigSpecTestClass", methodName: "target_method",
+            typeName: "EverythingFromRemoteConfigSpecTestClass", methodName: "target_method"
           },
           segments: [
             # String segment
@@ -441,7 +441,7 @@ RSpec.describe "DI integration from remote config" do
             {json: {eq: [{ref: "@ivar"}, 51]}, dsl: "(good expression)"},
             # Another expression which fails evaluation at runtime
             {json: {filter: [{ref: "@ivar"}, "x"]}, dsl: "(failing expression)"}
-          ],
+          ]
         }
       end
 
@@ -464,13 +464,13 @@ RSpec.describe "DI integration from remote config" do
                 id: "11",
                 location: {
                   method: "target_method",
-                  type: "EverythingFromRemoteConfigSpecTestClass",
+                  type: "EverythingFromRemoteConfigSpecTestClass"
                 },
-                version: 0,
+                version: 0
               },
               stack: Array,
-              timestamp: Integer,
-            },
+              timestamp: Integer
+            }
           },
           ddsource: "dd_debugger",
           duration: Integer,
@@ -480,14 +480,14 @@ RSpec.describe "DI integration from remote config" do
             name: nil,
             thread_id: nil,
             thread_name: "Thread.main",
-            version: 2,
+            version: 2
           },
           # false is the result of first expression evaluation
           # second expression fails evaluation
           message: "hello false[evaluation error]",
           process_tags: String,
           service: "rspec",
-          timestamp: Integer,
+          timestamp: Integer
         }
       end
 
@@ -609,9 +609,9 @@ RSpec.describe "DI integration from remote config" do
         {
           id: "11", name: "bar", type: "LOG_PROBE",
           where: {
-            sourceFile: "instrumentation_integration_test_class.rb", lines: [42],
+            sourceFile: "instrumentation_integration_test_class.rb", lines: [42]
           },
-          when: {json: {"contains" => [{"ref" => "bar"}, "baz"]}, dsl: "(expression)"},
+          when: {json: {"contains" => [{"ref" => "bar"}, "baz"]}, dsl: "(expression)"}
         }
       end
 
@@ -642,13 +642,13 @@ RSpec.describe "DI integration from remote config" do
                 id: "11",
                 location: {
                   file: String,
-                  lines: [String],
+                  lines: [String]
                 },
-                version: 0,
+                version: 0
               },
               stack: Array,
-              timestamp: Integer,
-            },
+              timestamp: Integer
+            }
           },
           ddsource: "dd_debugger",
           duration: Integer,
@@ -658,13 +658,13 @@ RSpec.describe "DI integration from remote config" do
             name: "instrumentation_integration_test_class.rb",
             thread_id: nil,
             thread_name: "Thread.main",
-            version: 2,
+            version: 2
           },
           # No message since we stopped execution at condition evaluation.
           message: nil,
           process_tags: String,
           service: "rspec",
-          timestamp: Integer,
+          timestamp: Integer
         }
       end
 
@@ -699,9 +699,9 @@ RSpec.describe "DI integration from remote config" do
           {
             id: "11", name: "bar", type: "LOG_PROBE",
             where: {
-              sourceFile: "instrumentation_integration_test_class.rb", lines: [67],
+              sourceFile: "instrumentation_integration_test_class.rb", lines: [67]
             },
-            when: {json: {"contains" => [{"ref" => "param"}, "baz"]}, dsl: "(expression)"},
+            when: {json: {"contains" => [{"ref" => "param"}, "baz"]}, dsl: "(expression)"}
           }
         end
 
@@ -728,13 +728,13 @@ RSpec.describe "DI integration from remote config" do
                   id: "11",
                   location: {
                     file: File.join(File.dirname(__FILE__), "instrumentation_integration_test_class.rb"),
-                    lines: ["67"],
+                    lines: ["67"]
                   },
-                  version: 0,
+                  version: 0
                 },
                 stack: Array,
-                timestamp: Integer,
-              },
+                timestamp: Integer
+              }
             },
             ddsource: "dd_debugger",
             duration: Integer,
@@ -744,12 +744,12 @@ RSpec.describe "DI integration from remote config" do
               name: "instrumentation_integration_test_class.rb",
               thread_id: nil,
               thread_name: "Thread.main",
-              version: 2,
+              version: 2
             },
             message: nil,
             process_tags: String,
             service: "rspec",
-            timestamp: Integer,
+            timestamp: Integer
           }
         end
 
@@ -814,11 +814,11 @@ RSpec.describe "DI integration from remote config" do
             {
               id: "11", name: "bar", type: "LOG_PROBE",
               where: {
-                sourceFile: "instrumentation_integration_test_class.rb", lines: [67],
+                sourceFile: "instrumentation_integration_test_class.rb", lines: [67]
               },
               when: {json: {"contains" => [{"ref" => "param"}, "baz"]}, dsl: "(expression)"},
               # Enable snapshot capture to get the lower rate limit (1/second)
-              captureSnapshot: true,
+              captureSnapshot: true
             }
           end
 

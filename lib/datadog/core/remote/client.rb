@@ -157,7 +157,7 @@ module Datadog
             tracer_version: tracer_version,
             service: service_name,
             env: settings.env,
-            tags: client_tracer_tags,
+            tags: client_tracer_tags
           }
 
           app_version = settings.version
@@ -177,7 +177,7 @@ module Datadog
                 config_states: state.config_states,
                 has_error: state.has_error,
                 error: state.error,
-                backend_client_state: state.opaque_backend_state,
+                backend_client_state: state.opaque_backend_state
               },
               id: id,
               products: @capabilities.products,
@@ -187,7 +187,7 @@ module Datadog
               # base64 is needed otherwise the Go agent fails with an unmarshal error
               capabilities: @capabilities.base64_capabilities
             },
-            cached_target_files: state.cached_target_files,
+            cached_target_files: state.cached_target_files
           }
         end
 

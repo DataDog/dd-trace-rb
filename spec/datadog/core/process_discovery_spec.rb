@@ -304,7 +304,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
         signature: header_bytes[0, 8],
         version: header_bytes[8, 4].unpack1("V"),
         payload_size: header_bytes[12, 4].unpack1("V"),
-        payload_ptr: header_bytes[24, 8].unpack1("Q<"),
+        payload_ptr: header_bytes[24, 8].unpack1("Q<")
       }
     end
 

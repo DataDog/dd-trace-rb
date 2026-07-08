@@ -8,7 +8,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
   let(:envs) do
     {
       "ENV1" => "val1",
-      "ENV2" => "val2",
+      "ENV2" => "val2"
     }
   end
 

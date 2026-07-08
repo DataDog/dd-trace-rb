@@ -278,7 +278,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       capacity = described_class::QUEUE_SIZE
       event = {
         flag_key: "f", variant: "on", allocation_key: "",
-        targeting_key: "t", eval_time_ms: 1, attrs: {},
+        targeting_key: "t", eval_time_ms: 1, attrs: {}
       }
       capacity.times { writer.enqueue(**event) }
       expect(writer.dropped_queue_overflow).to eq(0)
@@ -466,7 +466,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Writer do
       raw = {
         "profile" => {"plan" => "pro"},
         "groups" => ["beta"],
-        "name" => +"alice",
+        "name" => +"alice"
       }
 
       payload = captured_payload do |writer|

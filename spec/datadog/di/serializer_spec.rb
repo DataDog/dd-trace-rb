@@ -210,11 +210,11 @@ RSpec.describe Datadog::DI::Serializer do
       {name: "empty object", input: {x: Object.new}, expected: {x: {type: "Object", fields: {}}}},
       {name: "object with instance variable", input: {x: DISerializerSpecInstanceVariable.new(42)},
        expected: {x: {type: "DISerializerSpecInstanceVariable", fields: {
-         "@ivar": {type: "Integer", value: "42"},
+         "@ivar": {type: "Integer", value: "42"}
        }}}},
       {name: "object with redacted instance variable", input: {x: DISerializerSpecRedactedInstanceVariable.new(42)},
        expected: {x: {type: "DISerializerSpecRedactedInstanceVariable", fields: {
-         "@session": {type: "Integer", notCapturedReason: "redactedIdent"},
+         "@session": {type: "Integer", notCapturedReason: "redactedIdent"}
        }}}},
       {name: "depth exceeded: array", input: {v: {a: {b: []}}},
        expected: {v: {type: "Hash", entries: [
@@ -235,9 +235,9 @@ RSpec.describe Datadog::DI::Serializer do
          ]}]
        ]}}},
       {name: "object with no attributes", input: {v: DISerializerSpecTestClass.new},
-       expected: {v: {type: "DISerializerSpecTestClass", fields: {}}},},
+       expected: {v: {type: "DISerializerSpecTestClass", fields: {}}}},
       {name: "object of anonymous class with no attributes", input: {v: Class.new.new},
-       expected: {v: {type: "[Unnamed class]", fields: {}}},}
+       expected: {v: {type: "[Unnamed class]", fields: {}}}}
       # TODO hash with a complex object as key?
     ]
 
@@ -279,7 +279,7 @@ RSpec.describe Datadog::DI::Serializer do
                         fields: {
                           "@v1": {type: "Integer", value: "1"},
                           "@v2": {type: "Integer", value: "2"},
-                          "@v3": {type: "Integer", value: "3"},
+                          "@v3": {type: "Integer", value: "3"}
                         }, notCapturedReason: "fieldCount"}}}
       ]
 
@@ -344,7 +344,7 @@ RSpec.describe Datadog::DI::Serializer do
        expected: {arg1: {type: "Integer", value: "1"},
                   arg2: {type: "String", value: "x"},
                   a: {type: "Integer", value: "42"},
-                  self: {type: "Object", fields: {}},}},
+                  self: {type: "Object", fields: {}}}},
       {name: "args, kwargs and instance vars",
        args: [1, "x"],
        kwargs: {a: 42},
@@ -355,9 +355,9 @@ RSpec.describe Datadog::DI::Serializer do
                   self: {
                     type: "DISerializerSpecInstanceVariable",
                     fields: {
-                      "@ivar": {type: "String", value: "quux"},
-                    },
-                  },},},
+                      "@ivar": {type: "String", value: "quux"}
+                    }
+                  }}},
       {name: "kwargs contains redacted identifier",
        args: [1, "x"],
        kwargs: {password: 42},
@@ -365,7 +365,7 @@ RSpec.describe Datadog::DI::Serializer do
        expected: {arg1: {type: "Integer", value: "1"},
                   arg2: {type: "String", value: "x"},
                   password: {type: "Integer", notCapturedReason: "redactedIdent"},
-                  self: {type: "Object", fields: {}},}}
+                  self: {type: "Object", fields: {}}}}
     ]
 
     cases.each do |c|
@@ -1198,7 +1198,7 @@ RSpec.describe Datadog::DI::Serializer do
         vars = {
           normal_value: "hello",
           problematic_value: DISerializerStackOverflowTestClass.new,
-          another_value: 42,
+          another_value: 42
         }
 
         expect(telemetry).to receive(:report).with(
@@ -1304,7 +1304,7 @@ RSpec.describe Datadog::DI::Serializer do
         vars = {
           small_value: "tiny",
           huge_value: DISerializerOutOfMemoryTestClass.new,
-          number: 123,
+          number: 123
         }
 
         expect(telemetry).to receive(:report).with(

@@ -63,7 +63,7 @@ RSpec.shared_examples "Trace Context distributed format" do
           -1 => "00",
           0 => "00",
           1 => "01",
-          2 => "01",
+          2 => "01"
         }.each do |sampling_priority, expected_trace_flags|
           context "with sampling_priority #{sampling_priority}" do
             let(:digest) do
@@ -422,7 +422,7 @@ RSpec.shared_examples "Trace Context distributed format" do
     context "with traceparent without tracestate" do
       let(:data) do
         {
-          prepare_key["traceparent"] => "00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00",
+          prepare_key["traceparent"] => "00-aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb-00"
         }
       end
 

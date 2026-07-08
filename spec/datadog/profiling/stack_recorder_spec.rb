@@ -146,7 +146,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             "alloc-samples-unscaled" => "count",
             "heap-live-samples" => "count",
             "heap-live-size" => "bytes",
-            "timeline" => "nanoseconds",
+            "timeline" => "nanoseconds"
           }
         end
 
@@ -258,7 +258,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           "wall-time" => 789,
           "alloc-samples" => 4242,
           "alloc-samples-unscaled" => 2222,
-          "timeline" => 1111,
+          "timeline" => 1111
         }
       end
       let(:labels) { {"label_a" => "value_a", "label_b" => "value_b", "state" => "unknown"}.to_a }
@@ -371,7 +371,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           "wall-time" => 789,
           "alloc-samples" => sample_rate,
           "timeline" => 42,
-          "heap_sample" => true,
+          "heap_sample" => true
         }
       end
       let(:labels) { {"label_a" => "value_a", "label_b" => "value_b", "state" => "unknown"}.to_a }

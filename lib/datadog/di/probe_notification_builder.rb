@@ -73,25 +73,25 @@ module Datadog
               "@return": serializer.serialize_value(context.return_value,
                 depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
                 attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count),
-              self: serializer.serialize_value(context.target_self),
+              self: serializer.serialize_value(context.target_self)
             }
             {
               entry: {
-                arguments: context.serialized_entry_args,
+                arguments: context.serialized_entry_args
               },
               return: {
                 arguments: return_arguments,
-                throwable: context.exception ? serialize_throwable(context.exception) : nil,
-              },
+                throwable: context.exception ? serialize_throwable(context.exception) : nil
+              }
             }
           elsif probe.line?
             {
               lines: (locals = context.serialized_locals) && {
                 probe.line_no => {
                   locals: locals,
-                  arguments: {self: serializer.serialize_value(context.target_self)},
-                },
-              },
+                  arguments: {self: serializer.serialize_value(context.target_self)}
+                }
+              }
             }
           end
         end
@@ -109,7 +109,7 @@ module Datadog
       def build_condition_evaluation_failed(context, expression, exception)
         error = {
           message: "#{exception.class}: #{exception}",
-          expr: expression.dsl_expr,
+          expr: expression.dsl_expr
         }
         build_snapshot_base(context, evaluation_errors: [error])
       end
@@ -127,7 +127,7 @@ module Datadog
           probeVersion: 0,
           runtimeId: Core::Environment::Identity.id,
           parentId: nil,
-          status: status,
+          status: status
         }
 
         # Exception field is required by the backend for ERROR status.
@@ -148,8 +148,8 @@ module Datadog
           message: message,
           ddsource: "dd_debugger",
           debugger: {
-            diagnostics: diagnostics,
-          },
+            diagnostics: diagnostics
+          }
         }
       end
 
@@ -218,7 +218,7 @@ module Datadog
         {
           type: exception.class.name,
           message: message,
-          stacktrace: stacktrace,
+          stacktrace: stacktrace
         }
       end
 
@@ -277,12 +277,12 @@ module Datadog
             # Backend I think accepts them also as integers, but some
             # other languages send strings and we decided to require
             # strings for everyone.
-            lines: [probe.line_no.to_s],
+            lines: [probe.line_no.to_s]
           }
         elsif probe.method?
           {
             method: probe.method_name,
-            type: probe.type_name,
+            type: probe.type_name
           }
         end
 
@@ -313,15 +313,15 @@ module Datadog
               probe: {
                 id: probe.id,
                 version: 0,
-                location: location,
+                location: location
               },
               language: "ruby",
               # TODO add test coverage for callers being nil
               stack: stack,
               # System tests schema validation requires captures to
               # always be present
-              captures: captures || {},
-            },
+              captures: captures || {}
+            }
           },
           # In python tracer duration is under debugger.snapshot,
           # but UI appears to expect it here at top level.
@@ -336,14 +336,14 @@ module Datadog
             # we can also determine which thread identifier to send
             # (Thread#native_thread_id or something else).
             thread_id: nil,
-            version: 2,
+            version: 2
           },
           # TODO add tests that the trace/span id is correctly propagated
           "dd.trace_id": active_trace&.id&.to_s,
           "dd.span_id": active_span&.id&.to_s,
           ddsource: "dd_debugger",
           message: message,
-          timestamp: timestamp,
+          timestamp: timestamp
         }
 
         tag_process_tags!(payload, settings)
@@ -372,7 +372,7 @@ module Datadog
           Datadog::DI.reraise_if_fatal(exc)
           evaluation_errors << {
             message: "#{exc.class}: #{exc.message}",
-            expr: segment.dsl_expr, # steep:ignore NoMethod
+            expr: segment.dsl_expr # steep:ignore NoMethod
           }
           "[evaluation error]"
         end.join

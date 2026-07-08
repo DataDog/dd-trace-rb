@@ -26,7 +26,7 @@ module Datadog
           "TARGETING_KEY_MISSING" => "targeting_key_missing",
           "INVALID_CONTEXT" => "invalid_context",
           "PROVIDER_FATAL" => "provider_fatal",
-          "GENERAL" => DEFAULT_ERROR_TYPE,
+          "GENERAL" => DEFAULT_ERROR_TYPE
         }.freeze
 
         # Reasons that should not include allocation_key in metrics
@@ -117,7 +117,7 @@ module Datadog
           attrs = {
             ATTR_FLAG_KEY => flag_key,
             ATTR_VARIANT => variant.to_s,
-            ATTR_REASON => reason_downcase,
+            ATTR_REASON => reason_downcase
           }
 
           if allocation_key && !allocation_key.empty? && !exclude_allocation_key?(reason_downcase)

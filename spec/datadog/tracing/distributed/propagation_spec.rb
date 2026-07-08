@@ -20,7 +20,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
     {
       "datadog" => Datadog::Tracing::Distributed::Datadog.new(fetcher: fetcher_class),
       "tracecontext" => Datadog::Tracing::Distributed::TraceContext.new(fetcher: fetcher_class),
-      "baggage" => Datadog::Tracing::Distributed::Baggage.new(fetcher: fetcher_class),
+      "baggage" => Datadog::Tracing::Distributed::Baggage.new(fetcher: fetcher_class)
     }
   end
   let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
@@ -286,7 +286,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
             {
               prepare_key["x-datadog-trace-id"] => "61185",
               prepare_key["x-datadog-parent-id"] => "73456",
-              prepare_key["traceparent"] => "00-11111111111111110000000000000001-000000003ade68b1-01",
+              prepare_key["traceparent"] => "00-11111111111111110000000000000001-000000003ade68b1-01"
             }
           end
 
@@ -303,7 +303,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
                 prepare_key["x-datadog-trace-id"] => "61185",
                 prepare_key["x-datadog-parent-id"] => "73456",
                 prepare_key["x-datadog-sampling-priority"] => "1",
-                prepare_key["traceparent"] => "00-00000000000000000000000000c0ffee-0000000000000bee-00",
+                prepare_key["traceparent"] => "00-00000000000000000000000000c0ffee-0000000000000bee-00"
               }
             end
 
@@ -351,7 +351,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
             {
               prepare_key["x-datadog-trace-id"] => "61185",
               prepare_key["x-datadog-parent-id"] => "73456",
-              prepare_key["traceparent"] => "00-0000000000000000000000000000ef01-0000000000011ef0-01",
+              prepare_key["traceparent"] => "00-0000000000000000000000000000ef01-0000000000011ef0-01"
             }
           end
 
@@ -543,7 +543,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
             prepare_key["x-datadog-trace-id"] => datadog_trace_id.to_s(10),
             prepare_key["x-datadog-parent-id"] => datadog_span_id.to_s(10),
             prepare_key["x-datadog-sampling-priority"] => "1",
-            prepare_key["baggage"] => baggage_header,
+            prepare_key["baggage"] => baggage_header
           }
         end
       end
@@ -605,7 +605,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
           let(:data) do
             {
               prepare_key["traceparent"] => traceparent,
-              prepare_key["baggage"] => baggage_header,
+              prepare_key["baggage"] => baggage_header
             }
           end
 
@@ -640,7 +640,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
               "baggage" => Datadog::Tracing::Distributed::Baggage.new(
                 fetcher: fetcher_class,
                 baggage_tag_keys: ["user.id"]
-              ),
+              )
             }
           end
 
@@ -650,7 +650,7 @@ RSpec.shared_examples "Distributed tracing propagator" do
               prepare_key["x-datadog-parent-id"] => datadog_span_id.to_s(10),
               prepare_key["x-datadog-sampling-priority"] => "1",
               prepare_key["x-datadog-tags"] => "_dd.p.dm=-1",
-              prepare_key["baggage"] => "user.id=1234",
+              prepare_key["baggage"] => "user.id=1234"
             }
           end
 

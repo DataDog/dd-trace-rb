@@ -12,29 +12,29 @@ def requirements
           "arch" => "x64",
           "supported" => true,
           "min" => "2.17",
-          "description" => "libffi needs memfd_create",
+          "description" => "libffi needs memfd_create"
         },
         {
           "arch" => "arm64",
           "supported" => true,
           "min" => "2.17",
-          "description" => "libffi needs memfd_create",
+          "description" => "libffi needs memfd_create"
         }
       ],
       "musl" => [
         {
           "arch" => "x64",
           "supported" => false,
-          "description" => "no musl build",
+          "description" => "no musl build"
         },
         {
           "arch" => "arm64",
           "supported" => false,
-          "description" => "no musl build",
+          "description" => "no musl build"
         }
-      ],
+      ]
     },
-    "deny" => [],
+    "deny" => []
   }
 
   # gem command such as install aren't quite usuful to inject into
@@ -47,7 +47,7 @@ def requirements
       "**/ruby"
     ],
     "args" => [{"args" => ["*/gem"], "position" => 1}],
-    "envars" => nil,
+    "envars" => nil
   }
 
   reqs["deny"] << {
@@ -58,7 +58,7 @@ def requirements
       "**/ruby"
     ],
     "args" => [{"args" => ["--disable-gems"], "position" => nil}],
-    "envars" => nil,
+    "envars" => nil
   }
 
   # Prevent endless reexecution when RUBYOPTS is forcefully set
@@ -72,7 +72,7 @@ def requirements
       "**/ruby"
     ],
     "args" => [{"args" => ["setup.rb"], "position" => nil}],
-    "envars" => nil,
+    "envars" => nil
   }
 
   # `bundle exec` is the only command we want to inject into.
@@ -112,7 +112,7 @@ def requirements
             "**/ruby"
           ],
           "args" => [{"args" => ["*/#{exe}", *varargs, command], "position" => 1}],
-          "envars" => nil,
+          "envars" => nil
         }
       end
     end
@@ -136,7 +136,7 @@ def requirements
         "**/ruby"
       ],
       "args" => [{"args" => ["**/#{exe}"], "position" => 1}],
-      "envars" => nil,
+      "envars" => nil
     }
   end
 
@@ -160,7 +160,7 @@ def requirements
         "**/ruby"
       ],
       "args" => [{"args" => ["*/#{exe}"], "position" => 1}],
-      "envars" => nil,
+      "envars" => nil
     }
   end
 
@@ -177,7 +177,7 @@ def requirements
         "**/ruby"
       ],
       "args" => [{"args" => ["*/#{exe}"], "position" => 1}],
-      "envars" => nil,
+      "envars" => nil
     }
   end
 
@@ -199,7 +199,7 @@ def requirements
         "**/ruby"
       ],
       "args" => [{"args" => ["*/appraisal", command], "position" => 1}],
-      "envars" => nil,
+      "envars" => nil
     }
   end
 
@@ -214,7 +214,7 @@ def requirements
         "**/ruby"
       ],
       "args" => [{"args" => ["*/#{exe}"], "position" => 1}],
-      "envars" => nil,
+      "envars" => nil
     }
   end
 
@@ -229,7 +229,7 @@ def requirements
         "**/ruby"
       ],
       "args" => [{"args" => ["*/#{exe}"], "position" => 1}],
-      "envars" => nil,
+      "envars" => nil
     }
   end
 
@@ -245,7 +245,7 @@ def requirements
         "**/ruby"
       ],
       "args" => [{"args" => ["*/#{exe}"], "position" => 1}],
-      "envars" => nil,
+      "envars" => nil
     }
   end
 

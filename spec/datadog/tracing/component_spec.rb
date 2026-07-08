@@ -64,7 +64,7 @@ RSpec.describe Datadog::Tracing::Component do
             sampler: sampler,
             span_sampler: span_sampler,
             writer: writer,
-            logger: logger,
+            logger: logger
           }
         end
 

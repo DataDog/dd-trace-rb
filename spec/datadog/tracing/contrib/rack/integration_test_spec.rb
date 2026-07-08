@@ -1371,7 +1371,7 @@ RSpec.describe "Rack integration tests" do
 
             let(:headers) do
               {
-                "HTTP_USER_AGENT" => "SuperUserAgent",
+                "HTTP_USER_AGENT" => "SuperUserAgent"
               }
             end
 

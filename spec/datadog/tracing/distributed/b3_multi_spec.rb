@@ -182,7 +182,7 @@ RSpec.shared_examples "B3 Multi distributed format" do
             let(:data) do
               {
                 prepare_key["x-b3-traceid"] => 10000.to_s(16),
-                prepare_key["x-b3-spanid"] => invalid_span_id,
+                prepare_key["x-b3-spanid"] => invalid_span_id
               }
             end
 
@@ -214,7 +214,7 @@ RSpec.shared_examples "B3 Multi distributed format" do
       let(:data) do
         {
           prepare_key["x-b3-traceid"] => "aaaaaaaaaaaaaaaaffffffffffffffff",
-          prepare_key["x-b3-spanid"] => "bbbbbbbbbbbbbbbb",
+          prepare_key["x-b3-spanid"] => "bbbbbbbbbbbbbbbb"
         }
       end
 

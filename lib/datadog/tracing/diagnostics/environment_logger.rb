@@ -41,7 +41,7 @@ module Datadog
               sample_rate: sample_rate,
               sampling_rules: sampling_rules,
               integrations_loaded: integrations_loaded,
-              partial_flushing_enabled: partial_flushing_enabled,
+              partial_flushing_enabled: partial_flushing_enabled
             }
           end
 

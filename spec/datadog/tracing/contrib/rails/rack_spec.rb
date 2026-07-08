@@ -19,7 +19,7 @@ RSpec.describe "Rails Rack", execute_in_fork: Rails.version.to_i >= 8 do
       "/internal_server_error" => "errors#internal_server_error",
       "/span_resource" => "test#span_resource",
       "/custom_span_resource" => "test#custom_span_resource",
-      "/explicitly_not_found" => "test#explicitly_not_found",
+      "/explicitly_not_found" => "test#explicitly_not_found"
     }
   end
 

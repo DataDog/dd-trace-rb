@@ -121,7 +121,7 @@ RSpec.describe Datadog::Core::Remote::Client do
         },
         "hashes" => {"sha256" => Digest::SHA256.hexdigest(blocked_ips)},
         "length" => 1834
-      },
+      }
     }
   end
 
@@ -137,7 +137,7 @@ RSpec.describe Datadog::Core::Remote::Client do
         },
         "hashes" => {"sha256" => Digest::SHA256.hexdigest(rules_data)},
         "length" => 645
-      },
+      }
     }
   end
 
@@ -239,7 +239,7 @@ RSpec.describe Datadog::Core::Remote::Client do
       "roots" => roots.map { |r| Datadog::Core::Utils::Base64Codec.strict_encode64(r.to_json).chomp },
       "targets" => Datadog::Core::Utils::Base64Codec.strict_encode64(targets.to_json).chomp,
       "target_files" => target_files,
-      "client_configs" => client_configs,
+      "client_configs" => client_configs
     }.to_json
   end
 
@@ -324,15 +324,15 @@ RSpec.describe Datadog::Core::Remote::Client do
               [
                 {
                   path: "datadog/603646/ASM_DATA/blocked_ips/config",
-                  content: new_blocked_ips,
+                  content: new_blocked_ips
                 },
                 {
                   path: "datadog/603646/ASM/exclusion_filters/config",
-                  content: exclusions,
+                  content: exclusions
                 },
                 {
                   path: "datadog/603646/ASM_DD/latest/config",
-                  content: rules_data,
+                  content: rules_data
                 }
               ]
             )
@@ -435,7 +435,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                 },
                 "hashes" => {"sha256" => Digest::SHA256.hexdigest(exclusions)},
                 "length" => 645
-              },
+              }
             }
           end
 
@@ -464,7 +464,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                 },
                 "hashes" => {"sha256" => "fake sha"},
                 "length" => 645
-              },
+              }
             }
           end
 
@@ -637,7 +637,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                   language: Datadog::Core::Environment::Identity.lang,
                   tracer_version: Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
                   service: settings.remote.service,
-                  env: settings.env,
+                  env: settings.env
                 }
 
                 expect(client_payload[:client_tracer]).to include(expected_client_tracer)
@@ -654,7 +654,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                   tracer_version: Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
                   service: settings.service,
                   env: settings.env,
-                  app_version: settings.version,
+                  app_version: settings.version
                 }
 
                 expect(client_payload[:client_tracer]).to include(expected_client_tracer)
@@ -670,7 +670,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                   language: Datadog::Core::Environment::Identity.lang,
                   tracer_version: Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
                   service: settings.service,
-                  env: settings.env,
+                  env: settings.env
                 }
 
                 expect(client_payload[:client_tracer]).to include(expected_client_tracer)

@@ -320,7 +320,7 @@ module Datadog
         event_attributes = {
           "exception.type" => exc.type,
           "exception.message" => exc.message,
-          "exception.stacktrace" => exc.backtrace,
+          "exception.stacktrace" => exc.backtrace
         }
 
         # Steep: Caused by wrong declaration, should be the same parameters as `merge`

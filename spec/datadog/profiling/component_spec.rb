@@ -494,7 +494,7 @@ RSpec.describe Datadog::Profiling::Component do
             hash_including(
               internal_metadata: {
                 no_signals_workaround_enabled: :no_signals_result,
-                heap_sample_every: 456,
+                heap_sample_every: 456
               }
             )
           )

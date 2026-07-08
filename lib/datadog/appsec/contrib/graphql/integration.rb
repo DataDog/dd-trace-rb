@@ -18,7 +18,7 @@ module Datadog
             directive: "GraphQL::Language::Nodes::Directive",
             fragment_spread: "GraphQL::Language::Nodes::FragmentSpread",
             variable_identifier: "GraphQL::Language::Nodes::VariableIdentifier",
-            input_object: "GraphQL::Language::Nodes::InputObject",
+            input_object: "GraphQL::Language::Nodes::InputObject"
           }.freeze
 
           register_as :graphql, auto_patch: false

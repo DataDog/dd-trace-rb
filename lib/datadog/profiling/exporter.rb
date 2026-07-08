@@ -111,7 +111,7 @@ module Datadog
               worker_stats: worker_stats,
               profile_stats: profile_stats,
               recorder_stats: pprof_recorder.stats,
-              gc: GC.stat,
+              gc: GC.stat
             }
           ),
           info_json: info_json

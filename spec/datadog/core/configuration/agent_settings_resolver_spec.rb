@@ -9,7 +9,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
       "DD_AGENT_HOST" => nil,
       "DD_TRACE_AGENT_PORT" => nil,
       "DD_TRACE_AGENT_URL" => nil,
-      "DD_TRACE_AGENT_TIMEOUT_SECONDS" => nil,
+      "DD_TRACE_AGENT_TIMEOUT_SECONDS" => nil
     }
   end
   let(:environment) { {} }

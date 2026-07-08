@@ -439,7 +439,7 @@ RSpec.describe Datadog::DI::Component do
     let(:probe_spec) do
       {
         "id" => "test-probe-id",
-        "type" => "LOG_PROBE",
+        "type" => "LOG_PROBE"
       }
     end
 

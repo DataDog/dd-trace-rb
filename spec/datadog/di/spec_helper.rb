@@ -20,7 +20,7 @@ module DIHelpers
           content = Datadog::Core::Remote::Configuration::Content.parse(
             {
               path: key,
-              content: value_json,
+              content: value_json
             }
           )
 
@@ -45,7 +45,7 @@ module DIHelpers
       encoded = encode_obj(value)
       {
         "custom" => {
-          "v" => 1,
+          "v" => 1
         },
         "hashes" => {"sha256" => Digest::SHA256.hexdigest(encoded)},
         "length" => encoded.length
@@ -66,8 +66,8 @@ module DIHelpers
             [rc_key_for_probe_id(k), target_payload_for_value(v)]
           end.to_h,
           "version" => 0,
-          "custom" => {},
-        },
+          "custom" => {}
+        }
       }
     end
 

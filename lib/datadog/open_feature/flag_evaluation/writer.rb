@@ -78,7 +78,7 @@ module Datadog
             runtime_default: event[:runtime_default],
             targeting_key: event[:targeting_key],
             eval_time_ms: event[:eval_time_ms],
-            attrs: attrs,
+            attrs: attrs
           }
           @queue.push(bounded_event, true)
           start_background_thread unless running?
@@ -304,7 +304,7 @@ module Datadog
             "flag" => {"key" => flag_key},
             "first_evaluation" => entry[:first_evaluation],
             "last_evaluation" => entry[:last_evaluation],
-            "evaluation_count" => entry[:count],
+            "evaluation_count" => entry[:count]
           }
 
           event["runtime_default_used"] = true if entry[:runtime_default]
@@ -373,7 +373,7 @@ module Datadog
           response = @transport.send_flag_evaluations(
             {
               "context" => @service_context,
-              "flagEvaluations" => events,
+              "flagEvaluations" => events
             }
           )
           if response.respond_to?(:ok?) && !response.ok?

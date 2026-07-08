@@ -76,7 +76,7 @@ RSpec.describe Datadog::Tracing::ClientIp do
       it "does not use remote ip if custom header value is not a vaild ip" do
         headers = Datadog::Core::HeaderCollection.from_hash(
           {
-            "My-Custom-Header" => "1.11.1",
+            "My-Custom-Header" => "1.11.1"
           }
         )
 

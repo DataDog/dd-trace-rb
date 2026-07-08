@@ -440,7 +440,7 @@ module Datadog
               "Hash" => hash_value,
               "ParentHash" => parent_hash,
               "PathwayLatency" => stats[:full_pathway_latency].encode,
-              "EdgeLatency" => stats[:edge_latency].encode,
+              "EdgeLatency" => stats[:edge_latency].encode
             }
           end
 

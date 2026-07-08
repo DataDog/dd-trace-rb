@@ -35,7 +35,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaType do
           type: "text",
           subtype: "plain",
           parameters: {"foo" => "bar", "baz" => "qux"}
-        },
+        }
       }
 
       expectations.each do |str, expected|
@@ -101,7 +101,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaType do
       "text/plain;format=flowed" => "text/plain;format=flowed",
       "Text/HTML" => "text/html",
       "text/html;charset=utf-8;boundary=foo" => "text/html;charset=utf-8;boundary=foo",
-      "application/vnd.api+json" => "application/vnd.api+json",
+      "application/vnd.api+json" => "application/vnd.api+json"
     }
 
     expectations.each do |media, expected|

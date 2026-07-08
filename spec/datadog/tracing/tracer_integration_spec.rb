@@ -319,7 +319,7 @@ RSpec.describe Datadog::Tracing::Tracer do
           "x-datadog-parent-id" => parent_id.to_s,
           "x-datadog-origin" => origin,
           "x-datadog-sampling-priority" => sampling_priority.to_s,
-          "x-datadog-tags" => distributed_tags,
+          "x-datadog-tags" => distributed_tags
         }
       end
 
@@ -365,7 +365,7 @@ RSpec.describe Datadog::Tracing::Tracer do
       let(:headers) do
         {
           "traceparent" => "00-0000000000000000000000000000007b-00000000000001c8-01",
-          "tracestate" => "dd=s:1;o:orig;t.test:value",
+          "tracestate" => "dd=s:1;o:orig;t.test:value"
         }
       end
 

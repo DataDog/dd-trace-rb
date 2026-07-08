@@ -49,7 +49,7 @@ RSpec.describe Datadog::Tracing::Utils::TraceId do
     context "when given > 64 bit" do
       {
         0xffffffffffffffffaaaaaaaaaaaaaaaa => 0xaaaaaaaaaaaaaaaa,
-        0xaaaaaaaaaaaaaaaaffffffffffffffff => 0xffffffffffffffff,
+        0xaaaaaaaaaaaaaaaaffffffffffffffff => 0xffffffffffffffff
       }.each do |input, result|
         context "when given `0x#{input.to_s(16)}`" do
           it "returns the lower order 64 bits `0x#{result.to_s(16)}`" do
@@ -76,7 +76,7 @@ RSpec.describe Datadog::Tracing::Utils::TraceId do
     context "when given > 64 bit" do
       {
         0xffffffffffffffffaaaaaaaaaaaaaaaa => 0xffffffffffffffff,
-        0xaaaaaaaaaaaaaaaaffffffffffffffff => 0xaaaaaaaaaaaaaaaa,
+        0xaaaaaaaaaaaaaaaaffffffffffffffff => 0xaaaaaaaaaaaaaaaa
       }.each do |input, result|
         context "when given `0x#{input.to_s(16)}`" do
           it "returns the lower order 64 bits `0x#{result.to_s(16)}`" do
@@ -94,7 +94,7 @@ RSpec.describe Datadog::Tracing::Utils::TraceId do
       [0x00000000aaaaaaaa, 0xffffffffffffffff] => 0x00000000aaaaaaaaffffffffffffffff,
       [0xaaaaaaaaaaaaaaaa, 0xffffffff] => 0xaaaaaaaaaaaaaaaa00000000ffffffff,
       [0, 0xffffffffffffffff] => 0xffffffffffffffff,
-      [0xaaaaaaaaaaaaaaaa, 0] => 0xaaaaaaaaaaaaaaaa0000000000000000,
+      [0xaaaaaaaaaaaaaaaa, 0] => 0xaaaaaaaaaaaaaaaa0000000000000000
     }.each do |(high_order, low_order), result|
       context "when given `#{high_order}` and `#{low_order}`" do
         it "returns `0x#{result.to_s(16)}`" do

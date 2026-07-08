@@ -114,7 +114,7 @@ RSpec.describe "DI remote config" do
       let(:probe_configs_two) do
         {
           "datadog/2/LIVE_DEBUGGING/foo/bar" => probe_spec,
-          "datadog/2/LIVE_DEBUGGING/foo/bar2" => second_probe_spec,
+          "datadog/2/LIVE_DEBUGGING/foo/bar2" => second_probe_spec
         }
       end
 
@@ -138,7 +138,7 @@ RSpec.describe "DI remote config" do
     context "when the second response contains one, different probe definition" do
       let(:probe_configs_two) do
         {
-          "datadog/2/LIVE_DEBUGGING/foo/bar2" => second_probe_spec,
+          "datadog/2/LIVE_DEBUGGING/foo/bar2" => second_probe_spec
         }
       end
 
@@ -184,7 +184,7 @@ RSpec.describe "DI remote config" do
     context "when the second response changes the first probe" do
       let(:probe_configs_two) do
         {
-          "datadog/2/LIVE_DEBUGGING/foo/bar2" => modified_probe_spec,
+          "datadog/2/LIVE_DEBUGGING/foo/bar2" => modified_probe_spec
         }
       end
 

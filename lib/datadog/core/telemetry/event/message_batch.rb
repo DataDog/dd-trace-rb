@@ -21,7 +21,7 @@ module Datadog
             @events.map do |event|
               {
                 request_type: event.type,
-                payload: event.payload,
+                payload: event.payload
               }
             end
           end

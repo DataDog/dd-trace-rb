@@ -29,7 +29,7 @@ module Datadog
           "ge" => ">=",
           "gt" => ">",
           "le" => "<=",
-          "lt" => "<",
+          "lt" => "<"
         }.freeze
 
         # Steep: https://github.com/soutaro/steep/issues/363
@@ -46,7 +46,7 @@ module Datadog
         # Steep: https://github.com/soutaro/steep/issues/363
         MULTI_ARG_METHODS = { # steep:ignore IncompatibleAssignment
           "and" => "&&",
-          "or" => "||",
+          "or" => "||"
         }.freeze
 
         def compile_partial(ast)

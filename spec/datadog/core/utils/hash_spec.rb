@@ -13,7 +13,7 @@ RSpec.describe Datadog::Core::Utils::Hash::CaseInsensitiveWrapper do
       "LoWeR" => "lower_value",
       "UPPER" => "upper_value",
       "uPpEr" => "upper_value",
-      :non_string_key => nil,
+      :non_string_key => nil
     }.each do |key, expected_value|
       context "for key #{key.inspect}" do
         let(:key) { key }

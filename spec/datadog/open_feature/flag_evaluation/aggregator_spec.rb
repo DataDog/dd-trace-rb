@@ -161,7 +161,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
         allocation_key: "alloc-1",
         targeting_key: "user-123",
         eval_time_ms: 1_700_000_000_000,
-        attrs: {"env" => "prod"},
+        attrs: {"env" => "prod"}
       }
     end
 

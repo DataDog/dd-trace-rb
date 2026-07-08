@@ -55,7 +55,7 @@ RSpec.describe Datadog::Core::Remote::Negotiation do
           "endpoints" => [
             "/info",
             "/foo"
-          ],
+          ]
         }.to_json
       end
 

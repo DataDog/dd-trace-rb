@@ -47,7 +47,7 @@ module Datadog
 
           PROXY_SPAN_NAMES = {
             PROXY_AWS_APIGATEWAY => SPAN_AWS_APIGATEWAY,
-            PROXY_AWS_HTTPAPI => SPAN_AWS_HTTPAPI,
+            PROXY_AWS_HTTPAPI => SPAN_AWS_HTTPAPI
           }.freeze
 
           TAG_INFERRED_SPAN = "_dd.inferred_span"

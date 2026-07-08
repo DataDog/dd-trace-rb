@@ -78,7 +78,7 @@ module Datadog
           end_line: end_line,
           language_specifics: language_specifics.empty? ? nil : language_specifics,
           symbols: symbols.empty? ? nil : symbols.map(&:to_h),
-          scopes: scopes.empty? ? nil : scopes.map(&:to_h),
+          scopes: scopes.empty? ? nil : scopes.map(&:to_h)
         }
         h.compact!
         # Targetable lines only on METHOD scopes (per spec — not on CLASS/MODULE/FILE).

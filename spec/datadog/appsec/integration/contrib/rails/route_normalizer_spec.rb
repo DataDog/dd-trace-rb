@@ -24,7 +24,7 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
           {
             "datadog.action_dispatch.route" => build_route("/users/:id"),
             "action_dispatch.request.path_parameters" => {id: "42"},
-            "PATH_INFO" => "/users/42",
+            "PATH_INFO" => "/users/42"
           }
         end
 
@@ -36,7 +36,7 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
           {
             "datadog.action_dispatch.route" => build_route("/posts/:id(.:format)"),
             "action_dispatch.request.path_parameters" => {id: "1", format: "json"},
-            "PATH_INFO" => "/posts/1.json",
+            "PATH_INFO" => "/posts/1.json"
           }
         end
 
@@ -48,7 +48,7 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
           {
             "datadog.action_dispatch.route" => build_route("/posts/:id(.:format)"),
             "action_dispatch.request.path_parameters" => {id: "1", format: nil},
-            "PATH_INFO" => "/posts/1",
+            "PATH_INFO" => "/posts/1"
           }
         end
 
@@ -60,7 +60,7 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
           {
             "datadog.action_dispatch.route" => build_route("/posts/:id(.:format)"),
             "action_dispatch.request.path_parameters" => {id: "1", format: :json},
-            "PATH_INFO" => "/posts/1",
+            "PATH_INFO" => "/posts/1"
           }
         end
 
@@ -72,7 +72,7 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
           {
             "datadog.action_dispatch.route" => build_route("/posts/:id(.:format)"),
             "action_dispatch.request.path_parameters" => {id: "1", format: "json"},
-            "PATH_INFO" => "/posts/1",
+            "PATH_INFO" => "/posts/1"
           }
         end
 
@@ -84,7 +84,7 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
           {
             "datadog.action_dispatch.route" => build_route("/archive(/:year(/:month(/:day)))"),
             "action_dispatch.request.path_parameters" => {year: "2024"},
-            "PATH_INFO" => "/archive/2024",
+            "PATH_INFO" => "/archive/2024"
           }
         end
 
@@ -96,7 +96,7 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
           {
             "datadog.action_dispatch.route" => build_route("/mixed/user-:id"),
             "action_dispatch.request.path_parameters" => {id: "42"},
-            "PATH_INFO" => "/mixed/user-42",
+            "PATH_INFO" => "/mixed/user-42"
           }
         end
 
@@ -108,7 +108,7 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
           {
             "datadog.action_dispatch.route" => build_route("/foo(/bar)"),
             "action_dispatch.request.path_parameters" => {},
-            "PATH_INFO" => "/foo/bar",
+            "PATH_INFO" => "/foo/bar"
           }
         end
 
@@ -121,7 +121,7 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
         {
           "action_dispatch.route" => build_route("/users/:id"),
           "action_dispatch.request.path_parameters" => {id: "42"},
-          "PATH_INFO" => "/users/42",
+          "PATH_INFO" => "/users/42"
         }
       end
 
@@ -134,7 +134,7 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
           {
             "action_dispatch.route_uri_pattern" => "/posts/:id(.:format)",
             "action_dispatch.request.path_parameters" => {id: "1", format: "json"},
-            "PATH_INFO" => "/posts/1.json",
+            "PATH_INFO" => "/posts/1.json"
           }
         end
 
@@ -146,7 +146,7 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
           {
             "action_dispatch.route_uri_pattern" => "/books(/:category)",
             "action_dispatch.request.path_parameters" => {category: "fiction"},
-            "PATH_INFO" => "/books",
+            "PATH_INFO" => "/books"
           }
         end
 
@@ -158,7 +158,7 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
           {
             "action_dispatch.route_uri_pattern" => "/foo(/bar)",
             "action_dispatch.request.path_parameters" => {},
-            "PATH_INFO" => "/foo/bar",
+            "PATH_INFO" => "/foo/bar"
           }
         end
 
@@ -173,7 +173,7 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
         {
           "action_dispatch.route_uri_pattern" => "/users/:id(.:format)",
           "action_dispatch.request.path_parameters" => {id: "42", format: nil},
-          "PATH_INFO" => "/api/v2/users/42",
+          "PATH_INFO" => "/api/v2/users/42"
         }
       end
 
@@ -186,7 +186,7 @@ RSpec.describe Datadog::AppSec::RouteNormalizer do
           "datadog.action_dispatch.route" => build_route("/from-tracer/:id"),
           "action_dispatch.route" => build_route("/from-rails/:id"),
           "action_dispatch.request.path_parameters" => {id: "42"},
-          "PATH_INFO" => "/from-tracer/42",
+          "PATH_INFO" => "/from-tracer/42"
         }
       end
 

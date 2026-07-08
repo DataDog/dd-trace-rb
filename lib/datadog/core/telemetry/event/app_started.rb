@@ -30,7 +30,7 @@ module Datadog
             {
               products: @products,
               configuration: @configuration,
-              install_signature: @install_signature,
+              install_signature: @install_signature
               # DEV: Not implemented yet
               # error: error, # Start-up errors
             }
@@ -51,10 +51,10 @@ module Datadog
             # @type var products: telemetry_products
             products = {
               appsec: {
-                enabled: !!components.appsec,
+                enabled: !!components.appsec
               },
               profiler: {
-                enabled: !!components.profiler,
+                enabled: !!components.profiler
               },
               dynamic_instrumentation: {
                 # With always-build, the DI component is constructed by
@@ -64,14 +64,14 @@ module Datadog
                 # indicates the enabled state. started? reflects whether DI was
                 # actually enabled by env var or by implicit enablement via
                 # remote config.
-                enabled: components.dynamic_instrumentation&.started? || false,
+                enabled: components.dynamic_instrumentation&.started? || false
               }
             }
 
             if (unsupported_reason = Datadog::Profiling.unsupported_reason)
               products[:profiler][:error] = {
                 code: 1, # Error code. 0 if no error.
-                message: unsupported_reason,
+                message: unsupported_reason
               }
             end
 
@@ -237,7 +237,7 @@ module Datadog
             {
               install_id: settings.dig("telemetry", "install_id"),
               install_type: settings.dig("telemetry", "install_type"),
-              install_time: settings.dig("telemetry", "install_time"),
+              install_time: settings.dig("telemetry", "install_time")
             }
           end
 

@@ -60,7 +60,7 @@ pp({
   sampling_rate: samples / duration,
   sample_every_n_ms: (duration / samples) * 1000,
   inactive_thread_samples_skipped: inactive_thread_samples_skipped,
-  profiler_thread_samples_skipped: profiler_thread_samples_skipped,
+  profiler_thread_samples_skipped: profiler_thread_samples_skipped
 })
 
 unless VALIDATE_BENCHMARK_MODE

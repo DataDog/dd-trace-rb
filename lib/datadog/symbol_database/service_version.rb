@@ -52,7 +52,7 @@ module Datadog
           scopes: scopes.map(&:to_h),
           upload_id: upload_id,
           batch_num: batch_num,
-          final: final,
+          final: final
         }
       end
 

@@ -33,7 +33,7 @@ RSpec.describe "OpenTelemetry Logs Integration", ruby: ">= 3.1" do
   let(:logs_environment) do
     {
       "DD_LOGS_OTEL_ENABLED" => "true",
-      "DD_AGENT_HOST" => agent_host,
+      "DD_AGENT_HOST" => agent_host
     }.merge(env_overrides)
   end
 
@@ -97,7 +97,7 @@ RSpec.describe "OpenTelemetry Logs Integration", ruby: ">= 3.1" do
           "DD_SERVICE" => "custom-service",
           "DD_VERSION" => "2.0.0",
           "DD_ENV" => "production",
-          "DD_TRACE_REPORT_HOSTNAME" => "true",
+          "DD_TRACE_REPORT_HOSTNAME" => "true"
         }
       end
 
@@ -161,7 +161,7 @@ RSpec.describe "OpenTelemetry Logs Integration", ruby: ">= 3.1" do
         {
           "DD_SERVICE" => "unused-name",
           "DD_ENV" => "unused-env",
-          "DD_VERSION" => "x.y.z",
+          "DD_VERSION" => "x.y.z"
         }
       end
       let(:configuration) do

@@ -914,7 +914,7 @@ RSpec.describe "Tracer integration tests" do
                "time_unix_nano" => 123,
                "attributes" => {"key" => {
                  "string_value" => "value", "type" => 0
-               }},}
+               }}}
             ]
           )
         end
@@ -1158,7 +1158,7 @@ RSpec.describe "Tracer integration tests" do
             "HTTP_X_DATADOG_TRACE_ID" => "123",
             "HTTP_X_DATADOG_PARENT_ID" => "456",
             "HTTP_X_DATADOG_SAMPLING_PRIORITY" => priority.to_s,
-            "HTTP_X_DATADOG_ORIGIN" => "ci",
+            "HTTP_X_DATADOG_ORIGIN" => "ci"
           }
         end
 

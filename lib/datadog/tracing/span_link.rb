@@ -61,7 +61,7 @@ module Datadog
       def to_hash
         h = {
           span_id: @span_id || 0,
-          trace_id: Tracing::Utils::TraceId.to_low_order(@trace_id) || 0,
+          trace_id: Tracing::Utils::TraceId.to_low_order(@trace_id) || 0
         }
         # Optimization: Hash non empty attributes
         if @trace_id.to_i > Tracing::Utils::EXTERNAL_MAX_ID

@@ -142,7 +142,7 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
               "feature_flag.key" => "my_flag",
               "feature_flag.result.variant" => "treatment",
               "feature_flag.result.reason" => "targeting_match",
-              "feature_flag.result.allocation_key" => "rollout-1",
+              "feature_flag.result.allocation_key" => "rollout-1"
             }
           )
 
@@ -198,7 +198,7 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
               "feature_flag.key" => "missing_flag",
               "feature_flag.result.variant" => "",
               "feature_flag.result.reason" => "error",
-              "error.type" => "flag_not_found",
+              "error.type" => "flag_not_found"
             }
           )
 
@@ -296,7 +296,7 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
             attributes: {
               "feature_flag.key" => "disabled_flag",
               "feature_flag.result.variant" => "",
-              "feature_flag.result.reason" => "disabled",
+              "feature_flag.result.reason" => "disabled"
             }
           )
 
@@ -316,7 +316,7 @@ RSpec.describe Datadog::OpenFeature::Metrics::FlagEvalMetrics do
             attributes: {
               "feature_flag.key" => "flag",
               "feature_flag.result.variant" => "",
-              "feature_flag.result.reason" => "default",
+              "feature_flag.result.reason" => "default"
             }
           )
 

@@ -25,7 +25,7 @@ RSpec.describe Datadog::Core::Telemetry::Request do
         runtime_version: runtime_version,
         service_name: service_name,
         service_version: service_version,
-        tracer_version: tracer_version,
+        tracer_version: tracer_version
       }
     end
 
@@ -45,7 +45,7 @@ RSpec.describe Datadog::Core::Telemetry::Request do
         hostname: hostname,
         kernel_name: kernel_name,
         kernel_release: kernel_release,
-        kernel_version: kernel_version,
+        kernel_version: kernel_version
       }
     end
 

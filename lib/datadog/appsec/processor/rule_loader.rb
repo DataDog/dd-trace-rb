@@ -89,7 +89,7 @@ module Datadog
                   }
                 }
               ],
-              "id" => SecureRandom.uuid,
+              "id" => SecureRandom.uuid
             }
 
             exclusions << {

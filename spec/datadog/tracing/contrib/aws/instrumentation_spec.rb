@@ -333,8 +333,8 @@ RSpec.describe "AWS instrumentation" do
                     binary_value: "data",
                     string_list_values: ["String"],
                     binary_list_values: ["data"],
-                    data_type: "String", # required
-                  },
+                    data_type: "String" # required
+                  }
                 },
                 message_system_attributes: {
                   "AWSTraceHeader" => {
@@ -342,13 +342,13 @@ RSpec.describe "AWS instrumentation" do
                     binary_value: "data",
                     string_list_values: ["String"],
                     binary_list_values: ["data"],
-                    data_type: "String", # required
-                  },
+                    data_type: "String" # required
+                  }
                 },
                 message_deduplication_id: "String",
-                message_group_id: "String",
+                message_group_id: "String"
               }
-            ],
+            ]
           }
         )
       end
@@ -399,7 +399,7 @@ RSpec.describe "AWS instrumentation" do
         client.get_queue_url(
           {
             queue_name: "MyQueueName",
-            queue_owner_aws_account_id: "1234",
+            queue_owner_aws_account_id: "1234"
           }
         )
       end
@@ -504,12 +504,12 @@ RSpec.describe "AWS instrumentation" do
           {
             name: "topicName", # required
             attributes: {
-              "attributeName" => "attributeValue",
+              "attributeName" => "attributeValue"
             },
             tags: [
               {
                 key: "TagKey", # required
-                value: "TagValue", # required
+                value: "TagValue" # required
               }
             ]
           }
@@ -565,7 +565,7 @@ RSpec.describe "AWS instrumentation" do
           item: {
             "AlbumTitle" => "Songs About Life",
             "Artist" => "Acme Band",
-            "SongTitle" => "Happy Day",
+            "SongTitle" => "Happy Day"
           }
         }}
       end
@@ -721,9 +721,9 @@ RSpec.describe "AWS instrumentation" do
             tags: [
               {
                 key: "TagKey", # required
-                value: "TagValue", # required
+                value: "TagValue" # required
               }
-            ],
+            ]
           }
         )
       end
@@ -771,7 +771,7 @@ RSpec.describe "AWS instrumentation" do
       subject!(:list_targets_by_rule) do
         client.list_targets_by_rule(
           {
-            rule: "RuleName", # required
+            rule: "RuleName" # required
           }
         )
       end
@@ -875,7 +875,7 @@ RSpec.describe "AWS instrumentation" do
           {
             name: "my-state-machine-name", # required
             definition: "Definition", # required
-            role_arn: "Arn", # required
+            role_arn: "Arn" # required
           }
         )
       end
@@ -924,7 +924,7 @@ RSpec.describe "AWS instrumentation" do
       subject!(:describe_state_machine) do
         client.describe_state_machine(
           {
-            state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:my-state-machine-name", # required
+            state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:my-state-machine-name" # required
           }
         )
       end
@@ -982,7 +982,7 @@ RSpec.describe "AWS instrumentation" do
       subject!(:update_state_machine) do
         client.update_state_machine(
           {
-            state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:my-state-machine-name", # required
+            state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:my-state-machine-name" # required
           }
         )
       end
@@ -1030,7 +1030,7 @@ RSpec.describe "AWS instrumentation" do
       subject!(:delete_state_machine) do
         client.delete_state_machine(
           {
-            state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:my-state-machine-name", # required
+            state_machine_arn: "arn:aws:states:us-east-1:123456789012:stateMachine:my-state-machine-name" # required
           }
         )
       end
@@ -1076,7 +1076,7 @@ RSpec.describe "AWS instrumentation" do
       subject!(:describe_execution) do
         client.describe_execution(
           {
-            execution_arn: "arn:aws:states:us-east-1:123456789012:execution:example-state-machine:example-execution",
+            execution_arn: "arn:aws:states:us-east-1:123456789012:execution:example-state-machine:example-execution"
           }
         )
       end
@@ -1091,11 +1091,11 @@ RSpec.describe "AWS instrumentation" do
           stop_date: Time.new(2023, 3, 31, 12, 30, 0, "-04:00"),
           input: "string",
           input_details: {
-            included: true | false,
+            included: true | false
           },
           output: "string",
           output_details: {
-            included: true | false,
+            included: true | false
           },
           trace_header: "string"
         }}
@@ -1138,14 +1138,14 @@ RSpec.describe "AWS instrumentation" do
       subject!(:stop_execution) do
         client.stop_execution(
           {
-            execution_arn: "arn:aws:states:us-east-1:123456789012:execution:example-state-machine:example-execution",
+            execution_arn: "arn:aws:states:us-east-1:123456789012:execution:example-state-machine:example-execution"
           }
         )
       end
 
       let(:responses) do
         {stop_execution: {
-          stop_date: Time.new(2023, 3, 31, 12, 30, 0, "-04:00"),
+          stop_date: Time.new(2023, 3, 31, 12, 30, 0, "-04:00")
         }}
       end
 

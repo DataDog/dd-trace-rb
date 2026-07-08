@@ -342,8 +342,8 @@ RSpec.describe Datadog::DI::Instrumenter do
           self: {
             type: "HookIvarTestClass",
             fields: {
-              :@ivar => {type: "Integer", value: "2442"},
-            },
+              :@ivar => {type: "Integer", value: "2442"}
+            }
           }
         )
       end
@@ -426,8 +426,8 @@ RSpec.describe Datadog::DI::Instrumenter do
                 self: {
                   type: "HookIvarTestClass",
                   fields: {
-                    :@ivar => {type: "Integer", value: "2442"},
-                  },
+                    :@ivar => {type: "Integer", value: "2442"}
+                  }
                 }
               )
             end
@@ -540,8 +540,8 @@ RSpec.describe Datadog::DI::Instrumenter do
               self: {
                 type: "HookIvarTestClass",
                 fields: {
-                  :@ivar => {type: "Integer", value: "2442"},
-                },
+                  :@ivar => {type: "Integer", value: "2442"}
+                }
               }
             )
           end

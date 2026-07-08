@@ -108,9 +108,9 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
               },
               "hashes" => {"sha256" => Digest::SHA256.hexdigest(raw.to_json)},
               "length" => 645
-            },
+            }
           },
-          "version" => version,
+          "version" => version
         }
     }
   end
@@ -156,7 +156,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
               "targets" => {
                 "invalid_path" => {}
               },
-              "version" => version,
+              "version" => version
             }
         }
 
@@ -171,7 +171,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
     let(:raw_target) do
       {
         "custom" => {
-          "v" => 1,
+          "v" => 1
         },
         "hashes" => {"sha256" => Digest::SHA256.hexdigest(raw.to_json)},
         "length" => 645
@@ -207,7 +207,7 @@ RSpec.describe Datadog::Core::Remote::Configuration::TargetMap do
         it "returns false" do
           content_hash = {
             path: "datadog/603646/ASM/exclusion_filters/config",
-            content: "Hello World",
+            content: "Hello World"
           }
           content = Datadog::Core::Remote::Configuration::Content.parse(content_hash)
 

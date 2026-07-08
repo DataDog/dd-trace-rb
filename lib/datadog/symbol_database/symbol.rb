@@ -53,7 +53,7 @@ module Datadog
           symbol_type: symbol_type,
           name: name,
           line: line,
-          type: type,
+          type: type
         }
         h[:language_specifics] = language_specifics if language_specifics
         h

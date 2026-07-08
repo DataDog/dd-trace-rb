@@ -11,7 +11,7 @@ module Datadog
         class Log < Base
           LEVELS = {
             error: "ERROR",
-            warn: "WARN",
+            warn: "WARN"
           }.freeze
 
           LEVELS_STRING = LEVELS.values.freeze
@@ -51,7 +51,7 @@ module Datadog
                   message: @message,
                   level: @level,
                   stack_trace: @stack_trace,
-                  count: @count,
+                  count: @count
                 }.compact
               ]
             }

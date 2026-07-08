@@ -11,14 +11,14 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
       "method" => "GET",
       "path" => "/test",
       "headers" => {"Host" => "example.com", "User-Agent" => "TestBot"},
-      "source_ip" => "10.0.0.1",
+      "source_ip" => "10.0.0.1"
     }
   end
 
   let(:response) do
     {
       "statusCode" => 200,
-      "headers" => {"Content-Type" => "application/json"},
+      "headers" => {"Content-Type" => "application/json"}
     }
   end
 

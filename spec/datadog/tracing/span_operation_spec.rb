@@ -1028,7 +1028,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         attributes: {
           "exception.type" => "StandardError",
           "exception.message" => "test error",
-          "exception.stacktrace" => "this is a backtrace: test error (StandardError)\n",
+          "exception.stacktrace" => "this is a backtrace: test error (StandardError)\n"
         }
       )
       expect(span_op.span_events[1]).to have_attributes(
@@ -1036,7 +1036,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         attributes: {
           "exception.type" => "StandardError",
           "exception.message" => "test error",
-          "exception.stacktrace" => "this is a backtrace: test error (StandardError)\n",
+          "exception.stacktrace" => "this is a backtrace: test error (StandardError)\n"
         }
       )
     end

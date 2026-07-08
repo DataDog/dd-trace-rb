@@ -290,7 +290,7 @@ RSpec.describe Datadog::DI::Remote do
             target = Datadog::Core::Remote::Configuration::Target.parse(
               {
                 "custom" => {
-                  "v" => 1,
+                  "v" => 1
                 },
                 "hashes" => {"sha256" => Digest::SHA256.hexdigest(value_json.to_json)},
                 "length" => value_json.length
@@ -300,7 +300,7 @@ RSpec.describe Datadog::DI::Remote do
             content = Datadog::Core::Remote::Configuration::Content.parse(
               {
                 path: key,
-                content: value_json,
+                content: value_json
               }
             )
 

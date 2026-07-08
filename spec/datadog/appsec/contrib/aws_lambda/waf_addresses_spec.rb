@@ -17,7 +17,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
           "path_params" => {"id" => "123"},
           "body" => '{"name":"john"}',
           "base64_encoded" => false,
-          "source_ip" => "10.0.0.1",
+          "source_ip" => "10.0.0.1"
         }
       end
 
@@ -39,7 +39,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
           "query_string" => "page=1&sort=asc",
           "headers" => {"host" => "example.com"},
           "source_ip" => "10.0.0.2",
-          "method" => "GET",
+          "method" => "GET"
         }
       end
 
@@ -55,7 +55,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
           "path" => "/users/123",
           "query_string" => "page=1&sort=asc",
           "headers" => {"host" => "example.com"},
-          "method" => "GET",
+          "method" => "GET"
         }
       end
 
@@ -69,7 +69,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
           "path" => "/search",
           "query_string" => "",
           "query" => {"q" => ["ruby"]},
-          "headers" => {},
+          "headers" => {}
         }
       end
 
@@ -82,7 +82,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
         {
           "path" => "/health",
           "headers" => {},
-          "source_ip" => "127.0.0.1",
+          "source_ip" => "127.0.0.1"
         }
       end
 
@@ -107,7 +107,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
         {
           "headers" => {"Content-Type" => "application/json"},
           "body" => "eyJrZXkiOiJ2YWx1ZSJ9",
-          "base64_encoded" => true,
+          "base64_encoded" => true
         }
       end
 
@@ -119,7 +119,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
         {
           "headers" => {"Content-Type" => "application/json"},
           "body" => '{"key":"value"}',
-          "base64_encoded" => false,
+          "base64_encoded" => false
         }
       end
 
@@ -139,7 +139,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
         {
           "headers" => {"Content-Type" => "application/json"},
           "body" => '{"key":"value"}',
-          "base64_encoded" => false,
+          "base64_encoded" => false
         }
       end
 
@@ -154,7 +154,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
         {
           "headers" => {"Content-Type" => "application/json"},
           "body" => '{"key":"value"}',
-          "base64_encoded" => false,
+          "base64_encoded" => false
         }
       end
 
@@ -167,7 +167,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
         {
           "headers" => {"Content-Type" => "application/json"},
           "body" => '{"key":"value"}',
-          "base64_encoded" => false,
+          "base64_encoded" => false
         }
       end
 
@@ -179,7 +179,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
         {
           "headers" => {"Content-Type" => "application/json"},
           "body" => "eyJrZXkiOiJ2YWx1ZSJ9",
-          "base64_encoded" => true,
+          "base64_encoded" => true
         }
       end
 
@@ -199,7 +199,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
         {
           "headers" => {"Content-Type" => "application/json"},
           "body" => "!!!!",
-          "base64_encoded" => true,
+          "base64_encoded" => true
         }
       end
 
@@ -222,7 +222,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
         {
           "headers" => {"Content-Type" => "application/json"},
           "body" => "eyJrZXkiOiJ2YWx1ZSJ9",
-          "base64_encoded" => true,
+          "base64_encoded" => true
         }
       end
 
@@ -234,7 +234,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
       let(:payload) do
         {
           "headers" => {},
-          "body" => "some data",
+          "body" => "some data"
         }
       end
 
@@ -250,7 +250,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
     context "when cookies come from Cookie header" do
       let(:payload) do
         {
-          "headers" => {"Cookie" => "a=1; b=2; c=val=ue"},
+          "headers" => {"Cookie" => "a=1; b=2; c=val=ue"}
         }
       end
 
@@ -261,7 +261,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
       let(:payload) do
         {
           "headers" => {},
-          "cookies" => ["session=abc", "theme=dark"],
+          "cookies" => ["session=abc", "theme=dark"]
         }
       end
 
@@ -272,7 +272,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
       let(:payload) do
         {
           "headers" => {"Cookie" => "old=stale"},
-          "cookies" => ["new=fresh"],
+          "cookies" => ["new=fresh"]
         }
       end
 
@@ -292,7 +292,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
           "headers" => nil,
           "query" => nil,
           "path_params" => nil,
-          "source_ip" => "127.0.0.1",
+          "source_ip" => "127.0.0.1"
         }
       end
 
@@ -312,7 +312,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
       let(:payload) do
         {
           "status_code" => 201,
-          "headers" => {"Content-Type" => "application/json", "Set-Cookie" => "session=xyz"},
+          "headers" => {"Content-Type" => "application/json", "Set-Cookie" => "session=xyz"}
         }
       end
 
@@ -350,7 +350,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
         {
           "headers" => {"Content-Type" => "application/json"},
           "body" => '{"key":"value"}',
-          "base64_encoded" => false,
+          "base64_encoded" => false
         }
       end
 
@@ -365,7 +365,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::WAFAddresses do
         {
           "headers" => {"Content-Type" => "application/json"},
           "body" => '{"key":"value"}',
-          "base64_encoded" => false,
+          "base64_encoded" => false
         }
       end
 

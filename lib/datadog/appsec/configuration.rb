@@ -24,7 +24,7 @@ module Datadog
         ].freeze
         AUTO_USER_INSTRUMENTATION_MODES_ALIASES = {
           "ident" => IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE,
-          "anon" => ANONYMIZATION_AUTO_USER_INSTRUMENTATION_MODE,
+          "anon" => ANONYMIZATION_AUTO_USER_INSTRUMENTATION_MODE
         }.freeze
 
         # NOTE: These two constants are deprecated

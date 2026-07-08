@@ -60,7 +60,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
               "/v0/path"
             ],
             config: {
-              max_request_bytes: "1234",
+              max_request_bytes: "1234"
             }
           }
         )
@@ -101,7 +101,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
             config_states: [],            # from scratch, so empty
             has_error: false,             # from scratch, so false
             error: "",                    # from scratch, so blank
-            opaque_backend_state: "",     # from scratch, so blank
+            opaque_backend_state: ""     # from scratch, so blank
           }
         )
       end
@@ -130,7 +130,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
               config_states: state.config_states,
               has_error: state.has_error,
               error: state.error,
-              backend_client_state: state.opaque_backend_state,
+              backend_client_state: state.opaque_backend_state
             },
             id: id,
             products: products,
@@ -142,11 +142,11 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
               tracer_version: Datadog::Core::Environment::Identity.gem_datadog_version,
               service: Datadog.configuration.service,
               env: Datadog.configuration.env,
-              tags: [],
+              tags: []
             },
-            capabilities: Datadog::Core::Utils::Base64Codec.encode64(capabilities_binary).chomp,
+            capabilities: Datadog::Core::Utils::Base64Codec.encode64(capabilities_binary).chomp
           },
-          cached_target_files: [],
+          cached_target_files: []
         }
       end
 
@@ -175,12 +175,12 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
                   targets: {
                     "datadog/42/PRODUCT/foo/config" => {
                       hashes: {sha256: "d0b425e00e15a0d36b9b361f02bab63563aed6cb4665083905386c55d5b679fa"},
-                      length: 8,
+                      length: 8
                     },
                     "employee/PRODUCT/bar/config" => {
                       hashes: {sha256: "dab741b6289e7dccc1ed42330cae1accc2b755ce8079c2cd5d4b5366c9f769a6"},
-                      length: 8,
-                    },
+                      length: 8
+                    }
                   }
                 }
               }
@@ -188,17 +188,17 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
             target_files: [
               {
                 path: "datadog/42/PRODUCT/foo/config",
-                raw: encode.call("content1"),
+                raw: encode.call("content1")
               },
               {
                 path: "employee/PRODUCT/bar/config",
-                raw: encode.call("content2"),
+                raw: encode.call("content2")
               }
             ],
             client_configs: [
               "datadog/42/PRODUCT/foo/config",
               "employee/PRODUCT/bar/config"
-            ],
+            ]
           }
         )
       end

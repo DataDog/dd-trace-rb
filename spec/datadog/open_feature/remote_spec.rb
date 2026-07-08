@@ -53,7 +53,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
       Datadog::Core::Remote::Configuration::Content.parse(
         {
           path: "datadog/1/FFE_FLAGS/latest/config",
-          content: content_data,
+          content: content_data
         }
       )
     end

@@ -45,7 +45,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Integration do
       backport_support = {
         "1.13.21" => "2.0",
         "2.0.28" => "2.1",
-        "2.1.11" => "2.2",
+        "2.1.11" => "2.2"
       }
 
       backport_support.each do |backported_version, broken_version|

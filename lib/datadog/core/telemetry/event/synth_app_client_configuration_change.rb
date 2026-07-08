@@ -40,7 +40,7 @@ module Datadog
               super
             else
               {
-                configuration: @configuration,
+                configuration: @configuration
               }
             end
           end

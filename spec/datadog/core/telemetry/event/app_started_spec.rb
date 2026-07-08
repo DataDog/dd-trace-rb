@@ -52,12 +52,12 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
   let(:expected_products) do
     {
       appsec: {
-        enabled: false,
+        enabled: false
       },
       dynamic_instrumentation: {
-        enabled: false,
+        enabled: false
       },
-      profiler: hash_including(enabled: false),
+      profiler: hash_including(enabled: false)
     }
   end
   before do
@@ -326,7 +326,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
           allow(Datadog::Core::Configuration::StableConfig).to receive(:configuration).and_return(
             {
               fleet: {id: "12345", config: {"DD_APPSEC_ENABLED" => "true"}},
-              local: {id: "56789", config: {"DD_LOGS_INJECTION" => "false"}},
+              local: {id: "56789", config: {"DD_LOGS_INJECTION" => "false"}}
             }
           )
         end

@@ -85,7 +85,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         },
         runtime: {
           engine: "ruby"
-        },
+        }
       }
     )
   end
@@ -97,7 +97,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       },
       "runtime" => {
         "engine" => "ruby"
-      },
+      }
     }
   end
 
@@ -353,7 +353,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           "endpoint_counts" => nil,
           "internal" => hash_including("no_signals_workaround_enabled" => true),
           "info" => info_string_keys,
-          "process_tags" => nil,
+          "process_tags" => nil
         }
       }
 

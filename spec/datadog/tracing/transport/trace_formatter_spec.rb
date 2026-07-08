@@ -35,7 +35,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         sample_rate: sample_rate,
         sampling_priority: sampling_priority,
         tags: trace_tags,
-        profiling_enabled: profiling_enabled,
+        profiling_enabled: profiling_enabled
       }
     end
 
@@ -212,7 +212,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
               {
                 "foo" => "bar",
                 "_dd.p.dm" => "-1",
-                "_dd.p.tid" => "0a3efc9f33333333",
+                "_dd.p.tid" => "0a3efc9f33333333"
               }
             )
           end

@@ -31,7 +31,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           kind: "standard library",
           name: "stdlib",
           version: RUBY_VERSION.to_s,
-          paths: contain_exactly(start_with("/")),
+          paths: contain_exactly(start_with("/"))
         },
         {
           kind: "library",
@@ -44,13 +44,13 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
             end,
             "#{Gem.bindir}/ddprofrb",
             "#{Bundler.bin_path}/ddprofrb"
-          ),
+          )
         },
         {
           kind: "library",
           name: "rspec",
           version: start_with("3."), # This will one day need to be bumped for RSpec 4
-          paths: contain_exactly(start_with("/")),
+          paths: contain_exactly(start_with("/"))
         }
       )
     end
@@ -68,7 +68,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
             satisfy do |path|
               path.include?("extensions") && path.include?(expected_platform_fragment)
             end
-          ),
+          )
         }
       )
     end
@@ -271,19 +271,19 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           name: "stdlib",
           kind: "standard library",
           version: RUBY_VERSION.to_s,
-          paths: include(start_with("/")),
+          paths: include(start_with("/"))
         },
         {
           name: "datadog",
           kind: "library",
           version: Datadog::VERSION::STRING,
-          paths: include(start_with("/")),
+          paths: include(start_with("/"))
         },
         {
           name: "rspec-core",
           kind: "library",
           version: start_with("3."), # This will one day need to be bumped for RSpec 4
-          paths: include(start_with("/")),
+          paths: include(start_with("/"))
         }
       )
     end

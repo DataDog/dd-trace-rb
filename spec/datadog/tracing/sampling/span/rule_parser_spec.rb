@@ -55,7 +55,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do
               name: name,
               service: service,
               sample_rate: sample_rate,
-              max_per_second: max_per_second,
+              max_per_second: max_per_second
             }
           end
 

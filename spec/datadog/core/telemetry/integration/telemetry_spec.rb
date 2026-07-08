@@ -42,7 +42,7 @@ RSpec.describe "Telemetry integration tests" do
         "dd-client-library-language" => %w[ruby],
         "dd-client-library-version" => [String],
         "dd-internal-untraced-request" => %w[1],
-        "dd-telemetry-api-version" => %w[v2],
+        "dd-telemetry-api-version" => %w[v2]
       }
     end
 
@@ -62,7 +62,7 @@ RSpec.describe "Telemetry integration tests" do
         "runtime_version" => String,
         "service_name" => String,
         "service_version" => nil,
-        "tracer_version" => String,
+        "tracer_version" => String
       }
     end
 
@@ -72,7 +72,7 @@ RSpec.describe "Telemetry integration tests" do
         "hostname" => String,
         "kernel_name" => String,
         "kernel_release" => String,
-        "kernel_version" => ((RUBY_ENGINE == "jruby") ? nil : String),
+        "kernel_version" => ((RUBY_ENGINE == "jruby") ? nil : String)
       }
     end
 
@@ -80,7 +80,7 @@ RSpec.describe "Telemetry integration tests" do
       {
         "appsec" => {"enabled" => false},
         "dynamic_instrumentation" => {"enabled" => false},
-        "profiler" => {"enabled" => false},
+        "profiler" => {"enabled" => false}
       }
     end
 
@@ -119,7 +119,7 @@ RSpec.describe "Telemetry integration tests" do
             "payload" => {
               "configuration" => Array,
               "products" => expected_products_hash,
-              "install_signature" => Hash,
+              "install_signature" => Hash
             },
             "request_type" => "app-started",
             "runtime_id" => String,
@@ -146,7 +146,7 @@ RSpec.describe "Telemetry integration tests" do
             "debug" => false,
             "host" => expected_host_hash,
             "payload" => {
-              "configuration" => Array,
+              "configuration" => Array
             },
             "request_type" => "app-client-configuration-change",
             "runtime_id" => String,
@@ -186,7 +186,7 @@ RSpec.describe "Telemetry integration tests" do
             "debug" => false,
             "host" => expected_host_hash,
             "payload" => {
-              "dependencies" => Array,
+              "dependencies" => Array
             },
             "request_type" => "app-dependencies-loaded",
             "runtime_id" => String,
@@ -225,7 +225,7 @@ RSpec.describe "Telemetry integration tests" do
                 "count" => 1,
                 "level" => "ERROR",
                 "message" => "test error"
-              ],
+              ]
             },
             "request_type" => "logs"
           ],
@@ -360,7 +360,7 @@ RSpec.describe "Telemetry integration tests" do
       payload = JSON.parse(req.body)
       sent_payloads << {
         headers: req.header,
-        payload: payload,
+        payload: payload
       }
     end
   end
@@ -460,9 +460,9 @@ RSpec.describe "Telemetry integration tests" do
               "count" => 1,
               "level" => "ERROR",
               "message" => "test log entry"
-            ],
+            ]
           },
-          "request_type" => "logs",
+          "request_type" => "logs"
         }]
       )
     end
@@ -678,8 +678,8 @@ RSpec.describe "Telemetry integration tests" do
           "enabled" => false,
           "error" => {
             "code" => 1,
-            "message" => "fake not supported reason",
-          },
+            "message" => "fake not supported reason"
+          }
         }
     end
 
@@ -760,7 +760,7 @@ RSpec.describe "Telemetry integration tests" do
         product_key: "dynamic_instrumentation",
         configuration: {name: "DD_DYNAMIC_INSTRUMENTATION_ENABLED", value: true},
         actual_state: {
-          "enabled" => false,
+          "enabled" => false
           # DI currently does not provide the reason why it's not enabled.
         }
     end
@@ -797,7 +797,7 @@ RSpec.describe "Telemetry integration tests" do
         product_key: "appsec",
         configuration: {name: "DD_APPSEC_ENABLED", value: true},
         actual_state: {
-          "enabled" => false,
+          "enabled" => false
           # AppSec currently does not provide the reason why it's not enabled.
         }
     end
@@ -815,7 +815,7 @@ RSpec.describe "Telemetry integration tests" do
         product_key: "appsec",
         configuration: {name: "DD_APPSEC_ENABLED", value: true},
         actual_state: {
-          "enabled" => false,
+          "enabled" => false
           # AppSec currently does not provide the reason why it's not enabled.
         }
     end

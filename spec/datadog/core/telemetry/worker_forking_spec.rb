@@ -13,7 +13,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       payload = JSON.parse(req.body)
       sent_payloads << {
         headers: req.header,
-        payload: payload,
+        payload: payload
       }
     end
   end

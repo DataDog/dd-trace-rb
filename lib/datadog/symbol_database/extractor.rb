@@ -841,7 +841,7 @@ module Datadog
 
         root = {
           name: file_path, type: "FILE", children: {},
-          methods: [], mod: nil, source_file: file_path, fqn: nil,
+          methods: [], mod: nil, source_file: file_path, fqn: nil
         }
 
         # Sort by FQN depth so parent namespaces are placed before children.
