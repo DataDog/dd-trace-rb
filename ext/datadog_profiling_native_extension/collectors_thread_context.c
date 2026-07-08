@@ -73,8 +73,6 @@
 
 #define THREAD_ID_LIMIT_CHARS 44 // Why 44? "#{2**64} (#{2**64})".size + 1 for \0
 #define THREAD_INVOKE_LOCATION_LIMIT_CHARS 512
-#define IS_WALL_TIME true
-#define IS_CPU_TIME false
 #define MISSING_TRACER_CONTEXT_KEY 0
 #define TIME_BETWEEN_GC_EVENTS_NS MILLIS_AS_NS(10)
 #define GVL_SUSPENDED ((uint64_t)1)
@@ -323,7 +321,8 @@ static VALUE per_thread_context_to_ruby_hash(per_thread_context *thread_context)
 static VALUE stats_to_ruby_hash(thread_context_collector_state *state, VALUE hash);
 static VALUE gc_tracking_as_ruby_hash(thread_context_collector_state *state);
 static VALUE _native_per_thread_context(VALUE self, VALUE collector_instance);
-static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns, per_thread_context *thread_context, bool is_wall_time);
+static long update_cpu_time_since_previous_sample(per_thread_context *thread_context, long current_cpu_time_ns);
+static long update_wall_time_since_previous_sample(per_thread_context *thread_context, long current_wall_time_ns);
 static long cpu_time_now_ns(per_thread_context *thread_context);
 static long thread_id_for(VALUE thread);
 static VALUE _native_stats(VALUE self, VALUE collector_instance);
@@ -701,17 +700,8 @@ static void record_sampling_overhead(thread_context_collector_state *state, per_
   long wall_time_after_sampling = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
   long cpu_time_after_sampling = cpu_time_now_ns(current_thread_context);
 
-  long overhead_cpu_time_ns = update_time_since_previous_sample(
-    &current_thread_context->cpu_time_at_previous_sample_ns,
-    cpu_time_after_sampling,
-    current_thread_context,
-    IS_CPU_TIME);
-
-  long overhead_wall_time_ns = update_time_since_previous_sample(
-    &current_thread_context->wall_time_at_previous_sample_ns,
-    wall_time_after_sampling,
-    current_thread_context,
-    IS_WALL_TIME);
+  long overhead_cpu_time_ns = update_cpu_time_since_previous_sample(current_thread_context, cpu_time_after_sampling);
+  long overhead_wall_time_ns = update_wall_time_since_previous_sample(current_thread_context, wall_time_after_sampling);
 
   ddog_prof_Label overhead_labels[] = {
     {.key = DDOG_CHARSLICE_C("thread id"), .str = DDOG_CHARSLICE_C("0"), .num = 0},
@@ -807,19 +797,9 @@ static void update_metrics_and_sample(
   if (skip_sample(state, thread_context, is_gvl_waiting_state, force_sample)) return;
 
   // Don't assign/update cpu during "Waiting for GVL"
-  long cpu_time_elapsed_ns = is_gvl_waiting_state ? 0 : update_time_since_previous_sample(
-    &thread_context->cpu_time_at_previous_sample_ns,
-    current_cpu_time_ns,
-    thread_context,
-    IS_CPU_TIME
-  );
+  long cpu_time_elapsed_ns = is_gvl_waiting_state ? 0 : update_cpu_time_since_previous_sample(thread_context, current_cpu_time_ns);
 
-  long wall_time_elapsed_ns = update_time_since_previous_sample(
-    &thread_context->wall_time_at_previous_sample_ns,
-    current_monotonic_wall_time_ns,
-    thread_context,
-    IS_WALL_TIME
-  );
+  long wall_time_elapsed_ns = update_wall_time_since_previous_sample(thread_context, current_monotonic_wall_time_ns);
 
   // A thread enters "Waiting for GVL", well, as the name implies, without the GVL.
   //
@@ -1406,7 +1386,7 @@ static VALUE _native_per_thread_context(DDTRACE_UNUSED VALUE _self, VALUE collec
   return result;
 }
 
-static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns, per_thread_context *thread_context, bool is_wall_time) {
+static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns, per_thread_context *thread_context) {
   // If we didn't have a time for the previous sample, we use the current one
   if (*time_at_previous_sample_ns == INVALID_TIME) *time_at_previous_sample_ns = current_time_ns;
 
@@ -1427,20 +1407,36 @@ static long update_time_since_previous_sample(long *time_at_previous_sample_ns, 
   long elapsed_time_ns = current_time_ns - *time_at_previous_sample_ns; // Capture all time since previous sample
   *time_at_previous_sample_ns = current_time_ns;
 
+  return elapsed_time_ns;
+}
+
+static long update_cpu_time_since_previous_sample(per_thread_context *thread_context, long current_cpu_time_ns) {
+  long elapsed_time_ns = update_time_since_previous_sample(
+    &thread_context->cpu_time_at_previous_sample_ns,
+    current_cpu_time_ns,
+    thread_context
+  );
+
+  // We don't expect cpu-time to go backwards, so let's flag this as a bug
   if (elapsed_time_ns < 0) {
-    if (is_wall_time) {
-      // Wall-time can actually go backwards (e.g. when the system clock gets set) so we can't assume time going backwards
-      // was a bug.
-      // @ivoanjo: I've also observed time going backwards spuriously on macOS, see discussion on
-      // https://github.com/DataDog/dd-trace-rb/pull/2336.
-      elapsed_time_ns = 0;
-    } else {
-      // We don't expect non-wall time to go backwards, so let's flag this as a bug
-      raise_error(rb_eRuntimeError, "BUG: Unexpected negative elapsed_time_ns between samples");
-    }
+    raise_error(rb_eRuntimeError, "BUG: Unexpected negative elapsed_time_ns between samples");
   }
 
   return elapsed_time_ns;
+}
+
+static long update_wall_time_since_previous_sample(per_thread_context *thread_context, long current_wall_time_ns) {
+  long elapsed_time_ns = update_time_since_previous_sample(
+    &thread_context->wall_time_at_previous_sample_ns,
+    current_wall_time_ns,
+    thread_context
+  );
+
+  // Wall-time can actually go backwards (e.g. when the system clock gets set) so we can't assume time going backwards
+  // was a bug.
+  // @ivoanjo: I've also observed time going backwards spuriously on macOS, see discussion on
+  // https://github.com/DataDog/dd-trace-rb/pull/2336.
+  return long_max_of(elapsed_time_ns, 0);
 }
 
 // Safety: This function is assumed never to raise exceptions by callers
@@ -2316,19 +2312,10 @@ void thread_context_collector_on_serialize(VALUE self_instance) {
     long gvl_waiting_started_wall_time_ns = labs(gvl_waiting_at);
 
     if (thread_context->wall_time_at_previous_sample_ns < gvl_waiting_started_wall_time_ns) { // situation 1 above
-      long cpu_time_elapsed_ns = update_time_since_previous_sample(
-        &thread_context->cpu_time_at_previous_sample_ns,
-        current_cpu_time_ns,
-        thread_context,
-        IS_CPU_TIME
-      );
+      long cpu_time_elapsed_ns = update_cpu_time_since_previous_sample(thread_context, current_cpu_time_ns);
 
-      long duration_until_start_of_gvl_waiting_ns = update_time_since_previous_sample(
-        &thread_context->wall_time_at_previous_sample_ns,
-        gvl_waiting_started_wall_time_ns,
-        thread_context,
-        IS_WALL_TIME
-      );
+      long duration_until_start_of_gvl_waiting_ns =
+        update_wall_time_since_previous_sample(thread_context, gvl_waiting_started_wall_time_ns);
 
       // Push extra sample
       trigger_sample_for_thread(
