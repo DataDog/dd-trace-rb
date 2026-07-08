@@ -4,7 +4,7 @@ require "time"
 require "datadog/core/utils/time"
 
 RSpec.describe Datadog::Core::Utils::Time do
-  describe "#get_time" do
+  describe ".get_time" do
     subject(:get_time) { described_class.get_time }
 
     it "returns a monotonic timestamp in float seconds" do
@@ -23,9 +23,29 @@ RSpec.describe Datadog::Core::Utils::Time do
         expect(described_class.get_time(:nanosecond)).to be_a_kind_of(Integer)
       end
     end
+
+    it "is not affected by monkey-patches of Process.clock_gettime" do
+      allow(Process).to receive(:clock_gettime).and_return(:nope)
+      expect(Process.clock_gettime(Process::CLOCK_MONOTONIC)).to be :nope
+      expect(described_class.get_time).to be_a(Float)
+    end
   end
 
-  describe "#measure" do
+  describe ".now" do
+    subject(:now) { described_class.now }
+
+    it "returns the current time as a Time object" do
+      is_expected.to be_a_kind_of(Time)
+    end
+
+    it "is not affected by monkey-patches of Time.now" do
+      allow(Time).to receive(:now).and_return(:nope)
+      expect(Time.now).to be :nope
+      expect(described_class.now).to be_a(Time)
+    end
+  end
+
+  describe ".measure" do
     it { expect { |b| described_class.measure(&b) }.to yield_control }
 
     context "given a block" do
@@ -41,7 +61,7 @@ RSpec.describe Datadog::Core::Utils::Time do
     end
   end
 
-  describe "#as_utc_epoch_ns" do
+  describe ".as_utc_epoch_ns" do
     let(:time) { Time.iso8601("2021-01-01T01:02:03.405060708Z") }
 
     subject(:as_utc_epoch_ns) { described_class.as_utc_epoch_ns(time) }
