@@ -11,7 +11,7 @@ module Datadog
       module HTTP
         # Module for handling HTTP body parsing
         module Body
-          def self.parse(body, media_type:, bytesize_limit: URLEncoded::BYTESIZE_LIMIT)
+          def self.parse(body, media_type:, bytesize_limit: URLEncoded::DEFAULT_BYTESIZE_LIMIT)
             return if body.nil?
 
             body.rewind if body.respond_to?(:rewind) # steep:ignore NoMethod
@@ -24,7 +24,7 @@ module Datadog
             if media_type.subtype == 'json' || media_type.subtype.end_with?('+json')
               JSON.parse(content)
             elsif media_type.subtype == 'x-www-form-urlencoded'
-              URLEncoded.parse(content, bytesize_limit: bytesize_limit)
+              URLEncoded.parse(content, limit: bytesize_limit)
             end
           rescue => e
             AppSec.telemetry.report(e, description: 'AppSec: Failed to parse body')

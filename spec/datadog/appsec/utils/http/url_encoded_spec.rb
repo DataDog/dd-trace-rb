@@ -50,7 +50,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::URLEncoded do
       end
 
       it 'drops the truncated pair without corrupting kept pairs when the limit falls inside a character' do
-        expect(described_class.parse('aa=1&x=café', bytesize_limit: 10)).to eq({'aa' => '1'})
+        expect(described_class.parse('aa=1&x=café', limit: 10)).to eq({'aa' => '1'})
       end
     end
 
@@ -69,15 +69,15 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::URLEncoded do
 
     context 'when payload exceeds the bytesize limit' do
       it 'returns the fully-read pairs and omits the one crossing the limit' do
-        expect(described_class.parse('a=1&b=2&c=3', bytesize_limit: 10)).to eq({'a' => '1', 'b' => '2'})
+        expect(described_class.parse('a=1&b=2&c=3', limit: 10)).to eq({'a' => '1', 'b' => '2'})
       end
 
       it 'keeps the array entries read before the limit and drops the pair crossing it' do
-        expect(described_class.parse('key=a&key=b&key=c', bytesize_limit: 12)).to eq({'key' => ['a', 'b']})
+        expect(described_class.parse('key=a&key=b&key=c', limit: 12)).to eq({'key' => ['a', 'b']})
       end
 
       it 'keeps a duplicate key as a string value when the limit drops the second value' do
-        expect(described_class.parse('key=a&key=b', bytesize_limit: 10)).to eq({'key' => 'a'})
+        expect(described_class.parse('key=a&key=b', limit: 10)).to eq({'key' => 'a'})
       end
     end
   end

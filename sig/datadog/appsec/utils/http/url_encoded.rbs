@@ -9,7 +9,7 @@ module Datadog
 
           EQUALS_BYTE: ::Integer
 
-          def self.parse: (::String?, ?bytesize_limit: ::Integer) -> ::Hash[::String, (::String | ::Array[::String?])?]
+          def self.parse: (::String?, ?limit: ::Integer) -> ::Hash[::String, (::String | ::Array[::String?])?]
 
           def self.set_param_value: (::Hash[::String, (::String | ::Array[::String?])?], ::String, ::Integer, ::Integer, ::Integer) -> void
         end

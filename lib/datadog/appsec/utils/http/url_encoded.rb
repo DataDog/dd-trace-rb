@@ -22,21 +22,21 @@ module Datadog
           #
           #   URLEncoded.parse("foo=bar&foo=baz&qux=quux") # => {"foo" => ["bar", "baz"], "qux" => "quux"}
           #
-          # Parsing stops once +bytesize_limit+ bytes have been read, and the
-          # pair being read at that point is discarded. This returns the pairs
-          # decoded so far rather than raising or discarding the whole payload.
-          def self.parse(payload, bytesize_limit: DEFAULT_BYTESIZE_LIMIT)
+          # Parsing stops once +limit+ bytes have been read, and the pair being
+          # read at that point is discarded. This returns the pairs decoded so
+          # far rather than raising or discarding the whole payload.
+          def self.parse(payload, limit: DEFAULT_BYTESIZE_LIMIT)
             return {} if payload.nil? || payload.empty?
 
             result = {} #: Hash[::String, (::String | ::Array[::String?])?]
             segment_start = 0
             equals_index = -1
             index = 0
-            bytesize_limit_reached = false
+            limit_reached = false
 
             payload.each_byte do |byte|
-              if index >= bytesize_limit
-                bytesize_limit_reached = true
+              if index >= limit
+                limit_reached = true
                 break
               end
 
@@ -52,15 +52,15 @@ module Datadog
               index += 1
             end
 
-            set_param_value(result, payload, segment_start, equals_index, index) unless bytesize_limit_reached
+            set_param_value(result, payload, segment_start, equals_index, index) unless limit_reached
 
             result
           end
 
           def self.set_param_value(result, payload, segment_start, equals_index, segment_end)
-            key_end = equals_index == -1 ? segment_end : equals_index
+            key_end = (equals_index == -1) ? segment_end : equals_index
             key = payload.byteslice(segment_start, key_end - segment_start) || +''
-            value = equals_index == -1 ? nil : payload.byteslice(equals_index + 1, segment_end - equals_index - 1) #: ::String?
+            value = (equals_index == -1) ? nil : payload.byteslice(equals_index + 1, segment_end - equals_index - 1) #: ::String?
 
             return if key.empty? && value.nil?
 
