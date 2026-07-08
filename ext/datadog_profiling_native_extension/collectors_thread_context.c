@@ -1419,7 +1419,7 @@ static long update_cpu_time_since_previous_sample(per_thread_context *thread_con
 
   // We don't expect cpu-time to go backwards, so let's flag this as a bug
   if (elapsed_time_ns < 0) {
-    raise_error(rb_eRuntimeError, "BUG: Unexpected negative elapsed_time_ns between samples");
+    raise_error(rb_eRuntimeError, "BUG: Unexpected CPU time going backwards between samples");
   }
 
   return elapsed_time_ns;
