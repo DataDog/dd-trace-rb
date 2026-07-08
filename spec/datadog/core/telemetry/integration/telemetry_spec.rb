@@ -224,10 +224,10 @@ RSpec.describe "Telemetry integration tests" do
               "logs" => [
                 "count" => 1,
                 "level" => "ERROR",
-                "message" => "test error",
+                "message" => "test error"
               ],
             },
-            "request_type" => "logs",
+            "request_type" => "logs"
           ],
           "request_type" => "message-batch",
           "runtime_id" => String,
@@ -459,7 +459,7 @@ RSpec.describe "Telemetry integration tests" do
             "logs" => [
               "count" => 1,
               "level" => "ERROR",
-              "message" => "test log entry",
+              "message" => "test log entry"
             ],
           },
           "request_type" => "logs",

@@ -32,7 +32,7 @@ RSpec.describe Datadog::DataStreams::Transport::HTTP do
 
       expect(default.apis.keys).to eq(
         [
-          "v0.1",
+          "v0.1"
         ]
       )
     end

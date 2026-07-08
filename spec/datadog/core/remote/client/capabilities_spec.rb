@@ -373,7 +373,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       allow(capabilities).to receive(:capabilities).and_return(
         [
           1 << 1,
-          1 << 2,
+          1 << 2
         ]
       )
     end

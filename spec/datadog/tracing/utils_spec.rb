@@ -38,7 +38,7 @@ RSpec.describe Datadog::Tracing::Utils::TraceId do
       [
         0xaaaaaaaaaaaaaaaa,
         0xffffffffffffffff,
-        0,
+        0
       ].each do |input|
         it "returns itself" do
           expect(described_class.to_low_order(input)).to eq(input)
@@ -65,7 +65,7 @@ RSpec.describe Datadog::Tracing::Utils::TraceId do
       [
         0xaaaaaaaaaaaaaaaa,
         0xffffffffffffffff,
-        0,
+        0
       ].each do |input|
         it "returns 0" do
           expect(described_class.to_high_order(input)).to eq(0)

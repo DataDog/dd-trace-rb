@@ -30,7 +30,7 @@ CORE_WITH_LIBDATADOG_API = [
   "spec/datadog/data_streams/**/*_spec.rb",
   "spec/datadog/open_feature_spec.rb",
   "spec/datadog/core/libdatadog_extconf_helpers_spec.rb",
-  "spec/datadog/core/datadog_ruby_common_spec.rb",
+  "spec/datadog/core/datadog_ruby_common_spec.rb"
 ].freeze
 
 DI_WITH_EXT = %w[
@@ -297,7 +297,7 @@ namespace :spec do
       "configuration/*",
       "configuration/resolvers/*",
       "registry/*",
-      "propagation/**/*",
+      "propagation/**/*"
     ].join(",")
 
     t.pattern = "spec/**/contrib/{#{contrib_paths}}_spec.rb"
@@ -461,7 +461,7 @@ namespace :spec do
     [
       :active_record,
       :bootsnap,
-      :rails,
+      :rails
     ].each do |contrib|
       desc "" # "Explicitly hiding from `rake -T`"
       RSpec::Core::RakeTask.new(contrib) do |t, args|
@@ -602,7 +602,7 @@ NATIVE_EXTS = [
 
   Rake::ExtensionTask.new("datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
     ext.ext_dir = "ext/datadog_profiling_native_extension"
-  end,
+  end
 ].freeze
 
 NATIVE_CLEAN = ::Rake::FileList[]

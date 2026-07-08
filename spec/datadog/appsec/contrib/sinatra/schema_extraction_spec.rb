@@ -130,7 +130,7 @@ RSpec.describe "Schema extraction for API security in Sinatra" do
             },
             evaluate: false,
             output: true
-          },
+          }
         ]
       }
     end

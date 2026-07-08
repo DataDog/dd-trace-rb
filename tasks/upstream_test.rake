@@ -76,7 +76,7 @@ namespace :upstream do
     desc "Run opentelemetry-api tests with datadog enabled"
     task :api do
       skipped_tests = [
-        "finishes the new span at the end of the block", # Mocked OTel Span errors when datadog invokes required methods
+        "finishes the new span at the end of the block" # Mocked OTel Span errors when datadog invokes required methods
       ]
       with_repository("open-telemetry", "opentelemetry-ruby", OTEL_GIT_COMMIT, setup) do
         Dir.chdir("api") do
@@ -110,7 +110,7 @@ namespace :upstream do
         "accepts comma separated list as an environment variable",
         "can be set by environment variable",
         'accepts "none" as an environment variable value',
-        "accepts comma separated list with preceeding or trailing spaces as an environment variable",
+        "accepts comma separated list with preceeding or trailing spaces as an environment variable"
       ]
 
       with_repository("open-telemetry", "opentelemetry-ruby", OTEL_GIT_COMMIT, setup) do

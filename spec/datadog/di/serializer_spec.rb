@@ -150,7 +150,7 @@ RSpec.describe Datadog::DI::Serializer do
          "@message": {
            value: "bar", type: "String"
          }
-       }}},
+       }}}
     ]
 
     define_serialize_value_cases(cases)
@@ -190,22 +190,22 @@ RSpec.describe Datadog::DI::Serializer do
          {type: "Integer", value: "42"},
          {type: "String", value: "hello"},
          {type: "NilClass", isNull: true},
-         {type: "TrueClass", value: "true"},
+         {type: "TrueClass", value: "true"}
        ]}}},
       {name: "array with value of redacted type", input: {arr: [1, DISerializerSpecSensitiveType.new]},
        expected: {arr: {type: "Array", elements: [
          {type: "Integer", value: "1"},
-         {type: "DISerializerSpecSensitiveType", notCapturedReason: "redactedType"},
+         {type: "DISerializerSpecSensitiveType", notCapturedReason: "redactedType"}
        ]}}},
       {name: "empty hash", input: {h: {}}, expected: {h: {type: "Hash", entries: []}}},
       {name: "hash with symbol key", input: {h: {hello: 42}}, expected: {h: {type: "Hash", entries: [
-        [{type: "Symbol", value: "hello"}, {type: "Integer", value: "42"}],
+        [{type: "Symbol", value: "hello"}, {type: "Integer", value: "42"}]
       ]}}},
       {name: "hash with string key", input: {h: {"hello" => 42}}, expected: {h: {type: "Hash", entries: [
-        [{type: "String", value: "hello"}, {type: "Integer", value: "42"}],
+        [{type: "String", value: "hello"}, {type: "Integer", value: "42"}]
       ]}}},
       {name: "hash with redacted identifier", input: {h: {"session-key" => 42}}, expected: {h: {type: "Hash", entries: [
-        [{type: "String", value: "session-key"}, {type: "Integer", notCapturedReason: "redactedIdent"}],
+        [{type: "String", value: "session-key"}, {type: "Integer", notCapturedReason: "redactedIdent"}]
       ]}}},
       {name: "empty object", input: {x: Object.new}, expected: {x: {type: "Object", fields: {}}}},
       {name: "object with instance variable", input: {x: DISerializerSpecInstanceVariable.new(42)},
@@ -219,25 +219,25 @@ RSpec.describe Datadog::DI::Serializer do
       {name: "depth exceeded: array", input: {v: {a: {b: []}}},
        expected: {v: {type: "Hash", entries: [
          [{type: "Symbol", value: "a"}, {type: "Hash", entries: [
-           [{type: "Symbol", value: "b"}, {type: "Array", notCapturedReason: "depth"}],
-         ]}],
+           [{type: "Symbol", value: "b"}, {type: "Array", notCapturedReason: "depth"}]
+         ]}]
        ]}}},
       {name: "depth exceeded: hash", input: {v: {a: {b: {}}}},
        expected: {v: {type: "Hash", entries: [
          [{type: "Symbol", value: "a"}, {type: "Hash", entries: [
-           [{type: "Symbol", value: "b"}, {type: "Hash", notCapturedReason: "depth"}],
-         ]}],
+           [{type: "Symbol", value: "b"}, {type: "Hash", notCapturedReason: "depth"}]
+         ]}]
        ]}}},
       {name: "depth exceeded: object", input: {v: {a: {b: Object.new}}},
        expected: {v: {type: "Hash", entries: [
          [{type: "Symbol", value: "a"}, {type: "Hash", entries: [
-           [{type: "Symbol", value: "b"}, {type: "Object", notCapturedReason: "depth"}],
-         ]}],
+           [{type: "Symbol", value: "b"}, {type: "Object", notCapturedReason: "depth"}]
+         ]}]
        ]}}},
       {name: "object with no attributes", input: {v: DISerializerSpecTestClass.new},
        expected: {v: {type: "DISerializerSpecTestClass", fields: {}}},},
       {name: "object of anonymous class with no attributes", input: {v: Class.new.new},
-       expected: {v: {type: "[Unnamed class]", fields: {}}},},
+       expected: {v: {type: "[Unnamed class]", fields: {}}},}
       # TODO hash with a complex object as key?
     ]
 
@@ -254,15 +254,15 @@ RSpec.describe Datadog::DI::Serializer do
                         elements: [
                           {type: "Integer", value: "10"},
                           {type: "Integer", value: "10"},
-                          {type: "Integer", value: "10"},
+                          {type: "Integer", value: "10"}
                         ], notCapturedReason: "collectionSize", size: 1000}}},
         {name: "hash too long", input: {v: {a: 1, b: 2, c: 3, d: 4, e: 5}},
          expected: {v: {type: "Hash",
                         entries: [
                           [{type: "Symbol", value: "a"}, {type: "Integer", value: "1"}],
                           [{type: "Symbol", value: "b"}, {type: "Integer", value: "2"}],
-                          [{type: "Symbol", value: "c"}, {type: "Integer", value: "3"}],
-                        ], notCapturedReason: "collectionSize", size: 5}}},
+                          [{type: "Symbol", value: "c"}, {type: "Integer", value: "3"}]
+                        ], notCapturedReason: "collectionSize", size: 5}}}
       ]
 
       define_cases(cases)
@@ -280,7 +280,7 @@ RSpec.describe Datadog::DI::Serializer do
                           "@v1": {type: "Integer", value: "1"},
                           "@v2": {type: "Integer", value: "2"},
                           "@v3": {type: "Integer", value: "3"},
-                        }, notCapturedReason: "fieldCount"}}},
+                        }, notCapturedReason: "fieldCount"}}}
       ]
 
       define_cases(cases)
@@ -295,7 +295,7 @@ RSpec.describe Datadog::DI::Serializer do
         {name: "string too long", input: {a: "abcde"},
          expected: {a: {type: "String", value: "abc", size: 5, truncated: true}}},
         {name: "symbol too long", input: {a: :abcde},
-         expected: {a: {type: "Symbol", value: "abc", size: 5, truncated: true}}},
+         expected: {a: {type: "Symbol", value: "abc", size: 5, truncated: true}}}
       ]
 
       define_cases(cases)
@@ -314,7 +314,7 @@ RSpec.describe Datadog::DI::Serializer do
                           {type: "Integer", value: "10"},
                           {type: "Integer", value: "10"},
                           {type: "Integer", value: "10"},
-                          {type: "Integer", value: "10"},
+                          {type: "Integer", value: "10"}
                         ]}}},
         {name: "hash", input: {v: {a: 1, b: 2, c: 3, d: 4, e: 5}},
          expected: {v: {type: "Hash",
@@ -323,8 +323,8 @@ RSpec.describe Datadog::DI::Serializer do
                           [{type: "Symbol", value: "b"}, {type: "Integer", value: "2"}],
                           [{type: "Symbol", value: "c"}, {type: "Integer", value: "3"}],
                           [{type: "Symbol", value: "d"}, {type: "Integer", value: "4"}],
-                          [{type: "Symbol", value: "e"}, {type: "Integer", value: "5"}],
-                        ]}}},
+                          [{type: "Symbol", value: "e"}, {type: "Integer", value: "5"}]
+                        ]}}}
       ]
 
       define_cases(cases)
@@ -365,7 +365,7 @@ RSpec.describe Datadog::DI::Serializer do
        expected: {arg1: {type: "Integer", value: "1"},
                   arg2: {type: "String", value: "x"},
                   password: {type: "Integer", notCapturedReason: "redactedIdent"},
-                  self: {type: "Object", fields: {}},}},
+                  self: {type: "Object", fields: {}},}}
     ]
 
     cases.each do |c|
@@ -484,7 +484,7 @@ RSpec.describe Datadog::DI::Serializer do
       [1000, "long42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42long", "long42longlong42longlong42longlong42longlong42lon...ng42longlong42longlong42longlong42longlong42long"],
       [1000, "long42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42long1", "long42longlong42longlong42longlong42longlong42lon...g42longlong42longlong42longlong42longlong42long1"],
       [99, "long42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42long", "long42longlong42longlong42longlong42longlong42lo...ng42longlong42longlong42longlong42longlong42long"],
-      [99, "long42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42long1", "long42longlong42longlong42longlong42longlong42lo...g42longlong42longlong42longlong42longlong42long1"],
+      [99, "long42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42longlong42long1", "long42longlong42longlong42longlong42longlong42lo...g42longlong42longlong42longlong42longlong42long1"]
     ].each do |max_length, input, expected_output|
       context "max length: #{max_length}, input: #{input}" do
         # Verify our expected output is not longer than the max length
@@ -532,7 +532,7 @@ RSpec.describe Datadog::DI::Serializer do
       ["object with many fields", DISerializerSpecFields.new(a: 1, b: 2, c: "x", d: 4, e: 4, f: 5), "#<DISerializerSpecFields @a=1 @b=2 @c=x @d=4 ... @f=5>"],
       ["object with array field", DISerializerSpecFields.new(a: 1, b: [2]), "#<DISerializerSpecFields @a=1 @b=...>"],
       ["object with hash field", DISerializerSpecFields.new(a: 1, b: {x: 2}), "#<DISerializerSpecFields @a=1 @b=...>"],
-      ["when serialization fails", DISerializerSpecBrokenHash.new, "#<DISerializerSpecBrokenHash: serialization error>"],
+      ["when serialization fails", DISerializerSpecBrokenHash.new, "#<DISerializerSpecBrokenHash: serialization error>"]
     ].each do |desc, input, expected_output|
       context desc do
         let(:actual) do
@@ -680,8 +680,8 @@ RSpec.describe Datadog::DI::Serializer do
         {name: "serializes other values", input: {a: DISerializerCustomExceptionTestClass.new, b: 1},
          expected: {type: "Hash", entries: [
            [{type: "Symbol", value: "a"}, {type: "DISerializerCustomExceptionTestClass", notSerializedReason: "Test exception"}],
-           [{type: "Symbol", value: "b"}, {type: "Integer", value: "1"}],
-         ]}},
+           [{type: "Symbol", value: "b"}, {type: "Integer", value: "1"}]
+         ]}}
       ]
 
       define_serialize_value_cases(cases)

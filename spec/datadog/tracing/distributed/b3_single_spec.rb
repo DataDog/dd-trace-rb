@@ -136,7 +136,7 @@ RSpec.shared_examples "B3 Single distributed format" do
           ((1 << 128)).to_s(16), # 0
           ((1 << 128) + 1).to_s(16),
           "0",
-          "-1",
+          "-1"
         ].each do |invalid_trace_id|
           context "when given trace id: #{invalid_trace_id}" do
             let(:data) { {prepare_key[b3_single_header] => "#{invalid_trace_id}-fedcba"} }
@@ -150,7 +150,7 @@ RSpec.shared_examples "B3 Single distributed format" do
         [
           ((1 << 64)).to_s(16),
           ((1 << 64) + 1).to_s(16),
-          "0",
+          "0"
         ].each do |invalid_span_id|
           context "when given span id: #{invalid_span_id}" do
             let(:data) { {prepare_key[b3_single_header] => "abcdef-#{invalid_span_id}"} }

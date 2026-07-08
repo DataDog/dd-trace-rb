@@ -185,73 +185,73 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
       # quality
       [
         "text/html",
-        "text/html",
+        "text/html"
       ] => 0,
       [
         "text/html",
-        "application/json",
+        "application/json"
       ] => 0,
       [
         "text/html",
-        "application/json;q=0.5",
+        "application/json;q=0.5"
       ] => 1,
       [
         "text/html;q=0.5",
-        "application/json",
+        "application/json"
       ] => -1,
 
       # specificity
       [
         "text/plain;format=flowed",
-        "text/plain",
+        "text/plain"
       ] => 1,
       [
         "text/plain",
-        "text/plain;format=flowed",
+        "text/plain;format=flowed"
       ] => -1,
 
       # quality/specificity mix
       [
         "text/plain;format=flowed;q=0.5",
-        "text/plain",
+        "text/plain"
       ] => -1,
       [
         "text/plain",
-        "text/plain;format=flowed;q=0.5",
+        "text/plain;format=flowed;q=0.5"
       ] => 1,
 
       # quality/extension mix
       [
         "text/plain;q=0.5;foo=bar",
-        "text/plain",
+        "text/plain"
       ] => -1,
       [
         "text/plain",
-        "text/plain;q=0.5;foo=bar",
+        "text/plain;q=0.5;foo=bar"
       ] => 1,
 
       # quality/specificity/extension mix
       [
         "text/plain;format=flowed;q=0.5;foo=bar",
-        "text/plain",
+        "text/plain"
       ] => -1,
       [
         "text/plain",
-        "text/plain;format=flowed;q=0.5;foo=bar",
+        "text/plain;format=flowed;q=0.5;foo=bar"
       ] => 1,
 
       # wildcard
       [
         "*/*",
-        "*/*",
+        "*/*"
       ] => 0,
       [
         "*/*",
-        "text/html",
+        "text/html"
       ] => -1,
       [
         "text/html",
-        "*/*",
+        "*/*"
       ] => 1,
     }
 
@@ -265,45 +265,45 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
       expectations = {
         [
           "audio/*;q=0.2",
-          "audio/basic",
+          "audio/basic"
         ] => [
           "audio/*;q=0.2",
-          "audio/basic",
+          "audio/basic"
         ],
         [
           "text/plain;q=0.5",
           "text/html",
           "text/x-dvi;q=0.8",
-          "text/x-c",
+          "text/x-c"
         ] => [
           "text/plain;q=0.5",
           "text/x-dvi;q=0.8",
           "text/html",
-          "text/x-c",
+          "text/x-c"
         ],
         [
           "text/*",
           "text/plain",
           "text/plain;format=flowed",
-          "*/*",
+          "*/*"
         ] => [
           "*/*",
           "text/*",
           "text/plain",
-          "text/plain;format=flowed",
+          "text/plain;format=flowed"
         ],
         [
           "text/*;q=0.3",
           "text/html;q=0.7",
           "text/html;level=1",
           "text/html;level=2;q=0.4",
-          "*/*;q=0.5",
+          "*/*;q=0.5"
         ] => [
           "text/*;q=0.3",
           "text/html;level=2;q=0.4",
           "*/*;q=0.5",
           "text/html;q=0.7",
-          "text/html;level=1",
+          "text/html;level=1"
         ],
       }
 
@@ -319,71 +319,71 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaRange do
     expectations = {
       [
         "text/html",
-        "text/html",
+        "text/html"
       ] => true,
       [
         "text/html",
-        "text/plain",
+        "text/plain"
       ] => false,
       [
         "text/*",
-        "text/plain",
+        "text/plain"
       ] => true,
       [
         "*/*",
-        "text/plain",
+        "text/plain"
       ] => true,
       [
         "text/html;level=1",
-        "text/html",
+        "text/html"
       ] => true,
       [
         "text/html;level=1",
-        "text/plain",
+        "text/plain"
       ] => false,
       [
         "text/html;q=0.5",
-        "text/html",
+        "text/html"
       ] => true,
       [
         "text/html;q=0.5",
-        "text/plain",
+        "text/plain"
       ] => false,
       [
         "text/*;q=0.5",
-        "text/plain",
+        "text/plain"
       ] => true,
       [
         "*/*;q=0.5",
-        "text/plain",
+        "text/plain"
       ] => true,
       [
         "text/html;level=1",
-        "text/html;level=1",
+        "text/html;level=1"
       ] => true,
       [
         "text/html",
-        "text/html;level=1",
+        "text/html;level=1"
       ] => false,
       [
         "text/html;level=1;foo=bar",
-        "text/html;level=1",
+        "text/html;level=1"
       ] => true,
       [
         "text/html;foo=bar;level=1",
-        "text/html;level=1",
+        "text/html;level=1"
       ] => true,
       [
         "text/html",
-        "text/html;level=1;foo=bar",
+        "text/html;level=1;foo=bar"
       ] => false,
       [
         "text/html",
-        nil,
+        nil
       ] => false,
       [
         "text/html",
-        "invalid",
+        "invalid"
       ] => false,
     }
 

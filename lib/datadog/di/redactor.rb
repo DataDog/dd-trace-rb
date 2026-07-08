@@ -182,7 +182,7 @@ module Datadog
         "xforwardedfor",
         "xrealip",
         "xsrf",
-        "xsrftoken",
+        "xsrftoken"
       ]
 
       # Input can be a string or a symbol.

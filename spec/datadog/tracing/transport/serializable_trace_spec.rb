@@ -42,7 +42,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
           "metrics",
           "meta_struct",
           "span_links",
-          "error",
+          "error"
         ]
         if include_duration
           expected << "start"
@@ -168,7 +168,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
                 "Another Event #{i}!",
                 time_unix_nano: 456,
                 attributes: {id: i, required: (i == 1)}
-              ),
+              )
             ]
           )
         end
@@ -184,7 +184,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
             '[{"name":"First Event","time_unix_nano":123},{"name":"Another Event 0!","time_unix_nano":456,' \
             '"attributes":{"id":0,"required":false}}]',
             '[{"name":"First Event","time_unix_nano":123},{"name":"Another Event 1!","time_unix_nano":456,' \
-            '"attributes":{"id":1,"required":true}}]',
+            '"attributes":{"id":1,"required":true}}]'
           ]
         )
       end
@@ -212,7 +212,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
                 {"name" => "Another Event 1!", "time_unix_nano" => 456, "attributes" => {
                   "id" => {"int_value" => 1, "type" => 2}, "required" => {"bool_value" => true, "type" => 1}
                 }}
-              ],
+              ]
             ]
           )
         end

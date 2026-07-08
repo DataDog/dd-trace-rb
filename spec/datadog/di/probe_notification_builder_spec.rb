@@ -637,7 +637,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         throwable = payload.dig(:debugger, :snapshot, :captures, :return, :throwable)
         expect(throwable[:stacktrace]).to eq([
           {fileName: "/app/foo.rb", function: "bar", lineNumber: 10},
-          {fileName: "/app/baz.rb", function: "qux", lineNumber: 20},
+          {fileName: "/app/baz.rb", function: "qux", lineNumber: 20}
         ])
       end
     end
@@ -675,7 +675,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         [
           Datadog::DI::EL::Expression.new("(expression)", compiler.compile("ref" => "hello")),
           " ",
-          Datadog::DI::EL::Expression.new("(expression)", compiler.compile("ref" => "world")),
+          Datadog::DI::EL::Expression.new("(expression)", compiler.compile("ref" => "world"))
         ]
       end
 

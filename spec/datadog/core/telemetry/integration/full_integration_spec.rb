@@ -88,7 +88,7 @@ RSpec.describe "Telemetry full integration tests" do
         Datadog::Core::Telemetry::Event::AppStarted,
         Datadog::Core::Telemetry::Event::AppDependenciesLoaded,
         # AppIntegrationsChange in MessageBatch
-        Datadog::Core::Telemetry::Event::MessageBatch,
+        Datadog::Core::Telemetry::Event::MessageBatch
       ])
 
       events = []
@@ -108,7 +108,7 @@ RSpec.describe "Telemetry full integration tests" do
         Datadog::Core::Telemetry::Event::SynthAppClientConfigurationChange,
         # AppDependenciesLoaded is NOT sent here
         # AppIntegrationsChange in MessageBatch
-        Datadog::Core::Telemetry::Event::MessageBatch,
+        Datadog::Core::Telemetry::Event::MessageBatch
       ])
     end
 
@@ -151,7 +151,7 @@ RSpec.describe "Telemetry full integration tests" do
       expect(events.map(&:class)).to eq([
         Datadog::Core::Telemetry::Event::AppStarted,
         # AppIntegrationsChange in MessageBatch
-        Datadog::Core::Telemetry::Event::MessageBatch,
+        Datadog::Core::Telemetry::Event::MessageBatch
       ])
 
       event = events[0]
@@ -184,7 +184,7 @@ RSpec.describe "Telemetry full integration tests" do
       expect(events.map(&:class)).to eq([
         Datadog::Core::Telemetry::Event::SynthAppClientConfigurationChange,
         # AppIntegrationsChange in MessageBatch
-        Datadog::Core::Telemetry::Event::MessageBatch,
+        Datadog::Core::Telemetry::Event::MessageBatch
       ])
 
       event = events[0]

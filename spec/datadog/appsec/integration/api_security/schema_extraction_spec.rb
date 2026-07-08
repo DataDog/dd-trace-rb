@@ -174,7 +174,7 @@ RSpec.describe "Schema extraction for API security", execute_in_fork: true do
             },
             evaluate: false,
             output: true
-          },
+          }
         ]
       }
 

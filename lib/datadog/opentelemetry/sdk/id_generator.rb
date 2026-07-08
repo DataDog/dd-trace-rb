@@ -22,7 +22,7 @@ module Datadog
             trace_id = Tracing::Utils::TraceId.next_id
             [
               Tracing::Utils::TraceId.to_high_order(trace_id),
-              Tracing::Utils::TraceId.to_low_order(trace_id),
+              Tracing::Utils::TraceId.to_low_order(trace_id)
             ].pack("Q>Q>")
           end
         end

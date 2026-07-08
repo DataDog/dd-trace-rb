@@ -181,7 +181,7 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         targetable_lines: [{start: 6, end: 7}],
         language_specifics: {visibility: "public", method_type: "instance"},
         symbols: [
-          Datadog::SymbolDatabase::Symbol.new(symbol_type: "ARG", name: "token", line: 5),
+          Datadog::SymbolDatabase::Symbol.new(symbol_type: "ARG", name: "token", line: 5)
         ]
       )
 

@@ -37,7 +37,7 @@ class OpenFeatureFlagevaluationBenchmark
     BenchmarkProfile.new("stress/10flags_1000users_250fields", 10, 1_000, 250),
     # Scale profile targets the team's >=2,500-flag goal. Flag count is the dimension under
     # test, so it dominates; users/fields are kept modest so context cost does not swamp it.
-    BenchmarkProfile.new(SCALE_PROFILE_NAME, 2_500, 500, 20),
+    BenchmarkProfile.new(SCALE_PROFILE_NAME, 2_500, 500, 20)
   ].freeze
 
   def benchmark_time(time: 12, warmup: 2)

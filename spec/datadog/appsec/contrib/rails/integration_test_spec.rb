@@ -82,7 +82,7 @@ RSpec.describe "Rails integration tests", execute_in_fork: Rails.version.to_i >=
           on_match: [
             "block"
           ]
-        },
+        }
       ],
       processors: [
         {
@@ -130,12 +130,12 @@ RSpec.describe "Rails integration tests", execute_in_fork: Rails.version.to_i >=
                   }
                 ],
                 output: "_dd.appsec.s.req.params"
-              },
+              }
             ]
           },
           evaluate: false,
           output: true
-        },
+        }
       ]
     }
   end

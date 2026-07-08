@@ -6,7 +6,7 @@ RSpec.describe "Dynamic instrumentation benchmarks", :memcheck_valgrind_skip do
   with_env "VALIDATE_BENCHMARK" => "true"
 
   benchmarks_to_validate = [
-    "di_instrument", "di_snapshot",
+    "di_instrument", "di_snapshot"
   ].freeze
 
   benchmarks_to_validate.each do |benchmark|

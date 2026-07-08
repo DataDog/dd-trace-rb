@@ -247,7 +247,7 @@ module Datadog
 
       [
         [:status, "probe status"],
-        [:snapshot, "snapshot"],
+        [:snapshot, "snapshot"]
       ].each do |(event_type, event_name)|
         attr_reader "#{event_type}_queue"
 

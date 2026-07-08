@@ -17,7 +17,7 @@ RSpec.describe "Symbol Database Configuration", :symdb_supported_platforms do
         ["internal", "force_upload", true],
         ["internal", "force_upload", false],
         ["internal", "trace_logging", true],
-        ["internal", "trace_logging", false],
+        ["internal", "trace_logging", false]
       ].each do |(scope_name_, name_, value_)|
         scope_name = scope_name_
         name = name_
@@ -52,7 +52,7 @@ RSpec.describe "Symbol Database Configuration", :symdb_supported_platforms do
         ["DD_INTERNAL_FORCE_SYMBOL_DATABASE_UPLOAD", nil, "internal", "force_upload", false],
         ["DD_TRACE_DEBUG", "true", "internal", "trace_logging", true],
         ["DD_TRACE_DEBUG", "false", "internal", "trace_logging", false],
-        ["DD_TRACE_DEBUG", nil, "internal", "trace_logging", false],
+        ["DD_TRACE_DEBUG", nil, "internal", "trace_logging", false]
       ].each do |(env_var_name_, env_var_value_, scope_name_, setting_name_, setting_value_)|
         env_var_name = env_var_name_
         env_var_value = env_var_value_

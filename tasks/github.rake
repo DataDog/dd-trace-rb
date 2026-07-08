@@ -12,7 +12,7 @@ namespace :github do
       "elasticsearch",
       "opensearch",
       "presto",
-      "dalli",
+      "dalli"
     ]
 
     ruby_version = RUBY_VERSION[0..2]

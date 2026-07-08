@@ -77,10 +77,10 @@ RSpec.describe Datadog::DI::Serializer do
        input: -> { SerializerRailsSpecTestEmptyModel.new },
        expected: {type: "SerializerRailsSpecTestEmptyModel", entries: [[
          {type: "Symbol", value: "attributes"},
-         {type: "Hash", entries: [[{type: "String", value: "id"}, {type: "NilClass", isNull: true}]]},
+         {type: "Hash", entries: [[{type: "String", value: "id"}, {type: "NilClass", isNull: true}]]}
        ], [
          {type: "Symbol", value: "new_record"},
-         {type: "TrueClass", value: "true"},
+         {type: "TrueClass", value: "true"}
        ]]}},
       {name: "AR model with empty attributes",
        input: -> { SerializerRailsSpecTestBasicModel.new },
@@ -90,11 +90,11 @@ RSpec.describe Datadog::DI::Serializer do
            [{type: "String", value: "id"}, {type: "NilClass", isNull: true}],
            [{type: "String", value: "title"}, {type: "NilClass", isNull: true}],
            [{type: "String", value: "created_at"}, {type: "NilClass", isNull: true}],
-           [{type: "String", value: "updated_at"}, {type: "NilClass", isNull: true}],
-         ]},
+           [{type: "String", value: "updated_at"}, {type: "NilClass", isNull: true}]
+         ]}
        ], [
          {type: "Symbol", value: "new_record"},
-         {type: "TrueClass", value: "true"},
+         {type: "TrueClass", value: "true"}
        ]]}},
       {name: "AR model with filled out attributes",
        input: -> {
@@ -108,11 +108,11 @@ RSpec.describe Datadog::DI::Serializer do
            [{type: "String", value: "id"}, {type: "NilClass", isNull: true}],
            [{type: "String", value: "title"}, {type: "String", value: "Hello, world!"}],
            [{type: "String", value: "created_at"}, {type: "Time", value: "2020-01-02T00:00:00Z"}],
-           [{type: "String", value: "updated_at"}, {type: "Time", value: "2020-01-03T00:00:00Z"}],
-         ]},
+           [{type: "String", value: "updated_at"}, {type: "Time", value: "2020-01-03T00:00:00Z"}]
+         ]}
        ], [
          {type: "Symbol", value: "new_record"},
-         {type: "TrueClass", value: "true"},
+         {type: "TrueClass", value: "true"}
        ]]}},
       {name: "AR model with filled out attributes and persisted",
        input: -> {
@@ -126,12 +126,12 @@ RSpec.describe Datadog::DI::Serializer do
            [{type: "String", value: "id"}, {type: "Integer", value: "1"}],
            [{type: "String", value: "title"}, {type: "String", value: "Hello, world!"}],
            [{type: "String", value: "created_at"}, {type: "Time", value: "2020-01-02T00:00:00Z"}],
-           [{type: "String", value: "updated_at"}, {type: "Time", value: "2020-01-03T00:00:00Z"}],
-         ]},
+           [{type: "String", value: "updated_at"}, {type: "Time", value: "2020-01-03T00:00:00Z"}]
+         ]}
        ], [
          {type: "Symbol", value: "new_record"},
-         {type: "FalseClass", value: "false"},
-       ]]}},
+         {type: "FalseClass", value: "false"}
+       ]]}}
     ]
 
     define_serialize_value_cases(cases)

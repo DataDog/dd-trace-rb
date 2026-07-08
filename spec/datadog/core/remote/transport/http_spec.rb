@@ -57,7 +57,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
             version: "42",
             endpoints: [
               "/info",
-              "/v0/path",
+              "/v0/path"
             ],
             config: {
               max_request_bytes: "1234",
@@ -166,7 +166,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
           {
             roots: [
               jencode.call({}),
-              jencode.call({}),
+              jencode.call({})
             ],
             targets: jencode.call(
               {
@@ -193,11 +193,11 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
               {
                 path: "employee/PRODUCT/bar/config",
                 raw: encode.call("content2"),
-              },
+              }
             ],
             client_configs: [
               "datadog/42/PRODUCT/foo/config",
-              "employee/PRODUCT/bar/config",
+              "employee/PRODUCT/bar/config"
             ],
           }
         )

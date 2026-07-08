@@ -81,7 +81,7 @@ RSpec.describe Datadog::DI::Redactor do
       ["rack CGI Host header", "HTTP_HOST", false],
       # The strip only matches the literal CGI form (leading `http_`),
       # not arbitrary identifiers that happen to begin with `http`.
-      ["identifier starting with http but no underscore", "httpinfo", false],
+      ["identifier starting with http but no underscore", "httpinfo", false]
     ]
 
     define_cases(cases)
@@ -107,7 +107,7 @@ RSpec.describe Datadog::DI::Redactor do
         # User-defined identifiers go through the same normalization, so a
         # user-provided name starting with `http_` collapses to its tail.
         ["user-defined identifier with http_ prefix matches CGI form", "HTTP_CUSTOM", true],
-        ["user-defined identifier with http_ prefix matches bare form", "custom", true],
+        ["user-defined identifier with http_ prefix matches bare form", "custom", true]
       ]
 
       define_cases(cases)
@@ -126,7 +126,7 @@ RSpec.describe Datadog::DI::Redactor do
         # The HTTP_ prefix strip applies to the excluded list too, so
         # excluding the bare name also suppresses redaction of the Rack
         # CGI form.
-        ["excluded default identifier in Rack CGI form", "HTTP_PASSWORD", false],
+        ["excluded default identifier in Rack CGI form", "HTTP_PASSWORD", false]
       ]
 
       define_cases(cases)
@@ -140,7 +140,7 @@ RSpec.describe Datadog::DI::Redactor do
       cases = [
         ["excluded identifier normalized from pass_word matches password", "password", false],
         ["excluded identifier normalized from pass_word matches pass_word", "pass_word", false],
-        ["excluded identifier normalized from pass_word matches PASSWORD", "PASSWORD", false],
+        ["excluded identifier normalized from pass_word matches PASSWORD", "PASSWORD", false]
       ]
 
       define_cases(cases)
@@ -196,7 +196,7 @@ RSpec.describe Datadog::DI::Redactor do
         ["namespaced class - tail component match only", DIRedactorSpec::SensitiveType.new, false],
         ["double-colon top-level specification", DIRedactorSpecDoubleColon.new, true],
         ["double-colon nested specification", DIRedactorSpec::DoubleColonNested.new, true],
-        ["double-colon nested wildcard", DIRedactorSpec::DoubleColonWildCardType.new, true],
+        ["double-colon nested wildcard", DIRedactorSpec::DoubleColonWildCardType.new, true]
       ]
 
       define_cases(cases)
@@ -208,7 +208,7 @@ RSpec.describe Datadog::DI::Redactor do
       end
 
       cases = [
-        ["instance of anonymous class", Class.new.new, false],
+        ["instance of anonymous class", Class.new.new, false]
       ]
 
       define_cases(cases)

@@ -55,7 +55,7 @@ module Datadog
                   [
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
-                    Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE,
+                    Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE
                   ]
                 )
                 o.after_set do |styles|
@@ -77,7 +77,7 @@ module Datadog
                 o.default [
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
-                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE,
+                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE
                 ]
                 o.after_set do |styles|
                   # Make values case-insensitive

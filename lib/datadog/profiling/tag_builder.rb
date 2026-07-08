@@ -37,7 +37,7 @@ module Datadog
           "runtime-id",
           "process_id",
           "profiler_version",
-          "profile_seq",
+          "profile_seq"
         ]
       ).freeze
 

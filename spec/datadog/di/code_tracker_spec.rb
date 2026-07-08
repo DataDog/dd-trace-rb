@@ -590,7 +590,7 @@ RSpec.describe Datadog::DI::CodeTracker do
       let(:expected) do
         [
           File.join(File.dirname(__FILE__), "code_tracker_test_class_1.rb"),
-          File.join(File.dirname(__FILE__), "code_tracker_test_classes", "code_tracker_test_class_1.rb"),
+          File.join(File.dirname(__FILE__), "code_tracker_test_classes", "code_tracker_test_class_1.rb")
         ]
       end
 

@@ -411,7 +411,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       scopes = [
         Datadog::SymbolDatabase::Scope.new(scope_type: "CLASS", name: "Class1"),
         Datadog::SymbolDatabase::Scope.new(scope_type: "CLASS", name: "Class2"),
-        Datadog::SymbolDatabase::Scope.new(scope_type: "CLASS", name: "Class3"),
+        Datadog::SymbolDatabase::Scope.new(scope_type: "CLASS", name: "Class3")
       ]
 
       uploader.upload_scopes(scopes)
@@ -490,7 +490,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       scopes = [
         Datadog::SymbolDatabase::Scope.new(scope_type: "CLASS", name: "Class1"),
         Datadog::SymbolDatabase::Scope.new(scope_type: "CLASS", name: "Class2"),
-        Datadog::SymbolDatabase::Scope.new(scope_type: "CLASS", name: "Class3"),
+        Datadog::SymbolDatabase::Scope.new(scope_type: "CLASS", name: "Class3")
       ]
 
       uploader.upload_scopes(scopes)

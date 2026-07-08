@@ -469,7 +469,7 @@ RSpec.describe "GraphQL integration tests",
           it do
             expect(last_response.body).to eq(
               [
-                {"data" => {"user" => {"name" => "BITS"}}},
+                {"data" => {"user" => {"name" => "BITS"}}}
               ].to_json
             )
             expect(spans).to include(

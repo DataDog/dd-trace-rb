@@ -51,7 +51,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppClientConfigurationChange do
   it "all events to be the same" do
     events = [
       described_class.new({"key" => "value"}, "origin"),
-      described_class.new({"key" => "value"}, "origin"),
+      described_class.new({"key" => "value"}, "origin")
     ]
 
     expect(events.uniq).to have(1).item
@@ -63,7 +63,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppClientConfigurationChange do
       described_class.new({"key" => "value"}, "origin2"),
       described_class.new({"key" => "value2"}, "origin"),
       described_class.new({"key2" => "value"}, "origin"),
-      described_class.new({}, "origin"),
+      described_class.new({}, "origin")
     ]
 
     expect(events.uniq).to eq(events)

@@ -110,7 +110,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Request do
           role: :user,
           content: [
             {type: "text", text: "What's in this image?"},
-            {type: "image_url", image_url: {url: "https://example.com/img.png"}},
+            {type: "image_url", image_url: {url: "https://example.com/img.png"}}
           ]
         }
       ])

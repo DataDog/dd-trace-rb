@@ -21,7 +21,7 @@ module Datadog
           PEER_SERVICE_SOURCES = [
             Tracing::Metadata::Ext::TAG_PEER_HOSTNAME,
             Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME,
-            Tracing::Metadata::Ext::NET::TAG_TARGET_HOST,
+            Tracing::Metadata::Ext::NET::TAG_TARGET_HOST
           ].freeze
         end
       end

@@ -11,7 +11,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::MessageBatch do
   let(:events) do
     [
       Datadog::Core::Telemetry::Event::AppClosing.new,
-      Datadog::Core::Telemetry::Event::AppHeartbeat.new,
+      Datadog::Core::Telemetry::Event::AppHeartbeat.new
     ]
   end
 

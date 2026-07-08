@@ -63,7 +63,7 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::MediaType do
         "text/html;;charset=utf-8",
         "text/html;charset",
         "text/html;=utf-8",
-        nil,
+        nil
       ]
 
       invalid_inputs.each do |str|

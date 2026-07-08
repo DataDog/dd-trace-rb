@@ -440,7 +440,7 @@ RSpec.describe "DI integration from remote config" do
             # Expression segment - valid at runtime
             {json: {eq: [{ref: "@ivar"}, 51]}, dsl: "(good expression)"},
             # Another expression which fails evaluation at runtime
-            {json: {filter: [{ref: "@ivar"}, "x"]}, dsl: "(failing expression)"},
+            {json: {filter: [{ref: "@ivar"}, "x"]}, dsl: "(failing expression)"}
           ],
         }
       end
@@ -456,7 +456,7 @@ RSpec.describe "DI integration from remote config" do
             snapshot: {
               captures: {},
               evaluationErrors: [
-                {"expr" => "(failing expression)", "message" => "Datadog::DI::Error::ExpressionEvaluationError: Bad collection type for filter: NilClass"},
+                {"expr" => "(failing expression)", "message" => "Datadog::DI::Error::ExpressionEvaluationError: Bad collection type for filter: NilClass"}
               ],
               id: be_valid_uuid,
               language: "ruby",
@@ -634,7 +634,7 @@ RSpec.describe "DI integration from remote config" do
             snapshot: {
               captures: {},
               evaluationErrors: [
-                {"expr" => "(expression)", "message" => evaluation_error_message},
+                {"expr" => "(expression)", "message" => evaluation_error_message}
               ],
               id: be_valid_uuid,
               language: "ruby",

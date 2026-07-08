@@ -25,7 +25,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Message do
     it "accepts an array of content parts" do
       parts = [
         Datadog::AIGuard::Evaluation::ContentPart::Text.new("Hello"),
-        Datadog::AIGuard::Evaluation::ContentPart::ImageURL.new("https://example.com/img.png"),
+        Datadog::AIGuard::Evaluation::ContentPart::ImageURL.new("https://example.com/img.png")
       ]
       message = described_class.new(role: :user, content: parts)
 

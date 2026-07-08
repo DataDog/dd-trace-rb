@@ -131,7 +131,7 @@ RSpec.shared_examples "Trace Context distributed format" do
 
         context "with = character" do
           [
-            "=",
+            "="
           ].each do |character|
             context character.inspect do
               let(:origin) { character }
@@ -468,7 +468,7 @@ RSpec.shared_examples "Trace Context distributed format" do
           {sampled_flag: 1, priority: -1, expected_priority: 1},
           {sampled_flag: 1, priority: 0, expected_priority: 1},
           {sampled_flag: 1, priority: 1, expected_priority: 1},
-          {sampled_flag: 1, priority: 2, expected_priority: 2},
+          {sampled_flag: 1, priority: 2, expected_priority: 2}
         ].each do |args|
           sampled_flag = args[:sampled_flag]
           priority = args[:priority]

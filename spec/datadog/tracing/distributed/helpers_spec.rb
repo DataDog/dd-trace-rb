@@ -31,7 +31,7 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
       ["0", 0],
       ["1", 1],
       ["-1", -1],
-      ["123456789", 123456789],
+      ["123456789", 123456789]
     ].each do |value, expected|
       context "when given #{value.inspect}" do
         it { expect(described_class.parse_decimal_id(value)).to eq(expected) }
@@ -57,7 +57,7 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
         ["000abcdef", 0xabcdef], # leading zeros
         ["000ABCDEF", 0xabcdef], # leading zeros
         ["aaaaaaaaaaaaaaaaffffffffffffffff", 0xaaaaaaaaaaaaaaaaffffffffffffffff], # 128 bits
-        ["ffffffffffffffff", 0xffffffffffffffff], # 64 bits
+        ["ffffffffffffffff", 0xffffffffffffffff] # 64 bits
       ].each do |value, expected|
         context "when given #{value.inspect}" do
           it { expect(described_class.parse_hex_id(value)).to eq(expected) }

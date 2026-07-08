@@ -9,7 +9,7 @@ module TestGraphQL
 
     TRANSFORMS = [
       "upcase",
-      "downcase",
+      "downcase"
     ].freeze
 
     # Implement the Directive API

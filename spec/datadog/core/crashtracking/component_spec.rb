@@ -285,7 +285,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
 
       [
         [:fiddle, "rb_fiddle_free", proc { Fiddle.free(42) }],
-        [:signal, "rb_f_kill", proc { Process.kill("SEGV", Process.pid) }],
+        [:signal, "rb_f_kill", proc { Process.kill("SEGV", Process.pid) }]
       ].each do |trigger_name, function, trigger|
         it "reports crashes via http when app crashes with #{trigger_name}" do
           skip("Fiddle.free(42) doesn't always crash Ruby on macOS") if trigger_name == :fiddle && PlatformHelpers.mac?

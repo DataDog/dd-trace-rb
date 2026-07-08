@@ -45,7 +45,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::Log do
   it "all events to be the same" do
     events = [
       described_class.new(message: "Hi", level: :warn, stack_trace: "stack trace", count: 1),
-      described_class.new(message: "Hi", level: :warn, stack_trace: "stack trace", count: 1),
+      described_class.new(message: "Hi", level: :warn, stack_trace: "stack trace", count: 1)
     ]
 
     expect(events.uniq).to have(1).item
@@ -57,7 +57,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::Log do
       described_class.new(message: "Yo", level: :warn, stack_trace: "stack trace", count: 1),
       described_class.new(message: "Hi", level: :error, stack_trace: "stack trace", count: 1),
       described_class.new(message: "Hi", level: :warn, stack_trace: "stack&trace", count: 1),
-      described_class.new(message: "Hi", level: :warn, stack_trace: "stack trace", count: 2),
+      described_class.new(message: "Hi", level: :warn, stack_trace: "stack trace", count: 2)
     ]
 
     expect(events.uniq).to eq(events)

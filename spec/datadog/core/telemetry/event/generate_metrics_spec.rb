@@ -34,7 +34,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::GenerateMetrics do
   it "all events to be the same" do
     events = [
       described_class.new("namespace", [Datadog::Core::Telemetry::Metric::Count.new("name", tags: {val: "1"})]),
-      described_class.new("namespace", [Datadog::Core::Telemetry::Metric::Count.new("name", tags: {val: "1"})]),
+      described_class.new("namespace", [Datadog::Core::Telemetry::Metric::Count.new("name", tags: {val: "1"})])
     ]
 
     expect(events.uniq).to have(1).item
@@ -45,7 +45,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::GenerateMetrics do
       described_class.new("namespace", [Datadog::Core::Telemetry::Metric::Count.new("name", tags: {val: "1"})]),
       described_class.new("nospace", [Datadog::Core::Telemetry::Metric::Count.new("name", tags: {val: "1"})]),
       described_class.new("namespace", [Datadog::Core::Telemetry::Metric::Count.new("name", tags: {val: "2"})]),
-      described_class.new("namespace", []),
+      described_class.new("namespace", [])
 
     ]
 

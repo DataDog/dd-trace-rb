@@ -561,7 +561,7 @@ RSpec.shared_examples "Datadog distributed format" do
       [
         "00123456789abcdef", # too long
         "234567890abcdef", # too short
-        "g123456789abcdef", # invalid character
+        "g123456789abcdef" # invalid character
       ].each do |invalid_trace_id|
         context "when given invalid trace_id: #{invalid_trace_id}" do
           let(:data) do

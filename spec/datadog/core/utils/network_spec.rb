@@ -131,7 +131,7 @@ RSpec.describe Datadog::Core::Utils::Network do
             ["ff80:03:02:01::", "ff80:3:2:1::"],
             ["[fe80::208:74ff:feda:625c]", "fe80::208:74ff:feda:625c"],
             ["[fe80::208:74ff:feda:625c]:8080", "fe80::208:74ff:feda:625c"],
-            ["[fe80::208:74ff:feda:625c%eth0]:8080", "fe80::208:74ff:feda:625c"],
+            ["[fe80::208:74ff:feda:625c%eth0]:8080", "fe80::208:74ff:feda:625c"]
           ]
 
         ips.each do |ip, expected_result|

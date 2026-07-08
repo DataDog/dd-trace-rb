@@ -1150,7 +1150,7 @@ RSpec.describe "Tracer integration tests" do
       Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT,
       Datadog::Tracing::Sampling::Ext::Priority::AUTO_REJECT,
       Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP,
-      Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP,
+      Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
     ].each do |priority|
       context "with sampling priority #{priority}" do
         let(:env) do

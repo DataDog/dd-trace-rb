@@ -24,7 +24,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
       expect(default.apis.keys).to eq(
         [
           "v0.4",
-          "v0.3",
+          "v0.3"
         ]
       )
 

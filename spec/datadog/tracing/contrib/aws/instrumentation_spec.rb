@@ -347,7 +347,7 @@ RSpec.describe "AWS instrumentation" do
                 },
                 message_deduplication_id: "String",
                 message_group_id: "String",
-              },
+              }
             ],
           }
         )
@@ -510,7 +510,7 @@ RSpec.describe "AWS instrumentation" do
               {
                 key: "TagKey", # required
                 value: "TagValue", # required
-              },
+              }
             ]
           }
         )
@@ -722,7 +722,7 @@ RSpec.describe "AWS instrumentation" do
               {
                 key: "TagKey", # required
                 value: "TagValue", # required
-              },
+              }
             ],
           }
         )

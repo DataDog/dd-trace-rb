@@ -6,7 +6,7 @@ RSpec.describe "Error Tracking benchmarks", :memcheck_valgrind_skip do
   with_env "VALIDATE_BENCHMARK" => "true"
 
   benchmarks_to_validate = [
-    "error_tracking_simple",
+    "error_tracking_simple"
   ].freeze
 
   benchmarks_to_validate.each do |benchmark|

@@ -141,7 +141,7 @@ module Datadog
             "ruby.gem.libddwaf.version:#{gem_spec("libddwaf").version}",
             "ruby.gem.libddwaf.platform:#{gem_spec("libddwaf").platform}",
             "ruby.gem.libdatadog.version:#{gem_spec("libdatadog").version}",
-            "ruby.gem.libdatadog.platform:#{gem_spec("libdatadog").platform}",
+            "ruby.gem.libdatadog.platform:#{gem_spec("libdatadog").platform}"
           ]
 
           if (git_repository_url = Core::Environment::Git.git_repository_url)

@@ -24,7 +24,7 @@ module Datadog
         # The enable signal itself is delivered in APM_TRACING payloads and
         # routed here by Tracing::Remote.process_config.
         CAPABILITIES = [
-          1 << 38, # APM_TRACING_ENABLE_DYNAMIC_INSTRUMENTATION: Implicit DI enablement
+          1 << 38 # APM_TRACING_ENABLE_DYNAMIC_INSTRUMENTATION: Implicit DI enablement
         ].freeze
 
         def products

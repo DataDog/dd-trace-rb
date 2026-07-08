@@ -73,7 +73,7 @@ RSpec.describe Datadog::Core::Environment::VariableHelpers do
         "true",
         "TRUE",
         "1",
-        " 1 ",
+        " 1 "
       ].each do |value|
         context "'#{value}'" do
           let(:env_value) { value }
@@ -88,7 +88,7 @@ RSpec.describe Datadog::Core::Environment::VariableHelpers do
         "false",
         "FALSE",
         "0",
-        "arbitrary string",
+        "arbitrary string"
       ].each do |value|
         context "'#{value}'" do
           let(:env_value) { value }

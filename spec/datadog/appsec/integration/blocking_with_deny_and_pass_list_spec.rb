@@ -39,7 +39,7 @@ RSpec.describe "Blocking with deny and pass list configuration" do
           ],
           "transformers" => ["removeNulls"],
           "on_match" => ["block"]
-        },
+        }
       ]
     }
   end

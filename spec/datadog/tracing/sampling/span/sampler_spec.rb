@@ -62,7 +62,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Sampler do
           let(:rules) do
             [
               Datadog::Tracing::Sampling::Span::Rule.new(match_all, sample_rate: 1.0, rate_limit: 3),
-              Datadog::Tracing::Sampling::Span::Rule.new(match_all, sample_rate: 0.5, rate_limit: 2),
+              Datadog::Tracing::Sampling::Span::Rule.new(match_all, sample_rate: 0.5, rate_limit: 2)
             ]
           end
 

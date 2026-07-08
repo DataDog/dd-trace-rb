@@ -75,7 +75,7 @@ RSpec.describe "Rack integration tests" do
             "block",
             "extract_schema"
           ]
-        },
+        }
       ],
       processors: [
         {
@@ -123,12 +123,12 @@ RSpec.describe "Rack integration tests" do
                   }
                 ],
                 output: "_dd.appsec.s.req.params"
-              },
+              }
             ]
           },
           evaluate: false,
           output: true
-        },
+        }
       ]
     }
   end
@@ -182,7 +182,7 @@ RSpec.describe "Rack integration tests" do
           on_match: [
             "block"
           ]
-        },
+        }
       ],
       processors: [
         {
@@ -219,7 +219,7 @@ RSpec.describe "Rack integration tests" do
           },
           evaluate: false,
           output: true
-        },
+        }
       ]
     }
   end
@@ -992,7 +992,7 @@ RSpec.describe "Rack integration tests" do
             [
               Datadog::Tracing::Contrib::Rack::TraceMiddleware,
               Datadog::AppSec::Contrib::Rack::RequestMiddleware,
-              Datadog::AppSec::Contrib::Rack::RequestBodyMiddleware,
+              Datadog::AppSec::Contrib::Rack::RequestBodyMiddleware
             ]
           end
 
@@ -1025,7 +1025,7 @@ RSpec.describe "Rack integration tests" do
               [
                 Datadog::Tracing::Contrib::Rack::TraceMiddleware,
                 Datadog::AppSec::Contrib::Rack::RequestMiddleware,
-                Datadog::AppSec::Contrib::Rack::RequestBodyMiddleware,
+                Datadog::AppSec::Contrib::Rack::RequestBodyMiddleware
               ]
             end
 
@@ -1066,7 +1066,7 @@ RSpec.describe "Rack integration tests" do
               Datadog::Tracing::Contrib::Rack::TraceMiddleware,
               Datadog::AppSec::Contrib::Rack::RequestMiddleware,
               rack_contrib_body_parser,
-              Datadog::AppSec::Contrib::Rack::RequestBodyMiddleware,
+              Datadog::AppSec::Contrib::Rack::RequestBodyMiddleware
             ]
           end
 

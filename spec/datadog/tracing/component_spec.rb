@@ -561,7 +561,7 @@ RSpec.describe Datadog::Tracing::Component do
       let(:responses) do
         [
           double("first response"),
-          double("last response", internal_error?: internal_error, service_rates: service_rates),
+          double("last response", internal_error?: internal_error, service_rates: service_rates)
         ]
       end
 

@@ -528,7 +528,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
           [0.000001, "0.000001"],
           [0.123456789, "0.123457"],
           [0.0000001, "0"],
-          [0.0000005, "0.000001"],
+          [0.0000005, "0.000001"]
         ].each do |rate, expected|
           context "when rate is #{rate}" do
             let(:trace_options) { {id: trace_id, agent_sample_rate: rate} }

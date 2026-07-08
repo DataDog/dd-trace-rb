@@ -53,7 +53,7 @@ RSpec.describe Datadog::Core::Remote::Client do
           {
             "keyid" => "bla1",
             "sig" => "fake sig"
-          },
+          }
         ],
         "signed" => {
           "_type" => "root",
@@ -91,7 +91,7 @@ RSpec.describe Datadog::Core::Remote::Client do
           "spec_version" => "1.0",
           "version" => 2
         }
-      },
+      }
     ]
   end
 
@@ -402,7 +402,7 @@ RSpec.describe Datadog::Core::Remote::Client do
               }
             ],
             "client_configs" => [
-              "datadog/603646/ASM_DATA/blocked_ips/config",
+              "datadog/603646/ASM_DATA/blocked_ips/config"
             ]
           }.to_json
         end
@@ -573,7 +573,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                   "ruby.gem.libddwaf.version:#{libddwaf_gem_spec.version}",
                   "ruby.gem.libddwaf.platform:#{libddwaf_gem_spec.platform}",
                   "ruby.gem.libdatadog.version:#{libdatadog_gem_spec.version}",
-                  "ruby.gem.libdatadog.platform:#{libdatadog_gem_spec.platform}",
+                  "ruby.gem.libdatadog.platform:#{libdatadog_gem_spec.platform}"
                 ]
               end
               let(:ruby_platform) { "ruby-platform" }
@@ -612,7 +612,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                 let(:expected_sci_tags) do
                   [
                     "git.repository_url:http://foo",
-                    "git.commit.sha:1234hash",
+                    "git.commit.sha:1234hash"
                   ]
                 end
 

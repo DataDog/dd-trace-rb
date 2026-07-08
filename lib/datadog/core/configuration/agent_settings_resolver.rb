@@ -238,7 +238,7 @@ module Datadog
                 DetectedConfiguration.new(
                   friendly_name: "configuration of hostname/port for http/https use",
                   value: "hostname: '#{hostname}', port: '#{port}'"
-                ),
+                )
               ]
             )
           end

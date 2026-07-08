@@ -39,7 +39,7 @@ RSpec.describe "RestClient SSRF Injection" do
                 parameters: {
                   resource: [{address: "server.io.net.url"}],
                   params: [
-                    {address: "server.request.query"},
+                    {address: "server.request.query"}
                   ]
                 },
                 operator: "ssrf_detector"

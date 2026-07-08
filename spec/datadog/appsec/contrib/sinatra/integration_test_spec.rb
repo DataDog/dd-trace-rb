@@ -89,7 +89,7 @@ RSpec.describe "Sinatra integration tests" do
           on_match: [
             "block"
           ]
-        },
+        }
       ],
       processors: [
         {
@@ -137,12 +137,12 @@ RSpec.describe "Sinatra integration tests" do
                   }
                 ],
                 output: "_dd.appsec.s.req.params"
-              },
+              }
             ]
           },
           evaluate: false,
           output: true
-        },
+        }
       ]
     }
   end
@@ -441,7 +441,7 @@ RSpec.describe "Sinatra integration tests" do
 
           let(:middlewares) do
             [
-              rack_contrib_body_parser,
+              rack_contrib_body_parser
             ]
           end
 

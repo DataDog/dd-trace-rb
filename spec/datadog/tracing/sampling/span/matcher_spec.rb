@@ -12,7 +12,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Matcher do
       "plain string pattern" => [
         {pattern: "web", input: "web", expected: true},
         {pattern: "web one", input: "web one", expected: true},
-        {pattern: "web", input: "my-web", expected: false},
+        {pattern: "web", input: "my-web", expected: false}
       ],
       "* pattern" => [
         {pattern: "web*", input: "web", expected: true},
@@ -23,7 +23,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Matcher do
         {pattern: "web*one", input: "web-site-one", expected: true},
         {pattern: "web*one", input: "webone", expected: true},
         {pattern: "web*site*one", input: "web--site  one", expected: true},
-        {pattern: "web*site*one", input: "web-nice-one", expected: false},
+        {pattern: "web*site*one", input: "web-nice-one", expected: false}
       ],
       "? pattern" => [
         {pattern: "web?", input: "web", expected: false},
@@ -35,7 +35,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Matcher do
         {pattern: "web?one", input: "webone", expected: false},
         {pattern: "web?one", input: "web-site-one", expected: false},
         {pattern: "web?site?one", input: "web-site-one", expected: true},
-        {pattern: "web?site?one", input: "web-nice-one", expected: false},
+        {pattern: "web?site?one", input: "web-nice-one", expected: false}
       ],
       "mixed * and ? pattern" => [
         {pattern: "*web?", input: "pre-web1", expected: true},
@@ -49,7 +49,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Matcher do
         {pattern: "web*site?one", input: "web--site one", expected: true},
         {pattern: "web*site?one", input: "web--siteone", expected: false},
         {pattern: "web?site*one", input: "web-site  one", expected: true},
-        {pattern: "web?site*one", input: "web-sitene", expected: false},
+        {pattern: "web?site*one", input: "web-sitene", expected: false}
       ]
     }.each do |scenario, fixtures|
       context "for '#{scenario}'" do

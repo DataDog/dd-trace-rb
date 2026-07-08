@@ -26,7 +26,7 @@ RSpec.describe Datadog::Core::Utils::Duration do
           ["seconds", "10s", :ms, 10000],
           ["miliseconds", "10ms", :us, 10000],
           ["microseconds", "10ns", :ns, 10],
-          ["nanoseconds", "10us", :us, 10],
+          ["nanoseconds", "10us", :us, 10]
         ].each do |type, value, base, expected_value|
           context "support #{type}" do
             it "parse value" do
@@ -57,7 +57,7 @@ RSpec.describe Datadog::Core::Utils::Duration do
           ["seconds", "10.5s", :ms, 10500],
           ["miliseconds", "10.5ms", :us, 10500],
           ["microseconds", "10.5ns", :ns, 11],
-          ["nanoseconds", "10.5us", :us, 11],
+          ["nanoseconds", "10.5us", :us, 11]
         ].each do |type, value, base, expected_value|
           context "support #{type}" do
             it "parse value" do

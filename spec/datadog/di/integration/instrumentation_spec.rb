@@ -620,7 +620,7 @@ RSpec.describe "Instrumentation integration" do
             [
               {str: "hello "},
               {json: {ref: "@duration"}, dsl: "@duration"},
-              {str: " ms"},
+              {str: " ms"}
             ]
           end
 
@@ -665,7 +665,7 @@ RSpec.describe "Instrumentation integration" do
           let(:segments) do
             [
               {str: "hello "},
-              {json: {ref: "@return"}, dsl: "@return"},
+              {json: {ref: "@return"}, dsl: "@return"}
             ]
           end
 
@@ -687,7 +687,7 @@ RSpec.describe "Instrumentation integration" do
           let(:segments) do
             [
               {str: "hello "},
-              {json: {ref: "@exception"}, dsl: "@exception"},
+              {json: {ref: "@exception"}, dsl: "@exception"}
             ]
           end
 
@@ -1061,7 +1061,7 @@ RSpec.describe "Instrumentation integration" do
               password: {type: "String", notCapturedReason: "redactedIdent"},
               redacted: {type: "Hash", entries: [
                 [{type: "Symbol", value: "b"}, {type: "Integer", value: "33"}],
-                [{type: "Symbol", value: "session"}, {type: "String", notCapturedReason: "redactedIdent"}],
+                [{type: "Symbol", value: "session"}, {type: "String", notCapturedReason: "redactedIdent"}]
               ]},
             },
             arguments: {

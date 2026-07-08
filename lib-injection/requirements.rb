@@ -19,7 +19,7 @@ def requirements
           "supported" => true,
           "min" => "2.17",
           "description" => "libffi needs memfd_create",
-        },
+        }
       ],
       "musl" => [
         {
@@ -31,7 +31,7 @@ def requirements
           "arch" => "arm64",
           "supported" => false,
           "description" => "no musl build",
-        },
+        }
       ],
     },
     "deny" => [],

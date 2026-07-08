@@ -27,7 +27,7 @@ RSpec.describe Datadog::DI::Utils do
       # Probe source paths may use Windows-style backslashes (DEBUG-5111).
       # Backslash translation is unconditional.
       ["backslash - suffix at basename", 'foo\bar.rb', "/foo/bar.rb", true],
-      ["backslash - absolute path", '\foo\bar.rb', "/foo/bar.rb", true],
+      ["backslash - absolute path", '\foo\bar.rb', "/foo/bar.rb", true]
     ].each do |name, suffix_, path_, result_|
       suffix, path, result = suffix_, path_, result_
 
@@ -51,7 +51,7 @@ RSpec.describe Datadog::DI::Utils do
       ["case mismatch - exact match", "/FOO/BAR.RB", "/foo/bar.rb"],
       ["case mismatch - suffix at basename", "BAR.RB", "/foo/bar.rb"],
       ["case mismatch - multiple components", "FOO/BAR.RB", "/foo/bar.rb"],
-      ["case mismatch + backslash", 'FOO\BAR.RB', "/foo/bar.rb"],
+      ["case mismatch + backslash", 'FOO\BAR.RB', "/foo/bar.rb"]
     ].each do |name, suffix_, path_|
       suffix, path = suffix_, path_
 
@@ -98,7 +98,7 @@ RSpec.describe Datadog::DI::Utils do
       # Probe source paths may use Windows-style backslashes (DEBUG-5111).
       ["backslash - suffix at basename", 'foo\bar.rb', "/foo/bar.rb", true],
       ["backslash - prefix to strip", 'c:\some\dir\foo\bar.rb', "/foo/bar.rb", true],
-      ["backslash + uppercase + prefix to strip", 'C:\Some\Dir\FOO\BAR.RB', "/foo/bar.rb", true],
+      ["backslash + uppercase + prefix to strip", 'C:\Some\Dir\FOO\BAR.RB', "/foo/bar.rb", true]
     ].each do |name, suffix_, path_, result_|
       suffix, path, result = suffix_, path_, result_
 

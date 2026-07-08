@@ -37,7 +37,7 @@ RSpec.describe Datadog::ErrorTracking::Configuration::Settings do
         ["DD_ERROR_TRACKING_HANDLED_ERRORS", "user", "handled_errors", "user"],
         ["DD_ERROR_TRACKING_HANDLED_ERRORS", "third_party", "handled_errors", "third_party"],
         ["DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE", "foo", "handled_errors_include", %w[foo]],
-        ["DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE", "foo,bar", "handled_errors_include", %w[foo bar]],
+        ["DD_ERROR_TRACKING_HANDLED_ERRORS_INCLUDE", "foo,bar", "handled_errors_include", %w[foo bar]]
       ].each do |(env_var_name, env_var_value, setting_name, setting_value)|
         context "when #{env_var_name}=#{env_var_value}" do
           around do |example|

@@ -81,7 +81,7 @@ unless VALIDATE_BENCHMARK_MODE
     {
       item: "profiling - skipped samples",
       samples: [inactive_thread_samples_skipped]
-    },
+    }
   ]
   File.write(file, JSON.dump(json))
 end

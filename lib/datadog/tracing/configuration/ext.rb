@@ -69,7 +69,7 @@ module Datadog
           PROPAGATION_BEHAVIOR_EXTRACT_SUPPORTED = [
             PROPAGATION_BEHAVIOR_EXTRACT_CONTINUE,
             PROPAGATION_BEHAVIOR_EXTRACT_RESTART,
-            PROPAGATION_BEHAVIOR_EXTRACT_IGNORE,
+            PROPAGATION_BEHAVIOR_EXTRACT_IGNORE
           ].freeze
 
           # Behavior applied to a distributed-trace context extracted from incoming requests.

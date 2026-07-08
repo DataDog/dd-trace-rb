@@ -64,7 +64,7 @@ RSpec.describe "Waterdrop monitor" do
       messages = [
         {topic: "topic_name", payload: "foo", partition: 1},
         {topic: "topic_name", payload: "bar"},
-        {topic: "other_topic", payload: "baz", partition: 0},
+        {topic: "other_topic", payload: "baz", partition: 0}
       ].shuffle
       producer.produce_many_sync(messages)
 
@@ -85,7 +85,7 @@ RSpec.describe "Waterdrop monitor" do
       messages = [
         {topic: "topic_name", payload: "foo", partition: 1},
         {topic: "topic_name", payload: "bar"},
-        {topic: "other_topic", payload: "baz", partition: 0},
+        {topic: "other_topic", payload: "baz", partition: 0}
       ].shuffle
       producer.produce_many_async(messages)
 

@@ -74,7 +74,7 @@ RSpec.describe Datadog::OpenTelemetry do
             [1, 1],
             [false, "false"],
             [true, "true"],
-            ["str", "str"],
+            ["str", "str"]
           ].each do |input, expected|
             context "with attribute value #{input}" do
               let(:attributes) { {"tag" => input} }
@@ -91,7 +91,7 @@ RSpec.describe Datadog::OpenTelemetry do
 
           [
             [[1], {"key.0" => 1}],
-            [[true, false], {"key.0" => "true", "key.1" => "false"}],
+            [[true, false], {"key.0" => "true", "key.1" => "false"}]
           ].each do |input, expected|
             context "with an array attribute value #{input}" do
               let(:attributes) { {"key" => input} }
@@ -213,7 +213,7 @@ RSpec.describe Datadog::OpenTelemetry do
               [:server, {"faas.trigger" => "Datasource"}, "datasource.invoke"],
               [:server, {"graphql.operation.type" => "query"}, "graphql.server.request"],
               [:server, {"network.protocol.name" => "Amqp"}, "amqp.server.request"],
-              [:server, {}, "server.request"],
+              [:server, {}, "server.request"]
             ].each do |kind, attributes, expected_operation_name|
               context "for kind #{kind} and attributes #{attributes}" do
                 let(:span_options) { {kind: kind, attributes: attributes} }
@@ -374,7 +374,7 @@ RSpec.describe Datadog::OpenTelemetry do
         let(:links) do
           [
             OpenTelemetry::Trace::Link.new(sc1, {"key" => "val", "1" => true}),
-            OpenTelemetry::Trace::Link.new(sc2, {"key2" => true, "list" => [1, 2]}),
+            OpenTelemetry::Trace::Link.new(sc2, {"key2" => true, "list" => [1, 2]})
           ]
         end
         let(:options) { {links: links} }
@@ -437,7 +437,7 @@ RSpec.describe Datadog::OpenTelemetry do
         [1, 1],
         [false, "false"],
         [true, "true"],
-        ["str", "str"],
+        ["str", "str"]
       ].each do |input, expected|
         context "with attribute value #{input}" do
           let(:attribute_name) { "tag" }
@@ -454,7 +454,7 @@ RSpec.describe Datadog::OpenTelemetry do
 
       [
         [[1], {"key.0" => 1}],
-        [[true, false], {"key.0" => "true", "key.1" => "false"}],
+        [[true, false], {"key.0" => "true", "key.1" => "false"}]
       ].each do |input, expected|
         context "with an array attribute value #{input}" do
           let(:attribute_name) { "key" }
@@ -574,7 +574,7 @@ RSpec.describe Datadog::OpenTelemetry do
             [:server, {"faas.trigger" => "Datasource"}, "datasource.invoke"],
             [:server, {"graphql.operation.type" => "query"}, "graphql.server.request"],
             [:server, {"network.protocol.name" => "Amqp"}, "amqp.server.request"],
-            [:server, {}, "server.request"],
+            [:server, {}, "server.request"]
           ].each do |kind, attributes, expected_operation_name|
             context "for kind #{kind} and attributes #{attributes}" do
               subject(:set_attribute) do

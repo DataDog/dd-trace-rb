@@ -15,7 +15,7 @@ module Datadog
                 "activerecord-jdbcpostgresql-adapter",
                 "activerecord-jdbcmysql-adapter",
                 "activerecord-trilogy-adapter", # Must come before `trilogy`, as the adapter takes precedence when available
-                "trilogy", # Uses the built-in adapter, since Rails 7.1
+                "trilogy" # Uses the built-in adapter, since Rails 7.1
               ].each do |adapter|
                 require adapter
 

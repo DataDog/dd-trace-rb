@@ -6,7 +6,7 @@ RSpec.describe "OpenFeature benchmarks" do
   with_env "VALIDATE_BENCHMARK" => "true"
 
   benchmarks_to_validate = [
-    "open_feature_flagevaluation",
+    "open_feature_flagevaluation"
   ].freeze
 
   benchmarks_to_validate.each do |benchmark|

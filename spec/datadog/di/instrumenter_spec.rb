@@ -948,7 +948,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         "::Object::Kernel",
         "Object::Object::Kernel",
         "Object",
-        "String",
+        "String"
       ].each do |type_name|
         context "with type name #{type_name.inspect}" do
           let(:probe_args) do

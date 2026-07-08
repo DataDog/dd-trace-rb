@@ -10,7 +10,7 @@ module Datadog
           # Defines collection of instrumented ActiveSupport events
           module Events
             ALL = [
-              Events::Cache,
+              Events::Cache
             ].freeze
 
             module_function

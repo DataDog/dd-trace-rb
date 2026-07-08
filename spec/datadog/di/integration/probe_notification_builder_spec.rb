@@ -143,7 +143,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         let(:segments) do
           [
             {str: "hello"},
-            {json: {ref: "bar"}, dsl: "(expression)"},
+            {json: {ref: "bar"}, dsl: "(expression)"}
           ]
         end
 
@@ -175,7 +175,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           let(:segments) do
             [
               {str: "hello"},
-              {json: {substring: ["bar", "baz", 3]}, dsl: "(expression)"},
+              {json: {substring: ["bar", "baz", 3]}, dsl: "(expression)"}
             ]
           end
 
@@ -198,7 +198,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
               {str: "hello"},
               {json: {substring: ["bar", "baz", 3]}, dsl: "(bar baz 3)"},
               {json: {filter: ["bar", "baz"]}, dsl: "(bar baz)"},
-              {str: "hello"},
+              {str: "hello"}
             ]
           end
 
@@ -208,7 +208,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
             expect(payload[:message]).to eq "hello[evaluation error][evaluation error]hello"
             expect(payload.fetch(:debugger).fetch(:snapshot).fetch(:evaluationErrors)).to eq [
               {message: "ArgumentError: bad value for range", expr: "(bar baz 3)"},
-              {message: "Datadog::DI::Error::ExpressionEvaluationError: Bad collection type for filter: String", expr: "(bar baz)"},
+              {message: "Datadog::DI::Error::ExpressionEvaluationError: Bad collection type for filter: String", expr: "(bar baz)"}
             ]
 
             # We asked to not create a snapshot

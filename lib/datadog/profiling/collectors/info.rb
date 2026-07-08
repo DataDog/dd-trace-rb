@@ -65,7 +65,7 @@ module Datadog
           "RUBY_GC_HEAP_INIT_SLOTS",
           # Ruby 2.x only, alias for others:
           "RUBY_FREE_MIN",
-          "RUBY_HEAP_MIN_SLOTS",
+          "RUBY_HEAP_MIN_SLOTS"
         ].freeze
 
         # Instead of trying to figure out real process start time by checking

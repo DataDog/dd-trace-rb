@@ -12,7 +12,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleLoader do
             "name" => "Rule 1",
             "tags" => {"type" => "flow1"},
             "conditions" => [
-              {"operation" => "match_regex", "parameters" => {"inputs" => ["value2"], "regex" => "rule1"}},
+              {"operation" => "match_regex", "parameters" => {"inputs" => ["value2"], "regex" => "rule1"}}
             ],
             "action" => "record",
           }

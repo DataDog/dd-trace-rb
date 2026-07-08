@@ -24,7 +24,7 @@ RSpec.describe Datadog::DI::Configuration::Settings do
         [nil, "max_capture_depth", 5],
         [nil, "max_capture_collection_size", 10],
         [nil, "max_capture_string_length", 20],
-        [nil, "max_capture_attribute_count", 4],
+        [nil, "max_capture_attribute_count", 4]
       ].each do |(scope_name_, name_, value_)|
         name = name_
         scope_name = scope_name_
@@ -73,7 +73,7 @@ RSpec.describe Datadog::DI::Configuration::Settings do
         ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES", "foo, bar", "redacted_type_names", %w[foo bar]],
         ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES", "", "redacted_type_names", %w[]],
         ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES", ",", "redacted_type_names", %w[]],
-        ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES", ".!", "redacted_type_names", %w[.!]],
+        ["DD_DYNAMIC_INSTRUMENTATION_REDACTED_TYPES", ".!", "redacted_type_names", %w[.!]]
       ].each do |(env_var_name_, env_var_value_, setting_name_, setting_value_)|
         env_var_name = env_var_name_
         env_var_value = env_var_value_

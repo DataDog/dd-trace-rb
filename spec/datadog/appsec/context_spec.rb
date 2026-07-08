@@ -125,7 +125,7 @@ RSpec.describe Datadog::AppSec::Context do
 
         [
           context.run_waf(persistent_data_1, {}, 1_000_000),
-          context.run_waf(persistent_data_2, {}, 1_000_000),
+          context.run_waf(persistent_data_2, {}, 1_000_000)
         ]
       end
 

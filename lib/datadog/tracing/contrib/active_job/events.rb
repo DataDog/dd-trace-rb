@@ -19,7 +19,7 @@ module Datadog
             Events::EnqueueAt,
             Events::EnqueueRetry,
             Events::Perform,
-            Events::RetryStopped,
+            Events::RetryStopped
           ].freeze
 
           module_function

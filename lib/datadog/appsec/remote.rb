@@ -52,14 +52,14 @@ module Datadog
           CAP_ASM_SESSION_FINGERPRINT,
           CAP_ASM_NETWORK_FINGERPRINT,
           CAP_ASM_HEADER_FINGERPRINT,
-          CAP_ASM_TRACE_TAGGING_RULES,
+          CAP_ASM_TRACE_TAGGING_RULES
         ].freeze
 
         ASM_PRODUCTS = [
           "ASM_DD",       # Datadog employee issued configuration
           "ASM",          # customer issued configuration (rulesets, passlist...)
           "ASM_FEATURES", # capabilities
-          "ASM_DATA",     # config files (IP addresses or users for blocking)
+          "ASM_DATA"     # config files (IP addresses or users for blocking)
         ].freeze
 
         def capabilities

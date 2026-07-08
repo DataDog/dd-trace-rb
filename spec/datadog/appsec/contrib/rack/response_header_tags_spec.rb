@@ -111,7 +111,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::RequestMiddleware do
               ],
               transformers: ["removeNulls"],
               on_match: ["block"]
-            },
+            }
           ]
         }
       end

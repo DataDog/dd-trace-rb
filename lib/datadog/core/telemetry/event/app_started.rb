@@ -93,7 +93,7 @@ module Datadog
               ),
 
               # Mix of env var, programmatic and default config, so we use unknown
-              unknown_conf_value("DD_AGENT_TRANSPORT", agent_transport(agent_settings)), # rubocop:disable CustomCops/EnvStringValidationCop
+              unknown_conf_value("DD_AGENT_TRANSPORT", agent_transport(agent_settings)) # rubocop:disable CustomCops/EnvStringValidationCop
             ]
 
             # Set by the customer application (eg. `require 'datadog/auto_instrument'`)

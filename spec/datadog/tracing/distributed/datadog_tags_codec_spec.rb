@@ -20,7 +20,7 @@ RSpec.describe Datadog::Tracing::Distributed::DatadogTagsCodec do
         ["value=with=equals", {"value" => "with=equals"}],
         ["trim= value ", {"trim" => "value"}],
         ["ascii@=~chars;", {"ascii@" => "~chars;"}],
-        ["a=1,b=2,c=3", {"a" => "1", "b" => "2", "c" => "3"}],
+        ["a=1,b=2,c=3", {"a" => "1", "b" => "2", "c" => "3"}]
       ].each do |input, expected|
         context "of value `#{input}`" do
           let(:input) { input }
@@ -40,7 +40,7 @@ RSpec.describe Datadog::Tracing::Distributed::DatadogTagsCodec do
         ",leading=comma",
         "key with=spaces",
         "out_of=range\ncharacter",
-        "out\tof=range character",
+        "out\tof=range character"
       ].each do |input|
         context "of value `#{input}`" do
           let(:input) { input }
@@ -59,7 +59,7 @@ RSpec.describe Datadog::Tracing::Distributed::DatadogTagsCodec do
         [{"key" => "value"}, "key=value"],
         [{"key" => 1}, "key=1"],
         [{"a" => "1", "b" => "2", "c" => "3"}, "a=1,b=2,c=3"],
-        [{"trim" => " value "}, "trim=value"],
+        [{"trim" => " value "}, "trim=value"]
       ].each do |input, expected|
         context "of value `#{input}`" do
           let(:input) { input }
@@ -77,7 +77,7 @@ RSpec.describe Datadog::Tracing::Distributed::DatadogTagsCodec do
         {"" => "empty_key"},
         {"empty_value" => ""},
         {"🙅️" => "out of range characters"},
-        {"out_of_range_characters" => "🙅️"},
+        {"out_of_range_characters" => "🙅️"}
       ].each do |input, _expected|
         context "of value `#{input}`" do
           let(:input) { input }

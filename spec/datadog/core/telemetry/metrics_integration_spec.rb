@@ -71,7 +71,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         points: [[Integer, 1]],
         type: "count",
         tags: [],
-        common: true,
+        common: true
       ]
     )
   end
@@ -164,7 +164,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
               points: [[Integer, 1]],
               type: "count",
               tags: [],
-              common: true,
+              common: true
             ]
           )
         end
