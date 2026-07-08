@@ -29,11 +29,11 @@ gem "openfeature-sdk", "= 0.5.1"
 gem "opentelemetry-sdk", "~> 1.1"
 gem "opentelemetry-metrics-sdk", ">= 0.8"
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 
