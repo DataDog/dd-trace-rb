@@ -1,0 +1,273 @@
+name: Recheck failed all-green jobs
+
+on: # yamllint disable-line rule:truthy
+  schedule:
+    # Recheck failed all-green jobs periodically without reacting to every GitLab status update.
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+permissions:
+  actions: write
+  checks: read
+  contents: read
+  pull-requests: read
+  statuses: read
+
+jobs:
+  recheck-failed-all-green:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install YAML parser
+        run: npm install yaml@2.8.1
+
+      - name: Recheck failed all-green jobs
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            // Fetch recent PRs, then fetch each commit's GitHub check runs and commit statuses in batches.
+            // Commit statuses include external CI reports such as GitLab dd-gitlab/... statuses.
+            const allGreenJobName = 'all-jobs-are-green';
+            const checkPRsFromTheLast = 7; // Days
+
+            const outcomeFields = `
+              pageInfo { hasNextPage endCursor }
+              nodes {
+                __typename
+                ... on CheckRun {
+                  databaseId
+                  name
+                  status
+                  conclusion
+                  completedAt
+                  checkSuite { workflowRun { databaseId } }
+                }
+                ... on StatusContext { context state }
+              }
+            `;
+
+            const allGreenWorkflow = readAllGreenWorkflow();
+            const baseBranches = allGreenWorkflow.on.pull_request.branches;
+            const ignoredOutcomePatterns = [allGreenJobName, ...ignoredNamePatternsFromAllGreenWorkflow(allGreenWorkflow)]
+              .map((pattern) => new RegExp(`^(?:${pattern})$`));
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const prs = await recentPullRequests(baseBranches);
+            const commits = [...new Set(prs.map((pr) => pr.headRefOid))];
+            const rerunnableAllGreenConclusions = new Set(['failure', 'cancelled', 'timed_out', 'action_required']);
+            const outcomes = await outcomesByCommit(commits);
+            const rerunJobIds = new Set();
+            let rerunCount = 0;
+
+            core.info(`Scanning ${prs.length} recent non-draft PR(s) across ${commits.length} commit(s).`);
+
+            for (const pr of prs) {
+              const state = outcomes.get(pr.headRefOid);
+
+              if (!state.allGreenJobId) {
+                core.info(`PR #${pr.number}: no ${allGreenJobName} check run found; skipping.`);
+              } else if (!rerunnableAllGreenConclusions.has(state.allGreenConclusion)) {
+                core.info(`PR #${pr.number}: all-green job is ${state.allGreenConclusion}; skipping.`);
+              } else if (!state.allGreenCompletedAt || !recent(state.allGreenCompletedAt)) {
+                core.info(`PR #${pr.number}: all-green job is older than ${checkPRsFromTheLast} day(s); skipping.`);
+              } else if (state.failure) {
+                core.info(
+                  `PR #${pr.number}: ${state.failure.type} ${state.failure.name} ` +
+                    `is ${state.failure.value}; skipping.`
+                );
+              } else if (rerunJobIds.has(state.allGreenJobId)) {
+                core.info(`PR #${pr.number}: all-green job ${state.allGreenJobId} was already rerun; skipping.`);
+              } else if (await lastAllGreenAttemptWasTriggeredByGitHubActions(state)) {
+                core.info(`PR #${pr.number}: all-green workflow rerun was triggered by github-actions[bot]; skipping.`);
+              } else {
+                core.info(`PR #${pr.number}: upstream CI is green; rerunning all-green job ${state.allGreenJobId}.`);
+                await github.rest.actions.reRunJobForWorkflowRun({ owner, repo, job_id: state.allGreenJobId });
+                rerunJobIds.add(state.allGreenJobId);
+                rerunCount++;
+              }
+            }
+
+            core.info(`Reran ${rerunCount} failed all-green job(s).`);
+
+            function recent(timestamp) {
+              const cutoff = new Date(Date.now() - checkPRsFromTheLast * 24 * 60 * 60 * 1000);
+
+              return new Date(timestamp) >= cutoff;
+            }
+
+            function readAllGreenWorkflow() {
+              const fs = require('fs');
+              const YAML = require('yaml');
+
+              return YAML.parse(fs.readFileSync('.github/workflows/all-green.yml', 'utf8'));
+            }
+
+            function ignoredNamePatternsFromAllGreenWorkflow(workflow) {
+              const ignoredNames = workflow.jobs[allGreenJobName].steps[0].with['ignored-name-patterns'];
+
+              return ignoredNames ? ignoredNames.split(/\s*,\s*/) : [];
+            }
+
+            function ignoredOutcome(name) {
+              return ignoredOutcomePatterns.some((pattern) => pattern.test(name));
+            }
+
+            async function recentPullRequests(baseBranches) {
+              const prs = [];
+
+              for (const baseBranch of baseBranches) {
+                let after = null;
+
+                do {
+                  const result = await github.graphql(`
+                    query($owner: String!, $repo: String!, $baseBranch: String!, $after: String) {
+                      repository(owner: $owner, name: $repo) {
+                        pullRequests(
+                          first: 100
+                          after: $after
+                          states: OPEN
+                          baseRefName: $baseBranch
+                          orderBy: { field: UPDATED_AT, direction: DESC }
+                        ) {
+                          pageInfo { hasNextPage endCursor }
+                          nodes { number updatedAt isDraft headRefOid }
+                        }
+                      }
+                    }
+                  `, { owner, repo, baseBranch, after });
+
+                  const page = result.repository.pullRequests;
+                  prs.push(...page.nodes);
+                  after = page.pageInfo.hasNextPage && page.nodes.every((pr) => recent(pr.updatedAt))
+                    ? page.pageInfo.endCursor
+                    : null;
+                } while (after);
+              }
+
+              return prs.filter((pr) => !pr.isDraft && recent(pr.updatedAt));
+            }
+
+            function markFailure(state, type, name, value) {
+              state.failure ||= { type, name, value };
+            }
+
+            function keepReading(state) {
+              return !(
+                (state.allGreenConclusion && !rerunnableAllGreenConclusions.has(state.allGreenConclusion)) ||
+                (state.allGreenJobId && state.failure)
+              );
+            }
+
+            function readOutcomes(state, contexts) {
+              const greenCheckRunConclusions = new Set(['SUCCESS', 'SKIPPED', 'NEUTRAL']);
+
+              if (!contexts) {
+                markFailure(state, 'checks', 'statusCheckRollup', 'missing');
+                state.after = null;
+                return;
+              }
+
+              for (const outcome of contexts.nodes) {
+                if (outcome.__typename === 'CheckRun') {
+                  const githubCheck = outcome;
+
+                  if (githubCheck.name === allGreenJobName) {
+                    state.allGreenJobId = githubCheck.databaseId;
+                    state.allGreenConclusion = (githubCheck.conclusion || githubCheck.status || '').toLowerCase();
+                    state.allGreenCompletedAt = githubCheck.completedAt;
+                    state.allGreenWorkflowRunId = githubCheck.checkSuite.workflowRun?.databaseId;
+                  } else if (
+                    !ignoredOutcome(githubCheck.name) &&
+                    (githubCheck.status !== 'COMPLETED' || !greenCheckRunConclusions.has(githubCheck.conclusion))
+                  ) {
+                    markFailure(state, 'check', githubCheck.name, githubCheck.conclusion || githubCheck.status);
+                  }
+                } else if (outcome.__typename === 'StatusContext') {
+                  const commitStatus = outcome;
+
+                  if (!ignoredOutcome(commitStatus.context) && commitStatus.state !== 'SUCCESS') {
+                    markFailure(state, 'status', commitStatus.context, commitStatus.state);
+                  }
+                }
+
+                if (!keepReading(state)) {
+                  state.after = null;
+                  return;
+                }
+              }
+
+              state.after = contexts.pageInfo.hasNextPage ? contexts.pageInfo.endCursor : null;
+            }
+
+            async function lastAllGreenAttemptWasTriggeredByGitHubActions(state) {
+              if (!state.allGreenWorkflowRunId) {
+                return false;
+              }
+
+              const run = await github.rest.actions.getWorkflowRun({
+                owner,
+                repo,
+                run_id: state.allGreenWorkflowRunId,
+              });
+
+              return run.data.run_attempt > 1 && run.data.triggering_actor?.login === 'github-actions[bot]';
+            }
+
+            async function outcomesByCommit(commits) {
+              const outcomes = new Map(commits.map((commit) => [commit, { commit, after: null }]));
+              const remaining = [...outcomes.values()];
+
+              while (remaining.length > 0) {
+                const batch = remaining.splice(0, 15);
+                const result = await fetchOutcomes(batch);
+
+                for (const [index, state] of batch.entries()) {
+                  readOutcomes(state, result.repository[`c${index}`]?.statusCheckRollup?.contexts);
+
+                  if (state.after && keepReading(state)) {
+                    remaining.push(state);
+                  }
+                }
+              }
+
+              return outcomes;
+            }
+
+            async function fetchOutcomes(batch) {
+              const variables = { owner, repo };
+
+              batch.forEach((state, index) => {
+                variables[`commit${index}`] = state.commit;
+                variables[`after${index}`] = state.after;
+              });
+
+              return github.graphql(`
+                query(
+                  $owner: String!
+                  $repo: String!
+                  ${batch.map((_, index) => `
+                    $commit${index}: GitObjectID!
+                    $after${index}: String
+                  `).join('\n')}
+                ) {
+                  repository(owner: $owner, name: $repo) {
+                    ${batch.map((_, index) => `
+                      c${index}: object(oid: $commit${index}) {
+                        ... on Commit {
+                          statusCheckRollup {
+                            contexts(first: 15, after: $after${index}) { ${outcomeFields} }
+                          }
+                        }
+                      }
+                    `).join('\n')}
+                  }
+                }
+              `, variables);
+            }
