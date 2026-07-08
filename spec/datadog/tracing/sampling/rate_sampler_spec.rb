@@ -127,15 +127,15 @@ RSpec.describe Datadog::Tracing::Sampling::RateSampler do
       let(:sample_rate) { 0.5 }
       let(:trace_expectations) do
         {
-          12078589664685934330 => false,
+          12078589664685934330 => true,
           13794769880582338323 => true,
-          1882305164521835798 => true,
-          5198373796167680436 => false,
+          1882305164521835798 => false,
+          5198373796167680436 => true,
           6272545487220484606 => true,
-          8696342848850656916 => true,
-          18444899399302180860 => false,
-          18444899399302180862 => true,
-          9223372036854775808 => true, # Lands exactly on the sampling threshold 0.5 * MAX_UINT64
+          8696342848850656916 => false,
+          18444899399302180860 => true,
+          18444899399302180862 => false,
+          9223372036854775808 => true,
         }
       end
 

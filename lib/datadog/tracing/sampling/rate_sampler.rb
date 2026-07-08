@@ -8,7 +8,7 @@ module Datadog
     module Sampling
       # {Datadog::Tracing::Sampling::RateSampler} is based on a sample rate.
       class RateSampler < Sampler
-        KNUTH_FACTOR = 1111111111111111111
+        KNUTH_FACTOR = 734294471
 
         # Initialize a {Datadog::Tracing::Sampling::RateSampler}.
         # This sampler keeps a random subset of the traces. Its main purpose is to

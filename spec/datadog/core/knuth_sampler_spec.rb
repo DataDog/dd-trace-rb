@@ -49,7 +49,7 @@ RSpec.describe Datadog::Core::KnuthSampler do
     context 'when custom knuth_factor is provided' do
       it 'uses the custom factor for sampling' do
         result_default = described_class.new(0.5).sample?(1)
-        result_custom = described_class.new(0.5, knuth_factor: 1111111111111111111).sample?(1)
+        result_custom = described_class.new(0.5, knuth_factor: 734294471).sample?(1)
 
         expect(result_default).not_to eq(result_custom)
       end
@@ -86,14 +86,14 @@ RSpec.describe Datadog::Core::KnuthSampler do
       subject(:sampler) { described_class.new(0.5) }
 
       {
-        12078589664685934330 => false,
-        13794769880582338323 => true,
-        1882305164521835798 => false,
-        5198373796167680436 => true,
-        6272545487220484606 => true,
-        8696342848850656916 => true,
+        12078589664685934330 => true,
+        13794769880582338323 => false,
+        1882305164521835798 => true,
+        5198373796167680436 => false,
+        6272545487220484606 => false,
+        8696342848850656916 => false,
         18444899399302180860 => true,
-        18444899399302180862 => true,
+        18444899399302180862 => false,
         9223372036854775808 => true
       }.each do |input, expected|
         it { expect(sampler.sample?(input)).to be(expected) }

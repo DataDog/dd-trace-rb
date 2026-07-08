@@ -13,13 +13,12 @@ module Datadog
     # @api private
     # @see https://en.wikipedia.org/wiki/Hash_function#Multiplicative_hashing
     class KnuthSampler
-      # Maximum unsigned 64-bit integer for uniform distribution across 64-bit input space.
-      UINT64_MAX = (1 << 64) - 1
-      UINT64_MODULO = 1 << 64
+      # 31-bit arithmetic keeps all intermediate values in Fixnum (max product < 2^62).
+      MAX = (1 << 31) - 1
 
-      # Golden ratio constant for optimal distribution.
+      # Golden ratio constant for optimal distribution: round(2^31 / φ).
       # @see https://en.wikipedia.org/wiki/Hash_function#Fibonacci_hashing
-      DEFAULT_KNUTH_FACTOR = 11400714819323198485
+      DEFAULT_KNUTH_FACTOR = 1327217885
 
       attr_reader :rate
 
@@ -38,7 +37,7 @@ module Datadog
         end
 
         @rate = rate
-        @threshold = @rate * UINT64_MAX
+        @threshold = @rate * MAX
       end
 
       # Determines if the given input should be sampled.
@@ -50,7 +49,7 @@ module Datadog
       #   Typically a trace ID or incrementing counter.
       # @return [Boolean] +true+ if input should be sampled, +false+ otherwise
       def sample?(input)
-        ((input * @knuth_factor) % UINT64_MODULO) <= @threshold
+        (((input & MAX) * @knuth_factor) & MAX) <= @threshold
       end
     end
   end
