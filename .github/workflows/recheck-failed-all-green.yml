@@ -54,14 +54,16 @@ jobs:
             `;
 
             const allGreenWorkflow = readAllGreenWorkflow();
-            const baseBranches = allGreenWorkflow.on.pull_request.branches;
-            const ignoredOutcomePatterns = [allGreenJobName, ...ignoredNamePatternsFromAllGreenWorkflow(allGreenWorkflow)]
+            const baseBranches = allGreenWorkflow.baseBranches;
+            const ignoredOutcomePatterns = [allGreenJobName, ...allGreenWorkflow.ignoredNamePatterns]
               .map((pattern) => new RegExp(`^(?:${pattern})$`));
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const prs = await recentPullRequests(baseBranches);
             const commits = [...new Set(prs.map((pr) => pr.headRefOid))];
+            const greenCheckRunConclusions = new Set(['SUCCESS', 'SKIPPED', 'NEUTRAL']);
             const rerunnableAllGreenConclusions = new Set(['failure', 'cancelled', 'timed_out', 'action_required']);
+            const ignoredOutcome = (name) => ignoredOutcomePatterns.some((pattern) => pattern.test(name));
             const outcomes = await outcomesByCommit(commits);
             const rerunJobIds = new Set();
             let rerunCount = 0;
@@ -105,18 +107,13 @@ jobs:
             function readAllGreenWorkflow() {
               const fs = require('fs');
               const YAML = require('yaml');
-
-              return YAML.parse(fs.readFileSync('.github/workflows/all-green.yml', 'utf8'));
-            }
-
-            function ignoredNamePatternsFromAllGreenWorkflow(workflow) {
+              const workflow = YAML.parse(fs.readFileSync('.github/workflows/all-green.yml', 'utf8'));
               const ignoredNames = workflow.jobs[allGreenJobName].steps[0].with['ignored-name-patterns'];
 
-              return ignoredNames ? ignoredNames.split(/\s*,\s*/) : [];
-            }
-
-            function ignoredOutcome(name) {
-              return ignoredOutcomePatterns.some((pattern) => pattern.test(name));
+              return {
+                baseBranches: workflow.on.pull_request.branches,
+                ignoredNamePatterns: ignoredNames ? ignoredNames.split(/\s*,\s*/) : [],
+              };
             }
 
             async function recentPullRequests(baseBranches) {
@@ -166,8 +163,6 @@ jobs:
             }
 
             function readOutcomes(state, contexts) {
-              const greenCheckRunConclusions = new Set(['SUCCESS', 'SKIPPED', 'NEUTRAL']);
-
               if (!contexts) {
                 markFailure(state, 'checks', 'statusCheckRollup', 'missing');
                 state.after = null;
