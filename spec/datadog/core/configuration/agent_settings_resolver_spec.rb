@@ -63,7 +63,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
           adapter: :unix,
           uds_path: "/var/run/datadog/apm.socket",
           hostname: nil,
-          port: nil,
+          port: nil
         )
       end
     end
@@ -684,7 +684,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
           adapter: :unix,
           uds_path: "/path/to/apm.socket",
           hostname: nil,
-          port: nil,
+          port: nil
         )
       end
     end

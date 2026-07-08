@@ -44,7 +44,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
           .to change { span.tags }.to include(
             "appsec.events.users.login.success.usr.login" => "john.snow",
             "appsec.events.users.login.success.track" => "true",
-            "_dd.appsec.events.users.login.success.sdk" => "true",
+            "_dd.appsec.events.users.login.success.sdk" => "true"
           )
 
         expect(span.tags).not_to have_key("usr.login")
@@ -59,7 +59,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
             "appsec.events.users.login.success.usr.login" => "john.snow",
             "appsec.events.users.login.success.track" => "true",
             "_dd.appsec.user.collection_mode" => "sdk",
-            "_dd.appsec.events.users.login.success.sdk" => "true",
+            "_dd.appsec.events.users.login.success.sdk" => "true"
           )
       end
 
@@ -73,7 +73,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
             "appsec.events.users.login.success.hello" => "world",
             "appsec.events.users.login.success.track" => "true",
             "_dd.appsec.user.collection_mode" => "sdk",
-            "_dd.appsec.events.users.login.success.sdk" => "true",
+            "_dd.appsec.events.users.login.success.sdk" => "true"
           )
       end
 
@@ -86,7 +86,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
             "appsec.events.users.login.success.usr.login" => "john.snow",
             "appsec.events.users.login.success.track" => "true",
             "_dd.appsec.user.collection_mode" => "sdk",
-            "_dd.appsec.events.users.login.success.sdk" => "true",
+            "_dd.appsec.events.users.login.success.sdk" => "true"
           )
       end
 
@@ -109,7 +109,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
       it "sets track to true even if metadata track key is false" do
         expect { sdk.track_user_login_success("john.snow", "42", track: "false") }
           .to change { span.tags }.to include(
-            "appsec.events.users.login.success.track" => "true",
+            "appsec.events.users.login.success.track" => "true"
           )
       end
 
@@ -192,7 +192,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
             "appsec.events.users.signup.usr.login" => "john.snow",
             "appsec.events.users.signup.track" => "true",
             "_dd.appsec.user.collection_mode" => "sdk",
-            "_dd.appsec.events.users.signup.sdk" => "true",
+            "_dd.appsec.events.users.signup.sdk" => "true"
           )
       end
 
@@ -211,7 +211,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
             .to change { span.tags }.to include(
               "appsec.events.users.signup.usr.login" => "john.snow",
               "appsec.events.users.signup.track" => "true",
-              "_dd.appsec.events.users.signup.sdk" => "true",
+              "_dd.appsec.events.users.signup.sdk" => "true"
             )
 
           expect(span.tags).not_to have_key("usr.id")
@@ -225,7 +225,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
               "appsec.events.users.signup.usr.login" => "john.snow",
               "appsec.events.users.signup.hello" => "world",
               "appsec.events.users.signup.track" => "true",
-              "_dd.appsec.events.users.signup.sdk" => "true",
+              "_dd.appsec.events.users.signup.sdk" => "true"
             )
         end
       end
@@ -240,7 +240,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
             "appsec.events.users.signup.hello" => "world",
             "appsec.events.users.signup.track" => "true",
             "_dd.appsec.user.collection_mode" => "sdk",
-            "_dd.appsec.events.users.signup.sdk" => "true",
+            "_dd.appsec.events.users.signup.sdk" => "true"
           )
       end
 
@@ -253,14 +253,14 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
             "appsec.events.users.signup.usr.login" => "john.snow",
             "appsec.events.users.signup.track" => "true",
             "_dd.appsec.user.collection_mode" => "sdk",
-            "_dd.appsec.events.users.signup.sdk" => "true",
+            "_dd.appsec.events.users.signup.sdk" => "true"
           )
       end
 
       it "sets track to true even if metadata track key is false" do
         expect { sdk.track_user_signup("john.snow", "42", track: "false") }
           .to change { span.tags }.to include(
-            "appsec.events.users.signup.track" => "true",
+            "appsec.events.users.signup.track" => "true"
           )
       end
 
@@ -332,7 +332,7 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
             "appsec.events.users.login.failure.usr.login" => "john.snow",
             "appsec.events.users.login.failure.usr.exists" => "false",
             "appsec.events.users.login.failure.track" => "true",
-            "_dd.appsec.events.users.login.failure.sdk" => "true",
+            "_dd.appsec.events.users.login.failure.sdk" => "true"
           )
       end
 
@@ -343,28 +343,28 @@ RSpec.describe Datadog::Kit::AppSec::Events::V2 do
             "appsec.events.users.login.failure.usr.exists" => "true",
             "appsec.events.users.login.failure.hello" => "world",
             "appsec.events.users.login.failure.track" => "true",
-            "_dd.appsec.events.users.login.failure.sdk" => "true",
+            "_dd.appsec.events.users.login.failure.sdk" => "true"
           )
       end
 
       it "sets id from argument and ignores it in metadata" do
         expect { sdk.track_user_login_failure("john.snow", false, "usr.id": "john.doe") }
           .to change { span.tags }.to include(
-            "appsec.events.users.login.failure.usr.login" => "john.snow",
+            "appsec.events.users.login.failure.usr.login" => "john.snow"
           )
       end
 
       it "sets track to true even if metadata track key is false" do
         expect { sdk.track_user_login_failure("john.snow", false, track: "false") }
           .to change { span.tags }.to include(
-            "appsec.events.users.login.failure.track" => "true",
+            "appsec.events.users.login.failure.track" => "true"
           )
       end
 
       it "sets exists from argument even if metadata exists key is false" do
         expect { sdk.track_user_login_failure("john.snow", false, "usr.exists": "true") }
           .to change { span.tags }.to include(
-            "appsec.events.users.login.failure.usr.exists" => "false",
+            "appsec.events.users.login.failure.usr.exists" => "false"
           )
       end
 

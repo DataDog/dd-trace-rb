@@ -46,7 +46,7 @@ module Datadog
           sampler: sampler_delegator,
           span_sampler: build_span_sampler(settings),
           writer: writer,
-          tags: build_tracer_tags(settings),
+          tags: build_tracer_tags(settings)
         )
       end
 

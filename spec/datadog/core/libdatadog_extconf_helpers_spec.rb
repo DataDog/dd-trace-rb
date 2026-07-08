@@ -96,7 +96,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
         result = described_class.configure_libdatadog(
           extconf_folder: extconf_folder,
           libdatadog_pkgconfig_folder: nil,
-          logger: logger,
+          logger: logger
         )
 
         expect(result).to be_nil
@@ -116,7 +116,7 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
             extconf_folder: extconf_folder,
             libdatadog_pkgconfig_folder: pkgconfig_folder,
             gem_dir: gem_home,
-            logger: logger,
+            logger: logger
           )
 
           expect(result).to be true

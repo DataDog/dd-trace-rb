@@ -120,7 +120,7 @@ module Datadog
           success = self.class._native_report_ruby_exception(
             exception_type,
             exception_message,
-            frames_data,
+            frames_data
           )
 
           logger.debug("Crashtracker failed to report unhandled exception to crash tracker") unless success
@@ -145,7 +145,7 @@ module Datadog
             ld_library_path: ld_library_path,
             tags_as_array: tags.to_a,
             # @ivoanjo: On my machine this needs to be > 5 seconds, and seems to work with 10; the extra 15 is extra margin
-            upload_timeout_seconds: 15,
+            upload_timeout_seconds: 15
           )
           logger.debug("Crash tracking action: #{action} successful")
         rescue => e

@@ -6,7 +6,7 @@ RSpec.describe Datadog::Profiling::Collectors::IdleSamplingHelper do
 
   let(:thread_context_collector) {
     Datadog::Profiling::Collectors::ThreadContext.for_testing(
-      recorder: Datadog::Profiling::StackRecorder.for_testing,
+      recorder: Datadog::Profiling::StackRecorder.for_testing
     )
   }
   subject(:idle_sampling_helper) { described_class.new(thread_context_collector: thread_context_collector) }

@@ -107,7 +107,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
       before do
         registry[integration_name] = instance_double(
           Datadog::AppSec::Contrib::Integration::RegisteredIntegration,
-          klass: FakeIntegration,
+          klass: FakeIntegration
         )
 
         allow(Datadog::AppSec::Contrib::Integration).to receive(:registry).and_return(registry)

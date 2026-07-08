@@ -11,7 +11,7 @@ module Datadog
       module TagBuilder
         def self.call(settings)
           hash = Core::TagBuilder.tags(settings).merge(
-            "is_crash" => "true",
+            "is_crash" => "true"
           )
 
           if settings.experimental_propagate_process_tags_enabled

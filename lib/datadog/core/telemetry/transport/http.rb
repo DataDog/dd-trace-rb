@@ -12,12 +12,12 @@ module Datadog
         module HTTP
           AGENT_TELEMETRY = Telemetry::API::Endpoint.new(
             "/telemetry/proxy/api/v2/apmtelemetry",
-            Core::Encoding::JSONEncoder,
+            Core::Encoding::JSONEncoder
           )
 
           AGENTLESS_TELEMETRY = Telemetry::API::Endpoint.new(
             "/api/v2/apmtelemetry",
-            Core::Encoding::JSONEncoder,
+            Core::Encoding::JSONEncoder
           )
 
           module_function

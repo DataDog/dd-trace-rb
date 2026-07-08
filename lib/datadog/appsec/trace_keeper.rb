@@ -25,7 +25,7 @@ module Datadog
         else
           trace.set_tag(
             Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-            previous_dm,
+            previous_dm
           )
         end
 

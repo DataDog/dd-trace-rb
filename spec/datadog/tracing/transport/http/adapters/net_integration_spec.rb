@@ -18,7 +18,7 @@ RSpec.describe "Adapters::Net tracing integration tests" do
       uds_path: nil,
       hostname: hostname,
       port: port,
-      timeout_seconds: 30,
+      timeout_seconds: 30
     )
   end
 

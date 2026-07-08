@@ -55,7 +55,7 @@ module Datadog
           max_capture_depth: config["capture"]&.[]("maxReferenceDepth"),
           max_capture_attribute_count: config["capture"]&.[]("maxFieldCount"),
           rate_limit: config["sampling"]&.[]("snapshotsPerSecond"),
-          condition: cond,
+          condition: cond
         )
       rescue KeyError => exc
         raise ArgumentError, "Malformed remote configuration entry for probe: #{exc.class}: #{exc.message}: #{config}"

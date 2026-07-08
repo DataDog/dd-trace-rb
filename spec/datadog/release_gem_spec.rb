@@ -124,7 +124,7 @@ RSpec.describe "gem release process" do
           "libddwaf",
           "msgpack",
           "logger",
-          "cgi",
+          "cgi"
         )
       end
     end

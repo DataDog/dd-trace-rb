@@ -106,7 +106,7 @@ RSpec.describe "OpenTelemetry Logs Integration", ruby: ">= 3.1" do
           "service.name" => "custom-service",
           "service.version" => "2.0.0",
           "deployment.environment" => "production",
-          "host.name" => Datadog::Core::Environment::Socket.hostname,
+          "host.name" => Datadog::Core::Environment::Socket.hostname
         )
       end
     end
@@ -181,7 +181,7 @@ RSpec.describe "OpenTelemetry Logs Integration", ruby: ">= 3.1" do
           "deployment.environment" => "test",
           "host.name" => "myhost",
           "team" => "backend",
-          "region" => "us-east-1",
+          "region" => "us-east-1"
         )
       end
     end
@@ -236,7 +236,7 @@ RSpec.describe "OpenTelemetry Logs Integration", ruby: ">= 3.1" do
             "DD_LOGS_OTEL_ENABLED" => "true",
             "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT" => "http://logs:4318/v1/logs",
             "OTEL_EXPORTER_OTLP_LOGS_TIMEOUT" => "5000",
-            "OTEL_EXPORTER_OTLP_LOGS_HEADERS" => "logs=value",
+            "OTEL_EXPORTER_OTLP_LOGS_HEADERS" => "logs=value"
           )
         end
 

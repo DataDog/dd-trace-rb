@@ -48,7 +48,7 @@ RSpec.describe "Telemetry integration tests" do
 
     let(:expected_agentless_headers) do
       expected_base_headers.merge(
-        "dd-api-key" => %w[1234],
+        "dd-api-key" => %w[1234]
       )
     end
 
@@ -124,7 +124,7 @@ RSpec.describe "Telemetry integration tests" do
             "request_type" => "app-started",
             "runtime_id" => String,
             "seq_id" => Integer,
-            "tracer_time" => Integer,
+            "tracer_time" => Integer
           )
           expect(payload.fetch(:headers)).to include(
             expected_headers.merge("dd-telemetry-request-type" => %w[app-started])
@@ -151,7 +151,7 @@ RSpec.describe "Telemetry integration tests" do
             "request_type" => "app-client-configuration-change",
             "runtime_id" => String,
             "seq_id" => Integer,
-            "tracer_time" => Integer,
+            "tracer_time" => Integer
           )
           expect(payload.fetch(:headers)).to include(
             expected_headers.merge("dd-telemetry-request-type" => %w[app-client-configuration-change])
@@ -176,7 +176,7 @@ RSpec.describe "Telemetry integration tests" do
 
           payload = sent_payloads[0]
           expect(payload.fetch(:payload)).to include(
-            "request_type" => "app-started",
+            "request_type" => "app-started"
           )
 
           payload = sent_payloads[1]
@@ -191,7 +191,7 @@ RSpec.describe "Telemetry integration tests" do
             "request_type" => "app-dependencies-loaded",
             "runtime_id" => String,
             "seq_id" => Integer,
-            "tracer_time" => Integer,
+            "tracer_time" => Integer
           )
           expect(payload.fetch(:headers)).to include(
             expected_headers.merge("dd-telemetry-request-type" => %w[app-dependencies-loaded])
@@ -232,7 +232,7 @@ RSpec.describe "Telemetry integration tests" do
           "request_type" => "message-batch",
           "runtime_id" => String,
           "seq_id" => Integer,
-          "tracer_time" => Integer,
+          "tracer_time" => Integer
         )
         expect(payload.fetch(:headers)).to include(
           expected_headers.merge("dd-telemetry-request-type" => %w[message-batch])
@@ -261,7 +261,7 @@ RSpec.describe "Telemetry integration tests" do
           "request_type" => "app-heartbeat",
           "runtime_id" => String,
           "seq_id" => Integer,
-          "tracer_time" => Integer,
+          "tracer_time" => Integer
         )
         expect(payload.fetch(:headers)).to include(
           expected_headers.merge("dd-telemetry-request-type" => %w[app-heartbeat])
@@ -292,7 +292,7 @@ RSpec.describe "Telemetry integration tests" do
           "request_type" => "app-heartbeat",
           "runtime_id" => String,
           "seq_id" => Integer,
-          "tracer_time" => Integer,
+          "tracer_time" => Integer
         )
         expect(payload.fetch(:headers)).to include(
           expected_headers.merge("dd-telemetry-request-type" => %w[app-heartbeat])
@@ -329,7 +329,7 @@ RSpec.describe "Telemetry integration tests" do
             "request_type" => "app-started",
             "runtime_id" => String,
             "seq_id" => Integer,
-            "tracer_time" => Integer,
+            "tracer_time" => Integer
           )
 
           expect(payload.dig(:payload, "application", "process_tags")).to include("entrypoint.workdir")
@@ -442,12 +442,12 @@ RSpec.describe "Telemetry integration tests" do
 
       payload = sent_payloads[0]
       expect(payload.fetch(:payload)).to include(
-        "request_type" => "app-started",
+        "request_type" => "app-started"
       )
 
       payload = sent_payloads[1]
       expect(payload.fetch(:payload)).to include(
-        "request_type" => "app-dependencies-loaded",
+        "request_type" => "app-dependencies-loaded"
       )
 
       # The logs are sent after app-started event
@@ -463,7 +463,7 @@ RSpec.describe "Telemetry integration tests" do
             ],
           },
           "request_type" => "logs",
-        }],
+        }]
       )
     end
   end
@@ -614,10 +614,10 @@ RSpec.describe "Telemetry integration tests" do
         payload = app_started.fetch(:payload)
 
         expect(payload.dig("payload", "configuration")).to include(
-          {"name" => configuration[:name], "value" => configuration[:value], "origin" => "code", "seq_id" => Integer},
+          {"name" => configuration[:name], "value" => configuration[:value], "origin" => "code", "seq_id" => Integer}
         )
         expect(payload.dig("payload", "products")).to include(
-          product_key => actual_state,
+          product_key => actual_state
         )
 
         assert_remaining_events

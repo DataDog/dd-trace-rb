@@ -103,7 +103,7 @@ module Datadog
           metrics: metrics,
           tags_as_array: Datadog::Profiling::TagBuilder.call(
             settings: Datadog.configuration,
-            profile_seq: sequence_tracker.get_next,
+            profile_seq: sequence_tracker.get_next
           ).to_a,
           process_tags: process_tags,
           internal_metadata: internal_metadata.merge(
@@ -114,7 +114,7 @@ module Datadog
               gc: GC.stat,
             }
           ),
-          info_json: info_json,
+          info_json: info_json
         )
       end
 

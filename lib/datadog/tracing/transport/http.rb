@@ -20,7 +20,7 @@ module Datadog
 
         V3 = Traces::API::Endpoint.new(
           "/v0.3/traces",
-          Core::Encoding::MsgpackEncoder,
+          Core::Encoding::MsgpackEncoder
         )
 
         module_function

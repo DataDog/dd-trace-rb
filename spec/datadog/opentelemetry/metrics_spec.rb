@@ -159,7 +159,7 @@ RSpec.describe "OpenTelemetry Metrics Integration", ruby: ">= 3.1" do
         "DD_SERVICE" => "custom-service",
         "DD_VERSION" => "2.0.0",
         "DD_ENV" => "production",
-        "DD_TRACE_REPORT_HOSTNAME" => "true",
+        "DD_TRACE_REPORT_HOSTNAME" => "true"
       )
 
       expect(attributes["service.name"]).to eq("custom-service")
@@ -273,7 +273,7 @@ RSpec.describe "OpenTelemetry Metrics Integration", ruby: ">= 3.1" do
             "OTEL_EXPORTER_OTLP_METRICS_HEADERS" => "metrics=value",
             "OTEL_METRIC_EXPORT_INTERVAL" => "4000",
             "OTEL_METRIC_EXPORT_TIMEOUT" => "3000",
-            "OTEL_EXPORTER_OTLP_PROTOCOL" => "grpc",
+            "OTEL_EXPORTER_OTLP_PROTOCOL" => "grpc"
           )
         end
 

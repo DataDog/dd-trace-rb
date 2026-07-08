@@ -15,7 +15,7 @@ module Datadog
         # `Symbols::Client` subclass.
         SYMBOLS_ENDPOINT = API::Endpoint.new(
           "/symdb/v1/input",
-          Datadog::Core::Encoding::JSONEncoder,
+          Datadog::Core::Encoding::JSONEncoder
         )
 
         # Builds a transport for the symbols upload endpoint.
@@ -32,7 +32,7 @@ module Datadog
           Core::Transport::HTTP.build(
             logger: logger,
             agent_settings: agent_settings,
-            headers: headers,
+            headers: headers
           ) do |transport|
             transport.api "symbols", SYMBOLS_ENDPOINT, default: true
 

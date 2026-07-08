@@ -107,7 +107,7 @@ RSpec.describe Datadog::OpenFeature::Component do
         expect(Datadog::OpenFeature::FlagEvaluation::Writer).to receive(:new).with(
           transport: transport,
           logger: logger,
-          telemetry: telemetry,
+          telemetry: telemetry
         ).and_call_original
 
         component

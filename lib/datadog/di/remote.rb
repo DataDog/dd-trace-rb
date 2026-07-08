@@ -71,13 +71,13 @@ module Datadog
               if explicitly_disabled?
                 Datadog.logger.warn(
                   "di: cannot enable dynamic instrumentation via remote configuration " \
-                  "because DD_DYNAMIC_INSTRUMENTATION_ENABLED is explicitly set to false",
+                  "because DD_DYNAMIC_INSTRUMENTATION_ENABLED is explicitly set to false"
                 )
               else
                 reason = DI.unsupported_reason
                 Datadog.logger.warn(
                   "di: cannot enable dynamic instrumentation via remote configuration: " \
-                  "#{reason || "dynamic instrumentation was not initialized at startup"}",
+                  "#{reason || "dynamic instrumentation was not initialized at startup"}"
                 )
               end
             end
@@ -89,7 +89,7 @@ module Datadog
               Datadog.logger.warn(
                 "di: ignoring implicit enablement signal from remote configuration " \
                 "because DD_DYNAMIC_INSTRUMENTATION_ENABLED is explicitly set to false. " \
-                "To allow remote enablement, unset DD_DYNAMIC_INSTRUMENTATION_ENABLED.",
+                "To allow remote enablement, unset DD_DYNAMIC_INSTRUMENTATION_ENABLED."
               )
               return
             end
@@ -114,7 +114,7 @@ module Datadog
           Datadog.logger.debug { "di: error handling implicit enablement: #{e.class}: #{e.message}" }
           Datadog.send(:components, allow_initialization: false)&.telemetry&.report(
             e,
-            description: "Error handling DI implicit enablement",
+            description: "Error handling DI implicit enablement"
           )
         end
 

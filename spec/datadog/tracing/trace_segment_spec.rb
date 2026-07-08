@@ -45,7 +45,7 @@ RSpec.describe Datadog::Tracing::TraceSegment do
           sampling_priority: nil,
           service: nil,
           spans: spans,
-          profiling_enabled: nil,
+          profiling_enabled: nil
         )
       end
 

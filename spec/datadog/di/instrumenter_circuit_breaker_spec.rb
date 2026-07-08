@@ -66,7 +66,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
         id: "test-probe-1",
         type: :log,
         type_name: "HookTestClass",
-        method_name: "hook_test_method",
+        method_name: "hook_test_method"
       )
     end
 
@@ -136,7 +136,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
           type: :log,
           type_name: "HookTestClass",
           method_name: "hook_test_method_with_arg",
-          capture_snapshot: true,
+          capture_snapshot: true
         )
       end
 
@@ -199,7 +199,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
         id: "test-line-probe-1",
         type: :log,
         file: "hook_line_basic.rb",
-        line_no: 3,
+        line_no: 3
       )
     end
 
@@ -274,7 +274,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
           type: :log,
           file: "hook_line_basic.rb",
           line_no: 7,
-          capture_snapshot: true,
+          capture_snapshot: true
         )
       end
 
@@ -341,7 +341,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
         id: "test-probe-status",
         type: :log,
         type_name: "HookTestClass",
-        method_name: "hook_test_method",
+        method_name: "hook_test_method"
       )
     end
 
@@ -381,7 +381,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
         probe_notification_builder,
         probe_notifier_worker,
         logger,
-        probe_repository,
+        probe_repository
       )
     end
 
@@ -433,7 +433,7 @@ RSpec.describe "Datadog::DI::Instrumenter circuit breaker" do
           },
           message: String,
           service: "rspec",
-          timestamp: Integer,
+          timestamp: Integer
         )
 
         # Verify exception message mentions CPU time

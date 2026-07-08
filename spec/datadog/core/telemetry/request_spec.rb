@@ -75,7 +75,7 @@ RSpec.describe Datadog::Core::Telemetry::Request do
           request_type: request_type,
           runtime_id: runtime_id,
           seq_id: seq_id,
-          tracer_time: be_between(before_time, after_time),
+          tracer_time: be_between(before_time, after_time)
         )
       end
     end
@@ -98,7 +98,7 @@ RSpec.describe Datadog::Core::Telemetry::Request do
           request_type: request_type,
           runtime_id: runtime_id,
           seq_id: seq_id,
-          tracer_time: be_between(before_time, after_time),
+          tracer_time: be_between(before_time, after_time)
         )
       end
     end
@@ -128,7 +128,7 @@ RSpec.describe Datadog::Core::Telemetry::Request do
           request_type: request_type,
           runtime_id: runtime_id,
           seq_id: seq_id,
-          tracer_time: be_between(before_time, after_time),
+          tracer_time: be_between(before_time, after_time)
         )
       end
     end

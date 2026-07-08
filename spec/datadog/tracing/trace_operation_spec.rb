@@ -90,7 +90,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           service: nil,
           trace_state: nil,
           trace_state_unknown_fields: nil,
-          remote_parent: false,
+          remote_parent: false
         )
       end
 
@@ -1997,7 +1997,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             sample_rate: sample_rate,
             sampling_priority: sampling_priority,
             service: service,
-            profiling_enabled: profiling_enabled,
+            profiling_enabled: profiling_enabled
           )
         end
       end
@@ -2168,7 +2168,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
               trace_sampling_priority: nil,
               trace_service: nil,
-              span_remote: false,
+              span_remote: false
             )
           end
         end
@@ -2407,7 +2407,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
             trace_sampling_priority: nil,
             trace_service: "boo",
-            span_remote: false,
+            span_remote: false
           )
         end
 
@@ -2429,7 +2429,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         it do
           expect(trace_op.to_correlation).to have_attributes(
             span_id: "0",
-            trace_id: format_for_correlation(trace_op.id),
+            trace_id: format_for_correlation(trace_op.id)
           )
         end
       end
@@ -2495,7 +2495,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
           expect(trace_op.to_correlation).to have_attributes(
             span_id: "0",
-            trace_id: format_for_correlation(trace_op.id),
+            trace_id: format_for_correlation(trace_op.id)
           )
         end
       end
@@ -2506,7 +2506,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
           expect(trace_op.to_correlation).to have_attributes(
             span_id: span.id.to_s,
-            trace_id: format_for_correlation(trace_op.id),
+            trace_id: format_for_correlation(trace_op.id)
           )
         end
       end
@@ -2517,7 +2517,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
           expect(trace_op.to_correlation).to have_attributes(
             span_id: "0",
-            trace_id: format_for_correlation(trace_op.id),
+            trace_id: format_for_correlation(trace_op.id)
           )
         end
       end
@@ -2581,7 +2581,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               sampled?: sampled,
               sampling_priority: sampling_priority,
               service: be_a_copy_of(service),
-              remote_parent: true,
+              remote_parent: true
             )
           end
 

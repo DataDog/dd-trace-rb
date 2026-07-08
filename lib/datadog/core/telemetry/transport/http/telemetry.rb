@@ -28,7 +28,7 @@ module Datadog
                   env.headers[HEADER_CONTENT_TYPE] = encoder.content_type
                   env.headers.update(headers(
                     request_type: env.request.request_type,
-                    api_key: env.request.api_key,
+                    api_key: env.request.api_key
                   ))
                   env.body = env.request.parcel.data
 

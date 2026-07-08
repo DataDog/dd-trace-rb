@@ -10,7 +10,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
     let(:default_agent_settings) do
       Datadog::Core::Configuration::AgentSettingsResolver.call(
         Datadog::Core::Configuration::Settings.new,
-        logger: nil,
+        logger: nil
       )
     end
 

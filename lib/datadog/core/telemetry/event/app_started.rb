@@ -134,7 +134,7 @@ module Datadog
                 "DD_INJECTION_ENABLED",
                 DATADOG_ENV["DD_INJECTION_ENABLED"] || "",
                 (DATADOG_ENV.key?("DD_INJECTION_ENABLED") ? Configuration::Option::Precedence::ENVIRONMENT : Configuration::Option::Precedence::DEFAULT)
-              ),
+              )
             )
 
             # Extract writer options as separate configuration payloads.

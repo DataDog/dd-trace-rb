@@ -18,7 +18,7 @@ RSpec.describe Datadog::Tracing::Contrib::Stripe::Request do
       .to_return(
         status: 200,
         body: {id: "cus_123", object: "customer"}.to_json,
-        headers: {"Request-Id" => "abc-123-def-456"},
+        headers: {"Request-Id" => "abc-123-def-456"}
       )
   end
 

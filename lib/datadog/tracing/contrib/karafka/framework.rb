@@ -20,7 +20,7 @@ module Datadog
             datadog_config.tracing.instrument(
               :waterdrop,
               service_name: karafka_config[:service_name],
-              distributed_tracing: karafka_config[:distributed_tracing],
+              distributed_tracing: karafka_config[:distributed_tracing]
             )
           end
         end

@@ -100,7 +100,7 @@ module Datadog
             options = settings.runtime_metrics.opts.merge(
               enabled: settings.runtime_metrics.enabled,
               metrics: build_runtime_metrics(settings, logger, telemetry),
-              logger: logger,
+              logger: logger
             )
 
             Core::Workers::RuntimeMetrics.new(telemetry: telemetry, **options)
@@ -168,7 +168,7 @@ module Datadog
           self.class::PATCH_ONLY_ONCE.run do
             Utils::AtForkMonkeyPatch.apply!
             Utils::SpawnMonkeyPatch.apply!(
-              env_provider: Core::Environment::Identity.method(:runtime_propagation_envs),
+              env_provider: Core::Environment::Identity.method(:runtime_propagation_envs)
             )
 
             # Register callback that calls Components.after_fork
@@ -196,7 +196,7 @@ module Datadog
             settings: settings,
             agent_settings: agent_settings,
             optional_tracer: @tracer,
-            logger: @logger,
+            logger: @logger
           )
           @environment_logger_extra.merge!(profiler_logger_extra) if profiler_logger_extra
 
@@ -218,7 +218,7 @@ module Datadog
               Datadog::SymbolDatabase::Component.build(
                 settings, agent_settings, @logger,
                 telemetry: telemetry,
-                di_active: -> { dynamic_instrumentation&.started? || false },
+                di_active: -> { dynamic_instrumentation&.started? || false }
               )
             end
           @error_tracking = Datadog::ErrorTracking::Component.build(settings, @tracer, @logger)
@@ -391,7 +391,7 @@ module Datadog
           ComponentsState.new(
             telemetry_enabled: telemetry.enabled,
             remote_started: remote&.started?,
-            di_implicitly_enabled: di_implicit || false,
+            di_implicitly_enabled: di_implicit || false
           )
         end
       end

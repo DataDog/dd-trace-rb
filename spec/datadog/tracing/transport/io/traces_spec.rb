@@ -61,7 +61,7 @@ RSpec.describe Datadog::Tracing::Transport::IO::Traces::Encoder do
               expect(encoded_span).to include(
                 trace_id: span.trace_id.to_s(16),
                 span_id: span.id.to_s(16),
-                parent_id: span.parent_id.to_s(16),
+                parent_id: span.parent_id.to_s(16)
               )
             end
           end

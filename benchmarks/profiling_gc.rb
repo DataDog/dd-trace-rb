@@ -21,7 +21,7 @@ class ProfilerGcBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
 
       # The idea of this benchmark is to test the overall cost of the Ruby VM calling these methods on every GC.
@@ -39,7 +39,7 @@ class ProfilerGcBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
 
       # We cap the number of minor GC samples to not happen more often than TIME_BETWEEN_GC_EVENTS_NS (10)
@@ -65,7 +65,7 @@ class ProfilerGcBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
 
       x.report("Major GC runs (profiling disabled)", "GC.start")
@@ -84,7 +84,7 @@ class ProfilerGcBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
 
       x.report("Major GC runs (profiling enabled)", "GC.start")
@@ -98,7 +98,7 @@ class ProfilerGcBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
 
       x.report("Allocations (profiling disabled)", "Object.new")
@@ -117,7 +117,7 @@ class ProfilerGcBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
 
       x.report("Allocations (profiling enabled)", "Object.new")

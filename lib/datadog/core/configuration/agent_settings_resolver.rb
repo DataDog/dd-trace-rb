@@ -42,7 +42,7 @@ module Datadog
             hostname: hostname,
             port: port,
             uds_path: uds_path,
-            timeout_seconds: timeout_seconds,
+            timeout_seconds: timeout_seconds
           )
         end
 
@@ -79,15 +79,15 @@ module Datadog
           @configured_port = pick_from(
             try_parsing_as_integer(
               friendly_name: '"c.agent.port"',
-              value: settings.agent.port,
+              value: settings.agent.port
             ),
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL} environment variable",
-              value: parsed_http_url&.port,
+              value: parsed_http_url&.port
             ),
             try_parsing_as_integer(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_PORT} environment variable",
-              value: DATADOG_ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_PORT],
+              value: DATADOG_ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_PORT]
             )
           )
         end
@@ -98,11 +98,11 @@ module Datadog
           @configured_ssl = pick_from(
             DetectedConfiguration.new(
               friendly_name: '"c.agent.use_ssl"',
-              value: settings.agent.use_ssl,
+              value: settings.agent.use_ssl
             ),
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_URL} environment variable",
-              value: parsed_url_ssl?,
+              value: parsed_url_ssl?
             )
           )
         end
@@ -113,12 +113,12 @@ module Datadog
           @configured_timeout_seconds = pick_from(
             try_parsing_as_integer(
               friendly_name: '"c.agent.timeout_seconds"',
-              value: settings.agent.timeout_seconds,
+              value: settings.agent.timeout_seconds
             ),
             try_parsing_as_integer(
               friendly_name: "#{Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS} " \
                 "environment variable",
-              value: DATADOG_ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS],
+              value: DATADOG_ENV[Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_TIMEOUT_SECONDS]
             )
           )
         end
@@ -233,11 +233,11 @@ module Datadog
               [
                 DetectedConfiguration.new(
                   friendly_name: "configuration for unix domain socket",
-                  value: parsed_url.to_s,
+                  value: parsed_url.to_s
                 ),
                 DetectedConfiguration.new(
                   friendly_name: "configuration of hostname/port for http/https use",
-                  value: "hostname: '#{hostname}', port: '#{port}'",
+                  value: "hostname: '#{hostname}', port: '#{port}'"
                 ),
               ]
             )

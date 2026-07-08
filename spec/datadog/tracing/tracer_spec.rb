@@ -955,7 +955,7 @@ RSpec.describe Datadog::Tracing::Tracer do
           trace_origin: "synthetics",
           trace_sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP,
           trace_state: "my-state",
-          trace_state_unknown_fields: "any;field",
+          trace_state_unknown_fields: "any;field"
         )
       end
 
@@ -967,7 +967,7 @@ RSpec.describe Datadog::Tracing::Tracer do
             origin: digest.trace_origin,
             sampling_priority: digest.trace_sampling_priority,
             trace_state: "my-state",
-            trace_state_unknown_fields: "any;field",
+            trace_state_unknown_fields: "any;field"
           )
           expect(digest.span_remote).to be true
           expect(trace.to_digest.span_remote).to be false

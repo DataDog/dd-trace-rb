@@ -19,13 +19,13 @@ def skip_building_extension!(reason)
   $stderr.puts(
     Datadog::Profiling::NativeExtensionHelpers::Supported.failure_banner_for(
       **reason,
-      fail_install: fail_install_if_missing_extension,
+      fail_install: fail_install_if_missing_extension
     )
   )
 
   File.write(
     SKIPPED_REASON_FILE,
-    Datadog::Profiling::NativeExtensionHelpers::Supported.render_skipped_reason_file(**reason),
+    Datadog::Profiling::NativeExtensionHelpers::Supported.render_skipped_reason_file(**reason)
   )
 
   if fail_install_if_missing_extension
@@ -320,7 +320,7 @@ else
 
         headers_available
       end,
-      EXTENSION_NAME,
+      EXTENSION_NAME
     )
 end
 

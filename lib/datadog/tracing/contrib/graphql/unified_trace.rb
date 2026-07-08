@@ -102,7 +102,7 @@ module Datadog
                 end
               },
               ->(span) { add_query_error_events(span, query.context.errors) },
-              query: query,
+              query: query
             )
           end
 
@@ -291,7 +291,7 @@ module Datadog
                   @message_key => graphql_error["message"],
                   @locations_key =>
                     Datadog::Tracing::Contrib::GraphQL::UnifiedTrace.serialize_error_locations(graphql_error["locations"]),
-                  @path_key => graphql_error["path"],
+                  @path_key => graphql_error["path"]
                 )
               )
             end

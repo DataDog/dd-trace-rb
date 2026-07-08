@@ -663,7 +663,7 @@ RSpec.describe "AWS instrumentation" do
         client.describe_stream_consumer(
           stream_arn: "arn:aws:kinesis:us-east-1:123456789012:stream/my-stream", # required
           consumer_name: "cosumerName", # required
-          consumer_arn: "consumerArn", # required
+          consumer_arn: "consumerArn" # required
         )
       end
       let(:responses) do

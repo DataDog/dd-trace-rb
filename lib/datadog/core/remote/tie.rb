@@ -7,7 +7,7 @@ module Datadog
       module Tie
         Boot = Struct.new(
           :barrier,
-          :time,
+          :time
         )
 
         def self.boot

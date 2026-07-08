@@ -237,7 +237,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
             source_env: {"SUPPORTED_ENV_VAR" => "true"},
             supported_configurations: ["DD_SUPPORTED_ENV_VAR"],
             aliases: {"DD_SUPPORTED_ENV_VAR" => ["SUPPORTED_ENV_VAR"]},
-            alias_to_canonical: {"SUPPORTED_ENV_VAR" => "DD_SUPPORTED_ENV_VAR"},
+            alias_to_canonical: {"SUPPORTED_ENV_VAR" => "DD_SUPPORTED_ENV_VAR"}
           )
         end
 
@@ -267,7 +267,7 @@ RSpec.describe Datadog::Core::Configuration::ConfigHelper do
       subject do
         described_class.new(
           source_env: {"SOME_OTHER_VAR" => "value"},
-          supported_configurations: [],
+          supported_configurations: []
         )
       end
 

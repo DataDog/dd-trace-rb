@@ -137,7 +137,7 @@ RSpec.describe Datadog::DI::Remote do
         instance_double(
           Datadog::Core::Configuration::Components,
           dynamic_instrumentation: component,
-          telemetry: telemetry,
+          telemetry: telemetry
         )
       end
 

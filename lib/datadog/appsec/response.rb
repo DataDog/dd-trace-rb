@@ -44,7 +44,7 @@ module Datadog
                 security_response_id: interrupt_params["security_response_id"],
                 content_type: content_type
               )
-            ],
+            ]
           )
         end
 
@@ -59,7 +59,7 @@ module Datadog
           Response.new(
             status: ((status_code >= 300 && status_code < 400) ? status_code : 303),
             headers: {"Location" => location},
-            body: [],
+            body: []
           )
         end
 

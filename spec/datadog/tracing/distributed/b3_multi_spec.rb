@@ -29,7 +29,7 @@ RSpec.shared_examples "B3 Multi distributed format" do
       it do
         expect(data).to eq(
           "x-b3-spanid" => "0000000000000abc",
-          "x-b3-traceid" => "00000000000000000000000000000def",
+          "x-b3-traceid" => "00000000000000000000000000000def"
         )
       end
 
@@ -70,7 +70,7 @@ RSpec.shared_examples "B3 Multi distributed format" do
         it "cannot propagate origin" do
           expect(data).to eq(
             "x-b3-spanid" => "0000000000000abc",
-            "x-b3-traceid" => "00000000000000000000000000000def",
+            "x-b3-traceid" => "00000000000000000000000000000def"
           )
         end
       end
@@ -89,7 +89,7 @@ RSpec.shared_examples "B3 Multi distributed format" do
 
         expect(data).to eq(
           "x-b3-traceid" => "aaaaaaaaaaaaaaaaffffffffffffffff",
-          "x-b3-spanid" => "bbbbbbbbbbbbbbbb",
+          "x-b3-spanid" => "bbbbbbbbbbbbbbbb"
         )
       end
     end

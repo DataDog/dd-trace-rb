@@ -43,7 +43,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
               path.include?("extensions") && path.include?(expected_platform_fragment)
             end,
             "#{Gem.bindir}/ddprofrb",
-            "#{Bundler.bin_path}/ddprofrb",
+            "#{Bundler.bin_path}/ddprofrb"
           ),
         },
         {
@@ -51,7 +51,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           name: "rspec",
           version: start_with("3."), # This will one day need to be bumped for RSpec 4
           paths: contain_exactly(start_with("/")),
-        },
+        }
       )
     end
 
@@ -67,7 +67,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
             satisfy { |it| it.start_with?(Gem.dir) && !it.include?("extensions") },
             satisfy do |path|
               path.include?("extensions") && path.include?(expected_platform_fragment)
-            end,
+            end
           ),
         }
       )
@@ -79,7 +79,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
       expect(generate_result.find { |it| it[:name] == "rspec-core" }.fetch(:paths)).to contain_exactly(
         Gem.loaded_specs.fetch("rspec-core").gem_dir,
         "#{Gem.bindir}/rspec",
-        "#{Bundler.bin_path}/rspec",
+        "#{Bundler.bin_path}/rspec"
       )
 
       # Sanity checks
@@ -106,7 +106,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
             version: "not_loaded_version",
             gem_dir: "/not_loaded/",
             extensions: [],
-            executables: [],
+            executables: []
           ),
           instance_double(
             Gem::Specification,
@@ -114,9 +114,9 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
             version: "is_loaded_version",
             gem_dir: "/is_loaded/",
             extensions: [],
-            executables: [],
+            executables: []
           )
-        ],
+        ]
       )
 
       expect(generate_result).to have(1).item
@@ -124,7 +124,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
         kind: "library",
         name: "is_loaded",
         version: "is_loaded_version",
-        paths: contain_exactly("/is_loaded/"),
+        paths: contain_exactly("/is_loaded/")
       )
     end
 
@@ -166,7 +166,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           kind: "standard library",
           name: "stdlib",
           version: RUBY_VERSION.to_s,
-          paths: contain_exactly(start_with("/"), ruby_native_filename),
+          paths: contain_exactly(start_with("/"), ruby_native_filename)
         )
       end
     end
@@ -189,7 +189,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
               version: "1.2.3",
               gem_dir: "/dd-trace-rb",
               extensions: [],
-              executables: [],
+              executables: []
             ),
             instance_double(
               Gem::Specification,
@@ -197,9 +197,9 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
               version: "4.5.6",
               gem_dir: "/dd-trace-rb/vendor/bundle/ruby/2.7.0/gems/byebug-11.1.3",
               extensions: [],
-              executables: [],
+              executables: []
             )
-          ],
+          ]
         )
 
         expect(generate_result).to have(1).item
@@ -284,7 +284,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           kind: "library",
           version: start_with("3."), # This will one day need to be bumped for RSpec 4
           paths: include(start_with("/")),
-        },
+        }
       )
     end
 
@@ -348,7 +348,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           kind: "library",
           version: "1.2.3",
           path: "/example/path/to/datadog/gem",
-          extra_paths: ["/example/path/to/datadog/extensions"],
+          extra_paths: ["/example/path/to/datadog/extensions"]
         )
 
         serialized_without_to_json = YAML.dump(instance)
@@ -359,7 +359,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           "name" => "datadog",
           "kind" => "library",
           "version" => "1.2.3",
-          "paths" => ["/example/path/to/datadog/gem", "/example/path/to/datadog/extensions"],
+          "paths" => ["/example/path/to/datadog/gem", "/example/path/to/datadog/extensions"]
         )
       end
     end

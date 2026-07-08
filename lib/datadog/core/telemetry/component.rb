@@ -49,7 +49,7 @@ module Datadog
             settings: settings,
             agent_settings: agent_settings,
             enabled: enabled,
-            logger: logger,
+            logger: logger
           )
         end
 
@@ -66,7 +66,7 @@ module Datadog
 
           @metrics_manager = MetricsManager.new(
             enabled: @enabled && settings.telemetry.metrics_enabled,
-            aggregation_interval: settings.telemetry.metrics_aggregation_interval_seconds,
+            aggregation_interval: settings.telemetry.metrics_aggregation_interval_seconds
           )
 
           @stopped = false
@@ -81,18 +81,18 @@ module Datadog
               host_prefix: "instrumentation-telemetry-intake",
               url_override: settings.telemetry.agentless_url_override,
               url_override_source: "c.telemetry.agentless_url_override",
-              logger: logger,
+              logger: logger
             )
             Telemetry::Transport::HTTP.agentless_telemetry(
               agent_settings: telemetry_specific_agent_settings,
               logger: logger,
               # api_key should have already validated to be
               # not nil by +build+ method above.
-              api_key: settings.api_key,
+              api_key: settings.api_key
             )
           else
             Telemetry::Transport::HTTP.agent_telemetry(
-              agent_settings: agent_settings, logger: logger,
+              agent_settings: agent_settings, logger: logger
             )
           end
 
@@ -104,14 +104,14 @@ module Datadog
             emitter: Emitter.new(
               @transport,
               logger: @logger,
-              debug: settings.telemetry.debug,
+              debug: settings.telemetry.debug
             ),
             metrics_manager: @metrics_manager,
             dependency_collection: settings.telemetry.dependency_collection,
             logger: logger,
             settings: settings,
             agent_settings: agent_settings,
-            shutdown_timeout: settings.telemetry.shutdown_timeout_seconds,
+            shutdown_timeout: settings.telemetry.shutdown_timeout_seconds
           )
 
           @agent_settings = agent_settings
@@ -127,11 +127,11 @@ module Datadog
 
           initial_event = if initial_event_is_change
             Event::SynthAppClientConfigurationChange.new(
-              components: components,
+              components: components
             )
           else
             Event::AppStarted.new(
-              components: components,
+              components: components
             )
           end
 

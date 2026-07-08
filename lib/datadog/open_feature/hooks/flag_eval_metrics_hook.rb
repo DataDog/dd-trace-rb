@@ -31,7 +31,7 @@ module Datadog
             variant: evaluation_details.variant,
             reason: evaluation_details.reason,
             error_code: evaluation_details.error_code,
-            allocation_key: extract_allocation_key(evaluation_details),
+            allocation_key: extract_allocation_key(evaluation_details)
           )
         end
 

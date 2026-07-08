@@ -49,7 +49,7 @@ RSpec.describe Datadog::Tracing::Remote do
               ["DD_LOGS_INJECTION", nil],
               ["DD_TRACE_HEADER_TAGS", nil],
               ["DD_TRACE_SAMPLE_RATE", nil],
-              ["DD_TRACE_SAMPLING_RULES", nil],
+              ["DD_TRACE_SAMPLING_RULES", nil]
             ))
 
           process_config
@@ -68,7 +68,7 @@ RSpec.describe Datadog::Tracing::Remote do
               ["DD_LOGS_INJECTION", false],
               ["DD_TRACE_HEADER_TAGS", nil],
               ["DD_TRACE_SAMPLE_RATE", nil],
-              ["DD_TRACE_SAMPLING_RULES", nil],
+              ["DD_TRACE_SAMPLING_RULES", nil]
             ))
 
           process_config

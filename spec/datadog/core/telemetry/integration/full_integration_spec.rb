@@ -159,7 +159,7 @@ RSpec.describe "Telemetry full integration tests" do
         name: "DD_DYNAMIC_INSTRUMENTATION_ENABLED",
         value: false,
         origin: "default",
-        seq_id: 1,
+        seq_id: 1
       )
 
       events = []
@@ -192,7 +192,7 @@ RSpec.describe "Telemetry full integration tests" do
         name: "DD_DYNAMIC_INSTRUMENTATION_ENABLED",
         value: true,
         origin: "code",
-        seq_id: 5,
+        seq_id: 5
       )
     end
 

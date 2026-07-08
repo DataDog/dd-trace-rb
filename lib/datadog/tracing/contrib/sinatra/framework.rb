@@ -26,7 +26,7 @@ module Datadog
             datadog_config.tracing.instrument(
               :rack,
               service_name: sinatra_config[:service_name],
-              distributed_tracing: sinatra_config[:distributed_tracing],
+              distributed_tracing: sinatra_config[:distributed_tracing]
             )
           end
 

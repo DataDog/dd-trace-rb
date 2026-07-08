@@ -29,7 +29,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       labels_array,
       numeric_labels_array,
       native_filenames_enabled: native_filenames_enabled,
-      **options,
+      **options
     )
   end
 
@@ -137,7 +137,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         expect(reference_stack[0..2]).to contain_exactly(
           have_attributes(base_label: "sleep", path: expected_eval_path),
           have_attributes(base_label: "<top (required)>", path: expected_eval_path),
-          have_attributes(base_label: "eval", path: end_with("stack_spec.rb")),
+          have_attributes(base_label: "eval", path: end_with("stack_spec.rb"))
         )
       end
     end
@@ -180,7 +180,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           # `eval("foo")` we did `eval { foo }` then it is the block containing foo; eval with a string works similarly,
           # although you don't see a block there.
           have_attributes(base_label: "call_eval", path: expected_eval_path, lineno: 1),
-          have_attributes(base_label: "call_instance_eval", path: expected_eval_path, lineno: 1),
+          have_attributes(base_label: "call_instance_eval", path: expected_eval_path, lineno: 1)
         )
       end
     end
@@ -198,7 +198,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
       it "has a frame with the custom file and line provided on the stack" do
         expect(reference_stack).to include(
-          have_attributes(path: "/this/is/a/fake_file_.rb", lineno: -123456789),
+          have_attributes(path: "/this/is/a/fake_file_.rb", lineno: -123456789)
         )
       end
     end
@@ -292,7 +292,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: be_positive),
             # We expect the native filename for catch to be inside the Ruby VM -- either in the ruby binary or the libruby library
             # Note that this may not apply everywhere (e.g. you can rename your Ruby), but it seems sane enough to require this when running tests
-            have_attributes(base_label: "catch", path: end_with("/ruby").or(include("libruby").and(include(".so"))), lineno: 0),
+            have_attributes(base_label: "catch", path: end_with("/ruby").or(include("libruby").and(include(".so"))), lineno: 0)
           )
         end
       end
@@ -338,7 +338,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             # Bigdecimal is a native extension shipped separately from Ruby
             have_attributes(base_label: "save_rounding_mode", path: end_with("bigdecimal.so"), lineno: 0),
             # This is the frame in module_calling_super.save_rounding_mode (the one that calls super)
-            have_attributes(base_label: "save_rounding_mode", path: __FILE__, lineno: be_positive),
+            have_attributes(base_label: "save_rounding_mode", path: __FILE__, lineno: be_positive)
           )
         end
       end
@@ -491,7 +491,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           expect(sample.labels).to(
             include(state: "blocked"),
             "**If you see this test flaking, please report it to @ivoanjo!**\n\n" \
-            "sample: #{sample}",
+            "sample: #{sample}"
           )
         end
       end
@@ -659,7 +659,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         let(:expected_method_name) { "_native_idle_sampling_loop" }
         let(:thread_context_collector) {
           Datadog::Profiling::Collectors::ThreadContext.for_testing(
-            recorder: Datadog::Profiling::StackRecorder.for_testing,
+            recorder: Datadog::Profiling::StackRecorder.for_testing
           )
         }
         let(:idle_sampling_helper) { Datadog::Profiling::Collectors::IdleSamplingHelper.new(thread_context_collector: thread_context_collector) }
@@ -708,7 +708,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         expect(gathered_stack).to include(
           have_attributes(
             path: "/myapp/app/views/layouts/explore.html.haml",
-            base_label: "_app_views_layouts_explore_html_haml",
+            base_label: "_app_views_layouts_explore_html_haml"
           )
         )
       end
@@ -720,7 +720,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           expect(gathered_stack).to include(
             have_attributes(
               path: "/myapp/app/views/layouts/explore.html.haml",
-              base_label: "_app_views_layouts_explore_html_haml",
+              base_label: "_app_views_layouts_explore_html_haml"
             )
           )
         end
@@ -779,7 +779,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         have_attributes(base_label: "deep_stack_4"),
         have_attributes(base_label: "deep_stack_3"),
         have_attributes(base_label: "thread_with_stack_depth"),
-        have_attributes(base_label: "initialize"),
+        have_attributes(base_label: "initialize")
       )
     end
 

@@ -192,7 +192,7 @@ module Datadog
                 args, kwargs, target_block, # steep:ignore FallbackAny
                 self,
                 probe, responder,
-                loc, method_name,
+                loc, method_name
               ) do
                 super(*args, **kwargs, &target_block) # steep:ignore FallbackAny
               end
@@ -212,7 +212,7 @@ module Datadog
                 pos_args, kwargs, target_block,
                 self,
                 probe, responder,
-                loc, method_name,
+                loc, method_name
               ) do
                 super(*args, &target_block)
               end
@@ -477,7 +477,7 @@ module Datadog
               context = Context.new(
                 locals: serializer.combine_args(args, kwargs, target_self),
                 target_self: target_self,
-                probe: probe, settings: settings, serializer: serializer,
+                probe: probe, settings: settings, serializer: serializer
               )
               continue = condition.satisfied?(context)
             rescue Exception => exc # standard:disable Lint/RescueException
@@ -588,7 +588,7 @@ module Datadog
               probe: probe, settings: settings, serializer: serializer,
               serialized_entry_args: serialized_entry_args,
               caller_locations: caller_locs,
-              return_value: rv, duration: duration, exception: exc,)
+              return_value: rv, duration: duration, exception: exc)
 
             begin
               responder.probe_executed_callback(context)
@@ -787,7 +787,7 @@ module Datadog
           settings: settings,
           serializer: serializer,
           path: tp.path,
-          caller_locations: stack,
+          caller_locations: stack
         )
       end
 

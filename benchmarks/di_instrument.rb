@@ -119,7 +119,7 @@ class DIInstrumentBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
 
       x.report("no instrumentation") do
@@ -155,7 +155,7 @@ class DIInstrumentBenchmark
 
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
       type_name: "DIInstrumentBenchmark::Target", method_name: "test_method",
-      rate_limit: 1_000_000,)
+      rate_limit: 1_000_000)
     responder = Datadog::DI::ProcResponder.new(executed_proc)
     rv = instrumenter.hook_method(probe, responder)
     unless rv
@@ -165,7 +165,7 @@ class DIInstrumentBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
 
       x.report("method instrumentation - rate_limit=1M (firing)") do
@@ -189,7 +189,7 @@ class DIInstrumentBenchmark
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
       type_name: "DIInstrumentBenchmark::Target", method_name: "test_method",
-      rate_limit: 1,)
+      rate_limit: 1)
     responder = Datadog::DI::ProcResponder.new(executed_proc)
     rv = instrumenter.hook_method(probe, responder)
     unless rv
@@ -199,7 +199,7 @@ class DIInstrumentBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
 
       x.report("method instrumentation - rate_limit=1 (skip)") do
@@ -234,7 +234,7 @@ class DIInstrumentBenchmark
 
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
-      file: file, line_no: line + 1, rate_limit: 1_000_000,)
+      file: file, line_no: line + 1, rate_limit: 1_000_000)
     responder = Datadog::DI::ProcResponder.new(executed_proc)
     rv = instrumenter.hook_line(probe, responder)
     unless rv
@@ -244,7 +244,7 @@ class DIInstrumentBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
       x.report("line instrumentation - untargeted - rate_limit=1M (firing)") do
         Target.new.test_method_for_line_probe
@@ -266,7 +266,7 @@ class DIInstrumentBenchmark
 
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
-      file: file, line_no: line + 1, rate_limit: 1,)
+      file: file, line_no: line + 1, rate_limit: 1)
     responder = Datadog::DI::ProcResponder.new(executed_proc)
     rv = instrumenter.hook_line(probe, responder)
     unless rv
@@ -276,7 +276,7 @@ class DIInstrumentBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
       x.report("line instrumentation - untargeted - rate_limit=1 (skip)") do
         Target.new.test_method_for_line_probe
@@ -314,7 +314,7 @@ class DIInstrumentBenchmark
 
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
-      file: targeted_file, line_no: targeted_line + 1, rate_limit: 1_000_000,)
+      file: targeted_file, line_no: targeted_line + 1, rate_limit: 1_000_000)
     responder = Datadog::DI::ProcResponder.new(executed_proc)
     rv = instrumenter.hook_line(probe, responder)
     unless rv
@@ -324,7 +324,7 @@ class DIInstrumentBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
 
       x.report("line instrumentation - targeted - rate_limit=1M (firing)") do
@@ -347,7 +347,7 @@ class DIInstrumentBenchmark
 
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
-      file: targeted_file, line_no: targeted_line + 1, rate_limit: 1,)
+      file: targeted_file, line_no: targeted_line + 1, rate_limit: 1)
     responder = Datadog::DI::ProcResponder.new(executed_proc)
     rv = instrumenter.hook_line(probe, responder)
     unless rv
@@ -357,7 +357,7 @@ class DIInstrumentBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
 
       x.report("line instrumentation - targeted - rate_limit=1 (skip)") do
@@ -386,7 +386,7 @@ class DIInstrumentBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
 
       # This benchmark should produce identical results to the
@@ -406,7 +406,7 @@ class DIInstrumentBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
 
       # This benchmark should produce identical results to the
@@ -426,7 +426,7 @@ class DIInstrumentBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
 
       x.report("no instrumentation - again") do

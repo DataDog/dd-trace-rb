@@ -176,7 +176,7 @@ module Datadog
             span_links: [link],
             baggage: extracted_trace_digest.baggage,
             trace_distributed_tags: baggage_tags,
-            span_remote: false,
+            span_remote: false
           )
         end
 

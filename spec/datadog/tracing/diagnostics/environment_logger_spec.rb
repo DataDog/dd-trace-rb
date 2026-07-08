@@ -49,7 +49,7 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
           "sample_rate" => nil,
           "sampling_rules" => nil,
           "integrations_loaded" => nil,
-          "partial_flushing_enabled" => false,
+          "partial_flushing_enabled" => false
         )
       end
     end
@@ -64,7 +64,7 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
             "http_analytics_enabled" => "false",
             "http_analytics_sample_rate" => "1.0",
             "http_distributed_tracing" => "true",
-            "http_split_by_domain" => "false",
+            "http_split_by_domain" => "false"
           )
         end
 
@@ -140,7 +140,7 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
           sample_rate: nil,
           sampling_rules: nil,
           integrations_loaded: nil,
-          partial_flushing_enabled: false,
+          partial_flushing_enabled: false
         )
       end
 

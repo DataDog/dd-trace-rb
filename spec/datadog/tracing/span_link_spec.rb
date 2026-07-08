@@ -13,7 +13,7 @@ RSpec.describe Datadog::Tracing::SpanLink do
       span_id: span_id,
       trace_id: trace_id,
       trace_sampling_priority: trace_flags,
-      trace_state: trace_state,
+      trace_state: trace_state
     )
   end
   let(:span_id) { nil }
@@ -32,7 +32,7 @@ RSpec.describe Datadog::Tracing::SpanLink do
           attributes: {},
           trace_id: nil,
           trace_flags: nil,
-          trace_state: nil,
+          trace_state: nil
         )
       end
     end

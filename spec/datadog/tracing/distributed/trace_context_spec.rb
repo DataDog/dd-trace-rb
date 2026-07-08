@@ -254,7 +254,7 @@ RSpec.shared_examples "Trace Context distributed format" do
             trace_id: 0xC0FFEE,
             span_id: 0xBEE,
             trace_distributed_tags: {},
-            span_remote: remote,
+            span_remote: remote
           )
         end
 

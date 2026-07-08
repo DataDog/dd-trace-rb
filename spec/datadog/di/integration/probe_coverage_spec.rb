@@ -97,7 +97,7 @@ RSpec.describe "DI probe coverage across enablement timing" do
           type: :log,
           file: "probe_coverage_line_pre_target_class.rb",
           line_no: 13, # `answer = 42` in the pre-fixture
-          capture_snapshot: false,
+          capture_snapshot: false
         )
       end
 
@@ -133,7 +133,7 @@ RSpec.describe "DI probe coverage across enablement timing" do
           type: :log,
           file: "probe_coverage_line_post_target_class.rb",
           line_no: 10, # `answer = 42` in the post-fixture
-          capture_snapshot: false,
+          capture_snapshot: false
         )
       end
 
@@ -169,7 +169,7 @@ RSpec.describe "DI probe coverage across enablement timing" do
           type: :log,
           type_name: "ProbeCoverageMethodPreTargetClass",
           method_name: "target_method",
-          capture_snapshot: false,
+          capture_snapshot: false
         )
       end
 
@@ -193,7 +193,7 @@ RSpec.describe "DI probe coverage across enablement timing" do
           type: :log,
           type_name: "ProbeCoverageMethodPostTargetClass",
           method_name: "target_method",
-          capture_snapshot: false,
+          capture_snapshot: false
         )
       end
 

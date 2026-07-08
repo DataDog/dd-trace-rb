@@ -151,7 +151,7 @@ module Datadog
           value: result.value,
           variant: result.variant,
           reason: result.reason,
-          flag_metadata: flag_meta,
+          flag_metadata: flag_meta
         )
       end
 

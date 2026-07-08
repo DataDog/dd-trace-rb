@@ -33,7 +33,7 @@ module Datadog
               name: "stdlib",
               version: RUBY_VERSION,
               path: standard_library_path,
-              extra_paths: [ruby_native_filename],
+              extra_paths: [ruby_native_filename]
             )
           )
         end
@@ -103,7 +103,7 @@ module Datadog
                 name: spec.name,
                 version: spec.version,
                 path: spec.gem_dir,
-                extra_paths: extra_paths,
+                extra_paths: extra_paths
               )
             )
             recorded_library = true

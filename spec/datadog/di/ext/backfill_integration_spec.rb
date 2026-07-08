@@ -93,7 +93,7 @@ RSpec.describe "CodeTracker backfill integration" do
       Datadog::DI::Probe.new(
         id: "backfill-test-1", type: :log,
         file: "backfill_integration_test_class.rb", line_no: 22,
-        capture_snapshot: false,
+        capture_snapshot: false
       )
     end
 
@@ -119,7 +119,7 @@ RSpec.describe "CodeTracker backfill integration" do
         Datadog::DI::Probe.new(
           id: "backfill-test-2", type: :log,
           file: "backfill_integration_test_class.rb", line_no: 22,
-          capture_snapshot: true,
+          capture_snapshot: true
         )
       end
 

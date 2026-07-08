@@ -719,7 +719,7 @@ module Datadog
           Symbol.new(
             symbol_type: "ARG",
             name: param_name.to_s,
-            line: UNKNOWN_MIN_LINE,  # Parameters available in entire method
+            line: UNKNOWN_MIN_LINE  # Parameters available in entire method
           )
         end
       rescue Exception => e # standard:disable Lint/RescueException
@@ -973,7 +973,7 @@ module Datadog
           start_line: UNKNOWN_MIN_LINE,
           end_line: UNKNOWN_MAX_LINE,
           language_specifics: lang,
-          scopes: root[:children].values.map { |child| convert_node_to_scope(child) },
+          scopes: root[:children].values.map { |child| convert_node_to_scope(child) }
         )
       end
 

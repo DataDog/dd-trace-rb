@@ -8,7 +8,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       settings: settings,
       agent_settings: agent_settings,
       logger: logger,
-      enabled: enabled,
+      enabled: enabled
     )
   end
 
@@ -110,7 +110,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
           enabled: enabled,
           logger: logger,
           settings: settings,
-          agent_settings: agent_settings,
+          agent_settings: agent_settings
         )
       end
 

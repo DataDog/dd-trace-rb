@@ -232,7 +232,7 @@ module Datadog
           probe,
           message: "Probe #{probe.id} disabled: snapshot JSON encoding failed (#{exception.class}: #{exception})",
           status: "ERROR",
-          exception: exception,
+          exception: exception
         )
         add_status(payload, probe: probe)
       end
@@ -241,7 +241,7 @@ module Datadog
         # DEV: The tags could be cached but they need to be recreated
         # when process forks (since the child receives new runtime IDs).
         Core::TagBuilder.tags(settings).merge(
-          "debugger_version" => Core::Environment::Identity.gem_datadog_version,
+          "debugger_version" => Core::Environment::Identity.gem_datadog_version
         )
       end
 

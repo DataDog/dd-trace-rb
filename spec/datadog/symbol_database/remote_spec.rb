@@ -136,7 +136,7 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
           components = instance_double(
             Datadog::Core::Configuration::Components,
             symbol_database: nil,
-            telemetry: telemetry,
+            telemetry: telemetry
           )
           allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(components)
         end
@@ -151,7 +151,7 @@ RSpec.describe Datadog::SymbolDatabase::Remote do
           components = instance_double(
             Datadog::Core::Configuration::Components,
             symbol_database: component,
-            telemetry: telemetry,
+            telemetry: telemetry
           )
           allow(Datadog).to receive(:send).with(:components, allow_initialization: false).and_return(components)
         end

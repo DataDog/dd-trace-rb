@@ -8,7 +8,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
     described_class.new(
       global_cap: global_cap,
       per_flag_cap: per_flag_cap,
-      degraded_cap: degraded_cap,
+      degraded_cap: degraded_cap
     )
   end
 
@@ -95,7 +95,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
         "groups.3" => "",
         "profile." => 1,
         "profile.plan" => "pro",
-        "profile.what" => "",
+        "profile.what" => ""
       )
       expect(pruned).not_to have_key("groups.2")
     end
@@ -298,7 +298,7 @@ RSpec.describe Datadog::OpenFeature::FlagEvaluation::Aggregator do
     it "resets full and degraded maps after flush" do
       aggregator.record(
         flag_key: "f", variant: "v", allocation_key: "",
-        targeting_key: "", eval_time_ms: 1000, attrs: {},
+        targeting_key: "", eval_time_ms: 1000, attrs: {}
       )
       aggregator.flush_and_reset
       snapshot2 = aggregator.flush_and_reset

@@ -217,7 +217,7 @@ module Datadog
                 eval_time_ms: event[:eval_time_ms].to_i,
                 attrs: event[:attrs].is_a?(Hash) ? event[:attrs] : {},
                 error_message: event[:error_message],
-                runtime_default: event[:runtime_default],
+                runtime_default: event[:runtime_default]
               )
               drained += 1
             rescue ThreadError
@@ -280,7 +280,7 @@ module Datadog
             flag_key, variant, allocation_key, _runtime_default, _error_message, targeting_key, _ctx_key = key
             event = build_event(
               flag_key: flag_key, variant: variant, allocation_key: allocation_key,
-              targeting_key: targeting_key, entry: entry, flush_time_ms: flush_time_ms, tier: :full,
+              targeting_key: targeting_key, entry: entry, flush_time_ms: flush_time_ms, tier: :full
             )
             events << event
           end
@@ -289,7 +289,7 @@ module Datadog
             flag_key, variant, allocation_key, _runtime_default, _error_message = key
             event = build_event(
               flag_key: flag_key, variant: variant, allocation_key: allocation_key,
-              targeting_key: nil, entry: entry, flush_time_ms: flush_time_ms, tier: :degraded,
+              targeting_key: nil, entry: entry, flush_time_ms: flush_time_ms, tier: :degraded
             )
             events << event
           end

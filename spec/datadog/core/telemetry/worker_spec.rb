@@ -16,7 +16,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
       dependency_collection: dependency_collection,
       logger: logger,
       settings: settings,
-      agent_settings: agent_settings,
+      agent_settings: agent_settings
     )
   end
 
@@ -481,7 +481,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
             dependency_collection: dependency_collection,
             logger: logger,
             settings: settings,
-            agent_settings: agent_settings,
+            agent_settings: agent_settings
           )
 
           worker.perform

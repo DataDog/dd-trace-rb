@@ -73,7 +73,7 @@ class OpenFeatureFlagevaluationBenchmark
     @hook_contexts_by_profile = BENCHMARK_PROFILES.each_with_object({}) do |profile, contexts_by_profile|
       contexts_by_profile[profile.name] = HookContext.new(
         "bench-flag-#{profile.num_flags}",
-        EvpEvalContext.new("bench-user-#{profile.num_users}", @attrs_by_profile[profile.name]),
+        EvpEvalContext.new("bench-user-#{profile.num_users}", @attrs_by_profile[profile.name])
       )
     end
 
@@ -143,7 +143,7 @@ class OpenFeatureFlagevaluationBenchmark
             allocation_key: "allocation-7",
             targeting_key: targeting_keys[counter % targeting_keys.length],
             eval_time_ms: 1_760_000_000_000 + counter,
-            attrs: attrs,
+            attrs: attrs
           )
           counter += 1
         end
@@ -183,7 +183,7 @@ class OpenFeatureFlagevaluationBenchmark
               allocation_key: "allocation-7",
               targeting_key: targeting_keys[counter % targeting_keys.length],
               eval_time_ms: 1_760_000_000_000 + counter,
-              attrs: attrs,
+              attrs: attrs
             )
             counter += worker_count
           end

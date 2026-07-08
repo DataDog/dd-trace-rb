@@ -134,11 +134,11 @@ module Datadog
       extra_relative_rpaths = [
         libdatadog_folder_relative_to_native_lib_folder(
           extconf_folder: extconf_folder,
-          libdatadog_pkgconfig_folder: libdatadog_pkgconfig_folder,
+          libdatadog_pkgconfig_folder: libdatadog_pkgconfig_folder
         ),
         *libdatadog_folder_relative_to_ruby_extensions_folders(
           gem_dir: gem_dir,
-          libdatadog_pkgconfig_folder: libdatadog_pkgconfig_folder,
+          libdatadog_pkgconfig_folder: libdatadog_pkgconfig_folder
         ),
       ]
       extra_relative_rpaths.each { |folder| $LDFLAGS << " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{folder}" }

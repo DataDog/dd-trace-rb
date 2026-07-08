@@ -25,28 +25,28 @@ RSpec.shared_examples "Baggage distributed format" do
     context "with TraceDigest" do
       let(:digest) do
         Datadog::Tracing::TraceDigest.new(
-          baggage: {"key" => "value"},
+          baggage: {"key" => "value"}
         )
       end
 
       it do
         inject!
         expect(data).to eq(
-          "baggage" => "key=value",
+          "baggage" => "key=value"
         )
       end
 
       context "with multiple key value" do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
-            baggage: {"key" => "value", "key2" => "value2"},
+            baggage: {"key" => "value", "key2" => "value2"}
           )
         end
 
         it do
           inject!
           expect(data).to eq(
-            "baggage" => "key=value,key2=value2",
+            "baggage" => "key=value,key2=value2"
           )
         end
       end
@@ -56,7 +56,7 @@ RSpec.shared_examples "Baggage distributed format" do
           Datadog::Tracing::TraceDigest.new(
             baggage: {'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$&\'*+-.^_`|~' =>
             'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$&\'()*+-./:<>?@[]^_`{|}~',
-                      "key2" => "value2"},
+                      "key2" => "value2"}
           )
         end
 
@@ -64,7 +64,7 @@ RSpec.shared_examples "Baggage distributed format" do
           inject!
           expect(data).to eq(
             "baggage" => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$&\'*+-.^' \
-            '_`|~=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$&\'()*+-./:<>?@[]^_`{|}~,key2=value2',
+            '_`|~=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$&\'()*+-./:<>?@[]^_`{|}~,key2=value2'
           )
         end
       end
@@ -72,14 +72,14 @@ RSpec.shared_examples "Baggage distributed format" do
       context "with special disallowed characters" do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
-            baggage: {"key with=spacesand%" => "value with=spaces"},
+            baggage: {"key with=spacesand%" => "value with=spaces"}
           )
         end
 
         it do
           inject!
           expect(data).to eq(
-            "baggage" => "key%20with%3Dspacesand%25=value%20with%3Dspaces",
+            "baggage" => "key%20with%3Dspacesand%25=value%20with%3Dspaces"
           )
         end
       end
@@ -87,14 +87,14 @@ RSpec.shared_examples "Baggage distributed format" do
       context "with other special disallowed characters" do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
-            baggage: {"userId" => "Amélie"},
+            baggage: {"userId" => "Amélie"}
           )
         end
 
         it do
           inject!
           expect(data).to eq(
-            "baggage" => "userId=Am%C3%A9lie",
+            "baggage" => "userId=Am%C3%A9lie"
           )
         end
       end

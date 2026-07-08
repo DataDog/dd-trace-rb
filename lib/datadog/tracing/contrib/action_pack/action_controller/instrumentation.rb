@@ -28,7 +28,7 @@ module Datadog
                 Ext::SPAN_ACTION_CONTROLLER,
                 service: service,
                 type: type,
-                resource: "#{payload.fetch(:controller)}##{payload.fetch(:action)}",
+                resource: "#{payload.fetch(:controller)}##{payload.fetch(:action)}"
               )
               trace = Tracing.active_trace
 

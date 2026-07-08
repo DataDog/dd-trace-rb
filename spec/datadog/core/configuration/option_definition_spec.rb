@@ -447,7 +447,7 @@ RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
         :type,
         :type_options,
         :env,
-        :env_parser,
+        :env_parser
       )
     end
   end

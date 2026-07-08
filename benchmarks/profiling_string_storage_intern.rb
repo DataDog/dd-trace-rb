@@ -16,7 +16,7 @@ class ProfilerStringStorageIntern
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
       x.report("intern_all 1000 repeated strings") do
         Datadog::Profiling::StackRecorder::Testing._native_benchmark_intern(@recorder, "hello, world!", 1000, true)
@@ -29,7 +29,7 @@ class ProfilerStringStorageIntern
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
 
       x.report("intern mixed existing and new") do

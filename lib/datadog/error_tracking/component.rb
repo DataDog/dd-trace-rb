@@ -25,7 +25,7 @@ module Datadog
           new(
             tracer: tracer,
             handled_errors: settings.error_tracking.handled_errors,
-            handled_errors_include: settings.error_tracking.handled_errors_include,
+            handled_errors_include: settings.error_tracking.handled_errors_include
           ).tap(&:start)
         end
 

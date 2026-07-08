@@ -175,13 +175,13 @@ RSpec.describe "GraphQL integration tests",
             expect(last_response.body).to eq({"data" => {"user" => {"name" => "Bits"}}}.to_json)
             expect(spans).to include(
               an_object_having_attributes(
-                name: "graphql.parse",
+                name: "graphql.parse"
               ),
               an_object_having_attributes(
-                name: "graphql.execute_multiplex",
+                name: "graphql.execute_multiplex"
               ),
               an_object_having_attributes(
-                name: "graphql.execute",
+                name: "graphql.execute"
               )
             )
           end
@@ -199,13 +199,13 @@ RSpec.describe "GraphQL integration tests",
             expect(last_response.body).to eq({"data" => {"userByName" => {"id" => "1"}}}.to_json)
             expect(spans).to include(
               an_object_having_attributes(
-                name: "graphql.parse",
+                name: "graphql.parse"
               ),
               an_object_having_attributes(
-                name: "graphql.execute_multiplex",
+                name: "graphql.execute_multiplex"
               ),
               an_object_having_attributes(
-                name: "graphql.execute",
+                name: "graphql.execute"
               )
             )
           end
@@ -225,15 +225,15 @@ RSpec.describe "GraphQL integration tests",
             )
             expect(spans).to include(
               an_object_having_attributes(
-                name: "graphql.parse",
+                name: "graphql.parse"
               ),
               an_object_having_attributes(
-                name: "graphql.execute_multiplex",
+                name: "graphql.execute_multiplex"
               )
             )
             expect(spans).not_to include(
               an_object_having_attributes(
-                name: "graphql.execute",
+                name: "graphql.execute"
               )
             )
           end
@@ -257,13 +257,13 @@ RSpec.describe "GraphQL integration tests",
             )
             expect(spans).to include(
               an_object_having_attributes(
-                name: "graphql.parse",
+                name: "graphql.parse"
               ),
               an_object_having_attributes(
-                name: "graphql.execute_multiplex",
+                name: "graphql.execute_multiplex"
               ),
               an_object_having_attributes(
-                name: "graphql.execute",
+                name: "graphql.execute"
               )
             )
           end
@@ -299,15 +299,15 @@ RSpec.describe "GraphQL integration tests",
             )
             expect(spans).to include(
               an_object_having_attributes(
-                name: "graphql.parse",
+                name: "graphql.parse"
               ),
               an_object_having_attributes(
-                name: "graphql.execute_multiplex",
+                name: "graphql.execute_multiplex"
               )
             )
             expect(spans).not_to include(
               an_object_having_attributes(
-                name: "graphql.execute",
+                name: "graphql.execute"
               )
             )
           end
@@ -354,13 +354,13 @@ RSpec.describe "GraphQL integration tests",
             )
             expect(spans).to include(
               an_object_having_attributes(
-                name: "graphql.parse",
+                name: "graphql.parse"
               ),
               an_object_having_attributes(
-                name: "graphql.execute_multiplex",
+                name: "graphql.execute_multiplex"
               ),
               an_object_having_attributes(
-                name: "graphql.execute",
+                name: "graphql.execute"
               )
             )
           end
@@ -394,17 +394,17 @@ RSpec.describe "GraphQL integration tests",
             )
             expect(spans).to include(
               an_object_having_attributes(
-                name: "graphql.parse",
+                name: "graphql.parse"
               )
             ).twice
             expect(spans).to include(
               an_object_having_attributes(
-                name: "graphql.execute_multiplex",
+                name: "graphql.execute_multiplex"
               )
             ).once
             expect(spans).to include(
               an_object_having_attributes(
-                name: "graphql.execute",
+                name: "graphql.execute"
               )
             ).twice
           end
@@ -435,17 +435,17 @@ RSpec.describe "GraphQL integration tests",
             )
             expect(spans).to include(
               an_object_having_attributes(
-                name: "graphql.parse",
+                name: "graphql.parse"
               )
             ).twice
             expect(spans).to include(
               an_object_having_attributes(
-                name: "graphql.execute_multiplex",
+                name: "graphql.execute_multiplex"
               )
             ).once
             expect(spans).not_to include(
               an_object_having_attributes(
-                name: "graphql.execute",
+                name: "graphql.execute"
               )
             )
           end
@@ -474,13 +474,13 @@ RSpec.describe "GraphQL integration tests",
             )
             expect(spans).to include(
               an_object_having_attributes(
-                name: "graphql.parse",
+                name: "graphql.parse"
               ),
               an_object_having_attributes(
-                name: "graphql.execute_multiplex",
+                name: "graphql.execute_multiplex"
               ),
               an_object_having_attributes(
-                name: "graphql.execute",
+                name: "graphql.execute"
               )
             )
           end
@@ -509,17 +509,17 @@ RSpec.describe "GraphQL integration tests",
             )
             expect(spans).to include(
               an_object_having_attributes(
-                name: "graphql.parse",
+                name: "graphql.parse"
               )
             ).once
             expect(spans).to include(
               an_object_having_attributes(
-                name: "graphql.execute_multiplex",
+                name: "graphql.execute_multiplex"
               )
             ).once
             expect(spans).to include(
               an_object_having_attributes(
-                name: "graphql.execute",
+                name: "graphql.execute"
               )
             ).once
           end
@@ -546,17 +546,17 @@ RSpec.describe "GraphQL integration tests",
             )
             expect(spans).to include(
               an_object_having_attributes(
-                name: "graphql.parse",
+                name: "graphql.parse"
               )
             ).once
             expect(spans).to include(
               an_object_having_attributes(
-                name: "graphql.execute_multiplex",
+                name: "graphql.execute_multiplex"
               )
             ).once
             expect(spans).not_to include(
               an_object_having_attributes(
-                name: "graphql.execute",
+                name: "graphql.execute"
               )
             )
           end

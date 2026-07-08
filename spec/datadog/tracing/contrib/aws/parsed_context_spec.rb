@@ -28,7 +28,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::ParsedContext do
           region: "us-west-2",
           retry_attempts: 0,
           path: "/",
-          http_response: be_kind_of(Seahorse::Client::Http::Response),
+          http_response: be_kind_of(Seahorse::Client::Http::Response)
         )
       end
 

@@ -55,7 +55,7 @@ module Datadog
                 Ext::SPAN_ROUTE,
                 service: configuration[:service_name],
                 type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
-                resource: "#{request.request_method} #{datadog_route}",
+                resource: "#{request.request_method} #{datadog_route}"
               ) do |span, trace|
                 span.set_tag(Tracing::Metadata::Ext::TAG_SVC_SRC, Ext::TAG_COMPONENT)
                 span.set_tag(Ext::TAG_APP_NAME, settings.name || settings.superclass.name)

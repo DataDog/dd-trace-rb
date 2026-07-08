@@ -59,7 +59,7 @@ RSpec.describe Datadog::Tracing::Correlation do
         instance_double(
           Datadog::Tracing::TraceDigest,
           span_id: span_id,
-          trace_id: trace_id,
+          trace_id: trace_id
         )
       end
 
@@ -213,7 +213,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             service: "acme-api",
             version: "1.0",
             span_id: span_id,
-            trace_id: trace_id,
+            trace_id: trace_id
           )
 
           expect(identifier.to_h).to eq(
@@ -238,7 +238,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             service: nil,
             version: nil,
             span_id: nil,
-            trace_id: nil,
+            trace_id: nil
           )
 
           expect(identifier.to_h).to eq(
@@ -267,7 +267,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             service: service,
             span_id: span_id,
             trace_id: trace_id,
-            version: version,
+            version: version
           )
         end
 

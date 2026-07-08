@@ -94,14 +94,14 @@ module Datadog
         # Validation for this check is done in extconf.rb because it relies on mkmf
         FAILED_TO_CONFIGURE_LIBDATADOG = explain_issue(
           "there was a problem in setting up the `libdatadog` dependency.",
-          suggested: CONTACT_SUPPORT,
+          suggested: CONTACT_SUPPORT
         )
 
         # Validation for this check is done in extconf.rb because it relies on mkmf
         COMPILATION_BROKEN = explain_issue(
           "compilation of the Ruby VM just-in-time header failed.",
           "Your C compiler or Ruby VM just-in-time compiler seem to be broken.",
-          suggested: CONTACT_SUPPORT,
+          suggested: CONTACT_SUPPORT
         )
 
         # Validation for this check is done in extconf.rb because it relies on mkmf
@@ -109,7 +109,7 @@ module Datadog
           "your C compiler is missing support for the <stdatomic.h> header.",
           "This issue can usually be fixed by upgrading to a later version of your",
           "operating system image or compiler.",
-          suggested: CONTACT_SUPPORT,
+          suggested: CONTACT_SUPPORT
         )
 
         private_class_method def self.disabled_via_env?
@@ -121,7 +121,7 @@ module Datadog
           disabled_via_env = explain_issue(
             "the `DD_PROFILING_NO_EXTENSION` environment variable is/was set to",
             "`true` during installation.",
-            suggested: report_disabled,
+            suggested: report_disabled
           )
 
           return unless ENV[ENV_NO_EXTENSION].to_s.strip.downcase == "true"
@@ -132,7 +132,7 @@ module Datadog
         private_class_method def self.on_jruby?
           jruby_not_supported = explain_issue(
             "JRuby is not supported by the Datadog Continuous Profiler.",
-            suggested: GET_IN_TOUCH,
+            suggested: GET_IN_TOUCH
           )
 
           jruby_not_supported if RUBY_ENGINE == "jruby"
@@ -141,7 +141,7 @@ module Datadog
         private_class_method def self.on_truffleruby?
           truffleruby_not_supported = explain_issue(
             "TruffleRuby is not supported by the datadog gem.",
-            suggested: GET_IN_TOUCH,
+            suggested: GET_IN_TOUCH
           )
 
           truffleruby_not_supported if RUBY_ENGINE == "truffleruby"
@@ -152,7 +152,7 @@ module Datadog
         private_class_method def self.on_windows?
           windows_not_supported = explain_issue(
             "Microsoft Windows is not supported by the Datadog Continuous Profiler.",
-            suggested: GET_IN_TOUCH,
+            suggested: GET_IN_TOUCH
           )
 
           windows_not_supported if Gem.win_platform?
@@ -161,7 +161,7 @@ module Datadog
         private_class_method def self.on_macos?
           macos_not_supported = explain_issue(
             "macOS is currently not supported by the Datadog Continuous Profiler.",
-            suggested: GET_IN_TOUCH,
+            suggested: GET_IN_TOUCH
           )
           # For development only; not supported otherwise
           macos_testing_override = ENV["DD_PROFILING_MACOS_TESTING"] == "true"
@@ -172,7 +172,7 @@ module Datadog
         private_class_method def self.on_unknown_os?
           unknown_os_not_supported = explain_issue(
             "your operating system is not supported by the Datadog Continuous Profiler.",
-            suggested: GET_IN_TOUCH,
+            suggested: GET_IN_TOUCH
           )
 
           unknown_os_not_supported unless RUBY_PLATFORM.include?("darwin") || RUBY_PLATFORM.include?("linux")
@@ -181,7 +181,7 @@ module Datadog
         private_class_method def self.on_unsupported_cpu_arch?
           architecture_not_supported = explain_issue(
             "your CPU architecture is not supported by the Datadog Continuous Profiler.",
-            suggested: GET_IN_TOUCH,
+            suggested: GET_IN_TOUCH
           )
 
           architecture_not_supported unless RUBY_PLATFORM.start_with?("x86_64", "aarch64", "arm64")
@@ -194,7 +194,7 @@ module Datadog
             "your Ruby has been compiled without JIT support (--disable-jit-support).",
             "The profiling native extension requires a Ruby compiled with JIT support,",
             "even if the JIT is not in use by the application itself.",
-            suggested: CONTACT_SUPPORT,
+            suggested: CONTACT_SUPPORT
           )
 
           ruby_without_mjit if CAN_USE_MJIT_HEADER && RbConfig::CONFIG["MJIT_SUPPORT"] != "yes"
@@ -208,7 +208,7 @@ module Datadog
               *exception.message.split("\n"),
               *Array(exception.backtrace),
               ".",
-              suggested: CONTACT_SUPPORT,
+              suggested: CONTACT_SUPPORT
             )
           end
         end
@@ -220,7 +220,7 @@ module Datadog
             "(Your platform: `#{Libdatadog.current_platform}`)",
             "(Available binaries:",
             "`#{Libdatadog.available_binaries.join("`, `")}`)",
-            suggested: CONTACT_SUPPORT,
+            suggested: CONTACT_SUPPORT
           )
 
           no_binaries_for_current_platform unless Libdatadog.pkgconfig_folder

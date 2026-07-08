@@ -96,7 +96,7 @@ class ProfilerSampleLoopBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
 
       x.report("stack collector (#{mode} frames - native filenames enabled) #{ENV["CONFIG"]}") { sample(collector) }
@@ -121,7 +121,7 @@ class ProfilerSampleLoopBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
 
       # This benchmark checks the performance of samples when the stack keeps changing

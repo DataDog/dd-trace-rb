@@ -21,7 +21,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       heap_samples_enabled: heap_samples_enabled,
       heap_size_enabled: heap_size_enabled,
       heap_sample_every: heap_sample_every,
-      heap_clean_after_gc_enabled: heap_clean_after_gc_enabled,
+      heap_clean_after_gc_enabled: heap_clean_after_gc_enabled
     )
   end
 
@@ -197,7 +197,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               "cpu-time" => "nanoseconds",
               "cpu-samples" => "count",
               "wall-time" => "nanoseconds",
-              "timeline" => "nanoseconds",
+              "timeline" => "nanoseconds"
             )
           end
         end
@@ -214,7 +214,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           time_nanos: Datadog::Core::Utils::Time.as_utc_epoch_ns(start),
           period_type: nil,
           period: 0,
-          comment: [],
+          comment: []
         )
       end
 
@@ -239,7 +239,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             recorded_samples: 0,
             serialization_time_ns: be > 0,
             heap_iteration_prep_time_ns: be >= 0,
-            heap_profile_build_time_ns: be >= 0,
+            heap_profile_build_time_ns: be >= 0
           )
         )
       end
@@ -279,7 +279,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             "wall-time": 789,
             "alloc-samples": 4242,
             "alloc-samples-unscaled": 2222,
-            timeline: 1111,
+            timeline: 1111
           )
       end
 
@@ -310,7 +310,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             recorded_samples: 1,
             serialization_time_ns: be > 0,
             heap_iteration_prep_time_ns: be >= 0,
-            heap_profile_build_time_ns: be >= 0,
+            heap_profile_build_time_ns: be >= 0
           )
         )
       end
@@ -644,7 +644,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             hash_including(
               recorded_samples: expected_allocation_samples + expected_heap_samples,
               heap_iteration_prep_time_ns: be > 0,
-              heap_profile_build_time_ns: be > 0,
+              heap_profile_build_time_ns: be > 0
             )
           )
         end
@@ -1024,7 +1024,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           serialization_time_ns_avg: be > 0,
           serialization_time_ns_total: be > 0,
 
-          heap_recorder_snapshot: nil,
+          heap_recorder_snapshot: nil
         )
       )
 
@@ -1053,7 +1053,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
         described_class::Testing._native_track_object(stack_recorder, obj, 1, obj.class.name)
         Datadog::Profiling::Collectors::Stack::Testing._native_sample(
-          Thread.current, stack_recorder, {"alloc-samples" => 1, "heap_sample" => true}, [], [],
+          Thread.current, stack_recorder, {"alloc-samples" => 1, "heap_sample" => true}, [], []
         )
         # On Ruby 4+, heap recordings are deferred and need to be finalized after the sample is recorded
         described_class::Testing._native_finalize_pending_heap_recordings(stack_recorder)
@@ -1110,7 +1110,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           last_update_objects_alive: live_heap_samples,
           last_update_objects_dead: dead_heap_samples,
           last_update_objects_skipped: age0_heap_samples,
-          last_update_objects_frozen: live_heap_samples / 2,
+          last_update_objects_frozen: live_heap_samples / 2
         ), "Heap recorder debugging info: #{described_class::Testing._native_debug_heap_recorder(stack_recorder)}"
       end
     end

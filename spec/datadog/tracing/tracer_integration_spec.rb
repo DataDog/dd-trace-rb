@@ -349,7 +349,7 @@ RSpec.describe Datadog::Tracing::Tracer do
         expect(inject).to include(
           "x-datadog-origin" => "other-origin",
           "x-datadog-sampling-priority" => "9",
-          "x-datadog-tags" => "_dd.p.test=changed",
+          "x-datadog-tags" => "_dd.p.test=changed"
         )
       end
     end

@@ -13,7 +13,7 @@ if Gem.loaded_specs.key? "ruby_memcheck"
     # a false-positive / something in the VM we can't fix.
     valgrind_generate_suppressions: true,
     # This feature provides better quality data -- I couldn't get good output out of ruby_memcheck without it.
-    use_only_ruby_free_at_exit: true,
+    use_only_ruby_free_at_exit: true
   )
 end
 

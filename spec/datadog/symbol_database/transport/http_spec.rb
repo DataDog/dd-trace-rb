@@ -35,7 +35,7 @@ RSpec.describe Datadog::SymbolDatabase::Transport::HTTP do
     Datadog::Core::Vendor::Multipart::Post::UploadIO.new(
       StringIO.new('{"ddsource":"ruby","service":"x","type":"symdb"}'),
       "application/json",
-      "event.json",
+      "event.json"
     )
   end
 
@@ -43,7 +43,7 @@ RSpec.describe Datadog::SymbolDatabase::Transport::HTTP do
     Datadog::Core::Vendor::Multipart::Post::UploadIO.new(
       StringIO.new(Zlib.gzip('{"scopes":[]}')),
       "application/gzip",
-      "symbols.json.gz",
+      "symbols.json.gz"
     )
   end
 

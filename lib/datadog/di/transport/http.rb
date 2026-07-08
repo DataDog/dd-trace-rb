@@ -12,12 +12,12 @@ module Datadog
       module HTTP
         DIAGNOSTICS = Diagnostics::API::Endpoint.new(
           "/debugger/v1/diagnostics",
-          Core::Encoding::JSONEncoder,
+          Core::Encoding::JSONEncoder
         )
 
         INPUT = Input::API::Endpoint.new(
           "/debugger/v2/input",
-          Core::Encoding::JSONEncoder,
+          Core::Encoding::JSONEncoder
         )
 
         LEGACY_INPUT = Input::API::Endpoint.new(
@@ -25,7 +25,7 @@ module Datadog
           # payloads should be going to the diagnostics endpoint
           # which I gather performs data redaction.
           "/debugger/v1/diagnostics",
-          Core::Encoding::JSONEncoder,
+          Core::Encoding::JSONEncoder
         )
 
         # Builds a new Transport::HTTP::Client with default settings
@@ -38,7 +38,7 @@ module Datadog
           Core::Transport::HTTP.build(
             logger: logger,
             agent_settings: agent_settings,
-            headers: headers,
+            headers: headers
           ) do |transport|
             transport.api "diagnostics", DIAGNOSTICS
 
@@ -58,7 +58,7 @@ module Datadog
           builder = Core::Transport::HTTP.build(
             logger: logger,
             agent_settings: agent_settings,
-            headers: headers,
+            headers: headers
           ) do |transport|
             transport.api "input", INPUT, fallback: "legacy_input", default: true
             transport.api "legacy_input", LEGACY_INPUT

@@ -39,12 +39,12 @@ class ProfilerHttpTransportBenchmark
         ssl: false,
         hostname: "127.0.0.1",
         port: @port,
-        timeout_seconds: nil,
+        timeout_seconds: nil
       ),
       site: nil,
       api_key: nil,
       upload_timeout_seconds: 10,
-      use_system_dns: false,
+      use_system_dns: false
     )
     @flush_finish = Time.now.utc
     @stack_recorder = Datadog::Profiling::StackRecorder.for_testing
@@ -96,7 +96,7 @@ class ProfilerHttpTransportBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 70, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
 
       x.report("http_transport #{ENV["CONFIG"]}") do

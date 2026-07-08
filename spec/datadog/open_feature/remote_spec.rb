@@ -177,7 +177,7 @@ RSpec.describe Datadog::OpenFeature::Remote do
           instance_double(
             Datadog::Core::Remote::Configuration::Repository::Change::Updated,
             path: missing_path,
-            type: :update,
+            type: :update
           )
         ]
       end

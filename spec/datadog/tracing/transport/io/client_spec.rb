@@ -152,7 +152,7 @@ RSpec.describe Datadog::Tracing::Transport::IO::Client do
               "type" => "web",
               "span_links" => [],
               "start" => be_an(Integer),
-              "duration" => be_an(Integer),
+              "duration" => be_an(Integer)
             )
 
             # Verify hex-encoded IDs match actual span values

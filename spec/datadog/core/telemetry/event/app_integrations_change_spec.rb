@@ -49,7 +49,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppIntegrationsChange do
               name: "pg",
               compatible: false,
               enabled: false,
-              error: "Available?: false, Loaded? false, Compatible? false, Patchable? false",
+              error: "Available?: false, Loaded? false, Compatible? false, Patchable? false"
             )
           )
         end

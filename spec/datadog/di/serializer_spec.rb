@@ -401,7 +401,7 @@ RSpec.describe Datadog::DI::Serializer do
         expect(serialized).to eq(
           arg1: {type: "String", value: "hello"},
           arg2: {type: "String", value: "world"},
-          self: {type: "Object", fields: {}},
+          self: {type: "Object", fields: {}}
         )
       end
     end
@@ -424,7 +424,7 @@ RSpec.describe Datadog::DI::Serializer do
 
         expect(serialized).to eq(
           foo: {type: "String", value: "bar"},
-          self: {type: "Object", fields: {}},
+          self: {type: "Object", fields: {}}
         )
       end
     end
@@ -443,7 +443,7 @@ RSpec.describe Datadog::DI::Serializer do
         expect(serialized).to eq(
           arg1: {type: "String", value: "hello"},
           arg2: {type: "String", value: "world"},
-          self: {type: "Object", fields: {}},
+          self: {type: "Object", fields: {}}
         )
 
         expect(serialized[:arg1][:value]).to be frozen_string
@@ -461,7 +461,7 @@ RSpec.describe Datadog::DI::Serializer do
       it "serializes without duplication" do
         expect(serialized).to eq(
           foo: {type: "String", value: "hello"},
-          self: {type: "Object", fields: {}},
+          self: {type: "Object", fields: {}}
         )
 
         expect(serialized[:foo][:value]).to be frozen_string
@@ -1183,7 +1183,7 @@ RSpec.describe Datadog::DI::Serializer do
       it "reports SystemStackError to telemetry" do
         expect(telemetry).to receive(:report).with(
           an_instance_of(SystemStackError),
-          description: "Error serializing",
+          description: "Error serializing"
         )
 
         serializer.serialize_value(value)
@@ -1203,7 +1203,7 @@ RSpec.describe Datadog::DI::Serializer do
 
         expect(telemetry).to receive(:report).with(
           an_instance_of(SystemStackError),
-          description: "Error serializing",
+          description: "Error serializing"
         )
 
         serialized = serializer.serialize_vars(vars)
@@ -1290,7 +1290,7 @@ RSpec.describe Datadog::DI::Serializer do
       it "reports NoMemoryError to telemetry" do
         expect(telemetry).to receive(:report).with(
           an_instance_of(NoMemoryError),
-          description: "Error serializing",
+          description: "Error serializing"
         )
 
         serializer.serialize_value(value)
@@ -1309,7 +1309,7 @@ RSpec.describe Datadog::DI::Serializer do
 
         expect(telemetry).to receive(:report).with(
           an_instance_of(NoMemoryError),
-          description: "Error serializing",
+          description: "Error serializing"
         )
 
         serialized = serializer.serialize_vars(vars)

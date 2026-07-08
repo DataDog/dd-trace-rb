@@ -20,7 +20,7 @@ module Datadog
                 event_payload = Core::Vendor::Multipart::Post::UploadIO.new(
                   StringIO.new(env.request.parcel.data),
                   env.request.parcel.content_type,
-                  "event.json",
+                  "event.json"
                 )
                 env.form = {"event" => event_payload}
 

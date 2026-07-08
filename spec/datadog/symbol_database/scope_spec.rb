@@ -23,7 +23,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
         end_line: 20,
         language_specifics: {visibility: "public"},
         symbols: [],
-        scopes: [],
+        scopes: []
       )
 
       expect(scope.scope_type).to eq("METHOD")
@@ -65,7 +65,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
       scope = described_class.new(
         scope_type: "METHOD",
         name: "foo",
-        targetable_lines: [{start: 5, end: 7}],
+        targetable_lines: [{start: 5, end: 7}]
       )
       expect(scope.targetable_lines?).to eq(true)
     end
@@ -75,7 +75,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     it "converts simple scope to hash" do
       scope = described_class.new(
         scope_type: "CLASS",
-        name: "MyClass",
+        name: "MyClass"
       )
 
       expect(scope.to_h).to eq({
@@ -107,7 +107,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
         scope_type: "CLASS",
         name: "MyClass",
         source_file: nil,
-        start_line: nil,
+        start_line: nil
       )
 
       hash = scope.to_h
@@ -123,7 +123,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     it "excludes empty language_specifics" do
       scope = described_class.new(
         scope_type: "CLASS",
-        language_specifics: {},
+        language_specifics: {}
       )
 
       hash = scope.to_h
@@ -134,7 +134,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     it "includes non-empty language_specifics" do
       scope = described_class.new(
         scope_type: "CLASS",
-        language_specifics: {super_classes: ["BaseClass"]},
+        language_specifics: {super_classes: ["BaseClass"]}
       )
 
       hash = scope.to_h
@@ -145,7 +145,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     it "excludes empty symbols array" do
       scope = described_class.new(
         scope_type: "CLASS",
-        symbols: [],
+        symbols: []
       )
 
       hash = scope.to_h
@@ -157,12 +157,12 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
       symbol = Datadog::SymbolDatabase::Symbol.new(
         symbol_type: "FIELD",
         name: "my_field",
-        line: 5,
+        line: 5
       )
 
       scope = described_class.new(
         scope_type: "CLASS",
-        symbols: [symbol],
+        symbols: [symbol]
       )
 
       hash = scope.to_h
@@ -172,14 +172,14 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
       expect(hash[:symbols].first).to include(
         symbol_type: "FIELD",
         name: "my_field",
-        line: 5,
+        line: 5
       )
     end
 
     it "excludes empty nested scopes array" do
       scope = described_class.new(
         scope_type: "MODULE",
-        scopes: [],
+        scopes: []
       )
 
       hash = scope.to_h
@@ -190,12 +190,12 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     it "includes non-empty nested scopes array" do
       nested_scope = described_class.new(
         scope_type: "CLASS",
-        name: "NestedClass",
+        name: "NestedClass"
       )
 
       scope = described_class.new(
         scope_type: "MODULE",
-        scopes: [nested_scope],
+        scopes: [nested_scope]
       )
 
       hash = scope.to_h
@@ -204,7 +204,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
       expect(hash[:scopes].size).to eq(1)
       expect(hash[:scopes].first).to include(
         scope_type: "CLASS",
-        name: "NestedClass",
+        name: "NestedClass"
       )
     end
 
@@ -213,19 +213,19 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
         scope_type: "METHOD",
         name: "subscribed",
         start_line: 3,
-        end_line: 5,
+        end_line: 5
       )
 
       class_scope = described_class.new(
         scope_type: "CLASS",
         name: "ApplicationCable::Channel",
-        scopes: [method_scope],
+        scopes: [method_scope]
       )
 
       module_scope = described_class.new(
         scope_type: "MODULE",
         name: "ApplicationCable",
-        scopes: [class_scope],
+        scopes: [class_scope]
       )
 
       file_scope = described_class.new(
@@ -235,7 +235,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
         start_line: 0,
         end_line: 2147483647,
         language_specifics: {file_hash: "abc123"},
-        scopes: [module_scope],
+        scopes: [module_scope]
       )
 
       hash = file_scope.to_h
@@ -251,7 +251,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
       scope = described_class.new(
         scope_type: "METHOD",
         name: "my_method",
-        targetable_lines: [{start: 10, end: 12}, {start: 15, end: 15}],
+        targetable_lines: [{start: 10, end: 12}, {start: 15, end: 15}]
       )
 
       hash = scope.to_h
@@ -263,7 +263,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     it "emits has_injectible_lines: false on METHOD scope without ranges" do
       scope = described_class.new(
         scope_type: "METHOD",
-        name: "native_method",
+        name: "native_method"
       )
 
       hash = scope.to_h
@@ -275,7 +275,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     it "excludes targetable lines fields from CLASS scope" do
       scope = described_class.new(
         scope_type: "CLASS",
-        name: "MyClass",
+        name: "MyClass"
       )
 
       hash = scope.to_h
@@ -287,7 +287,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     it "excludes targetable lines fields from MODULE scope" do
       scope = described_class.new(
         scope_type: "MODULE",
-        name: "MyModule",
+        name: "MyModule"
       )
 
       hash = scope.to_h
@@ -299,7 +299,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     it "excludes targetable lines fields from FILE scope" do
       scope = described_class.new(
         scope_type: "FILE",
-        name: "/app/test.rb",
+        name: "/app/test.rb"
       )
 
       hash = scope.to_h
@@ -313,7 +313,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
     it "serializes scope to JSON string" do
       scope = described_class.new(
         scope_type: "CLASS",
-        name: "MyClass",
+        name: "MyClass"
       )
 
       json = scope.to_json
@@ -321,7 +321,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
       expect(json).to be_a(String)
       expect(JSON.parse(json)).to include(
         "scope_type" => "CLASS",
-        "name" => "MyClass",
+        "name" => "MyClass"
       )
     end
 
@@ -329,7 +329,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
       symbol = Datadog::SymbolDatabase::Symbol.new(
         symbol_type: "FIELD",
         name: "@my_var",
-        line: 5,
+        line: 5
       )
 
       scope = described_class.new(
@@ -339,7 +339,7 @@ RSpec.describe Datadog::SymbolDatabase::Scope do
         start_line: 1,
         end_line: 50,
         language_specifics: {super_classes: ["BaseClass"]},
-        symbols: [symbol],
+        symbols: [symbol]
       )
 
       json = scope.to_json

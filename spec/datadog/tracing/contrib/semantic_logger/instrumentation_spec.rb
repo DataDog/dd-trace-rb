@@ -54,7 +54,7 @@ RSpec.describe Datadog::Tracing::Contrib::SemanticLogger::Instrumentation do
         span_id: span_id,
         env: "production",
         service: "MyService",
-        version: "1.2.3",
+        version: "1.2.3"
       )
     end
 

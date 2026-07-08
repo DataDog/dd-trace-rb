@@ -9,7 +9,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       Datadog::Core::Configuration::Settings,
       service: "test-service",
       env: "test",
-      version: "1.0.0",
+      version: "1.0.0"
     )
   end
 
@@ -19,7 +19,7 @@ RSpec.describe Datadog::SymbolDatabase::Uploader do
       hostname: "localhost",
       port: 8126,
       timeout_seconds: 30,
-      ssl: false,
+      ssl: false
     )
   end
 

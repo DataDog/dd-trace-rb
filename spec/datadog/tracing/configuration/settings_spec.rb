@@ -696,7 +696,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
             ClimateControl.modify(
               "OTEL_TRACES_SAMPLER" => otel_sampler,
               Datadog::Tracing::Configuration::Ext::Sampling::OTEL_TRACES_SAMPLER_ARG => otel_sampler_arg,
-              Datadog::Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE => dd_sample_rate,
+              Datadog::Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE => dd_sample_rate
             ) do
               example.run
             end

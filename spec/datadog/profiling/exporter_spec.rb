@@ -66,7 +66,7 @@ RSpec.describe Datadog::Profiling::Exporter do
         encoded_profile: encoded_profile,
         code_provenance_data: code_provenance_data,
         tags_as_array: array_including(%w[language ruby], ["process_id", Process.pid.to_s]),
-        metrics: "[]",
+        metrics: "[]"
       )
       expect(JSON.parse(flush.internal_metadata_json, symbolize_names: true)).to match(
         {

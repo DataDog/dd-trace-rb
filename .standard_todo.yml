@@ -5,7 +5,6 @@ ignore:
   # "standard-isn't-supposed-to-be-configured" thing to allow for trailing comma, see
   # https://github.com/standardrb/standard/issues/611 for a discussion
   - "**/**":
-      - Style/TrailingCommaInArguments
       - Style/TrailingCommaInArrayLiteral
       - Style/TrailingCommaInHashLiteral
       # These complain about strings that contain interpolation, demanding

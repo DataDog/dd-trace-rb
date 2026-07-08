@@ -36,7 +36,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
     let(:request) { instance_double(Datadog::Tracing::Transport::Traces::Request) }
     let(:response) do
       double(Datadog::Tracing::Transport::HTTP::Traces::Response,
-        ok?: true,)
+        ok?: true)
     end
 
     before do

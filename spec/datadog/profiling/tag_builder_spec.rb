@@ -16,7 +16,7 @@ RSpec.describe Datadog::Profiling::TagBuilder do
         "runtime_engine" => RUBY_ENGINE,
         "runtime-id" => Datadog::Core::Environment::Identity.id,
         "runtime_version" => RUBY_VERSION,
-        "profile_seq" => "123",
+        "profile_seq" => "123"
       )
     end
 

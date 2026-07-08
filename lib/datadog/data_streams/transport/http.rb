@@ -22,7 +22,7 @@ module Datadog
         )
           Core::Transport::HTTP.build(
             agent_settings: agent_settings,
-            logger: logger,
+            logger: logger
           ) do |transport|
             transport.api "v0.1", V01, default: true
 

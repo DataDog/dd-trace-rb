@@ -24,7 +24,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       site: site,
       api_key: api_key,
       upload_timeout_seconds: upload_timeout_seconds,
-      use_system_dns: use_system_dns,
+      use_system_dns: use_system_dns
     )
   end
 
@@ -64,7 +64,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       tags_as_array: tags_as_array,
       process_tags: process_tags,
       internal_metadata: {no_signals_workaround_enabled: true},
-      info_json: info_json,
+      info_json: info_json
     )
   end
   let(:serialize_result) { Datadog::Profiling::StackRecorder.for_testing.serialize }
@@ -223,7 +223,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     it "calls the native export method with the data from the flush" do
       expect(described_class).to receive(:_native_do_export).with(
         kind_of(Array), # exporter_configuration
-        flush,
+        flush
       ).and_return([:ok, 200])
 
       export
@@ -365,7 +365,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         expect(request.header).to include(
           "content-type" => [%r{^multipart/form-data; boundary=(.+)}],
           "dd-evp-origin" => ["dd-trace-rb"],
-          "dd-evp-origin-version" => [Datadog::VERSION::STRING],
+          "dd-evp-origin-version" => [Datadog::VERSION::STRING]
         )
 
         # check body

@@ -57,7 +57,7 @@ module Datadog
         # TODO cache?
         locals && serializer.serialize_vars(locals,
           depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
-          attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,)
+          attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
       end
 
       def fetch(var_name)

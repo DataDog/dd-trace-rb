@@ -14,7 +14,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       alloc_samples_enabled: true,
       heap_samples_enabled: heap_profiling_enabled,
       heap_size_enabled: heap_profiling_enabled,
-      **stack_recorder_options,
+      **stack_recorder_options
     )
   end
   let(:no_signals_workaround_enabled) { false }
@@ -241,7 +241,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       it(
         "keeps statistics on how many samples were triggered by the background thread, " \
         "as well as how many samples were requested from the VM",
-        :memcheck_valgrind_skip,
+        :memcheck_valgrind_skip
       ) do
         start
 
@@ -365,7 +365,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         event: "gc",
         "gc reason": an_instance_of(String),
         "gc cause": "GC.start()",
-        "gc type": "major",
+        "gc type": "major"
       )
       expect(gc_sample.locations.first.path).to eq "Garbage Collection"
     end
@@ -575,7 +575,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               gvl_sampling_time_ns_max: be > 0,
               gvl_sampling_time_ns_total: be > 0,
               gvl_sampling_time_ns_avg: be > 0,
-              gvl_waiting_time_ns_total: be > 0,
+              gvl_waiting_time_ns_total: be > 0
             )
           )
         end
@@ -609,7 +609,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
             # but gvl_dont_sample being > 0 confirms the GVL wait threshold is working correctly.
             expect(cpu_and_wall_time_worker.stats).to match(
               hash_including(
-                gvl_waiting_time_ns_total: be >= 0,
+                gvl_waiting_time_ns_total: be >= 0
               )
             )
           end
@@ -711,7 +711,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
             a_hash_including(
               trigger_simulated_signal_delivery_attempts: trigger_sample_attempts,
               simulated_signal_delivery: trigger_sample_attempts,
-              signal_handler_enqueued_sample: trigger_sample_attempts,
+              signal_handler_enqueued_sample: trigger_sample_attempts
             )
           ),
           "**If you see this test flaking, please report it to @ivoanjo!**\n\n" \
@@ -1566,7 +1566,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           cpu_sampled: be > 0,
           allocation_sampled: be > 0,
           cpu_sampling_time_ns_avg: be > 0,
-          allocation_sampling_time_ns_avg: be > 0,
+          allocation_sampling_time_ns_avg: be > 0
         )
       )
 
@@ -1577,7 +1577,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           cpu_sampled: 0,
           allocation_sampled: 0,
           cpu_sampling_time_ns_avg: nil,
-          allocation_sampling_time_ns_avg: nil,
+          allocation_sampling_time_ns_avg: nil
         )
       )
     end
@@ -1696,7 +1696,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     Datadog::Profiling::Collectors::ThreadContext.for_testing(
       recorder: recorder,
       endpoint_collection_enabled: endpoint_collection_enabled,
-      **options,
+      **options
     )
   end
 end

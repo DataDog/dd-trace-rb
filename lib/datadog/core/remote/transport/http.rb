@@ -20,12 +20,12 @@ module Datadog
         # Namespace for HTTP transport components
         module HTTP
           ROOT = Negotiation::API::Endpoint.new(
-            "/info",
+            "/info"
           )
 
           V7 = Config::API::Endpoint.new(
             "/v0.7/config",
-            Core::Encoding::JSONEncoder,
+            Core::Encoding::JSONEncoder
           )
 
           module_function

@@ -188,7 +188,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           library_name: "dd-trace-rb",
           library_version: Datadog::VERSION::STRING,
           family: "ruby",
-          tags: ["tag1:value1", "tag2:value2", "language:ruby-testing-123", "service:ruby-testing-123"],
+          tags: ["tag1:value1", "tag2:value2", "language:ruby-testing-123", "service:ruby-testing-123"]
         )
 
         # Verify error kind is unhandled exception
@@ -309,13 +309,13 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
             library_name: "dd-trace-rb",
             library_version: Datadog::VERSION::STRING,
             family: "ruby",
-            tags: ["tag1:value1", "tag2:value2", "language:ruby-testing-123", "service:ruby-testing-123"],
+            tags: ["tag1:value1", "tag2:value2", "language:ruby-testing-123", "service:ruby-testing-123"]
           )
 
           expect(crash_report_message[:os_info]).to_not be_empty
           expect(crash_report_request.fetch(:application)).to include(
             service_name: "ruby-testing-123",
-            language_name: "ruby-testing-123",
+            language_name: "ruby-testing-123"
           )
         end
       end
@@ -365,7 +365,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
           library_name: "dd-trace-rb",
           library_version: Datadog::VERSION::STRING,
           family: "ruby",
-          tags: ["latest_settings:included"],
+          tags: ["latest_settings:included"]
         )
       end
 
@@ -423,7 +423,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
             expect(described_class).to have_received(:_native_start_or_update_on_fork).with(
               hash_including(
                 action: :update_on_fork,
-                agent_base_url: "http://google.com:12345/",
+                agent_base_url: "http://google.com:12345/"
               )
             )
           end
@@ -510,7 +510,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
         {"tag1" => "value1", "tag2" => "value2", "language" => testing_string, "service" => testing_string},
       path_to_crashtracking_receiver_binary: Libdatadog.path_to_crashtracking_receiver_binary,
       ld_library_path: Libdatadog.ld_library_path,
-      logger: options[:logger] || Logger.new($stdout),
+      logger: options[:logger] || Logger.new($stdout)
     )
   end
 

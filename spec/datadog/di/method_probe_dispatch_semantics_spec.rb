@@ -101,12 +101,12 @@ RSpec.describe "Method probe dispatch semantics" do
       max_capture_string_length: 100,
       redacted_type_names: [],
       redacted_identifiers: [],
-      redaction_excluded_identifiers: [],
+      redaction_excluded_identifiers: []
     )
     allow(settings.dynamic_instrumentation.internal).to receive_messages(
       untargeted_trace_points: false,
       propagate_all_exceptions: propagate_all_exceptions,
-      max_processing_time: 1,
+      max_processing_time: 1
     )
   end
 
@@ -121,7 +121,7 @@ RSpec.describe "Method probe dispatch semantics" do
       type: :log,
       type_name: type_name,
       method_name: method_name,
-      capture_snapshot: false,
+      capture_snapshot: false
     )
     responder = Datadog::DI::ProcResponder.new(on_fire)
     instrumenter.hook_method(probe, responder)

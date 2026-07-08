@@ -29,7 +29,7 @@ module Datadog
           heap_samples_enabled: heap_samples_enabled,
           heap_size_enabled: heap_size_enabled,
           heap_sample_every: heap_sample_every,
-          heap_clean_after_gc_enabled: heap_clean_after_gc_enabled,
+          heap_clean_after_gc_enabled: heap_clean_after_gc_enabled
         )
       end
 
@@ -47,7 +47,7 @@ module Datadog
           heap_size_enabled: heap_size_enabled,
           heap_sample_every: heap_sample_every,
           heap_clean_after_gc_enabled: heap_clean_after_gc_enabled,
-          **options,
+          **options
         )
       end
 

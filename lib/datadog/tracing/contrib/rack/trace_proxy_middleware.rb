@@ -82,7 +82,7 @@ module Datadog
               span_name,
               service: domain,
               type: Tracing::Metadata::Ext::AppTypes::TYPE_WEB,
-              start_time: Time.at(request_time_ms / 1_000),
+              start_time: Time.at(request_time_ms / 1_000)
             )
             inferred_span.resource = resource if resource
             inferred_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, proxy_type)

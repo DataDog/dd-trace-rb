@@ -54,7 +54,7 @@ RSpec.describe Datadog::DI::ProbeManager do
     context "log probe" do
       let(:probe) do
         Datadog::DI::Probe.new(
-          id: "3ecfd456-2d7c-4359-a51f-d4cc44141ffe", type: :log, file: "xx", line_no: 123,
+          id: "3ecfd456-2d7c-4359-a51f-d4cc44141ffe", type: :log, file: "xx", line_no: 123
         )
       end
 
@@ -175,7 +175,7 @@ RSpec.describe Datadog::DI::ProbeManager do
   describe "#remove_probe" do
     let(:probe) do
       Datadog::DI::Probe.new(
-        id: "123", type: :log, file: "xx", line_no: 123,
+        id: "123", type: :log, file: "xx", line_no: 123
       )
     end
 
@@ -243,7 +243,7 @@ RSpec.describe Datadog::DI::ProbeManager do
       context "when there are two probes to be unhooked" do
         let(:probe2) do
           Datadog::DI::Probe.new(
-            id: "456", type: :log, file: "xx", line_no: 123,
+            id: "456", type: :log, file: "xx", line_no: 123
           )
         end
 
@@ -297,7 +297,7 @@ RSpec.describe Datadog::DI::ProbeManager do
 
     let(:probe) do
       Datadog::DI::Probe.new(
-        id: "3ecfd456-2d7c-4359-a51f-d4cc44141ffe", type: :log, file: "xx", line_no: 123,
+        id: "3ecfd456-2d7c-4359-a51f-d4cc44141ffe", type: :log, file: "xx", line_no: 123
       )
     end
 
@@ -439,7 +439,7 @@ RSpec.describe Datadog::DI::ProbeManager do
         :type => "log",
         :location => "test.rb:42",
         :emitting_notified? => false,
-        :emitting_notified= => nil,
+        :emitting_notified= => nil
       )
     end
 

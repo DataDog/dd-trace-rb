@@ -109,20 +109,20 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
                   trace_id: 0xaaaaaaaaaaaaaaaaffffffffffffffff,
                   span_id: 0x1,
                   trace_state: "vendor1=value,v2=v,dd=s:1",
-                  trace_sampling_priority: 0x1,
+                  trace_sampling_priority: 0x1
                 ),
                 attributes: {"link.name" => "test_link"}
               ),
               Datadog::Tracing::SpanLink.new(
                 Datadog::Tracing::TraceDigest.new(
                   trace_id: 0xa0123456789abcdef,
-                  span_id: 0x2,
-                ),
+                  span_id: 0x2
+                )
               ),
               Datadog::Tracing::SpanLink.new(
-                Datadog::Tracing::TraceDigest.new,
+                Datadog::Tracing::TraceDigest.new
               )
-            ],
+            ]
           )
         end
       end
@@ -167,9 +167,9 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
               Datadog::Tracing::SpanEvent.new(
                 "Another Event #{i}!",
                 time_unix_nano: 456,
-                attributes: {id: i, required: (i == 1)},
+                attributes: {id: i, required: (i == 1)}
               ),
-            ],
+            ]
           )
         end
       end

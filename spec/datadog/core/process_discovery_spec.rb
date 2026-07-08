@@ -271,7 +271,7 @@ RSpec.describe Datadog::Core::ProcessDiscovery do
 
           expect(resource_attributes).to include(
             "service.instance.id" => child_runtime_id,
-            "service.name" => "otel-test-service",
+            "service.name" => "otel-test-service"
           )
         end
       end

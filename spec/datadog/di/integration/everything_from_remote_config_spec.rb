@@ -371,7 +371,7 @@ RSpec.describe "DI integration from remote config" do
         payload = payloads.shift
         expect(payload).to be_a(Hash)
         expect(payload[:message]).to match(
-          /Instrumentation for probe .* failed: Unrecognized probe type: UNKNOWN_PROBE/,
+          /Instrumentation for probe .* failed: Unrecognized probe type: UNKNOWN_PROBE/
         )
 
         assert_received_and_installed
@@ -419,10 +419,10 @@ RSpec.describe "DI integration from remote config" do
           path: "/debugger/v1/diagnostics",
           service: "rspec",
           timestamp: Integer,
-          message: String,
+          message: String
         )
         expect(payload[:message]).to match(
-          /Instrumentation for probe .* failed: Unknown operation: foo/,
+          /Instrumentation for probe .* failed: Unknown operation: foo/
         )
       end
     end
@@ -591,7 +591,7 @@ RSpec.describe "DI integration from remote config" do
       it "marks RC payload as errored" do
         expect_lazy_log_many(logger, :debug,
           /received log probe at .+ via RC/,
-          /error processing probe configuration:.*no surviving iseqs|no per-method iseqs/,)
+          /error processing probe configuration:.*no surviving iseqs|no per-method iseqs/)
 
         do_rc(expect_hook: false)
         assert_received_and_errored

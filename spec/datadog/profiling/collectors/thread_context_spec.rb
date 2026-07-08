@@ -68,7 +68,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       endpoint_collection_enabled: endpoint_collection_enabled,
       waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
       otel_context_enabled: otel_context_enabled,
-      native_filenames_enabled: native_filenames_enabled,
+      native_filenames_enabled: native_filenames_enabled
     )
   end
 
@@ -501,7 +501,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
             expect(t1_sample.labels).to include(
               "local root span id": @t1_local_root_span_id.to_i,
-              "span id": @t1_span_id.to_i,
+              "span id": @t1_span_id.to_i
             )
           end
 
@@ -526,7 +526,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
                 expect(t1_sample.labels).to include(
                   "local root span id": @t1_local_root_span_id.to_i,
-                  "span id": @t1_span_id.to_i,
+                  "span id": @t1_span_id.to_i
                 )
               end
 
@@ -680,7 +680,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
               expect(t1_sample.labels).to include(
                 "local root span id": @t1_local_root_span_id.to_i,
-                "span id": @t1_span_id.to_i,
+                "span id": @t1_span_id.to_i
               )
             end
 
@@ -738,7 +738,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
                 expect(t1_sample.labels).to include(
                   "local root span id": @t1_local_root_span_id.to_i,
-                  "span id": @t1_span_id.to_i,
+                  "span id": @t1_span_id.to_i
                 )
               end
             end
@@ -771,7 +771,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
                   expect(t1_sample.labels).to include(
                     "local root span id": @t1_local_root_span_id.to_i,
-                    "span id": @t1_span_id.to_i,
+                    "span id": @t1_span_id.to_i
                   )
                 end
 
@@ -807,7 +807,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
                   expect(t1_sample.labels).to include(
                     "local root span id": @t1_local_root_span_id.to_i,
-                    "span id": @t1_span_id.to_i,
+                    "span id": @t1_span_id.to_i
                   )
                 end
               end
@@ -853,7 +853,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
               expect(t1_sample.labels).to include(
                 "local root span id": @t1_local_root_span_id.to_i,
-                "span id": @t1_span_id.to_i,
+                "span id": @t1_span_id.to_i
               )
             end
 
@@ -1000,7 +1000,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
                 expect(t1_sample.labels).to include(
                   "local root span id": @t1_local_root_span_id.to_i,
-                  "span id": @t1_span_id.to_i,
+                  "span id": @t1_span_id.to_i
                 )
               end
             end
@@ -1028,7 +1028,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
                 expect(t1_sample.labels).to include(
                   "local root span id": @t1_local_root_span_id.to_i,
-                  "span id": @t1_span_id.to_i,
+                  "span id": @t1_span_id.to_i
                 )
               end
             end
@@ -1084,7 +1084,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
                   expect(t1_sample.labels).to include(
                     "local root span id": @t1_local_root_span_id.to_i,
-                    "span id": @t1_span_id.to_i,
+                    "span id": @t1_span_id.to_i
                   )
                 end
 
@@ -1119,7 +1119,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
                 expect(t1_sample.labels).to_not include(
                   "local root span id": anything,
-                  "span id": anything,
+                  "span id": anything
                 )
               end
             end
@@ -1195,7 +1195,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           expect(first_sample.values.fetch(:"wall-time")).to be(@gvl_waiting_at - @previous_sample_timestamp_ns)
           expect(first_sample.labels).to include(
             state: "sleeping",
-            end_timestamp_ns: be_between(@time_before_gvl_waiting, @time_after_gvl_waiting),
+            end_timestamp_ns: be_between(@time_before_gvl_waiting, @time_after_gvl_waiting)
           )
         end
 
@@ -1210,7 +1210,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             .to be(per_thread_context.dig(t1, :wall_time_at_previous_sample_ns) - @gvl_waiting_at)
           expect(second_sample.labels).to include(
             state: "waiting for gvl",
-            end_timestamp_ns: be_between(time_before_sample, time_after_sample),
+            end_timestamp_ns: be_between(time_before_sample, time_after_sample)
           )
         end
 
@@ -1258,7 +1258,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             .to be(monotonic_time_after_sample - monotonic_time_before_sample)
           expect(latest_sample.labels).to include(
             state: expected_state,
-            end_timestamp_ns: be_between(time_before_sample, time_after_sample),
+            end_timestamp_ns: be_between(time_before_sample, time_after_sample)
           )
 
           latest_sample
@@ -1451,7 +1451,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
           expect(per_thread_context.fetch(Thread.current)).to include(
             "gc_tracking.cpu_time_at_start_ns": invalid_time,
-            "gc_tracking.wall_time_at_start_ns": invalid_time,
+            "gc_tracking.wall_time_at_start_ns": invalid_time
           )
         end
 
@@ -1583,7 +1583,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           "thread name": "Garbage Collection",
           event: "gc",
           "gc cause": an_instance_of(String),
-          "gc type": an_instance_of(String),
+          "gc type": an_instance_of(String)
         )
         expect(gc_sample.locations.first.path).to eq "Garbage Collection"
       end
@@ -1596,7 +1596,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
         expect(gc_sample.values).to match a_hash_including(
           "cpu-time": accumulated_cpu_time_ns,
-          "wall-time": accumulated_wall_time_ns,
+          "wall-time": accumulated_wall_time_ns
         )
       end
 
@@ -1680,7 +1680,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           expect(sample_for_thread(samples, t1).labels).to include(
             "local root span id": @t1_local_root_span_id.to_i,
             "span id": @t1_span_id.to_i,
-            "trace endpoint": "trace_resource",
+            "trace endpoint": "trace_resource"
           )
         end
       end
@@ -2409,7 +2409,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         endpoint_collection_enabled: endpoint_collection_enabled,
         waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
         otel_context_enabled: otel_context_enabled,
-        native_filenames_enabled: native_filenames_enabled,
+        native_filenames_enabled: native_filenames_enabled
       )
       described_class::Testing._native_sample(first_collector, false)
 
@@ -2424,7 +2424,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         endpoint_collection_enabled: endpoint_collection_enabled,
         waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
         otel_context_enabled: otel_context_enabled,
-        native_filenames_enabled: native_filenames_enabled,
+        native_filenames_enabled: native_filenames_enabled
       )
       described_class::Testing._native_sample(second_collector, false)
 

@@ -223,21 +223,21 @@ RSpec.describe Datadog::DI::CodeTracker do
       instance_double(RubyVM::InstructionSequence,
         absolute_path: "/app/lib/foo.rb",
         first_lineno: 0,
-        trace_points: [[1, :line]],)
+        trace_points: [[1, :line]])
     end
 
     let(:per_method_iseq) do
       instance_double(RubyVM::InstructionSequence,
         absolute_path: "/app/lib/foo.rb",
         first_lineno: 10,
-        trace_points: [[10, :call], [11, :line]],)
+        trace_points: [[10, :call], [11, :line]])
     end
 
     let(:eval_iseq) do
       instance_double(RubyVM::InstructionSequence,
         absolute_path: nil,
         first_lineno: 1,
-        trace_points: [[1, :line]],)
+        trace_points: [[1, :line]])
     end
 
     # On Ruby 3.1+ iseq_type exists natively; on older Rubies
@@ -297,7 +297,7 @@ RSpec.describe Datadog::DI::CodeTracker do
       dummy_iseq = instance_double(RubyVM::InstructionSequence,
         absolute_path: "/app/lib/foo.rb",
         first_lineno: 0,
-        trace_points: [],)
+        trace_points: [])
       expect(Datadog::DI).to receive(:file_iseqs).and_return([dummy_iseq])
 
       tracker.backfill_registry
@@ -309,11 +309,11 @@ RSpec.describe Datadog::DI::CodeTracker do
       dummy_iseq = instance_double(RubyVM::InstructionSequence,
         absolute_path: "/app/lib/foo.rb",
         first_lineno: 0,
-        trace_points: [],)
+        trace_points: [])
       real_iseq = instance_double(RubyVM::InstructionSequence,
         absolute_path: "/app/lib/foo.rb",
         first_lineno: 0,
-        trace_points: [[1, :line]],)
+        trace_points: [[1, :line]])
       # Dummy comes first — simulates the heap ordering that causes the bug
       expect(Datadog::DI).to receive(:file_iseqs).and_return([dummy_iseq, real_iseq])
 
@@ -336,7 +336,7 @@ RSpec.describe Datadog::DI::CodeTracker do
       conflicting_iseq = instance_double(RubyVM::InstructionSequence,
         absolute_path: path,
         first_lineno: 0,
-        trace_points: [[1, :line]],)
+        trace_points: [[1, :line]])
       allow(Datadog::DI).to receive(:file_iseqs).and_return([conflicting_iseq])
 
       tracker.backfill_registry
@@ -390,7 +390,7 @@ RSpec.describe Datadog::DI::CodeTracker do
     it "filters mixed iseq types from a single file" do
       # file_iseqs returns both whole-file and per-method iseqs for same file
       allow(Datadog::DI).to receive(:file_iseqs).and_return(
-        [whole_file_iseq, per_method_iseq],
+        [whole_file_iseq, per_method_iseq]
       )
 
       tracker.backfill_registry
@@ -452,7 +452,7 @@ RSpec.describe Datadog::DI::CodeTracker do
 
           expect(telemetry).to have_received(:report).with(
             an_instance_of(RuntimeError),
-            hash_including(description: "backfill_registry failed"),
+            hash_including(description: "backfill_registry failed")
           )
         end
       end
@@ -465,7 +465,7 @@ RSpec.describe Datadog::DI::CodeTracker do
 
       it "falls back to first_lineno == 0 for whole-file detection" do
         allow(Datadog::DI).to receive(:file_iseqs).and_return(
-          [whole_file_iseq, per_method_iseq],
+          [whole_file_iseq, per_method_iseq]
         )
 
         tracker.backfill_registry
@@ -673,19 +673,19 @@ RSpec.describe Datadog::DI::CodeTracker do
 
     it "matches when the probe path uses backslashes and needs prefix stripping" do
       expect(
-        tracker.iseqs_for_path_suffix('shared\rails\app\controllers\debugger_controller.rb'),
+        tracker.iseqs_for_path_suffix('shared\rails\app\controllers\debugger_controller.rb')
       ).to eq(["/app/controllers/debugger_controller.rb", "/app/controllers/debugger_controller.rb"])
     end
 
     it "matches when the probe path uses backslashes and uppercase, needing both fallbacks" do
       expect(
-        tracker.iseqs_for_path_suffix('SHARED\RAILS\APP\CONTROLLERS\DEBUGGER_CONTROLLER.RB'),
+        tracker.iseqs_for_path_suffix('SHARED\RAILS\APP\CONTROLLERS\DEBUGGER_CONTROLLER.RB')
       ).to eq(["/app/controllers/debugger_controller.rb", "/app/controllers/debugger_controller.rb"])
     end
 
     it "matches when the probe path is an absolute Windows-style path" do
       expect(
-        tracker.iseqs_for_path_suffix('\app\controllers\debugger_controller.rb'),
+        tracker.iseqs_for_path_suffix('\app\controllers\debugger_controller.rb')
       ).to eq(["/app/controllers/debugger_controller.rb", "/app/controllers/debugger_controller.rb"])
     end
   end
@@ -715,7 +715,7 @@ RSpec.describe Datadog::DI::CodeTracker do
         iseq = instance_double(RubyVM::InstructionSequence,
           absolute_path: "/app/lib/foo.rb",
           first_lineno: 0,
-          trace_points: [[1, :line]],)
+          trace_points: [[1, :line]])
         allow(Datadog::DI).to receive(:file_iseqs).and_return([iseq])
 
         tracker.backfill_registry
@@ -730,19 +730,19 @@ RSpec.describe Datadog::DI::CodeTracker do
         instance_double(RubyVM::InstructionSequence,
           absolute_path: "/app/lib/bar.rb",
           first_lineno: 5,
-          trace_points: [[5, :line], [6, :line], [7, :line], [8, :return]],)
+          trace_points: [[5, :line], [6, :line], [7, :line], [8, :return]])
       end
 
       let(:other_method_iseq) do
         instance_double(RubyVM::InstructionSequence,
           absolute_path: "/app/lib/bar.rb",
           first_lineno: 20,
-          trace_points: [[20, :line], [21, :line], [22, :return]],)
+          trace_points: [[20, :line], [21, :line], [22, :return]])
       end
 
       before do
         allow(Datadog::DI).to receive(:file_iseqs).and_return(
-          [method_iseq, other_method_iseq],
+          [method_iseq, other_method_iseq]
         )
         tracker.backfill_registry
       end
@@ -768,7 +768,7 @@ RSpec.describe Datadog::DI::CodeTracker do
         instance_double(RubyVM::InstructionSequence,
           absolute_path: "/app/lib/bar.rb",
           first_lineno: 10,
-          trace_points: [[10, :call], [11, :line], [12, :line]],)
+          trace_points: [[10, :call], [11, :line], [12, :line]])
       end
 
       before do
@@ -804,7 +804,7 @@ RSpec.describe Datadog::DI::CodeTracker do
         instance_double(RubyVM::InstructionSequence,
           absolute_path: "/app/lib/datadog/di/baz.rb",
           first_lineno: 10,
-          trace_points: [[10, :line], [11, :line]],)
+          trace_points: [[10, :line], [11, :line]])
       end
 
       before do
@@ -828,19 +828,19 @@ RSpec.describe Datadog::DI::CodeTracker do
         instance_double(RubyVM::InstructionSequence,
           absolute_path: "/app/lib/qux.rb",
           first_lineno: 10,
-          trace_points: [[10, :line], [11, :line]],)
+          trace_points: [[10, :line], [11, :line]])
       end
 
       let(:block_iseq) do
         instance_double(RubyVM::InstructionSequence,
           absolute_path: "/app/lib/qux.rb",
           first_lineno: 10,
-          trace_points: [[10, :line], [11, :line]],)
+          trace_points: [[10, :line], [11, :line]])
       end
 
       before do
         allow(Datadog::DI).to receive(:file_iseqs).and_return(
-          [method_iseq, block_iseq],
+          [method_iseq, block_iseq]
         )
         tracker.backfill_registry
       end
@@ -857,14 +857,14 @@ RSpec.describe Datadog::DI::CodeTracker do
         instance_double(RubyVM::InstructionSequence,
           absolute_path: "/app/lib/foo/target.rb",
           first_lineno: 5,
-          trace_points: [[5, :line]],)
+          trace_points: [[5, :line]])
       end
 
       let(:iseq_b) do
         instance_double(RubyVM::InstructionSequence,
           absolute_path: "/app/lib/bar/target.rb",
           first_lineno: 5,
-          trace_points: [[5, :line]],)
+          trace_points: [[5, :line]])
       end
 
       before do
@@ -904,7 +904,7 @@ RSpec.describe Datadog::DI::CodeTracker do
       method_iseq = instance_double(RubyVM::InstructionSequence,
         absolute_path: "/app/lib/foo.rb",
         first_lineno: 10,
-        trace_points: [[10, :line]],)
+        trace_points: [[10, :line]])
       allow(Datadog::DI).to receive(:file_iseqs).and_return([method_iseq])
 
       tracker.backfill_registry
@@ -929,7 +929,7 @@ RSpec.describe Datadog::DI::CodeTracker do
 
       compile_file_iseq = instance_double(RubyVM::InstructionSequence,
         absolute_path: "/app/lib/foo.rb",
-        first_lineno: 1,)
+        first_lineno: 1)
       # Override the default iseq_type stub to return :top for this
       # specific iseq, simulating a compile_file-produced :top iseq.
       allow(Datadog::DI).to receive(:iseq_type).with(compile_file_iseq).and_return(:top)
@@ -944,7 +944,7 @@ RSpec.describe Datadog::DI::CodeTracker do
     it "clear removes per-method iseqs" do
       method_iseq = instance_double(RubyVM::InstructionSequence,
         absolute_path: "/app/lib/foo.rb",
-        first_lineno: 10,)
+        first_lineno: 10)
       allow(Datadog::DI).to receive(:file_iseqs).and_return([method_iseq])
 
       tracker.backfill_registry

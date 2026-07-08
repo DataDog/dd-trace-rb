@@ -112,7 +112,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
             seq_id: 3,
             value: "https://github.com/datadog/hello"
           },
-          {name: "DD_GIT_COMMIT_SHA", origin: "env_var", seq_id: 3, value: "1234hash"},
+          {name: "DD_GIT_COMMIT_SHA", origin: "env_var", seq_id: 3, value: "1234hash"}
         )
       end
     end
@@ -126,7 +126,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
       it "reports values set by the customer application" do
         expect(event.payload[:configuration]).to include(
           {name: "tracing.auto_instrument.enabled", origin: "code", seq_id: 5, value: true},
-          {name: "tracing.opentelemetry.enabled", origin: "code", seq_id: 5, value: true},
+          {name: "tracing.opentelemetry.enabled", origin: "code", seq_id: 5, value: true}
         )
       end
     end
@@ -134,7 +134,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
     context "with DD_AGENT_TRANSPORT complex origin" do
       it "reports unknown origin" do
         expect(event.payload[:configuration]).to include(
-          {name: "DD_AGENT_TRANSPORT", origin: "unknown", seq_id: 7, value: "TCP"},
+          {name: "DD_AGENT_TRANSPORT", origin: "unknown", seq_id: 7, value: "TCP"}
         )
       end
     end
@@ -167,7 +167,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
           {name: "OTEL_EXPORTER_OTLP_METRICS_TIMEOUT", origin: "env_var", seq_id: 3, value: 3000},
           {name: "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE", origin: "env_var", seq_id: 3, value: "cumulative"},
           {name: "OTEL_METRIC_EXPORT_INTERVAL", origin: "env_var", seq_id: 3, value: 4000},
-          {name: "OTEL_METRIC_EXPORT_TIMEOUT", origin: "env_var", seq_id: 3, value: 2000},
+          {name: "OTEL_METRIC_EXPORT_TIMEOUT", origin: "env_var", seq_id: 3, value: 2000}
         )
         expect(event.payload[:configuration]).to include(
           # Default values
@@ -312,7 +312,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
           {name: "DD_APPSEC_SCA_ENABLED", origin: "code", seq_id: 5, value: false},
           {name: "instrumentation_source", origin: "default", seq_id: 1, value: "manual"},
           {name: "DD_INJECT_FORCE", origin: "default", seq_id: 1, value: false},
-          {name: "DD_INJECTION_ENABLED", origin: "default", seq_id: 1, value: ""},
+          {name: "DD_INJECTION_ENABLED", origin: "default", seq_id: 1, value: ""}
         )
         expect(event.payload[:configuration]).to_not include(include(name: "tracing.writer_options"))
         expect(event.payload[:configuration].count { |entry| entry[:name] == "logger.instance" && entry[:origin] == "default" }).to eq(1)
@@ -334,7 +334,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
         it "reports config id" do
           expect(event.payload[:configuration]).to include(
             {name: "DD_APPSEC_ENABLED", origin: "fleet_stable_config", seq_id: 4, value: true, config_id: "12345"},
-            {name: "DD_LOGS_INJECTION", origin: "local_stable_config", seq_id: 2, value: false, config_id: "56789"},
+            {name: "DD_LOGS_INJECTION", origin: "local_stable_config", seq_id: 2, value: false, config_id: "56789"}
           )
         end
 
@@ -351,7 +351,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
           it "does not report config id" do
             expect(event.payload[:configuration]).to include(
               {name: "DD_APPSEC_ENABLED", origin: "fleet_stable_config", seq_id: 4, value: true},
-              {name: "DD_LOGS_INJECTION", origin: "local_stable_config", seq_id: 2, value: false},
+              {name: "DD_LOGS_INJECTION", origin: "local_stable_config", seq_id: 2, value: false}
             )
           end
         end
@@ -438,7 +438,7 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
     subject(:extended_event) do
       Datadog::Core::Telemetry::Event::AppExtendedHeartbeat.new(
         settings: Datadog.configuration,
-        agent_settings: agent_settings,
+        agent_settings: agent_settings
       )
     end
 

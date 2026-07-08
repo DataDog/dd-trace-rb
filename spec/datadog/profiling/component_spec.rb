@@ -24,7 +24,7 @@ RSpec.describe Datadog::Profiling::Component do
         settings: settings,
         agent_settings: agent_settings,
         optional_tracer: tracer,
-        logger: logger,
+        logger: logger
       )
     end
 
@@ -104,7 +104,7 @@ RSpec.describe Datadog::Profiling::Component do
             endpoint_collection_enabled: :endpoint_collection_enabled_config,
             waiting_for_gvl_threshold_ns: :threshold_ns_config,
             otel_context_enabled: false,
-            native_filenames_enabled: :native_filenames_enabled_config,
+            native_filenames_enabled: :native_filenames_enabled_config
           )
 
           build_profiler_component
@@ -159,7 +159,7 @@ RSpec.describe Datadog::Profiling::Component do
             allocation_counting_enabled: :allocation_counting_enabled_config,
             gvl_profiling_enabled: :gvl_profiling_result,
             sighandler_sampling_enabled: :sighandler_sampling_enabled_config,
-            cpu_sampling_interval_ms: :cpu_sampling_interval_ms_config,
+            cpu_sampling_interval_ms: :cpu_sampling_interval_ms_config
           )
 
           build_profiler_component
@@ -179,7 +179,7 @@ RSpec.describe Datadog::Profiling::Component do
 
               it "initializes a CpuAndWallTimeWorker collector with gc_profiling_enabled set to true" do
                 expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
-                  gc_profiling_enabled: true,
+                  gc_profiling_enabled: true
                 )
 
                 allow(logger).to receive(:debug)
@@ -195,7 +195,7 @@ RSpec.describe Datadog::Profiling::Component do
 
               it "initializes a CpuAndWallTimeWorker collector with gc_profiling_enabled set to false and warns" do
                 expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
-                  gc_profiling_enabled: false,
+                  gc_profiling_enabled: false
                 )
 
                 expect(logger).to receive(:warn).with(/has been disabled/)
@@ -222,7 +222,7 @@ RSpec.describe Datadog::Profiling::Component do
 
           it "initializes a CpuAndWallTimeWorker collector with gc_profiling_enabled set to false" do
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
-              gc_profiling_enabled: false,
+              gc_profiling_enabled: false
             )
 
             build_profiler_component
@@ -249,7 +249,7 @@ RSpec.describe Datadog::Profiling::Component do
 
             it "initializes CpuAndWallTimeWorker and StackRecorder with allocation sampling support" do
               expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
-                allocation_profiling_enabled: true,
+                allocation_profiling_enabled: true
               )
               expect(Datadog::Profiling::StackRecorder).to receive(:new)
                 .with(hash_including(alloc_samples_enabled: true))
@@ -268,7 +268,7 @@ RSpec.describe Datadog::Profiling::Component do
 
               it "initializes a CpuAndWallTimeWorker and StackRecorder with allocation sampling force-disabled and warns" do
                 expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
-                  allocation_profiling_enabled: false,
+                  allocation_profiling_enabled: false
                 )
                 expect(Datadog::Profiling::StackRecorder).to receive(:new)
                   .with(hash_including(alloc_samples_enabled: false))
@@ -288,7 +288,7 @@ RSpec.describe Datadog::Profiling::Component do
 
               it "initializes CpuAndWallTimeWorker and StackRecorder with allocation sampling support and warns" do
                 expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
-                  allocation_profiling_enabled: true,
+                  allocation_profiling_enabled: true
                 )
                 expect(Datadog::Profiling::StackRecorder).to receive(:new)
                   .with(hash_including(alloc_samples_enabled: true))
@@ -307,7 +307,7 @@ RSpec.describe Datadog::Profiling::Component do
               let(:testing_version) { fixed_ruby }
               it "initializes CpuAndWallTimeWorker and StackRecorder with allocation sampling support and debug logs" do
                 expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
-                  allocation_profiling_enabled: true,
+                  allocation_profiling_enabled: true
                 )
                 expect(Datadog::Profiling::StackRecorder).to receive(:new)
                   .with(hash_including(alloc_samples_enabled: true))
@@ -329,7 +329,7 @@ RSpec.describe Datadog::Profiling::Component do
 
           it "initializes CpuAndWallTimeWorker and StackRecorder without allocation sampling support" do
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
-              allocation_profiling_enabled: false,
+              allocation_profiling_enabled: false
             )
             expect(Datadog::Profiling::StackRecorder).to receive(:new)
               .with(hash_including(alloc_samples_enabled: false))
@@ -515,7 +515,7 @@ RSpec.describe Datadog::Profiling::Component do
           site: settings.site,
           api_key: settings.api_key,
           upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
-          use_system_dns: settings.profiling.advanced.experimental_use_system_dns,
+          use_system_dns: settings.profiling.advanced.experimental_use_system_dns
         )
 
         build_profiler_component

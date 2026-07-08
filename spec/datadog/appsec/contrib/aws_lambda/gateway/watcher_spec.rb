@@ -28,7 +28,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
       run_waf: waf_result,
       events: [],
       trace: instance_double(Datadog::Tracing::TraceOperation),
-      span: instance_double(Datadog::Tracing::SpanOperation),
+      span: instance_double(Datadog::Tracing::SpanOperation)
     )
   end
   let(:waf_result) do
@@ -37,7 +37,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
       match?: false,
       attributes: [],
       actions: {},
-      keep?: false,
+      keep?: false
     )
   end
 
@@ -45,7 +45,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
     subject(:push_request) do
       gateway.push(
         "aws_lambda.request.start",
-        Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(event, context: context),
+        Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(event, context: context)
       )
     end
 
@@ -55,7 +55,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
       subject(:push_request) do
         gateway.push(
           "aws_lambda.request.start",
-          Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(event, context: nil),
+          Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(event, context: nil)
         )
       end
 
@@ -69,7 +69,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
         expect(context).to have_received(:run_waf).with(
           hash_including("server.request.method" => "GET", "server.request.uri.raw" => "/test"),
           {},
-          anything,
+          anything
         )
       end
 
@@ -85,7 +85,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
             match?: true,
             attributes: [],
             actions: {},
-            keep?: false,
+            keep?: false
           )
         end
 
@@ -116,7 +116,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
             match?: false,
             attributes: ["something"],
             actions: {},
-            keep?: false,
+            keep?: false
           )
         end
 
@@ -144,7 +144,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
             match?: true,
             attributes: [],
             actions: {},
-            keep?: true,
+            keep?: true
           )
         end
 
@@ -161,7 +161,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
     subject(:push_response) do
       gateway.push(
         "aws_lambda.response.start",
-        Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(response, context: context),
+        Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(response, context: context)
       )
     end
 
@@ -171,7 +171,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
       subject(:push_response) do
         gateway.push(
           "aws_lambda.response.start",
-          Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(response, context: nil),
+          Datadog::AppSec::Instrumentation::Gateway::DataContainer.new(response, context: nil)
         )
       end
 
@@ -185,7 +185,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
         expect(context).to have_received(:run_waf).with(
           hash_including("server.response.status" => "200"),
           {},
-          anything,
+          anything
         )
       end
 
@@ -201,7 +201,7 @@ RSpec.describe Datadog::AppSec::Contrib::AwsLambda::Gateway::Watcher do
             match?: true,
             attributes: [],
             actions: {},
-            keep?: false,
+            keep?: false
           )
         end
 

@@ -18,7 +18,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
         is_expected.to have_attributes(
           enabled?: true,
           fork_policy: Datadog::Core::Workers::Async::Thread::FORK_POLICY_RESTART,
-          loop_base_interval: 60, # seconds
+          loop_base_interval: 60 # seconds
         )
       end
     end

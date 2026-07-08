@@ -28,7 +28,7 @@ module Datadog
             def self.build(agent_settings)
               new(
                 uds_path: agent_settings.uds_path,
-                timeout: agent_settings.timeout_seconds,
+                timeout: agent_settings.timeout_seconds
               )
             end
 

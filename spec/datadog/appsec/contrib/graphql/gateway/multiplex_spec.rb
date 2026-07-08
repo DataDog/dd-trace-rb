@@ -435,7 +435,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
     let(:query) do
       ::GraphQL::Query.new(
         schema,
-        <<~END_OF_QUERY,
+        <<~END_OF_QUERY
           query getPost($postSlug: String!) {
             post(slug: $postSlug) { title }
           }

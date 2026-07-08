@@ -52,7 +52,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
           port: 443,
           ssl: true,
           uds_path: nil,
-          timeout_seconds: 30,
+          timeout_seconds: 30
         )
       )
     end
@@ -89,7 +89,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
             port: 443,
             ssl: true,
             uds_path: nil,
-            timeout_seconds: 30,
+            timeout_seconds: 30
           )
         )
       end
@@ -118,7 +118,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
               port: nil,
               ssl: false,
               uds_path: "/var/run/test.sock",
-              timeout_seconds: 30,
+              timeout_seconds: 30
             )
           )
         end
@@ -159,7 +159,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
             port: 80,
             ssl: false,
             uds_path: nil,
-            timeout_seconds: 30,
+            timeout_seconds: 30
           )
         )
       end
@@ -176,7 +176,7 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
             port: 443,
             ssl: true,
             uds_path: nil,
-            timeout_seconds: 42,
+            timeout_seconds: 42
           )
         )
       end

@@ -21,7 +21,7 @@ class ProfilerAllocationBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
 
       x.report("Allocations (baseline)", "BasicObject.new")
@@ -43,7 +43,7 @@ class ProfilerAllocationBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
 
       x.report("Allocations (#{ENV["CONFIG"]})", "BasicObject.new")

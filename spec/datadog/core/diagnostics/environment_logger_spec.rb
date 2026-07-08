@@ -107,7 +107,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
           json = JSON.parse(msg.partition("- CORE -")[2].strip)
           expect(json).to include(
             "hello" => 123,
-            "world" => "456",
+            "world" => "456"
           )
         end
       end

@@ -50,7 +50,7 @@ RSpec.describe "DI implicit enablement integration" do
     instance_double(
       Datadog::SymbolDatabase::Component,
       resume_pending_upload: nil,
-      stop_for_di_disable: nil,
+      stop_for_di_disable: nil
     )
   end
 
@@ -63,7 +63,7 @@ RSpec.describe "DI implicit enablement integration" do
       Datadog::Core::Configuration::Components,
       dynamic_instrumentation: component,
       telemetry: telemetry,
-      symbol_database: symbol_database,
+      symbol_database: symbol_database
     )
   end
 

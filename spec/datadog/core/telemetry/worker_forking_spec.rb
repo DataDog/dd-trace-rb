@@ -60,12 +60,12 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     double(Datadog::Core::Telemetry::Event::AppStarted,
       payload: {hello: "world"},
       type: "app-started",
-      app_started?: true,)
+      app_started?: true)
   end
 
   let(:response) do
     double(Datadog::Core::Transport::HTTP::Response,
-      ok?: true,)
+      ok?: true)
   end
 
   context "when telemetry is disabled" do
@@ -167,21 +167,21 @@ RSpec.describe Datadog::Core::Telemetry::Component do
 
         payload = sent_payloads[0].fetch(:payload)
         expect(payload).to include(
-          "request_type" => "app-started",
+          "request_type" => "app-started"
         )
         payload = sent_payloads[1].fetch(:payload)
         # The app-dependencies-loaded assertion is also critical here,
         # since there is no other test coverage for the
         # app-dependencies-loaded event being sent in the forked child.
         expect(payload).to include(
-          "request_type" => "app-dependencies-loaded",
+          "request_type" => "app-dependencies-loaded"
         )
         payload = sent_payloads[2].fetch(:payload)
         expect(payload).to include(
-          "request_type" => "message-batch",
+          "request_type" => "message-batch"
         )
         expect(payload.fetch("payload").first).to include(
-          "request_type" => "app-heartbeat",
+          "request_type" => "app-heartbeat"
         )
       end
 
@@ -198,11 +198,11 @@ RSpec.describe Datadog::Core::Telemetry::Component do
 
           payload = sent_payloads[0].fetch(:payload)
           expect(payload).to include(
-            "request_type" => "app-started",
+            "request_type" => "app-started"
           )
           payload = sent_payloads[1].fetch(:payload)
           expect(payload).to include(
-            "request_type" => "app-dependencies-loaded",
+            "request_type" => "app-dependencies-loaded"
           )
 
           fork_and_assert
@@ -222,7 +222,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
 
           payload = sent_payloads[0].fetch(:payload)
           expect(payload).to include(
-            "request_type" => "app-client-configuration-change",
+            "request_type" => "app-client-configuration-change"
           )
 
           fork_and_assert

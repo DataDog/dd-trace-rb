@@ -46,7 +46,7 @@ module Datadog
 
         @transport = Transport::HTTP.symbols(
           agent_settings: agent_settings,
-          logger: @logger,
+          logger: @logger
         )
 
         # Protects the lazy initialization of @upload_pid/@upload_id and the
@@ -110,7 +110,7 @@ module Datadog
           batch_num: batch_num,
           # Always false: the Ruby tracer continuously uploads new code
           # as files are loaded; there is no defined end-of-upload point.
-          final: false,
+          final: false
         ).to_json
       end
 
@@ -133,20 +133,20 @@ module Datadog
       # @return [Hash] Form data hash with UploadIO objects
       def build_multipart_form(compressed_data, upload_id:, batch_num:)
         event_io = StringIO.new(
-          build_event_metadata(compressed_data.bytesize, upload_id: upload_id, batch_num: batch_num),
+          build_event_metadata(compressed_data.bytesize, upload_id: upload_id, batch_num: batch_num)
         )
         file_io = StringIO.new(compressed_data)
 
         event_upload = Datadog::Core::Vendor::Multipart::Post::UploadIO.new(
           event_io,
           "application/json",
-          "event.json",
+          "event.json"
         )
 
         file_upload = Datadog::Core::Vendor::Multipart::Post::UploadIO.new(
           file_io,
           "application/gzip",
-          "symbols_#{Process.pid}.json.gz",
+          "symbols_#{Process.pid}.json.gz"
         )
 
         {
@@ -174,7 +174,7 @@ module Datadog
           # Always false: the Ruby tracer continuously uploads new code
           # as files are loaded; there is no defined end-of-upload point.
           final: false,
-          attachmentSize: attachment_size,
+          attachmentSize: attachment_size
         )
       end
 

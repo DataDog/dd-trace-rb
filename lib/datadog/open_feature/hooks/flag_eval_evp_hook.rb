@@ -48,7 +48,7 @@ module Datadog
             runtime_default: runtime_default?(evaluation_details),
             targeting_key: extract_targeting_key(hook_context.evaluation_context),
             eval_time_ms: eval_time_ms,
-            attrs: extract_attributes(hook_context.evaluation_context),
+            attrs: extract_attributes(hook_context.evaluation_context)
           )
         end
 

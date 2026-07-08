@@ -89,7 +89,7 @@ module Datadog
 
         Identifier.new(
           span_id: digest.span_id,
-          trace_id: digest.trace_id,
+          trace_id: digest.trace_id
         )
       end
 

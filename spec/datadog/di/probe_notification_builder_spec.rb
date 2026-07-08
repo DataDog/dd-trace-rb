@@ -350,7 +350,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     context "with snapshot capture" do
       let(:probe) do
         Datadog::DI::Probe.new(id: "123", type: :log, file: "X", line_no: 1,
-          capture_snapshot: true,)
+          capture_snapshot: true)
       end
 
       let(:context) do
@@ -428,7 +428,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     let(:probe) do
       Datadog::DI::Probe.new(id: "123", type: :log,
         type_name: "TestClass", method_name: "test_method",
-        capture_snapshot: true,)
+        capture_snapshot: true)
     end
 
     let(:target_self) { Object.new }
@@ -447,7 +447,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           target_self: target_self,
           serialized_entry_args: {},
           return_value: nil, duration: 0.1,
-          exception: exception,
+          exception: exception
         )
       end
 
@@ -473,7 +473,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           settings: settings, serializer: serializer,
           target_self: target_self,
           serialized_entry_args: {},
-          return_value: 42, duration: 0.1,
+          return_value: 42, duration: 0.1
         )
       end
 
@@ -503,7 +503,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           target_self: target_self,
           serialized_entry_args: {},
           return_value: nil, duration: 0.1,
-          exception: exception,
+          exception: exception
         )
       end
 
@@ -528,7 +528,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           target_self: target_self,
           serialized_entry_args: {},
           return_value: nil, duration: 0.1,
-          exception: exception,
+          exception: exception
         )
       end
 
@@ -552,7 +552,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           target_self: target_self,
           serialized_entry_args: {},
           return_value: nil, duration: 0.1,
-          exception: exception,
+          exception: exception
         )
       end
 
@@ -590,7 +590,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           serialized_entry_args: {},
           return_value: nil,
           duration: 0.1,
-          exception: exception,
+          exception: exception
         )
       end
 
@@ -601,7 +601,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         expect(throwable[:stacktrace]).to be_an(Array)
         expect(throwable[:stacktrace]).to eq([])
         expect(throwable[:stacktrace]).not_to eq(
-          [{fileName: "overridden", function: "fake_method", lineNumber: 0}],
+          [{fileName: "overridden", function: "fake_method", lineNumber: 0}]
         )
         # Verify the override exists on the Ruby side
         expect(exception.backtrace).to eq(["overridden:0:in `fake_method'"])
@@ -624,7 +624,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           serialized_entry_args: {},
           return_value: nil,
           duration: 0.1,
-          exception: exception,
+          exception: exception
         )
       end
 
@@ -652,7 +652,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
           target_self: target_self,
           serialized_entry_args: {},
           return_value: nil, duration: 0.1,
-          exception: exception,
+          exception: exception
         )
       end
 

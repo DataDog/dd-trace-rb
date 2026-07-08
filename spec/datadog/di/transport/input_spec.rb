@@ -296,7 +296,7 @@ RSpec.describe Datadog::DI::Transport::Input::Transport do
         transport.send_input([bad_snapshot], tags, on_serialization_error: on_error)
 
         expect(reports).to include(
-          hash_including(exc_class: RuntimeError, exc_message: "callback error", description: "Error in serialization error callback"),
+          hash_including(exc_class: RuntimeError, exc_message: "callback error", description: "Error in serialization error callback")
         )
       end
     end

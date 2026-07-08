@@ -18,7 +18,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Adapters::Net do
       uds_path: nil,
       hostname: hostname,
       port: port,
-      timeout_seconds: timeout,
+      timeout_seconds: timeout
     )
   end
 

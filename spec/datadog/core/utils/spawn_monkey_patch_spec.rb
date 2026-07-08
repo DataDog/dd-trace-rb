@@ -103,7 +103,7 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
           command,
           in: File::NULL,
           out: write_io,
-          err: write_io,
+          err: write_io
         )
         write_io.close
         Process.wait(pid)
@@ -339,10 +339,10 @@ RSpec.describe Datadog::Core::Utils::SpawnMonkeyPatch do
       Datadog::Core::Configuration::Components.new(Datadog::Core::Configuration::Settings.new)
 
       expect(Process.singleton_class.ancestors).to include(
-        Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch,
+        Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch
       )
       expect(Process.singleton_class.ancestors).to include(
-        Datadog::Core::Utils::SpawnMonkeyPatch::ProcessSpawnPatch,
+        Datadog::Core::Utils::SpawnMonkeyPatch::ProcessSpawnPatch
       )
     end
   end

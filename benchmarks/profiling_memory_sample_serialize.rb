@@ -22,14 +22,14 @@ def sample_object(recorder, depth = 0)
       recorder,
       obj,
       1,
-      OBJECT_CLASS,
+      OBJECT_CLASS
     )
     Datadog::Profiling::Collectors::Stack::Testing._native_sample(
       Thread.current,
       recorder,
       METRIC_VALUES,
       [],
-      [],
+      []
     )
     obj
   else
@@ -73,7 +73,7 @@ class ProfilerMemorySampleSerializeBenchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 30, warmup: 2}
       x.config(
-        **benchmark_time,
+        **benchmark_time
       )
 
       x.report("sample+serialize #{ENV["CONFIG"]} retain_every=#{@retain_every} heap_samples=#{@heap_samples_enabled} heap_size=#{@heap_size_enabled} heap_sample_every=#{@heap_sample_every} skip_end_gc=#{@skip_end_gc}") do

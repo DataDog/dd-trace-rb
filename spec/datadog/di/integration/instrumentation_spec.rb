@@ -166,7 +166,7 @@ RSpec.describe "Instrumentation integration" do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
             type_name: "InstrumentationSpecTestClass", method_name: "test_method",
-            capture_snapshot: false,)
+            capture_snapshot: false)
         end
 
         it "invokes probe" do
@@ -207,7 +207,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               type_name: "InstrumentationDelayedTestClass", method_name: "test_method",
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           it "installs probe which then is invoked and creates expected snapshot" do
@@ -248,7 +248,7 @@ RSpec.describe "Instrumentation integration" do
               }},
               language: "ruby",
               stack: Array,
-              captures: {},
+              captures: {}
             )
           end
 
@@ -256,7 +256,7 @@ RSpec.describe "Instrumentation integration" do
             let(:probe) do
               Datadog::DI::Probe.new(id: "1234", type: :log,
                 type_name: "InstrumentationDelayedDerivedTestClass", method_name: "test_method",
-                capture_snapshot: false,)
+                capture_snapshot: false)
             end
 
             it "invokes probe and creates expected snapshot" do
@@ -291,7 +291,7 @@ RSpec.describe "Instrumentation integration" do
                 }},
                 language: "ruby",
                 stack: Array,
-                captures: {},
+                captures: {}
               )
             end
           end
@@ -301,7 +301,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               type_name: "InstrumentationDelayedPartialTestClass", method_name: "test_method",
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           it "invokes probe and creates expected snapshot" do
@@ -339,7 +339,7 @@ RSpec.describe "Instrumentation integration" do
               # TODO the stack trace here does not contain the target method
               # as the first frame - see the comment in Instrumenter.
               stack: Array,
-              captures: {},
+              captures: {}
             )
           end
         end
@@ -348,7 +348,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               type_name: "InstrumentationVirtualTestClass", method_name: "test_method",
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           it "invokes probe and creates expected snapshot" do
@@ -382,7 +382,7 @@ RSpec.describe "Instrumentation integration" do
               # TODO the stack trace here does not contain the target method
               # as the first frame - see the comment in Instrumenter.
               stack: Array,
-              captures: {},
+              captures: {}
             )
           end
         end
@@ -392,7 +392,7 @@ RSpec.describe "Instrumentation integration" do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
             type_name: "InstrumentationSpecTestClass", method_name: "test_method",
-            capture_snapshot: true,)
+            capture_snapshot: true)
         end
 
         let(:expected_captures) do
@@ -454,7 +454,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               type_name: "InstrumentationSpecTestClass", method_name: "mutating_method",
-              capture_snapshot: true,)
+              capture_snapshot: true)
           end
 
           let(:expected_captures) do
@@ -496,7 +496,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               type_name: "InstrumentationSpecTestClass", method_name: "exception_method",
-              capture_snapshot: true,)
+              capture_snapshot: true)
           end
 
           it "populates throwable in captures" do
@@ -527,7 +527,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               type_name: "InstrumentationSpecTestClass", method_name: "ivar_mutating_method",
-              capture_snapshot: true,)
+              capture_snapshot: true)
           end
 
           let(:expected_captures) do
@@ -748,7 +748,7 @@ RSpec.describe "Instrumentation integration" do
             type: :log,
             type_name: "InstrumentationSpecTestClass",
             method_name: "mutating_method",
-            capture_snapshot: true,
+            capture_snapshot: true
           )
         end
 
@@ -831,7 +831,7 @@ RSpec.describe "Instrumentation integration" do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
             file: "instrumentation_integration_test_class.rb", line_no: 40,
-            capture_snapshot: false,)
+            capture_snapshot: false)
         end
 
         before do
@@ -895,7 +895,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 42,
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           include_examples "simple log probe"
@@ -905,7 +905,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 53,
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           it "invokes probe" do
@@ -975,7 +975,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 64,
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           let(:call_target) do
@@ -989,7 +989,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 66,
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           let(:call_target) do
@@ -1003,7 +1003,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 70,
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           # We currently are not told that the line is not executable.
@@ -1017,7 +1017,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 53,
-              capture_snapshot: false,)
+              capture_snapshot: false)
           end
 
           before do
@@ -1051,7 +1051,7 @@ RSpec.describe "Instrumentation integration" do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
             file: "instrumentation_integration_test_class.rb", line_no: 40,
-            capture_snapshot: true,)
+            capture_snapshot: true)
         end
 
         let(:expected_captures) do
@@ -1115,7 +1115,7 @@ RSpec.describe "Instrumentation integration" do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               file: "instrumentation_integration_test_class.rb", line_no: 27,
-              capture_snapshot: true,)
+              capture_snapshot: true)
           end
 
           let(:expected_captures) do
@@ -1145,7 +1145,7 @@ RSpec.describe "Instrumentation integration" do
 
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: "instrumentation_integration_test_class_2.rb", line_no: 10,)
+              file: "instrumentation_integration_test_class_2.rb", line_no: 10)
           end
 
           it "instruments file when it is loaded" do
@@ -1177,7 +1177,7 @@ RSpec.describe "Instrumentation integration" do
           context "untargeted trace points enabled" do
             let(:probe) do
               Datadog::DI::Probe.new(id: "1234", type: :log,
-                file: "instrumentation_integration_test_class_3.rb", line_no: 10,)
+                file: "instrumentation_integration_test_class_3.rb", line_no: 10)
             end
 
             before do
@@ -1214,7 +1214,7 @@ RSpec.describe "Instrumentation integration" do
           context "untargeted trace points disabled" do
             let(:probe) do
               Datadog::DI::Probe.new(id: "1234", type: :log,
-                file: "instrumentation_integration_test_class_4.rb", line_no: 20,)
+                file: "instrumentation_integration_test_class_4.rb", line_no: 20)
             end
 
             before do
@@ -1251,7 +1251,7 @@ RSpec.describe "Instrumentation integration" do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
             file: "instrumentation_integration_test_class.rb", line_no: 40,
-            capture_snapshot: false,)
+            capture_snapshot: false)
         end
 
         it "notifies agent that probe is emitting" do
@@ -1307,7 +1307,7 @@ RSpec.describe "Instrumentation integration" do
             type: :log,
             file: "instrumentation_integration_test_class.rb",
             line_no: 63,
-            capture_snapshot: true,
+            capture_snapshot: true
           )
         end
 

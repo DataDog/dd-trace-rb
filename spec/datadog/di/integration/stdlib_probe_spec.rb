@@ -169,7 +169,7 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
           type: :log,
           type_name: "String",
           method_name: "length",
-          capture_snapshot: true,
+          capture_snapshot: true
         )
       end
 
@@ -192,7 +192,7 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
           type: :log,
           type_name: "String",
           method_name: "length",
-          capture_snapshot: false,
+          capture_snapshot: false
         )
       end
 
@@ -233,7 +233,7 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
           type: :log,
           type_name: "Hash",
           method_name: "each",
-          capture_snapshot: true,
+          capture_snapshot: true
         )
       end
 
@@ -262,7 +262,7 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
           type: :log,
           type_name: "Array",
           method_name: "map",
-          capture_snapshot: true,
+          capture_snapshot: true
         )
       end
 
@@ -291,7 +291,7 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
           type: :log,
           type_name: "Object",
           method_name: "instance_variables",
-          capture_snapshot: true,
+          capture_snapshot: true
         )
       end
 
@@ -361,7 +361,7 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
         type: :log,
         file: source_file,
         line_no: source_line,
-        capture_snapshot: true,
+        capture_snapshot: true
       )
     end
 
@@ -392,7 +392,7 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
           type: :log,
           file: source_file,
           line_no: source_line,
-          capture_snapshot: false,
+          capture_snapshot: false
         )
       end
 
@@ -429,7 +429,7 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
           type: :log,
           type_name: "Set",
           method_name: "include?",
-          capture_snapshot: true,
+          capture_snapshot: true
         )
       end
 
@@ -453,7 +453,7 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
           type: :log,
           type_name: "Set",
           method_name: "include?",
-          capture_snapshot: false,
+          capture_snapshot: false
         )
       end
 
@@ -516,7 +516,7 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
         type: :log,
         type_name: "String",
         method_name: "length",
-        capture_snapshot: true,
+        capture_snapshot: true
       )
     end
 
@@ -565,7 +565,7 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
         type: :log,
         type_name: "Module",
         method_name: "prepend",
-        capture_snapshot: true,
+        capture_snapshot: true
       )
     end
 
@@ -605,7 +605,7 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
         type: :log,
         type_name: "Thread",
         method_name: "[]",
-        capture_snapshot: false,
+        capture_snapshot: false
       )
     end
 
@@ -632,7 +632,7 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
         type: :log,
         type_name: "Thread",
         method_name: "[]=",
-        capture_snapshot: false,
+        capture_snapshot: false
       )
     end
 
@@ -662,7 +662,7 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
         type: :log,
         type_name: "Array",
         method_name: "empty?",
-        capture_snapshot: false,
+        capture_snapshot: false
       )
     end
 
@@ -690,7 +690,7 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
         type: :log,
         type_name: "Hash",
         method_name: "empty?",
-        capture_snapshot: false,
+        capture_snapshot: false
       )
     end
 
@@ -726,7 +726,7 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
         type: :log,
         type_name: "Proc",
         method_name: "call",
-        capture_snapshot: false,
+        capture_snapshot: false
       )
     end
 
@@ -759,7 +759,7 @@ RSpec.describe "Stdlib probe integration: probes on methods invoked by DI proces
         type: :log,
         type_name: "Object",
         method_name: "send",
-        capture_snapshot: false,
+        capture_snapshot: false
       )
     end
 

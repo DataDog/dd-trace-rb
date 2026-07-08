@@ -77,7 +77,7 @@ module Datadog
             gvl_profiling_enabled: gvl_profiling_enabled,
             sighandler_sampling_enabled: sighandler_sampling_enabled,
             skip_idle_samples_for_testing: skip_idle_samples_for_testing,
-            cpu_sampling_interval_ms: cpu_sampling_interval_ms,
+            cpu_sampling_interval_ms: cpu_sampling_interval_ms
           )
           @worker_thread = nil
           @failure_exception = nil

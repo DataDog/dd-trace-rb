@@ -344,7 +344,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             fields: {
               :@ivar => {type: "Integer", value: "2442"},
             },
-          },
+          }
         )
       end
     end
@@ -395,7 +395,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
             expect(observed_calls.first.serialized_entry_args).to eq(
               arg1: {type: "Integer", value: "2"},
-              self: {type: "HookTestClass", fields: {}},
+              self: {type: "HookTestClass", fields: {}}
             )
           end
 
@@ -428,7 +428,7 @@ RSpec.describe Datadog::DI::Instrumenter do
                   fields: {
                     :@ivar => {type: "Integer", value: "2442"},
                   },
-                },
+                }
               )
             end
           end
@@ -485,7 +485,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
             expect(observed_calls.first.serialized_entry_args).to eq(
               kwarg: {type: "Integer", value: "42"},
-              self: {type: "HookTestClass", fields: {}},
+              self: {type: "HookTestClass", fields: {}}
             )
           end
         end
@@ -542,7 +542,7 @@ RSpec.describe Datadog::DI::Instrumenter do
                 fields: {
                   :@ivar => {type: "Integer", value: "2442"},
                 },
-              },
+              }
             )
           end
         end
@@ -578,7 +578,7 @@ RSpec.describe Datadog::DI::Instrumenter do
               # requires method call trace point.
               arg1: {type: "Integer", value: "41"},
               kwarg: {type: "Integer", value: "42"},
-              self: {type: "HookTestClass", fields: {}},
+              self: {type: "HookTestClass", fields: {}}
             )
           end
         end
@@ -656,7 +656,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           expect(observed_calls.first.serialized_entry_args).to eq(
             kwarg: {type: "Integer", value: "42"},
-            self: {type: "HookTestClass", fields: {}},
+            self: {type: "HookTestClass", fields: {}}
           )
         end
       end
@@ -712,7 +712,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             expect(observed_calls.first.serialized_entry_args).to eq(
               arg1: {type: "String", value: "hello"},
               kwarg: {type: "Integer", value: "42"},
-              self: {type: "HookTestClass", fields: {}},
+              self: {type: "HookTestClass", fields: {}}
             )
           end
         end
@@ -1977,7 +1977,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       let(:probe) do
         Datadog::DI::Probe.new(
           id: 1, type: :log, type_name: "DITestClass", method_name: "test_method",
-          capture_snapshot: false,
+          capture_snapshot: false
         )
       end
 

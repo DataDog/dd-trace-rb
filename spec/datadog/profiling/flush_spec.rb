@@ -34,7 +34,7 @@ RSpec.describe Datadog::Profiling::Flush do
         tags_as_array: tags_as_array,
         process_tags: process_tags,
         internal_metadata: internal_metadata,
-        info_json: info_json,
+        info_json: info_json
       )
     end
 

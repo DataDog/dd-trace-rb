@@ -87,7 +87,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         settings: settings,
         agent_settings: agent_settings,
         optional_tracer: tracer,
-        logger: logger,
+        logger: logger
       ).and_return([profiler, environment_logger_extra])
 
       expect(described_class).to receive(:build_runtime_metrics_worker)
@@ -688,7 +688,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
             settings: settings,
             agent_settings: agent_settings,
             optional_tracer: anything,
-            logger: anything, # Tested above in "new"
+            logger: anything # Tested above in "new"
           ).and_return([profiler, environment_logger_extra])
         end
 
@@ -920,7 +920,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         Datadog::Core::Configuration::ComponentsState.new(
           telemetry_enabled: true,
           remote_started: false,
-          di_implicitly_enabled: true,
+          di_implicitly_enabled: true
         )
       end
 
@@ -937,7 +937,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         Datadog::Core::Configuration::ComponentsState.new(
           telemetry_enabled: true,
           remote_started: false,
-          di_implicitly_enabled: false,
+          di_implicitly_enabled: false
         )
       end
 
@@ -952,7 +952,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         Datadog::Core::Configuration::ComponentsState.new(
           telemetry_enabled: true,
           remote_started: false,
-          di_implicitly_enabled: false,
+          di_implicitly_enabled: false
         )
       end
 
@@ -988,7 +988,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         Datadog::Core::Configuration::ComponentsState.new(
           telemetry_enabled: true,
           remote_started: false,
-          di_implicitly_enabled: false,
+          di_implicitly_enabled: false
         )
       end
 
@@ -1166,10 +1166,10 @@ RSpec.describe Datadog::Core::Configuration::Components do
         described_class.new(Datadog::Core::Configuration::Settings.new)
 
         expect(Process.singleton_class.ancestors).to include(
-          Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch,
+          Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch
         )
         expect(Process.singleton_class.ancestors).to include(
-          Datadog::Core::Utils::SpawnMonkeyPatch::ProcessSpawnPatch,
+          Datadog::Core::Utils::SpawnMonkeyPatch::ProcessSpawnPatch
         )
       end
     end

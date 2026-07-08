@@ -52,7 +52,7 @@ module Datadog
           heap_samples_enabled: heap_profiling_enabled,
           heap_size_enabled: heap_size_profiling_enabled,
           heap_sample_every: heap_sample_every,
-          heap_clean_after_gc_enabled: settings.profiling.advanced.heap_clean_after_gc_enabled,
+          heap_clean_after_gc_enabled: settings.profiling.advanced.heap_clean_after_gc_enabled
         )
         thread_context_collector = build_thread_context_collector(settings, recorder, optional_tracer)
         worker = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
@@ -64,7 +64,7 @@ module Datadog
           allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
           gvl_profiling_enabled: enable_gvl_profiling?(settings, logger),
           sighandler_sampling_enabled: settings.profiling.advanced.sighandler_sampling_enabled,
-          cpu_sampling_interval_ms: cpu_sampling_interval_ms,
+          cpu_sampling_interval_ms: cpu_sampling_interval_ms
         )
 
         internal_metadata = {
@@ -104,7 +104,7 @@ module Datadog
           endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
           waiting_for_gvl_threshold_ns: settings.profiling.advanced.waiting_for_gvl_threshold_ns,
           otel_context_enabled: settings.profiling.advanced.preview_otel_context_enabled,
-          native_filenames_enabled: settings.profiling.advanced.native_filenames_enabled,
+          native_filenames_enabled: settings.profiling.advanced.native_filenames_enabled
         )
       end
 
@@ -118,7 +118,7 @@ module Datadog
           worker: worker,
           info_collector: info_collector,
           code_provenance_collector: code_provenance_collector,
-          internal_metadata: internal_metadata,
+          internal_metadata: internal_metadata
         )
       end
 
@@ -129,7 +129,7 @@ module Datadog
             site: settings.site,
             api_key: settings.api_key,
             upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
-            use_system_dns: settings.profiling.advanced.experimental_use_system_dns,
+            use_system_dns: settings.profiling.advanced.experimental_use_system_dns
           )
       end
 

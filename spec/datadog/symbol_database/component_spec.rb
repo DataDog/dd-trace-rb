@@ -25,7 +25,7 @@ RSpec.describe Datadog::SymbolDatabase::Component do
       hostname: "localhost",
       port: 8126,
       timeout_seconds: 30,
-      ssl: false,
+      ssl: false
     )
   end
 

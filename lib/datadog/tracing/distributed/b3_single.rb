@@ -62,7 +62,7 @@ module Datadog
             span_id: span_id,
             trace_id: trace_id,
             trace_sampling_priority: sampling_priority,
-            span_remote: true,
+            span_remote: true
           )
         end
       end

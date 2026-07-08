@@ -145,7 +145,7 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
           is_expected.to have_attributes(
             hierarchy: nil,
             controllers: nil,
-            path: nil,
+            path: nil
           )
         end
       end
@@ -159,7 +159,7 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
           is_expected.to have_attributes(
             hierarchy: "12",
             controllers: "freezer",
-            path: "/",
+            path: "/"
           )
         end
       end
@@ -173,7 +173,7 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
           is_expected.to have_attributes(
             hierarchy: "11",
             controllers: "memory",
-            path: "/user.slice",
+            path: "/user.slice"
           )
         end
       end
@@ -187,7 +187,7 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
           is_expected.to have_attributes(
             hierarchy: "4",
             controllers: "cpu,cpuacct",
-            path: "/user.slice",
+            path: "/user.slice"
           )
         end
       end
@@ -199,7 +199,7 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
           is_expected.to have_attributes(
             hierarchy: "5",
             controllers: "rdma",
-            path: "/docker/abc:def:ghi",
+            path: "/docker/abc:def:ghi"
           )
         end
       end
@@ -213,7 +213,7 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
           is_expected.to have_attributes(
             hierarchy: "0",
             controllers: "",
-            path: "/user.slice/user-1000.slice/user@1000.service/gnome-terminal-server.service",
+            path: "/user.slice/user-1000.slice/user@1000.service/gnome-terminal-server.service"
           )
         end
       end
@@ -227,7 +227,7 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
           is_expected.to have_attributes(
             hierarchy: "1",
             controllers: "name=systemd",
-            path: "/user.slice/user-1000.slice/user@1000.service/gnome-terminal-server.service",
+            path: "/user.slice/user-1000.slice/user@1000.service/gnome-terminal-server.service"
           )
         end
       end
@@ -241,7 +241,7 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
           is_expected.to have_attributes(
             hierarchy: "13",
             controllers: "name=systemd",
-            path: "/docker/3726184226f5d3147c25fdeab5b60097e378e8a720503a5e19ecfdf29f869860",
+            path: "/docker/3726184226f5d3147c25fdeab5b60097e378e8a720503a5e19ecfdf29f869860"
           )
         end
       end
@@ -255,7 +255,7 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
           is_expected.to have_attributes(
             hierarchy: "1",
             controllers: "name=systemd",
-            path: "/kubepods/besteffort/pod3d274242-8ee0-11e9-a8a6-1e68d864ef1a/3e74d3fd9db4c9dd921ae05c2502fb984d0cde1b36e581b13f79c639da4518a1",
+            path: "/kubepods/besteffort/pod3d274242-8ee0-11e9-a8a6-1e68d864ef1a/3e74d3fd9db4c9dd921ae05c2502fb984d0cde1b36e581b13f79c639da4518a1"
           )
         end
       end
@@ -269,7 +269,7 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
           is_expected.to have_attributes(
             hierarchy: "1",
             controllers: "blkio",
-            path: "/ecs/haissam-ecs-classic/5a0d5ceddf6c44c1928d367a815d890f/38fac3e99302b3622be089dd41e7ccf38aff368a86cc339972075136ee2710ce",
+            path: "/ecs/haissam-ecs-classic/5a0d5ceddf6c44c1928d367a815d890f/38fac3e99302b3622be089dd41e7ccf38aff368a86cc339972075136ee2710ce"
           )
         end
       end
@@ -283,7 +283,7 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
           is_expected.to have_attributes(
             hierarchy: "1",
             controllers: "name=systemd",
-            path: "/ecs/55091c13-b8cf-4801-b527-f4601742204d/432624d2150b349fe35ba397284dea788c2bf66b885d14dfc1569b01890ca7da",
+            path: "/ecs/55091c13-b8cf-4801-b527-f4601742204d/432624d2150b349fe35ba397284dea788c2bf66b885d14dfc1569b01890ca7da"
           )
         end
       end
@@ -297,7 +297,7 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
           is_expected.to have_attributes(
             hierarchy: "1",
             controllers: "name=systemd",
-            path: "/ecs/34dc0b5e626f2c5c4c5170e34b10e765-1234567890",
+            path: "/ecs/34dc0b5e626f2c5c4c5170e34b10e765-1234567890"
           )
         end
       end
@@ -311,7 +311,7 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
           is_expected.to have_attributes(
             hierarchy: "1",
             controllers: "name=systemd",
-            path: "/ecs/34dc0b5e626f2c5c4c5170e34b10e765/34dc0b5e626f2c5c4c5170e34b10e765-1234567890",
+            path: "/ecs/34dc0b5e626f2c5c4c5170e34b10e765/34dc0b5e626f2c5c4c5170e34b10e765-1234567890"
           )
         end
       end

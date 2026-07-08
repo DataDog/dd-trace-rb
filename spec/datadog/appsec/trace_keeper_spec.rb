@@ -23,7 +23,7 @@ RSpec.describe Datadog::AppSec::TraceKeeper do
           trace.keep!
           trace.set_tag(
             Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-            Datadog::Tracing::Sampling::Ext::Decision::AI_GUARD,
+            Datadog::Tracing::Sampling::Ext::Decision::AI_GUARD
           )
         end
 

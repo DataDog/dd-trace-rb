@@ -110,7 +110,7 @@ module Datadog
                   span_id: link.span_context.hex_span_id.to_i(16),
                   trace_sampling_priority: (link.span_context.trace_flags&.sampled? ? 1 : 0),
                   trace_state: tracestate && ::Datadog::Core::Utils.utf8_encode(tracestate, placeholder: nil),
-                  span_remote: link.span_context.remote?,
+                  span_remote: link.span_context.remote?
                 ),
                 attributes: link.attributes
               )

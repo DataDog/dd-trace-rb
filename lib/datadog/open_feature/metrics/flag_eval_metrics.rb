@@ -55,7 +55,7 @@ module Datadog
             variant: variant,
             reason: reason,
             error_code: error_code,
-            allocation_key: allocation_key,
+            allocation_key: allocation_key
           )
           counter.add(1, attributes: attributes)
         rescue => e

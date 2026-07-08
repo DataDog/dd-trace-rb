@@ -48,7 +48,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       agent_settings: agent_settings,
       telemetry: telemetry,
       probe_repository: default_probe_repository,
-      probe_notification_builder: default_probe_notification_builder,
+      probe_notification_builder: default_probe_notification_builder
     )
   end
 
@@ -259,7 +259,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           agent_settings: agent_settings,
           telemetry: telemetry,
           probe_repository: probe_repository,
-          probe_notification_builder: probe_notification_builder,
+          probe_notification_builder: probe_notification_builder
         )
       end
 
@@ -289,7 +289,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
           expect(probe_notification_builder).to receive(:build_status).with(probe, hash_including(
             message: /JSON encoding failed/,
-            status: "ERROR",
+            status: "ERROR"
           ))
 
           worker.send(:handle_serialization_error, "test-probe", exception)
@@ -348,7 +348,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         Datadog::DI::Transport::HTTP.input(
           agent_settings: agent_settings,
           logger: logger,
-          telemetry: nil,
+          telemetry: nil
         ).tap do |transport|
           allow(transport).to receive(:send_input_chunk)
         end
@@ -360,7 +360,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           agent_settings: agent_settings,
           telemetry: nil,
           probe_repository: real_probe_repository,
-          probe_notification_builder: error_probe_notification_builder,
+          probe_notification_builder: error_probe_notification_builder
         )
       end
 

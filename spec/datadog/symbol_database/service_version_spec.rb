@@ -11,7 +11,7 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         service: "my-service",
         env: "production",
         version: "1.0.0",
-        scopes: [],
+        scopes: []
       )
 
       expect(sv.service).to eq("my-service")
@@ -71,7 +71,7 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         service: "my-app",
         env: "staging",
         version: "2.1.0",
-        scopes: [],
+        scopes: []
       )
 
       expect(sv.to_h).to eq({
@@ -94,27 +94,27 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         scopes: [],
         upload_id: "abc-123",
         batch_num: 5,
-        final: false,
+        final: false
       )
 
       expect(sv.to_h).to include(
         upload_id: "abc-123",
         batch_num: 5,
-        final: false,
+        final: false
       )
     end
 
     it "serializes scopes recursively" do
       scope = Datadog::SymbolDatabase::Scope.new(
         scope_type: "CLASS",
-        name: "MyClass",
+        name: "MyClass"
       )
 
       sv = described_class.new(
         service: "svc",
         env: "prod",
         version: "1.0",
-        scopes: [scope],
+        scopes: [scope]
       )
 
       hash = sv.to_h
@@ -123,7 +123,7 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
       expect(hash[:scopes].size).to eq(1)
       expect(hash[:scopes].first).to include(
         scope_type: "CLASS",
-        name: "MyClass",
+        name: "MyClass"
       )
     end
 
@@ -154,7 +154,7 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         service: "test-service",
         env: "test",
         version: "0.1.0",
-        scopes: [],
+        scopes: []
       )
 
       json = sv.to_json
@@ -167,7 +167,7 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         "env" => "test",
         "version" => "0.1.0",
         "language" => "ruby",
-        "scopes" => [],
+        "scopes" => []
       )
     end
 
@@ -182,7 +182,7 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         language_specifics: {visibility: "public", method_type: "instance"},
         symbols: [
           Datadog::SymbolDatabase::Symbol.new(symbol_type: "ARG", name: "token", line: 5),
-        ],
+        ]
       )
 
       class_scope = Datadog::SymbolDatabase::Scope.new(
@@ -192,7 +192,7 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         start_line: 1,
         end_line: 8,
         language_specifics: {super_classes: ["ApplicationRecord"]},
-        scopes: [method_scope],
+        scopes: [method_scope]
       )
 
       file_scope = Datadog::SymbolDatabase::Scope.new(
@@ -202,14 +202,14 @@ RSpec.describe Datadog::SymbolDatabase::ServiceVersion do
         start_line: 0,
         end_line: 2147483647,
         language_specifics: {file_hash: "abc123"},
-        scopes: [class_scope],
+        scopes: [class_scope]
       )
 
       sv = described_class.new(
         service: "my-app",
         env: "production",
         version: "1.0.0",
-        scopes: [file_scope],
+        scopes: [file_scope]
       )
 
       json = sv.to_json

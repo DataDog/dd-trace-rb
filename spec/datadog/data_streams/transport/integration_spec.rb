@@ -37,7 +37,7 @@ RSpec.describe Datadog::DataStreams::Transport do
       partition: 0,
       offset: 0,
       timestamp: Time.now,
-      timestamp_sec: 1,)
+      timestamp_sec: 1)
     processor.send(:flush_stats)
     expect(received_requests.length).to be 1
     req = received_requests.first
@@ -45,7 +45,7 @@ RSpec.describe Datadog::DataStreams::Transport do
     headers = req.header.transform_keys(&:downcase).transform_values(&:first)
     expect(headers).to include(
       "content-type" => "application/msgpack",
-      "content-encoding" => "gzip",
+      "content-encoding" => "gzip"
     )
     expect(headers).to include(Datadog::Core::Transport::HTTP.default_headers.transform_keys(&:downcase))
   end

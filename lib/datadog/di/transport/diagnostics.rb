@@ -19,7 +19,7 @@ module Datadog
             encoder = Core::Encoding::JSONEncoder
             parcel = Core::Transport::Parcel.new(
               encoder.encode(payload),
-              content_type: encoder.content_type,
+              content_type: encoder.content_type
             )
             request = Request.new(parcel)
 

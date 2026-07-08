@@ -13,16 +13,16 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
       expect(info).to match(
         {
           platform: hash_including(
-            kernel_name: Datadog::Core::Environment::Platform.kernel_name,
+            kernel_name: Datadog::Core::Environment::Platform.kernel_name
           ),
           runtime: hash_including(
-            engine: Datadog::Core::Environment::Identity.lang_engine,
+            engine: Datadog::Core::Environment::Identity.lang_engine
           ),
           application: hash_including(
-            service: settings.service,
+            service: settings.service
           ),
           profiler: hash_including(
-            version: Datadog::Core::Environment::Identity.gem_datadog_version,
+            version: Datadog::Core::Environment::Identity.gem_datadog_version
           ),
         }
       )
@@ -44,7 +44,7 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
       expect(info[:profiler][:settings][:advanced]).to match(
         a_hash_including(
           max_frames: 600,
-          experimental_heap_enabled: true,
+          experimental_heap_enabled: true
         )
       )
     end

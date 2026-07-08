@@ -37,7 +37,7 @@ RSpec.describe Datadog::Tracing::SpanEvent do
         it "skips invalid values" do
           expect(Datadog.logger).to receive(:warn).with(/Attribute invalid_.*/).exactly(6).times
 
-          expect(span_event.attributes).to eq("int" => 1, "string" => "bar",)
+          expect(span_event.attributes).to eq("int" => 1, "string" => "bar")
         end
       end
 

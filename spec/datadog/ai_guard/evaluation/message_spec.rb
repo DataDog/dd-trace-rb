@@ -41,7 +41,7 @@ RSpec.describe Datadog::AIGuard::Evaluation::Message do
       expect(message.role).to eq(:user)
       expect(message.content).to contain_exactly(
         an_instance_of(Datadog::AIGuard::Evaluation::ContentPart::Text),
-        an_instance_of(Datadog::AIGuard::Evaluation::ContentPart::ImageURL),
+        an_instance_of(Datadog::AIGuard::Evaluation::ContentPart::ImageURL)
       )
     end
 

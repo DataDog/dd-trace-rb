@@ -17,7 +17,7 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
         span_id: span_id,
         env: env,
         service: service,
-        version: version,
+        version: version
       )
     end
     let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }

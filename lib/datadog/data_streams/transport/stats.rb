@@ -25,7 +25,7 @@ module Datadog
             parcel = Core::Transport::Parcel.new(
               compressed_data,
               content_type: "application/msgpack",
-              content_encoding: "gzip",
+              content_encoding: "gzip"
             )
             request = Request.new(parcel)
 

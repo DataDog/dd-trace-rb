@@ -58,7 +58,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::ResponseBody do
 
         expect(telemetry).to have_received(:report).with(
           kind_of(IOError),
-          description: "AppSec: Failed to compute body content length",
+          description: "AppSec: Failed to compute body content length"
         )
       end
     end

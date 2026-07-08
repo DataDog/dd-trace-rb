@@ -20,7 +20,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
       flag_key: flag_key,
       flag_value_type: :string,
       default_value: "default",
-      evaluation_context: evaluation_context,
+      evaluation_context: evaluation_context
     )
   end
 
@@ -32,8 +32,8 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
         variant: variant,
         error_message: error_message,
         error_code: error_code,
-        flag_metadata: flag_metadata,
-      ),
+        flag_metadata: flag_metadata
+      )
     )
   end
 
@@ -41,7 +41,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
     let(:evaluation_details) do
       build_evaluation_details(
         variant: "on",
-        flag_metadata: {"__dd_allocation_key" => "alloc-9", "dd.eval.timestamp_ms" => 1_700_000_000_000},
+        flag_metadata: {"__dd_allocation_key" => "alloc-9", "dd.eval.timestamp_ms" => 1_700_000_000_000}
       )
     end
 
@@ -74,7 +74,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
         expect(event).to include(
           flag_key: "my-flag",
           targeting_key: "user-7",
-          attrs: {"env" => "prod"},
+          attrs: {"env" => "prod"}
         )
         expect(event).not_to have_key(:reason)
       end
@@ -124,7 +124,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::FlagEvalEVPHook do
     it "marks type mismatch as runtime default even when the SDK exposes a variant" do
       details = build_evaluation_details(
         variant: "variant-a",
-        error_code: ::OpenFeature::SDK::Provider::ErrorCode::TYPE_MISMATCH,
+        error_code: ::OpenFeature::SDK::Provider::ErrorCode::TYPE_MISMATCH
       )
       expect(writer).to receive(:enqueue).with(hash_including(variant: "variant-a", runtime_default: true))
       hook.finally(hook_context: hook_context, evaluation_details: details)

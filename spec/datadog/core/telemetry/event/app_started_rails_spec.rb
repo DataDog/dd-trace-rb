@@ -27,27 +27,27 @@ RSpec.describe Datadog::Core::Telemetry::Event::AppStarted do
         name: "tracing.rails.middleware_names",
         origin: "code",
         seq_id: 5,
-        value: true,
+        value: true
       )
       expect(event.payload[:configuration]).to include(
         name: "tracing.rails.middleware_names",
         origin: "default",
         seq_id: 1,
-        value: false,
+        value: false
       )
       # When Rails is instrumented, the enabled option is set to true by default
       expect(event.payload[:configuration]).to include(
         name: "DD_TRACE_RAILS_ENABLED",
         origin: "default",
         seq_id: 1,
-        value: true,
+        value: true
       )
       # This is the only option that is located in a settings block for any contrib
       expect(event.payload[:configuration]).to include(
         name: "tracing.active_support.cache_key.enabled",
         origin: "default",
         seq_id: 1,
-        value: true,
+        value: true
       )
     end
   end
