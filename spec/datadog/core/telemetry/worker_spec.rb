@@ -485,7 +485,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
           )
 
           worker.perform
-          if worker.running? && !worker.run_loop? && worker.instance_variable_get('@run_loop').nil?
+          if worker.running? && !worker.run_loop? && worker.instance_variable_get(:@run_loop).nil?
             conditions_met = true
           end
 

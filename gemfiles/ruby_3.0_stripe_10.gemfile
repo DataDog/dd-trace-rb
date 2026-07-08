@@ -26,11 +26,11 @@ gem "webmock", ">= 3.10.0"
 gem "webrick", ">= 1.7.0"
 gem "stripe", "~> 10"
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 

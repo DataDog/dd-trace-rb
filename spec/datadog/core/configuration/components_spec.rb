@@ -115,7 +115,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       let(:environment_logger_extra) { {} }
 
       let(:extra) do
-        components.instance_variable_get('@environment_logger_extra')
+        components.instance_variable_get(:@environment_logger_extra)
       end
 
       context 'DI is not enabled' do
