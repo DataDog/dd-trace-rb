@@ -188,11 +188,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     yield
   end
 
-  # This method exists only so we can look for its name in the stack trace in a few tests
-  def another_way_of_calling_sample
-    sample
-  end
-
   describe ".new" do
     it "sets the waiting_for_gvl_threshold_ns to the provided value" do
       # This is a bit ugly but it saves us from having to introduce yet another way to poke at the native state
@@ -313,31 +308,12 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       expect(t1_samples.map(&:values).map { |it| it.fetch(:"cpu-samples") }.reduce(:+)).to eq 5
     end
 
-    # WARNING:
-    # The following tests do on_gc_start() + sample() on the same thread,
-    # which cannot happen in reality since when a thread is doing GC it's definitely not calling Ruby methods.
-    # They should be changed to be more realistic if possible, probably by simplifying the state changes around GC
-    # so it does not e.g. prevent regular time to advance and is more like GVL waiting tracking.
-
-    context "when a thread is marked as being in garbage collection by on_gc_start" do
-      # @ivoanjo: This spec exists because for cpu-time the behavior is not this one (e.g. we don't keep recording
-      # cpu-time), and I wanted to validate that the different behavior does not get applied to wall-time.
-      it "keeps recording the wall-time after every sample" do
-        sample
-        wall_time_at_first_sample = per_thread_context.fetch(Thread.current).fetch(:wall_time_at_previous_sample_ns)
-
+    context "when a thread is in the middle of garbage collection (on_gc_start called without on_gc_finish)" do
+      it do
         on_gc_start
 
-        5.times { sample } # See WARNING above
-
-        time_after = Datadog::Core::Utils::Time.get_time(:nanosecond)
-
-        sample
-
-        wall_time_at_last_sample = per_thread_context.fetch(Thread.current).fetch(:wall_time_at_previous_sample_ns)
-
-        expect(wall_time_at_last_sample).to be >= wall_time_at_first_sample
-        expect(wall_time_at_last_sample).to be >= time_after
+        expect { sample(allow_exception: true) }
+          .to raise_error(RuntimeError, /BUG: Unexpected sample during GC/)
       end
     end
 
@@ -355,64 +331,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             .reduce(:+)
 
         expect(total_cpu_for_rspec_thread).to be_between(1, rspec_thread_spent_cpu_time)
-      end
-
-      context "when a thread is marked as being in garbage collection by on_gc_start" do
-        it "records the cpu-time between a previous sample and the start of garbage collection, and no further time" do
-          sample
-          cpu_time_at_first_sample = per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
-
-          on_gc_start
-
-          cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:"gc_tracking.cpu_time_at_start_ns")
-
-          # Even though we keep calling sample, the result only includes the time until we called on_gc_start
-          5.times { another_way_of_calling_sample } # See WARNING above
-
-          total_cpu_for_rspec_thread =
-            samples_for_thread(samples, Thread.current)
-              .select { |it| it.locations.find { |frame| frame.base_label == "another_way_of_calling_sample" } }
-              .map { |it| it.values.fetch(:"cpu-time") }
-              .reduce(:+)
-
-          expect(total_cpu_for_rspec_thread).to be(cpu_time_at_gc_start - cpu_time_at_first_sample)
-        end
-
-        # When a thread is marked as being in GC the cpu_time_at_previous_sample_ns is not allowed to advance until
-        # the GC finishes.
-        it "does not advance cpu_time_at_previous_sample_ns for the thread beyond gc_tracking.cpu_time_at_start_ns" do
-          sample
-
-          on_gc_start
-
-          cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:"gc_tracking.cpu_time_at_start_ns")
-
-          5.times { sample } # See WARNING above
-
-          cpu_time_at_previous_sample_ns =
-            per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
-
-          expect(cpu_time_at_previous_sample_ns).to be cpu_time_at_gc_start
-        end
-      end
-
-      context "when a thread is unmarked as being in garbage collection by on_gc_finish" do
-        it "lets cpu_time_at_previous_sample_ns advance again" do
-          sample
-
-          on_gc_start
-
-          cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:"gc_tracking.cpu_time_at_start_ns")
-
-          on_gc_finish
-
-          5.times { sample }
-
-          cpu_time_at_previous_sample_ns =
-            per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
-
-          expect(cpu_time_at_previous_sample_ns).to be > cpu_time_at_gc_start
-        end
       end
     end
 

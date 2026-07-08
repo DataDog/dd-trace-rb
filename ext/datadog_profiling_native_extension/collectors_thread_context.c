@@ -43,11 +43,8 @@
 // When `thread_context_collector_on_gc_start` gets called, the current cpu and wall-time get recorded to the thread
 // context: `cpu_time_at_gc_start_ns` and `wall_time_at_gc_start_ns`.
 //
-// While `cpu_time_at_gc_start_ns` is set, regular samples (if any) do not account for cpu-time any time that passes
-// after this timestamp. The idea is that this cpu-time will be blamed separately on GC, and not on the user thread.
-// Wall-time accounting is not affected by this (e.g. we still record 60 seconds every 60 seconds).
-//
-// (Regular samples can still account for the cpu-time between the previous sample and the start of GC.)
+// While `cpu_time_at_gc_start_ns` is set, we don't expect the thread to be sampled: the VM is doing GC
+// on the thread holding the GVL so no other samples can/will be triggered until GC finishes.
 //
 // When `thread_context_collector_on_gc_finish` gets called, the cpu-time and wall-time spent during GC gets recorded
 // into the global gc_tracking structure, and further samples are not affected. (The `cpu_time_at_previous_sample_ns`
@@ -326,7 +323,7 @@ static VALUE per_thread_context_to_ruby_hash(per_thread_context *thread_context)
 static VALUE stats_to_ruby_hash(thread_context_collector_state *state, VALUE hash);
 static VALUE gc_tracking_as_ruby_hash(thread_context_collector_state *state);
 static VALUE _native_per_thread_context(VALUE self, VALUE collector_instance);
-static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns, long gc_start_time_ns, bool is_wall_time);
+static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns, per_thread_context *thread_context, bool is_wall_time);
 static long cpu_time_now_ns(per_thread_context *thread_context);
 static long thread_id_for(VALUE thread);
 static VALUE _native_stats(VALUE self, VALUE collector_instance);
@@ -707,13 +704,13 @@ static void record_sampling_overhead(thread_context_collector_state *state, per_
   long overhead_cpu_time_ns = update_time_since_previous_sample(
     &current_thread_context->cpu_time_at_previous_sample_ns,
     cpu_time_after_sampling,
-    current_thread_context->gc_tracking.cpu_time_at_start_ns,
+    current_thread_context,
     IS_CPU_TIME);
 
   long overhead_wall_time_ns = update_time_since_previous_sample(
     &current_thread_context->wall_time_at_previous_sample_ns,
     wall_time_after_sampling,
-    INVALID_TIME,
+    current_thread_context,
     IS_WALL_TIME);
 
   ddog_prof_Label overhead_labels[] = {
@@ -813,14 +810,14 @@ static void update_metrics_and_sample(
   long cpu_time_elapsed_ns = is_gvl_waiting_state ? 0 : update_time_since_previous_sample(
     &thread_context->cpu_time_at_previous_sample_ns,
     current_cpu_time_ns,
-    thread_context->gc_tracking.cpu_time_at_start_ns,
+    thread_context,
     IS_CPU_TIME
   );
 
   long wall_time_elapsed_ns = update_time_since_previous_sample(
     &thread_context->wall_time_at_previous_sample_ns,
     current_monotonic_wall_time_ns,
-    INVALID_TIME,
+    thread_context,
     IS_WALL_TIME
   );
 
@@ -973,9 +970,9 @@ bool thread_context_collector_on_gc_finish(VALUE self_instance) {
   state->gc_tracking.accumulated_wall_time_ns += gc_wall_time_elapsed_ns;
   state->gc_tracking.wall_time_at_previous_gc_ns = wall_time_at_finish_ns;
 
-  // Update cpu-time accounting so it doesn't include the cpu-time spent in GC during the next sample
-  // We don't update the wall-time because we don't subtract the wall-time spent in GC (see call to
-  // `update_time_since_previous_sample` for wall-time in `update_metrics_and_sample`).
+  // Update cpu-time accounting so it doesn't include the cpu-time spent in GC during the next sample.
+  // We don't do the same for wall-time, because GC is just like any other reason a thread didn't make
+  // progress -- time always goes forward regardless of the thread making progress on what it wanted. 
   if (thread_context->cpu_time_at_previous_sample_ns != INVALID_TIME) {
     thread_context->cpu_time_at_previous_sample_ns += gc_cpu_time_elapsed_ns;
   }
@@ -1409,31 +1406,26 @@ static VALUE _native_per_thread_context(DDTRACE_UNUSED VALUE _self, VALUE collec
   return result;
 }
 
-// gc_start_time_ns should only be passed if IS_CPU_TIME
-static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns, long gc_start_time_ns, bool is_wall_time) {
+static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns, per_thread_context *thread_context, bool is_wall_time) {
   // If we didn't have a time for the previous sample, we use the current one
   if (*time_at_previous_sample_ns == INVALID_TIME) *time_at_previous_sample_ns = current_time_ns;
 
-  // We don't want wall-time accounting to change during GC.
-  // E.g. if 60 seconds pass in the real world, 60 seconds of wall-time are recorded, regardless of the thread doing GC or not.
-  bool is_thread_doing_gc = !is_wall_time && gc_start_time_ns != INVALID_TIME;
-  long elapsed_time_ns = -1;
-
-  if (is_thread_doing_gc) {
-    bool previous_sample_was_during_gc = gc_start_time_ns <= *time_at_previous_sample_ns;
-
-    if (previous_sample_was_during_gc) {
-      elapsed_time_ns = 0; // No time to account for -- any time since the last sample is going to get assigned to GC separately
-    } else {
-      elapsed_time_ns = gc_start_time_ns - *time_at_previous_sample_ns; // Capture time between previous sample and start of GC only
-    }
-
-    // Remaining time (from gc_start_time to current_time_ns) will be accounted for inside `sample_after_gc`
-    *time_at_previous_sample_ns = gc_start_time_ns;
-  } else {
-    elapsed_time_ns = current_time_ns - *time_at_previous_sample_ns; // Capture all time since previous sample
-    *time_at_previous_sample_ns = current_time_ns;
+  // We don't expect to be sampling a thread (and thus updating these counters) while Ruby is doing GC (between
+  // `thread_context_collector_on_gc_start` and `thread_context_collector_on_gc_finish`)
+  if (thread_context->gc_tracking.cpu_time_at_start_ns != INVALID_TIME) {
+    raise_error(
+      rb_eRuntimeError,
+      "BUG: Unexpected sample during GC (thread_id=%s, gc_tracking.cpu_time_at_start_ns=%ld, "
+      "gc_tracking.wall_time_at_start_ns=%ld, monotonic_wall_time_now_ns=%ld)",
+      thread_context->thread_id,
+      thread_context->gc_tracking.cpu_time_at_start_ns,
+      thread_context->gc_tracking.wall_time_at_start_ns,
+      monotonic_wall_time_now_ns(RAISE_ON_FAILURE)
+    );
   }
+
+  long elapsed_time_ns = current_time_ns - *time_at_previous_sample_ns; // Capture all time since previous sample
+  *time_at_previous_sample_ns = current_time_ns;
 
   if (elapsed_time_ns < 0) {
     if (is_wall_time) {
@@ -2327,14 +2319,14 @@ void thread_context_collector_on_serialize(VALUE self_instance) {
       long cpu_time_elapsed_ns = update_time_since_previous_sample(
         &thread_context->cpu_time_at_previous_sample_ns,
         current_cpu_time_ns,
-        thread_context->gc_tracking.cpu_time_at_start_ns,
+        thread_context,
         IS_CPU_TIME
       );
 
       long duration_until_start_of_gvl_waiting_ns = update_time_since_previous_sample(
         &thread_context->wall_time_at_previous_sample_ns,
         gvl_waiting_started_wall_time_ns,
-        INVALID_TIME,
+        thread_context,
         IS_WALL_TIME
       );
 
