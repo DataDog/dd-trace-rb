@@ -7,14 +7,11 @@ RSpec.describe Datadog::DI::EL::Evaluator do
 
   let(:evaluator) { described_class.new }
 
-  # Shared catastrophic-backtracking fixtures, used by both the runtime
-  # #matches path (needle compiled per call) and the precompiled
-  # #matches_compiled path (needle compiled once, ahead of time). The
-  # haystack length is chosen so that the unbounded baseline match takes
+  # Shared catastrophic-backtracking fixtures.
+  #
+  # Haystack length is chosen so that the unbounded baseline match takes
   # over 5 seconds on every supported Ruby version (verified locally on
-  # 2.5 through 3.4) -- enough that the configured timeout is the operative
-  # bound on observed elapsed time. With the timeout in place, the call
-  # must instead abort after approximately that timeout.
+  # 2.5 through 3.4).
   #
   # Catastrophic-backtracking pattern: ambiguous nested quantifier combined
   # with a backreference. The backreference also defeats the match-cache
@@ -49,9 +46,7 @@ RSpec.describe Datadog::DI::EL::Evaluator do
   # The two timeouts below each assert that the observed wall-clock time
   # tracks the configured value. Running both demonstrates that the timeout
   # is actually controlling behavior, rather than the regexp finishing
-  # naturally or some unrelated bound being hit. The upper bound for the
-  # smaller timeout stays below the lower bound for the larger one, so
-  # swapping the two values would cause both cases to fail.
+  # naturally or some unrelated bound being hit.
   #
   # +do_match+ is defined by the including context to invoke the operator
   # under test (runtime or precompiled) against +haystack+ and +pattern+.

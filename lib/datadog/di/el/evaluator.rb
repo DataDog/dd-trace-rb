@@ -100,8 +100,7 @@ module Datadog
         end
 
         # Apply a Regexp precompiled at expression-compile time, looked up
-        # by index in +regexps+. Avoids recompiling the pattern on every
-        # probe firing.
+        # by index in +regexps+.
         #
         # @param haystack [String] string to match against.
         # @param index [Integer] position of the precompiled Regexp in +regexps+.
@@ -113,32 +112,16 @@ module Datadog
         end
 
         # Apply +re+ to +haystack+, bounded at MATCHES_TIMEOUT_SECONDS
-        # wall-clock. Uses Regexp#match? rather than =~ so that the
-        # thread-local match data ($~, $1, ...) is not mutated as a side
-        # effect of DI expression evaluation.
-        #
-        # On Ruby 3.2+ the bound is enforced by the regexp engine itself
-        # (baked into +re+ by .compile_regexp). On older Rubies we wrap the
-        # match in Timeout.timeout, which uses Thread#raise: Onigmo polls
-        # for pending interrupts at certain points during matching, so this
-        # bounds the runtime for many patterns but is best-effort -- pattern
-        # shapes that never reach an interrupt-poll point during their hot
-        # loop (see Ruby bug #18144) can still overrun the timeout.
-        # Migrating to Ruby 3.2+ is the only complete fix.
-        #
-        # The Timeout.timeout wrap is safe only because re.match?(haystack)
-        # is a side-effect-free pure computation: Thread#raise can interrupt
-        # at any point, so do not widen this block to include mutation, IO,
-        # or resource cleanup.
+        # wall-clock.
         #
         # @param re [Regexp] regexp to apply.
         # @param haystack [String] string to match against.
         # @return [Boolean] whether the haystack matches the regexp.
-        #
-        # Defined per-version at load time (see .compile_regexp) so the
-        # version branch is not re-evaluated on every match.
         if Datadog::RubyVersion.is?('>= 3.2')
           def apply_match(re, haystack)
+            # Uses Regexp#match? rather than =~ so that the
+            # thread-local match data ($~, $1, ...) is not mutated as a side
+            # effect of DI expression evaluation.
             re.match?(haystack)
           end
         else

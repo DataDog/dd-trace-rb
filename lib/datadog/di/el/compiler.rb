@@ -199,7 +199,7 @@ module Datadog
         # instrumentation time. Append it to +regexps+, returning its index for
         # Evaluator#matches_compiled to look up.
         #
-        # @param needle [String] regexp source.
+        # @param regexp_str [String] regular expression source.
         # @param regexps [Array<Regexp>] output array to append the compiled
         #   regexp to.
         # @return [Integer] index into +regexps+.
@@ -209,7 +209,7 @@ module Datadog
           regexps << Evaluator.compile_regexp(regexp_str)
           index
         rescue RegexpError => exc
-          raise DI::Error::InvalidExpression, "Invalid regular expression in matches: #{exc.message}"
+          raise DI::Error::InvalidExpression, "Invalid regular expression in matches: #{exc.class}: #{exc.message}"
         end
       end
     end
