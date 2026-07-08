@@ -944,13 +944,13 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                     current_size = OpenTelemetry::Context.current.instance_variable_get(:@entries).size
 
                     OpenTelemetry::Context.with_values(
-                      Array.new((max_safe_lookup_size + 1 - current_size)) { |it| ["key_#{it}", it] }.to_h
+                      Array.new(max_safe_lookup_size + 1 - current_size) { |it| ["key_#{it}", it] }.to_h
                     ) do
                       sample_allocation(weight: 12)
                     end
 
                     OpenTelemetry::Context.with_values(
-                      Array.new((max_safe_lookup_size - current_size)) { |it| ["key_#{it}", it] }.to_h
+                      Array.new(max_safe_lookup_size - current_size) { |it| ["key_#{it}", it] }.to_h
                     ) do
                       sample_allocation(weight: 34)
                     end
