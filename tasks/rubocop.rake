@@ -3,13 +3,17 @@
 # See rubocop/standard_overrides.rubocop.yml for why these cops need to run outside of standard.
 
 def run_standard_override_rubocop(*extra_args)
-  standard_override_cops = 'Layout/LeadingCommentSpace,Style/FrozenStringLiteralComment'
   standard_override_config = 'rubocop/standard_overrides.rubocop.yml'
+  standard_override_cops = %w[
+    Layout/LeadingCommentSpace
+    Style/FrozenStringLiteralComment
+  ]
+
   sh 'bundle',
     'exec',
     'rubocop',
-    '--only', standard_override_cops,
     '--config', standard_override_config,
+    '--only', standard_override_cops.join(','),
     *extra_args
 end
 
