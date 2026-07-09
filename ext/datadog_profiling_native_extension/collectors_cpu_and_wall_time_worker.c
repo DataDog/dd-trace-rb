@@ -154,8 +154,6 @@ typedef struct {
     unsigned int signal_handler_enqueued_sample;
     // How many times we prepared a sample (sampled directly) from the signal handler
     unsigned int signal_handler_prepared_sample;
-    // How many times the signal handler was called from the wrong thread
-    unsigned int signal_handler_wrong_thread;
     // How many times we actually tried to interrupt a thread for sampling
     unsigned int interrupt_thread_attempts;
 
@@ -644,19 +642,19 @@ static VALUE stop(VALUE self_instance, VALUE optional_exception, const char *opt
 // We need to be careful not to change any state that may be observed OR to restore it if we do. For instance, if anything
 // we do here can set `errno`, then we must be careful to restore the old `errno` after the fact.
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
-  cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
-
-  // This can potentially happen if the CpuAndWallTimeWorker was stopped while the signal delivery was happening; nothing to do
-  if (state == NULL) return;
-
+  // We must first check that we landed on the correct thread and can proceed.
+  // We must never touch the state before we confirm that we have landed on the thread that is holding the GVL on the main
+  // ractor as otherwise we may be concurrent with the profiler shutting down and removing its state.
   if (
     !ruby_native_thread_p() || // Not a Ruby thread
     !is_current_thread_holding_the_gvl() || // Not safe to enqueue a sample from this thread
     !ddtrace_rb_ractor_main_p() // We're not on the main Ractor; we currently don't support profiling non-main Ractors
-  ) {
-    state->stats.signal_handler_wrong_thread++;
-    return;
-  }
+  ) return;
+
+  cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
+
+  // This can potentially happen if the CpuAndWallTimeWorker was stopped while the signal delivery was happening; nothing to do
+  if (state == NULL) return;
 
   // We assume there can be no concurrent nor nested calls to handle_sampling_signal because
   // a) we get triggered using SIGPROF, and the docs state a second SIGPROF will not interrupt an existing one (see sigaction docs on sa_mask)
@@ -1111,7 +1109,6 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("simulated_signal_delivery")),                  /* => */ UINT2NUM(state->stats.simulated_signal_delivery),
     ID2SYM(rb_intern("signal_handler_enqueued_sample")),             /* => */ UINT2NUM(state->stats.signal_handler_enqueued_sample),
     ID2SYM(rb_intern("signal_handler_prepared_sample")),             /* => */ UINT2NUM(state->stats.signal_handler_prepared_sample),
-    ID2SYM(rb_intern("signal_handler_wrong_thread")),                /* => */ UINT2NUM(state->stats.signal_handler_wrong_thread),
     ID2SYM(rb_intern("interrupt_thread_attempts")),                  /* => */ UINT2NUM(state->stats.interrupt_thread_attempts),
 
     // CPU Stats

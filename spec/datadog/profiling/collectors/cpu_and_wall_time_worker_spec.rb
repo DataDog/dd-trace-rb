@@ -1403,7 +1403,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           trigger_simulated_signal_delivery_attempts: 0,
           simulated_signal_delivery: 0,
           signal_handler_enqueued_sample: 0,
-          signal_handler_wrong_thread: 0,
           signal_handler_prepared_sample: 0,
           interrupt_thread_attempts: 0,
           cpu_sampled: 0,
