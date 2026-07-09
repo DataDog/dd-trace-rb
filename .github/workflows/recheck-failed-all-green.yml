@@ -32,10 +32,14 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
-            // Fetch recent PRs, then fetch each commit's GitHub check runs and commit statuses in batches.
-            // Commit statuses include external CI reports such as GitLab dd-gitlab/... statuses.
+            const allGreenWorkflowPath = 'all-green.yml';
             const allGreenJobName = 'all-jobs-are-green';
-            const checkPRsFromTheLast = 7; // Days
+            const checkRunsFromTheLast = 7; // Days
+            const cutoff = new Date(Date.now() - checkRunsFromTheLast * 24 * 60 * 60 * 1000);
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const greenCheckRunConclusions = new Set(['SUCCESS', 'SKIPPED', 'NEUTRAL']);
+            const rerunnableAllGreenConclusions = new Set(['failure', 'cancelled', 'timed_out', 'action_required']);
 
             const outcomeFields = `
               pageInfo { hasNextPage endCursor }
@@ -57,39 +61,46 @@ jobs:
             const baseBranches = allGreenWorkflow.baseBranches;
             const ignoredOutcomePatterns = [allGreenJobName, ...allGreenWorkflow.ignoredNamePatterns]
               .map((pattern) => new RegExp(`^(?:${pattern})$`));
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const prs = await recentPullRequests(baseBranches);
-            const commits = [...new Set(prs.map((pr) => pr.headRefOid))];
-            const greenCheckRunConclusions = new Set(['SUCCESS', 'SKIPPED', 'NEUTRAL']);
-            const rerunnableAllGreenConclusions = new Set(['failure', 'cancelled', 'timed_out', 'action_required']);
             const ignoredOutcome = (name) => ignoredOutcomePatterns.some((pattern) => pattern.test(name));
+
+            const failedRuns = await recentFailedAllGreenRuns();
+            const associatedPullRequests = await associatedPullRequestsByCommit(failedRuns.map((run) => run.head_sha));
+            const candidates = failedRuns.map((run) => ({
+              run,
+              prs: associatedPullRequests.get(run.head_sha).filter((pr) => matchingPullRequest(run, pr)),
+            })).filter((candidate) => candidate.prs.length > 0);
+            const commits = [...new Set(candidates.map((candidate) => candidate.run.head_sha))];
+
             const outcomes = await outcomesByCommit(commits);
             const rerunJobIds = new Set();
             let rerunCount = 0;
 
-            core.info(`Scanning ${prs.length} recent non-draft PR(s) across ${commits.length} commit(s).`);
+            core.info(
+              `Scanning ${failedRuns.length} recent failed all-green run(s) across ` +
+                `${commits.length} open PR head commit(s).`
+            );
 
-            for (const pr of prs) {
-              const state = outcomes.get(pr.headRefOid);
+            for (const { run, prs } of candidates) {
+              const prNumbers = prs.map((pr) => `#${pr.number}`).join(', ');
+              const state = outcomes.get(run.head_sha);
 
-              if (!state.allGreenJobId) {
-                core.info(`PR #${pr.number}: no ${allGreenJobName} check run found; skipping.`);
-              } else if (!rerunnableAllGreenConclusions.has(state.allGreenConclusion)) {
-                core.info(`PR #${pr.number}: all-green job is ${state.allGreenConclusion}; skipping.`);
-              } else if (!state.allGreenCompletedAt || !recent(state.allGreenCompletedAt)) {
-                core.info(`PR #${pr.number}: all-green job is older than ${checkPRsFromTheLast} day(s); skipping.`);
-              } else if (state.failure) {
+              if (state.failure) {
                 core.info(
-                  `PR #${pr.number}: ${state.failure.type} ${state.failure.name} ` +
+                  `PR ${prNumbers}: ${state.failure.type} ${state.failure.name} ` +
                     `is ${state.failure.value}; skipping.`
                 );
+              } else if (!state.allGreenJobId) {
+                core.info(`PR ${prNumbers}: no ${allGreenJobName} check run found; skipping.`);
+              } else if (!rerunnableAllGreenConclusions.has(state.allGreenConclusion)) {
+                core.info(`PR ${prNumbers}: all-green job is ${state.allGreenConclusion}; skipping.`);
+              } else if (!state.allGreenCompletedAt || !recent(state.allGreenCompletedAt)) {
+                core.info(`PR ${prNumbers}: all-green job is older than ${checkRunsFromTheLast} day(s); skipping.`);
               } else if (rerunJobIds.has(state.allGreenJobId)) {
-                core.info(`PR #${pr.number}: all-green job ${state.allGreenJobId} was already rerun; skipping.`);
+                core.info(`PR ${prNumbers}: all-green job ${state.allGreenJobId} was already rerun; skipping.`);
               } else if (await lastAllGreenAttemptWasTriggeredByGitHubActions(state)) {
-                core.info(`PR #${pr.number}: all-green workflow rerun was triggered by github-actions[bot]; skipping.`);
+                core.info(`PR ${prNumbers}: all-green workflow rerun was triggered by github-actions[bot]; skipping.`);
               } else {
-                core.info(`PR #${pr.number}: upstream CI is green; rerunning all-green job ${state.allGreenJobId}.`);
+                core.info(`PR ${prNumbers}: upstream CI is green; rerunning all-green job ${state.allGreenJobId}.`);
                 await github.rest.actions.reRunJobForWorkflowRun({ owner, repo, job_id: state.allGreenJobId });
                 rerunJobIds.add(state.allGreenJobId);
                 rerunCount++;
@@ -99,8 +110,6 @@ jobs:
             core.info(`Reran ${rerunCount} failed all-green job(s).`);
 
             function recent(timestamp) {
-              const cutoff = new Date(Date.now() - checkPRsFromTheLast * 24 * 60 * 60 * 1000);
-
               return new Date(timestamp) >= cutoff;
             }
 
@@ -116,39 +125,82 @@ jobs:
               };
             }
 
-            async function recentPullRequests(baseBranches) {
-              const prs = [];
+            async function recentFailedAllGreenRuns() {
+              const runsByCommit = new Map();
 
-              for (const baseBranch of baseBranches) {
-                let after = null;
+              for (const status of rerunnableAllGreenConclusions) {
+                const runs = await github.paginate(github.rest.actions.listWorkflowRuns, {
+                  owner,
+                  repo,
+                  workflow_id: allGreenWorkflowPath,
+                  event: 'pull_request',
+                  status,
+                  created: `>=${cutoff.toISOString()}`,
+                  per_page: 100,
+                });
 
-                do {
-                  const result = await github.graphql(`
-                    query($owner: String!, $repo: String!, $baseBranch: String!, $after: String) {
-                      repository(owner: $owner, name: $repo) {
-                        pullRequests(
-                          first: 100
-                          after: $after
-                          states: OPEN
-                          baseRefName: $baseBranch
-                          orderBy: { field: UPDATED_AT, direction: DESC }
-                        ) {
-                          pageInfo { hasNextPage endCursor }
-                          nodes { number updatedAt isDraft headRefOid }
-                        }
-                      }
-                    }
-                  `, { owner, repo, baseBranch, after });
+                for (const run of runs) {
+                  const previous = runsByCommit.get(run.head_sha);
 
-                  const page = result.repository.pullRequests;
-                  prs.push(...page.nodes);
-                  after = page.pageInfo.hasNextPage && page.nodes.every((pr) => recent(pr.updatedAt))
-                    ? page.pageInfo.endCursor
-                    : null;
-                } while (after);
+                  if (!previous || new Date(run.created_at) > new Date(previous.created_at)) {
+                    runsByCommit.set(run.head_sha, run);
+                  }
+                }
               }
 
-              return prs.filter((pr) => !pr.isDraft && recent(pr.updatedAt));
+              return [...runsByCommit.values()];
+            }
+
+            function matchingPullRequest(run, pr) {
+              return pr.state === 'OPEN' &&
+                !pr.isDraft &&
+                baseBranches.includes(pr.baseRefName) &&
+                pr.headRefOid === run.head_sha;
+            }
+
+            async function associatedPullRequestsByCommit(commits) {
+              const associatedPullRequests = new Map(commits.map((commit) => [commit, []]));
+              const uniqueCommits = [...new Set(commits)];
+
+              for (let offset = 0; offset < uniqueCommits.length; offset += 15) {
+                const batch = uniqueCommits.slice(offset, offset + 15);
+                const result = await fetchAssociatedPullRequests(batch);
+
+                for (const [index, commit] of batch.entries()) {
+                  const pullRequests = result.repository[`c${index}`]?.associatedPullRequests?.nodes || [];
+                  associatedPullRequests.set(commit, pullRequests);
+                }
+              }
+
+              return associatedPullRequests;
+            }
+
+            async function fetchAssociatedPullRequests(batch) {
+              const variables = { owner, repo };
+
+              batch.forEach((commit, index) => {
+                variables[`commit${index}`] = commit;
+              });
+
+              return github.graphql(`
+                query(
+                  $owner: String!
+                  $repo: String!
+                  ${batch.map((_, index) => `$commit${index}: GitObjectID!`).join('\n')}
+                ) {
+                  repository(owner: $owner, name: $repo) {
+                    ${batch.map((_, index) => `
+                      c${index}: object(oid: $commit${index}) {
+                        ... on Commit {
+                          associatedPullRequests(first: 20) {
+                            nodes { number state isDraft baseRefName headRefOid }
+                          }
+                        }
+                      }
+                    `).join('\n')}
+                  }
+                }
+              `, variables);
             }
 
             function markFailure(state, type, name, value) {
@@ -157,8 +209,8 @@ jobs:
 
             function keepReading(state) {
               return !(
-                (state.allGreenConclusion && !rerunnableAllGreenConclusions.has(state.allGreenConclusion)) ||
-                (state.allGreenJobId && state.failure)
+                state.failure ||
+                (state.allGreenConclusion && !rerunnableAllGreenConclusions.has(state.allGreenConclusion))
               );
             }
 
