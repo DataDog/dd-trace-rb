@@ -1335,7 +1335,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       before { remove_per_thread_context_for(Thread.current) }
 
       it "does not record anything in the caller thread's context" do
-        on_gc_start
+        on_gc_finish
 
         expect(per_thread_context.keys).to_not include(Thread.current)
       end
