@@ -892,3 +892,8 @@ bool is_raised_flag_set(VALUE thread) { return thread_struct_from_object(thread)
   VALUE current_fiber_for(DDTRACE_UNUSED VALUE thread) { rb_raise(rb_eRuntimeError, "Not implemented for Ruby < 3.1"); }
   void self_test_current_fiber_for(void) { } // Nothing to do
 #endif
+
+bool pathobj_is_null(VALUE iseq) {
+  const rb_iseq_t *iseq_ptr = (const rb_iseq_t *) iseq;
+  return ISEQ_BODY(iseq_ptr)->location.pathobj == 0;
+}

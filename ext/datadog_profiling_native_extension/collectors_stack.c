@@ -300,8 +300,13 @@ void sample_thread(
     bool top_of_the_stack = i == top_of_stack_position;
 
     if (buffer->stack_buffer[i].is_ruby_frame) {
-      VALUE name = rb_iseq_base_label(buffer->stack_buffer[i].as.ruby_frame.iseq);
-      VALUE filename = rb_iseq_path(buffer->stack_buffer[i].as.ruby_frame.iseq);
+      VALUE iseq = buffer->stack_buffer[i].as.ruby_frame.iseq;
+      VALUE name = rb_iseq_base_label(iseq);
+      VALUE filename =
+        // Note: We saw crash reports from a customer from dereferencing a null pointer inside `rb_iseq_path`.
+        // It's not clear in what situation would the pathobj ever be NULL, yet it seems harmless from our side to
+        // skip this information if we're ever in such a situation.
+        pathobj_is_null(iseq) ? Qnil : rb_iseq_path(iseq);
 
       name_slice = NIL_P(name) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name);
       filename_slice = NIL_P(filename) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(filename);
