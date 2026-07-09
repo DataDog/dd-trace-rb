@@ -44,6 +44,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:pprof_result) { recorder.serialize! }
   let(:samples) { samples_from_pprof(pprof_result) }
   let(:invalid_time) { -1 }
+  let(:one_second_in_ns) { 1_000_000_000 }
   let(:tracer) { nil }
   let(:endpoint_collection_enabled) { true }
 
@@ -148,7 +149,12 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   def apply_delta_to_cpu_time_at_previous_sample_ns(thread, delta_ns)
     described_class::Testing
-      ._native_apply_delta_to_cpu_time_at_previous_sample_ns(thread, delta_ns)
+      ._native_apply_delta_to_time_at_previous_sample_ns(thread, cpu_time: delta_ns)
+  end
+
+  def apply_delta_to_wall_time_at_previous_sample_ns(thread, delta_ns)
+    described_class::Testing
+      ._native_apply_delta_to_time_at_previous_sample_ns(thread, wall_time: delta_ns)
   end
 
   def prepare_sample_inside_signal_handler
@@ -1283,6 +1289,32 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         expect {
           sample(allow_exception: true)
         }.to raise_error(FrozenError, "Cannot setup profiler state for Thread #{t1} because it is frozen. Please avoid freezing Thread instances and/or report the issue to dd-trace-rb")
+      end
+    end
+
+    context "when cpu-time goes backwards" do
+      before do
+        sample
+
+        # Make it look like the previous sample took place in the future
+        apply_delta_to_cpu_time_at_previous_sample_ns(t1, 60 * 60 * one_second_in_ns)
+      end
+
+      it "raises an exception" do
+        expect { sample(allow_exception: true) }.to raise_error(RuntimeError, /CPU time going backwards/)
+      end
+    end
+
+    context "when wall-time goes backwards" do
+      before do
+        sample
+
+        # Make it look like the previous sample took place in the future
+        apply_delta_to_wall_time_at_previous_sample_ns(t1, 60 * 60 * one_second_in_ns)
+      end
+
+      it "raises an exception" do
+        expect { sample(allow_exception: true) }.to raise_error(RuntimeError, /wall time going backwards/)
       end
     end
   end

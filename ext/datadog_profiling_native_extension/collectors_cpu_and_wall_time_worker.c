@@ -823,10 +823,12 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
   thread_context_collector_sample(state->thread_context_collector_instance, wall_time_ns_before_sample);
 
   long wall_time_ns_after_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
-  long delta_ns = wall_time_ns_after_sample - wall_time_ns_before_sample;
 
-  // Guard against wall-time going backwards, see https://github.com/DataDog/dd-trace-rb/pull/2336 for discussion.
-  uint64_t sampling_time_ns = delta_ns < 0 ? 0 : delta_ns;
+  if (wall_time_ns_after_sample < wall_time_ns_before_sample) {
+    raise_error(rb_eRuntimeError, "BUG: Unexpected wall time going backwards when tracking overhead");
+  }
+
+  uint64_t sampling_time_ns = wall_time_ns_after_sample - wall_time_ns_before_sample;
 
   state->stats.cpu_sampling_time_ns_min = uint64_min_of(sampling_time_ns, state->stats.cpu_sampling_time_ns_min);
   state->stats.cpu_sampling_time_ns_max = uint64_max_of(sampling_time_ns, state->stats.cpu_sampling_time_ns_max);
@@ -1533,10 +1535,11 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     thread_context_collector_sample_after_gvl_running(state->thread_context_collector_instance, rb_thread_current(), wall_time_ns_before_sample);
     long wall_time_ns_after_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
 
-    long delta_ns = wall_time_ns_after_sample - wall_time_ns_before_sample;
+    if (wall_time_ns_after_sample < wall_time_ns_before_sample) {
+      raise_error(rb_eRuntimeError, "BUG: Unexpected wall time going backwards when tracking overhead");
+    }
 
-    // Guard against wall-time going backwards, see https://github.com/DataDog/dd-trace-rb/pull/2336 for discussion.
-    uint64_t sampling_time_ns = delta_ns < 0 ? 0 : delta_ns;
+    uint64_t sampling_time_ns = wall_time_ns_after_sample - wall_time_ns_before_sample;
 
     state->stats.gvl_sampling_time_ns_min = uint64_min_of(sampling_time_ns, state->stats.gvl_sampling_time_ns_min);
     state->stats.gvl_sampling_time_ns_max = uint64_max_of(sampling_time_ns, state->stats.gvl_sampling_time_ns_max);

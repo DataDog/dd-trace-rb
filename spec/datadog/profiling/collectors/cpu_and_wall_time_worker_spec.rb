@@ -1190,7 +1190,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         # Roll back the clock to make it really obvious if this is not cleaned up
         Datadog::Profiling::Collectors::ThreadContext::Testing
-          ._native_apply_delta_to_cpu_time_at_previous_sample_ns(Thread.current, -(60 * 60 * one_second_in_ns))
+          ._native_apply_delta_to_time_at_previous_sample_ns(Thread.current, cpu_time: -(60 * 60 * one_second_in_ns))
 
         before_restart_ns = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond)
         cpu_and_wall_time_worker.start
