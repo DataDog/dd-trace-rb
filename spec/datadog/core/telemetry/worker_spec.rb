@@ -495,7 +495,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
           end
 
           if conditions_met
-            #warn "took #{i+1} iterations"
+            # warn "took #{i+1} iterations"
             break
           end
         end

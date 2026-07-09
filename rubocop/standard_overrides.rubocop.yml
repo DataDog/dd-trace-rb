@@ -1,0 +1,22 @@
+# standard's base ruleset already configures the cops below, so `extend_config` in
+# .customcops.yml can't override them (standard drops any extend_config key it already
+# sets before merging - see standard/plugin/merges_plugins_into_rubocop_config.rb).
+# Run this config directly via `rake rubocop` instead, bypassing standard entirely.
+AllCops:
+  Exclude:
+    - "appraisal/**/**"
+    - "gemfiles/**/**"
+    - "integration/**/**"
+    - "lib/datadog/**/vendor/**/*"
+
+# standard requires a space after '#', which breaks Steep inline annotations (`#:`, `#$`).
+Layout/LeadingCommentSpace:
+  Enabled: true
+  AllowSteepAnnotation: true
+
+# standard disables this cop entirely. We still want it enforced under lib/, since we
+# support Rubies below 3.4 for years to come.
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  Include:
+    - "lib/**/*.rb"

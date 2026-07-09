@@ -10,8 +10,7 @@ ignore:
       - Style/TrailingCommaInHashLiteral
       - Style/StringLiterals
       - Style/StringLiteralsInInterpolation
-      # steep has annotation syntax which requires immediate sign after the hash
-      # character. To avoid being too directive, I would let comments go loose.
+      # Enforced separately via `rake rubocop` - see rubocop/standard_overrides.rubocop.yml.
       - Layout/LeadingCommentSpace
 
   # This disables standardrb for third-party and generated code.
