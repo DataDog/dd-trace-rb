@@ -372,7 +372,7 @@ static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread);
   static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE waiting_for_gvl_threshold_ns);
   static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread);
 #endif
-static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE delta_ns);
+static VALUE _native_apply_delta_to_time_at_previous_sample_ns(int argc, VALUE *argv, DDTRACE_UNUSED VALUE self);
 static void otel_without_ddtrace_trace_identifiers_for(
   thread_context_collector_state *state,
   VALUE thread,
@@ -433,7 +433,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
     rb_define_singleton_method(testing_module, "_native_on_gvl_running", _native_on_gvl_running, 2);
     rb_define_singleton_method(testing_module, "_native_sample_after_gvl_running", _native_sample_after_gvl_running, 2);
   #endif
-  rb_define_singleton_method(testing_module, "_native_apply_delta_to_cpu_time_at_previous_sample_ns", _native_apply_delta_to_cpu_time_at_previous_sample_ns, 2);
+  rb_define_singleton_method(testing_module, "_native_apply_delta_to_time_at_previous_sample_ns", _native_apply_delta_to_time_at_previous_sample_ns, -1);
 
   at_active_span_id = rb_intern_const("@active_span");
   at_active_trace_id = rb_intern_const("@active_trace");
@@ -1487,10 +1487,7 @@ static long update_cpu_time_since_previous_sample(per_thread_context *thread_con
     thread_context
   );
 
-  // We don't expect cpu-time to go backwards, so let's flag this as a bug
-  if (elapsed_time_ns < 0) {
-    raise_error(rb_eRuntimeError, "BUG: Unexpected CPU time going backwards between samples");
-  }
+  if (elapsed_time_ns < 0) raise_error(rb_eRuntimeError, "BUG: Unexpected CPU time going backwards between samples");
 
   return elapsed_time_ns;
 }
@@ -1502,11 +1499,9 @@ static long update_wall_time_since_previous_sample(per_thread_context *thread_co
     thread_context
   );
 
-  // Wall-time can actually go backwards (e.g. when the system clock gets set) so we can't assume time going backwards
-  // was a bug.
-  // @ivoanjo: I've also observed time going backwards spuriously on macOS, see discussion on
-  // https://github.com/DataDog/dd-trace-rb/pull/2336.
-  return long_max_of(elapsed_time_ns, 0);
+  if (elapsed_time_ns < 0) raise_error(rb_eRuntimeError, "BUG: Unexpected wall time going backwards between samples");
+
+  return elapsed_time_ns;
 }
 
 // Safety: This function is assumed never to raise exceptions by callers
@@ -2500,13 +2495,22 @@ static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread) {
 
 #endif // NO_GVL_INSTRUMENTATION
 
-static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE delta_ns) {
+static VALUE _native_apply_delta_to_time_at_previous_sample_ns(int argc, VALUE *argv, DDTRACE_UNUSED VALUE self) {
+  VALUE thread;
+  VALUE options;
+  rb_scan_args(argc, argv, "1:", &thread, &options);
+  if (options == Qnil) options = rb_hash_new();
+
+  VALUE cpu_time_delta_ns = rb_hash_lookup2(options, ID2SYM(rb_intern("cpu_time")), INT2FIX(0));
+  VALUE wall_time_delta_ns = rb_hash_lookup2(options, ID2SYM(rb_intern("wall_time")), INT2FIX(0));
+
   ENFORCE_THREAD(thread);
 
   per_thread_context *thread_context = get_per_thread_context(thread);
   if (thread_context == NULL) raise_error(rb_eArgError, "Unexpected: This method cannot be used unless the per-thread context for the thread already exists");
 
-  thread_context->cpu_time_at_previous_sample_ns += NUM2LONG(delta_ns);
+  thread_context->cpu_time_at_previous_sample_ns += NUM2LONG(cpu_time_delta_ns);
+  thread_context->wall_time_at_previous_sample_ns += NUM2LONG(wall_time_delta_ns);
 
   return Qtrue;
 }
