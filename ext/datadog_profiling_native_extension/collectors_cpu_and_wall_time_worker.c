@@ -535,6 +535,13 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   long now = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
   discrete_dynamic_sampler_reset(&state->allocation_sampler, now);
 
+  // Reset per-thread state, if any. This ensures there's no leftover state from a previous profiler run that would
+  // affect or be included in samples taken by this profiler about to run.
+  //
+  // NOTE: This needs to be called before we enable any tracepoints or anything that could trigger samples (e.g.
+  // reset cannot be concurrent with any sampling activity)
+  thread_context_collector_reset_all_per_thread_contexts(state->thread_context_collector_instance);
+
   // This write to a global is thread-safe BECAUSE we're still holding on to the global VM lock at this point
   active_sampler_instance_state = state;
   active_sampler_instance = instance;
@@ -1434,17 +1441,21 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
   static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused) {
     // Be very careful about touching the `state` here or doing anything at all:
     // This function gets called without the GVL, and potentially from non-main Ractors!
+    //
+    // Note, even though these events can get called without the GVL, they synchronize-with enabling/disabling of
+    // the hook that calls us using a read-write lock. Thus, disabling the hook cannot be concurrent with calling this function,
+    // and once the disable finishes there can't be "late" calls into this function.
 
     // The thread that this event is about may not be the current thread
     // (as documented on rb_internal_thread_add_event_hook(), and this is notably the case for READY on Ruby 4.0),
     // so be careful with native thread locals that are not directly tied to the thread object and the like.
 
-    // On Ruby 3.2 the event does not carry the thread, but all events always fire on the event thread on Ruby 3.2.
-    // However, during early thread startup rb_thread_current() can crash because the execution context (Fiber) isn't
-    // stored in TLS yet; ruby_native_thread_p() guards against this.
     #ifdef HAVE_RUBY_THREAD_STORAGE_API
       VALUE target_thread = event_data->thread;
     #else
+      // On Ruby 3.2 the event does not carry the thread, but all events fire on the thread itself.
+      // However, during early thread startup rb_thread_current() can crash because the execution context (Fiber) isn't
+      // stored in TLS yet; ruby_native_thread_p() guards against this.
       if (!ruby_native_thread_p()) return;
       VALUE target_thread = rb_thread_current();
     #endif
