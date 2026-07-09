@@ -1292,6 +1292,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   describe "#on_gc_start" do
+    # TODO: This can be removed after https://github.com/DataDog/dd-trace-rb/pull/5960 lands (it's here to prevent
+    # issues with state leaking to other tests)
+    after { on_gc_finish }
+
     context "if a thread does not have per-thread context" do
       before { remove_per_thread_context_for(Thread.current) }
 
