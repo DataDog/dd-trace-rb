@@ -17,7 +17,11 @@ module Datadog
         def fork_pid: () -> Integer
 
         module ClassExtensions
-          def initialize: (*untyped args) { () -> untyped } -> untyped
+          # Always prepended onto a class that also includes Forking (see `self.included` above),
+          # so `update_fork_pid!` is guaranteed to be available on `self` at runtime.
+          include Forking
+
+          def initialize: (*untyped args, **untyped kwargs) ?{ () -> untyped } -> untyped
         end
       end
     end

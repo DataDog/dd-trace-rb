@@ -1,7 +1,16 @@
 module Datadog
   module Core
     module Metrics
-      Metric: untyped
+      class Metric < ::Struct[untyped]
+        def self.new: (Symbol type, (String | Symbol)? name, Numeric? value, ?Hash[Symbol, untyped]? options) -> instance
+
+        def initialize: (*untyped) -> void
+
+        attr_accessor type: Symbol
+        attr_accessor name: (String | Symbol)?
+        attr_accessor value: Numeric?
+        attr_accessor options: Hash[Symbol, untyped]
+      end
     end
   end
 end

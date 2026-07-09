@@ -53,7 +53,7 @@ module Datadog
               update_fork_pid!
             end
           else
-            def initialize(*args, &block)
+            def initialize(*args, &block) # steep:ignore MethodArityMismatch
               super
               update_fork_pid!
             end

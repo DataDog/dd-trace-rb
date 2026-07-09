@@ -10,14 +10,15 @@ module Datadog
         def self.included: (Class | Module base) -> void
 
         interface _ClassMethods
-          def settings: (Symbol | String name) ?{ () [self: _DslContext] -> untyped } -> ::Class
+          include Options::_ClassMethods
 
-          def new_settings_class: (Symbol | String name, ::String settings_path) ?{ () [self: _DslContext] -> untyped } -> ::Class
+          def settings: (Symbol name) ?{ () [self: _DslContext] -> untyped } -> Options::_SettingsClass
+
+          def new_settings_class: (Symbol name, ::String settings_path) ?{ () [self: _DslContext] -> untyped } -> Options::_SettingsClass
         end
 
         interface _DslContext
           include _ClassMethods
-          include Options::_ClassMethods
 
           def define_method: (Symbol name) { (?) [self: OptionDefinition::settings_execution_context] -> untyped } -> untyped
         end
@@ -27,11 +28,15 @@ module Datadog
         end
 
         module InstanceMethods
-          def initialize: (?::Hash[untyped, untyped] options) -> void
+          include Options::_InstanceMethods
 
-          def configure: (?::Hash[untyped, untyped] opts) ?{ (untyped) -> untyped } -> untyped
+          def initialize: (?::Hash[Symbol, Object?] options) -> void
+
+          def configure: (?::Hash[Symbol, Object?] opts) ?{ (self) -> untyped } -> void
 
           def to_h: () -> Hash[Symbol, Object?]
+
+          def dig: (*Symbol options) -> Object?
 
           def reset!: () -> void
         end

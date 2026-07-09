@@ -2,6 +2,23 @@ module Datadog
   module Core
     module Buffer
       class ThreadSafe < Datadog::Core::Buffer::Random
+        @mutex: Mutex
+
+        def initialize: (Integer max_size) -> void
+
+        def push: (Object item) -> Object?
+
+        def concat: (Array[Object] items) -> void
+
+        def length: -> Integer
+
+        def empty?: -> bool
+
+        def pop: -> Array[Object]
+
+        def close: -> void
+
+        def synchronize: [T] () { () -> T } -> T
       end
     end
   end
