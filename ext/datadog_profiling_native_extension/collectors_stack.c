@@ -645,14 +645,6 @@ void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames) {
 }
 
 void sampling_buffer_free(sampling_buffer *buffer) {
-  if (buffer->max_frames == 0 || buffer->stack_buffer == NULL) {
-    // This buffer was not initialized. This can happen if `sampling_buffer_check_max_frames` fails during initialize,
-    // although in practice that shouldn't happen either. @ivoanjo: We can't raise an exception here, this gets called
-    // by the Ruby GC, but I hesitated on dropping an `rb_bug` since it is possible to trigger this if we pass a wrong
-    // `max_frames`.
-    return;
-  }
-
   ruby_xfree(buffer->stack_buffer);
 
   buffer->max_frames = 0;
