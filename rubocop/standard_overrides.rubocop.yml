@@ -18,5 +18,8 @@ Layout/LeadingCommentSpace:
 # support Rubies below 3.4 for years to come.
 Style/FrozenStringLiteralComment:
   Enabled: true
+  # The default EnforcedStyle (always) also accepts `# frozen_string_literal: false`.
+  # We need the comment to be true, not merely present.
+  EnforcedStyle: always_true
   Include:
     - "lib/**/*.rb"
