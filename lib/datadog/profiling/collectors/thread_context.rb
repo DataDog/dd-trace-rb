@@ -21,7 +21,8 @@ module Datadog
           endpoint_collection_enabled:,
           waiting_for_gvl_threshold_ns:,
           otel_context_enabled:,
-          native_filenames_enabled:
+          native_filenames_enabled:,
+          show_classes:
         )
           tracer_context_key = safely_extract_context_key_from(tracer)
           self.class._native_initialize(
@@ -33,6 +34,7 @@ module Datadog
             waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
             otel_context_enabled: otel_context_enabled,
             native_filenames_enabled: native_filenames_enabled,
+            show_classes: show_classes,
             overhead_filename: __FILE__,
           )
         end
@@ -45,6 +47,7 @@ module Datadog
           waiting_for_gvl_threshold_ns: 10_000_000,
           otel_context_enabled: false,
           native_filenames_enabled: true,
+          show_classes: false,
           trigger_global_reset: true,
           **options
         )
@@ -56,6 +59,7 @@ module Datadog
             waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
             otel_context_enabled: otel_context_enabled,
             native_filenames_enabled: native_filenames_enabled,
+            show_classes: show_classes,
             **options,
           )
 

@@ -14,6 +14,11 @@
 #include "stack_recorder.h"
 #include "collectors_stack.h"
 
+// An estimation of how much bytes we need on average for qualified method names.
+// This is an "average" and not a "max" because frames can use more than that,
+// we just fall back to unqualified method names if the buffer is full.
+#define QUALIFIED_NAME_AVG_SIZE 64
+
 // Gathers stack traces from running threads, storing them in a StackRecorder instance
 // This file implements the native bits of the Datadog::Profiling::Collectors::Stack class
 
@@ -37,11 +42,6 @@ static void initialize_static_ruby_actual_filename(VALUE profiling_module);
 static void add_truncated_frames_placeholder(ddog_prof_Location *locations);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
 static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice);
-
-// These two functions are exposed as symbols by the VM but are not in any header.
-// Their signatures actually take a `const rb_iseq_t *iseq` but it gets casted back and forth between VALUE.
-extern VALUE rb_iseq_path(const VALUE);
-extern VALUE rb_iseq_base_label(const VALUE);
 
 // NULL if we weren't able to get the native filename for the Ruby VM.
 // On a static Ruby without libruby.so, `get_or_compute_native_filename` returns `ruby_native_filename` but
@@ -95,6 +95,7 @@ typedef struct {
   sampling_buffer *buffer;
   bool native_filenames_enabled;
   st_table *native_filenames_cache;
+  bool show_classes;
 } native_sample_args;
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::Stack behavior using RSpec.
@@ -117,6 +118,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
   VALUE in_gc = rb_hash_lookup2(options, ID2SYM(rb_intern("in_gc")), Qfalse);
   VALUE is_gvl_waiting_state = rb_hash_lookup2(options, ID2SYM(rb_intern("is_gvl_waiting_state")), Qfalse);
   VALUE native_filenames_enabled = rb_hash_lookup2(options, ID2SYM(rb_intern("native_filenames_enabled")), Qfalse);
+  VALUE show_classes = rb_hash_lookup2(options, ID2SYM(rb_intern("show_classes")), Qtrue);
 
   ENFORCE_TYPE(metric_values_hash, T_HASH);
   ENFORCE_TYPE(labels_array, T_ARRAY);
@@ -125,6 +127,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
   ENFORCE_BOOLEAN(in_gc);
   ENFORCE_BOOLEAN(is_gvl_waiting_state);
   ENFORCE_BOOLEAN(native_filenames_enabled);
+  ENFORCE_BOOLEAN(show_classes);
 
   VALUE zero = INT2NUM(0);
   VALUE heap_sample = rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("heap_sample"), Qfalse);
@@ -166,7 +169,8 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
 
   int max_frames_requested = sampling_buffer_check_max_frames(NUM2INT(max_frames));
 
-  ddog_prof_Location *locations = ruby_xcalloc(max_frames_requested, sizeof(ddog_prof_Location));
+  sample_locations locations;
+  sample_locations_initialize(&locations, max_frames_requested, show_classes == Qtrue);
   sampling_buffer buffer;
   sampling_buffer_initialize(&buffer, max_frames_requested);
 
@@ -178,10 +182,11 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
     .values = values,
     .labels = (sample_labels) {.labels = slice_labels, .state_label = state_label, .is_gvl_waiting_state = is_gvl_waiting_state == Qtrue},
     .thread = thread,
-    .locations = (sample_locations) {.ptr = locations, .len = max_frames_requested},
+    .locations = locations,
     .buffer = &buffer,
     .native_filenames_enabled = native_filenames_enabled == Qtrue,
     .native_filenames_cache = st_init_numtable(),
+    .show_classes = show_classes == Qtrue,
   };
 
   return rb_ensure(native_sample_do, (VALUE) &args_struct, native_sample_ensure, (VALUE) &args_struct);
@@ -206,7 +211,8 @@ static VALUE native_sample_do(VALUE args) {
       args_struct->values,
       args_struct->labels,
       args_struct->native_filenames_enabled,
-      args_struct->native_filenames_cache
+      args_struct->native_filenames_cache,
+      args_struct->show_classes
     );
   }
 
@@ -216,7 +222,7 @@ static VALUE native_sample_do(VALUE args) {
 static VALUE native_sample_ensure(VALUE args) {
   native_sample_args *args_struct = (native_sample_args *) args;
 
-  ruby_xfree(args_struct->locations.ptr);
+  sample_locations_free(&args_struct->locations);
   sampling_buffer_free(args_struct->buffer);
   st_free_table(args_struct->native_filenames_cache);
 
@@ -242,7 +248,8 @@ void sample_thread(
   sample_values values,
   sample_labels labels,
   bool native_filenames_enabled,
-  st_table *native_filenames_cache
+  st_table *native_filenames_cache,
+  bool show_classes
 ) {
   if (buffer->max_frames != locations.len) {
     // This shouldn't happen as thread_context_collector_reset_all_per_thread_contexts (which resizes every
@@ -261,11 +268,13 @@ void sample_thread(
     prepare_sample_thread(thread, buffer);
   }
 
-  buffer->pending_sample = false;
   int captured_frames = buffer->pending_sample_result;
 
   if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
     record_placeholder_stack_in_native_code(recorder_instance, values, labels);
+
+    // Done reading from the buffer -- allow GC to stop marking it.
+    buffer->pending_sample = false;
     return;
   }
 
@@ -302,45 +311,58 @@ void sample_thread(
   }
 
   int top_of_stack_position = captured_frames - 1;
+  char *qualified_name_buf = locations.qualified_name_buf;
+  size_t qualified_name_buf_size = locations.qualified_name_buf_size;
 
   for (int i = 0; i <= top_of_stack_position; i++) {
-    ddog_CharSlice name_slice, filename_slice;
+    ddog_CharSlice filename_slice;
     int line;
     bool top_of_the_stack = i == top_of_stack_position;
 
-    if (buffer->stack_buffer[i].is_ruby_frame) {
-      VALUE iseq = buffer->stack_buffer[i].as.ruby_frame.iseq;
-      VALUE name = rb_iseq_base_label(iseq);
-      VALUE filename =
-        // Note: We saw crash reports from a customer from dereferencing a null pointer inside `rb_iseq_path`.
-        // It's not clear in what situation would the pathobj ever be NULL, yet it seems harmless from our side to
-        // skip this information if we're ever in such a situation.
-        pathobj_is_null(iseq) ? Qnil : rb_iseq_path(iseq);
+    frame_info frame = buffer->stack_buffer[i];
+    const rb_callable_method_entry_t *cme = frame.cme;
+    const rb_iseq_t* iseq;
+    if (frame.is_ruby_frame) {
+      iseq = frame.as.ruby_frame.iseq;
 
-      name_slice = NIL_P(name) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name);
+      VALUE filename = ddtrace_iseq_path(iseq);
       filename_slice = NIL_P(filename) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(filename);
-      line = buffer->stack_buffer[i].as.ruby_frame.line;
+      line = frame.as.ruby_frame.line;
 
       last_ruby_frame_filename = filename_slice;
       last_ruby_line = line;
     } else {
-      VALUE name = rb_id2str(buffer->stack_buffer[i].as.native_frame.method_id);
-
-      name_slice = NIL_P(name) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name);
+      iseq = NULL;
 
       set_file_info_for_cfunc(
         &filename_slice,
         &line,
         last_ruby_frame_filename,
         last_ruby_line,
-        buffer->stack_buffer[i].as.native_frame.function,
+        ddtrace_cme_cfunc_func(cme),
         top_of_the_stack,
         native_filenames_enabled,
         native_filenames_cache
       );
     }
 
-    maybe_trim_template_random_ids(&name_slice, &filename_slice);
+    VALUE name = ddtrace_location_base_label(cme, iseq);
+    // TODO: name_slice is currently the unqualified method name
+    // because we don't always use qualified method names yet, so we don't always compute it,
+    // and checks below need to compare to something stable until we always qualified method names.
+    ddog_CharSlice name_slice = char_slice_from_ruby_string(name);
+
+    ddog_CharSlice qualified_name = DDOG_CHARSLICE_C("");
+    if (show_classes) {
+      ssize_t written = ddtrace_location_label(cme, iseq, qualified_name_buf, qualified_name_buf_size);
+      if (written > 0) {
+        qualified_name = (ddog_CharSlice) {.ptr = qualified_name_buf, .len = written};
+        qualified_name_buf += written;
+        qualified_name_buf_size -= written;
+      } else {
+        qualified_name = name_slice; // just the method name
+      }
+    }
 
     // When there's only wall-time in a sample, this means that the thread was not active in the sampled period.
     if (top_of_the_stack && only_wall_time) {
@@ -351,7 +373,7 @@ void sample_thread(
       // Otherwise, we try to categorize what the thread was doing based on what we observe at the top of the stack. This is a very rough
       // approximation, and in the future we hope to replace this with a more accurate approach (such as using the
       // GVL instrumentation API.)
-      } else if (!buffer->stack_buffer[i].is_ruby_frame) {
+      } else if (!frame.is_ruby_frame) {
         // We know that known versions of Ruby implement these using native code; thus if we find a method with the
         // same name that is not native code, we ignore it, as it's probably a user method that coincidentally
         // has the same name. Thus, even though "matching just by method name" is kinda weak,
@@ -401,11 +423,20 @@ void sample_thread(
       }
     }
 
+    ddog_CharSlice frame_name;
+    if (show_classes) {
+      frame_name = qualified_name;
+    } else {
+      frame_name = name_slice;
+    }
+
+    maybe_trim_template_random_ids(&frame_name, &filename_slice);
+
     int libdatadog_stores_stacks_flipped_from_rb_profile_frames_index = top_of_stack_position - i;
 
     locations.ptr[libdatadog_stores_stacks_flipped_from_rb_profile_frames_index] = (ddog_prof_Location) {
       .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
-      .function = (ddog_prof_Function) {.name = name_slice, .filename = filename_slice},
+      .function = (ddog_prof_Function) {.name = frame_name, .filename = filename_slice},
       .line = line,
     };
   }
@@ -422,6 +453,11 @@ void sample_thread(
     values,
     labels
   );
+
+  // Done reading from the buffer -- allow GC to stop marking it.
+  // This needs to be done last in this function in case anything above triggers a GC
+  // (remember that `ruby_xmalloc` for instance can do that too...)
+  buffer->pending_sample = false;
 }
 
 static void set_file_info_for_cfunc(
@@ -607,6 +643,28 @@ bool prepare_sample_thread(VALUE thread, sampling_buffer *buffer) {
   return true;
 }
 
+void sample_locations_initialize(sample_locations *locations, uint16_t max_frames, bool show_classes) {
+  locations->len = max_frames;
+  locations->ptr = ruby_xcalloc(max_frames, sizeof(ddog_prof_Location));
+  if (show_classes) {
+    locations->qualified_name_buf_size = QUALIFIED_NAME_AVG_SIZE * max_frames;
+    locations->qualified_name_buf = ruby_xmalloc(locations->qualified_name_buf_size);
+  } else {
+    locations->qualified_name_buf_size = 0;
+    locations->qualified_name_buf = NULL;
+  }
+}
+
+void sample_locations_free(sample_locations *locations) {
+  ruby_xfree(locations->ptr);
+  ruby_xfree(locations->qualified_name_buf);
+
+  locations->ptr = NULL;
+  locations->len = 0;
+  locations->qualified_name_buf = NULL;
+  locations->qualified_name_buf_size = 0;
+}
+
 uint16_t sampling_buffer_check_max_frames(int max_frames) {
   if (max_frames < 5) raise_error(rb_eArgError, "Invalid max_frames: value must be >= 5");
   if (max_frames > MAX_FRAMES_LIMIT) raise_error(rb_eArgError, "Invalid max_frames: value must be <= " MAX_FRAMES_LIMIT_AS_STRING);
@@ -649,8 +707,9 @@ void sampling_buffer_mark(sampling_buffer *buffer) {
   atomic_signal_fence(memory_order_seq_cst);
 
   for (int i = 0; i < buffer->pending_sample_result; i++) {
+    rb_gc_mark((VALUE) buffer->stack_buffer[i].cme);
     if (buffer->stack_buffer[i].is_ruby_frame) {
-      rb_gc_mark(buffer->stack_buffer[i].as.ruby_frame.iseq);
+      rb_gc_mark((VALUE) buffer->stack_buffer[i].as.ruby_frame.iseq);
     }
   }
 
