@@ -81,7 +81,7 @@ module Datadog
           # The block gets passed prepared arguments for the caller to decide
           # how to insert.
           def self.insert_middleware(builder, middleware, args, block)
-            use = builder.instance_variable_get('@use')
+            use = builder.instance_variable_get(:@use)
             wrapped = wrap_middleware(middleware, *args, &block)
 
             # Makes the insert idempotent

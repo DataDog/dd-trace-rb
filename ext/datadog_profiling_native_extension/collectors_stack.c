@@ -251,21 +251,25 @@ void sample_thread(
   bool native_filenames_enabled,
   st_table *native_filenames_cache
 ) {
+  if (buffer->max_frames != locations.len) {
+    // This shouldn't happen as thread_context_collector_reset_all_per_thread_contexts (which resizes every
+    // per-thread sampling buffer to match the collector's max_frames) must always be called before starting or
+    // restarting profiling.
+    raise_error(
+      rb_eRuntimeError,
+      "Unexpected: sampling buffer max_frames (%d) doesn't match locations len (%d)",
+      (int) buffer->max_frames,
+      (int) locations.len
+    );
+  }
+
   // If we already prepared a sample, we use it below; if not, we prepare it now.
   if (!buffer->pending_sample) {
-    // Reconcile the sampling_buffer's max_frames with the locations size
-    if (buffer->max_frames != locations.len) {
-      sampling_buffer_reinitialize(buffer, locations.len);
-    }
     prepare_sample_thread(thread, buffer);
   }
 
   buffer->pending_sample = false;
   int captured_frames = buffer->pending_sample_result;
-
-  // The per_thread_context's sampling_buffer may have been created by a previous collector with a
-  // different (larger) max_frames. Cap to the locations array size to prevent out-of-bounds writes.
-  if (captured_frames > (int) locations.len) captured_frames = (int) locations.len;
 
   if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
     record_placeholder_stack_in_native_code(recorder_instance, values, labels);
@@ -312,8 +316,13 @@ void sample_thread(
     bool top_of_the_stack = i == top_of_stack_position;
 
     if (buffer->stack_buffer[i].is_ruby_frame) {
-      VALUE name = rb_iseq_base_label(buffer->stack_buffer[i].as.ruby_frame.iseq);
-      VALUE filename = rb_iseq_path(buffer->stack_buffer[i].as.ruby_frame.iseq);
+      VALUE iseq = buffer->stack_buffer[i].as.ruby_frame.iseq;
+      VALUE name = rb_iseq_base_label(iseq);
+      VALUE filename =
+        // Note: We saw crash reports from a customer from dereferencing a null pointer inside `rb_iseq_path`.
+        // It's not clear in what situation would the pathobj ever be NULL, yet it seems harmless from our side to
+        // skip this information if we're ever in such a situation.
+        pathobj_is_null(iseq) ? Qnil : rb_iseq_path(iseq);
 
       name_slice = NIL_P(name) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(name);
       filename_slice = NIL_P(filename) ? DDOG_CHARSLICE_C("") : char_slice_from_ruby_string(filename);
@@ -420,11 +429,6 @@ void sample_thread(
     values,
     labels
   );
-
-  // Reconcile the sampling_buffer's max_frames with the locations size for future samples
-  if (buffer->max_frames != locations.len) {
-    sampling_buffer_reinitialize(buffer, locations.len);
-  }
 }
 
 #if (defined(HAVE_DLADDR1) && HAVE_DLADDR1) || (defined(HAVE_DLADDR) && HAVE_DLADDR)
@@ -645,16 +649,7 @@ void sampling_buffer_initialize(sampling_buffer *buffer, uint16_t max_frames) {
   buffer->pending_sample_result = 0;
 }
 
-void sampling_buffer_reinitialize(sampling_buffer *buffer, uint16_t max_frames) {
-  sampling_buffer_free(buffer);
-  sampling_buffer_initialize(buffer, max_frames);
-}
-
 void sampling_buffer_free(sampling_buffer *buffer) {
-  if (buffer->max_frames == 0 || buffer->stack_buffer == NULL) {
-    raise_error(rb_eArgError, "sampling_buffer_free called with invalid buffer");
-  }
-
   ruby_xfree(buffer->stack_buffer);
 
   buffer->max_frames = 0;

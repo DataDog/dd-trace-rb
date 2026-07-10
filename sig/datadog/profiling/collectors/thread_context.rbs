@@ -32,8 +32,13 @@ module Datadog
           ?waiting_for_gvl_threshold_ns: ::Integer,
           ?otel_context_enabled: (::Symbol? | bool),
           ?native_filenames_enabled: bool,
+          ?trigger_global_reset: bool,
           **untyped
         ) -> Datadog::Profiling::Collectors::ThreadContext
+
+        module Testing
+          def self._native_global_reset_per_thread_context: (Datadog::Profiling::Collectors::ThreadContext collector_instance) -> void
+        end
 
         def inspect: () -> ::String
 

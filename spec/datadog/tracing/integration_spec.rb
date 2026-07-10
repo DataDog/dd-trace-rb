@@ -144,12 +144,9 @@ RSpec.describe 'Tracer integration tests' do
         skip('datadog only supports unix socket connectivity on Linux') unless PlatformHelpers.linux?
 
         # DEV: To connect to a unix socket in another docker container (the agent container in our case)
-        # we need to share a volume with that container. Our current CircleCI setup uses `docker` executors
-        # which don't support sharing volumes. We'd have to migrate to using `machine` executors
-        # and manage the docker lifecycle ourselves if we want to share unix sockets for testing.
+        # we need to share a volume with that container, which our CI setup doesn't support.
         # In the mean time, this test is being skipped in CI.
-        # @see https://support.circleci.com/hc/en-us/articles/360007324514-How-can-I-use-Docker-volume-mounting-on-CircleCI-
-        skip("Can't share docker volume to access unix socket in CircleCI currently") if PlatformHelpers.ci?
+        skip("Can't share docker volume to access unix socket in CI currently") if PlatformHelpers.ci?
 
         Datadog.configure do |c|
           c.agent.uds_path = ENV['TEST_DDAGENT_UNIX_SOCKET']
