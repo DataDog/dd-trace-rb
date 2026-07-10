@@ -98,6 +98,9 @@ EXTENSION_NAME = "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}".fr
 
 have_func("rb_iseq_type")
 
+# Only present when libdatadog was built with the `otel-thread-ctx` feature (Linux-only).
+have_header('datadog/otel-thread-ctx.h')
+
 create_makefile(EXTENSION_NAME)
 
 # rubocop:enable Style/GlobalVars
