@@ -244,6 +244,14 @@ module Datadog
 
         return false unless heap_profiling_enabled && heap_size_profiling_enabled
 
+        if RubyVersion.is?(">= 4")
+          logger.info(
+            "Heap live size profiling is currently incompatible with Ruby 4 and has been disabled. " \
+            "Heap live objects is not affected and remains enabled."
+          )
+          return false
+        end
+
         true
       end
 

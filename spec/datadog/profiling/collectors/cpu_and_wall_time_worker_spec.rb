@@ -9,11 +9,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:gc_profiling_enabled) { true }
   let(:allocation_profiling_enabled) { false }
   let(:heap_profiling_enabled) { false }
+  let(:heap_size_profiling_available) { RubyVersion.is?("< 4") } # Currently incompatible with Ruby 4
+  let(:heap_size_profiling_enabled) { heap_profiling_enabled && heap_size_profiling_available }
   let(:recorder) do
     Datadog::Profiling::StackRecorder.for_testing(
       alloc_samples_enabled: true,
       heap_samples_enabled: heap_profiling_enabled,
-      heap_size_enabled: heap_profiling_enabled,
+      heap_size_enabled: heap_size_profiling_enabled,
       **stack_recorder_options,
     )
   end
@@ -968,7 +970,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         expected_size_of_object = 40 # 40 is the size of a basic object and we have test_num_allocated_object of them
 
-        expect(total_size).to eq test_num_allocated_object * expected_size_of_object
+        if heap_size_profiling_available
+          expect(total_size).to eq test_num_allocated_object * expected_size_of_object
+        end
       end
 
       describe "heap cleanup after GC" do
