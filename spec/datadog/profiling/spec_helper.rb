@@ -4,9 +4,6 @@ if Datadog::Profiling.supported?
   require "zstd-ruby"
 end
 
-# Expose the version helper to profiling specs as a bare `RubyVersion` (alias for Datadog::RubyVersion).
-RubyVersion = Datadog::RubyVersion
-
 module ProfileHelpers
   Sample = Struct.new(:locations, :values, :labels) do |_sample_class| # rubocop:disable Lint/StructNewOverride
     def value?(type)
@@ -37,7 +34,7 @@ module ProfileHelpers
 
     # Ensure profiling was loaded correctly
     raise "Profiling does not seem to be available: #{Datadog::Profiling.unsupported_reason}. " \
-      "Try running `bundle exec rake compile` before running this test."
+      "Try running `bundle exec rake clean compile` before running this test."
   end
 
   def decode_profile(encoded_profile)
@@ -125,12 +122,12 @@ module ProfileHelpers
   end
 
   def loop_until(timeout_seconds: 5, check_condition_every_seconds: 0)
-    started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second)
+    started_at = Datadog::Core::Utils::Time.get_time
 
     deadline = started_at + timeout_seconds
     condition_deadline = started_at + check_condition_every_seconds
 
-    while (now = Process.clock_gettime(Process::CLOCK_MONOTONIC, :float_second)) < deadline
+    while (now = Datadog::Core::Utils::Time.get_time) < deadline
       if check_condition_every_seconds > 0
         if now >= condition_deadline
           condition_deadline = now + check_condition_every_seconds

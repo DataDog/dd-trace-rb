@@ -288,6 +288,69 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
       end
     end
 
+    context 'query with arguments inside fragments' do
+      let(:queries) do
+        [
+          GraphQL::Query.new(
+            schema,
+            <<~END_OF_QUERY
+              fragment UserSearch on Query @custom(value: "$definitionattack") {
+                namedUser: userByName(name: "$namedattack") {
+                  id
+                }
+              }
+
+              query MyTestQuery {
+                ... on Query @custom(value: "$testattack") {
+                  userByName(name: "$inlinefieldattack") {
+                    id
+                  }
+                }
+                ...UserSearch @custom(value: "$spreadattack")
+              }
+            END_OF_QUERY
+          )
+        ]
+      end
+
+      it 'returns arguments from inline and named fragments' do
+        expect(dd_multiplex.arguments).to(
+          eq(
+            'Query' => [{'custom' => {'value' => '$testattack'}}],
+            'userByName' => [{'name' => '$inlinefieldattack'}],
+            'UserSearch' => [
+              {'custom' => {'value' => '$spreadattack'}},
+              {'custom' => {'value' => '$definitionattack'}}
+            ],
+            'namedUser' => [{'name' => '$namedattack'}]
+          )
+        )
+      end
+    end
+
+    context 'query with fragments spread multiple times' do
+      let(:queries) do
+        fragments = (1..20).map do |level|
+          if level == 1
+            'fragment F1 on Query { userByName(name: "$attack") { id } }'
+          else
+            "fragment F#{level} on Query { ...F#{level - 1} ...F#{level - 1} }"
+          end
+        end
+
+        [
+          GraphQL::Query.new(
+            schema,
+            "#{fragments.join("\n")}\nquery MyTestQuery { ...F20 }\n"
+          )
+        ]
+      end
+
+      it 'expands each fragment at most once' do
+        expect(dd_multiplex.arguments).to eq('userByName' => [{'name' => '$attack'}])
+      end
+    end
+
     context 'mutation' do
       let(:queries) do
         [

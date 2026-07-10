@@ -73,8 +73,8 @@ module Datadog
         include ::OpenFeature::SDK::Hooks::Hook if defined?(::OpenFeature::SDK::Hooks::Hook)
 
         # Always available: enrichment no longer depends on SDK hook dispatch.
-        # Retained for symmetry with `FlagEvalHook.available?` and the component
-        # gate, but the span-enrichment path works on every supported SDK.
+        # Retained for symmetry with the other hooks' `available?` and the
+        # component gate, but the span-enrichment path works on every supported SDK.
         def self.available?
           true
         end

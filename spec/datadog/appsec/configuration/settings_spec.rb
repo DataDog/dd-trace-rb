@@ -1078,6 +1078,30 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
           it { expect(settings.appsec.api_security.downstream_body_analysis.max_requests).to eq(3) }
         end
+
+        describe '#max_downstream_body_bytes' do
+          context 'when DD_API_SECURITY_MAX_DOWNSTREAM_BODY_BYTES is undefined' do
+            around do |example|
+              ClimateControl.modify('DD_API_SECURITY_MAX_DOWNSTREAM_BODY_BYTES' => nil) { example.run }
+            end
+
+            it { expect(settings.appsec.api_security.downstream_body_analysis.max_downstream_body_bytes).to eq(10_485_760) }
+          end
+
+          context 'when DD_API_SECURITY_MAX_DOWNSTREAM_BODY_BYTES is set' do
+            around do |example|
+              ClimateControl.modify('DD_API_SECURITY_MAX_DOWNSTREAM_BODY_BYTES' => '1024') { example.run }
+            end
+
+            it { expect(settings.appsec.api_security.downstream_body_analysis.max_downstream_body_bytes).to eq(1024) }
+          end
+        end
+
+        describe '#max_downstream_body_bytes=' do
+          before { settings.appsec.api_security.downstream_body_analysis.max_downstream_body_bytes = 2048 }
+
+          it { expect(settings.appsec.api_security.downstream_body_analysis.max_downstream_body_bytes).to eq(2048) }
+        end
       end
     end
 

@@ -83,6 +83,12 @@ Logging.message("[datadog] End of compiler information\n")
 # But we can enable it in CI, so that we quickly spot any new warnings that just got introduced.
 append_cflags "-Werror" if ENV["DATADOG_GEM_CI"] == "true"
 
+# TEMPORARY STOPGAP: libdatadog v36's vendored `common.h` ships duplicate typedefs
+# (a header-dedup regression), which `-Werror` turns into fatal
+# `-Wtypedef-redefinition` errors under C11/gnu11. Keep it a warning until a fixed
+# header lands upstream in libdatadog/libdatadog-rb. Remove this once that ships.
+append_cflags "-Wno-error=typedef-redefinition" if ENV["DATADOG_GEM_CI"] == "true"
+
 # Older gcc releases may not default to C99 and we need to ask for this. This is also used:
 # * by upstream Ruby -- search for gnu99 in the codebase
 # * by msgpack, another datadog gem dependency
@@ -126,9 +132,6 @@ if RUBY_PLATFORM.include?("linux")
   # but it's slower to build
   # so instead we just assume that we have the function we need on Linux, and nowhere else
   $defs << "-DHAVE_PTHREAD_GETCPUCLOCKID"
-
-  # Not available on macOS
-  $defs << "-DHAVE_CLOCK_MONOTONIC_COARSE"
 elsif RUBY_PLATFORM.include?("darwin")
   # On macOS, we use Mach thread APIs to get per-thread CPU time
   $defs << "-DHAVE_MACH_THREAD_INFO"
@@ -153,6 +156,11 @@ $defs << "-DNO_IMEMO_OBJECT_ID" unless RUBY_VERSION < "4"
 # because it's not safe to mutate objects during the newobj tracepoint
 # (see https://bugs.ruby-lang.org/issues/21710)
 $defs << "-DUSE_DEFERRED_HEAP_ALLOCATION_RECORDING" unless RUBY_VERSION < "4"
+
+# On Ruby 4.0, we've seen crashes when computing the memsize of a class/module/iclass:
+# rb_obj_memsize_of walks the per-namespace class extensions (classext_memsize), which seem to sometimes be in an inconsistent state
+# (see https://github.com/DataDog/dd-trace-rb/issues/5936)
+$defs << "-DNO_SAFE_CLASS_MEMSIZE" unless RUBY_VERSION < "4"
 
 # This symbol is exclusively visible on certain Ruby versions: 2.6 to 3.2, as well as 3.4 (but not 4.0+)
 # It's only used to get extra information about an object when a failure happens, so it's a "very nice to have" but not

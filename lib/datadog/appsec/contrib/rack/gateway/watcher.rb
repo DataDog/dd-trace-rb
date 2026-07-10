@@ -90,18 +90,27 @@ module Datadog
                   request = gateway_request.request
                   next stack.call(request) unless gateway_request.collectable_body?
 
-                  # NOTE: Specification requires measuring the body size,
-                  #       preferring the raw data over the Content-Length header
-                  body_io = request.body
-                  byte_length = body_io.respond_to?(:size) ? body_io.size : request.content_length&.to_i
-                  next stack.call(request) unless byte_length
+                  # NOTE: A limit of 0 disables request body collection entirely.
+                  limit = Datadog.configuration.appsec.body_parsing_size_limit
+                  next stack.call(request) if limit.zero?
 
-                  persistent_data = {'server.request.body.byte_length' => byte_length}
+                  persistent_data = {}
+                  byte_length = gateway_request.body_bytesize(limit)
 
-                  if byte_length <= Datadog.configuration.appsec.body_parsing_size_limit
-                    body = gateway_request.form_hash
+                  if byte_length
+                    persistent_data['server.request.body.byte_length'] = byte_length
+
+                    if byte_length <= limit
+                      body = gateway_request.form_hash
+                      persistent_data['server.request.body'] = body if body
+                    end
+                  # NOTE: Body was parsed before measurement, keep byte_length unset
+                  elsif gateway_request.env.key?('rack.request.form_hash')
+                    body = gateway_request.env['rack.request.form_hash']
                     persistent_data['server.request.body'] = body if body
                   end
+
+                  next stack.call(request) if persistent_data.empty?
 
                   result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 

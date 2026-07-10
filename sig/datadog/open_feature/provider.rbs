@@ -11,7 +11,7 @@ module Datadog
 
       def shutdown: () -> void
 
-      def hooks: () -> ::Array[Hooks::FlagEvalHook]
+      def hooks: () -> ::Array[Hooks::FlagEvalMetricsHook | Hooks::FlagEvalEVPHook]
 
       def fetch_boolean_value: (
         flag_key: ::String,
@@ -59,12 +59,35 @@ module Datadog
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def component_not_configured_default: (
-        ::OpenFeature::SDK::Provider::ResolutionDetails::value_t value
+        ::OpenFeature::SDK::Provider::ResolutionDetails::value_t value,
+        ::Integer eval_time_ms
+      ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
+
+      def fetch_engine_value: (
+        EvaluationEngine engine,
+        ::String flag_key,
+        ::OpenFeature::SDK::Provider::ResolutionDetails::value_t default_value,
+        ::Symbol expected_type,
+        ::OpenFeature::SDK::EvaluationContext? evaluation_context
+      ) -> (ResolutionDetails | Core::FeatureFlags::ResolutionDetails)
+
+      def sdk_success_details: (
+        (ResolutionDetails | Core::FeatureFlags::ResolutionDetails) result,
+        ::Hash[::String, untyped] flag_meta
+      ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
+
+      def sdk_error_details: (
+        ::OpenFeature::SDK::Provider::ResolutionDetails::value_t default_value,
+        ::String? error_code,
+        ::String? error_message,
+        ::String? reason,
+        ?::Hash[::String, untyped] flag_meta
       ) -> ::OpenFeature::SDK::Provider::ResolutionDetails
 
       def build_flag_metadata: (
-        (ResolutionDetails | Core::FeatureFlags::ResolutionDetails) result
-      ) -> ::Hash[::String, ::String]
+        (ResolutionDetails | Core::FeatureFlags::ResolutionDetails) result,
+        ::Integer eval_time_ms
+      ) -> ::Hash[::String, untyped]
 
       def enrich_span: (
         ::String flag_key,
@@ -73,6 +96,7 @@ module Datadog
       ) -> void
 
       def span_enrichment_hook: () -> Hooks::SpanEnrichmentHook?
+
     end
   end
 end

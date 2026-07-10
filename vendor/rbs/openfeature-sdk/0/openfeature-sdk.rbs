@@ -3,6 +3,8 @@ module OpenFeature
     class EvaluationContext
       type fields_t = ::Hash[::String, untyped]
 
+      TARGETING_KEY: ::String
+
       def targeting_key: () -> ::String?
 
       def fields: () -> fields_t

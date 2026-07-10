@@ -2,6 +2,57 @@
 
 ## [Unreleased]
 
+## [2.37.0] - 2026-07-06
+
+### Added
+
+* AppSec: Add sign-up event tracking to `Datadog::Kit::AppSec::Events::V2` ([#5973][])
+* AppSec: Integrations: Add normalized HTTP route for API Security Testing ([#5834][])
+* Dynamic Instrumentation: DI can now be enabled from the Datadog UI without setting `DD_DYNAMIC_INSTRUMENTATION_ENABLED` or restarting the application. Setting `DD_DYNAMIC_INSTRUMENTATION_ENABLED=false` explicitly still disables it and blocks UI-driven enablement ([#5525][])
+
+### Changed
+
+* Profiling: Reduce profiler overhead by sampling profiler-internal threads only once per minute ([#5955][])
+* Dynamic Instrumentation: Reject method probes that target `Kernel#lambda`, which cannot be safely instrumented ([#5954][])
+* Dynamic Instrumentation: Reject method probes that target classes or modules in the Datadog namespace ([#5907][])
+* Dynamic Instrumentation: Enable Symbol Database by default when Dynamic Instrumentation is enabled ([#5828][])
+
+### Fixed
+
+* AppSec: AI Guard: Fix endpoint configuration via `DD_SITE` environment variable ([#5940][])
+* AppSec: Fix API Security schema extraction timeout and telemetry ([#5975][])
+* AppSec: Fix remote configuration errors when the ruleset name changes ([#5970][])
+* AppSec: Integrations: Add configurable size limit for downstream HTTP request and response body analysis ([#5990][])
+* AppSec: Integrations: Fix WAF analysis for requests with cached or parsed bodies in Rack and Sinatra ([#5991][])
+* AppSec: Integrations: Fix an exception for unauthorized requests when using Devise with Rails. ([#5987][])
+* Tracing: Fix a `SIGSEGV` crash that could happen with experimental heap profiling enabled on Ruby 4.0 ([#5938][]) ([@navidemad][])
+* Dynamic Instrumentation: Normalize Rack CGI header prefix (`HTTP_<HEADER>`) in redactor so snapshot captures redact sensitive headers like their bare names ([#5911][])
+* Dynamic Instrumentation: Symbol Database and DI background threads no longer stop when application code raises a non-StandardError during introspection ([#5945][])
+
+## [2.36.0] - 2026-06-24
+
+### Added
+
+* Tracing: Add `DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT` to control trace extraction behavior with `continue`, `restart`, and `ignore` modes ([#5844][])
+* AppSec: Add `DD_APPSEC_BODY_PARSING_SIZE_LIMIT` to control processing of request and response body size; set to 0 to disable ([#5877][])
+* AppSec: Detect attacks from inline fragments in GraphQL queries ([#5916][])
+* Dynamic Instrumentation: Show lazily loaded classes in UI ([#5697][])
+
+### Changed
+
+* Dynamic Instrumentation: Reduce peak memory usage during Symbol Database extraction ([#5883][])
+* Profiling: Reduce profiler overhead by up to 50% by skipping redundant samples for threads without the GVL ([#5777][])
+* Profiling: Remove overhead when cleaning up dead threads ([#5816][])
+
+### Fixed
+
+* Tracing: Workaround Ruby VM bug causing segmentation faults inside CachingResolver ([#5719][], [#5890][])
+* Dynamic Instrumentation: Prevent uploading stale class definitions for apps using `remove_const`-then-redefine patterns ([#5872][])
+* Profiling: Fix GC profiling being incorrectly disabled on Ruby 3.2.10 and 3.2.11 ([#5894][])
+* Profiling: Fix over-counting of the first allocation sample at profiler startup ([#5881][])
+* Profiling: Fix rare profiler crash during shutdown in heap profiling cleanup ([#5920][])
+* Core: Fix exception message formatting from native extensions ([#5857][])
+
 ## [2.35.0] - 2026-06-03
 
 ### Added
@@ -3634,7 +3685,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.35.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.37.0...master
+[2.37.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.36.0...v2.37.0
+[2.36.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.35.0...v2.36.0
 [2.35.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.34.0...v2.35.0
 [2.34.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.33.0...v2.34.0
 [2.33.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.32.0...v2.33.0
@@ -5360,6 +5413,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#5499]: https://github.com/DataDog/dd-trace-rb/issues/5499
 [#5501]: https://github.com/DataDog/dd-trace-rb/issues/5501
 [#5509]: https://github.com/DataDog/dd-trace-rb/issues/5509
+[#5525]: https://github.com/DataDog/dd-trace-rb/issues/5525
 [#5531]: https://github.com/DataDog/dd-trace-rb/issues/5531
 [#5564]: https://github.com/DataDog/dd-trace-rb/issues/5564
 [#5569]: https://github.com/DataDog/dd-trace-rb/issues/5569
@@ -5379,8 +5433,10 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#5681]: https://github.com/DataDog/dd-trace-rb/issues/5681
 [#5687]: https://github.com/DataDog/dd-trace-rb/issues/5687
 [#5689]: https://github.com/DataDog/dd-trace-rb/issues/5689
+[#5697]: https://github.com/DataDog/dd-trace-rb/issues/5697
 [#5705]: https://github.com/DataDog/dd-trace-rb/issues/5705
 [#5717]: https://github.com/DataDog/dd-trace-rb/issues/5717
+[#5719]: https://github.com/DataDog/dd-trace-rb/issues/5719
 [#5723]: https://github.com/DataDog/dd-trace-rb/issues/5723
 [#5724]: https://github.com/DataDog/dd-trace-rb/issues/5724
 [#5750]: https://github.com/DataDog/dd-trace-rb/issues/5750
@@ -5389,10 +5445,37 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#5762]: https://github.com/DataDog/dd-trace-rb/issues/5762
 [#5768]: https://github.com/DataDog/dd-trace-rb/issues/5768
 [#5773]: https://github.com/DataDog/dd-trace-rb/issues/5773
+[#5777]: https://github.com/DataDog/dd-trace-rb/issues/5777
 [#5811]: https://github.com/DataDog/dd-trace-rb/issues/5811
 [#5812]: https://github.com/DataDog/dd-trace-rb/issues/5812
+[#5816]: https://github.com/DataDog/dd-trace-rb/issues/5816
+[#5828]: https://github.com/DataDog/dd-trace-rb/issues/5828
 [#5830]: https://github.com/DataDog/dd-trace-rb/issues/5830
+[#5834]: https://github.com/DataDog/dd-trace-rb/issues/5834
 [#5836]: https://github.com/DataDog/dd-trace-rb/issues/5836
+[#5844]: https://github.com/DataDog/dd-trace-rb/issues/5844
+[#5857]: https://github.com/DataDog/dd-trace-rb/issues/5857
+[#5872]: https://github.com/DataDog/dd-trace-rb/issues/5872
+[#5877]: https://github.com/DataDog/dd-trace-rb/issues/5877
+[#5881]: https://github.com/DataDog/dd-trace-rb/issues/5881
+[#5883]: https://github.com/DataDog/dd-trace-rb/issues/5883
+[#5890]: https://github.com/DataDog/dd-trace-rb/issues/5890
+[#5894]: https://github.com/DataDog/dd-trace-rb/issues/5894
+[#5907]: https://github.com/DataDog/dd-trace-rb/issues/5907
+[#5911]: https://github.com/DataDog/dd-trace-rb/issues/5911
+[#5916]: https://github.com/DataDog/dd-trace-rb/issues/5916
+[#5920]: https://github.com/DataDog/dd-trace-rb/issues/5920
+[#5938]: https://github.com/DataDog/dd-trace-rb/issues/5938
+[#5940]: https://github.com/DataDog/dd-trace-rb/issues/5940
+[#5945]: https://github.com/DataDog/dd-trace-rb/issues/5945
+[#5954]: https://github.com/DataDog/dd-trace-rb/issues/5954
+[#5955]: https://github.com/DataDog/dd-trace-rb/issues/5955
+[#5970]: https://github.com/DataDog/dd-trace-rb/issues/5970
+[#5973]: https://github.com/DataDog/dd-trace-rb/issues/5973
+[#5975]: https://github.com/DataDog/dd-trace-rb/issues/5975
+[#5987]: https://github.com/DataDog/dd-trace-rb/issues/5987
+[#5990]: https://github.com/DataDog/dd-trace-rb/issues/5990
+[#5991]: https://github.com/DataDog/dd-trace-rb/issues/5991
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
@@ -5507,6 +5590,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@mscrivo]: https://github.com/mscrivo
 [@mstruve]: https://github.com/mstruve
 [@mustela]: https://github.com/mustela
+[@navidemad]: https://github.com/navidemad
 [@nic-lan]: https://github.com/nic-lan
 [@noma4i]: https://github.com/noma4i
 [@norbertnytko]: https://github.com/norbertnytko

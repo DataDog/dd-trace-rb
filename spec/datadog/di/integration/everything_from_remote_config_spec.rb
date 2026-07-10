@@ -39,10 +39,14 @@ RSpec.describe 'DI integration from remote config' do
   let(:component) do
     # TODO should this use Component.new? We have to manually pass in
     # the code tracker in that case.
+    #
+    # Call start! so RC change processing proceeds — DI::Remote.receivers
+    # short-circuits when `component.started?` is false.
     Datadog::DI::Component.build(settings, agent_settings, logger).tap do |component|
       if component.nil?
         raise "Component failed to create - unsuitable environment? Check log entries"
       end
+      component.start!
     end
   end
 
@@ -683,8 +687,8 @@ RSpec.describe 'DI integration from remote config' do
         expect(payloads.length).to eq 1
 
         # No emitting payload because the probe hasn't emitted anything yet.
-        #emitting_payload = payloads.shift
-        #expect(emitting_payload).to match(expected_emitting_payload)
+        # emitting_payload = payloads.shift
+        # expect(emitting_payload).to match(expected_emitting_payload)
 
         snapshot_payload = payloads.shift
         expect(order_hash_keys(snapshot_payload)).to match(deep_stringify_keys(order_hash_keys(expected_snapshot_payload)))
@@ -768,8 +772,8 @@ RSpec.describe 'DI integration from remote config' do
           expect(payloads.length).to eq 1
 
           # No emitting payload because the probe hasn't emitted anything yet.
-          #emitting_payload = payloads.shift
-          #expect(emitting_payload).to match(expected_emitting_payload)
+          # emitting_payload = payloads.shift
+          # expect(emitting_payload).to match(expected_emitting_payload)
 
           snapshot_payload = payloads.shift
           expect(order_hash_keys(snapshot_payload)).to match(deep_stringify_keys(order_hash_keys(expected_snapshot_payload)))
@@ -839,8 +843,8 @@ RSpec.describe 'DI integration from remote config' do
             expect(payloads.length).to eq 1
 
             # No emitting payload because the probe hasn't emitted anything yet.
-            #emitting_payload = payloads.shift
-            #expect(emitting_payload).to match(expected_emitting_payload)
+            # emitting_payload = payloads.shift
+            # expect(emitting_payload).to match(expected_emitting_payload)
 
             snapshot_payload = payloads.shift
             expect(order_hash_keys(snapshot_payload)).to match(deep_stringify_keys(order_hash_keys(expected_snapshot_payload)))

@@ -34,7 +34,11 @@ practices for using Dynamic Instrumentation.
 
 ## Getting Started
 
-To use dynamic instrumentation:
+There are two ways to turn on Dynamic Instrumentation: from your service
+configuration (the env-var path) or from the Datadog UI when you create a
+probe (the in-app / "implicit" enablement path). Either is sufficient.
+
+### Option A: Enable from service configuration
 
 1. Enable Dynamic Instrumentation:
 
@@ -50,6 +54,21 @@ To use dynamic instrumentation:
 
        export DD_GIT_REPOSITORY_URL=https://github.com/example-org/repo
        export DD_GIT_COMMIT_SHA=`git rev-parse HEAD`
+
+### Option B: Enable from the Datadog UI ("implicit enablement")
+
+If `DD_DYNAMIC_INSTRUMENTATION_ENABLED` is unset, the tracer will still
+listen for an enablement signal from remote configuration. Creating a
+probe in the Datadog UI sends that signal, and the tracer turns on
+Dynamic Instrumentation without an application restart.
+
+The DD_ENV and source code metadata variables (steps 3 and 4 above)
+still need to be set for probes to appear correctly in the UI.
+
+**Precedence:** if `DD_DYNAMIC_INSTRUMENTATION_ENABLED=false` is set
+explicitly, the env-var setting takes precedence and remote-config
+enablement is ignored. Leave the variable unset (do not set it to
+`false`) to allow UI-driven enablement.
 
 ## Creating Your First Probe
 
@@ -324,12 +343,19 @@ names, method names, and method parameters when creating probes.
 
 ### Enabling the Symbol Database
 
-Symbol Database upload is disabled by default. To enable it, set:
+Symbol Database upload follows Dynamic Instrumentation. By default it
+uploads symbols only when Dynamic Instrumentation is actually enabled —
+either explicitly (`DD_DYNAMIC_INSTRUMENTATION_ENABLED=true`) or implicitly
+when you open the DI UI for your service (which enables Dynamic
+Instrumentation via Remote Configuration).
+
+To upload symbols regardless of Dynamic Instrumentation:
 
     export DD_SYMBOL_DATABASE_UPLOAD_ENABLED=true
 
-Once enabled, the upload activates via Remote Configuration when you open
-the DI UI for your service.
+To explicitly disable it:
+
+    export DD_SYMBOL_DATABASE_UPLOAD_ENABLED=false
 
 ## Rate Limiting and Performance
 

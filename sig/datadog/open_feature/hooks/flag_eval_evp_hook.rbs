@@ -1,0 +1,35 @@
+module Datadog
+  module OpenFeature
+    module Hooks
+      class FlagEvalEVPHook
+        include ::OpenFeature::SDK::Hooks::Hook
+
+        TYPE_MISMATCH_ERROR_CODE: ::String
+
+        @writer: FlagEvaluation::Writer?
+
+        def self.available?: () -> bool
+
+        def initialize: (FlagEvaluation::Writer? writer) -> void
+
+        def finally: (
+          hook_context: untyped,
+          evaluation_details: untyped,
+          **untyped _opts
+        ) -> void
+
+        private
+
+        def extract_targeting_key: (untyped evaluation_context) -> ::String?
+
+        def extract_attributes: (untyped evaluation_context) -> ::Hash[::String, untyped]
+
+        def extract_allocation_key: (untyped evaluation_details) -> ::String?
+
+        def extract_error_message: (untyped evaluation_details) -> ::String?
+
+        def runtime_default?: (untyped evaluation_details) -> bool
+      end
+    end
+  end
+end

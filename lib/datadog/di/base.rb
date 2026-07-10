@@ -8,7 +8,11 @@
 # are loaded, and also none of the rest of datadog library which also
 # has contrib code in other products.
 
+require_relative 'fatal_exceptions'
 require_relative 'code_tracker'
+
+# Needed since this file can be loaded without core
+require_relative '../ruby_version'
 
 module Datadog
   # Namespace for Datadog dynamic instrumentation.
@@ -44,13 +48,14 @@ module Datadog
       # DI code.
       def activate_tracking
         # :script_compiled trace point was added in Ruby 2.6.
-        return unless RUBY_VERSION >= '2.6'
+        return unless RubyVersion.is?('>= 2.6')
 
         begin
           # Activate code tracking by default because line trace points will not work
           # without it.
           Datadog::DI.activate_tracking!
-        rescue => exc
+        rescue Exception => exc # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(exc)
           if defined?(Datadog.logger)
             Datadog.logger.warn { "di: Failed to activate code tracking for DI: #{exc.class}: #{exc.message}" }
           else

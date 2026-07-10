@@ -340,20 +340,8 @@ https://github.com/datadog/dd-apm-test-agent#readme
 
 **Linting**
 
-Most of the library uses Rubocop to enforce [code style](https://github.com/bbatsov/ruby-style-guide) and quality. To check, run:
-
-```
-bundle exec rake rubocop
-```
-
-To change your code to the version that rubocop wants, run:
-
-```
-bundle exec rake rubocop -A
-```
-
-Profiling and Dynamic Instrumentation use [standard](https://github.com/standardrb/standard)
-instead of Rubocop. To check files with standard, run:
+The library uses [standard](https://github.com/standardrb/standard) to enforce code style and quality.
+Custom cops (under the `CustomCops/` namespace) run as part of the same check. To check, run:
 
 ```
 bundle exec rake standard

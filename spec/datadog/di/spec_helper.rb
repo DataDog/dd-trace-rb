@@ -72,7 +72,7 @@ module DIHelpers
     end
 
     def rc_key_for_probe_id(id)
-      #"datadog/2/LIVE_DEBUGGING/#{id}/hash"
+      # "datadog/2/LIVE_DEBUGGING/#{id}/hash"
       id
     end
 
@@ -88,7 +88,7 @@ module DIHelpers
 
     def encode_obj(v)
       JSON.dump(v)
-      #encode_str(JSON.dump(v))
+      # encode_str(JSON.dump(v))
     end
   end
 
@@ -107,7 +107,7 @@ module DIHelpers
           skip "Dynamic instrumentation is not supported on JRuby"
         end
       end
-      if RUBY_VERSION < "2.6"
+      if RubyVersion.is?('< 2.6')
         before(:all) do
           skip "Dynamic instrumentation requires Ruby 2.6 or higher"
         end
@@ -180,7 +180,7 @@ module DIHelpers
     end
 
     def load_yaml_file(path, **opts)
-      if RUBY_VERSION < '3.1'
+      if RubyVersion.is?('< 3.1')
         opts.delete(:permitted_classes)
       end
       YAML.load_file(path, **opts)
@@ -261,7 +261,7 @@ RSpec.configure do |config|
 
   # DI does not do anything on Ruby < 2.6 therefore there is no need
   # to install a leak detector on lower Ruby versions.
-  if RUBY_VERSION >= '2.6'
+  if RubyVersion.is?('>= 2.6')
     config.before do
       if defined?(Datadog::DI::ProbeNotifierWorker) && !ProbeNotifierWorkerLeakDetector.installed
         Datadog::DI::ProbeNotifierWorker.send(:prepend, ProbeNotifierWorkerLeakDetector)

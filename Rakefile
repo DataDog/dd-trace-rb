@@ -1,6 +1,5 @@
 require 'bundler/gem_tasks'
 require 'datadog/version'
-require 'rubocop/rake_task' if Gem.loaded_specs.key? 'rubocop'
 require 'standard/rake' if Gem.loaded_specs.key? 'standard'
 require 'rspec/core/rake_task'
 require 'rake/extensiontask'
@@ -72,16 +71,7 @@ namespace :test do
         command = "bundle check || bundle install && bundle exec rake #{spec_task}"
         command += "'[#{spec_arguments}]'" if spec_arguments
 
-        total_executors = ENV.key?('CIRCLE_NODE_TOTAL') ? ENV['CIRCLE_NODE_TOTAL'].to_i : nil
-        current_executor = ENV.key?('CIRCLE_NODE_INDEX') ? ENV['CIRCLE_NODE_INDEX'].to_i : nil
-
-        if total_executors && current_executor && total_executors > 1
-          @execution_count ||= 0
-          @execution_count += 1
-          Bundler.with_unbundled_env { sh(env, command) } if @execution_count % total_executors == current_executor
-        else
-          Bundler.with_unbundled_env { sh(env, command) }
-        end
+        Bundler.with_unbundled_env { sh(env, command) }
       end
     end
   end
@@ -562,11 +552,6 @@ namespace :spec do
   task profiling: [:"profiling:all"]
 end
 
-if defined?(RuboCop::RakeTask)
-  RuboCop::RakeTask.new(:rubocop) do |_t|
-  end
-end
-
 # Jobs are parallelized if running in CI.
 desc 'CI task; it runs all tests for current version of Ruby'
 task ci: 'test:all'
@@ -598,14 +583,6 @@ namespace :coverage do
         formatter SimpleCov::Formatter::HTMLFormatter
       end
     end
-  end
-end
-
-namespace :changelog do
-  task :format do
-    require 'pimpmychangelog'
-
-    PimpMyChangelog::CLI.run!
   end
 end
 
@@ -650,8 +627,8 @@ namespace :native_dev do
   CLEAN.concat(NATIVE_CLEAN)
 end
 
-desc 'Runs rubocop + main test suite'
-task default: ['lint:all', 'rubocop', 'standard', 'typecheck', 'spec:main']
+desc 'Runs lint + main test suite'
+task default: ['rubocop', 'standard', 'typecheck', 'spec:main']
 
 desc 'Runs the default task in parallel'
-multitask fastdefault: ['lint:all', 'rubocop', 'standard', 'typecheck', 'spec:main']
+multitask fastdefault: ['rubocop', 'standard', 'typecheck', 'spec:main']

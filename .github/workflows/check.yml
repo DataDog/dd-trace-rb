@@ -9,7 +9,7 @@ on: # yamllint disable-line rule:truthy
       - master
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/master' && github.run_id || github.ref }}
   cancel-in-progress: true
 
 # Default permissions for all jobs
@@ -28,32 +28,12 @@ jobs:
       lockfile: ${{ steps.bundle-cache.outputs.lockfile }}
       cache-key: ${{ steps.bundle-cache.outputs.cache-key }}
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
       - name: Prepare bundle cache
         id: bundle-cache
         uses: ./.github/actions/bundle-cache
-
-  rubocop:
-    name: rubocop/lint
-    runs-on: ubuntu-24.04
-    needs: ['build']
-    container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:4.0-gnu-gcc
-      env:
-        BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
-        BUNDLE_FROZEN: "true"
-    steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-        with:
-          persist-credentials: false
-      - name: Restore bundle cache
-        uses: ./.github/actions/bundle-restore
-        with:
-          lockfile: ${{ needs.build.outputs.lockfile }}
-          cache-key: ${{ needs.build.outputs.cache-key }}
-      - run: bundle exec rake rubocop
 
   standard:
     name: standard/lint
@@ -65,7 +45,7 @@ jobs:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
       - name: Restore bundle cache
@@ -75,8 +55,8 @@ jobs:
           cache-key: ${{ needs.build.outputs.cache-key }}
       - run: bundle exec rake standard
 
-  frozen_string_literal:
-    name: lint/frozen_string_literal
+  rubocop:
+    name: rubocop/lint
     runs-on: ubuntu-24.04
     needs: ['build']
     container:
@@ -85,7 +65,7 @@ jobs:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
       - name: Restore bundle cache
@@ -93,7 +73,7 @@ jobs:
         with:
           lockfile: ${{ needs.build.outputs.lockfile }}
           cache-key: ${{ needs.build.outputs.cache-key }}
-      - run: bundle exec rake lint:frozen_string_literal
+      - run: bundle exec rake rubocop
 
   steep:
     name: steep/typecheck
@@ -105,7 +85,7 @@ jobs:
         BUNDLE_GEMFILE: gemfiles/ruby-4.0.gemfile
         BUNDLE_FROZEN: "true"
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
       - name: Restore bundle cache
@@ -127,7 +107,7 @@ jobs:
     runs-on: ubuntu-24.04
     container: semgrep/semgrep # PENDING: Possible to be rate limited.
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
       - run: |
@@ -146,7 +126,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
       - name: Get GitHub Token via dd-octo-sts
@@ -166,7 +146,7 @@ jobs:
     name: actionlint
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
       - name: Run actionlint
@@ -178,7 +158,7 @@ jobs:
     name: yaml-lint
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
       - run: pip install yamllint
@@ -189,8 +169,8 @@ jobs:
     name: Static Analysis (complete)
     needs:
       - 'steep'
-      - 'rubocop'
       - 'standard'
+      - 'rubocop'
       - 'semgrep'
       - 'zizmor'
       - 'actionlint'

@@ -15,6 +15,9 @@ module Datadog
           1 << 13, # APM_TRACING_LOGS_INJECTION: Dynamic trace logs injection configuration
           1 << 14, # APM_TRACING_HTTP_HEADER_TAGS: Dynamic trace HTTP header tags configuration
           1 << 29, # APM_TRACING_SAMPLE_RULES: Dynamic trace sampling rules configuration
+          # APM_TRACING_ENABLE_DYNAMIC_INSTRUMENTATION (bit 38) is declared in
+          # DI::Remote.capabilities, not here, so it is registered only when DI
+          # is not explicitly disabled and the runtime supports DI.
         ].freeze
 
         def products
@@ -25,7 +28,7 @@ module Datadog
           CAPABILITIES
         end
 
-        def process_config(config, content)
+        def process_config(config, content, repository = nil)
           lib_config = config['lib_config']
 
           env_vars = Datadog::Tracing::Configuration::Dynamic::OPTIONS.map do |name, env_var, option|
@@ -39,9 +42,37 @@ module Datadog
             [env_var, value]
           end
 
+          if (di_enabled = lib_config['dynamic_instrumentation_enabled']) != nil # rubocop:disable Style/NonNilCheck
+            # repository is forwarded so that an enable signal can reconcile DI
+            # against probes delivered in an earlier poll while DI was stopped
+            # (see Datadog::DI::Remote.handle_rc_enablement).
+            Datadog::DI::Remote.handle_rc_enablement(di_enabled, repository)
+
+            if di_enabled
+              # DI was just (implicitly) enabled. A Symbol Database upload signal
+              # received in an earlier poll while DI was inactive was deferred by
+              # the component's DI-active gate; re-attempt it now. Mirrors the DI
+              # probe replay in handle_rc_enablement above. allow_initialization:
+              # false because this runs on the remote-config worker thread.
+              Datadog.send(:components, allow_initialization: false)&.symbol_database&.resume_pending_upload
+            else
+              # DI was disabled via remote configuration. In the nil-default
+              # (follows-DI) case, stop Symbol Database too so its TracePoint and
+              # scheduler don't keep uploading while DI is off. An explicit
+              # symbol_database.enabled = true is independent and keeps running.
+              Datadog.send(:components, allow_initialization: false)&.symbol_database&.stop_for_di_disable
+            end
+          end
+
           content.applied
 
-          Datadog.send(:components).telemetry.client_configuration_change!(env_vars)
+          # allow_initialization: false because process_config runs on the
+          # remote-config worker thread. If components haven't been built yet
+          # (e.g. during a teardown/reset window), the default `true` would
+          # synchronously build the entire component tree from this thread.
+          # The &. chain matches the pattern used by DI::Remote.handle_rc_enablement
+          # in the same dispatch path.
+          Datadog.send(:components, allow_initialization: false)&.telemetry&.client_configuration_change!(env_vars)
         rescue => e
           content.errored("#{e.class}: #{e.message}: #{Array(e.backtrace).join("\n")}")
         end
@@ -55,7 +86,7 @@ module Datadog
               case content.path.product
               when PRODUCT
                 config = parse_content(content)
-                process_config(config, content)
+                process_config(config, content, repository)
               end
             end
           end

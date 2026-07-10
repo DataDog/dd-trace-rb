@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.36.0.dev)
+    datadog (2.38.0.dev)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
-      libdatadog (~> 35.0.0.1.0)
+      libdatadog (~> 36.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
@@ -57,17 +57,16 @@ GEM
       reline (>= 0.6.0)
     case_transform (0.2)
       activesupport
-    cgi (0.5.1)
+    cgi (0.5.2)
     climate_control (1.2.0)
     coderay (1.1.3)
-    concurrent-ruby (1.3.6)
+    concurrent-ruby (1.3.7)
     connection_pool (2.4.1)
     crack (1.0.1)
       bigdecimal
       rexml
     crass (1.0.6)
     datadog-ruby_core_source (3.5.2)
-    date (3.5.1)
     debug (1.11.1)
       irb (~> 1.10)
       reline (>= 0.3.8)
@@ -114,14 +113,15 @@ GEM
       prism (>= 1.3.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
-    json-schema (2.8.1)
-      addressable (>= 2.4)
+    json-schema (6.2.0)
+      addressable (~> 2.8)
+      bigdecimal (>= 3.1, < 5)
     jsonapi-renderer (0.2.2)
     king_konf (1.0.1)
-    libdatadog (35.0.0.1.0)
-    libdatadog (35.0.0.1.0-aarch64-linux)
-    libdatadog (35.0.0.1.0-arm64-darwin)
-    libdatadog (35.0.0.1.0-x86_64-linux)
+    libdatadog (36.0.0.1.0)
+    libdatadog (36.0.0.1.0-aarch64-linux)
+    libdatadog (36.0.0.1.0-arm64-darwin)
+    libdatadog (36.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.2-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.2-arm64-darwin)
@@ -149,17 +149,17 @@ GEM
     mustermann-grape (1.1.0)
       mustermann (>= 1.0.0)
     mutex_m (0.3.0)
-    nokogiri (1.19.3-aarch64-linux-gnu)
+    nokogiri (1.19.4-aarch64-linux-gnu)
       racc (~> 1.4)
-    nokogiri (1.19.3-arm64-darwin)
+    nokogiri (1.19.4-arm64-darwin)
       racc (~> 1.4)
-    nokogiri (1.19.3-x86_64-darwin)
+    nokogiri (1.19.4-x86_64-darwin)
       racc (~> 1.4)
-    nokogiri (1.19.3-x86_64-linux-gnu)
+    nokogiri (1.19.4-x86_64-linux-gnu)
       racc (~> 1.4)
     os (1.1.4)
     ostruct (0.6.3)
-    pp (0.6.3)
+    pp (0.6.4)
       prettyprint
     prettyprint (0.2.0)
     prism (1.9.0)
@@ -167,9 +167,6 @@ GEM
       coderay (~> 1.1)
       method_source (~> 1.0)
       reline (>= 0.6.0)
-    psych (5.4.0)
-      date
-      stringio
     public_suffix (7.0.5)
     racc (1.8.1)
     racecar (2.11.0)
@@ -201,13 +198,18 @@ GEM
     rake (13.4.2)
     rake-compiler (1.3.1)
       rake
+    rbs (4.0.3)
+      logger
+      prism (>= 1.6.0)
+      tsort
     rdkafka (0.15.1)
       ffi (~> 1.15)
       mini_portile2 (~> 2.6)
       rake (> 12)
-    rdoc (7.2.0)
+    rdoc (8.0.0)
       erb
-      psych (>= 4.0.0)
+      prism (>= 1.6.0)
+      rbs (>= 4.0.0)
       tsort
     reline (0.6.3)
       io-console (~> 0.5)
@@ -242,7 +244,6 @@ GEM
       simplecov_json_formatter (~> 0.1)
     simplecov-html (0.13.2)
     simplecov_json_formatter (0.1.4)
-    stringio (3.2.0)
     thor (1.5.0)
     tsort (0.2.0)
     tzinfo (2.0.6)
@@ -279,7 +280,7 @@ DEPENDENCIES
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   google-protobuf (~> 3.0, != 3.7.1, != 3.7.0)
   grape
-  json-schema (< 3)
+  json-schema (~> 6.2)
   lograge
   memory_profiler (~> 0.9)
   mutex_m

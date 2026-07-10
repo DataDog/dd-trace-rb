@@ -113,8 +113,8 @@ RSpec.describe Datadog::Tracing::Contrib::Rails::Runner, execute_in_fork: Rails.
         super_block = super()
         proc do
           instance_exec(&super_block)
-          test_namespace = Object.const_set('TestNamespace', Module.new)
-          test_namespace.const_set('Jobs', Module.new)
+          test_namespace = Object.const_set(:TestNamespace, Module.new)
+          test_namespace.const_set(:Jobs, Module.new)
         end
       end
 

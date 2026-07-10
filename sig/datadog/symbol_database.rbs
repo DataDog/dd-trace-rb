@@ -3,5 +3,9 @@ module Datadog
     UNKNOWN_MIN_LINE: Integer
 
     UNKNOWN_MAX_LINE: Integer
+
+    def self.resolve_enabled: (bool? setting_value, bool di_fallback) -> bool
+
+    def self.supported_runtime?: () -> bool
   end
 end

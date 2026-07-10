@@ -2,6 +2,8 @@
 
 # rubocop:disable Lint/AssignmentInCondition
 
+require_relative 'fatal_exceptions'
+
 module Datadog
   module DI
     # Orchestrates probe lifecycle: installation, removal, and execution callbacks.
@@ -26,13 +28,13 @@ module Datadog
         @telemetry = telemetry
         @probe_repository = probe_repository
 
-        @definition_trace_point = TracePoint.trace(:end) do |tp|
+        @definition_trace_point = TracePoint.new(:end) do |tp|
           install_pending_method_probes(tp.self)
-        rescue => exc
+        rescue Exception => exc # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(exc)
           raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
           logger.debug { "di: unhandled exception in definition trace point: #{exc.class}: #{exc.message}" }
           telemetry&.report(exc, description: "Unhandled exception in definition trace point")
-          # TODO test this path
         end
       end
 
@@ -40,15 +42,68 @@ module Datadog
       attr_reader :telemetry
       attr_reader :probe_repository
 
+      # Stops the probe manager without permanently releasing resources.
+      #
+      # Disables the class definition trace point and unhooks all installed
+      # probe instrumentation, but preserves the probe repository so that
+      # {#reopen} can re-install probes. Can be reversed by calling {#reopen}.
+      #
+      # Why preserve the repository: RC dispatch only delivers LIVE_DEBUGGING
+      # changes when the content hash changes. If a customer toggles DI off
+      # then back on in the UI with the same probe content, the receiver
+      # is not re-invoked, so probes wiped here would never be redelivered.
+      # Preserving the repo lets {#reopen} replay the probes locally.
+      #
+      # @return [void]
+      def stop
+        definition_trace_point.disable
+        probe_repository.synchronize do
+          probe_repository.installed_probes.each_value do |probe|
+            instrumenter.unhook(probe)
+          rescue => exc
+            raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+            logger.debug { "di: error unhooking #{probe.type} probe at #{probe.location} (#{probe.id}) on stop: #{exc.class}: #{exc.message}" }
+            telemetry&.report(exc, description: "Error unhooking probe on stop")
+          end
+        end
+      end
+
+      # Re-enables the probe manager after a {#stop}.
+      #
+      # Re-enables the class definition trace point so that pending
+      # method probes can be installed when their target classes are defined,
+      # and re-hooks all previously-installed probes from the repository.
+      # If a probe's target is no longer present (e.g. code was unloaded
+      # between stop and reopen), it is demoted to pending so the trace
+      # point or code tracker can re-install it if the target reappears.
+      #
+      # @return [void]
+      def reopen
+        definition_trace_point.enable
+        probe_repository.synchronize do
+          # values.each so concurrent mutation of @installed_probes (via
+          # remove_installed below) does not iterate over a stale key set.
+          probe_repository.installed_probes.values.each do |probe|
+            instrumenter.hook(probe, self)
+          rescue Error::DITargetNotDefined
+            probe_repository.remove_installed(probe.id)
+            probe_repository.add_pending(probe)
+            logger.trace { "di: target for #{probe.type} probe (#{probe.id}) no longer defined on reopen, demoting to pending" }
+          rescue => exc
+            raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+            logger.debug { "di: error re-hooking #{probe.type} probe at #{probe.location} (#{probe.id}) on reopen: #{exc.class}: #{exc.message}" }
+            telemetry&.report(exc, description: "Error re-hooking probe on reopen")
+          end
+        end
+      end
+
       # Shuts down the probe manager and releases all resources.
       #
       # Disables the class definition trace point and removes all installed
       # probe instrumentation. Called during component teardown.
+      # Unlike {#stop}, this is not reversible.
       #
       # @return [void]
-      #
-      # TODO test that close is called during component teardown and
-      # the trace point is cleared
       def close
         definition_trace_point.disable
         clear_hooks
@@ -129,7 +184,8 @@ module Datadog
             false
           end
         end
-      rescue => exc
+      rescue Exception => exc # standard:disable Lint/RescueException
+        Datadog::DI.reraise_if_fatal(exc)
         # In "propagate all exceptions" mode we will try to instrument again.
         raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
@@ -160,7 +216,8 @@ module Datadog
           begin
             instrumenter.unhook(probe)
             probe_repository.remove_installed(probe_id)
-          rescue => exc
+          rescue Exception => exc # standard:disable Lint/RescueException
+            Datadog::DI.reraise_if_fatal(exc)
             raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
             # Silence all exceptions?
             # TODO should we propagate here and rescue upstream?
@@ -190,7 +247,8 @@ module Datadog
                   break
                 rescue Error::DITargetNotDefined
                   # This should not happen... try installing again later?
-                rescue => exc
+                rescue Exception => exc # standard:disable Lint/RescueException
+                  Datadog::DI.reraise_if_fatal(exc)
                   raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
                   logger.debug { "di: error installing #{probe.type} probe at #{probe.location} (#{probe.id}) after class is defined: #{exc.class}: #{exc.message}" }

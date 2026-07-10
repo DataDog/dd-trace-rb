@@ -42,10 +42,11 @@ RSpec.describe 'OpenFeature provider span enrichment (end-to-end)' do
       Datadog::OpenFeature::Component,
       engine: engine,
       # Newer OpenFeature SDKs (>= 0.6) dispatch provider hooks during
-      # `Client#fetch_details`, which calls `Provider#hooks` -> `flag_eval_hook`.
-      # Stub it (nil -> compacted out) so the verifying double accepts the call
+      # `Client#fetch_details`, which calls `Provider#hooks` -> the eval hooks.
+      # Stub them (nil -> compacted out) so the verifying double accepts the call
       # on every supported SDK version.
-      flag_eval_hook: nil,
+      flag_eval_metrics_hook: nil,
+      flag_eval_evp_hook: nil,
       span_enrichment_hook: span_enrichment_hook
     )
   end
@@ -227,7 +228,8 @@ RSpec.describe 'OpenFeature provider span enrichment (end-to-end)' do
       instance_double(
         Datadog::OpenFeature::Component,
         engine: engine,
-        flag_eval_hook: nil,
+        flag_eval_metrics_hook: nil,
+        flag_eval_evp_hook: nil,
         span_enrichment_hook: nil
       )
     end

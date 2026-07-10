@@ -14,7 +14,6 @@ require_relative '../../profiling/ext'
 
 require_relative '../../tracing/configuration/settings'
 require_relative '../../opentelemetry/configuration/settings'
-require_relative '../../symbol_database/configuration'
 
 module Datadog
   module Core
@@ -618,8 +617,7 @@ module Datadog
               o.type :bool
               o.env 'DD_PROFILING_SIGHANDLER_SAMPLING_ENABLED'
               o.default do
-                Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.2.5') &&
-                  !(RUBY_VERSION.start_with?('3.3.') && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.3.4'))
+                RubyVersion.is?('>= 3.2.5') && !RubyVersion.is?('>= 3.3', '< 3.3.4')
               end
             end
 
@@ -826,14 +824,14 @@ module Datadog
         # It must respect the interface of [Datadog::Core::Utils::Time#get_time] method.
         #
         # For [Timecop](https://rubygems.org/gems/timecop), for example,
-        # `->(unit = :float_second) { ::Process.clock_gettime_without_mock(::Process::CLOCK_MONOTONIC, unit) }`
+        # `->(unit = :float_second) { ::Process.clock_gettime_without_mock(Datadog::Core::Utils::Time::MONOTONIC_CLOCK_ID, unit) }`
         # allows Datadog features to use the real monotonic time when time is frozen with
         # `Timecop.mock_process_clock = true`.
         #
-        # @default `->(unit = :float_second) { ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit)}`
+        # @default `->(unit = :float_second) { ::Process.clock_gettime(Core::Utils::Time::MONOTONIC_CLOCK_ID, unit) }`
         # @return [Proc<Numeric>]
         option :get_time_provider do |o|
-          o.default_proc { |unit = :float_second| ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit) }
+          o.default_proc { |unit = :float_second| ::Process.clock_gettime(Core::Utils::Time::MONOTONIC_CLOCK_ID, unit) }
           o.type :proc
 
           o.after_set do |get_time_provider|
@@ -841,7 +839,7 @@ module Datadog
           end
 
           o.resetter do |_value|
-            ->(unit = :float_second) { ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit) }.tap do |default|
+            ->(unit = :float_second) { ::Process.clock_gettime(Core::Utils::Time::MONOTONIC_CLOCK_ID, unit) }.tap do |default|
               Core::Utils::Time.get_time_provider = default
             end
           end
@@ -1131,8 +1129,6 @@ module Datadog
         extend Datadog::Tracing::Configuration::Settings
 
         extend Datadog::OpenTelemetry::Configuration::Settings
-
-        extend Datadog::SymbolDatabase::Configuration::Settings
       end
       # standard:enable Metrics/BlockLength
     end

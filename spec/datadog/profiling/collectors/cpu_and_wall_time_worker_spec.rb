@@ -24,6 +24,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:gvl_profiling_enabled) { false }
   let(:sighandler_sampling_enabled) { false }
   let(:cpu_sampling_interval_ms) { 10 }
+  let(:one_second_in_ns) { 1_000_000_000 }
   let(:thread_context_collector) { build_thread_context_collector(recorder) }
   let(:worker_settings) do
     {
@@ -232,12 +233,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       it "triggers sampling and records the results", :memcheck_valgrind_skip do
         start
 
-        all_samples = loop_until do
+        loop_until do
           samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
-          samples if samples.any?
+          samples_for_thread(samples, Thread.current).any?
         end
-
-        expect(samples_for_thread(all_samples, Thread.current)).to_not be_empty
       end
 
       it(
@@ -247,15 +246,15 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       ) do
         start
 
-        all_samples = loop_until do
-          samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
+        current_thread_samples = loop_until do
+          samples = samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
           samples if samples.any?
         end
 
         cpu_and_wall_time_worker.stop
 
         sample_count =
-          samples_for_thread(all_samples, Thread.current)
+          current_thread_samples
             .map { |it| it.values.fetch(:"cpu-samples") }
             .reduce(:+)
 
@@ -273,8 +272,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       start
 
       try_wait_until do
-        samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
-        samples if samples.any?
+        recorder.serialize!
+        cpu_and_wall_time_worker.stats.fetch(:cpu_sampled) > 0
       end
 
       cpu_and_wall_time_worker.stop
@@ -289,8 +288,31 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(sampling_time_ns_min).to be <= sampling_time_ns_max
       expect(sampling_time_ns_max).to be <= sampling_time_ns_total
       expect(sampling_time_ns_avg).to be >= sampling_time_ns_min
-      one_second_in_ns = 1_000_000_000
       expect(sampling_time_ns_max).to be < one_second_in_ns, "A single sample should not take longer than 1s, #{stats}"
+    end
+
+    it "profiler-internal threads flush themselves on stop" do
+      start
+
+      try_wait_until do
+        recorder.serialize!
+        cpu_and_wall_time_worker.stats.fetch(:cpu_sampled) > 0
+      end
+
+      worker_thread = cpu_and_wall_time_worker.instance_variable_get(:@worker_thread)
+      idle_helper = cpu_and_wall_time_worker.instance_variable_get(:@idle_sampling_helper)
+      idle_helper_thread = idle_helper.instance_variable_get(:@worker_thread)
+
+      # Drain all existing samples
+      recorder.serialize!
+
+      cpu_and_wall_time_worker.stop
+
+      # The final serialize should include samples for both profiler-internal threads,
+      # recorded by the threads themselves before exiting
+      all_samples = samples_from_pprof(recorder.serialize!)
+      expect(samples_for_thread(all_samples, worker_thread)).to_not be_empty
+      expect(samples_for_thread(all_samples, idle_helper_thread)).to_not be_empty
     end
 
     context "with allocation profiling enabled" do
@@ -530,8 +552,17 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # it just passes and starts waiting)
 
           # This test should run for at least 200ms, which is how long we sleep for
-          # (unless somehow the missed_by_profiler_time is too big?)
-          expect(total_time).to be >= 200_000_000
+          # but if the profiler misses a whole thread scheduling cycle, we adjust the expectation.
+          # This isn't great, but measuring/causing this kind of effect end-to-end without making the spec really slow
+          # is tricky.
+          if missed_by_profiler_time < 100_000_000
+            expect(total_time).to be >= 200_000_000,
+              "Expected total_time to be >= 200ms, debug_failures: #{debug_failures}"
+          else
+            expect(total_time).to be >= 100_000_000,
+              "Expected total_time to be >= 100ms, debug_failures: #{debug_failures}"
+          end
+
           expect(waiting_for_gvl_time).to be < total_time,
             "Expected #{waiting_for_gvl_time} to be < #{total_time}, debug_failures: #{debug_failures}"
           expect(waiting_for_gvl_time).to be_within(5).percent_of(total_time),
@@ -551,9 +582,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         context "when 'Waiting for GVL' periods are below waiting_for_gvl_threshold_ns" do
           let(:options) do
-            one_second_as_ns = 1_000_000_000
-            collector = build_thread_context_collector(recorder, waiting_for_gvl_threshold_ns: one_second_as_ns)
-
+            collector = build_thread_context_collector(recorder, waiting_for_gvl_threshold_ns: one_second_in_ns)
             {thread_context_collector: collector}
           end
 
@@ -658,7 +687,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         all_samples = try_wait_until do
           samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
-          samples if samples.any?
+          samples if samples_for_thread(samples, Thread.current).any?
         end
 
         cpu_and_wall_time_worker.stop
@@ -751,7 +780,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           expect(sampling_time_ns_min).to be <= sampling_time_ns_max
           expect(sampling_time_ns_max).to be <= sampling_time_ns_total
           expect(sampling_time_ns_avg).to be >= sampling_time_ns_min
-          one_second_in_ns = 1_000_000_000
           expect(sampling_time_ns_max).to be < one_second_in_ns, "A single sample should not take longer than 1s, #{stats}"
         end
 
@@ -830,8 +858,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           end
         end
 
-        context "on Ruby 3.x" do
-          before { skip "Behavior only applies on Ruby 3.x" if RubyVersion.is?("< 3") }
+        context "on Ruby 3+" do
+          before { skip "Behavior only applies on Ruby 3+" if RubyVersion.is?("< 3") }
 
           it "records internal VM objects, including their specific kind" do
             start
@@ -850,7 +878,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
             # a known member of the imemo_type enum (even if we don't exactly match on which one)
             expect(imemo_samples.map { |s| s.labels.fetch(:"allocation class") }).to all(
               match(
-                /(env|cref|svar|throw_data|ifunc|memo|ment|iseq|tmpbuf|ast|parser_strterm|callinfo|callcache|constcache)/
+                /(env|cref|svar|throw_data|ifunc|memo|ment|iseq|tmpbuf|ast|parser_strterm|callinfo|callcache|constcache|fields)/
               )
             )
           end
@@ -886,7 +914,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         allow(Datadog.logger).to receive(:warn)
         expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
 
-        skip "Heap profiling is only supported on Ruby >= 2.7" if RubyVersion.is?("< 2.7")
+        skip "Heap profiling is only supported on Ruby >= 2.7" unless RubyVersion.is?(">= 2.7")
       end
 
       after do |example|
@@ -1145,6 +1173,35 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         proc_called.pop
       end
     end
+
+    context "when restarting after having been stopped" do
+      it "resets leftover per-thread state, so it's not attributed to the new session's samples" do
+        # Seed state from sampling
+        start
+        try_wait_until do
+          samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current).any?
+        end
+        cpu_and_wall_time_worker.stop
+        recorder.serialize!
+
+        # Roll back the clock to make it really obvious if this is not cleaned up
+        Datadog::Profiling::Collectors::ThreadContext::Testing
+          ._native_apply_delta_to_cpu_time_at_previous_sample_ns(Thread.current, -(60 * 60 * one_second_in_ns))
+
+        before_restart_ns = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond)
+        cpu_and_wall_time_worker.start
+        wait_until_running
+        new_samples = try_wait_until do
+          samples = samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
+          samples if samples.any?
+        end
+        cpu_and_wall_time_worker.stop
+        elapsed_ns = Process.clock_gettime(Process::CLOCK_THREAD_CPUTIME_ID, :nanosecond) - before_restart_ns
+
+        cpu_time_ns = new_samples.sum { |it| it.values.fetch(:"cpu-time") }
+        expect(cpu_time_ns).to be <= elapsed_ns
+      end
+    end
   end
 
   describe "Ractor safety" do
@@ -1346,7 +1403,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           trigger_simulated_signal_delivery_attempts: 0,
           simulated_signal_delivery: 0,
           signal_handler_enqueued_sample: 0,
-          signal_handler_wrong_thread: 0,
           signal_handler_prepared_sample: 0,
           interrupt_thread_attempts: 0,
           cpu_sampled: 0,
@@ -1376,6 +1432,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           gc_samples: 0,
           gc_samples_missed_due_to_missing_context: 0,
           inactive_thread_samples_skipped: 0,
+          profiler_thread_samples_skipped: 0,
         }
       )
     end
@@ -1518,13 +1575,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       wait_until_running
 
       try_wait_until do
-        # Wait until we get CPU/Wall time samples. Since we have allocation
-        # profiling enabled, not adding the extra reject could lead us to
-        # prematurely stop waiting as soon as we get an allocation sample
-        # which would result in us reaching our expectation with cpu_sampled = 0
-        samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
-          .reject { |sample| sample.values[:"alloc-samples"] > 0 }
-        samples if samples.any?
+        recorder.serialize!
+        cpu_and_wall_time_worker.stats.fetch(:cpu_sampled) > 0
       end
 
       stub_const("CpuAndWallTimeWorkerSpec::TestStruct", Struct.new(:foo))
@@ -1669,6 +1721,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     Datadog::Profiling::Collectors::ThreadContext.for_testing(
       recorder: recorder,
       endpoint_collection_enabled: endpoint_collection_enabled,
+      # The worker triggers the global reset itself when it starts, so we don't want `for_testing` to also do it here
+      # (it would interfere with the state these tests carefully set up).
+      trigger_global_reset: false,
       **options,
     )
   end

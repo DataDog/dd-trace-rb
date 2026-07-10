@@ -2,6 +2,8 @@
 
 # rubocop:disable Lint/AssignmentInCondition
 
+require_relative 'fatal_exceptions'
+
 module Datadog
   module DI
     # Builds probe status notification and snapshot payloads.
@@ -303,7 +305,7 @@ module Datadog
             # except there is currently no consensus on said heuristics.
             # .NET always sends ld, other languages send nothing at the moment.
             # Don't send anything for the time being.
-            #product: 'di/ld',
+            # product: 'di/ld',
             snapshot: {
               id: SecureRandom.uuid,
               timestamp: timestamp,
@@ -366,7 +368,8 @@ module Datadog
           else
             raise ArgumentError, "Invalid template segment type: #{segment}"
           end
-        rescue => exc
+        rescue Exception => exc # standard:disable Lint/RescueException
+          Datadog::DI.reraise_if_fatal(exc)
           evaluation_errors << {
             message: "#{exc.class}: #{exc.message}",
             expr: segment.dsl_expr, # steep:ignore NoMethod

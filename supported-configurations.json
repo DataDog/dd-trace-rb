@@ -48,7 +48,8 @@
       {
         "version": "A",
         "type": "string",
-        "default": null
+        "default": null,
+        "sensitive": true
       }
     ],
     "DD_API_SECURITY_DOWNSTREAM_BODY_ANALYSIS_SAMPLE_RATE": [
@@ -70,6 +71,13 @@
         "version": "A",
         "type": "boolean",
         "default": "true"
+      }
+    ],
+    "DD_API_SECURITY_MAX_DOWNSTREAM_BODY_BYTES": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "10485760"
       }
     ],
     "DD_API_SECURITY_MAX_DOWNSTREAM_REQUEST_BODY_ANALYSIS": [
@@ -104,7 +112,8 @@
       {
         "version": "A",
         "type": "string",
-        "default": null
+        "default": null,
+        "sensitive": true
       }
     ],
     "DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING": [
@@ -325,6 +334,13 @@
         "version": "A",
         "type": "string",
         "default": null
+      }
+    ],
+    "DD_FLAGGING_EVALUATION_COUNTS_ENABLED": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "true"
       }
     ],
     "DD_ERROR_TRACKING_HANDLED_ERRORS": [
@@ -1857,6 +1873,13 @@
         "default": "presto"
       }
     ],
+    "DD_TRACE_PROPAGATION_BEHAVIOR_EXTRACT": [
+      {
+        "version": "B",
+        "type": "string",
+        "default": "continue"
+      }
+    ],
     "DD_TRACE_PROPAGATION_EXTRACT_FIRST": [
       {
         "version": "A",
@@ -2465,7 +2488,8 @@
       {
         "version": "A",
         "type": "map",
-        "default": ""
+        "default": "",
+        "sensitive": true
       }
     ],
     "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT": [
@@ -2479,7 +2503,8 @@
       {
         "version": "A",
         "type": "map",
-        "default": null
+        "default": null,
+        "sensitive": true
       }
     ],
     "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL": [
@@ -2514,7 +2539,8 @@
       {
         "version": "B",
         "type": "map",
-        "default": null
+        "default": null,
+        "sensitive": true
       }
     ],
     "OTEL_EXPORTER_OTLP_LOGS_PROTOCOL": [

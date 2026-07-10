@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.36.0.dev)
+    datadog (2.38.0.dev)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
-      libdatadog (~> 35.0.0.1.0)
+      libdatadog (~> 36.0.0.1.0)
       libddwaf (~> 1.30.0.0.0)
       logger
       msgpack
@@ -30,15 +30,14 @@ GEM
     bigdecimal (4.1.2)
     byebug (13.0.0)
       reline (>= 0.6.0)
-    cgi (0.5.1)
+    cgi (0.5.2)
     climate_control (1.2.0)
     coderay (1.1.3)
-    concurrent-ruby (1.3.6)
+    concurrent-ruby (1.3.7)
     crack (1.0.1)
       bigdecimal
       rexml
     datadog-ruby_core_source (3.5.2)
-    date (3.5.1)
     debug (1.11.1)
       irb (~> 1.10)
       reline (>= 0.3.8)
@@ -68,12 +67,13 @@ GEM
       prism (>= 1.3.0)
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
-    json-schema (2.8.1)
-      addressable (>= 2.4)
-    libdatadog (35.0.0.1.0)
-    libdatadog (35.0.0.1.0-aarch64-linux)
-    libdatadog (35.0.0.1.0-arm64-darwin)
-    libdatadog (35.0.0.1.0-x86_64-linux)
+    json-schema (6.2.0)
+      addressable (~> 2.8)
+      bigdecimal (>= 3.1, < 5)
+    libdatadog (36.0.0.1.0)
+    libdatadog (36.0.0.1.0-aarch64-linux)
+    libdatadog (36.0.0.1.0-arm64-darwin)
+    libdatadog (36.0.0.1.0-x86_64-linux)
     libddwaf (1.30.0.0.2-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.30.0.0.2-arm64-darwin)
@@ -93,7 +93,7 @@ GEM
     mysql2 (0.5.5)
     os (1.1.4)
     pg (1.5.4)
-    pp (0.6.3)
+    pp (0.6.4)
       prettyprint
     prettyprint (0.2.0)
     prism (1.9.0)
@@ -101,16 +101,18 @@ GEM
       coderay (~> 1.1)
       method_source (~> 1.0)
       reline (>= 0.6.0)
-    psych (5.4.0)
-      date
-      stringio
     public_suffix (7.0.5)
     rake (13.4.2)
     rake-compiler (1.3.1)
       rake
-    rdoc (7.2.0)
+    rbs (4.0.3)
+      logger
+      prism (>= 1.6.0)
+      tsort
+    rdoc (8.0.0)
       erb
-      psych (>= 4.0.0)
+      prism (>= 1.6.0)
+      rbs (>= 4.0.0)
       tsort
     reline (0.6.3)
       io-console (~> 0.5)
@@ -144,7 +146,6 @@ GEM
     simplecov_json_formatter (0.1.4)
     sqlite3 (1.6.6)
       mini_portile2 (~> 2.8.0)
-    stringio (3.2.0)
     trilogy (2.7.0)
     tsort (0.2.0)
     tzinfo (2.0.6)
@@ -176,7 +177,7 @@ DEPENDENCIES
   delayed_job_active_record
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   google-protobuf (~> 3.0, != 3.7.1, != 3.7.0)
-  json-schema (< 3)
+  json-schema (~> 6.2)
   makara (>= 0.6.0.pre)
   memory_profiler (~> 0.9)
   mysql2 (>= 0.5.3)

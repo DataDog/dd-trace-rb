@@ -101,6 +101,8 @@ module Datadog
 
           def enabled=: (bool) -> void
 
+          def using_default?: (Symbol option_name) -> bool
+
           def redacted_identifiers: () -> Array[String]
 
           def redacted_identifiers=: (Array[String]) -> void
@@ -182,6 +184,8 @@ module Datadog
           def span_enrichment_enabled: () -> bool
 
           def span_enrichment_enabled=: (bool) -> void
+
+          def evaluation_counts_enabled: () -> bool
         end
 
         interface _SymbolDatabase

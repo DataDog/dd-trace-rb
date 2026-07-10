@@ -7,9 +7,9 @@ require 'json'
 # Exercises the real Rails environment — Zeitwerk autoloading, ActiveRecord method
 # generation, gem path filtering — without needing a running web server or mock agent.
 #
-# Guards match di_spec.rb (JRuby and Ruby < 2.6 unsupported by symdb).
+# Skipped on JRuby and Ruby < 2.7, where the Symbol Database is unsupported.
 RSpec.describe 'Symbol database extraction' do
-  di_test # reuse DI skip guards: JRuby and Ruby < 2.6 unsupported
+  symdb_test # JRuby and Ruby < 2.7 unsupported
 
   # Script executed inside the Rails process via `bin/rails runner`.
   # Force-loads all classes so ObjectSpace is fully populated before extraction.
@@ -96,8 +96,7 @@ RSpec.describe 'Symbol database extraction' do
   describe 'ApplicationController' do
     subject(:scope) { find_class('ApplicationController') }
 
-    it 'is extracted as empty CLASS on Ruby 2.7+',
-      skip: (RUBY_VERSION < '2.7') ? 'const_source_location unavailable on Ruby 2.6' : false do
+    it 'is extracted as empty CLASS' do
       expect(scope).not_to be_nil
     end
   end
