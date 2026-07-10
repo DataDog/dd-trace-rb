@@ -23,7 +23,8 @@ typedef struct {
 typedef struct {
   union {
     struct {
-      VALUE iseq; // Needs marking if kept around
+      VALUE iseq; // Needs marking, kept alive by sampling_buffer
+      VALUE caching_cme; // For caching validation/invalidation only (does not need marking)
       void *caching_pc; // For caching validation/invalidation only (does not need marking)
       int line;
     } ruby_frame;
@@ -33,6 +34,7 @@ typedef struct {
       void *function;
     } native_frame;
   } as;
+  VALUE defined_class; // Needs marking, kept alive by sampling_buffer
   bool is_ruby_frame : 1;
   bool same_frame : 1;
 } frame_info;

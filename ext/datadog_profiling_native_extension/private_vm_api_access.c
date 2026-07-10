@@ -520,16 +520,6 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
                 continue;
             }
 
-            stack_buffer[i].same_frame =
-              stack_buffer[i].is_ruby_frame &&
-              stack_buffer[i].as.ruby_frame.iseq == (VALUE) cfp->iseq &&
-              stack_buffer[i].as.ruby_frame.caching_pc == cfp->pc;
-
-            if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
-              i++;
-              continue;
-            }
-
             // dd-trace-rb NOTE:
             // Upstream Ruby has code here to retrieve the rb_callable_method_entry_t (cme) and in some cases to use it
             // instead of the iseq.
@@ -537,25 +527,36 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
             // reference to the block, and the other to the method containing the block.
             // This would be important if we used `rb_profile_frame_label` and wanted the "block in foo" label instead
             // of just "foo". But we're currently using `rb_profile_frame_base_label` which I believe is always the same
-            // between the rb_callable_method_entry_t and the iseq. Thus, to simplify a bit our logic and reduce a bit
-            // the overhead, we always use the iseq here.
+            // between the rb_callable_method_entry_t and the iseq. Thus, we use the iseq here for the frame name/line.
             //
-            // @ivoanjo: I've left the upstream Ruby code commented out below for reference, so it's more obvious that
-            // we're diverging, and we can easily compare and experiment with the upstream version in the future.
-            //
-            // cme = rb_vm_frame_method_entry(cfp);
+            // We also retrieve the cme to get the defined_class for qualified method names. A single iseq can be shared
+            // across classes (e.g. `subclass.define_method(:m, parent.instance_method(:m))`), so the cme -- and thus the
+            // defined_class -- is part of the cache identity below; otherwise a shared iseq would report a stale class
+            // after the first time it's seen at a given stack position.
+            cme = rb_vm_frame_method_entry(cfp);
 
-            // if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ &&
-            //   // Fix: Do not use callable method entry when iseq is for an eval.
-            //   // TL;DR: This fix is needed for us to match the Ruby reference API information in the
-            //   // "when sampling an eval/instance eval inside an object" spec.
-            //   cfp->iseq->body->type != ISEQ_TYPE_EVAL) {
-            //     buff[i] = (VALUE)cme;
+            // Upstream (Ruby 4.0) does:
+            // if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
+            //   buff[i] = (VALUE)cme;
+            // } else {
+            //   buff[i] = (VALUE)cfp->iseq;
             // }
-            // else {
+
+            stack_buffer[i].same_frame =
+              stack_buffer[i].is_ruby_frame &&
+              stack_buffer[i].as.ruby_frame.iseq == (VALUE) cfp->iseq &&
+              stack_buffer[i].as.ruby_frame.caching_pc == cfp->pc &&
+              stack_buffer[i].as.ruby_frame.caching_cme == (VALUE) cme;
+
+            if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
+              i++;
+              continue;
+            }
+
             stack_buffer[i].as.ruby_frame.iseq = (VALUE)cfp->iseq;
             stack_buffer[i].as.ruby_frame.caching_pc = (void *) cfp->pc;
-            // }
+            stack_buffer[i].as.ruby_frame.caching_cme = (VALUE) cme;
+            stack_buffer[i].defined_class = cme ? cme->defined_class : Qnil;
 
             // The topmost frame may not have an updated PC because the JIT
             // may not have set one.  The JIT compiler will update the PC
@@ -592,6 +593,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
                 }
 
                 stack_buffer[i].as.native_frame.caching_cme = (VALUE)cme;
+                stack_buffer[i].defined_class = cme->defined_class;
                 stack_buffer[i].as.native_frame.method_id = cme->def->original_id;
                 stack_buffer[i].as.native_frame.function = cme->def->body.cfunc.func;
                 stack_buffer[i].is_ruby_frame = false;

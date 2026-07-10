@@ -50,6 +50,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:waiting_for_gvl_threshold_ns) { 222_333_444 }
   let(:otel_context_enabled) { false }
   let(:native_filenames_enabled) { false }
+  let(:include_module_name) { true }
 
   subject(:thread_context_collector) do
     collector = described_class.new(
@@ -60,6 +61,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
       otel_context_enabled: otel_context_enabled,
       native_filenames_enabled: native_filenames_enabled,
+      include_module_name: include_module_name,
     )
     # This simulates how every profiling start/restart also resets the state.
     described_class::Testing._native_global_reset_per_thread_context(collector)
@@ -2072,7 +2074,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       # Because the sample was prepared inside the `_native_prepare_sample_inside_signal_handler`, that should be
       # the method at the top of the stack, even though the sample was only recorded later, inside
       # `sample` -> `_native_sample`.
-      expect(result.locations.first).to have_attributes(base_label: "_native_prepare_sample_inside_signal_handler")
+      expect(result.locations.first).to have_attributes(base_label: "Datadog::Profiling::Collectors::ThreadContext::Testing._native_prepare_sample_inside_signal_handler")
     end
 
     it "only uses the recorded stack once" do
@@ -2082,8 +2084,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       results = samples_for_thread(samples, Thread.current)
 
       expect(results).to contain_exactly(
-        have_attributes(locations: include(have_attributes(base_label: "_native_prepare_sample_inside_signal_handler"))),
-        have_attributes(locations: include(have_attributes(base_label: "_native_sample")))
+        have_attributes(locations: include(have_attributes(base_label: "Datadog::Profiling::Collectors::ThreadContext::Testing._native_prepare_sample_inside_signal_handler"))),
+        have_attributes(locations: include(have_attributes(base_label: "Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample"))),
       )
     end
 
@@ -2098,7 +2100,65 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
         result = sample_for_thread(samples, Thread.current)
 
-        expect(result.locations.first).to have_attributes(base_label: "_native_sample")
+        expect(result.locations.first).to have_attributes(base_label: "Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample")
+      end
+    end
+  end
+
+  describe "include_module_name" do
+    let(:top_frame) { sample_for_thread(samples, Thread.current).locations.first }
+
+    context "when enabled" do
+      let(:include_module_name) { true }
+
+      it "qualifies method names with the class/module name" do
+        sample
+
+        expect(top_frame).to have_attributes(
+          base_label: "Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample"
+        )
+      end
+
+      # A subclass that reinstalls the parent's method via `define_method(name, parent.instance_method(name))` shares
+      # its iseq with the parent, but has a different `defined_class` (the subclass). Because the per-thread frame cache
+      # keys only on iseq + pc, sampling both at the same stack position must still report each method's own class,
+      # not reuse the first one.
+      it "does not reuse a stale class name for a method iseq shared across classes" do
+        stub_const("ClassWithOriginalMethod", Class.new do
+          def original
+            yield
+          end
+        end)
+        stub_const("SubclassSharingMethodIseq", Class.new(ClassWithOriginalMethod))
+        SubclassSharingMethodIseq.define_method(:aliased, ClassWithOriginalMethod.instance_method(:original))
+
+        ClassWithOriginalMethod.new.original { sample }
+        SubclassSharingMethodIseq.new.aliased { sample }
+
+        labels = samples_for_thread(samples, Thread.current).map do |captured|
+          captured.locations.find { |frame|
+            frame.base_label.end_with?("#original", "#aliased")
+          }&.base_label
+        end.compact
+
+        # This should probably be ClassWithOriginalMethod#original twice,
+        # because SubclassSharingMethodIseq#original does not exist,
+        # see https://bugs.ruby-lang.org/issues/22197,
+        # but for now we follow current CRuby < 4.1 semantics.
+        expect(labels).to contain_exactly(
+          "ClassWithOriginalMethod#original",
+          "SubclassSharingMethodIseq#original",
+        )
+      end
+    end
+
+    context "when disabled" do
+      let(:include_module_name) { false }
+
+      it "uses bare method names" do
+        sample
+
+        expect(top_frame).to have_attributes(base_label: "_native_sample")
       end
     end
   end
