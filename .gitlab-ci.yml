@@ -14,7 +14,7 @@ include:
   - local: ".gitlab/benchmarks.yml"
   - project: 'DataDog/apm-reliability/apm-sdks-benchmarks'
     file: '.gitlab/ci-ruby-acme-parallel.yml'
-    ref: '52a8c0712ac6409f488fb2fb1266e886a9cbf816'
+    ref: '5f5ca440eaab196afb8f78255c2daf2d0bdcc492' # apm-sdks-benchmarks#209 merge commit
 
 variables:
   RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby
@@ -167,7 +167,7 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: 67cea59745bf3959a057e4ba0d5a2e81c68615b7 # Automated: Updated by .github/workflows/update-system-tests.yml.
+    SYSTEM_TESTS_REF: 56f5f7cdc3ed5353f1c77b8a25db8faf944894b1 # Automated: Updated by .github/workflows/update-system-tests.yml.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,simple_onboarding_appsec,lib-injection,docker_ssi"
     SYSTEM_TEST_BUILD_ATTEMPTS: 3
 
