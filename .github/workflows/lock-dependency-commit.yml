@@ -33,17 +33,14 @@ jobs:
       id-token: write
       actions: read
     steps:
-      - name: Get GitHub Token via dd-octo-sts
-        id: generate-token
-        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
-        with:
-          scope: DataDog/dd-trace-rb
-          policy: self.lock-dependency
+      # Checked out with the ambient, read-only token first, since checkout wipes
+      # the workspace before cloning. No privileged token is needed for this step.
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
-          persist-credentials: true # required for `git` operations (commit & push) at later steps
-          token: ${{ steps.generate-token.outputs.token }}
+          persist-credentials: false
+      # gemfiles/ is tracked, so checkout above already populated it; this only
+      # overwrites paths with the newly generated lockfiles.
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: gemfiles
@@ -56,7 +53,23 @@ jobs:
       - name: Stage changes
         run: git add gemfiles
       - run: git diff --cached --color=always
+      # A PR that doesn't touch dependency files never runs the upstream `lock`
+      # job, so no artifacts are downloaded and the checked-out gemfiles/ is
+      # unchanged, leaving nothing staged here. Gating on that (rather than on
+      # the upstream conclusion alone) keeps the privileged token from being
+      # minted on every PR.
+      - name: Check for staged changes
+        id: check
+        run: echo "changed=$(git diff --cached --quiet && echo false || echo true)" >> "$GITHUB_OUTPUT"
+      - name: Get GitHub Token via dd-octo-sts
+        id: generate-token
+        if: steps.check.outputs.changed == 'true'
+        uses: DataDog/dd-octo-sts-action@96a25462dbcb10ebf0bfd6e2ccc917d2ab235b9a # v1.0.4
+        with:
+          scope: DataDog/dd-trace-rb
+          policy: self.lock-dependency
       - name: Commit changes
+        if: steps.check.outputs.changed == 'true'
         uses: planetscale/ghcommit-action@a6b150b81dca5dd027baa898604418eec9e11465 # v0.2.22
         with:
           repo: ${{ github.repository }}
