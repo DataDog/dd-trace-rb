@@ -69,7 +69,11 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::URLEncoded do
 
     context 'when payload exceeds the bytesize limit' do
       it 'returns the fully-read pairs and omits the one crossing the limit' do
-        expect(described_class.parse('a=1&b=2&c=3', limit: 10)).to eq({'a' => '1', 'b' => '2'})
+        expect(described_class.parse('a=1&b=2&c=3', limit: 9)).to eq({'a' => '1', 'b' => '2'})
+      end
+
+      it 'drops the pair that crosses the limit right before & separator' do
+        expect(described_class.parse('a=1&b=2&c=3', limit: 7)).to eq({'a' => '1'})
       end
 
       it 'keeps the array entries read before the limit and drops the pair crossing it' do
