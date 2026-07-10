@@ -72,7 +72,7 @@ module DIHelpers
     end
 
     def rc_key_for_probe_id(id)
-      #"datadog/2/LIVE_DEBUGGING/#{id}/hash"
+      # "datadog/2/LIVE_DEBUGGING/#{id}/hash"
       id
     end
 
@@ -88,7 +88,7 @@ module DIHelpers
 
     def encode_obj(v)
       JSON.dump(v)
-      #encode_str(JSON.dump(v))
+      # encode_str(JSON.dump(v))
     end
   end
 
