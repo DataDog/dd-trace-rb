@@ -13,6 +13,8 @@ end
 require 'racecar/cli'
 require 'active_support'
 require 'datadog'
+require 'datadog/tracing/contrib/racecar/instrumentation/consumer'
+require 'datadog/tracing/contrib/kafka/instrumentation/consumer'
 RSpec.describe 'Racecar patcher' do
   let(:configuration_options) { {} }
 
@@ -264,6 +266,39 @@ RSpec.describe 'Racecar patcher' do
 
     it_behaves_like 'measured span for integration', true do
       before { ActiveSupport::Notifications.instrument('process_batch.racecar', payload) }
+    end
+  end
+
+  describe '.patch_consumer' do
+    subject(:patch_consumer) { Datadog::Tracing::Contrib::Racecar::Patcher.patch_consumer }
+
+    context 'on a rdkafka-based Racecar (Runner#process available)' do
+      # The integration is patched in the outer `before` hook, so the runner is
+      # already instrumented by the time this runs.
+      it 'instruments the runner with the Racecar consumer instrumentation' do
+        expect(::Racecar::Runner.ancestors)
+          .to include(Datadog::Tracing::Contrib::Racecar::Instrumentation::Consumer::InstanceMethods)
+      end
+    end
+
+    context 'on a ruby-kafka-based Racecar (no Runner#process)' do
+      before do
+        allow(::Racecar::Runner).to receive(:private_method_defined?).with(:process).and_return(false)
+        stub_const('Kafka::Consumer', Class.new)
+      end
+
+      it 'reuses the kafka consumer instrumentation on Kafka::Consumer' do
+        expect(::Kafka::Consumer).to receive(:prepend)
+          .with(Datadog::Tracing::Contrib::Kafka::Instrumentation::Consumer)
+
+        patch_consumer
+      end
+
+      it 'does not prepend the runner instrumentation' do
+        expect(::Racecar::Runner).not_to receive(:prepend)
+
+        patch_consumer
+      end
     end
   end
 end
