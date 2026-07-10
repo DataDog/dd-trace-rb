@@ -76,18 +76,6 @@ rb_nativethread_id_t pthread_id_for(VALUE thread) {
   #endif
 }
 
-size_t sizeof_rb_iseq_t(void) {
-  return sizeof(rb_iseq_t);
-}
-
-VALUE ddtrace_iseq_base_label(const void *iseq) {
-  return rb_iseq_base_label((const rb_iseq_t *)iseq);
-}
-
-VALUE ddtrace_iseq_path(const void *iseq) {
-  return rb_iseq_path((const rb_iseq_t *)iseq);
-}
-
 // Queries if the current thread is the owner of the global VM lock.
 //
 // @ivoanjo: Ruby has a similarly-named `ruby_thread_has_gvl_p` but that API is insufficient for our needs because it can
@@ -520,42 +508,30 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
                 continue;
             }
 
+            cme = rb_vm_frame_method_entry(cfp);
+
+            // Upstream (Ruby 4.0) does:
+            // if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
+            //   buff[i] = (VALUE)cme;
+            // } else {
+            //   buff[i] = (VALUE)cfp->iseq;
+            // }
+            // We get both the iseq and CME because we need both to format like Ruby backtraces
+
             stack_buffer[i].same_frame =
               stack_buffer[i].is_ruby_frame &&
-              stack_buffer[i].as.ruby_frame.iseq == (VALUE) cfp->iseq &&
-              stack_buffer[i].as.ruby_frame.caching_pc == cfp->pc;
+              stack_buffer[i].as.ruby_frame.iseq == cfp->iseq &&
+              stack_buffer[i].as.ruby_frame.caching_pc == cfp->pc &&
+              stack_buffer[i].cme == cme;
 
             if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
               i++;
               continue;
             }
 
-            // dd-trace-rb NOTE:
-            // Upstream Ruby has code here to retrieve the rb_callable_method_entry_t (cme) and in some cases to use it
-            // instead of the iseq.
-            // In practice, they are usually the same; the difference is that when you have e.g. block, one gets you a
-            // reference to the block, and the other to the method containing the block.
-            // This would be important if we used `rb_profile_frame_label` and wanted the "block in foo" label instead
-            // of just "foo". But we're currently using `rb_profile_frame_base_label` which I believe is always the same
-            // between the rb_callable_method_entry_t and the iseq. Thus, to simplify a bit our logic and reduce a bit
-            // the overhead, we always use the iseq here.
-            //
-            // @ivoanjo: I've left the upstream Ruby code commented out below for reference, so it's more obvious that
-            // we're diverging, and we can easily compare and experiment with the upstream version in the future.
-            //
-            // cme = rb_vm_frame_method_entry(cfp);
-
-            // if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ &&
-            //   // Fix: Do not use callable method entry when iseq is for an eval.
-            //   // TL;DR: This fix is needed for us to match the Ruby reference API information in the
-            //   // "when sampling an eval/instance eval inside an object" spec.
-            //   cfp->iseq->body->type != ISEQ_TYPE_EVAL) {
-            //     buff[i] = (VALUE)cme;
-            // }
-            // else {
-            stack_buffer[i].as.ruby_frame.iseq = (VALUE)cfp->iseq;
+            stack_buffer[i].as.ruby_frame.iseq = cfp->iseq;
             stack_buffer[i].as.ruby_frame.caching_pc = (void *) cfp->pc;
-            // }
+            stack_buffer[i].cme = cme;
 
             // The topmost frame may not have an updated PC because the JIT
             // may not have set one.  The JIT compiler will update the PC
@@ -584,16 +560,14 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
 
                 stack_buffer[i].same_frame =
                   !stack_buffer[i].is_ruby_frame &&
-                  stack_buffer[i].as.native_frame.caching_cme == (VALUE) cme;
+                  stack_buffer[i].cme == cme;
 
                 if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
                   i++;
                   continue;
                 }
 
-                stack_buffer[i].as.native_frame.caching_cme = (VALUE)cme;
-                stack_buffer[i].as.native_frame.method_id = cme->def->original_id;
-                stack_buffer[i].as.native_frame.function = cme->def->body.cfunc.func;
+                stack_buffer[i].cme = cme;
                 stack_buffer[i].is_ruby_frame = false;
                 i++;
             }
@@ -872,7 +846,219 @@ bool is_raised_flag_set(VALUE thread) { return thread_struct_from_object(thread)
   void self_test_current_fiber_for(void) { } // Nothing to do
 #endif
 
-bool pathobj_is_null(VALUE iseq) {
-  const rb_iseq_t *iseq_ptr = (const rb_iseq_t *) iseq;
-  return ISEQ_BODY(iseq_ptr)->location.pathobj == 0;
+// Variant of functions related to Thread::Backtrace::Location#label in Ruby 4.0
+// (location_label(), rb_gen_method_name(), calculate_iseq_label()),
+// but formatting using a C buffer instead of allocating Ruby Strings.
+// Also, those functions are static functions in vm_backtrace.c so not reusable.
+// There is also AFAIK no reasonable way to create a rb_backtrace_location_t from outside that file.
+
+// Return true if a given location is a C method or supposed to behave like one.
+static bool location_cfunc_p(const rb_callable_method_entry_t *cme) {
+  if (!cme) return false;
+
+  switch (cme->def->type) {
+    case VM_METHOD_TYPE_CFUNC:
+      return true;
+    // Upstream, but we don't want that behavior:
+    // case VM_METHOD_TYPE_ISEQ:
+    //   return is_internal_location(loc->cme->def->body.iseq.iseqptr);
+    default:
+      return false;
+  }
+}
+
+static bool RCLASS_SINGLETON_P(VALUE klass) {
+  return RB_TYPE_P(klass, T_CLASS) && FL_TEST_RAW(klass, FL_SINGLETON);
+}
+
+static VALUE get_class_attached_object(VALUE klass) {
+#ifndef NO_CLASS_ATTACHED_OBJECT
+  return rb_class_attached_object(klass);
+#else
+  return rb_ivar_get(klass, rb_intern("__attached__"));
+#endif
+}
+
+static VALUE alloc_free_rb_mod_name(VALUE mod) {
+#ifdef NO_ALLOC_FREE_MOD_NAME
+  return rb_attr_get(mod, rb_intern("__classpath__"));
+#else
+  return rb_mod_name(mod);
+#endif
+}
+
+static bool is_metaclass(VALUE mod, VALUE* attached) {
+  if (RCLASS_SINGLETON_P(mod)) {
+    VALUE attached_object = get_class_attached_object(mod);
+    if (RB_TYPE_P(attached_object, T_CLASS) || RB_TYPE_P(attached_object, T_MODULE)) {
+      *attached = attached_object;
+      return true;
+    }
+  }
+  return false;
+}
+
+#define ONLY_METHOD_NAME ((ssize_t) -1)
+#define BUFFER_OUT_OF_SPACE ((ssize_t) -2)
+
+static ssize_t rb_gen_method_name(VALUE owner, VALUE method_name, char *buf, size_t buf_size) {
+  if (!(RB_TYPE_P(owner, T_CLASS) || RB_TYPE_P(owner, T_MODULE))) {
+    return ONLY_METHOD_NAME;
+  }
+
+  VALUE mod = owner;
+  char separator = '#';
+  if (is_metaclass(owner, &mod)) {
+    separator = '.';
+  }
+  // We don't have rb_mod_name0() on older Ruby versions so we use alloc_free_rb_mod_name()
+  // That excludes anonymous modules (`#<Module:0x0123>`),
+  // but can still return modules with a non-permanent name like `#<Module:0x0123>::Foo` (rare).
+  // Since there seems to be no way to query for permanent name across Ruby versions we have no choice.
+  VALUE mod_name = alloc_free_rb_mod_name(mod);
+
+  if (NIL_P(mod_name)) {
+    return ONLY_METHOD_NAME;
+  }
+
+  size_t mod_name_len = RSTRING_LEN(mod_name);
+  size_t method_name_len = RSTRING_LEN(method_name);
+  size_t total = mod_name_len + 1 + method_name_len;
+  if (total <= buf_size) {
+    memcpy(buf, RSTRING_PTR(mod_name), mod_name_len);
+    buf[mod_name_len] = separator;
+    memcpy(buf + mod_name_len + 1, RSTRING_PTR(method_name), method_name_len);
+    return total;
+  } else {
+    return BUFFER_OUT_OF_SPACE;
+  }
+}
+
+static ssize_t calculate_iseq_label(VALUE owner, const rb_iseq_t *iseq, char *buf, size_t buf_size) {
+  switch (ISEQ_BODY(iseq)->type) {
+    case ISEQ_TYPE_TOP:
+    case ISEQ_TYPE_CLASS:
+    case ISEQ_TYPE_MAIN:
+      // Just the method name, not `Object#<top (required)>`
+      return ONLY_METHOD_NAME;
+
+    case ISEQ_TYPE_METHOD:
+      return rb_gen_method_name(owner, ISEQ_BODY(iseq)->location.label, buf, buf_size);
+
+#ifdef ISEQ_TYPE_PLAIN /* 2.5 does not have it */
+    case ISEQ_TYPE_PLAIN:
+#endif
+    case ISEQ_TYPE_BLOCK: {
+      int level = 0;
+      const rb_iseq_t *orig_iseq = iseq;
+      if (ISEQ_BODY(orig_iseq)->parent_iseq != 0) {
+        while (ISEQ_BODY(orig_iseq)->local_iseq != iseq) {
+          if (ISEQ_BODY(iseq)->type == ISEQ_TYPE_BLOCK) {
+            level++;
+          }
+          iseq = ISEQ_BODY(iseq)->parent_iseq;
+        }
+      }
+
+      // First print the prefix to the buffer
+      const char* prefix;
+      size_t prefix_len;
+      // sizeof("block (999 levels) in ")
+      #define NESTED_BLOCK_BUF_SIZE 23
+      char nested_block_buf[NESTED_BLOCK_BUF_SIZE];
+      if (level <= 1) {
+        prefix = "block in ";
+        prefix_len = sizeof("block in ") - 1;
+      } else {
+        prefix_len = snprintf(nested_block_buf, NESTED_BLOCK_BUF_SIZE, "block (%d levels) in ", level);
+        prefix = nested_block_buf;
+        if (prefix_len >= NESTED_BLOCK_BUF_SIZE) {
+          return BUFFER_OUT_OF_SPACE;
+        }
+      }
+
+      if (prefix_len <= buf_size) {
+        memcpy(buf, prefix, prefix_len);
+        buf += prefix_len;
+        buf_size -= prefix_len;
+      } else {
+        return BUFFER_OUT_OF_SPACE;
+      }
+
+      // Then print the module and method name, if that runs out of space we return 0
+      // and let the prefix be overwritten since it won't be used
+      ssize_t written = calculate_iseq_label(owner, iseq, buf, buf_size);
+      if (written > 0) {
+        return prefix_len + written;
+      } else if (written == ONLY_METHOD_NAME) {
+        VALUE method_name = rb_iseq_base_label(iseq);
+        size_t method_name_len = RSTRING_LEN(method_name);
+        if (method_name_len <= buf_size) {
+          memcpy(buf, RSTRING_PTR(method_name), method_name_len);
+          return prefix_len + method_name_len;
+        }
+      }
+      return BUFFER_OUT_OF_SPACE;
+    }
+
+    case ISEQ_TYPE_RESCUE:
+    case ISEQ_TYPE_ENSURE:
+    case ISEQ_TYPE_EVAL:
+      iseq = ISEQ_BODY(iseq)->parent_iseq;
+      return calculate_iseq_label(owner, iseq, buf, buf_size);
+
+    default:
+      // Upstream: rb_bug("calculate_iseq_label: unreachable");
+      return ONLY_METHOD_NAME;
+  }
+}
+
+// MRI: location_label()
+// C methods don't have an iseq, only Ruby methods have
+ssize_t ddtrace_location_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq, char *buf, size_t buf_size) {
+  if (location_cfunc_p(cme)) {
+    VALUE method_name = rb_id2str(cme->def->original_id);
+    return rb_gen_method_name(cme->owner, method_name, buf, buf_size);
+  } else {
+    VALUE owner = cme ? cme->owner : Qnil;
+    return calculate_iseq_label(owner, iseq, buf, buf_size);
+  }
+}
+
+VALUE ddtrace_location_base_label(const rb_callable_method_entry_t *cme, const rb_iseq_t *iseq) {
+  if (location_cfunc_p(cme)) {
+    return rb_id2str(cme->def->original_id);
+  } else {
+    return rb_iseq_base_label(iseq);
+  }
+}
+
+VALUE ddtrace_iseq_base_label(const rb_iseq_t *iseq) {
+  return rb_iseq_base_label(iseq);
+}
+
+VALUE ddtrace_iseq_path(const rb_iseq_t *iseq) {
+  // Note: We saw crash reports from a customer from dereferencing a null pointer inside `rb_iseq_path`.
+  // It's not clear in what situation would the pathobj ever be NULL, yet it seems harmless from our side to
+  // skip this information if we're ever in such a situation.
+  if (ISEQ_BODY(iseq)->location.pathobj == 0) {
+    return Qnil;
+  }
+  return rb_iseq_path(iseq);
+}
+
+size_t sizeof_rb_iseq_t(void) {
+  return sizeof(rb_iseq_t);
+}
+
+size_t sizeof_rb_callable_method_entry_t(void) {
+  return sizeof(rb_callable_method_entry_t);
+}
+
+void* ddtrace_cme_cfunc_func(const rb_callable_method_entry_t *cme) {
+  return cme->def->body.cfunc.func;
+}
+
+const char *ddtrace_cme_original_method_name(const rb_callable_method_entry_t *cme) {
+  return rb_id2name(cme->def->original_id);
 }
