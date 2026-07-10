@@ -2,6 +2,9 @@
 # .customcops.yml can't override them (standard drops any extend_config key it already
 # sets before merging - see standard/plugin/merges_plugins_into_rubocop_config.rb).
 # Run this config directly via `rake rubocop` instead, bypassing standard entirely.
+#
+# These are exceptional overrides for cops standard disables or misconfigures. Avoid adding
+# to this file where possible - prefer getting the fix into standard itself upstream.
 AllCops:
   Exclude:
     - "appraisal/**/**"
