@@ -320,8 +320,8 @@ static void trigger_sample_for_thread(
 );
 static VALUE _native_thread_list(VALUE self);
 static void check_frozen_thread(VALUE thread);
-static per_thread_context *get_or_create_context_for(VALUE thread);
-static void initialize_context(VALUE thread, per_thread_context *thread_context);
+static per_thread_context *get_or_create_context_for(VALUE thread, long current_monotonic_wall_time_ns);
+static void initialize_context(VALUE thread, per_thread_context *thread_context, long current_monotonic_wall_time_ns);
 static VALUE _native_inspect(VALUE self, VALUE collector_instance);
 static VALUE per_thread_context_to_ruby_hash(per_thread_context *thread_context);
 static VALUE stats_to_ruby_hash(thread_context_collector_state *state, VALUE hash);
@@ -743,7 +743,7 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   VALUE current_thread = rb_thread_current();
-  per_thread_context *current_thread_context = get_or_create_context_for(current_thread);
+  per_thread_context *current_thread_context = get_or_create_context_for(current_thread, current_monotonic_wall_time_ns);
   long cpu_time_at_sample_start_for_current_thread = cpu_time_now_ns(current_thread_context);
 
   VALUE threads = thread_list(state);
@@ -751,7 +751,7 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
     VALUE thread = RARRAY_AREF(threads, i);
-    per_thread_context *thread_context = get_or_create_context_for(thread);
+    per_thread_context *thread_context = get_or_create_context_for(thread, current_monotonic_wall_time_ns);
 
     // We account for cpu-time for the current thread in a different way: we use the cpu-time at sampling start,
     // to avoid blaming the time the profiler took on whatever is currently running on the thread,
@@ -1183,14 +1183,14 @@ static void check_frozen_thread(VALUE thread) {
 
 // See the docs on struct per_thread_context.
 // This allocates a Ruby object and therefore needs the GVL and is not safe to call from RUBY_INTERNAL_EVENT_* hooks.
-static per_thread_context *get_or_create_context_for(VALUE thread) {
+static per_thread_context *get_or_create_context_for(VALUE thread, long current_monotonic_wall_time_ns) {
   per_thread_context *thread_context = get_per_thread_context(thread);
   if (thread_context != NULL) return thread_context;
 
   check_frozen_thread(thread);
 
   thread_context = calloc(1, sizeof(per_thread_context)); // See "note on calloc vs ruby_xcalloc use" in heap_recorder.c
-  initialize_context(thread, thread_context);
+  initialize_context(thread, thread_context, current_monotonic_wall_time_ns);
 
   VALUE wrapper = TypedData_Wrap_Struct(rb_cObject, &per_thread_context_typed_data, thread_context);
   rb_ivar_set(thread, dd_per_thread_context_id, wrapper);
@@ -1204,7 +1204,7 @@ static void on_thread_begin_event(VALUE tracepoint_data, DDTRACE_UNUSED void *un
 
   VALUE thread = rb_tracearg_self(rb_tracearg_from_tracepoint(tracepoint_data));
   ENFORCE_THREAD(thread);
-  get_or_create_context_for(thread);
+  get_or_create_context_for(thread, monotonic_wall_time_now_ns(RAISE_ON_FAILURE));
 }
 
 #define LOGGING_GEM_PATH "/lib/logging/diagnostic_context.rb"
@@ -1228,7 +1228,7 @@ static bool is_logging_gem_monkey_patch(VALUE invoke_file_location) {
   return strncmp(invoke_file + invoke_file_len - logging_gem_path_len, LOGGING_GEM_PATH, logging_gem_path_len) == 0;
 }
 
-static void initialize_context(VALUE thread, per_thread_context *thread_context) {
+static void initialize_context(VALUE thread, per_thread_context *thread_context, long current_monotonic_wall_time_ns) {
   // We always create per_thread_context's with latest_max_frames; that value is kept in sync with the
   // active profiler's max_frames by the global reset that runs when profiling starts
   // so we expect to always see here the latest correct value to be used.
@@ -1265,7 +1265,7 @@ static void initialize_context(VALUE thread, per_thread_context *thread_context)
 
   thread_context->thread_cpu_time_id = thread_cpu_time_id_for(thread);
 
-  thread_context->wall_time_at_previous_sample_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+  thread_context->wall_time_at_previous_sample_ns = current_monotonic_wall_time_ns;
   thread_context->cpu_time_at_previous_sample_ns = cpu_time_now_ns(thread_context);
 
   // These will only be used during a GC operation
@@ -1295,6 +1295,8 @@ void thread_context_collector_reset_all_per_thread_contexts(VALUE self_instance)
 
   latest_max_frames = state->locations.len;
 
+  long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+
   VALUE threads = thread_list(state);
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
@@ -1305,12 +1307,12 @@ void thread_context_collector_reset_all_per_thread_contexts(VALUE self_instance)
 
       sampling_buffer_free(&thread_context->sampling_buffer);
       memset(thread_context, 0, sizeof(per_thread_context));
-      initialize_context(thread, thread_context);
+      initialize_context(thread, thread_context, current_monotonic_wall_time_ns);
 
       thread_context->is_profiler_internal_thread = is_profiler_internal_thread;
     } else {
       // If thread didn't have a context, let's trigger its creation
-      get_or_create_context_for(thread);
+      get_or_create_context_for(thread, current_monotonic_wall_time_ns);
     }
   }
 }
@@ -2081,12 +2083,12 @@ static void mark_thread_as_profiler_internal(per_thread_context *ctx) {
 }
 
 void thread_context_collector_profiler_internal_thread_started(void) {
-  per_thread_context *ctx = get_or_create_context_for(rb_thread_current());
+  per_thread_context *ctx = get_or_create_context_for(rb_thread_current(), monotonic_wall_time_now_ns(RAISE_ON_FAILURE));
   mark_thread_as_profiler_internal(ctx);
 }
 
 static VALUE _native_mark_thread_as_profiler_internal(DDTRACE_UNUSED VALUE self, VALUE thread) {
-  per_thread_context *ctx = get_or_create_context_for(thread);
+  per_thread_context *ctx = get_or_create_context_for(thread, monotonic_wall_time_now_ns(RAISE_ON_FAILURE));
   mark_thread_as_profiler_internal(ctx);
   return Qnil;
 }
@@ -2101,13 +2103,13 @@ void thread_context_collector_profiler_internal_thread_done(VALUE self_instance)
   TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   VALUE current_thread = rb_thread_current();
-  per_thread_context *thread_context = get_or_create_context_for(current_thread);
+  long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+  per_thread_context *thread_context = get_or_create_context_for(current_thread, current_monotonic_wall_time_ns);
   if (!thread_context->is_profiler_internal_thread) {
     rb_raise(rb_eRuntimeError, "current thread %"PRIsVALUE" is not profiler-internal thread", current_thread);
   }
 
   long current_cpu_time_ns = cpu_time_now_ns(thread_context);
-  long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
 
   update_metrics_and_sample(
     state,
@@ -2273,7 +2275,7 @@ static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread) {
     thread_context_collector_state *state;
     TypedData_Get_Struct(self_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-    per_thread_context *thread_context = get_or_create_context_for(current_thread);
+    per_thread_context *thread_context = get_or_create_context_for(current_thread, current_monotonic_wall_time_ns);
 
     long gvl_waiting_at = thread_context->gvl_waiting_at;
 

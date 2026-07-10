@@ -1317,6 +1317,18 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         expect { sample(allow_exception: true) }.to raise_error(RuntimeError, /wall time going backwards/)
       end
     end
+
+    context "when a thread's per-thread context was removed before sampling" do
+      before do
+        sample # Trigger context creation, and some regular sampling work, for all threads
+
+        remove_per_thread_context_for(t1)
+      end
+
+      it "does not raise an exception when the context gets lazily recreated mid-sample" do
+        expect { sample(allow_exception: true) }.to_not raise_error
+      end
+    end
   end
 
   describe "#on_gc_start" do
