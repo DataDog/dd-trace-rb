@@ -96,6 +96,8 @@ RSpec.describe Datadog::Profiling::Component do
             .to receive(:waiting_for_gvl_threshold_ns).and_return(:threshold_ns_config)
           expect(settings.profiling.advanced)
             .to receive(:native_filenames_enabled).and_return(:native_filenames_enabled_config)
+          expect(settings.profiling.advanced)
+            .to receive(:experimental_include_module_name).and_return(:experimental_include_module_name_config)
 
           expect(Datadog::Profiling::Collectors::ThreadContext).to receive(:new).with(
             recorder: dummy_stack_recorder,
@@ -105,6 +107,7 @@ RSpec.describe Datadog::Profiling::Component do
             waiting_for_gvl_threshold_ns: :threshold_ns_config,
             otel_context_enabled: false,
             native_filenames_enabled: :native_filenames_enabled_config,
+            include_module_name: :experimental_include_module_name_config,
           )
 
           build_profiler_component

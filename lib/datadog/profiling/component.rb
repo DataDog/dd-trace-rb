@@ -105,6 +105,7 @@ module Datadog
           waiting_for_gvl_threshold_ns: settings.profiling.advanced.waiting_for_gvl_threshold_ns,
           otel_context_enabled: settings.profiling.advanced.preview_otel_context_enabled,
           native_filenames_enabled: settings.profiling.advanced.native_filenames_enabled,
+          include_module_name: settings.profiling.advanced.experimental_include_module_name,
         )
       end
 

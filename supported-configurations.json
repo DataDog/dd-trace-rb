@@ -590,6 +590,13 @@
         "default": "true"
       }
     ],
+    "DD_PROFILING_EXPERIMENTAL_INCLUDE_MODULE_NAME": [
+      {
+        "version": "A",
+        "type": "boolean",
+        "default": "false"
+      }
+    ],
     "DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED": [
       {
         "__comment": "Default value is :auto, not settable via environment variable",

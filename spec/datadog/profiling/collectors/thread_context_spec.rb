@@ -50,6 +50,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:waiting_for_gvl_threshold_ns) { 222_333_444 }
   let(:otel_context_enabled) { false }
   let(:native_filenames_enabled) { false }
+  let(:include_module_name) { true }
 
   subject(:thread_context_collector) do
     collector = described_class.new(
@@ -60,6 +61,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
       otel_context_enabled: otel_context_enabled,
       native_filenames_enabled: native_filenames_enabled,
+      include_module_name: include_module_name,
     )
     # This simulates how every profiling start/restart also resets the state.
     described_class::Testing._native_global_reset_per_thread_context(collector)
@@ -1068,7 +1070,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       expect(profiler_overhead_samples.size).to be 1
 
       overhead_sample = profiler_overhead_samples.first
-      expect(overhead_sample.locations.map(&:base_label)).to eq ["sampling"]
+      expect(overhead_sample.locations.map(&:label)).to eq ["sampling"]
       root = File.expand_path("../../../..", __dir__)
       expect(overhead_sample.locations.map(&:path)).to eq ["#{root}/lib/datadog/profiling/collectors/thread_context.rb"]
       expect(overhead_sample.labels).to include("profiler overhead": 1, "thread id": "0", "thread name": "Datadog::Profiling::Sampling")
@@ -2072,7 +2074,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       # Because the sample was prepared inside the `_native_prepare_sample_inside_signal_handler`, that should be
       # the method at the top of the stack, even though the sample was only recorded later, inside
       # `sample` -> `_native_sample`.
-      expect(result.locations.first).to have_attributes(base_label: "_native_prepare_sample_inside_signal_handler")
+      expect(result.locations.first).to have_attributes(label: "Datadog::Profiling::Collectors::ThreadContext::Testing._native_prepare_sample_inside_signal_handler")
     end
 
     it "only uses the recorded stack once" do
@@ -2082,8 +2084,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       results = samples_for_thread(samples, Thread.current)
 
       expect(results).to contain_exactly(
-        have_attributes(locations: include(have_attributes(base_label: "_native_prepare_sample_inside_signal_handler"))),
-        have_attributes(locations: include(have_attributes(base_label: "_native_sample")))
+        have_attributes(locations: include(have_attributes(label: "Datadog::Profiling::Collectors::ThreadContext::Testing._native_prepare_sample_inside_signal_handler"))),
+        have_attributes(locations: include(have_attributes(label: "Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample"))),
       )
     end
 
@@ -2098,7 +2100,33 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
         result = sample_for_thread(samples, Thread.current)
 
-        expect(result.locations.first).to have_attributes(base_label: "_native_sample")
+        expect(result.locations.first).to have_attributes(label: "Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample")
+      end
+    end
+  end
+
+  describe "include_module_name" do
+    let(:top_frame) { sample_for_thread(samples, Thread.current).locations.first }
+
+    context "when enabled" do
+      let(:include_module_name) { true }
+
+      it "qualifies method names with the class/module name" do
+        sample
+
+        expect(top_frame).to have_attributes(
+          label: "Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample"
+        )
+      end
+    end
+
+    context "when disabled" do
+      let(:include_module_name) { false }
+
+      it "uses bare method names" do
+        sample
+
+        expect(top_frame).to have_attributes(label: "_native_sample")
       end
     end
   end
