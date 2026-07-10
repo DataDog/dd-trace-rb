@@ -990,6 +990,23 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to(false)
         end
       end
+
+      describe '#experimental_include_module_name' do
+        subject(:experimental_include_module_name) { settings.profiling.advanced.experimental_include_module_name }
+
+        it_behaves_like 'a binary setting with',
+          env_variable: 'DD_PROFILING_EXPERIMENTAL_INCLUDE_MODULE_NAME',
+          default: false
+      end
+
+      describe '#experimental_include_module_name=' do
+        it 'updates the #experimental_include_module_name setting' do
+          expect { settings.profiling.advanced.experimental_include_module_name = true }
+            .to change { settings.profiling.advanced.experimental_include_module_name }
+            .from(false)
+            .to(true)
+        end
+      end
     end
 
     describe '#upload' do

@@ -43,6 +43,7 @@ static const char *get_or_compute_native_filename(void *function, st_table *nati
 static void add_truncated_frames_placeholder(ddog_prof_Location *locations);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
 static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice);
+static ddog_CharSlice build_qualified_name(VALUE defined_class, ddog_CharSlice method_name, char *buf, size_t buf_size);
 
 // These two functions are exposed as symbols by the VM but are not in any header.
 // Their signatures actually take a `const rb_iseq_t *iseq` but it gets casted back and forth between VALUE.
@@ -102,6 +103,7 @@ typedef struct {
   sampling_buffer *buffer;
   bool native_filenames_enabled;
   st_table *native_filenames_cache;
+  bool include_module_name;
 } native_sample_args;
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::Stack behavior using RSpec.
@@ -124,6 +126,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
   VALUE in_gc = rb_hash_lookup2(options, ID2SYM(rb_intern("in_gc")), Qfalse);
   VALUE is_gvl_waiting_state = rb_hash_lookup2(options, ID2SYM(rb_intern("is_gvl_waiting_state")), Qfalse);
   VALUE native_filenames_enabled = rb_hash_lookup2(options, ID2SYM(rb_intern("native_filenames_enabled")), Qfalse);
+  VALUE include_module_name = rb_hash_lookup2(options, ID2SYM(rb_intern("include_module_name")), Qtrue);
 
   ENFORCE_TYPE(metric_values_hash, T_HASH);
   ENFORCE_TYPE(labels_array, T_ARRAY);
@@ -132,6 +135,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
   ENFORCE_BOOLEAN(in_gc);
   ENFORCE_BOOLEAN(is_gvl_waiting_state);
   ENFORCE_BOOLEAN(native_filenames_enabled);
+  ENFORCE_BOOLEAN(include_module_name);
 
   VALUE zero = INT2NUM(0);
   VALUE heap_sample = rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("heap_sample"), Qfalse);
@@ -173,7 +177,8 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
 
   int max_frames_requested = sampling_buffer_check_max_frames(NUM2INT(max_frames));
 
-  ddog_prof_Location *locations = ruby_xcalloc(max_frames_requested, sizeof(ddog_prof_Location));
+  sample_locations locations;
+  sample_locations_initialize(&locations, max_frames_requested, include_module_name == Qtrue);
   sampling_buffer buffer;
   sampling_buffer_initialize(&buffer, max_frames_requested);
 
@@ -185,10 +190,11 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
     .values = values,
     .labels = (sample_labels) {.labels = slice_labels, .state_label = state_label, .is_gvl_waiting_state = is_gvl_waiting_state == Qtrue},
     .thread = thread,
-    .locations = (sample_locations) {.ptr = locations, .len = max_frames_requested},
+    .locations = locations,
     .buffer = &buffer,
     .native_filenames_enabled = native_filenames_enabled == Qtrue,
     .native_filenames_cache = st_init_numtable(),
+    .include_module_name = include_module_name == Qtrue,
   };
 
   return rb_ensure(native_sample_do, (VALUE) &args_struct, native_sample_ensure, (VALUE) &args_struct);
@@ -213,7 +219,8 @@ static VALUE native_sample_do(VALUE args) {
       args_struct->values,
       args_struct->labels,
       args_struct->native_filenames_enabled,
-      args_struct->native_filenames_cache
+      args_struct->native_filenames_cache,
+      args_struct->include_module_name
     );
   }
 
@@ -223,7 +230,7 @@ static VALUE native_sample_do(VALUE args) {
 static VALUE native_sample_ensure(VALUE args) {
   native_sample_args *args_struct = (native_sample_args *) args;
 
-  ruby_xfree(args_struct->locations.ptr);
+  sample_locations_free(&args_struct->locations);
   sampling_buffer_free(args_struct->buffer);
   st_free_table(args_struct->native_filenames_cache);
 
@@ -249,7 +256,8 @@ void sample_thread(
   sample_values values,
   sample_labels labels,
   bool native_filenames_enabled,
-  st_table *native_filenames_cache
+  st_table *native_filenames_cache,
+  bool include_module_name
 ) {
   if (buffer->max_frames != locations.len) {
     // This shouldn't happen as thread_context_collector_reset_all_per_thread_contexts (which resizes every
@@ -309,6 +317,9 @@ void sample_thread(
   }
 
   int top_of_stack_position = captured_frames - 1;
+  char *qualified_name_buf = locations.qualified_name_buf;
+  size_t qualified_name_buf_size = locations.qualified_name_buf_size;
+  size_t qualified_name_pos = 0;
 
   for (int i = 0; i <= top_of_stack_position; i++) {
     ddog_CharSlice name_slice, filename_slice;
@@ -405,6 +416,15 @@ void sample_thread(
             #endif
           }
         #endif
+      }
+    }
+
+    if (include_module_name) {
+      VALUE defined_class = buffer->stack_buffer[i].defined_class;
+      size_t remaining = qualified_name_buf_size - qualified_name_pos;
+      name_slice = build_qualified_name(defined_class, name_slice, qualified_name_buf + qualified_name_pos, remaining);
+      if (name_slice.ptr >= qualified_name_buf && name_slice.ptr < qualified_name_buf + qualified_name_buf_size) {
+        qualified_name_pos += name_slice.len;
       }
     }
 
@@ -559,6 +579,61 @@ static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_Char
   name_slice->len = pos;
 }
 
+static VALUE get_class_attached_object(VALUE klass) {
+  #ifndef NO_CLASS_ATTACHED_OBJECT
+    return rb_class_attached_object(klass);
+  #else
+    return rb_ivar_get(klass, rb_intern("__attached__"));
+  #endif
+}
+
+// Like CRuby qualified_method_name() in Ruby 4.0.
+// We have our own because qualified_method_name() uses rb_sprintf() which allocates a Ruby String.
+// Also we choose to only show the method name if the class is anonymous.
+static ddog_CharSlice build_qualified_name(VALUE defined_class, ddog_CharSlice method_name, char *buf, size_t buf_size) {
+  if (method_name.len == 0) return method_name;
+  if (method_name.ptr[0] == '<') return method_name;
+
+  // From Ruby 4.0 rb_profile_frame_classpath()
+  VALUE klass = defined_class;
+  if (!klass || NIL_P(klass)) return method_name;
+  if (RB_TYPE_P(klass, T_ICLASS)) {
+    klass = RBASIC(klass)->klass;
+  }
+
+  char separator = '#';
+
+  if (RB_TYPE_P(klass, T_CLASS) && FL_TEST(klass, FL_SINGLETON)) {
+    VALUE attached = get_class_attached_object(klass);
+    if (RB_TYPE_P(attached, T_CLASS) || RB_TYPE_P(attached, T_MODULE)) {
+      klass = attached;
+      separator = '.';
+    } else {
+      klass = CLASS_OF(attached);
+    }
+  }
+
+  #ifdef NO_ALLOC_FREE_MOD_NAME
+    VALUE class_name = rb_attr_get(klass, rb_intern("__classpath__"));
+  #else
+    VALUE class_name = rb_mod_name(klass);
+  #endif
+  // If the class is anonymous, show only the method name, rather than `#<Class:#<Object:0x00...>>#foo`
+  if (NIL_P(class_name)) return method_name;
+
+  const char *class_str = RSTRING_PTR(class_name);
+  size_t class_len = RSTRING_LEN(class_name);
+  size_t sep_len = 1;
+  size_t total = class_len + sep_len + method_name.len;
+  if (total >= buf_size) return method_name;
+
+  memcpy(buf, class_str, class_len);
+  buf[class_len] = separator;
+  memcpy(buf + class_len + sep_len, method_name.ptr, method_name.len);
+
+  return (ddog_CharSlice) {.ptr = buf, .len = total};
+}
+
 static void add_truncated_frames_placeholder(ddog_prof_Location *locations) {
   // Important note: The strings below are static so we don't need to worry about their lifetime. If we ever want to change
   // this to non-static strings, don't forget to check that lifetimes are properly respected.
@@ -633,6 +708,28 @@ bool prepare_sample_thread(VALUE thread, sampling_buffer *buffer) {
   return true;
 }
 
+void sample_locations_initialize(sample_locations *locations, uint16_t max_frames, bool include_module_name) {
+  locations->len = max_frames;
+  locations->ptr = ruby_xcalloc(max_frames, sizeof(ddog_prof_Location));
+  if (include_module_name) {
+    locations->qualified_name_buf_size = QUALIFIED_NAME_AVG_SIZE * max_frames;
+    locations->qualified_name_buf = ruby_xmalloc(locations->qualified_name_buf_size);
+  } else {
+    locations->qualified_name_buf_size = 0;
+    locations->qualified_name_buf = NULL;
+  }
+}
+
+void sample_locations_free(sample_locations *locations) {
+  ruby_xfree(locations->ptr);
+  ruby_xfree(locations->qualified_name_buf);
+
+  locations->ptr = NULL;
+  locations->len = 0;
+  locations->qualified_name_buf = NULL;
+  locations->qualified_name_buf_size = 0;
+}
+
 uint16_t sampling_buffer_check_max_frames(int max_frames) {
   if (max_frames < 5) raise_error(rb_eArgError, "Invalid max_frames: value must be >= 5");
   if (max_frames > MAX_FRAMES_LIMIT) raise_error(rb_eArgError, "Invalid max_frames: value must be <= " MAX_FRAMES_LIMIT_AS_STRING);
@@ -678,6 +775,7 @@ void sampling_buffer_mark(sampling_buffer *buffer) {
     if (buffer->stack_buffer[i].is_ruby_frame) {
       rb_gc_mark(buffer->stack_buffer[i].as.ruby_frame.iseq);
     }
+    rb_gc_mark(buffer->stack_buffer[i].defined_class);
   }
 
   // Make sure iteration completes before `is_marking` is unset...

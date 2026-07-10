@@ -52,9 +52,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       # also necessarily be different
       expect(super()[0..2]).to match(
         [
-          have_attributes(base_label: "_native_sample"),
-          have_attributes(base_label: "sample"),
-          have_attributes(base_label: "sample_and_decode"),
+          have_attributes(base_label: "Datadog::Profiling::Collectors::Stack::Testing._native_sample"),
+          have_attributes(base_label: "RSpec::ExampleGroups::DatadogProfilingCollectorsStack#sample"),
+          have_attributes(base_label: "RSpec::ExampleGroups::DatadogProfilingCollectorsStack#sample_and_decode"),
         ]
       )
       super()[3..-1]
@@ -65,7 +65,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
 
     it "matches the Ruby backtrace API" do
-      expect(gathered_stack).to eq reference_stack
+      expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
     end
 
     context "when marking sample as being in garbage collection" do
@@ -108,7 +108,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       it "matches the Ruby backtrace API" do
-        expect(gathered_stack).to eq reference_stack
+        expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
       end
 
       it "has a sleeping frame at the top of the stack" do
@@ -130,7 +130,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       it "matches the Ruby backtrace API" do
-        expect(gathered_stack).to eq reference_stack
+        expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
       end
 
       it "has eval frames on the stack" do
@@ -171,7 +171,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       it "matches the Ruby backtrace API" do
-        expect(gathered_stack).to eq reference_stack
+        expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
       end
 
       it "has two eval frames on the stack" do
@@ -193,7 +193,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       it "matches the Ruby backtrace API" do
-        expect(gathered_stack).to eq reference_stack
+        expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
       end
 
       it "has a frame with the custom file and line provided on the stack" do
@@ -244,9 +244,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           end
 
           # ...match the rest of the frames
-          expect(gathered_stack_without_unmatched).to eq reference_stack_without_unmatched
+          expect(strip_class_from_stack(gathered_stack_without_unmatched)).to eq reference_stack_without_unmatched
         else
-          expect(gathered_stack).to eq reference_stack
+          expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
         end
 
         expect(reference_stack.first.base_label).to eq "sleep"
@@ -267,7 +267,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       it "matches the Ruby backtrace API" do
-        expect(gathered_stack).to eq reference_stack
+        expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
       end
 
       context "when native filenames are enabled", if: PlatformHelpers.linux? do
@@ -278,21 +278,21 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
 
         it "matches the Ruby backtrace API after the 6th frame" do
-          expect(gathered_stack[5..-1]).to eq reference_stack[5..-1]
+          expect(strip_class_from_stack(gathered_stack[5..-1])).to eq reference_stack[5..-1]
         end
 
         it "includes the real native filename for the top frames" do
           expect(gathered_stack[0..4]).to contain_exactly(
             # Sleep is expected to be native BUT since it's at the top of the stack we don't replace the path or lineno
             # (see comment on `set_file_info_for_cfunc` for why)
-            have_attributes(base_label: "sleep", path: __FILE__, lineno: @expected_line),
+            have_attributes(base_label: "Kernel#sleep", path: __FILE__, lineno: @expected_line),
             have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: @expected_line),
             # Bigdecimal is a native extension shipped separately from Ruby
-            have_attributes(base_label: "save_rounding_mode", path: end_with("bigdecimal.so"), lineno: 0),
+            have_attributes(base_label: "BigDecimal.save_rounding_mode", path: end_with("bigdecimal.so"), lineno: 0),
             have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: be_positive),
             # We expect the native filename for catch to be inside the Ruby VM -- either in the ruby binary or the libruby library
             # Note that this may not apply everywhere (e.g. you can rename your Ruby), but it seems sane enough to require this when running tests
-            have_attributes(base_label: "catch", path: end_with("/ruby").or(include("libruby").and(include(".so"))), lineno: 0),
+            have_attributes(base_label: "Kernel#catch", path: end_with("/ruby").or(include("libruby").and(include(".so"))), lineno: 0),
           )
         end
       end
@@ -317,7 +317,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       it "matches the Ruby backtrace API" do
-        expect(gathered_stack).to eq reference_stack
+        expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
       end
 
       context "when native filenames are enabled", if: PlatformHelpers.linux? do
@@ -328,17 +328,17 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
 
         it "matches the Ruby backtrace API after the 5th frame" do
-          expect(gathered_stack[4..-1]).to eq reference_stack[4..-1]
+          expect(strip_class_from_stack(gathered_stack[4..-1])).to eq reference_stack[4..-1]
         end
 
         it "includes the real native filename for the top frames" do
           expect(gathered_stack[0..3]).to contain_exactly(
-            have_attributes(base_label: "sleep", path: __FILE__, lineno: be_positive),
+            have_attributes(base_label: "Kernel#sleep", path: __FILE__, lineno: be_positive),
             have_attributes(base_label: "<top (required)>", path: __FILE__, lineno: be_positive),
             # Bigdecimal is a native extension shipped separately from Ruby
-            have_attributes(base_label: "save_rounding_mode", path: end_with("bigdecimal.so"), lineno: 0),
+            have_attributes(base_label: "BigDecimal.save_rounding_mode", path: end_with("bigdecimal.so"), lineno: 0),
             # This is the frame in module_calling_super.save_rounding_mode (the one that calls super)
-            have_attributes(base_label: "save_rounding_mode", path: __FILE__, lineno: be_positive),
+            have_attributes(base_label: end_with("#save_rounding_mode"), path: __FILE__, lineno: be_positive),
           )
         end
       end
@@ -708,7 +708,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         expect(gathered_stack).to include(
           have_attributes(
             path: "/myapp/app/views/layouts/explore.html.haml",
-            base_label: "_app_views_layouts_explore_html_haml",
+            base_label: end_with("_app_views_layouts_explore_html_haml"),
           )
         )
       end
@@ -720,7 +720,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           expect(gathered_stack).to include(
             have_attributes(
               path: "/myapp/app/views/layouts/explore.html.haml",
-              base_label: "_app_views_layouts_explore_html_haml",
+              base_label: end_with("_app_views_layouts_explore_html_haml"),
             )
           )
         end
@@ -730,7 +730,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         let(:filename) { "example.rb" }
 
         it "does not trim the method name" do
-          expect(gathered_stack).to eq reference_stack
+          expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
         end
       end
 
@@ -738,7 +738,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         let(:method_name) { super().gsub("__", "_") }
 
         it "does not trim the method name" do
-          expect(gathered_stack).to eq reference_stack
+          expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
         end
       end
 
@@ -746,7 +746,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         let(:method_name) { "__2304485752546535910_211320" }
 
         it "does not trim the method name" do
-          expect(gathered_stack).to eq reference_stack
+          expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
         end
       end
     end
@@ -770,16 +770,16 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
 
     it "matches the last (max_frames - 1) frames from the Ruby backtrace API" do
-      expect(gathered_stack[1..(max_frames - 1)]).to eq reference_stack[-(max_frames - 1)..-1]
+      expect(strip_class_from_stack(gathered_stack[1..(max_frames - 1)])).to eq reference_stack[-(max_frames - 1)..-1]
     end
 
     it "gathers max_frames frames from the root of the thread and replaces the topmost frame with a placeholder" do
       expect(gathered_stack).to contain_exactly(
         have_attributes(base_label: "Truncated Frames", path: "", lineno: 0),
-        have_attributes(base_label: "deep_stack_4"),
-        have_attributes(base_label: "deep_stack_3"),
-        have_attributes(base_label: "thread_with_stack_depth"),
-        have_attributes(base_label: "initialize"),
+        have_attributes(base_label: "DeepStackSimulator#deep_stack_4"),
+        have_attributes(base_label: "DeepStackSimulator#deep_stack_3"),
+        have_attributes(base_label: "DeepStackSimulator.thread_with_stack_depth"),
+        have_attributes(base_label: "DatadogThreadDebugger#initialize"),
       )
     end
 
@@ -795,7 +795,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       let(:target_stack_depth) { max_frames - 1 }
 
       it "matches the Ruby backtrace API" do
-        expect(gathered_stack).to eq reference_stack
+        expect(strip_class_from_stack(gathered_stack)).to eq reference_stack
       end
     end
   end
@@ -924,10 +924,117 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
+  describe "include_module_name" do
+    # Samples the current thread with module names enabled and returns the base_label of the frame whose
+    # base_label ends with `suffix`. Must be called from within the method whose frame we want to inspect.
+    def qualified_label_ending_with(suffix)
+      sample_and_decode(Thread.current, :locations, include_module_name: true).find { |frame|
+        frame.base_label.end_with?(suffix)
+      }&.base_label
+    end
+
+    it "qualifies a Ruby method defined in a nested module and class" do
+      stub_const("OuterModule::InnerClass", Class.new do
+        def nested_method
+          yield
+        end
+      end)
+
+      label = nil
+      OuterModule::InnerClass.new.nested_method { label = qualified_label_ending_with("nested_method") }
+
+      expect(label).to eq("OuterModule::InnerClass#nested_method")
+    end
+
+    it "qualifies a Ruby method against the module that defines it when included via a mixin" do
+      stub_const("TracedMixin", Module.new do
+        def mixin_method
+          yield
+        end
+      end)
+      stub_const("ClassIncludingMixin", Class.new { include TracedMixin })
+
+      label = nil
+      ClassIncludingMixin.new.mixin_method { label = qualified_label_ending_with("mixin_method") }
+
+      # Reported against the defining module, not the including class, matching Ruby's own backtrace.
+      expect(label).to eq("TracedMixin#mixin_method")
+    end
+
+    it "uses a dot separator for a class (singleton) method" do
+      stub_const("ClassWithClassMethod", Class.new)
+      def ClassWithClassMethod.a_class_method
+        yield
+      end
+
+      label = nil
+      ClassWithClassMethod.a_class_method { label = qualified_label_ending_with("a_class_method") }
+
+      expect(label).to eq("ClassWithClassMethod.a_class_method")
+    end
+
+    it "uses a bare method name for a method on an anonymous class" do
+      anonymous_class = Class.new do
+        def anonymous_method
+          yield
+        end
+      end
+
+      label = nil
+      anonymous_class.new.anonymous_method { label = qualified_label_ending_with("anonymous_method") }
+
+      expect(label).to eq("anonymous_method")
+    end
+
+    it "uses a bare method name for a singleton method on a regular object" do
+      object = Object.new
+      def object.singleton_traced_method
+        yield
+      end
+
+      label = nil
+      object.singleton_traced_method { label = qualified_label_ending_with("singleton_traced_method") }
+
+      expect(label).to eq("singleton_traced_method")
+    end
+
+    it "qualifies a method defined in C" do
+      # #catch is used because it is reliably a C method across Ruby versions, ensure it still is:
+      expect(Kernel.instance_method(:catch).source_location).to be_nil
+
+      label = nil
+      catch(:done) { label = qualified_label_ending_with("#catch") }
+
+      expect(label).to eq("Kernel#catch")
+    end
+  end
+
   def convert_reference_stack(raw_reference_stack)
     raw_reference_stack.map do |location|
       ProfileHelpers::Frame.new(location.base_label, location.path, location.lineno).freeze
     end
+  end
+
+  # We want to check that method names match, so we compare agsint Thread::Backtrace::Location#base_label.
+  # That doesn't include the class/module name, but our frames do include it.
+  # We can't compare to Thread::Backtrace::Location#label instead, because it includes `block in` which we don't have,
+  # and it only includes the class/module on Ruby 3.4+.
+  def strip_class_from_label(label)
+    if (idx = label.rindex("#"))
+      label[(idx + 1)..-1]
+    elsif (idx = label.rindex("."))
+      label[(idx + 1)..-1]
+    else
+      label
+    end
+  end
+
+  def strip_class_from_frame(frame)
+    ProfileHelpers::Frame.new(strip_class_from_label(frame.base_label), frame.path, frame.lineno).freeze
+  end
+
+  def strip_class_from_stack(stack)
+    stack.map { |frame| strip_class_from_frame(frame) }
   end
 
   def sample_and_decode(thread, data = :locations, recorder: Datadog::Profiling::StackRecorder.for_testing, **options)

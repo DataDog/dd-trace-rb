@@ -644,6 +644,13 @@ module Datadog
               o.env 'DD_PROFILING_EXPERIMENTAL_USE_SYSTEM_DNS'
               o.default true
             end
+
+            # Whether the profiler samples include the module in the name of stack frames, like `Foo::Bar#baz`, or not (`baz`)
+            option :experimental_include_module_name do |o|
+              o.type :bool
+              o.env 'DD_PROFILING_EXPERIMENTAL_INCLUDE_MODULE_NAME'
+              o.default false
+            end
           end
 
           # @public_api
