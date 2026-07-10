@@ -97,8 +97,8 @@ RSpec.describe Datadog::AppSec::Utils::HTTP::Body do
         it { expect(result).to eq({'key' => 'value'}) }
       end
 
-      context 'when a bytesize limit is given' do
-        let(:result) { described_class.parse('a=1&b=2&c=3', media_type: media_type, bytesize_limit: 10) }
+      context 'when a limit is given' do
+        let(:result) { described_class.parse('a=1&b=2&c=3', media_type: media_type, limit: 10) }
 
         it 'forwards the limit to the parser' do
           expect(result).to eq({'a' => '1', 'b' => '2'})

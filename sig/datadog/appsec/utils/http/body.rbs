@@ -7,7 +7,7 @@ module Datadog
 
           DEFAULT_BYTESIZE_LIMIT: ::Integer
 
-          def self.parse: (body, media_type: MediaType, ?bytesize_limit: ::Integer) -> Datadog::Helpers::json?
+          def self.parse: (body, media_type: MediaType, ?limit: ::Integer) -> Datadog::Helpers::json?
         end
       end
     end
