@@ -602,6 +602,20 @@ RSpec.describe 'PG::Connection patcher' do
     describe '#exec_prepared' do
       before { conn.prepare('prepared select 1', 'SELECT $1::int') }
 
+      context 'when called without params' do
+        before { conn.prepare('prepared select', 'SELECT 1') }
+
+        subject(:exec_prepared) { conn.exec_prepared('prepared select') }
+
+        it 'does not raise an ArgumentError and produces a trace' do
+          result = exec_prepared
+
+          expect(result.values).to eq([['1']])
+          expect(spans.count).to eq(1)
+          expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_EXEC_PREPARED)
+        end
+      end
+
       context 'when without a given block' do
         subject(:exec_prepared) { conn.exec_prepared('prepared select 1', [1]) }
 
