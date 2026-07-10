@@ -58,9 +58,13 @@ module Datadog
           end
 
           def self.set_param_value(result, payload, segment_start:, segment_end:, equals_index:)
-            key_end = (equals_index == -1) ? segment_end : equals_index
-            key = payload.byteslice(segment_start, key_end - segment_start) || +''
-            value = (equals_index == -1) ? nil : payload.byteslice(equals_index + 1, segment_end - equals_index - 1) #: ::String?
+            if equals_index == -1
+              key = payload.byteslice(segment_start, segment_end - segment_start)
+              value = nil
+            else
+              key = payload.byteslice(segment_start, equals_index - segment_start)
+              value = payload.byteslice(equals_index + 1, segment_end - equals_index - 1)
+            end
 
             return if key.empty? && value.nil?
 
