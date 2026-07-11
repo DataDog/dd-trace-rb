@@ -2,6 +2,15 @@ module Datadog
   module Core
     module Utils
       module EnumerableCompat
+        # `array` is duck-typed at runtime (#respond_to?/#is_a? checks), and
+        # the block's return type can't be narrowed without rewriting #nil?
+        # checks as `case/when` type guards, which would obscure the code for
+        # the sake of the type checker. `any` reflects that honestly.
+        #
+        # A more precise alternative is possible:
+        #   [Elem, Out] (::Array[any] array) { (Elem) -> Out? } -> ::Array[Out]
+        # but it only type-checks if #nil? calls in the implementation are
+        # rewritten as `case new_item; when nil ... else ... end`.
         def self.filter_map: (::Array[any] array) { (any) -> any } -> ::Array[any]
       end
     end
