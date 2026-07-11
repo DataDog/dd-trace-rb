@@ -90,7 +90,6 @@ target :datadog do
   ignore 'lib/datadog/core/utils/forking.rb'
   ignore 'lib/datadog/core/utils/hash.rb' # Refinement module
   ignore 'lib/datadog/core/utils/network.rb'
-  ignore 'lib/datadog/core/utils/time.rb'
   ignore 'lib/datadog/core/vendor/multipart-post/multipart/post/multipartable.rb'
   ignore 'lib/datadog/core/worker.rb'
   ignore 'lib/datadog/data_streams/configuration.rb'

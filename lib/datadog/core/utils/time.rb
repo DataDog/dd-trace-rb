@@ -16,7 +16,7 @@ module Datadog
         MONOTONIC_CLOCK_ID = RUBY_PLATFORM.include?("darwin") ? Process::CLOCK_MONOTONIC_RAW : Process::CLOCK_MONOTONIC
 
         def get_time(unit = :float_second)
-          Process.clock_gettime(MONOTONIC_CLOCK_ID, unit)
+          Process.clock_gettime(MONOTONIC_CLOCK_ID, unit) # steep:ignore UnresolvedOverloading
         end
 
         # Current wall time.
@@ -45,7 +45,7 @@ module Datadog
               nil
             end
           end
-          define_singleton_method(:now, &block)
+          define_singleton_method(:now, &block) # steep:ignore BlockTypeMismatch
         end
 
         # Overrides the implementation of `#get_time
@@ -67,13 +67,13 @@ module Datadog
               nil
             end
           end
-          define_singleton_method(:get_time, &block)
+          define_singleton_method(:get_time, &block) # steep:ignore BlockTypeMismatch
         end
 
         def measure(unit = :float_second)
-          before = get_time(unit)
+          before = get_time(unit) # steep:ignore UnresolvedOverloading
           yield
-          after = get_time(unit)
+          after = get_time(unit) # steep:ignore UnresolvedOverloading
           after - before
         end
 
