@@ -8,6 +8,13 @@ module Datadog
 
         def initialize: (?Integer? limit) -> void
 
+        # A generic signature (`[T] { () -> T } -> T?`) would be more precise,
+        # but the body's `!!result` calls `#!` on the block's result, which a
+        # bare type variable `T` does not have. Making that type-check would
+        # require rewriting `!!result` to satisfy the type checker, which
+        # isn't worth obscuring the code for.
+        def run: () { () -> untyped } -> untyped
+
         def success?: -> bool
 
         def failed?: -> bool
@@ -17,6 +24,8 @@ module Datadog
         def check_limit!: -> void
 
         def limited?: -> bool
+
+        def reset_ran_once_state_for_tests: -> void
       end
     end
   end
