@@ -6,11 +6,7 @@ module Datadog
       # Helper methods for parsing string values into Numeric
       module Duration
         def self.call(value, base: :s)
-          cast = if value.include?('.')
-            method(:Float)
-          else
-            method(:Integer)
-          end
+          is_float = value.include?('.')
 
           scale = case base
           when :s
@@ -27,25 +23,30 @@ module Datadog
 
           result = case value
           when /^(\d+(?:\.\d+)?)h$/
-            cast.call(Regexp.last_match(1)) * 1_000_000_000 * 60 * 60 / scale
+            cast(Regexp.last_match(1), is_float) * 1_000_000_000 * 60 * 60 / scale
           when /^(\d+(?:\.\d+)?)m$/
-            cast.call(Regexp.last_match(1)) * 1_000_000_000 * 60 / scale
+            cast(Regexp.last_match(1), is_float) * 1_000_000_000 * 60 / scale
           when /^(\d+(?:\.\d+)?)s$/
-            cast.call(Regexp.last_match(1)) * 1_000_000_000 / scale
+            cast(Regexp.last_match(1), is_float) * 1_000_000_000 / scale
           when /^(\d+(?:\.\d+)?)ms$/
-            cast.call(Regexp.last_match(1)) * 1_000_000 / scale
+            cast(Regexp.last_match(1), is_float) * 1_000_000 / scale
           when /^(\d+(?:\.\d+)?)us$/
-            cast.call(Regexp.last_match(1)) * 1_000 / scale
+            cast(Regexp.last_match(1), is_float) * 1_000 / scale
           when /^(\d+(?:\.\d+)?)ns$/
-            cast.call(Regexp.last_match(1)) / scale
+            cast(Regexp.last_match(1), is_float) / scale
           when /^(\d+(?:\.\d+)?)$/
-            cast.call(Regexp.last_match(1))
+            cast(Regexp.last_match(1), is_float)
           else
             raise ArgumentError, "invalid duration: #{value.inspect}"
           end
-          # @type var result: Numeric
+
           result.round
         end
+
+        def self.cast(str, is_float)
+          is_float ? Float(str) : Integer(str)
+        end
+        private_class_method :cast
       end
     end
   end

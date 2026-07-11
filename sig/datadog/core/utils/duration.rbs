@@ -3,6 +3,10 @@ module Datadog
     module Utils
       module Duration
         def self.call: (String value, ?base: ::Symbol) -> Numeric
+
+        private
+
+        def self.cast: (untyped str, bool is_float) -> (::Integer | ::Float)
       end
     end
   end
