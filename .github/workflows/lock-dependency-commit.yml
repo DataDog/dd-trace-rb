@@ -7,7 +7,10 @@ name: Lock Dependencies Commit
 # are resolved from the default branch. This keeps the privileged
 # token-minting and push logic out of reach of a pull request that edits
 # lock-dependency.yml, which triggers the untrusted `lock` job.
-on: # yamllint disable-line rule:truthy
+# This job never checks out or executes PR-controlled code; it only
+# consumes lockfile artifacts from the untrusted `lock` job and commits
+# them with a token scoped to this trusted workflow.
+on: # yamllint disable-line rule:truthy # zizmor: ignore[dangerous-triggers]
   workflow_run:
     workflows:
       - Lock Dependencies
