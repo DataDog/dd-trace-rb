@@ -369,6 +369,7 @@ static VALUE _native_on_gvl_released(DDTRACE_UNUSED VALUE self, VALUE thread);
   static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE allow_exception);
 #endif
 static VALUE _native_apply_delta_to_time_at_previous_sample_ns(int argc, VALUE *argv, DDTRACE_UNUSED VALUE self);
+static VALUE _native_apply_delta_to_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE delta_ns);
 static void otel_without_ddtrace_trace_identifiers_for(
   thread_context_collector_state *state,
   VALUE thread,
@@ -430,6 +431,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
     rb_define_singleton_method(testing_module, "_native_sample_after_gvl_running", _native_sample_after_gvl_running, 3);
   #endif
   rb_define_singleton_method(testing_module, "_native_apply_delta_to_time_at_previous_sample_ns", _native_apply_delta_to_time_at_previous_sample_ns, -1);
+  rb_define_singleton_method(testing_module, "_native_apply_delta_to_gvl_waiting_at_for", _native_apply_delta_to_gvl_waiting_at_for, 2);
 
   at_active_span_id = rb_intern_const("@active_span");
   at_active_trace_id = rb_intern_const("@active_trace");
@@ -793,25 +795,26 @@ static void update_metrics_and_sample(
 
   if (skip_sample(state, thread_context, is_gvl_waiting_state, force_sample)) return;
 
+  // A thread enters "Waiting for GVL", well, as the name implies, without the GVL.
+  //
+  // As a consequence, it's possible for another thread to enter "Waiting for GVL" in parallel with the current thread working
+  // on sampling, and thus for the `current_monotonic_wall_time_ns` (which is recorded at the start of sampling)
+  // to be <= the time we observe for a "Waiting for GVL".
+  //
+  // When that happens, `handle_gvl_waiting` has already accounted for all wall-time up to the (later) start of the
+  // wait via the extra sample it pushes (see comments on that function), so there may be no remaining time
+  // to account for here.
+  // Thus, in this case, we don't want to produce a sample representing "Waiting for GVL" with a wall-time of 0 (nor negative!), and
+  // thus we skip creating such a sample.
+  if (is_gvl_waiting_state && current_monotonic_wall_time_ns <= thread_context->wall_time_at_previous_sample_ns) return;
+  // ...you may also wonder: is there any other situation where it makes sense to produce a sample with
+  // wall_time_elapsed_ns == 0? I believe that yes, because the sample still includes a timestamp and a stack, but we
+  // may revisit/change our minds on this in the future.
+
   // Don't assign/update cpu during "Waiting for GVL"
   long cpu_time_elapsed_ns = is_gvl_waiting_state ? 0 : update_cpu_time_since_previous_sample(thread_context, current_cpu_time_ns);
 
   long wall_time_elapsed_ns = update_wall_time_since_previous_sample(thread_context, current_monotonic_wall_time_ns);
-
-  // A thread enters "Waiting for GVL", well, as the name implies, without the GVL.
-  //
-  // As a consequence, it's possible that a thread enters "Waiting for GVL" in parallel with the current thread working
-  // on sampling, and thus for the `current_monotonic_wall_time_ns` (which is recorded at the start of sampling)
-  // to be < the time at which we started Waiting for GVL.
-  //
-  // All together, this means that when `handle_gvl_waiting` creates an extra sample (see comments on that function for
-  // what the extra sample is), it's possible that there's no more wall-time to be assigned.
-  // Thus, in this case, we don't want to produce a sample representing Waiting for GVL with a wall-time of 0, and
-  // thus we skip creating such a sample.
-  if (is_gvl_waiting_state && wall_time_elapsed_ns == 0) return;
-  // ...you may also wonder: is there any other situation where it makes sense to produce a sample with
-  // wall_time_elapsed_ns == 0? I believe that yes, because the sample still includes a timestamp and a stack, but we
-  // may revisit/change our minds on this in the future.
 
   trigger_sample_for_thread(
     state,
@@ -2466,6 +2469,17 @@ static VALUE _native_apply_delta_to_time_at_previous_sample_ns(int argc, VALUE *
 
   thread_context->cpu_time_at_previous_sample_ns += NUM2LONG(cpu_time_delta_ns);
   thread_context->wall_time_at_previous_sample_ns += NUM2LONG(wall_time_delta_ns);
+
+  return Qtrue;
+}
+
+static VALUE _native_apply_delta_to_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE delta_ns) {
+  ENFORCE_THREAD(thread);
+
+  per_thread_context *thread_context = get_per_thread_context(thread);
+  if (thread_context == NULL) raise_error(rb_eArgError, "Unexpected: This method cannot be used unless the per-thread context for the thread already exists");
+
+  thread_context->gvl_waiting_at += NUM2LONG(delta_ns);
 
   return Qtrue;
 }
