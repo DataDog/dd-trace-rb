@@ -18,14 +18,10 @@ module Datadog
       # which language SDK emitted them.
       #
       # Dispatch:
-      #   The capture is driven DIRECTLY from `Provider#evaluate` (see
-      #   `#capture`), not via the OpenFeature `finally` hook. The supported
-      #   OpenFeature Ruby SDK versions (>= 0.3.1, the appraisal minimum) do NOT
-      #   dispatch provider/client hooks at all — `Client#fetch_details` calls the
-      #   provider and never invokes any hook — so relying on `finally` would
-      #   silently emit no `ffe_*` tags even with the gate on. `#finally` is kept
-      #   as a thin, idempotent delegate so that a future SDK which DOES dispatch
-      #   hooks still works (the Set/Hash accumulators dedupe re-capture).
+      #   Enrichment is driven DIRECTLY from `Provider#evaluate` (see `#capture`),
+      #   not through an OpenFeature hook. This is the only path that works on
+      #   every supported SDK version, so the capture happens on the provider
+      #   evaluation thread rather than a hook callback.
       #
       # Lifecycle:
       #   - `#capture` runs on every evaluation. It resolves the local root span
@@ -61,22 +57,6 @@ module Datadog
         TAG_FLAGS_ENC = 'ffe_flags_enc'
         TAG_SUBJECTS_ENC = 'ffe_subjects_enc'
         TAG_RUNTIME_DEFAULTS = 'ffe_runtime_defaults'
-
-        METADATA_SERIAL_ID = '__dd_split_serial_id'
-        METADATA_DO_LOG = '__dd_do_log'
-
-        # Include the Hook module if available (SDK >= 0.5.0) for interface
-        # documentation; absent on older SDKs. Note that even when present the
-        # SDK does not dispatch the hook (see the class comment) — enrichment is
-        # driven from `#capture` via the provider evaluation path.
-        include ::OpenFeature::SDK::Hooks::Hook if defined?(::OpenFeature::SDK::Hooks::Hook)
-
-        # Always available: enrichment no longer depends on SDK hook dispatch.
-        # Retained for symmetry with the other hooks' `available?` and the
-        # component gate, but the span-enrichment path works on every supported SDK.
-        def self.available?
-          true
-        end
 
         # Pure encoding/crypto helpers implementing the fixed cross-SDK wire
         # format; uses only Ruby stdlib (no new dependencies).
@@ -267,25 +247,6 @@ module Datadog
           end
         rescue => e
           Datadog.logger.debug { "Error capturing span enrichment: #{e.class}: #{e.message}" }
-        end
-
-        # OpenFeature `finally` hook: kept for forward compatibility with a future
-        # SDK that actually dispatches provider hooks. Idempotent with `#capture`
-        # (Set/Hash accumulators dedupe). Never raises.
-        def finally(hook_context:, evaluation_details:, **_opts)
-          metadata = evaluation_details.flag_metadata
-          metadata = {} unless metadata.is_a?(Hash)
-
-          capture(
-            flag_key: hook_context.flag_key,
-            variant: evaluation_details.variant,
-            value: evaluation_details.value,
-            serial_id: metadata[METADATA_SERIAL_ID],
-            do_log: metadata[METADATA_DO_LOG] || false,
-            targeting_key: hook_context.evaluation_context&.targeting_key,
-          )
-        rescue => e
-          Datadog.logger.debug { "Error capturing span enrichment (finally): #{e.class}: #{e.message}" }
         end
 
         # Provider-close cleanup: drop all accumulated state. Per-trace

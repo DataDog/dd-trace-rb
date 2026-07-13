@@ -79,7 +79,6 @@ module Datadog
         [
           component&.flag_eval_metrics_hook,
           component&.flag_eval_evp_hook,
-          component&.span_enrichment_hook,
         ].compact
       end
 
@@ -126,11 +125,9 @@ module Datadog
           return sdk_error_details(default_value, result.error_code, result.error_message, result.reason, flag_meta)
         end
 
-        # Drive APM span enrichment directly from the evaluation path. Older OpenFeature Ruby SDKs
-        # (< 0.6) do not dispatch provider hooks (`Client#fetch_details` never invokes hooks), so
-        # dispatching here is the only reliable way to attach `ffe_*` tags on those versions. On SDKs
-        # that do dispatch hooks (>= 0.6) the `finally` hook also runs, but it dedupes with this path
-        # so tags are emitted exactly once. Guarded so enrichment can never break evaluation.
+        # Drive APM span enrichment directly from the evaluation path. This is the only reliable
+        # way to attach `ffe_*` tags across all supported OpenFeature SDK versions, since older
+        # SDKs do not dispatch provider hooks. Guarded so enrichment can never break evaluation.
         enrich_span(flag_key, result, evaluation_context)
 
         sdk_success_details(result, flag_meta)

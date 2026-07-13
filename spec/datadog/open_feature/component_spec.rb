@@ -63,10 +63,6 @@ RSpec.describe Datadog::OpenFeature::Component do
           context 'when span enrichment is enabled' do
             before do
               settings.open_feature.span_enrichment_enabled = true
-              # The real OpenFeature Hooks::Hook module only exists on SDK >= 0.5.0;
-              # stub availability so the construction logic is exercised regardless
-              # of the SDK version resolved by the appraisal.
-              allow(Datadog::OpenFeature::Hooks::SpanEnrichmentHook).to receive(:available?).and_return(true)
             end
 
             it 'constructs the span enrichment hook' do
@@ -174,7 +170,6 @@ RSpec.describe Datadog::OpenFeature::Component do
         stub_const('Datadog::Core::LIBDATADOG_API_FAILURE', nil)
         settings.open_feature.span_enrichment_enabled = true
         allow(worker).to receive(:graceful_shutdown)
-        allow(Datadog::OpenFeature::Hooks::SpanEnrichmentHook).to receive(:available?).and_return(true)
       end
 
       it 'shuts down the span enrichment hook (symmetric teardown)' do

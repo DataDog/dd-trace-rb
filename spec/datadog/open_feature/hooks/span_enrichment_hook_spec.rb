@@ -21,33 +21,6 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
 
   before { allow(Datadog::Tracing).to receive(:active_trace).and_return(trace_op) }
 
-  def hook_context(flag_key: 'flag-a', targeting_key: 'user-123')
-    evaluation_context =
-      if targeting_key
-        instance_double('OpenFeature::SDK::EvaluationContext', targeting_key: targeting_key)
-      end
-    instance_double(
-      'OpenFeature::SDK::Hooks::HookContext',
-      flag_key: flag_key,
-      evaluation_context: evaluation_context
-    )
-  end
-
-  def details(variant:, value: 'on', serial_id: nil, do_log: false, flag_metadata: nil)
-    metadata = flag_metadata
-    if metadata.nil?
-      metadata = {}
-      metadata['__dd_split_serial_id'] = serial_id unless serial_id.nil?
-      metadata['__dd_do_log'] = do_log
-    end
-    instance_double(
-      'OpenFeature::SDK::EvaluationDetails',
-      variant: variant,
-      value: value,
-      flag_metadata: metadata
-    )
-  end
-
   describe 'codec' do
     let(:codec) { Datadog::OpenFeature::Hooks::SpanEnrichmentHook::Codec }
 
@@ -230,12 +203,9 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
     end
   end
 
-  describe '#finally' do
+  describe '#capture' do
     it 'accumulates a serial id for the active root span' do
-      hook.finally(
-        hook_context: hook_context,
-        evaluation_details: details(variant: 'on', serial_id: 100)
-      )
+      hook.capture(flag_key: 'flag-a', variant: 'on', value: 'on', serial_id: 100, do_log: false, targeting_key: 'user-123')
 
       state = accumulator_store.fetch(trace_op)
       expect(state.has_data?).to be(true)
@@ -243,30 +213,21 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
     end
 
     it 'adds a subject only when do_log is true and a targeting key is present' do
-      hook.finally(
-        hook_context: hook_context(targeting_key: 'user-123'),
-        evaluation_details: details(variant: 'on', serial_id: 100, do_log: true)
-      )
+      hook.capture(flag_key: 'flag-a', variant: 'on', value: 'on', serial_id: 100, do_log: true, targeting_key: 'user-123')
 
       state = accumulator_store.fetch(trace_op)
       expect(state.to_span_tags).to have_key('ffe_subjects_enc')
     end
 
     it 'does not add a subject when do_log is false' do
-      hook.finally(
-        hook_context: hook_context(targeting_key: 'user-123'),
-        evaluation_details: details(variant: 'on', serial_id: 100, do_log: false)
-      )
+      hook.capture(flag_key: 'flag-a', variant: 'on', value: 'on', serial_id: 100, do_log: false, targeting_key: 'user-123')
 
       state = accumulator_store.fetch(trace_op)
       expect(state.to_span_tags).not_to have_key('ffe_subjects_enc')
     end
 
     it 'detects a runtime default via a missing variant' do
-      hook.finally(
-        hook_context: hook_context(flag_key: 'flag-default'),
-        evaluation_details: details(variant: nil, value: 'control')
-      )
+      hook.capture(flag_key: 'flag-default', variant: nil, value: 'control', serial_id: nil, do_log: false, targeting_key: nil)
 
       state = accumulator_store.fetch(trace_op)
       defaults = JSON.parse(state.to_span_tags['ffe_runtime_defaults'])
@@ -277,19 +238,15 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
       allow(Datadog::Tracing).to receive(:active_trace).and_return(nil)
 
       expect do
-        hook.finally(
-          hook_context: hook_context,
-          evaluation_details: details(variant: 'on', serial_id: 100)
-        )
+        hook.capture(flag_key: 'flag-a', variant: 'on', value: 'on', serial_id: 100, do_log: false, targeting_key: nil)
       end.not_to raise_error
     end
 
-    it 'does not raise on malformed evaluation details (error isolation)' do
-      broken = instance_double('OpenFeature::SDK::EvaluationDetails')
-      allow(broken).to receive(:flag_metadata).and_raise(StandardError, 'boom')
+    it 'does not raise when capture hits an internal error (error isolation)' do
+      allow(Datadog::Tracing).to receive(:active_trace).and_raise(StandardError, 'boom')
 
       expect do
-        hook.finally(hook_context: hook_context, evaluation_details: broken)
+        hook.capture(flag_key: 'flag-a', variant: 'on', value: 'on', serial_id: 100, do_log: false, targeting_key: nil)
       end.not_to raise_error
     end
   end
@@ -297,14 +254,8 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
   describe 'root-span write integration' do
     it 'writes ffe_* tags on the local root span on finish and clears state' do
       trace_op.measure('root') do
-        hook.finally(
-          hook_context: hook_context(targeting_key: 'user-123'),
-          evaluation_details: details(variant: 'on', serial_id: 100, do_log: true)
-        )
-        hook.finally(
-          hook_context: hook_context(flag_key: 'flag-default'),
-          evaluation_details: details(variant: nil, value: 'control')
-        )
+        hook.capture(flag_key: 'flag-a', variant: 'on', value: 'on', serial_id: 100, do_log: true, targeting_key: 'user-123')
+        hook.capture(flag_key: 'flag-default', variant: nil, value: 'control', serial_id: nil, do_log: false, targeting_key: nil)
       end
 
       expect(trace_op.get_tag('ffe_flags_enc')).to eq('ZA==')
@@ -332,10 +283,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
     # run when the local root is the span finishing, never on a child finish.
     it 'still writes ffe_* tags on the root when a child span finishes first' do
       trace_op.measure('root') do
-        hook.finally(
-          hook_context: hook_context(targeting_key: 'user-123'),
-          evaluation_details: details(variant: 'on', serial_id: 100, do_log: true)
-        )
+        hook.capture(flag_key: 'flag-a', variant: 'on', value: 'on', serial_id: 100, do_log: true, targeting_key: 'user-123')
 
         # A nested child span that opens and finishes entirely inside the root.
         # Its `span_before_finish` fires before the root's, exercising the
@@ -365,10 +313,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
         end
 
         # Evaluate the flag only after the child has finished.
-        hook.finally(
-          hook_context: hook_context,
-          evaluation_details: details(variant: 'on', serial_id: 100)
-        )
+        hook.capture(flag_key: 'flag-a', variant: 'on', value: 'on', serial_id: 100, do_log: false, targeting_key: nil)
       end
 
       expect(trace_op.get_tag('ffe_flags_enc')).to eq('ZA==')
@@ -378,10 +323,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
 
   describe '#shutdown' do
     it 'clears all accumulated state' do
-      hook.finally(
-        hook_context: hook_context,
-        evaluation_details: details(variant: 'on', serial_id: 100)
-      )
+      hook.capture(flag_key: 'flag-a', variant: 'on', value: 'on', serial_id: 100, do_log: false, targeting_key: nil)
       expect(accumulator_store.fetch(trace_op)).not_to be_nil
 
       hook.shutdown

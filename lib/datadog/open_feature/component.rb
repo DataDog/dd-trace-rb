@@ -106,7 +106,6 @@ module Datadog
         return unless @settings.open_feature.span_enrichment_enabled
 
         require_relative 'hooks/span_enrichment_hook'
-        return unless Hooks::SpanEnrichmentHook.available?
 
         store = Hooks::SpanEnrichmentHook::AccumulatorStore.new
         Hooks::SpanEnrichmentHook.new(store)

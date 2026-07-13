@@ -12,13 +12,10 @@ require 'set'
 # -> enrichment dispatch -> `ffe_*` tags on the local root APM span.
 #
 # This exercises the highest-risk behavior the unit specs cannot: that real Ruby
-# evaluations actually trigger enrichment. Older OpenFeature Ruby SDKs (< 0.6) do
-# NOT dispatch provider/client hooks at all, so enrichment is driven directly
-# from the provider's evaluation path (`Provider#enrich_span`). Newer SDKs (>= 0.6)
-# DO dispatch the provider hooks (and set the provider asynchronously), so the
-# span-enrichment `finally` hook also runs; it is idempotent with the direct
-# dispatch (Set/Hash accumulators dedupe), so `ffe_*` is emitted exactly once on
-# every supported version. Only the native evaluation (`EvaluationEngine`) and the
+# evaluations actually trigger enrichment. Enrichment is driven directly from the
+# provider's evaluation path (`Provider#enrich_span`), which works on every
+# supported OpenFeature SDK version regardless of whether the SDK dispatches
+# provider hooks. Only the native evaluation (`EvaluationEngine`) and the
 # active-trace seam are stubbed — everything from the OpenFeature client through
 # the provider down to the root-span write is the production code path. No native
 # ext / libdatadog / Docker required.

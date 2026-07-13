@@ -2,8 +2,6 @@ module Datadog
   module OpenFeature
     module Hooks
       class SpanEnrichmentHook
-        include ::OpenFeature::SDK::Hooks::Hook
-
         MAX_SERIAL_IDS: ::Integer
 
         MAX_SUBJECTS: ::Integer
@@ -19,10 +17,6 @@ module Datadog
         TAG_SUBJECTS_ENC: ::String
 
         TAG_RUNTIME_DEFAULTS: ::String
-
-        METADATA_SERIAL_ID: ::String
-
-        METADATA_DO_LOG: ::String
 
         module Codec
           def self?.encode_varint: (::Integer value) -> ::String
@@ -77,8 +71,6 @@ module Datadog
 
         @mutex: Thread::Mutex
 
-        def self.available?: () -> bool
-
         def initialize: (AccumulatorStore accumulator_store) -> void
 
         def capture: (
@@ -88,12 +80,6 @@ module Datadog
           serial_id: ::Integer?,
           do_log: bool,
           targeting_key: ::String?
-        ) -> void
-
-        def finally: (
-          hook_context: ::OpenFeature::SDK::Hooks::HookContext,
-          evaluation_details: ::OpenFeature::SDK::EvaluationDetails,
-          **untyped _opts
         ) -> void
 
         def shutdown: () -> void
