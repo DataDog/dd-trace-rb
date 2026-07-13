@@ -149,9 +149,11 @@ module Datadog
             # After shutdown the store is cleared, but this trace's subscription
             # closure still holds the accumulator; skip the write so a provider
             # close/reconfigure never emits stale `ffe_*` tags on an open trace.
-            next {} if @closed
-
-            accumulator.has_data? ? accumulator.to_span_tags : {}
+            if @closed || !accumulator.has_data?
+              {}
+            else
+              accumulator.to_span_tags
+            end
           ensure
             # Delete only on the local root span's finish. A child finish never
             # reaches here. In an `ensure` so abandoned state is still freed if
