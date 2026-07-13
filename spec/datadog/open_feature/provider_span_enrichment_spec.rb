@@ -2,11 +2,6 @@
 
 require 'spec_helper'
 
-require 'json'
-require 'digest'
-require 'base64'
-require 'set'
-
 # End-to-end span-enrichment coverage that drives the REAL OpenFeature client
 # path: `OpenFeature::SDK.build_client` -> `Datadog::OpenFeature::Provider#fetch_*`
 # -> enrichment dispatch -> `ffe_*` tags on the local root APM span.

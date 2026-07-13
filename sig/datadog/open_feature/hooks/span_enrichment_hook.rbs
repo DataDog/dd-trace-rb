@@ -18,55 +18,6 @@ module Datadog
 
         TAG_RUNTIME_DEFAULTS: ::String
 
-        module Codec
-          def self?.encode_varint: (::Integer value) -> ::String
-
-          def self?.encode_delta_varint: (Set[::Integer] serial_ids) -> ::String
-
-          def self?.hash_targeting_key: (::String targeting_key) -> ::String
-        end
-
-        class Accumulator
-          @serial_ids: Set[::Integer]
-
-          @subjects: ::Hash[::String, Set[::Integer]]
-
-          @defaults: ::Hash[::String, ::String]
-
-          def initialize: () -> void
-
-          def add_serial_id: (::Integer serial_id) -> void
-
-          def add_subject: (::String targeting_key, ::Integer serial_id) -> void
-
-          def add_default: (::String flag_key, untyped value) -> void
-
-          def has_data?: () -> bool
-
-          def to_span_tags: () -> ::Hash[::String, ::String]
-        end
-
-        # Keyed WEAKLY by the active trace operation via object identity. Typed as
-        # `untyped` because `Datadog::Tracing.active_trace` is declared to return
-        # a `TraceSegment` while at runtime the open trace is a `TraceOperation`;
-        # the store only uses the value as an identity key.
-        class AccumulatorStore
-          # `ObjectSpace::WeakMap` has no generic RBS declaration in rbs core, so
-          # the backing store is typed `untyped`; the public methods below carry
-          # the precise contract.
-          @states: untyped
-
-          def initialize: () -> void
-
-          def []: (untyped trace_op) -> Accumulator?
-
-          def fetch_or_create: (untyped trace_op) -> [ Accumulator, bool ]
-
-          def delete: (untyped trace_op) -> void
-
-          def clear!: () -> void
-        end
-
         @store: AccumulatorStore
 
         @mutex: Thread::Mutex

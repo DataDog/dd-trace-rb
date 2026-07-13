@@ -1,0 +1,54 @@
+# frozen_string_literal: true
+
+require 'digest'
+require 'base64'
+
+module Datadog
+  module OpenFeature
+    module Hooks
+      class SpanEnrichmentHook
+        # Pure encoding/crypto helpers implementing the fixed cross-SDK wire
+        # format; uses only Ruby stdlib (no new dependencies).
+        module Codec
+          module_function
+
+          # ULEB128: 7 bits per byte, MSB set marks continuation.
+          # The buffer MUST be binary (ASCII-8BIT): `String#<<` with an Integer on a
+          # UTF-8 string appends a Unicode *codepoint*, so any byte >= 0x80 would be
+          # re-encoded as a 2-byte UTF-8 sequence and corrupt the varint (e.g. serial
+          # 2312 -> bytes 88 12, but UTF-8 would emit C2 88 12 = 296002 on decode).
+          def encode_varint(value)
+            bytes = (+'').b
+            while value > 0x7F
+              bytes << ((value & 0x7F) | 0x80)
+              value >>= 7
+            end
+            bytes << (value & 0x7F)
+            bytes
+          end
+
+          # Encode a Set of serial ids as base64(ULEB128 delta-varint).
+          # Empty set -> empty string (the caller omits the tag).
+          def encode_delta_varint(serial_ids)
+            sorted = serial_ids.to_a.sort
+            return '' if sorted.empty?
+
+            bytes = (+'').b
+            prev = 0
+            sorted.each do |id|
+              bytes << encode_varint(id - prev)
+              prev = id
+            end
+            Base64.strict_encode64(bytes)
+          end
+
+          # Lowercase hex SHA256 of the targeting key: it is hashed before
+          # emission so raw user identifiers never leave the process.
+          def hash_targeting_key(targeting_key)
+            Digest::SHA256.hexdigest(targeting_key)
+          end
+        end
+      end
+    end
+  end
+end

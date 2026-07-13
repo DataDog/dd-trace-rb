@@ -1,0 +1,27 @@
+module Datadog
+  module OpenFeature
+    module Hooks
+      class SpanEnrichmentHook
+        class Accumulator
+          @serial_ids: Set[::Integer]
+
+          @subjects: ::Hash[::String, Set[::Integer]]
+
+          @defaults: ::Hash[::String, ::String]
+
+          def initialize: () -> void
+
+          def add_serial_id: (::Integer serial_id) -> void
+
+          def add_subject: (::String targeting_key, ::Integer serial_id) -> void
+
+          def add_default: (::String flag_key, untyped value) -> void
+
+          def has_data?: () -> bool
+
+          def to_span_tags: () -> ::Hash[::String, ::String]
+        end
+      end
+    end
+  end
+end

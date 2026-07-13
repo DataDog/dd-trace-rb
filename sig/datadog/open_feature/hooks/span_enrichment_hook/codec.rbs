@@ -1,0 +1,15 @@
+module Datadog
+  module OpenFeature
+    module Hooks
+      class SpanEnrichmentHook
+        module Codec
+          def self?.encode_varint: (::Integer value) -> ::String
+
+          def self?.encode_delta_varint: (Set[::Integer] serial_ids) -> ::String
+
+          def self?.hash_targeting_key: (::String targeting_key) -> ::String
+        end
+      end
+    end
+  end
+end
