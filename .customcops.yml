@@ -29,3 +29,26 @@ CustomCops/EnvStringValidationCop:
     - "lib/**/*"
   Exclude:
     - "lib/datadog/core/configuration/supported_configurations.rb"
+
+# Enforce conventional namespace paths and one implementation class/module per file
+# for new OpenFeature code. Existing legacy nesting is explicitly allowlisted.
+CustomCops/OpenFeatureNamespacePathCop:
+  Enabled: true
+  Safe: false
+  Include:
+    - "lib/datadog/open_feature/**/*.rb"
+  AllowedConstants:
+    - "Datadog::OpenFeature::Configuration::Settings"
+    - "Datadog::OpenFeature::Transport::HTTP"
+    - "Datadog::OpenFeature::Transport::HTTP::Spec"
+    - "Datadog::OpenFeature::Transport::HTTP::FlagevaluationsSpec"
+
+# Require OpenFeature type errors to be represented in RBS instead of suppressed.
+# The existing Class.new assignment is linked to an upstream Steep limitation.
+CustomCops/OpenFeatureSteepIgnoreCop:
+  Enabled: true
+  Safe: false
+  Include:
+    - "lib/datadog/open_feature/**/*.rb"
+  AllowedComments:
+    - "lib/datadog/open_feature/evaluation_engine.rb:# steep:ignore IncompatibleAssignment"
