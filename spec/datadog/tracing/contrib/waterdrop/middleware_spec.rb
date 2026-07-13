@@ -8,6 +8,7 @@ RSpec.describe 'WaterDrop middleware' do
   before do
     Datadog.configure do |c|
       c.tracing.instrument :waterdrop, tracing_options
+      c.tracing.instrument :waterdrop, describes: /special_/, distributed_tracing: false
     end
   end
 
@@ -54,6 +55,17 @@ RSpec.describe 'WaterDrop middleware' do
           'x-datadog-trace-id' => low_order_trace_id(span.trace_id).to_s,
           'x-datadog-parent-id' => span.id.to_s
         )
+      end
+    end
+
+    context 'when distributed tracing is disabled for the topic in particular' do
+      it 'does not propagate trace context in message headers' do
+        message_1 = {topic: 'special_topic', payload: 'foo'}
+        Datadog::Tracing.trace('test.span') do
+          middleware.call(message_1)
+        end
+
+        expect(message_1[:headers]).to be_nil
       end
     end
 
