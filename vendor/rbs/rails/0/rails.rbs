@@ -27,9 +27,30 @@ module ActiveSupport
 end
 
 module Rails
+  module VERSION
+    MAJOR: Integer
+  end
+
   class Railtie
     def self.initializer: (untyped name, ?::Hash[untyped, untyped] opts) { () -> untyped } -> untyped
   end
 
   def self.env: -> String
+
+  # Returns the app's `Rails::Application` subclass instance; typed as `Object` here since
+  # callers only rely on `.class` (see `module_parent_name`/`parent_name` below), not on
+  # this API's own surface.
+  def self.application: () -> Object
+end
+
+# `module_parent_name`/`parent_name` are ActiveSupport core extensions added onto every
+# `Module`/`Class` (e.g. via `SomeApp::Application.module_parent_name`).
+class Class
+  def module_parent_name: () -> String?
+  def parent_name: () -> String?
+end
+
+# `underscore` is an ActiveSupport core extension added onto `String`.
+class String
+  def underscore: () -> String
 end

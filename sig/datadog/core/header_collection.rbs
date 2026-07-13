@@ -1,7 +1,7 @@
 module Datadog
   module Core
     class HeaderCollection
-      def get: (::String header_name) -> nil
+      def get: (::String header_name) -> ::String?
       def self.from_hash: (untyped hash) -> HashHeaderCollection
     end
 

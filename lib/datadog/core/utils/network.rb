@@ -57,7 +57,8 @@ module Datadog
             clean_ip = if likely_ipv4?(ip)
               strip_ipv4_port(ip)
             else
-              strip_zone_specifier(strip_ipv6_port(ip))
+              ipv6 = strip_ipv6_port(ip) #: String
+              strip_zone_specifier(ipv6)
             end
 
             begin

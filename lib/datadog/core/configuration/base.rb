@@ -39,10 +39,11 @@ module Datadog
             settings_children[name] = settings_class
 
             option(name, is_settings: true) do |o|
-              o.default { settings_class.new }
+              o.default { (_ = settings_class).new }
 
               o.resetter do |value|
-                value.reset! if value.respond_to?(:reset!)
+                untyped_value = value #: untyped
+                untyped_value.reset! if value.respond_to?(:reset!)
                 value
               end
             end
@@ -53,10 +54,12 @@ module Datadog
           private
 
           def new_settings_class(name, settings_path, &block)
-            Class.new { include Configuration::Base }.tap do |klass|
+            new_class = Class.new { |klass| klass.include(Configuration::Base) }.tap do |klass|
               klass.instance_variable_set(:@settings_path, settings_path)
-              klass.instance_eval(&block) if block
+              dsl_klass = _ = klass
+              dsl_klass.instance_eval(&block) if block
             end
+            _ = new_class
           end
         end
 
