@@ -36,7 +36,7 @@ gem 'rspec', '~> 3.13'
 gem 'rspec-collection_matchers', '~> 1.1'
 gem 'rspec_junit_formatter', '>= 0.5.1'
 gem 'rspec-wait', '~> 0'
-gem 'simplecov', '~> 0.22.0'
+gem 'simplecov', '~> 1.0'
 gem 'warning', '~> 1' # NOTE: Used in spec_helper.rb
 gem 'webmock', '>= 3.10.0'
 gem 'webrick', '>= 1.8.2'
