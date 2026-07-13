@@ -32,7 +32,7 @@ module Datadog
 
         def matches_compiled: (::String haystack, ::Integer index) -> bool
 
-        private def apply_match: (::Regexp re, ::String haystack) -> bool
+        private def bounded_match?: (::Regexp re, ::String haystack) -> bool
 
         def getmember: (untyped object, (Symbol | String) field) -> untyped
 
