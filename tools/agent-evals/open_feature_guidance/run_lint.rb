@@ -160,6 +160,7 @@ case_paths.each do |case_path|
       if errors.empty?
         puts "PASS #{name}"
         puts "  observed: #{rubocop_evidence.join(' | ')}"
+        puts '  post-check: RuboCop clean; requested change present; only target file changed'
       else
         failures << [name, errors.join("\n")]
       end
