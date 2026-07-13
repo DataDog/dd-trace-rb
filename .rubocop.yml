@@ -17,6 +17,7 @@ AllCops:
     - integration/**/**
     - lib/datadog/**/vendor/**/*
     - lib/datadog/profiling/ext/exec_monkey_patch.rb
+    - vendor/bundle/**/*
   NewCops: disable
   SuggestExtensions: false
 

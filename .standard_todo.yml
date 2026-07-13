@@ -23,3 +23,4 @@ ignore:
   - integration/**/**
   - lib/datadog/**/vendor/**/*
   - lib/datadog/profiling/ext/exec_monkey_patch.rb # This is Ruby 2.7+ and standard doesn't like it
+  - vendor/bundle/**/*
