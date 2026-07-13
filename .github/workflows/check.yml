@@ -137,7 +137,7 @@ jobs:
           scope: DataDog/dd-trace-rb
           policy: self.check
       - name: Run zizmor 🌈
-        uses: docker://ghcr.io/woodruffw/zizmor:1.4.1
+        uses: docker://ghcr.io/woodruffw/zizmor:1.26.1
         with:
           args: --min-severity low .
         env:
