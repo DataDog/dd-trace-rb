@@ -1,0 +1,42 @@
+require:
+  - standard
+  - standard-custom
+  - standard-performance
+  - rubocop-performance
+
+inherit_gem:
+  standard: config/base.yml
+  standard-custom: config/base.yml
+  standard-performance: config/base.yml
+
+AllCops:
+  TargetRubyVersion: 2.5
+  Exclude:
+    - appraisal/**/**
+    - gemfiles/**/**
+    - integration/**/**
+    - lib/datadog/**/vendor/**/*
+    - lib/datadog/profiling/ext/exec_monkey_patch.rb
+  NewCops: disable
+  SuggestExtensions: false
+
+Style/TrailingCommaInArguments:
+  Enabled: false
+
+Style/TrailingCommaInArrayLiteral:
+  Enabled: false
+
+Style/TrailingCommaInHashLiteral:
+  Enabled: false
+
+Style/StringLiterals:
+  Enabled: false
+
+Style/QuotedSymbols:
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  Enabled: false
+
+Layout/LeadingCommentSpace:
+  Enabled: false
