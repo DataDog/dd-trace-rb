@@ -458,5 +458,4 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
       end
     end
   end
-
 end
