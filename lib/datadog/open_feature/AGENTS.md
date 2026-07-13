@@ -189,6 +189,7 @@ These apply across the whole repository, not just this directory.
 ## Style
 
 Run `bundle exec rake standard:fix` before pushing. StandardRB is fixed and non-configurable by team convention.
+After changing this guide or its root routing instruction, run `ruby tools/agent-evals/open_feature_guidance/run.rb`.
 
 ---
 
