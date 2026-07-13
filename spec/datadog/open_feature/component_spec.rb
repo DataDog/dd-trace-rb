@@ -47,7 +47,7 @@ RSpec.describe Datadog::OpenFeature::Component do
           expect(Datadog::OpenFeature::Exposures::Reporter).to have_received(:new)
         end
 
-        describe 'span enrichment hook gate (DG-005)' do
+        describe 'span enrichment hook gate' do
           context 'when span enrichment is disabled (default)' do
             it 'does not construct the span enrichment hook' do
               expect(component.span_enrichment_hook).to be_nil

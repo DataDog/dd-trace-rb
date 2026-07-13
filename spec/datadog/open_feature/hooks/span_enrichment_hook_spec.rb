@@ -312,7 +312,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
       expect(subjects[Digest::SHA256.hexdigest('user-123')]).to eq('ZA==')
       expect(JSON.parse(trace_op.get_tag('ffe_runtime_defaults'))).to eq('flag-default' => 'control')
 
-      # State cleaned up after the root span finishes (DG-005 / no leak).
+      # State cleaned up after the root span finishes (no leak).
       expect(accumulator_store.fetch(trace_op)).to be_nil
     end
 
@@ -326,7 +326,7 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
       expect(trace_op.get_tag('ffe_runtime_defaults')).to be_nil
     end
 
-    # Regression for CR-01: a child span finishing BEFORE the local root must not
+    # Regression: a child span finishing BEFORE the local root must not
     # destroy the trace's accumulated state. `span_before_finish` fires for every
     # span, and in any nested trace the child finishes first; cleanup must only
     # run when the local root is the span finishing, never on a child finish.
@@ -338,7 +338,8 @@ RSpec.describe Datadog::OpenFeature::Hooks::SpanEnrichmentHook do
         )
 
         # A nested child span that opens and finishes entirely inside the root.
-        # Its `span_before_finish` fires before the root's, exercising CR-01.
+        # Its `span_before_finish` fires before the root's, exercising the
+        # child-finishes-first ordering.
         trace_op.measure('child') do
           # No additional captures inside the child — the point is only that the
           # child finishes (and publishes span_before_finish) before the root.

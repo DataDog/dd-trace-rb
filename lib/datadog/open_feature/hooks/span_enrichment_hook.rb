@@ -11,11 +11,11 @@ module Datadog
       # Captures feature-flag evaluation metadata and writes contract-conformant
       # `ffe_*` tags onto the local root APM span when it finishes.
       #
-      # This is the Ruby port of the frozen Node.js reference
-      # (`dd-trace-js#8343`). The encoding (ULEB128 delta-varint + base64), the
-      # accumulator limits, the runtime-default detection (missing variant) and
-      # the SHA256 subject hashing are reproduced exactly so that the backend /
-      # Trino decode and the parametric system-tests assertions stay in parity.
+      # The wire format is a fixed cross-SDK contract. The encoding (ULEB128
+      # delta-varint + base64), the accumulator limits, the runtime-default
+      # detection (missing variant) and the SHA256 subject hashing must be
+      # reproduced exactly so the backend decodes tags identically regardless of
+      # which language SDK emitted them.
       #
       # Dispatch:
       #   The capture is driven DIRECTLY from `Provider#evaluate` (see
@@ -49,10 +49,9 @@ module Datadog
       #
       # When the gate is off the hook is never constructed (see
       # `Component#create_span_enrichment_hook`), so there is zero idle per-span
-      # overhead (DG-005).
+      # overhead.
       class SpanEnrichmentHook
-        # Frozen contract limits — match the Node reference exactly. No env-var
-        # knobs.
+        # Fixed cross-SDK contract limits. No env-var knobs.
         MAX_SERIAL_IDS = 200
         MAX_SUBJECTS = 10
         MAX_EXPERIMENTS_PER_SUBJECT = 20
@@ -79,8 +78,8 @@ module Datadog
           true
         end
 
-        # Pure encoding/crypto helpers. Ported verbatim from the frozen Node
-        # reference; uses only Ruby stdlib (no new dependencies).
+        # Pure encoding/crypto helpers implementing the fixed cross-SDK wire
+        # format; uses only Ruby stdlib (no new dependencies).
         module Codec
           module_function
 
@@ -114,7 +113,8 @@ module Datadog
             Base64.strict_encode64(bytes)
           end
 
-          # Lowercase hex SHA256 of the targeting key (privacy contract DG-003).
+          # Lowercase hex SHA256 of the targeting key: it is hashed before
+          # emission so raw user identifiers never leave the process.
           def hash_targeting_key(targeting_key)
             Digest::SHA256.hexdigest(targeting_key)
           end
@@ -131,7 +131,7 @@ module Datadog
           def initialize
             @serial_ids = Set.new
             @subjects = {} # sha256hex => Set<int>
-            @defaults = {} # flagKey => String
+            @defaults = {} # flag_key => String
           end
 
           def add_serial_id(serial_id)
@@ -241,7 +241,7 @@ module Datadog
         # Direct dispatch from the Datadog provider evaluation path. Takes only
         # primitives so it does not depend on any OpenFeature SDK object shape and
         # works on every supported SDK version. Never raises — flag evaluation and
-        # the trace pipeline must not be broken by enrichment (Pattern D).
+        # the trace pipeline must not be broken by enrichment.
         #
         # @param flag_key [String] the evaluated flag key
         # @param variant [String, nil] the resolved variant (nil/empty => runtime default)
@@ -326,7 +326,7 @@ module Datadog
           # nested trace the child spans finish before the local root. Only the
           # local root's finish may write tags AND clean up per-trace state:
           # cleaning up on a child finish would wipe the accumulator before the
-          # root is written (CR-01). The cleanup therefore lives inside this
+          # root is written. The cleanup therefore lives inside this
           # root-only branch, never in an unconditional `ensure` that would also
           # run for child finishes.
           return unless span_op.equal?(trace_op.send(:root_span))
@@ -337,10 +337,9 @@ module Datadog
             snapshot = accumulator.has_data? ? accumulator.to_span_tags : {}
             snapshot
           ensure
-            # Delete only on the local root span's finish (mirrors the Node
-            # reference's `spanStates.delete(span)` and the Python sibling's
-            # `_on_span_finish` pop). A child finish never reaches here. In an
-            # `ensure` so abandoned state is still freed if encoding ever raises.
+            # Delete only on the local root span's finish. A child finish never
+            # reaches here. In an `ensure` so abandoned state is still freed if
+            # encoding ever raises.
             @store.delete(trace_op)
           end
 

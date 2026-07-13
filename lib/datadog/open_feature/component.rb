@@ -101,7 +101,7 @@ module Datadog
       end
 
       # Construct the span-enrichment hook only when the opt-in gate is on, so
-      # there is no idle per-span overhead when disabled (DG-005).
+      # there is no idle per-span overhead when disabled.
       def create_span_enrichment_hook
         return unless @settings.open_feature.span_enrichment_enabled
 

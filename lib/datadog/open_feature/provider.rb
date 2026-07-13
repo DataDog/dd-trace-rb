@@ -187,7 +187,7 @@ module Datadog
         #
         # These are read directly off the ResolutionDetails Struct (populated by
         # the libdatadog FFI bindings) rather than from `flag_metadata`, because
-        # the native flag-metadata path is currently disabled (FFL-1450). The
+        # the native flag-metadata path is currently disabled. The
         # span-enrichment hook reads these `__dd_` keys from the evaluation
         # details' flag metadata.
         serial_id = result.serial_id
