@@ -40,7 +40,7 @@ jobs:
       # the workspace before cloning. No privileged token is needed for this step.
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          ref: ${{ github.event.workflow_run.head_branch }}
+          ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
       # gemfiles/ is tracked, so checkout above already populated it; this only
       # overwrites paths with the newly generated lockfiles.
