@@ -171,7 +171,7 @@ requirements_json_test:
 
 configure_system_tests:
   variables:
-    SYSTEM_TESTS_REF: e591e675491c258d1289325d1d2cf7f61db07ea9 # TEMPORARY: system-tests#7249 (Ruby 4 / Bundler 4). Revert to automated ref before merge.
+    SYSTEM_TESTS_REF: 568b9cf1f7d0d51990b26df12918f78e8c20107e # TEMPORARY: system-tests#7249 (Ruby 4 / Bundler 4). Revert to automated ref before merge.
     SYSTEM_TESTS_SCENARIOS_GROUPS: "simple_onboarding,simple_onboarding_appsec,lib-injection,docker_ssi"
     SYSTEM_TEST_BUILD_ATTEMPTS: 3
 
