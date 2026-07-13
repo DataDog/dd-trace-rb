@@ -1,6 +1,6 @@
 # OpenFeature coding guide
 
-This guide applies to contributors and their AI coding tools working under `lib/datadog/open_feature/`, `spec/datadog/open_feature/`, and `sig/datadog/open_feature/`. The goal is to keep review conversations focused on design and correctness rather than conventions. Each rule is grounded in a real finding from this codebase; the guide grows as new patterns emerge. When in doubt, follow the existing files in this directory as the reference.
+This guide applies to contributors and their AI coding tools working under `lib/datadog/open_feature/`, `spec/datadog/open_feature/`, and `sig/datadog/open_feature/`. The goal is to automate conventions and keep human review focused on architecture, APM customer behavior, and correctness. Each rule is grounded in a real finding from this codebase; the guide grows as new patterns emerge. When in doubt, follow the existing files in this directory as the reference.
 
 ---
 
@@ -9,6 +9,7 @@ This guide applies to contributors and their AI coding tools working under `lib/
 - Keep each PR focused on one thing, under ~1000 added lines, and include tests for the change (see [Pull requests](#pull-requests)).
 - PR description follows `.github/PULL_REQUEST_TEMPLATE.md`, at most three sentences per section — high-level intent, not a file-by-file list.
 - Change log entry starts with `Yes.` or `None.` — `Yes.` only for changes to customer-observable provider behavior (see [Pull requests](#pull-requests)).
+- Complete the [customer and architecture review](#customer-and-architecture-review) before requesting human review.
 - Full, descriptive names. Single letters only for block indices, `rescue => e`, or an ignored `_arg` (see [Naming](#naming)).
 - Comment the *why* in as few words as possible; delete a comment that only restates the code (see [Comments](#comments)).
 - Files and modules follow [Zeitwerk conventions](#file-and-directory-structure): `FlagEvaluation` lives in `flag_evaluation.rb`.
@@ -37,6 +38,20 @@ The sections below explain the reasoning and show the tricky cases. Skim the "ba
 
 ---
 
+## Customer and architecture review
+
+Before requesting human review, verify:
+
+- The final application-visible result is represented correctly for success, provider error, runtime default, SDK type mismatch, and hook failure paths.
+- Capped or dropped data preserves referential integrity: no encoded field may reference an identifier omitted from another field.
+- Fork, shutdown, reconfiguration, and in-flight work cannot leak resources or emit data after the feature is disabled.
+- Enabled product paths fail observably. Never silently swallow an internal `require_relative` failure or return `nil` for a missing implementation file.
+- Minimum and latest supported OpenFeature SDKs preserve local-root span semantics and the backend wire contract.
+
+Use automated review, StandardRB, and Steep for conventions wherever practical. Ask human reviewers to evaluate open architectural choices, protocol changes, and their effect on APM customers.
+
+---
+
 ## File and directory structure
 
 Follow [Zeitwerk's file structure conventions](https://github.com/fxn/zeitwerk#file-structure): one class or module per file, matching the file name, and the file path mirrors the constant's namespace. `Datadog::OpenFeature::FlagEvaluation::Writer` lives in `lib/datadog/open_feature/flag_evaluation/writer.rb`, not `flagevaluation/writer.rb` or a file bundling multiple classes. Wire-level names (API endpoints, protocol fields) stay on the protocol side and do not leak into Ruby file or constant names.
@@ -45,17 +60,7 @@ Follow [Zeitwerk's file structure conventions](https://github.com/fxn/zeitwerk#f
 
 ## Naming
 
-```ruby
-# bad
-flat = flatten_context(attrs)
-e    = entries.first
-
-# good
-flattened_context = flatten_context(attrs)
-first_entry       = entries.first
-```
-
-Use Ruby naming throughout, including comments and test descriptions — do not carry camelCase from other languages (`# globalCap` should read `# global_cap`).
+Use Ruby naming throughout, including comments and test descriptions. Prefer `flattened_context` over `flat`; do not carry camelCase from other languages (`# globalCap` should read `# global_cap`).
 
 ---
 
@@ -72,7 +77,7 @@ attrs.each { |k, v| count += 1 }
 pruned[key] = value if pruned.size < MAX_CONTEXT_FIELDS
 ```
 
-Do not restate a test description as a comment inside the example. Do not reference things that only make sense outside this repository (ticket IDs, "Node reference", "Python sibling"). Use ASCII only — no Unicode box-drawing dividers.
+Do not restate a test description as a comment inside the example. Reference tickets or sibling SDKs only when they define a canonical backend/wire contract or a non-obvious parity requirement; link the source and explain the local constraint. Use ASCII only — no Unicode box-drawing dividers.
 
 ---
 
@@ -144,14 +149,6 @@ let(:writer) { double("Writer", enqueue: nil) }
 let(:writer) { instance_double(Datadog::OpenFeature::FlagEvaluation::Writer, enqueue: nil) }
 ```
 
-```ruby
-# bad: passes even if count is wildly wrong
-expect(result.count).to be >= 1
-
-# good
-expect(result.count).to eq(3)
-```
-
 ---
 
 ## Concurrency and threads
@@ -195,4 +192,4 @@ Run `bundle exec rake standard:fix` before pushing. StandardRB is fixed and non-
 
 ---
 
-**Tool note.** Claude Code reads `CLAUDE.md`, not `AGENTS.md`; this directory's `CLAUDE.md` is a one-line `@AGENTS.md` import, not a copy, so there is a single source of truth. Codex loads `AGENTS.md` by walking down from the repo root to the current directory, so contributors who start Codex at the repo root will pick this file up via the root `AGENTS.md`'s pointer to it — verify how your specific tool (Cursor, Copilot, etc.) discovers nested guide files.
+**Tool note.** Claude Code reads this directory's one-line `CLAUDE.md` import when it discovers work in this subtree. Codex only discovers `AGENTS.md` files from the repo root down to its current working directory; a root-level session does not automatically import this nested file. The root `AGENTS.md` therefore explicitly requires OpenFeature contributors and tools to read this guide before modifying code, specs, or signatures. Verify how other tools (Cursor, Copilot, etc.) discover nested guidance.
