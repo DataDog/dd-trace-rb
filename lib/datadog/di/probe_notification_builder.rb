@@ -346,7 +346,7 @@ module Datadog
             # except there is currently no consensus on said heuristics.
             # .NET always sends ld, other languages send nothing at the moment.
             # Don't send anything for the time being.
-            #product: 'di/ld',
+            # product: 'di/ld',
             snapshot: {
               id: SecureRandom.uuid,
               timestamp: timestamp,

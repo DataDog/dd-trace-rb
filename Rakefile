@@ -71,16 +71,7 @@ namespace :test do
         command = "bundle check || bundle install && bundle exec rake #{spec_task}"
         command += "'[#{spec_arguments}]'" if spec_arguments
 
-        total_executors = ENV.key?('CIRCLE_NODE_TOTAL') ? ENV['CIRCLE_NODE_TOTAL'].to_i : nil
-        current_executor = ENV.key?('CIRCLE_NODE_INDEX') ? ENV['CIRCLE_NODE_INDEX'].to_i : nil
-
-        if total_executors && current_executor && total_executors > 1
-          @execution_count ||= 0
-          @execution_count += 1
-          Bundler.with_unbundled_env { sh(env, command) } if @execution_count % total_executors == current_executor
-        else
-          Bundler.with_unbundled_env { sh(env, command) }
-        end
+        Bundler.with_unbundled_env { sh(env, command) }
       end
     end
   end
@@ -637,7 +628,7 @@ namespace :native_dev do
 end
 
 desc 'Runs lint + main test suite'
-task default: ['lint:all', 'standard', 'typecheck', 'spec:main']
+task default: ['rubocop', 'standard', 'typecheck', 'spec:main']
 
 desc 'Runs the default task in parallel'
-multitask fastdefault: ['lint:all', 'standard', 'typecheck', 'spec:main']
+multitask fastdefault: ['rubocop', 'standard', 'typecheck', 'spec:main']

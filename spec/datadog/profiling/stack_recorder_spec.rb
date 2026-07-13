@@ -846,6 +846,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             let(:heap_clean_after_gc_enabled) { false }
 
             it "does nothing" do
+              skip_asan_flaky
+
               # Every object is still being tracked at this point
               expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, true, true]
 

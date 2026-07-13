@@ -18,6 +18,64 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Gateway::Request do
     )
   end
 
+  describe '#route_params' do
+    context 'when the router has populated path parameters' do
+      before do
+        env['action_dispatch.request.path_parameters'] = {controller: 'users', action: 'show', id: '42'}
+      end
+
+      it 'returns the path parameters without :controller and :action' do
+        expect(request.route_params).to eq(id: '42')
+      end
+    end
+
+    context 'when the router was bypassed and path parameters are nil' do
+      before { env.delete('action_dispatch.request.path_parameters') }
+
+      it 'returns an empty hash instead of raising' do
+        expect(request.route_params).to eq({})
+      end
+    end
+  end
+
+  describe '#parsed_body' do
+    context 'when the router has populated path parameters' do
+      before do
+        env['action_dispatch.request.request_parameters'] = {'name' => 'john'}
+        env['action_dispatch.request.path_parameters'] = {id: '42'}
+      end
+
+      it 'returns the request body parameters' do
+        expect(request.parsed_body).to eq('name' => 'john')
+      end
+    end
+
+    context 'when the router was bypassed and path parameters are nil' do
+      before do
+        env['action_dispatch.request.request_parameters'] = {'name' => 'john'}
+        env.delete('action_dispatch.request.path_parameters')
+      end
+
+      it 'returns the request parameters' do
+        expect(request.parsed_body).to eq('name' => 'john')
+      end
+    end
+
+    context 'when body parsing fails' do
+      before do
+        allow(request.request).to receive(:parameters)
+          .and_raise(EOFError, 'bad multipart')
+      end
+
+      it 'returns nil and reports telemetry' do
+        expect(Datadog::AppSec.telemetry).to receive(:report)
+          .with(instance_of(EOFError), description: 'AppSec: Failed to parse request body')
+
+        expect(request.parsed_body).to be_nil
+      end
+    end
+  end
+
   describe '#body_bytesize' do
     context 'when raw posted data is present' do
       before { env['RAW_POST_DATA'] = '{"name":"john"}' }

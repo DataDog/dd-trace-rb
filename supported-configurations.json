@@ -73,6 +73,13 @@
         "default": "true"
       }
     ],
+    "DD_API_SECURITY_MAX_DOWNSTREAM_BODY_BYTES": [
+      {
+        "version": "A",
+        "type": "int",
+        "default": "10485760"
+      }
+    ],
     "DD_API_SECURITY_MAX_DOWNSTREAM_REQUEST_BODY_ANALYSIS": [
       {
         "version": "A",

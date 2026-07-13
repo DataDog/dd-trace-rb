@@ -20,7 +20,7 @@ module Datadog
       ActiveContextError = Class.new(StandardError) # steep:ignore IncompatibleAssignment
 
       # TODO: add delegators for active trace span
-      attr_reader :trace, :span
+      attr_reader :trace, :span, :metrics
 
       # Shared mutable storage for counters, flags, and data accumulated during
       # the request's lifecycle.
@@ -117,6 +117,7 @@ module Datadog
 
         Metrics::Exporter.export_waf_metrics(@metrics.waf, @span)
         Metrics::Exporter.export_rasp_metrics(@metrics.rasp, @span)
+        Metrics::Exporter.export_downstream_response_metrics(@metrics.downstream_responses, @span)
       end
 
       def export_request_telemetry

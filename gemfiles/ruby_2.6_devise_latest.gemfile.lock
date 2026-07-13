@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.37.0.dev)
+    datadog (2.38.0.dev)
       cgi
       datadog-ruby_core_source (~> 3.5, >= 3.5.2)
       libdatadog (~> 36.0.0.1.0)
@@ -70,8 +70,8 @@ GEM
     i18n (1.14.7)
       concurrent-ruby (~> 1.0)
     io-console (0.8.2)
-    json-schema (2.8.1)
-      addressable (>= 2.4)
+    json-schema (4.3.1)
+      addressable (>= 2.8)
     libdatadog (36.0.0.1.0)
     libdatadog (36.0.0.1.0-aarch64-linux)
     libdatadog (36.0.0.1.0-arm64-darwin)
